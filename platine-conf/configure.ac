@@ -27,15 +27,23 @@ AC_HEADER_TIME
 AC_PROG_GCC_TRADITIONAL
 AC_CHECK_FUNCS([])
 
+AC_SUBST([PLATINE_CONF_REQ], ['libxml++-2.6 >= 2.10.0'])
+
+PKG_CHECK_MODULES([LIBXMLXX], [$PLATINE_CONF_REQ])
+LIBS="$LIBXMLXX_LIBS $LIBS"
+
+AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
+
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
 
-AC_SUBST(AM_CPPFLAGS, "-g -Wall -W -Werror -DUTI_DEBUG_ON")
+AC_SUBST(AM_CPPFLAGS, "-g -Wall -W -Werror -DUTI_DEBUG_ON $AM_CPPFLAGS")
 
 AM_DEP_TRACK
 
 AC_CONFIG_FILES([Makefile \
                  src/Makefile \
+                 src/test/Makefile \
                  platine_conf.pc
                  ])
 

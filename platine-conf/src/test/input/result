@@ -1,0 +1,11 @@
+dupkey1=dupval1
+dupkey2=dupval2
+s1key1=s1k1val
+s1key2=s1k2val
+s2key1=s2k1val
+s3key1=s3k1val
+
+s1att1=s1l1val1 s1att2=s1l1val2 
+s1att1=s1l2val1 s1att2=s1l2val2 
+s3att1=s3l1val1 s3att2=s3l1val2 
+s3att1=s3l2val1 s3att2=s3l2val2 

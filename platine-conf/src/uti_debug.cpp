@@ -37,6 +37,7 @@
 
 
 #include "uti_debug.h"
+#include "conf.h"
 #include "ConfigurationFile.h"
 
 // All the package levels are defined and initialised here
@@ -93,12 +94,11 @@ void reloadDbgLevels(int UNUSED(sig))
 void UTI_readDebugLevels()
 {
 	unsigned int i;
-	int ret, level;
+	int level;
 
 	for(i = 0; i < PKGINFO_NB; i++)
 	{
-		ret = globalConfig.getIntegerValue(SECTION_DEBUG, pkgInfo[i].name, level);
-		if(!ret)
+		if(globalConfig.getIntegerValue(SECTION_DEBUG, pkgInfo[i].name, level))
 		{
 			*(pkgInfo[i].level) = (unsigned char) level;
 			pkgInfo[i].inConfig = true;

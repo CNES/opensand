@@ -46,10 +46,11 @@
 // section Global //
 ////////////////////
 
-#define GLOBAL_SECTION           "Global"
+#define GLOBAL_SECTION           "global"
 
-#define IN_ENCAP_SCHEME          "InputEncapScheme"
-#define OUT_ENCAP_SCHEME         "OutputEncapScheme"
+#define SAT_ETH_IFACE            "satellite_eth_interface"
+#define IN_ENCAP_SCHEME          "input_encap_scheme"
+#define OUT_ENCAP_SCHEME         "output_encap_scheme"
 #define ENCAP_ATM_AAL5           "ATM_AAL5"
 #define ENCAP_MPEG_ULE           "MPEG_ULE"
 #define ENCAP_MPEG_ATM_AAL5      "MPEG_ATM_AAL5"
@@ -63,14 +64,14 @@
 #define ENCAP_GSE_ATM_AAL5_ROHC  "GSE_ATM_AAL5_ROHC"
 #define ENCAP_GSE_MPEG_ULE_ROHC  "GSE_MPEG_ULE_ROHC"
 
-#define SATELLITE_TYPE           "satelliteType"
+#define SATELLITE_TYPE           "satellite_type"
 #define TRANSPARENT_SATELLITE    "transparent"
 #define REGENERATIVE_SATELLITE   "regenerative"
 
 #define SAT_DELAY                "delay"
 
-#define PACK_THRES               "packingThreshold"
-#define GSE_QOS_NBR              "gseQosNumber"
+#define PACK_THRES               "packing_threshold"
+#define GSE_QOS_NBR              "gse_qos_number"
 #define DFLT_PACK_THRES          10 // default packing threshold in milliseconds
 #define DFLT_GSE_QOS_NBR         5  // default QoS number for GSE encapsulation and desencapsulation
 #define NB_MAX_ST                (1941)
@@ -85,46 +86,64 @@
 // section macLayer //
 //////////////////////
 
-#define DVB_MAC_LAYER_SECTION    "macLayer"
+#define DVB_MAC_LAYER_SECTION    "mac_layer"
 
 #define DVB_FRMS_PER_SUPER       "frames_per_superframe"
 #define DVB_FRM_DURATION         "frame_duration"
 
+/////////////////////////
+//   section Dvb_rcs   //
+/////////////////////////
+
+#define DVB_GLOBAL_SECTION       "dvb_rcs"
 
 /////////////////////////
 // section Dvb_rcs_tal //
 /////////////////////////
 
-#define DVB_TAL_SECTION          "Dvb_rcs_tal"
+#define DVB_TAL_SECTION          "dvb_rcs_tal"
 
-#define DVB_TYPE                 "DvbType"
-#define DVB_RT_BANDWIDTH         "RTFixedBandwidth"
-#define DVB_MAC_ID               "DvbMacId"
-#define DVB_SIMU_COL             "SimuColumnNbr"
-#define DVB_CAR_ID_CTRL          "CarrierIdDvbCtrl"
-#define DVB_CAR_ID_LOGON         "CarrierIdLogon"
-#define DVB_CAR_ID_DATA          "CarrierIdData"
-#define DVB_OBR_PERIOD_DATA      "ObrPeriod"
-#define DVB_DAMA_ALGO            "DamaAlgorithm"
+#define FIFO_LIST                "fifos"
+#define FIFO_ID                  "id"
+#define FIFO_TYPE                "type"
+#define FIFO_SIZE                "size_max"
+#define FIFO_PVC                 "pvc"
+#define FIFO_CR_TYPE             "cr_type"
+#define DVB_TYPE                 "dvb_type"
+#define DVB_RT_BANDWIDTH         "rt_fixed_bandwidth"
+#define DVB_MAC_ID               "dvb_mac_id"
+#define DVB_SIMU_COL             "simulation_column"
+#define COLUMN_LIST              "columns"
+#define COLUMN_NBR               "column_nbr"
+#define DVB_CAR_ID_CTRL          "carrier_id_dvb_ctrl"
+#define DVB_CAR_ID_LOGON         "carrier_id_logon"
+#define DVB_CAR_ID_DATA          "carrier_id_data"
+#define DVB_OBR_PERIOD_DATA      "obr_period"
+#define DVB_DAMA_ALGO            "dama_algorithm"
 
 
 /////////////////////////
 // section Dvb_rcs_sat //
 /////////////////////////
 
-#define SAT_DVB_SECTION          "Dvb_rcs_sat"
+#define SPOT_ID                  "spot_id"
+#define TAL_ID                   "tal_id"
+
+#define SAT_DVB_SECTION          "dvb_rcs_sat"
+#define SPOT_LIST                "spots"
+#define CTRL_ID                  "ctrl_id"
+#define DATA_IN_ID               "data_in_id"
+#define DATA_OUT_GW_ID           "data_out_gw_id"
+#define DATA_OUT_ST_ID           "data_out_st_id"
+#define LOG_ID                   "log_id"
 
 #define SAT_RAND_SEED            "seed"
 
-#define SAT_TABLE_SPOT_FMT       "%ld %ld %ld %ld %ld %ld"
-#define SAT_TABLE_SPOT_NB_ITEM   (6)
-
-#define SAT_SIMU_COL_SECTION     "SimulationColumn"
-#define SAT_SIMU_COL_FMT         "%ld %ld"
-#define SAT_SIMU_COL_NB_ITEM     (2)
-#define SAT_SWITCH_SECTION       "SatSwitchingTable"
-#define SAT_TABLE_SWITCH_FMT     "%ld %ld"
-#define SAT_TABLE_SWITCH_NB_ITEM (2)
+#define SAT_SIMU_COL_SECTION     "simulation_column"
+#define COLUMN_LIST              "columns"
+#define COLUMN_NBR               "column_nbr"
+#define SAT_SWITCH_SECTION       "sat_switching_table"
+#define SWITCH_LIST              "switchs"
 
 #define SAT_ERR_GENERATOR        "error_generator"
 #define SAT_ERR_GENERATOR_NONE   "none"
@@ -138,24 +157,24 @@
 // bloc_dvb_rcs_ncc //
 //////////////////////
 
-#define OUT_ST_ENCAP_SCHEME     "OutputSTEncapScheme"
+#define OUT_ST_ENCAP_SCHEME     "output_st_encap_scheme"
 #define DVB_GW_MAC_ID           (0L)
-#define DVB_MAC_SECTION         "macLayer"
+#define DVB_MAC_SECTION         "mac_layer"
 #define DVB_MEDIUM_RATE         "transmission_rate"
 #define DVB_FPF                 "frames_per_superframe"
 
-#define DVB_NCC_SECTION         "Dvb_rcs_ncc"
+#define DVB_NCC_SECTION         "dvb_rcs_ncc"
 #define DVB_NCC_DAMA_ALGO       "dama_algorithm"
-#define DVB_CTRL_CAR            "CarrierIdDvbCtrl"
-#define DVB_SOF_CAR             "CarrierIdSOF"
-#define DVB_DATA_CAR            "CarrierIdData"
+#define DVB_CTRL_CAR            "carrier_id_dvb_ctrl"
+#define DVB_SOF_CAR             "carrier_id_sof"
+#define DVB_DATA_CAR            "carrier_id_data"
 #define DVB_SIZE_FIFO           "max_fifo"
 
 //////////////////////
 //    PEP section   //
 //////////////////////
 
-#define NCC_SECTION_PEP      "Pep"
+#define NCC_SECTION_PEP      "pep"
 #define DVB_NCC_ALLOC_DELAY  "pep_alloc_delay"
 #define PEP_DAMA_PORT        "pep_to_dama_port"
 
@@ -163,7 +182,7 @@
 // DAMA CONTROL //
 //////////////////
 
-#define DC_SECTION_NCC              "Dvb_rcs_ncc"
+#define DC_SECTION_NCC              "dvb_rcs_ncc"
 #define DC_CRA_DECREASE             "cra_decrease"
 #define DC_YES                      "yes"
 #define DC_NO                       "no"
@@ -171,7 +190,7 @@
 #define DC_RBDC_TIMEOUT             "rbdc_timeout"
 #define DC_MAX_RBDC                 "max_rbdc"
 #define DC_MIN_VBDC                 "min_vbdc"
-#define DC_SECTION_MAC_LAYER        "macLayer"
+#define DC_SECTION_MAC_LAYER        "mac_layer"
 #define DC_CARRIER_TRANS_RATE       "carrier_transmission_rate"
 #define DC_CARRIER_NUMBER           "carrier_number"
 #define DC_GAC_PORT                 "gac_port"
@@ -186,18 +205,18 @@
 // DAMA //
 //////////
 
-#define DA_MAC_LAYER_SECTION    "macLayer"
+#define DA_MAC_LAYER_SECTION    "mac_layer"
 #define DA_FRM_DURATION         "frame_duration"
 #define DA_CARRIER_TRANS_RATE   "carrier_transmission_rate"
 
-#define DA_TAL_SECTION          "Dvb_rcs_tal"
-#define DA_RT_BANDWIDTH         "RTFixedBandwidth"
-#define DA_OBR_PERIOD_DATA      "ObrPeriod"
-#define DA_MAX_RBDC_DATA        "MaxRbdc"
-#define DA_RBDC_TIMEOUT_DATA    "RbdcTimeout"
-#define DA_MAX_VBDC_DATA        "MaxVbdc"
-#define DA_MSL_DURATION         "MSLDuration"
-#define DA_CR_RULE              "CrRuleOutputFifoOnly"
+#define DA_TAL_SECTION          "dvb_rcs_tal"
+#define DA_RT_BANDWIDTH         "rt_fixed_bandwidth"
+#define DA_OBR_PERIOD_DATA      "obr_period"
+#define DA_MAX_RBDC_DATA        "max_rbdc"
+#define DA_RBDC_TIMEOUT_DATA    "rbdc_timeout"
+#define DA_MAX_VBDC_DATA        "max_vbdc"
+#define DA_MSL_DURATION         "msl_duration"
+#define DA_CR_RULE              "cr_rule_output_fifo_only"
 
 // default parameter values used by NCC
 #define DC_DFLT_DAMA_BHV        SACT_builtin
@@ -228,42 +247,65 @@
 
 #define TUNTAP_BUFSIZE 1514 // ethernet header + mtu, crc not included
 
-#define SECTION_QOS_AGENT    "QoSAgent"
+#define SECTION_QOS_AGENT    "qos_agent"
 #define ST_NAME              "st_name"
 #define QOS_SERVER_HOST      "st_address"
 #define QOS_SERVER_PORT      "qos_server_port"
 #define QOS_SERVER_DFLT_HOST "192.168.21.5"
 #define QOS_SERVER_DFLT_PORT 12000
 
-#define SECTION_IPQOS   "IPQoS"
+#define SECTION_IPQOS   "ip_qos"
 
-#define SECTION_CLASS    "ServiceClass"
-#define SCHEDULER_TYPE   "SchedulerType"
-#define QOS_TREE_MODE    "QoSTreeMode"
+#define SECTION_CLASS    "service_class"
+#define CLASS_LIST       "classes"
+#define CLASS_ID         "id"
+#define CLASS_NAME       "name"
+#define CLASS_SCHED_PRIO "scheduler_priority"
+#define CLASS_MAC_ID     "mac_queue_id"
+#define SCHEDULER_TYPE   "scheduler_type"
+#define QOS_TREE_MODE    "qos_tree_mode"
 #define MAPPING_SIG      "mapping_sig"
-#define SIG_PORT       "sig_port"
+#define SIG_PORT         "sig_port"
 
-#define SECTION_CATEGORY    "TrafficCategory"
-#define KEY_DEF_CATEGORY    "DefaultCategory"
+#define SECTION_CATEGORY    "traffic_category"
+#define CATEGORY_LIST       "categories"
+#define CATEGORY_ID         "id"
+#define CATEGORY_NAME       "name"
+#define CATEGORY_SERVICE    "class"
+#define KEY_DEF_CATEGORY    "default_category"
 
 
 //////////////////
 // IP dedicated //
 //////////////////
 
-#define IPD_SECTION_V4 "ip_dedicated_v4"
-#define IPD_SECTION_V6 "ip_dedicated_v6"
-
-
+#define IPD_SECTION_V4      "ip_dedicated_v4"
+#define IPD_SECTION_V6      "ip_dedicated_v6"
+#define TERMINAL_LIST       "terminals"
+#define TERMINAL_IPV4_ADDR  "ipv4_addr"
+#define TERMINAL_IPV6_ADDR  "ipv6_addr"
+#define TERMINAL_IP_MASK    "mask"
 
 /////////////////
 // SAT Carrier //
 /////////////////
 
-#define SATCAR_SECTION "SatCarrier"
+#define SATCAR_SECTION      "sat_carrier"
+#define CARRIER_LIST        "carriers"
+#define CARRIER_ID          "id"
+#define CARRIER_IP          "ip_address"
+#define CARRIER_PORT        "port"
+#define CARRIER_IN          "in"
+#define CARRIER_OUT         "out"
+#define CARRIER_MULTICAST   "ip_multicast"
 #define INTERFACE_NAME_SIZE 16
-#define SOCKET_TYPE    "type"
-#define UDP            "SOCK_DGRAM"
-#define IPADDR         "addr"
+#define SOCKET_TYPE         "socket_type"
+#define UDP                 "SOCK_DGRAM"
+#define IPADDR              "addr"
+
+/////////////////
+//    Debug    //
+/////////////////
+#define SECTION_DEBUG "debug"
 
 #endif

@@ -1,7 +1,0 @@
-#!/bin/bash
-if [[ `ls /home/devel2 | grep radvd.pidfile` == "" ]] ; then
-	/usr/local/sbin/radvd/sbin/radvd -C /usr/local/sbin/radvd/sbin/radvd.conf -u devel2 -p /home/devel2/radvd.pidfile
-else
-	echo "RADVD already running"
-fi
-

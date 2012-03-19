@@ -44,6 +44,7 @@
 #include "uti_debug.h" // use default package
 #include "ConfigurationFile.h"
 
+
 ConfigurationFile globalConfig;
 
 
@@ -71,18 +72,14 @@ ConfigurationFile::~ConfigurationFile()
 /**
  * Load the whole configuration file content into memory
  * @param confFile path and name of the configuration file
- * @return  0 ok, -1 failed
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::loadConfig(const string confFile)
+bool ConfigurationFile::loadConfig(const string confFile)
 {
-	struct stat statFile;
-	entries_t *entries = NULL;
 	string section, key, value;
-	char *buffer = NULL;
-	char *ptrBuffer;
-	char **pptrBuffer;
-	int confFd = -1;
-	int ret = -1;
+	bool ret = false;
+	xmlpp::DomParser *new_parser;
+	const xmlpp::Element *root;
 
 	// Build whole path and name of configuration file
 	if(confFile.empty())
@@ -94,84 +91,36 @@ int ConfigurationFile::loadConfig(const string confFile)
 	if(access(confFile.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("unable to access configuration file '%s' (%s)\n",
-				  confFile.c_str(), strerror(errno));
+		          confFile.c_str(), strerror(errno));
 		goto FCT_END;
 	}
 
-	//----- Load file content into a huge buffer
-	if(stat(confFile.c_str(), &statFile))
+	try
 	{
-		UTI_ERROR("System call stat failure on file [%s], errno %d\n",
-		          confFile.c_str(), errno);
-		goto FCT_END;
-	}
-
-	buffer = new char[statFile.st_size+1];
-	if(!buffer)
-	{
-		UTI_ERROR("System call malloc failure, errno %d\n", errno);
-		goto FCT_END;
-	}
-
-	if((confFd = open ( confFile.c_str(), O_RDONLY, 0)) < 0)
-	{
-		UTI_ERROR("System call open failure on file [%s], errno %d\n",
-		          confFile.c_str(), errno);
-		goto FCT_END;
-	}
-
-	memset(buffer, 0, statFile.st_size+1);
-	if(read(confFd, buffer,  statFile.st_size) < 0)
-	{
-		UTI_ERROR("System call read failure on file [%s], errno %d\n",
-		          confFile.c_str(), errno);
-		goto FCT_END;
-	}
-
-	//----- Parse configuration parameters
-	ptrBuffer = buffer;
-	pptrBuffer = &ptrBuffer;
-	while(readLine(pptrBuffer, section, key, value) != -1)
-	{
-		if(section.size()) // section not null -> new section
+		new_parser = new xmlpp::DomParser();
+		new_parser->set_substitute_entities();
+		new_parser->parse_file(confFile);
+		root = new_parser->get_document()->get_root_node();
+		if(root->get_name() != "configuration")
 		{
-			UTI_DEBUG("section [%s]\n", section.c_str());
-
-			entries = new entries_t;
-			if(!entries)
-				goto FCT_END;
-
-			sectionEntries[section] = entries;
-			entries->nbListItems = 0;
+			UTI_ERROR("Root element is not 'configuration' (%s)\n",
+			          root->get_name().c_str());
+			goto FCT_END;
 		}
-		else if(entries != NULL) // inside a section
-		{
-			UTI_DEBUG("key [%s], value [%s]\n", key.c_str(), value.c_str());
+		this->_parsers.push_back(new_parser);
+	}
+	catch(const std::exception& ex)
+	{
+		UTI_ERROR("Exception when parsing the configuration file %s: %s\n",
+		          confFile.c_str(), ex.what());
+		goto FCT_END;
+	}
 
-			if(key.size()) // (key, value) pair
-			{
-				entries->keyItems[key] = value;
-			}
-			else if(value.size()) // list item
-			{
-				entries->nbListItems++;
-				entries->listItems[entries->nbListItems] = value;
-			}
-		}
-		else
-		{
-			UTI_DEBUG("Key %s ignored: out of section\n", key.c_str());
-		}
-	} // while
-	ret = 0;
+	ret = true;
 
 FCT_END:
-	if(buffer != NULL)
-		delete [] buffer;
-	if(confFd != -1) close(confFd);
-		return ret;
-
-} // loadConfig
+	return ret;
+}
 
 
 /**
@@ -180,302 +129,544 @@ FCT_END:
  */
 void ConfigurationFile::unloadConfig()
 {
-	sectionEntries_t::iterator iterS;
-	entries_t *entries;
+	vector<xmlpp::DomParser *>::iterator parser;
 
-	for(iterS = sectionEntries.begin(); iterS != sectionEntries.end(); ++iterS)
+	for(parser = this->_parsers.begin(); parser != this->_parsers.end(); parser++)
 	{
-		entries = (*iterS).second;
-		if(entries != NULL)
-		{
-			entries->keyItems.clear();
-			entries->listItems.clear();
-			delete entries;
-		}
+		delete *parser;
 	}
-	this->sectionEntries.clear();
+	this->_parsers.clear();
 } // unloadConfig
 
+/**
+ * Get a XML section node from its name
+ *
+ * @param  section      name of the section
+ * @param  sectionNode  the XML section node
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getSection(const char *section,
+                                   xmlpp::Node::NodeList &sectionList)
+{
+	vector<xmlpp::DomParser *>::iterator parser;
+
+	for(parser = this->_parsers.begin(); parser != this->_parsers.end(); parser++)
+	{
+		const xmlpp::Element* root;
+		xmlpp::Node::NodeList tempList;
+
+		root = (*parser)->get_document()->get_root_node();
+		tempList = root->get_children(section);
+		sectionList.insert(sectionList.end(), tempList.begin(), tempList.end());
+	}
+	if(sectionList.empty())
+	{
+		UTI_ERROR("no section '%s'\n", section);
+		goto error;
+	}
+
+	return true;
+error:
+	return false;
+}
+
+/**
+ * Get a XML key node from its name and its section name
+ *
+ * @param  section  name of the section
+ * @param  key      name of the key
+ * @param  keyNode  the XML key node
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getKey(const char *section,
+                               const char *key,
+                               const xmlpp::Element **keyNode)
+{
+	xmlpp::Node::NodeList sectionList;
+	xmlpp::Node::NodeList::iterator iter;
+	xmlpp::Node::NodeList keyList;
+	bool found = false;
+
+	if(!this->getSection(section, sectionList))
+	{
+		UTI_ERROR("cannot find section %s\n", section);
+		goto error;
+	}
+
+	for(iter = sectionList.begin(); iter != sectionList.end(); iter++)
+	{
+		const xmlpp::Node *sectionNode = *iter;
+
+		keyList = sectionNode->get_children(key);
+		if(keyList.size() > 1)
+		{
+			UTI_ERROR("more than one key named '%s' in section '%s'\n",
+					  key, section);
+			goto error;
+		}
+		else if(keyList.size() == 1)
+		{
+			*keyNode = dynamic_cast<const xmlpp::Element*>(keyList.front());
+			if(!(*keyNode))
+			{
+				UTI_ERROR("cannot convert the key '%s' from section '%s' "
+						  "into element\n", key, section);
+				goto error;
+			}
+			found = true;
+			break;
+		}
+	}
+	if(!found)
+	{
+		UTI_ERROR("no key named '%s' in section '%s'\n",
+				key, section);
+		goto error;
+	}
+
+error:
+	return found;
+}
 
 
 /**
- * Read a string value from configuration with format keyName=strValue
+ * Read a string value from configuration
  *
- * @param  section  name of the section (without [ ])
+ * @param  section  name of the section
  * @param  key      name of the key
  * @param  value    value of the string
- * @return  0 ok, -1 failed
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::getStringValue(const char *section,
-                                      const char *key,
-                                      string &value)
+bool ConfigurationFile::getStringValue(const char *section,
+                                       const char *key,
+                                       string &value)
 {
-	entries_t *entries;
-	string _section=section, _key=key;
+	const xmlpp::Element *keyNode;
+	const xmlpp::TextNode *nodeText;
+	xmlpp::Node::NodeList list;
 
-	if(sectionEntries.count(_section))
+	if(!this->getKey(section, key, &keyNode))
 	{
-		entries = sectionEntries[_section];
-		if(entries->keyItems.count(_key))
-		{
-			value = entries->keyItems[_key];
-			return 0;
-		}
-		else
-		{
-			UTI_DEBUG("Key %s not found in section %s\n", key, section);
-			return -1;
-		}
+		goto error;
+	}
+
+	list = keyNode->get_children();
+	if(list.size() != 1)
+	{
+		UTI_ERROR("The key '%s' in section '%s' does not contain text\n",
+		          key, section);
+		goto error;
 	}
 	else
 	{
-		UTI_DEBUG("Section %s not found\n", section);
-		return -1;
+		nodeText = dynamic_cast<const xmlpp::TextNode*>(list.front());
 	}
-} // getStringValue
 
+	if(!nodeText)
+	{
+		UTI_ERROR("The key '%s' in section '%s' does not contain text\n",
+		          key, section);
+		goto error;
+	}
+	value = nodeText->get_content();
+
+	return true;
+error:
+	return false;
+}
+	
 
 /**
- * Read an integer value from configuration with format keyName=IntValue
+ * Read an integer value from configuration
  *
- * @param  section  name of the section (without [ ])
+ * @param  section  name of the section
  * @param  key      name of the key
  * @param  value    integer value
- * @return  0 ok, -1 failed
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::getIntegerValue(const char *section,
-                                       const char *key,
-                                       int &value)
+bool ConfigurationFile::getIntegerValue(const char *section,
+                                        const char *key,
+                                        int &value)
 {
 	string valueStr;
 
-	if((getStringValue(section, key, valueStr) == 0) &&
+	if(this->getStringValue(section, key, valueStr) &&
 	   (valueStr.size() > 0))
 	{
 		value = atoi(valueStr.c_str());
-		return 0;
+		return true;
 	}
-	else
-		return -1;
+
+	return false;
 } // getIntegerValue
 
 
 /**
- * Read a long integer value from configuration with format keyName=LongIntValue
+ * Read a longeger value from configuration
  *
- * @param  section  name of the section (without [ ])
+ * @param  section  name of the section
  * @param  key      name of the key
  * @param  value    integer value
- * @return  0 ok, -1 failed
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::getLongIntegerValue(const char *section,
-                                           const char *key,
-                                           long &value)
+bool ConfigurationFile::getLongIntegerValue(const char *section,
+                                            const char *key,
+                                            long &value)
 {
 	string valueStr;
 
-	if((this->getStringValue(section, key, valueStr) == 0) &&
+	if(this->getStringValue(section, key, valueStr) &&
 	   (valueStr.size() > 0))
 	{
 		value = atol(valueStr.c_str());
-		return 0;
+		return true;
 	}
-	else
-	{
-		return -1;
-	}
+
+	return false;
 }
 
 
 /**
- * Read the number of lines in the items list of a section
+ * Read the number of elements in a list
  *
- * @param  section  name of the section (without [ ])
- * @return  nb list items (-1 if section not found)
+ * @param  section  name of the section
+ * @param  key      name of the list key
+ * @param  nbr      the number of elements in the list
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::getNbListItems(const char *section)
+bool ConfigurationFile::getNbListItems(const char *section,
+                                       const char *key,
+                                       int &nbr)
 {
-	entries_t *entries;
-	string _section=section;
-
-	if(sectionEntries.count(_section))
+	ConfigurationList list;
+	if(!this->getListItems(section, key, list))
 	{
-		entries = sectionEntries[_section];
-		return entries->nbListItems;
+		goto error;
 	}
-	else
-		return -1;
+
+	nbr = list.size();
+
+	return true;
+error:
+	return false;
+
 } // getNbListItems
 
 
+/**
+ * Get the elements from the list
+ *
+ * @param  section  name of the section
+ * @param  key      name of the list key
+ * @param  list     the list
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getListItems(const char *section,
+                                     const char *key,
+                                     ConfigurationList &list)
+{
+	const xmlpp::Element *keyNode;
+	xmlpp::Node::NodeList tempList;
+	xmlpp::Node::NodeList::iterator iter;
+
+	if(!this->getKey(section, key, &keyNode))
+	{
+		goto error;
+	}
+
+	tempList = keyNode->get_children();
+	for(iter = tempList.begin(); iter != tempList.end(); iter++)
+	{
+		const xmlpp::TextNode* nodeText;
+		const xmlpp::CommentNode* nodeComment;
+		Glib::ustring nodename;
+
+		nodeText = dynamic_cast<const xmlpp::TextNode*>(*iter);
+		nodeComment = dynamic_cast<const xmlpp::CommentNode*>(*iter);
+		nodename = (*iter)->get_name();
+
+		if(!nodeText && !nodeComment && !nodename.empty()) //Let's not say "name: text".
+		{   
+			list.push_back(*iter);
+		}   
+	}
+
+	return true;
+error:
+	return false;
+}
 
 /**
- * Read an item from the items list of a section
+ * Get the string value of an attribute in a list element
  *
- * @param  section   name of the section (without [ ])
- * @param  itemIdx   item index (from 1 to nbListItems)
- * @param  lineValue value of the whole line
- * @return  0 ok, -1 failed
+ * @param  elt        an iterator on a ConfigurationList
+ * @param  attribute  the attribute name
+ * @param  value      attribute value
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::getListItem(const char *section,
-                                   unsigned short itemIdx,
-                                   string &lineValue)
+bool ConfigurationFile::getAttributeStringValue(ConfigurationList::iterator iter,
+                                               const char *attribute,
+                                               string &value)
 {
-	entries_t *entries;
-	string _section=section;
+	const xmlpp::Attribute *name;
+	const xmlpp::Element *element;
 
-	if(sectionEntries.count(_section))
+	element = dynamic_cast<const xmlpp::Element *>(*iter);
+	if(!element)
 	{
-		entries = sectionEntries[_section];
-		if(itemIdx > 0 && itemIdx <= entries->nbListItems)
-		{
-			lineValue = entries->listItems[itemIdx];
-			return 0;
-		}
-		else
-		{
-			UTI_DEBUG("List item index %d not found in section %s\n", itemIdx, section);
-			return -1;
-		}
+		UTI_ERROR("Wrong configuration list element\n");
+		goto error;
+	}
+	name = element->get_attribute(attribute);
+	if(!name)
+	{
+		UTI_ERROR("no attribute named %s in element %s\n",
+		          attribute, element->get_name().c_str());
+		goto error;
 	}
 	else
 	{
-		UTI_DEBUG("Section %s not found\n", section);
-		return -1;
+		value = name->get_value();
 	}
+
+	return true;
+error:
+	return false;
 }
 
 
 /**
- * Suppress spaces and tabulations at beginning and end of a string
+ * Get the integer value of an attribute in a list element
  *
- * @param  str  string to process
- * @return  length of the resulting string
+ * @param  elt        an iterator on a ConfigurationList
+ * @param  attribute  the attribute name
+ * @param  value      attribute value
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::supprSpaces(char *str)
+bool ConfigurationFile::getAttributeIntegerValue(ConfigurationList::iterator iter,
+                                                 const char *attribute,
+                                                 int &value)
 {
-	int i, j;
-	int lgmax;  // length of source string
+	string valueStr;
 
-	if(str == NULL)
-		return 0;
-
-	lgmax = strlen(str);
-	if(lgmax == 0)
-		return 0;
-
-	// At string beginning
-	i = 0;
-	j = 0;
-	// find first character different from space & tab
-	while(isspace(str[i]) || (str[i] == '\t'))
+	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
+	   (valueStr.size() > 0))
 	{
-		i++;
-	}
-	// move the string left
-	while(i <= lgmax)
-	{
-		str[j++] = str[i++];
+		value = atoi(valueStr.c_str());
+		return true;
 	}
 
-	// At string end
-	i = strlen(str) - 1 ;
-	while(i >= 0 && ((isspace(str[i]) || (str[i] == '\t'))))
-	{
-		str[i--] = '\0';
-	}
-
-	return i + 1;
-} // supprSpaces
-
-
+	return false;
+}
 
 /**
- * Read a line from file and split it into (key, value) or lineItem
- *   if comment or blank line, ignore
+ * Get the longeger value of an attribute in a list element
  *
- * @param  ptrBuffer pointer to the current character in the config buffer
- * @param  section   section name if section line, else empty
- * @param  key       key name if pair (key, value), else empty
- * @param  value     value of a pair (key,value) or value of a lineItem
- * @return  0 ok, -1 failed
+ * @param  elt        an iterator on a ConfigurationList
+ * @param  attribute  the attribute name
+ * @param  value      attribute value
+ * @return  true on success, false otherwise
  */
-int ConfigurationFile::readLine(char **ptrBuffer,
-                                string &section,
-                                string &key,
-                                string &value)
+bool ConfigurationFile::getAttributeLongIntegerValue(ConfigurationList::iterator iter,
+                                                     const char *attribute,
+                                                     long &value)
+
 {
-	char *line ;
-	int iChar, lg;
-	int current ;
+	string valueStr;
 
-	line = new char[CONF_LINE_MAX];
-	if(!line)
-		return -1;
-	section = key = "";
-
-	//printf("buf %50.50s\n", *ptrBuffer);
-
-	do
+	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
+	   (valueStr.size() > 0))
 	{
-		// Read next line
-		current = 0 ;
-		while((**ptrBuffer) && (current < CONF_LINE_MAX-1))
+		value = atol(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Get a string value from a list element identified by a attribute value
+ *
+ * @param  list      the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getStringValueInList(ConfigurationList list,
+                                             const char *id,
+                                             const string id_val,
+                                             const char *attribute,
+                                             string &value)
+{
+	ConfigurationList::iterator iter;
+
+	for(iter = list.begin(); iter != list.end(); iter++)
+	{
+		string ref;
+
+		if(!this->getAttributeStringValue(iter, id, ref))
 		{
-			iChar = **ptrBuffer;
-			(*ptrBuffer)++;
-
-			if(iChar == '\n')
-				break;
-
-			line[current++] = (char) iChar ;
-		}
-
-		line[current] = '\0';
-		// remove spaces/tabs at beginning & end of strings
-		lg = supprSpaces(line);
-
-		//----- Extract section or key from the line
-		// Comment
-		if((lg == 0) || (line[0] == CONF_COMMENT))
+			goto error;
+		}	
+		if(ref == id_val)
 		{
 			continue;
 		}
-		// Section
-		else if((line[0] == CONF_SECTION_BEGIN) &&
-		       (line[lg-1] == CONF_SECTION_END))
-		{
-			line[lg-1] = 0;
-			section = line + 1;
-			break;
-		}
-		else
-		{
-			char *valuePtr;
+		// we are on the desired line
+		return this->getAttributeStringValue(iter, attribute, value);
+	}
 
-			valuePtr = strrchr(line, CONF_AFFECTATION);
-			if(valuePtr) // (key,value) pair
-			{
-				line[valuePtr-line] = 0;
-				supprSpaces(line);
-				key = line;
-				valuePtr++;
-			}
-			else // line item
-			{
-				valuePtr = line;
-			}
+error:
+	return false;
+}
 
-			// remove spaces/tabs at beginning & end of strings
-			supprSpaces(valuePtr);
-			value = valuePtr;
-			break;
-		}
-	} while(**ptrBuffer);
+/**
+ * Get a string value from a list element identified by a attribute value
+ *
+ * @param  section   name of the section identifying the list
+ * @param  key       name of the list key identifying the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getStringValueInList(const char *section,
+                                             const char *key,
+                                             const char *id,
+                                             const string id_val,
+                                             const char *attribute,
+                                             string &value)
+{
+	ConfigurationList list;
 
-	delete [] line;
-	if(current > 0)
-		return 0 ;
-	else
-		return -1 ;
-} // readLine
+	if(!this->getListItems(section, key, list))
+	{
+		goto error;
+	}
+	return this->getStringValueInList(list, id, id_val, attribute, value);
+
+error:
+	return false;
+}
+
+
+/**
+ * Get an integer value from a list element identified by a attribute value
+ *
+ * @param  list      the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getIntegerValueInList(ConfigurationList list,
+                                              const char *id,
+                                              const string id_val,
+                                              const char *attribute,
+                                              int &value)
+{
+	string valueStr;
+
+	if(this->getStringValueInList(list, id, id_val, attribute, valueStr)
+	   && (valueStr.size() > 0))
+	{
+		value = atoi(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Get an integer value from a list element identified by a attribute value
+ *
+ * @param  section   name of the section identifying the list
+ * @param  key       name of the list key identifying the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getIntegerValueInList(const char *section,
+                                              const char *key,
+                                              const char *id,
+                                              const string id_val,
+                                              const char *attribute,
+                                              int &value)
+{
+	string valueStr;
+
+	if(this->getStringValueInList(section, key, id, id_val, attribute, valueStr)
+	   && (valueStr.size() > 0))
+	{
+		value = atoi(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Get a longeger value from a list element identified by a attribute value
+ *
+ * @param  list      the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getLongIntegerValueInList(ConfigurationList list,
+                                                  const char *id,
+                                                  const string id_val,
+                                                  const char *attribute,
+                                                  long &value)
+{
+	string valueStr;
+
+	if(this->getStringValueInList(list, id, id_val, attribute, valueStr)
+	   && (valueStr.size() > 0))
+	{
+		value = atol(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Get a longeger value from a list element identified by a attribute value
+ *
+ * @param  section   name of the section identifying the list
+ * @param  key       name of the list key identifying the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getLongIntegerValueInList(const char *section,
+                                                  const char *key,
+                                                  const char *id,
+                                                  const string id_val,
+                                                  const char *attribute,
+                                                  long &value)
+{
+	string valueStr;
+
+	if(this->getStringValueInList(section, key, id, id_val, attribute, valueStr)
+	   && (valueStr.size() > 0))
+	{
+		value = atol(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+

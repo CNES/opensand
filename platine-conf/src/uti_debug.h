@@ -205,8 +205,6 @@ extern unsigned char dbgLevel(DBG_PACKAGE);
 #define UTI_DEBUG_LEVEL(level) UTI_setDefaultLevel(dbgPkgStr(DBG_PACKAGE),level)
 
 
-#define SECTION_DEBUG "Debug"
-
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 #define HERE() \

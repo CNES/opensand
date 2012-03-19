@@ -3,8 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: Configuration tools for Platine
+Name: libplatine-conf
 Description: Set of tools for Platine configuration parsing
+Requires: @PLATINE_CONF_REQ@
 Version: @VERSION@
 Libs: -L${libdir} -lplatine_conf
 Cflags: -I${includedir}

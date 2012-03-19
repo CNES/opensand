@@ -28,7 +28,7 @@
 /**
  * @file ConfigurationFile.h
  * @brief Reading parameters from a configuration file
- * @author Viveris Technologies
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  */
 
 #ifndef CONFIGURATION_H
@@ -37,6 +37,9 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <libxml++/libxml++.h>
+
+#include "ConfigurationList.h"
 
 using namespace std;
 
@@ -49,15 +52,7 @@ using namespace std;
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
-// Longueur max d'une ligne du fichier de config
-// max length of a line inside the config file
-#define CONF_LINE_MAX 512
-
-#define CONF_SECTION_BEGIN  '['
-#define CONF_SECTION_END    ']'
-#define CONF_COMMENT        '#'  // character used for comments
-#define CONF_AFFECTATION    '='
-
+#define CONF_GLOBAL_FILE  "/etc/platine/core_global.conf"
 #define CONF_DEFAULT_FILE  "/etc/platine/core.conf"
 
 
@@ -65,19 +60,22 @@ using namespace std;
  * @class ConfigurationFile
  * @brief Reading parameters from a configuration file
  *
- * At startup, the whole configuration file content is loaded in memory
+ * At startup, the whole configuration files contents are loaded in memory
  * On msg_init event, each bloc gets its parameters from the config\n
  *
- * Sections format:  [sectionName]\n
- * Comments: lines beginning with '#' are ignored\n\n
- * 3 types of entries are supported inside a section:\n
- * - stringKey=stringValue   ex:  netInterface=eth0
- * - intKey=intValue         ex:  carrierId=2
- * - list item: a line without any '=' sign. Ex:\n
- *   <tt> # ClassId  ClassName\n
- *             1       voice\n
- *             2       ftp</tt>
- *
+ * XML format:
+ * <?xml version="1.0" encoding="UTF-8"?>
+ * <configuration component='compo'>
+ *   <!-- section description -->
+ *   <section>
+ *     <!-- table and parameters description -->
+ *     <table>
+ *       <line param1="val1" param2="val2" />
+ *     </table>
+ *     <!-- key description -->
+ *     <key>val</key>
+ *    </section>
+ *  </configuration>
  */
 class ConfigurationFile
 {
@@ -87,50 +85,102 @@ class ConfigurationFile
 	virtual ~ConfigurationFile(void);
 
 	// Load/unload the whole configuration file content into/from memory
-	int loadConfig(const string confFileName);
+	bool loadConfig(const string confFileName);
 	void unloadConfig();
 
 	// Get a string or integer value
-	int getStringValue (const char *section, const char *key, string &value);
-	int getIntegerValue(const char *section, const char *key, int &value);
-	int getLongIntegerValue(const char *section, const char *key, long &value);
+	bool getStringValue(const char *section, const char *key, string &value);
+	bool getIntegerValue(const char *section, const char *key, int &value);
+	bool getLongIntegerValue(const char *section, const char *key, long &value);
 
-	// Get the number of items in the list; Get an item from the list
-	int getNbListItems(const char *section);
-	int getListItem(const char *section, unsigned short itemIdx, string &lineValue);
+	// Get the number of items in the list; Get the items from the list
+	bool getNbListItems(const char *section, const char *key, int &value);
+	bool getListItems(const char *section, const char *key, ConfigurationList &list);
+
+	// Get a string or integer value from a list attribute
+	bool getAttributeStringValue(ConfigurationList::iterator iter,
+	                             const char *attribute,
+	                             string &value);
+	bool getAttributeIntegerValue(ConfigurationList::iterator iter,
+	                              const char *attribute,
+	                              int &value);
+	bool getAttributeLongIntegerValue(ConfigurationList::iterator iter,
+	                                  const char *attribute,
+	                                  long &value);
+
+	// Get a string or integer from a line in a list
+	bool getStringValueInList(ConfigurationList list,
+	                          const char *id,
+	                          const string id_val,
+	                          const char *attribute,
+	                          string &value);
+	bool getStringValueInList(const char *section,
+	                          const char *key,
+	                          const char *id,
+	                          const string id_val,
+	                          const char *attribute,
+	                          string &value);
+	bool getIntegerValueInList(ConfigurationList list,
+	                           const char *id,
+	                           const string id_val,
+	                           const char *attribute,
+	                           int &value);
+	bool getIntegerValueInList(const char *section,
+	                           const char *key,
+	                           const char *id,
+	                           const string id_val,
+	                           const char *attribute,
+	                           int &value);
+	bool getLongIntegerValueInList(ConfigurationList list,
+	                               const char *id,
+	                               const string id_val,
+	                               const char *attribute,
+	                               long int &value);
+	bool getLongIntegerValueInList(const char *section,
+	                               const char *key,
+	                               const char *id,
+	                               const string id_val,
+	                               const char *attribute,
+	                               long &value);
 
  private:
-	// read a line from file
-	int readLine(char **ptrBuffer, string &section, string &key, string &value);
+	/// a vector of XML DOM parsers
+	vector<xmlpp::DomParser *> _parsers;
 
-	// Delete spaces and tabulations at beginning and end of string
-	int supprSpaces(char *str);
-
-	/// Association table between keys and values
-	typedef map<string,string> keyItems_t;
-	/// Association table between list item index and line value
-	typedef map<unsigned char,string> listItems_t;
-	/// Section content: list of (key,value) and list of (idx, line value)
-	typedef struct
-	{
-		keyItems_t  keyItems;
-		unsigned short nbListItems;
-		listItems_t listItems;
-	} entries_t;
-
-	/// Association table between section name and content
-	typedef map<string, entries_t *> sectionEntries_t;
-	/// Contains all the sections of the file associated to their content
-	sectionEntries_t sectionEntries;
+	/// get a section node in XML configuration file
+	bool getSection(const char *section,
+	                xmlpp::Node::NodeList &sectionList);
+	/// get a key node in XML configuration file
+	bool getKey(const char *section,const char*key,
+	            const xmlpp::Element **keyNode);
 };
 
 
+inline string toString(int val)
+{
+	stringstream str;
+	str << val;
+
+	return str.str();
+}
+
+inline string toString(long val)
+{
+	stringstream str;
+	str << val;
+
+	return str.str();
+}
+
 // Configuration file content is loaded in this object at main initialization
-//TODO remove that
 extern ConfigurationFile globalConfig;
 
 // Transform value "y" or "Y" in true; else false
-#define CONF_VALUE_YES(val) (strncasecmp(val, "y", 1)==0)
+#define CONF_VALUE_YES(val) (((val == "y") ? 1 : 0) || \
+                             ((val == "Y") ? 1 : 0) ||\
+                             ((val == "true") ? 1 : 0) ||\
+                             ((val == "True") ? 1 : 0) ||\
+                             ((val == "1") ? 1 : 0))
 
 
 #endif /* CONFIGURATION_H */

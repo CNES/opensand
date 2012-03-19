@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration component='test2'>
+    <!-- section description -->
+    <section3>
+        <!-- table description -->
+        <s3tables>
+            <s3table s3att1="s3l1val1" s3att2="s3l1val2" />
+            <s3table s3att1="s3l2val1" s3att2="s3l2val2" />
+        </s3tables>
+        <!-- key description -->
+        <s3key1>s3k1val</s3key1>
+    </section3>
+    <dup>
+        <dupkey2>dupval2</dupkey2>
+    </dup>
+</configuration>
+
