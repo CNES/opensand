@@ -40,6 +40,7 @@ import socket
 from platine_manager_core.my_exceptions import RunException
 from platine_manager_gui.view.run_view import RunView
 from platine_manager_gui.view.event_handler import EventReponseHandler
+from platine_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
 
 INIT_ITER = 4
 
@@ -103,6 +104,7 @@ class RunEvent(RunView):
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
+            self._ui.get_widget('options').set_visible(True)
         else:
             # do not show deploy button
             gobject.idle_add(self.hide_deploy_button,
@@ -346,6 +348,7 @@ class RunEvent(RunView):
         self._dev_mode = not self._dev_mode
         self.hide_deploy_button(not self._dev_mode)
         self._model.set_dev_mode(self._dev_mode)
+        self._ui.get_widget('options').set_visible(self._dev_mode)
         
         #TODO add an option to add hosts from scratch in advanced config ?
         #      ie. copy the Dmon with conf, run it and deploy the files
@@ -407,3 +410,19 @@ class RunEvent(RunView):
 
         # restart timer
         return True
+
+    def on_option_deploy_clicked(self, source=None, event=None):
+        """ deploy button in options menu clicked """
+        self.on_deploy_platine_button_clicked(source, event)
+
+    def on_option_disable_clicked(self, source=None, event=None):
+        """ disable button in options menu clicked """
+        # this will raise the appropriate event
+        self._ui.get_widget('dev_mode').set_active(False)
+
+    def on_option_edit_clicked(self,  source=None, event=None):
+        """ edit button in options menu clicked """
+        window = EditDeployDialog(self._model, self._log)
+        window.go()
+        window.close()
+        pass
