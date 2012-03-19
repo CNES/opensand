@@ -38,6 +38,7 @@ import gtk
 import gtk.glade
 import gobject
 import threading
+import os
 
 from random import randrange
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTK
@@ -314,9 +315,18 @@ class ProbeView(WindowView):
             self._files_path = ''
             gobject.idle_add(self.enable_plot_button,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+        # a scenario has been loaded
         elif self._files_path != '':
             gobject.idle_add(self.enable_plot_button,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+        # load the last run
+        elif self._model.get_run() != 'default':
+            scenario = self._model.get_scenario()
+            run = self._model.get_run()
+            self._files_path = os.path.join(scenario, run)
+            gobject.idle_add(self.enable_plot_button,
+                             priority=gobject.PRIORITY_HIGH_IDLE+20)
+        # no previous run, nothing loaded
         else:
             self._files_path = ''
             gobject.idle_add(self.disable_plot_button,

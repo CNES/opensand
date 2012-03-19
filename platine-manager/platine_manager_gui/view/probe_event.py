@@ -82,15 +82,16 @@ class ProbeEvent(ProbeView):
             if self._refresh_probe_tree is not None:
                 gobject.source_remove(self._refresh_probe_tree)
                 self._refresh_probe_tree = None
-        elif val and self._updating:
-            # refresh the GUI immediatly then periodically
-            self.update_stat()
-            self._timeout_id = gobject.timeout_add(1000, self.update_stat)
         else:
             # refresh the probe tree immediatly then create an object
             # which refresh it
             self.refresh()
             self._refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
+            if self._updating:
+                # refresh the GUI immediatly then periodically
+                self.update_stat()
+                self._timeout_id = gobject.timeout_add(1000, self.update_stat)
+
 
     def toggled_cb(self, cell, path):
         """ sets the toggled state on the toggle button to true or false
@@ -471,6 +472,7 @@ class ProbeEvent(ProbeView):
         self._updating = False
         self.init_canvas(0)
         self._canvas.hide_all()
+        self._files_path = ''
         self._probe_lock.release()
         # refresh the GUI immediatly then periodically
         self.update_stat()
@@ -479,7 +481,6 @@ class ProbeEvent(ProbeView):
         """ event handler for import button """
         scenario = ""
         run = ""
-        self._files_path = ''
 
         if self._model.is_running():
             error_popup("Please stop Platine to perform the importation")

@@ -269,6 +269,7 @@ class View(WindowView):
             self._model.set_scenario(folder)
             if folder != "":
                 self._log.info("New scenario created in %s" % folder)
+            self.set_default_run()
         except ModelException as msg:
             error_popup(msg)
         # update the window title
@@ -310,6 +311,7 @@ class View(WindowView):
             self._log.info("Open scenario from %s" % folder)
             try:
                 self._model.set_scenario(folder)
+                self.set_default_run()
             except ModelException, msg:
                 error_popup(str(msg))
         else:
@@ -369,6 +371,7 @@ class View(WindowView):
         self.set_title("Platine Manager - [new]")
         try:
             self._model.set_scenario("")
+            self.set_default_run()
         except ModelException as msg:
             error_popup(msg)
         # reload the configuration
@@ -442,6 +445,15 @@ class View(WindowView):
             submenu.append(menu_item)
 
         recent_widget.set_submenu(submenu)
+
+
+    def set_default_run(self):
+        """ reset the run value """
+        self._model.set_run("")
+        widget = self._ui.get_widget('run_id_txt')
+        widget.set_text("")
+        self._eventprobe.on_clear_clicked()
+
 
 ##### TEST #####
 if __name__ == "__main__":
