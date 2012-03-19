@@ -72,6 +72,7 @@
 
 #define PACK_THRES                "packing_threshold"
 #define DFLT_PACK_THRES           10 // default packing threshold in milliseconds
+#define GSE_QOS_NBR               "gse_qos_nbr"
 #define DFLT_GSE_QOS_NBR          5  // default QoS number for GSE encapsulation and desencapsulation
 #define NB_MAX_ST                 (1941)
 #define DVB_F_DURATION            "frame_duration"
