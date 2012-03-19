@@ -471,7 +471,8 @@ class ProbeEvent(ProbeView):
 
         self._updating = False
         self.init_canvas(0)
-        self._canvas.hide_all()
+        if self._canvas is not None:
+            self._canvas.hide_all()
         self._files_path = ''
         self._probe_lock.release()
         # refresh the GUI immediatly then periodically
