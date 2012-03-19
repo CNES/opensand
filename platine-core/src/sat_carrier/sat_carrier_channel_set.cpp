@@ -60,7 +60,6 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  */
 int sat_carrier_channel_set::readConfig()
 {
-	bool bIn, bOut, bMulticast;
 	string interfaceName;
 	string strConfig;
 	char localIPaddress[16];
@@ -110,9 +109,9 @@ int sat_carrier_channel_set::readConfig()
 		int carrier_id;
 		long carrier_port;
 		string carrier_ip;
-		string carrier_in;
-		string carrier_out;
-		string carrier_multicast;
+		bool carrier_in;
+		bool carrier_out;
+		bool carrier_multicast;
 
 		i++;
 		// get carrier ID
@@ -144,8 +143,8 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get in
-		if(!globalConfig.getAttributeStringValue(iter, CARRIER_IN,
-		                                         carrier_in))
+		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_IN,
+		                                       carrier_in))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -153,8 +152,8 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get out
-		if(!globalConfig.getAttributeStringValue(iter, CARRIER_OUT,
-		                                         carrier_out))
+		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_OUT,
+		                                       carrier_out))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -162,8 +161,8 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get multicast
-		if(!globalConfig.getAttributeStringValue(iter, CARRIER_MULTICAST,
-		                                         carrier_multicast))
+		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_MULTICAST,
+		                                       carrier_multicast))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -174,22 +173,22 @@ int sat_carrier_channel_set::readConfig()
 		UTI_DEBUG("Line: %d, Carrier ID : %u, IP address: %s, "
 		          "port: %ld, in : %s, out : %s, multicast: %s\n",
 		          i, carrier_id, carrier_ip.c_str(),
-		          carrier_port, carrier_in.c_str(),
-		          carrier_out.c_str(), carrier_multicast.c_str());
+		          carrier_port, (carrier_in ? "true" : "false"),
+		          (carrier_out ? "true" : "false"),
+		          (carrier_multicast ? "true" : "false"));
 
-		// if for a a channel in=n and out=n channel is not active
-		bIn = CONF_VALUE_YES(carrier_in);
-		bOut = CONF_VALUE_YES(carrier_out);
-		bMulticast = CONF_VALUE_YES(carrier_multicast);
-		if(bIn || bOut)
+		// if for a a channel in=false and out=false channel is not active
+		if(carrier_in || carrier_out)
 		{
 			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				channel = new sat_carrier_udp_channel(carrier_id, bIn, bOut,
+				channel = new sat_carrier_udp_channel(carrier_id, carrier_in,
+				                                      carrier_out,
 				                                      interfaceName.c_str(),
-				                                      carrier_port, bMulticast,
+				                                      carrier_port,
+				                                      carrier_multicast,
 				                                      localIPaddress,
 				                                      carrier_ip.c_str());
 				if(!channel->isInit())

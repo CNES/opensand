@@ -52,7 +52,7 @@ class ConfigurationList: public xmlpp::Node::NodeList
 	 bool getAttributes(vector<string> &attributes);
 
  protected:
-	 vector<string> _attributes;
+	 vector<string> attributes;
 };
 
 #endif

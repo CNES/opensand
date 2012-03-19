@@ -107,7 +107,7 @@ bool ConfigurationFile::loadConfig(const string confFile)
 			          root->get_name().c_str());
 			goto FCT_END;
 		}
-		this->_parsers.push_back(new_parser);
+		this->parsers.push_back(new_parser);
 	}
 	catch(const std::exception& ex)
 	{
@@ -131,11 +131,11 @@ void ConfigurationFile::unloadConfig()
 {
 	vector<xmlpp::DomParser *>::iterator parser;
 
-	for(parser = this->_parsers.begin(); parser != this->_parsers.end(); parser++)
+	for(parser = this->parsers.begin(); parser != this->parsers.end(); parser++)
 	{
 		delete *parser;
 	}
-	this->_parsers.clear();
+	this->parsers.clear();
 } // unloadConfig
 
 /**
@@ -150,7 +150,7 @@ bool ConfigurationFile::getSection(const char *section,
 {
 	vector<xmlpp::DomParser *>::iterator parser;
 
-	for(parser = this->_parsers.begin(); parser != this->_parsers.end(); parser++)
+	for(parser = this->parsers.begin(); parser != this->parsers.end(); parser++)
 	{
 		const xmlpp::Element* root;
 		xmlpp::Node::NodeList tempList;
@@ -302,7 +302,7 @@ bool ConfigurationFile::getIntegerValue(const char *section,
 
 
 /**
- * Read a longeger value from configuration
+ * Read a long integer value from configuration
  *
  * @param  section  name of the section
  * @param  key      name of the key
@@ -319,6 +319,31 @@ bool ConfigurationFile::getLongIntegerValue(const char *section,
 	   (valueStr.size() > 0))
 	{
 		value = atol(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Read a boolean value from configuration
+ *
+ * @param  section  name of the section
+ * @param  key      name of the key
+ * @param  value    boolean value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getBoolValue(const char *section,
+                                     const char *key,
+                                     bool &value)
+{
+	string valueStr;
+
+	if(this->getStringValue(section, key, valueStr) &&
+	   (valueStr.size() > 0))
+	{
+		value = (((valueStr == "true") ? true : false) ||
+		         ((valueStr == "True") ? true : false));
 		return true;
 	}
 
@@ -460,7 +485,7 @@ bool ConfigurationFile::getAttributeIntegerValue(ConfigurationList::iterator ite
 }
 
 /**
- * Get the longeger value of an attribute in a list element
+ * Get the long integer value of an attribute in a list element
  *
  * @param  elt        an iterator on a ConfigurationList
  * @param  attribute  the attribute name
@@ -478,6 +503,32 @@ bool ConfigurationFile::getAttributeLongIntegerValue(ConfigurationList::iterator
 	   (valueStr.size() > 0))
 	{
 		value = atol(valueStr.c_str());
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Get the boolean value of an attribute in a list element
+ *
+ * @param  elt        an iterator on a ConfigurationList
+ * @param  attribute  the attribute name
+ * @param  value      attribute value
+ * @return  true on success, false otherwise
+ */
+bool ConfigurationFile::getAttributeBoolValue(ConfigurationList::iterator iter,
+                                              const char *attribute,
+                                              bool &value)
+
+{
+	string valueStr;
+
+	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
+	   (valueStr.size() > 0))
+	{
+		value = (((valueStr == "true") ? true : false) ||
+		         ((valueStr == "True") ? true : false));
 		return true;
 	}
 
@@ -612,7 +663,7 @@ bool ConfigurationFile::getIntegerValueInList(const char *section,
 }
 
 /**
- * Get a longeger value from a list element identified by a attribute value
+ * Get a long integer value from a list element identified by a attribute value
  *
  * @param  list      the list
  * @param  id        the reference attribute
@@ -640,7 +691,7 @@ bool ConfigurationFile::getLongIntegerValueInList(ConfigurationList list,
 }
 
 /**
- * Get a longeger value from a list element identified by a attribute value
+ * Get a long integer value from a list element identified by a attribute value
  *
  * @param  section   name of the section identifying the list
  * @param  key       name of the list key identifying the list

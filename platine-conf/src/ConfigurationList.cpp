@@ -48,16 +48,16 @@ ConfigurationList::ConfigurationList(): xmlpp::Node::NodeList()
 	if(elem)
 	{
 		attributes = elem->get_attributes();
-	    for(iter = attributes.begin(); iter != attributes.end(); iter++)
-	    {
-			this->_attributes.push_back((*iter)->get_name());
+		for(iter = attributes.begin(); iter != attributes.end(); iter++)
+		{
+			this->attributes.push_back((*iter)->get_name());
 		}
 	}
 }
 
 ConfigurationList::~ConfigurationList()
 {
-	this->_attributes.clear();
+	this->attributes.clear();
 }
 
 /** Get the attributes from the list
@@ -67,9 +67,9 @@ ConfigurationList::~ConfigurationList()
  */
 bool ConfigurationList::getAttributes(vector<string> &attributes)
 {
-	if(this->_attributes.size() > 0)
+	if(this->attributes.size() > 0)
 	{
-		attributes = this->_attributes;
+		attributes = this->attributes;
 		return true;
 	}
 

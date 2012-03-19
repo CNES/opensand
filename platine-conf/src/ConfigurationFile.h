@@ -92,6 +92,7 @@ class ConfigurationFile
 	bool getStringValue(const char *section, const char *key, string &value);
 	bool getIntegerValue(const char *section, const char *key, int &value);
 	bool getLongIntegerValue(const char *section, const char *key, long &value);
+	bool getBoolValue(const char *section, const char *key, bool &value);
 
 	// Get the number of items in the list; Get the items from the list
 	bool getNbListItems(const char *section, const char *key, int &value);
@@ -107,6 +108,9 @@ class ConfigurationFile
 	bool getAttributeLongIntegerValue(ConfigurationList::iterator iter,
 	                                  const char *attribute,
 	                                  long &value);
+	bool getAttributeBoolValue(ConfigurationList::iterator iter,
+	                           const char *attribute,
+	                           bool &value);
 
 	// Get a string or integer from a line in a list
 	bool getStringValueInList(ConfigurationList list,
@@ -145,7 +149,7 @@ class ConfigurationFile
 
  private:
 	/// a vector of XML DOM parsers
-	vector<xmlpp::DomParser *> _parsers;
+	vector<xmlpp::DomParser *> parsers;
 
 	/// get a section node in XML configuration file
 	bool getSection(const char *section,
@@ -174,13 +178,6 @@ inline string toString(long val)
 
 // Configuration file content is loaded in this object at main initialization
 extern ConfigurationFile globalConfig;
-
-// Transform value "y" or "Y" in true; else false
-#define CONF_VALUE_YES(val) (((val == "y") ? 1 : 0) || \
-                             ((val == "Y") ? 1 : 0) ||\
-                             ((val == "true") ? 1 : 0) ||\
-                             ((val == "True") ? 1 : 0) ||\
-                             ((val == "1") ? 1 : 0))
 
 
 #endif /* CONFIGURATION_H */

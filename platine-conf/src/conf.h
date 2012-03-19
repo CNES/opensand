@@ -71,7 +71,6 @@
 #define SAT_DELAY                 "delay"
 
 #define PACK_THRES                "packing_threshold"
-#define GSE_QOS_NBR               "gse_qos_number"
 #define DFLT_PACK_THRES           10 // default packing threshold in milliseconds
 #define DFLT_GSE_QOS_NBR          5  // default QoS number for GSE encapsulation and desencapsulation
 #define NB_MAX_ST                 (1941)
@@ -261,10 +260,6 @@
 #define CLASS_NAME       "name"
 #define CLASS_SCHED_PRIO "scheduler_priority"
 #define CLASS_MAC_ID     "mac_queue_id"
-#define SCHEDULER_TYPE   "scheduler_type"
-#define QOS_TREE_MODE    "qos_tree_mode"
-#define MAPPING_SIG      "mapping_sig"
-#define SIG_PORT         "sig_port"
 
 #define SECTION_CATEGORY    "traffic_category"
 #define CATEGORY_LIST       "categories"
