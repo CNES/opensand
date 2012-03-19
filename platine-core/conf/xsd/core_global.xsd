@@ -122,19 +122,67 @@
 
 <xsd:element name="terminal_v4">
     <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv4Address" />
-        <xsd:attribute name="mask" type="ipv4NetMask" />
-        <xsd:attribute name="tal_id" type="talId" />
-        <xsd:attribute name="spot_id" type="spotId" />
+        <xsd:attribute name="addr" type="ipv4Address">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv4 address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mask" type="ipv4NetMask">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv4 mask
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="spot_id" type="spotId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the spot corresponding to this terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
 
 <xsd:element name="terminal_v6">
     <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv6Address" />
-        <xsd:attribute name="mask" type="ipv6NetMask" />
-        <xsd:attribute name="tal_id" type="talId" />
-        <xsd:attribute name="spot_id" type="spotId" />
+        <xsd:attribute name="addr" type="ipv6Address">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv6 address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mask" type="ipv6NetMask">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv6 mask
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="spot_id" type="spotId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the spot corresponding to this terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
 
@@ -145,6 +193,35 @@
         <xsd:maxInclusive value="1532" />
     </xsd:restriction>
 </xsd:simpleType>
+
+<!-- the columns for simulation_column section -->
+<xsd:element name="columns">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="column" minOccurs="1" maxOccurs="6" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="column">
+    <xsd:complexType>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="column_nbr" type="columnNbr">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The number of the column for the specified terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- type for dvb_rcs section -->
 <xsd:simpleType name="damaAlgorithm">
@@ -173,35 +250,128 @@
 
 <!-- global section description -->
 <xsd:element name="global">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The global configuration for all components
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="satellite_eth_interface" type="ethInterface" />
-            <xsd:element name="packing_threshold" type="msTime" />
-            <xsd:element name="satellite_type" type="satelliteType" />
-            <xsd:element name="delay" type="msTime" />
-            <xsd:element name="dvb_scenario" type="dvbScenario" />
-            <xsd:element name="dvb_scenario_refresh" type="msTime" />
-            <xsd:element name="frame_duration" type="msTime" />
-            <xsd:element name="bandwidth" type="xsd:integer" />
-            <xsd:element name="up_return_encap_scheme" type="upReturnEncapScheme" />
-            <xsd:element name="down_forward_encap_scheme" type="downForwardEncapScheme" />
+            <xsd:element name="satellite_eth_interface" type="ethInterface">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The physical interface for the satellite network
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="packing_threshold" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Packing threshold for MPEG2-TS and GSE encapsulation scheme (ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="satellite_type" type="satelliteType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The satellite payload type
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="delay" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The delay to simulate (ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dvb_scenario" type="dvbScenario">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DVB scenario type for adaptative physical layer simulation
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dvb_scenario_refresh" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        How often do we refresh the adaptive physical layer scenario (ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="frame_duration" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DVB frame duration
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="bandwidth" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Bandwidth (MHz)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="up_return_encap_scheme" type="upReturnEncapScheme">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The up/return link encapsulation scheme
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="down_forward_encap_scheme" type="downForwardEncapScheme">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The down/forward link encapsulation scheme
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- mac_layer section description -->
 <xsd:element name="mac_layer">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The MAC layer configuration elements for all components
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="frames_per_superframe" type="xsd:integer" />
-            <xsd:element name="carrier_transmission_rate" type="bitRate" />
-            <xsd:element name="carrier_number" type="xsd:integer" />
+            <xsd:element name="frames_per_superframe" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The number of frames per superframe 
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_transmission_rate" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The carrier transmission rate (Kbit/s)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_number" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The number of carriers
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- ip_dedicated_v4 section description -->
 <xsd:element name="ip_dedicated_v4">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The IP description of terminals and their spot for IPv4 addresses
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="terminals" />
@@ -211,6 +381,11 @@
 
 <!-- ip_dedicated_v6 section description -->
 <xsd:element name="ip_dedicated_v6">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The IP description of terminals and their spot for IPv4 addresses
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="terminals" />
@@ -220,6 +395,12 @@
 
 <!-- simulation_column section description -->
 <xsd:element name="simulation_column">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The number of the column corresponding to each terminal in the DRA
+            and MODCOD simulation files
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="columns" />
@@ -227,27 +408,22 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- the terminals for ip_dedicated sections -->
-<xsd:element name="columns">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="column" minOccurs="1" maxOccurs="6" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="column">
-    <xsd:complexType>
-        <xsd:attribute name="tal_id" type="talId" />
-        <xsd:attribute name="column_nbr" type="columnNbr" />
-    </xsd:complexType>
-</xsd:element>
-
 <!-- dvb_rcs section description -->
 <xsd:element name="dvb_rcs">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The dvb layer configuration for all components
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="dama_algorithm" type="damaAlgorithm" />
+            <xsd:element name="dama_algorithm" type="damaAlgorithm">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DAMA algorithm
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

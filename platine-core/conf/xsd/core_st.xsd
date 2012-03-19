@@ -101,10 +101,34 @@
 
 <xsd:element name="class">
 	<xsd:complexType>
-		<xsd:attribute name="id" type="classId" />
-		<xsd:attribute name="name" type="className" />
-		<xsd:attribute name="scheduler_priority" type="schedulerPrio" />
-		<xsd:attribute name="mac_queue_id" type="macQueueId" />
+		<xsd:attribute name="id" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID for the service class
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="name" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The service class name
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="scheduler_priority" type="schedulerPrio">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The scheduler priority
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="mac_queue_id" type="macQueueId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the associated FIFO at MAC layer
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -138,9 +162,27 @@
 
 <xsd:element name="category">
 	<xsd:complexType>
-		<xsd:attribute name="id" type="categoryId" />
-		<xsd:attribute name="name" type="categoryName" />
-		<xsd:attribute name="class" type="classId" />
+		<xsd:attribute name="id" type="categoryId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The traffic category identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="name" type="categoryName">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The traffic category name
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="class" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The service class identifier related to the category
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -171,11 +213,41 @@
 
 <xsd:element name="fifo">
 	<xsd:complexType>
-		<xsd:attribute name="id" type="classId" />
-		<xsd:attribute name="type" type="className" />
-		<xsd:attribute name="size_max" type="xsd:integer" />
-		<xsd:attribute name="pvc" type="xsd:integer" />
-		<xsd:attribute name="cr_type" type="crType" />
+		<xsd:attribute name="id" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID og the class related to the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="type" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The name of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="size_max" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The size of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="pvc" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    TODO, PVC must be in increasing order
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="cr_type" type="crType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of capacity request
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -196,12 +268,55 @@
 
 <xsd:element name="carrier">
 	<xsd:complexType>
-		<xsd:attribute name="id" type="carrierId" />
-		<xsd:attribute name="ip_address" type="ipv4Address" />
-		<xsd:attribute name="port" type="port" />
-		<xsd:attribute name="in" type="xsd:boolean" />
-		<xsd:attribute name="out" type="xsd:boolean" />
-		<xsd:attribute name="ip_multicast" type="xsd:boolean" />
+		<xsd:attribute name="id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The carrier unique identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <!-- TODO ipv4Adderss -->
+		<xsd:attribute name="ip_address" type="xsd:string">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    depending on the case the IP address contains:
+                      - input unicast:   the parameter is not used
+                      - input multicast: the multicast IP address
+                      - output:          the remote IP address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="port" type="port">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The port of the UDP socket
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="in" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    receive flow or not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="out" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    send flow or not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="ip_multicast" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    manage multicast flow
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -230,6 +345,11 @@
 
 <!-- service_class section description -->
 <xsd:element name="service_class">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The service classes for QoS relation between IP and MAC layers
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="classes" />
@@ -239,9 +359,20 @@
 
 <!-- traffic_category section description -->
 <xsd:element name="traffic_category">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The traffic categories for QoS at IP layer
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="default_category" type="categoryId" />
+            <xsd:element name="default_category" type="categoryId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default traffic category
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element ref="categories" />
         </xsd:sequence>
     </xsd:complexType>
@@ -249,47 +380,166 @@
 
 <!-- dvb_rcs_tal section description -->
 <xsd:element name="dvb_rcs_tal">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The dvb layer configuration for terminal
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="obr_period" type="xsd:integer" />
-            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId" />
-            <xsd:element name="carrier_id_logon" type="carrierId" />
-            <xsd:element name="carrier_id_data" type="carrierId" />
-            <xsd:element name="rbdc_timeout" type="xsd:integer" />
-            <xsd:element name="msl_duration" type="xsd:integer" />
-            <xsd:element name="cr_rule_output_fifo_only" type="xsd:boolean" />
-            <xsd:element name="dvb_mac_id" type="talId" />
-            <xsd:element name="rt_fixed_bandwidth" type="bitRate" />
+            <xsd:element name="obr_period" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The OBR period (frame number):
+                         period used to determine when we should send a request
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for DVB control
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_logon" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for login information
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_data" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for ATM cells, MPEG or GSE packets
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rbdc_timeout" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The RBDC Timeout (frame number)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="msl_duration" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The Minimum Scheduling Latency (frame number):
+                        time between the capacity request emission and the
+                        reception of the corresponding Terminal Burst Time Plan
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="cr_rule_output_fifo_only" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        RBDC and VBDC Capacity requests computation rules
+                         - "false" = both INPUT + OUTPUT DLB fifos size are
+                                     taken into account
+                         - "true"  = only OUTPUT DLB fifos size are taken into
+                                     account
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dvb_mac_id" type="talId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The Dvb Mac identifier = the terminal id (integer)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rt_fixed_bandwidth" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The static bandwidth allocated to ST (kbits/s) = the
+                        bandwidth for real time traffic
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element ref="fifos" />
-            <xsd:element name="max_rbdc" type="bitRate" />
-            <xsd:element name="max_vbdc" type="xsd:integer" />
+            <xsd:element name="max_rbdc" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum RBDC value for the terminal (kbits/s)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="max_vbdc" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum VBDC value for the terminal (cells or
+                        packets number)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- sat_carrier section description -->
 <xsd:element name="sat_carrier">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The satellite carriers description
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="carriers" />
-            <xsd:element name="socket_type" type="socketType" />
-            <xsd:element name="addr" type="ipv4Address" />
+            <xsd:element name="socket_type" type="socketType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of the socket
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="addr" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The local IP address for emulation network
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- qos_agent section description -->
 <xsd:element name="qos_agent">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The QoS data parameters
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="st_address" type="ipv4Address" />
-            <xsd:element name="qos_server_port" type="port" />
+            <xsd:element name="st_address" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The ST address in the Platine network
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="qos_server_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The QoS server port
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- debug section description -->
 <xsd:element name="debug">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The debug parameters
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element name="default" type="debugValue" />

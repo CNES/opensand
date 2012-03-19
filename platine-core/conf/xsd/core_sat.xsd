@@ -40,12 +40,48 @@
 
 <xsd:element name="spot">
 	<xsd:complexType>
-		<xsd:attribute name="spot_id" type="spotId" />
-		<xsd:attribute name="log_id" type="carrierId" />
-		<xsd:attribute name="ctrl_id" type="carrierId" />
-		<xsd:attribute name="data_in_id" type="carrierId" />
-		<xsd:attribute name="data_out_st_id" type="carrierId" />
-		<xsd:attribute name="data_out_gw_id" type="carrierId" />
+		<xsd:attribute name="spot_id" type="spotId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="log_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The logging carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="ctrl_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The control carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="data_in_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The input data carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="data_out_st_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The output data carrier for this spot with ST as destination
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="data_out_gw_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The output data carrier for this spot with GW as destination
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -74,8 +110,20 @@
 
 <xsd:element name="switch">
 	<xsd:complexType>
-		<xsd:attribute name="tal_id" type="talId" />
-		<xsd:attribute name="spot_id" type="spotId" />
+		<xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal ID
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="spot_id" type="spotId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The corresponding spot ID
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -103,13 +151,55 @@
 
 <xsd:element name="carrier">
 	<xsd:complexType>
-		<xsd:attribute name="id" type="carrierId" />
-        <!-- TODO ipv4Address -->
-		<xsd:attribute name="ip_address" type="xsd:string" />
-		<xsd:attribute name="port" type="port" />
-		<xsd:attribute name="in" type="xsd:boolean" />
-		<xsd:attribute name="out" type="xsd:boolean" />
-		<xsd:attribute name="ip_multicast" type="xsd:boolean" />
+		<xsd:attribute name="id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The carrier unique identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <!-- TODO ipv4Adderss -->
+		<xsd:attribute name="ip_address" type="xsd:string">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    depending on the case the IP address contains:
+                      - input unicast:   the parameter is not used
+                      - input multicast: the multicast IP address
+                      - output:          the remote IP address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="port" type="port">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The port of the UDP socket
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="in" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    receive flow or not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="out" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    send flow or not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+		<xsd:attribute name="ip_multicast" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    manage multicast flow
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
 	</xsd:complexType>
 </xsd:element>
 
@@ -136,13 +226,48 @@
 
 <!-- dvb_rcs_tal section description -->
 <xsd:element name="dvb_rcs_sat">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The dvb layer configuration for satellite
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="seed" type="xsd:integer" />
-            <xsd:element name="error_generator" type="xsd:string" />
-            <xsd:element name="error_generator_ber" type="xsd:integer" />
-            <xsd:element name="error_generator_mean" type="xsd:integer" />
-            <xsd:element name="error_generator_delta" type="xsd:integer" />
+            <xsd:element name="seed" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Random seed (see srand)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_generator" type="xsd:string">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The error generator
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_generator_ber" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The BER we want to inject
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_generator_mean" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The error mean
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_generator_delta" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The error delta
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element ref="spots"  />
         </xsd:sequence>
     </xsd:complexType>
@@ -150,6 +275,11 @@
 
 <!-- sat_switching_table section description -->
 <xsd:element name="sat_switching_table">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            ATM, MPEG and GSE switching table for satellite
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="switchs" />
@@ -159,17 +289,39 @@
 
 <!-- sat_carrier section description -->
 <xsd:element name="sat_carrier">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The satellite carriers description
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="carriers" />
-            <xsd:element name="socket_type" type="socketType" />
-            <xsd:element name="addr" type="ipv4Address" />
+            <xsd:element name="socket_type" type="socketType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of the socket
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="addr" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The local IP address
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 
 <!-- debug section description -->
 <xsd:element name="debug">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The debug parameters
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element name="default" type="debugValue" />
