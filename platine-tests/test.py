@@ -32,9 +32,13 @@ class Loop(threading.Thread):
     _main_loop = None
     def run(self):
         """ run the loop """
-        gobject.threads_init()
-        self._main_loop = gobject.MainLoop()
-        self._main_loop.run()
+        try:
+            gobject.threads_init()
+            self._main_loop = gobject.MainLoop()
+            self._main_loop.run()
+        except KeyboardInterrupt:
+            self.close()
+            raise
 
     def close(self):
         """ stop the loop """
@@ -111,30 +115,28 @@ class Test:
 
         opt_parser = OptionParser(formatter=IndentedHelpFormatterWithNL())
         opt_parser.add_option("-v", "--verbose", action="store_true",
+                              dest="verbose", default=False,
+                              help="enable verbose mode (print Platine status)")
+        opt_parser.add_option("-d", "--debug", action="store_true",
                               dest="debug", default=False,
-                              help="enable debug messages")
+                              help="print all the debug information (more "
+                              "output than -v)")
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
         opt_parser.add_option("-f", "--folder", dest="folder",
                               default='./tests/',
 help="specify the root folder for tests configurations\n"
-"The root folder should contains the following subfolders and files: "
-"(values into brackets should be replaced)\n"
+"The root folder should contains the following subfolders and files:\n"
 "  test_type/test_name/+-order_host/configuration\n"
-"                      |-files/+-{scripts}\n"
-"                      |       |-{scripts\n"
-"                      |       |  configurations}\n"
-"                      |       |-{additionnal\n"
-"                      |          configuration\n"
-"                      |          (e.g. pcap file)}\n"
-"                      |-scenario/+-manager.ini\n"
-"                                 |-host/core.conf (optionnal)\n"
-"with configuration containing:\n"
-"  [deploy]\n"
-"  # the files to copy on distant host\n"
-"    (script, configuration, ...)\n"
-"    source path should be relative to test directory\n"
-"  {source}:{destination}\n"
+"                      |-scenario/+-core_global.conf\n"
+"                                   (optionnal)\n"
+"                                 |-host/core.conf\n"
+"                                   (optionnal)\n"
+" and the scripts and configuration for the tests, this can be any files as "
+"they will be specified in the configuration files\n"
+
+"with configuration containing the same sections that deploy.ini and a command "
+"part:\n"
 "  [command]\n"
 "  # the command line to execute the test\n"
 "  exec={command line}\n"
@@ -160,61 +162,74 @@ help="specify the root folder for tests configurations\n"
         self._ws_ctrl = []
 
         ### create the logger
+        self._quiet = True
 
         # Create the Log View that will only log in standard output
-        lvl = 'info'
+        lvl = 'error'
         if options.debug:
             lvl = 'debug'
+            self._quiet = False
+        elif options.verbose:
+            lvl = 'info'
+            self._quiet = False
+        else:
+            print "Initialization please wait..."
         self._log = ManagerLog(lvl, True, False, False, 'PtTest')
 
-        ## create the Model and Controller
-
         try:
-            loop = None
-            # create the Platine model
-            self._model = Model(self._log)
-            # create the Platine controller
-            self._controller = Controller(self._model, SERVICE, self._log)
-            self._controller.start()
-            # Launch the mainloop for service_listener
-            loop = Loop()
-            loop.start()
-        except Exception, msg :
-            self._log.error("failed to Initialize test: " + str(msg))
-            if self._model is not None:
-                self._model.close()
-            if loop is not None:
-                loop.stop()
-                loop.join()
-            if self._controller is not None:
-                self._controller.join()
-            raise
-
-        self._log.info(" * Wait for Model and Controller initialization")
-        time.sleep(5)
-        self._log.info(" * Consider Model and Controller as initialized")
-
-        self.create_ws_controllers()
-
-        try:
+            self.load()
             self.run()
         except TestError as err:
             self._log.error("%s failure: %s" % (err.step, err.msg))
+            raise
+        except KeyboardInterrupt:
+            if self._quiet:
+                print "Intrrupted: please wait..."
+            self._log.info("Interrupted: please wait...")
+            self.close()
             raise
         except Exception, msg:
             self._log.error("internal error while testing: " + str(msg))
             raise
         finally:
+            self.close()
+
+
+    def load(self):
+        """ prepare Platine for the test """
+        ## create the Model and Controller
+        self._loop = None
+        # create the Platine model
+        self._model = Model(self._log)
+        # create the Platine controller
+        self._controller = Controller(self._model, SERVICE, self._log,
+                                      False)
+        self._controller.start()
+        # Launch the mainloop for service_listener
+        self._loop = Loop()
+        self._loop.start()
+        self._log.info(" * Wait for Model and Controller initialization")
+        time.sleep(5)
+        self._log.info(" * Consider Model and Controller as initialized")
+        self.create_ws_controllers()
+
+    def close(self):
             for thread in self._threads:
                 thread.join(10)
                 self._threads.remove(thread)
-            self.stop_platine()
+            try:
+                self.stop_platine()
+            except:
+                pass
             for ws_ctrl in self._ws_ctrl:
                 ws_ctrl.close()
-            self._model.close()
-            loop.close()
-            loop.join()
-            self._controller.join()
+            if self._model is not None:
+                self._model.close()
+            if self._loop is not None:
+                self._loop.close()
+                self._loop.join()
+            if self._controller is not None:
+                self._controller.join()
 
     def run(self):
         """ launch the tests """
@@ -244,7 +259,16 @@ help="specify the root folder for tests configurations\n"
             # get test_name folders
             test_names = glob.glob(test_type + '/*')
             for test_name in test_names:
+                if not os.path.exists(os.path.join(test_name, 'scenario')):
+                    # skip folders that does not contain a scenario directory
+                    self._log.debug("skip folder %s as it does not contain a "
+                                    "scenario subfolder" %
+                                    os.path.basename(test_name))
+                    continue
                 self._log.info(" * Start test %s" % os.path.basename(test_name))
+                # in quiet mode print important output on terminal
+                if self._quiet:
+                    print "Start test %s" % os.path.basename(test_name),
                 self._model.set_scenario(os.path.join(test_name, 'scenario'))
                 self._error = []
                 # start the platform
@@ -267,19 +291,43 @@ help="specify the root folder for tests configurations\n"
                     thread.join(10)
                     self._threads.remove(thread)
                 if len(self._error) > 0:
+                    #TODO get the test result
+                    # in quiet mode print important output on terminal
+                    if self._quiet:
+                        print "    \033[91mERROR\033[0m"
                     raise TestError("Test",
                                     "Got an error: %s" % str(self._error))
                 else:
                     self._log.info(" * Test %s successful" %
                                    os.path.basename(test_name))
+                    # in quiet mode print important output on terminal
+                    if self._quiet:
+                        print "    \033[92mSUCCESS\033[0m"
+                self.stop_platine()
 
     def launch_test(self, path):
         """ initialize the test: load configuration, deploy files
             then contact the distant host in a thread and launch
             the desired command """
-        host_name = os.path.basename(path).split("-", 1)[1].upper()
+        names = os.path.basename(path).split("_", 1)
+        if len(names) < 1:
+            raise TestError("Configuration", "wrong path: %s "
+                            "cannot find host name" % path)
+
+        host_name = names[1].upper()
         self._log.info(" * Launch command on %s" % host_name)
         conf_file = os.path.join(path, 'configuration')
+        # read the command section in configuration
+        config = ConfigParser.SafeConfigParser()
+        if len(config.read(conf_file)) == 0:
+            raise TestError("Configuration",
+                            "Cannot load configuration in %s" % path)
+
+        try:
+            if self._folder != '':
+                config.set('prefix', 'src', self._folder)
+        except:
+            pass
 
         # get the host controller
         host_ctrl = None
@@ -299,16 +347,10 @@ help="specify the root folder for tests configurations\n"
         # the deploy section has the same format as in deploy.ini file so
         # we can directly use the deploy fonction from hosts
         try:
-            host_ctrl.deploy(conf_file, self._folder)
+            host_ctrl.deploy(config)
         except CommandException as msg:
             raise TestError("Configuration", "Cannot deploy host %s: %s" %
                             (host_name, msg))
-
-        # read the command section in configuration
-        config = ConfigParser.SafeConfigParser()
-        if len(config.read(conf_file)) == 0:
-            raise TestError("Configuration",
-                            "Cannot load configuration in %s" % path)
 
         cmd = ''
         wait = False
@@ -424,10 +466,13 @@ class TestError(Exception):
 if __name__ == '__main__':
     try:
         TEST = Test()
+    except KeyboardInterrupt:
+        sys.exit(1)
     except Exception, error:
         print "\n\n##### TRACEBACK #####"
         traceback.print_tb(sys.exc_info()[2])
-        print "Error: " + str(error)
+        print "\033[91mError: %s \033[0m" % str(error)
         sys.exit(1)
 
+    print "All tests successfull"
     sys.exit(0)

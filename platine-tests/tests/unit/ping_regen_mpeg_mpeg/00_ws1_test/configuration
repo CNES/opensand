@@ -1,0 +1,11 @@
+[prefix]
+source=./tests/unit/ping_files
+destination=/tmp
+
+[ws1_test]
+files=ping.py
+
+[command]
+exec=/tmp/ping.py regenerative
+wait=True
+return=0
