@@ -559,7 +559,7 @@
         <xsd:sequence>
             <xsd:element name="default" type="debugValue" />
             <xsd:element name="qos_data" type="debugValue" />
-            <xsd:element name="dama_da" type="debugValue" />
+            <xsd:element name="dama_dc" type="debugValue" />
             <xsd:element name="dvb_rcs" type="debugValue" />
             <xsd:element name="dvb_rcs_ncc" type="debugValue" />
             <xsd:element name="sat_carrier" type="debugValue" />

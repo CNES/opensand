@@ -289,10 +289,17 @@ bool ConfigurationFile::getValueTemplate(const char *section, const char *key, T
 	string tmp_val;
 
 	if(!this->getStringValue(section, key, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> val;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -421,10 +428,17 @@ bool ConfigurationFile::getAttributeValueTemplate(ConfigurationList::iterator it
 	string tmp_val;
 
 	if(!this->getAttributeStringValue(iter, attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -517,10 +531,17 @@ bool ConfigurationFile::getValueInListTemplate(ConfigurationList list,
 	string tmp_val;
 
 	if(!this->getStringValueInList(list, id, id_val, attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -547,10 +568,17 @@ bool ConfigurationFile::getValueInListTemplate(const char *section,
 
 	if(!this->getStringValueInList(section, key, id, id_val,
 	                               attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -575,11 +603,18 @@ bool ConfigurationFile::getValue(const char *section, const char *key, bool &val
 	string tmp_val;
 
 	if(!this->getValueTemplate<string>(section, key, tmp_val))
+    {
 		return false;
+    }
 
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> val;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -612,10 +647,17 @@ bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
 	string tmp_val;
 
 	if(!this->getAttributeValueTemplate<string>(iter, attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -695,10 +737,17 @@ bool ConfigurationFile::getValueInList(ConfigurationList list,
 
 	if(!this->getValueInListTemplate<string>(list, id, id_val,
 	                                         attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 
@@ -713,10 +762,17 @@ bool ConfigurationFile::getValueInList(const char *section,
 
 	if(!this->getValueInListTemplate<string>(section, key, id, id_val,
 	                                         attribute, tmp_val))
+    {
 		return false;
+    }
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> value;
+    if(str.fail())
+    {
+        return false;
+    }
+
 	return true;
 }
 

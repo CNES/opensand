@@ -128,13 +128,15 @@ unseen(){
 
 if [ "$#" -gt 0 ]; then
     if [ "$1" = "configure" ]; then
-        #db_reset platine-daemon/default
-        db_input high platine-daemon/default || true
-        db_go
-        db_get platine-daemon/default
-        if [ "$RET" = "true" ]; then
-            reset
-            db_stop
+        db_fget platine-daemon/default seen
+        if [ "$RET" = "false" ]; then
+            db_input high platine-daemon/default || true
+            db_go
+            db_get platine-daemon/default
+            if [ "$RET" = "true" ]; then
+                reset
+                db_stop
+            fi
         else
             configure
         fi

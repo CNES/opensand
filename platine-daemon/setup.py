@@ -17,18 +17,17 @@ bin_files = ['PtDmon']
 setup(
     name="PtDmon",
     version="3.0.0",
-    author="Julien Bernanrd",
+    author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for Platine entity (sat, gw, st or ws)"),
     license="GPL",
 #    long_description=read('README'),
 
-    # Find connection_manager packages, but exclude tests
     packages=find_packages(),
 
     data_files=[
                   ('bin/', bin_files), # binary
-                  # PtManager files
+                  # PtDaemon files
                   ('libexec/platine/', script_files),
                   ]
 )
