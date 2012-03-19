@@ -662,7 +662,6 @@ bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
 			return false;
 
 	}
-	//TODO FREE !
 	return true;
 }
 
@@ -985,7 +984,7 @@ NetBurst *Gse::Context::flushAll()
 
 NetPacket *Gse::PacketHandler::build(unsigned char *data, size_t data_length,
                                      uint8_t UNUSED(_qos),
-                                     uint8_t UNUSED(_src_tal_id), uint8_t UNUSED(_dst_tal_id))
+                                     uint8_t UNUSED(_src_tal_id), uint8_t _dst_tal_id)
 {
 	const char *FUNCNAME = "[Gse::PacketHandler::build]";
 	gse_status_t status;
@@ -1028,10 +1027,11 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data, size_t data_length,
 		}
 		qos = Gse::getQosFromFragId(frag_id);
 		src_tal_id = Gse::getSrcTalIdFromFragId(frag_id);
+        dst_tal_id = _dst_tal_id;
 		UTI_DEBUG_L3("%s build a subsequent fragment "
-		             "SRC TAL Id = %u, QoS = %u\n",
+		             "SRC TAL Id = %u, QoS = %u, DST TAL Id=  %u\n",
 		             FUNCNAME,
-		             src_tal_id, qos);
+		             src_tal_id, qos, dst_tal_id);
 		header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
 		                1 + //GSE_FRAG_ID_LENGTH +
 		                label_length;
