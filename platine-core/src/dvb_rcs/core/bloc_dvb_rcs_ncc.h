@@ -85,13 +85,9 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	long super_frame_counter;
 	/// the current frame number inside the current super frame
 	int frame_counter;
-	/// the number of frames per superframe
-	int frames_per_superframe;
 
 	/// frame timer, used to awake the block every frame period
 	mgl_timer m_frameTimer;
-	/// the frame duration
-	int frameDuration;
 
 
 	/* DVB-RCS/S2 emulation */
@@ -99,14 +95,9 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	/// ST unique mac id (configuration param)
 	int macId;
 
-    /// satellite type
-    std::string satellite_type_;
-
 	/// timer used to awake the block every second in order to retrieve
 	/// the current MODCODs and DRA schemes
 	mgl_timer scenario_timer;
-	/// how often do we refresh the adaptive physical layer scenario (in ms)
-	int dvb_scenario_refresh;
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;

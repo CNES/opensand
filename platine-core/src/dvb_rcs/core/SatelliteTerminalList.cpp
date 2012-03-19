@@ -481,7 +481,7 @@ bool SatelliteTerminalList::setList(std::ifstream &simu_file, char **list)
 	int i = 0;
 
 	// get the next line in the file
-  simu_file.getline(this->line, 3 * NB_MAX_ST, '\n');
+	simu_file.getline(this->line, 3 * NB_MAX_ST, '\n');
 
 	// get each element of the line
 	// Be careful, strtok write over line

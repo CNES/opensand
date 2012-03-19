@@ -173,14 +173,11 @@ class BlocDVBRcsTal: public BlocDvb
 
 	mgl_timer m_logonTimer;  ///< Upon each m_logonTimer event retry logon
 	mgl_timer m_frameTimer;  ///< Upon each m_frameTimer event is a frame
-        /// The frame duration (for m_frameTimer activation)
-	long frame_duration;  // in ms
 	/// The sf counter
 	long super_frame_counter;
-	long frames_per_superframe;
 	/// the frame number WITHIN the current superframe
 	long frame_counter; // is now from 1 (1st frame)
-	// to m_frames_per_superframe (last frame)
+	                    // to m_frames_per_superframe (last frame)
 
 
 	/* Fifos */

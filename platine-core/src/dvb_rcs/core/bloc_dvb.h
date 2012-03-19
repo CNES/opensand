@@ -96,6 +96,9 @@ class BlocDvb: public mgl_bloc
 	// Send a Netburst to the encap layer
 	int SendNewMsgToUpperLayer(NetBurst *burst);
 
+	// Common function for parameters reading
+	bool initCommon();
+
 	// Common functions for satellite and NCC
 	int initModcodFiles();
 
@@ -106,8 +109,29 @@ class BlocDvb: public mgl_bloc
 	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id);
 	bool sendDvbFrame(DvbFrame *frame, long carrier_id);
 
+	/// the satellite type (regenerative o transparent)
+	string satellite_type;
 
+	/// the up/return link encapsulation scheme
+	string up_return_encap_scheme;
 
+	/// the down/forward link encapsulation scheme
+	string down_forward_encap_scheme;
+
+	/// the DAMA algoruthpm
+	string dama_algo;
+
+	/// the frame duration
+	int frame_duration;
+
+	/// the number of frame per superframe
+	int frames_per_superframe;
+
+	/// the DVB scenario
+	string dvb_scenario;
+
+	/// the scenario refresh interval
+	int dvb_scenario_refresh;
 };
 
 #endif

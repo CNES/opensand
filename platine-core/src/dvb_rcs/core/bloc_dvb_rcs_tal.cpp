@@ -78,9 +78,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *
 	// superframes and frames
 	this->super_frame_counter = -1;
 	this->frame_counter = -1;
-	this->frames_per_superframe = -1;
 	this->m_frameTimer = -1;
-	this->frame_duration = -1;
 
 	// DVB-RCS/S2 emulation
 	this->emissionStd = NULL;
@@ -445,75 +443,46 @@ error:
  */
 int BlocDVBRcsTal::initEncapsulation()
 {
-	string up_return_encap_scheme;
-	string down_forward_encap_scheme;
-
 	// read uplink encapsulation packet length from config
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                                up_return_encap_scheme))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
-		goto error;
-	}
-
 	// check uplink encapsulation packet length
-	if(up_return_encap_scheme == ENCAP_ATM_AAL5 ||
-	   up_return_encap_scheme == ENCAP_ATM_AAL5_ROHC)
+	if(this->up_return_encap_scheme == ENCAP_ATM_AAL5 ||
+	   this->up_return_encap_scheme == ENCAP_ATM_AAL5_ROHC)
 	{
 		this->out_encap_packet_length = AtmCell::length();
 		this->out_encap_packet_type = PKT_TYPE_ATM;
 	}
-	else if(up_return_encap_scheme == ENCAP_MPEG_ULE ||
-	        up_return_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+	else if(this->up_return_encap_scheme == ENCAP_MPEG_ULE ||
+	        this->up_return_encap_scheme == ENCAP_MPEG_ULE_ROHC)
 	{
 		this->out_encap_packet_length = MpegPacket::length();
 		this->out_encap_packet_type = PKT_TYPE_MPEG;
 	}
-	//TODO only for a DVB-S2 uplink (not implemented yet) !!
-#if 0
-	else if(up_return_encap_scheme == ENCAP_GSE)
-	{
-		this->out_encap_packet_length = GsePacket::length();
-		//TODO get real GSE packet length (used for FIFO stats)
-		this->out_encap_packet_type = PKT_TYPE_GSE;
-	}
-#endif
 	else
 	{
 		UTI_ERROR("bad value '%s' for uplink encapsulation "
-		          "protocol\n", up_return_encap_scheme.c_str());
+		          "protocol\n", this->up_return_encap_scheme.c_str());
 		goto error;
 	}
 	UTI_INFO("uplink encapsulation packet length = %d bytes\n",
-	this->out_encap_packet_length);
-
-	// read downlink encapsulation packet length from config
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                                down_forward_encap_scheme))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
-		goto error;
-	}
+	         this->out_encap_packet_length);
 
 	// set the encapsulation packet type for emission standard
 	this->emissionStd->setEncapPacketType(this->out_encap_packet_type);
 
 	// compute downlink encapsulation packet length
-	if(down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
-	   down_forward_encap_scheme == ENCAP_MPEG_ULE ||
-	   down_forward_encap_scheme == ENCAP_MPEG_ULE_ROHC ||
-	   down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC)
+	if(this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
+	   this->down_forward_encap_scheme == ENCAP_MPEG_ULE ||
+	   this->down_forward_encap_scheme == ENCAP_MPEG_ULE_ROHC ||
+	   this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC)
 	{
 		this->in_encap_packet_length = MpegPacket::length();
 	}
-	else if(down_forward_encap_scheme == ENCAP_GSE ||
-	        down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
-	        down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE ||
-	        down_forward_encap_scheme == ENCAP_GSE_ROHC ||
-	        down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
+	else if(this->down_forward_encap_scheme == ENCAP_GSE ||
+	        this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
+	        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE ||
+	        this->down_forward_encap_scheme == ENCAP_GSE_ROHC ||
+	        this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
+	        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
 	{
 		this->in_encap_packet_length = 0;//GsePacket::length();
 		//TODO get the real packet length (used for FIFO stats)
@@ -521,7 +490,7 @@ int BlocDVBRcsTal::initEncapsulation()
 	else
 	{
 		UTI_ERROR("bad value '%s' for downlink encapsulation "
-		          "protocol\n", down_forward_encap_scheme.c_str());
+		          "protocol\n", this->down_forward_encap_scheme.c_str());
 		goto error;
 	}
 	UTI_INFO("downlink encapsulation packet length = %d bytes\n",
@@ -593,37 +562,6 @@ error:
 	return -1;
 }
 
-
-/**
- * Read configuration for the frame
- */
-void BlocDVBRcsTal::initFrame()
-{
-	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	int val;
-
-#define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
-
-	// nb of frames per superframe
-	if(!globalConfig.getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRMS_PER_SUPER,
-	                                 val))
-	{
-		val = DFLT_FRMS_PER_SUPER;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
-		          DVB_FRMS_PER_SUPER, val);
-	}
-	this->frames_per_superframe = val;
-
-	// Frame duration - in ms
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_FRM_DURATION,
-	                                 val))
-	{
-		val = DFLT_FRM_DURATION;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
-		          DVB_FRM_DURATION, val);
-	}
-	this->frame_duration = val;
-}
 
 /**
  * Read configuration for the carrier ID
@@ -920,35 +858,35 @@ void BlocDVBRcsTal::initObr()
 int BlocDVBRcsTal::initDama()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	string strConfig;
 	int ret;
 
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
-	// get and set the dama algorithm
-	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_DAMA_ALGO, strConfig))
-	{
-		UTI_ERROR("%s SF#%ld Can't get DAMA algorithm name\n", FUNCNAME,
-		          this->super_frame_counter);
-		goto error;
-	}
-
-	if(strConfig == "Legacy")
+	if(this->dama_algo == "Legacy")
 	{
 		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
 		m_pDamaAgent = new DvbRcsDamaAgentLegacy();
 	}
-	else if(strConfig == "UoR")
+	else if(this->dama_algo == "UoR")
 	{
 		UTI_INFO("%s SF#%ld: create UoR DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
 		m_pDamaAgent = new DvbRcsDamaAgentUoR();
 	}
+	// TODO we have a common dama agent thus for stub and yes we need to choose
+	//      a dama agent
+	else if(this->dama_algo == "Yes" || this->dama_algo == "Stub")
+	{
+		UTI_INFO("%s SF#%ld: no %s DAMA agent thus Legacy dama is used by default\n",
+		         FUNCNAME, this->super_frame_counter, this->dama_algo.c_str());
+		m_pDamaAgent = new DvbRcsDamaAgentLegacy();
+		goto error;
+	}
 	else
 	{
 		UTI_ERROR("cannot create DAMA agent: algo named '%s' is not "
-		          "managed by current MAC layer\n", strConfig.c_str());
+		          "managed by current MAC layer\n", this->dama_algo.c_str());
 		goto error;
 	}
 
@@ -1045,7 +983,13 @@ int BlocDVBRcsTal::onInit()
 {
 	int ret;
 
-	// get the transmission mode (transparent/regenerative, delay...)
+	// get the common parameters
+	if(!this->initCommon())
+	{
+		UTI_ERROR("failed to complete the common part of the initialisation");
+		goto error;
+	}
+
 	ret = this->initMode();
 	if(ret != 0)
 	{
@@ -1069,8 +1013,6 @@ int BlocDVBRcsTal::onInit()
 		          "initialisation");
 		goto error;
 	}
-
-	this->initFrame();
 
 	ret = this->initCarrierId();
 	if(ret != 0)

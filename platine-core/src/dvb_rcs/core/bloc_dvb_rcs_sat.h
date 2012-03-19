@@ -79,15 +79,6 @@ class BlocDVBRcsSat: public BlocDvb
 	int m_delay;
 
 
-	/* DVB-RCS/S2 emulation */
-
-	/// Satellite type (transparent/regenerative)
-	string satellite_type;
-
-	/// how often do we refresh the adaptive physical layer scenario (in ms)
-	int dvb_scenario_refresh;
-
-
 	/* Timers */
 
 	// Internal event handlers
@@ -96,9 +87,6 @@ class BlocDVBRcsSat: public BlocDvb
 	/// timer used to awake the block every second in order to retrieve
 	/// the modcods
 	mgl_timer scenario_timer;
-	/// the frame duration
-	int frameDuration;
-
 
 	/* misc */
 	/// Flag set 1 to activate error generator

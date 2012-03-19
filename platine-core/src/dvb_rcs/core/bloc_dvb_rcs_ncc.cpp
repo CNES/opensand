@@ -95,15 +95,12 @@ BlocDVBRcsNcc::BlocDVBRcsNcc(mgl_blocmgr *blocmgr,
 	// superframes and frames
 	this->super_frame_counter = -1;
 	this->frame_counter = 0;
-	this->frames_per_superframe = -1;
 	this->m_frameTimer = -1;
-	this->frameDuration = -1;
 
 	// DVB-RCS/S2 emulation
 	this->emissionStd = NULL;
 	this->receptionStd = NULL;
 	this->scenario_timer = -1;
-	this->dvb_scenario_refresh = -1;
 
 	/* NGN network / Policy Enforcement Point (PEP) */
 	this->pep_cmd_apply_timer = -1;
@@ -261,7 +258,7 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 			//       duration, but in case of overrun the frame is lost
 			//     - at the end of the treatment -> the frame duration is
 			//       theorical frame duration + treatment duration !!!
-			this->setTimer(this->m_frameTimer, this->frameDuration);
+			this->setTimer(this->m_frameTimer, this->frame_duration);
 
 			// increment counter of frames per superframe
 			this->frame_counter++;
@@ -450,8 +447,14 @@ int BlocDVBRcsNcc::onInit()
 	mgl_msg *link_up_msg;
 	T_LINK_UP *link_is_up;
 
-	// read the frame duration, the super frame duration
-	// and the second duration
+	// get the common parameters
+	if(!this->initCommon())
+	{
+		UTI_ERROR("failed to complete the common part of the initialisation");
+		goto error;
+	}
+
+	// initialize the timers
 	ret = this->initTimers();
 	if(ret != 0)
 	{
@@ -460,7 +463,6 @@ int BlocDVBRcsNcc::onInit()
 		goto error;
 	}
 
-	// get the transmission mode (transparent/regenerative, delay...)
 	ret = this->initMode();
 	if(ret != 0)
 	{
@@ -515,7 +517,7 @@ int BlocDVBRcsNcc::onInit()
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
-	setTimer(m_frameTimer, this->frameDuration);
+	setTimer(m_frameTimer, this->frame_duration);
 
 	// Launch the timer in order to retrieve the modcods
 	setTimer(this->scenario_timer, this->dvb_scenario_refresh);
@@ -613,37 +615,6 @@ int BlocDVBRcsNcc::initTimers()
 {
 	int val;
 
-	// read the frame duration
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_F_DURATION, val))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, DVB_F_DURATION);
-		goto error;
-	}
-	this->frameDuration = val;
-	UTI_INFO("frameDuration set to %d\n", this->frameDuration);
-
-	// read the number of frame per superframe
-	if(!globalConfig.getIntegerValue(DVB_MAC_SECTION, DVB_FPF, val))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_MAC_SECTION, DVB_FPF);
-		goto error;
-	}
-	this->frames_per_superframe = val;
-	UTI_INFO("frames_per_superframe set to %d\n",
-	         this->frames_per_superframe);
-
-	// read the second duration
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH, val))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, DVB_SCENARIO_REFRESH);
-		goto error;
-	}
-	this->dvb_scenario_refresh = val;
-	UTI_INFO("dvb_scenario_refresh set to %d\n", this->dvb_scenario_refresh);
-
 	// read the pep allocation delay
 	if(!globalConfig.getIntegerValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val))
 	{
@@ -668,19 +639,9 @@ error:
  */
 int BlocDVBRcsNcc::initMode()
 {
-	// satellite type: regenerative or transparent ?
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                                this->satellite_type_))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, SATELLITE_TYPE);
-		goto error;
-	}
-	UTI_INFO("satellite type = %s\n", this->satellite_type_.c_str());
-
 	// initialize the emission and reception standards depending
 	// on the satellite type
-	if(this->satellite_type_ == TRANSPARENT_SATELLITE)
+	if(this->satellite_type == TRANSPARENT_SATELLITE)
 	{
 		this->emissionStd = new DvbS2Std();
 		this->receptionStd = new DvbRcsStd();
@@ -690,7 +651,7 @@ int BlocDVBRcsNcc::initMode()
 		this->receptionStd->setTalId(-1);
 		this->emissionStd->setTalId(-1);
 	}
-	else if(this->satellite_type_ == REGENERATIVE_SATELLITE)
+	else if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
 		this->emissionStd = new DvbRcsStd();
 		this->receptionStd = new DvbS2Std();
@@ -701,7 +662,7 @@ int BlocDVBRcsNcc::initMode()
 	else
 	{
 		UTI_ERROR("section '%s': unknown value '%s' for parameter "
-		          "'%s'\n", GLOBAL_SECTION, this->satellite_type_.c_str(),
+		          "'%s'\n", GLOBAL_SECTION, this->satellite_type.c_str(),
 		          SATELLITE_TYPE);
 		goto error;
 
@@ -718,7 +679,7 @@ int BlocDVBRcsNcc::initMode()
 	}
 
 	// set frame duration in emission standard
-	this->emissionStd->setFrameDuration(this->frameDuration);
+	this->emissionStd->setFrameDuration(this->frame_duration);
 
 	return 0;
 
@@ -739,30 +700,17 @@ error:
  */
 int BlocDVBRcsNcc::initEncap()
 {
-	string strConfig;
     string out_encap_scheme;
 	int encap_packet_type = PKT_TYPE_INVALID;
 
 	// read the satellite type
-	if(this->satellite_type_ == REGENERATIVE_SATELLITE)
+	if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
-		if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-		                                out_encap_scheme))
-		{
-			UTI_INFO("section '%s': missing parameter '%s'\n",
-			         GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
-			goto error;
-		}
+		out_encap_scheme = this->up_return_encap_scheme;
 	}
 	else
 	{
-		if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-		                                out_encap_scheme))
-		{
-			UTI_INFO("section '%s': missing parameter '%s'\n",
-			         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
-			goto error;
-		}
+		out_encap_scheme = this->down_forward_encap_scheme;
 	}
 	UTI_INFO("output encapsulation scheme = %s\n",
 	         out_encap_scheme.c_str());
@@ -928,29 +876,13 @@ error:
  */
 int BlocDVBRcsNcc::initDraFiles()
 {
-	std::string strConfig;
 	std::string dra_def_file;
 	std::string dra_simu_file;
-
-	// get the scenario type: individual or collective
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, DVB_SCENARIO);
-		goto error;
-	}
-
-	if(strConfig != "individual" && strConfig != "collective")
-	{
-		UTI_ERROR("invalid value '%s' for parameter '%s' in section '%s'\n",
-		          strConfig.c_str(), DVB_SCENARIO, GLOBAL_SECTION);
-		goto error;
-	}
 
 	// build the path to the DRA scheme definition file
 	dra_def_file = MODCOD_DRA_PATH;
 	dra_def_file += "/";
-	dra_def_file += strConfig;
+	dra_def_file += this->dvb_scenario;
 	dra_def_file += "/def_dra_scheme.txt";
 
 	if(access(dra_def_file.c_str(), R_OK) < 0)
@@ -970,7 +902,7 @@ int BlocDVBRcsNcc::initDraFiles()
 	// build the path to the DRA scheme simulation file
 	dra_simu_file += MODCOD_DRA_PATH;
 	dra_simu_file += "/";
-	dra_simu_file += strConfig;
+	dra_simu_file += this->dvb_scenario;
 	dra_simu_file += "/sim_dra_scheme.txt";
 
 	if(access(dra_simu_file.c_str(), R_OK) < 0)
@@ -1001,70 +933,37 @@ error:
  */
 int BlocDVBRcsNcc::initDama()
 {
-	string strConfig;
-	enum { legacy, uor, stub, yes } selected_algo = stub;
 	string up_return_encap_proto;
 	int st_encap_packet_length;
 	int ret;
 
-	// get and launch the dama algorithm
-	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO, strConfig))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
-	}
-
 	/* select the specified DAMA algorithm */
-	if(strConfig == "Legacy")
+	if(this->dama_algo == "Legacy")
 	{
-		selected_algo = legacy;
+		UTI_INFO("creating Legacy DAMA controller\n");
+		this->m_pDamaCtrl = new DvbRcsDamaCtrlLegacy();
+
 	}
-	else if(strConfig == "UoR")
+	else if(this->dama_algo == "UoR")
 	{
-		selected_algo = uor;
+		UTI_INFO("creating UoR DAMA controller\n");
+		this->m_pDamaCtrl = new DvbRcsDamaCtrlUoR();
 	}
-	else if(strConfig == "Yes")
+	else if(this->dama_algo == "Yes")
 	{
-		selected_algo = yes;
+		UTI_INFO("creating Yes DAMA controller\n");
+		this->m_pDamaCtrl = new DvbRcsDamaCtrlYes();
 	}
-	else if(strConfig == "Stub" || strConfig == "None")
+	else if(this->dama_algo == "Stub" || this->dama_algo == "None")
 	{
-		selected_algo = stub;
+		UTI_INFO("creating Stub DAMA controller\n");
+		this->m_pDamaCtrl = new DvbRcsDamaCtrlStub();
 	}
 	else
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
 		goto error;
-	}
-
-	switch(selected_algo)
-	{
-		case legacy:
-			UTI_INFO("creating Legacy DAMA controller\n");
-			         this->m_pDamaCtrl = new DvbRcsDamaCtrlLegacy();
-			break;
-
-		case uor:
-			UTI_INFO("creating UoR DAMA controller\n");
-			         this->m_pDamaCtrl = new DvbRcsDamaCtrlUoR();
-			break;
-
-		case yes:
-			UTI_INFO("creating Yes DAMA controller\n");
-			         this->m_pDamaCtrl = new DvbRcsDamaCtrlYes();
-			break;
-
-		case stub:
-			UTI_INFO("creating Stub DAMA controller\n");
-			         this->m_pDamaCtrl = new DvbRcsDamaCtrlStub();
-		break;
-
-		default:
-			UTI_ERROR("unattended type of DAMA controller (%d)\n",
-			          selected_algo);
-			goto error;
 	}
 
 	if(this->m_pDamaCtrl == NULL)
@@ -1094,26 +993,18 @@ int BlocDVBRcsNcc::initDama()
 		// return link: DVB-RCS frames encapsulate MPEG packets
 		st_encap_packet_length = MpegPacket::length();
 	}
-	//TODO only for DVB-S2 st uplink (not implemented yet)
-/*	else if(up_return_encap_proto == "GSE")
-	{
-		// return link: DVB-RCS frames encapsulate MPEG packets
-		st_encap_packet_length = 188;//GsePacket::length();
-		//TODO get real GSE packet length (used for dama ctrl (statistics))
-	}*/
 	else
 	{
 		UTI_ERROR("bad value for st output encapsulation scheme\n");
 		goto release_dama;
 	}
 
-
 	// initialize the DAMA controller
 	if(this->emissionStd->type() == "DVB-S2")
 	{
 		ret = this->m_pDamaCtrl->init(
 				m_carrierIdDvbCtrl,
-				this->frameDuration,
+				this->frame_duration,
 				this->frames_per_superframe,
 				st_encap_packet_length,
 				dynamic_cast<DvbS2Std *>(this->emissionStd)->getDraSchemeDefinitions());
@@ -1121,10 +1012,10 @@ int BlocDVBRcsNcc::initDama()
 	else
 	{
 		ret = this->m_pDamaCtrl->init(m_carrierIdDvbCtrl,
-		                              this->frameDuration,
-                                  this->frames_per_superframe,
-                                  st_encap_packet_length,
-                                  0);
+		                              this->frame_duration,
+		                              this->frames_per_superframe,
+		                              st_encap_packet_length,
+		                              0);
 	}
 	if(ret != 0)
 	{

@@ -52,6 +52,14 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
                  const char *name):
 	mgl_bloc(blocmgr, fatherid, name)
 {
+	this->satellite_type = "";
+	this->up_return_encap_scheme = "";
+	this->down_forward_encap_scheme = "";
+	this->dama_algo = "";
+	this->frame_duration = -1;
+	this->frames_per_superframe = -1;
+	this->dvb_scenario = "";
+	this->dvb_scenario_refresh = -1;
 }
 
 /**
@@ -59,6 +67,105 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
  */
 BlocDvb::~BlocDvb()
 {
+}
+
+/** brief Read the common configuration parameters
+ *
+ * @return true on success, false otherwise
+ */
+bool BlocDvb::initCommon()
+{
+	// satellite type
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                                this->satellite_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, SATELLITE_TYPE);
+		goto error;
+	}
+	UTI_INFO("satellite type = %s\n", this->satellite_type.c_str());
+
+	// encapsulation schemes
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                                this->up_return_encap_scheme))
+	{
+		UTI_INFO("section '%s': missing parameter '%s'\n",
+		         GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
+		goto error;
+	}
+	UTI_INFO("up/return encapsulation scheme = %s\n",
+	         this->up_return_encap_scheme.c_str());
+
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                                this->down_forward_encap_scheme))
+	{
+		UTI_INFO("section '%s': missing parameter '%s'\n",
+		         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
+		goto error;
+	}
+	UTI_INFO("down/forward encapsulation scheme = %s\n",
+	         this->down_forward_encap_scheme.c_str());
+
+	// dama algorithm
+	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO,
+	                                this->dama_algo))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		goto error;
+	}
+
+	// frame duration
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_F_DURATION,
+	                                 this->frame_duration))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, DVB_F_DURATION);
+		goto error;
+	}
+	UTI_INFO("frameDuration set to %d\n", this->frame_duration);
+
+	// number of frame per superframe
+	if(!globalConfig.getIntegerValue(DVB_MAC_SECTION, DVB_FPF,
+	                                 this->frames_per_superframe))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DVB_MAC_SECTION, DVB_FPF);
+		goto error;
+	}
+	UTI_INFO("frames_per_superframe set to %d\n",
+	         this->frames_per_superframe);
+
+	// simulation scenario
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO,
+	                                this->dvb_scenario))
+	{
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		          GLOBAL_SECTION, DVB_SCENARIO);
+		goto error;
+	}
+	UTI_INFO("dvb_scenario set to %s\n", this->dvb_scenario.c_str());
+
+	if(this->dvb_scenario != "individual" && this->dvb_scenario != "collective")
+	{
+		UTI_ERROR("invalid value '%s' for config key '%s' in section '%s'\n",
+		          this->dvb_scenario.c_str(), DVB_SCENARIO, GLOBAL_SECTION);
+		goto error;
+	}
+
+	// scenario refresh interval
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
+	                                 this->dvb_scenario_refresh))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, DVB_SCENARIO_REFRESH);
+		goto error;
+	}
+	UTI_INFO("dvb_scenario_refresh set to %d\n", this->dvb_scenario_refresh);
+
+	return true;
+error:
+	return false;
 }
 
 
@@ -71,30 +178,14 @@ BlocDvb::~BlocDvb()
  */
 int BlocDvb::initModcodFiles()
 {
-	std::string strConfig;
 	std::string modcod_def_file;
 	std::string modcod_simu_file;
 	int bandwidth;
 
-	// retrieve the simulation scenario
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, DVB_SCENARIO);
-		goto error;
-	}
-
-	if(strConfig != "individual" && strConfig != "collective")
-	{
-		UTI_ERROR("invalid value '%s' for config key '%s' in section '%s'\n",
-		          strConfig.c_str(), DVB_SCENARIO, GLOBAL_SECTION);
-		goto error;
-	}
-
 	// build the path to the modcod definition file
 	modcod_def_file += MODCOD_DRA_PATH;
 	modcod_def_file += "/";
-	modcod_def_file += strConfig;
+	modcod_def_file += this->dvb_scenario;
 	modcod_def_file += "/def_modcods.txt";
 
 	if(access(modcod_def_file.c_str(), R_OK) < 0)
@@ -106,7 +197,8 @@ int BlocDvb::initModcodFiles()
 	UTI_INFO("modcod definition file = '%s'\n", modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!dynamic_cast<DvbS2Std *>(this->emissionStd)->loadModcodDefinitionFile(modcod_def_file))
+	if(!dynamic_cast<DvbS2Std *>
+			(this->emissionStd)->loadModcodDefinitionFile(modcod_def_file))
 	{
 		goto error;
 	}
@@ -114,7 +206,7 @@ int BlocDvb::initModcodFiles()
 	// build the path to the modcod simulation file
 	modcod_simu_file += MODCOD_DRA_PATH;
 	modcod_simu_file += "/";
-	modcod_simu_file += strConfig;
+	modcod_simu_file += this->dvb_scenario;
 	modcod_simu_file += "/sim_modcods.txt";
 
 	if(access(modcod_def_file.c_str(), R_OK) < 0)

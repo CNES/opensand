@@ -149,7 +149,7 @@ int sat_carrier_channel_set::readConfig()
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_PORT, i);
+			          CARRIER_IN, i);
 			goto error;
 		}
 		// get out
@@ -158,7 +158,7 @@ int sat_carrier_channel_set::readConfig()
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_PORT, i);
+			          CARRIER_OUT, i);
 			goto error;
 		}
 		// get multicast
@@ -167,7 +167,7 @@ int sat_carrier_channel_set::readConfig()
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_PORT, i);
+			          CARRIER_MULTICAST, i);
 			goto error;
 		}
 
