@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="sat" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types that can be useful for many section -->
+<xsd:simpleType name="carrierId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="7" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv4Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="port">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1500" />
+        <xsd:maxInclusive value="65535" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for global section -->
+<xsd:simpleType name="inputEncapScheme">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ATM_AAL5" />
+        <xsd:enumeration value="MPEG_ULE" />
+        <xsd:enumeration value="GSE" />
+        <xsd:enumeration value="GSE_ATM_AAL5" />
+        <xsd:enumeration value="GSE_MPEG_ULE" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="outputEncapScheme">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ATM_AAL5" />
+        <xsd:enumeration value="MPEG_ULE" />
+        <xsd:enumeration value="GSE" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="spots">
+	<xsd:complexType>
+		<xsd:sequence>
+			<xsd:element ref="spot" minOccurs="1" maxOccurs="255"/>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:element>
+
+<xsd:element name="spot">
+	<xsd:complexType>
+		<xsd:attribute name="spot_id" type="spotId" />
+		<xsd:attribute name="log_id" type="carrierId" />
+		<xsd:attribute name="ctrl_id" type="carrierId" />
+		<xsd:attribute name="data_in_id" type="carrierId" />
+		<xsd:attribute name="data_out_st_id" type="carrierId" />
+		<xsd:attribute name="data_out_gw_id" type="carrierId" />
+	</xsd:complexType>
+</xsd:element>
+
+<!-- types for sat_switching_table section -->
+<xsd:simpleType name="talId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="6" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="spotId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="switchs">
+	<xsd:complexType>
+		<xsd:sequence>
+			<xsd:element ref="switch" minOccurs="1" maxOccurs="6"/>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:element>
+
+<xsd:element name="switch">
+	<xsd:complexType>
+		<xsd:attribute name="tal_id" type="talId" />
+		<xsd:attribute name="spot_id" type="spotId" />
+	</xsd:complexType>
+</xsd:element>
+
+<!-- types for sat_carrier section -->
+<!--<xsd:simpleType name="carrierIp">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern ref="ipv4Address" />
+        <xsd:enumeration value="ANY" />
+    </xsd:restriction>
+</xsd:simpleType>-->
+
+<xsd:simpleType name="socketType">
+	<xsd:restriction base="xsd:string">
+		<xsd:enumeration value="SOCK_DGRAM"/>
+	</xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="carriers">
+	<xsd:complexType>
+		<xsd:sequence>
+			<xsd:element ref="carrier" minOccurs="1" maxOccurs="7"/>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:element>
+
+<xsd:element name="carrier">
+	<xsd:complexType>
+		<xsd:attribute name="id" type="carrierId" />
+        <!-- TODO ipv4Address -->
+		<xsd:attribute name="ip_address" type="xsd:string" />
+		<xsd:attribute name="port" type="port" />
+		<xsd:attribute name="in" type="xsd:boolean" />
+		<xsd:attribute name="out" type="xsd:boolean" />
+		<xsd:attribute name="ip_multicast" type="xsd:boolean" />
+	</xsd:complexType>
+</xsd:element>
+
+<!-- types for debug section -->
+<xsd:simpleType name="debugValue">
+	<xsd:restriction base="xsd:integer">
+		<xsd:minInclusive value="0" />
+		<xsd:maxInclusive value="3" />
+	</xsd:restriction>
+</xsd:simpleType>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="global" />
+            <xsd:element ref="dvb_rcs_sat" />
+            <xsd:element ref="sat_switching_table" />
+            <xsd:element ref="sat_carrier" />
+            <xsd:element ref="debug" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- global section description -->
+<xsd:element name="global">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="output_encap_scheme" type="outputEncapScheme" />
+            <xsd:element name="input_encap_scheme" type="inputEncapScheme" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- dvb_rcs_tal section description -->
+<xsd:element name="dvb_rcs_sat">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="seed" type="xsd:integer" />
+            <xsd:element name="error_generator" type="xsd:string" />
+            <xsd:element name="error_generator_ber" type="xsd:integer" />
+            <xsd:element name="error_generator_mean" type="xsd:integer" />
+            <xsd:element name="error_generator_delta" type="xsd:integer" />
+            <xsd:element ref="spots"  />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- sat_switching_table section description -->
+<xsd:element name="sat_switching_table">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="switchs" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- sat_carrier section description -->
+<xsd:element name="sat_carrier">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="carriers" />
+            <xsd:element name="socket_type" type="socketType" />
+            <xsd:element name="addr" type="ipv4Address" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- debug section description -->
+<xsd:element name="debug">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="default" type="debugValue" />
+            <xsd:element name="dvb_rcs" type="debugValue" />
+            <xsd:element name="dvb_rcs_sat" type="debugValue" />
+            <xsd:element name="sat_carrier" type="debugValue" />
+            <xsd:element name="encap" type="debugValue" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

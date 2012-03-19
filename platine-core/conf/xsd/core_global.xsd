@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="all" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types that can be useful for many section -->
+<xsd:simpleType name="talId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="6" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="spotId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for global section -->
+<xsd:simpleType name="ethInterface">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="eth0" />
+        <xsd:enumeration value="eth1" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="msTime">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="2000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="satelliteType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="transparent" />
+        <xsd:enumeration value="regenerative" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="dvbScenario">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="collective" />
+        <xsd:enumeration value="individual" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for mac_layer section -->
+<xsd:simpleType name="bitRate">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="50000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for ip_dedicated_v4 section -->
+<xsd:simpleType name="ipv4Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv4NetMask">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="32" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for ip_dedicated_v6 section -->
+<xsd:simpleType name="ipv6Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4}|
+                            (([0-9a-fA-F]+:){7}[0-9a-fA-F]+)|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?|
+                            ([0-9a-fA-F]{0,4}:){0,6}((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])|
+                            (([0-9a-fA-F]+:){6}|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::([0-9a-fA-F]+:)*)((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv6NetMask">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="64" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the terminals for ip_dedicated sections -->
+<xsd:element name="terminals">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="terminal_v4" minOccurs="1" maxOccurs="6" />
+            <xsd:element ref="terminal_v6" minOccurs="1" maxOccurs="6" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="terminal_v4">
+    <xsd:complexType>
+        <xsd:attribute name="addr" type="ipv4Address" />
+        <xsd:attribute name="mask" type="ipv4NetMask" />
+        <xsd:attribute name="tal_id" type="talId" />
+        <xsd:attribute name="spot_id" type="spotId" />
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="terminal_v6">
+    <xsd:complexType>
+        <xsd:attribute name="addr" type="ipv6Address" />
+        <xsd:attribute name="mask" type="ipv6NetMask" />
+        <xsd:attribute name="tal_id" type="talId" />
+        <xsd:attribute name="spot_id" type="spotId" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- type for simulation column section -->
+<xsd:simpleType name="columnNbr">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="1532" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- type for dvb_rcs section -->
+<xsd:simpleType name="damaAlgorithm">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Legacy" />
+        <xsd:enumeration value="UoR" />
+        <xsd:enumeration value="Stub" />
+        <xsd:enumeration value="yes" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="global" />
+            <xsd:element ref="mac_layer" />
+            <xsd:element ref="ip_dedicated_v4" />
+            <xsd:element ref="ip_dedicated_v6" />
+            <xsd:element ref="simulation_column" />
+            <xsd:element ref="dvb_rcs" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- global section description -->
+<xsd:element name="global">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="user_eth_interface" type="ethInterface" />
+            <xsd:element name="satellite_eth_interface" type="ethInterface" />
+            <xsd:element name="packing_threshold" type="msTime" />
+            <xsd:element name="satellite_type" type="satelliteType" />
+            <xsd:element name="delay" type="msTime" />
+            <xsd:element name="dvb_scenario" type="dvbScenario" />
+            <xsd:element name="dvb_scenario_refresh" type="msTime" />
+            <xsd:element name="frame_duration" type="msTime" />
+            <xsd:element name="bandwidth" type="xsd:integer" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- mac_layer section description -->
+<xsd:element name="mac_layer">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="frames_per_superframe" type="xsd:integer" />
+            <xsd:element name="carrier_transmission_rate" type="bitRate" />
+            <xsd:element name="carrier_number" type="xsd:integer" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- ip_dedicated_v4 section description -->
+<xsd:element name="ip_dedicated_v4">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="terminals" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- ip_dedicated_v6 section description -->
+<xsd:element name="ip_dedicated_v6">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="terminals" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- simulation_column section description -->
+<xsd:element name="simulation_column">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="columns" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- the terminals for ip_dedicated sections -->
+<xsd:element name="columns">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="column" minOccurs="1" maxOccurs="6" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="column">
+    <xsd:complexType>
+        <xsd:attribute name="tal_id" type="talId" />
+        <xsd:attribute name="column_nbr" type="columnNbr" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- dvb_rcs section description -->
+<xsd:element name="dvb_rcs">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="dama_algorithm" type="damaAlgorithm" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

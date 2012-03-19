@@ -190,7 +190,7 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 		UTI_ERROR("%s Missing %s, taking default value (%s).\n",
 		          FUNCNAME, DA_CR_RULE, strConfig.c_str());
 	}
-	if(strcmp(strConfig.c_str(), "yes") == 0)
+	if(strcmp(strConfig.c_str(), "true") == 0)
 	{
 		// for Legacy algo only OUPUT IP fifo sizes are taken into acount
 		m_getIpOutputFifoSizeOnly = true;

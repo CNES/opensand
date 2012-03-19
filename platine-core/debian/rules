@@ -24,6 +24,11 @@ override_dh_install:
 	install -m 0644 conf/core_st.conf $(CURDIR)/debian/platine-core-all/usr/share/platine/st/core.conf
 	install -m 0644 conf/core_gw.conf $(CURDIR)/debian/platine-core-all/usr/share/platine/gw/core.conf
 	install -m 0644 conf/core_global.conf $(CURDIR)/debian/platine-core-all/usr/share/platine/core_global.conf
+	install -m 0644 conf/xsd/core_sat.xsd $(CURDIR)/debian/platine-core-all/usr/share/platine/sat/core.xsd
+	install -m 0644 conf/xsd/core_st.xsd $(CURDIR)/debian/platine-core-all/usr/share/platine/st/core.xsd
+	install -m 0644 conf/xsd/core_gw.xsd $(CURDIR)/debian/platine-core-all/usr/share/platine/gw/core.xsd
+	install -m 0644 conf/xsd/core_global.xsd $(CURDIR)/debian/platine-core-all/usr/share/platine/core_global.xsd
+
 	install -m 0644 conf/deploy.ini $(CURDIR)/debian/platine-core-all/usr/share/platine/deploy.ini
 
     # Configuration for bin

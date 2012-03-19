@@ -306,12 +306,12 @@ void BlocIPQoS::initSarpTables()
 
 		i++;
 		// get the IPv4 address
-		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_IPV4_ADDR,
+		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_ADDR,
 		                                         ipv4_addr))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
-			          TERMINAL_IPV4_ADDR, i);
+			          TERMINAL_ADDR, i);
 			continue;
 		}
 		// get the IPv4 mask
@@ -363,12 +363,12 @@ void BlocIPQoS::initSarpTables()
 
 		i++;
 		// get the IPv6 address
-		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_IPV6_ADDR,
+		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_ADDR,
 		                                         ipv6_addr))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
-			          TERMINAL_IPV6_ADDR, i);
+			          TERMINAL_ADDR, i);
 			continue;
 		}
 		// get the IPv6 mask
