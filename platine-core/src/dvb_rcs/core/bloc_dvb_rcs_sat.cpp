@@ -1345,7 +1345,8 @@ error:
 }
 
 /**
- * Send the DVB frames stored in the given MAC FIFO by \ref onForwardFrame
+ * Send the DVB frames stored in the given MAC FIFO by
+ * \ref PhysicStd::onForwardFrame
  *
  * @param fifo          the MAC fifo which contains the DVB frames to send
  * @param current_time  the current time

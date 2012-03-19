@@ -471,8 +471,9 @@ error:
 /**
  * @brief Read a line of a simulation file and fill the MODCOD/DRA list
  *
- * @param   simu_file     the simulation file (modcod_simu_file or dra_scheme_simu_file)
- * @return                true on success, false on failure
+ * @param   simu_file the simulation file (modcod_simu_file or dra_scheme_simu_file)
+ * @param   list      The MODCOD/DRA list
+ * @return            true on success, false on failure
  *
  * @todo better parsing
  */

@@ -367,5 +367,3 @@ T_ERROR ERR_CTRL_DoPacket(
 	return (rid);
 }
 
-
-#   endif

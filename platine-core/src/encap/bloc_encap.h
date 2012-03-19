@@ -112,6 +112,7 @@ class BlocEncap: public mgl_bloc
 	 * @param blocmgr The bloc manager
 	 * @param fatherid The father of the bloc
 	 * @param name The name of the bloc
+     * @param host_name The name og the host
 	 */
 	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
 	          string host_name);

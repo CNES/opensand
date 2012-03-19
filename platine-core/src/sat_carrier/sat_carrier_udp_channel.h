@@ -63,7 +63,7 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	int send(unsigned char *buf, unsigned int len);
 
-	int receive(unsigned char *buf, unsigned *data_len,
+	int receive(unsigned char *buf, unsigned int *data_len,
 	            unsigned int max_len, long timeout);
 
  protected:

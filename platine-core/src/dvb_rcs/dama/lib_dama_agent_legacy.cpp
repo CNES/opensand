@@ -764,10 +764,11 @@ error:
  * @brief Create an incomplete DVB-RCS frame
  *
  * @param incomplete_dvb_frame OUT: the DVB-RCS frame that will be created
+ * @param encap_packet_type    The type of packet in the frame
  * return                      1 on success, 0 on error
 */
 int DvbRcsDamaAgentLegacy::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
-                                                    int encap_packet_type)
+                                                       int encap_packet_type)
 {
 	if(encap_packet_type != PKT_TYPE_ATM &&
 	   encap_packet_type != PKT_TYPE_MPEG)

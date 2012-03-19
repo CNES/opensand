@@ -57,8 +57,10 @@ class GseMpegUleCtx: public MpegUleCtx, public GseCtx
 	/**
 	 * Build a GSE/MPEG/ULE encapsulation / desencapsulation context
 	 *
-	 * @param packing_threshold  The number of QoS possible values used
+	 * @param qos_nbr            The number of QoS possible values used
 	 *                           for GSE Frag ID
+	 * @param packing_threshold  The maximum time (ms) to wait before sending
+	 *                           an incomplete MPEG packet
 	 */
 	GseMpegUleCtx(int qos_nbr, unsigned int packing_threshold);
 

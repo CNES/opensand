@@ -150,9 +150,9 @@ class PhysicStd
 
 	/**
 	 * Schedule encapsulation packets and create DVB frames which will be
-	 * sent by \ref sendBursts
+	 * sent by \ref  BlocDvb::sendBursts
 	 * @warning do not use this function on satellite terminal, use the dama
-	 *          function \ref globalSchedule instead
+	 *          function \ref DvbRcsDamaAgent::globalSchedule instead
 	 *
 	 * @param fifo                      the MAC fifo to get the packets from
 	 * @param current_time              the current time
@@ -169,7 +169,7 @@ class PhysicStd
 
 	/**
 	 * Forward a frame received by a transparent satellite to the
-	 * given MAC FIFO (\ref onSendFrame will extract it later)
+	 * given MAC FIFO (\ref BlocDVBRcsSat::onSendFrames will extract it later)
 	 *
 	 * @param data_fifo     the MAC fifo to put the DVB frame in
 	 * @param frame         the DVB frame to forward

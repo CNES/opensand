@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc.h
+ * @file bloc_dvb.h
  * @brief This bloc implements a DVB-S2/RCS stack.
  * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies

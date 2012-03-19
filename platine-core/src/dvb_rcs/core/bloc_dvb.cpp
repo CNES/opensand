@@ -247,7 +247,7 @@ error:
 
 /**
  * Send the complete DVB frames created
- * by \ref scheduleEncapPackets or
+ * by \ref DvbRcsStd::scheduleEncapPackets or
  * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
  *
  * @param complete_frames the list of complete DVB frames

@@ -28,8 +28,10 @@ class GseMpegUleRohcCtx: public RohcCtx, public GseMpegUleCtx
 	/**
 	 * Build a GSE/MPEG/ULE/ROHC encapsulation / desencapsulation context
 	 *
-	 * @param packing_threshold  The number of QoS possible values used
+	 * @param qos_nbr            The number of QoS possible values used
 	 *                           for GSE Frag ID
+	 * @param packing_threshold  The maximum time (ms) to wait before sending
+	 *                           an incomplete MPEG packet
 	 */
 	GseMpegUleRohcCtx(int qos_nbr, unsigned int packing_threshold);
 
