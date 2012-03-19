@@ -28,10 +28,13 @@ remove_syslog_conf(){
 }
 
 case "$1" in
-    purge|remove)
+    purge)
         remove_syslog_conf
     ;;
         
+	remove)
+	;;
+
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
 

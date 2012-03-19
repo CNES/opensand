@@ -45,7 +45,6 @@ case "$1" in
     ;;    
         
     remove)
-        remove_syslog_conf
     ;;
 
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
