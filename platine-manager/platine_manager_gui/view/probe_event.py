@@ -78,27 +78,28 @@ class ProbeEvent(ProbeView):
             gobject.source_remove(self._timeout_id)
             self._timeout_id = None
         elif val and self._updating:
-            # refresh the GUI periodically
+            # refresh the GUI immediatly then periodically
+            self.update_stat()
             self._timeout_id = gobject.timeout_add(1000, self.update_stat)
 
-    def col1_toggled_cb(self, cell, path):
+    def toggled_cb(self, cell, path):
         """ sets the toggled state on the toggle button to true or false
             and remove it from the list of selected stats """
         self._probe_lock.acquire()
-        curr_iter = self._treestore.get_iter_from_string(path)
-        curr_name = self._treestore.get_value(curr_iter, TEXT)
-        parent_iter = self._treestore.iter_parent(curr_iter)
-        parent_name = self._treestore.get_value(parent_iter, TEXT)
+        curr_iter = self._tree.get_iter_from_string(path)
+        curr_name = self._tree.get_value(curr_iter, TEXT)
+        parent_iter = self._tree.iter_parent(curr_iter)
+        parent_name = self._tree.get_value(parent_iter, TEXT)
 
         # modify ACTIVE property
-        val = not self._treestore.get_value(curr_iter, ACTIVE)
-        self._treestore.set(curr_iter, ACTIVE, val)
+        val = not self._tree.get_value(curr_iter, ACTIVE)
+        self._tree.set(curr_iter, ACTIVE, val)
 
         self._log.debug("statistic %s toggled with parent %s" %
                         (curr_name, parent_name))
-        top_iter = self._treestore.iter_parent(parent_iter)
+        top_iter = self._tree.iter_parent(parent_iter)
         if top_iter is not None:
-            top_name = self._treestore.get_value(top_iter, TEXT)
+            top_name = self._tree.get_value(top_iter, TEXT)
             self._log.debug("root is " + top_name)
         else:
             self._log.debug("root is parent")
@@ -198,6 +199,8 @@ class ProbeEvent(ProbeView):
             i = i + 1
 
         if self._updating:
+            # refresh the GUI immediatly then periodically
+            self.update_stat()
             self._timeout_id = gobject.timeout_add(1000, self.update_stat)
 
 
@@ -448,7 +451,7 @@ class ProbeEvent(ProbeView):
         """ event handler for clear button """
         self._probe_lock.acquire()
         self.disable_savefig_button()
-        self._treestore.foreach(self.clear_treeview)
+        self._tree.foreach(self.clear_treeview)
 
         self.set_selected_stats([], [], [])
 
@@ -456,6 +459,7 @@ class ProbeEvent(ProbeView):
         self.init_canvas(0)
         self._canvas.hide_all()
         self._probe_lock.release()
+        # refresh the GUI immediatly then periodically
         self.update_stat()
 
     def on_import_clicked(self, source=None, event=None):

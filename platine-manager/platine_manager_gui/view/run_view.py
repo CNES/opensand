@@ -63,6 +63,10 @@ class RunView(WindowView):
         self._initok = False
         self._model = model
         self._log = manager_log
+        # wait before saying you cannot connect to a host
+        self._count = 0
+        # only log one time connection problem
+        self._logged = False
 
         self._platine_buff = None
         self._drawing_area = None
@@ -162,6 +166,15 @@ class RunView(WindowView):
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'st.png')
         if host.get_state() is None:
+            # TODO we could publish a manager service to check if this is the
+            # only manager instance
+            self._count += 1
+            if not self._logged and self._count > 3:
+                self._log.warning("Cannot get %s status, maybe another PtManager "
+                                      "instance is running on the system, else try "
+                                  "restarting platine-daemon on distant host" %
+                                  host.get_name())
+                self._logged = True
             png = os.path.join(IMG_PATH, 'st_grey.png')
         image.set_from_file(png)
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
@@ -171,11 +184,7 @@ class RunView(WindowView):
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = None
-        for compo in self._model.get_hosts_list():
-            if compo.get_component() == 'sat':
-                sat = compo
-                break
+        sat = self._model.get_host('sat')
 
         if host.get_state():
             if sat is not None and sat.get_state():
@@ -207,6 +216,13 @@ class RunView(WindowView):
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'sat.png')
         if host.get_state() is None:
+            self._count += 1
+            if not self._logged and self._count > 3:
+                self._log.warning("Cannot get %s status, maybe another PtManager "
+                                  "instance is running on the system, else try "
+                                  "restarting platine-daemon on distant host" %
+                                  host.get_name())
+                self._logged = True
             png = os.path.join(IMG_PATH, 'sat_grey.png')
         image.set_from_file(png)
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
@@ -220,6 +236,13 @@ class RunView(WindowView):
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'gw.png')
         if host.get_state() is None:
+            self._count += 1
+            if not self._logged and self._count > 3:
+                self._log.warning("Cannot get %s status, maybe another PtManager "
+                                  "instance is running on the system, else try "
+                                  "restarting platine-daemon on distant host" %
+                                  host.get_name())
+                self._logged = True
             png = os.path.join(IMG_PATH, 'gw_grey.png')
         image.set_from_file(png)
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
@@ -230,11 +253,7 @@ class RunView(WindowView):
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = None
-        for compo in self._model.get_hosts_list():
-            if compo.get_component() == 'sat':
-                sat = compo
-                break
+        sat = self._model.get_host('sat')
 
         if host.get_state() and \
            sat is not None and sat.get_state():

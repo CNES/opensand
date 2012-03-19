@@ -66,7 +66,8 @@ class RunEvent(RunView):
         self._error_id = None
         self._first_refresh = True
         self._refresh_iter = 0
-        # at beginning check platform state every 2 seconds
+        # at beginning check platform state immediatly, then every 2 seconds
+        self.on_timer_status()
         self._timeout_id = gobject.timeout_add(2000, self.on_timer_status)
 
         self._dev_mode = False
@@ -140,7 +141,8 @@ class RunEvent(RunView):
             gobject.source_remove(self._timeout_id)
             self._timeout_id = None
         else :
-            # refresh the GUI periodically
+            # refresh immediatly then periodically
+            self.on_timer_status()
             self._timeout_id = gobject.timeout_add(1000, self.on_timer_status)
 
     def on_rcv_event(self, source, condition):

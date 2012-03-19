@@ -41,10 +41,26 @@ from platine_manager_gui.view.window_view import WindowView
 from platine_manager_core.my_exceptions import ConfException
 
 IMG_PATH = "/usr/share/platine/manager/images/"
+DESCRIPTION = (
+"<span size='x-large'><b>Main configuration for Platine</b></span>\n\n"
+"<span size='large'>For more Platine configuration parameters click the "
+"advanced button below.\n\n\n\n"
+"The following schema describes the protocol stack according to selected "
+"configuration:\n\t</span>The payload type is the type of satellite:\n\t\t"
+"<i>transparent = starred\n\t\tregenerative = meshed</i>\n\tThe return "
+"link/uplink standard is the output DVB standard for terminals, only DVB-RCS "
+"is available for the moment\n\tThe DAMA algorithm is the available DAMA "
+"implementations\n\tThe return link/uplink and forward link/dowlink "
+"are the available encapsulation protocols according to the payload\n\ttype and "
+"return link/uplink standard\n\tThe terminal type corresponds to 2 link budget "
+"hypothesis\n\tThe frame duration is the duration of a DVB frame")
 
 #TODO find a way to better handle encapsulation schemes and eventually to add one easily
 class ConfView(WindowView) :
     """ Element for the configuration tab """
+
+    _dama_rcs = ["Legacy", "UoR", "Stub", "Yes"]
+    _dama_s2 = ["MF2-TDMA"]
 
     def __init__(self, parent, model, manager_log):
         WindowView.__init__(self, parent)
@@ -54,13 +70,11 @@ class ConfView(WindowView) :
         self._model = model
 
         self._text_widget = self._ui.get_widget('conf_descr_text')
-        self._text_widget.set_alignment(0.0, 0.0)
-        self._text_widget.set_padding(20, 20)
 
         self._img_widget = self._ui.get_widget('conf_descr_image')
         self._img_path = IMG_PATH
 
-        self._description = 'TODO parameters description'
+        self._description = DESCRIPTION
         self._title = 'Protocol stack'
 
         # parameter to get the correct image on description
@@ -81,53 +95,58 @@ class ConfView(WindowView) :
         except:
             raise
 
+        # disable DVB-S2 emission standard on ST beacuse it is not
+        # implemented yet
+        widget = self._ui.get_widget('DVB-S2')
+        widget.set_sensitive(False)
+
+
     def update_view(self):
         """ update the configuration view according to model
             (should be used with gobject.idle_add outside gtk handlers) """
         # main config parameters
         try:
-            # emission_std
-            widget = self._ui.get_widget(self._model.get_emission_std())
-            widget.set_active(True)
-            widget.clicked()
+            config = self._model.get_conf()
             # payload_type
-            widget = self._ui.get_widget(self._model.get_payload_type())
+            widget = self._ui.get_widget(config.get_payload_type())
             widget.set_active(True)
             widget.clicked()
-            # out_encapsulation
-            if self._model.get_out_encapsulation() == 'GSE':
+            # emission_std
+            widget = self._ui.get_widget(config.get_emission_std())
+            widget.set_active(True)
+            widget.clicked()
+            # dama
+            widget = self._ui.get_widget('dama_box')
+            if config.get_emission_std() == "DVB-S2":
+                widget.set_active(self._dama_s2.index(config.get_dama()))
+            else:
+                widget.set_active(self._dama_rcs.index(config.get_dama()))
+            # up_return_encap
+            if config.get_up_return_encap() == 'GSE':
                 widget = self._ui.get_widget('GSE_OUT')
-            elif self._model.get_out_encapsulation() == 'MPEG_ULE':
+            elif config.get_up_return_encap() == 'MPEG_ULE':
                 widget = self._ui.get_widget('MPEG_OUT')
             else:
-                wname = self._model.get_out_encapsulation()
+                wname = config.get_up_return_encap()
                 widget = self._ui.get_widget(wname)
             widget.set_active(True)
             widget.clicked()
-            # in_encapsulation
-            if self._model.get_in_encapsulation() == 'GSE':
+            # down_forward_encap
+            if config.get_down_forward_encap() == 'GSE':
                 widget = self._ui.get_widget('GSE_IN')
-            elif self._model.get_in_encapsulation() == 'MPEG_ULE':
+            elif config.get_down_forward_encap() == 'MPEG_ULE':
                 widget = self._ui.get_widget('MPEG_IN')
             else:
-                widget = self._ui.get_widget(self._model.get_in_encapsulation())
+                widget = self._ui.get_widget(config.get_down_forward_encap())
             widget.set_active(True)
             widget.clicked()
             # terminal_type
-            widget = self._ui.get_widget(self._model.get_terminal_type())
+            widget = self._ui.get_widget(config.get_terminal_type())
             widget.set_active(True)
             widget.clicked()
             # frame_duration
             widget = self._ui.get_widget('FrameDuration')
-            widget.set_value(self._model.get_frame_duration())
-
-            # disable DVB-S2 emission standard on ST beacuse it is not
-            # implemented yet
-            widget = self._ui.get_widget('DVB-S2')
-            widget.set_sensitive(False)
-            # disable advanced options because they are not implemented yet
-            widget = self._ui.get_widget('advanced_conf')
-            widget.set_sensitive(False)
+            widget.set_value(int(config.get_frame_duration()))
         except:
             raise
 
@@ -135,42 +154,53 @@ class ConfView(WindowView) :
         """ check if the configuration was modified by user
             (used in callback so no need to use locks) """
         try:
-            # emission_std
-            widget = self._ui.get_widget(self._model.get_emission_std())
-            if not widget.get_active():
-                return True
+            config = self._model.get_conf()
             # payload_type
-            widget = self._ui.get_widget(self._model.get_payload_type())
+            widget = self._ui.get_widget(config.get_payload_type())
             if not widget.get_active():
                 return True
-            # out_encapsulation
-            if self._model.get_out_encapsulation() == 'GSE':
+            # emission_std
+            widget = self._ui.get_widget(config.get_emission_std())
+            if not widget.get_active():
+                return True
+            # dama
+            widget = self._ui.get_widget('dama_box')
+            model = widget.get_model()
+            active = widget.get_active()
+            if active < 0:
+                return True
+            if model[active][0] != config.get_dama():
+                return True
+            # up_return_encap
+            if config.get_up_return_encap() == 'GSE':
                 widget = self._ui.get_widget('GSE_OUT')
-            elif self._model.get_out_encapsulation() == 'MPEG_ULE':
+            elif config.get_up_return_encap() == 'MPEG_ULE':
                 widget = self._ui.get_widget('MPEG_OUT')
             else:
-                wname = self._model.get_out_encapsulation()
+                wname = config.get_up_return_encap()
                 widget = self._ui.get_widget(wname)
             if not widget.get_active():
                 return True
-            # in_encapsulation
-            if self._model.get_in_encapsulation() == 'GSE':
+            # down_forward_encap
+            if config.get_down_forward_encap() == 'GSE':
                 widget = self._ui.get_widget('GSE_IN')
-            elif self._model.get_in_encapsulation() == 'MPEG_ULE':
+            elif config.get_down_forward_encap() == 'MPEG_ULE':
                 widget = self._ui.get_widget('MPEG_IN')
             else:
-                widget = self._ui.get_widget(self._model.get_in_encapsulation())
+                widget = self._ui.get_widget(config.get_down_forward_encap())
             if not widget.get_active():
                 return True
             # terminal_type
-            widget = self._ui.get_widget(self._model.get_terminal_type())
+            widget = self._ui.get_widget(config.get_terminal_type())
             if not widget.get_active():
                 return True
             # frame_duration
             widget = self._ui.get_widget('FrameDuration')
-            if (widget.get_text() == self._model.get_frame_duration()):
+            if widget.get_text() == int(config.get_frame_duration()):
                 return True
         except:
             raise
 
         return False
+
+

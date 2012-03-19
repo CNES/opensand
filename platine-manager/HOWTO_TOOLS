@@ -7,8 +7,8 @@ for manager with:
       description with attributes as specified in
       'www.gtk.org/api/2.6/pango/PangoMarkupFormat.html'
     - the /usr/share/platine/tools/NAME/HOST/config file containing the tool
-      configuration for a specific host. This file must be readable by a python
-      ConfigParser as described in 'docs.python.org/library/configparser.html'
+      configuration for a specific host. This file must be in the Platine XML
+      format. See platine-conf module for more details.
     - the /usr/share/platine/tools/NAME/HOST/binary file containing the command
       line to start the tool (options are allowed)
     - the /usr/share/platine/manager/images/tools/NAME.png image (20x20)

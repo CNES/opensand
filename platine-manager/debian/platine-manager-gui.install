@@ -1,6 +1,7 @@
 usr/lib/python2.6/dist-packages/platine_manager_gui/*.py
 usr/lib/python2.6/dist-packages/platine_manager_gui/view/*.py
 usr/lib/python2.6/dist-packages/platine_manager_gui/view/popup/*.py
+usr/lib/python2.6/dist-packages/platine_manager_gui/view/utils/*.py
 usr/lib/python2.6/dist-packages/platine_manager_gui/view/probes/*.py
 usr/bin/*
 usr/share/platine/manager/*

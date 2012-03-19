@@ -46,7 +46,7 @@ from platine_manager_core.my_exceptions import CommandException
 from platine_manager_core.controller.stream import Stream
 
 DATA_END = 'DATA_END\n'
-CONF_DESTINATION_PATH = '/etc/platine/core.conf'
+CONF_DESTINATION_PATH = '/etc/platine/'
 START_DESTINATION_PATH = '/var/cache/platine-daemon/start.ini'
 
 #TODO factorize
@@ -136,7 +136,7 @@ class HostController:
         finally:
             sock.close()
 
-    def configure(self, conf_file, scenario, run, deploy_config, dev_mode=False):
+    def configure(self, conf_files, scenario, run, deploy_config, dev_mode=False):
         """ send the configure command to command server """
         # connect to command server and send the configure command
         try:
@@ -148,10 +148,13 @@ class HostController:
             return
 
         try:
-            # send the configuration file
-            self.send_file(sock, conf_file, CONF_DESTINATION_PATH)
-            # TODO gérer modcod et dra pour la gw
-            #      (en fonction de regen/transp et coll/ind)
+            for conf in conf_files:
+                # send the configuration file
+                self.send_file(sock, conf,
+                               os.path.join(CONF_DESTINATION_PATH,
+                                            os.path.basename(conf)))
+                # TODO handle modcod and dra for gw
+                #      (according to regen/transp et coll/ind)
         except CommandException:
             sock.close()
             raise
@@ -457,11 +460,11 @@ class HostController:
     def connect_command(self, command):
         """ connect to command server and send a command """
         # check if the host is enabled
-        #TODO check box par host (popup quand on est en mode dev ?
-        #     (bouton select host dans conf avancée))
         if not self._host_model.is_enabled():
+            self._log.warning("%s is disabled" % self.get_name())
             return None
         if self._host_model.get_state() is None:
+            self._log.error("cannot get %s status" % self.get_name())
             return None
 
         address = (self._host_model.get_ip_address(),

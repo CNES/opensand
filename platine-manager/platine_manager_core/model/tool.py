@@ -39,7 +39,8 @@ import os
 import glob
 import shutil
 
-from platine_manager_core.my_exceptions import ModelException
+from platine_manager_core.my_exceptions import ModelException, XmlException
+from platine_manager_core.platine_xml_parser import XmlParser
 
 class ToolModel:
     """ tool model """
@@ -51,13 +52,14 @@ class ToolModel:
         self._selected = None
 
         self._bin_path = ''
-        self._conf_path = ''
+        self._conf_file = ''
         self._dest_conf_path = ''
+        self._xsd = ''
 
         self._bin = None
         self._command = None
         self._descr = None
-        self._conf = None
+        self._configuration = None
 
         self._config_view = None
 
@@ -93,50 +95,56 @@ class ToolModel:
     def update(self, scenario):
         """ update the tools path """
         # get configuration
-        self._conf_path = os.path.join(scenario, "tools/%s/%s/" %
+        self._conf_file = os.path.join(scenario, "tools/%s/%s/" %
                                        (self._name, self._host))
         # create the directory if it does not exist
-        if not os.path.isdir(self._conf_path):
+        if not os.path.isdir(self._conf_file):
             try:
-                os.makedirs(self._conf_path, 0755)
+                os.makedirs(self._conf_file, 0755)
             except OSError, (errno, strerror):
                 raise ModelException("cannot create directory '%s': %s" %
-                                     (self._conf_path, strerror))
-        self._conf_path = os.path.join(self._conf_path, 'config')
+                                     (self._conf_file, strerror))
+        self._conf_file = os.path.join(self._conf_file, 'config')
 
-        if not os.path.exists(self._conf_path):
+        if not os.path.exists(self._conf_file):
             try:
                 default_path = "/usr/share/platine/tools/%s/%s/config" % \
                                (self._name, self._compo)
-                shutil.copy(default_path, self._conf_path)
+                shutil.copy(default_path, self._conf_file)
             except IOError, (errno, strerror):
                 raise ModelException("cannot copy %s configuration from "
                                      "'%s' to '%s': %s" % (self._name,
-                                     default_path, self._conf_path, strerror))
+                                     default_path, self._conf_file, strerror))
+
+        self._xsd = "/usr/share/platine/tools/%s/%s/config.xsd" % \
+                    (self._name, self._compo)
 
         try:
-            self._conf = ConfigParser.SafeConfigParser()
-            if len(self._conf.read(self._conf_path)) == 0:
-                raise ModelException("cannot read %s configuration file %s" %
-                                     (self._name, self._conf_path))
-        except ConfigParser.Error, msg:
-            raise ModelException("cannot read %s configuration file %s: %s" %
-                                 (self._name, self._conf_path, msg))
+            self._configuration = XmlParser(self._conf_file, self._xsd)
+        except IOError, msg:
+            raise ModelException("cannot load %s configuration:\n\t%s" %
+                                 (msg, self._name))
+        except XmlException, msg:
+            raise ModelException("failed to parse %s configuration file:\n\t%s"
+                                 % (self._name, msg))
 
     def reload_conf(self):
         """ reload the configuration file """
         self._config_view = None
-        read = 0
         try:
-            self._conf = ConfigParser.SafeConfigParser()
-            read = len(self._conf.read(self._conf_path))
-        except ConfigParser.Error:
-            pass
-        finally:
-            if read == 0:
-                self._conf = None
-                self._state = None
-                self._selected = None
+            self._configuration = XmlParser(self._conf_file, self._xsd)
+        except IOError, msg:
+            self._configuration = None
+            self._state = None
+            self._selected = None
+            raise ModelException("cannot load %s configuration:\n\t%s" %
+                                 (msg, self._name))
+        except XmlException, msg:
+            self._configuration = None
+            self._state = None
+            self._selected = None
+            raise ModelException("failed to parse %s configuration file:\n\t%s"
+                                 % (self._name, self._conf_file, msg))
 
     def get_name(self):
         """ get the tool name """
@@ -156,15 +164,7 @@ class ToolModel:
 
     def get_config_parser(self):
         """ get the configuration parser """
-        return self._conf
-
-    def save_config(self):
-        """ save the configuration stored in config_parser """
-        try:
-            with open(self._conf_path, 'w') as conf_file:
-                self._conf.write(conf_file)
-        except IOError:
-            raise
+        return self._configuration
 
     def get_state(self):
         """ get the tool state """
@@ -184,7 +184,7 @@ class ToolModel:
 
     def get_conf_src(self):
         """ get the configuration file """
-        return self._conf_path
+        return self._conf_file
 
     def get_binary_path(self):
         """ get the binary path """

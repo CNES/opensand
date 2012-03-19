@@ -41,16 +41,14 @@ import shutil
 from platine_manager_core.model.environment_plane import EnvironmentPlaneModel
 from platine_manager_core.model.event_manager import EventManager
 from platine_manager_core.model.host import HostModel
+from platine_manager_core.model.global_config import GlobalConfig
 from platine_manager_core.my_exceptions import ModelException
 from platine_manager_core.loggers.manager_log import ManagerLog
 
-DEFAULT_INI_PATH = '/etc/platine/manager.ini'
 MAX_RECENT = 5
 
-#TODO store the configuration in a separated class ?
 class Model:
     """ Model for Platine """
-
     def __init__(self, manager_log, scenario = ''):
         # initialized in load
         self._inifile = None
@@ -72,7 +70,7 @@ class Model:
         self._hosts = []
         self._ws = []
 
-        self._config = ConfigParser.SafeConfigParser()
+        self._config = None
 
         try:
             self.load()
@@ -126,67 +124,11 @@ class Model:
         for host in self._hosts:
             host.reload_tools(self._scenario_path)
 
-        self._inifile = os.path.join(self._scenario_path, 'manager.ini')
-        # copy configuration file if necessary
-        if not os.path.exists(self._inifile):
-            try:
-                shutil.copy(DEFAULT_INI_PATH, self._inifile)
-            except IOError, (errno, strerror):
-                raise ModelException("cannot copy file '%s' in '%s': %s" %
-                                     (DEFAULT_INI_PATH, self._inifile,
-                                      strerror))
-
         # read configuration file
-        # TODO replace that by a XML validation tool when configuration
-        #      will be in XML format
-        if len(self._config.read(self._inifile)) == 0:
-            self._log.error("failed to load Platine Manager configuration " \
-                            "from '%s'" % self._inifile)
-            raise ModelException("failed to load Platine Manager " \
-                                 "configuration from '%s'" % self._inifile)
-
-        # check that all the needed elements are in the configuration file
-        if not self._config.has_section('global'):
-            self._log.error("cannot get global section in the configuration " \
-                            "file")
-            raise ModelException("cannot get global section in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'payload_type'):
-            self._log.error("cannot get payload_type option in the " \
-                            "configuration file")
-            raise ModelException("cannot get payload_type option in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'emission_std'):
-            self._log.error("cannot get emission_std option in the " \
-                            "configuration file")
-            raise ModelException("cannot get emission_std option in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'out_encapsulation'):
-            self._log.error("cannot get out_encapsulation option in the " \
-                            "configuration file")
-            raise ModelException("cannot get out_encapsulation option in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'in_encapsulation'):
-            self._log.error("cannot get in_encapsulation option in the " \
-                            "configuration file")
-            raise ModelException("cannot get in_encapsulation option in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'terminal_type'):
-            self._log.error("cannot get terminal_type option in the " \
-                            "configuration file")
-            raise ModelException("cannot get terminal_type option in the " \
-                                 "configuration file")
-
-        if not self._config.has_option('global', 'frame_duration'):
-            self._log.error("cannot get frame_duration option in the " \
-                            "configuration file")
-            raise ModelException("cannot get frame_duration option in the " \
-                                 "configuration file")
+        try:
+            self._config = GlobalConfig(self._scenario_path)
+        except ModelException:
+            raise
 
     def close(self):
         """ release the model """
@@ -198,6 +140,15 @@ class Model:
     def get_hosts_list(self):
         """ return the hosts list """
         return self._hosts
+
+    def get_host(self, name):
+        """ return the host according to its name """
+        for host in self._hosts:
+            if name == host.get_name():
+                return host
+        if name == 'global':
+            return self._config
+        return None
 
     def get_workstations_list(self):
         """ return the workstations list """
@@ -318,108 +269,6 @@ class Model:
         """ get the scenario id """
         return self._run_id
 
-    def set_payload_type(self, val):
-        """ set the payload_type value """
-        try:
-            self._config.set('global', 'payload_type', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration " + error)
-
-    def get_payload_type(self):
-        """ get the payload_type value """
-        val = None
-        try:
-            val = self._config.get('global', 'payload_type')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
-    def set_emission_std(self, val):
-        """ set the emission_std value """
-        try:
-            self._config.set('global', 'emission_std', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration " + error)
-
-    def get_emission_std(self):
-        """ get the emission_std value """
-        val = None
-        try:
-            val = self._config.get('global', 'emission_std')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
-    def set_out_encapsulation(self, val):
-        """ set the out_encapsulation value """
-        try:
-            self._config.set('global', 'out_encapsulation', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration " + error)
-
-    def get_out_encapsulation(self):
-        """ get the out_encapsulation value """
-        val = None
-        try:
-            val = self._config.get('global', 'out_encapsulation')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
-    def set_in_encapsulation(self, val):
-        """ set the in_encapsulation value """
-        try:
-            self._config.set('global', 'in_encapsulation', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration " + error)
-
-    def get_in_encapsulation(self):
-        """ get the in_encapsulation value """
-        val = None
-        try:
-            val = self._config.get('global', 'in_encapsulation')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
-    def set_terminal_type(self, val):
-        """ set the terminal_type value """
-        try:
-            self._config.set('global', 'terminal_type', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration " +  error)
-
-    def get_terminal_type(self):
-        """ get the terminal_type value """
-        val = None
-        try:
-            val = self._config.get('global', 'terminal_type')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
-    def set_frame_duration(self, val):
-        """ set the frame_duration value """
-        try:
-            self._config.set('global', 'frame_duration', val)
-        except ConfigParser.Error, error:
-            self._log.error("error when writing configuration" + error)
-
-    def get_frame_duration(self):
-        """ get the frame_duration value """
-        val = None
-        try:
-            val = self._config.getint('global', 'frame_duration')
-        except ConfigParser.Error, error:
-            self._log.error("error when reading configuration " + error)
-        finally:
-            return val
-
     def get_event_manager(self):
         """ get the event manager """
         return self._event_manager
@@ -427,30 +276,6 @@ class Model:
     def get_event_manager_response(self):
         """ get the event manager response """
         return self._event_manager_response
-
-    def save_configuration(self):
-        """ save the model in configuration file """
-        self._modified = True
-        # write configuration to file
-        try:
-            file_conf = open(self._inifile, 'w')
-        except IOError, (errno, strerror):
-            error = "failed to open file to save the new configuration\n" + \
-                    "File: %s\nReason: %s" % (self._inifile, strerror)
-            raise ModelException(error)
-        else:
-            # write configuration to file
-            try:
-                # write config file
-                self._config.write(file_conf)
-            except IOError, (errno, strerror):
-                error = "failed to write the new configuration to file\n" + \
-                        "File: %s\nReason: %s" % (self._inifile, strerror)
-                raise ModelException(error)
-            else:
-                self._log.debug('new configuration saved to disk')
-            finally:
-                file_conf.close()
 
     def main_hosts_found(self):
         """ check if Platine main hosts were found in the platform """
@@ -485,6 +310,13 @@ class Model:
         """ check if we work on the default path and if we modified it """
         return self._is_default and self._modified
 
+    def is_default(self):
+        """ check if we work on default path """
+        return self._is_default
+
+    def get_conf(self):
+        """ get the global configuration """
+        return self._config
 
 ##### TEST #####
 if __name__ == "__main__":

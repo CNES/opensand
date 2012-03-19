@@ -39,8 +39,9 @@ import os
 import gobject
 
 from platine_manager_gui.view.conf_view import ConfView
-from platine_manager_gui.view.popup.infos import error_popup
-from platine_manager_core.my_exceptions import ModelException
+from platine_manager_gui.view.popup.infos import error_popup, yes_no_popup
+from platine_manager_core.my_exceptions import ModelException, XmlException
+from platine_manager_gui.view.popup.advanced_dialog import AdvancedDialog
 
 #TODO find a way to handle properly links protocols
 class ConfEvent(ConfView) :
@@ -51,6 +52,8 @@ class ConfEvent(ConfView) :
 
         self._modif = False
         self._previous_img = ''
+        # update the description immediately then add a periodic update
+        self.refresh_description()
         self._descr_refresh = gobject.timeout_add(1000,
                                                   self.refresh_description)
 
@@ -76,6 +79,8 @@ class ConfEvent(ConfView) :
         else:
             self._modif = True
             self._previous_img = ''
+            # update the description immediately then add a periodic update
+            self.refresh_description()
             self._descr_refresh = gobject.timeout_add(1000,
                                                       self.refresh_description)
 
@@ -210,6 +215,7 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons()
         self.set_all_uplink_buttons_sensitive()
         self.disable_button('GSE_OUT', 'ATM_AAL5')
+        self.populate_dama(self._dama_rcs)
 
     def on_dvb_s2_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-S2 is selected """
@@ -217,6 +223,20 @@ class ConfEvent(ConfView) :
         self.set_all_uplink_buttons_sensitive()
         self.disable_button('ATM_AAL5', 'GSE_OUT')
         self.disable_button('MPEG_OUT', 'GSE_OUT')
+        self.populate_dama(self._dama_s2)
+
+    def populate_dama(self, dama_list):
+        """ populate the DAMA combobox """
+        combo = self._ui.get_widget('dama_box')
+        combo.clear()
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        for name in dama_list:
+            store.append([name])
+        combo.set_model(store)
+        cell = gtk.CellRendererText()
+        combo.pack_start(cell, True)
+        combo.add_attribute(cell, 'text', 0)
+        combo.set_active(0)
 
     def on_atm_out_button_clicked(self, source=None, event=None):
         """ actions performed when ATM is selected on uplink """
@@ -263,6 +283,10 @@ class ConfEvent(ConfView) :
         self._down = 'mpeg'
         self.enable_conf_buttons()
 
+    def on_button_clicked(self, source=None, event=None):
+        """ 'clicked' event on teminal type buttons """
+        self.enable_conf_buttons()
+
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
         self.update_view()
@@ -280,7 +304,8 @@ class ConfEvent(ConfView) :
             payload_type = 'regenerative'
         else:
             return
-        self._model.set_payload_type(payload_type)
+        config = self._model.get_conf()
+        config.set_payload_type(payload_type)
 
         # emission standard
         if(self.is_button_active('DVB-RCS') == True):
@@ -289,51 +314,82 @@ class ConfEvent(ConfView) :
             emission_std = 'DVB-S2'
         else:
             return
-        self._model.set_emission_std(emission_std)
+        config.set_emission_std(emission_std)
+
+        # dama
+        widget = self._ui.get_widget('dama_box')
+        model = widget.get_model()
+        active = widget.get_active()
+        if active < 0:
+            return
+        config.set_dama(model[active][0])
 
         # output encapsulation scheme
         if(self.is_button_active('ATM_AAL5') == True):
-            out_encapsulation = 'ATM_AAL5'
+            up_return_encap = 'ATM_AAL5'
         elif (self.is_button_active('MPEG_OUT') == True):
-            out_encapsulation = 'MPEG_ULE'
+            up_return_encap = 'MPEG_ULE'
         elif (self.is_button_active('GSE_OUT') == True):
-            out_encapsulation = 'GSE'
+            up_return_encap = 'GSE'
         else:
             return
-        self._model.set_out_encapsulation(out_encapsulation)
+        config.set_up_return_encap(up_return_encap)
 
         # input encapsulation scheme
         if (self.is_button_active('MPEG_IN') == True):
-            in_encapsulation = 'MPEG_ULE'
+            down_forward_encap = 'MPEG_ULE'
         elif (self.is_button_active('GSE_IN') == True):
-            in_encapsulation = 'GSE'
+            down_forward_encap = 'GSE'
         elif (self.is_button_active('MPEG_ATM_AAL5') == True):
-            in_encapsulation = 'MPEG_ATM_AAL5'
+            down_forward_encap = 'MPEG_ATM_AAL5'
         elif (self.is_button_active('GSE_ATM_AAL5') == True):
-            in_encapsulation = 'GSE_ATM_AAL5'
+            down_forward_encap = 'GSE_ATM_AAL5'
         elif (self.is_button_active('GSE_MPEG_ULE') == True):
-            in_encapsulation = 'GSE_MPEG_ULE'
+            down_forward_encap = 'GSE_MPEG_ULE'
         else:
             return
-        self._model.set_in_encapsulation(in_encapsulation)
+        config.set_down_forward_encap(down_forward_encap)
 
         # terminal type
         if (self.is_button_active('collective') == True):
             terminal_type = 'collective'
         else:
             terminal_type = 'individual'
-        self._model.set_terminal_type(terminal_type)
+        config.set_terminal_type(terminal_type)
 
         # fame duration
         widget = self._ui.get_widget('FrameDuration')
         frame_duration = widget.get_text()
-        self._model.set_frame_duration(frame_duration)
+        config.set_frame_duration(frame_duration)
 
         try:
-            self._model.save_configuration()
-        except ModelException as error:
-            error_popup(error.value)
+            config.save()
+        except XmlException, error:
+            error_popup(str(error), error.description)
+            self.on_undo_conf_clicked()
 
     def on_frame_duration_value_changed(self, source=None, event=None):
-        """ 'change-value' event callback on frame duration burron """
+        """ 'change-value' event callback on frame duration button """
         self.enable_conf_buttons()
+
+    def on_dama_box_changed(self, source=None, event=None):
+        """ 'change' event callback on dama box """
+        self.enable_conf_buttons()
+
+    def on_advanced_conf_clicked(self, source=None, event=None):
+        """ display the advanced window """
+        if self.is_modified():
+            text =  "Save current configuration ?"
+            ret = yes_no_popup(text,
+                               "Save Configuration - Platine Manager",
+                               "gtk-dialog-info")
+            if ret == gtk.RESPONSE_YES:
+                self.on_save_conf_clicked()
+            else:
+                self.update_view()
+        window = AdvancedDialog(self._model, self._log)
+        window.go()
+        window.close()
+        self.update_view()
+        self.enable_conf_buttons(False)
+

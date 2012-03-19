@@ -47,9 +47,11 @@ from matplotlib.ticker import FormatStrFormatter
 
 from platine_manager_gui.view.window_view import WindowView
 from platine_manager_gui.view.probes.probe_model import ProbeModel
+from platine_manager_gui.view.probes.probe import Index
 from platine_manager_gui.view.probes.probe_controller import ProbeController
 from platine_manager_gui.view.popup.infos import error_popup
 from platine_manager_core.my_exceptions import ProbeException
+from platine_manager_gui.view.utils.config_elements import ConfigurationTree
 
 pylab.hold(False)
 
@@ -82,36 +84,10 @@ class ProbeView(WindowView):
         self._files_path = ''
 
         with gtk.gdk.lock:
-            self._treeview = self._ui.get_widget('probe_treeview')
-            #Create the listStore Model to use with the wineView
-            self._treestore = gtk.TreeStore(str, gobject.TYPE_BOOLEAN,
-                                                 gobject.TYPE_BOOLEAN)
-            #Attatch the model to the treeView
-            self._treeview.set_model(self._treestore)
-
-            cell_renderer = gtk.CellRendererText()
-
-            # Connect check box on the treeview
-            cell_renderer_toggle = gtk.CellRendererToggle()
-            cell_renderer_toggle.set_property('activatable', True)
-            cell_renderer_toggle.connect('toggled', self.col1_toggled_cb)
-
-            column = gtk.TreeViewColumn('Statistics', cell_renderer, text=TEXT)
-            column.set_resizable(True)
-            column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
-            column_toggle = gtk.TreeViewColumn('Selected', cell_renderer_toggle,
-                                               visible=VISIBLE, active=ACTIVE)
-            column_toggle.set_resizable(True)
-            column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
-            self._treeview.append_column(column)
-            self._treeview.append_column(column_toggle)
-
-            # add a column to avoid large toggle column
-            col = gtk.TreeViewColumn('')
-            self._treeview.append_column(col)
-
+            treeview = self._ui.get_widget('probe_treeview')
+            self._tree = ConfigurationTree(treeview, 'Statistics', 'Selected',
+                                           None, self.toggled_cb)
+            
         pylab.clf()
         self._fig = plt.figure()
         self._canvas = None
@@ -119,10 +95,12 @@ class ProbeView(WindowView):
         gobject.idle_add(self.disable_savefig_button,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
-        # create an object which refresh the probe tree
+        # refresh the probe tree immediatly then create an object
+        # which refresh it
+        self.refresh()
         self.refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
 
-    def col1_toggled_cb(self, cell, path):
+    def toggled_cb(self, cell, path):
         """ this function is defined in probe_event """
         pass
 
@@ -300,7 +278,7 @@ class ProbeView(WindowView):
         gobject.idle_add(self.enable_savefig_button,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
-    def update_probe_treeview(self, new, old):
+    def update_probe_tree(self, new, old):
         """ update the probe tree view """
         # get the list of ST to append only relevant substatistics
         st_names = []
@@ -308,53 +286,31 @@ class ProbeView(WindowView):
             if host.get_name().startswith('st'):
                 st_names.append(host.get_name())
 
-        tree = self._treestore
-        for probe in self._probes.get_list():
-            if probe.get_name() in new:
-                # append a top element in the treestore
-                # first SAT, then GW and ST
-                if probe.get_name() == 'sat':
-                    top_iter = tree.insert(None, 0)
-                elif probe.get_name() == 'gw':
-                    top_iter = tree.insert(None, 1)
-                else:
-                    top_iter = tree.append(None)
-                tree.set(top_iter, TEXT, probe.get_name().upper(),
-                                   VISIBLE, False,
-                                   ACTIVE, False)
-                for stat in probe.get_stat_list():
-                    if len(stat.get_index_list()) > 0 and \
-                       stat.get_index_list()[0].get_name() != '':
-                        # substatistic => statistic toggle button not visible
-                        stat_iter = tree.append(top_iter)
-                        tree.set(stat_iter, TEXT, stat.get_name(),
-                                            VISIBLE, False,
-                                            ACTIVE, False)
-                    else:
-                        # no substatistic => statistic toggle button visible
-                        stat_iter = tree.append(top_iter)
-                        tree.set(stat_iter, TEXT, stat.get_name(),
-                                            VISIBLE, True,
-                                            ACTIVE, False)
+        for probe in [elt for elt in self._probes.get_list()
+                          if elt.get_name() in new]:
+            stats = {}
+            for stat in probe.get_stat_list():
+                # substatistic
+                if len(stat.get_index_list()) > 0 and \
+                   stat.get_index_list()[0].get_name() != '':
+                    stats[stat.get_name()] = []
+                    # add only the relevant ST in the list
                     for index in stat.get_index_list():
                         name = index.get_name()
-                        if name != '':
-                            if name[:2].lower() != 'st' or \
-                               name.lower() in st_names:
-                                idx_iter = tree.append(stat_iter)
-                                tree.set(idx_iter, TEXT, index.get_name(),
-                                                   VISIBLE, True,
-                                                   ACTIVE, False)
+                        if name != '' and \
+                           (name[:2].lower() != 'st' or 
+                            name.lower() in st_names):
+                            stats[stat.get_name()].append(name)
+                # no substatistic
+                else:
+                    stats[stat.get_name()] = True
+            gobject.idle_add(self._tree.add_host,
+                             probe, stats)
 
-            elif probe.get_name() in old:
-                iterator = tree.get_iter_first()
-                while iterator is not None and \
-                  tree.get_value(iterator, TEXT) != probe.get_name().upper():
-                    iterator = tree.iter_next(iterator)
-                if iterator is not None:
-                    tree.remove(iterator)
-                    self._probes.remove_probe(probe)
-
+        for probe in [elt for elt in self._probes.get_list()
+                          if elt.get_name() in old]:
+            gobject.idle_add(self._tree.del_host, probe.get_name())
+            self._probes.remove_probe(probe)
 
     def refresh(self):
         """ refresh the probe list """
@@ -394,7 +350,7 @@ class ProbeView(WindowView):
         for host in old_host_names:
             self._host_names_detected.remove(host)
 
-        gobject.idle_add(self.update_probe_treeview,
+        gobject.idle_add(self.update_probe_tree,
                          new_host_names, old_host_names)
         self._probe_lock.release()
         return True

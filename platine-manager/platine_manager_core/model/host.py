@@ -39,6 +39,7 @@ import threading
 #TODO we could modify privates methods from toto to _toto_
 from platine_manager_core.model.tool import ToolModel
 from platine_manager_core.my_exceptions import ModelException
+from platine_manager_core.model.host_advanced import AdvancedHostModel
 
 class HostModel:
     """ host model """
@@ -46,7 +47,7 @@ class HostModel:
                  command_port, tools, scenario, manager_log):
         self._log = manager_log
         self._name = name
-        self._instance  = instance
+        self._instance = instance
         if self._name.startswith('st'):
             self._component = 'st'
         elif self._name.startswith('ws'):
@@ -59,8 +60,15 @@ class HostModel:
         self._command_port = command_port
 
         self._enabled = True
-
+        self._advanced = None
         self._state = None
+
+        if self._component != 'ws':
+            try:
+                self._advanced = AdvancedHostModel(self._name, self._instance,
+                                                   scenario)
+            except ModelException, error:
+                self._log.warning("%s: %s" % (self._name.upper(), error))
 
         self._lock = threading.Lock()
 
@@ -78,11 +86,20 @@ class HostModel:
 
     def reload_tools(self, scenario):
         """ update the scenario path for tools configuration """
-        for tool_name in self._tools.keys():
+        for tool_name in self._tools:
             try:
                 self._tools[tool_name].update(scenario)
             except ModelException as error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
+
+    def reload_advanced_configuration(self, scenario):
+        """ update the scenario path for advanced configuration """
+        if self._advanced is not None:
+            self._advanced.load(self._name, scenario)
+
+    def get_advanced_conf(self):
+        """ get the advanced configuration """
+        return self._advanced
 
     def get_component(self):
         """ return the component type """
@@ -112,7 +129,7 @@ class HostModel:
             return
 
         # set all states to False
-        for key in self._tools.keys():
+        for key in self._tools:
             self._tools[key].set_state(False)
         self._state = False
 
@@ -127,7 +144,7 @@ class HostModel:
         # check that each specified program is specified in the tools list
         # or corresponds to the main program and set their status to True
         for key in started_list:
-            if key in self._tools.keys():
+            if key in self._tools:
                 self._tools[key].set_state(True)
             elif key == self._component:
                 self._state = True
@@ -148,18 +165,27 @@ class HostModel:
         """ get the command server port """
         return int(self._command_port)
 
-    def enable(self):
+    def enable(self, val):
         """ enable host """
-        self._enabled = True
-
-    def disable(self):
-        """ disable host """
-        self._enabled = False
+        if self._advanced is None:
+            return
+        if val:
+            self._advanced.enable()
+        else:
+            self._advanced.disable()
 
     def is_enabled(self):
         """ check if host is enabled """
-        return self._enabled
+        if self._advanced is None:
+            return True
+        return self._advanced.is_enabled()
 
     def get_tools(self):
         """ get the host tools """
         return self._tools.values()
+
+    def get_tool(self, tool_name):
+        """ get the host tools """
+        if tool_name in self._tools:
+            return self._tools[tool_name]
+        return None

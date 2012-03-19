@@ -291,7 +291,11 @@ class Controller(threading.Thread):
         try:
             self.update_deploy_config()
             for host in self._hosts:
-                # modify the comp_parameters for environment agent
+                name = host.get_name()
+                component = name.lower()
+                if component.startswith('st'):
+                    component = 'st'
+                # modify the com_parameters for environment agent
                 # TODO suite de la rustine... à supprimer également dès que possible !
                 self.send_com_parameters(host, content)
 
@@ -300,9 +304,15 @@ class Controller(threading.Thread):
                 host_path = os.path.join(self._model.get_scenario(),
                                          host.get_name().lower())
                 if not os.path.isdir(host_path):
+                    if not self._model.is_default():
+                        self._log.warning("The host %s did not exists when the "
+                                          "current scenario was created. The "
+                                          "default configuration will be used" %
+                                          host.get_name())
                     os.mkdir(host_path, 0755)
-                self.modify_conf(host, os.path.join(host_path, 'core.conf'))
-                host.configure(os.path.join(host_path, 'core.conf'),
+                #TODO try to simplify file deployment
+                host.configure([os.path.join(self._model.get_scenario(), 'core_global.conf'),
+                                os.path.join(host_path, 'core.conf')],
                                1, 1, self._deploy_config,
                                self._model.get_dev_mode())
 #TODO uncomment lines below and remove line above when the environment plane
@@ -322,7 +332,8 @@ class Controller(threading.Thread):
         try:
             self._log.info("Starting Environment Plane")
             # set the ProbeController options
-            frame_duration = str(self._model.get_frame_duration())
+            config = self._model.get_conf()
+            frame_duration = config.get_frame_duration()
             self._model.get_env_plane().set_options('probe',
                                                     '-f ' + frame_duration)
             self._env_plane.start()
@@ -381,119 +392,6 @@ class Controller(threading.Thread):
         # tell the GUI event manager that platine installation is over
         self._event_manager_response.set('resp_stop_platform', 'done')
         return True
-
-    def modify_conf(self, host, conf_file):
-        """ modify the configuration files according to user selection """
-        # TODO bad way to handle configuration
-        name = host.get_name()
-        component = name.lower()
-        instance = 0
-        if component.startswith('st'):
-            instance = component[2:]
-            component = 'st'
-
-        # get configuration parameters
-        frame_duration = self._model.get_frame_duration()
-        terminal_type = self._model.get_terminal_type()
-        payload_type = self._model.get_payload_type()
-        #emission_std is not used yet
-        #emission_std = self._model.get_emission_std()
-        out_encapsulation = self._model.get_out_encapsulation()
-        in_encapsulation = self._model.get_in_encapsulation()
-
-        # determine values for InputEncapScheme, OutputEncapScheme and
-        # OutputSTEncapScheme parameters
-        if component == "sat":
-            if payload_type == "regenerative":
-                input_encap_scheme = out_encapsulation
-                output_encap_scheme = in_encapsulation
-            else:
-                input_encap_scheme = "NOT_USED"
-                output_encap_scheme = "NOT_USED"
-
-            output_st_encap_scheme = None
-
-        elif component == "st":
-            input_encap_scheme = in_encapsulation
-            output_encap_scheme = out_encapsulation
-
-            output_st_encap_scheme = None
-
-        elif component == "gw":
-            if payload_type == "transparent":
-                input_encap_scheme = out_encapsulation
-                output_encap_scheme = in_encapsulation
-                output_st_encap_scheme = out_encapsulation
-            else:
-                input_encap_scheme = in_encapsulation
-                output_encap_scheme = out_encapsulation
-                output_st_encap_scheme = out_encapsulation
-
-        # copy the configuration template in the destination directory
-        # if it does not exist
-        if not os.path.exists(conf_file):
-            self._log.debug("copy configuration file " \
-                            "'/usr/share/platine/%s/core.conf' in '%s'" %
-                            (component, conf_file))
-            try:
-                shutil.copy("/usr/share/platine/%s/core.conf" % component,
-                            conf_file)
-            except IOError, msg:
-                self._log.error("failed to copy %s configuration file "
-                                "in '%s': %s"
-                                % (host.get_name(), conf_file, msg))
-                raise CommandException
-
-        # start customizing configuration
-        self._log.debug("customize configuration file")
-
-        # customize frame_duration parameter for all components
-        try:
-            self.custom_param('frame_duration', frame_duration, conf_file)
-
-            # customize parameters that are specific for SAT, GW or ST
-            if component == "sat" or component == "gw":
-                # customize satelliteType
-                self.custom_param('satelliteType', payload_type, conf_file)
-                # customize dvb_scenario
-                self.custom_param('dvb_scenario', terminal_type, conf_file)
-            elif component == "st":
-                self.custom_param('DvbType', terminal_type, conf_file)
-                # customize ST id
-                self.custom_param('DvbMacId', instance, conf_file)
-                self.custom_param('st_name', name, conf_file)
-                # TODO il faudrait enlever ces parametres de la !
-                net = 18 + int(instance)
-                address = "192.168.%d.5" % net
-                self.custom_param('st_address', address, conf_file)
-                address = "192.168.18." + instance
-                self.custom_param('addr', address, conf_file)
-
-            # customize InputEncapScheme, OutputEncapScheme and
-            # OutputSTEncapScheme parameters
-            self.custom_param('InputEncapScheme', input_encap_scheme, conf_file)
-            if output_encap_scheme is not None:
-                self.custom_param('OutputEncapScheme',
-                                  output_encap_scheme, conf_file)
-            if output_st_encap_scheme is not None:
-                self.custom_param('OutputSTEncapScheme',
-                                  output_st_encap_scheme, conf_file)
-        except CommandException:
-            raise
-
-    def custom_param(self, param, value, conf_file):
-        """ modify a parameter in the configuration file """
-        script = os.path.join(SCRIPT_PATH, "searchEntry.sh")
-        if not os.path.exists(script):
-            self._log.error("cannot find file %s" % script)
-            raise CommandException
-
-        ret = os.system("%s '%s' '%s' %s 1>/dev/null" %
-                        (script, param, value, conf_file))
-        if ret != 0:
-            self._log.error("failed to replace %s parameter in '%s'" %
-                            (param, conf_file))
-            raise CommandException
 
     def update_deploy_config(self):
         """ Update deployment configuration."""

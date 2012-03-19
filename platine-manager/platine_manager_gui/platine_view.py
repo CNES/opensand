@@ -106,7 +106,6 @@ class View(WindowView):
             gobject.idle_add(self.set_title,
                              "Platine Manager - [%s]" % scenario)
 
-
         gobject.idle_add(self.set_recents)
 
     def exit(self):

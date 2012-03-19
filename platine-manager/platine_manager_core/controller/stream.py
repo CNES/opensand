@@ -89,11 +89,8 @@ class Stream:
             buf = buf + '<directory name="%s">\n' % \
                   os.path.basename(src_directory)
 
-        try:
-            # write tags
-            self._tmp_file.write(buf)
-        except socket.error, (errno, strerror):
-            raise CommandException(strerror)
+        # write tags
+        self._tmp_file.write(buf)
 
         # browse the folder
         for elt in content:
@@ -112,17 +109,18 @@ class Stream:
 
         # close directory tag
         buf = '</directory>\n'
-        try:
-            # write tag
-            self._tmp_file.write(buf)
-        except socket.error, (errno, strerror):
-            raise CommandException(strerror)
+        # write tag
+        self._tmp_file.write(buf)
 
         self._tmp_file.seek(0)
-        for line in self._tmp_file.readlines():
-            self._sock.send(line)
-        self._tmp_file.close()
-        self._tmp_file = None
+        try:
+            for line in self._tmp_file.readlines():
+                self._sock.send(line)
+        except socket.error, (errno, strerror):
+            raise CommandException(strerror)
+        finally:
+            self._tmp_file.close()
+            self._tmp_file = None
 
 
     def send(self, src_filename, dst_filename, prolog=False, mode=None):
@@ -157,38 +155,38 @@ class Stream:
         # open CDATA tag
         buf = buf + '<![CDATA['
 
-        try:
-            # write tags
-            self._tmp_file.write(buf)
+        # write tags
+        self._tmp_file.write(buf)
 
-            # write raw data
+        # write raw data
+        buf = new_file.readline()
+        # encode buffer to avoid XML parsing errors
+        buf = encodestring(buf)
+        while(buf != ''):
+            self._tmp_file.write(buf)
             buf = new_file.readline()
-            # encode buffer to avoid XML parsing errors
             buf = encodestring(buf)
-            while(buf != ''):
-                self._tmp_file.write(buf)
-                buf = new_file.readline()
-                buf = encodestring(buf)
 
-            # close CDATA tag
-            buf = buf + ']]>'
-            # close file tag
-            buf = buf + '</file>\n'
+        # close CDATA tag
+        buf = buf + ']]>'
+        # close file tag
+        buf = buf + '</file>\n'
 
-            if prolog:
-                # close directory tag
-                buf = buf + '</directory>\n'
+        if prolog:
+            # close directory tag
+            buf = buf + '</directory>\n'
 
-            # write tags
-            self._tmp_file.write(buf)
-        except socket.error, (errno, strerror):
-            raise CommandException(strerror)
-        finally:
-            new_file.close()
+        # write tags
+        self._tmp_file.write(buf)
+        new_file.close()
 
         if prolog:
             self._tmp_file.seek(0)
-            for line in self._tmp_file.readlines():
-                self._sock.send(line)
-            self._tmp_file.close()
-            self._tmp_file = None
+            try:
+                for line in self._tmp_file.readlines():
+                    self._sock.send(line)
+            except socket.error, (errno, strerror):
+                raise CommandException(strerror)
+            finally:
+                self._tmp_file.close()
+                self._tmp_file = None

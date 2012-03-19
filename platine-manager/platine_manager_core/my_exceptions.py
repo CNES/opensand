@@ -3,7 +3,7 @@
 
 #
 #
-# Platine is an emulation testbed aiming to represent in a cost effective way a
+# Platine is an emulation testbed aiming to stresent in a cost effective way a
 # satellite telecommunication system for research and engineering activities.
 #
 #
@@ -40,7 +40,7 @@ class InstructionError(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class ModelException(Exception):
     """ error with model """
@@ -48,7 +48,7 @@ class ModelException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class CommandException(Exception):
     """ error with host command client """
@@ -56,7 +56,7 @@ class CommandException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class RunException(Exception):
     """ error with run view """
@@ -64,7 +64,7 @@ class RunException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class ConfException(Exception):
     """ error with conf view """
@@ -72,7 +72,7 @@ class ConfException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class ProbeException(Exception):
     """ error with probe view """
@@ -80,7 +80,7 @@ class ProbeException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class ToolException(Exception):
     """ error with tool view """
@@ -88,7 +88,7 @@ class ToolException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 class ViewException(Exception):
     """ error with view """
@@ -96,4 +96,13 @@ class ViewException(Exception):
         Exception.__init__(self)
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
+
+class XmlException(Exception):
+    """ error with XML parsing """
+    def __init__(self, value, description=''):
+        Exception.__init__(self)
+        self.value = value
+        self.description = description
+    def __str__(self):
+        return str(self.value)
