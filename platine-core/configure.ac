@@ -53,22 +53,24 @@ AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found
 # check for gse library
 PKG_CHECK_MODULES([PLATINE_GSE], [gse >= 1.0.0])
 LIBS="$PLATINE_GSE_LIBS $LIBS"
-CFLAGS="$PLATINE_GSE_CFLAGS $CFLAGS"
+AC_SUBST(AM_CPPFLAGS, "$PLATINE_GSE_CFLAGS $AM_CPPFLAGS")
 
 # check for platine-conf library
 PKG_CHECK_MODULES([PLATINE_CONF], [platine_conf >= 3.0.0])
 LIBS="$PLATINE_CONF_LIBS $LIBS"
-CFLAGS="$PLATINE_CONF_CFLAGS $CFLAGS"
+AC_SUBST(AM_CPPFLAGS, "$PLATINE_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for platine-env-plane library
 PKG_CHECK_MODULES([PLATINE_ENV_PLANE], [platine_env_plane >= 3.0.0])
 LIBS="$PLATINE_ENV_PLANE_LIBS $LIBS"
-CFLAGS="$PLATINE_ENV_PLANE_CFLAGS $CFLAGS"
+AC_SUBST(AM_CPPFLAGS, "$PLATINE_ENV_PLANE_CFLAGS $AM_CPPFLAGS")
 
 # check for platine-margouilla library
 PKG_CHECK_MODULES([PLATINE_MARGOUILLA], [platine_margouilla >= 3.0.0])
 LIBS="$PLATINE_MARGOUILLA_LIBS $LIBS"
-CFLAGS="$PLATINE_MARGOUILLA_CFLAGS $CFLAGS"
+echo "$AM_CPPFLAGS"
+AC_SUBST(AM_CPPFLAGS, "$PLATINE_MARGOUILLA_CFLAGS $AM_CPPFLAGS")
+
 
 #check if Ule security is enable
 AC_ARG_ENABLE(ule_security, [  --enable-ule-security   enable ULE security  [[default=no]]], enable_ule_security=$enableval, enable_ule_security=no)
@@ -91,6 +93,7 @@ else
 fi
 AC_DEFINE_UNQUOTED([MEMORY_POOL], [$memory_pool], [Whether memory pool is enabled or not.])
 
+AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall -Werror -DUTI_DEBUG_ON")
 
 # Install binaries and libraries in usr/bin
 AC_PREFIX_DEFAULT("/usr")

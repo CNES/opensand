@@ -195,8 +195,8 @@ mgl_status BlocEncap::onInit()
 	int qos_nbr;
 
 	// read encapsulation scheme to use to output data
-	if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                               output_encap_proto) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
+	                               output_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
 		         "ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION, OUT_ENCAP_SCHEME);
@@ -208,8 +208,8 @@ mgl_status BlocEncap::onInit()
 		this->emissionCxt = (AtmCtx *) new AtmAal5Ctx();
 	else if(output_encap_proto == ENCAP_MPEG_ULE)
 	{
-		if(globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                packing_threshold) < 0)
+		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
+		                                 packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 			         "encapsulation scheme set to %d ms.\n", FUNCNAME,
@@ -233,12 +233,11 @@ mgl_status BlocEncap::onInit()
 	        output_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// Get QoS number for GSE encapsulation context
-		qos_nbr = globalConfig.getNbListItems(SECTION_CLASS);
-		if(qos_nbr < 0)
+		if(!globalConfig.getNbListItems(SECTION_CLASS, CLASS_LIST, qos_nbr))
 		{
-			UTI_INFO("%s Section %s missing. QoS number for GSE "
+			UTI_INFO("%s Section %s, %s missing. QoS number for GSE "
 			         "encapsulation scheme set to %d.\n", FUNCNAME,
-			         SECTION_CLASS, DFLT_GSE_QOS_NBR);
+			         SECTION_CLASS, CLASS_LIST, DFLT_GSE_QOS_NBR);
 			qos_nbr = DFLT_GSE_QOS_NBR;
 		}
 
@@ -319,8 +318,8 @@ mgl_status BlocEncap::onInit()
 	}
 #endif
 	// read encapsulation scheme to use to receive data
-	if(globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
-	                               input_encap_proto) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
+	                                input_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Receive encapsulation "
 					"scheme set to ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION,
@@ -342,12 +341,11 @@ mgl_status BlocEncap::onInit()
 
 	{
 		// Get QoS number for GSE encapsulation context
-		qos_nbr = globalConfig.getNbListItems(SECTION_CLASS);
-		if(qos_nbr < 0)
+		if(!globalConfig.getNbListItems(SECTION_CLASS, CLASS_LIST, qos_nbr))
 		{
-			UTI_INFO("%s Section %s missing. QoS number for GSE "
+			UTI_INFO("%s Section %s, %s missing. QoS number for GSE "
 			         "deencapsulation scheme set to %d.\n", FUNCNAME,
-			         SECTION_CLASS, DFLT_GSE_QOS_NBR);
+			         SECTION_CLASS, CLASS_LIST, DFLT_GSE_QOS_NBR);
 			qos_nbr = DFLT_GSE_QOS_NBR;
 		}
 
@@ -364,8 +362,8 @@ mgl_status BlocEncap::onInit()
 		else
 		{
 			// Get packing threshold for GSE encapsulation context
-			if(globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-			                                packing_threshold) < 0)
+			if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
+			                                packing_threshold))
 			{
 				UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 				         "encapsulation scheme set to %d ms.\n", FUNCNAME,

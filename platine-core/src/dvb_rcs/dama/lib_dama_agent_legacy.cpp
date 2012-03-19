@@ -133,8 +133,8 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	/* retrieve other informations directly from configuration file */
 
 	// UL carrier rate in kbits/s
-	if(globalConfig.getIntegerValue(DA_MAC_LAYER_SECTION,
-	                                DA_CARRIER_TRANS_RATE, val) < 0)
+	if(!globalConfig.getIntegerValue(DA_MAC_LAYER_SECTION,
+	                                 DA_CARRIER_TRANS_RATE, val))
 	{
 		val = DFLT_CARRIER_TRANS_RATE;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
@@ -149,15 +149,15 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	}
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
-	if(globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, val) < 0)
+	if(!globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, val))
 	{
 		val = DA_DFLT_MAX_RBDC_DATA;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
 		          FUNCNAME, DA_MAX_RBDC_DATA, val);
 	}
 	m_maxRbdc = val;
-	if(globalConfig.getIntegerValue(DA_TAL_SECTION,
-	                                DA_RBDC_TIMEOUT_DATA, val) < 0)
+	if(!globalConfig.getIntegerValue(DA_TAL_SECTION,
+	                                 DA_RBDC_TIMEOUT_DATA, val))
 	{
 		val = DFLT_RBDC_TIMEOUT;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
@@ -166,7 +166,7 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	m_rbdcTimeout = val;
 
 	// Max VBDC -- in ATM cells/MPEG packets number
-	if(globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, val) < 0)
+	if(!globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, val))
 	{
 		val = DA_DFLT_MAX_VBDC_DATA;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
@@ -175,7 +175,7 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	m_maxVbdc = val;
 
 	// MSL duration -- in frames number
-	if(globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MSL_DURATION, val) < 0)
+	if(!globalConfig.getIntegerValue(DA_TAL_SECTION, DA_MSL_DURATION, val))
 	{
 		val = DA_DFLT_MSL_DURATION;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
@@ -184,7 +184,7 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	m_mslDuration = val;
 
 	// CR computation rule
-	if(globalConfig.getStringValue(DA_TAL_SECTION, DA_CR_RULE, strConfig) < 0)
+	if(!globalConfig.getStringValue(DA_TAL_SECTION, DA_CR_RULE, strConfig))
 	{
 		strConfig = DA_DFLT_CR_RULE;
 		UTI_ERROR("%s Missing %s, taking default value (%s).\n",

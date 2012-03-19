@@ -449,8 +449,8 @@ int BlocDVBRcsTal::initEncapsulation()
 	string in_encap_scheme;
 
 	// read uplink encapsulation packet length from config
-	if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                               out_encap_scheme) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
+	                                out_encap_scheme))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, OUT_ENCAP_SCHEME);
@@ -489,8 +489,8 @@ int BlocDVBRcsTal::initEncapsulation()
 	this->out_encap_packet_length);
 
 	// read downlink encapsulation packet length from config
-	if(globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
-	   in_encap_scheme) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
+	                                in_encap_scheme))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, IN_ENCAP_SCHEME);
@@ -548,7 +548,7 @@ int BlocDVBRcsTal::initParameters()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, val))
 	{
 		val = DA_DFLT_RT_BANDWIDTH;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
@@ -559,7 +559,7 @@ int BlocDVBRcsTal::initParameters()
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
 
 	// Get the satellite MAC address
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_MAC_ID, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_MAC_ID, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_TAL_SECTION, DVB_MAC_ID);
@@ -568,11 +568,20 @@ int BlocDVBRcsTal::initParameters()
 	this->macId = val;
 
 	// Get the number of the row in modcod and dra files
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_SIMU_COL, val) < 0
-	   || val > NB_MAX_ST)
+	// TODO long int
+	if(!globalConfig.getIntegerValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
+	                                       toString(m_talId), COLUMN_NBR,
+	                                       val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_TAL_SECTION, DVB_SIMU_COL);
+		          DVB_SIMU_COL, COLUMN_LIST);
+		goto error;
+	}
+	if(val <= 0 || val > NB_MAX_ST)
+	{
+		UTI_ERROR("section '%s': invalid value %d for parameter "
+		          "'%s'\n", DVB_SIMU_COL, val,
+		          COLUMN_NBR);
 		goto error;
 	}
 	this->m_nbRow = val;
@@ -596,8 +605,8 @@ void BlocDVBRcsTal::initFrame()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// nb of frames per superframe
-	if(globalConfig.
-	   getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRMS_PER_SUPER, val) < 0)
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_FRMS_PER_SUPER,
+	                                 val))
 	{
 		val = DFLT_FRMS_PER_SUPER;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
@@ -606,8 +615,8 @@ void BlocDVBRcsTal::initFrame()
 	this->frames_per_superframe = val;
 
 	// Frame duration - in ms
-	if(globalConfig.
-	   getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRM_DURATION, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRM_DURATION,
+	                                 val))
 	{
 		val = DFLT_FRM_DURATION;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
@@ -629,7 +638,7 @@ int BlocDVBRcsTal::initCarrierId()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	 // Get the carrier Id m_carrierIdDvbCtrl
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
 		return -1;
@@ -637,7 +646,7 @@ int BlocDVBRcsTal::initCarrierId()
 	this->m_carrierIdDvbCtrl = val;
 
 	// Get the carrier Id m_carrierIdLogon
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
 		return -1;
@@ -645,7 +654,7 @@ int BlocDVBRcsTal::initCarrierId()
 	this->m_carrierIdLogon = val;
 
 	// Get the carrier Id m_carrierIdData
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
 		return -1;
@@ -668,16 +677,16 @@ int BlocDVBRcsTal::initCarrierId()
 int BlocDVBRcsTal::initMacFifo()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	string strConfig;
-	int i;
-	int ret;
-	int fifoId;
-	int fifoSize;
-	char fifoKind[10];
-	char fifoCrType[10];
+	int i = 0;
+	int fifo_id;
+	int fifo_size;
+	string fifo_type;
+	string fifo_cr_type;
 	int highestPrioMacFifoIndex;
 	int pvc;
 	int lastPvc;
+	ConfigurationList fifo_list;
+	ConfigurationList::iterator iter;
 
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
@@ -685,11 +694,11 @@ int BlocDVBRcsTal::initMacFifo()
 	* Read the MAC queues configuration in the configuration file.
 	* Create and initialize MAC FIFOs
 	*/
-	this->dvb_fifos_number = globalConfig.getNbListItems(DVB_TAL_SECTION);
-	if(this->dvb_fifos_number <= 0)
+	if(!globalConfig.getNbListItems(DVB_TAL_SECTION, FIFO_LIST,
+	                                this->dvb_fifos_number))
 	{
-		UTI_ERROR("invalid number of DVB FIFOs defined in section '%s' "
-		          "of configuration file\n", DVB_TAL_SECTION);
+		UTI_ERROR("invalid number of DVB FIFOs defined in section '%s, %s' "
+		          "of configuration file\n", DVB_TAL_SECTION, FIFO_LIST);
 		goto error;
 	}
 	this->dvb_fifos = new dvb_fifo[this->dvb_fifos_number];
@@ -702,41 +711,75 @@ int BlocDVBRcsTal::initMacFifo()
 	this->dvb_fifos_number, DVB_TAL_SECTION);
 
 	lastPvc = 0;
-	for(i = 0; i < this->dvb_fifos_number; i++)
+	if(!globalConfig.getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
 	{
-		ret = globalConfig.getListItem(DVB_TAL_SECTION, i + 1, strConfig);
-		if(ret < 0)
+		UTI_ERROR("section '%s, %s': missing fifo list", DVB_TAL_SECTION,
+		          FIFO_LIST);
+		goto err_fifo_release;
+	}
+
+	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
+	{
+		// get fifo_id
+		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_ID, fifo_id))
 		{
-			UTI_ERROR("%s SF#%ld: cannot get listItem from section '%s'\n",
-			          FUNCNAME, this->super_frame_counter, DVB_TAL_SECTION);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
+			          FUNCNAME, FIFO_ID, DVB_TAL_SECTION, FIFO_LIST, i + 1);
 			goto err_fifo_release;
 		}
-		sscanf(strConfig.c_str(), "%d %s %d %d %s", &fifoId, fifoKind,
-		       &fifoSize, &pvc, fifoCrType);
+		// get fifo_type
+		if(!globalConfig.getAttributeStringValue(iter, FIFO_TYPE, fifo_type))
+		{
+			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
+			          FUNCNAME, FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			goto err_fifo_release;
+		}
+		// get fifo_size
+		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_SIZE, fifo_size))
+		{
+			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
+			          FUNCNAME, FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			goto err_fifo_release;
+		}
+		// get pvc
+		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_PVC, pvc))
+		{
+			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
+			          FUNCNAME, FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			goto err_fifo_release;
+		}
+		// get the fifo CR type
+		if(!globalConfig.getAttributeStringValue(iter, FIFO_CR_TYPE, fifo_cr_type))
+		{
+			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
+			          FUNCNAME, FIFO_CR_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			goto err_fifo_release;
+		}
 
 		// DVB fifo kind is the MAC QoS. With Legacy DAMA it is the same
 		// as Diffserv IP QoS: it can be AF, EF, BE
 		// NM and SIG filters are for Network Managment and Signalisation
-		if(strcmp(fifoKind, "NM") == 0)
+		if(fifo_type == "NM")
 			this->dvb_fifos[i].setKind(DVB_FIFO_NM);
-		else if(strcmp(fifoKind, "EF") == 0)
+		else if(fifo_type == "EF")
 			this->dvb_fifos[i].setKind(DVB_FIFO_EF);
-		else if(strcmp(fifoKind, "SIG") == 0)
+		else if(fifo_type == "SIG")
 			this->dvb_fifos[i].setKind(DVB_FIFO_SIG);
-		else if(strcmp(fifoKind, "AF") == 0)
+		else if(fifo_type == "AF")
 			this->dvb_fifos[i].setKind(DVB_FIFO_AF);
-		else if(strcmp(fifoKind, "BE") == 0)
+		else if(fifo_type == "BE")
 			this->dvb_fifos[i].setKind(DVB_FIFO_BE);
-		else if(strcmp(fifoKind, "RT") == 0 || strcmp(fifoKind, "NRT") == 0)
+		// TODO check if this is Legacy DAMA agent
+		else if(fifo_type == "RT" || fifo_type == "NRT")
 		{
-			UTI_ERROR("%s SF#%ld: kind of fifo not managed by Legacy DAMA agent: "
-			          "%s\n", FUNCNAME, this->super_frame_counter, fifoKind);
+			UTI_ERROR("%s: kind of fifo not managed by Legacy DAMA agent: "
+			          "%s\n", FUNCNAME, fifo_type.c_str());
 			goto err_fifo_release;
 		}
 		else
 		{
-			UTI_ERROR("%s SF#%ld: unknown kind of fifo: %s\n", FUNCNAME,
-			          this->super_frame_counter, fifoKind);
+			UTI_ERROR("%s: unknown kind of fifo: %s\n", FUNCNAME,
+			          fifo_type.c_str());
 			goto err_fifo_release;
 		}
 
@@ -744,16 +787,15 @@ int BlocDVBRcsTal::initMacFifo()
 		// PVC id must be > 0
 		if(pvc <= 0)
 		{
-			UTI_ERROR("%s SF#%ld: PVC %d is not valid (first PVC id is 1)\n",
-			          FUNCNAME, this->super_frame_counter, pvc);
+			UTI_ERROR("%s: PVC %d is not valid (first PVC id is 1)\n",
+			          FUNCNAME, pvc);
 			goto err_fifo_release;
 		}
 		// PVC ids must be in increasing order
 		else if(pvc < lastPvc)
 		{
-			UTI_ERROR("%s SF#%ld: PVC %d is not valid (PVC ids must be in "
-			          "increasing order\n", FUNCNAME, this->super_frame_counter,
-			          pvc);
+			UTI_ERROR("%s: PVC %d is not valid (PVC ids must be in "
+			          "increasing order\n", FUNCNAME, pvc);
 			goto err_fifo_release;
 		}
 		else
@@ -763,34 +805,35 @@ int BlocDVBRcsTal::initMacFifo()
 		}
 
 		// capacity request type associated to the Fifo: NONE, RBDC or VBDC
-		if(strcmp(fifoCrType, "RBDC") == 0)
+		if(fifo_cr_type == "RBDC")
 			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_RBDC);
-		else if(strcmp(fifoCrType, "VBDC") == 0)
+		else if(fifo_cr_type == "VBDC")
 			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_VBDC);
-		else if(strcmp(fifoCrType, "NONE") == 0)
+		else if(fifo_cr_type == "NONE")
 		{
 			// this will be used by DAMA agent for CR computation
 			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_NONE);
 		}
 		else
 		{
-			UTI_ERROR("%s SF#%ld: unknown CR type of FIFO: %s\n", FUNCNAME,
-			          this->super_frame_counter, fifoCrType);
+			UTI_ERROR("%s: unknown CR type of FIFO: %s\n", FUNCNAME,
+			          fifo_cr_type.c_str());
 			goto err_fifo_release;
 		}
 
 		// set other DVB FIFOs atributes
-		this->dvb_fifos[i].setId(fifoId);
-		this->dvb_fifos[i].init(fifoSize);
+		this->dvb_fifos[i].setId(fifo_id);
+		this->dvb_fifos[i].init(fifo_size);
 
-		UTI_INFO("SF#%ld: Fifo = id %d, kind %d, size %ld, pvc %d, "
-		         "CR type %d\n", this->super_frame_counter,
-		this->dvb_fifos[i].getId(),
-		this->dvb_fifos[i].getKind(),
-		this->dvb_fifos[i].getMaxSize(),
-		this->dvb_fifos[i].getPvc(),
-		this->dvb_fifos[i].getCrType());
+		UTI_INFO("%s: Fifo = id %d, kind %d, size %ld, pvc %d, "
+		         "CR type %d\n", FUNCNAME,
+		         this->dvb_fifos[i].getId(),
+		         this->dvb_fifos[i].getKind(),
+		         this->dvb_fifos[i].getMaxSize(),
+		         this->dvb_fifos[i].getPvc(),
+		         this->dvb_fifos[i].getCrType());
 
+		i++;
 	} // end for(queues are now instanciated and initialized)
 
 	// the default FIFO is the last one = the one with the smallest priority
@@ -851,7 +894,7 @@ void BlocDVBRcsTal::initObr()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// get the OBR period - in number of frames
-	if(globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, val))
 	{
 		val = DA_DFLT_OBR_PERIOD_DATA;
 		UTI_ERROR("%s Missing %s => taking default value (%d)\n", FUNCNAME,
@@ -883,7 +926,7 @@ int BlocDVBRcsTal::initDama()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// get and set the dama algorithm
-	if(globalConfig.getStringValue(DVB_TAL_SECTION, DVB_DAMA_ALGO, strConfig) < 0)
+	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_DAMA_ALGO, strConfig))
 	{
 		UTI_ERROR("%s SF#%ld Can't get DAMA algorithm name\n", FUNCNAME,
 		          this->super_frame_counter);
@@ -942,20 +985,18 @@ error:
 int BlocDVBRcsTal::initQoSServer()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[initQoSServer]";
-	int ret;
 
 	// QoS Server: read hostname and port from configuration
-	ret = globalConfig.getStringValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
-	                                  this->qos_server_host);
-	if(ret < 0)
+	if(!globalConfig.getStringValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
+	                                this->qos_server_host))
 	{
 		UTI_INFO("%s section %s, %s missing. QoS Server address defaults to %s.\n",
 		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST, QOS_SERVER_DFLT_HOST);
 		this->qos_server_host = QOS_SERVER_DFLT_HOST;
 	}
-	ret = globalConfig.getIntegerValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
-	                                   this->qos_server_port);
-	if(ret < 0)
+
+	if(!globalConfig.getIntegerValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
+	                                this->qos_server_port))
 	{
 		UTI_INFO("%s section %s, %s missing. QoS Server port defaults to %d.\n",
 		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT, QOS_SERVER_DFLT_PORT);

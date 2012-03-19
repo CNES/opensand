@@ -88,7 +88,7 @@ INCLUDES = \
 	-I../dama \
 	-I../common
 
-AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON
 
 if ule_security
 AM_LDFLAGS= -lcryptopp

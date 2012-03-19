@@ -15,5 +15,5 @@ libplatine_dvb_modcod_la_SOURCES = \
 INCLUDES = \
 	-I../utils
 
-AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
 

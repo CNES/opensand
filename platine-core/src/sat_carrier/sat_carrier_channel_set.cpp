@@ -60,84 +60,141 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  */
 int sat_carrier_channel_set::readConfig()
 {
-	int nbChannel;
-	unsigned short carrierID;
-	char in[2], out[2], multicast[2];
 	bool bIn, bOut, bMulticast;
 	string interfaceName;
 	string strConfig;
-	char IPaddress[16];
 	char localIPaddress[16];
-	long port;
-	int ret;
-	sat_carrier_channel *channel;
-	int i;
 
-	if(globalConfig.getStringValue("Global", "satelliteEthInterface",
-	   interfaceName) < 0)
+	int i;
+	sat_carrier_channel *channel;
+	ConfigurationList carrier_list;
+	ConfigurationList::iterator iter;
+
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, SAT_ETH_IFACE,
+	                                interfaceName))
 	{
 		UTI_ERROR("Can't get satelliteEthInterface from section Global\n");
 		goto error;
 	}
 
 	// get transmission type
-	if(globalConfig.getStringValue(SATCAR_SECTION, SOCKET_TYPE,
-                                       this->socket_type) < 0)
+	if(!globalConfig.getStringValue(SATCAR_SECTION, SOCKET_TYPE,
+	                               this->socket_type))
 	{
-		UTI_ERROR("Can't get socket type from satCar section\n");
+		UTI_ERROR("Can't get socket type from section %s, %s\n",
+		          SATCAR_SECTION, SOCKET_TYPE);
 		goto error;
 	}
 
 	// get local IP address
-	ret = globalConfig.getStringValue(SATCAR_SECTION, IPADDR, strConfig);
-	if(ret >= 0)
+	if(globalConfig.getStringValue(SATCAR_SECTION, IPADDR, strConfig))
 	{
 		sscanf(strConfig.c_str(), "%15s", localIPaddress);
 	}
 	else
 	{
-		UTI_ERROR("Error can't get IPaddr from section : %s \n", SATCAR_SECTION);
+		UTI_ERROR("Error can't get IP address from section : %s \n", SATCAR_SECTION);
 	}
 
 	// get satellite channels from configuration
-	nbChannel = globalConfig.getNbListItems(SATCAR_SECTION);
-	UTI_DEBUG("%d lines in section [%s]\n", nbChannel, SATCAR_SECTION);
-	for(i = 0; i < nbChannel; i++)
+	if(!globalConfig.getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 	{
-		ret = globalConfig.getListItem(SATCAR_SECTION, i + 1, strConfig);
-		if(ret >= 0)
+		UTI_ERROR("section '%s, %s': missing satellite channels\n",
+		          SATCAR_SECTION, CARRIER_LIST);
+		goto error;
+	}
+
+	i = 0;
+	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
+	{
+		int carrier_id;
+		long carrier_port;
+		string carrier_ip;
+		string carrier_in;
+		string carrier_out;
+		string carrier_multicast;
+
+		i++;
+		// get carrier ID
+		if(!globalConfig.getAttributeIntegerValue(iter, CARRIER_ID,
+		                                          carrier_id))
 		{
-			sscanf(strConfig.c_str(), "%hu %15s %ld %1s %1s %1s",
-			       &carrierID, IPaddress, &port, in, out, multicast);
-			UTI_DEBUG("Line: %d/%d, Carrier ID : %u, IPaddress: %s, "
-			          "port: %ld, in : %s, out : %s, multicast: %s\n",
-			          i + 1, nbChannel, carrierID, IPaddress, port, in,
-			          out, multicast);
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_ID, i);
+			goto error;
 		}
-		else
+		// get IP address
+		if(!globalConfig.getAttributeStringValue(iter, CARRIER_IP,
+		                                         carrier_ip))
 		{
-			UTI_ERROR("Error can't get listItem from section : %s \n",
-			          SATCAR_SECTION);
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_IP, i);
+			goto error;
 		}
 
+		// get port
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CARRIER_PORT,
+		                                              carrier_port))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_PORT, i);
+			goto error;
+		}
+		// get in
+		if(!globalConfig.getAttributeStringValue(iter, CARRIER_IN,
+		                                         carrier_in))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_PORT, i);
+			goto error;
+		}
+		// get out
+		if(!globalConfig.getAttributeStringValue(iter, CARRIER_OUT,
+		                                         carrier_out))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_PORT, i);
+			goto error;
+		}
+		// get multicast
+		if(!globalConfig.getAttributeStringValue(iter, CARRIER_MULTICAST,
+		                                         carrier_multicast))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_PORT, i);
+			goto error;
+		}
+
+		UTI_DEBUG("Line: %d, Carrier ID : %u, IP address: %s, "
+		          "port: %ld, in : %s, out : %s, multicast: %s\n",
+		          i, carrier_id, carrier_ip.c_str(),
+		          carrier_port, carrier_in.c_str(),
+		          carrier_out.c_str(), carrier_multicast.c_str());
+
 		// if for a a channel in=n and out=n channel is not active
-		bIn = CONF_VALUE_YES(in);
-		bOut = CONF_VALUE_YES(out);
-		bMulticast = CONF_VALUE_YES(multicast);
+		bIn = CONF_VALUE_YES(carrier_in);
+		bOut = CONF_VALUE_YES(carrier_out);
+		bMulticast = CONF_VALUE_YES(carrier_multicast);
 		if(bIn || bOut)
 		{
 			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
+				channel = new sat_carrier_udp_channel(carrier_id, bIn, bOut,
 				                                      interfaceName.c_str(),
-				                                      port, bMulticast,
+				                                      carrier_port, bMulticast,
 				                                      localIPaddress,
-				                                      IPaddress);
+				                                      carrier_ip.c_str());
 				if(!channel->isInit())
 				{
-					UTI_ERROR("failed to create UDP channel %d\n", i + 1);
+					UTI_ERROR("failed to create UDP channel %d\n", i);
 					goto error;
 				}
 				this->push_back(channel);

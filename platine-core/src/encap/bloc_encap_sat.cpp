@@ -137,8 +137,8 @@ mgl_status BlocEncapSat::onInit()
 	int qos_nbr;
 
 	// read encapsulation scheme to use to output data
-	if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                               this->output_encap_proto) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
+	                                this->output_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
 		         "ATM over MPEG2-TS.\n", FUNCNAME, GLOBAL_SECTION,
@@ -152,8 +152,8 @@ mgl_status BlocEncapSat::onInit()
 	   this->output_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		// read packing threshold from config
-		if(globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                packing_threshold) < 0)
+		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
+		                                 packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 			         "encapsulation protocol set to %d ms.\n", FUNCNAME,
@@ -204,8 +204,8 @@ mgl_status BlocEncapSat::onInit()
 	        this->output_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// Get QoS number for GSE encapsulation context
-		if(globalConfig.getIntegerValue(GLOBAL_SECTION, GSE_QOS_NBR,
-		                                qos_nbr) < 0)
+		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, GSE_QOS_NBR,
+		                                 qos_nbr))
 		if(qos_nbr < 0)
 		{
 			UTI_INFO("%s Section %s missing. QoS number for GSE "
@@ -215,8 +215,8 @@ mgl_status BlocEncapSat::onInit()
 		}
 
 		// read packing threshold from config
-		if(globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                packing_threshold) < 0)
+		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
+		                                 packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for GSE "
 			         "encapsulation protocol set to %d ms.\n", FUNCNAME,

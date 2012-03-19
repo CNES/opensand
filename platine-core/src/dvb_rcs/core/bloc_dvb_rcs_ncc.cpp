@@ -484,7 +484,7 @@ int BlocDVBRcsNcc::onInit()
 	{
 		UTI_ERROR("failed to complete the carrier IDs part of the "
 		          "initialisation");
-		goto error;
+		goto error_mode;
 	}
 
 	// Get and open the files
@@ -493,7 +493,7 @@ int BlocDVBRcsNcc::onInit()
 	{
 		UTI_ERROR("failed to complete the files part of the "
 		          "initialisation");
-		goto error;
+		goto error_mode;
 	}
 
 	// get and launch the dama algorithm
@@ -502,7 +502,7 @@ int BlocDVBRcsNcc::onInit()
 	{
 		UTI_ERROR("failed to complete the DAMA part of the "
 		          "initialisation");
-		goto error;
+		goto error_mode;
 	}
 
 	ret = initFifo();
@@ -521,24 +521,27 @@ int BlocDVBRcsNcc::onInit()
 	setTimer(this->scenario_timer, this->dvb_scenario_refresh);
 
 	// get the column number for GW in MODCOD/DRA simulation files
-	if(globalConfig.getLongIntegerValue(DVB_NCC_SECTION, DVB_SIMU_COL,
-	                                    simu_column_num) < 0)
+	if(!globalConfig.getLongIntegerValueInList(DVB_SIMU_COL, COLUMN_LIST,
+	                                           TAL_ID,
+	                                           toString(DVB_GW_MAC_ID),
+	                                           COLUMN_NBR,
+	                                           simu_column_num))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_NCC_SECTION, DVB_SIMU_COL);
+		          DVB_SIMU_COL, COLUMN_LIST);
 		goto release_dama;
 	}
 	if(simu_column_num <= 0 || simu_column_num > NB_MAX_ST)
 	{
 		UTI_ERROR("section '%s': invalid value %ld for parameter "
-		          "'%s'\n", DVB_NCC_SECTION, simu_column_num,
-		          DVB_SIMU_COL);
+		          "'%s'\n", DVB_SIMU_COL, simu_column_num,
+		          COLUMN_NBR);
 		goto release_dama;
 	}
 
 	// declare the GW as one ST for the MODCOD/DRA scenarios
 	if(!this->emissionStd->addSatelliteTerminal(DVB_GW_MAC_ID,
-	                                               simu_column_num))
+	                                            simu_column_num))
 	{
 		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
 		          DVB_GW_MAC_ID);
@@ -611,7 +614,7 @@ int BlocDVBRcsNcc::initTimers()
 	int val;
 
 	// read the frame duration
-	if(globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_F_DURATION, val) < 0)
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_F_DURATION, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_F_DURATION);
@@ -621,7 +624,7 @@ int BlocDVBRcsNcc::initTimers()
 	UTI_INFO("frameDuration set to %d\n", this->frameDuration);
 
 	// read the number of frame per superframe
-	if(globalConfig.getIntegerValue(DVB_MAC_SECTION, DVB_FPF, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_MAC_SECTION, DVB_FPF, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_MAC_SECTION, DVB_FPF);
@@ -632,7 +635,7 @@ int BlocDVBRcsNcc::initTimers()
 	         this->frames_per_superframe);
 
 	// read the second duration
-	if(globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH, val) < 0)
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_SCENARIO_REFRESH);
@@ -642,7 +645,7 @@ int BlocDVBRcsNcc::initTimers()
 	UTI_INFO("dvb_scenario_refresh set to %d\n", this->dvb_scenario_refresh);
 
 	// read the pep allocation delay
-	if(globalConfig.getIntegerValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val) < 0)
+	if(!globalConfig.getIntegerValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
@@ -668,7 +671,8 @@ int BlocDVBRcsNcc::initMode()
 	std::string satellite_type;
 
 	// satellite type: regenerative or transparent ?
-	if(globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE, satellite_type) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                                satellite_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
@@ -741,8 +745,8 @@ int BlocDVBRcsNcc::initEncap()
 	int encap_packet_type = PKT_TYPE_INVALID;
 
 	// read the output encapsulation scheme
-	if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	   this->out_encap_scheme) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
+	                                this->out_encap_scheme))
 	{
 		UTI_INFO("section '%s': missing parameter '%s'\n",
 		         GLOBAL_SECTION, OUT_ENCAP_SCHEME);
@@ -829,8 +833,8 @@ int BlocDVBRcsNcc::initCarrierIds()
 	int val;
 
 	// Get the carrier Id m_carrierIdDvbCtrl
-	if(globalConfig.getIntegerValue(DVB_NCC_SECTION,
-	                                DVB_CTRL_CAR, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION,
+	                                 DVB_CTRL_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_CTRL_CAR);
@@ -840,7 +844,7 @@ int BlocDVBRcsNcc::initCarrierIds()
 	UTI_INFO("carrierIdDvbCtrl set to %ld\n", this->m_carrierIdDvbCtrl);
 
 	// Get the carrier Id m_carrierIdSOF
-	if(globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SOF_CAR, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SOF_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SOF_CAR);
@@ -850,7 +854,7 @@ int BlocDVBRcsNcc::initCarrierIds()
 	UTI_INFO("carrierIdSOF set to %ld\n", this->m_carrierIdSOF);
 
 	// Get the carrier Id m_carrierIdData
-	if(globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_DATA_CAR, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_DATA_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_DATA_CAR);
@@ -917,7 +921,7 @@ int BlocDVBRcsNcc::initDraFiles()
 	std::string dra_simu_file;
 
 	// get the scenario type: individual or collective
-	if(globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_SCENARIO);
@@ -992,7 +996,7 @@ int BlocDVBRcsNcc::initDama()
 	int ret;
 
 	// get and launch the dama algorithm
-	if(globalConfig.getStringValue(DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO, strConfig) < 0)
+	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO, strConfig))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
@@ -1058,8 +1062,8 @@ int BlocDVBRcsNcc::initDama()
 	}
 
 	// retrieve the output encapsulation scheme
-	if(globalConfig.getStringValue(DVB_NCC_SECTION, OUT_ST_ENCAP_SCHEME,
-	                               st_out_encap_scheme) < 0)
+	if(!globalConfig.getStringValue(DVB_NCC_SECTION, OUT_ST_ENCAP_SCHEME,
+	                                st_out_encap_scheme))
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, OUT_ST_ENCAP_SCHEME);
@@ -1135,7 +1139,7 @@ int BlocDVBRcsNcc::initFifo()
 	int val;
 
 	// retrieve and set FIFO size
-	if(globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val) < 0)
+	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);

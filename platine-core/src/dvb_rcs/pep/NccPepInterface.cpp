@@ -184,10 +184,8 @@ bool NccPepInterface::listenForPepConnections()
 
 	// retrieve the TCP communication port dedicated
 	// for NCC/PEP communications
-	ret = globalConfig.getIntegerValue(NCC_SECTION_PEP,
-	                                   PEP_DAMA_PORT,
-	                                   tcp_port);
-	if(ret != 0)
+	if(!globalConfig.getIntegerValue(NCC_SECTION_PEP, PEP_DAMA_PORT,
+	                                 tcp_port))
 	{
 		UTI_INFO("section '%s': missing parameter '%s'\n",
 		         NCC_SECTION_PEP, PEP_DAMA_PORT);

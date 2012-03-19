@@ -131,7 +131,7 @@ class BlocIPQoS: public mgl_bloc
 	map < unsigned short, TrafficCategory * > categoryMap;
 
 	/// Category to be used when classifier returns no category
-	unsigned short defaultCategory;
+	long int defaultCategory;
 
 	// TUN file descriptor
 	int _tun_fd;

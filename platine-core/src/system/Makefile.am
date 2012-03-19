@@ -13,7 +13,7 @@ INCLUDES = \
 	-I../encap \
 	-I../common
 
-AM_CPPFLAGS= -g -DUTI_DEBUG_ON -Wall -Werror
+#AM_CPPFLAGS= -g -DUTI_DEBUG_ON -Wall -Werror
 
 PACKED_COMMON_LIBS= \
 	../encap/libplatine_encap.la \

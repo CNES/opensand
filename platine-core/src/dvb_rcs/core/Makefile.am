@@ -34,7 +34,7 @@ libplatine_dvb_core_la_SOURCES = \
 	$(libplatine_dvb_core_la_cpp) \
 	$(libplatine_dvb_core_la_h)
 
-AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
 
 INCLUDES = \
 	-I../utils \

@@ -166,7 +166,6 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
                          DraSchemeDefinitionTable *dra_def_table)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[init]";
-	int status;
 	string s;
 	long transmission_rate;
 	int carrier_number;
@@ -181,8 +180,7 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	m_allocation_cycle = allocation_cycle;
 
 	// Retrieving the cra decrease parameter
-	status = globalConfig.getStringValue(DC_SECTION_NCC, DC_CRA_DECREASE, s);
-	if(status == -1)
+	if(!globalConfig.getStringValue(DC_SECTION_NCC, DC_CRA_DECREASE, s))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%s)\n", FUNCNAME,
 		         DC_CRA_DECREASE, DC_DFLT_CRA_DECREASE == 1 ? DC_YES : DC_NO);
@@ -207,8 +205,7 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	         m_cra_decrease == 1 ? DC_YES : DC_NO);
 
 	// Retrieving the free capacity assignement parameter
-	status = globalConfig.getIntegerValue(DC_SECTION_NCC, DC_FREE_CAP, m_fca);
-	if(status == -1)
+	if(!globalConfig.getIntegerValue(DC_SECTION_NCC, DC_FREE_CAP, m_fca))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d)\n",
 		         FUNCNAME, DC_FREE_CAP, DC_DFLT_FREE_CAP);
@@ -217,9 +214,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	UTI_INFO("%s fca = %d\n", FUNCNAME, m_fca);
 
 	// Retrieving the rbdc timeout parameter
-	status = globalConfig.getIntegerValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT,
-	                                      m_rbdc_timeout);
-	if(status == -1)
+	if(!globalConfig.getIntegerValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT,
+	                                 m_rbdc_timeout))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
 		         FUNCNAME, DC_RBDC_TIMEOUT, DC_DFLT_RBDC_TIMEOUT);
@@ -228,9 +224,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	UTI_INFO("%s rbdc_timeout = %d\n", FUNCNAME, m_rbdc_timeout);
 
 	// Retrieving the min VBDC parameter
-	status = globalConfig.getIntegerValue(DC_SECTION_NCC, DC_MIN_VBDC,
-	                                      m_min_vbdc);
-	if(status == -1)
+	if(!globalConfig.getIntegerValue(DC_SECTION_NCC, DC_MIN_VBDC,
+	                                 m_min_vbdc))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
 		         FUNCNAME, DC_MIN_VBDC, DC_DFLT_MIN_VBDC);
@@ -239,9 +234,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	UTI_INFO("%s min_vbdc = %d\n", FUNCNAME, m_min_vbdc);
 
 	// Retrieving carrier rate
-	status = globalConfig.getStringValue(DC_SECTION_MAC_LAYER,
-	                                     DC_CARRIER_TRANS_RATE, s);
-	if(status == -1)
+	if(!globalConfig.getStringValue(DC_SECTION_MAC_LAYER,
+	                                DC_CARRIER_TRANS_RATE, s))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
 		         FUNCNAME, DC_CARRIER_TRANS_RATE, DC_DFLT_CARRIER_TRANS_RATE);
@@ -260,10 +254,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	UTI_INFO("%s carrier_transmission_rate = %ld\n", FUNCNAME, transmission_rate);
 
 	// Retrieving the carrier number
-	status = globalConfig.getIntegerValue(DC_SECTION_MAC_LAYER,
-	                                      DC_CARRIER_NUMBER,
-	                                      carrier_number);
-	if(status == -1)
+	if(!globalConfig.getIntegerValue(DC_SECTION_MAC_LAYER,
+	                                 DC_CARRIER_NUMBER, carrier_number))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
 		         FUNCNAME, DC_CARRIER_NUMBER, DC_DFLT_CARRIER_NUMBER);
@@ -288,9 +280,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	m_fca = (int) ceil(Converter->ConvertFromKbitsToCellsPerFrame(m_fca));
 
 	// Retrieving the max RBDC parameter
-	status = globalConfig.getIntegerValue(DC_SECTION_NCC, DC_MAX_RBDC,
-	                                      m_max_rbdc);
-	if(status == -1)
+	if(!globalConfig.getIntegerValue(DC_SECTION_NCC, DC_MAX_RBDC,
+	                                 m_max_rbdc))
 	{
 		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
 		         FUNCNAME, DC_MAX_RBDC, m_carrier_capacity);

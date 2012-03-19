@@ -77,7 +77,7 @@ int BlocDvb::initModcodFiles()
 	int bandwidth;
 
 	// retrieve the simulation scenario
-	if(globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO, strConfig))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_SCENARIO);
@@ -132,8 +132,8 @@ int BlocDvb::initModcodFiles()
 	}
 
 	// Get the value of the bandwidth
-	if(globalConfig.getIntegerValue(GLOBAL_SECTION, BANDWIDTH,
-	                                bandwidth) < 0)
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, BANDWIDTH,
+	                                 bandwidth))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, BANDWIDTH);

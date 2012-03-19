@@ -20,5 +20,5 @@ INCLUDES = \
 	-I../common \
 	-I../dvb_rcs/utils
 
-AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
 

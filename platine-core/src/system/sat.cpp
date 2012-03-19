@@ -172,10 +172,17 @@ int main(int argc, char **argv)
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
-	// load configuration file content
-	if(globalConfig.loadConfig(CONF_DEFAULT_FILE) < 0)
+	// Load configuration file content
+	if(!globalConfig.loadConfig(CONF_GLOBAL_FILE))
 	{
-		UTI_ERROR("%s: cannot load config from file, quit\n", progname);
+		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
+		          progname, CONF_GLOBAL_FILE);
+		goto term_env_agent;
+	}
+	if(!globalConfig.loadConfig(CONF_DEFAULT_FILE))
+	{
+		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
+		          progname, CONF_DEFAULT_FILE);
 		goto term_env_agent;
 	}
 
@@ -183,8 +190,8 @@ int main(int argc, char **argv)
 	UTI_readDebugLevels();
 
 	// retrieve the type of satellite from configuration
-	if(globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                               satellite_type) < 0)
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                                satellite_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);

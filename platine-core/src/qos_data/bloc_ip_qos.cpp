@@ -413,7 +413,7 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 	if(foundCategory == categoryMap.end())
 	{
 		UTI_DEBUG("%s: category %d unknown; IP packet goes to default "
-		          "category %d\n", FUNCNAME, traffic_category, defaultCategory);
+		          "category %ld\n", FUNCNAME, traffic_category, defaultCategory);
 
 		foundCategory = categoryMap.find(defaultCategory);
 		if(foundCategory == categoryMap.end())

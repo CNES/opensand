@@ -346,6 +346,9 @@ int BlocDVBRcsSat::initMode()
 	{
 		string out_encap_scheme;
 
+		// be careful, as encap_scheme is from ST point of view in the
+		// configuration file, load the inverse for the satellite point
+		// of view
 		if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
 		                               out_encap_scheme) < 0)
 		{
@@ -572,12 +575,9 @@ error:
 int BlocDVBRcsSat::initSwitchTable()
 {
 	GenericSwitch *genericSwitch;
-	int ret;
-	int nb_item;
-	int i;
-	string s;
-	long spot_id;
-	long tal_id;
+	int i = 0;
+	ConfigurationList switch_list;
+	ConfigurationList::iterator iter;
 
 	// no need for switch in non-regenerative mode
 	if(this->satellite_type != REGENERATIVE_SATELLITE)
@@ -598,11 +598,10 @@ int BlocDVBRcsSat::initSwitchTable()
 	         this->in_encap_proto.c_str());
 
 	// Retrieving switching table entries
-	nb_item = globalConfig.getNbListItems(SAT_SWITCH_SECTION);
-	if(nb_item < 1)
+	if(!globalConfig.getListItems(SAT_SWITCH_SECTION, SWITCH_LIST, switch_list))
 	{
-		UTI_ERROR("section '%s': missing satellite switching table\n",
-		          SAT_SWITCH_SECTION);
+		UTI_ERROR("section '%s, %s': missing satellite switching table\n",
+		          SAT_SWITCH_SECTION, SWITCH_LIST);
 		goto error;
 	}
 
@@ -644,21 +643,25 @@ int BlocDVBRcsSat::initSwitchTable()
 		goto error;
 	}
 
-	for(i = 0; i < nb_item; i++)
+	for(iter = switch_list.begin(); iter != switch_list.end(); iter++)
 	{
-		ret = globalConfig.getListItem(SAT_SWITCH_SECTION, i + 1, s);
-		if(ret < 0)
+		long spot_id;
+		long tal_id;
+
+		i++;
+		// get the Tal ID attribute
+		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
 		{
-			UTI_ERROR("problem retrieving switching table "
-			          "entry %d\n", i + 1);
+			UTI_ERROR("problem retrieving %s in switching table"
+			          "entry %d\n", TAL_ID, i);
 			goto release_switch;
 		}
 
-		ret = sscanf(s.c_str(), SAT_TABLE_SWITCH_FMT, &tal_id, &spot_id);
-		if(ret != SAT_TABLE_SWITCH_NB_ITEM)
+		// get the Spot ID attribute
+		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
 		{
-			UTI_ERROR("problem parsing switching table "
-			          "entry %d\n", i + 1);
+			UTI_ERROR("problem retrieving %s in switching table"
+			          "entry %d\n", SPOT_ID, i);
 			goto release_switch;
 		}
 
@@ -695,42 +698,71 @@ error:
  */
 int BlocDVBRcsSat::initSpots()
 {
-	int nb_item;
-	int i;
+	int i = 0;
 	std::string out_encap_scheme;
+	ConfigurationList spot_list;
+	ConfigurationList::iterator iter;
 
 	// Retrieving the spots description
-	nb_item = globalConfig.getNbListItems(SAT_DVB_SECTION);
-	if(nb_item < 1)
+	if(!globalConfig.getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
 	{
-		UTI_ERROR("section '%s': missing spots description\n",
-		          SAT_DVB_SECTION);
+		UTI_ERROR("section '%s, %s': missing satellite spot list\n",
+		          SAT_DVB_SECTION, SPOT_LIST);
 		goto error;
 	}
 
-	for(i = 0; i < nb_item; i++)
+	for(iter = spot_list.begin(); iter != spot_list.end(); iter++)
 	{
-		long spotId, ctrlId, dataInId, dataOutGwId, dataOutStId, logId;
-		std::string line;
-		SatSpot *new_spot;
+		long spot_id;
+		long ctrl_id;
+		long data_in_id;
+		long data_out_gw_id;
+		long data_out_st_id;
+		long log_id;
 		int ret;
+		SatSpot *new_spot;
 
-		// get the next line that describes a satellite spot
-		ret = globalConfig.getListItem(SAT_DVB_SECTION, i + 1, line);
-		if(ret < 0)
+		i++;
+		// get the spot_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
 		{
-			UTI_ERROR("section '%s': failed to retrieve spot "
-			          "line %d\n", SAT_DVB_SECTION, i + 1);
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, SPOT_ID, i);
 			goto error;
 		}
-
-		// parse the description line
-		ret = sscanf(line.c_str(), SAT_TABLE_SPOT_FMT, &spotId, &logId,
-		             &ctrlId, &dataInId, &dataOutStId, &dataOutGwId);
-		if(ret != SAT_TABLE_SPOT_NB_ITEM)
+		// get the ctrl_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CTRL_ID, ctrl_id))
 		{
-			UTI_ERROR("section '%s': failed to parse spot "
-			          "line %d\n", SAT_DVB_SECTION, i + 1);
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, CTRL_ID, i);
+			goto error;
+		}
+		// get the data_in_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_IN_ID, data_in_id))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_IN_ID, i);
+			goto error;
+		}
+		// get the data_out_gw_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_OUT_GW_ID, data_out_gw_id))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_OUT_GW_ID, i);
+			goto error;
+		}
+		// get the data_out_st_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_OUT_ST_ID, data_out_st_id))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_OUT_ST_ID, i);
+			goto error;
+		}
+		// get the log_id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, LOG_ID, log_id))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, LOG_ID, i);
 			goto error;
 		}
 
@@ -746,9 +778,9 @@ int BlocDVBRcsSat::initSpots()
 		// TODO: check the fact the spot we enter is not a double
 		UTI_INFO("satellite spot %ld: logon = %ld, control = %ld, "
 		         "data out ST = %ld, data out GW = %ld\n",
-		         spotId, logId, ctrlId, dataOutStId, dataOutGwId);
-		ret = new_spot->init(spotId, logId, ctrlId,
-		                     dataInId, dataOutStId, dataOutGwId);
+		         spot_id, log_id, ctrl_id, data_out_st_id, data_out_gw_id);
+		ret = new_spot->init(spot_id, log_id, ctrl_id,
+		                     data_in_id, data_out_st_id, data_out_gw_id);
 		if(ret != 0)
 		{
 			UTI_ERROR("failed to init the new satellite spot\n");
@@ -757,7 +789,7 @@ int BlocDVBRcsSat::initSpots()
 		}
 
 		// store the new satellite spot in the list of spots
-		this->spots[spotId] = new_spot;
+		this->spots[spot_id] = new_spot;
 	}
 
 	return 0;
@@ -774,38 +806,39 @@ error:
  */
 int BlocDVBRcsSat::initStList()
 {
-	string s;
-	long column_simu;
-	long tal_id;
-	int nb_item;
-	int i;
-	int ret;
-
+	int i = 0;
+	ConfigurationList column_list;
+	ConfigurationList::iterator iter;
 
 	// Get the list of STs
-	nb_item = globalConfig.getNbListItems(SAT_SIMU_COL_SECTION);
-	if(nb_item < 1)
+	if(!globalConfig.getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
+	                              column_list))
 	{
-		UTI_ERROR("section '%s': missing section containing number of columns "
-		          "in simulation files\n",
-		          SAT_SIMU_COL_SECTION);
+		UTI_ERROR("section '%s, %s': problem retrieving simulation column "
+		          "list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
 		goto error;
 	}
-	for(i = 0; i < nb_item; i++)
+
+	for(iter = column_list.begin(); iter != column_list.end(); iter++)
 	{
-		ret = globalConfig.getListItem(SAT_SIMU_COL_SECTION, i + 1, s);
-		if(ret < 0)
+		i++;
+		long tal_id;
+		long column_nbr;
+
+		// Get the Tal ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID,
+		                                              tal_id))
 		{
-			UTI_ERROR("problem retrieving simulation column "
-			          "entry %d\n", i + 1);
+			UTI_ERROR("problem retrieving %s in simulation column "
+			          "entry %d\n", TAL_ID, i);
 			goto error;
 		}
-
-		ret = sscanf(s.c_str(), SAT_SIMU_COL_FMT, &tal_id, &column_simu);
-		if(ret != SAT_SIMU_COL_NB_ITEM)
+		// Get the column nbr
+		if(!globalConfig.getAttributeLongIntegerValue(iter, COLUMN_NBR,
+		                                              column_nbr))
 		{
-			UTI_ERROR("problem parsing simulation column "
-			          "entry %d\n", i + 1);
+			UTI_ERROR("problem retrieving %s in simulation column "
+			          "entry %d\n", COLUMN_NBR, i);
 			goto error;
 		}
 
@@ -813,7 +846,7 @@ int BlocDVBRcsSat::initStList()
 		// (duplicate because STs are 'defined' in spot table)
 		if(!this->emissionStd->doSatelliteTerminalExist(tal_id))
 		{
-			if(!this->emissionStd->addSatelliteTerminal(tal_id, column_simu))
+			if(!this->emissionStd->addSatelliteTerminal(tal_id, column_nbr))
 			{
 				UTI_ERROR("failed to register ST "
 				          "with Tal ID %ld\n", tal_id);

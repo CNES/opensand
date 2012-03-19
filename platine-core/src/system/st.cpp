@@ -180,9 +180,16 @@ int main(int argc, char **argv)
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
 	// Load configuration file content
-	if(globalConfig.loadConfig(CONF_DEFAULT_FILE) < 0)
+	if(!globalConfig.loadConfig(CONF_GLOBAL_FILE))
 	{
-		UTI_ERROR("%s: cannot load config from file, quit\n", progname);
+		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
+		          progname, CONF_GLOBAL_FILE);
+		goto term_env_agent;
+	}
+	if(!globalConfig.loadConfig(CONF_DEFAULT_FILE))
+	{
+		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
+		          progname, CONF_DEFAULT_FILE);
 		goto term_env_agent;
 	}
 

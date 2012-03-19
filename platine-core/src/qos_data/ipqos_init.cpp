@@ -59,14 +59,16 @@
 void BlocIPQoS::getConfig()
 {
 	const char *FUNCNAME = IPQOS_DBG_PREFIX "[getConfig]";
-	string str;
-	int idx, nb, nbClass, val, ret;
-	char name[30];
-	unsigned short categoryId;
+	int nb;
+	int class_nbr;
+	int i;
 	ServiceClass svcClass;
 	vector < ServiceClass >::iterator classIter;
+	ConfigurationList class_list;
 	TrafficCategory *category;
 	vector < TrafficCategory * >::iterator catIter;
+	ConfigurationList category_list;
+	ConfigurationList::iterator iter;
 
 #define KEY_MISSING "%s: %s missing from section %s. \n",FUNCNAME
 
@@ -75,9 +77,8 @@ void BlocIPQoS::getConfig()
 	// Satellite Type (for GW)
 	if(this->_host_name == "GW")
 	{
-		ret = globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-		                                  this->_satellite_type);
-		if(ret < 0)
+		if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
+		                                this->_satellite_type))
 		{
 			UTI_ERROR(KEY_MISSING, GLOBAL_SECTION, SATELLITE_TYPE);
 			exit(1);
@@ -85,77 +86,154 @@ void BlocIPQoS::getConfig()
 		UTI_INFO("%s: satellite type = %s\n", FUNCNAME,
 		         this->_satellite_type.c_str());
 	}
-
 	// Service classes
-	nb = globalConfig.getNbListItems(SECTION_CLASS);
-	if(nb <= 0)
+	if(!globalConfig.getNbListItems(SECTION_CLASS, CLASS_LIST, nb))
 	{
-		UTI_ERROR("%s: missing or empty section [%s]\n", FUNCNAME, SECTION_CLASS);
+		UTI_ERROR("%s: missing or empty section [%s, %s]\n", FUNCNAME,
+		          SECTION_CLASS, CLASS_LIST);
 		exit(1);
 	}
 	UTI_DEBUG("%d lines in section [%s]\n", nb, SECTION_CLASS);
 	classList.resize(nb);
-	nbClass = 0;
-	for(idx = 0; idx < nb; idx++)
+
+	// Service classes
+	if(!globalConfig.getListItems(SECTION_CLASS, CLASS_LIST, class_list))
 	{
-		ret = globalConfig.getListItem(SECTION_CLASS, idx + 1, str);
-		if(ret == 0)
-		{
-			sscanf(str.c_str(), "%u %s %u %u", &classList[idx].id, name,
-			       &classList[idx].schedPrio, &classList[idx].macQueueId);
-			classList[idx].name = name;
-			nbClass++;
-		}
+		UTI_ERROR("%s: missing or empty section [%s, %s]\n", FUNCNAME,
+		          SECTION_CLASS, CLASS_LIST);
+		exit(1);
 	}
-	classList.resize(nbClass); // some lines may have been rejected
+
+	class_nbr = 0;
+	i = 0;
+	for(iter = class_list.begin(); iter != class_list.end(); iter++)
+	{
+		long int class_id;
+		long int sched_prio;
+		long int mac_queue_id;
+		string class_name;
+
+		i++;
+		// get class ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_ID, class_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
+			           CLASS_ID, i);
+			continue;
+		}
+		// get class name
+		if(!globalConfig.getAttributeStringValue(iter, CLASS_NAME, class_name))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
+			          CLASS_NAME, i);
+			continue;
+		}
+		// get scheduler priority
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_SCHED_PRIO,
+		                                              sched_prio))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
+			          CLASS_SCHED_PRIO, i);
+			continue;
+		}
+		// get mac queue ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_MAC_ID, mac_queue_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
+			          CLASS_MAC_ID, i);
+			continue;
+		}
+
+		classList[class_nbr].id = class_id;
+		classList[class_nbr].schedPrio = sched_prio;
+		classList[class_nbr].macQueueId = mac_queue_id;
+		classList[class_nbr].name = class_name;
+		class_nbr++;
+	}
+	classList.resize(class_nbr); // some lines may have been rejected
 	sort(classList.begin(), classList.end());
 
 	// Traffic flow categories
-	nb = globalConfig.getNbListItems(SECTION_CATEGORY);
-	if(nb <= 0)
+	if(!globalConfig.getListItems(SECTION_CATEGORY, CATEGORY_LIST, category_list))
 	{
-		UTI_ERROR("%s: missing or empty section [%s]\n", FUNCNAME, SECTION_CATEGORY);
+		UTI_ERROR("%s: missing or empty section [%s, %s]\n", FUNCNAME,
+		          SECTION_CATEGORY, CATEGORY_LIST);
 		exit(1);
 	}
-	UTI_DEBUG("%d lines in section [%s]\n", nb, SECTION_CATEGORY);
-	for(idx = 1; idx <= nb; idx++)
+
+	i = 0;
+	for(iter = category_list.begin(); iter != category_list.end(); iter++)
 	{
-		ret = globalConfig.getListItem(SECTION_CATEGORY, idx, str);
-		if(ret == 0)
+		long int category_id;
+		long int category_service;
+		string category_name;
+
+		i++;
+		// get category id
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CATEGORY_ID,
+		                                              category_id))
 		{
-			sscanf(str.c_str(), "%hu %s %u", &categoryId, name,
-			       &svcClass.id);
-			classIter = find(classList.begin(), classList.end(), svcClass);
-			if(classIter == classList.end())
-			{
-				UTI_ERROR("%s: Traffic category %d rejected: class id %d "
-				          "unknown\n", FUNCNAME, categoryId, svcClass.id);
-				continue;
-			}
-			if(categoryMap.count(categoryId))
-			{
-				UTI_ERROR("%s: Traffic category %d - [%s] rejected: identifier "
-				          "already exists for [%s]\n", FUNCNAME, categoryId,
-				          name, categoryMap[categoryId]->name.c_str());
-				continue;
-			}
-
-			category = new TrafficCategory();
-
-			category->id = categoryId;
-			category->name = name;
-			category->svcClass = &(*classIter);
-
-			(*classIter).categoryList.push_back(category);
-			categoryMap[categoryId] = category;
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
+			          CATEGORY_ID, i);
+			continue;
 		}
+		// get category name
+		if(!globalConfig.getAttributeStringValue(iter, CATEGORY_NAME,
+		                                         category_name))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
+			          CATEGORY_NAME, i);
+			continue;
+		}
+		// get service class
+		if(!globalConfig.getAttributeLongIntegerValue(iter, CATEGORY_SERVICE,
+		                                              category_service))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
+			          CATEGORY_SERVICE, i);
+			continue;
+		}
+
+		svcClass.id = category_service;
+		classIter = find(classList.begin(), classList.end(), svcClass);
+		if(classIter == classList.end())
+		{
+			UTI_ERROR("%s: Traffic category %ld rejected: class id %d "
+			          "unknown\n", FUNCNAME, category_id, svcClass.id);
+			continue;
+		}
+		if(categoryMap.count(category_id))
+		{
+			UTI_ERROR("%s: Traffic category %ld - [%s] rejected: identifier "
+			          "already exists for [%s]\n", FUNCNAME, category_id,
+			          category_name.c_str(), categoryMap[category_id]->name.c_str());
+			continue;
+		}
+
+		category = new TrafficCategory();
+
+		category->id = category_id;
+		category->name = category_name;
+		category->svcClass = &(*classIter);
+
+		(*classIter).categoryList.push_back(category);
+		categoryMap[category_id] = category;
 	}
 	// Get default category
-	ret = globalConfig.getIntegerValue(SECTION_CATEGORY, KEY_DEF_CATEGORY, val);
-	if(!ret)
-		defaultCategory = val;
-	else
-		defaultCategory = (*(categoryMap.begin())).first;
+	if(!globalConfig.getLongIntegerValue(SECTION_CATEGORY, KEY_DEF_CATEGORY,
+	                                     defaultCategory))
+	{
+		defaultCategory = (categoryMap.begin())->first;
+		UTI_ERROR("%s: cannot find default traffic category, use %s instead\n",
+		          FUNCNAME, categoryMap[defaultCategory]->name.c_str());
+	}
 
 	// Check classes and categories; display configuration
 	for(classIter = classList.begin(); classIter != classList.end();)
@@ -187,8 +265,8 @@ void BlocIPQoS::getConfig()
 		for(catIter = svcClass.categoryList.begin();
 		    catIter != svcClass.categoryList.end(); catIter++)
 		{
-			UTI_DEBUG("\tcategory %s (%d)\n", (*catIter)->name.c_str(),
-			          (*catIter)->id);
+			UTI_DEBUG("%s:    category %s (%d)\n", FUNCNAME,
+			          (*catIter)->name.c_str(), (*catIter)->id);
 		}
 	}
 	UTI_INFO("%s: IP QoS activated with %d service classes\n",
@@ -204,125 +282,128 @@ void BlocIPQoS::getConfig()
 void BlocIPQoS::initSarpTables()
 {
 	const char *FUNCNAME = IPQOS_DBG_PREFIX "[initSarpTables]";
-	int nbEntries;
-	int ret;
 	int i;
 
-	unsigned long spotID;
-	unsigned int talID;
-	int maskLength;
-	string strConfig;
-
-	int ipv4[4];
-	char buffer[255];
-	struct in6_addr in6;
+	long int tal_id;
+	long int spot_id;
+	int mask;
 	IpAddress *ip_addr;
 
+	ConfigurationList terminal_list;
+	ConfigurationList::iterator iter;
+
 	// IPv4 SARP table
-	nbEntries = globalConfig.getNbListItems(IPD_SECTION_V4);
-	if(nbEntries <= 0)
+	if(!globalConfig.getListItems(IPD_SECTION_V4, TERMINAL_LIST, terminal_list))
 	{
-		UTI_ERROR("%s: missing or empty section [%s]\n", FUNCNAME, IPD_SECTION_V4);
-		exit(1);
+		UTI_ERROR("%s: missing section [%s, %s]\n", FUNCNAME, IPD_SECTION_V4,
+		          TERMINAL_LIST);
 	}
 
-	UTI_DEBUG("%s %d line(s) in section '%s'\n", FUNCNAME, nbEntries,
-	          IPD_SECTION_V4);
-
-	for(i = 0; i < nbEntries; i++)
+	i = 0;
+	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
 	{
-		ret = globalConfig.getListItem(IPD_SECTION_V4, i + 1, strConfig);
-		if(ret < 0)
+		string ipv4_addr;
+
+		i++;
+		// get the IPv4 address
+		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_IPV4_ADDR,
+		                                         ipv4_addr))
 		{
-			UTI_ERROR("%s cannot get listItem from section '%s'\n",
-			          FUNCNAME, IPD_SECTION_V4);
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
+			          TERMINAL_IPV4_ADDR, i);
 			continue;
 		}
-		ret = sscanf(strConfig.c_str(), "%d.%d.%d.%d/%d %lu %u",
-		             ipv4, ipv4 + 1, ipv4 + 2, ipv4 + 3,
-		             &maskLength, &spotID, &talID);
-		if(ret < 7)
+		// get the IPv4 mask
+		if(!globalConfig.getAttributeIntegerValue(iter, TERMINAL_IP_MASK,
+		                                          mask))
 		{
-			UTI_DEBUG("%s scanf IPv4 with netmask failed (ret = %d), "
-			          "trying without it\n", FUNCNAME, ret);
-
-			ret = sscanf(strConfig.c_str(), "%d.%d.%d.%d %lu %u", ipv4,
-			             ipv4 + 1, ipv4 + 2, ipv4 + 3, &spotID, &talID);
-			if(ret < 6)
-			{
-				UTI_ERROR("%s bad IPv4 spot description (%d) in section '%s'\n",
-				          FUNCNAME, i + 1, IPD_SECTION_V4);
-				continue;
-			}
-
-			UTI_INFO("%s no netmask provided for IPv4, set it to 24\n",
-			         FUNCNAME);
-			maskLength = 24;
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
+			          TERMINAL_IP_MASK, i);
+			continue;
+		}
+		// get the terminal ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
+			          TAL_ID, i);
+			continue;
+		}
+		// get the spot ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
+			          SPOT_ID, i);
+			continue;
 		}
 
-		UTI_DEBUG("%s %d.%d.%d.%d/%d -> spot %lu -> tal id %u \n", FUNCNAME, ipv4[0],
-		          ipv4[1], ipv4[2], ipv4[3], maskLength, spotID, talID);
+		ip_addr = new Ipv4Address(ipv4_addr);
 
-		ip_addr = new Ipv4Address(ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
+		UTI_DEBUG("%s: %s/%d -> spot %ld -> tal id %ld \n", FUNCNAME,
+		          ip_addr->str().c_str(), mask, spot_id, tal_id);
 
-		this->sarpTable.add(ip_addr, maskLength, spotID,talID);
+		this->sarpTable.add(ip_addr, mask, spot_id ,tal_id);
 	} // for all IPv4 entries
 
 	// IPv6 SARP table
-	nbEntries = globalConfig.getNbListItems(IPD_SECTION_V6);
-	if(nbEntries <= 0)
+	terminal_list.clear();
+	if(!globalConfig.getListItems(IPD_SECTION_V6, TERMINAL_LIST, terminal_list))
 	{
-		UTI_ERROR("%s: missing or empty section [%s]\n", FUNCNAME, IPD_SECTION_V6);
-		exit(1);
+		UTI_ERROR("%s: missing section [%s, %s]\n", FUNCNAME, IPD_SECTION_V6,
+		          TERMINAL_LIST);
 	}
 
-	UTI_DEBUG("%s %d line(s) in section '%s'\n", FUNCNAME, nbEntries,
-	          IPD_SECTION_V6);
-
-	for(i = 0; i < nbEntries; i++)
+	i = 0;
+	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
 	{
-		ret = globalConfig.getListItem(IPD_SECTION_V6, i + 1, strConfig);
-		if(ret < 0)
+		string ipv6_addr;
+
+		i++;
+		// get the IPv6 address
+		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_IPV6_ADDR,
+		                                         ipv6_addr))
 		{
-			UTI_ERROR("%s cannot get listItem from section '%s'\n",
-			          FUNCNAME, IPD_SECTION_V6);
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
+			          TERMINAL_IPV6_ADDR, i);
 			continue;
 		}
-		ret = sscanf(strConfig.c_str(), "%255[^/]/%d %lu %u", buffer,
-		             &maskLength, &spotID, &talID);
-		if(ret < 4)
+		// get the IPv6 mask
+		if(!globalConfig.getAttributeIntegerValue(iter, TERMINAL_IP_MASK,
+		                                          mask))
 		{
-			UTI_DEBUG("%s scanf IPv6 with netmask failed (ret = %d), "
-			          "trying whithout it", FUNCNAME, ret);
-
-			ret = sscanf(strConfig.c_str(), "%255s %lu %u", buffer, &spotID, &talID);
-			if(ret < 3)
-			{
-				UTI_ERROR("%s bad IPv6 spot description (%d) in section '%s'",
-				          FUNCNAME, i + 1, IPD_SECTION_V6);
-				continue;
-			}
-
-			UTI_INFO("%s no netmask provided for IPv6, set it to 64\n",
-			         FUNCNAME);
-			maskLength = 64;
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
+			          TERMINAL_IP_MASK, i);
+			continue;
+		}
+		// get the terminal ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
+			          TAL_ID, i);
+			continue;
+		}
+		// get the spot ID
+		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		{
+			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
+			          SPOT_ID, i);
+			continue;
 		}
 
-		UTI_DEBUG("%s %s/%d -> spot %lu %u\n", FUNCNAME, buffer,
-		          maskLength, spotID, talID);
+		ip_addr = new Ipv6Address(ipv6_addr);
 
-		inet_pton(AF_INET6, buffer, &in6);
+		UTI_DEBUG("%s: %s/%d -> spot %ld -> tal id %ld \n", FUNCNAME,
+		          ip_addr->str().c_str(), mask, spot_id, tal_id);
 
-		char *ip6 = (char *) &in6;
-
-		ip_addr = new Ipv6Address(ip6[0], ip6[1], ip6[2], ip6[3],
-		                          ip6[4], ip6[5], ip6[6], ip6[7],
-		                          ip6[8], ip6[9], ip6[10], ip6[11],
-		                          ip6[12], ip6[13], ip6[14], ip6[15]);
-
-		this->sarpTable.add(ip_addr, maskLength, spotID,talID);
+		this->sarpTable.add(ip_addr, mask, spot_id ,tal_id);
 	} // for all IPv6 entries
-
 }
 
 /**

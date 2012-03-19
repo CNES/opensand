@@ -19,5 +19,5 @@ libplatine_dvb_utils_la_SOURCES = \
 INCLUDES = \
 	-I$(top_srcdir)/src/common
 
-AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
 

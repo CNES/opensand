@@ -56,5 +56,5 @@ INCLUDES = \
 	-I../dama \
 	-I../dvb_rcs_base
 
-AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON
 

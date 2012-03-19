@@ -20,5 +20,5 @@ INCLUDES = \
 	-I. \
 	-I$(top_srcdir)/src/common
 
-AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
+#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
 

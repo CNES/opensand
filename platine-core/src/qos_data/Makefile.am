@@ -22,7 +22,7 @@ INCLUDES = \
 	-I../common \
 	-Ilinux
 
-AM_CPPFLAGS= -g -Werror -DUTI_DEBUG_ON -Wall 
+#AM_CPPFLAGS= -g -Werror -DUTI_DEBUG_ON -Wall 
 
 AM_LDFLAGS= -lm
 
