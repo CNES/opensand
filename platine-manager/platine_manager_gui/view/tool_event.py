@@ -52,8 +52,20 @@ class ToolEvent(ToolView):
     def close(self):
         """ close tool tab """
         self._log.debug("Tool Event: close")
-        gobject.source_remove(self._refresh_tool_tree)
+        if self._refresh_tool_tree is not None:
+            gobject.source_remove(self._refresh_tool_tree)
         self._log.debug("Tool Event: closed")
+
+    def activate(self, val):
+        """ 'activate' signal handler """
+        if val == False and self._refresh_tool_tree is not None:
+            gobject.source_remove(self._refresh_tool_tree)
+            self._refresh_tool_tree = None
+        elif val:
+            # update the tree immediately then add a periodic update
+            self.update_tool_tree
+            self._refresh_tool_tree = gobject.timeout_add(1000,
+                                                          self.update_tool_tree)
 
     def on_tool_select(self, selection):
         """ callback called when a tool is selected """

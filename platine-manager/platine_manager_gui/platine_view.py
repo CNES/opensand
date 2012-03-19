@@ -82,6 +82,10 @@ class View(WindowView):
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
                                           self._model, self._log)
+
+            self._eventconf.activate(False)
+            self._eventtool.activate(False)
+            self._eventprobe.activate(False)
         except RunException:
             raise
         except ProbeException:
@@ -202,40 +206,40 @@ class View(WindowView):
         self._current_page = page_num
 
         if page_num == self._pages['run']:
-            if self._eventrun != None:
+            if self._eventrun is not None:
                 self._eventrun.activate(True)
-            if self._eventconf != None:
+            if self._eventconf is not None:
                 self._eventconf.activate(False)
-            if self._eventtool != None:
+            if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe != None:
+            if self._eventprobe is not None:
                 self._eventprobe.activate(False)
         elif page_num == self._pages['conf']:
-            if self._eventrun != None:
+            if self._eventrun is not None:
                 self._eventrun.activate(False)
-            if self._eventconf != None:
+            if self._eventconf is not None:
                 self._eventconf.activate(True)
-            if self._eventtool != None:
+            if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe != None:
+            if self._eventprobe is not None:
                 self._eventprobe.activate(False)
         elif page_num == self._pages['tools']:
-            if self._eventconf != None:
+            if self._eventconf is not None:
                 self._eventconf.activate(False)
-            if self._eventrun != None:
+            if self._eventrun is not None:
                 self._eventrun.activate(False)
-            if self._eventtool != None:
+            if self._eventtool is not None:
                 self._eventtool.activate(True)
-            if self._eventprobe != None:
+            if self._eventprobe is not None:
                 self._eventprobe.activate(False)
         elif page_num == self._pages['probes']:
-            if self._eventconf != None:
+            if self._eventconf is not None:
                 self._eventconf.activate(False)
-            if self._eventrun != None:
+            if self._eventrun is not None:
                 self._eventrun.activate(False)
-            if self._eventtool != None:
+            if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe != None:
+            if self._eventprobe is not None:
                 self._eventprobe.activate(True)
 
     def switchpage(self, pagenum):

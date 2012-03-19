@@ -63,7 +63,8 @@ class ProbeEvent(ProbeView):
     def close(self):
         """ close probe tab """
         self._log.debug("Probe Event: close")
-        gobject.source_remove(self.refresh_probe_tree)
+        if self._refresh_probe_tree is not None:
+            gobject.source_remove(self._refresh_probe_tree)
         if self._timeout_id is not None:
             gobject.source_remove(self._timeout_id)
         self._probe_controller.close()
@@ -74,13 +75,22 @@ class ProbeEvent(ProbeView):
 
     def activate(self, val):
         """ 'activate' signal handler """
-        if val is False and self._timeout_id is not None:
-            gobject.source_remove(self._timeout_id)
-            self._timeout_id = None
+        if val is False:
+            if self._timeout_id is not None:
+                gobject.source_remove(self._timeout_id)
+                self._timeout_id = None
+            if self._refresh_probe_tree is not None:
+                gobject.source_remove(self._refresh_probe_tree)
+                self._refresh_probe_tree = None
         elif val and self._updating:
             # refresh the GUI immediatly then periodically
             self.update_stat()
             self._timeout_id = gobject.timeout_add(1000, self.update_stat)
+        else:
+            # refresh the probe tree immediatly then create an object
+            # which refresh it
+            self.refresh()
+            self._refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
 
     def toggled_cb(self, cell, path):
         """ sets the toggled state on the toggle button to true or false

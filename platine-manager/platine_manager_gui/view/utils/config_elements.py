@@ -300,10 +300,14 @@ class ConfigurationNotebook(gtk.Notebook):
         add_button.set_name(self._config.get_path(key))
         add_button.connect('clicked', self.on_add_button_clicked)
         add_button.connect('clicked', self._changed_cb)
+        add_button.set_tooltip_text("Add a line in the table")
+        add_button.set_has_tooltip(True)
         del_button = gtk.ToolButton('gtk-remove')
         del_button.set_name(self._config.get_path(key))
         del_button.connect('clicked', self.on_del_button_clicked)
         del_button.connect('clicked', self._changed_cb)
+        del_button.set_tooltip_text("Remove the selected lines from the table")
+        del_button.set_has_tooltip(True)
         self._del_buttons.append(del_button)
         toolbar.insert(add_button, -1)
         toolbar.insert(del_button, -1)
@@ -340,6 +344,8 @@ class ConfigurationNotebook(gtk.Notebook):
         # add a check bo to select elements to remove
         check_button = gtk.CheckButton()
         check_button.set_name(key_path)
+        check_button.set_tooltip_text("Select the lines you want to remove")
+        check_button.set_has_tooltip(True)
         check_button.connect('toggled', self.on_remove_button_toggled)
         hbox.pack_start(check_button)
         hbox.set_child_packing(check_button, expand=False,

@@ -97,7 +97,7 @@ class ProbeView(WindowView):
         # refresh the probe tree immediatly then create an object
         # which refresh it
         self.refresh()
-        self.refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
+        self._refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
 
     def toggled_cb(self, cell, path):
         """ this function is defined in probe_event """

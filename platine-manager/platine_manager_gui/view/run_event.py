@@ -140,7 +140,7 @@ class RunEvent(RunView):
         if val == False and self._timeout_id != None :
             gobject.source_remove(self._timeout_id)
             self._timeout_id = None
-        else :
+        elif val and self._timeout_id is None:
             # refresh immediatly then periodically
             self.on_timer_status()
             self._timeout_id = gobject.timeout_add(1000, self.on_timer_status)

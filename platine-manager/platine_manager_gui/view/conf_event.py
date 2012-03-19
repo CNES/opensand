@@ -398,8 +398,13 @@ class ConfEvent(ConfView) :
                 self.on_save_conf_clicked()
             else:
                 self.update_view()
+        if self._descr_refresh is not None:
+            gobject.source_remove(self._descr_refresh)
         window = AdvancedDialog(self._model, self._log)
         window.go()
+        self.refresh_description()
+        self._descr_refresh = gobject.timeout_add(1000,
+                                                  self.refresh_description)
         self.update_view()
         self.enable_conf_buttons(False)
 
