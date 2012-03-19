@@ -215,12 +215,28 @@ class XmlParser:
         else:
             return self.get_simple_type(att_type)
 
+    def get_documentation(self, name, parent_name = None):
+        """ get the description associated to an element """
+        if parent_name is not None:
+            elem = self.get_attribute(name, parent_name)
+        else:
+            elem = self.get_element(name)
+
+        if elem is None:
+            return None
+
+        doc = elem.xpath("xsd:annotation/xsd:documentation",
+                         namespaces=NAMESPACES)
+        if len(doc) != 1:
+            return None
+
+        return doc[0].text
 
     def get_element(self, name):
         """ get an element in the XSD document """
         elem = self._xsd_parser.xpath("//xsd:element[@name = $val]",
-                                namespaces=NAMESPACES,
-                                val = name)
+                                      namespaces=NAMESPACES,
+                                      val = name)
         if len(elem) != 1:
             return None
         return elem[0]
@@ -253,7 +269,7 @@ class XmlParser:
 
         # restriction
         restrictions = elem.xpath("xsd:restriction",
-                                 namespaces=NAMESPACES)
+                                  namespaces=NAMESPACES)
         if len(restrictions) != 1:
             return None
 

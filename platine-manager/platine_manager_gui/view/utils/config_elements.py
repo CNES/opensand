@@ -208,8 +208,9 @@ class ConfigurationNotebook(gtk.Notebook):
             tab = self.add_section(section)
             self.fill_section(section, tab)
         
-    def add_section(self, section, description = ''):
+    def add_section(self, section):
         """ add a section in the notebook and return the associated vbox """
+        name = self._config.get_name(section)
         scroll_notebook = gtk.ScrolledWindow()
         scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
@@ -217,10 +218,10 @@ class ConfigurationNotebook(gtk.Notebook):
         scroll_notebook.add_with_viewport(tab_vbox)
         tab_label = gtk.Label()
         tab_label.set_justify(gtk.JUSTIFY_CENTER)
-        tab_label.set_markup("<small><b>%s</b></small>" %
-                             self._config.get_name(section))
-        tab_label.set_tooltip_text(description)
-        if description != '':
+        tab_label.set_markup("<small><b>%s</b></small>" % name)
+        description = self._config.get_documentation(name)
+        if description != None:
+            tab_label.set_tooltip_text(description.strip())
             tab_label.set_has_tooltip(True)
         self.append_page(scroll_notebook, tab_label)
         return tab_vbox
@@ -241,15 +242,17 @@ class ConfigurationNotebook(gtk.Notebook):
                                       fill=False, padding=5,
                                       pack_type=gtk.PACK_START)
 
-    def add_key(self, key, description = ''):
+    def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
+        name = self._config.get_name(key)
         key_box = gtk.HBox()
         key_label = gtk.Label()
-        key_label.set_markup(self._config.get_name(key))
+        key_label.set_markup(name)
         key_label.set_alignment(0.0, 0.5)
         key_label.set_width_chars(25)
-        key_label.set_tooltip_text(description)
-        if description != '':
+        description = self._config.get_documentation(name)
+        if description != None:
+            key_label.set_tooltip_text(description.strip())
             key_label.set_has_tooltip(True)
         key_box.pack_start(key_label)
         key_box.set_child_packing(key_label, expand=False,
@@ -257,7 +260,7 @@ class ConfigurationNotebook(gtk.Notebook):
                                   pack_type=gtk.PACK_START)
         # TODO get the type of data and depending on it add correponding entry
         #      type
-        elt_type = self._config.get_type(self._config.get_name(key))
+        elt_type = self._config.get_type(name)
         entry = ConfEntry(elt_type, self._config.get_value(key),
                           self._config.get_path(key),
                           [self.handle_param_chanded, self._changed_cb])
@@ -269,8 +272,9 @@ class ConfigurationNotebook(gtk.Notebook):
                                   pack_type=gtk.PACK_START)
         return key_box
 
-    def add_table(self, key, description = ''):
+    def add_table(self, key):
         """ add a table in the tab """
+        name = self._config.get_name(key)
         check_buttons = []
         table_frame = gtk.Frame()
         table_frame.set_label_align(0, 0.5)
@@ -278,10 +282,11 @@ class ConfigurationNotebook(gtk.Notebook):
         alignment = gtk.Alignment(0.5, 0.5, 1, 1)
         table_frame.add(alignment)
         table_label = gtk.Label()
-        table_label.set_markup("<b>%s</b>" % self._config.get_name(key))
+        table_label.set_markup("<b>%s</b>" % name)
         table_frame.set_label_widget(table_label)
-        table_label.set_tooltip_text(description)
-        if description != '':
+        description = self._config.get_documentation(name)
+        if description != None:
+            table_label.set_tooltip_text(description.strip())
             table_label.set_has_tooltip(True)
         align_vbox = gtk.VBox()
         alignment.add(align_vbox)
@@ -348,20 +353,20 @@ class ConfigurationNotebook(gtk.Notebook):
         check_buttons.append(check_button)
         # add attributes
         for att in dic.keys():
-            att_description = ''
+            name = self._config.get_name(line)
             att_label = gtk.Label()
             att_label.set_markup(att)
             att_label.set_alignment(1.0, 0.5)
             att_label.set_width_chars(len(att) + 1)
-            att_label.set_tooltip_text(att_description)
-            if att_description != '':
+            att_description = self._config.get_documentation(att, name)
+            if att_description != None:
+                att_label.set_tooltip_text(att_description.strip())
                 att_label.set_has_tooltip(True)
             hbox.pack_start(att_label)
             hbox.set_child_packing(att_label, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
-            elt_type = self._config.get_attribute_type(att,
-                                                       self._config.get_name(line))
+            elt_type = self._config.get_attribute_type(att, name)
             cb = []
             value = ''
             path = ''
@@ -373,7 +378,7 @@ class ConfigurationNotebook(gtk.Notebook):
                     value = dic[att]
                 except:
                     # this is a new line entry
-                    path = '//%s[last()]--%s' % (self._config.get_name(line), att)
+                    path = '//%s[last()]--%s' % (name, att)
             entry = ConfEntry(elt_type, value, path, cb)
             self._backup.append(entry)
             hbox.pack_start(entry.get())
@@ -479,6 +484,7 @@ class ConfigurationNotebook(gtk.Notebook):
 
 
 class ConfEntry(object):
+    """ element for configuration entry """
     def __init__(self, entry_type, value, path, sig_handlers):
         self._type = entry_type
         self._value = value
