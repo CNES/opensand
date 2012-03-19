@@ -163,7 +163,13 @@ class XmlParser:
         children = table.getchildren()
         if len(children) == 0:
             raise XmlException("wrong path: %s is not a table" % key)
-        child = children[0]
+        i = 0;
+        # copy the first line for the base, but skip comments
+        while(i < len(children)):
+            child = children[i]
+            i += 1
+            if not child.tag is etree.Comment:
+            	break
         new = deepcopy(child)
         for att in new.attrib.keys():
             new.attrib[att] = ''
