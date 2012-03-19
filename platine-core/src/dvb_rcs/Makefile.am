@@ -1,4 +1,4 @@
-SUBDIRS = utils switch pep dra modcod dama core
+SUBDIRS = utils pep dra modcod dama switch core
 
 noinst_LTLIBRARIES = libplatine_dvb.la
 

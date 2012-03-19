@@ -50,6 +50,7 @@ from platine_manager_core.my_exceptions import CommandException
 from platine_manager_core.controller.service_listener import PlatineServiceListener
 from platine_manager_core.controller.environment_plane import EnvironmentPlaneController
 from platine_manager_core.controller.tcp_server import Plop, CommandServer
+from platine_manager_core.controller.stream import Stream
 from platine_manager_core.utils import copytree
 
 SCRIPT_PATH = '/usr/libexec/platine/'
@@ -57,6 +58,7 @@ DEFAUL_PATH = '/usr/share/platine/'
 DEFAULT_INI_FILE = '/usr/share/platine/deploy.ini'
 COM_PARAMETERS = '/etc/platine/env_plane/com_parameters.conf'
 CMD_PORT = 5656
+DATA_END = 'DATA_END\n'
 
 class Controller(threading.Thread):
     """ controller that controll all hosts """
@@ -326,6 +328,10 @@ class Controller(threading.Thread):
 #     will accept strings as scenario and run
 #                               self._model.get_scenario(),
 #                               self._model.get_run())
+                # configure modules
+                self.configure_modules(host)
+
+            # configure tools on workstations
             for ws in self._ws:
                 self._log.info("Configuring " + ws.get_name().upper())
                 # create the WS directory
@@ -446,6 +452,43 @@ class Controller(threading.Thread):
                             self)
         self._log.info("listening for command on port %d" % CMD_PORT)
         self._server.run()
+
+    def configure_modules(self, host):
+        """ send the module configuration on hosts """
+        # connect to command server and send the configure command
+        self._log.info("Deploy modules on %s" % host.get_name())
+        try:
+            sock = host.connect_command('CONFIGURE')
+            if sock is None:
+                return
+
+            # send 'DATA' tag
+            sock.send('DATA\n')
+            self._log.debug("%s: send 'DATA'" % host.get_name())
+
+            stream = Stream(sock, self._log)
+            stream.send_dir(os.path.join(self._model.get_scenario(), 'plugins'),
+                            '/etc/platine/plugins')
+
+            # send 'DATA_END' tag
+            sock.send(DATA_END)
+            self._log.debug("%s: send '%s'" %
+                            (host.get_name(), DATA_END.strip()))
+            host.receive_ok(sock)
+            # send 'STOP' tag
+            sock.send('STOP\n')
+            self._log.debug("%s: send 'STOP'" % host.get_name())
+
+        except socket.error, (errno, strerror):
+            self._log.error("Cannot contact %s command server: %s" %
+                            (host.get_name(), strerror))
+        except CommandException:
+            self._log.error("cannot deploy plugins configuration")
+            raise
+        finally:
+            if sock is not None:
+                sock.close()
+
 
 
 

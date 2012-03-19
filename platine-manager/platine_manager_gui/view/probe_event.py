@@ -218,6 +218,9 @@ class ProbeEvent(ProbeView):
         """ update the canvas display """
         self._probe_lock.acquire()
 
+        label = self._model.get_run()
+        self._ui.get_widget('run_label').set_text(label)
+
         for index in self._display:
             if index is not None and index.is_value():
 
@@ -482,7 +485,8 @@ class ProbeEvent(ProbeView):
             error_popup("Please stop Platine to perform the importation")
         else:
             try:
-                dlg = RunDialog(self._model.get_scenario())
+                dlg = RunDialog(self._model.get_scenario(),
+                                self._model.get_run())
                 ret = dlg.go()
             except ViewException, msg:
                 error_popup("cannot open dialog", msg)
@@ -512,6 +516,7 @@ class ProbeEvent(ProbeView):
                                     gtk.FILE_CHOOSER_ACTION_SAVE,
                                     (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                     gtk.STOCK_APPLY, gtk.RESPONSE_APPLY))
+        dlg.set_current_name(os.path.basename(self._files_path))
         dlg.set_current_folder(self._model.get_scenario())
         dlg.set_do_overwrite_confirmation(True)
         imgfilter = gtk.FileFilter()
@@ -527,7 +532,8 @@ class ProbeEvent(ProbeView):
         if ret == gtk.RESPONSE_APPLY and filename is not None:
             (name, ext) = os.path.splitext(filename)
             if ext == '':
-                filename = filename + '.jpg'
+                # set default filetype to svg, jpg gives bad results
+                filename = filename + '.svg'
             self._log.debug("save graphic to " + filename)
             self.save_figure(filename)
 

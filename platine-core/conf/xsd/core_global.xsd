@@ -16,13 +16,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="spotId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="255" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- types for global section -->
 <xsd:simpleType name="ethInterface">
     <xsd:restriction base="xsd:string">
@@ -52,24 +45,87 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="upReturnEncapScheme">
+<xsd:simpleType name="IpOptionName">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ATM_AAL5" />
-        <xsd:enumeration value="MPEG_ULE" />
+        <xsd:enumeration value="ROHC" />
+        <xsd:enumeration value="NONE" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+
+<xsd:simpleType name="EncapScheme">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ATM/AAL5" />
+        <xsd:enumeration value="MPEG2-TS" />
+        <xsd:enumeration value="ULE" />
         <xsd:enumeration value="GSE" />
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="downForwardEncapScheme">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ATM_AAL5" />
-        <xsd:enumeration value="MPEG_ULE" />
-        <xsd:enumeration value="GSE" />
-        <xsd:enumeration value="MPEG_ATM_AAL5" />
-        <xsd:enumeration value="GSE_ATM_AAL5" />
-        <xsd:enumeration value="GSE_MPEG_ULE" />
+<xsd:simpleType name="PosScheme">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="4" />
     </xsd:restriction>
 </xsd:simpleType>
+
+<!-- the encap schemes tables -->
+<xsd:element name="ip_options">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="option" minOccurs="1" maxOccurs="5" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="up_return_encap_schemes">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="scheme" minOccurs="1" maxOccurs="5" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="down_forward_encap_schemes">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="scheme" minOccurs="1" maxOccurs="5" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="option">
+    <xsd:complexType>
+        <xsd:attribute name="name" type="IpOptionName">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+	                The name of the IP "option"
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
+<xsd:element name="scheme">
+    <xsd:complexType>
+        <xsd:attribute name="pos" type="PosScheme">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The encapsulation scheme position from lower to upper
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="encap" type="EncapScheme">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+	                The type of encapsulation
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- types for mac_layer section -->
 <xsd:simpleType name="bitRate">
@@ -143,13 +199,6 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the spot corresponding to this terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
 
@@ -173,13 +222,6 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the spot corresponding to this terminal
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -264,13 +306,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="packing_threshold" type="msTime">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Packing threshold for MPEG2-TS and GSE encapsulation scheme (ms)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="satellite_type" type="satelliteType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -313,14 +348,21 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="up_return_encap_scheme" type="upReturnEncapScheme">
+            <xsd:element ref="ip_options">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        A list of IP "options"
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="up_return_encap_schemes">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The up/return link encapsulation scheme
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="down_forward_encap_scheme" type="downForwardEncapScheme">
+            <xsd:element ref="down_forward_encap_schemes">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The down/forward link encapsulation scheme

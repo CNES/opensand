@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -108,7 +109,7 @@ Data NetBurst::data()
 	// add the data of each network packet of the burst
 	for(it = this->begin(); it != this->end(); it++)
 	{
-		data.append((*it)->data());
+		data.append((*it)->getData());
 	}
 
 	return data;
@@ -124,7 +125,7 @@ long NetBurst::bytes()
 
 		for(it = this->begin(); it != this->end(); it++)
 		{
-			len += (*it)->totalLength();
+			len += (*it)->getTotalLength();
 		}
 	}
 
@@ -143,7 +144,7 @@ uint16_t NetBurst::type()
 	else
 	{
 		// type of first packet in burst
-		return this->front()->type();
+		return this->front()->getType();
 	}
 }
 
@@ -157,6 +158,6 @@ std::string NetBurst::name()
 	else
 	{
 		// type of first packet in burst
-		return (*(this->begin()))->name();
+		return (*(this->begin()))->getName();
 	}
 }

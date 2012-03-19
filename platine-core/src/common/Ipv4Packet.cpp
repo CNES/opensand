@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -40,31 +41,34 @@
 
 Ipv4Packet::Ipv4Packet(Data data): IpPacket(data)
 {
-	this->_name = "IPv4";
-	this->_type = NET_PROTO_IPV4;
+	this->name = "IPv4";
+	this->type = NET_PROTO_IPV4;
 
-	this->validityChecked = false;
-	this->validityResult = false;
+	this->validity_checked = false;
+	this->validity_result = false;
+	this->header_length = 20;
 }
 
 Ipv4Packet::Ipv4Packet(unsigned char *data,
                        unsigned int length):
 	IpPacket(data, length)
 {
-	this->_name = "IPv4";
-	this->_type = NET_PROTO_IPV4;
+	this->name = "IPv4";
+	this->type = NET_PROTO_IPV4;
 
-	this->validityChecked = false;
-	this->validityResult = false;
+	this->validity_checked = false;
+	this->validity_result = false;
+	this->header_length = 20;
 }
 
 Ipv4Packet::Ipv4Packet(): IpPacket()
 {
-	this->_name = "IPv4";
-	this->_type = NET_PROTO_IPV4;
+	this->name = "IPv4";
+	this->type = NET_PROTO_IPV4;
 
-	this->validityChecked = false;
-	this->validityResult = false;
+	this->validity_checked = false;
+	this->validity_result = false;
+	this->header_length = 20;
 }
 
 Ipv4Packet::~Ipv4Packet()
@@ -77,11 +81,11 @@ bool Ipv4Packet::isValid()
 	uint16_t crc;
 	uint16_t cur_crc;
 
-	if(this->validityChecked)
+	if(this->validity_checked)
 		goto skip;
 
 	// IPv4 packet length must be at least 20 byte long
-	if(this->_data.length() < 4 * 5)
+	if(this->data.length() < 4 * 5)
 		goto invalid;
 
 	// calculate the CRC
@@ -99,11 +103,11 @@ bool Ipv4Packet::isValid()
 
 invalid:
 	// cache the result
-	this->validityResult = is_valid;
-	this->validityChecked = true;
+	this->validity_result = is_valid;
+	this->validity_checked = true;
 
 skip:
-	return this->validityResult;
+	return this->validity_result;
 }
 
 uint16_t Ipv4Packet::calcCrc()
@@ -112,7 +116,7 @@ uint16_t Ipv4Packet::calcCrc()
 	uint16_t *data;
 	uint32_t sum;
 
-	data = (uint16_t *) this->_data.c_str();
+	data = (uint16_t *) this->data.c_str();
 	nbytes = this->ihl() * 4;
 	sum = 0;
 
@@ -132,17 +136,17 @@ uint16_t Ipv4Packet::calcCrc()
 
 uint16_t Ipv4Packet::crc()
 {
-	if(this->_data.length() < 4 * 5)
+	if(this->data.length() < 4 * 5)
 	{
 		UTI_ERROR("[Ipv4Packet::crc] invalid IPv4 packet\n");
 		return 0;
 	}
 
-	return (uint16_t) (((this->_data.at(10) & 0xff) << 8)
-	                 + ((this->_data.at(11) & 0xff) << 0));
+	return (uint16_t) (((this->data.at(10) & 0xff) << 8)
+	                 + ((this->data.at(11) & 0xff) << 0));
 }
 
-uint16_t Ipv4Packet::totalLength()
+uint16_t Ipv4Packet::getTotalLength()
 {
 	if(!this->isValid())
 	{
@@ -150,22 +154,22 @@ uint16_t Ipv4Packet::totalLength()
 		return 0;
 	}
 
-	return (uint16_t) (((this->_data.at(2) & 0xff) << 8)
-	                 + ((this->_data.at(3) & 0xff) << 0));
+	return (uint16_t) (((this->data.at(2) & 0xff) << 8)
+	                 + ((this->data.at(3) & 0xff) << 0));
 }
 
 uint8_t Ipv4Packet::ihl()
 {
-	if(this->_data.length() < 4 * 5)
+	if(this->data.length() < 4 * 5)
 	{
 		UTI_ERROR("[Ipv4Packet::ihl] invalid IPv4 packet\n");
 		return 0;
 	}
 
-	return (uint8_t) (this->_data.at(0) & 0x0f);
+	return (uint8_t) (this->data.at(0) & 0x0f);
 }
 
-uint16_t Ipv4Packet::payloadLength()
+uint16_t Ipv4Packet::getPayloadLength()
 {
 	if(!this->isValid())
 	{
@@ -173,12 +177,12 @@ uint16_t Ipv4Packet::payloadLength()
 		return 0;
 	}
 
-	return (uint16_t) (this->totalLength() - this->ihl() * 4);
+	return (uint16_t) (this->getTotalLength() - this->ihl() * 4);
 }
 
 IpAddress * Ipv4Packet::srcAddr()
 {
-	if(this->_srcAddr == NULL)
+	if(this->src_addr == NULL)
 	{
 		if(!this->isValid())
 		{
@@ -186,30 +190,30 @@ IpAddress * Ipv4Packet::srcAddr()
 			return NULL;
 		}
 
-		this->_srcAddr =
-			new Ipv4Address(this->_data.at(12), this->_data.at(13),
-			                this->_data.at(14), this->_data.at(15));
+		this->src_addr =
+			new Ipv4Address(this->data.at(12), this->data.at(13),
+			                this->data.at(14), this->data.at(15));
 	}
 
-	return this->_srcAddr;
+	return this->src_addr;
 }
 
-IpAddress * Ipv4Packet::destAddr()
+IpAddress * Ipv4Packet::dstAddr()
 {
-	if(this->_destAddr == NULL)
+	if(this->dst_addr == NULL)
 	{
 		if(!this->isValid())
 		{
-			UTI_ERROR("[Ipv4Packet::destAddr] invalid IPv4 packet\n");
+			UTI_ERROR("[Ipv4Packet::dstAddr] invalid IPv4 packet\n");
 			return NULL;
 		}
 
-		this->_destAddr =
-			new Ipv4Address(this->_data.at(16), this->_data.at(17),
-			                this->_data.at(18), this->_data.at(19));
+		this->dst_addr =
+			new Ipv4Address(this->data.at(16), this->data.at(17),
+			                this->data.at(18), this->data.at(19));
 	}
 
-	return this->_destAddr;
+	return this->dst_addr;
 }
 
 uint8_t Ipv4Packet::trafficClass()
@@ -220,11 +224,7 @@ uint8_t Ipv4Packet::trafficClass()
 		return 0;
 	}
 
-	return (uint8_t) this->_data.at(1);
+	return (uint8_t) this->data.at(1);
 }
 
-// static
-NetPacket * Ipv4Packet::create(Data data)
-{
-	return new Ipv4Packet(data);
-}
+

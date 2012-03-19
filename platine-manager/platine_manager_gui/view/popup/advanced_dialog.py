@@ -52,6 +52,7 @@ class AdvancedDialog(WindowView):
         WindowView.__init__(self, None, 'advanced_dialog')
 
         self._dlg = self._ui.get_widget('advanced_dialog')
+        self._dlg.set_keep_above(True)
         self._model = model
         self._log = manager_log
         self._tree = None
@@ -207,7 +208,7 @@ class AdvancedDialog(WindowView):
             return
         if val:
             self._enabled.append(host)
-        else:
+        elif host in self._enabled:
             self._enabled.remove(host)
 
         self._ui.get_widget('apply_advanced_conf').set_sensitive(True)

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -228,8 +229,16 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	if(this->_host_name == "GW" &&
 	   this->_satellite_type == TRANSPARENT_SATELLITE)
 	{
+		IpAddress *ip_addr;
+		uint8_t tal_id;
+
+		// get destination Tal ID from IP information because
+		// packet tal_id could be wrong
+		ip_addr = packet->dstAddr();
+		tal_id = this->sarpTable.getTalByIp(ip_addr);
+
 		// check if destination is GW
-		if(packet->talId() != 0)
+		if(tal_id != DVB_GW_MAC_ID)
 		{
 			UTI_DEBUG_L3("%s IP packet is not for GW, forward it\n", FUNCNAME);
 			status = this->onMsgIp(packet);
@@ -239,7 +248,7 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	}
 
 	// allocate memory for IP data
-	ip_length = packet->totalLength();
+	ip_length = packet->getTotalLength();
 
 	pkt = (unsigned char *) calloc(ip_length + 4, sizeof(unsigned char));
 
@@ -252,7 +261,7 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	}
 
 	bzero(pkt, ip_length + 4);
-	memcpy(pkt + 4, packet->data().c_str(), ip_length);
+	memcpy(pkt + 4, packet->getData().c_str(), ip_length);
 
 	// find the protocol flag according to IP version
 	switch(packet->version())
@@ -374,6 +383,9 @@ int BlocIPQoS::onMsgIpFromUp(int fd)
 
 	ip_packet->addTrace(HERE());
 
+	// set the source terminal ID out of onMsgIp to avoid overwriting it by the
+	// GW when this function is called for forwarding
+	ip_packet->setSrcTalId(this->_tal_id);
 	status = this->onMsgIp(ip_packet);
 
 drop:
@@ -398,8 +410,7 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 	map < unsigned short, TrafficCategory * >::iterator foundCategory;
 
 	IpAddress *ip_addr;
-	long mac_id; // MAC id found in the SARP table
-	int tal_id; // tal is found in the SARP table
+	uint8_t tal_id; // tal is found in the SARP table
 
 	mgl_msg *lp_msg;
 
@@ -430,39 +441,38 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 
 	ip_packet->setQos(foundCategory->second->svcClass->macQueueId);
 
-	// set the TAL id (MAC is locally solved thanks to a mapping table)
-	ip_addr = ip_packet->destAddr();
-	UTI_DEBUG_L3("%s IPv%d destination address = %s\n",
-	             FUNCNAME, ip_packet->version(), ip_addr->str().c_str());
-
-	tal_id = this->sarpTable.getTalByIp(ip_addr);
-	if(tal_id < 0)
+	if(this->_host_name != "GW" && this->_satellite_type == TRANSPARENT_SATELLITE)
 	{
-		// tal id not found, fall back to default
-		UTI_ERROR("%s IP dest addr not found in SARP table \n", FUNCNAME);
-		status = -1;
-		goto drop;
+		// ST in transparent mode:
+		// DST Tal Id = GW
+		// SRC Tal Id = ST Tal Id
+		ip_packet->setDstTalId(DVB_GW_MAC_ID);
+	}
+	else
+	{
+		// Other modes
+		// DST Tal Id = Tal Id(ip_dst)
+		// SRC Tal Id = Host Tal Id
+		ip_addr = ip_packet->dstAddr();
+		UTI_DEBUG_L3("%s IPv%d destination address = %s\n",
+					 FUNCNAME, ip_packet->version(), ip_addr->str().c_str());
+
+		tal_id = this->sarpTable.getTalByIp(ip_addr);
+		if(tal_id < 0)
+		{
+			// tal id not found, fall back to default
+			UTI_ERROR("%s IP dest addr not found in SARP table \n", FUNCNAME);
+			status = -1;
+			goto drop;
+		}
+
+		UTI_DEBUG_L3("%s talID in SARP Table: %d \n", FUNCNAME, tal_id);
+		ip_packet->setDstTalId(tal_id);
 	}
 
-	UTI_DEBUG_L3("%s talID in SARP Table: %d \n", FUNCNAME, tal_id);
-	ip_packet->setTalId(tal_id);
-	UTI_DEBUG_L3("%s talID: %ld \n", FUNCNAME, ip_packet->talId());
+	UTI_DEBUG_L3("%s Src TAL ID: %u \n", FUNCNAME, ip_packet->getSrcTalId());
+	UTI_DEBUG_L3("%s Dst TAL ID: %u \n", FUNCNAME, ip_packet->getDstTalId());
 
-	// set the MAC id (MAC is locally solved thanks to a mapping table)
-	ip_addr = ip_packet->destAddr();
-	UTI_DEBUG_L3("%s IPv%d destination address = %s\n",
-	             FUNCNAME, ip_packet->version(), ip_addr->str().c_str());
-
-	mac_id = this->sarpTable.getMacByIp(ip_addr);
-	if(mac_id < 0)
-	{
-		// MAC id not found, fall back to default
-		UTI_DEBUG("%s IP dest addr not found in SARP table => sending to "
-		          "default label\n", FUNCNAME);
-		mac_id = C_DEFAULT_LABEL;
-	}
-
-	ip_packet->setMacId(mac_id);
 
 	// create the Margouilla message with IP packet as data
 	lp_msg = this->newMsgWithBodyPtr(msg_ip, ip_packet, sizeof(ip_packet));

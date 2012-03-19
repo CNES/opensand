@@ -6,6 +6,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -50,7 +51,8 @@ class DvbRcsDamaAgentUoR: public DvbRcsDamaAgentLegacy
 
  public:
 
-	DvbRcsDamaAgentUoR();
+	DvbRcsDamaAgentUoR(EncapPlugin::EncapPacketHandler *packet,
+	                   double frame_duration);
 
 };
 

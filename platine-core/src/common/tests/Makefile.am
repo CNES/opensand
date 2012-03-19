@@ -1,15 +1,14 @@
 CPPFLAGS_COMMON = -I.. -g -Wall
-LDFLAGS_NETPACKET = -lpthread
 
 # test programs to build
-noinst_PROGRAMS = \
+check_PROGRAMS = \
   ip_addr \
-  net_packet
+  test_plugins
 
 # test programs to run
 TESTS = \
   ip_addr \
-  net_packet
+  test_plugins.sh
 
 ############## test for IP addresses ##############
 
@@ -23,15 +22,20 @@ ip_addr_CXXFLAGS = $(CPPFLAGS_COMMON)
 ip_addr_LDFLAGS =
 ip_addr_LDADD = 
 
-############## test for Network Packets ##############
 
-net_packet_SOURCES =                      \
-  ../Data.cpp \
-  ../NetPacket.cpp \
-  ../AtmCell.cpp \
-  net_packet.cpp
+############## test for encap plugins ##############
 
-net_packet_CXXFLAGS = $(CPPFLAGS_COMMON) $(CPPFLAGS_NETPACKET)
-net_packet_LDFLAGS = $(LDFLAGS_NETPACKET)
-net_packet_LDADD =
+INCLUDES = \
+  -I..
+
+test_plugins_SOURCES = \
+  test_plugins.cpp
+
+test_plugins_CXXFLAGS = $(CPPFLAGS_COMMON)
+test_plugins_LDFLAGS =
+test_plugins_LDADD = \
+  ../libplatine_common.la \
+  ../libplatine_encap_plugin.la \
+  -lpcap
+
 

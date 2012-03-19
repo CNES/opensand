@@ -57,7 +57,7 @@ class ConfigurationTree(gtk.TreeStore):
 
         self._treeselection = None
         self._cell_renderer_toggle = None
-        self._is_global = 0
+        self._is_first_elt = 0
 
         self.load(treeview, col1_title, col2_title, col1_changed_cb,
                   col2_toggled_cb)
@@ -104,11 +104,11 @@ class ConfigurationTree(gtk.TreeStore):
         # first Global, next SAT, then GW and ST
         if name == 'global':
             top_elt = self.insert(None, 0)
-            self._is_global = 1
+            self._is_first_elt = 1
         elif name == 'sat':
-            top_elt = self.insert(None, self._is_global)
+            top_elt = self.insert(None, self._is_first_elt)
         elif name == 'gw':
-            top_elt = self.insert(None, self._is_global + 1)
+            top_elt = self.insert(None, self._is_first_elt + 1)
         else:
             top_elt = self.append(None)
 
@@ -152,6 +152,26 @@ class ConfigurationTree(gtk.TreeStore):
                               VISIBLE, True,
                               ACTIVE, active,
                               ACTIVATABLE, activatable)
+
+    def add_modules(self, modules):
+        """ insert the modules int the tree """
+        if len(modules) == 0:
+            return
+
+        top_elt = self.insert(None, 0)
+        self._is_first_elt = 1
+        self.set(top_elt, TEXT, 'Plugins',
+                          VISIBLE, False,
+                          ACTIVE, False,
+                          ACTIVATABLE, False)
+        for name in modules.keys():
+            module = modules[name]
+            descr = module.get_description()
+            sub_iter = self.append(top_elt)
+            self.set(sub_iter, TEXT, name,
+                               VISIBLE, False,
+                               ACTIVE, False,
+                               ACTIVATABLE, False)
 
     def del_host(self, host_name):
         """ remove a host from the treeview """
@@ -594,10 +614,8 @@ class ConfEntry(object):
             return "false"
         elif type_name == "enum":
             model = self._entry.get_model()
-            active = self._entry.get_active()
-            if active < 0:
-                return None
-            return model[active][0]
+            active = self._entry.get_active_iter()
+            return model.get_value(active, 0)
         elif type_name == "integer":
             return self._entry.get_text()
         else:

@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -73,19 +73,11 @@ class Ipv6Packet: public IpPacket
 
 	// implementation of virtual functions
 	bool isValid();
-	uint16_t totalLength();
-	uint16_t payloadLength();
+	uint16_t getTotalLength();
+	uint16_t getPayloadLength();
 	IpAddress *srcAddr();
-	IpAddress *destAddr();
+	IpAddress *dstAddr();
 	uint8_t trafficClass();
-
-	/**
-	 * Create an IPv6 packet
-	 *
-	 * @param data  raw data from which an IPv6 packet can be created
-	 * @return      the created IPv6 packet
-	 */
-	static NetPacket * create(Data data);
 
  protected:
 

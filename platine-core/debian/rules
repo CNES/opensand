@@ -16,6 +16,13 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
+# enable to disable memory pool in packages
+override_dh_auto_configure:
+	dh_auto_configure -- --disable-memory-pool
+
+override_dh_strip:
+	dh_strip --dbg-package=libplatine-encap-plugin-dbg
+
 override_dh_install:
 	dh_install
 

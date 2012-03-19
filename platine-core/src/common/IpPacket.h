@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -50,17 +50,10 @@ class IpPacket: public NetPacket
 {
  protected:
 
-	/// The Quality of Service for the IP packet
-	int _qos;
-	/// The MAC identifier of the communication channel used by the IP packet
-	unsigned long _macId;
-	/// The identifier for the ST which emited this IP packet
-	long _talId;
-
 	/// Internal cache for IP source address
-	IpAddress *_srcAddr;
+	IpAddress *src_addr;
 	/// Internal cache for IP destination address
-	IpAddress *_destAddr;
+	IpAddress *dst_addr;
 
  public:
 
@@ -88,13 +81,10 @@ class IpPacket: public NetPacket
 	virtual ~IpPacket();
 
 	// implementation of virtual functions
-	int qos();
 	void setQos(int qos);
-	unsigned long macId();
-	void setMacId(unsigned long macId);
-	long talId();
-	void setTalId(long talId);
-	Data payload();
+	void setSrcTalId(long talId);
+	void setDstTalId(long talId);
+	Data getPayload();
 
 	/**
 	 * Retrieve the version from an IP packet
@@ -127,13 +117,19 @@ class IpPacket: public NetPacket
 	 * Retrieve the destination address of the IP packet
 	 * @return the IP destination address
 	 */
-	virtual IpAddress *destAddr() = 0;
+	virtual IpAddress *dstAddr() = 0;
 
 	/**
 	 * Retrieve the Type Of Service (TOS) or Traffic Class (TC) of the IP packet
 	 * @return the Type Of Service (TOS) or Traffic Class (TC) of the IP packet
 	 */
 	virtual uint8_t trafficClass() = 0;
+
+	/**
+	 * Is the network-layer packet a valid one?
+	 * @return true if network-layer packet is valid, false otherwise
+	 */
+	virtual bool isValid() = 0;
 };
 
 #endif

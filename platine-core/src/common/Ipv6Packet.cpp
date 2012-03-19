@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -40,21 +41,24 @@
 
 Ipv6Packet::Ipv6Packet(Data data): IpPacket(data)
 {
-	this->_name = "IPv6";
-	this->_type = NET_PROTO_IPV6;
+	this->name = "IPv6";
+	this->type = NET_PROTO_IPV6;
+	this->header_length = 40;
 }
 
 Ipv6Packet::Ipv6Packet(unsigned char *data, unsigned int length):
 	IpPacket(data, length)
 {
-	this->_name = "IPv6";
-	this->_type = NET_PROTO_IPV6;
+	this->name = "IPv6";
+	this->type = NET_PROTO_IPV6;
+	this->header_length = 40;
 }
 
 Ipv6Packet::Ipv6Packet(): IpPacket()
 {
-	this->_name = "IPv6";
-	this->_type = NET_PROTO_IPV6;
+	this->name = "IPv6";
+	this->type = NET_PROTO_IPV6;
+	this->header_length = 40;
 }
 
 Ipv6Packet::~Ipv6Packet()
@@ -63,10 +67,10 @@ Ipv6Packet::~Ipv6Packet()
 
 bool Ipv6Packet::isValid()
 {
-	return (this->_data.length() >= Ipv6Packet::headerLength());
+	return (this->data.length() >= Ipv6Packet::headerLength());
 }
 
-uint16_t Ipv6Packet::totalLength()
+uint16_t Ipv6Packet::getTotalLength()
 {
 	if(!this->isValid())
 	{
@@ -74,10 +78,10 @@ uint16_t Ipv6Packet::totalLength()
 		return 0;
 	}
 
-	return (uint16_t) (this->payloadLength() + Ipv6Packet::headerLength());
+	return (uint16_t) (this->getPayloadLength() + Ipv6Packet::headerLength());
 }
 
-uint16_t Ipv6Packet::payloadLength()
+uint16_t Ipv6Packet::getPayloadLength()
 {
 	if(!this->isValid())
 	{
@@ -85,13 +89,13 @@ uint16_t Ipv6Packet::payloadLength()
 		return 0;
 	}
 
-	return (uint16_t) (((this->_data.at(4) & 0xff) << 8)
-	                 + ((this->_data.at(5) & 0xff) << 0));
+	return (uint16_t) (((this->data.at(4) & 0xff) << 8)
+	                 + ((this->data.at(5) & 0xff) << 0));
 }
 
 IpAddress * Ipv6Packet::srcAddr()
 {
-	if(this->_srcAddr == NULL)
+	if(this->src_addr == NULL)
 	{
 		if(!this->isValid())
 		{
@@ -99,42 +103,42 @@ IpAddress * Ipv6Packet::srcAddr()
 			return NULL;
 		}
 
-		this->_srcAddr =
-			new Ipv6Address(this->_data.at( 8), this->_data.at( 9),
-			                this->_data.at(10), this->_data.at(11),
-			                this->_data.at(12), this->_data.at(13),
-			                this->_data.at(14), this->_data.at(15),
-			                this->_data.at(16), this->_data.at(17),
-			                this->_data.at(18), this->_data.at(19),
-			                this->_data.at(20), this->_data.at(21),
-			                this->_data.at(22), this->_data.at(23));
+		this->src_addr =
+			new Ipv6Address(this->data.at( 8), this->data.at( 9),
+			                this->data.at(10), this->data.at(11),
+			                this->data.at(12), this->data.at(13),
+			                this->data.at(14), this->data.at(15),
+			                this->data.at(16), this->data.at(17),
+			                this->data.at(18), this->data.at(19),
+			                this->data.at(20), this->data.at(21),
+			                this->data.at(22), this->data.at(23));
 	}
 
-	return this->_srcAddr;
+	return this->src_addr;
 }
 
-IpAddress *Ipv6Packet::destAddr()
+IpAddress *Ipv6Packet::dstAddr()
 {
-	if(this->_destAddr == NULL)
+	if(this->dst_addr == NULL)
 	{
 		if(!this->isValid())
 		{
-			UTI_ERROR("[Ipv6Packet::destAddr] invalid IPv6 packet\n");
+			UTI_ERROR("[Ipv6Packet::dstAddr] invalid IPv6 packet\n");
 			return NULL;
 		}
 
-		this->_destAddr =
-			new Ipv6Address(this->_data.at(24), this->_data.at(25),
-			                this->_data.at(26), this->_data.at(27),
-			                this->_data.at(28), this->_data.at(29),
-			                this->_data.at(30), this->_data.at(31),
-			                this->_data.at(32), this->_data.at(33),
-			                this->_data.at(34), this->_data.at(35),
-			                this->_data.at(36), this->_data.at(37),
-			                this->_data.at(38), this->_data.at(39));
+		this->dst_addr =
+			new Ipv6Address(this->data.at(24), this->data.at(25),
+			                this->data.at(26), this->data.at(27),
+			                this->data.at(28), this->data.at(29),
+			                this->data.at(30), this->data.at(31),
+			                this->data.at(32), this->data.at(33),
+			                this->data.at(34), this->data.at(35),
+			                this->data.at(36), this->data.at(37),
+			                this->data.at(38), this->data.at(39));
 	}
 
-	return this->_destAddr;
+	return this->dst_addr;
 }
 
 // static
@@ -151,12 +155,8 @@ uint8_t Ipv6Packet::trafficClass()
 		return 0;
 	}
 
-	return (uint8_t) (((this->_data.at(0) & 0x0f) << 4)
-	                + ((this->_data.at(1) & 0xf0) >> 4));
+	return (uint8_t) (((this->data.at(0) & 0x0f) << 4)
+	                + ((this->data.at(1) & 0xf0) >> 4));
 }
 
-// static
-NetPacket *Ipv6Packet::create(Data data)
-{
-	return new Ipv6Packet(data);
-}
+

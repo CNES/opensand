@@ -45,9 +45,9 @@ import tempfile
 from platine_manager_core.my_exceptions import CommandException
 from platine_manager_core.controller.stream import Stream
 
-DATA_END = 'DATA_END\n'
 CONF_DESTINATION_PATH = '/etc/platine/'
 START_DESTINATION_PATH = '/var/cache/platine-daemon/start.ini'
+DATA_END = 'DATA_END\n'
 
 #TODO factorize
 class HostController:
@@ -84,13 +84,13 @@ class HostController:
                    self._host_model.get_state_port())
         # create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
+        sock.settimeout(10)
 
         # connect to the server
         try:
             sock.connect(address)
             self._log.debug(self.get_name() + ": connected to state server")
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("%s: unable to connect to state server (%s:%s): " \
                             "'%s'" % (self.get_name(), address[0],
                             address[1], strerror))
@@ -100,6 +100,8 @@ class HostController:
         sock.send('STATE\n')
         self._log.debug("%s: send 'STATE' to state server" % self.get_name())
 
+        # reduce the timeout to avoid blocking too long in the loop
+        sock.settimeout(1)
         while not self._stop.is_set():
             # get the periodic reports
             try:
@@ -208,7 +210,7 @@ class HostController:
             # send 'STOP' tag
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -322,7 +324,7 @@ class HostController:
             # send 'DATA' tag
             sock.send('DATA\n')
             self._log.debug("%s: send 'DATA'" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -352,7 +354,7 @@ class HostController:
             sock.send(DATA_END)
             self._log.debug("%s: send '%s'" %
                             (self.get_name(), DATA_END.strip()))
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -389,7 +391,7 @@ class HostController:
             # send 'STOP' tag
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -453,7 +455,7 @@ class HostController:
                 # send 'DATA' tag
                 sock.send('DATA\n')
                 self._log.debug("%s: send 'DATA'" % self.get_name())
-            except socket.error, (errno, strerror):
+            except socket.error, strerror:
                 self._log.error("Cannot contact %s command server: %s" %
                                 (self.get_name(), strerror))
                 raise CommandException("Cannot contact %s command server: %s" %
@@ -469,14 +471,15 @@ class HostController:
             except Exception:
                 self._log.error("%s: error when sending directory '%s'" %
                                 (self.get_name(), directory))
-                raise
+                raise CommandException("%s: error when sending directory '%s'" %
+                                       (self.get_name(), directory))
 
             try:
                 # send 'DATA_END' tag
                 sock.send(DATA_END)
                 self._log.debug("%s: send '%s'" %
                                 (self.get_name(), DATA_END.strip()))
-            except socket.error, (errno, strerror):
+            except socket.error, strerror:
                 self._log.error("Cannot contact %s command server: %s" %
                                 (self.get_name(), strerror))
                 raise CommandException("Cannot contact %s command server: %s" %
@@ -509,7 +512,8 @@ class HostController:
     def connect_command(self, command):
         """ connect to command server and send a command """
         # check if the host is enabled
-        if not self._host_model.is_enabled():
+        if not self._host_model.is_enabled() and \
+           command != "CONFIGURE" and command != "DEPLOY":
             self._log.warning("%s is disabled" % self.get_name())
             return None
         if self._host_model.get_state() is None:
@@ -526,7 +530,7 @@ class HostController:
         try:
             sock.connect(address)
             self._log.debug("%s: connected to command server" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("%s: unable to connect to command server ('%s')" %
                             (self.get_name(), strerror))
             raise CommandException("Connection error to " + self.get_name())
@@ -535,7 +539,7 @@ class HostController:
             sock.send(command +'\n')
             self._log.debug("%s: send %s to command server" %
                             (self.get_name(), command))
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             sock.close()
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
@@ -558,7 +562,7 @@ class HostController:
             self._log.error("%s: timeout with command server" % self.get_name())
             raise CommandException("%s: timeout with command server" %
                                    self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, strerror:
             self._log.error("%s: error when reading on server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("%s: error when reading on server: %s" %

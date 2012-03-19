@@ -1,0 +1,25 @@
+Source: platine-rohc-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libplatine-rohc-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libplatine-rohc-plugin (= ${binary:Version})
+Description: Debugging symbols for Platine ROHC plugin
+
+Package: libplatine-rohc-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The ROHC plugin for Platine
+
+Package: libplatine-rohc-plugin-manager
+Section: libs
+Architecture: any
+Depends: libplatine-rohc-plugin (= ${binary:Version}), python (>= 2.6)
+Description: The ROHC plugin configuration for Platine Manager
+

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -46,13 +47,10 @@
 /**
  * Constructor
  */
-DvbRcsDamaAgent::DvbRcsDamaAgent()
+DvbRcsDamaAgent::DvbRcsDamaAgent(EncapPlugin::EncapPacketHandler *packet,
+                                 double frame_duration):
+	packet(packet)
 {
-	const char *FUNCNAME = DA_DBG_PREFIX "[constructor]";
-	int val;
-	string encap_scheme;     // encapsulation scheme for the uplink/return link
-	int encap_packet_length; // uplink/return link MAC packet size
-
 	m_groupId = 0;
 	m_talId = 0;
 	m_CRCarrierId = 0;
@@ -60,57 +58,13 @@ DvbRcsDamaAgent::DvbRcsDamaAgent()
 	m_nrt_fifo = 0;
 	m_next_allocated = 0;
 	m_NRTMaxBandwidth = 0;
+	m_frameDuration = frame_duration;
 
 	resetStatsCxt();
 
-	// Frame duration - in ms
-	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_FRM_DURATION, val))
-	{
-		val = DFLT_FRM_DURATION;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
-		          DVB_FRM_DURATION, val);
-	}
-	m_frameDuration = val;
-
-	// get encap packet length and frame duration
-	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                          encap_scheme))
-	{
-		UTI_INFO("%s Section %s, %s missing. Uplink encapsulation "
-		         "scheme set to ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION,
-		         UP_RETURN_ENCAP_SCHEME);
-		encap_scheme = ENCAP_ATM_AAL5;
-	}
-
-	if(encap_scheme == ENCAP_ATM_AAL5 ||
-	   encap_scheme == ENCAP_ATM_AAL5_ROHC)
-	{
-		encap_packet_length = AtmCell::length();
-	}
-	else if(encap_scheme == ENCAP_MPEG_ULE ||
-	        encap_scheme == ENCAP_MPEG_ULE_ROHC)
-	{
-		encap_packet_length = MpegPacket::length();
-	}
-	//TODO only for DVB-S2 uplink (no implemented yet)
-#if 0
-	else if(encap_scheme == ENCAP_GSE)
-	{
-		encap_packet_length = GsePacket::length();
-		//TODO get real GSE packet length for statistics (used for converter)
-	}
-#endif
-	else
-	{
-		UTI_INFO("%s bad value for uplink encapsulation scheme. ATM/AAL5 used "
-		         "instead\n", FUNCNAME);
-		encap_packet_length = AtmCell::length();
-	}
-
-	UTI_INFO("%s uplink encapsulation scheme = %s\n", FUNCNAME, encap_scheme.c_str());
-
 	// init DamaUtils class used for conversion kbits/s <-> MAC packet/frame
-	m_converter = new DU_Converter((int) m_frameDuration, encap_packet_length);
+	m_converter = new DU_Converter((int) m_frameDuration,
+	                               this->packet->getFixedLength());
 }
 
 /**

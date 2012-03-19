@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -137,7 +137,8 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 
 	/// Class constructor
 	/// Use mgl_bloc default constructor
-	BlocDVBRcsNcc(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name);
+	BlocDVBRcsNcc(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
+	              std::map<std::string, EncapPlugin *> &encap_plug);
 
 	~BlocDVBRcsNcc();
 

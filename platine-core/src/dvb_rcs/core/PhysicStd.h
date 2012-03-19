@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -44,6 +44,7 @@
 #include "dvb_fifo.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
+#include "EncapPlugin.h"
 #include "DvbFrame.h"
 #include "msg_dvb_rcs.h"
 #include "MacFifoElement.h"
@@ -79,9 +80,8 @@ class PhysicStd
 
  protected:
 
-	//TODO get this parameters in constructor
-	/** The encapsulation type */
-	int encapPacketType;
+    /** The packet representation */
+	EncapPlugin::EncapPacketHandler *packet_handler;
 
 	/** The frame duration */
 	unsigned int frameDuration;
@@ -97,9 +97,11 @@ class PhysicStd
 	/**
 	 * Build a Physical Transmission Standard
 	 *
-	 * @param type    the type of the DVB standard
+	 * @param type           the type of the DVB standard
+	 * @param packet_handler the packet handler
 	 */
-	PhysicStd(std::string type);
+	PhysicStd(std::string type,
+			  EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	/**
 	 * Destroy the Physical Transmission Standard
@@ -175,7 +177,7 @@ class PhysicStd
 	 * @param frame         the DVB frame to forward
 	 * @param length        the length (in bytes) of the DVB frame to forward
 	 * @param current_time  the current time
-	 * @param fifo_delay    The minimum delay the DVB frame must stay in
+	 * @param fifo_delay    the minimum delay the DVB frame must stay in
 	 *                      the MAC FIFO (used on SAT to emulate delay)
 	 * @return              0 if successful, -1 otherwise
 	 */
@@ -184,14 +186,6 @@ class PhysicStd
 	                           unsigned int length,
 	                           long current_time,
 	                           int fifo_delay);
-
-	/**
-	 * @brief Set the encapsulation packet type for DVB layer
-	 *        (only used for output encapsulation scheme)
-	 *
-	 * @param encap_packet_type the encapsulation packet type
-	 */
-	void setEncapPacketType(int encap_packet_type);
 
 	/**
 	 * @brief Set the frame duration for DVB layer
@@ -275,6 +269,7 @@ class PhysicStd
 	 * @param tal_id  The terminal ID
 	 */
 	void setTalId(long tal_id);
+
 };
 
 #endif

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -32,16 +33,15 @@
  */
 
 #include "DvbS2Std.h"
-#include "MpegPacket.h"
-#include "GsePacket.h"
 
+#include <cassert>
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
-#include "platine_conf/uti_debug.h"
+#include <platine_conf/uti_debug.h>
 
 
-DvbS2Std::DvbS2Std():
-	PhysicStd("DVB-S2"),
+DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
+	PhysicStd("DVB-S2", pkt_hdl),
 	modcod_definitions()
 {
 	/* TODO read this value from file 
@@ -197,6 +197,7 @@ error:
 }
 #endif
 
+// TODO rewrite this to get something easier to handle
 int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
                                    long current_time,
                                    std::list<DvbFrame *> *complete_dvb_frames)
@@ -221,6 +222,12 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 		goto skip;
 	}
 
+	if(!this->packet_handler)
+	{
+		UTI_ERROR("packet handler is NULL\n");
+		goto error;
+	}
+
 	// there are really packets to send
 	UTI_DEBUG("send at most %ld encapsulation packets\n", max_to_send);
 
@@ -240,6 +247,7 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 	}
 
 	// now build BB frames with packets extracted from the MAC FIFO
+	// TODO limit the number of elements to send with bandwidth
 	while((elem = (MacFifoElement *)fifo->get()) != NULL)
 	{
 		NetPacket *encap_packet;
@@ -272,7 +280,7 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 		}
 
 		// retrieve the ST ID associated to the packet
-		tal_id = encap_packet->talId();
+		tal_id = encap_packet->getDstTalId();
 
 		ret = this->initializeIncompleteBBFrame(tal_id);
 		if(ret == -1)
@@ -290,70 +298,140 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 			continue;
 		}
 
-		// is there enough free space in the BB frame that corresponds
-		// to the MODCOD ID for the encapsulation packet ?
-		if(encap_packet->totalLength() >
-		   this->incomplete_bb_frame->getFreeSpace())
+		while(this->incomplete_bb_frame->getFreeSpace() > 0)
 		{
-			int process_res;
+			NetPacket *data;
+			NetPacket *remaining_data;
 
-			UTI_DEBUG("BB frame with MODCOD ID %u does not contain "
-			          "enough free space (%u bytes) "
-			          "for the packet to encapsulate (%u bytes)\n",
-			          this->modcod_id, this->incomplete_bb_frame->getFreeSpace(),
-			          encap_packet->totalLength());
-
-			if(this->encapPacketType == PKT_TYPE_MPEG)
+			ret = this->packet_handler->getChunk(encap_packet,
+			                                     this->incomplete_bb_frame->getFreeSpace(),
+			                                     &data, &remaining_data);
+			// use case 4 (see @ref getChunk)
+			if(!ret)
 			{
-				process_res = this->processMpegPacket(complete_dvb_frames,
-				                                      encap_packet,
-				                                      &duration_credit,
-				                                      &cpt_frame);
+				UTI_ERROR("error while processing packet #%u\n",
+				          sent_packets + 1);
+				fifo->remove();
+				delete elem;
+				break;
 			}
-			else if(this->encapPacketType == PKT_TYPE_GSE)
+			// use cases 1 (see @ref getChunk)
+			else if(data && !remaining_data)
 			{
-				process_res = this->processGsePacket(complete_dvb_frames,
-				                                     &encap_packet,
-				                                     &duration_credit,
-				                                     &cpt_frame,
-				                                     sent_packets,
-				                                     elem);
+				if(!this->incomplete_bb_frame->addPacket(data))
+				{
+					UTI_ERROR("failed to add encapsulation packet #%u "
+					          "in BB frame with MODCOD ID %u (packet "
+					          "length %u, free space %u",
+					          sent_packets + 1, this->modcod_id,
+					          data->getTotalLength(),
+					          this->incomplete_bb_frame->getFreeSpace());
+					goto error_fifo_elem;
+				}
+				// delete the NetPacket once it has been copied in the BBFrame
+				delete data;
+				sent_packets++;
+				// remove the element from the MAC FIFO and destroy it
+				fifo->remove();
+				delete elem;
+
+				// if  data length is the same as remaining length
+				// add the incomplete BBFrame to the list of complete frames
+				if(this->incomplete_bb_frame->getFreeSpace() <= 0)
+				{
+					int res;
+
+					res = this->addCompleteBBFrame(complete_dvb_frames,
+					                               duration_credit,
+					                               cpt_frame);
+					if(res == -1)
+					{
+						goto error;
+					}
+					else if(res == -2)
+					{
+						goto skip;
+					}
+				}
+
+				break;
+			}
+			// use case 2 (see @ref getChunk)
+			else if(data && remaining_data)
+			{
+				int res;
+
+				if(!this->incomplete_bb_frame->addPacket(data))
+				{
+					UTI_ERROR("failed to add encapsulation packet #%u "
+					          "in BB frame with MODCOD ID %u (packet "
+					          "length %u, free space %u",
+					          sent_packets + 1, this->modcod_id,
+					          data->getTotalLength(),
+					          this->incomplete_bb_frame->getFreeSpace());
+					goto error_fifo_elem;
+				}
+				// delete the NetPacket once it has been copied in the BBFrame
+				delete data;
+
+				// replace the fifo first element with the remaining data
+				elem->setPacket(remaining_data);
+
+				UTI_DEBUG("packet fragmented, there is still %u bytes of data\n",
+				          remaining_data->getTotalLength());
+				res = this->addCompleteBBFrame(complete_dvb_frames,
+				                               duration_credit,
+				                               cpt_frame);
+				if(res == -1)
+				{
+					goto error;
+				}
+				else if(res == -2)
+				{
+					goto skip;
+				}
+				// quit the loop as the BBFrame should be completed
+				break;
+			}
+			// use case 3 (see @ref getChunk)
+			else if(!data && remaining_data)
+			{
+				int res;
+
+				// replace the fifo first element with the remaining data
+				elem->setPacket(remaining_data);
+
+				// keep the NetPacket in the fifo
+				UTI_DEBUG("not enough free space in BBFrame (%u bytes) "
+				          "for %s packet (%u bytes)\n",
+				          this->incomplete_bb_frame->getFreeSpace(),
+				          this->packet_handler->getName().c_str(),
+				          encap_packet->getTotalLength());
+				res = this->addCompleteBBFrame(complete_dvb_frames,
+				                               duration_credit,
+				                               cpt_frame);
+				if(res == -1)
+				{
+					goto error;
+				}
+				else if(res == -2)
+				{
+					goto skip;
+				}
+				break;
 			}
 			else
 			{
-				UTI_ERROR("Bad packet type (%d) in DVB FIFO\n",
-				          this->incomplete_bb_frame->getEncapPacketType());
-				delete encap_packet;
-				goto error_fifo_elem;
+				UTI_ERROR("bad getChunk function implementation, "
+				          "assert or skip packet #%u\n", sent_packets + 1);
+				assert(0);
+				fifo->remove();
+				delete elem;
+				// quit the loop as the packet cannot be added to the BBFrame
+				break;
 			}
-			// handle the processXXXPacket() return code
-			if(process_res == -1)
-			{
-				// error when processing packet
-				delete encap_packet;
-				goto error_fifo_elem;
-			}
-			else if(process_res == -2)
-			{
-				goto skip;
-			}
-		}
 
-		// add the encapsulation packet to the BB frame
-		if(!this->incomplete_bb_frame->addPacket(encap_packet))
-		{
-			UTI_ERROR("failed to add encapsulation packet #%u "
-			          "in BB frame with MODCOD ID %u",
-			          sent_packets + 1, this->modcod_id);
-			delete encap_packet;
-			goto error_fifo_elem;
 		}
-		sent_packets++;
-
-		// remove the element from the MAC FIFO and destroy it
-		delete encap_packet;
-		fifo->remove();
-		delete elem;
 	}
 
 	// add the incomplete BB frame to the list of complete BB frame
@@ -458,14 +536,6 @@ bool DvbS2Std::createIncompleteBBFrame()
 	unsigned int bbframe_size;
 	BBFrame *bbframe;
 
-	if(this->encapPacketType != PKT_TYPE_GSE &&
-	   this->encapPacketType != PKT_TYPE_MPEG)
-	{
-		UTI_ERROR("invalid packet type (%d) in DvbS2 class\n",
-		          this->encapPacketType);
-		goto error;
-	}
-
 	bbframe = new BBFrame();
 	if(bbframe == NULL)
 	{
@@ -473,11 +543,17 @@ bool DvbS2Std::createIncompleteBBFrame()
 		goto error;
 	}
 
+	if(!this->packet_handler)
+	{
+		UTI_ERROR("packet handler is NULL\n");
+		goto error;
+	}
+
 	// set the MODCOD ID of the BB frame
 	bbframe->setModcodId(this->modcod_id);
 
 	// set the type of encapsulation packets the BB frame will contain
-	bbframe->setEncapPacketType(this->encapPacketType);
+	bbframe->setEncapPacketEtherType(this->packet_handler->getEtherType());
 
 	// get the coding rate of the MODCOD and the corresponding BB frame size
 	rate = this->modcod_definitions.getCodingRate(this->modcod_id);
@@ -501,6 +577,13 @@ bool DvbS2Std::retrieveCurrentModcod(long tal_id)
 {
 	bool do_advertise_modcod;
 
+	// packet does not contain the terminal ID (eg. GSE fragment)
+	// set to a default tal_id
+	// TODO better way to handle that !
+	if(tal_id == BROADCAST_TAL_ID)
+	{
+		tal_id = 0;
+	}
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
 	if(!this->satellite_terminals.do_exist(tal_id))
@@ -577,20 +660,23 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
                          NetBurst **burst)
 {
 	T_DVB_BBFRAME *bbframe_burst; // BBFrame burst received from lower layer
-	long i;                       // counter for MPEG/GSE packets
+	long i;                       // counter for packets
 	int real_mod;                 // real modcod of the receiver
 
-	// Store total length of previous GSE packets in the frame
-	uint16_t previous_gse_length = 0;
-	// Store length of the GSE packet
-	uint16_t current_gse_length;
 	// Offset from beginning of frame to beginning of data
-	unsigned int offset;
+	size_t offset;
+	size_t previous_length = 0;
 
 	// sanity check
 	if(frame == NULL)
 	{
 		UTI_ERROR("invalid frame received\n");
+		goto error;
+	}
+
+	if(!this->packet_handler)
+	{
+		UTI_ERROR("packet handler is NULL\n");
 		goto error;
 	}
 
@@ -602,21 +688,15 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		UTI_ERROR("the message received is not a BB frame\n");
 		goto error;
 	}
-	switch(bbframe_burst->pkt_type)
+	if(bbframe_burst->pkt_type != this->packet_handler->getEtherType())
 	{
-		case(PKT_TYPE_MPEG):
-			UTI_DEBUG("BB frame received (%d MPEG packet(s)\n",
-			          bbframe_burst->dataLength);
-			break;
-		case(PKT_TYPE_GSE):
-			UTI_DEBUG("BB frame received (%d GSE packet(s)\n",
-			          bbframe_burst->dataLength);
-			break;
-		default:
-			UTI_ERROR("Bad packet type (%d) in BB frame burst",
-			          bbframe_burst->pkt_type);
-			goto error;
+		UTI_ERROR("Bad packet type (%d) in BB frame burst (expecting %d)\n",
+		          bbframe_burst->pkt_type, this->packet_handler->getEtherType());
+		goto error;
 	}
+    UTI_DEBUG("BB frame received (%d %s packet(s)\n",
+	           bbframe_burst->dataLength, this->packet_handler->getName().c_str());
+
 	// retrieve the current real MODCOD of the receiver
 	// (do this before any MODCOD update occurs)
 	real_mod = this->realModcod;
@@ -674,65 +754,34 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		goto error;
 	}
 
-	// add MPEG/GSE packets received from lower layer
+	// add packets received from lower layer
 	// to the newly created burst
 	offset = sizeof(T_DVB_BBFRAME) +
 	         bbframe_burst->list_realModcod_size * sizeof(T_DVB_REAL_MODCOD);
 	for(i = 0; i < bbframe_burst->dataLength; i++)
 	{
 		NetPacket *encap_packet;
+		size_t current_length;
 
-		switch(bbframe_burst->pkt_type)
+		current_length = this->packet_handler->getLength(frame + offset +
+		                                                 previous_length);
+		// Use default values for QoS, source/destination tal_id
+		encap_packet = this->packet_handler->build(frame + offset + previous_length,
+		                                           current_length,
+		                                           0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+		previous_length += current_length;
+		if(encap_packet == NULL)
 		{
-			case(PKT_TYPE_MPEG):
-				encap_packet = new MpegPacket(
-				                   frame + offset +
-				                   i * MpegPacket::length(), MpegPacket::length());
-				if(encap_packet == NULL)
-				{
-					UTI_ERROR("cannot create one MPEG packet\n");
-					goto release_burst;
-				}
-				UTI_DEBUG("MPEG packet (%d bytes) added to burst\n",
-				          encap_packet->totalLength());
-				break;
-
-			case(PKT_TYPE_GSE):
-				current_gse_length =
-				    GsePacket::length(frame, previous_gse_length + offset);
-				encap_packet = new GsePacket(
-				                   frame + offset +
-				                   previous_gse_length,
-				                   current_gse_length);
-				if(encap_packet == NULL)
-				{
-					UTI_ERROR("cannot create one GSE packet\n");
-					goto release_burst;
-				}
-				previous_gse_length += current_gse_length;
-				UTI_DEBUG("GSE packet (%d bytes) added to burst\n",
-				          encap_packet->totalLength());
-				break;
-
-			default:
-				UTI_ERROR("Bad packet type (%d) in BB frame burst\n",
-				          bbframe_burst->pkt_type);
-				goto release_burst;
+			UTI_ERROR("cannot create one %s packet\n",
+			          this->packet_handler->getName().c_str());
+			goto release_burst;
 		}
 
-		// keep only packets for correct ST. If packet tal_id is -1 it is a GSE
-		// fragment, it will be rejected a deencapsulation layer if necessary
-		if(this->tal_id != -1 && encap_packet->talId() != this->tal_id &&
-		   encap_packet->talId() != -1)
-		{
-			UTI_DEBUG("packet with id %ld ignored (%ld expected), "
-			          "this should not append in transparent mode\n",
-			          encap_packet->talId(), this->tal_id);
-			delete encap_packet;
-			continue;
-		}
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
+		UTI_DEBUG("%s packet (%d bytes) added to burst\n",
+		          this->packet_handler->getName().c_str(),
+		          encap_packet->getTotalLength());
 	}
 
 drop:
@@ -782,262 +831,29 @@ skip:
 	return -2;
 }
 
-int DvbS2Std::processMpegPacket(std::list<DvbFrame *> *complete_bb_frames,
-                                NetPacket *encap_packet,
-                                float *duration_credit,
-                                unsigned int *cpt_frame)
-{
-	// not enough free space in the BB frame: the
-	// encapsulation is MPEG2-TS which is of constant
-	// length (188 bytes) so we can not fragment the
-	// packet and we must complete the BB frame with
-	// padding. So:
-	//  - add padding to the BB frame (not done yet TODO)
-	//  - put the BB frame in the list of complete frames
-	//  - use a new BB frame
-	//  - put the encapsulation packet in this new BB frame
-	//    (this is done oustide this function)
-
-	int ret;
-
-	UTI_DEBUG("pad the BB frame if necessary and send it\n");
-
-	ret = this->addCompleteBBFrame(complete_bb_frames,
-	                               duration_credit,
-	                               cpt_frame);
-	if(ret == -1)
-	{
-		goto error;
-	}
-	else if(ret == -2)
-	{
-		goto skip;
-	}
-
-	// is there enough free space in the new BB frame ?
-	if(encap_packet->totalLength() > this->incomplete_bb_frame->getFreeSpace())
-	{
-		UTI_ERROR("BB frame with MODCOD ID %u got no "
-		          "enough free space, this should never "
-		          "happen\n", this->modcod_id);
-		goto error;
-	}
-
-	return 0;
-
-error:
-	return -1;
-skip:
-	return -2;
-}
-
-int DvbS2Std::processGsePacket(std::list<DvbFrame *> *complete_bb_frames,
-                               NetPacket **encap_packet,
-                               float *duration_credit,
-                               unsigned int *cpt_frame,
-                               unsigned int sent_packets,
-                               MacFifoElement *elem)
-{
-	// not enough free space in the BB frame: the
-	// encapsulation is GSE, so we can refragment the
-	// packet. Thus:
-	//  - refragment the packet
-	//  - add packet to the BB frame
-	//  - put the BB frame in the list of complete frames
-	//  - use a new BB frame
-	//  - put the second fragment in this new BB frame,
-	//    refragment it and do this as any time as necessary
-
-	while((*encap_packet)->totalLength() >
-		  this->incomplete_bb_frame->getFreeSpace())
-	{
-		int ret;
-		gse_vfrag_t *first_frag;
-		gse_vfrag_t *second_frag;
-		GsePacket *encap_packet_frag;
-		gse_status_t status;
-		uint8_t qos;
-		unsigned long mac_id;
-		long tal_id;
-
-		// get the packet information to correctly create fragments
-		qos = (*encap_packet)->qos();
-		mac_id = (*encap_packet)->macId();
-		tal_id = (*encap_packet)->talId();
-
-		UTI_DEBUG("refragment the GSE packet\n");
-
-		UTI_DEBUG_L3("Create a virtual fragment with GSE packet to refragment it\n");
-		status = gse_create_vfrag_with_data(&first_frag,
-											(*encap_packet)->totalLength(),
-											GSE_MAX_REFRAG_HEAD_OFFSET, 0,
-											(unsigned char *)(*encap_packet)->data().c_str(),
-											(*encap_packet)->totalLength());
-		if(status != GSE_STATUS_OK)
-		{
-			UTI_ERROR("Failed to create a virtual fragment for the GSE packet "
-					  "refragmentation (%s)\n", gse_get_status(status));
-			goto error;
-		}
-
-		UTI_DEBUG_L3("Refragment the GSE packet to fit the BB frame "
-					 "(length = %d)\n", this->incomplete_bb_frame->getFreeSpace());
-		status = gse_refrag_packet(first_frag, &second_frag, 0, 0, qos,
-								   this->incomplete_bb_frame->getFreeSpace());
-		if(status == GSE_STATUS_LENGTH_TOO_SMALL)
-		{
-			// there is not enough space to create a GSE fragment,
-			// pad the BB frame and send it. The packet will be handled either
-			// next loop iteration or outside the loop
-
-			// TODO: be sure not to constantly loop here if an empty BB frame
-			// is smaller than the minimum GSE packet size
-			UTI_DEBUG("Unable to refragment GSE packet (%s), pad the BB frame, "
-					  "and send it\n", gse_get_status(status));
-			// first_frag contains the whole encap packet
-			// but it could not be fragmented : it is useless so let's free it
-			status = gse_free_vfrag(&first_frag);
-			if(status != GSE_STATUS_OK)
-			{
-				UTI_ERROR("Failed to free virtual fragment (%s)\n",
-						  gse_get_status(status));
-				goto error;
-			}
-			if(second_frag != NULL)
-			{
-				gse_free_vfrag(&second_frag);
-			}
-
-			ret = this->addCompleteBBFrame(complete_bb_frames,
-			                               duration_credit,
-			                               cpt_frame);
-			if(ret == -1)
-			{
-				goto error;
-			}
-			else if(ret == -2)
-			{
-				goto skip;
-			}
-		}
-		else if(status == GSE_STATUS_OK)
-		{
-			// add the first fragment to the BB frame
-			encap_packet_frag = new GsePacket(gse_get_vfrag_start(first_frag),
-											  gse_get_vfrag_length(first_frag));
-			if(encap_packet_frag == NULL)
-			{
-				UTI_ERROR("failed to create the first fragment\n");
-				goto error;
-			}
-			// set the packet information
-			encap_packet_frag->setQos(qos);
-			encap_packet_frag->setMacId(mac_id);
-			encap_packet_frag->setTalId(tal_id);
-
-			status = gse_free_vfrag(&first_frag);
-			if(status != GSE_STATUS_OK)
-			{
-				UTI_ERROR("Failed to free the first virtual fragment (%s)\n",
-						  gse_get_status(status));
-				goto error;
-			}
-			if(!this->incomplete_bb_frame->addPacket(encap_packet_frag))
-			{
-				UTI_ERROR("failed to add a packet #%u fragment "
-						  "in BB frame with MODCOD ID %u",
-						  sent_packets + 1, this->modcod_id);
-				delete encap_packet_frag;
-				goto error;
-			}
-			// do not increase the sent_packets number as it is juste fragments
-
-			ret = this->addCompleteBBFrame(complete_bb_frames,
-			                               duration_credit,
-			                               cpt_frame);
-			delete encap_packet_frag;
-			delete *encap_packet;
-			if(ret == -1)
-			{
-				goto error;
-			}
-			else
-			{
-				// in case of success or skip, replace encap_packet by the
-				// second fragment, it will either be refragmented,
-				// encapsulated completely or kept in the FIFO in skip case.
-				// be careful to keep the ret value for skip case
-
-				// only the second fragment is not encapsulated yet
-				// create a new encap_packet containing the second fragment
-				*encap_packet = new GsePacket(gse_get_vfrag_start(second_frag),
-				                              gse_get_vfrag_length(second_frag));
-				if(*encap_packet == NULL)
-				{
-					UTI_ERROR("failed to create the second fragment\n");
-					goto error;
-				}
-				// set the packet information
-				(*encap_packet)->setQos(qos);
-				(*encap_packet)->setMacId(mac_id);
-				(*encap_packet)->setTalId(tal_id);
-				// store the packet in the FIFO in case of skip
-				elem->setPacket(*encap_packet);
-	
-				status = gse_free_vfrag(&second_frag);
-				if(status != GSE_STATUS_OK)
-				{
-					UTI_ERROR("Failed to free the second virtual fragment (%s)\n",
-							  gse_get_status(status));
-					goto error;
-				}
-
-				// skip if there is not enough credit for a new BB Frame
-				if(ret == -2)
-				{
-					goto skip;
-				}
-			}
-		}
-		else
-		{
-			UTI_ERROR("Failed to refragment GSE packet (%s)\n",
-					  gse_get_status(status));
-			goto error;
-		}
-	}
-
-	return 0;
-
-error:
-	return -1;
-skip:
-	return -2;
-}
-
 
 int DvbS2Std::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-                                 float *duration_credit,
-                                 unsigned int *cpt_frame)
+                                 float &duration_credit,
+                                 unsigned int &cpt_frame)
 {
 	complete_bb_frames->push_back(this->incomplete_bb_frame);
 
 	// reduce the time credit by the time of the BB frame
-	(*duration_credit) -= this->bbframe_duration;
+	duration_credit -= this->bbframe_duration;
 
 	// increment the counter of complete frames
-	(*cpt_frame)++;
+	cpt_frame++;
 
 	// do we have enough credit to create another BB frame ?
-	if(this->bbframe_duration > *duration_credit)
+	if(this->bbframe_duration > duration_credit)
 	{
 		// can not send the BB frame, stop algorithm here
 		// store the remaining credit
-		this->remainingCredit = *duration_credit;
+		this->remainingCredit = duration_credit;
 		UTI_DEBUG("too few credit (%.2f ms) to create another "
 		          "BB frame which needs %.2f ms for MODCOD %u. "
 		          "Add the remaining credit to the next frame duration\n",
-		          *duration_credit, this->bbframe_duration, this->modcod_id);
+		          duration_credit, this->bbframe_duration, this->modcod_id);
 		goto skip;
 	}
 
@@ -1054,3 +870,6 @@ error:
 skip:
 	return -2;
 }
+
+
+

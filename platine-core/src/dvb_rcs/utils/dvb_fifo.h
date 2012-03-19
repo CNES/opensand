@@ -28,7 +28,7 @@
 
 /**
  * @file dvb_fifo.h
- * @brief FIFO queue containing MAC ATM cells
+ * @brief FIFO queue containing MAC packets
  * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
  */
 

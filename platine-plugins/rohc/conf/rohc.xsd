@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="rohc" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="cid">
+	<xsd:restriction base="xsd:integer">
+		<xsd:minInclusive value="1" />
+		<xsd:maxInclusive value="16383" />
+	</xsd:restriction>
+</xsd:simpleType>
+
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+                <xsd:element ref="rohc" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- global section description -->
+<xsd:element name="rohc">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Configuration for ROHC plugin
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="max_cid" type="cid">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                            The maximum context ID for ROHC compressor
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

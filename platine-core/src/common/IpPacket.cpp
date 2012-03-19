@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -38,82 +39,55 @@
 #include "platine_conf/uti_debug.h"
 
 
-IpPacket::IpPacket(Data data): NetPacket(data)
+IpPacket::IpPacket(Data data): NetPacket()
 {
-	this->_data.reserve(1500);
+	this->data.reserve(1500);
 
-	this->_qos = -1;
-	this->_talId = -1;
-	this->_macId = 0;
-
-	this->_srcAddr = NULL;
-	this->_destAddr = NULL;
+	this->src_addr = NULL;
+	this->dst_addr = NULL;
 }
 
 IpPacket::IpPacket(unsigned char *data, unsigned int length):
 	NetPacket(data, length)
 {
-	this->_data.reserve(1500);
+	this->data.reserve(1500);
 
-	this->_qos = -1;
-	this->_talId = -1;
-	this->_macId = 0;
-
-	this->_srcAddr = NULL;
-	this->_destAddr = NULL;
+	this->src_addr = NULL;
+	this->dst_addr = NULL;
 }
 
 IpPacket::IpPacket(): NetPacket()
 {
-	this->_data.reserve(1500);
+	this->data.reserve(1500);
 
-	this->_qos = -1;
-	this->_talId = -1;
-	this->_macId = 0;
-
-	this->_srcAddr = NULL;
-	this->_destAddr = NULL;
+	this->src_addr = NULL;
+	this->dst_addr = NULL;
 }
 
 IpPacket::~IpPacket()
 {
-	if(this->_srcAddr != NULL)
-		delete this->_srcAddr;
-	if(this->_destAddr != NULL)
-		delete this->_destAddr;
-}
-
-int IpPacket::qos()
-{
-	return this->_qos;
+	if(this->src_addr != NULL)
+		delete this->src_addr;
+	if(this->dst_addr != NULL)
+		delete this->dst_addr;
 }
 
 void IpPacket::setQos(int qos)
 {
-	this->_qos = qos;
+	this->qos = qos;
 }
 
-unsigned long IpPacket::macId()
+void IpPacket::setSrcTalId(long tal_id)
 {
-	return this->_macId;
+	this->src_tal_id = tal_id;
 }
 
-void IpPacket::setMacId(unsigned long macId)
+void IpPacket::setDstTalId(long tal_id)
 {
-	this->_macId = macId;
+	this->dst_tal_id = tal_id;
 }
 
-long IpPacket::talId()
-{
-	return this->_talId;
-}
-
-void IpPacket::setTalId(long talId)
-{
-	this->_talId = talId;
-}
-
-Data IpPacket::payload()
+Data IpPacket::getPayload()
 {
 	uint16_t payload_len, header_len;
 
@@ -123,8 +97,8 @@ Data IpPacket::payload()
 		return Data();
 	}
 
-	payload_len = this->payloadLength();
-	header_len = this->totalLength() - payload_len;
+	payload_len = this->getPayloadLength();
+	header_len = this->getTotalLength() - payload_len;
 
 	if(header_len <= 0 || payload_len <= 0)
 	{
@@ -132,7 +106,7 @@ Data IpPacket::payload()
 		return Data();
 	}
 
-	return this->_data.substr(header_len, payload_len);
+	return this->data.substr(header_len, payload_len);
 }
 
 // static
@@ -167,5 +141,5 @@ int IpPacket::version()
 		return 0;
 	}
 
-	return IpPacket::version(this->_data);
+	return IpPacket::version(this->data);
 }

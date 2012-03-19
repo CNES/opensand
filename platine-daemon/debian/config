@@ -40,15 +40,15 @@ configure(){
         db_input high platine-daemon/service/ws_instance || true
         db_go
     fi
-    db_input high platine-daemon/service/port || true
+    db_input low platine-daemon/service/port || true
     db_go
     db_endblock
     db_beginblock
-    db_input high platine-daemon/command/port || true
+    db_input low platine-daemon/command/port || true
     db_go
     db_endblock
     db_beginblock
-    db_input high platine-daemon/state/port || true
+    db_input low platine-daemon/state/port || true
     db_go
     db_endblock
     set_ifaces
@@ -136,6 +136,8 @@ if [ "$#" -gt 0 ]; then
             if [ "$RET" = "true" ]; then
                 reset
                 db_stop
+            else
+                configure
             fi
         else
             configure

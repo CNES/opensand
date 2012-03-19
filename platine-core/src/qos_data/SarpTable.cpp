@@ -65,14 +65,14 @@ void SarpTable::setMaxEntries(unsigned int max_entries)
 }
 
 bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
-                   unsigned long mac_addr, unsigned int tal)
+                    unsigned int tal)
 {
 	const char *FUNCNAME = "[SarpTable::add]";
 	bool success = true;
 	sarpEntry *entry;
 
-	UTI_DEBUG("%s add new entry in SARP table (%s/%u -> %lu)\n", FUNCNAME,
-	          ip_addr->str().c_str(), mask_len, mac_addr);
+	UTI_DEBUG("%s add new entry in SARP table (%s/%u)\n", FUNCNAME,
+	          ip_addr->str().c_str(), mask_len);
 
 	if(this->isFull() || ip_addr == NULL)
 	{
@@ -95,7 +95,6 @@ bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
 	// set entry
 	entry->ip = ip_addr;
 	entry->mask_len = mask_len;
-	entry->mac = mac_addr;
 	entry->tal_id = tal;
 
 	// append entry to table
@@ -113,34 +112,6 @@ bool SarpTable::isFull()
 unsigned int SarpTable::length()
 {
 	return this->size();
-}
-
-long SarpTable::getMacByIp(IpAddress *ip)
-{
-	sarpEntry *entry;
-	unsigned int max_mask_len;
-	long mac_addr;
-
-	max_mask_len = 0;
-	mac_addr = -1;
-
-	// search IP matching with longer mask
-	std::list < sarpEntry * >::iterator it;
-
-	for(it = this->begin(); it != this->end(); it++)
-	{
-		entry = *it;
-		if(entry->ip->matchAddressWithMask(ip, entry->mask_len))
-		{
-			if(entry->mask_len >= max_mask_len)
-			{
-				max_mask_len = entry->mask_len;
-				mac_addr = entry->mac;
-			}
-		}
-	}
-
-	return mac_addr;
 }
 
 int SarpTable::getTalByIp(IpAddress *ip)

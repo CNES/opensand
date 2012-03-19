@@ -36,7 +36,7 @@
 #ifndef GENERIC_SWITCH__H
 #define GENERIC_SWITCH__H
 
-#include <NetPacket.h>
+#include "NetPacket.h"
 #include <map>
 
 /**
@@ -49,7 +49,7 @@ class GenericSwitch
 
 	/// The switch table: association between a terminal id and a
 	/// satellite spot ID
-	std::map < long, long > switch_table;
+	std::map <uint8_t, uint8_t> switch_table;
 
  public:
 
@@ -70,7 +70,7 @@ class GenericSwitch
 	 * @param spot_id the satellite spot associated with the terminal
 	 * @return true if entry was successfully added, false otherwise
 	 */
-	bool add(long tal_id, long spot_id);
+	bool add(uint8_t tal_id, uint8_t spot_id);
 
 	/**
 	 * Find the satellite spot to send the packet to
@@ -78,7 +78,7 @@ class GenericSwitch
 	 * @param packet the encapsulation packet to send
 	 * @return the satellite spot ID to send the packet to
 	 */
-	virtual long find(NetPacket *packet) = 0;
+	uint8_t find(NetPacket *packet);
 };
 
 #endif

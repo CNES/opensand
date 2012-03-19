@@ -131,10 +131,9 @@ class XmlParser:
             if not att in att_list:
                 raise XmlException("wrong path: %s is not a valid attribute" %
                                    att)
-
-            att_list[att] = val
+            att_list[att] = str(val)
         else:
-            elt[0].text = val
+            elt[0].text = str(val)
 
     def get(self, xpath):
         """ get a XML element with its path """
@@ -174,6 +173,18 @@ class XmlParser:
         for att in new.attrib.keys():
             new.attrib[att] = ''
         table.append(new)
+
+    def remove_line(self, key):
+        """ remove a line in the table identified by key """
+        tables = self._tree.xpath(key)
+        if len(tables) != 1:
+            raise XmlException("wrong path: %s is not valid" % key)
+        table = tables[0]
+        children = table.getchildren()
+        if len(children) == 0:
+            raise XmlException("wrong path: %s is not a table" % key)
+        child = children[0]
+        table.remove(child)
 
     def write(self):
         """ write the new configuration in file """

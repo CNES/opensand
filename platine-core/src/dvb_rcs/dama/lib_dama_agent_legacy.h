@@ -6,6 +6,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -39,9 +40,6 @@
 #include "msg_dvb_rcs.h"
 #include "lib_circular_buffer.h"
 #include "NetBurst.h"
-#include "AtmCell.h"
-#include "MpegPacket.h"
-#include "Aal5Packet.h"
 #include "DvbRcsFrame.h"
 
 
@@ -98,7 +96,8 @@ class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 
  public:
 
-	DvbRcsDamaAgentLegacy();
+	DvbRcsDamaAgentLegacy(EncapPlugin::EncapPacketHandler *packet,
+	                      double frame_duration);
 	virtual ~DvbRcsDamaAgentLegacy();
 
 	int initComplete(dvb_fifo *dvb_fifos,

@@ -65,7 +65,7 @@ class SatSpot
 
  private:
 
-	long m_spotId;            ///< Internal identifier of a spot
+	uint8_t m_spotId;            ///< Internal identifier of a spot
 
  public: // TODO: all the variables below should be private
 
@@ -95,6 +95,6 @@ class SatSpot
 
 
 /// The map of satellite spots
-typedef map<long, SatSpot *> SpotMap;
+typedef map<uint8_t, SatSpot *> SpotMap;
 
 #endif

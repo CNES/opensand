@@ -115,9 +115,10 @@ class ProbeView(WindowView):
             self._fig.clear()
             return
 
-        if self._canvas is None:
-            self._canvas = FigureCanvasGTK(self._fig)
-            self._vbox.pack_start(self._canvas, True, True)
+        if self._canvas is not None:
+            self._vbox.remove(self._canvas)
+        self._canvas = FigureCanvasGTK(self._fig)
+        self._vbox.pack_start(self._canvas, True, True)
         self._canvas.show_all()
         self._canvas.draw_idle()
 

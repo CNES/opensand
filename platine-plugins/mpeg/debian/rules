@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh  $@
+
+override_dh_strip:
+	dh_strip --dbg-package=libplatine-mpeg-plugin-dbg
+	
+override_dh_install:
+	dh_install
+
+	install -m 0644 conf/mpeg.conf $(CURDIR)/debian/libplatine-mpeg-plugin-manager/usr/share/platine/plugins/mpeg.conf
+	install -m 0644 conf/mpeg.xsd $(CURDIR)/debian/libplatine-mpeg-plugin-manager/usr/share/platine/plugins/mpeg.xsd
+	install -m 0644 src/mpeg.py $(CURDIR)/debian/libplatine-mpeg-plugin-manager/usr/lib/python2.6/dist-packages/platine_manager_core/modules/mpeg.py
+	# script
+	install -m 0644 src/mpeg_support.py $(CURDIR)/debian/libplatine-mpeg-plugin/usr/libexec/platine/
+
+override_dh_pysupport:

@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -40,16 +40,6 @@
 #include "BBFrame.h"
 #include "ModcodDefinitionTable.h"
 
-extern "C"
-{
-	#include <gse/constants.h>
-	#include <gse/status.h>
-	#include <gse/virtual_fragment.h>
-	#include <gse/refrag.h>
-}
-
-
-
 /** The minimum duration required for a BB frame */
 #define BBFRAME_MIN 1.8
 
@@ -81,8 +71,10 @@ class DvbS2Std: public PhysicStd
 
 	/**
 	 * Build a DVB-S2 Transmission Standard
+	 *
+	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std();
+	DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
@@ -200,42 +192,6 @@ class DvbS2Std: public PhysicStd
 	int initializeIncompleteBBFrame(unsigned int tal_id);
 
 	/**
-	 * @brief Process a MPEG packet that cannot be encapsulated
-	 *        in the current BB frame
-	 *
-	 * @param complete_bb_frames the list of complete BB frames
-	 * @param encap_packet       the packet got in the FIFO
-	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @param cpt_frame          IN/OUT: the number of completed frames
-	 * @return                   0 on success, -1 on error and -2 if there is
-	 *                           no more credit
-	 */
-	int processMpegPacket(std::list<DvbFrame *> *complete_bb_frames,
-	                      NetPacket *encap_packet,
-	                      float *duration_credit,
-	                      unsigned int *cpt_frame);
-
-	/**
-	 * @brief Process a GSE packet that cannot be encapsulated
-	 *        in the current BB frame
-	 *
-	 * @param complete_bb_frames the list of complete BB frames
-	 * @param encap_packet       IN/OUT: the packet got in the FIFO
-	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @param cpt_frame          IN/OUT: the number of completed frames
-	 * @param sent_packets       the number of packets encapsulated in the BB frame
-	 * @param elem               the FIFO element
-	 * @return                   0 on success, -1 on error and -2 if there is
-	 *                           no more credit
-	 */
-	int processGsePacket(std::list<DvbFrame *> *complete_bb_frames,
-	                     NetPacket **encap_packet,
-	                     float *duration_credit,
-	                     unsigned int *cpt_frame,
-	                     unsigned int sent_packets,
-	                     MacFifoElement *elem);
-
-	/**
 	 * @brief Add the current incomplete BB frame to the list of complete BB frames
 	 *
 	 * @param complete_bb_frames the list of complete BB frames
@@ -245,8 +201,8 @@ class DvbS2Std: public PhysicStd
 	 *                           no more credit
 	 */
 	int addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-	                       float *duration_credit,
-	                       unsigned int *cpt_frame);
+	                       float &duration_credit,
+	                       unsigned int &cpt_frame);
 };
 
 #endif

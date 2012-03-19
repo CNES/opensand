@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -160,9 +160,9 @@ class BlocDVBRcsTal: public BlocDvb
 
 	/// Length of an output encapsulation packet (in bytes)
 	int out_encap_packet_length;
-	/// Type of DVB frame sent (MSG_TYPE_ATM_BURST, MSG_TYPE_MPEG_BURST or MSG_TYPE_GSE_BURST)
+	/// Type of output encapsulation packet
 	long out_encap_packet_type;
-	/// Length of a input encapsulation packet (in bytes)
+	/// Length of an input encapsulation packet (in bytes)
 	int in_encap_packet_length;
 
 	int m_fixedBandwidth;   ///< fixed bandwidth (CRA) in kbits/s
@@ -216,7 +216,8 @@ class BlocDVBRcsTal: public BlocDvb
 
  public:
 
-	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name);
+	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+	              std::map<std::string, EncapPlugin *> &encap_plug);
 	virtual ~BlocDVBRcsTal();
 
 	mgl_status onEvent(mgl_event *event);
@@ -260,6 +261,7 @@ class BlocDVBRcsTal: public BlocDvb
 	// communication with QoS Server:
 	bool connectToQoSServer();
 	static void closeQosSocket(int sig);
+
 };
 
 #endif

@@ -27,7 +27,7 @@
 
 /*
  * @file dvb_fifo.cpp
- * @brief  FIFO queue containing MAC ATM cells
+ * @brief  FIFO queue containing MAC packets
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 

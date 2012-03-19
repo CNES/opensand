@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -75,6 +76,7 @@
 #include "bloc_encap.h"
 #include "bloc_dvb_rcs_tal.h"
 #include "bloc_sat_carrier.h"
+#include "PluginUtils.h"
 
 // environment plane include
 #include "platine_env_plane/EnvironmentAgent_e.h"
@@ -161,6 +163,9 @@ int main(int argc, char **argv)
 	BlocEncap *blocEncap;
 	BlocDVBRcsTal *blocDvbRcsTal;
 	BlocSatCarrier *blocSatCarrier;
+	PluginUtils utils;
+
+	std::map<std::string, EncapPlugin *> encap_plug;
 
 	int is_failure = 1;
 
@@ -215,29 +220,37 @@ int main(int argc, char **argv)
 	MGL_TRACE_SET_LEVEL(0);		  // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
+	// load the encapsulation plugins
+	if(!utils.loadEncapPlugins(encap_plug))
+	{
+		UTI_ERROR("%s: cannot load the encapsulation plugins\n", progname);
+		goto destroy_blocmgr;
+	}
+
 	// instantiate all blocs
 	blocIPQoS = new BlocIPQoS(blocmgr, 0, "IP-QoS", "ST");
 	if(blocIPQoS == NULL)
 	{
 		UTI_ERROR("%s: cannot create the IP-QoS bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "Encap", "ST");
+	blocEncap = new BlocEncap(blocmgr, 0, "Encap", "ST", encap_plug);
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	blocIPQoS->setLowerLayer(blocEncap->getId());
 	blocEncap->setUpperLayer(blocIPQoS->getId());
 
-	blocDvbRcsTal = new BlocDVBRcsTal(blocmgr, 0, "DvbRcsTal");
+	blocDvbRcsTal = new BlocDVBRcsTal(blocmgr, 0, "DvbRcsTal",
+	                                  encap_plug);
 	if(blocDvbRcsTal == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DvbRcsTal bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	blocEncap->setLowerLayer(blocDvbRcsTal->getId());
@@ -247,7 +260,7 @@ int main(int argc, char **argv)
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	blocDvbRcsTal->setLowerLayer(blocSatCarrier->getId());
@@ -276,6 +289,8 @@ int main(int argc, char **argv)
 	is_failure = 0;
 
 	// cleanup before ST stops
+release_plugins:
+	utils.releaseEncapPlugins();
 destroy_blocmgr:
 	delete blocmgr; /* destroy the bloc manager and all the blocs */
 destroy_eventmgr:

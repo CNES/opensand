@@ -1,5 +1,6 @@
 SUBDIRS= \
-	src
+	src \
+	conf
 
 readme_files = readme.txt 
 
@@ -15,6 +16,9 @@ configure_files = \
 	depcomp
 
 EXTRA_DIST= $(readme_files) $(configure_files)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = platine_encap_plugin.pc
 
 .PHONY: doc
 

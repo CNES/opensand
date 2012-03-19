@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -42,26 +43,23 @@
 DvbRcsFrame::DvbRcsFrame(unsigned char *data, unsigned int length):
 	DvbFrame(data, length)
 {
-	this->_name = "DVB-RCS frame";
+	this->name = "DVB-RCS frame";
 	this->max_size = MSG_DVB_RCS_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 }
 
 DvbRcsFrame::DvbRcsFrame(Data data):
 	DvbFrame(data)
 {
-	this->_name = "DVB-RCS frame";
+	this->name = "DVB-RCS frame";
 	this->max_size = MSG_DVB_RCS_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 }
 
 DvbRcsFrame::DvbRcsFrame(DvbRcsFrame *frame):
 	DvbFrame(frame)
 {
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 	this->num_packets = frame->getNumPackets();
 }
 
@@ -70,30 +68,29 @@ DvbRcsFrame::DvbRcsFrame():
 {
 	T_DVB_ENCAP_BURST header;
 
-	this->_name = "DVB-RCS frame";
+	this->name = "DVB-RCS frame";
 	this->max_size = MSG_DVB_RCS_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 
 	// no data given as input, so create the DVB-RCS header
 	header.hdr.msg_length = sizeof(T_DVB_ENCAP_BURST);
 	header.hdr.msg_type = MSG_TYPE_DVB_BURST;
 	header.qty_element = 0; // no encapsulation packet at the beginning
-	this->_data.append((unsigned char *) &header, sizeof(T_DVB_ENCAP_BURST));
+	this->data.append((unsigned char *) &header, sizeof(T_DVB_ENCAP_BURST));
 }
 
 DvbRcsFrame::~DvbRcsFrame()
 {
 }
 
-uint16_t DvbRcsFrame::payloadLength()
+uint16_t DvbRcsFrame::getPayloadLength()
 {
-	return (this->totalLength() - sizeof(T_DVB_ENCAP_BURST));
+	return (this->getTotalLength() - sizeof(T_DVB_ENCAP_BURST));
 }
 
-Data DvbRcsFrame::payload()
+Data DvbRcsFrame::getPayload()
 {
-	return Data(this->_data, sizeof(T_DVB_ENCAP_BURST), this->payloadLength());
+	return Data(this->data, sizeof(T_DVB_ENCAP_BURST), this->getPayloadLength());
 }
 
 bool DvbRcsFrame::addPacket(NetPacket *packet)
@@ -105,10 +102,10 @@ bool DvbRcsFrame::addPacket(NetPacket *packet)
 	{
 		T_DVB_ENCAP_BURST dvb_header;
 
-		memcpy(&dvb_header, this->_data.c_str(), sizeof(T_DVB_ENCAP_BURST));
-		dvb_header.hdr.msg_length += packet->totalLength();
+		memcpy(&dvb_header, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
+		dvb_header.hdr.msg_length += packet->getTotalLength();
 		dvb_header.qty_element++;
-		this->_data.replace(0, sizeof(T_DVB_ENCAP_BURST),
+		this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
 		                    (unsigned char *) &dvb_header,
 		                    sizeof(T_DVB_ENCAP_BURST));
 	}
@@ -121,32 +118,27 @@ void DvbRcsFrame::empty(void)
 	T_DVB_ENCAP_BURST dvb_header;
 
 	// remove the payload
-	this->_data.erase(sizeof(T_DVB_ENCAP_BURST));
+	this->data.erase(sizeof(T_DVB_ENCAP_BURST));
 	this->num_packets = 0;
 
 	// update the DVB-RCS frame header
-	memcpy(&dvb_header, this->_data.c_str(), sizeof(T_DVB_ENCAP_BURST));
+	memcpy(&dvb_header, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
 	dvb_header.hdr.msg_length = sizeof(T_DVB_ENCAP_BURST);
 	dvb_header.qty_element = 0; // no encapsulation packet at the beginning
-	this->_data.replace(0, sizeof(T_DVB_ENCAP_BURST),
+	this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
 	                    (unsigned char *) &dvb_header,
 	                    sizeof(T_DVB_ENCAP_BURST));
 }
 
-void DvbRcsFrame::setEncapPacketType(int type)
+void DvbRcsFrame::setEncapPacketEtherType(uint16_t type)
 {
 	T_DVB_ENCAP_BURST dvb_burst;
 
-	this->_packet_type = (t_pkt_type)type;
-
-	memcpy(&dvb_burst, this->_data.c_str(), sizeof(T_DVB_ENCAP_BURST));
+	memcpy(&dvb_burst, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
 	dvb_burst.pkt_type = type;
-	this->_data.replace(0, sizeof(T_DVB_ENCAP_BURST),
+	this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
 	                    (unsigned char *) &dvb_burst,
 	                    sizeof(T_DVB_ENCAP_BURST));
 }
 
-t_pkt_type DvbRcsFrame::getEncapPacketType()
-{
-	return this->_packet_type;
-}
+

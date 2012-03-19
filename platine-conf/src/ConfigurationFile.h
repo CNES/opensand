@@ -38,6 +38,7 @@
 #include <map>
 #include <iostream>
 #include <libxml++/libxml++.h>
+#include <stdint.h>
 
 #include "ConfigurationList.h"
 
@@ -88,75 +89,35 @@ class ConfigurationFile
 	bool loadConfig(const string confFileName);
 	void unloadConfig();
 
-	// Get a value with format string, int, long or bool
-    bool getValue(const char *section, const char *key, string &value);
-    bool getValue(const char *section, const char *key, int &value);
-    bool getValue(const char *section, const char *key, long &value);
-    bool getValue(const char *section, const char *key, bool &value);
+	/* Get a value */
+	template <class T>
+	bool getValue(const char *section, const char *key, T &val);
 
 	// Get the number of items in the list; Get the items from the list
 	bool getNbListItems(const char *section, const char *key, int &value);
 	bool getListItems(const char *section, const char *key, ConfigurationList &list);
 
-	// Get a value from a list attribute with format string, int, long or bool
+	// Get a value from a list attribute
+	template <class T>
 	bool getAttributeValue(ConfigurationList::iterator iter,
 	                       const char *attribute,
-	                       string &value);
-	bool getAttributeValue(ConfigurationList::iterator iter,
-	                       const char *attribute,
-	                       int &value);
-	bool getAttributeValue(ConfigurationList::iterator iter,
-	                       const char *attribute,
-	                       long &value);
-	bool getAttributeValue(ConfigurationList::iterator iter,
-	                       const char *attribute,
-	                       bool &value);
+	                       T &value);
 
-	// Get a string or integer from a line in a list
-	bool getValueInList(ConfigurationList list,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    string &value);
+	// Get a value from a line in a list
+	template <class T>
 	bool getValueInList(const char *section,
 	                    const char *key,
 	                    const char *id,
 	                    const string id_val,
 	                    const char *attribute,
-	                    string &value);
+	                    T &value);
+	template <class T>
 	bool getValueInList(ConfigurationList list,
 	                    const char *id,
 	                    const string id_val,
 	                    const char *attribute,
-	                    int &value);
-	bool getValueInList(const char *section,
-	                    const char *key,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    int &value);
-	bool getValueInList(ConfigurationList list,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    long &value);
-	bool getValueInList(const char *section,
-	                    const char *key,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    long &value);
-	bool getValueInList(ConfigurationList list,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    bool &value);
-	bool getValueInList(const char *section,
-	                    const char *key,
-	                    const char *id,
-	                    const string id_val,
-	                    const char *attribute,
-	                    bool &value);
+	                    T &value);
+
 
  private:
 	/// a vector of XML DOM parsers
@@ -171,42 +132,17 @@ class ConfigurationFile
 
 	/// generic functions to get value
 	bool getStringValue(const char *section, const char *key, string &value);
-	template <class T>
-		bool getValueTemplate(const char *section, const char *key, T &value);
 
 	/// generic functions to get value in list
 	bool getAttributeStringValue(ConfigurationList::iterator iter,
 	                             const char *attribute,
 	                             string &value);
-	template <class T>
-		bool getAttributeValueTemplate(ConfigurationList::iterator iter,
-		                               const char *attribute,
-		                               T &value);
-	/// generic functions to get value in list from elements
+	/// generic function to get value in list from elements
 	bool getStringValueInList(ConfigurationList list,
 	                          const char *id,
 	                          const string id_val,
 	                          const char *attribute,
 	                          string &value);
-	template <class T>
-		bool getValueInListTemplate(ConfigurationList list,
-		                             const char *id,
-		                             const string id_val,
-		                             const char *attribute,
-		                             T &value);
-	bool getStringValueInList(const char *section,
-	                          const char *key,
-	                          const char *id,
-	                          const string id_val,
-	                          const char *attribute,
-	                          string &value);
-	template <class T>
-		bool getValueInListTemplate(const char *section,
-		                            const char *key,
-		                            const char *id,
-		                            const string id_val,
-		                            const char *attribute,
-		                            T &value);
 };
 
 
@@ -229,6 +165,216 @@ inline string toString(long val)
 
 // Configuration file content is loaded in this object at main initialization
 extern ConfigurationFile globalConfig;
+
+// these functions should be in .h file because they are templates
+
+/**
+ * Read a value from configuration
+ *
+ * @param  section  name of the section
+ * @param  key      name of the key
+ * @param  value    the value
+ * @return  true on success, false otherwise
+ */
+/* Get a value */
+template <class T>
+bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
+{
+	string tmp_val;
+
+	if(!this->getStringValue(section, key, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	return true;
+}
+
+/**
+ * Get the value of an attribute in a list element
+ *
+ * @param  elt        an iterator on a ConfigurationList
+ * @param  attribute  the attribute name
+ * @param  value      attribute value
+ * @return  true on success, false otherwise
+ */
+template <class T>
+bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
+                                          const char *attribute,
+                                          T &value)
+{
+	string tmp_val;
+
+	if(!this->getAttributeStringValue(iter, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> value;
+	return true;
+}
+
+/**
+ * Get a value from a list element identified by a attribute value
+ *
+ * @param  list      the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+template <class T>
+bool ConfigurationFile::getValueInList(ConfigurationList list,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       T &value)
+{
+	string tmp_val;
+
+	if(!this->getStringValueInList(list, id, id_val, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> value;
+	return true;
+}
+
+/**
+ * Get a value from a list element identified by a attribute value
+ *
+ * @param  section   name of the section identifying the list
+ * @param  key       name of the list key identifying the list
+ * @param  id        the reference attribute
+ * @param  id_val    the reference attribute value
+ * @param  attribute the desired attribute
+ * @param  value     the desired value
+ * @return  true on success, false otherwise
+ */
+template <class T>
+bool ConfigurationFile::getValueInList(const char *section,
+                                       const char *key,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       T &value)
+{
+	ConfigurationList list;
+
+	if(!this->getListItems(section, key, list))
+	{
+		goto error;
+	}
+	return this->getValueInList(list, id, id_val, attribute, value);
+
+error:
+	return false;
+}
+
+
+template <>
+inline bool ConfigurationFile::getValue<bool>(const char *section,
+                                              const char *key, bool &val)
+{
+	string tmp_val;
+
+	if(!this->getValue<string>(section, key, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> val;
+	return true;
+}
+
+template <>
+inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterator iter,
+		                                               const char *attribute,
+                                                       bool &value)
+{
+	string tmp_val;
+
+	if(!this->getAttributeValue(iter, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> value;
+	return true;
+}
+
+/* only write this specialization because it will be called by the other one
+ * and we should not surccharge a specialization */
+template <>
+inline bool ConfigurationFile::getValueInList<bool>(ConfigurationList list,
+                                                    const char *id,
+                                                    const string id_val,
+                                                    const char *attribute,
+                                                    bool &value)
+{
+	string tmp_val;
+
+	if(!this->getValueInList(list, id, id_val, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> value;
+	return true;
+}
+
+
+template <>
+inline bool ConfigurationFile::getValue<uint8_t>(const char *section,
+                                                 const char *key, uint8_t &value)
+{
+	string tmp_val;
+	unsigned int val;
+
+	if(!this->getValue<string>(section, key, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	value = val;
+	return true;
+}
+
+template <>
+inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::iterator iter,
+		                                                 const char *attribute,
+                                                         uint8_t &value)
+{
+	string tmp_val;
+	unsigned int val;
+
+	if(!this->getAttributeValue(iter, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	value = val;
+	return true;
+}
+
+/* only write this specialization because it will be called by the other one
+ * and we should not surccharge a specialization */
+template <>
+inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
+                                                    const char *id,
+                                                    const string id_val,
+                                                    const char *attribute,
+                                                    uint8_t &value)
+{
+	string tmp_val;
+	unsigned int val;
+
+	if(!this->getValueInList(list, id, id_val, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	value = val;
+	return true;
+}
+
 
 
 #endif /* CONFIGURATION_H */

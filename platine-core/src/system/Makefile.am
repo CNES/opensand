@@ -23,6 +23,7 @@ PACKED_COMMON_LIBS= \
 	../dvb_rcs/pep/libplatine_dvb_pep.la \
 	../dvb_rcs/utils/libplatine_dvb_utils.la \
 	../sat_carrier/libplatine_satcarrier.la \
+	../common/libplatine_encap_plugin.la \
 	../common/libplatine_common.la
 
 allexec_LDADD = \

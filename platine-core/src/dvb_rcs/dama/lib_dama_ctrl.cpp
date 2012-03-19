@@ -265,7 +265,7 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 
 	this->frame_duration = frame_duration; //< add from UoR
 
-	// converting capacity into atm cells per frames
+	// converting capacity into packets per frames
 	this->Converter = new DU_Converter(frame_duration, packet_length);
 	if(this->Converter == NULL)
 	{

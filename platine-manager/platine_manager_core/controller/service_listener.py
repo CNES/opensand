@@ -96,7 +96,8 @@ class PlatineServiceListener():
         inst = ''
         state_port = ''
         command_port = ''
-        tools = {}
+        tools = []
+        modules = []
         network_config = {'discovered' : address}
         i = 0
         args_nbr = len(args[9])
@@ -123,6 +124,8 @@ class PlatineServiceListener():
                 command_port = val
             elif key == 'tools':
                 tools = val.split()
+            elif key == 'modules':
+                modules = map(str.upper, val.split())
             elif key == 'emu_iface':
                 network_config['emu_iface'] = val
             elif key == 'emu_ipv4':
@@ -138,7 +141,7 @@ class PlatineServiceListener():
         try:
             host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
-                                              tools)
+                                              tools, modules)
         except ModelException:
             # host already exists
             return

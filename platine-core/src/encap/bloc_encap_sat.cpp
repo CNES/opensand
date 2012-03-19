@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -42,17 +43,18 @@
 
 BlocEncapSat::BlocEncapSat(mgl_blocmgr * blocmgr,
                            mgl_id fatherid,
-                           const char *name):
-	mgl_bloc(blocmgr, fatherid, name)
+                           const char *name,
+                           std::map<std::string, EncapPlugin *> encap_plug):
+	mgl_bloc(blocmgr, fatherid, name),
+	encap_plug(encap_plug)
 {
-	this->encapCtx = NULL;
 	this->initOk = false;
+	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 }
 
 BlocEncapSat::~BlocEncapSat()
 {
-	if(this->encapCtx != NULL)
-		delete this->encapCtx;
+	delete this->ip_handler;
 }
 
 mgl_status BlocEncapSat::onEvent(mgl_event *event)
@@ -133,143 +135,111 @@ mgl_status BlocEncapSat::setUpperLayer(mgl_id bloc_id)
 mgl_status BlocEncapSat::onInit()
 {
 	const char *FUNCNAME = "[BlocEncapSat::onInit]";
-	int packing_threshold;
+	int i;
+	int encap_nbr;
+	string upper_name;
+	string upper_option;
+	// The list of uplink encapsulation protocols to ignore them at downlink
+	// encapsulation
+	vector <string> up_proto;
 
-	// read encapsulation scheme to use to output data
-	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                          this->downlink_encap_proto))
+	// get the number of encapsulation context to use for up link
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	                                encap_nbr))
 	{
-		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
-		         "ATM over MPEG2-TS.\n", FUNCNAME, GLOBAL_SECTION,
-		         DOWN_FORWARD_ENCAP_SCHEME);
-		this->downlink_encap_proto = ENCAP_MPEG_ATM_AAL5;
+		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		          UP_RETURN_ENCAP_SCHEME_LIST);
+		goto error;
 	}
 
-	if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-	   this->downlink_encap_proto == ENCAP_MPEG_ULE ||
-	   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC ||
-	   this->downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
+	for(i = 0; i < encap_nbr; i++)
 	{
-		// read packing threshold from config
-		if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES,
-		                          packing_threshold))
-		{
-			UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
-			         "encapsulation protocol set to %d ms.\n", FUNCNAME,
-			         GLOBAL_SECTION, PACK_THRES, DFLT_PACK_THRES);
-			packing_threshold = DFLT_PACK_THRES;
-		}
+		string encap_name;
 
-		if(packing_threshold < 0)
+		// get all the encapsulation to use from lower to upper
+		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_INFO("%s Section %s, bad value for %s. Packing threshold for "
-			         "MPEG encapsulation protocol set to %d ms.\n", FUNCNAME,
-			         GLOBAL_SECTION, PACK_THRES, DFLT_PACK_THRES);
-			packing_threshold = DFLT_PACK_THRES;
-		}
-
-		// create the encapsulation context
-		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
-		{
-			// the encapsulation context encapsulates ATM cells into
-			// MPEG2-TS frames
-			this->encapCtx = new MpegCtx(AtmCell::length(), packing_threshold,
-			                             AtmCell::length, AtmCell::create);
-		}
-		else
-		{
-			// the encapsulation context encapsulates ULE packets into
-			// MPEG2-TS frames
-			this->encapCtx = new MpegCtx(2, packing_threshold,
-			                             UlePacket::length, UlePacket::create);
-		}
-
-		// check encapsulation context validity
-		if(this->encapCtx == NULL)
-		{
-			UTI_ERROR("%s cannot create MPEG encapsulation context\n", FUNCNAME);
+			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
+			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
-		UTI_INFO("%s packing threshold for MPEG encapsulation protocol = %d ms\n",
-		         FUNCNAME, packing_threshold);
+		up_proto.push_back(encap_name);
 	}
-	else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-	        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
-	        this->downlink_encap_proto == ENCAP_GSE ||
-	        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC ||
-	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
+
+	// get the number of encapsulation context to use for forward link
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	                                encap_nbr))
 	{
-        int qos_nbr;
-		// Get QoS number for GSE encapsulation context
-		// TODO get from fifo configuration if they become global
-		if(!globalConfig.getValue(GLOBAL_SECTION, GSE_QOS_NBR, qos_nbr))
-		if(qos_nbr < 0)
-		{
-			UTI_INFO("%s Section %s missing. QoS number for GSE "
-			         "encapsulation scheme set to %d.\n", FUNCNAME,
-			         GSE_QOS_NBR, DFLT_GSE_QOS_NBR);
-			qos_nbr = DFLT_GSE_QOS_NBR;
-		}
+		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		          UP_RETURN_ENCAP_SCHEME_LIST);
+		goto error;
+	}
 
-		// read packing threshold from config
-		if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES,
-		                          packing_threshold))
-		{
-			UTI_INFO("%s Section %s, %s missing. Packing threshold for GSE "
-			         "encapsulation protocol set to %d ms.\n", FUNCNAME,
-			         GLOBAL_SECTION, PACK_THRES, DFLT_PACK_THRES);
-			packing_threshold = DFLT_PACK_THRES;
-		}
+	upper_name = upper_option;
+	for(i = 0; i < encap_nbr; i++)
+	{
+		bool next = false;
+		string encap_name;
+		vector<string>::iterator iter;
+		EncapPlugin::EncapContext *context;
 
-		if(packing_threshold < 0)
-		{
-			UTI_INFO("%s Section %s, bad value for %s. Packing threshold for "
-			         "MPEG encapsulation protocol set to %d ms.\n", FUNCNAME,
-			         GLOBAL_SECTION, PACK_THRES, DFLT_PACK_THRES);
-			packing_threshold = DFLT_PACK_THRES;
-		}
 
-		// create the encapsulation context
-		if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		   this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
+		// get all the encapsulation to use from lower to upper
+		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			// the encapsulation context encapsulates ATM cells into GSE packets
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
-			                            AtmCell::length());
-		}
-		else if(this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
-		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
-		{
-			// the encapsulation context encapsulates MPEG frames into GSE packets
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
-			                            MpegPacket::length());
-		}
-		else
-		{
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold);
-		}
-
-		// check encapsulation context validity
-		if(this->encapCtx == NULL)
-		{
-			UTI_ERROR("%s cannot create GSE encapsulation context\n", FUNCNAME);
+			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
+			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
-		UTI_INFO("%s QoS number for GSE encapsulation protocol = %d\n",
-		         FUNCNAME, qos_nbr);
-		UTI_INFO("%s packing threshold for GSE encapsulation protocol = %d ms\n",
-		         FUNCNAME, packing_threshold);
-	}
-	else
-	{
-		UTI_INFO("%s bad value for input encapsulation scheme. "
-		         "ATM over MPEG2-TS used instead\n", FUNCNAME);
-		this->encapCtx = new MpegCtx(AtmCell::length(), packing_threshold,
-		                             AtmCell::length, AtmCell::create);
+		if(this->encap_plug[encap_name] == NULL)
+		{
+			UTI_ERROR("%s missing plugin for %s encapsulation",
+			          FUNCNAME, encap_name.c_str());
+			goto error;
+		}
+
+		context = this->encap_plug[encap_name]->getContext();
+		for(iter = up_proto.begin(); iter!= up_proto.end(); iter++)
+		{
+			if(*iter == encap_name)
+			{
+				upper_name = context->getName();
+				// no need to encapsulate with this protocol because it will
+				// already be done on uplink
+				next = true;
+				break;
+			}
+		}
+		if(next)
+		{
+			continue;
+		}
+
+		this->downlink_ctx.push_back(context);
+		if(upper_name == "")
+		{
+			if(!context->setUpperPacketHandler(this->ip_handler,
+			                                   REGENERATIVE))
+			{
+				goto error;
+			}
+		}
+		else if(!context->setUpperPacketHandler(
+					this->encap_plug[upper_name]->getPacketHandler(),
+					REGENERATIVE))
+		{
+			UTI_ERROR("%s upper encapsulation type %s not supported for %s "
+			          "encapsulation", FUNCNAME, upper_name.c_str(),
+			          context->getName().c_str());
+			goto error;
+		}
+		upper_name = context->getName();
+		UTI_DEBUG("%s add downlink encapsulation layer: %s\n",
+		          FUNCNAME, upper_name.c_str());
 	}
 
 	return mgl_ok;
@@ -305,8 +275,8 @@ mgl_status BlocEncapSat::onTimer(mgl_timer timer)
 	// remove emission timer from the list
 	this->timers.erase(it);
 
-	// flush encapsulation context
-	burst = this->encapCtx->flush(id);
+	// flush the last encapsulation context
+	burst = this->downlink_ctx.back()->flush(id);
 	if(burst == NULL)
 	{
 		UTI_DEBUG("%s flushing context %d failed\n", FUNCNAME, id);
@@ -360,36 +330,13 @@ mgl_status BlocEncapSat::onRcvBurstFromDown(NetBurst *burst)
 	UTI_DEBUG("%s message contains a burst of %d %s packet(s)\n",
 	          FUNCNAME, burst->length(), burst->name().c_str());
 
-	switch(burst->type())
+	if(this->downlink_ctx.size() > 0)
 	{
-		// choose action depending on packet type
-		case(NET_PROTO_MPEG):
-			if(this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
-			   this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
-			{
-				status = this->EncapsulatePackets(burst);
-			}
-			else
-			{
-				status = this->ForwardPackets(burst);
-			}
-			break;
-		case(NET_PROTO_GSE):
-			// forward MPEG2-TS/GSE packets without modification
-			status = this->ForwardPackets(burst);
-			break;
-
-		case(NET_PROTO_ATM):
-			// encapsulate ATM cells into MPEG2-TS packets, then
-			// forward them
-			status = this->EncapsulatePackets(burst);
-			break;
-
-		default:
-			// type not handled by bloc, drop with warning
-			UTI_ERROR("bloc does not handle burst of type 0x%04x, drop burst\n",
-			          burst->type());
-			goto error;
+		status = this->EncapsulatePackets(burst);
+	}
+	else
+	{
+		status = this->ForwardPackets(burst);
 	}
 
 	return status;
@@ -410,40 +357,7 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 		goto error;
 	}
 
-	if(this->downlink_encap_proto == ENCAP_MPEG_ULE ||
-	   this->downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
-	{
-		// burst must contains MPEG2-TS packets
-		if(burst->type() != NET_PROTO_MPEG)
-		{
-			UTI_ERROR("%s burst (type 0x%04x) is not a MPEG burst\n",
-			          FUNCNAME, burst->type());
-			goto clean;
-		}
-	}
-	else if(this->downlink_encap_proto == ENCAP_GSE ||
-	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
-	{
-		// burst must contains GSE packets
-		if(burst->type() != NET_PROTO_GSE)
-		{
-			UTI_ERROR("%s burst (type 0x%04x) is not a GSE burst\n",
-			          FUNCNAME, burst->type());
-			goto clean;
-		}
-	}
-	else
-	{
-		UTI_DEBUG("%s Bad output encapsulation scheme %s with "
-		          "MPEG or GSE  burst\n",
-		          FUNCNAME, this->downlink_encap_proto.c_str());
-		goto clean;
-	}
-
-	UTI_INFO("%s output encapsulation scheme = %s\n", FUNCNAME,
-	         this->downlink_encap_proto.c_str());
-
-	// create the Margouilla message with MPEG burst as data
+	// create the Margouilla message with burst as data
 	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
 	if(!msg)
 	{
@@ -458,7 +372,7 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 		goto clean;
 	}
 
-	UTI_DEBUG("%s MPEG burst sent to the lower layer\n", FUNCNAME);
+	UTI_DEBUG("%s burst sent to the lower layer\n", FUNCNAME);
 
 	// everthing is fine
 	return mgl_ok;
@@ -474,9 +388,9 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 	const char *FUNCNAME = "[BlocEncapSat::EncapsulatePackets]";
 	NetBurst::iterator pkt_it;
 	NetBurst *packets;
-	int context_id;
-	long time = 0;
+	map<long, int> time_contexts;
 	mgl_msg *msg; // margouilla message
+	vector<EncapPlugin::EncapContext *>::iterator iter;
 
 	// check burst validity
 	if(burst == NULL)
@@ -485,130 +399,76 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 		goto error;
 	}
 
-	// burst must contains ATM cells
-	if(burst->type() != NET_PROTO_ATM &&
-	   burst->type() != NET_PROTO_MPEG)
+	packets = burst;
+	for(iter = this->downlink_ctx.begin(); iter != this->downlink_ctx.end();
+	    iter++)
 	{
-		UTI_ERROR("%s burst (type 0x%04x) is not an ATM or MPEG burst\n",
-		          FUNCNAME, burst->type());
-		goto clean;
-	}
-	if(this->downlink_encap_proto != ENCAP_MPEG_ATM_AAL5 &&
-	   this->downlink_encap_proto != ENCAP_GSE_ATM_AAL5 &&
-	   this->downlink_encap_proto != ENCAP_GSE_MPEG_ULE &&
-	   this->downlink_encap_proto != ENCAP_MPEG_ATM_AAL5_ROHC &&
-	   this->downlink_encap_proto != ENCAP_GSE_ATM_AAL5_ROHC &&
-	   this->downlink_encap_proto != ENCAP_GSE_MPEG_ULE_ROHC)
-	{
-		UTI_ERROR("%s Bad output encapsulation scheme %s with burst\n",
-		          FUNCNAME, this->downlink_encap_proto.c_str());
-	}
-
-	// for each ATM cell or MPEG packet within the burst...
-	for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
-	{
-		UTI_DEBUG("%s encapsulate one %s packet (%d bytes)\n", FUNCNAME,
-		          (*pkt_it)->name().c_str(), (*pkt_it)->totalLength());
-		(*pkt_it)->addTrace(HERE());
-
-		// encapsulate packet
-		packets = encapCtx->encapsulate(*pkt_it, context_id, time);
-
-		// set encapsulate timer if needed
-		if(time > 0)
-		{
-			std::map < mgl_timer, int >::iterator it;
-			bool found = false;
-
-			// check if there is already a timer armed for the context
-			for(it = this->timers.begin(); !found && it != this->timers.end(); it++)
-			    found = ((*it).second == context_id);
-
-			// set a new timer if no timer was found
-			if(!found)
-			{
-				mgl_timer timer;
-				this->setTimer(timer, time);
-				this->timers.insert(std::make_pair(timer, context_id));
-				UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
-				          FUNCNAME, context_id, time);
-			}
-			else
-			{
-				UTI_DEBUG("%s timer already set for context ID %d\n",
-				          FUNCNAME, context_id);
-			}
-		}
-
-		// check burst validity
+		packets = (*iter)->encapsulate(packets, time_contexts);
 		if(packets == NULL)
 		{
-			UTI_ERROR("%s encapsulation failed\n", FUNCNAME);
+			UTI_ERROR("%s encapsulation failed in %s context\n",
+			          FUNCNAME, (*iter)->getName().c_str());
 			goto clean;
 		}
+	}
 
-		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
-		{
-			UTI_DEBUG("%s 1 %s packet => %d MPEG packet(s)\n", FUNCNAME,
-			          (*pkt_it)->name().c_str(), packets->size());
-		}
-		else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
-		        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
-		{
-			UTI_DEBUG("%s 1 %s packet => %d GSE packet(s)\n", FUNCNAME,
-			          (*pkt_it)->name().c_str(), packets->size());
-		}
+	// set encapsulate timers if needed
+	for(map<long, int>::iterator time_iter = time_contexts.begin();
+	    time_iter != time_contexts.end(); time_iter++)
+	{
+		std::map < mgl_timer, int >::iterator it;
+		bool found = false;
 
-		// create and send message only if at least one MPEG/GSE packet was created
-		if(packets->size() <= 0)
-		{
-			delete packets;
-			continue;
-		}
+		// check if there is already a timer armed for the context
+		for(it = this->timers.begin(); !found && it != this->timers.end(); it++)
+			found = ((*it).second == (*time_iter).second);
 
-		// create the Margouilla message with MPEG or GSE burst as data
-		msg = this->newMsgWithBodyPtr(msg_encap_burst, packets,
-		                              sizeof(packets));
-		if(!msg)
+		// set a new timer if no timer was found
+		if(!found && (*time_iter).first != 0)
 		{
-			UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-			delete packets;
-			continue;
+			mgl_timer timer;
+			this->setTimer(timer, (*time_iter).first);
+			this->timers.insert(std::make_pair(timer, (*time_iter).second));
+			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
+			          FUNCNAME, (*time_iter).second, (*time_iter).first);
 		}
+		else
+		{
+			UTI_DEBUG("%s timer already set for context ID %d\n",
+			          FUNCNAME, (*time_iter).second);
+		}
+	}
 
-		// send the message to the lower layer
-		if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
-		{
-			UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
-			delete packets;
-			continue;
-		}
+	// create and send message only if at least one packet was created
+	if(packets->size() <= 0)
+	{
+		goto clean;
+	}
 
-		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
-		{
-			UTI_DEBUG("%s MPEG burst sent to the lower layer\n", FUNCNAME);
-		}
-		else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
-		        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
-		{
-			UTI_DEBUG("%s GSE burst sent to the lower layer\n", FUNCNAME);
-		}
-	} // for each ATM cell within the burst
+	// create the Margouilla message with burst as data
+	msg = this->newMsgWithBodyPtr(msg_encap_burst, packets,
+	                              sizeof(packets));
+	if(!msg)
+	{
+		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
+		goto clean;
+	}
 
-	// delete the burst of MPEG or GSE packets
-	delete burst;
+	//  send the message to the lower layer
+	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
+	{   
+		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		goto clean;
+	}
+
+	UTI_DEBUG("%s %s burst sent to the lower layer\n", FUNCNAME,
+	          (this->downlink_ctx.back())->getName().c_str());
 
 	// everthing is fine
 	return mgl_ok;
 
 clean:
-	delete burst;
+	delete packets;
 error:
 	return mgl_ko;
 }

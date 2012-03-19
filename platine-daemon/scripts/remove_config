@@ -22,9 +22,10 @@ if __name__ == "__main__":
         sys.stderr.write("error reading configuration: " + str(error))
         sys.exit(1)
 
+    ret = 0
     if name == 'sat':
         ret = os.system(SAT_INIT + ' RESET')
-    else:
+    elif name != 'ws':
         ret = os.system(ST_INIT + ' RESET')
     #TODO supprimer interface tun
 

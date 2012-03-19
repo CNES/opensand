@@ -47,7 +47,6 @@ typedef struct
 {
 	IpAddress *ip;
 	unsigned int mask_len;
-	unsigned long mac;
 	unsigned int tal_id;
 } sarpEntry;
 
@@ -91,13 +90,12 @@ class SarpTable: public std::list< sarpEntry * >
 	 *
 	 * @param ip_addr  the IP address for the SARP entry
 	 * @param mask_len the mask length of the IP address
-	 * @param mac_addr the MAC address associated with the IP address
 	 * @param tal the tal ID associated with the IP address
 	 * @return true if the entry was successfully added (the table was
 	 *         not full), false otherwise
 	 */
 	bool add(IpAddress *ip_addr, unsigned int mask_len,
-	         unsigned long mac_addr, unsigned int tal);
+	         unsigned int tal);
 
 	/**
 	 * Is the SARP table full?
@@ -113,15 +111,6 @@ class SarpTable: public std::list< sarpEntry * >
 	 * @return the number of entries in the table
 	 */
 	unsigned int length();
-
-	/**
-	 * Get the MAC address associated with the IP address in the SARP table
-	 *
-	 * @param ip the IP address to search for
-	 * @return the MAC address associated with the IP address if found,
-	 *         -1 otherwise
-	 */
-	long getMacByIp(IpAddress *ip);
 
 	/**
 	 * Get the tal ID associated with the IP address in the SARP table

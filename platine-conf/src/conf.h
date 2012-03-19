@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -49,20 +50,12 @@
 #define GLOBAL_SECTION            "global"
 
 #define SAT_ETH_IFACE             "satellite_eth_interface"
-#define UP_RETURN_ENCAP_SCHEME    "up_return_encap_scheme"
-#define DOWN_FORWARD_ENCAP_SCHEME "down_forward_encap_scheme"
-#define ENCAP_ATM_AAL5            "ATM_AAL5"
-#define ENCAP_MPEG_ULE            "MPEG_ULE"
-#define ENCAP_MPEG_ATM_AAL5       "MPEG_ATM_AAL5"
-#define ENCAP_GSE                 "GSE"
-#define ENCAP_GSE_ATM_AAL5        "GSE_ATM_AAL5"
-#define ENCAP_GSE_MPEG_ULE        "GSE_MPEG_ULE"
-#define ENCAP_ATM_AAL5_ROHC       "ATM_AAL5_ROHC"
-#define ENCAP_MPEG_ULE_ROHC       "MPEG_ULE_ROHC"
-#define ENCAP_MPEG_ATM_AAL5_ROHC  "MPEG_ATM_AAL5_ROHC"
-#define ENCAP_GSE_ROHC            "GSE_ROHC"
-#define ENCAP_GSE_ATM_AAL5_ROHC   "GSE_ATM_AAL5_ROHC"
-#define ENCAP_GSE_MPEG_ULE_ROHC   "GSE_MPEG_ULE_ROHC"
+#define IP_OPTION_LIST            "ip_options"
+#define OPTION_NAME               "name"
+#define UP_RETURN_ENCAP_SCHEME_LIST "up_return_encap_schemes"
+#define DOWN_FORWARD_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
+#define POSITION                  "pos"
+#define ENCAP_NAME                "encap"
 
 #define SATELLITE_TYPE            "satellite_type"
 #define TRANSPARENT_SATELLITE     "transparent"
@@ -70,10 +63,6 @@
 
 #define SAT_DELAY                 "delay"
 
-#define PACK_THRES                "packing_threshold"
-#define DFLT_PACK_THRES           10 // default packing threshold in milliseconds
-#define GSE_QOS_NBR               "gse_qos_nbr"
-#define DFLT_GSE_QOS_NBR          5  // default QoS number for GSE encapsulation and desencapsulation
 #define NB_MAX_ST                 (1941)
 #define DVB_F_DURATION            "frame_duration"
 

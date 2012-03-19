@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -42,8 +43,8 @@
 DvbFrame::DvbFrame(unsigned char *data, unsigned int length):
 	NetPacket(data, length)
 {
-	this->_name = "unknown DVB frame";
-	this->_type = NET_PROTO_DVB_FRAME;
+	this->name = "unknown DVB frame";
+	this->type = NET_PROTO_DVB_FRAME;
 	this->max_size = 0;
 	this->num_packets = 0;
 	this->carrier_id = 0;
@@ -52,18 +53,18 @@ DvbFrame::DvbFrame(unsigned char *data, unsigned int length):
 DvbFrame::DvbFrame(Data data):
 	NetPacket(data)
 {
-	this->_name = "unknown DVB frame";
-	this->_type = NET_PROTO_DVB_FRAME;
+	this->name = "unknown DVB frame";
+	this->type = NET_PROTO_DVB_FRAME;
 	this->max_size = 0;
 	this->num_packets = 0;
 	this->carrier_id = 0;
 }
 
 DvbFrame::DvbFrame(DvbFrame *frame):
-	NetPacket(frame->data())
+	NetPacket(frame->getData())
 {
-	this->_name = frame->name();
-	this->_type = frame->type();
+	this->name = frame->getName();
+	this->type = frame->getType();
 	this->max_size = frame->getMaxSize();
 	this->num_packets = frame->getNumPackets();
 	this->carrier_id = 0;
@@ -72,8 +73,8 @@ DvbFrame::DvbFrame(DvbFrame *frame):
 DvbFrame::DvbFrame():
 	NetPacket()
 {
-	this->_name = "unknown DVB frame";
-	this->_type = NET_PROTO_DVB_FRAME;
+	this->name = "unknown DVB frame";
+	this->type = NET_PROTO_DVB_FRAME;
 	this->max_size = 0;
 	this->num_packets = 0;
 	this->carrier_id = 0;
@@ -83,41 +84,9 @@ DvbFrame::~DvbFrame()
 {
 }
 
-int DvbFrame::qos()
+uint16_t DvbFrame::getTotalLength()
 {
-	return 0;
-}
-
-void DvbFrame::setQos(int qos)
-{
-}
-
-unsigned long DvbFrame::macId()
-{
-	return 0;
-}
-
-void DvbFrame::setMacId(unsigned long macId)
-{
-}
-
-long DvbFrame::talId()
-{
-	return 0;
-}
-
-void DvbFrame::setTalId(long talId)
-{
-}
-
-bool DvbFrame::isValid()
-{
-	return true;
-}
-
-uint16_t DvbFrame::totalLength()
-{
-	return this->_data.length();
+	return this->data.length();
 }
 
 unsigned int DvbFrame::getMaxSize(void)
@@ -137,19 +106,19 @@ void DvbFrame::setCarrierId(long carrier_id)
 
 unsigned int DvbFrame::getFreeSpace(void)
 {
-	return (this->max_size - this->totalLength());
+	return (this->max_size - this->getTotalLength());
 }
 
 bool DvbFrame::addPacket(NetPacket *packet)
 {
 	// is the frame large enough to contain the packet ?
-	if(packet->totalLength() > this->getFreeSpace())
+	if(packet->getTotalLength() > this->getFreeSpace())
 	{
 		// too few free space in the frame
 		return false;
 	}
 
-	this->_data.append(packet->data());
+	this->data.append(packet->getData());
 	this->num_packets++;
 
 	return true;

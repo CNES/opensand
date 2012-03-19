@@ -39,7 +39,10 @@ import gobject
 import threading
 
 from platine_manager_gui.view.window_view import WindowView
-from platine_manager_gui.view.utils.config_elements import ConfigurationTree
+from platine_manager_gui.view.utils.config_elements import ConfigurationTree, \
+                                                           ConfigurationNotebook
+from platine_manager_core.my_exceptions import ModelException, XmlException
+from platine_manager_core.platine_xml_parser import XmlParser
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -60,6 +63,9 @@ class ToolView(WindowView):
         self._selected_tools = {}
         # the selected tools once the configuration has been saved
         self._saved_tools = {}
+        # the available modules
+        self._modules = self._model.get_modules()
+        self._missing_modules = self._model.get_missing()
 
         with gtk.gdk.lock:
             # get the description widget
@@ -79,9 +85,11 @@ class ToolView(WindowView):
 
             # create the tree for tools selection
             treeview = self._ui.get_widget('tools_selection_tree')
-            self._tree = ConfigurationTree(treeview, 'Tools',
-                                           'Selected', self.on_tool_select,
-                                           self.toggled_cb)
+            self._tree = ConfigurationTree(treeview, 'Tools/modules',
+                                           'Selected', self.on_selection,
+                                           self.tool_toggled_cb)
+            # populate the tree
+            self._tree.add_modules(self._modules)
 
             # disable save button
             self._ui.get_widget('save_tool_conf').set_sensitive(False)
@@ -89,15 +97,11 @@ class ToolView(WindowView):
             # update the tree immediately
             self.update_tool_tree()
 
-        # then update the tree periodically
-        self._refresh_tool_tree = gobject.timeout_add(1000,
-                                                      self.update_tool_tree)
-
-    def toggled_cb(self, cell, path):
+    def tool_toggled_cb(self, cell, path):
         """ defined in tool_event """
         pass
 
-    def on_tool_select(self, selection):
+    def on_selection(self, selection):
         """ defined in tool_event """
         pass
 
@@ -107,7 +111,6 @@ class ToolView(WindowView):
         # disable tool selection when running
         if self._model.is_running():
             self._tree.disable_all()
-
 
         for host in [elt for elt in self._model.get_all()
                      if elt.get_name() not in self._hosts_name]:
@@ -132,10 +135,11 @@ class ToolView(WindowView):
             del self._saved_tools[host_name]
             gobject.idle_add(self._tree.del_host, host_name)
 
-
         self._tool_lock.release()
 
         # continue to refresh
         return True
 
-
+    def handle_param_changed(self):
+        """ defined in tool_event """
+        pass

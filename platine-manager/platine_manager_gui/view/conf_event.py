@@ -40,7 +40,7 @@ import gobject
 
 from platine_manager_gui.view.conf_view import ConfView
 from platine_manager_gui.view.popup.infos import error_popup, yes_no_popup
-from platine_manager_core.my_exceptions import XmlException
+from platine_manager_core.my_exceptions import XmlException, ConfException
 from platine_manager_gui.view.popup.advanced_dialog import AdvancedDialog
 
 class ConfEvent(ConfView) :
@@ -52,7 +52,6 @@ class ConfEvent(ConfView) :
         self._modif = False
         self._previous_img = ''
         # update the image
-        self._img_widget.clear()
         self.refresh_description()
 
         gobject.idle_add(self.enable_conf_buttons, False)
@@ -66,7 +65,6 @@ class ConfEvent(ConfView) :
     def activate(self, val):
         """ 'activate' signal handler """
         if val == False:
-            self._img_widget.clear()
             self._modif = False
         else:
             self._modif = True
@@ -84,64 +82,30 @@ class ConfEvent(ConfView) :
     def refresh_gui(self):
         """ the part of the refreshing that modifies GUI
             (should be used with gobject.idle_add outside gtk ) """
-        cursor = gtk.gdk.Cursor(gtk.gdk.WATCH)
-        if self._img_widget.window is not None:
-            self._img_widget.window.set_cursor(cursor)
+        # payload type
+        if self.is_button_active('transparent'):
+            self._ui.get_widget("repr_stack_sat_encap").hide_all()
+            self._ui.get_widget("repr_stack_label_gw").set_markup("<b>GW</b>")
+        elif self.is_button_active('regenerative'):
+            self._ui.get_widget("repr_stack_sat_encap").show_all()
+            self._ui.get_widget("repr_stack_label_gw").set_markup("<b>ST</b>")
 
-        img_name = "%s_%s_%s.png" % (self._payload, self._up, self._down)
-        if self._previous_img != img_name and \
-           os.path.exists(os.path.join(self._img_path, img_name)):
-            self._previous_img = img_name
-            self._img_widget.set_from_file(os.path.join(self._img_path,
-                                                        img_name))
+        # emission standard
+#        if self.is_button_active('DVB-RCS'):
+#        elif self.is_button_active('DVB-S2'):
 
-        if self._img_widget.window is not None:
-            self._img_widget.window.set_cursor(None)
+        # output encapsulation scheme
+        #TODO dynamic encapsulation bloc drawing
 
-    def set_all_downlink_buttons_sensitive(self):
-        """ set buttons in Downlink category sensitive """
-          #MPEG button
-        widget = self._ui.get_widget('MPEG_IN')
-        widget.set_sensitive(True)
-          #GSE in button
-        widget = self._ui.get_widget('GSE_IN')
-        widget.set_sensitive(True)
-          #MPEG_ATM_AAL5 button
-        widget = self._ui.get_widget('MPEG_ATM_AAL5')
-        widget.set_sensitive(True)
-          #GSE_ATM_AAL5 button
-        widget = self._ui.get_widget('GSE_ATM_AAL5')
-        widget.set_sensitive(True)
-          #GSE_MPEG_ULE button
-        widget = self._ui.get_widget('GSE_MPEG_ULE')
-        widget.set_sensitive(True)
+        # input encapsulation scheme
+        #TODO dynamic encapsulation bloc drawing
 
-    def set_all_uplink_buttons_sensitive(self):
-        """ set buttons in Uplink category sensitive """
-          #MPEG button
-        widget = self._ui.get_widget('MPEG_OUT')
-        widget.set_sensitive(True)
-          #GSE in button
-        widget = self._ui.get_widget('GSE_OUT')
-        widget.set_sensitive(True)
-          #MPEG_ATM_AAL5 button
-        widget = self._ui.get_widget('ATM_AAL5')
-        widget.set_sensitive(True)
+        self._drawing_area.queue_draw()
 
     def is_button_active(self, button):
         """ check if a button is active """
         widget = self._ui.get_widget(button)
         return widget.get_active()
-
-    def disable_button(self, button, replacement_button = 'None'):
-        """ make a button not sensitive and select another button if it
-            was previously selected """
-        widget = self._ui.get_widget(button)
-        widget.set_sensitive(False)
-        if self.is_button_active(button) and replacement_button is not None:
-            widget = self._ui.get_widget(replacement_button)
-            widget.set_active(True)
-            widget.clicked()
 
     def enable_conf_buttons(self, enable = True):
         """ make apply and cancel buttons sensitive or not """
@@ -158,22 +122,10 @@ class ConfEvent(ConfView) :
 
     def on_regenerative_button_clicked(self, source=None, event=None):
         """ actions performed when regenerative is selected """
-        self._payload = 'regen'
         self.enable_conf_buttons()
-        self.set_all_downlink_buttons_sensitive()
-        if(self.is_button_active('ATM_AAL5') == True):
-            self.disable_button('MPEG_IN', 'MPEG_ATM_AAL5')
-            self.disable_button('GSE_IN', 'GSE_ATM_AAL5')
-            self.disable_button('GSE_MPEG_ULE', 'GSE_ATM_AAL5')
-        if(self.is_button_active('MPEG_OUT') == True):
-            self.disable_button('GSE_IN', 'GSE_MPEG_ULE')
-            self.disable_button('MPEG_ATM_AAL5', 'MPEG_ULE')
-            self.disable_button('GSE_ATM_AAL5', 'GSE_MPEG_ULE')
-        if(self.is_button_active('GSE_OUT') == True):
-            self.disable_button('MPEG_IN', 'GSE_IN')
-            self.disable_button('MPEG_ATM_AAL5', 'GSE_IN')
-            self.disable_button('GSE_ATM_AAL5', 'GSE_IN')
-            self.disable_button('GSE_MPEG_ULE', 'GSE_IN')
+        # update the protocol stacks
+        self._out_stack.set_payload_type('regenerative')
+        self._in_stack.set_payload_type('regenerative')
         widget = self._ui.get_widget('label_in_encap')
         widget.set_markup('<b>ST Downlink Encapsulation Scheme</b>')
         widget = self._ui.get_widget('label_out_encap')
@@ -189,14 +141,10 @@ class ConfEvent(ConfView) :
 
     def on_transparent_button_clicked(self, source=None, event=None):
         """ actions performed when transparent is selected """
-        self._payload = 'transp'
         self.enable_conf_buttons()
-        self.set_all_downlink_buttons_sensitive()
-        self.disable_button('MPEG_ATM_AAL5', 'MPEG_IN')
-        self.disable_button('GSE_ATM_AAL5', 'GSE_IN')
-        self.disable_button('GSE_MPEG_ULE', 'GSE_IN')
-        if(self.is_button_active('GSE_OUT') == True):
-            self.disable_button('MPEG_IN', 'GSE_IN')
+        # update the protocol stacks
+        self._out_stack.set_payload_type('transparent')
+        self._in_stack.set_payload_type('transparent')
         widget = self._ui.get_widget('label_in_encap')
         widget.set_markup('<b>Forward Link Encapsulation Scheme</b>')
         widget = self._ui.get_widget('label_out_encap')
@@ -213,16 +161,11 @@ class ConfEvent(ConfView) :
     def on_dvb_rcs_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-RCS is selected """
         self.enable_conf_buttons()
-        self.set_all_uplink_buttons_sensitive()
-        self.disable_button('GSE_OUT', 'ATM_AAL5')
         self.populate_dama(self._dama_rcs)
 
     def on_dvb_s2_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-S2 is selected """
         self.enable_conf_buttons()
-        self.set_all_uplink_buttons_sensitive()
-        self.disable_button('ATM_AAL5', 'GSE_OUT')
-        self.disable_button('MPEG_OUT', 'GSE_OUT')
         self.populate_dama(self._dama_s2)
 
     def populate_dama(self, dama_list):
@@ -237,60 +180,17 @@ class ConfEvent(ConfView) :
         combo.pack_start(cell, True)
         combo.add_attribute(cell, 'text', 0)
         combo.set_active(0)
-
-    def on_atm_out_button_clicked(self, source=None, event=None):
-        """ actions performed when ATM is selected on uplink """
-        self._up = 'atm'
-        self.enable_conf_buttons()
-        self.set_all_downlink_buttons_sensitive()
-        self.disable_button('GSE_MPEG_ULE', 'GSE_IN')
-        if(self.is_button_active('regenerative') == True):
-            self.disable_button('MPEG_IN', 'MPEG_ATM_AAL5')
-            self.disable_button('GSE_IN', 'GSE_ATM_AAL5')
-        if(self.is_button_active('transparent') == True):
-            self.disable_button('MPEG_ATM_AAL5', 'MPEG_IN')
-            self.disable_button('GSE_ATM_AAL5', 'GSE_IN')
-
-    def on_mpeg_out_button_clicked(self, source=None, event=None):
-        """ actions performed when MPEG is selected on uplink """
-        self._up = 'mpeg'
-        self.enable_conf_buttons()
-        self.set_all_downlink_buttons_sensitive()
-        self.disable_button('MPEG_ATM_AAL5', 'MPEG_IN')
-        self.disable_button('GSE_ATM_AAL5', 'GSE_IN')
-        if(self.is_button_active('regenerative') == True):
-            self.disable_button('GSE_IN', 'GSE_MPEG_ULE')
-        if(self.is_button_active('transparent') == True):
-            self.disable_button('GSE_MPEG_ULE', 'GSE_IN')
-
-    def on_gse_out_button_clicked(self, source=None, event=None):
-        """ actions performed when GSE is selected on uplink """
-        self._up = 'gse'
-        self.enable_conf_buttons()
-        self.set_all_downlink_buttons_sensitive()
-        self.disable_button('MPEG_IN', 'GSE_IN')
-        self.disable_button('MPEG_ATM_AAL5', 'GSE_IN')
-        self.disable_button('GSE_ATM_AAL5', 'GSE_IN')
-        self.disable_button('GSE_MPEG_ULE', 'GSE_IN')
-
-    def on_gse_in_button_clicked(self, source=None, event=None):
-        """ 'clicked' event on GSE downlink buttons """
-        self._down = 'gse'
-        self.enable_conf_buttons()
-
-    def on_mpeg_in_button_clicked(self, source=None, event=None):
-        """ 'clicked' event on MPEG downlink buttons """
-        self._down = 'mpeg'
-        self.enable_conf_buttons()
-
+        
     def on_button_clicked(self, source=None, event=None):
         """ 'clicked' event on teminal type buttons """
         self.enable_conf_buttons()
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
-        self.update_view()
-        self.enable_conf_buttons(False)
+        try:
+            self.update_view()
+        except ConfException as msg:
+            error_popup(str(msg))
 
     def on_save_conf_clicked(self, source=None, event=None):
         """ save the new configuration in the ini file """
@@ -319,36 +219,59 @@ class ConfEvent(ConfView) :
         # dama
         widget = self._ui.get_widget('dama_box')
         model = widget.get_model()
-        active = widget.get_active()
-        if active < 0:
+        active = widget.get_active_iter()
+        config.set_dama(model.get_value(active, 0))
+
+        # check stacks with modules conditions
+        modules = self._model.get_modules()
+        stack = self._out_stack.get_stack()
+        if len(stack) == 0:
+             error_popup("Out stack is empty !")
+             return
+        pos = max(stack.keys())
+        if not modules[stack[pos]].get_condition(emission_std.lower()):
+            error_popup("Module %s does not support %s link" %
+                        (stack[pos], emission_std))
             return
-        config.set_dama(model[active][0])
+        if modules[stack[pos]].get_condition('mandatory_down'):
+            error_popup("Module %s need a lower encapsulation module" %
+                        stack[pos])
+            return
+        stack = self._in_stack.get_stack()
+        if len(stack) == 0:
+             error_popup("In stack is empty !")
+             return
+        pos = max(stack.keys())
+        if not modules[stack[pos]].get_condition('dvb-s2'):
+            error_popup("Module %s does not support DVB-S2 link" % stack[pos])
+            return
+        if modules[stack[pos]].get_condition('mandatory_down'):
+            error_popup("Module %s need a lower encapsulation module" %
+                        stack[pos])
+            return
+        # for regenerative, check that the output stack is the same as the upper
+        # input stack because satellite does not decapssulate
+        if self.is_button_active('regenerative'):
+            if len(set(self._out_stack.get_stack().items()) - \
+                   set(self._in_stack.get_stack().items())) != 0:
+                error_popup("In regenerative mode, the downlink stack should be at "
+                            "least the same as the uplink one")
+                # TODO we could update the down stack with the up stack in
+                # protocol_stack.py to avoid this error
+                return
+
+        # IP options
+        options = []
+        for option in [opt for opt in self._ip_options
+                           if self._ip_options[opt].get_active()]:
+            options.append(option)
+        config.set_ip_options(options)
 
         # output encapsulation scheme
-        if(self.is_button_active('ATM_AAL5') == True):
-            up_return_encap = 'ATM_AAL5'
-        elif (self.is_button_active('MPEG_OUT') == True):
-            up_return_encap = 'MPEG_ULE'
-        elif (self.is_button_active('GSE_OUT') == True):
-            up_return_encap = 'GSE'
-        else:
-            return
-        config.set_up_return_encap(up_return_encap)
+        config.set_up_return_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
-        if (self.is_button_active('MPEG_IN') == True):
-            down_forward_encap = 'MPEG_ULE'
-        elif (self.is_button_active('GSE_IN') == True):
-            down_forward_encap = 'GSE'
-        elif (self.is_button_active('MPEG_ATM_AAL5') == True):
-            down_forward_encap = 'MPEG_ATM_AAL5'
-        elif (self.is_button_active('GSE_ATM_AAL5') == True):
-            down_forward_encap = 'GSE_ATM_AAL5'
-        elif (self.is_button_active('GSE_MPEG_ULE') == True):
-            down_forward_encap = 'GSE_MPEG_ULE'
-        else:
-            return
-        config.set_down_forward_encap(down_forward_encap)
+        config.set_down_forward_encap(self._in_stack.get_stack())
 
         # terminal type
         if (self.is_button_active('collective') == True):
@@ -366,6 +289,9 @@ class ConfEvent(ConfView) :
             config.save()
         except XmlException, error:
             error_popup(str(error), error.description)
+            self.on_undo_conf_clicked()
+        except ConfException, error:
+            error_popup(str(error))
             self.on_undo_conf_clicked()
 
     def on_frame_duration_value_changed(self, source=None, event=None):
@@ -386,9 +312,16 @@ class ConfEvent(ConfView) :
             if ret == gtk.RESPONSE_YES:
                 self.on_save_conf_clicked()
             else:
-                self.update_view()
+                try:
+                    self.update_view()
+                except ConfException as msg:
+                    error_popup(str(msg))
         window = AdvancedDialog(self._model, self._log)
         window.go()
-        self.update_view()
-        self.enable_conf_buttons(False)
+        try:
+            self.update_view()
+            self.enable_conf_buttons(False)
+        except ConfException as msg:
+            error_popup(str(msg))
+
 

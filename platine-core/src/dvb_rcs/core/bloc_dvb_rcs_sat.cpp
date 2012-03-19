@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -47,9 +48,7 @@
 #include "sat_emulator_err.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "AtmSwitch.h"
-#include "MpegSwitch.h"
-#include "GseSwitch.h"
+#include "GenericSwitch.h"
 
 // environment plane
 #include "platine_env_plane/EnvironmentAgent_e.h"
@@ -63,8 +62,9 @@ extern T_ENV_AGENT EnvAgent;
 // BlocDVBRcsSat ctor
 BlocDVBRcsSat::BlocDVBRcsSat(mgl_blocmgr *blocmgr,
                              mgl_id fatherid,
-                             const char *name):
-	BlocDvb(blocmgr, fatherid, name),
+                             const char *name,
+                             std::map<std::string, EncapPlugin *> &encap_plug):
+	BlocDvb(blocmgr, fatherid, name, encap_plug),
 	spots()
 {
 	this->initOk = false;
@@ -172,7 +172,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 		{
 			// message from upper layer: burst of encapsulation packets
 			NetBurst *burst;
-			mgl_id spot_id;
+			uint8_t spot_id;
 			NetBurst::iterator pkt_it;
 
 			burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
@@ -184,8 +184,17 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 			for(pkt_it = burst->begin(); pkt_it != burst->end();
 			    pkt_it++)
 			{
+				SpotMap::iterator iter;
 				UTI_DEBUG("store one encapsulation packet\n");
-				spot_id = (*pkt_it)->macId();
+				spot_id = (*pkt_it)->getDstSpot();
+				iter = this->spots.find(spot_id);
+				if(iter == this->spots.end())
+				{
+					UTI_ERROR("cannot find spot with ID %u in spot list\n",
+					          spot_id);
+					status = mgl_ko;
+					break;
+				}
 				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
 				   &this->spots[spot_id]->m_dataOutStFifo,
 				   this->getCurrentTime(),
@@ -227,11 +236,11 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 
 				current_spot = i_spot->second;
 
-				UTI_DEBUG_L3("send logon frames on satellite spot %ld\n",
+				UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
 				             i_spot->first);
 				this->sendSigFrames(&current_spot->m_logonFifo);
 
-				UTI_DEBUG_L3("send control frames on satellite spot %ld\n",
+				UTI_DEBUG_L3("send control frames on satellite spot %u\n",
 				             i_spot->first);
 				this->sendSigFrames(&current_spot->m_ctrlFifo);
 
@@ -242,7 +251,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 					// standard toward ST is the emission standard
 					// toward GW (this should be reworked)
 
-					UTI_DEBUG_L3("send data frames on satellite spot %ld\n",
+					UTI_DEBUG_L3("send data frames on satellite spot %u\n",
 					             i_spot->first);
 					if(this->onSendFrames(&current_spot->m_dataOutGwFifo,
 					                      this->getCurrentTime()) != 0)
@@ -263,7 +272,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 					   &current_spot->complete_dvb_frames) != 0)
 					{
 						UTI_ERROR("failed to schedule packets "
-						          "for satellite spot %ld "
+						          "for satellite spot %u "
 						          "on regenerative satellite\n",
 						          i_spot->first);
 						status = mgl_ko;
@@ -276,7 +285,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 						{
 							UTI_ERROR("failed to build and send "
 							          "DVB/BB frames "
-							          "for satellite spot %ld "
+							          "for satellite spot %u "
 							          "on regenerative satellite\n",
 							          i_spot->first);
 							status = mgl_ko;
@@ -326,38 +335,6 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 int BlocDVBRcsSat::initMode()
 {
 	int val;
-	int encap_packet_type = PKT_TYPE_INVALID;
-
-	// read output encapsulation scheme
-	if(this->satellite_type == REGENERATIVE_SATELLITE)
-	{
-		if(this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
-		   this->down_forward_encap_scheme == ENCAP_MPEG_ULE ||
-		   this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC ||
-		   this->down_forward_encap_scheme == ENCAP_MPEG_ULE_ROHC)
-		{
-			// DVB-S2 frames encapsulate MPEG packets
-			encap_packet_type = PKT_TYPE_MPEG;
-		}
-		else if(this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
-		        this->down_forward_encap_scheme == ENCAP_GSE ||
-		        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE ||
-		        this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        this->down_forward_encap_scheme == ENCAP_GSE_ROHC ||
-		        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
-		{
-			// DVB-S2 frames encapsulate GSE packets
-			encap_packet_type = PKT_TYPE_GSE;
-		}
-		else
-		{
-			UTI_ERROR("bad value (%s) for output encapsulation "
-			          "scheme, check the value of parameter '%s' "
-			          "in section '%s'\n", this->down_forward_encap_scheme.c_str(),
-			          DOWN_FORWARD_ENCAP_SCHEME, GLOBAL_SECTION);
-			goto error;
-		}
-	}
 
 	// Delay to apply to the medium
 	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, val))
@@ -369,24 +346,46 @@ int BlocDVBRcsSat::initMode()
 	this->m_delay = val;
 	UTI_INFO("m_delay = %d", this->m_delay);
 
-	// create the emission standard
-	this->emissionStd = new DvbS2Std();
-	if(this->emissionStd == NULL)
+	if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
-		UTI_ERROR("failed to create the emission standard\n");
-		goto error;
+		// create the emission standard
+		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		if(this->emissionStd == NULL)
+		{
+			UTI_ERROR("failed to create the emission standard\n");
+			goto error;
+		}
+		// TODO modify that
+		this->emissionStd->setTalId(-1);
+
+		// create the reception standard
+		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
+		if(this->receptionStd == NULL)
+		{
+			UTI_ERROR("failed to create the reception standard\n");
+			goto release_emission;
+		}
 	}
-    this->emissionStd->setTalId(-1);
-
-	// set the encapsulation packet type for emission standard
-	this->emissionStd->setEncapPacketType(encap_packet_type);
-
-	// create the reception standard
-	this->receptionStd = new DvbRcsStd();
-	if(this->receptionStd == NULL)
+	else
 	{
-		UTI_ERROR("failed to create the reception standard\n");
-		goto release_emission;
+		// the packet_handler will depend on the case so we cannot fix it here
+		// create the emission standard
+		this->emissionStd = new DvbS2Std();
+		if(this->emissionStd == NULL)
+		{
+			UTI_ERROR("failed to create the emission standard\n");
+			goto error;
+		}
+		// TODO modify that
+		this->emissionStd->setTalId(-1);
+
+		// create the reception standard
+		this->receptionStd = new DvbRcsStd();
+		if(this->receptionStd == NULL)
+		{
+			UTI_ERROR("failed to create the reception standard\n");
+			goto release_emission;
+		}
 	}
 
 	return 0;
@@ -514,16 +513,16 @@ int BlocDVBRcsSat::initTimers()
 
 
 /**
- * Retrieves ATM/MPEG/GSE switching table entries
+ * Retrieves switching table entries
  *
  * @return  0 on success, -1 otherwise
  */
 int BlocDVBRcsSat::initSwitchTable()
 {
-	GenericSwitch *genericSwitch;
 	ConfigurationList switch_list;
 	ConfigurationList::iterator iter;
-	int i = 0;
+	GenericSwitch *generic_switch = new GenericSwitch();
+	unsigned int i;
 
 	// no need for switch in non-regenerative mode
 	if(this->satellite_type != REGENERATIVE_SATELLITE)
@@ -539,55 +538,19 @@ int BlocDVBRcsSat::initSwitchTable()
 		goto error;
 	}
 
-	if(this->up_return_encap_scheme == ENCAP_ATM_AAL5 ||
-	   this->up_return_encap_scheme == ENCAP_ATM_AAL5_ROHC)
-	{
-		genericSwitch = new AtmSwitch();
-		if(genericSwitch == NULL)
-		{
-			UTI_ERROR("cannot create the ATM switch\n");
-			goto error;
-		}
-	}
-	else if(this->up_return_encap_scheme == ENCAP_MPEG_ULE ||
-	        this->up_return_encap_scheme == ENCAP_MPEG_ULE_ROHC)
-	{
-		genericSwitch = new MpegSwitch();
-		if(genericSwitch == NULL)
-		{
-			UTI_ERROR("cannot create the MPEG2-TS switch\n");
-			goto error;
-		}
-	}
-	else if(this->up_return_encap_scheme == ENCAP_GSE ||
-	        this->up_return_encap_scheme == ENCAP_GSE_ROHC)
-	{
-		genericSwitch = new GseSwitch();
-		if(genericSwitch == NULL)
-		{
-			UTI_ERROR("cannot create the GSE switch\n");
-			goto error;
-		}
-	}
-	else
-	{
-		UTI_ERROR("section '%s': bad value '%s' for parameter '%s'\n",
-		          GLOBAL_SECTION, this->up_return_encap_scheme.c_str(),
-		          UP_RETURN_ENCAP_SCHEME);
-		goto error;
-	}
 
+	i = 0;
 	for(iter = switch_list.begin(); iter != switch_list.end(); iter++)
 	{
-		long spot_id;
-		long tal_id;
+		uint8_t spot_id = 0;
+		uint8_t tal_id = 0;
 
 		i++;
 		// get the Tal ID attribute
 		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			UTI_ERROR("problem retrieving %s in switching table"
-			          "entry %d\n", TAL_ID, i);
+			          "entry %u\n", TAL_ID, i);
 			goto release_switch;
 		}
 
@@ -595,31 +558,32 @@ int BlocDVBRcsSat::initSwitchTable()
 		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			UTI_ERROR("problem retrieving %s in switching table"
-			          "entry %d\n", SPOT_ID, i);
+			          "entry %u\n", SPOT_ID, i);
 			goto release_switch;
 		}
 
-		if(!genericSwitch->add(tal_id, spot_id))
+		if(!generic_switch->add(tal_id, spot_id))
 		{
 			UTI_ERROR("failed to add switching entry "
-			          "(Tal ID = %ld, Spot ID = %ld)\n",
+			          "(Tal ID = %u, Spot ID = %u)\n",
 			          tal_id, spot_id);
 			goto release_switch;
 		}
 
-		UTI_INFO("Switching entry added (Tal ID = %ld, "
-		         "Spot ID = %ld)\n", tal_id, spot_id);
+		UTI_INFO("Switching entry added (Tal ID = %u, "
+		         "Spot ID = %u)\n", tal_id, spot_id);
 	}
 
-	if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(genericSwitch)))
-	{
-		goto error;
-	}
+   if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(generic_switch)))
+   {
+		   goto error;
+   }
+
 
 	return 0;
 
 release_switch:
-	delete genericSwitch;
+	delete generic_switch;
 error:
 	return -1;
 }
@@ -646,7 +610,7 @@ int BlocDVBRcsSat::initSpots()
 
 	for(iter = spot_list.begin(); iter != spot_list.end(); iter++)
 	{
-		long spot_id;
+		uint8_t spot_id = 0;
 		long ctrl_id;
 		long data_in_id;
 		long data_out_gw_id;
@@ -709,7 +673,7 @@ int BlocDVBRcsSat::initSpots()
 
 		// initialize the new spot
 		// TODO: check the fact the spot we enter is not a double
-		UTI_INFO("satellite spot %ld: logon = %ld, control = %ld, "
+		UTI_INFO("satellite spot %u: logon = %ld, control = %ld, "
 		         "data out ST = %ld, data out GW = %ld\n",
 		         spot_id, log_id, ctrl_id, data_out_st_id, data_out_gw_id);
 		ret = new_spot->init(spot_id, log_id, ctrl_id,
@@ -849,6 +813,15 @@ int BlocDVBRcsSat::onInit()
  			          "initialisation");
 			goto error;
 		}
+
+		// initialize the satellite internal switch
+		if(this->initSwitchTable() != 0)
+		{
+			UTI_ERROR("failed to complete the switch part of the "
+			          "initialisation");
+			goto error;
+		}
+
 	}
 
 	// read the frame duration, the super frame duration
@@ -870,14 +843,6 @@ int BlocDVBRcsSat::onInit()
 	}
 	srand(val);
 	UTI_INFO("random seed is %d", val);
-
-	// initialize the satellite internal switch
-	if(this->initSwitchTable() != 0)
-	{
-		UTI_ERROR("failed to complete the switch part of the "
-		          "initialisation");
-		goto error;
-	}
 
 	// initialize the satellite spots
 	if(this->initSpots() != 0)
@@ -929,7 +894,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 	{
 	case MSG_TYPE_DVB_BURST:
 	{
-		/* the DVB frame contains a burst of ATM cells or MPEG packets:
+		/* the DVB frame contains a burst of packets:
 		 *  - if the satellite is a regenerative one, forward the burst to the
 		 *    encapsulation layer,
 		 *  - if the satellite is a transparent one, forward DVB burst as the
@@ -941,30 +906,14 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 
 			dvb_burst = (T_DVB_ENCAP_BURST *) frame;
 
-			switch(dvb_burst->pkt_type)
+			if(dvb_burst->pkt_type != this->up_return_pkt_hdl->getEtherType())
 			{
-				case(PKT_TYPE_ATM):
-				{
-					UTI_DEBUG("%ld %s received\n",
-					          dvb_burst->qty_element,
-					          "ATM cells");
-					break;
-				}
-				case(PKT_TYPE_MPEG):
-				{
-					UTI_DEBUG("%ld %s received\n",
-					          dvb_burst->qty_element,
-					          "MPEG packet");
-					break;
-				}
-				default:
-				{
-					// TODO: return an error
-					UTI_ERROR("Bad packet type (%d) in DVB burst",
-					          dvb_burst->pkt_type);
-					status = mgl_ko;
-				}
+				UTI_ERROR("Bad packet type (0x%.4x) in DVB burst (expecting 0x%.4x)\n",
+				          dvb_burst->pkt_type, this->up_return_pkt_hdl->getEtherType());
+				status = mgl_ko;
 			}
+			UTI_DEBUG("%ld %s packets received\n", dvb_burst->qty_element,
+			          this->up_return_pkt_hdl->getName().c_str());
 
 			// get the satellite spot from which the DVB frame comes from
 			for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
@@ -1000,11 +949,11 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 		else // else satellite_type == REGENERATIVE_SATELLITE
 		{
 			/* The satellite is a regenerative one and the DVB frame contains
-			 * a burst of ATM cells, MPEG or GSE packets:
-			 *  - extract the ATM cells/MPEG/GSE packets from the DVB frame,
-			 *  - find the destination spot ID for each ATM cell, MPEG or GSE packet
+			 * a burst:
+			 *  - extract the packets from the DVB frame,
+			 *  - find the destination spot ID for each packet
 			 *  - create a burst of encapsulation packets (NetBurst object)
-			 *    with all the ATM cells, MPEG or GSE packets extracted from the DVB frame,
+			 *    with all the packets extracted from the DVB frame,
 			 *  - send the burst to the upper layer.
 			 */
 
@@ -1027,8 +976,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 	}
 	break;
 
-	/* forward the BB frame (and the burst of MPEG/GSE packets
-	   that the frame contains) */
+	/* forward the BB frame (and the burst that the frame contains) */
 	case MSG_TYPE_BBFRAME:
 	{
 		T_DVB_BBFRAME *bbframe;
@@ -1038,7 +986,14 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 
 		bbframe = (T_DVB_BBFRAME *) frame;
 
-		UTI_DEBUG("%d MPEG or GSE packets received\n", bbframe->dataLength);
+		if(bbframe->pkt_type != this->down_forward_pkt_hdl->getEtherType())
+		{
+			UTI_ERROR("Bad packet type (0x%.4x) in BBFrame (expecting 0x%.4x)\n",
+			          bbframe->pkt_type, this->down_forward_pkt_hdl->getEtherType());
+			status = mgl_ko;
+		}
+
+		UTI_DEBUG("%d packets received\n", bbframe->dataLength);
 
 		// get the satellite spot from which the DVB frame comes from
 		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
@@ -1090,7 +1045,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			frame_copy = g_memory_pool_dvb_rcs.get(HERE());
 			if(frame_copy == NULL)
 			{
-				UTI_ERROR("[1] dvb_rcs memory pool error, aborting on spot %ld\n",
+				UTI_ERROR("[1] dvb_rcs memory pool error, aborting on spot %u\n",
 				          spot->first);
 				continue;
 			}
@@ -1121,7 +1076,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			frame_copy = g_memory_pool_dvb_rcs.get(HERE());
 			if(frame_copy == NULL)
 			{
-				UTI_ERROR("[2] dvb_rcs memory pool error, aborting on spot %ld\n",
+				UTI_ERROR("[2] dvb_rcs memory pool error, aborting on spot %u\n",
 				          spot->first);
 				continue;
 			}
@@ -1259,6 +1214,8 @@ void BlocDVBRcsSat::getProbe(NetBurst burst, dvb_fifo fifo, sat_StatBloc m_stat_
 }
 
 
+// TODO
+#if 0
 /**
  * @brief Introduce error on packet
  *
@@ -1307,6 +1264,7 @@ void BlocDVBRcsSat::errorGenerator(NetPacket * encap_packet)
 		free(buf);
 	}
 }
+#endif
 
 
 mgl_status BlocDVBRcsSat::forwardDVBFrame(dvb_fifo *sigFifo, char *ip_buf, int i_len)

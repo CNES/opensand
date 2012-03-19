@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -50,8 +51,9 @@
 /**
  * Constructor
  */
-DvbRcsDamaAgentUoR::DvbRcsDamaAgentUoR():
-	DvbRcsDamaAgentLegacy()
+DvbRcsDamaAgentUoR::DvbRcsDamaAgentUoR(EncapPlugin::EncapPacketHandler *packet,
+                                       double frame_duration):
+	DvbRcsDamaAgentLegacy(packet, frame_duration)
 {
 	// DAMA Legacy initialises everything, nothing more to do
 }

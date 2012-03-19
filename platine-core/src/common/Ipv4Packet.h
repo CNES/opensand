@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -49,9 +49,9 @@ class Ipv4Packet: public IpPacket
  protected:
 
 	/// Is the validity of the IPv4 packet already checked?
-	bool validityChecked;
+	bool validity_checked;
 	/// If IPv4 packet validity is checked, what is the result?
-	bool validityResult;
+	bool validity_result;
 
 	/**
 	 * Calculate the CRC of the IPv4 packet
@@ -86,19 +86,11 @@ class Ipv4Packet: public IpPacket
 
 	// implementation of virtual functions
 	bool isValid();
-	uint16_t totalLength();
-	uint16_t payloadLength();
-	IpAddress *destAddr();
+	uint16_t getTotalLength();
+	uint16_t getPayloadLength();
+	IpAddress *dstAddr();
 	IpAddress *srcAddr();
 	uint8_t trafficClass();
-
-	/**
-	 * Create an IPv4 packet
-	 *
-	 * @param data  raw data from which an IPv4 packet can be created
-	 * @return      the created IPv4 packet
-	 */
-	static NetPacket * create(Data data);
 
  protected:
 

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -33,13 +34,6 @@
 
 #include "DvbRcsStd.h"
 #include "assert.h"
-#include "AtmCell.h"
-#include "MpegPacket.h"
-#include "GsePacket.h"
-#if 0
-#include "DvbRcsFrame.h"
-#endif
-
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
@@ -47,8 +41,8 @@
 
 
 
-DvbRcsStd::DvbRcsStd():
-	PhysicStd("DVB-RCS")
+DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
+	PhysicStd("DVB-RCS", pkt_hdl)
 {
 	/* these values are not used here */
 	this->realModcod = 0;
@@ -64,20 +58,6 @@ DvbRcsStd::~DvbRcsStd()
 		delete this->generic_switch;
 	}
 }
-
-
-bool DvbRcsStd::setSwitch(GenericSwitch *generic_switch)
-{
-	if(generic_switch == NULL)
-	{
-		return false;
-	}
-
-	this->generic_switch = generic_switch;
-
-	return true;
-}
-
 
 int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
                                     long current_time,
@@ -113,6 +93,7 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 	{
 		NetPacket *encap_packet;
 
+		// TODO remove ?
 		// first examine the packet to be sent without removing it from the queue
 		if(elem->getType() != 1)
 		{
@@ -154,14 +135,13 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 
 		// is there enough free space in the current DVB-RCS frame
 		// for the encapsulation packet ?
-		if(encap_packet->totalLength() >
+		if(encap_packet->getTotalLength() >
 		   incomplete_dvb_frame->getFreeSpace())
 		{
 			// no more room in the current DVB-RCS frame: the
-			// encapsulation is MPEG2-TS or ATM which is of constant
-			// length (188 or 53 bytes) so we can not fragment the
-			// packet and we must complete the DVB-RCS frame with
-			// padding. So:
+			// encapsulation is of constant length so we can
+			// not fragment the packet and we must complete the
+			// DVB-RCS frame with padding. So:
 			//  - add padding to the DVB-RCS frame (not done yet)
 			//  - put the DVB-RCS frame in the list of complete frames
 			//  - use the next DVB-RCS frame
@@ -172,7 +152,7 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 			          "packet (%u bytes), pad the DVB-RCS frame "
 			          "and send it\n", cpt_frame,
 			          incomplete_dvb_frame->getFreeSpace(),
-			          encap_packet->totalLength());
+			          encap_packet->getTotalLength());
 
 			complete_dvb_frames->push_back(incomplete_dvb_frame);
 
@@ -186,7 +166,7 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 			cpt_frame++;
 
 			// is there enough free space in the next DVB-RCS frame ?
-			if(encap_packet->totalLength() >
+			if(encap_packet->getTotalLength() >
 			   incomplete_dvb_frame->getFreeSpace())
 			{
 				UTI_ERROR("DVB-RCS frame #%u got no enough "
@@ -240,11 +220,9 @@ error:
 
 int DvbRcsStd::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
 {
-	if(this->encapPacketType != PKT_TYPE_ATM &&
-	   this->encapPacketType != PKT_TYPE_MPEG)
+	if(!this->packet_handler)
 	{
-		UTI_ERROR("invalid packet type (%d) in DvbRcs class\n",
-		          this->encapPacketType);
+		UTI_ERROR("packet handler is NULL\n");
 		goto error;
 	}
 
@@ -258,7 +236,8 @@ int DvbRcsStd::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
 	// set the max size of the DVB-RCS frame, also set the type
 	// of encapsulation packets the DVB-RCS frame will contain
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketType(this->encapPacketType);
+	(*incomplete_dvb_frame)->setEncapPacketEtherType(
+								this->packet_handler->getEtherType());
 
 	return 1;
 
@@ -274,7 +253,9 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
                           NetBurst **burst)
 {
 	T_DVB_ENCAP_BURST *dvb_burst;  // DVB burst received from lower layer
-	long i;                        // counter for ATM cells/MPEG packets
+	long i;                        // counter for packets
+	size_t offset;
+	size_t previous_length = 0;
 
 	dvb_burst = (T_DVB_ENCAP_BURST *) frame;
 	if(dvb_burst->qty_element <= 0)
@@ -282,28 +263,26 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		UTI_DEBUG("skip DVB-RCS frame with no encapsulation packet\n");
 		goto skip;
 	}
+	if(!this->packet_handler)
+	{
+		UTI_ERROR("packet handler is NULL\n");
+		goto error;
+	}
+	if(packet_handler->getFixedLength() == 0)
+	{
+		UTI_ERROR("encapsulated packets length is not fixed on "
+		          "a DVB-RCS emission link (packet type is %s)\n",
+		          packet_handler->getName().c_str());
+		return false;
+	}
 
 	if(type != MSG_TYPE_DVB_BURST)
 	{
 		UTI_ERROR("the message received is not a DVB burst\n");
 		goto error;
 	}
-	switch(dvb_burst->pkt_type)
-	{
-		case(PKT_TYPE_ATM):
-			UTI_DEBUG("ATM cell burst received (%ld packet(s))\n",
-			          dvb_burst->qty_element);
-			break;
-
-		case(PKT_TYPE_MPEG):
-			UTI_DEBUG("MPEG packets burst received (%ld packet(s))\n",
-			          dvb_burst->qty_element);
-			break;
-
-		default:
-			UTI_ERROR("Bad packet type (%d) in DVB burst", dvb_burst->pkt_type);
-			goto error;
-	}
+	UTI_DEBUG("%s burst received (%ld packet(s))\n",
+	          this->packet_handler->getName().c_str(), dvb_burst->qty_element);
 
 	// create an empty burst of encapsulation packets
 	*burst = new NetBurst();
@@ -313,101 +292,52 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		goto error;
 	}
 
-	// add ATM cells/MPEG packets received from lower layer
+	// add packets received from lower layer
 	// to the newly created burst
+	offset = sizeof(T_DVB_ENCAP_BURST);
 	for(i = 0; i < dvb_burst->qty_element; i++)
 	{
-		NetPacket *packet; // one encapsulation packet
+		NetPacket *encap_packet; // one encapsulation packet
+		size_t current_length;
 
-		switch(dvb_burst->pkt_type)
+		current_length = this->packet_handler->getLength(frame + offset + previous_length);
+		// Use default values for QoS, source/destination tal_id
+		encap_packet = this->packet_handler->build(frame + offset + previous_length,
+		                                           current_length,
+		                                           0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+		previous_length += current_length;
+		if(encap_packet == NULL)
 		{
-			case(PKT_TYPE_ATM):
-				packet = new AtmCell(frame +
-				                     sizeof(T_DVB_ENCAP_BURST) +
-				                     i * AtmCell::length(),
-				                     AtmCell::length());
-				if(packet == NULL)
-				{
-					UTI_ERROR("cannot create one ATM cell\n");
-					goto release_burst;
-				}
-				break;
-
-			case(PKT_TYPE_MPEG):
-				packet = new MpegPacket(frame +
-				                        sizeof(T_DVB_ENCAP_BURST) +
-				                        i * MpegPacket::length(),
-				                        MpegPacket::length());
-				if(packet == NULL)
-				{
-					UTI_ERROR("cannot create one MPEG packet\n");
-					goto release_burst;
-				}
-				break;
-
-			default:
-				UTI_ERROR("Bad packet type (%d) in BBFrame header\n",
-				          dvb_burst->pkt_type);
-				goto release_burst;
-		}
-
-		// keep only packets for correct ST. If packet tal_id is -1 it is a GSE
-		// fragment, it will be rejected a deencapsulation layer if necessary
-		if(this->tal_id != -1 && packet->talId() != this->tal_id &&
-		   packet->talId() != -1)
-		{
-			UTI_DEBUG("packet with id %ld ignored (%ld expected), "
-			          "this should not append in transparent mode\n",
-			          packet->talId(), this->tal_id);
-			delete packet;
-			continue;
+			UTI_ERROR("cannot create one %s packet\n",
+			          this->packet_handler->getName().c_str());
+			goto release_burst;
 		}
 
 		// satellite part
 		if(this->generic_switch != NULL)
 		{
-			long spot_id;
+			uint8_t spot_id;
 
-			// find the spot ID associated to the ATM cell/MPEG packet, it will
+			// find the spot ID associated to the packet, it will
 			// be used to put the cell in right fifo after the Encap SAT bloc
-			spot_id = this->generic_switch->find(packet);
+			spot_id = this->generic_switch->find(encap_packet);
 			if(spot_id == 0)
 			{
 				UTI_ERROR("unable to find destination spot, drop the "
 				          "packet\n");
-				delete packet;
+				delete encap_packet;
 				continue;
 			}
-			if(spot_id < 0 || spot_id > 0xff)
-			{
-				UTI_ERROR("bad destination spot, drop the packet\n");
-				delete packet;
-				continue;
-			}
-
 			// associate the spot ID to the packet
-			packet->setMacId(spot_id);
+			encap_packet->setDstSpot(spot_id);
 		}
+
 
 		// add the packet to the burst of packets
-		(*burst)->add(packet);
-		switch(dvb_burst->pkt_type)
-		{
-			case(PKT_TYPE_ATM):
-				UTI_DEBUG("ATM cell (%d bytes) added to burst\n",
-				          packet->totalLength());
-				break;
-
-			case(PKT_TYPE_MPEG):
-				UTI_DEBUG("MPEG packet (%d bytes) added to burst\n",
-				          packet->totalLength());
-				break;
-
-			default:
-				UTI_ERROR("Bad packet type (%d) in DVB burst\n",
-				          dvb_burst->pkt_type);
-				goto release_burst;
-		}
+		(*burst)->add(encap_packet);
+		UTI_DEBUG("%s packet (%d bytes) added to burst\n",
+		          this->packet_handler->getName().c_str(),
+		          encap_packet->getTotalLength());
 	}
 
 skip:
@@ -421,3 +351,16 @@ error:
 	g_memory_pool_dvb_rcs.release((char *) frame);
 	return -1;
 }
+
+bool DvbRcsStd::setSwitch(GenericSwitch *generic_switch)
+{
+	if(generic_switch == NULL)
+	{
+		return false;
+	}
+
+	this->generic_switch = generic_switch;
+
+	return true;
+}
+

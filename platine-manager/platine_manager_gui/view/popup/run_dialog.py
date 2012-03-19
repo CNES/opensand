@@ -44,12 +44,13 @@ MAX_ST = 5
 
 class RunDialog(WindowView):
     """ dialog to get the scenario to load """
-    def __init__(self, scenario):
+    def __init__(self, scenario, run):
         WindowView.__init__(self, None, 'run_dialog')
 
         self._dlg = self._ui.get_widget('run_dialog')
+        self._dlg.set_keep_above(True)
         # add available runs into combo box
-        self.populate(scenario)
+        self.populate(scenario, run)
 
     def go(self):
         """ run the window """
@@ -64,31 +65,34 @@ class RunDialog(WindowView):
         """ get the run value """
         widget = self._ui.get_widget("run_box")
         model = widget.get_model()
-        active = widget.get_active()
-        if active < 0:
-            return None
-        return model[active][0]
+        active = widget.get_active_iter()
+        return model.get_value(active, 0)
 
-    def populate(self, scenario):
+    def populate(self, scenario, run):
         """ add run elements into the combo box """
         # the list of directories to ignore
-        ignore = ['sat', 'gw', 'tools']
+        ignore = ['sat', 'gw', 'tools', 'plugins']
         for i in range(MAX_ST + 1):
             ignore.append("st" + str(i))
 
+        list_id = 0
+        active_id = 0
         store = gtk.ListStore(gobject.TYPE_STRING)
         content = os.listdir(scenario)
-        for path in content:
+        for path in sorted(content):
             if os.path.isdir(os.path.join(scenario, path)) and \
                path not in ignore:
                 store.append([path])
+                if path == run:
+                    active_id = list_id
+                list_id += 1
 
         widget = self._ui.get_widget("run_box")
         widget.set_model(store)
         cell = gtk.CellRendererText()
         widget.pack_start(cell, True)
         widget.add_attribute(cell, 'text', 0)
-        widget.set_active(0)
+        widget.set_active(active_id)
 
     def close(self):
         """ close the window """

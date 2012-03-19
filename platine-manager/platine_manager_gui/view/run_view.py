@@ -103,6 +103,11 @@ class RunView(WindowView):
 
     def expose_handler(self, drawing_area, event):
         """ 'expose' event handler on drawing area """
+        self._context_graph.set_line_attributes(line_width=1,
+                                                line_style=gtk.gdk.LINE_SOLID,
+                                                cap_style=gtk.gdk.CAP_NOT_LAST,
+                                                join_style=gtk.gdk.JOIN_MITER)
+
         self._legend_y = TOP_2
         nbr_st = 0
         self._sat_x = 170

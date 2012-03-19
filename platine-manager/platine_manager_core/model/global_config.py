@@ -38,7 +38,8 @@ import os
 import shutil
 
 from platine_manager_core.model.host_advanced import AdvancedHostModel
-from platine_manager_core.my_exceptions import XmlException, ModelException
+from platine_manager_core.my_exceptions import XmlException, ModelException, \
+                                               ConfException
 from platine_manager_core.platine_xml_parser import XmlParser
 
 DEFAULT_CONF = "/usr/share/platine/core_global.conf"
@@ -53,8 +54,9 @@ class GlobalConfig(AdvancedHostModel):
         self._emission_std = ''
         self._dama = ''
         self._terminal_type = ''
-        self._down_forward_encap = ''
-        self._up_return_encap = ''
+        self._ip_options = []
+        self._down_forward_encap = {}
+        self._up_return_encap = {}
         self._frame_duration = ''
 
     def load(self, name, instance, ifaces, scenario):
@@ -103,10 +105,11 @@ class GlobalConfig(AdvancedHostModel):
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
             self._configuration.set_value(self._dama, "//dama_algorithm")
-            self._configuration.set_value(self._up_return_encap,
-                                          "//up_return_encap_scheme")
-            self._configuration.set_value(self._down_forward_encap,
-                                          "//down_forward_encap_scheme")
+            self.set_options('ip_options', self._ip_options)
+            self.set_encap('down_forward_encap_schemes',
+                           self._down_forward)
+            self.set_encap('up_return_encap_schemes',
+                           self._up_return)
             self._configuration.set_value(self._terminal_type, "//dvb_scenario")
             self._configuration.set_value(self._frame_duration,
                                           "//frame_duration")
@@ -141,22 +144,99 @@ class GlobalConfig(AdvancedHostModel):
         """ get the dama value """
         return self.get_param("dama_algorithm")
 
-    def set_up_return_encap(self, val):
-        """ set the up_return_encap_scheme value """
-        self._up_return_encap = val
+    def set_ip_options(self, options):
+        """ set the ip_options values """
+        self._ip_options = options
+
+    def get_ip_options(self):
+        """ get the ip_optionss values """
+        options = self.get_options("ip_options")
+        return options
+
+    def set_up_return_encap(self, stack):
+        """ set the up_return_encap_schemes values """
+        self._up_return = stack
 
     def get_up_return_encap(self):
-        """ get the up_return_encap_scheme value """
-        return self.get_param("up_return_encap_scheme")
+        """ get the up_return_encap_schemes values """
+        encap = self.get_encap("up_return_encap_schemes")
+        return encap
 
-    def set_down_forward_encap(self, val):
-        """ set the down_forward_encap_scheme value """
-        self._down_forward_encap = val
+    def set_down_forward_encap(self, stack):
+        """ set the down_forward_encap_schemes values """
+        self._down_forward = stack 
 
     def get_down_forward_encap(self):
-        """ get the down_forward_encap_scheme value """
-        return self.get_param("down_forward_encap_scheme")
-        #return self.get_param("down_forward_encap")
+        """ get the down_forward_encap_schemes values """
+        encap = self.get_encap("down_forward_encap_schemes")
+        return encap
+
+    def get_options(self, name):
+        """ get the IP options names """
+        table = self.get_table(name)
+        if table is None:
+            raise ConfException("cannot parse IP options")
+        options = []
+        for elt in table:
+            try:
+                # remove the NONE element
+                if elt['name'].upper() != "NONE":
+                    options.append(elt['name'])
+            except KeyError, msg:
+                raise ConfException("cannot get IP options: %s" % msg);
+        return options
+
+    def get_encap(self, name):
+        """ get the encapsulation scheme stack """
+        table = self.get_table(name)
+        if table is None:
+            raise ConfException("cannot parse encapsulation scheme")
+        encap = {}
+        for elt in table:
+            try:
+                encap[elt['pos']] = elt['encap']
+            except KeyError, msg:
+                raise ConfException("cannot get encapsulation scheme: %s" % msg)
+        return encap
+
+    def set_options(self, table_path, options):
+        """ set the IP options list """
+        table = self._configuration.get("//" + table_path)
+        if(len(options) == 0):
+            options.append("NONE")
+        while len(table) < len(options):
+            self._configuration.add_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+        while len(table) > len(options):
+            self._configuration.remove_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+
+        lines = self._configuration.get_table_elements(table)
+        idx = 0
+        for name in options:
+            path = self._configuration.get_path(lines[idx])
+            self._configuration.set_value(name, path, 'name')
+            idx += 1
+
+    def set_encap(self, table_path, stack):
+        """ set the encapsulation scheme table """
+        table = self._configuration.get("//" + table_path)
+        if(len(stack) < 1):
+            raise ConfException("empty encapsulation stack received")
+        while len(table) < len(stack):
+            self._configuration.add_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+        while len(table) > len(stack):
+            self._configuration.remove_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+
+        lines = self._configuration.get_table_elements(table)
+        idx = 0
+        for pos in sorted(stack):
+            path = self._configuration.get_path(lines[idx])
+            self._configuration.set_value(pos, path, 'pos')
+            self._configuration.set_value(stack[pos], path, 'encap')
+            idx += 1
 
     def set_terminal_type(self, val):
         """ set the terminal_type value """
@@ -188,3 +268,17 @@ class GlobalConfig(AdvancedHostModel):
     def enable(self, val=True):
         """ for compatibility with advanced dialog calls """
         self._enabled = val
+        
+    def get_table(self, name):
+        """ get a list of dictionnary containing the lines content
+            of the table """
+        content = []
+        table = self._configuration.get("//" + name)
+        if table is None or not self._configuration.is_table(table):
+            return None
+        lines = self._configuration.get_table_elements(table)
+        for line in lines:
+            elt = self._configuration.get_element_content(line)
+            content.append(elt)     
+        return content
+        

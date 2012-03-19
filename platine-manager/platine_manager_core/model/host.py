@@ -93,8 +93,12 @@ class HostModel:
     def reload_conf(self, scenario):
         """ reload the host configuration """
         try:
-            self._advanced.load(self._name, self._instance,
-                                self._ifaces, scenario)
+            if not self._advanced:
+                self._advanced = AdvancedHostModel(self._name, self._instance,
+                                                   self._ifaces, scenario)
+            else:
+                self._advanced.load(self._name, self._instance,
+                                    self._ifaces, scenario)
         except ModelException as error:
             self._log.warning("%s: %s" % (self._name.upper(), error))
 

@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -38,8 +38,6 @@
 #include <platine_margouilla/mgl_memorypool.h>
 #include <Data.h>
 
-#include "config.h"
-
 #include <string>
 #include <stdint.h>
 #include <syslog.h>
@@ -57,7 +55,7 @@
 #define NET_PROTO_ATM   0x0601
 /// Network protocol ID for AAL5
 #define NET_PROTO_AAL5  0x0602
-/// Network protocol ID for MPEG2-TS
+/// Network protocol ID for MPEG-2 TS
 // TODO when GSE library supports extensions,
 // use the MPEG-2 TS-Concat Extension value
 // as defined in RFC 5163 (§ 3.1)
@@ -85,69 +83,40 @@ class NetPacket
  protected:
 
 	/// Internal buffer for packet data
-	Data _data;
+	Data data;
 
 	/// The name of the network protocol
-	std::string _name;
+	std::string name;
 	/// The type of network protocol
-	uint16_t _type;
+	uint16_t type;
+	/// The packet QoS
+	uint8_t qos;
+	/// The packet source TalId
+	uint8_t src_tal_id;
+	/// The packet destination TalID
+	uint8_t dst_tal_id;
+	/// The destination spot ID
+	uint8_t dst_spot;
+	/// The packet header length
+	size_t header_length;
 
 	/// Pool of memory for network packets
 	static mgl_memory_pool mempool;
 
  public:
 
-#if MEMORY_POOL
-	inline void *operator new(size_t size) throw()
-	{
-		if((int) size > NetPacket::mempool._memBlocSize)
-		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
-			       "while only %ld is available", size,
-			       NetPacket::mempool._memBlocSize);
-			return NULL;
-		}
-		else
-		{
-			return NetPacket::mempool.get("NetPacket::new", size);
-		}
-	}
-
-	inline void *operator new[](size_t size) throw()
-	{
-		if((int) size > NetPacket::mempool._memBlocSize)
-		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
-			       "while only %ld is available", size,
-			       NetPacket::mempool._memBlocSize);
-			return NULL;
-		}
-		else
-		{
-			return NetPacket::mempool.get("NetPacket::new[]", size);
-		}
-	}
-
-	inline void operator delete(void *p) throw()
-	{
-		mempool.release((char *) p);
-	}
-
-	inline void operator delete[](void *p) throw()
-	{
-		mempool.release((char *) p);
-	}
-#endif
-
-
- public:
+	void *operator new(size_t size) throw();
+	void *operator new[](size_t size) throw();
+	void operator delete(void *p) throw();
+	void operator delete[](void *p) throw();
 
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetPacket(unsigned char *data, unsigned int length);
+	NetPacket(unsigned char *data, size_t length);
+
 
 	/**
 	 * Build a network-layer packet
@@ -160,6 +129,28 @@ class NetPacket
 	 */
 	NetPacket();
 
+ public:
+	
+	/**
+	 * Build a network-layer packet initialized
+	 * @param data              raw data from which a network-layer packet can be created
+	 * @param length            length of raw data
+	 * @param name              the name of the network protocol
+	 * @param type              the type of the network protocol
+	 * @param qos               the QoS value to associate with the packet
+	 * @param src_tal_id        the source terminal ID to associate with the packet
+	 * @param dst_tal_id        the destination terminal ID to associate with the packet
+	 * @param header_length     the header length of the packet
+	 */
+	NetPacket(unsigned char *data,
+	          size_t length,
+	          std::string name,
+	          uint16_t type,
+	          uint8_t qos,
+	          uint8_t src_tal_id,
+	          uint8_t dst_tal_id,
+	          size_t header_length);
+
 	/**
 	 * Destroy the network-layer packet
 	 */
@@ -168,90 +159,76 @@ class NetPacket
 	/**
 	 * Add trace in memory pool in order to debug memory allocation
 	 */
+	// TODO use it in plugins !
 	void addTrace(std::string name_function);
-
-	/**
-	 * Is the network-layer packet a valid one?
-	 * @return true if network-layer packet is valid, false otherwise
-	 */
-	virtual bool isValid() = 0;
 
 	/**
 	 * Get the QoS associated with the packet
 	 * @return the QoS associated with the packet
 	 */
-	virtual int qos() = 0;
+	virtual uint8_t getQos();
 
 	/**
-	 * Associate a QoS with the packet
-	 * @param qos the QoS to associate with the packet
+	 * Get the source TAL id associated with the packet
+	 * @return the source TAL id associated with the packet
 	 */
-	virtual void setQos(int qos) = 0;
+	virtual uint8_t getSrcTalId();
 
 	/**
-	 * Get the MAC id associated with the packet
-	 * @return the MAC id associated with the packet
+	 * Get the destination TAL id associated with the packet
+	 * @return the destination TAL id associated with the packet
 	 */
-	virtual unsigned long macId() = 0;
-
-	/**
-	 * Associate a MAC id with the packet
-	 * @param macId the MAC id to associate with packet
-	 */
-	virtual void setMacId(unsigned long macId) = 0;
-
-	/**
-	 * Get the TAL id associated with the packet
-	 * @return the TAL id associated with the packet
-	 */
-	virtual long talId() = 0;
-
-	/**
-	 * Associate a TAL id with the packet
-	 * @param talId the TAL id to associate with packet
-	 */
-	virtual void setTalId(long talId) = 0;
+	virtual uint8_t getDstTalId();
 
 	/**
 	 * Get the name of the network protocol
 	 * @return the name of the network protocol
 	 */
-	std::string name();
+	std::string getName();
 
 	/**
 	 * Get the type of network protocol
 	 * @return the type of network protocol
 	 */
-	uint16_t type();
+	uint16_t getType();
 
 	/**
 	 * Retrieve the total length of the packet
 	 * @return the total length of the packet
 	 */
-	virtual uint16_t totalLength() = 0;
+	virtual uint16_t getTotalLength();
 
 	/**
 	 * Get a copy of the raw packet data
 	 * @return a copy of the raw packet data
 	 */
-	Data data();
+	Data getData();
 
 	/**
 	 * Retrieve the length of the packet payload
 	 * @return the length of the packet payload
 	 */
-	virtual uint16_t payloadLength() = 0;
+	virtual uint16_t getPayloadLength();
 
 	/**
 	 * Retrieve the payload of the packet
 	 * @return the payload of the packet
 	 */
-	virtual Data payload() = 0;
+	virtual Data getPayload();
 
 	/**
-	 * Set a packet type (only used for GSE with ROHC)
+	 * Set the destination spot ID
+	 *
+	 * @param spot_id  The destination spot id
 	 */
-	virtual void setType(uint16_t type);
+	void setDstSpot(uint8_t spot_id);
+
+	/**
+	 * Get the destination spot ID
+	 *
+	 * @return the destinatioj spot ID
+	 */
+	uint8_t getDstSpot();
 
 };
 

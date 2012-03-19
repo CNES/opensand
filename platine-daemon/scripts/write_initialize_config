@@ -15,6 +15,7 @@ SERVICE_INSTANCE=1
 SERVICE_IDENTIFIER=''
 SERVICE_PORT=3141
 SERVICE_TOOLS=''
+SERVICE_MODULES=''
 COMMAND_PORT=5926
 STATE_PORT=5358
 EMU_IFACE='eth0'
@@ -39,6 +40,8 @@ read_conf(){
     SERVICE_PORT=$RET
     db_get platine-daemon/service/tools
     SERVICE_TOOLS=$RET
+    db_get platine-daemon/service/modules
+    SERVICE_MODULES=$RET
     db_get platine-daemon/command/port
     COMMAND_PORT=$RET
     db_get platine-daemon/state/port
@@ -73,6 +76,9 @@ write_conf(){
     if [ -n "${SERVICE_TOOLS}" ]; then
         echo "tools  = ${SERVICE_TOOLS}" >> ${DAEMON_CONF}
     fi
+    if [ -n "${SERVICE_MODULES}" ]; then
+        echo "modules  = ${SERVICE_MODULES}" >> ${DAEMON_CONF}
+    fi
     echo "" >> ${DAEMON_CONF}
     # command section
     echo "[command]" >> ${DAEMON_CONF}
@@ -83,12 +89,12 @@ write_conf(){
     echo "" >> ${DAEMON_CONF}
     # network section
     echo "[network]" >> ${DAEMON_CONF}
-    if [ ${SERVICE_TYPE} != 'ws' ]; then
+    if [ ${SERVICE_NAME} != 'ws' ]; then
         echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
         echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
         echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
     fi
-    if [ ${SERVICE_TYPE} != 'sat' ]; then
+    if [ ${SERVICE_NAME} != 'sat' ]; then
         echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
         echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
         echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}

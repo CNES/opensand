@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -42,26 +43,23 @@
 BBFrame::BBFrame(unsigned char *data, unsigned int length):
 	DvbFrame(data, length)
 {
-	this->_name = "BB frame";
+	this->name = "BB frame";
 	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 }
 
 BBFrame::BBFrame(Data data):
 	DvbFrame(data)
 {
-	this->_name = "BB frame";
+	this->name = "BB frame";
 	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 }
 
 BBFrame::BBFrame(BBFrame *frame):
 	DvbFrame(frame)
 {
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 }
 
 BBFrame::BBFrame():
@@ -69,10 +67,9 @@ BBFrame::BBFrame():
 {
 	T_DVB_BBFRAME header;
 
-	this->_name = "BB frame";
+	this->name = "BB frame";
 	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->_data.reserve(this->max_size);
-	this->_packet_type = PKT_TYPE_INVALID;
+	this->data.reserve(this->max_size);
 
 	// no data given as input, so create the BB header
 	header.hdr.msg_length = sizeof(T_DVB_BBFRAME);
@@ -80,23 +77,23 @@ BBFrame::BBFrame():
 	header.dataLength = 0; // no encapsulation packet at the beginning
 	header.usedModcod = 0; // by default, may be changed
 	header.list_realModcod_size = 0; // no MODCOD option at the beginning
-	this->_data.append((unsigned char *) &header, sizeof(T_DVB_BBFRAME));
+	this->data.append((unsigned char *) &header, sizeof(T_DVB_BBFRAME));
 }
 
 BBFrame::~BBFrame()
 {
 }
 
-uint16_t BBFrame::payloadLength()
+uint16_t BBFrame::getPayloadLength()
 {
 	// TODO: substract the size of the MODCOD options here ?
-	return (this->totalLength() - sizeof(T_DVB_BBFRAME));
+	return (this->getTotalLength() - sizeof(T_DVB_BBFRAME));
 }
 
-Data BBFrame::payload()
+Data BBFrame::getPayload()
 {
 	// TODO: handle the size of the MODCOD options here ?
-	return Data(this->_data, sizeof(T_DVB_BBFRAME), this->payloadLength());
+	return Data(this->data, sizeof(T_DVB_BBFRAME), this->getPayloadLength());
 }
 
 bool BBFrame::addPacket(NetPacket *packet)
@@ -108,10 +105,10 @@ bool BBFrame::addPacket(NetPacket *packet)
 	{
 		T_DVB_BBFRAME bb_header;
 
-		memcpy(&bb_header, this->_data.c_str(), sizeof(T_DVB_BBFRAME));
-		bb_header.hdr.msg_length += packet->totalLength();
+		memcpy(&bb_header, this->data.c_str(), sizeof(T_DVB_BBFRAME));
+		bb_header.hdr.msg_length += packet->getTotalLength();
 		bb_header.dataLength++;
-		this->_data.replace(0, sizeof(T_DVB_BBFRAME),
+		this->data.replace(0, sizeof(T_DVB_BBFRAME),
 		                    (unsigned char *) &bb_header,
 		                    sizeof(T_DVB_BBFRAME));
 	}
@@ -124,15 +121,15 @@ void BBFrame::empty(void)
 	T_DVB_BBFRAME bb_header;
 
 	// remove the payload
-	this->_data.erase(sizeof(T_DVB_BBFRAME));
+	this->data.erase(sizeof(T_DVB_BBFRAME));
 	this->num_packets = 0;
 
 	// update the BB frame header
-	memcpy(&bb_header, this->_data.c_str(), sizeof(T_DVB_BBFRAME));
+	memcpy(&bb_header, this->data.c_str(), sizeof(T_DVB_BBFRAME));
 	bb_header.hdr.msg_length = sizeof(T_DVB_BBFRAME);
 	bb_header.dataLength = 0; // no encapsulation packet at the beginning
 	bb_header.list_realModcod_size = 0; // no MODCOD option at the beginning
-	this->_data.replace(0, sizeof(T_DVB_BBFRAME),
+	this->data.replace(0, sizeof(T_DVB_BBFRAME),
 	                    (unsigned char *) &bb_header,
 	                    sizeof(T_DVB_BBFRAME));
 }
@@ -141,7 +138,7 @@ unsigned int BBFrame::getModcodId(void)
 {
 	T_DVB_BBFRAME bb_header;
 
-	memcpy(&bb_header, this->_data.c_str(), sizeof(T_DVB_BBFRAME));
+	memcpy(&bb_header, this->data.c_str(), sizeof(T_DVB_BBFRAME));
 
 	return bb_header.usedModcod;
 }
@@ -150,27 +147,21 @@ void BBFrame::setModcodId(unsigned int modcod_id)
 {
 	T_DVB_BBFRAME bb_header;
 
-	memcpy(&bb_header, this->_data.c_str(), sizeof(T_DVB_BBFRAME));
+	memcpy(&bb_header, this->data.c_str(), sizeof(T_DVB_BBFRAME));
 	bb_header.usedModcod = modcod_id;
-	this->_data.replace(0, sizeof(T_DVB_BBFRAME),
+	this->data.replace(0, sizeof(T_DVB_BBFRAME),
 	                    (unsigned char *) &bb_header,
 	                    sizeof(T_DVB_BBFRAME));
 }
 
-void BBFrame::setEncapPacketType(int type)
+void BBFrame::setEncapPacketEtherType(uint16_t type)
 {
 	T_DVB_BBFRAME bbframe_burst;
 
-	this->_packet_type = (t_pkt_type)type;
-
-	memcpy(&bbframe_burst, this->_data.c_str(), sizeof(T_DVB_BBFRAME));
+	memcpy(&bbframe_burst, this->data.c_str(), sizeof(T_DVB_BBFRAME));
 	bbframe_burst.pkt_type = type;
-	this->_data.replace(0, sizeof(T_DVB_BBFRAME),
+	this->data.replace(0, sizeof(T_DVB_BBFRAME),
 	                    (unsigned char *) &bbframe_burst,
 	                    sizeof(T_DVB_BBFRAME));
 }
 
-t_pkt_type BBFrame::getEncapPacketType()
-{
-	return this->_packet_type;
-}

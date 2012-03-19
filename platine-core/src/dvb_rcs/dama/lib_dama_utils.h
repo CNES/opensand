@@ -52,7 +52,7 @@ class DU_Converter
 {
  protected:
 
-	int CellSize;      ///< UL ATM cells size, in bytes
+	int CellSize;      ///< UL packet size, in bytes
 	int FrameDuration; ///< UL frame duration, in ms
 	double KbitsToCellsPerSecRatio;
 	double KbitsToCellsPerFrameRatio;

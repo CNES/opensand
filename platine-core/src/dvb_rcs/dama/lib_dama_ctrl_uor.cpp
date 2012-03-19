@@ -110,6 +110,7 @@ int DvbRcsDamaCtrlUoR::init(long carrier_id,
 			int draTs;
 
 			// bDra [Mhz]
+			// TODO remove ATM_CELL from here !!
 			bDra = dra_scheme_def->getSymbolRate() * 1.5 * 0.001;
 			draTs = (int) (dra_scheme_def->getBitRate() * frame_duration *
 			               0.001 / ATM_CELL / 8 * 0.82025 * 1000);

@@ -158,6 +158,7 @@ def publish_service():
         # instance section found, add the information to description
         descr['id'] = instance
 
+    # add supported tools
     try:
         tools = CONF_PARSER.get('service', 'tools')
     except ConfigParser.Error:
@@ -166,6 +167,14 @@ def publish_service():
         # tools section found, add the information to description
         descr['tools'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
 
+    # add supported plugins
+    try:
+        tools = CONF_PARSER.get('service', 'modules')
+    except ConfigParser.Error:
+        pass
+    else:
+        # modules section found, add the information to description
+        descr['modules'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
 
     # TODO launch the script to modify the IP address according to name and instance
     #      (a l'installation du package plutot)
@@ -269,7 +278,7 @@ if __name__ == "__main__":
     LOG_HANDLER.setFormatter(FORMATTER)
     ROOT_LOGGER.addHandler(LOG_HANDLER)
 
-    ROOT_LOGGER.setLevel(logging.DEBUG)
+    ROOT_LOGGER.setLevel(logging.INFO)
 
     # Get configuration filename if it is given
     if(len(sys.argv) > 1):

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -69,6 +70,7 @@
 #include "bloc_encap_sat.h"
 #include "bloc_dvb_rcs_sat.h"
 #include "bloc_sat_carrier.h"
+#include "PluginUtils.h"
 
 // environment plane include
 #include "platine_env_plane/EnvironmentAgent_e.h"
@@ -154,6 +156,9 @@ int main(int argc, char **argv)
 	BlocDVBRcsSat *blocDVBRcsSat;
 	BlocEncapSat *blocEncapSat;
 	BlocSatCarrier *blocSatCarrier;
+	PluginUtils utils;
+
+	std::map<std::string, EncapPlugin *> encap_plug;
 
 	int is_failure = 1;
 
@@ -218,21 +223,30 @@ int main(int argc, char **argv)
 	MGL_TRACE_SET_LEVEL(0);		  // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
+	// load the encapsulation plugins
+	if(!utils.loadEncapPlugins(encap_plug))
+	{
+		UTI_ERROR("%s: cannot load the encapsulation plugins\n", progname);
+		goto destroy_blocmgr;
+	}
+
 	// instantiate all blocs
-	blocDVBRcsSat = new BlocDVBRcsSat(blocmgr, 0, "DVBRcsSat");
+	blocDVBRcsSat = new BlocDVBRcsSat(blocmgr, 0, "DVBRcsSat",
+	                                  encap_plug);
 	if(blocDVBRcsSat == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DVBRcsSat bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	if(satellite_type == REGENERATIVE_SATELLITE)
 	{
-		blocEncapSat = new BlocEncapSat(blocmgr, 0, "EncapSat");
+		blocEncapSat = new BlocEncapSat(blocmgr, 0, "EncapSat",
+		                                encap_plug);
 		if(blocEncapSat == NULL)
 		{
 			UTI_ERROR("%s: cannot create the EncapSat bloc\n", progname);
-			goto destroy_blocmgr;
+			goto release_plugins;
 		}
 
 		blocEncapSat->setLowerLayer(blocDVBRcsSat->getId());
@@ -244,7 +258,7 @@ int main(int argc, char **argv)
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	// blocs communication
@@ -274,6 +288,8 @@ int main(int argc, char **argv)
 	is_failure = 0;
 
 	// cleanup when SAT stops
+release_plugins:
+	utils.releaseEncapPlugins();
 destroy_blocmgr:
 	delete blocmgr; /* destroy the bloc manager and all the blocs */
 destroy_eventmgr:

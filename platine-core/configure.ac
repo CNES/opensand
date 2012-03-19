@@ -45,16 +45,6 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found!])])
 
 
-# check for ROHC library path
-#PKG_CHECK_MODULES([PLATINE_ROHC], [rohc >= 1.3.1])
-#LIBS="$PLATINE_ROHC_LIBS $LIBS"
-#CFLAGS="$PLATINE_ROHC_CFLAGS $CFLAGS"
-
-# check for gse library
-PKG_CHECK_MODULES([PLATINE_GSE], [gse >= 1.0.0])
-LIBS="$PLATINE_GSE_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$PLATINE_GSE_CFLAGS $AM_CPPFLAGS")
-
 # check for platine-conf library
 PKG_CHECK_MODULES([PLATINE_CONF], [platine_conf >= 3.0.0])
 LIBS="$PLATINE_CONF_LIBS $LIBS"
@@ -72,14 +62,6 @@ echo "$AM_CPPFLAGS"
 AC_SUBST(AM_CPPFLAGS, "$PLATINE_MARGOUILLA_CFLAGS $AM_CPPFLAGS")
 
 
-#check if Ule security is enable
-AC_ARG_ENABLE(ule_security, [  --enable-ule-security   enable ULE security  [[default=no]]], enable_ule_security=$enableval, enable_ule_security=no)
-AM_CONDITIONAL(ule_security, [test "$enable_ule_security" = "yes"])
-if test "$enable_ule_security" = "yes" ; then
-  AC_CHECK_HEADERS([cryptopp/arc4.h], [], [AC_MSG_ERROR([cryptopp/arc4.h header not found!])])
-  AC_CHECK_LIB(cryptopp, ARC4, [], [AC_MSG_ERROR([symbol ARC4 not found in libcryptopp!])])
-fi
-
 # check if memory pool is enabled
 AC_ARG_ENABLE(memory_pool,
               AS_HELP_STRING([--enable-memory-pool],
@@ -96,7 +78,7 @@ AC_DEFINE_UNQUOTED([MEMORY_POOL], [$memory_pool], [Whether memory pool is enable
 AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall -Werror -DUTI_DEBUG_ON")
 
 # Install binaries and libraries in usr/bin
-AC_PREFIX_DEFAULT("/usr")
+#AC_PREFIX_DEFAULT("/usr")
 
 AM_DEP_TRACK
 
@@ -113,17 +95,19 @@ AC_CONFIG_FILES([ \
 	src/common/tests/Makefile \
 	src/dvb_rcs/Makefile \
 	src/dvb_rcs/utils/Makefile \
-	src/dvb_rcs/switch/Makefile \
 	src/dvb_rcs/pep/Makefile \
 	src/dvb_rcs/dra/Makefile \
 	src/dvb_rcs/modcod/Makefile \
 	src/dvb_rcs/dama/Makefile \
+	src/dvb_rcs/switch/Makefile \
 	src/dvb_rcs/core/Makefile \
 	src/encap/Makefile \
 	src/qos_data/Makefile \
 	src/sat_carrier/Makefile \
 	src/system/Makefile \
 	src/tun_interface/Makefile \
+    conf/Makefile \
+	platine_encap_plugin.pc
 	doc/doxygen \
 ])
 

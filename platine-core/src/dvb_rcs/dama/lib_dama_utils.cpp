@@ -35,7 +35,7 @@
 
 /*
  * @param Duration is the Frame duration in ms
- * @param Size is the UL ATM cell size in bytes
+ * @param Size is the UL packet size in bytes
  */
 DU_Converter::DU_Converter(int Duration, int Size)
 {

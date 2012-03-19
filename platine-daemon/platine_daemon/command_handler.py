@@ -214,8 +214,12 @@ class CommandHandler(MyTcpHandler):
             process.poll()
             MyTcpHandler._stop.wait(1)
 
+
         if process.returncode is None:
+            LOGGER.error("kill test because it was not stopped")
             process.kill()
+
+        process.wait()
 
         if not MyTcpHandler._stop.is_set():
             out, err = process.communicate()

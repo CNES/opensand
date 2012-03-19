@@ -74,18 +74,14 @@ void BlocIPQoS::getConfig()
 
 	UTI_DEBUG_LEVEL(1); // used only if not set in conf file
 
-	// Satellite Type (for GW)
-	if(this->_host_name == "GW")
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+							  this->_satellite_type))
 	{
-		if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-		                          this->_satellite_type))
-		{
-			UTI_ERROR(KEY_MISSING, GLOBAL_SECTION, SATELLITE_TYPE);
-			exit(1);
-		}
-		UTI_INFO("%s: satellite type = %s\n", FUNCNAME,
-		         this->_satellite_type.c_str());
+		UTI_ERROR(KEY_MISSING, GLOBAL_SECTION, SATELLITE_TYPE);
+		exit(1);
 	}
+	UTI_INFO("%s: satellite type = %s\n", FUNCNAME,
+			 this->_satellite_type.c_str());
 	// Service classes
 	if(!globalConfig.getNbListItems(SECTION_CLASS, CLASS_LIST, nb))
 	{
@@ -283,7 +279,6 @@ void BlocIPQoS::initSarpTables()
 	int i;
 
 	long int tal_id;
-	long int spot_id;
 	int mask;
 	IpAddress *ip_addr;
 
@@ -327,21 +322,12 @@ void BlocIPQoS::initSarpTables()
 			          TAL_ID, i);
 			continue;
 		}
-		// get the spot ID
-		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
-		{
-			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
-			          SPOT_ID, i);
-			continue;
-		}
-
 		ip_addr = new Ipv4Address(ipv4_addr);
 
-		UTI_DEBUG("%s: %s/%d -> spot %ld -> tal id %ld \n", FUNCNAME,
-		          ip_addr->str().c_str(), mask, spot_id, tal_id);
+		UTI_DEBUG("%s: %s/%d -> tal id %ld \n", FUNCNAME,
+		          ip_addr->str().c_str(), mask, tal_id);
 
-		this->sarpTable.add(ip_addr, mask, spot_id ,tal_id);
+		this->sarpTable.add(ip_addr, mask, tal_id);
 	} // for all IPv4 entries
 
 	// IPv6 SARP table
@@ -382,21 +368,13 @@ void BlocIPQoS::initSarpTables()
 			          TAL_ID, i);
 			continue;
 		}
-		// get the spot ID
-		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
-		{
-			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
-			          SPOT_ID, i);
-			continue;
-		}
 
 		ip_addr = new Ipv6Address(ipv6_addr);
 
-		UTI_DEBUG("%s: %s/%d -> spot %ld -> tal id %ld \n", FUNCNAME,
-		          ip_addr->str().c_str(), mask, spot_id, tal_id);
+		UTI_DEBUG("%s: %s/%d -> tal id %ld \n", FUNCNAME,
+		          ip_addr->str().c_str(), mask, tal_id);
 
-		this->sarpTable.add(ip_addr, mask, spot_id ,tal_id);
+		this->sarpTable.add(ip_addr, mask, tal_id);
 	} // for all IPv6 entries
 }
 

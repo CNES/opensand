@@ -42,6 +42,7 @@ def error_popup(error, text = ''):
                                gtk.MESSAGE_ERROR,
                                gtk.BUTTONS_CLOSE,
                                error)
+    dialog.set_keep_above(True)
     dialog.format_secondary_text(text)
     dialog.set_title("Error - Platine Manager")
     dialog.set_icon_name('gtk-dialog-error')
@@ -60,6 +61,7 @@ def yes_no_popup(question, title, icon):
                                gtk.MESSAGE_WARNING,
                                gtk.BUTTONS_YES_NO,
                                question)
+    dialog.set_keep_above(True)
     dialog.set_title(title)
     dialog.set_icon_name(icon)
     ret = dialog.run()

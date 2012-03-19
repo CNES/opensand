@@ -42,15 +42,15 @@ GenericSwitch::~GenericSwitch()
 {
 }
 
-bool GenericSwitch::add(long tal_id, long spot_id)
+bool GenericSwitch::add(uint8_t tal_id, uint8_t spot_id)
 {
 	bool success = false;
-	std::map <long, long >::iterator it =  this->switch_table.find(tal_id);
+	std::map <uint8_t, uint8_t >::iterator it =  this->switch_table.find(tal_id);
 
 	if(it == this->switch_table.end())
 	{
 		// switch entry does not exist yet
-		std::pair < std::map < long, long >::iterator, bool > infos;
+		std::pair < std::map < uint8_t, uint8_t >::iterator, bool > infos;
 		infos = this->switch_table.insert(std::make_pair(tal_id, spot_id));
 
 		if(!infos.second)
@@ -62,3 +62,20 @@ bool GenericSwitch::add(long tal_id, long spot_id)
 quit:
 	return success;
 }
+
+uint8_t GenericSwitch::find(NetPacket *packet)
+{
+	std::map < uint8_t, uint8_t >::iterator it;
+	uint8_t spot_id = 0;
+
+  	if(packet == NULL)
+		return spot_id;
+
+  	it = this->switch_table.find(packet->getDstTalId());
+
+	if(it != this->switch_table.end())
+		spot_id = (*it).second;
+
+	return spot_id;
+}
+

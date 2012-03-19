@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -78,7 +78,8 @@ class BlocDvb: public mgl_bloc
 
 	/// Class constructor
 	/// Use mgl_bloc default constructor
-	BlocDvb(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name);
+	BlocDvb(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
+	        std::map<std::string, EncapPlugin *> &encap_plug);
 
 	~BlocDvb();
 
@@ -112,13 +113,13 @@ class BlocDvb: public mgl_bloc
 	/// the satellite type (regenerative o transparent)
 	string satellite_type;
 
-	/// the up/return link encapsulation scheme
+/*	/// the up/return link encapsulation scheme
 	string up_return_encap_scheme;
 
 	/// the down/forward link encapsulation scheme
-	string down_forward_encap_scheme;
+	string down_forward_encap_scheme;*/
 
-	/// the DAMA algoruthpm
+	/// the DAMA algorithpm
 	string dama_algo;
 
 	/// the frame duration
@@ -132,6 +133,16 @@ class BlocDvb: public mgl_bloc
 
 	/// the scenario refresh interval
 	int dvb_scenario_refresh;
+
+	/// The encapsulation plugins
+	std::map<std::string, EncapPlugin *> &encap_plug;
+
+	/// The up/return link encapsulation packet
+	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
+
+	/// The down/forward link encapsulation packet
+	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
+	
 };
 
 #endif

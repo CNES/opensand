@@ -76,7 +76,7 @@ int DvbRcsDamaCtrlLegacy::runDama()
 {
 	// Computed values
 	int remaining_capacity;   // the total number of valid timeslot after an allocation step
-	int total_capacity;       // the total number of atm cell to allocate
+	int total_capacity;       // the total number of packets to allocate
 	int rbdc_request_number;  // the number of RBDC requests
 	int vbdc_request_number;  // the number of VBDC requests
 	int rbdc_request_sum;     // RBDC requests sum

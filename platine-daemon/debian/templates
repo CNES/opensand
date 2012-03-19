@@ -56,6 +56,11 @@ Type: string
 Description: The tools supported by the host
   This section is empty, it shall be filled by tools packages
 
+Template: platine-daemon/service/modules
+Type: string
+Description: The modules supported by the host
+  This section is empty, it shall be filled by modules packages
+
 Template: platine-daemon/network/emu_iface
 Type: string
 Default: eth0

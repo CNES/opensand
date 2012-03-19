@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -58,9 +58,6 @@ class DvbFrame: public NetPacket
 	/** The carrier Id */
 	long carrier_id;
 
-	/** The type of packets carried by the frame */
-	t_pkt_type _packet_type;
-
  public:
 
 	/**
@@ -97,15 +94,7 @@ class DvbFrame: public NetPacket
 
 
 	// implementation of virtual functions
-	bool isValid();
-	uint16_t totalLength();
-	int qos();
-	void setQos(int qos);
-	unsigned long macId();
-	void setMacId(unsigned long macId);
-	long talId();
-	void setTalId(long talId);
-
+	uint16_t getTotalLength();
 
 	// functions dedicated to DVB frames
 
@@ -160,18 +149,10 @@ class DvbFrame: public NetPacket
 	/**
 	 * Set the type of encapsulation packets stored in the frame
 	 *
-	 * @param type  the type of encapsulation packets
-	 *              (PKT_TYPE_{ATM, MPEG, GSE})
+	 * @param type  the EtherType of the encapsulated packets
 	 */
-	virtual void setEncapPacketType(int type) = 0;
+	virtual void setEncapPacketEtherType(uint16_t type) = 0;
 
-	/**
-	 * Set the type of encapsulation packets stored in the frame
-	 *
-	 * @return the type of encapsulation packets
-	 *         (PKT_TYPE_{ATM, MPEG, GSE})
-	 */
-	virtual t_pkt_type getEncapPacketType() = 0;
 };
 
 #endif

@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -56,7 +56,6 @@
 using namespace std;
 
 #include "bloc_dvb.h"
-#include "GenericSwitch.h"
 #include "SatSpot.h"
 
 
@@ -96,7 +95,8 @@ class BlocDVBRcsSat: public BlocDvb
 
  public:
 
-	BlocDVBRcsSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name);
+	BlocDVBRcsSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+	              std::map<std::string, EncapPlugin *> &encap_plug);
 	~BlocDVBRcsSat();
 
 	/// Get the satellite type
@@ -138,7 +138,6 @@ class BlocDVBRcsSat: public BlocDvb
 
 	/// update the probes
 	void getProbe(NetBurst burst, dvb_fifo fifo, sat_StatBloc m_stat_fifo);
-
 };
 
 #endif

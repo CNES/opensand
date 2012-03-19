@@ -48,6 +48,7 @@ class ToolEvent(ToolView):
     """ Events for the tool tab """
     def __init__(self, parent, model, manager_log):
         ToolView.__init__(self, parent, model, manager_log)
+        self._refresh_tool_tree = None
 
     def close(self):
         """ close tool tab """
@@ -67,19 +68,23 @@ class ToolEvent(ToolView):
             self._refresh_tool_tree = gobject.timeout_add(1000,
                                                           self.update_tool_tree)
 
-    def on_tool_select(self, selection):
+    def on_selection(self, selection):
         """ callback called when a tool is selected """
         (tree, iterator) = selection.get_selected()
         if iterator is None:
             self._desc_txt.set_markup('')
             self._config_view.hide_all()
             return
-
+        
         if tree.iter_parent(iterator) == None:
             start = "<span size='x-large' foreground='#1088EB'><b>"
             end = "</b></span>"
+            # modules
+            if tree.get_value(iterator, TEXT) == 'Plugins':
+                self._desc_txt.set_markup("%sDeploy to see available modules%s"
+                                          % (start, end))
             # host
-            if not tree.iter_has_child(iterator):
+            elif not tree.iter_has_child(iterator):
                 self._desc_txt.set_markup("%sThis host has no available "
                                           "tool%s" % (start, end))
             else:
@@ -88,33 +93,63 @@ class ToolEvent(ToolView):
 
             self._config_view.hide_all()
         else:
-            tool_name = tree.get_value(iterator, TEXT).lower()
-            host_name = tree.get_value(tree.iter_parent(iterator), TEXT)
-            host = self._model.get_host(host_name.lower())
+            name = tree.get_value(iterator, TEXT)
+            if name in self._modules:
+                self.on_module_select(iterator)
+            else:
+                self.on_tool_select(iterator)
+                
+    def on_tool_select(self, iterator):
+        """ a tool has been selected """
+        tool_name = self._tree.get_value(iterator, TEXT).lower()
+        host_name = self._tree.get_value(self._tree.iter_parent(iterator), TEXT)
+        host = self._model.get_host(host_name.lower())
 
-            tool_model = None
-            description = ''
-            if host is not None:
-                tool_model = host.get_tool(tool_name)
-                description = tool_model.get_description()
+        tool_model = None
+        description = ''
+        if host is not None:
+            tool_model = host.get_tool(tool_name)
+            description = tool_model.get_description()
 
-            if tool_model is None or \
-               tool_model.get_state() is None or \
-               tool_model.get_description() is None or \
-               tool_model.get_config_parser() is None:
-                warning =  "<span size='x-large' background='red' " + \
-                           "foreground='white'>" + \
-                           "This module failed to load\n\n</span>"
-                if description is not None:
-                    description = warning + description
-                else:
-                    description = warning
+        if tool_model is None or \
+           tool_model.get_state() is None or \
+           tool_model.get_description() is None or \
+           tool_model.get_config_parser() is None:
+            warning =  "<span size='x-large' background='red' " + \
+                       "foreground='white'>" + \
+                       "This module failed to load\n\n</span>"
+            if description is not None:
+                description = warning + description
+            else:
+                description = warning
 
-            self._desc_txt.set_markup(description)
+        self._desc_txt.set_markup(description)
 
-            self.display_config_view(tool_model, iterator)
+        self.display_config_view(tool_model, iterator)
+        
+    def on_module_select(self, iterator):
+        """ a module has been selected """
+        module_name = self._tree.get_value(iterator, TEXT)
 
-    def toggled_cb(self, cell, path):
+        self._missing_modules = self._model.get_missing()
+        description = self._modules[module_name].get_description()
+        if module_name in self._missing_modules:
+            missing = self._missing_modules[module_name]
+            msg = ''
+            for host in missing:
+                msg = msg + host.upper() + ', '
+            msg = msg.rstrip(', ')
+            warning = "<span size='x-large' background='red' " + \
+                      "foreground='white'>" + \
+                      "The module is not installed on the following hosts: " + \
+                      "%s\n\n</span>" % msg
+            description = warning + description
+
+        self._desc_txt.set_markup(description)
+        
+        self.display_config_view(self._modules[module_name], iterator)
+            
+    def tool_toggled_cb(self, cell, path):
         """ sets the toggled state on the toggle button to true or false
             and modify tool state from None to False or conversely """
         self._ui.get_widget('save_tool_conf').set_sensitive(True)
@@ -139,21 +174,21 @@ class ToolEvent(ToolView):
 
         self._tool_lock.release()
 
-    def display_config_view(self, tool_model, iterator):
+    def display_config_view(self, model, iterator):
         """ display the configuration as read in configuration file
             (should be used with gobject.idle_add outside gtk handlers) """
-        config_parser = tool_model.get_config_parser()
+        config_parser = model.get_config_parser()
         if config_parser is None:
             self._tree.set(iterator, ACTIVATABLE, False, ACTIVE, False)
             self._config_view.hide_all()
             return
 
-        notebook = tool_model.get_conf_view()
+        notebook = model.get_conf_view()
         if notebook is None:
             notebook = ConfigurationNotebook(config_parser,
-                                             self.handle_param_chanded)
+                                             self.handle_param_changed)
 
-        tool_model.set_conf_view(notebook)
+        model.set_conf_view(notebook)
 
         if notebook != self._current_notebook:
             self._config_view.hide_all()
@@ -191,8 +226,18 @@ class ToolEvent(ToolView):
                     notebook.save()
                 except XmlException, error:
                     error_popup("%s: %s" % (host_name, error.description))
-                    self._tool_lock.release()
-                    return
+                    continue
+
+        for name in self._modules:
+            try:
+                module = self._modules[name]
+                notebook = module.get_conf_view()
+                if notebook is not None:
+                    self._log.debug("save %s config" % name)
+                    notebook.save()
+            except XmlException, error:
+                error_popup("%s: %s" % (name, error.description))
+                continue
 
         # do that to copy contents else saved tools will contain references on
         # selected tools
@@ -215,10 +260,14 @@ class ToolEvent(ToolView):
             for tool in host.get_tools():
                 tool.reload_conf()
 
+        for name in self._modules:
+            self._modules[name].set_conf_view(None)
+
+
         self._tree.foreach(self.select_saved)
 
         page = self._current_notebook.get_current_page()
-        self.on_tool_select(self._tree.get_selection())
+        self.on_selection(self._tree.get_selection())
         self._current_notebook.set_current_page(page)
 
         self._tool_lock.release()
@@ -239,7 +288,7 @@ class ToolEvent(ToolView):
             if tool_name in self._selected_tools[host_name]:
                 tree.set(iterator, ACTIVE, True)
 
-    def handle_param_chanded(self, source=None, event=None):
+    def handle_param_changed(self, source=None, event=None):
         """ 'changed' event on configuration value """
         self._ui.get_widget('save_tool_conf').set_sensitive(True)
         self._ui.get_widget('undo_tool_conf').set_sensitive(True)

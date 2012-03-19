@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -32,16 +33,19 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+#include "bloc_dvb.h"
+
 #include <string.h>
 #include <errno.h>
 
-#include "bloc_dvb.h"
-#include "platine_conf/conf.h"
+#include <platine_conf/conf.h>
+
 #include "DvbS2Std.h"
+#include "EncapPlugin.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
-#include "platine_conf/uti_debug.h"
+#include <platine_conf/uti_debug.h>
 
 
 /**
@@ -49,12 +53,12 @@
  */
 BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
                  mgl_id fatherid,
-                 const char *name):
-	mgl_bloc(blocmgr, fatherid, name)
+                 const char *name,
+                 std::map<std::string, EncapPlugin *> &encap_plug):
+	mgl_bloc(blocmgr, fatherid, name),
+	encap_plug(encap_plug)
 {
 	this->satellite_type = "";
-	this->up_return_encap_scheme = "";
-	this->down_forward_encap_scheme = "";
 	this->dama_algo = "";
 	this->frame_duration = -1;
 	this->frames_per_superframe = -1;
@@ -75,6 +79,11 @@ BlocDvb::~BlocDvb()
  */
 bool BlocDvb::initCommon()
 {
+	const char *FUNCNAME = DBG_PREFIX "[initCommon]";
+
+	string encap_name;
+	int encap_nbr;
+
 	// satellite type
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          this->satellite_type))
@@ -85,26 +94,75 @@ bool BlocDvb::initCommon()
 	}
 	UTI_INFO("satellite type = %s\n", this->satellite_type.c_str());
 
-	// encapsulation schemes
-	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                          this->up_return_encap_scheme))
+	// get the packet types
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	                                encap_nbr))
 	{
-		UTI_INFO("section '%s': missing parameter '%s'\n",
-		         GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
+		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		          UP_RETURN_ENCAP_SCHEME_LIST);
+		goto error;
+	}
+
+
+	// get all the encapsulation to use from lower to upper
+	if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	                                POSITION, toString(encap_nbr - 1),
+	                                ENCAP_NAME, encap_name))
+	{
+		UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
+		          FUNCNAME, GLOBAL_SECTION, encap_nbr - 1, POSITION);
+		goto error;
+	}
+
+	if(this->encap_plug[encap_name] == NULL)
+	{
+		UTI_ERROR("%s missing plugin for %s encapsulation",
+		          FUNCNAME, encap_name.c_str());
+		goto error;
+	}
+
+	this->up_return_pkt_hdl = this->encap_plug[encap_name]->getPacketHandler();
+	if(!this->up_return_pkt_hdl)
+	{
+		UTI_ERROR("cannot get %s packet handler\n", encap_name.c_str());
 		goto error;
 	}
 	UTI_INFO("up/return encapsulation scheme = %s\n",
-	         this->up_return_encap_scheme.c_str());
+	         this->up_return_pkt_hdl->getName().c_str());
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                          this->down_forward_encap_scheme))
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	                                encap_nbr))
 	{
-		UTI_INFO("section '%s': missing parameter '%s'\n",
-		         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
+		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		          DOWN_FORWARD_ENCAP_SCHEME_LIST);
+		goto error;
+	}
+
+	// get all the encapsulation to use from lower to upper
+	if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	                                POSITION, toString(encap_nbr - 1),
+	                                ENCAP_NAME, encap_name))
+	{
+		UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
+		          FUNCNAME, GLOBAL_SECTION, encap_nbr - 1, POSITION);
+		goto error;
+	}
+
+	if(this->encap_plug[encap_name] == NULL)
+	{
+		UTI_ERROR("%s missing plugin for %s encapsulation",
+		          FUNCNAME, encap_name.c_str());
+		goto error;
+	}
+
+	this->down_forward_pkt_hdl = this->encap_plug[encap_name]->getPacketHandler();
+	if(!this->down_forward_pkt_hdl)
+	{
+		UTI_ERROR("cannot get %s packet handler\n", encap_name.c_str());
 		goto error;
 	}
 	UTI_INFO("down/forward encapsulation scheme = %s\n",
-	         this->down_forward_encap_scheme.c_str());
+	         this->down_forward_pkt_hdl->getName().c_str());
 
 	// dama algorithm
 	if(!globalConfig.getValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO,
@@ -191,7 +249,7 @@ int BlocDvb::initModcodFiles()
 	if(access(modcod_def_file.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-				  modcod_def_file.c_str(), strerror(errno));
+		           modcod_def_file.c_str(), strerror(errno));
 		goto error;
 	}
 	UTI_INFO("modcod definition file = '%s'\n", modcod_def_file.c_str());
@@ -295,7 +353,7 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	unsigned char *dvb_frame;
 	unsigned int dvb_length;
 
-	if(frame->totalLength() <= 0)
+	if(frame->getTotalLength() <= 0)
 	{
 		UTI_ERROR("empty frame, header and payload are not present\n");
 		goto error;
@@ -316,8 +374,8 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	}
 
 	// copy the DVB frame
-	dvb_length = frame->totalLength();
-	memcpy(dvb_frame, frame->data().c_str(), dvb_length);
+	dvb_length = frame->getTotalLength();
+	memcpy(dvb_frame, frame->getData().c_str(), dvb_length);
 
 	if (!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id))
 	{

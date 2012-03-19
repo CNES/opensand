@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -45,27 +45,11 @@
 
 #include "platine_conf/conf.h"
 
-#include "EncapCtx.h"
-#include "AtmAal5Ctx.h"
-#include "MpegUleCtx.h"
-#include "MpegAtmAal5Ctx.h"
-#include "GseAtmAal5Ctx.h"
-#include "GseMpegUleCtx.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
-#include "UleExtTest.h"
-#include "UleExtPadding.h"
-#if 0
-#include "AtmAal5RohcCtx.h"
-#include "MpegUleRohcCtx.h"
-#include "MpegAtmAal5RohcCtx.h"
-#include "GseRohcCtx.h"
-#include "GseAtmAal5RohcCtx.h"
-#include "GseMpegUleRohcCtx.h"
-#endif
-#if ULE_SECURITY
-	#include "UleExtSecurity.h"
-#endif
+#include "EncapPlugin.h"
+
+#include "IpPacketHandler.h"
 
 
 /**
@@ -75,12 +59,6 @@
 class BlocEncap: public mgl_bloc
 {
  private:
-
-	/// Reception / desencapsulation context
-	EncapCtx *receptionCxt;
-
-	/// Emission / encapsulation context
-	EncapCtx *emissionCxt;
 
 	/// Expiration timers for encapsulation contexts
 	std::map < mgl_timer, int > timers;
@@ -93,16 +71,28 @@ class BlocEncap: public mgl_bloc
 	{
 		link_down,
 		link_up
-	} _state;
+	} state;
 
 	/// it is the MAC layer group id received through msg_link_up
-	long _group_id;
+	long group_id;
 
 	/// it is the MAC layer MAC id received through msg_link_up
-	long _tal_id;
+	long tal_id;
 
-    /// the component name (GW or ST)
-    string name_;
+	/// the component name (GW or ST)
+	string name;
+
+	/// the list of available encapsulation plugins
+	std::map <std::string, EncapPlugin *> &encap_plug;
+
+	/// the emission contexts list from lower to upper context
+	std::vector <EncapPlugin::EncapContext *> emission_ctx;
+
+	/// the reception contexts list from upper to lower context
+	std::vector <EncapPlugin::EncapContext *> reception_ctx;
+
+	/// the IP packet handler for plugins
+	IpPacketHandler *ip_handler;
 
  public:
 
@@ -114,8 +104,9 @@ class BlocEncap: public mgl_bloc
 	 * @param name The name of the bloc
      * @param host_name The name og the host
 	 */
-	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	          string host_name);
+	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid,
+	          const char *name, string host_name,
+	          std::map<std::string, EncapPlugin *> &encap_plug);
 
 	/**
 	 * Destroy the encapsulation bloc

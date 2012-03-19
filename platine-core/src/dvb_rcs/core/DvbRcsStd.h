@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -38,7 +38,7 @@
 
 #include "PhysicStd.h"
 #include "DvbRcsFrame.h"
-#include <GenericSwitch.h>
+#include "GenericSwitch.h"
 
 
 /**
@@ -52,8 +52,10 @@ class DvbRcsStd: public PhysicStd
 
 	/**
 	 * Build a DVB-RCS Transmission Standard
+	 *
+	 * @param packet_handler The packet handler
 	 */
-	DvbRcsStd();
+	DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	/**
 	 * Destroy the DVB-RCS Transmission Standard
@@ -73,15 +75,7 @@ class DvbRcsStd: public PhysicStd
 	/* function for regenerative satellite */
 	bool setSwitch(GenericSwitch *generic_switch);
 
-
  private:
-
-	/**
-	 * Switch which manages the different spots
-	 * (for regenerative satellite only)
-	 */
-	GenericSwitch *generic_switch;
-
 
 	/**
 	 * @brief Create an incomplete DVB-RCS frame
@@ -90,6 +84,10 @@ class DvbRcsStd: public PhysicStd
 	 * return                      1 on success, 0 on error
 	 */
 	int createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
+
+	/// Switch which manages the different spots
+	/// (for regenerative satellite only)
+	GenericSwitch *generic_switch;
 
 };
 

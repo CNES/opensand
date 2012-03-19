@@ -66,7 +66,7 @@ class EventReponseHandler(threading.Thread):
                 # update buttons according to platform status
                 # update the label of the 'start/stop platine' button
                 gobject.idle_add(self._view.set_start_stop_button,
-                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                                 priority=gobject.PRIORITY_HIGH_IDLE)
                 if str(self._event_manager_response.get_text()) == "done":
                     # starting platine platform succeeded:
                     # enable back the 'stop platine' button

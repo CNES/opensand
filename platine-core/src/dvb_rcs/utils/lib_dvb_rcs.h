@@ -6,6 +6,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -36,6 +37,7 @@
 #define LIB_DVB_RCS_H
 
 #include <string>
+#include <stdint.h>
 
 
 /**
@@ -110,14 +112,6 @@
  */
 #define MSG_TYPE_SESSION_LOGOFF 51
 
-typedef enum
-{
-	PKT_TYPE_INVALID = 0,
-	PKT_TYPE_ATM  = 1,
-	PKT_TYPE_MPEG = 2,
-	PKT_TYPE_GSE  = 3,
-} t_pkt_type;
-
 
 /** The different types of DVB components */
 typedef enum
@@ -189,7 +183,7 @@ typedef struct
 	int nb_row;                       ///< Terminal row number
 	unsigned char group_id;           ///< Assigned Group Id
 	unsigned short logon_id;          ///< Assigned Logon Id
-	unsigned char traffic_burst_type; ///< Type of traffic, set to 0 (ATM)
+	unsigned char traffic_burst_type; ///< Type of traffic, set to 0
 	unsigned short return_vpi;        ///< VPI used for Signalling on Return Link
 	unsigned short return_vci;        ///< VCI used for Signalling on Return Link
 } T_DVB_LOGON_RESP;
@@ -210,7 +204,7 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr;
-	int pkt_type;   ///< Type of the packets contained in the BBFrame
+	uint16_t pkt_type;   ///< EtherType of the packets contained in the BBFrame
 	int dataLength;
 	int usedModcod;
 	int list_realModcod_size;
@@ -429,7 +423,7 @@ extern T_DVB_FRAME *ith_frame_ptr(int i, unsigned char *buff);
 typedef struct
 {
 	T_DVB_HDR hdr;         ///< Basic DVB_RCS Header
-	int pkt_type;          ///< Type of the packets contained in the BBFrame
+	uint16_t pkt_type;     ///< EtherType of the packets contained in the BBFrame
 	long qty_element;      ///< Number of following encapsulation packets
 } T_DVB_ENCAP_BURST;
 

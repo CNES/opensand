@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -38,11 +39,12 @@
 #include "platine_conf/uti_debug.h"
 
 
-PhysicStd::PhysicStd(std::string type):
+PhysicStd::PhysicStd(std::string type,
+                     EncapPlugin::EncapPacketHandler *pkt_hdl):
 	_type(type),
-	satellite_terminals()
+	satellite_terminals(),
+	packet_handler(pkt_hdl)
 {
-	this->encapPacketType = PKT_TYPE_INVALID;
 	this->frameDuration = 0;
 	this->remainingCredit = 0;
 	this->bandwidth = 0;
@@ -86,7 +88,7 @@ int PhysicStd::onRcvEncapPacket(NetPacket *packet,
 
 	UTI_DEBUG("encapsulation packet %s stored in FIFO "
 	          "(tick_in = %ld, tick_out = %ld)\n",
-						packet->name().c_str(),
+	          packet->getName().c_str(),
 	          elem->getTickIn(), elem->getTickOut());
 
 	return 0;
@@ -142,11 +144,7 @@ error:
 	return -1;
 }
 
-void PhysicStd::setEncapPacketType(int encap_packet_type)
-{
-	this->encapPacketType = encap_packet_type;
-}
-
+// TODO set in constructor ?
 void PhysicStd::setFrameDuration(int frame_duration)
 {
 	this->frameDuration = frame_duration;
@@ -197,3 +195,4 @@ void PhysicStd::setTalId(long tal_id)
 {
 	this->tal_id = tal_id;
 }
+

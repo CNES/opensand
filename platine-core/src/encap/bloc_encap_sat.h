@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -43,14 +43,11 @@
 #include "msg_dvb_rcs.h"
 #include "platine_margouilla/msg_ip.h"
 
-#include "EncapCtx.h"
-#include "AtmCtx.h"
-#include "MpegUleCtx.h"
-#include "GseCtx.h"
-#include "NetPacket.h"
 #include "NetBurst.h"
 
 #include "platine_conf/conf.h"
+#include "EncapPlugin.h"
+#include "IpPacketHandler.h"
 
 
 /**
@@ -61,17 +58,20 @@ class BlocEncapSat: public mgl_bloc
 {
  private:
 
-	/// encapsulation context for ATM cells
-	EncapCtx *encapCtx;
-
-	/// Output encapsulation scheme
-	string downlink_encap_proto;
+	/// Output encapsulation context
+	vector<EncapPlugin::EncapContext *> downlink_ctx;
 
 	/// Expiration timers for encapsulation contexts
 	std::map < mgl_timer, int > timers;
 
 	/// Whether the bloc has been initialized or not
 	bool initOk;
+
+	/// The encapsulation plugins
+	std::map<std::string, EncapPlugin *> encap_plug;
+
+	/// the IP packet handler for plugins
+	IpPacketHandler *ip_handler;
 
  public:
 
@@ -82,7 +82,8 @@ class BlocEncapSat: public mgl_bloc
 	 * @param fatherid  The father of the bloc
 	 * @param name      The name of the bloc
 	 */
-	BlocEncapSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name);
+	BlocEncapSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+	             std::map<std::string, EncapPlugin *> encap_plug);
 
 	/**
 	 * Destroy the encapsulation bloc
@@ -132,18 +133,18 @@ class BlocEncapSat: public mgl_bloc
 	mgl_status onRcvBurstFromDown(NetBurst *burst);
 
 	/**
-	 * Forward a burst of MPEG or GSE packets to the lower-layer block
+	 * Forward a burst of packets to the lower-layer block
 	 *
-	 * @param burst  The MPEG or GSE burst to forward
+	 * @param burst  The burst to forward
 	 * @return       Whether the burst was successful forwarded or not
 	 */
 	mgl_status ForwardPackets(NetBurst *burst);
 
 	/**
-	 * Encapsulate a burst of ATM cells or MPEG packets and forward the resulting
-	 * burst of MPEG or GSE packets to the lower-layer block
+	 * Encapsulate a burst of packets and forward the resulting
+	 * burst of packets to the lower-layer block
 	 *
-	 * @param burst  The ATM or GSE burst to encapsulate and forward
+	 * @param burst  The burst to encapsulate and forward
 	 * @return       Whether the burst was successful encapsulated and forwarded
 	 *               or not
 	 */

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -57,10 +58,6 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 
-#include "AtmCell.h"
-#include "MpegPacket.h"
-#include "GsePacket.h"
-
 // environment plane
 #include "platine_env_plane/EnvironmentAgent_e.h"
 extern T_ENV_AGENT EnvAgent;
@@ -75,10 +72,11 @@ extern T_ENV_AGENT EnvAgent;
  */
 BlocDVBRcsNcc::BlocDVBRcsNcc(mgl_blocmgr *blocmgr,
                              mgl_id fatherid,
-                             const char *name):
-                             BlocDvb(blocmgr, fatherid, name),
-                             NccPepInterface(),
-                             complete_dvb_frames()
+                             const char *name,
+                             std::map<std::string, EncapPlugin *> &encap_plug):
+	BlocDvb(blocmgr, fatherid, name, encap_plug),
+	NccPepInterface(),
+	complete_dvb_frames()
 {
 	this->init_ok = false;
 
@@ -531,15 +529,6 @@ int BlocDVBRcsNcc::onInit()
 		goto error;
 	}
 
-	// read the uplink encapsulation packet length
-	ret = this->initEncap();
-	if(ret != 0)
-	{
-		UTI_ERROR("failed to complete the encapsulation part of the "
-		          "initialisation");
-		goto error_mode;
-	}
-
 	// Get the carrier Ids
 	ret = this->initCarrierIds();
 	if(ret != 0)
@@ -854,18 +843,19 @@ int BlocDVBRcsNcc::initMode()
 	// on the satellite type
 	if(this->satellite_type == TRANSPARENT_SATELLITE)
 	{
-		this->emissionStd = new DvbS2Std();
-		this->receptionStd = new DvbRcsStd();
+		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 		// set the terminal ID in emission and reception standards
 		// to -1 because the GW should handle all the packets in
 		// transparent mode
+        // TODO do that with something else that -1
 		this->receptionStd->setTalId(-1);
 		this->emissionStd->setTalId(-1);
 	}
 	else if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
-		this->emissionStd = new DvbRcsStd();
-		this->receptionStd = new DvbS2Std();
+		this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
+		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 		// set the terminal ID in emission and reception standards
 		this->receptionStd->setTalId(DVB_GW_MAC_ID);
 		this->emissionStd->setTalId(DVB_GW_MAC_ID);
@@ -899,96 +889,6 @@ release_standards:
 	  delete this->emissionStd;
 	if(this->receptionStd != NULL)
 	  delete this->receptionStd;
-error:
-	return -1;
-}
-
-
-/**
- * @brief Read configuration for the encapsulation protocol
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::initEncap()
-{
-    string out_encap_scheme;
-	int encap_packet_type = PKT_TYPE_INVALID;
-
-	// read the satellite type
-	if(this->satellite_type == REGENERATIVE_SATELLITE)
-	{
-		out_encap_scheme = this->up_return_encap_scheme;
-	}
-	else
-	{
-		out_encap_scheme = this->down_forward_encap_scheme;
-	}
-	UTI_INFO("output encapsulation scheme = %s\n",
-	         out_encap_scheme.c_str());
-
-	// if the DVB-RCS standard is used for emission, the frame length
-	// is constant and the maximum number of packets per frame can
-	// be computed from the length of a packet
-	if(this->emissionStd->type() == "DVB-RCS")
-	{
-		if(out_encap_scheme == ENCAP_ATM_AAL5 ||
-		   out_encap_scheme == ENCAP_ATM_AAL5_ROHC)
-		{
-			// DVB-RCS frames encapsulate ATM cells
-			encap_packet_type = PKT_TYPE_ATM;
-		}
-		else if(out_encap_scheme == ENCAP_MPEG_ULE ||
-		        out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
-		{
-			// DVB-RCS frames encapsulate MPEG packets
-			encap_packet_type = PKT_TYPE_MPEG;
-		}
-		else
-		{
-			UTI_ERROR("bad value for output encapsulation scheme "
-			          "with emission standard %s, check the value "
-			          "of parameter of encapsulation schemes in section "
-                      "'%s'\n", this->emissionStd->type().c_str(),
-			          GLOBAL_SECTION);
- 			goto error;
-		}
-	}
-	else if(this->emissionStd->type() == "DVB-S2")
-	{
-		if(out_encap_scheme == ENCAP_MPEG_ULE ||
-		   out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
-		{
-			// DVB-RCS frames encapsulate MPEG packets
-			encap_packet_type = PKT_TYPE_MPEG;
-		}
-		else if(out_encap_scheme == ENCAP_GSE ||
-		        out_encap_scheme == ENCAP_GSE_ROHC)
-		{
-			// DVB-RCS frames encapsulate GSE packets
-			encap_packet_type = PKT_TYPE_GSE;
-		}
-		else
-		{
-			UTI_ERROR("bad value for output encapsulation scheme "
-			          "with emission standard %s, check the value "
-			          "of parameter of encapsulation schemes in section "
-			          "'%s'\n", this->emissionStd->type().c_str(),
-			          GLOBAL_SECTION);
-			goto error;
-		}
-	}
-	else
-	{
-		UTI_ERROR("bad emission standard %s\n",
-		          this->emissionStd->type().c_str());
-		goto error;
-	}
-
-	// set the encapsulation packet type for emission standard
-	this->emissionStd->setEncapPacketType(encap_packet_type);
-
-	return 0;
-
 error:
 	return -1;
 }
@@ -1144,7 +1044,6 @@ error:
 int BlocDVBRcsNcc::initDama()
 {
 	string up_return_encap_proto;
-	int st_encap_packet_length;
 	int ret;
 
 	/* select the specified DAMA algorithm */
@@ -1182,33 +1081,6 @@ int BlocDVBRcsNcc::initDama()
 		goto error;
 	}
 
-	// retrieve the output encapsulation scheme
-	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                          up_return_encap_proto))
-	{
-		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
-		          DVB_NCC_SECTION, UP_RETURN_ENCAP_SCHEME);
-		goto release_dama;
-	}
-
-	if(up_return_encap_proto == ENCAP_ATM_AAL5 ||
-	   up_return_encap_proto == ENCAP_ATM_AAL5_ROHC)
-	{
-		// return link: DVB-RCS frames encapsulate ATM cells
-		st_encap_packet_length = AtmCell::length();
-	}
-	else if(up_return_encap_proto == ENCAP_MPEG_ULE ||
-	        up_return_encap_proto == ENCAP_MPEG_ULE_ROHC)
-	{
-		// return link: DVB-RCS frames encapsulate MPEG packets
-		st_encap_packet_length = MpegPacket::length();
-	}
-	else
-	{
-		UTI_ERROR("bad value for st output encapsulation scheme\n");
-		goto release_dama;
-	}
-
 	// initialize the DAMA controller
 	if(this->emissionStd->type() == "DVB-S2")
 	{
@@ -1216,7 +1088,7 @@ int BlocDVBRcsNcc::initDama()
 				m_carrierIdDvbCtrl,
 				this->frame_duration,
 				this->frames_per_superframe,
-				st_encap_packet_length,
+				this->up_return_pkt_hdl->getFixedLength(),
 				dynamic_cast<DvbS2Std *>(this->emissionStd)->getDraSchemeDefinitions());
 	}
 	else
@@ -1224,7 +1096,7 @@ int BlocDVBRcsNcc::initDama()
 		ret = this->m_pDamaCtrl->init(m_carrierIdDvbCtrl,
 		                              this->frame_duration,
 		                              this->frames_per_superframe,
-		                              st_encap_packet_length,
+		                              this->up_return_pkt_hdl->getFixedLength(),
 		                              0);
 	}
 	if(ret != 0)
@@ -1282,7 +1154,7 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 
 	switch(dvb_hdr->msg_type)
 	{
-		// ATM/MPEG/GSE burst
+		// burst
 		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_BBFRAME:
 		{
@@ -1301,7 +1173,7 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 			if(this->receptionStd->onRcvFrame(data, len, dvb_hdr->msg_type,
 			                                  this->macId, &burst) < 0)
 			{
-				UTI_ERROR("failed to handle ATM/MPEG DVB frame "
+				UTI_ERROR("failed to handle DVB frame "
 				          "or BB frame\n");
 				goto error;
 			}

@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -58,7 +59,9 @@ const int C_MAX_VBDC_IN_SAC = 4080;      // 4080 kbits/s, limitation due to CR
 /**
  * Constructor
  */
-DvbRcsDamaAgentLegacy::DvbRcsDamaAgentLegacy():DvbRcsDamaAgent()
+DvbRcsDamaAgentLegacy::DvbRcsDamaAgentLegacy(EncapPlugin::EncapPacketHandler *packet,
+                                             double frame_duration):
+	DvbRcsDamaAgent(packet, frame_duration)
 {
 	m_frameDuration = 0.0;
 	m_currentFrameNumber = 1;
@@ -165,7 +168,7 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	}
 	m_rbdcTimeout = val;
 
-	// Max VBDC -- in ATM cells/MPEG packets number
+	// Max VBDC -- in packets number
 	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, val))
 	{
 		val = DA_DFLT_MAX_VBDC_DATA;
@@ -671,7 +674,7 @@ int DvbRcsDamaAgentLegacy::macSchedule(dvb_fifo *dvb_fifos,
 
 			// is there enough free space in the DVB frame
 			// for the encapsulation packet ?
-			if(encap_packet->totalLength() >
+			if(encap_packet->getTotalLength() >
 			   incomplete_dvb_frame->getFreeSpace())
 			{
 				UTI_DEBUG_L3("SF#%ld: frame %ld: DVB frame #%u "
@@ -691,7 +694,7 @@ int DvbRcsDamaAgentLegacy::macSchedule(dvb_fifo *dvb_fifos,
 				complete_frames_count++;
 
 				// is there enough free space in the next DVB-RCS frame ?
-				if(encap_packet->totalLength() >
+				if(encap_packet->getTotalLength() >
 				   incomplete_dvb_frame->getFreeSpace())
 				{
 					UTI_ERROR("DVB-RCS frame #%u got no enough "
@@ -770,14 +773,6 @@ error:
 int DvbRcsDamaAgentLegacy::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
                                                        int encap_packet_type)
 {
-	if(encap_packet_type != PKT_TYPE_ATM &&
-	   encap_packet_type != PKT_TYPE_MPEG)
-	{
-		UTI_ERROR("invalid packet type (%d) in DvbRcsDamaAgent\n",
-		          encap_packet_type);
-		goto error;
-	}
-
 	*incomplete_dvb_frame = new DvbRcsFrame();
 	if(*incomplete_dvb_frame == NULL)
 	{
@@ -788,7 +783,7 @@ int DvbRcsDamaAgentLegacy::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_
 	// set the max size of the DVB-RCS frame, also set the type
 	// of encapsulation packets the DVB-RCS frame will contain
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketType(encap_packet_type);
+	(*incomplete_dvb_frame)->setEncapPacketEtherType(this->packet->getEtherType());
 
 	return 1;
 
@@ -893,9 +888,9 @@ int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
  * @param dvb_fifos         the array of DVB FIFOs to schedule encapsulation
  *                          packets from
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
- * @return                  the VBDC Request in number of ATM cells
+ * @return                  the VBDC Request in number of packets
  *                          ready to be set in SAC field
- *                          (TODO: is it really in ATM cells ?)
+ *                          (TODO: is it really in packets ?)
  */
 int DvbRcsDamaAgentLegacy::vbdcRequestCompute(dvb_fifo *dvb_fifos,
                                            int dvb_fifos_number)
@@ -940,8 +935,8 @@ int DvbRcsDamaAgentLegacy::vbdcRequestCompute(dvb_fifo *dvb_fifos,
  * @param dvb_fifos         the array of DVB FIFOs to schedule encapsulation
  *                          packets from
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
- * @return                  total buffers size in ATM cells number
- *                          (TODO: is it really in ATM ?)
+ * @return                  total buffers size in packets number
+ *                          (TODO: is it really in packets ?)
  */
 int DvbRcsDamaAgentLegacy::getMacBufferLength(int crType,
                                            dvb_fifo *dvb_fifos,
@@ -964,16 +959,16 @@ int DvbRcsDamaAgentLegacy::getMacBufferLength(int crType,
 
 
 /**
- * Utility function to get total number of "last arrived" cells (since last CR) of all MAC fifos
- * associated to the concerned CR type
+ * Utility function to get total number of "last arrived" cells
+ * (since last CR) of all MAC fifos associated to the concerned CR type
  *
  * @param crType            the type of capacity request
  * @param dvb_fifos         the array of DVB FIFOs to schedule encapsulation
  *                          packets from
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
- * @return                  total number of "last arrived" cells
- *                          in ATM cells number
- *                          (TODO: is it really in ATM ?)
+ * @return                  total number of "last arrived" packets
+ *                          (in number of packets)
+ *                          (TODO: is it really in packet number ?)
  */
 int DvbRcsDamaAgentLegacy::getMacBufferArrivals(int crType,
                                              dvb_fifo *dvb_fifos,

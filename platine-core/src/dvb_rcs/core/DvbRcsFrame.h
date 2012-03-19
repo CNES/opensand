@@ -1,11 +1,11 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -80,12 +80,11 @@ class DvbRcsFrame: public DvbFrame
 	~DvbRcsFrame();
 
 	// implementation of virtual functions
-	uint16_t payloadLength();
-	Data payload();
+	uint16_t getPayloadLength();
+	Data getPayload();
 	bool addPacket(NetPacket *packet);
 	void empty(void);
-	void setEncapPacketType(int type);
-	t_pkt_type getEncapPacketType();
+	void setEncapPacketEtherType(uint16_t type);
 
 };
 

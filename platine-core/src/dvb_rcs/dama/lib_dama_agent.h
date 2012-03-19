@@ -6,6 +6,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -39,10 +40,8 @@
 #include "lib_dama_utils.h"
 #include "dvb_fifo.h"
 #include "NetBurst.h"
-#include "AtmCell.h"
-#include "Aal5Packet.h"
-#include "MpegPacket.h"
 #include "DvbFrame.h"
+#include "EncapPlugin.h"
 
 
 /// DAMA agent statistics context
@@ -81,12 +80,15 @@ class DvbRcsDamaAgent
 	                          ///< next sf
 	long m_NRTMaxBandwidth;   ///< Is the NRT maximum bandwidth avail
 	DAStatContext m_statContext; ///< stats context
-	DU_Converter *m_converter;      ///< Used to convert from/to KB from/to ATM cells
+	DU_Converter *m_converter;   ///< Used to convert from/to KB from/to packets
+
+	EncapPlugin::EncapPacketHandler *packet; ///< The encapsulated packet information
 
  public:
 
 	// Ctor & Dtor
-	DvbRcsDamaAgent();
+	DvbRcsDamaAgent(EncapPlugin::EncapPacketHandler *packet,
+	                double frame_duration);
 	virtual ~DvbRcsDamaAgent();
 
 	// Initializations

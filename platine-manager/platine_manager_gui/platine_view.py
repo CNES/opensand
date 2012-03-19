@@ -87,13 +87,9 @@ class View(WindowView):
             self._eventconf.activate(False)
             self._eventtool.activate(False)
             self._eventprobe.activate(False)
-        except RunException:
-            raise
         except ProbeException:
             self._log.warning("Probe tab was disabled")
             self._ui.get_widget("probe_tab").set_sensitive(False)
-        except ViewException:
-            raise
 
         self._current_page = self._ui.get_widget('notebook').get_current_page()
         self._pages = \
@@ -281,8 +277,12 @@ class View(WindowView):
         else:
             self.set_title("Platine Manager - [%s]" % folder)
         # reload the configuration
-        self._eventconf.update_view()
-        self.set_recents()
+        try:
+            self._eventconf.update_view()
+        except ConfException as msg:
+            error_popup(str(msg))
+        finally:
+            self.set_recents()
 
     def on_open_activate(self, source=None, folder=None):
         """ event handler for open button """
@@ -321,8 +321,12 @@ class View(WindowView):
         else:
             self.set_title("Platine Manager - [%s]" % folder)
         # reload the configuration
-        self._eventconf.update_view()
-        self.set_recents()
+        try:
+            self._eventconf.update_view()
+        except ConfException as msg:
+            error_popup(str(msg))
+        finally:
+            self.set_recents()
 
     def on_save_as_activate(self, source=None, event=None):
         """ event handler for save_as button """
@@ -341,8 +345,12 @@ class View(WindowView):
         else:
             self.set_title("Platine Manager - [%s]" % folder)
         # reload the configuration
-        self._eventconf.update_view()
-        self.set_recents()
+        try:
+            self._eventconf.update_view()
+        except ConfException as msg:
+            error_popup(str(msg))
+        finally:
+            self.set_recents()
 
     def save_as(self):
         """ save the current scenario in a new folder """
@@ -364,7 +372,10 @@ class View(WindowView):
         except ModelException as msg:
             error_popup(msg)
         # reload the configuration
-        self._eventconf.update_view()
+        try:
+            self._eventconf.update_view()
+        except ConfException as msg:
+            error_popup(str(msg))
 
     def create_new_scenario(self):
         """ create a new Platine scenario """

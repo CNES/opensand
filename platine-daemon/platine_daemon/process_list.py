@@ -190,6 +190,11 @@ class ProcessList():
         for name in ProcessList._process_list.keys():
             process = ProcessList._process_list[name]
             LOGGER.info("terminate %s process", name)
+
+            # kill process if terminate fails else we block on wait()
+            kill = threading.Thread(None, self.check_terminate,
+                                    None, (process,), {})
+            kill.start()
             try:
                 process.terminate()
                 process.wait()
@@ -203,6 +208,8 @@ class ProcessList():
         ProcessList._stop.set()
         if ProcessList._wait is not None:
             ProcessList._wait.join()
+        if kill is not None:
+        	kill.join()
         ProcessList._stop.clear()
 
         ProcessList._process_list = {}
@@ -269,4 +276,11 @@ class ProcessList():
             LOGGER.info("process with pid %s returned %s" %
                         (process.pid, process.returncode))
         ProcessList._wait = None
+
+    def check_terminate(self, process):
+        """ if terminate does not stop process in 5 seconds, kill it """
+       	ProcessList._stop.wait(5)
+       	process.poll()
+        if not process.returncode:
+        	process.kill()
 

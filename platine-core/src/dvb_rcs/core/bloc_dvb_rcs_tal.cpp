@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -55,8 +56,9 @@ int BlocDVBRcsTal::qos_server_sock = -1;
  * constructor use mgl_bloc default constructor
  * @see mgl_bloc::mgl_bloc()
  */
-BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name):
-	BlocDvb(blocmgr, fatherid, name),
+BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+                             std::map<std::string, EncapPlugin *> &encap_plug):
+	BlocDvb(blocmgr, fatherid, name, encap_plug),
 	complete_dvb_frames(),
 	qos_server_host()
 {
@@ -272,13 +274,13 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
 				UTI_DEBUG_L3("SF#%ld: encapsulation packet has QoS value %d\n",
-				             this->super_frame_counter, (*pkt_it)->qos());
+				             this->super_frame_counter, (*pkt_it)->getQos());
 
 				// find the FIFO id (!= FIFO index)
-				if((*pkt_it)->qos() == -1)
+				if((*pkt_it)->getQos() == -1)
 					fifo_id = this->dvb_fifos[m_defaultFifoIndex].getId();
 				else
-					fifo_id = (*pkt_it)->qos();
+					fifo_id = (*pkt_it)->getQos();
 
 				UTI_DEBUG("SF#%ld: store one encapsulation packet (QoS = %d)\n",
 				          this->super_frame_counter, fifo_id);
@@ -292,7 +294,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 				}
 				if(i == this->dvb_fifos_number)
 				{
-					UTI_ERROR("SF#%ld: frame %ld: MAC FIFO ID #%d not"
+					UTI_ERROR("SF#%ld: frame %ld: MAC FIFO ID #%d not "
 					          "registered => packet dropped\n",
 					          this->super_frame_counter,
 					          this->frame_counter, fifo_id);
@@ -413,14 +415,14 @@ not_connected:
  */
 int BlocDVBRcsTal::initMode()
 {
-	this->emissionStd = new DvbRcsStd();
+	this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 	if(this->emissionStd == NULL)
 	{
 		UTI_ERROR("failed to create the emission standard\n");
 		goto error;
 	}
 
-	this->receptionStd = new DvbS2Std();
+	this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 	if(this->receptionStd == NULL)
 	{
 		UTI_ERROR("failed to create the reception standard\n");
@@ -431,73 +433,6 @@ int BlocDVBRcsTal::initMode()
 
 release_emission:
 	delete(this->emissionStd);
-error:
-	return -1;
-}
-
-
-/**
- * Read configuration for the encapsulation
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsTal::initEncapsulation()
-{
-	// read uplink encapsulation packet length from config
-	// check uplink encapsulation packet length
-	if(this->up_return_encap_scheme == ENCAP_ATM_AAL5 ||
-	   this->up_return_encap_scheme == ENCAP_ATM_AAL5_ROHC)
-	{
-		this->out_encap_packet_length = AtmCell::length();
-		this->out_encap_packet_type = PKT_TYPE_ATM;
-	}
-	else if(this->up_return_encap_scheme == ENCAP_MPEG_ULE ||
-	        this->up_return_encap_scheme == ENCAP_MPEG_ULE_ROHC)
-	{
-		this->out_encap_packet_length = MpegPacket::length();
-		this->out_encap_packet_type = PKT_TYPE_MPEG;
-	}
-	else
-	{
-		UTI_ERROR("bad value '%s' for uplink encapsulation "
-		          "protocol\n", this->up_return_encap_scheme.c_str());
-		goto error;
-	}
-	UTI_INFO("uplink encapsulation packet length = %d bytes\n",
-	         this->out_encap_packet_length);
-
-	// set the encapsulation packet type for emission standard
-	this->emissionStd->setEncapPacketType(this->out_encap_packet_type);
-
-	// compute downlink encapsulation packet length
-	if(this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
-	   this->down_forward_encap_scheme == ENCAP_MPEG_ULE ||
-	   this->down_forward_encap_scheme == ENCAP_MPEG_ULE_ROHC ||
-	   this->down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC)
-	{
-		this->in_encap_packet_length = MpegPacket::length();
-	}
-	else if(this->down_forward_encap_scheme == ENCAP_GSE ||
-	        this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
-	        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE ||
-	        this->down_forward_encap_scheme == ENCAP_GSE_ROHC ||
-	        this->down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        this->down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
-	{
-		this->in_encap_packet_length = 0;//GsePacket::length();
-		//TODO get the real packet length (used for FIFO stats)
-	}
-	else
-	{
-		UTI_ERROR("bad value '%s' for downlink encapsulation "
-		          "protocol\n", this->down_forward_encap_scheme.c_str());
-		goto error;
-	}
-	UTI_INFO("downlink encapsulation packet length = %d bytes\n",
-	          this->in_encap_packet_length);
-
-	return 0;
-
 error:
 	return -1;
 }
@@ -537,9 +472,8 @@ int BlocDVBRcsTal::initParameters()
 	this->macId = val;
 
 	// Get the number of the row in modcod and dra files
-	// TODO long int
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
-	                                toString(m_talId), COLUMN_NBR, val))
+	                                toString(this->macId), COLUMN_NBR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_SIMU_COL, COLUMN_LIST);
@@ -865,13 +799,15 @@ int BlocDVBRcsTal::initDama()
 	{
 		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DvbRcsDamaAgentLegacy();
+		m_pDamaAgent = new DvbRcsDamaAgentLegacy(this->up_return_pkt_hdl,
+		                                         this->frame_duration);
 	}
 	else if(this->dama_algo == "UoR")
 	{
 		UTI_INFO("%s SF#%ld: create UoR DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DvbRcsDamaAgentUoR();
+		m_pDamaAgent = new DvbRcsDamaAgentUoR(this->up_return_pkt_hdl,
+		                                      this->frame_duration);
 	}
 	// TODO we have a common dama agent thus for stub and yes we need to choose
 	//      a dama agent
@@ -879,7 +815,8 @@ int BlocDVBRcsTal::initDama()
 	{
 		UTI_INFO("%s SF#%ld: no %s DAMA agent thus Legacy dama is used by default\n",
 		         FUNCNAME, this->super_frame_counter, this->dama_algo.c_str());
-		m_pDamaAgent = new DvbRcsDamaAgentLegacy();
+		m_pDamaAgent = new DvbRcsDamaAgentLegacy(this->up_return_pkt_hdl,
+		                                         this->frame_duration);
 		goto error;
 	}
 	else
@@ -993,14 +930,6 @@ int BlocDVBRcsTal::onInit()
 	if(ret != 0)
 	{
 		UTI_ERROR("failed to complete the mode part of the "
-		          "initialisation");
-		goto error;
-	}
-
-	ret = this->initEncapsulation();
-	if(ret != 0)
-	{
-		UTI_ERROR("failed to complete the encapsulation part of the "
 		          "initialisation");
 		goto error;
 	}
@@ -1313,26 +1242,20 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 		case MSG_TYPE_DVB_BURST:
 		{
 			// keep statistics because data will be released before storing them
-			unsigned int nb_cells = 0;
+			unsigned int nb_packets = 0;
 			NetBurst *burst;
 
-			switch(((T_DVB_ENCAP_BURST *) ip_buf)->pkt_type)
+			if(this->down_forward_pkt_hdl->getFixedLength() > 0)
 			{
-				case(PKT_TYPE_ATM):
-					nb_cells = (hdr->msg_length - sizeof(T_DVB_HDR)) /
-					            AtmCell::length();
-					break;
-
-				case(PKT_TYPE_MPEG):
-					nb_cells = (hdr->msg_length - sizeof(T_DVB_HDR)) /
-					            MpegPacket::length();
-					break;
-
-				default:
-					UTI_ERROR("bad packet type (%d) in DVB burst\n",
-					          ((T_DVB_ENCAP_BURST *) ip_buf)->pkt_type);
+				nb_packets = (hdr->msg_length - sizeof(T_DVB_HDR)) /
+				             this->down_forward_pkt_hdl->getFixedLength();
 			}
-		
+			else
+			{
+				UTI_ERROR("packet size is not fixed\n");
+				goto error;
+			}
+
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
 			                                  this->macId, &burst) < 0)
 			{
@@ -1347,7 +1270,7 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 			}
 
 			// update statistics
-			this->m_statCounters.dlOutgoingCells += nb_cells;
+			this->m_statCounters.dlOutgoingCells += nb_packets;
 		}
 		break;
 
@@ -1694,6 +1617,7 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 
 	// Remember the id
 	m_groupId = lp_logon_resp->group_id;
+	// TODO m_talID = this->macId !!!!!!!
 	m_talId = lp_logon_resp->logon_id;
 
 	// Inform Dama agent
@@ -1779,7 +1703,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 		// compute UL incoming Throughput - in kbits/s
 		m_statContext.ulIncomingThroughput[fifoIndex] =
 			(m_statCounters.ulIncomingCells[fifoIndex]
-			* this->out_encap_packet_length * 8) / this->frame_duration;
+			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// compute UL outgoing Throughput
 		// NB: outgoingCells = cells directly sent from IP packets + cells
@@ -1787,7 +1711,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 		ulOutgoingCells = m_statCounters.ulOutgoingCells[fifoIndex] +
 		                  macQStat.outPkNb;
 		m_statContext.ulOutgoingThroughput[fifoIndex] = (ulOutgoingCells
-			* this->out_encap_packet_length * 8) / this->frame_duration;
+			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// write in statitics file
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
@@ -1802,7 +1726,8 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 
 	// outgoing DL throughput
 	m_statContext.dlOutgoingThroughput =
-		(m_statCounters.dlOutgoingCells * this->in_encap_packet_length * 8) /
+		(m_statCounters.dlOutgoingCells *
+		 this->down_forward_pkt_hdl->getFixedLength() * 8) /
 		this->frame_duration;
 
 	// write in statitics file
@@ -1895,7 +1820,7 @@ void BlocDVBRcsTal::resetStatsCxt()
 
 
 /**
- * Delete ATM cells, MPEG or GSE packets in dvb_fifo
+ * Delete packets in dvb_fifo
  */
 void BlocDVBRcsTal::deletePackets()
 {

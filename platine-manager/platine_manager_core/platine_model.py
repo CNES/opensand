@@ -42,8 +42,11 @@ from platine_manager_core.model.environment_plane import EnvironmentPlaneModel
 from platine_manager_core.model.event_manager import EventManager
 from platine_manager_core.model.host import HostModel
 from platine_manager_core.model.global_config import GlobalConfig
-from platine_manager_core.my_exceptions import ModelException
+from platine_manager_core.my_exceptions import ModelException, XmlException
 from platine_manager_core.loggers.manager_log import ManagerLog
+from platine_manager_core.platine_xml_parser import XmlParser
+from platine_manager_core.modules import *
+from platine_manager_core.encap_module import encap_methods
 
 MAX_RECENT = 5
 
@@ -59,6 +62,8 @@ class Model:
         self._event_manager = EventManager("manager")
         self._event_manager_response = EventManager("response")
 
+        self._modules = {}
+        self._missing_modules = {}
         self._scenario_path = scenario
         self._is_default = False
         self._modified = False
@@ -71,6 +76,9 @@ class Model:
         self._ws = []
 
         self._config = None
+
+        # load modules
+        self.load_modules()
 
         try:
             self.load()
@@ -124,11 +132,63 @@ class Model:
         for host in self._hosts:
             host.reload_all(self._scenario_path)
 
+        # load modules configuration
+        self.reload_modules()
+
         # read configuration file
         try:
             self._config = GlobalConfig(self._scenario_path)
         except ModelException:
             raise
+        
+    def load_modules(self):
+        """ load the modules """
+        # add  modules in tree
+        for name in encap_methods.keys():
+            module = encap_methods[name]()
+            self._modules[name] = module
+
+            
+    def reload_modules(self):
+        """ load or reload the modules configuration """
+        for name in self._modules:
+            module = self._modules[name]
+            # handle the module configuration
+            xml = module.get_xml()
+            xsd = module.get_xsd()
+            if xml is None:
+                continue
+
+            plugins_path = os.path.join(self._scenario_path, 'plugins')
+            xml_path = os.path.join(plugins_path, xml)
+            xsd_path = os.path.join('/usr/share/platine/plugins', xsd)
+            # create the plugins path if necessary
+            if not os.path.exists(plugins_path):
+                try:
+                    os.makedirs(plugins_path, 0755)
+                except OSError, (errno, strerror):
+                    raise ModelException("cannot create directory '%s': %s" %
+                                         (plugins_path, strerror))
+            # create the configuration file if necessary
+            if not os.path.exists(xml_path):
+                try:
+                    default_path = os.path.join('/usr/share/platine/plugins', xml)
+                    shutil.copy(default_path, xml_path)
+                except IOError, (errno, strerror):
+                    raise ModelException("cannot copy %s plugin configuration "
+                                         "from '%s' to '%s': %s" % (name,
+                                         default_path, xml_path, strerror))
+
+            try:
+                config_parser = XmlParser(xml_path, xsd_path)
+            except IOError, msg:
+                raise ModelException("cannot load module %s configuration:"
+                                     "\n\t%s" % (name, msg))
+            except XmlException, msg:
+                raise ModelException("failed to parse module %s configuration file:"
+                                     "\n\t%s" % (name, msg))
+            module.set_config_parser(config_parser)
+
 
     def close(self):
         """ release the model """
@@ -174,8 +234,12 @@ class Model:
                 del self._ws[idx]
             idx += 1
 
+        for module in self._missing_modules:
+            if name in self._missing_modules[module]:
+                self._missing_modules[module].remove(name)
+
     def add_host(self, name, instance, network_config,
-                 state_port, command_port, tools):
+                 state_port, command_port, tools, host_modules):
         """ add an host in the host list """
         # remove instance for ST and WS
         if name.startswith('st'):
@@ -210,8 +274,18 @@ class Model:
                 raise ModelException
 
 
-        # the component does not exist so create it
         self._log.debug("add host '%s'" % name)
+        # report a warning if a module is not supported by the host
+        for module in [mod for mod in self._modules
+                           if mod.upper() not in host_modules]:
+            if component != 'ws':
+                self._log.warning("%s does not support %s plugin" %
+                                  (name.upper(), module))
+                if not module in self._missing_modules:
+                    self._missing_modules[module] = [name]
+                else:
+                    self._missing_modules[module].append(name)
+        # the component does not exist so create it
         host = HostModel(name, instance, network_config, state_port,
                          command_port, tools, self._scenario_path, self._log)
         if component == 'sat':
@@ -322,6 +396,15 @@ class Model:
     def get_conf(self):
         """ get the global configuration """
         return self._config
+    
+    def get_modules(self):
+        """ get the module list """
+        return self._modules
+
+    def get_missing(self):
+        """ get the missing module list """
+        return self._missing_modules
+
 
 ##### TEST #####
 if __name__ == "__main__":

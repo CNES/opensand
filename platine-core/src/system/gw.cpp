@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -74,6 +75,7 @@
 #include "bloc_dvb_rcs_ncc.h"
 #include "bloc_sat_carrier.h"
 #include "bloc_encap.h"
+#include "PluginUtils.h"
 
 // environment plane include
 #include "platine_env_plane/EnvironmentAgent_e.h"
@@ -158,6 +160,9 @@ int main(int argc, char **argv)
 	BlocEncap *blocEncap;
 	BlocDVBRcsNcc *blocDvbRcsNcc;
 	BlocSatCarrier *blocSatCarrier;
+	PluginUtils utils;
+
+	std::map<std::string, EncapPlugin *> encap_plug;
 
 	int is_failure = 1;
 
@@ -212,33 +217,42 @@ int main(int argc, char **argv)
 	MGL_TRACE_SET_LEVEL(0); // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
+	// load the encapsulation plugins
+	if(!utils.loadEncapPlugins(encap_plug))
+	{
+		UTI_ERROR("%s: cannot load the encapsulation plugins\n", progname);
+		goto destroy_blocmgr;
+	}
+
 	// instantiate all blocs
 	blocIPQoS = new BlocIPQoS(blocmgr, 0, "IP-QoS", "GW");
 	if(blocIPQoS == NULL)
 	{
 		UTI_ERROR("%s: cannot create the IP-QoS bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "EncapBloc", "GW");
+	blocEncap = new BlocEncap(blocmgr, 0, "EncapBloc", "GW",
+	                          encap_plug);
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
-	blocDvbRcsNcc = new BlocDVBRcsNcc(blocmgr, 0, "DvbRcsNcc");
+	blocDvbRcsNcc = new BlocDVBRcsNcc(blocmgr, 0, "DvbRcsNcc",
+	                                  encap_plug);
 	if(blocDvbRcsNcc == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DvbRcsNcc bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier");
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
-		goto destroy_blocmgr;
+		goto release_plugins;
 	}
 
 	// blocs communication
@@ -272,6 +286,8 @@ int main(int argc, char **argv)
 	is_failure = 0;
 
 	// cleanup before GW stops
+release_plugins:
+	utils.releaseEncapPlugins();
 destroy_blocmgr:
 	delete blocmgr; /* destroy the bloc manager and all the blocs */
 destroy_eventmgr:
