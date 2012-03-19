@@ -162,11 +162,22 @@ class HostController:
             sock.close()
             raise
 
+        # only configure if disabled or if dev mode and no deploy information
+        if not self._host_model.is_enabled() or \
+           (dev_mode and not self._host_model.get_name() in
+            deploy_config.sections()):
+            if self._host_model.is_enabled():
+                self._log.warning("%s :disabled because it has no deploy "
+                                  "information" % self.get_name())
+                self.disable()
+            return
+
         prefix = '/'
         if deploy_config.has_option('prefix', 'destination'):
             prefix = deploy_config.get('prefix', 'destination')
 
         component = self._host_model.get_name()
+
         ld_library_path = '/'
         if deploy_config.has_option(component, 'ld_library_path'):
             ld_library_path = deploy_config.get(component, 'ld_library_path')
@@ -175,7 +186,7 @@ class HostController:
         if not dev_mode:
             bin_file = self._host_model.get_component()
         else:
-            bin_file = deploy_config.get(self._host_model.get_name(),'binary')
+            bin_file = deploy_config.get(self._host_model.get_name(), 'binary')
             bin_file = os.path.join(prefix, bin_file.lstrip('/'))
 
         # create the start.ini file
@@ -572,3 +583,7 @@ class HostController:
                             (self.get_name(), received))
             raise CommandException("%s: server answers '%s' while waiting " \
                                    "for 'OK'" % (self.get_name(), received))
+
+    def disable(self):
+        """ diasable the host """
+        self._host_model.enable(False)

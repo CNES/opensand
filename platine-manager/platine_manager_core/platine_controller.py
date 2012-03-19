@@ -254,6 +254,11 @@ class Controller(threading.Thread):
             self.update_deploy_config()
             for host in self._hosts + self._ws:
                 self._log.info("Deploying " + host.get_name().upper())
+                if not host.get_name().lower() in self._deploy_config.sections():
+                    self._log.warning("No information for %s deployment, "
+                                      "host will be disabled" % host.get_name())
+                    host.disable()
+                    continue
                 host.deploy(self._deploy_config)
         except CommandException:
             self._log.error("Platine platform failed to deploy")
