@@ -122,15 +122,9 @@ class DirectoryHandler(object):
                         LOGGER.warning("timeout when trying to read")
                         raise Timeout()
         except SAXException, ex:
-            LOGGER.error("error when parsing the XML stream (%s)",
-                         ex.getMessage())
-            raise XmlError()
-        except OSError:
-            raise
-        except Exception, msg:
-            LOGGER.error("exception when receiving content: " + str(msg))
-            raise
-        finally:
+            LOGGER.error("error when parsing the XML stream")
+            raise XmlError(ex.getMessage())
+        else:
             parser.close()
 
 
@@ -174,18 +168,21 @@ class XmlParser(handler.ContentHandler):
                 try:
                     os.makedirs(self._curr_dir) #TODO mode
                 except OSError, (errno, strerror):
-                    LOGGER.error("Error when creating directory '%s' (%d: %s)",
-                                 self._curr_dir, errno, strerror)
-                    raise
+                    msg = ("Error when creating directory '%s' (%d: %s)" %
+                            (self._curr_dir, errno, strerror))
+                    LOGGER.error(msg)
+                    raise SAXException(msg)
                 except Exception:
-                    LOGGER.error("exception when creating directory '%s'",
-                                 self._curr_dir)
-                    raise
+                    msg = ("exception when creating directory '%s'" %
+                            self._curr_dir)
+                    LOGGER.error(msg)
+                    raise SAXException(msg)
         elif(node_name == "file"):
             if(name == ''):
                 LOGGER.warning("the file we try to transmit does not " + \
                                "exist on manager host !")
-                return
+                raise SAXException("the file we try to transmit does not exist "
+                                   "on manager host")
             if 'mode' in attrs.getNames():
                 mode = attrs.getValue('mode')
                 try:
@@ -193,7 +190,8 @@ class XmlParser(handler.ContentHandler):
                 except ValueError:
                     LOGGER.warning('the file has mode attribute which ' \
                                    'is not integer: %s' % mode)
-                    return
+                    raise SAXException("the has mode attibute which is not "
+                                       "interger: %s" % mode)
 
             self._curr_filename = self._curr_dir + "/" + name
             self._curr_filename = self._curr_filename.replace("//", "/")
@@ -203,7 +201,7 @@ class XmlParser(handler.ContentHandler):
                 self._tmp_file = tempfile.NamedTemporaryFile()
             except Exception:
                 LOGGER.error("exception when creating temporary file")
-                raise
+                raise SAXException("exception when creating temporary file")
             self._is_file = True
 
     def endElement(self, name):
@@ -217,15 +215,17 @@ class XmlParser(handler.ContentHandler):
                 shutil.copyfile(self._tmp_file.name, self._curr_filename)
                 if self._curr_mode != -1:
                     os.chmod(self._curr_filename, self._curr_mode)
-            except OSError, (errno, strerror):
-                LOGGER.error("error when copying '%s' to '%s' (%d: %s)",
-                             self._tmp_file.name, self._curr_filename,
-                             errno, strerror)
-                raise
-            except Exception:
-                LOGGER.error("unknown exception when copying file '%s'",
-                             self._tmp_file.name)
-                raise
+            except (IOError, OSError), (errno, strerror):
+                msg = ("error when copying '%s' to '%s' (%d: %s)" %
+                        (self._tmp_file.name, self._curr_filename,
+                        errno, strerror))
+                LOGGER.error(msg)
+                raise SAXException(msg)
+            except shutil.Error, (srcname, dstname, exception):
+                msg = ("error when copying '%s' to '%s' (%s)" %
+                       (srcname, dstname, exception))
+                LOGGER.error(msg)
+                raise SAXException(msg)
             finally:
                 self._tmp_file.close()
 

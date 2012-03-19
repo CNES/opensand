@@ -137,15 +137,8 @@ class CommandHandler(MyTcpHandler):
         except InstructionError:
             self.wfile.write("ERROR bad instruction\n")
             raise
-        except XmlError:
-            self.wfile.write("ERROR cannot parse XML stream\n")
-            raise
-        except OSError:
-            self.wfile.write("ERROR cannot create directory or file\n")
-            raise
-        except shutil.Error, (srcname, dstname, exception):
-            self.wfile.write("ERROR cannot copy %s to %s: %s\n",
-                             srcname, dstname, exception)
+        except XmlError, msg:
+            self.wfile.write("ERROR %s\n" % msg)
             raise
 
     def handle_start(self):
