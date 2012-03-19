@@ -51,37 +51,28 @@ class ConfEvent(ConfView) :
 
         self._modif = False
         self._previous_img = ''
-        # update the description immediately then add a periodic update
-        self.refresh_description()
-        self._descr_refresh = gobject.timeout_add(1000,
-                                                  self.refresh_description)
-
+        # update the image
         self._img_widget.clear()
+        self.refresh_description()
+
         gobject.idle_add(self.enable_conf_buttons, False)
 
     def close(self):
         """ close the configuration tab """
         self._log.debug("Conf Event: close")
-        if self._descr_refresh is not None:
-            gobject.source_remove(self._descr_refresh)
         self._log.debug("Conf Event: description refresh joined")
         self._log.debug("Conf Event: closed")
 
     def activate(self, val):
         """ 'activate' signal handler """
         if val == False:
-            if self._descr_refresh is not None:
-                gobject.source_remove(self._descr_refresh)
             self._img_widget.clear()
-            self._descr_refresh = None
             self._modif = False
         else:
             self._modif = True
             self._previous_img = ''
-            # update the description immediately then add a periodic update
+            # update the image
             self.refresh_description()
-            self._descr_refresh = gobject.timeout_add(1000,
-                                                      self.refresh_description)
 
     def refresh_description(self):
         """ refresh the description and image """
@@ -89,8 +80,6 @@ class ConfEvent(ConfView) :
             return True
 
         gobject.idle_add(self.refresh_gui)
-        # continue to refresh
-        return True
 
     def refresh_gui(self):
         """ the part of the refreshing that modifies GUI
@@ -98,8 +87,6 @@ class ConfEvent(ConfView) :
         cursor = gtk.gdk.Cursor(gtk.gdk.WATCH)
         if self._img_widget.window is not None:
             self._img_widget.window.set_cursor(cursor)
-
-        self._text_widget.set_markup(self._description)
 
         img_name = "%s_%s_%s.png" % (self._payload, self._up, self._down)
         if self._previous_img != img_name and \
@@ -163,6 +150,8 @@ class ConfEvent(ConfView) :
         # check if Platine is running
         if self._model.is_running():
             enable = False
+
+        self.refresh_description()
 
         self._ui.get_widget('save_conf').set_sensitive(enable)
         self._ui.get_widget('undo_conf').set_sensitive(enable)
@@ -398,13 +387,8 @@ class ConfEvent(ConfView) :
                 self.on_save_conf_clicked()
             else:
                 self.update_view()
-        if self._descr_refresh is not None:
-            gobject.source_remove(self._descr_refresh)
         window = AdvancedDialog(self._model, self._log)
         window.go()
-        self.refresh_description()
-        self._descr_refresh = gobject.timeout_add(1000,
-                                                  self.refresh_description)
         self.update_view()
         self.enable_conf_buttons(False)
 

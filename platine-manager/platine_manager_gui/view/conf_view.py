@@ -41,19 +41,6 @@ from platine_manager_gui.view.window_view import WindowView
 from platine_manager_core.my_exceptions import ConfException
 
 IMG_PATH = "/usr/share/platine/manager/images/"
-DESCRIPTION = (
-"<span size='x-large'><b>Main configuration for Platine</b></span>\n\n"
-"<span size='large'>For more Platine configuration parameters click the "
-"advanced button below.\n\n\n\n"
-"The following schema describes the protocol stack according to selected "
-"configuration:\n\t</span>The payload type is the type of satellite:\n\t\t"
-"<i>transparent = starred\n\t\tregenerative = meshed</i>\n\tThe return "
-"link/uplink standard is the output DVB standard for terminals, only DVB-RCS "
-"is available for the moment\n\tThe DAMA algorithm is the available DAMA "
-"implementations\n\tThe return link/uplink and forward link/dowlink "
-"are the available encapsulation protocols according to the payload\n\ttype and"
-" return link/uplink standard\n\tThe terminal type corresponds to 2 link budget "
-"hypothesis\n\tThe frame duration is the duration of a DVB frame")
 
 #TODO find a way to better handle encapsulation schemes and eventually to add one easily
 class ConfView(WindowView) :
@@ -69,12 +56,9 @@ class ConfView(WindowView) :
 
         self._model = model
 
-        self._text_widget = self._ui.get_widget('conf_descr_text')
-
         self._img_widget = self._ui.get_widget('conf_descr_image')
         self._img_path = IMG_PATH
 
-        self._description = DESCRIPTION
         self._title = 'Protocol stack'
 
         # parameter to get the correct image on description
