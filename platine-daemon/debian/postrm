@@ -21,8 +21,10 @@ set -e
 remove_syslog_conf(){
     EXE_RM="/bin/rm"
     SYSLOG_CONF="/etc/rsyslog.d/platine-daemon.conf"
+    LOGROTATE_CONF="/etc/logrotate.d/platine-daemon.conf"
 
     ${EXE_RM} -f ${SYSLOG_CONF} || true
+    ${EXE_RM} -f ${LOGROTATE_CONF} || true
 }
 
 remove_platine_conf(){

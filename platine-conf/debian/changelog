@@ -1,3 +1,10 @@
+platine-conf (3.0.0) lucid; urgency=low
+
+  * Add headers, copyright and licence information
+  * Update to version 3.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Fri, 30 Sep 2011 17:01:58 +0200
+
 platine-conf (3.0.0-rc1) unstable; urgency=low
 
   * Fix issue #0000035: Add a make deb target

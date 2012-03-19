@@ -1,3 +1,36 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright Â© 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+/**
+ * @file Error_e.h
+ * @author TAS
+ * @brief the error list
+ */
+
 #ifndef Error_e
 #   define Error_e
 
@@ -114,7 +147,7 @@ typedef enum
 	C_TRACE_DEF_FILE,
 	C_COMPONENT_CONFIG_FILE,
 
-	/* Liste à compléter ...  */
+	/* Liste Ã  complÃ©ter ...  */
 
 	C_PROBE_LOG_FILE,				  /* Keep these 2 values as the last ones of this enum */
 	C_EVENT_LOG_FILE				  /* Keep these 2 values as the last ones of this enum */

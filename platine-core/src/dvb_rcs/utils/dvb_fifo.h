@@ -1,3 +1,31 @@
+/*
+ *
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file dvb_fifo.h
  * @brief FIFO queue containing MAC ATM cells
@@ -18,7 +46,7 @@
 #define DVB_FIFO_NRT 0
 #define DVB_FIFO_RT 1
 
-// EF, AF, BE fifo type are used fo Esa DAMA agent:
+// EF, AF, BE fifo type are used fo Legacy DAMA agent:
 // they indicated the MAC QOS, which is equivalent in this case to Diffserv
 // IP QoS
 // NM and SIG fifo id used for Network Managment and Signalisation

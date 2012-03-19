@@ -1,69 +1,27 @@
-2011-02-17 17:03  jbernard
+2011-09-30 16:31  aschiltknecht
 
-	* Close file descriptors when creating subprocess
-	  Modify the function which was waiting for process to terminate
-	  with
-	  a non blocking function
+	* Update changelog for RC1 release
+	* Add tools in deconf template
+	* Avoid infinite loop in daemon occuring when connection was broken
+	  while transmitting data
+    * Update changelor for final release
+	* Add AUTHORS file
+	* Add COPYING file
 
-2011-02-18 15:06  jbernard
+2011-05-13 08:39  jbernard
 
-	* Correctly purge daemon package
+	* Update changelog for RC1 release
 
-2011-03-01 16:22  jbernard
+2011-08-09 12:57  jbernard
 
-	* Add workstation support
+	* Add tools in deconf template
 
-2011-03-02 08:54  jbernard
+2011-09-15 08:43  jbernard
 
-	* Complete the patch from revision 1382 to avoid polling thread
-	  to stop because the event was not cleared
+	* Avoid infinite loop in daemon occuring when connection was broken
+	  while transmitting data
 
-2011-03-02 12:36  jbernard
+2011-09-28 08:23  jbernard
 
-	* It is now possible to switch from regenerative to transparent and
-	  conversely
-	  without launching network script, everything is done in gw
-	  process
-
-2011-03-21 10:22  jbernard
-
-	* Update manager and daemon dependencies as specified in note
-	  #0000040 of
-	  issue #0000020 entitled "Dependences problem in dpkg -i
-	  installation"
-
-2011-03-21 10:26  jbernard
-
-	* Force IPv4 service
-	  Add test support
-
-2011-03-22 09:59  jbernard
-
-	* Fix issue #0000021: Problem restarting PtDmon
-	  this patch completes the patches r1393 and r1382
-
-2011-03-23 15:24  jbernard
-
-	* Add a configuration file for rsyslog
-
-2011-04-07 09:36  jbernard
-
-	* Fix issue #0000033:
-	  "Multiple Platine emulators controlled by the same Admin-Network"
-	  We can now specify the service type in Platine Manager and
-	  Platine daemon
-
-2011-04-11 16:44  jbernard
-
-	* - Rename platine libraries packages
-	  - Add debug packages
-	  - Correct some errors in packages scripts
-
-2011-04-18 08:22  jbernard
-
-	* Move files from lib/exec to libexec
-
-2011-05-13 10:38 jbernard
-
-	* Correct the script which removes the Platine configuration
+	* Create the branch for 3.0.0 official release
 

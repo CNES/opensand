@@ -1,9 +1,34 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file bloc_ip_qos.cpp
  * @brief Interface between Traffic Classifier in Linux kernel and Platine
- * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
- * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
- * @author Julien Nicol <julien.nicol@b2i-toulouse.com>
+ * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
 #include "bloc_ip_qos.h"
@@ -17,10 +42,6 @@ extern T_ENV_AGENT EnvAgent;
 
 /// The default LABEL to associate with one IP packet if no MAC ID is found
 const int C_DEFAULT_LABEL = 255;
-
-// init HDLB counters
-__u32 *BlocIPQoS::hdlb_pkt_est = NULL;
-__u32 *BlocIPQoS::hdlb_drop_est = NULL;
 
 
 /**
@@ -48,22 +69,6 @@ BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
  */
 BlocIPQoS::~BlocIPQoS()
 {
-	// close rtnetlink socket
-	ll_close_map();
-	rtnl_close(&rth);
-
-	// destroy HDLB counters
-	if(BlocIPQoS::hdlb_pkt_est != NULL)
-	{
-		delete[] BlocIPQoS::hdlb_pkt_est;
-		BlocIPQoS::hdlb_pkt_est = NULL;
-	}
-	if(BlocIPQoS::hdlb_drop_est != NULL)
-	{
-		delete[] BlocIPQoS::hdlb_drop_est;
-		BlocIPQoS::hdlb_drop_est = NULL;
-	}
-
 	// close TUN file descriptor
 	close(this->_tun_fd);
 
@@ -86,7 +91,6 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 	if(MGL_EVENT_IS_INIT(event))
 	{
 		std::basic_ostringstream < char >cmd;
-		int ret;
 
 		// retrieve bloc config
 		this->getConfig();
@@ -109,66 +113,12 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 
 		UTI_INFO("%s TUN handle with fd %d initialized\n",
 		         FUNCNAME, this->_tun_fd);
-
-		// initialize some statistics values
-		BlocIPQoS::hdlb_pkt_est = new __u32[categoryMap.size()];
-		BlocIPQoS::hdlb_drop_est = new __u32[categoryMap.size()];
-		if(BlocIPQoS::hdlb_pkt_est == NULL || BlocIPQoS::hdlb_drop_est == NULL)
-		{
-			UTI_ERROR("%s memory allocation for HDLB statistics failed\n",
-			          FUNCNAME);
-			return mgl_ko;
-		}
-		bzero(BlocIPQoS::hdlb_pkt_est, sizeof(int) * categoryMap.size());
-		bzero(BlocIPQoS::hdlb_drop_est, sizeof(int) * categoryMap.size());
-
-		// set statistics timer
-		this->setTimer(this->stats_timer, STATS_TIMER);
-
-		// open rtnetlink socket for statistics
-		if(rtnl_open(&rth, 0) < 0)
-		{
-			UTI_ERROR("%s cannot open rtnetlink socket for stats\n", FUNCNAME);
-			return mgl_ko;
-		}
-
-		// initialise ll_map and get device index for statistics
-		ll_init_map(&rth);
-
-		// list all HDLB classes and display their stats
-		ret = this->tc_class_list(&rth, "platine");
-		if(ret != 0)
-		{
-			UTI_ERROR("%s stats output failed with code %d", FUNCNAME, ret);
-			return mgl_ko;
-		}
 		this->_initOk = true;
 	}
 	else if(!this->_initOk)
 	{
-		UTI_ERROR("%s encapsulation bloc not initialized, ignore "
+		UTI_ERROR("%s IP-QOS bloc not initialized, ignore "
 		          "non-init event\n", FUNCNAME);
-	}
-	else if(MGL_EVENT_IS_TIMER(event))
-	{
-		int ret;
-
-		// is it the timer for the statistics ?
-		if((mgl_timer) event->event.timer.id == this->stats_timer)
-		{
-			// list all HDLB classes and display their stats
-			ret = this->tc_class_list(&rth, "platine");
-			if(ret != 0)
-				UTI_ERROR("%s stats output failed with code %d", FUNCNAME, ret);
-
-			// rearm the timer
-			this->setTimer(this->stats_timer, STATS_TIMER);
-		}
-		else
-		{
-			UTI_ERROR("%s unknown timer expired\n", FUNCNAME);
-			status = mgl_ko;
-		}
 	}
 	else if(MGL_EVENT_IS_FD(event))
 	{
@@ -567,240 +517,4 @@ int BlocIPQoS::tun_alloc()
 	return fd;
 }
 
-
-/**
- * Functions below have statistic purposes
- */
-
-/**
- * Get class id from a handle
- *
- * @return  The class id, -1 if an error occurs
- */
-int BlocIPQoS::print_tc_classid(__u32 h)
-{
-	if(h == TC_H_ROOT)
-		return 0;
-	else if(h == TC_H_UNSPEC)
-		return -1;
-	else if(TC_H_MIN(h) == 0)
-		return -1;
-
-	return TC_H_MIN(h);
-}
-
-/**
- * Record HDLB class statistics (new method)
- */
-void BlocIPQoS::print_tcstats2_attr(struct rtattr *rta,
-                                    const char *prefix,
-                                    struct rtattr **xstats,
-                                    unsigned int id)
-{
-	struct rtattr *tbs[TCA_STATS_MAX + 1];
-
-	parse_rtattr(tbs, TCA_STATS_MAX, (rtattr *) RTA_DATA(rta), RTA_PAYLOAD(rta));
-
-
-	// Class rate (rate is computed from the transmitted bytes to have
-	// better granularity than the rate computed in kernel)
-	if(tbs[TCA_STATS_BASIC] && BlocIPQoS::hdlb_drop_est != NULL)
-	{
-		struct gnet_stats_basic bs = { 0 };
-		memcpy(&bs, RTA_DATA(tbs[TCA_STATS_BASIC]),
-		       MIN(RTA_PAYLOAD(tbs[TCA_STATS_BASIC]), sizeof(bs)));
-		ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_RATE, id,
-		                       (int)((bs.bytes - BlocIPQoS::hdlb_pkt_est[id - 1])
-		                       / STATS_TIMER * 8000));
-		BlocIPQoS::hdlb_pkt_est[id - 1] = bs.bytes;
-	}
-
-	// number of dropped packets
-	if(tbs[TCA_STATS_QUEUE] && BlocIPQoS::hdlb_drop_est != NULL)
-	{
-		struct gnet_stats_queue q = { 0 };
-		memcpy(&q, RTA_DATA(tbs[TCA_STATS_QUEUE]),
-		       MIN(RTA_PAYLOAD(tbs[TCA_STATS_QUEUE]), sizeof(q)));
-		ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_DROPS, id,
-		                       1000 * (q.drops - BlocIPQoS::hdlb_drop_est[id - 1])
-		                       / STATS_TIMER);
-		BlocIPQoS::hdlb_drop_est[id - 1] = q.drops;
-	}
-
-	// number of packets in the queue
-	if(tbs[TCA_STATS_QUEUE])
-	{
-		struct gnet_stats_queue q = { 0 };
-		memcpy(&q, RTA_DATA(tbs[TCA_STATS_QUEUE]),
-		       MIN(RTA_PAYLOAD(tbs[TCA_STATS_QUEUE]), sizeof(q)));
-		ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_BACKLOG,
-		                       id, q.qlen);
-	}
-}
-
-/**
- * Record HDLB class statistics (backward compatible version)
- *
- * @see print_tcstats2_attr
- */
-void BlocIPQoS::print_tcstats_attr(struct rtattr *tb[],
-                                   const char *prefix,
-                                   struct rtattr **xstats,
-                                   unsigned int id)
-{
-	if(tb[TCA_STATS2])
-	{
-		BlocIPQoS::print_tcstats2_attr(tb[TCA_STATS2], prefix, xstats, id);
-	}
-	else if(tb[TCA_STATS] && BlocIPQoS::hdlb_drop_est != NULL) // backward compatibility
-	{
-		struct tc_stats st;
-
-		/* handle case where kernel returns more/less than we know about */
-		memset(&st, 0, sizeof(st));
-		memcpy(&st, RTA_DATA(tb[TCA_STATS]), MIN(RTA_PAYLOAD(tb[TCA_STATS]), sizeof(st)));
-		ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_RATE, id,
-		                       (int)((st.bytes - BlocIPQoS::hdlb_pkt_est[id - 1])
-		                       / STATS_TIMER * 8000));
-		BlocIPQoS::hdlb_pkt_est[id - 1] = st.bytes;
-
-		if(st.qlen || st.backlog)
-		{
-			if(st.backlog)
-				ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_BACKLOG,
-				                       id, st.backlog);
-			if(st.qlen)
-				ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_OUTPUT_HDLB_BACKLOG,
-				                       id, st.qlen);
-		}
-	}
-}
-
-/**
- * Translate a number from an hexadecimal representation to a decimal value
- *
- * @return  The decimal value corresponding to the hexadecimal representation
- */
-int BlocIPQoS::HexToDec(int hex)
-{
-	int res = 0;
-	int weight = 1;
-
-	while(hex > 15)
-	{
-		res += hex % 16 * weight;
-		hex = hex / 16;
-		weight = weight * 10;
-	}
-
-	res = hex * weight;
-
-	return res;
-}
-
-/**
- * Print HDLB class statistics
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocIPQoS::print_class(const struct sockaddr_nl *who,
-                           struct nlmsghdr *n,
-                           void *arg)
-{
-	const char *FUNCNAME = IPQOS_DBG_PREFIX " [print_class]";
-	struct tcmsg *t = (tcmsg *) (NLMSG_DATA(n)); // Netlink message data
-	int len = n->nlmsg_len;         // Netlink message data length
-	struct rtattr * tb[TCA_MAX+1];  // Netlink message's routing attributes
-	struct rtattr *xstats = NULL;   // Extended hdlb statistics
-	unsigned int id = 0;            // HDLB class id
-
-	// Check message type
-	if(n->nlmsg_type != RTM_NEWTCLASS && n->nlmsg_type != RTM_DELTCLASS)
-	{
-		UTI_ERROR("%s Not a class\n", FUNCNAME);
-		return 0;
-	}
-
-	// Check message length
-	len -= NLMSG_LENGTH(sizeof(*t));
-	if(len < 0)
-	{
-		UTI_ERROR("%s Wrong len %d\n", FUNCNAME, len);
-		return -1;
-	}
-
-	// Get class attributes from netlink message
-	memset(tb, 0, sizeof(tb));
-	parse_rtattr(tb, TCA_MAX, TCA_RTA(t), len);
-
-	// Check class type
-	if(tb[TCA_KIND] == NULL)
-	{
-		UTI_ERROR("%s NULL kind\n", FUNCNAME);
-		return -1;
-	}
-	if(strcmp((char *) (RTA_DATA(tb[TCA_KIND])), "hdlb") != 0)
-		return 0;
-
-	// Get class id and translate it for the display manager
-	if(t->tcm_handle)
-	{
-		int id_tc = 0;
-		if((id_tc = BlocIPQoS::print_tc_classid(t->tcm_handle)) == -1)
-		{
-			UTI_INFO("%s class h%u has no id, cannot record its stats\n",
-			         FUNCNAME, t->tcm_handle);
-			return 0;
-		}
-
-		if(id_tc < 100)
-			return 0;
-
-		id = (unsigned int) BlocIPQoS::HexToDec(id_tc) / 100;
-	}
-
-	// Record class general statistics
-	BlocIPQoS::print_tcstats_attr(tb, " ", &xstats, id);
-
-	return 0;
-}
-
-/**
- * List all HDLB classes and send rtnetlink requests
- *
- * @return  0 in case of success, 1 otherwise
- */
-int BlocIPQoS::tc_class_list(struct rtnl_handle *rth, const char *dev)
-{
-	struct tcmsg t; // TC message
-
-	// Set up the message
-	memset(&t, 0, sizeof(t));
-	t.tcm_family = AF_UNSPEC;
-
-	if(dev)
-	{
-		if((t.tcm_ifindex = ll_name_to_index(dev)) == 0)
-		{
-			UTI_ERROR("Cannot find device \"%s\"\n", dev);
-			return 1;
-		}
-	}
-
-	// Send an rtnetlink dump request
-	if(rtnl_dump_request(rth, RTM_GETTCLASS, &t, sizeof(t)) < 0)
-	{
-		UTI_ERROR("Cannot send dump request\n");
-		return 1;
-	}
-
-	// Filter the request to get wanted statistics
-	if(rtnl_dump_filter(rth, BlocIPQoS::print_class, (char*)dev, NULL, NULL) < 0)
-	{
-		UTI_ERROR("Dump terminated\n");
-		return 1;
-	}
-
-	return 0;
-}
 

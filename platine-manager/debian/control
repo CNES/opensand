@@ -1,7 +1,6 @@
 Source: platine-manager
-Section: non-free
 Priority: optional
-Maintainer: Viveris Technologies
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), python (>= 2.6)
 Build-Depends-Indep: python-support
 Standards-Version: 3.8.3
@@ -13,5 +12,5 @@ Description: Non graphical part of Manager for Platine emulation testbed
 
 Package: platine-manager-gui
 Architecture: any
-Depends: ${misc:Depends}, platine-manager-core (= ${binary:Version}), python-matplotlib, python-gtk2 (>=2.16)
+Depends: ${misc:Depends}, platine-manager-core (= ${binary:Version}), python-matplotlib, python-gtk2 (>=2.16), rsyslog, logrotate
 Description: GUI of Manager for Platine emulation testbed

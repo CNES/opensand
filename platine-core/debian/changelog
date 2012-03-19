@@ -1,3 +1,43 @@
+platine-core (3.0.0) lucid; urgency=low
+
+  * Remove the recommandation on daemon to avoid automatic installation with
+    apt-get
+  * Use int instead of t_pkt_type in headers
+  * Fix the UDP channel to avoid synchronization errors on reception
+  * Fix UDP channel synchronization: wrong value used for modulo applied on
+    uint8_t type for sequence number (was 255 instead of 256)
+  * Remove an unused function in bloc_ip_qos
+  * Correct an error on dama scheduling
+  * Correct the UDP overtaking problem up to 3 overtaken packets
+  * Correct a bug related to the previous UDP channels corrections
+  * Extract 'carrier_id' from 'T_DVB_HDR' structure, since it does not have
+    to be send on satellite carrier:
+    - Create a new platine internal structure, 'T_DVB_META', containing the
+      'carrier_id' and the DVB frame (as a 'T_DVB_HDR' structure), which is
+      used between carrier and dvb blocks.
+    - Create new function 'sendDvbFrame' to encapsulate a 'T_DVB_HDR' frame
+      into a 'T_DVB_META' structure, set the 'carrier_id' value, and send it
+      to the carrier block using margouilla IPC.
+    - Update all DVB-related function to use new function 'sendDvbFrame'
+      Fix bug in carrier block: 'carrier_id' was incorrectly set in a UDP
+      channel on socket read.
+  * Add logrotate configuration for platine core.
+  * Fix issue 0000041: The STs handle packets for other STs in regenerative
+    mode
+  * Rename ESA dama to Legacy
+  * Remove unused configuration files
+  * Improve deployment of platine in developper mode 
+  * Remove unused files (core_stX.conf)
+  * Remove logrotate configuration on package removal
+  * Fix logrotate configuration to create empty file so that syslog is not
+    bulked
+  * Remove some files from iproute2 and the source code using them 
+  * Use the DAMA as dynamic library instead of static
+  * Add headers, copyright and licence information
+  * Update to version 3.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Fri, 30 Sep 2011 10:27:42 +0200
+
 platine-core (3.0.0-rc1) unstable; urgency=low
 
   * It is now possible to switch from regenerative to transparent and

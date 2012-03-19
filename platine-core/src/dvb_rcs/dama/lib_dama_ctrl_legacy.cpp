@@ -1,9 +1,34 @@
-/**
- * @file lib_dama_ctrl_esa.cpp
- * @brief This library defines Esa DAMA controller
+/*
  *
- * @author ASP - IUSO, DTP (B. BAUDOIN)
- * @author Didier Barvaux / Viveris Technologies
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+/**
+ * @file lib_dama_ctrl_legacy.cpp
+ * @brief This library defines Legacy DAMA controller
+ * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
 #include <math.h>
@@ -11,7 +36,7 @@
 using namespace std;
 
 #include "lib_dvb_rcs.h"
-#include "lib_dama_ctrl_esa.h"
+#include "lib_dama_ctrl_legacy.h"
 
 // environment plane
 #include "platine_env_plane/EnvironmentAgent_e.h"
@@ -19,13 +44,13 @@ extern T_ENV_AGENT EnvAgent;
 
 #define DBG_PACKAGE PKG_DAMA_DC
 #include "platine_conf/uti_debug.h"
-#define DC_DBG_PREFIX "[ESA]"
+#define DC_DBG_PREFIX "[Legacy]"
 
 
 /**
  * Constructor
  */
-DvbRcsDamaCtrlEsa::DvbRcsDamaCtrlEsa():
+DvbRcsDamaCtrlLegacy::DvbRcsDamaCtrlLegacy():
 	DvbRcsDamaCtrl()
 {
 }
@@ -34,7 +59,7 @@ DvbRcsDamaCtrlEsa::DvbRcsDamaCtrlEsa():
 /**
  * Destructor
  */
-DvbRcsDamaCtrlEsa::~DvbRcsDamaCtrlEsa()
+DvbRcsDamaCtrlLegacy::~DvbRcsDamaCtrlLegacy()
 {
 }
 
@@ -47,7 +72,7 @@ DvbRcsDamaCtrlEsa::~DvbRcsDamaCtrlEsa()
  *
  * @return  0 on success, -1 otherwise
  */
-int DvbRcsDamaCtrlEsa::runDama()
+int DvbRcsDamaCtrlLegacy::runDama()
 {
 	// Computed values
 	int remaining_capacity;   // the total number of valid timeslot after an allocation step
@@ -142,7 +167,7 @@ int DvbRcsDamaCtrlEsa::runDama()
  * @param Tac is the total available capacity in slot number
  * @return Remaining total available capacity
  */
-int DvbRcsDamaCtrlEsa::runDamaRbdc(int Tac)
+int DvbRcsDamaCtrlLegacy::runDamaRbdc(int Tac)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDamaRbdc]";
 
@@ -302,7 +327,7 @@ int DvbRcsDamaCtrlEsa::runDamaRbdc(int Tac)
  * @param Tac is the total available capacity in slot number
  * @return Remaining total available capacity
  */
-int DvbRcsDamaCtrlEsa::runDamaVbdc(int Tac)
+int DvbRcsDamaCtrlLegacy::runDamaVbdc(int Tac)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDamaVbdc]";
 
@@ -427,7 +452,7 @@ int DvbRcsDamaCtrlEsa::runDamaVbdc(int Tac)
  * @param Tac is the total available capacity in slot number
  * @return Remaining total available capacity
  */
-int DvbRcsDamaCtrlEsa::runDamaFca(int Tac)
+int DvbRcsDamaCtrlLegacy::runDamaFca(int Tac)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDamaFca]";
 	int last_ptr, current_ptr;
@@ -491,7 +516,7 @@ int DvbRcsDamaCtrlEsa::runDamaFca(int Tac)
  * @param Offset points to the last ST index
  * @return Next ST context
  */
-DC_St *DvbRcsDamaCtrlEsa::RoundRobin(int *Offset)
+DC_St *DvbRcsDamaCtrlLegacy::RoundRobin(int *Offset)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[RoundRobin]";
 	DC_Context::iterator st;

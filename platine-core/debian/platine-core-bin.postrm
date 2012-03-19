@@ -35,10 +35,15 @@ remove_user(){
 remove_conf(){
     EXE_RM="/bin/rm"
     MODCOD_DRA_DIR="/etc/platine/modcod_dra"
+
+    ${EXE_RM} -rf ${MODCOD_DRA_DIR} || true
+}
+
+remove_syslog_conf(){
+    EXE_RM="/bin/rm"
     SYSLOG_CONF="/etc/rsyslog.d/platine-core.conf"
 	LOGROTATE_CONF="/etc/logrotate.d/platine-core.conf"
 
-    ${EXE_RM} -rf ${MODCOD_DRA_DIR} || true
     ${EXE_RM} -f ${SYSLOG_CONF} || true
     ${EXE_RM} -f ${LOGROTATE_CONF} || true
 }
@@ -47,10 +52,12 @@ remove_conf(){
 case "$1" in
     purge)
         remove_conf
+        remove_syslog_conf
         remove_user
     ;;
 
     remove)
+        remove_syslog_conf
         remove_user
     ;;
 

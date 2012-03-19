@@ -15,19 +15,18 @@ INCLUDES = \
 
 AM_CPPFLAGS= -g -DUTI_DEBUG_ON -Wall -Werror
 
-AM_LDFLAGS = \
-	-L../common/.libs
-
 PACKED_COMMON_LIBS= \
 	../encap/libplatine_encap.la \
 	../qos_data/libplatine_qosdata.la \
 	../dvb_rcs/libplatine_dvb.la \
-	../sat_carrier/libplatine_satcarrier.la
-
+	../dvb_rcs/dama/libplatine_dama.la \
+	../dvb_rcs/pep/libplatine_dvb_pep.la \
+	../dvb_rcs/utils/libplatine_dvb_utils.la \
+	../sat_carrier/libplatine_satcarrier.la \
+	../common/libplatine_common.la
 
 allexec_LDADD = \
 	-lpthread \
-	-lplatine_common \
 	-lrt
 
 st_SOURCES = st.cpp

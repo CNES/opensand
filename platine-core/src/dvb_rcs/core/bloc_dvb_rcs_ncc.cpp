@@ -1,10 +1,35 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file bloc_dvb_rcs_ncc.cpp
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
- * @author Didier Barvaux / Viveris Technologies
- * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
+ * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
- *
  */
 
 #include <string.h>
@@ -25,7 +50,7 @@
 
 #include "lib_dama_ctrl_stub.h"
 #include "lib_dama_ctrl_yes.h"
-#include "lib_dama_ctrl_esa.h"
+#include "lib_dama_ctrl_legacy.h"
 #include "lib_dama_ctrl_uor.h"
 
 #include "msg_dvb_rcs.h"
@@ -961,7 +986,7 @@ error:
 int BlocDVBRcsNcc::initDama()
 {
 	string strConfig;
-	enum { esa, uor, stub, yes } selected_algo = stub;
+	enum { legacy, uor, stub, yes } selected_algo = stub;
 	string st_out_encap_scheme;
 	int st_encap_packet_length;
 	int ret;
@@ -975,9 +1000,9 @@ int BlocDVBRcsNcc::initDama()
 	}
 
 	/* select the specified DAMA algorithm */
-	if(strConfig == "ESA")
+	if(strConfig == "Legacy")
 	{
-		selected_algo = esa;
+		selected_algo = legacy;
 	}
 	else if(strConfig == "UoR")
 	{
@@ -1000,9 +1025,9 @@ int BlocDVBRcsNcc::initDama()
 
 	switch(selected_algo)
 	{
-		case esa:
-			UTI_INFO("creating ESA DAMA controller\n");
-			         this->m_pDamaCtrl = new DvbRcsDamaCtrlEsa();
+		case legacy:
+			UTI_INFO("creating Legacy DAMA controller\n");
+			         this->m_pDamaCtrl = new DvbRcsDamaCtrlLegacy();
 			break;
 
 		case uor:
@@ -1464,5 +1489,3 @@ void BlocDVBRcsNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 release:
 	g_memory_pool_dvb_rcs.release((char *) ip_buf);
 }
-
-

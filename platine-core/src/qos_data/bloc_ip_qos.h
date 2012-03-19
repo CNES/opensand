@@ -1,3 +1,31 @@
+/*
+ *
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file bloc_ip_qos.h
  * @brief Interface between Traffic Classifier in Linux kernel and Platine
@@ -52,13 +80,6 @@ using namespace std;
 /// The time between two QoS statistics updates (in ms)
 #define STATS_TIMER  1000
 
-// TC/Netlink includes
-extern "C"
-{
-	#include "gen_stats.h"
-	#include "libnetlink.h"
-	#include "ll_map.h"
-}
 
 /**
  * @class BlocIPQoS
@@ -76,21 +97,6 @@ class BlocIPQoS: public mgl_bloc
 	// Margouilla event handler
 	mgl_status onEvent(mgl_event *event);
 
-	// statistics
-	static __u32 *hdlb_pkt_est;  ///< HDLB packets number for each class
-	static __u32 *hdlb_drop_est; ///< HDLB dropped packets for each class
-	static int print_class(const struct sockaddr_nl *who,
-	                       struct nlmsghdr *n,
-	                       void *arg);
-	static int print_tc_classid(__u32 h);
-	static void print_tcstats_attr(struct rtattr *tb[],
-	                               const char *prefix,
-	                               struct rtattr **xstats,
-	                               unsigned int id);
-	static void print_tcstats2_attr(struct rtattr *rta,
-	                                const char *prefix,
-	                                struct rtattr **xstats,
-	                                unsigned int id);
 	void writeStats();
 
  private:
@@ -146,14 +152,6 @@ class BlocIPQoS: public mgl_bloc
 
 	/// statistic timer
 	mgl_timer stats_timer;
-
-	// Statistics
-	const static double tick_in_usec = 1;
-	rtnl_handle rth;     ///< rtnetlink socket to communicate with TC in Linux kernel
-
-	long tc_core_tick2usec(long tick) { return (long) (tick/tick_in_usec); }
-	int tc_class_list(struct rtnl_handle *rth, const char *dev);
-	static int HexToDec(int hex);
 };
 
 

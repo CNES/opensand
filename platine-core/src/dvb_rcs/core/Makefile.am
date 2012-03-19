@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES = libplatine_dvb_core.la
+noinst_LTLIBRARIES = libplatine_dvb_core.la
 
 libplatine_dvb_core_la_cpp = \
 	DvbFrame.cpp \

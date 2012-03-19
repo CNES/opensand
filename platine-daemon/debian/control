@@ -1,7 +1,6 @@
 Source: platine-daemon
-Section: non-free
 Priority: optional
-Maintainer: Viveris Technologies
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), python
 Build-Depends-Indep: python-support
 Standards-Version: 3.8.3
@@ -9,5 +8,5 @@ Standards-Version: 3.8.3
 Package: platine-daemon
 Architecture: any
 XS-Python-Version: >= 2.6
-Depends: ${misc:Depends}, python (>= 2.6), python-avahi, python-dbus, avahi-daemon, rsyslog, platine-core-bin
+Depends: ${misc:Depends}, python (>= 2.6), python-avahi, python-dbus, avahi-daemon, rsyslog, platine-core-bin, logrotate
 Description: Daemon for Platine entity (sat, gw, st or ws)

@@ -1,3 +1,11 @@
+platine-env-plane (3.0.0) lucid; urgency=low
+
+  * Add headers, copyright and licence information
+  * Remove the useless file Error.c
+  * Update to version 3.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Fri, 30 Sep 2011 16:51:02 +0200
+
 platine-env-plane (3.0.0-rc1) unstable; urgency=low
 
   * Create the scenario path if it does not exist

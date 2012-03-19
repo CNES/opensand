@@ -1,12 +1,35 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file bloc_dvb_rcs_tal.cpp
- *
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal, compatible
- *        with ESA Dama agent
- *
- * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
- * @author Didier Barvaux / Viveris Technologies
- * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
+ *        with Legacy Dama agent
+ * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
@@ -691,7 +714,7 @@ int BlocDVBRcsTal::initMacFifo()
 		sscanf(strConfig.c_str(), "%d %s %d %d %s", &fifoId, fifoKind,
 		       &fifoSize, &pvc, fifoCrType);
 
-		// DVB fifo kind is the MAC QoS. With Esa DAMA it is the same
+		// DVB fifo kind is the MAC QoS. With Legacy DAMA it is the same
 		// as Diffserv IP QoS: it can be AF, EF, BE
 		// NM and SIG filters are for Network Managment and Signalisation
 		if(strcmp(fifoKind, "NM") == 0)
@@ -706,7 +729,7 @@ int BlocDVBRcsTal::initMacFifo()
 			this->dvb_fifos[i].setKind(DVB_FIFO_BE);
 		else if(strcmp(fifoKind, "RT") == 0 || strcmp(fifoKind, "NRT") == 0)
 		{
-			UTI_ERROR("%s SF#%ld: kind of fifo not managed by ESA DAMA agent: "
+			UTI_ERROR("%s SF#%ld: kind of fifo not managed by Legacy DAMA agent: "
 			          "%s\n", FUNCNAME, this->super_frame_counter, fifoKind);
 			goto err_fifo_release;
 		}
@@ -867,11 +890,11 @@ int BlocDVBRcsTal::initDama()
 		goto error;
 	}
 
-	if(strConfig == "ESA")
+	if(strConfig == "Legacy")
 	{
-		UTI_INFO("%s SF#%ld: create ESA DAMA agent\n", FUNCNAME,
+		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DvbRcsDamaAgentEsa();
+		m_pDamaAgent = new DvbRcsDamaAgentLegacy();
 	}
 	else if(strConfig == "UoR")
 	{
@@ -1906,4 +1929,3 @@ void BlocDVBRcsTal::deletePackets()
 		}
 	}
 }
-

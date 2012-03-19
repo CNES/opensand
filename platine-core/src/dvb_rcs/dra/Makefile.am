@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES = libplatine_dvb_dra.la
+noinst_LTLIBRARIES = libplatine_dvb_dra.la
 
 libplatine_dvb_dra_la_cpp = \
 	DraSchemeDefinition.cpp \

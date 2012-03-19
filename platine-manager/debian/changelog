@@ -1,3 +1,31 @@
+platine-manager (3.0.0) lucid; urgency=low
+
+  * Add/complete changelogs in sources and debian directories
+  * Correct some problems with probes
+  * Correct problems with plot colors
+    Correct problems with tools
+    Add an interactive mode to start Platine from network
+  * Add the TCP server for previous commit
+    Correct the unit problem with probes, see issue #0000038: Graph plot errors
+  * Modify imported graph limits
+    Modify some elements related to save_figure
+  * Improve the help for tools
+  * Add COPYING file
+  * Add AUTHORS file
+  * Fix a bug when deploying binaries
+  * Improve deployment of platine in developper mode 
+    It is now possible to use a personal, user-defined deploy configuration:
+      - all files will be copied in remote hosts into specified directory
+      - platine platform will be launched using these binaries and not
+        those installed on the system (using a custom LD_LIBRARY_PATH)
+      - handle tools (deploy/start)
+  * change severity of message when parsing deploy.ini file
+  * Update tool documentation
+  * Add rsyslog and logrotate to Manager
+  * Update to version 3.0.0
+
+ -- Audric Schiltknecht <audric.schiltknecht@toulouse.viveris.com>  Fri, 30 Sep 2011 17:12:35 +0200
+
 platine-manager (3.0.0-rc1) unstable; urgency=low
 
   * Add an option to save imported figures

@@ -68,7 +68,8 @@ stop()
 {
     log_daemon_msg "Shutting down ${DESCR}" "${PROGNAME}"
 
-    if [ -n "$PIDFILE" ] ; then
+    if [ -f "$PIDFILE" ] ; then
+    	read PID < ${PIDFILE}
     	read PID < ${PIDFILE}
         killproc -p ${PIDFILE} ${PROGNAME}
         if [ $? -ne 0 ] ; then

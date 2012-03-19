@@ -1,6 +1,6 @@
 Source: platine-env-plane
 Priority: optional
-Maintainer: unknown <jbernard@toulouse.viveris.com>
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev
 Standards-Version: 3.8.3
 

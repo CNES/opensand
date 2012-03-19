@@ -11,7 +11,8 @@ AM_INIT_AUTOMAKE
 #
 
 # By default, generate static libraries
-AC_DISABLE_SHARED
+#AC_DISABLE_SHARED
+#AC_DISABLE_STATIC
 
 # Checks for programs.programs.
 AC_PROG_CXX

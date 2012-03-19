@@ -1,7 +1,34 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
- * @file lib_dama_agent_esa.cpp
- * @brief This library defines ESA DAMA agent
- * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
+ * @file lib_dama_agent_legacy.cpp
+ * @brief This library defines Legacy DAMA agent
+ * @author Viveris Technologies
  */
 
 #include <string>
@@ -10,7 +37,7 @@
 
 #include "platine_margouilla/mgl_time.h"
 #include "lib_dvb_rcs.h"
-#include "lib_dama_agent_esa.h"
+#include "lib_dama_agent_legacy.h"
 #include "lib_dama_utils.h"
 #include "DvbRcsFrame.h"
 #include "MacFifoElement.h"
@@ -19,7 +46,7 @@
 
 // log file
 #define DBG_PACKAGE PKG_DAMA_DA
-#define DA_DBG_PREFIX        "[ESA]"
+#define DA_DBG_PREFIX        "[Legacy]"
 #include "platine_conf/uti_debug.h"
 
 // constants
@@ -31,7 +58,7 @@ const int C_MAX_VBDC_IN_SAC = 4080;      // 4080 kbits/s, limitation due to CR
 /**
  * Constructor
  */
-DvbRcsDamaAgentEsa::DvbRcsDamaAgentEsa():DvbRcsDamaAgent()
+DvbRcsDamaAgentLegacy::DvbRcsDamaAgentLegacy():DvbRcsDamaAgent()
 {
 	m_frameDuration = 0.0;
 	m_currentFrameNumber = 1;
@@ -59,7 +86,7 @@ DvbRcsDamaAgentEsa::DvbRcsDamaAgentEsa():DvbRcsDamaAgent()
 /**
  * Destructor
  */
-DvbRcsDamaAgentEsa::~DvbRcsDamaAgentEsa()
+DvbRcsDamaAgentLegacy::~DvbRcsDamaAgentLegacy()
 {
 	if(m_RbdcReqBuf != NULL)
 		delete m_RbdcReqBuf;
@@ -67,7 +94,7 @@ DvbRcsDamaAgentEsa::~DvbRcsDamaAgentEsa()
 
 
 /**
- * Initializes esa dama agent - with more parameters
+ * Initializes legacy dama agent - with more parameters
  * !a new name is required because dynamical link allowed thanks to "virtual" keyword
  * is canceled if functions do not have the same arguments list
  *
@@ -87,7 +114,7 @@ DvbRcsDamaAgentEsa::~DvbRcsDamaAgentEsa()
  *
  * @return 0 on success -1 otherwise
  */
-int DvbRcsDamaAgentEsa::initComplete(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
                                      int dvb_fifos_number,
                                      double frameDuration,
                                      int craBw,
@@ -165,12 +192,12 @@ int DvbRcsDamaAgentEsa::initComplete(dvb_fifo *dvb_fifos,
 	}
 	if(strcmp(strConfig.c_str(), "yes") == 0)
 	{
-		// for ESA algo only OUPUT IP fifo sizes are taken into acount
+		// for Legacy algo only OUPUT IP fifo sizes are taken into acount
 		m_getIpOutputFifoSizeOnly = true;
 	}
 	else
 	{
-		// for ESA algo, both INPUT and OUPUT IP fifo sizes are taken into acount
+		// for Legacy algo, both INPUT and OUPUT IP fifo sizes are taken into acount
 		m_getIpOutputFifoSizeOnly = false;
 	}
 
@@ -264,7 +291,7 @@ error:
  * @param len length of the buffer
  * @return 0 on success, -1 otherwise
  */
-int DvbRcsDamaAgentEsa::hereIsTBTP(unsigned char *buf, long len)
+int DvbRcsDamaAgentLegacy::hereIsTBTP(unsigned char *buf, long len)
 {
 	int ret = 0;
 
@@ -287,7 +314,7 @@ int DvbRcsDamaAgentEsa::hereIsTBTP(unsigned char *buf, long len)
 
 
 /**
- * Compute and build RBDC and or VBDC capacity requests - Esa algorithm
+ * Compute and build RBDC and or VBDC capacity requests - Legacy algorithm
  *
  * @param dvb_fifos         the array of DVB FIFOs to schedule encapsulation packets from
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
@@ -298,7 +325,7 @@ int DvbRcsDamaAgentEsa::hereIsTBTP(unsigned char *buf, long len)
  * @return                  0 if at least 1 CR is computed,
  *                          -1 in case of error or if 0 CR built
  */
-int DvbRcsDamaAgentEsa::buildCR(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::buildCR(dvb_fifo *dvb_fifos,
                                 int dvb_fifos_number,
                                 unsigned char *frame,
                                 long length)
@@ -433,7 +460,7 @@ error:
  * @param len  the length of the structure
  * @return     0 on success , -1 otherwise
  */
-int DvbRcsDamaAgentEsa::hereIsSOF(unsigned char *buf, long len)
+int DvbRcsDamaAgentLegacy::hereIsSOF(unsigned char *buf, long len)
 {
 	T_DVB_SOF *sof;
 
@@ -461,7 +488,7 @@ int DvbRcsDamaAgentEsa::hereIsSOF(unsigned char *buf, long len)
  *
  * @return  the global allocation for the current frame
  */
-int DvbRcsDamaAgentEsa::processOnFrameTick()
+int DvbRcsDamaAgentLegacy::processOnFrameTick()
 {
 	// update counters
 	m_currentFrameNumber++;
@@ -499,7 +526,7 @@ int DvbRcsDamaAgentEsa::processOnFrameTick()
  *                                  from the DVB FIFOs
  * @return                          0 if KO, -1 if failure
  */
-int DvbRcsDamaAgentEsa::globalSchedule(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::globalSchedule(dvb_fifo *dvb_fifos,
                                        int dvb_fifos_number,
                                        int &outRemainingAlloc,
                                        int encap_packet_type,
@@ -557,7 +584,7 @@ int DvbRcsDamaAgentEsa::globalSchedule(dvb_fifo *dvb_fifos,
  *                                  from the DVB FIFOs
  * @return                          0 if KO, -1 if failure
  */
-int DvbRcsDamaAgentEsa::macSchedule(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::macSchedule(dvb_fifo *dvb_fifos,
                                     int dvb_fifos_number,
                                     int pvc,
                                     int &extractedEncapPacketsNb,
@@ -739,7 +766,7 @@ error:
  * @param incomplete_dvb_frame OUT: the DVB-RCS frame that will be created
  * return                      1 on success, 0 on error
 */
-int DvbRcsDamaAgentEsa::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
+int DvbRcsDamaAgentLegacy::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
                                                     int encap_packet_type)
 {
 	if(encap_packet_type != PKT_TYPE_ATM &&
@@ -778,7 +805,7 @@ error:
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
  * @return                  RBDC Request in kbits/s (ready to be set in SAC field)
  */
-int DvbRcsDamaAgentEsa::rbdcRequestCompute(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
                                            int dvb_fifos_number)
 {
 	const char *FUNCNAME = DA_DBG_PREFIX "[rbdcCompute]";
@@ -869,7 +896,7 @@ int DvbRcsDamaAgentEsa::rbdcRequestCompute(dvb_fifo *dvb_fifos,
  *                          ready to be set in SAC field
  *                          (TODO: is it really in ATM cells ?)
  */
-int DvbRcsDamaAgentEsa::vbdcRequestCompute(dvb_fifo *dvb_fifos,
+int DvbRcsDamaAgentLegacy::vbdcRequestCompute(dvb_fifo *dvb_fifos,
                                            int dvb_fifos_number)
 {
 	int VbdcNeed;
@@ -915,7 +942,7 @@ int DvbRcsDamaAgentEsa::vbdcRequestCompute(dvb_fifo *dvb_fifos,
  * @return                  total buffers size in ATM cells number
  *                          (TODO: is it really in ATM ?)
  */
-int DvbRcsDamaAgentEsa::getMacBufferLength(int crType,
+int DvbRcsDamaAgentLegacy::getMacBufferLength(int crType,
                                            dvb_fifo *dvb_fifos,
                                            int dvb_fifos_number)
 {
@@ -947,7 +974,7 @@ int DvbRcsDamaAgentEsa::getMacBufferLength(int crType,
  *                          in ATM cells number
  *                          (TODO: is it really in ATM ?)
  */
-int DvbRcsDamaAgentEsa::getMacBufferArrivals(int crType,
+int DvbRcsDamaAgentLegacy::getMacBufferArrivals(int crType,
                                              dvb_fifo *dvb_fifos,
                                              int dvb_fifos_number)
 {
@@ -965,4 +992,3 @@ int DvbRcsDamaAgentEsa::getMacBufferArrivals(int crType,
 
 	return nb_cells_input;
 }
-

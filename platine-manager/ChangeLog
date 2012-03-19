@@ -1,3 +1,18 @@
+2011-09-30 17:14  aschiltkne
+
+	* Add COPYING file
+	* Add AUTHORS file
+    * Add/complete changelogs in sources and debian directories
+	* Correct some problems with probes
+	* Correct problems with plot colors
+	  Correct problems with tools
+	  Add an interactive mode to start Platine from network
+	* Add the TCP server for previous commit
+	  Correct the unit problem with probes, see issue #0000038: Graph plot errors
+	* Modify imported graph limits
+	  Modify some elements related to save_figure
+	* Improve the help for tools
+
 2011-02-17 14:04  jbernard
 
 	* Add an option to save imported figures

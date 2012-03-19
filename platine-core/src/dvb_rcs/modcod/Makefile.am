@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES = libplatine_dvb_modcod.la
+noinst_LTLIBRARIES = libplatine_dvb_modcod.la
 
 libplatine_dvb_modcod_la_cpp = \
 	ModcodDefinition.cpp \

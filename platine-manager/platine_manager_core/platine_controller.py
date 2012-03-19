@@ -1,5 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#
+#
+# Platine is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2011 TAS
+#
+#
+# This file is part of the Platine testbed.
+#
+#
+# Platine is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 
 """
@@ -46,6 +74,24 @@ class Controller(threading.Thread):
 
             # The configuration of deployment
             self._deploy_config = None
+
+            if not 'HOME' in os.environ:
+                self._log.warning("cannot get $HOME environment variable, "
+                                  "default deploy file will be used")
+            else:
+                ini_file = os.path.join(os.environ['HOME'],
+                                        ".platine/deploy.ini")
+                if not os.path.exists(ini_file):
+                    self._log.debug("cannot find file %s, " \
+                                    "copy default" % ini_file)
+                    try:
+                        shutil.copy(DEFAULT_INI_FILE,
+                                    ini_file)
+                    except IOError, msg:
+                        self._log.warning("failed to copy %s configuration file "
+                                          "in '%s': %s, default deploy file "
+                                          "will be used"
+                                          % (DEFAULT_INI_FILE, ini_file, msg))
 
             # create the service browser here because we need hosts as argument
             # but it will be started with gtk main loop
@@ -451,11 +497,11 @@ class Controller(threading.Thread):
 
     def update_deploy_config(self):
         """ Update deployment configuration."""
-        # used to deploy tests
+        # used to deploy tests, this should have been done on startup
         ini_file = DEFAULT_INI_FILE
         if not 'HOME' in os.environ:
-            self._log.error("cannot get $HOME environment variable, "
-                            "could not get user deploy configuration")
+            self._log.warning("cannot get $HOME environment variable, "
+                              "default deploy file will be used")
         else:
             ini_file = os.path.join(os.environ['HOME'],
                                     ".platine/deploy.ini")
@@ -466,9 +512,10 @@ class Controller(threading.Thread):
                     shutil.copy(DEFAULT_INI_FILE,
                                 ini_file)
                 except IOError, msg:
-                    self._log.error("failed to copy %s configuration file "
-                                    "in '%s': %s"
-                                    % (DEFAULT_INI_FILE, ini_file, msg))
+                    self._log.warning("failed to copy %s configuration file "
+                                      "in '%s': %s, default deploy file will "
+                                      "be used"
+                                      % (DEFAULT_INI_FILE, ini_file, msg))
                     ini_file = DEFAULT_INI_FILE
 
         try:
@@ -490,25 +537,30 @@ class Controller(threading.Thread):
 
 
 ##### TEST #####
+# TODO thread to run the main loop in order to find hosts
 if __name__ == '__main__':
     from platine_manager_core.loggers.manager_log import ManagerLog
     from platine_manager_core.platine_model import Model
     import time
     import sys
 
-    LOGGER = ManagerLog('debug', True, True, True)
-    MODEL = Model(LOGGER)
+    try:
+        LOGGER = ManagerLog('debug', True, True, True)
+        MODEL = Model(LOGGER)
 
-    CONTROLLER = Controller(MODEL, '_platine._tcp', LOGGER, True)
-    CONTROLLER.start()
-    time.sleep(2)
-    if not CONTROLLER.is_alive():
-        LOGGER.error("controller failed to start")
+        CONTROLLER = Controller(MODEL, '_platine._tcp', LOGGER, False)
+        CONTROLLER.start()
+        time.sleep(2)
+        if not CONTROLLER.is_alive():
+            LOGGER.error("controller failed to start")
+            sys.exit(1)
+
+        EVT_MGR = MODEL.get_event_manager()
+        EVT_MGR.set('start_platform')
+        EVT_MGR.set('stop_platform')
+        EVT_MGR.set('quit')
+    except:
+        LOGGER.error("test failed")
         sys.exit(1)
-
-    EVT_MGR = MODEL.get_event_manager()
-    EVT_MGR.set('start_platform')
-    EVT_MGR.set('stop_platform')
-    EVT_MGR.set('quit')
-
-
+        
+    sys.exit(0)

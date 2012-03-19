@@ -1,5 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#
+#
+# Platine is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2011 TAS
+#
+#
+# This file is part of the Platine testbed.
+#
+#
+# Platine is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 
 """
@@ -30,9 +58,6 @@ class ToolModel:
         self._command = None
         self._descr = None
         self._conf = None
-        self._deploy = "/usr/share/platine/tools/%s/%s/deploy.ini" % \
-                       (name, compo)
-        self._files = "/usr/share/platine/tools/%s/%s/files" % (name, compo)
 
         self._config_view = None
 
@@ -58,12 +83,6 @@ class ToolModel:
         except (OSError, IOError), (errno, strerror):
             raise ModelException("cannot read %s binary file %s (%s)" %
                                  (self._name, self._bin_path, strerror))
-
-        # check if deploy.ini and files are present
-        if not os.path.exists(self._files):
-            self._files = None
-        if not os.path.exists(self._deploy):
-            self._deploy = None
 
         self.update(scenario)
 
@@ -182,14 +201,6 @@ class ToolModel:
     def set_conf_view(self, view):
         """ set the configuration view """
         self._config_view = view
-
-    def get_deploy_file(self):
-        """ get the deploy file """
-        return self._deploy
-
-    def get_files_file(self):
-        """ get the file containing the files to copy on startup """
-        return self._files
 
     def get_conf_files(self):
         """get the configuration files."""

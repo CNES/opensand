@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libplatine_satcarrier.la
+noinst_LTLIBRARIES = libplatine_satcarrier.la
 
 libplatine_satcarrier_la_cpp = \
 	bloc_sat_carrier.cpp \

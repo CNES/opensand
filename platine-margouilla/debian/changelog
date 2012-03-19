@@ -1,3 +1,10 @@
+platine-margouilla (3.0.0) lucid; urgency=low
+
+  * Modify the debian elements for license and add the license text
+  * Update to version 3.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Mon, 03 Oct 2011 14:52:16 +0200
+
 platine-margouilla (3.0.0-rc1) unstable; urgency=low
 
   * Fix issue #0000035: Add a make deb target

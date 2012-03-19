@@ -22,6 +22,10 @@ override_dh_install:
 	install -D -m 0644 images/icones/platine-manager32.png $(CURDIR)/debian/platine-manager-gui/usr/share/pixmaps/platine-manager.png
 	install -D -m 0644 images/icones/platine-manager48.png $(CURDIR)/debian/platine-manager-gui/usr/share/pixmaps/platine-manager48.png
 	install -D -m 0644 platine-manager.desktop $(CURDIR)/debian/platine-manager-gui/usr/share/applications/platine-manager.desktop
+	# install configuration for syslog/logrotate
+	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/platine-manager-gui/etc/rsyslog.d/platine-manager.conf
+	install -D -m 0644 conf/logrotate.conf $(CURDIR)/debian/platine-manager-gui/etc/logrotate.d/platine-manager.conf
+
 
 override_dh_pysupport:
 

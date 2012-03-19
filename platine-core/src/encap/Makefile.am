@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libplatine_encap.la
+noinst_LTLIBRARIES = libplatine_encap.la
 
 libplatine_encap_la_cpp = \
 	EncapCtx.cpp \

@@ -1,3 +1,22 @@
+platine-daemon (3.0.0) lucid; urgency=low
+
+  * Update changelog for RC1 release
+  * Add tools in deconf template
+  * Avoid infinite loop in daemon occuring when connection was broken
+    while transmitting data
+  * Add headers, copyright and licence information
+  * Modify launcher thread to handle LD_LIBRARY_PATH variable.
+  * Modify init script to force shutdown when kill fails
+  * Improve deployment of platine in developper mode 
+    It is now possible to use a personal, user-defined deploy configuration:
+      - All files will be copied in remote hosts into specified directory
+      - platine platform will be launched using these binaries and not those
+        installed on the system (using a custom LD_LIBRARY_PATH)
+  * Add logrotate configuration
+  * Update to version 3.0.0
+
+ -- Audric Schiltknecht <aschiltkne@toulouse.viveris.com>  Fri, 30 Sep 2011 16:14:21 +0200
+
 platine-daemon (3.0.0-rc1) unstable; urgency=low
 
   * Close file descriptors when creating subprocess

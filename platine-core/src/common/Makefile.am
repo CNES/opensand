@@ -1,7 +1,6 @@
-
 SUBDIRS = tests
 
-lib_LTLIBRARIES = libplatine_common.la
+noinst_LTLIBRARIES = libplatine_common.la
 
 libplatine_common_la_cpp = \
 	msg_dvb_rcs.cpp \

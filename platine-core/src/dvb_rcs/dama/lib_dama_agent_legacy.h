@@ -1,11 +1,39 @@
+/*
+ *
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
- * @file lib_dama_agent_esa.h
- * @brief This is the ESA algorithm.
+ * @file lib_dama_agent_legacy.h
+ * @brief This is the Legacy algorithm.
  * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
  */
 
-#ifndef LIB_DAMA_AGENT_ESA_H
-#define LIB_DAMA_AGENT_ESA_H
+#ifndef LIB_DAMA_AGENT_Legacy_H
+#define LIB_DAMA_AGENT_Legacy_H
 
 #include "lib_dama_agent.h"
 #include "msg_dvb_rcs.h"
@@ -18,10 +46,10 @@
 
 
 /**
- * @class DvbRcsDamaAgentEsa
- * @brief This is the ESA DAMA agent
+ * @class DvbRcsDamaAgentLegacy
+ * @brief This is the Legacy DAMA agent
  */
-class DvbRcsDamaAgentEsa: public DvbRcsDamaAgent
+class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 {
 
  private:
@@ -70,8 +98,8 @@ class DvbRcsDamaAgentEsa: public DvbRcsDamaAgent
 
  public:
 
-	DvbRcsDamaAgentEsa();
-	virtual ~DvbRcsDamaAgentEsa();
+	DvbRcsDamaAgentLegacy();
+	virtual ~DvbRcsDamaAgentLegacy();
 
 	int initComplete(dvb_fifo *dvb_fifos,
 	                 int dvb_fifos_number,

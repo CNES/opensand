@@ -14,7 +14,7 @@ def read(fname):
 # List of files
 img_files = ['images/' + png for png in os.listdir('images') if png.endswith('.png')]
 data_files = ['platine.glade']
-conf_files = ['manager.ini']
+conf_files = ['./conf/manager.ini']
 script_files = ['searchEntry.sh']
 
 #packages = find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"])
@@ -25,7 +25,7 @@ setup(
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Manager for Platine emulation testbed"),
-    license="Viveris Technologies",
+    license="GPL",
 #    long_description=read('README'),
 
     # Find Platine Manager packages, but exclude tests
@@ -40,4 +40,3 @@ setup(
                   ('libexec/platine/', script_files),
                   ]
 )
-

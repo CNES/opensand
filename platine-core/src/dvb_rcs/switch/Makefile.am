@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES = libplatine_dvb_switch.la
+noinst_LTLIBRARIES = libplatine_dvb_switch.la
 
 libplatine_dvb_switch_la_cpp = \
 	AtmSwitch.cpp \

@@ -1,24 +1,38 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2011 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+/**
+ * @file DominoConstants_e.h
+ * @author TAS
+ * @brief The DominoConstants defines Domino system constants
+ */
+
 #ifndef DominoConstants_e
 #   define DominoConstants_e
-
-/*--------------------------------------------------------------------------*/
-/*  @PROJECT : DOMINO2 ASP
-    @COMPANY : ALCATEL SPACE
-    @AUTHOR  : Philippe LOPEZ - TRANSICIEL
-    @ID      : $Name: v2_0_0 $ $Revision: 1.1.1.1 $ $Date: 2006/08/02 11:50:28 $
-	
-    @ROLE    : The DominoConstants defines Domino system constants.
-    @HISTORY :
-    03-01-06 : Creation
-    03-09-17 : DB - change C_MAX_CONNECTIONS_NB to C_MAX_ST_CONNECTIONS_NB.
-               Add C_MAX_NAT_CONNECTIONS_NB.
-    03-09-30 : DB - add C_UBR_P in T_QOS enumeration for NAT purposes.
-    03-10-06 : PLo : Specific Domino Constants moved to DominoSystemConstants_e.h
-    03-12-04 : DB - add IS_IP_TYPE_D macro for NAT multicast purposes.
-    04-05-10 : NC A0095 size of UL and DL buffers 
-*/
-/*--------------------------------------------------------------------------*/
-
 
 /* Category types */
 typedef enum

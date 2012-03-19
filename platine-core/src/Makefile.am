@@ -1,4 +1,3 @@
-
 SUBDIRS= \
 	common \
 	dvb_rcs \

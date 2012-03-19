@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES = libplatine_dvb_utils.la
+noinst_LTLIBRARIES = libplatine_dvb_utils.la
 
 libplatine_dvb_utils_la_cpp = \
 	dvb_fifo.cpp \

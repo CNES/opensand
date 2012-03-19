@@ -4,7 +4,6 @@ lib_LTLIBRARIES = libplatine_env_plane.la
 
 libplatine_env_plane_la_c = \
 Trace.c \
-Error.c \
 Time.c \
 ComParameters.c \
 IPAddr.c \

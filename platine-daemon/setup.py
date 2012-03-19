@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
-
 import os
 from setuptools import setup, find_packages
 
@@ -20,10 +17,10 @@ bin_files = ['PtDmon']
 setup(
     name="PtDmon",
     version="3.0.0",
-    author="Julien Bernard",
+    author="Julien Bernanrd",
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for Platine entity (sat, gw, st or ws)"),
-    license="Viveris Technologies",
+    license="GPL",
 #    long_description=read('README'),
 
     # Find connection_manager packages, but exclude tests
@@ -35,4 +32,3 @@ setup(
                   ('libexec/platine/', script_files),
                   ]
 )
-
