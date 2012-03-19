@@ -81,6 +81,10 @@ class AdvancedDialog(WindowView):
             gobject.source_remove(self._refresh_tree)
         self._dlg.destroy()
 
+    def on_advanced_dialog_delete_event(self, source=None, event=None):
+        """ delete-event on window """
+        self.close()
+
     def load(self):
         """ load the hosts configuration """
         try:

@@ -52,16 +52,20 @@ from lxml import etree
 from platine_manager_core.my_exceptions import XmlException
 
 
+NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
+
 class XmlParser:
     """ XML parser for Platine configuration """
     def __init__ (self, xml, xsd):
         self._tree = None
         self._filename = xml
         self._xsd = xsd
+        self._xsd_parser = None
         self._schema = None
         try:
             self._tree = etree.parse(xml)
             self._schema = etree.XMLSchema(etree.parse(xsd))
+            self._xsd_parser = etree.parse(xsd)
         except IOError, err:
             raise
         except etree.XMLSyntaxError, err:
@@ -177,6 +181,122 @@ class XmlParser:
             conf.write(etree.tostring(self._tree, pretty_print=True,
                                       encoding=self._tree.docinfo.encoding,
                                       xml_declaration=True))
+
+
+    #### functions form XSD parsing ###
+
+    def get_type(self, name):
+        """ get an element type in the XSD document """
+        elem = self.get_element(name)
+        if elem is None:
+            return None
+
+        elem_type = elem.get("type")
+        if elem_type is None:
+            return None
+
+        if elem_type.startswith("xsd:"):
+            return {"type": elem_type.lstrip("xsd:")}
+        else:
+            return self.get_simple_type(elem_type)
+
+    def get_attribute_type(self, name, parent_name):
+        """ get an attribute type in the XSD document """
+        attribute = self.get_attribute(name, parent_name)
+        if attribute is None:
+            return None
+
+        att_type = attribute.get("type")
+        if att_type is None:
+            return None
+
+        if att_type.startswith("xsd:"):
+            return {"type": att_type.lstrip("xsd:")}
+        else:
+            return self.get_simple_type(att_type)
+
+
+    def get_element(self, name):
+        """ get an element in the XSD document """
+        elem = self._xsd_parser.xpath("//xsd:element[@name = $val]",
+                                namespaces=NAMESPACES,
+                                val = name)
+        if len(elem) != 1:
+            return None
+        return elem[0]
+
+    def get_attribute(self, name, parent_name):
+        """ get an attribute in the XSD document """
+        attribs = self._xsd_parser.xpath("//xsd:attribute[@name = $val]",
+                                        namespaces=NAMESPACES,
+                                        val = name)
+        if attribs is None or len(attribs) == 0:
+            return None
+
+        # some elements can have the same attribute, get the attribute for the
+        # desired element
+        for attrib in attribs:
+            if attrib.getparent().getparent().get("name") == parent_name:
+                return attrib
+
+    def get_simple_type(self, name):
+        """ get a simple type and the associated attributes in a XSD document """
+        # simpleType
+        elems = self._xsd_parser.xpath("//xsd:simpleType[@name = $val]",
+                                  namespaces=NAMESPACES,
+                                  val = name)
+
+        if len(elems) != 1:
+            return None
+
+        elem = elems[0]
+
+        # restriction
+        restrictions = elem.xpath("xsd:restriction",
+                                 namespaces=NAMESPACES)
+        if len(restrictions) != 1:
+            return None
+
+        restriction = restrictions[0]
+
+        base = restriction.get("base")
+        if base is None:
+            return None
+
+        if base == "xsd:integer":
+            min_inc = restriction.xpath("xsd:minInclusive",
+                                        namespaces=NAMESPACES)
+            min_val = None
+            if len(min_inc) == 1:
+                min_val = min_inc[0].get("value")
+            max_inc = restriction.xpath("xsd:maxInclusive",
+                                        namespaces=NAMESPACES)
+            max_val = None
+            if len(max_inc) != 1:
+                max_inc = None
+            else:
+                max_val = max_inc[0].get("value")
+            return {
+                      "type": "integer",
+                      "min": min_val,
+                      "max": max_val,
+                   }
+        elif base == "xsd:string":
+            enum = restriction.xpath("xsd:enumeration",
+                                     namespaces=NAMESPACES)
+            values = []
+            if enum is not None and len(enum) > 0:
+                for elem in enum:
+                    values.append(elem.get("value"))
+            if len(values) != 0:
+                return {
+                          "type": "enum",
+                          "enum": values
+                       }
+            else:
+                return {"type": "string"}
+        else:
+            return {"type": base.lstrip("xsd:")}
 
 
 

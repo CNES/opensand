@@ -46,7 +46,7 @@ class ConfigurationTree(gtk.TreeStore):
     """ the Platine configuration view tree """
     def __init__(self, treeview, col1_title, col2_title,
                  col1_changed_cb, col2_toggled_cb):
-        # create a treesore with 4 properties
+        # create a treestore with 4 properties
         # - text: the text of the 1st column
         # - visible: is the check box of the 2nd column visible
         # - active: is the check box of the 2nd column active
@@ -181,6 +181,9 @@ class ConfigurationNotebook(gtk.Notebook):
         self._current_page = 0
         self._changed = []
         self._changed_cb = changed_cb
+        # keep ConEntry objects else we sometimes loose their attributes in the
+        # event callback
+        self._backup = []
 
         self.set_scrollable(True)
         self.set_tab_pos(gtk.POS_LEFT)
@@ -254,16 +257,14 @@ class ConfigurationNotebook(gtk.Notebook):
                                   pack_type=gtk.PACK_START)
         # TODO get the type of data and depending on it add correponding entry
         #      type
-        entry = gtk.Entry()
-        entry.set_text(self._config.get_value(key))
-        entry.set_width_chars(50)
-        entry.set_inner_border(gtk.Border(1, 1, 1, 1))
-        entry.connect('changed', self.handle_param_chanded)
-        if self._changed_cb is not None:
-            entry.connect('changed', self._changed_cb)
-        entry.set_name(self._config.get_path(key))
-        key_box.pack_start(entry)
-        key_box.set_child_packing(entry, expand=False,
+        elt_type = self._config.get_type(self._config.get_name(key))
+        entry = ConfEntry(elt_type, self._config.get_value(key),
+                          self._config.get_path(key),
+                          [self.handle_param_chanded, self._changed_cb])
+        self._backup.append(entry)
+
+        key_box.pack_start(entry.get())
+        key_box.set_child_packing(entry.get(), expand=False,
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
         return key_box
@@ -339,13 +340,18 @@ class ConfigurationNotebook(gtk.Notebook):
         hbox.set_child_packing(check_button, expand=False,
                                fill=False, padding=0,
                                pack_type=gtk.PACK_START)
+        sep = gtk.VSeparator()
+        hbox.pack_start(sep)
+        hbox.set_child_packing(sep, expand=False,
+                               fill=False, padding=0,
+                               pack_type=gtk.PACK_START)
         check_buttons.append(check_button)
         # add attributes
         for att in dic.keys():
             att_description = ''
             att_label = gtk.Label()
             att_label.set_markup(att)
-            att_label.set_alignment(0.0, 0.5)
+            att_label.set_alignment(1.0, 0.5)
             att_label.set_width_chars(len(att) + 1)
             att_label.set_tooltip_text(att_description)
             if att_description != '':
@@ -354,23 +360,24 @@ class ConfigurationNotebook(gtk.Notebook):
             hbox.set_child_packing(att_label, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
-            entry = gtk.Entry()
-            entry.set_text(dic[att])
-            entry.set_width_chars(50)
-            entry.set_inner_border(gtk.Border(1, 1, 1, 1))
+            elt_type = self._config.get_attribute_type(att,
+                                                       self._config.get_name(line))
+            cb = []
+            value = ''
+            path = ''
+            cb.append(self.handle_param_chanded)
             if self._changed_cb is not None:
-                entry.connect('changed', self._changed_cb)
-            try:
-                entry.set_name('%s--%s' % (self._config.get_path(line), att))
-                entry.connect('changed', self.handle_param_chanded)
-            except:
-                # this is a new line entry
-                entry.set_name('//%s[last()]--%s' %
-                               (self._config.get_name(line), att)) 
-                entry.connect('changed', self.handle_param_chanded)
-                entry.set_text('')
-            hbox.pack_start(entry)
-            hbox.set_child_packing(entry, expand=False,
+                try:
+                    path = '%s--%s' % (self._config.get_path(line), att)
+                    cb.append(self._changed_cb)
+                    value = dic[att]
+                except:
+                    # this is a new line entry
+                    path = '//%s[last()]--%s' % (self._config.get_name(line), att)
+            entry = ConfEntry(elt_type, value, path, cb)
+            self._backup.append(entry)
+            hbox.pack_start(entry.get())
+            hbox.set_child_packing(entry.get(), expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
 
@@ -394,7 +401,7 @@ class ConfigurationNotebook(gtk.Notebook):
 
         for entry in self._changed:
             path = entry.get_name().split('--')
-            val = entry.get_text()
+            val = entry.get_value()
             try:
                 if len(path) == 0 or len(path) > 2:
                     raise XmlException("wrong xpath")
@@ -416,7 +423,7 @@ class ConfigurationNotebook(gtk.Notebook):
         self._config.write()
         self._changed = []
         self._removed = []
-        self._new = {}
+        self._new = []
 
 
     def on_show(self, widget):
@@ -431,7 +438,6 @@ class ConfigurationNotebook(gtk.Notebook):
         """ add button clicked """
         table_key = source.get_name()
         key = self._config.get(table_key)
-#        self._config.add_table_element(table_key_path)
         align = source.get_parent().get_parent()
         hbox = self.add_line(key, self._table_models[table_key],
                              self._tables[table_key])
@@ -470,5 +476,113 @@ class ConfigurationNotebook(gtk.Notebook):
                 if not check_button.get_parent() in self._removed:
                     button.set_sensitive(True)
                     break
+
+
+class ConfEntry(object):
+    def __init__(self, entry_type, value, path, sig_handlers):
+        self._type = entry_type
+        self._value = value
+        self._path = path
+        self._entry = None
+        self._sig_handlers = sig_handlers
+
+        type_name = ""
+        if self._type is None:
+            self.load_default()
+            type_name = "string"
+        else:
+            type_name = self._type["type"]
+        if type_name == "boolean":
+            self.load_bool()
+        elif type_name == "enum":
+            self.load_enum()
+        elif type_name == "integer":
+            self.load_int()
+        else:
+            self.load_default()
+
+    def load_default(self):
+        """ load a gtk.Entry """
+        self._entry = gtk.Entry()
+        self._entry.set_text(self._value)
+        self._entry.set_width_chars(30)
+        self._entry.set_inner_border(gtk.Border(1, 1, 1, 1))
+        self._entry.connect('changed', self.global_handler)
+
+    def load_bool(self):
+        """ load a gtk.CheckButton """
+        self._entry = gtk.CheckButton()
+        if self._value == "true":
+            self._entry.set_active(1)
+        else:
+            self._entry.set_active(0)
+        self._entry.connect('toggled', self.global_handler)
+
+    def load_enum(self):
+        """ load a gtk.ComboBox """
+        self._entry = gtk.ComboBox()
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        for elt in self._type["enum"]:
+            store.append([elt])
+        self._entry.set_model(store)
+        cell = gtk.CellRendererText()
+        self._entry.pack_start(cell, True)
+        self._entry.add_attribute(cell, 'text', 0)
+        self._entry.set_active(self._type["enum"].index(self._value))
+        self._entry.connect('changed', self.global_handler)
+
+    def load_int(self):
+        """ load a gtk.SpinButton """
+        low = 0
+        up = 100000
+        if "min" in self._type:
+            low = float(self._type["min"])
+        if "max" in self._type:
+            up = float(self._type["max"])
+        if self._value != '':
+            val = float(self._value)
+        else:
+            val = low
+        adj = gtk.Adjustment(value=val, lower=low, upper=up,
+                             step_incr=1, page_incr=0, page_size=0)
+        self._entry = gtk.SpinButton(adjustment=adj, climb_rate=1)
+        self._entry.connect('value-changed', self.global_handler)
+
+    def get(self):
+        """ get the gtk element """
+        return self._entry
+
+    def get_name(self):
+        """ get the path for entry """
+        return self._path
+
+    def get_value(self):
+        """ get the value fot the entry """
+        type_name = ""
+        if self._type is None:
+            type_name = "string"
+        else:
+            type_name = self._type["type"]
+
+        if type_name == "boolean":
+            if self._entry.get_active():
+                return "true"
+            return "false"
+        elif type_name == "enum":
+            model = self._entry.get_model()
+            active = self._entry.get_active()
+            if active < 0:
+                return None
+            return model[active][0]
+        elif type_name == "integer":
+            return self._entry.get_text() 
+        else:
+            return self._entry.get_text() 
+
+    def global_handler(self, source=None, event=None):
+        """ handler used to abstract source type """
+        for handler in [hdl for hdl in self._sig_handlers
+                            if hdl is not None]:
+            handler(self, event)
 
 
