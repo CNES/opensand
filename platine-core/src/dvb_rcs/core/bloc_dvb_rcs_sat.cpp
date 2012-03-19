@@ -376,6 +376,7 @@ int BlocDVBRcsSat::initMode()
 		UTI_ERROR("failed to create the emission standard\n");
 		goto error;
 	}
+    this->emissionStd->setTalId(-1);
 
 	// set the encapsulation packet type for emission standard
 	this->emissionStd->setEncapPacketType(encap_packet_type);

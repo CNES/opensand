@@ -642,9 +642,16 @@ NetBurst *GseCtx::desencapsulate(NetPacket *packet)
 		}
 		break;
 
+		case GSE_STATUS_CTX_NOT_INIT:
+			UTI_DEBUG("%s GSE deencapsulation failed (%s), drop packet "
+			          "(probably not an error, this happens when we receive a "
+					  "fragment that is not for us)\n",
+			          FUNCNAME, gse_get_status(status));
+			break;
+
 		default:
 			UTI_ERROR("%s GSE deencapsulation failed (%s), drop packet\n",
-					      FUNCNAME, gse_get_status(status));
+			          FUNCNAME, gse_get_status(status));
 			goto clean;
 	}
 

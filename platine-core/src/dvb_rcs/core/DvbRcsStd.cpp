@@ -351,7 +351,10 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 				goto release_burst;
 		}
 
-		if(this->tal_id != -1 && packet->talId() != this->tal_id)
+		// keep only packets for correct ST. If packet tal_id is -1 it is a GSE
+		// fragment, it will be rejected a deencapsulation layer if necessary
+		if(this->tal_id != -1 && packet->talId() != this->tal_id &&
+		   packet->talId() != -1)
 		{
 			UTI_DEBUG("packet with id %ld ignored (%ld expected), "
 			          "this should not append in transparent mode\n",

@@ -504,7 +504,7 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 		          FUNCNAME, this->downlink_encap_proto.c_str());
 	}
 
-	// for each ATM cell within the burst...
+	// for each ATM cell or MPEG packet within the burst...
 	for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 	{
 		UTI_DEBUG("%s encapsulate one %s packet (%d bytes)\n", FUNCNAME,

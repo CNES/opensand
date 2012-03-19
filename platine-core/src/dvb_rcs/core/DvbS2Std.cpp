@@ -720,7 +720,10 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 				goto release_burst;
 		}
 
-		if(this->tal_id != -1 && encap_packet->talId() != this->tal_id)
+		// keep only packets for correct ST. If packet tal_id is -1 it is a GSE
+		// fragment, it will be rejected a deencapsulation layer if necessary
+		if(this->tal_id != -1 && encap_packet->talId() != this->tal_id &&
+		   encap_packet->talId() != -1)
 		{
 			UTI_DEBUG("packet with id %ld ignored (%ld expected), "
 			          "this should not append in transparent mode\n",
@@ -877,7 +880,7 @@ int DvbS2Std::processGsePacket(std::list<DvbFrame *> *complete_bb_frames,
 			goto error;
 		}
 
-		UTI_DEBUG_L3("Refragement the GSE packet to fit the BB frame "
+		UTI_DEBUG_L3("Refragment the GSE packet to fit the BB frame "
 					 "(length = %d)\n", this->incomplete_bb_frame->getFreeSpace());
 		status = gse_refrag_packet(first_frag, &second_frag, 0, 0, qos,
 								   this->incomplete_bb_frame->getFreeSpace());
@@ -928,9 +931,9 @@ int DvbS2Std::processGsePacket(std::list<DvbFrame *> *complete_bb_frames,
 				goto error;
 			}
 			// set the packet information
-			(*encap_packet)->setQos(qos);
-			(*encap_packet)->setMacId(mac_id);
-			(*encap_packet)->setTalId(tal_id);
+			encap_packet_frag->setQos(qos);
+			encap_packet_frag->setMacId(mac_id);
+			encap_packet_frag->setTalId(tal_id);
 
 			status = gse_free_vfrag(&first_frag);
 			if(status != GSE_STATUS_OK)
