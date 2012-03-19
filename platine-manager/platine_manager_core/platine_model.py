@@ -122,7 +122,7 @@ class Model:
 
         # actualize the tools scenario path
         for host in self._hosts:
-            host.reload_tools(self._scenario_path)
+            host.reload_all(self._scenario_path)
 
         # read configuration file
         try:
@@ -170,8 +170,8 @@ class Model:
                 del self._ws[idx]
             idx += 1
 
-    def add_host(self, name, instance, ip_addr, state_port,
-                 command_port, tools):
+    def add_host(self, name, instance, network_config,
+                 state_port, command_port, tools):
         """ add an host in the host list """
         # remove instance for ST and WS
         if name.startswith('st'):
@@ -192,6 +192,7 @@ class Model:
                               "service received with no state or command port")
             checked = False
 
+        ip_addr = network_config['discovered']
         # find if the component already exists
         for host in self._hosts:
             if host.get_name() == name:
@@ -207,8 +208,8 @@ class Model:
 
         # the component does not exist so create it
         self._log.debug("add host '%s'" % name)
-        host = HostModel(name, instance, ip_addr, state_port, command_port,
-                         tools, self._scenario_path, self._log)
+        host = HostModel(name, instance, network_config, state_port,
+                         command_port, tools, self._scenario_path, self._log)
         if component == 'sat':
             self._hosts.insert(0, host)
         elif component == 'gw':

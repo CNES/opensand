@@ -42,15 +42,15 @@ from platine_manager_core.platine_xml_parser import XmlParser
 
 class AdvancedHostModel:
     """ Advanced host model"""
-    def __init__(self, name, instance, scenario):
+    def __init__(self, name, instance, ifaces, scenario):
         self._conf_file = ''
         self._xsd = ''
         self._config_view = None
         self._configuration = None
         self._enabled = True
-        self.load(name, instance, scenario)
+        self.load(name, instance, ifaces, scenario)
 
-    def load(self, name, instance, scenario):
+    def load(self, name, instance, ifaces, scenario):
         """ load the advanced configuration """
         # create the host configuration directory
         conf_path = os.path.join(scenario, name)
@@ -90,16 +90,14 @@ class AdvancedHostModel:
             try:
                 # customize ST id
                 self._configuration.set_value(instance, "//dvb_mac_id")
-                # TODO remove that !!!
-                net = 18 + int(instance)
-                address = "192.168.%d.5" % net
-                self._configuration.set_value(address, "//st_address")
-                address = "192.168.18." + instance
-                self._configuration.set_value(address, "//addr")
+                self._configuration.set_value(ifaces['lan_ipv4'],
+                                              "//st_address")
+                self._configuration.set_value(ifaces['emu_ipv4'], "//addr")
                 self._configuration.write()
             except XmlException, msg:
                 raise
-#                raise ModelException(str(msg))
+            except Exception, msg:
+                raise(str(msg))
 
     def reload_conf(self):
         """ reload the configuration file """

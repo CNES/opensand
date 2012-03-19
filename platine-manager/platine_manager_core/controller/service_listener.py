@@ -96,6 +96,7 @@ class PlatineServiceListener():
         state_port = ''
         command_port = ''
         tools = {}
+        network_config = {'discovered' : address}
         i = 0
         args_nbr = len(args[9])
         while i < args_nbr:
@@ -121,9 +122,20 @@ class PlatineServiceListener():
                 command_port = val
             elif key == 'tools':
                 tools = val.split()
-
+            elif key == 'emu_iface':
+                network_config['emu_iface'] = val
+            elif key == 'emu_ipv4':
+                network_config['emu_ipv4'] = val
+            elif key == 'emu_ipv6':
+                network_config['emu_ipv6'] = val
+            elif key == 'lan_iface':
+                network_config['lan_iface'] = val
+            elif key == 'lan_ipv4':
+                network_config['lan_ipv4'] = val
+            elif key == 'lan_ipv6':
+                network_config['lan_ipv6'] = val
         try:
-            host_model = self._model.add_host(name, inst, address,
+            host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
                                               tools)
         except ModelException:

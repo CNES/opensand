@@ -39,6 +39,7 @@ import gtk.glade
 import time
 import gobject
 import os
+import shutil
 
 from platine_manager_gui.view.window_view import WindowView
 from platine_manager_gui.view.conf_event import ConfEvent
@@ -299,7 +300,7 @@ class View(WindowView):
 
         if ret == gtk.RESPONSE_APPLY and folder is not None:
             try:
-                if not 'manager.ini' in os.listdir(folder):
+                if not 'core_global.conf' in os.listdir(folder):
                     error_popup("The directory does not contain a scenario")
                     return
             except OSError, msg:
@@ -379,13 +380,20 @@ class View(WindowView):
         if folder is not None and os.path.basename(folder).isspace():
             folder = None
         if ret == gtk.RESPONSE_APPLY and folder is not None:
-            if os.path.exists(os.path.join(folder, "manager.ini")):
+            if os.path.exists(os.path.join(folder, "core_global.conf")):
                 over = yes_no_popup("Scenario '%s' already exists\n"
                                     "Do you want to overwrite it ?" %
                                     folder, "Overwrite scenario",
                                     "gtk-dialog-warning")
                 if over != gtk.RESPONSE_YES:
                     folder = None
+                else:
+                    try:
+                        shutil.rmtree(folder)
+                        os.makedirs(folder)
+                    except (OSError, IOError), (errno, strerror):
+                        self._log.error("Failed to overwrite '%s': %s" %
+                                        (folder, strerror))
         else:
             folder = None
         dlg.destroy()

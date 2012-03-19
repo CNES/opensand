@@ -43,7 +43,7 @@ from platine_manager_core.model.host_advanced import AdvancedHostModel
 
 class HostModel:
     """ host model """
-    def __init__(self, name, instance, ipaddr, state_port,
+    def __init__(self, name, instance, network_config, state_port,
                  command_port, tools, scenario, manager_log):
         self._log = manager_log
         self._name = name
@@ -55,7 +55,7 @@ class HostModel:
         else:
             self._component = self._name
 
-        self._ip_address = ipaddr
+        self._ifaces = network_config
         self._state_port = state_port
         self._command_port = command_port
 
@@ -66,7 +66,7 @@ class HostModel:
         if self._component != 'ws':
             try:
                 self._advanced = AdvancedHostModel(self._name, self._instance,
-                                                   scenario)
+                                                   self._ifaces, scenario)
             except ModelException, error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
 
@@ -83,6 +83,20 @@ class HostModel:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
             finally:
                 self._tools[tool_name] = new_tool
+
+    def reload_all(self, scenario):
+        """ reload host to update the scenario path """
+        self.reload_conf(scenario)
+        self.reload_tools(scenario)
+
+
+    def reload_conf(self, scenario):
+        """ reload the host configuration """
+        try:
+            self._advanced.load(self._name, self._instance,
+                                self._ifaces, scenario)
+        except ModelException as error:
+            self._log.warning("%s: %s" % (self._name.upper(), error))
 
     def reload_tools(self, scenario):
         """ update the scenario path for tools configuration """
@@ -150,7 +164,7 @@ class HostModel:
 
     def get_ip_address(self):
         """ get the host IP address """
-        return self._ip_address
+        return self._ifaces["discovered"]
 
     def get_state_port(self):
         """ get the state server port """

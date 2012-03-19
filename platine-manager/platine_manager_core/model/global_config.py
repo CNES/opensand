@@ -48,7 +48,7 @@ CONF_NAME = "core_global.conf"
 class GlobalConfig(AdvancedHostModel):
     """ Global Platine configuration, displayed in configuration tab """
     def __init__(self, scenario):
-        AdvancedHostModel.__init__(self, 'global', 0, scenario)
+        AdvancedHostModel.__init__(self, 'global', 0, {}, scenario)
         self._payload_type = ''
         self._emission_std = ''
         self._dama = ''
@@ -57,7 +57,7 @@ class GlobalConfig(AdvancedHostModel):
         self._up_return_encap = ''
         self._frame_duration = ''
 
-    def load(self, name, instance, scenario):
+    def load(self, name, instance, ifaces, scenario):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario

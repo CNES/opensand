@@ -53,13 +53,14 @@ from platine_manager_core.controller.tcp_server import Plop, CommandServer
 from platine_manager_core.utils import copytree
 
 SCRIPT_PATH = '/usr/libexec/platine/'
+DEFAUL_PATH = '/usr/share/platine/'
 DEFAULT_INI_FILE = '/usr/share/platine/deploy.ini'
 COM_PARAMETERS = '/etc/platine/env_plane/com_parameters.conf'
 CMD_PORT = 5656
 
 class Controller(threading.Thread):
     """ controller that controll all hosts """
-    def __init__ (self, model, service_type, manager_log, interactive):
+    def __init__ (self, model, service_type, manager_log, interactive=False):
         try:
             threading.Thread.__init__(self)
             self._model = model
@@ -303,23 +304,28 @@ class Controller(threading.Thread):
                 # create the host directory
                 host_path = os.path.join(self._model.get_scenario(),
                                          host.get_name().lower())
-                if not os.path.isdir(host_path):
+                conf_file = os.path.join(host_path, 'core.conf')
+                if not os.path.exists(conf_file):
                     if not self._model.is_default():
                         self._log.warning("The host %s did not exists when the "
                                           "current scenario was created. The "
                                           "default configuration will be used" %
                                           host.get_name())
-                    os.mkdir(host_path, 0755)
+                    if not os.path.isdir(host_path):
+                        os.mkdir(host_path, 0755)
+                    default_path = os.path.join(DEFAUL_PATH, component)
+                    shutil.copy(os.path.join(default_path, 'core.conf'),
+                                conf_file)
                 #TODO try to simplify file deployment
-                host.configure([os.path.join(self._model.get_scenario(), 'core_global.conf'),
-                                os.path.join(host_path, 'core.conf')],
+                host.configure([os.path.join(self._model.get_scenario(),
+                                             'core_global.conf'), conf_file],
                                1, 1, self._deploy_config,
                                self._model.get_dev_mode())
 #TODO uncomment lines below and remove line above when the environment plane
 #     will accept strings as scenario and run
 #                               self._model.get_scenario(),
 #                               self._model.get_run())
-        except OSError, (errno, strerror):
+        except (OSError, IOError), (errno, strerror):
             self._log.error("Failed to create directory '%s': %s" %
                             (host_path, strerror))
             self._event_manager_response.set('resp_start_platform', 'fail')
