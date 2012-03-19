@@ -180,7 +180,7 @@ class ProcessList():
 
     def stop(self):
         """ stop all the process """
-        # check if all binaries are correclty stopped
+        # check if all binaries are already stopped
         if len(ProcessList._process_list) == 0:
             LOGGER.warning("all process are already stopped")
             return
@@ -269,3 +269,4 @@ class ProcessList():
             LOGGER.info("process with pid %s returned %s" %
                         (process.pid, process.returncode))
         ProcessList._wait = None
+

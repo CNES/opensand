@@ -37,6 +37,8 @@ tcp_server.py - server that get Platine commands
 import SocketServer
 import select
 import logging
+import threading
+
 from platine_daemon.my_exceptions import Timeout
 from platine_daemon.stream import TIMEOUT
 
@@ -69,6 +71,10 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
     # line buffered
     rbufsize = 1
     wbufsize = 0
+    # the stop event is handled by the state server, if the state server is not
+    # started there is no reason to get another connection with the manager so
+    # for each thread in a MyTcpHandler class you should watch the _stop event
+    _stop = threading.Event()
 
     def setup(self):
         """ the function called when MyTcpHandler is created """

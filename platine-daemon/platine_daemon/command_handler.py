@@ -209,14 +209,26 @@ class CommandHandler(MyTcpHandler):
                                        stdout=output,
                                        stderr=subprocess.STDOUT,
                                        cwd=os.path.dirname(command))
-        out, err = process.communicate()
-        if out is not None:
-            LOGGER.debug("test output:\n" + out)
-        if err is not None:
-            LOGGER.debug("test errors:\n" + err)
-        ret = process.returncode
+        while not MyTcpHandler._stop.is_set() and \
+              process.returncode is None:
+            process.poll()
+            MyTcpHandler._stop.wait(1)
 
-        LOGGER.debug("test returned %s" % ret)
-        LOGGER.debug("send: '%s'" % ret)
-        self.wfile.write("%s\n" % ret)
+        if not MyTcpHandler._stop.is_set():
+            process.kill()
+            out, err = process.communicate()
+            if out is not None:
+                LOGGER.debug("test output:\n" + out)
+            if err is not None:
+                LOGGER.debug("test errors:\n" + err)
+
+            ret = process.returncode
+
+            LOGGER.debug("test returned %s" % ret)
+            LOGGER.debug("send: '%s'" % ret)
+            self.wfile.write("%s\n" % ret)
+        else:
+            LOGGER.warning("test did not stopped normally\n")
+
+
 

@@ -51,11 +51,11 @@ class StateHandler(MyTcpHandler):
     def setup(self):
         """ the function called when StateHandler is created """
         MyTcpHandler.setup(self)
-        self._stop = threading.Event()
         self._compo_list = [] # the list of started components
         self._process_list = ProcessList()
         # this should already be done 
         self._process_list.reset()
+        MyTcpHandler._stop.clear()
 
     def finish(self):
         """ the function called when the handler returns """
@@ -118,9 +118,9 @@ class StateHandler(MyTcpHandler):
             # stop update thread because manager send a message only
             # when it stops
             LOGGER.debug("stop update thread")
-            self._stop.set()
+            MyTcpHandler._stop.set()
             if update_thread.is_alive():
-                update_thread.join()
+                update_thread.join(10)
             LOGGER.debug("update thread joined")
 
         if self._data == 'BYE':
@@ -134,11 +134,11 @@ class StateHandler(MyTcpHandler):
         """ update process list """
         self._process_list.load()
         self.send_and_update_state(True)
-        while not self._stop.isSet():
+        while not MyTcpHandler._stop.is_set():
             # check program state to detect crashes
             self._process_list.update(True)
             self.send_and_update_state()
-            self._stop.wait(1.0)
+            MyTcpHandler._stop.wait(1.0)
 
 
     def send_and_update_state(self, first = False):
@@ -158,7 +158,7 @@ class StateHandler(MyTcpHandler):
             except:
                 LOGGER.error("error when serializing process list: " \
                              "stop update server")
-                self._stop.set() 
+                MyTcpHandler._stop.set()
 
 
     def send_list(self):
