@@ -58,14 +58,14 @@ class DvbS2Std: public PhysicStd
 	/** The table of DRA scheme definitions */
 	DraSchemeDefinitionTable *dra_scheme_definitions;
 
-	/** The incomplete BBFrame which is currently being completed */
-	BBFrame *incomplete_bb_frame;
+	// the BBFrame being built identified by their modcod
+	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
-	/** The current MODCOD ID */
-	unsigned int modcod_id;
+	// the BBframe being built in their created order
+	std::list<BBFrame *> incomplete_bb_frames_ordered;
 
-	/** The current BBFrame duration */
-	float bbframe_duration;
+	// the pending BBFrame if there was not enough space in previous iteration
+	BBFrame *pending_bbframe;
 
  public:
 
@@ -159,50 +159,57 @@ class DvbS2Std: public PhysicStd
  private:
 
 	/**
-	 * @brief Get the current modcod of a terminl
+	 * @brief Get the current modcod of a terminal
 	 *
-	 * @param tal_id the terminal id
-	 * @return       true on succes, false otherwise
+	 * @param tal_id    the terminal id
+	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
+	 * @return          true on succes, false otherwise
 	 */
-	bool retrieveCurrentModcod(long tal_id);
+	bool retrieveCurrentModcod(long tal_id, unsigned int &modcod_id);
 
 	/**
 	 * @brief Create an incomplete BB frame
 	 *
-	 * @return true on succes, false otherwise
+	 * @param bbframe   the BBFrame that will be created
+	 * @param modcod_id the BBFrame modcod
+	 * @return          true on succes, false otherwise
 	 */
-	bool createIncompleteBBFrame();
-
+	bool createIncompleteBBFrame(BBFrame **bbframe,
+	                             unsigned int modcod_id);
 
 	/**
 	 * @brief Compute the duration of a BB frame encoded with the given MODCOD
 	 *
-	 * @return true if the MODCOD definition is found,
-	 *         false otherwise
+	 * @param modcod_id        the modcod of the BBFrame
+	 * @param bbframe_duration OUT: the BBFrame duration retrived from modcod ID
+	 * @return                 true if the MODCOD definition is found,
+ 	 *                         false otherwise
 	 */
-	bool getBBFRAMEDuration();
+	bool getBBFrameDuration(unsigned int modcod_id,
+	                        float &bbframe_duration);
 
 	/**
-	 * @brief Initialize the current BB Frame parameter
+	 * @brief Get the incomplete BBFrame for the current destination terminal
 	 *
-	 * @param tal_id the terminal id we cant to send the frame
-	 * @return       0 on success, -1 on error and -2 if the ST
-	 *               is not logged in
+	 * @param tal_id  the terminal ID we want to send the frame
+	 * @param bbframe OUT: the BBframe for this packet
+	 * @return        true on success, false otherwise
 	 */
-	int initializeIncompleteBBFrame(unsigned int tal_id);
+	bool getIncompleteBBFrame(unsigned int tal_id, BBFrame **bbframe);
 
 	/**
-	 * @brief Add the current incomplete BB frame to the list of complete BB frames
+	 * @brief Add a BBframe to the list of
+	 *        complete BB frames
 	 *
 	 * @param complete_bb_frames the list of complete BB frames
+	 * @param bbframe            the BBFrame to add in the list
 	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @param cpt_frame          IN/OUT: the number of completed frames
 	 * @return                   0 on success, -1 on error and -2 if there is
-	 *                           no more credit
+	 *                           not enough credit
 	 */
 	int addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-	                       float &duration_credit,
-	                       unsigned int &cpt_frame);
+	                       BBFrame *bbframe,
+	                       float &duration_credit);
 };
 
 #endif

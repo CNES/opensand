@@ -51,18 +51,17 @@ bool PluginUtils::loadEncapPlugins(std::map<std::string, EncapPlugin *> &encap_p
 	char *lib_path;
 	std::vector<std::string> path;
 
-	path.push_back("/usr/lib/");
-	path.push_back("/lib");
-
 	lib_path = getenv("LD_LIBRARY_PATH");
 	if(lib_path)
 	{
 		// Split using ':' separator
 		PluginUtils::tokenize(lib_path, path, ":");
 	}
+	path.push_back("/usr/lib/");
+	path.push_back("/lib");
 
 	for(std::vector<std::string>::iterator iter = path.begin();
-		iter != path.end(); ++iter)
+	    iter != path.end(); ++iter)
 	{
 		struct dirent *ent;
 		std::string dir = *iter + PLUGIN_DIRECTORY;
@@ -166,18 +165,18 @@ void PluginUtils::tokenize(const std::string &str,
                            std::vector<std::string> &tokens,
                            const std::string& delimiters)
 {
-    // Skip delimiters at beginning.
-    std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    // Find first "non-delimiter".
-    std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+	// Skip delimiters at beginning.
+	std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+	// Find first "non-delimiter".
+	std::string::size_type pos = str.find_first_of(delimiters, lastPos);
 
-    while (std::string::npos != pos || std::string::npos != lastPos)
-    {
-        // Found a token, add it to the vector.
-        tokens.push_back(str.substr(lastPos, pos - lastPos));
-        // Skip delimiters.  Note the "not_of"
-        lastPos = str.find_first_not_of(delimiters, pos);
-        // Find next "non-delimiter"
-        pos = str.find_first_of(delimiters, lastPos);
-    }
+	while(std::string::npos != pos || std::string::npos != lastPos)
+	{
+		// Found a token, add it to the vector.
+		tokens.push_back(str.substr(lastPos, pos - lastPos));
+		// Skip delimiters.  Note the "not_of"
+		lastPos = str.find_first_not_of(delimiters, pos);
+		// Find next "non-delimiter"
+		pos = str.find_first_of(delimiters, lastPos);
+	}
 }

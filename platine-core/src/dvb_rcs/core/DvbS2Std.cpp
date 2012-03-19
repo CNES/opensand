@@ -38,6 +38,7 @@
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
 #include <platine_conf/uti_debug.h>
+#include <algorithm>
 
 
 DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
@@ -55,6 +56,11 @@ DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 DvbS2Std::~DvbS2Std()
 {
 	delete dra_scheme_definitions;
+	for(std::list<BBFrame *>::iterator it = incomplete_bb_frames_ordered.begin();
+	    it != incomplete_bb_frames_ordered.end(); ++it)
+	{
+		delete *it;
+	}
 }
 
 
@@ -197,20 +203,18 @@ error:
 }
 #endif
 
-// TODO rewrite this to get something easier to handle
 int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
                                    long current_time,
                                    std::list<DvbFrame *> *complete_dvb_frames)
 {
-	unsigned int cpt_frame = 0;
+	int ret;
 	unsigned int sent_packets = 0;
 	MacFifoElement *elem;
 	long max_to_send;
 	float duration_credit;
-	// reinitialize the current BBFrame parameters to avoid using old values
-	this->bbframe_duration = 0;
-	this->incomplete_bb_frame = NULL;
-	this->modcod_id = 0;
+
+	// the current BBFrame
+	BBFrame *current_bbframe;
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCount();
@@ -246,13 +250,25 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 		goto error;
 	}
 
+	// first add the pending complete BBFrame in the complete BBframes list
+	if(this->pending_bbframe)
+	{
+		if(this->addCompleteBBFrame(complete_dvb_frames,
+		                            this->pending_bbframe,
+		                            duration_credit) < 0)
+		{
+			UTI_ERROR("cannot add pending BBFrame in the list of complete BBFrames\n");
+		}
+	}
+	this->pending_bbframe = NULL;
+	
 	// now build BB frames with packets extracted from the MAC FIFO
-	// TODO limit the number of elements to send with bandwidth
 	while((elem = (MacFifoElement *)fifo->get()) != NULL)
 	{
 		NetPacket *encap_packet;
-		int ret;
 		long tal_id;
+		NetPacket *data;
+		NetPacket *remaining_data;
 
 		// first examine the packet to be sent without removing it from the queue
 		if(elem->getType() != 1)
@@ -282,14 +298,13 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 		// retrieve the ST ID associated to the packet
 		tal_id = encap_packet->getDstTalId();
 
-		ret = this->initializeIncompleteBBFrame(tal_id);
-		if(ret == -1)
+		if(!this->getIncompleteBBFrame(tal_id, &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
 			delete encap_packet;
 			goto error_fifo_elem;
 		}
-		else if(ret == -2)
+		else if(!current_bbframe)
 		{
 			// cannot get modcod for the ST remove the fifo element
 			fifo->remove();
@@ -298,167 +313,152 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 			continue;
 		}
 
-		while(this->incomplete_bb_frame->getFreeSpace() > 0)
+		UTI_DEBUG_L3("Got the BBFrame for packet #%u, "
+		             "there is now %u complete BBFrames and %u incomplete\n",
+		             sent_packets + 1, complete_dvb_frames->size(),
+		             this->incomplete_bb_frames.size());
+
+		// get the part of the packet to store in the BBFrame
+		ret = this->packet_handler->getChunk(encap_packet,
+		                                     current_bbframe->getFreeSpace(),
+		                                     &data, &remaining_data);
+		// use case 4 (see @ref getChunk)
+		if(!ret)
 		{
-			NetPacket *data;
-			NetPacket *remaining_data;
-
-			ret = this->packet_handler->getChunk(encap_packet,
-			                                     this->incomplete_bb_frame->getFreeSpace(),
-			                                     &data, &remaining_data);
-			// use case 4 (see @ref getChunk)
-			if(!ret)
+			UTI_ERROR("error while processing packet #%u\n",
+			          sent_packets + 1);
+			fifo->remove();
+			delete elem;
+		}
+		// use cases 1 (see @ref getChunk)
+		else if(data && !remaining_data)
+		{
+			if(!current_bbframe->addPacket(data))
 			{
-				UTI_ERROR("error while processing packet #%u\n",
-				          sent_packets + 1);
-				fifo->remove();
-				delete elem;
-				break;
+				UTI_ERROR("failed to add encapsulation packet #%u "
+				          "in BB frame with MODCOD ID %u (packet "
+				          "length %u, free space %u",
+				          sent_packets + 1, current_bbframe->getModcodId(),
+				          data->getTotalLength(),
+				          current_bbframe->getFreeSpace());
+				goto error_fifo_elem;
 			}
-			// use cases 1 (see @ref getChunk)
-			else if(data && !remaining_data)
+			// delete the NetPacket once it has been copied in the BBFrame
+			delete data;
+			sent_packets++;
+			// remove the element from the MAC FIFO and destroy it
+			fifo->remove();
+			delete elem;
+		}
+		// use case 2 (see @ref getChunk)
+		else if(data && remaining_data)
+		{
+			if(!current_bbframe->addPacket(data))
 			{
-				if(!this->incomplete_bb_frame->addPacket(data))
-				{
-					UTI_ERROR("failed to add encapsulation packet #%u "
-					          "in BB frame with MODCOD ID %u (packet "
-					          "length %u, free space %u",
-					          sent_packets + 1, this->modcod_id,
-					          data->getTotalLength(),
-					          this->incomplete_bb_frame->getFreeSpace());
-					goto error_fifo_elem;
-				}
-				// delete the NetPacket once it has been copied in the BBFrame
-				delete data;
-				sent_packets++;
-				// remove the element from the MAC FIFO and destroy it
-				fifo->remove();
-				delete elem;
-
-				// if  data length is the same as remaining length
-				// add the incomplete BBFrame to the list of complete frames
-				if(this->incomplete_bb_frame->getFreeSpace() <= 0)
-				{
-					int res;
-
-					res = this->addCompleteBBFrame(complete_dvb_frames,
-					                               duration_credit,
-					                               cpt_frame);
-					if(res == -1)
-					{
-						goto error;
-					}
-					else if(res == -2)
-					{
-						goto skip;
-					}
-				}
-
-				break;
+				UTI_ERROR("failed to add encapsulation packet #%u "
+				          "in BB frame with MODCOD ID %u (packet "
+				          "length %u, free space %u",
+				          sent_packets + 1, current_bbframe->getModcodId(),
+				          data->getTotalLength(),
+				          current_bbframe->getFreeSpace());
+				goto error_fifo_elem;
 			}
-			// use case 2 (see @ref getChunk)
-			else if(data && remaining_data)
+			// delete the NetPacket once it has been copied in the BBFrame
+			delete data;
+
+			// replace the fifo first element with the remaining data
+			elem->setPacket(remaining_data);
+
+			UTI_DEBUG("packet fragmented, there is still %u bytes of data\n",
+			          remaining_data->getTotalLength());
+		}
+		// use case 3 (see @ref getChunk)
+		else if(!data && remaining_data)
+		{
+			// replace the fifo first element with the remaining data
+			elem->setPacket(remaining_data);
+
+			// keep the NetPacket in the fifo
+			UTI_DEBUG("not enough free space in BBFrame (%u bytes) "
+			          "for %s packet (%u bytes)\n",
+			          current_bbframe->getFreeSpace(),
+			          this->packet_handler->getName().c_str(),
+			          encap_packet->getTotalLength());
+		}
+		else
+		{
+			UTI_ERROR("bad getChunk function implementation, "
+			          "assert or skip packet #%u\n", sent_packets + 1);
+			assert(0);
+			fifo->remove();
+			delete elem;
+		}
+
+		// the BBFrame has been completed or the next packet is too long
+		// add the BBFrame in the list of complete BBFrames and decrease
+		// duration credit
+		if(current_bbframe->getFreeSpace() <= 0 ||
+		   remaining_data != NULL)
+		{
+			ret = this->addCompleteBBFrame(complete_dvb_frames,
+			                               current_bbframe,
+			                               duration_credit);
+			if(ret == -1)
 			{
-				int res;
-
-				if(!this->incomplete_bb_frame->addPacket(data))
-				{
-					UTI_ERROR("failed to add encapsulation packet #%u "
-					          "in BB frame with MODCOD ID %u (packet "
-					          "length %u, free space %u",
-					          sent_packets + 1, this->modcod_id,
-					          data->getTotalLength(),
-					          this->incomplete_bb_frame->getFreeSpace());
-					goto error_fifo_elem;
-				}
-				// delete the NetPacket once it has been copied in the BBFrame
-				delete data;
-
-				// replace the fifo first element with the remaining data
-				elem->setPacket(remaining_data);
-
-				UTI_DEBUG("packet fragmented, there is still %u bytes of data\n",
-				          remaining_data->getTotalLength());
-				res = this->addCompleteBBFrame(complete_dvb_frames,
-				                               duration_credit,
-				                               cpt_frame);
-				if(res == -1)
-				{
-					goto error;
-				}
-				else if(res == -2)
-				{
-					goto skip;
-				}
-				// quit the loop as the BBFrame should be completed
-				break;
+				goto error;
 			}
-			// use case 3 (see @ref getChunk)
-			else if(!data && remaining_data)
+			else if(ret == -2)
 			{
-				int res;
-
-				// replace the fifo first element with the remaining data
-				elem->setPacket(remaining_data);
-
-				// keep the NetPacket in the fifo
-				UTI_DEBUG("not enough free space in BBFrame (%u bytes) "
-				          "for %s packet (%u bytes)\n",
-				          this->incomplete_bb_frame->getFreeSpace(),
-				          this->packet_handler->getName().c_str(),
-				          encap_packet->getTotalLength());
-				res = this->addCompleteBBFrame(complete_dvb_frames,
-				                               duration_credit,
-				                               cpt_frame);
-				if(res == -1)
-				{
-					goto error;
-				}
-				else if(res == -2)
-				{
-					goto skip;
-				}
+				this->pending_bbframe = current_bbframe;
 				break;
 			}
 			else
 			{
-				UTI_ERROR("bad getChunk function implementation, "
-				          "assert or skip packet #%u\n", sent_packets + 1);
-				assert(0);
-				fifo->remove();
-				delete elem;
-				// quit the loop as the packet cannot be added to the BBFrame
-				break;
+				unsigned int modcod = current_bbframe->getModcodId();
+
+				this->incomplete_bb_frames_ordered.remove(current_bbframe);
+				this->incomplete_bb_frames.erase(modcod);
 			}
-
 		}
 	}
 
-	// add the incomplete BB frame to the list of complete BB frame
-	// if it is not empty
-	if(this->incomplete_bb_frame != NULL)
+	// try to fill the BBFrames list with the remaining incomplete BBFrames
+	for(std::list<BBFrame *>::iterator it = this->incomplete_bb_frames_ordered.begin();
+	    it != this->incomplete_bb_frames_ordered.end();
+	    it = this->incomplete_bb_frames_ordered.erase(it))
 	{
-		if(this->incomplete_bb_frame->getNumPackets() > 0)
+		if(duration_credit <= 0)
 		{
-			complete_dvb_frames->push_back(this->incomplete_bb_frame);
-
-			// increment the counter of complete frames
-			cpt_frame++;
+			break;
 		}
-		else
+
+		ret = this->addCompleteBBFrame(complete_dvb_frames, *it,
+		                               duration_credit);
+		if(ret == -1)
 		{
-			delete this->incomplete_bb_frame;
-			this->incomplete_bb_frame = NULL;
+			goto error;
+		}
+		else if(ret == 0)
+		{
+			unsigned int modcod = (*it)->getModcodId();
+
+			this->incomplete_bb_frames.erase(modcod);
 		}
 	}
 
-skip:
+	// keep the remaining credit
+	this->remainingCredit = duration_credit;
+
 	if(sent_packets != 0)
 	{
+		unsigned int cpt_frame = complete_dvb_frames->size();
+
 		UTI_DEBUG("%u %s been scheduled and %u BB %s completed\n",
 		          sent_packets, (sent_packets > 1) ? "packets have" : "packet has",
 		          cpt_frame, (cpt_frame > 1) ? "frames were" : "frame was");
 	}
+
+skip:
 	return 0;
 error_fifo_elem:
 	fifo->remove();
@@ -529,14 +529,14 @@ DraSchemeDefinitionTable *DvbS2Std::getDraSchemeDefinitions()
 }
 
 
-bool DvbS2Std::createIncompleteBBFrame()
+bool DvbS2Std::createIncompleteBBFrame(BBFrame **bbframe,
+                                       unsigned int modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
 	std::string rate;
 	unsigned int bbframe_size;
-	BBFrame *bbframe;
 
-	bbframe = new BBFrame();
+	*bbframe = new BBFrame();
 	if(bbframe == NULL)
 	{
 		UTI_ERROR("failed to create an incomplete BB frame\n");
@@ -550,21 +550,19 @@ bool DvbS2Std::createIncompleteBBFrame()
 	}
 
 	// set the MODCOD ID of the BB frame
-	bbframe->setModcodId(this->modcod_id);
+	(*bbframe)->setModcodId(modcod_id);
 
 	// set the type of encapsulation packets the BB frame will contain
-	bbframe->setEncapPacketEtherType(this->packet_handler->getEtherType());
+	(*bbframe)->setEncapPacketEtherType(this->packet_handler->getEtherType());
 
 	// get the coding rate of the MODCOD and the corresponding BB frame size
-	rate = this->modcod_definitions.getCodingRate(this->modcod_id);
+	rate = this->modcod_definitions.getCodingRate(modcod_id);
 	bbframe_size = this->getPayload(rate);
 	UTI_DEBUG_L3("size of the BBFRAME for MODCOD %d = %d\n",
-	             this->modcod_id, bbframe_size);
+	             modcod_id, bbframe_size);
 
 	// set the size of the BB frame
-	bbframe->setMaxSize(bbframe_size);
-
-	this->incomplete_bb_frame = bbframe;
+	(*bbframe)->setMaxSize(bbframe_size);
 
 	return true;
 
@@ -573,17 +571,11 @@ error:
 }
 
 
-bool DvbS2Std::retrieveCurrentModcod(long tal_id)
+bool DvbS2Std::retrieveCurrentModcod(long tal_id,
+                                     unsigned int &modcod_id)
 {
 	bool do_advertise_modcod;
 
-	// packet does not contain the terminal ID (eg. GSE fragment)
-	// set to a default tal_id
-	// TODO better way to handle that !
-	if(tal_id == BROADCAST_TAL_ID)
-	{
-		tal_id = 0;
-	}
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
 	if(!this->satellite_terminals.do_exist(tal_id))
@@ -595,14 +587,14 @@ bool DvbS2Std::retrieveCurrentModcod(long tal_id)
 	do_advertise_modcod = !this->satellite_terminals.isCurrentModcodAdvertised(tal_id);
 	if(!do_advertise_modcod)
 	{
-		this->modcod_id = this->satellite_terminals.getCurrentModcodId(tal_id);
+		modcod_id = this->satellite_terminals.getCurrentModcodId(tal_id);
 	}
 	else
 	{
-		this->modcod_id = this->satellite_terminals.getPreviousModcodId(tal_id);
+		modcod_id = this->satellite_terminals.getPreviousModcodId(tal_id);
 	}
 	UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
-	             tal_id, this->modcod_id,
+	             tal_id, modcod_id,
 	             do_advertise_modcod ? "yes" : "no");
 
 #if 0 /* TODO: manage options */
@@ -618,25 +610,26 @@ error:
 	return false;
 }
 
-bool DvbS2Std::getBBFRAMEDuration()
+bool DvbS2Std::getBBFrameDuration(unsigned int modcod_id,
+                                  float &bbframe_duration)
 {
 	float spectral_efficiency;
 
-	if(!this->modcod_definitions.do_exist(this->modcod_id))
+	if(!this->modcod_definitions.do_exist(modcod_id))
 	{
 		UTI_ERROR("failed to found the definition of MODCOD ID %u\n",
-		          this->modcod_id);
+		          modcod_id);
 		goto error;
 	}
 
-	spectral_efficiency = this->modcod_definitions.getSpectralEfficiency(this->modcod_id);
+	spectral_efficiency = this->modcod_definitions.getSpectralEfficiency(modcod_id);
 
 	// duration is calculated in ms not in s
 	// TODO remove test once bandwidth will be initialized in constructor
 	if(this->bandwidth != 0)
 	{
-		this->bbframe_duration = (MSG_BBFRAME_SIZE_MAX * 8) /
-		                         (spectral_efficiency * this->bandwidth * 1000);
+		bbframe_duration = (MSG_BBFRAME_SIZE_MAX * 8) /
+		                   (spectral_efficiency * this->bandwidth * 1000);
 	}
 	else
 	{
@@ -645,7 +638,7 @@ bool DvbS2Std::getBBFRAMEDuration()
 	}
 
 
-	UTI_DEBUG("duration of the BBFRAME = %f ms\n", this->bbframe_duration);
+	UTI_DEBUG("duration of the BBFRAME = %f ms\n", bbframe_duration);
 
 	return true;
 
@@ -694,7 +687,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		          bbframe_burst->pkt_type, this->packet_handler->getEtherType());
 		goto error;
 	}
-    UTI_DEBUG("BB frame received (%d %s packet(s)\n",
+	UTI_DEBUG("BB frame received (%d %s packet(s)\n",
 	           bbframe_burst->dataLength, this->packet_handler->getName().c_str());
 
 	// retrieve the current real MODCOD of the receiver
@@ -725,7 +718,6 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// used for terminal statistics
 	this->receivedModcod = bbframe_burst->usedModcod;
-
 
 	// is the ST able to decode the received BB frame ?
 	if(bbframe_burst->usedModcod > real_mod)
@@ -797,78 +789,80 @@ error:
 	return -1;
 }
 
-int DvbS2Std::initializeIncompleteBBFrame(unsigned int tal_id)
+bool DvbS2Std::getIncompleteBBFrame(unsigned int tal_id,
+                                    BBFrame **bbframe)
 {
+	std::map<unsigned int, BBFrame *>::iterator iter;
+	unsigned int modcod_id;
+
+	*bbframe = NULL;
+
 	// retrieve the current MODCOD for the ST
-	if(!this->retrieveCurrentModcod(tal_id))
+	if(!this->retrieveCurrentModcod(tal_id, modcod_id))
 	{
 		// cannot get modcod for the ST skip this element
 		goto skip;
 	}
 
-	// how much time do we need to send the BB frame ?
-	if(!this->getBBFRAMEDuration())
+	// find if the BBFrame exists
+	iter = this->incomplete_bb_frames.find(modcod_id);
+	if(iter != this->incomplete_bb_frames.end() && (*iter).second != NULL)
 	{
-		UTI_ERROR("failed to get BB frame duration "
-				  "(MODCOD ID = %u)\n", this->modcod_id);
-		goto error;
+		UTI_DEBUG("Found a BBFrame for MODCOD %u\n", modcod_id);
+		*bbframe = (*iter).second;
 	}
-
-	// if there is no incomplete BB frame create a new one
-	if(this->incomplete_bb_frame == NULL)
+	// no BBFrame for this MOCDCOD create a new one
+	else
 	{
-		if(!this->createIncompleteBBFrame())
+		UTI_DEBUG("Create a new BBFrame for MODCOD %u\n", modcod_id);
+		// if there is no incomplete BB frame create a new one
+		if(!this->createIncompleteBBFrame(bbframe, modcod_id))
 		{
 			goto error;
 		}
+		// add the BBFrame in the map and list
+		this->incomplete_bb_frames[modcod_id] = *bbframe;
+		this->incomplete_bb_frames_ordered.push_back(*bbframe);
+
 	}
 
-	return 0;
-
-error:
-	return -1;
 skip:
-	return -2;
+	return true;
+error:
+	return false;
 }
 
 
 int DvbS2Std::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-                                 float &duration_credit,
-                                 unsigned int &cpt_frame)
+                                 BBFrame *bbframe,
+                                 float &duration_credit)
 {
-	complete_bb_frames->push_back(this->incomplete_bb_frame);
+	unsigned int modcod_id = bbframe->getModcodId();
+	float bbframe_duration;
+
+	// how much time do we need to send the BB frame ?
+	if(!this->getBBFrameDuration(modcod_id, bbframe_duration))
+	{   
+		UTI_ERROR("failed to get BB frame duration "
+		          "(MODCOD ID = %u)\n", modcod_id);
+		return -1;
+	}   
+   
+	// not enough space for this BBFrame
+	if(duration_credit < bbframe_duration)
+	{
+		UTI_DEBUG("not enough duration credit (%f) for the BBFrame of "
+		          "duration %f\n", duration_credit, bbframe_duration);
+		return -2;
+	}
+
+	// we can send the BBFrame
+	complete_bb_frames->push_back(bbframe);
 
 	// reduce the time credit by the time of the BB frame
-	duration_credit -= this->bbframe_duration;
-
-	// increment the counter of complete frames
-	cpt_frame++;
-
-	// do we have enough credit to create another BB frame ?
-	if(this->bbframe_duration > duration_credit)
-	{
-		// can not send the BB frame, stop algorithm here
-		// store the remaining credit
-		this->remainingCredit = duration_credit;
-		UTI_DEBUG("too few credit (%.2f ms) to create another "
-		          "BB frame which needs %.2f ms for MODCOD %u. "
-		          "Add the remaining credit to the next frame duration\n",
-		          duration_credit, this->bbframe_duration, this->modcod_id);
-		goto skip;
-	}
-
-	// create a new incomplete BB frame
-	if(!this->createIncompleteBBFrame())
-	{
-		goto error;
-	}
+	duration_credit -= bbframe_duration;
 
 	return 0;
-
-error:
-	return -1;
-skip:
-	return -2;
 }
 
 
