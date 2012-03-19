@@ -187,7 +187,7 @@ class XmlParser:
 
     def get_type(self, name):
         """ get an element type in the XSD document """
-        elem = self.get_element(name)
+        elem = self.get_element(name, True)
         if elem is None:
             return None
 
@@ -232,7 +232,7 @@ class XmlParser:
 
         return doc[0].text
 
-    def get_element(self, name):
+    def get_element(self, name, with_type=False):
         """ get an element in the XSD document """
         elem = self._xsd_parser.xpath("//xsd:element[@name = $val]",
                                       namespaces=NAMESPACES,
@@ -240,8 +240,16 @@ class XmlParser:
         if len(elem) == 0:
             return None
         # sometimes there are 2 elements because debug keys got the same name,
-        # take the first one
-        return elem[0]
+        # take the first one with or without type
+        if len(elem) == 0:
+            return elem[0]
+        else:
+            for i in range(len(elem)):
+                if elem[i].get('type') is None and not with_type:
+                    return elem[i]
+                elif elem[i].get('type') is not None and with_type:
+                    return elem[i]
+        return None
 
     def get_attribute(self, name, parent_name):
         """ get an attribute in the XSD document """
