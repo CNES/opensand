@@ -36,6 +36,7 @@ event_handler.py - handler events response from controller
 
 import threading
 import gobject
+import time
 
 class EventReponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
@@ -64,10 +65,16 @@ class EventReponseHandler(threading.Thread):
             elif event_type == "resp_start_platform":
                 # platine platform start answer:
                 # update buttons according to platform status
-                # update the label of the 'start/stop platine' button
-                gobject.idle_add(self._view.set_start_stop_button,
-                                 priority=gobject.PRIORITY_HIGH_IDLE)
                 if str(self._event_manager_response.get_text()) == "done":
+                    # avoid to update buttons while state has not been correctly
+                    # updated
+                    idx = 0
+                    while not self._view.is_running() and idx < 5:
+                        idx += 1
+                        time.sleep(1)
+                    # update the label of the 'start/stop platine' button
+                    gobject.idle_add(self._view.set_start_stop_button,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # starting platine platform succeeded:
                     # enable back the 'stop platine' button
                     gobject.idle_add(self._view.disable_start_button, False,
@@ -84,6 +91,18 @@ class EventReponseHandler(threading.Thread):
                 # platine platform stop answer
                 # update buttons according to platform status
                 if str(self._event_manager_response.get_text()) == "done":
+                    # avoid to update buttons while state has not been correctly
+                    # updated
+                    idx = 0
+                    while self._view.is_running() and idx < 5:
+                        idx += 1
+                        time.sleep(1)
+                    # update the label of the 'start/stop platine' button
+                    gobject.idle_add(self._view.set_start_stop_button,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    # enable back the 'start platine' button
+                    gobject.idle_add(self._view.disable_start_button, False,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # stopping platine platform succeeded:
                     # enable all the buttons
                     gobject.idle_add(self._view.disable_start_button, False,

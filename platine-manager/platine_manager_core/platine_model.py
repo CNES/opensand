@@ -79,6 +79,9 @@ class Model:
 
         # load modules
         self.load_modules()
+        if len(self._modules) == 0:
+            raise ModelException("You need encapsulation modules to use your "
+                                 "platform")
 
         try:
             self.load()
@@ -343,6 +346,9 @@ class Model:
         """ set the scenario id """
         self._modified = True
         self._run_id = val
+        if self._run_id == "":
+            self._run_id = "default"
+
 
     def get_run(self):
         """ get the scenario id """

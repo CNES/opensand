@@ -398,12 +398,13 @@ class RunView(WindowView):
             except Exception, msg:
                 self._log.warning("Default Run ID will be overwritten "
                                   "due to exception (%s)" % str(msg))
+
         self._model.set_run(run_id)
 
     def set_start_stop_button(self):
         """ modify the start button label according to Platine status
             (should be used with gobject.idle_add outside gtk handlers) """
-        if self._model.is_running():
+        if self.is_running():
             btn = self._ui.get_widget('start_platine_button')
             btn.set_label('Stop Platine')
         else:
@@ -428,3 +429,6 @@ class RunView(WindowView):
             widget.hide()
         else:
             widget.show()
+
+    def is_running(self):
+        return self._model.is_running()

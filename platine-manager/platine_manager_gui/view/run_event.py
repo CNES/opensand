@@ -36,11 +36,14 @@ run_event.py - the events on the run view
 
 import gobject
 import socket
+import os
+import gtk
 
 from platine_manager_core.my_exceptions import RunException
 from platine_manager_gui.view.run_view import RunView
 from platine_manager_gui.view.event_handler import EventReponseHandler
 from platine_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
+from platine_manager_gui.view.popup.infos import error_popup, yes_no_popup
 
 INIT_ITER = 4
 
@@ -322,12 +325,23 @@ class RunEvent(RunView):
         if not self._model.is_running():
             # start the applications
 
+            # retrieve the current scenario and start
+            self.set_run_id()
+            # check that we won't overwrite an existing run
+            scenario = self._model.get_scenario()
+            run = self._model.get_run()
+            path = os.path.join(scenario, run)
+            if os.path.exists(path):
+                ret = yes_no_popup("You will overwrite an existing run, "
+                                   "continue anyway ?",
+                                   "Overwrite run %s" % run,
+                                   "gtk-dialog-warning")
+                if ret != gtk.RESPONSE_YES:
+                    return
+
             # disable the buttons
             self.disable_start_button(True)
             self.disable_deploy_button(True)
-
-            # retrieve the current scenario and start
-            self.set_run_id()
 
             # tell the hosts controller to start Platine on all hosts
             # (startup will be finished when we will receive a
@@ -335,6 +349,10 @@ class RunEvent(RunView):
             self._event_manager.set('start_platform')
 
         else:
+            # disable the buttons
+            self.disable_start_button(True)
+            self.disable_deploy_button(True)
+
             # stop the applications
 
             # tell the hosts controller to stop Platine on all hosts
