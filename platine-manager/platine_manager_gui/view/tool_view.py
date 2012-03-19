@@ -109,7 +109,7 @@ class ToolView(WindowView):
             self._tree.disable_all()
 
 
-        for host in [elt for elt in self._model.get_hosts_list()
+        for host in [elt for elt in self._model.get_all()
                      if elt.get_name() not in self._hosts_name]:
             tools = {}
             self._hosts_name.append(host.get_name())
@@ -122,7 +122,7 @@ class ToolView(WindowView):
                              host, tools)
 
         real_names = []
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_all():
             real_names.append(host.get_name())
 
         old_host_names = set(self._hosts_name) - set(real_names)

@@ -47,11 +47,12 @@ from platine_manager_core.my_exceptions import ModelException
 
 class PlatineServiceListener():
     """ listen for Platine service with avahi """
-    def __init__(self, model, hosts, service_type, manager_log):
+    def __init__(self, model, hosts, ws, service_type, manager_log):
         self._server = None
         self._log = manager_log
         self._model = model
         self._hosts = hosts
+        self._ws = ws
 
         loop = DBusGMainLoop()
         # enable dbus multithreading
@@ -150,6 +151,11 @@ class PlatineServiceListener():
                     self._hosts.insert(1, new_host)
                 else:
                     self._hosts.append(new_host)
+            # we need controller for workstations with tools
+            if name.startswith('ws'):
+                if len(host_model.get_tools()) > 0:
+                    new_host = HostController(host_model, self._log)
+                    self._ws.append(new_host)
 
     def print_error(self, *args):
         """ error handler """
@@ -179,6 +185,10 @@ class PlatineServiceListener():
             if host.get_name().lower() == name:
                 host.close()
                 self._hosts.remove(host)
+        for ws in self._ws:
+            if ws.get_name().lower() == name:
+                ws.close()
+                self._ws.remove(ws)
 
 
 ##### TEST #####
@@ -188,7 +198,7 @@ if __name__ == '__main__':
     HOSTS = []
     gobject.threads_init()
 
-    SERVICE = PlatineServiceListener(MODEL, HOSTS, '_platine._tcp', LOGGER)
+    SERVICE = PlatineServiceListener(MODEL, HOSTS, [], '_platine._tcp', LOGGER)
     try:
         gobject.MainLoop().run()
     except KeyboardInterrupt:

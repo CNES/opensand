@@ -203,17 +203,7 @@ class RunView(WindowView):
             image.set_from_file(os.path.join(IMG_PATH, 'network.png'))
             self.draw_pixbuf(0, 0, x, TOP_3, COMPO_X, COMPO_Y, image)
 
-        ws_nbr = 0
-        for workstation in self._model.get_workstations_list():
-            (inst, ident) = workstation.get_instance().split('_', 1)
-            if inst == host.get_instance():
-                ws_nbr += 1
-                self._stylepango.set_text("- " + ident)
-                self.draw_layout(x + 10, TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
-
-        if ws_nbr > 0:
-            self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
-            self.draw_layout(x, TOP_3 + COMPO_Y)
+        self.draw_ws(host, host.get_instance(), x, y)
 
     def draw_sat(self, host, x, y):
         """ draw satellite """
@@ -265,20 +255,33 @@ class RunView(WindowView):
                            TOP_1 + COMPO_Y + 20,
                            x + int(COMPO_X/2), y - 10)
 
+        self.draw_ws(host, '2', x, y)
+
+    def draw_ws(self, host, host_inst, x, y):
+        """ draw the workstations """
         ws_nbr = 0
         for workstation in self._model.get_workstations_list():
             (inst, ident) = workstation.get_instance().split('_', 1)
-            if inst == '2':
+            if inst == host_inst:
                 ws_nbr += 1
                 self._stylepango.set_text("- " + ident)
                 self.draw_layout(x + 10, TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
+                tool_list = ''
+                for tool in [tools for tools in workstation.get_tools()
+                                   if tools.get_state()]:
+                    tool_list = tool_list + tool.get_name() + ', '
+                if tool_list != '':
+                    tool_list = '(%s)' % tool_list.rstrip(', ')
+                    self._stylepango.set_text(tool_list)
+                    self.draw_layout(x + 15 + len(ident) * 7,
+                                     TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
 
         if ws_nbr > 0:
             # TODO autre nom que workstation car on est derrière la GW ?
             self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
             self.draw_layout(x, TOP_3 + COMPO_Y)
 
-            if host.get_state():
+            if host.get_state() and host_inst == '2':
                 self.draw_line(x + int(COMPO_X/2),
                                y + COMPO_Y + 20,
                                x + int(COMPO_X/2),
@@ -287,24 +290,25 @@ class RunView(WindowView):
                 image.set_from_file(IMG_PATH + 'network.png')
                 self.draw_pixbuf(0, 0, x, TOP_3, COMPO_X, COMPO_Y, image)
 
+
     def draw_tools(self, host, x, y):
         """ draw the started tools for the specified host """
-        for tool in host.get_tools():
-            if tool.get_state():
-                png = "%s/tools/%s.png" % (IMG_PATH, tool.get_name())
-                if os.path.exists(png):
-                    image = gtk.Image()
-                    image.set_from_file(png)
-                    self.draw_pixbuf(0, 0, x, y, TOOL_X, TOOL_Y, image)
-                    self.draw_pixbuf(0, 0, self._info_x, self._legend_y,
-                                     TOOL_X, TOOL_Y, image)
-                    self._stylepango.set_text(tool.get_name().upper())
-                    self.draw_layout(self._info_x + 25, self._legend_y + 5)
-                    self._legend_y += 28
-                else:
-                    self._stylepango.set_text(tool.get_name().upper())
-                    self.draw_layout(x, y)
-                y = y + TOOL_Y + 2
+        for tool in [tools for tools in host.get_tools()
+                           if tools.get_state()]:
+            png = "%s/tools/%s.png" % (IMG_PATH, tool.get_name())
+            if os.path.exists(png):
+                image = gtk.Image()
+                image.set_from_file(png)
+                self.draw_pixbuf(0, 0, x, y, TOOL_X, TOOL_Y, image)
+                self.draw_pixbuf(0, 0, self._info_x, self._legend_y,
+                                 TOOL_X, TOOL_Y, image)
+                self._stylepango.set_text(tool.get_name().upper())
+                self.draw_layout(self._info_x + 25, self._legend_y + 5)
+                self._legend_y += 28
+            else:
+                self._stylepango.set_text(tool.get_name().upper())
+                self.draw_layout(x, y)
+            y = y + TOOL_Y + 2
 
     def draw_state(self, state, x, y):
         """ draw component state """

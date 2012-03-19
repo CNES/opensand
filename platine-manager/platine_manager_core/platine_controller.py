@@ -68,6 +68,7 @@ class Controller(threading.Thread):
             self._event_manager = self._model.get_event_manager()
             self._event_manager_response = self._model.get_event_manager_response()
             self._hosts = []
+            self._ws = []
             self._env_plane = EnvironmentPlaneController(model.get_env_plane(),
                                                          manager_log)
             self._server = None
@@ -96,7 +97,7 @@ class Controller(threading.Thread):
 
             # create the service browser here because we need hosts as argument
             # but it will be started with gtk main loop
-            PlatineServiceListener(self._model, self._hosts,
+            PlatineServiceListener(self._model, self._hosts, self._ws,
                                    service_type, self._log)
 
             if interactive:
@@ -228,7 +229,7 @@ class Controller(threading.Thread):
             self._log.debug("Controller: close command server")
             self._server.stop()
         self._log.debug("Controller: close hosts")
-        for host in self._hosts:
+        for host in self._hosts + self._ws:
             host.close()
         self._log.debug("Controller: hosts closed")
 
@@ -249,7 +250,7 @@ class Controller(threading.Thread):
 
         try:
             self.update_deploy_config()
-            for host in self._hosts:
+            for host in self._hosts + self._ws:
                 self._log.info("Deploying " + host.get_name().upper())
                 host.deploy(self._deploy_config)
         except CommandException:
@@ -325,6 +326,14 @@ class Controller(threading.Thread):
 #     will accept strings as scenario and run
 #                               self._model.get_scenario(),
 #                               self._model.get_run())
+            for ws in self._ws:
+                self._log.info("Configuring " + ws.get_name().upper())
+                # create the WS directory
+                ws_path = os.path.join(self._model.get_scenario(),
+                                       ws.get_name().lower())
+                if not os.path.isdir(ws_path):
+                    os.mkdir(ws_path, 0755)
+                ws.configure_ws(self._deploy_config, self._model.get_dev_mode())
         except (OSError, IOError), (errno, strerror):
             self._log.error("Failed to create directory '%s': %s" %
                             (host_path, strerror))
@@ -343,7 +352,7 @@ class Controller(threading.Thread):
             self._model.get_env_plane().set_options('probe',
                                                     '-f ' + frame_duration)
             self._env_plane.start()
-            for host in self._hosts:
+            for host in self._hosts + self._ws:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
         except CommandException:
@@ -368,7 +377,7 @@ class Controller(threading.Thread):
         try:
             self._log.info("Stopping Environment Plane")
             self._env_plane.stop()
-            for host in self._hosts:
+            for host in self._hosts + self._ws:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
         except CommandException:

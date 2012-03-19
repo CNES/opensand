@@ -27,7 +27,6 @@ setup(
     license="GPL",
 #    long_description=read('README'),
 
-    # Find Platine Manager packages, but exclude tests
     packages=find_packages(),
 
     data_files=[

@@ -143,7 +143,7 @@ class Model:
 
     def get_host(self, name):
         """ return the host according to its name """
-        for host in self._hosts:
+        for host in self.get_all():
             if name == host.get_name():
                 return host
         if name == 'global':
@@ -153,6 +153,10 @@ class Model:
     def get_workstations_list(self):
         """ return the workstations list """
         return self._ws
+
+    def get_all(self):
+        """ return the hosts and workstation list """
+        return self._hosts + self._ws
 
     def del_host(self, name):
         """ remove an host """

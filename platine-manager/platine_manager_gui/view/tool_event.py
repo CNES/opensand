@@ -168,7 +168,7 @@ class ToolEvent(ToolView):
     def on_save_tool_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on save button """
         self._tool_lock.acquire()
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_all():
             host_name = host.get_name()
             # reset the tools
             map(lambda x : x.set_selected(False), host.get_tools())
@@ -211,7 +211,7 @@ class ToolEvent(ToolView):
         for host_name in self._saved_tools:
             self._selected_tools[host_name] = list(self._saved_tools[host_name])
         # delete tools vbox to reload tool info
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_all():
             for tool in host.get_tools():
                 tool.reload_conf()
 

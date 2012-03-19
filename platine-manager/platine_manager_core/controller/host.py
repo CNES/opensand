@@ -222,6 +222,53 @@ class HostController:
 
         sock.close()
 
+    def configure_ws(self, deploy_config, dev_mode=False):
+        """ send the configure command to command server on WS """
+        # connect to command server and send the configure command
+        try:
+            sock = self.connect_command('CONFIGURE')
+        except CommandException:
+            raise
+
+        if sock is None:
+            return
+        # create the start.ini file
+        start_ini = ConfigParser.SafeConfigParser()
+        try:
+            # add tools in start.ini and send tools configuration
+            self.configure_tools(sock, start_ini, deploy_config, dev_mode)
+            # send the start.ini file
+            with tempfile.NamedTemporaryFile() as tmp_file:
+                start_ini.write(tmp_file)
+                tmp_file.flush()
+                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+        except ConfigParser.Error, msg:
+            self._log.error("Cannot create start.ini file: " + msg)
+            sock.close()
+            raise CommandException("Cannot create start.ini file")
+        except CommandException:
+            sock.close()
+            raise
+
+        try:
+            # send 'STOP' tag
+            sock.send('STOP\n')
+            self._log.debug("%s: send 'STOP'" % self.get_name())
+        except socket.error, (errno, strerror):
+            self._log.error("Cannot contact %s command server: %s" %
+                            (self.get_name(), strerror))
+            raise CommandException("Cannot contact %s command server: %s" %
+                                    (self.get_name(), strerror))
+
+        try:
+            self.receive_ok(sock)
+        except CommandException:
+            sock.close()
+            raise
+
+        sock.close()
+
+
     def configure_tools(self, sock, start_ini, deploy_config, dev_mode=False):
         """ send tools configuration and add command lines in start.ini file """
         prefix = '/'
