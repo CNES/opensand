@@ -101,6 +101,9 @@ class BlocEncap: public mgl_bloc
 	/// it is the MAC layer MAC id received through msg_link_up
 	long _tal_id;
 
+    /// the component name (GW or ST)
+    string name_;
+
  public:
 
 	/**
@@ -110,7 +113,8 @@ class BlocEncap: public mgl_bloc
 	 * @param fatherid The father of the bloc
 	 * @param name The name of the bloc
 	 */
-	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name);
+	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+	          string host_name);
 
 	/**
 	 * Destroy the encapsulation bloc

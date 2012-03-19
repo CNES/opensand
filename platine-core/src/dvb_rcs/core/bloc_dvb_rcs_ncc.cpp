@@ -668,21 +668,19 @@ error:
  */
 int BlocDVBRcsNcc::initMode()
 {
-	std::string satellite_type;
-
 	// satellite type: regenerative or transparent ?
 	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                                satellite_type))
+	                                this->satellite_type_))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_INFO("satellite type = %s\n", satellite_type.c_str());
+	UTI_INFO("satellite type = %s\n", this->satellite_type_.c_str());
 
 	// initialize the emission and reception standards depending
 	// on the satellite type
-	if(satellite_type == TRANSPARENT_SATELLITE)
+	if(this->satellite_type_ == TRANSPARENT_SATELLITE)
 	{
 		this->emissionStd = new DvbS2Std();
 		this->receptionStd = new DvbRcsStd();
@@ -692,7 +690,7 @@ int BlocDVBRcsNcc::initMode()
 		this->receptionStd->setTalId(-1);
 		this->emissionStd->setTalId(-1);
 	}
-	else if(satellite_type == REGENERATIVE_SATELLITE)
+	else if(this->satellite_type_ == REGENERATIVE_SATELLITE)
 	{
 		this->emissionStd = new DvbRcsStd();
 		this->receptionStd = new DvbS2Std();
@@ -703,7 +701,7 @@ int BlocDVBRcsNcc::initMode()
 	else
 	{
 		UTI_ERROR("section '%s': unknown value '%s' for parameter "
-		          "'%s'\n", GLOBAL_SECTION, satellite_type.c_str(),
+		          "'%s'\n", GLOBAL_SECTION, this->satellite_type_.c_str(),
 		          SATELLITE_TYPE);
 		goto error;
 
@@ -742,32 +740,46 @@ error:
 int BlocDVBRcsNcc::initEncap()
 {
 	string strConfig;
+    string out_encap_scheme;
 	int encap_packet_type = PKT_TYPE_INVALID;
 
-	// read the output encapsulation scheme
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                                this->out_encap_scheme))
+	// read the satellite type
+	if(this->satellite_type_ == REGENERATIVE_SATELLITE)
 	{
-		UTI_INFO("section '%s': missing parameter '%s'\n",
-		         GLOBAL_SECTION, OUT_ENCAP_SCHEME);
-		goto error;
+		if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+		                                out_encap_scheme))
+		{
+			UTI_INFO("section '%s': missing parameter '%s'\n",
+			         GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
+			goto error;
+		}
+	}
+	else
+	{
+		if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+		                                out_encap_scheme))
+		{
+			UTI_INFO("section '%s': missing parameter '%s'\n",
+			         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
+			goto error;
+		}
 	}
 	UTI_INFO("output encapsulation scheme = %s\n",
-	         this->out_encap_scheme.c_str());
+	         out_encap_scheme.c_str());
 
 	// if the DVB-RCS standard is used for emission, the frame length
 	// is constant and the maximum number of packets per frame can
 	// be computed from the length of a packet
 	if(this->emissionStd->type() == "DVB-RCS")
 	{
-		if(this->out_encap_scheme == ENCAP_ATM_AAL5 ||
-		   this->out_encap_scheme == ENCAP_ATM_AAL5_ROHC)
+		if(out_encap_scheme == ENCAP_ATM_AAL5 ||
+		   out_encap_scheme == ENCAP_ATM_AAL5_ROHC)
 		{
 			// DVB-RCS frames encapsulate ATM cells
 			encap_packet_type = PKT_TYPE_ATM;
 		}
-		else if(this->out_encap_scheme == ENCAP_MPEG_ULE ||
-		        this->out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+		else if(out_encap_scheme == ENCAP_MPEG_ULE ||
+		        out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
 		{
 			// DVB-RCS frames encapsulate MPEG packets
 			encap_packet_type = PKT_TYPE_MPEG;
@@ -776,22 +788,22 @@ int BlocDVBRcsNcc::initEncap()
 		{
 			UTI_ERROR("bad value for output encapsulation scheme "
 			          "with emission standard %s, check the value "
-			          "of parameter '%s' in section '%s'\n",
-			          this->emissionStd->type().c_str(), OUT_ENCAP_SCHEME,
+			          "of parameter of encapsulation schemes in section "
+                      "'%s'\n", this->emissionStd->type().c_str(),
 			          GLOBAL_SECTION);
  			goto error;
 		}
 	}
 	else if(this->emissionStd->type() == "DVB-S2")
 	{
-		if(this->out_encap_scheme == ENCAP_MPEG_ULE ||
-		   this->out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+		if(out_encap_scheme == ENCAP_MPEG_ULE ||
+		   out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
 		{
 			// DVB-RCS frames encapsulate MPEG packets
 			encap_packet_type = PKT_TYPE_MPEG;
 		}
-		else if(this->out_encap_scheme == ENCAP_GSE ||
-		        this->out_encap_scheme == ENCAP_GSE_ROHC)
+		else if(out_encap_scheme == ENCAP_GSE ||
+		        out_encap_scheme == ENCAP_GSE_ROHC)
 		{
 			// DVB-RCS frames encapsulate GSE packets
 			encap_packet_type = PKT_TYPE_GSE;
@@ -800,8 +812,8 @@ int BlocDVBRcsNcc::initEncap()
 		{
 			UTI_ERROR("bad value for output encapsulation scheme "
 			          "with emission standard %s, check the value "
-			          "of parameter '%s' in section '%s'\n",
-			          this->emissionStd->type().c_str(), OUT_ENCAP_SCHEME,
+			          "of parameter of encapsulation schemes in section "
+                      "'%s'\n", this->emissionStd->type().c_str(),
 			          GLOBAL_SECTION);
 			goto error;
 		}
@@ -991,7 +1003,7 @@ int BlocDVBRcsNcc::initDama()
 {
 	string strConfig;
 	enum { legacy, uor, stub, yes } selected_algo = stub;
-	string st_out_encap_scheme;
+	string up_return_encap_proto;
 	int st_encap_packet_length;
 	int ret;
 
@@ -1062,28 +1074,28 @@ int BlocDVBRcsNcc::initDama()
 	}
 
 	// retrieve the output encapsulation scheme
-	if(!globalConfig.getStringValue(DVB_NCC_SECTION, OUT_ST_ENCAP_SCHEME,
-	                                st_out_encap_scheme))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                                up_return_encap_proto))
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
-		          DVB_NCC_SECTION, OUT_ST_ENCAP_SCHEME);
+		          DVB_NCC_SECTION, UP_RETURN_ENCAP_SCHEME);
 		goto release_dama;
 	}
 
-	if(st_out_encap_scheme == ENCAP_ATM_AAL5 ||
-	   st_out_encap_scheme == ENCAP_ATM_AAL5_ROHC)
+	if(up_return_encap_proto == ENCAP_ATM_AAL5 ||
+	   up_return_encap_proto == ENCAP_ATM_AAL5_ROHC)
 	{
 		// return link: DVB-RCS frames encapsulate ATM cells
 		st_encap_packet_length = AtmCell::length();
 	}
-	else if(st_out_encap_scheme == ENCAP_MPEG_ULE ||
-	        st_out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+	else if(up_return_encap_proto == ENCAP_MPEG_ULE ||
+	        up_return_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		// return link: DVB-RCS frames encapsulate MPEG packets
 		st_encap_packet_length = MpegPacket::length();
 	}
 	//TODO only for DVB-S2 st uplink (not implemented yet)
-/*	else if(st_out_encap_scheme == "GSE")
+/*	else if(up_return_encap_proto == "GSE")
 	{
 		// return link: DVB-RCS frames encapsulate MPEG packets
 		st_encap_packet_length = 188;//GsePacket::length();

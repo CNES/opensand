@@ -137,19 +137,19 @@ mgl_status BlocEncapSat::onInit()
 	int qos_nbr;
 
 	// read encapsulation scheme to use to output data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                                this->output_encap_proto))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                                this->downlink_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
 		         "ATM over MPEG2-TS.\n", FUNCNAME, GLOBAL_SECTION,
-		         OUT_ENCAP_SCHEME);
-		this->output_encap_proto = ENCAP_MPEG_ATM_AAL5;
+		         DOWN_FORWARD_ENCAP_SCHEME);
+		this->downlink_encap_proto = ENCAP_MPEG_ATM_AAL5;
 	}
 
-	if(this->output_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-	   this->output_encap_proto == ENCAP_MPEG_ULE ||
-	   this->output_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC ||
-	   this->output_encap_proto == ENCAP_MPEG_ULE_ROHC)
+	if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
+	   this->downlink_encap_proto == ENCAP_MPEG_ULE ||
+	   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC ||
+	   this->downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		// read packing threshold from config
 		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
@@ -170,8 +170,8 @@ mgl_status BlocEncapSat::onInit()
 		}
 
 		// create the encapsulation context
-		if(this->output_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->output_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
+		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
+		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
 		{
 			// the encapsulation context encapsulates ATM cells into
 			// MPEG2-TS frames
@@ -196,12 +196,12 @@ mgl_status BlocEncapSat::onInit()
 		UTI_INFO("%s packing threshold for MPEG encapsulation protocol = %d ms\n",
 		         FUNCNAME, packing_threshold);
 	}
-	else if(this->output_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-	        this->output_encap_proto == ENCAP_GSE_MPEG_ULE ||
-	        this->output_encap_proto == ENCAP_GSE ||
-			this->output_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        this->output_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC ||
-	        this->output_encap_proto == ENCAP_GSE_ROHC)
+	else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
+	        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+	        this->downlink_encap_proto == ENCAP_GSE ||
+	        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
+	        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC ||
+	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// Get QoS number for GSE encapsulation context
 		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, GSE_QOS_NBR,
@@ -233,15 +233,15 @@ mgl_status BlocEncapSat::onInit()
 		}
 
 		// create the encapsulation context
-		if(this->output_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		   this->output_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
+		if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
+		   this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
 		{
 			// the encapsulation context encapsulates ATM cells into GSE packets
 			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
 			                            AtmCell::length());
 		}
-		else if(this->output_encap_proto == ENCAP_GSE_MPEG_ULE ||
-		        this->output_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+		else if(this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 		{
 			// the encapsulation context encapsulates MPEG frames into GSE packets
 			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
@@ -364,8 +364,8 @@ mgl_status BlocEncapSat::onRcvBurstFromDown(NetBurst *burst)
 	{
 		// choose action depending on packet type
 		case(NET_PROTO_MPEG):
-			if(this->output_encap_proto == ENCAP_GSE_MPEG_ULE ||
-			   this->output_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+			if(this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+			   this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 			{
 				status = this->EncapsulatePackets(burst);
 			}
@@ -410,8 +410,8 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 		goto error;
 	}
 
-	if(this->output_encap_proto == ENCAP_MPEG_ULE ||
-	   this->output_encap_proto == ENCAP_MPEG_ULE_ROHC)
+	if(this->downlink_encap_proto == ENCAP_MPEG_ULE ||
+	   this->downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		// burst must contains MPEG2-TS packets
 		if(burst->type() != NET_PROTO_MPEG)
@@ -421,8 +421,8 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 			goto clean;
 		}
 	}
-	else if(this->output_encap_proto == ENCAP_GSE ||
-	        this->output_encap_proto == ENCAP_GSE_ROHC)
+	else if(this->downlink_encap_proto == ENCAP_GSE ||
+	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// burst must contains GSE packets
 		if(burst->type() != NET_PROTO_GSE)
@@ -436,12 +436,12 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 	{
 		UTI_DEBUG("%s Bad output encapsulation scheme %s with "
 		          "MPEG or GSE  burst\n",
-		          FUNCNAME, this->output_encap_proto.c_str());
+		          FUNCNAME, this->downlink_encap_proto.c_str());
 		goto clean;
 	}
 
 	UTI_INFO("%s output encapsulation scheme = %s\n", FUNCNAME,
-	         this->output_encap_proto.c_str());
+	         this->downlink_encap_proto.c_str());
 
 	// create the Margouilla message with MPEG burst as data
 	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
@@ -493,15 +493,15 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 		          FUNCNAME, burst->type());
 		goto clean;
 	}
-	if(this->output_encap_proto != ENCAP_MPEG_ATM_AAL5 &&
-	   this->output_encap_proto != ENCAP_GSE_ATM_AAL5 &&
-	   this->output_encap_proto != ENCAP_GSE_MPEG_ULE &&
-	   this->output_encap_proto != ENCAP_MPEG_ATM_AAL5_ROHC &&
-	   this->output_encap_proto != ENCAP_GSE_ATM_AAL5_ROHC &&
-	   this->output_encap_proto != ENCAP_GSE_MPEG_ULE_ROHC)
+	if(this->downlink_encap_proto != ENCAP_MPEG_ATM_AAL5 &&
+	   this->downlink_encap_proto != ENCAP_GSE_ATM_AAL5 &&
+	   this->downlink_encap_proto != ENCAP_GSE_MPEG_ULE &&
+	   this->downlink_encap_proto != ENCAP_MPEG_ATM_AAL5_ROHC &&
+	   this->downlink_encap_proto != ENCAP_GSE_ATM_AAL5_ROHC &&
+	   this->downlink_encap_proto != ENCAP_GSE_MPEG_ULE_ROHC)
 	{
 		UTI_ERROR("%s Bad output encapsulation scheme %s with burst\n",
-		          FUNCNAME, this->output_encap_proto.c_str());
+		          FUNCNAME, this->downlink_encap_proto.c_str());
 	}
 
 	// for each ATM cell within the burst...
@@ -547,16 +547,16 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 			goto clean;
 		}
 
-		if(this->output_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->output_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
+		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
+		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
 		{
 			UTI_DEBUG("%s 1 %s packet => %d MPEG packet(s)\n", FUNCNAME,
 			          (*pkt_it)->name().c_str(), packets->size());
 		}
-		else if(this->output_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		        this->output_encap_proto == ENCAP_GSE_MPEG_ULE ||
-				this->output_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        this->output_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+		else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
+		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+		        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
+		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 		{
 			UTI_DEBUG("%s 1 %s packet => %d GSE packet(s)\n", FUNCNAME,
 			          (*pkt_it)->name().c_str(), packets->size());
@@ -587,15 +587,15 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 			continue;
 		}
 
-		if(this->output_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
-		   this->output_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
+		if(this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5 ||
+		   this->downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
 		{
 			UTI_DEBUG("%s MPEG burst sent to the lower layer\n", FUNCNAME);
 		}
-		else if(this->output_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-		        this->output_encap_proto == ENCAP_GSE_MPEG_ULE ||
-				this->output_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        this->output_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+		else if(this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
+		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+		        this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
+		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 		{
 			UTI_DEBUG("%s GSE burst sent to the lower layer\n", FUNCNAME);
 		}

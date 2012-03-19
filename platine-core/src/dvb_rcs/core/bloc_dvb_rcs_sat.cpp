@@ -344,46 +344,46 @@ int BlocDVBRcsSat::initMode()
 	// TODO: do a function for encapsulation scheme reading
 	if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
-		string out_encap_scheme;
+		string downlink_encap_scheme;
 
 		// be careful, as encap_scheme is from ST point of view in the
 		// configuration file, load the inverse for the satellite point
 		// of view
-		if(globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-		                               out_encap_scheme) < 0)
+		if(globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+		                               downlink_encap_scheme) < 0)
 		{
 			UTI_INFO("section '%s': missing parameter '%s'\n",
-			         GLOBAL_SECTION, OUT_ENCAP_SCHEME);
+			         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
 			goto error;
 		}
-		UTI_INFO("output encapsulation scheme = %s\n", out_encap_scheme.c_str());
+		UTI_INFO("output encapsulation scheme = %s\n", downlink_encap_scheme.c_str());
 
-	 	if(out_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
-		   out_encap_scheme == ENCAP_MPEG_ULE ||
-		   out_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC ||
-		   out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+		if(downlink_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
+		   downlink_encap_scheme == ENCAP_MPEG_ULE ||
+		   downlink_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC ||
+		   downlink_encap_scheme == ENCAP_MPEG_ULE_ROHC)
 		{
 			// DVB-S2 frames encapsulate MPEG packets
 			encap_packet_type = PKT_TYPE_MPEG;
 		}
-		else if(out_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
-		        out_encap_scheme == ENCAP_GSE ||
-		        out_encap_scheme == ENCAP_GSE_MPEG_ULE ||
-				out_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
-		        out_encap_scheme == ENCAP_GSE_ROHC ||
-		        out_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
-	 	{
+		else if(downlink_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
+		        downlink_encap_scheme == ENCAP_GSE ||
+		        downlink_encap_scheme == ENCAP_GSE_MPEG_ULE ||
+		        downlink_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
+		        downlink_encap_scheme == ENCAP_GSE_ROHC ||
+		        downlink_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
+		{
 			// DVB-S2 frames encapsulate GSE packets
-		 	encap_packet_type = PKT_TYPE_GSE;
+			encap_packet_type = PKT_TYPE_GSE;
 		}
 		else
 		{
 			UTI_ERROR("bad value (%s) for output encapsulation "
- 					"scheme, check the value of parameter '%s' "
-					"in section '%s'\n", out_encap_scheme.c_str(),
-					OUT_ENCAP_SCHEME, GLOBAL_SECTION);
-     goto error;
- 		}
+			          "scheme, check the value of parameter '%s' "
+			          "in section '%s'\n", downlink_encap_scheme.c_str(),
+			          DOWN_FORWARD_ENCAP_SCHEME, GLOBAL_SECTION);
+			goto error;
+		}
 	}
 
 	// Delay to apply to the medium
@@ -575,9 +575,10 @@ error:
 int BlocDVBRcsSat::initSwitchTable()
 {
 	GenericSwitch *genericSwitch;
-	int i = 0;
+	string uplink_encap_proto;
 	ConfigurationList switch_list;
 	ConfigurationList::iterator iter;
+	int i = 0;
 
 	// no need for switch in non-regenerative mode
 	if(this->satellite_type != REGENERATIVE_SATELLITE)
@@ -586,16 +587,16 @@ int BlocDVBRcsSat::initSwitchTable()
 	}
 
 	// retrieve input encapsulation scheme
-	if(globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
-	                               this->in_encap_proto) < 0)
+	if(globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                               uplink_encap_proto) < 0)
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, IN_ENCAP_SCHEME);
+		          GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
 		goto error;
 	}
 
 	UTI_INFO("uplink encapsulation protocol = %s\n",
-	         this->in_encap_proto.c_str());
+	         uplink_encap_proto.c_str());
 
 	// Retrieving switching table entries
 	if(!globalConfig.getListItems(SAT_SWITCH_SECTION, SWITCH_LIST, switch_list))
@@ -605,8 +606,8 @@ int BlocDVBRcsSat::initSwitchTable()
 		goto error;
 	}
 
-	if(in_encap_proto == ENCAP_ATM_AAL5 ||
-	   in_encap_proto == ENCAP_ATM_AAL5_ROHC)
+	if(uplink_encap_proto == ENCAP_ATM_AAL5 ||
+	   uplink_encap_proto == ENCAP_ATM_AAL5_ROHC)
 	{
 		genericSwitch = new AtmSwitch();
 		if(genericSwitch == NULL)
@@ -615,8 +616,8 @@ int BlocDVBRcsSat::initSwitchTable()
 			goto error;
 		}
 	}
-	else if(in_encap_proto == ENCAP_MPEG_ULE ||
-	        in_encap_proto == ENCAP_MPEG_ULE_ROHC)
+	else if(uplink_encap_proto == ENCAP_MPEG_ULE ||
+	        uplink_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		genericSwitch = new MpegSwitch();
 		if(genericSwitch == NULL)
@@ -625,8 +626,8 @@ int BlocDVBRcsSat::initSwitchTable()
 			goto error;
 		}
 	}
-	else if(in_encap_proto == ENCAP_GSE ||
-	        in_encap_proto == ENCAP_GSE_ROHC)
+	else if(uplink_encap_proto == ENCAP_GSE ||
+	        uplink_encap_proto == ENCAP_GSE_ROHC)
 	{
 		genericSwitch = new GseSwitch();
 		if(genericSwitch == NULL)
@@ -638,8 +639,8 @@ int BlocDVBRcsSat::initSwitchTable()
 	else
 	{
 		UTI_ERROR("section '%s': bad value '%s' for parameter '%s'\n",
-		          GLOBAL_SECTION, this->in_encap_proto.c_str(),
-		          IN_ENCAP_SCHEME);
+		          GLOBAL_SECTION, uplink_encap_proto.c_str(),
+		          UP_RETURN_ENCAP_SCHEME);
 		goto error;
 	}
 
@@ -699,7 +700,6 @@ error:
 int BlocDVBRcsSat::initSpots()
 {
 	int i = 0;
-	std::string out_encap_scheme;
 	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
 

@@ -445,34 +445,34 @@ error:
  */
 int BlocDVBRcsTal::initEncapsulation()
 {
-	string out_encap_scheme;
-	string in_encap_scheme;
+	string up_return_encap_scheme;
+	string down_forward_encap_scheme;
 
 	// read uplink encapsulation packet length from config
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                                out_encap_scheme))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                                up_return_encap_scheme))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, OUT_ENCAP_SCHEME);
+		          GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
 		goto error;
 	}
 
 	// check uplink encapsulation packet length
-	if(out_encap_scheme == ENCAP_ATM_AAL5 ||
-	   out_encap_scheme == ENCAP_ATM_AAL5_ROHC)
+	if(up_return_encap_scheme == ENCAP_ATM_AAL5 ||
+	   up_return_encap_scheme == ENCAP_ATM_AAL5_ROHC)
 	{
 		this->out_encap_packet_length = AtmCell::length();
 		this->out_encap_packet_type = PKT_TYPE_ATM;
 	}
-	else if(out_encap_scheme == ENCAP_MPEG_ULE ||
-	        out_encap_scheme == ENCAP_MPEG_ULE_ROHC)
+	else if(up_return_encap_scheme == ENCAP_MPEG_ULE ||
+	        up_return_encap_scheme == ENCAP_MPEG_ULE_ROHC)
 	{
 		this->out_encap_packet_length = MpegPacket::length();
 		this->out_encap_packet_type = PKT_TYPE_MPEG;
 	}
 	//TODO only for a DVB-S2 uplink (not implemented yet) !!
 #if 0
-	else if(out_encap_scheme == ENCAP_GSE)
+	else if(up_return_encap_scheme == ENCAP_GSE)
 	{
 		this->out_encap_packet_length = GsePacket::length();
 		//TODO get real GSE packet length (used for FIFO stats)
@@ -482,18 +482,18 @@ int BlocDVBRcsTal::initEncapsulation()
 	else
 	{
 		UTI_ERROR("bad value '%s' for uplink encapsulation "
-		          "protocol\n", out_encap_scheme.c_str());
+		          "protocol\n", up_return_encap_scheme.c_str());
 		goto error;
 	}
 	UTI_INFO("uplink encapsulation packet length = %d bytes\n",
 	this->out_encap_packet_length);
 
 	// read downlink encapsulation packet length from config
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
-	                                in_encap_scheme))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                                down_forward_encap_scheme))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, IN_ENCAP_SCHEME);
+		          GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
 		goto error;
 	}
 
@@ -501,19 +501,19 @@ int BlocDVBRcsTal::initEncapsulation()
 	this->emissionStd->setEncapPacketType(this->out_encap_packet_type);
 
 	// compute downlink encapsulation packet length
-	if(in_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
-	   in_encap_scheme == ENCAP_MPEG_ULE ||
-	   in_encap_scheme == ENCAP_MPEG_ULE_ROHC ||
-	   in_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC)
+	if(down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5 ||
+	   down_forward_encap_scheme == ENCAP_MPEG_ULE ||
+	   down_forward_encap_scheme == ENCAP_MPEG_ULE_ROHC ||
+	   down_forward_encap_scheme == ENCAP_MPEG_ATM_AAL5_ROHC)
 	{
 		this->in_encap_packet_length = MpegPacket::length();
 	}
-	else if(in_encap_scheme == ENCAP_GSE ||
-	        in_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
-	        in_encap_scheme == ENCAP_GSE_MPEG_ULE ||
-	        in_encap_scheme == ENCAP_GSE_ROHC ||
-	        in_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        in_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
+	else if(down_forward_encap_scheme == ENCAP_GSE ||
+	        down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5 ||
+	        down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE ||
+	        down_forward_encap_scheme == ENCAP_GSE_ROHC ||
+	        down_forward_encap_scheme == ENCAP_GSE_ATM_AAL5_ROHC ||
+	        down_forward_encap_scheme == ENCAP_GSE_MPEG_ULE_ROHC)
 	{
 		this->in_encap_packet_length = 0;//GsePacket::length();
 		//TODO get the real packet length (used for FIFO stats)
@@ -521,7 +521,7 @@ int BlocDVBRcsTal::initEncapsulation()
 	else
 	{
 		UTI_ERROR("bad value '%s' for downlink encapsulation "
-		          "protocol\n", in_encap_scheme.c_str());
+		          "protocol\n", down_forward_encap_scheme.c_str());
 		goto error;
 	}
 	UTI_INFO("downlink encapsulation packet length = %d bytes\n",
@@ -605,7 +605,7 @@ void BlocDVBRcsTal::initFrame()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// nb of frames per superframe
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_FRMS_PER_SUPER,
+	if(!globalConfig.getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRMS_PER_SUPER,
 	                                 val))
 	{
 		val = DFLT_FRMS_PER_SUPER;
@@ -615,7 +615,7 @@ void BlocDVBRcsTal::initFrame()
 	this->frames_per_superframe = val;
 
 	// Frame duration - in ms
-	if(!globalConfig.getIntegerValue(DVB_MAC_LAYER_SECTION, DVB_FRM_DURATION,
+	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_FRM_DURATION,
 	                                 val))
 	{
 		val = DFLT_FRM_DURATION;

@@ -39,7 +39,8 @@
 #include "platine_conf/uti_debug.h"
 
 
-BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name):
+BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
+                     string host_name):
 	mgl_bloc(blocmgr, fatherid, name)
 {
 	this->receptionCxt = NULL;
@@ -49,6 +50,7 @@ BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name):
 	// group & TAL id
 	this->_group_id = -1;
 	this->_tal_id = -1;
+	this->name_ = host_name;
 
 	// link state
 	this->_state = link_down;
@@ -189,24 +191,37 @@ end_link_up:
 mgl_status BlocEncap::onInit()
 {
 	const char *FUNCNAME = "[BlocEncap::onInit]";
-	string output_encap_proto;
-	string input_encap_proto;
+	string up_return_encap_proto;
+	string downlink_encap_proto;
+	string satellite_type;
 	int packing_threshold;
 	int qos_nbr;
+	EncapCtx *up_return_ctx;
+	EncapCtx *down_forward_ctx;
+
+	// satellite type: regenerative or transparent ?
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                                satellite_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, SATELLITE_TYPE);
+		goto error;
+	}
+	UTI_DEBUG("satellite type = %s\n", satellite_type.c_str());
 
 	// read encapsulation scheme to use to output data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, OUT_ENCAP_SCHEME,
-	                               output_encap_proto))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                               up_return_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
-		         "ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION, OUT_ENCAP_SCHEME);
-		output_encap_proto = ENCAP_ATM_AAL5;
+		         "ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
+		up_return_encap_proto = ENCAP_ATM_AAL5;
 	}
 
 	// create the encapsulation context to use to output data
-	if(output_encap_proto == ENCAP_ATM_AAL5)
-		this->emissionCxt = (AtmCtx *) new AtmAal5Ctx();
-	else if(output_encap_proto == ENCAP_MPEG_ULE)
+	if(up_return_encap_proto == ENCAP_ATM_AAL5)
+		up_return_ctx = (AtmCtx *) new AtmAal5Ctx();
+	else if(up_return_encap_proto == ENCAP_MPEG_ULE)
 	{
 		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
 		                                 packing_threshold))
@@ -224,13 +239,13 @@ mgl_status BlocEncap::onInit()
 			         GLOBAL_SECTION, PACK_THRES, DFLT_PACK_THRES);
 			packing_threshold = DFLT_PACK_THRES;
 		}
-		this->emissionCxt = (MpegCtx *) new MpegUleCtx(packing_threshold);
+		up_return_ctx = (MpegCtx *) new MpegUleCtx(packing_threshold);
 
 		UTI_INFO("%s packing threshold for MPEG encapsulation scheme = %d ms\n",
 		         FUNCNAME, packing_threshold);
 	}
-	else if(output_encap_proto == ENCAP_GSE ||
-	        output_encap_proto == ENCAP_GSE_ROHC)
+	else if(up_return_encap_proto == ENCAP_GSE ||
+	        up_return_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// Get QoS number for GSE encapsulation context
 		if(!globalConfig.getNbListItems(SECTION_CLASS, CLASS_LIST, qos_nbr))
@@ -242,44 +257,44 @@ mgl_status BlocEncap::onInit()
 		}
 
 #if 0
-		if(output_encap_proto == ENCAP_GSE_ROHC)
+		if(up_return_encap_proto == ENCAP_GSE_ROHC)
 		{
-			this->emissionCxt = (GseCtx *) new GseRohcCtx(qos_nbr);
+			up_return_ctx = (GseCtx *) new GseRohcCtx(qos_nbr);
 		}
 		else
 #endif
-		this->emissionCxt = (GseCtx *) new GseCtx(qos_nbr);
+		up_return_ctx = (GseCtx *) new GseCtx(qos_nbr);
 
 		UTI_INFO("%s QoS number for GSE encapsulation scheme = %d\n",
 		         FUNCNAME, qos_nbr);
 	}
 #if 0
-	else if(output_encap_proto == ENCAP_ATM_AAL5_ROHC)
-		this->emissionCxt = (AtmCtx *) new AtmAal5RohcCtx();
-	else if(output_encap_proto == ENCAP_MPEG_ULE_ROHC)
-		this->emissionCxt = (MpegCtx *) new MpegUleRohcCtx(0);
+	else if(up_return_encap_proto == ENCAP_ATM_AAL5_ROHC)
+		up_return_ctx = (AtmCtx *) new AtmAal5RohcCtx();
+	else if(up_return_encap_proto == ENCAP_MPEG_ULE_ROHC)
+		up_return_ctx = (MpegCtx *) new MpegUleRohcCtx(0);
 #endif
 	else
 	{
-		UTI_INFO("%s bad value for output encapsulation scheme. ATM/AAL5 used "
+		UTI_INFO("%s bad value for up/return link encapsulation scheme. ATM/AAL5 used "
 		         "instead\n", FUNCNAME);
-		this->emissionCxt = (AtmCtx *) new AtmAal5Ctx();
+		up_return_ctx = (AtmCtx *) new AtmAal5Ctx();
 	}
 
-	// check output encapsulation context validity
-	if(this->emissionCxt == NULL)
+	// check up/return link encapsulation context validity
+	if(up_return_ctx == NULL)
 	{
-		UTI_ERROR("%s cannot create output encapsulation context %s\n",
-		          FUNCNAME, output_encap_proto.c_str());
+		UTI_ERROR("%s cannot create up/return link encapsulation context %s\n",
+		          FUNCNAME, up_return_encap_proto.c_str());
 		goto error;
 	}
 
-	UTI_INFO("%s output encapsulation scheme = %s\n", FUNCNAME,
-	         output_encap_proto.c_str());
+	UTI_INFO("%s up/return link encapsulation scheme = %s\n", FUNCNAME,
+	         up_return_encap_proto.c_str());
 
 #if ULE_SECURITY
 	// ULE Extension Headers (if emission context is MPEG/ULE)
-	if(output_encap_proto == ENCAP_MPEG_ULE)
+	if(up_return_encap_proto == ENCAP_MPEG_ULE)
 	{
 		UleExt *ext;
 
@@ -292,7 +307,7 @@ mgl_status BlocEncap::onInit()
 		}
 		// add Test SNDU ULE extension to the emission context
 		// but do not enable it
-		if(!((UleCtx *) this->emissionCxt)->addExt(ext, false))
+		if(!((UleCtx *) up_return_ctx)->addExt(ext, false))
 		{
 			UTI_ERROR("%s failed to add Test SNDU ULE extension\n", FUNCNAME);
 			delete ext;
@@ -309,7 +324,7 @@ mgl_status BlocEncap::onInit()
 
 		// add Security ULE extension to the emission context
 		// and enable it
-		if(!((UleCtx *) this->emissionCxt)->addExt(ext, true))
+		if(!((UleCtx *) up_return_ctx)->addExt(ext, true))
 		{
 			UTI_ERROR("%s failed to add Padding ULE extension\n", FUNCNAME);
 			delete ext;
@@ -318,26 +333,26 @@ mgl_status BlocEncap::onInit()
 	}
 #endif
 	// read encapsulation scheme to use to receive data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, IN_ENCAP_SCHEME,
-	                                input_encap_proto))
+	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                                downlink_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Receive encapsulation "
 					"scheme set to ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION,
-					IN_ENCAP_SCHEME);
-		input_encap_proto = ENCAP_ATM_AAL5;
+					DOWN_FORWARD_ENCAP_SCHEME);
+		downlink_encap_proto = ENCAP_ATM_AAL5;
 	}
 
 	// create the encapsulation context to use to receive data
-	if(input_encap_proto == ENCAP_ATM_AAL5)
-		this->receptionCxt = (AtmCtx *) new AtmAal5Ctx();
-	else if(input_encap_proto == ENCAP_MPEG_ULE)
-		this->receptionCxt = (MpegCtx *) new MpegUleCtx(0);
-	else if(input_encap_proto == ENCAP_GSE ||
-	        input_encap_proto == ENCAP_GSE_ATM_AAL5 ||
-	        input_encap_proto == ENCAP_GSE_MPEG_ULE ||
-	        input_encap_proto == ENCAP_GSE_ROHC ||
-	        input_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
-	        input_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+	if(downlink_encap_proto == ENCAP_ATM_AAL5)
+		down_forward_ctx = (AtmCtx *) new AtmAal5Ctx();
+	else if(downlink_encap_proto == ENCAP_MPEG_ULE)
+		down_forward_ctx = (MpegCtx *) new MpegUleCtx(0);
+	else if(downlink_encap_proto == ENCAP_GSE ||
+	        downlink_encap_proto == ENCAP_GSE_ATM_AAL5 ||
+	        downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
+	        downlink_encap_proto == ENCAP_GSE_ROHC ||
+	        downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC ||
+	        downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 
 	{
 		// Get QoS number for GSE encapsulation context
@@ -349,14 +364,14 @@ mgl_status BlocEncap::onInit()
 			qos_nbr = DFLT_GSE_QOS_NBR;
 		}
 
-		if(input_encap_proto == ENCAP_GSE)
+		if(downlink_encap_proto == ENCAP_GSE)
 		{
-			this->receptionCxt = (GseCtx *) new GseCtx(qos_nbr);
+			down_forward_ctx = (GseCtx *) new GseCtx(qos_nbr);
 		}
 #if 0
-		else if(input_encap_proto == ENCAP_GSE_ROHC)
+		else if(downlink_encap_proto == ENCAP_GSE_ROHC)
 		{
-			this->receptionCxt = (GseCtx *) new GseRohcCtx(qos_nbr);
+			down_forward_ctx = (GseCtx *) new GseRohcCtx(qos_nbr);
 		}
 #endif
 		else
@@ -379,32 +394,32 @@ mgl_status BlocEncap::onInit()
 				packing_threshold = DFLT_PACK_THRES;
 			}
 
-			if(input_encap_proto == ENCAP_GSE_ATM_AAL5)
+			if(downlink_encap_proto == ENCAP_GSE_ATM_AAL5)
 			{
-				this->receptionCxt =
+				down_forward_ctx =
 					(GseCtx *) new GseAtmAal5Ctx(qos_nbr, packing_threshold);
 			}
-			else if(input_encap_proto == ENCAP_GSE_MPEG_ULE)
+			else if(downlink_encap_proto == ENCAP_GSE_MPEG_ULE)
 			{
-				this->receptionCxt =
+				down_forward_ctx =
 					(GseCtx *) new GseMpegUleCtx(qos_nbr, packing_threshold);
 			}
 #if 0
-			else if(input_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
+			else if(downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
 			{
-				this->receptionCxt =
+				down_forward_ctx =
 					(GseCtx *) new GseAtmAal5RohcCtx(qos_nbr, packing_threshold);
 			}
-			else if(input_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
+			else if(downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 			{
-				this->receptionCxt =
+				down_forward_ctx =
 					(GseCtx *) new GseMpegUleRohcCtx(qos_nbr, packing_threshold);
 			}
 #endif
 			else
 			{
-				UTI_ERROR("%s bad value for input encapsulation scheme (%s)",
-				          FUNCNAME, input_encap_proto.c_str());
+				UTI_ERROR("%s bad value for down/forward link encapsulation scheme (%s)",
+				          FUNCNAME, downlink_encap_proto.c_str());
 				goto clean_emission;
 			}
 
@@ -415,38 +430,38 @@ mgl_status BlocEncap::onInit()
 		UTI_INFO("%s QoS number for GSE encapsulation scheme = %d\n",
 		         FUNCNAME, qos_nbr);
 	}
-	else if(input_encap_proto == ENCAP_MPEG_ATM_AAL5)
-		this->receptionCxt = (MpegCtx *) new MpegAtmAal5Ctx(0);
+	else if(downlink_encap_proto == ENCAP_MPEG_ATM_AAL5)
+		down_forward_ctx = (MpegCtx *) new MpegAtmAal5Ctx(0);
 #if 0
-	else if(input_encap_proto == ENCAP_ATM_AAL5_ROHC)
-		this->receptionCxt = (AtmCtx *) new AtmAal5RohcCtx();
-	else if(input_encap_proto == ENCAP_MPEG_ULE_ROHC)
-		this->receptionCxt = (MpegCtx *) new MpegUleRohcCtx(0);
-	else if(input_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
-		this->receptionCxt = (MpegCtx *) new MpegAtmAal5RohcCtx(0);
+	else if(downlink_encap_proto == ENCAP_ATM_AAL5_ROHC)
+		down_forward_ctx = (AtmCtx *) new AtmAal5RohcCtx();
+	else if(downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
+		down_forward_ctx = (MpegCtx *) new MpegUleRohcCtx(0);
+	else if(downlink_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
+		down_forward_ctx = (MpegCtx *) new MpegAtmAal5RohcCtx(0);
 #endif
 	else
 	{
-		UTI_ERROR("%s bad value for input encapsulation scheme (%s). "
+		UTI_ERROR("%s bad value for down/forward encapsulation scheme (%s). "
 		          "ATM/AAL5 used instead\n",
-		          FUNCNAME, input_encap_proto.c_str());
-		this->receptionCxt = (AtmCtx *) new AtmAal5Ctx();
+		          FUNCNAME, downlink_encap_proto.c_str());
+		down_forward_ctx = (AtmCtx *) new AtmAal5Ctx();
 	}
 
-	// check input encapsulation context validity
-	if(this->receptionCxt == NULL)
+	// check down/forward encapsulation context validity
+	if(down_forward_ctx == NULL)
 	{
-		UTI_ERROR("%s cannot create input encapsulation context %s\n",
-		          FUNCNAME, input_encap_proto.c_str());
+		UTI_ERROR("%s cannot create down/forward encapsulation context %s\n",
+		          FUNCNAME, downlink_encap_proto.c_str());
 		goto clean_emission;
 	}
 
-	UTI_INFO("%s input encapsulation scheme = %s\n", FUNCNAME,
-	         input_encap_proto.c_str());
+	UTI_INFO("%s down/forward encapsulation scheme = %s\n", FUNCNAME,
+	         downlink_encap_proto.c_str());
 
 #if ULE_SECURITY
 	// ULE Extension Headers (if reception context is MPEG/ULE)
-	if(input_encap_proto == ENCAP_MPEG_ULE)
+	if(downlink_encap_proto == ENCAP_MPEG_ULE)
 	{
 		UleExt *ext;
 
@@ -460,7 +475,7 @@ mgl_status BlocEncap::onInit()
 
 		// add Test SNDU ULE extension to the emission context
 		// but do not enable it
-		if(!((UleCtx *) this->receptionCxt)->addExt(ext, false))
+		if(!((UleCtx *) down_forward_ctx)->addExt(ext, false))
 		{
 			UTI_ERROR("%s failed to add Test SNDU ULE extension\n", FUNCNAME);
 			delete ext;
@@ -477,21 +492,34 @@ mgl_status BlocEncap::onInit()
 
 		// add Security ULE extension to the emission context
 		// and enable it
-		if(!((UleCtx *) this->receptionCxt)->addExt(ext, true))
+		if(!((UleCtx *) down_forward_ctx)->addExt(ext, true))
 		{
 			UTI_ERROR("%s failed to add Padding ULE extension\n", FUNCNAME);
 			delete ext;
 			goto clean_reception;
 		}
 	}
+
 #endif
+
+	if(this->name_ == "ST" || satellite_type == "regenerative")
+	{
+		this->emissionCxt = up_return_ctx;
+		this->receptionCxt = down_forward_ctx;
+	}
+	else
+	{
+		this->receptionCxt = up_return_ctx;
+		this->emissionCxt = down_forward_ctx;
+	}
+
 	return mgl_ok;
 #if ULE_SECURITY
 clean_reception:
-	delete this->receptionCxt;
+	delete down_forward_ctx;
 #endif
 clean_emission:
-	delete this->emissionCxt;
+	delete up_return_ctx;
 error:
 	return mgl_ko;
 }

@@ -52,6 +52,25 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="upReturnEncapScheme">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ATM_AAL5" />
+        <xsd:enumeration value="MPEG_ULE" />
+        <xsd:enumeration value="GSE" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="downForwardEncapScheme">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ATM_AAL5" />
+        <xsd:enumeration value="MPEG_ULE" />
+        <xsd:enumeration value="GSE" />
+        <xsd:enumeration value="MPEG_ATM_AAL5" />
+        <xsd:enumeration value="GSE_ATM_AAL5" />
+        <xsd:enumeration value="GSE_MPEG_ULE" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- types for mac_layer section -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
@@ -133,7 +152,7 @@
         <xsd:enumeration value="Legacy" />
         <xsd:enumeration value="UoR" />
         <xsd:enumeration value="Stub" />
-        <xsd:enumeration value="yes" />
+        <xsd:enumeration value="Yes" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -165,6 +184,8 @@
             <xsd:element name="dvb_scenario_refresh" type="msTime" />
             <xsd:element name="frame_duration" type="msTime" />
             <xsd:element name="bandwidth" type="xsd:integer" />
+            <xsd:element name="up_return_encap_scheme" type="upReturnEncapScheme" />
+            <xsd:element name="down_forward_encap_scheme" type="downForwardEncapScheme" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

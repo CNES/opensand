@@ -99,8 +99,8 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	/// ST unique mac id (configuration param)
 	int macId;
 
-	/// Output encapsulation scheme
-	std::string out_encap_scheme;
+    /// satellite type
+    std::string satellite_type_;
 
 	/// timer used to awake the block every second in order to retrieve
 	/// the current MODCODs and DRA schemes

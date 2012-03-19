@@ -36,25 +36,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for global section -->
-<xsd:simpleType name="outputEncapScheme">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ATM_AAL5" />
-        <xsd:enumeration value="MPEG_ULE" />
-        <xsd:enumeration value="GSE" />
-        <xsd:enumeration value="GSE_ATM_AAL5" />
-        <xsd:enumeration value="GSE_MPEG_ULE" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="intputEncapScheme">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ATM_AAL5" />
-        <xsd:enumeration value="MPEG_ULE" />
-        <xsd:enumeration value="GSE" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- types for service_class section -->
 <xsd:simpleType name="schedulerType">
 	<xsd:restriction base="xsd:string">
@@ -243,7 +224,6 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="global" />
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
             <xsd:element ref="dvb_rcs_tal" />
@@ -252,16 +232,6 @@
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
-    </xsd:complexType>
-</xsd:element>
-
-<!-- global section description -->
-<xsd:element name="global">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="output_encap_scheme" type="outputEncapScheme" />
-            <xsd:element name="input_encap_scheme" type="intputEncapScheme" />
-        </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 

@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 		goto destroy_blocmgr;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "Encap");
+	blocEncap = new BlocEncap(blocmgr, 0, "Encap", "ST");
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);

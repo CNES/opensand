@@ -101,10 +101,6 @@ class BlocDVBRcsSat: public BlocDvb
 
 
 	/* misc */
-
-	/// The input encapsulation protocol (ATM or MPEG)
-	std::string in_encap_proto;
-
 	/// Flag set 1 to activate error generator
 	int m_useErrorGenerator;
 

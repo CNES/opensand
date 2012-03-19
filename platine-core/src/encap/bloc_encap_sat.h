@@ -65,7 +65,7 @@ class BlocEncapSat: public mgl_bloc
 	EncapCtx *encapCtx;
 
 	/// Output encapsulation scheme
-	string output_encap_proto;
+	string downlink_encap_proto;
 
 	/// Expiration timers for encapsulation contexts
 	std::map < mgl_timer, int > timers;
