@@ -204,14 +204,18 @@ class CommandHandler(MyTcpHandler):
         cmd = shlex.split(command)
         LOGGER.info("set execution rights on %s" % cmd[0])
         os.chmod(cmd[0], stat.S_IRWXU)
-        process = subprocess.Popen(cmd, close_fds=True,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
+        with open('/tmp/result') as output:
+            process = subprocess.Popen(cmd, close_fds=True,
+                                       stdout=output,
+                                       stderr=subprocess.STOUT)
         out, err = process.communicate()
-        LOGGER.debug("test output:\n" + out)
-        LOGGER.debug("test errors:\n" + err)
+        if out is not None:
+            LOGGER.debug("test output:\n" + out)
+        if err is not None:
+            LOGGER.debug("test errors:\n" + err)
         ret = process.returncode
 
         LOGGER.debug("test returned %s" % ret)
-        LOGGER.debug("send: '%s'", ret)
+        LOGGER.debug("send: '%s'" % ret)
         self.wfile.write("%s\n" % ret)
+

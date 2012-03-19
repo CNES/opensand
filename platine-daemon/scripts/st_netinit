@@ -2,7 +2,6 @@
 
 THIS_SCRIPT=$(basename $0)
 CMD=$1
-LAN=$2
 
 #
 # This script is used to initialize the Platine network on ST
@@ -13,57 +12,71 @@ LAN=$2
 #         Cedric Baudoin <cedric.baudoin@thalesaleniaspace.com>
 #         Julien Bernard <julien.bernard@toulouse.viveris.com>
 
+# Source debconf library.
+. /usr/share/debconf/confmodule
 
 # maximum number of lan
 NB_LAN=5
 
-# the satellite network (modify the netinit script for satellite if you modify that)
-IPV4_NET_BASE=18
-IPV6_NET_BASE=101
+# load the configuration file
+load_conf(){
+    # load debconf parameters
+    db_get platine-daemon/service/type
+    if  [ ${RET} = 'ST' -o ${RET} = 'st' ]; then
+        db_get platine-daemon/service/st_instance
+        export LAN=$RET
+    else
+        export LAN=2
+    fi
+    db_get platine-daemon/network/emu_iface
+    export EMU_IFACE=$RET
+    db_get platine-daemon/network/emu_ipv4
+    export EMU_IPV4=$RET
+    db_get platine-daemon/network/emu_ipv6
+    export EMU_IPV6=$RET
+    db_get platine-daemon/network/lan_iface
+    export LAN_IFACE=$RET
+    db_get platine-daemon/network/lan_ipv4
+    export LAN_IPV4=$RET
+    db_get platine-daemon/network/lan_ipv6
+    export LAN_IPV6=$RET
+    # network parameters
+    #TODO useful?? correct??
+    let IPV6_LOC=0x278b+$LAN
+    export IPV6_LOC
 
-if [ -z $LAN ]; then
-    LAN=0
-fi
-
-# network parameters
-let IPV4_NET=$IPV4_NET_BASE+$LAN
-let IPV6_NET=$IPV6_NET_BASE+$LAN
-#TODO ce n'est pas vraiment ca
-let IPV6_LOC=0x278b+$LAN
-
-# modules
-MODULES='ip6_tables'
-# host name
-NAME='ST'$LAN
-# interfaces parameters
-#  with sat
-SAT_IFACE='eth0'
-SAT_IPV4=192.168.18.$LAN
-SAT_IPV4_MASK=255.255.255.0
-SAT_IPV4_BRD=192.168.18.255
-SAT_IPV6=2001:660:6602:101::$LAN/64
-#  with lan
-LAN_IFACE='eth1'
-LAN_IPV4=192.168.$IPV4_NET.5
-LAN_IPV4_MASK=255.255.255.0
-LAN_IPV4_BRD=192.168.$IPV4_NET.255
-LAN_IPV4_NET=192.168.$IPV4_NET.0/24
-LAN_IPV6=2001:660:6602:$IPV6_NET::5/64
-NET_IPV6=2001:660:6602:$IPV6_NET::0/64
-#  tun0
-TUN0_IFACE='platine'
-TUN0_IPV4=192.168.$IPV4_NET.4
-TUN0_IPV6_GLOB=2001:660:6602:$IPV6_NET::4
-TUN0_IPV6_LOC=fe80::f893:34ff:fe89:$(printf "%X" $IPV6_LOC)
+    # modules
+    export MODULES='ip6_tables'
+ 
+    # host name
+    export NAME='ST'$LAN
+ 
+    # TODO load mask from debconf
+    # interfaces parameters
+    #  with sat
+    export EMU_IPV4_MASK=255.255.255.0
+    export EMU_IPV4_BRD=192.168.18.255
+    export EMU_IPV6=$EMU_IPV6/64
+    #  with lan
+    export LAN_IPV4_MASK=255.255.255.0
+    export LAN_IPV4_BRD=${LAN_IPV4%.*}.255
+    export LAN_IPV6=$LAN_IPV6/64
+    export LAN_IPV6_NET=${LAN_IPV6%:*}:0/64
+    #  tun0
+    export TUN0_IFACE='platine'
+    export TUN0_IPV4=${LAN_IPV4%.*}.4
+    export TUN0_IPV6_GLOB=${LAN_IPV6%:*}:4
+    export TUN0_IPV6_LOC=fe80::f893:34ff:fe89:$(printf "%X" $IPV6_LOC)
+}
 
 
 # Print a short help message
 #
 usage(){
     echo "This script is used to set up static network configuration for platine platform"
-    echo "Usage: $THIS_SCRIPT CONF <st_id>|<command>"
-    echo "    where <st_id> is the satellite terminal lan id"
-    echo "    and   <command> is one among"
+    echo "Usage: $THIS_SCRIPT <command>"
+    echo "    with   <command> is one among"
+    echo "        CONF    configure the network"
     echo "        CHECK   show the network configuration"
     echo "        RESET   blank the network configuration"
     echo
@@ -105,13 +118,13 @@ reset_conf() {
     /sbin/iptables -F 
     /sbin/ip6tables -F
     /sbin/ip6tables -F -t mangle
-    /sbin/ip route flush dev $SAT_IFACE
+    /sbin/ip route flush dev $EMU_IFACE
     /sbin/ip route flush dev $LAN_IFACE
     /sbin/ip route flush dev $TUN0_IFACE
-    /sbin/ip -6 route flush dev $SAT_IFACE
+    /sbin/ip -6 route flush dev $EMU_IFACE
     /sbin/ip -6 route flush dev $LAN_IFACE
     /sbin/ip -6 route flush dev $TUN0_IFACE
-    /sbin/ifconfig $SAT_IFACE 0 down
+    /sbin/ifconfig $EMU_IFACE 0 down
     /sbin/ifconfig $LAN_IFACE 0 down
     /sbin/ifconfig $TUN0_IFACE 0 down
     return
@@ -178,22 +191,22 @@ set_multicast_routes(){
 }
 
 # Set route to others st and sublan
+# TODO if ip address can be changed, remove that, this should be done
+# dynamically by the daemon
 set_route_to_others(){
     echo "#   Configuring routes to other networks"
     # del the automatic route in ipv6
-    evecho /sbin/ip -6 route del $NET_IPV6 dev $TUN0_IFACE
+    evecho /sbin/ip -6 route del $LAN_IPV6_NET dev $TUN0_IFACE
 
     for lan_dest in `seq 1 $NB_LAN` ; do
     if [ $lan_dest != $LAN ]; then
         echo "#    Configuring lan destination $lan_dest"
 
-        let ipv4_dest_net=$IPV4_NET_BASE+$lan_dest
-        let ipv6_dest_net=$IPV6_NET_BASE+$lan_dest
+        let ipv4_dest_net=18+$lan_dest
+        let ipv6_dest_net=101+$lan_dest
 
         eval typeset lan_dest_ipv4=192.168.$ipv4_dest_net.0/24
-        eval typeset lan_dest_gw4=192.168.18.$lan_dest
         eval typeset lan_dest_ipv6=2001:660:6602:$ipv6_dest_net::0/64
-        eval typeset lan_dest_gw6=2001:660:6602:101::$lan_dest
 
         # ROUTE
         evecho /sbin/route add -net $lan_dest_ipv4 dev $TUN0_IFACE
@@ -206,10 +219,10 @@ set_route_to_others(){
 # Configure the interfaces
 set_interfaces(){
     evecho /sbin/ifconfig $LAN_IFACE $LAN_IPV4 netmask $LAN_IPV4_MASK broadcast $LAN_IPV4_BRD
-    evecho /sbin/ifconfig $SAT_IFACE $SAT_IPV4 netmask $SAT_IPV4_MASK broadcast $SAT_IPV4_BRD
+    evecho /sbin/ifconfig $EMU_IFACE $EMU_IPV4 netmask $EMU_IPV4_MASK broadcast $EMU_IPV4_BRD
     evecho /sbin/ifconfig $LAN_IFACE up
-    evecho /sbin/ifconfig $SAT_IFACE up
-    evecho /sbin/ifconfig $SAT_IFACE add $SAT_IPV6
+    evecho /sbin/ifconfig $EMU_IFACE up
+    evecho /sbin/ifconfig $EMU_IFACE add $EMU_IPV6
     evecho /sbin/ifconfig $LAN_IFACE add $LAN_IPV6
     evecho /sbin/ifconfig $TUN0_IFACE up
     evecho /sbin/ifconfig $TUN0_IFACE $TUN0_IPV4
@@ -273,23 +286,22 @@ st_config(){
 
 check_root
 
-echo "# Configure Platine network for ST$ID"
+echo "# Configure Platine network for ST"
 case $CMD in
      CONF )
-         if [ -z "$LAN" ] ; then
-             echo "Error: no host id"
-             usage
-             exit
-         fi
+         load_conf
          reset_conf
-         st_config $ID
-         ;;
+         st_config
+     ;;
      CHECK ) check_conf     ;; 
-     RESET ) reset_conf     ;;
+     RESET ) 
+         load_conf
+         reset_conf
+     ;;
      *) 
-    echo "Error: unknown command $CONF"
-    usage
-    exit 1
+        echo "Error: unknown command $CONF"
+        usage
+        exit 1
     ;;
 esac
  

@@ -199,7 +199,7 @@ class ProcessList():
                 if errno != 10: 
                     LOGGER.warning("Error when terminating %s: %s" %
                                    (name, strerror))
-                    raise
+                    pass
         ProcessList._stop.set()
         if ProcessList._wait is not None:
             ProcessList._wait.join()

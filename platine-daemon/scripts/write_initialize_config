@@ -4,7 +4,7 @@
 . /usr/share/debconf/confmodule
 
 
-CONF_FILENAME="/etc/platine/daemon.conf"
+DAEMON_CONF="/etc/platine/daemon.conf"
 SAT_INIT="/usr/libexec/platine/sat_netinit"
 ST_INIT="/usr/libexec/platine/st_netinit"
 TUN_INIT="/usr/bin/platine_tun"
@@ -17,6 +17,12 @@ SERVICE_PORT=3141
 SERVICE_TOOLS=''
 COMMAND_PORT=5926
 STATE_PORT=5358
+EMU_IFACE='eth0'
+EMU_IPV4=''
+EMU_IPV6=''
+LAN_IFACE='eth1'
+LAN_IPV4=''
+LAN_IPV6=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
@@ -37,40 +43,62 @@ read_conf(){
     COMMAND_PORT=$RET
     db_get platine-daemon/state/port
     STATE_PORT=$RET
+    db_get platine-daemon/network/emu_iface
+    EMU_IFACE=$RET
+    db_get platine-daemon/network/emu_ipv4
+    EMU_IPV4=$RET
+    db_get platine-daemon/network/emu_ipv6
+    EMU_IPV6=$RET
+    db_get platine-daemon/network/lan_iface
+    LAN_IFACE=$RET
+    db_get platine-daemon/network/lan_ipv4
+    LAN_IPV4=$RET
+    db_get platine-daemon/network/lan_ipv6
+    LAN_IPV6=$RET
 }
 
 # write daemon configuration
 write_conf(){
     # service section
-    echo "[service]" > ${CONF_FILENAME}
-    echo "name = ${SERVICE_NAME}" >> ${CONF_FILENAME}
+    echo "[service]" > ${DAEMON_CONF}
+    echo "name = ${SERVICE_NAME}" >> ${DAEMON_CONF}
     if [ "${SERVICE_NAME}" = 'st' ]; then
-        echo "instance = ${SERVICE_INSTANCE}" >> ${CONF_FILENAME}
+        echo "instance = ${SERVICE_INSTANCE}" >> ${DAEMON_CONF}
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
-        echo "instance = ${SERVICE_INSTANCE}_${SERVICE_IDENTIFIER}" >> ${CONF_FILENAME}
+        echo "instance = ${SERVICE_INSTANCE}_${SERVICE_IDENTIFIER}" >> ${DAEMON_CONF}
     fi
-    echo "type = ${SERVICE_TYPE}" >> ${CONF_FILENAME}
-    echo "port = ${SERVICE_PORT}" >> ${CONF_FILENAME}
+    echo "type = ${SERVICE_TYPE}" >> ${DAEMON_CONF}
+    echo "port = ${SERVICE_PORT}" >> ${DAEMON_CONF}
     if [ -n "${SERVICE_TOOLS}" ]; then
-        echo "tools  = ${SERVICE_TOOLS}" >> ${CONF_FILENAME}
+        echo "tools  = ${SERVICE_TOOLS}" >> ${DAEMON_CONF}
     fi
-    echo "" >> ${CONF_FILENAME}
-    echo "[command]" >> ${CONF_FILENAME}
-    echo "port = ${COMMAND_PORT}" >> ${CONF_FILENAME}
-    echo "" >> ${CONF_FILENAME}
-    echo "[state]" >> ${CONF_FILENAME}
-    echo "port = ${STATE_PORT}" >> ${CONF_FILENAME}
+    echo "" >> ${DAEMON_CONF}
+    # command section
+    echo "[command]" >> ${DAEMON_CONF}
+    echo "port = ${COMMAND_PORT}" >> ${DAEMON_CONF}
+    echo "" >> ${DAEMON_CONF}
+    echo "[state]" >> ${DAEMON_CONF}
+    echo "port = ${STATE_PORT}" >> ${DAEMON_CONF}
+    echo "" >> ${DAEMON_CONF}
+    # network section
+    echo "[network]" >> ${DAEMON_CONF}
+    if [ ${SERVICE_TYPE} != 'ws' ]; then
+        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+    fi
+    if [ ${SERVICE_TYPE} != 'sat' ]; then
+        echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+        echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+        echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+    fi
 }
 
 # initialize Platine network
 initialize(){
     if [ "${SERVICE_NAME}" = 'ws' ]; then
         return 0
-    fi
-
-    if [ "${SERVICE_NAME}" = 'gw' ]; then
-        SERVICE_INSTANCE=2
     fi
 
     if [ "${SERVICE_NAME}" = 'sat' ]; then
@@ -84,7 +112,7 @@ initialize(){
             exit 1
         fi
         # configure network
-        ${ST_INIT} CONF ${SERVICE_INSTANCE} > /dev/null
+        ${ST_INIT} CONF > /dev/null
     fi
 
     if [ $? -ne 0 ] ; then

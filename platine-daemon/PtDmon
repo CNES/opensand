@@ -107,6 +107,13 @@ def publish_service():
     port = ''
     instance = ''
     tools = ''
+    emu_iface = ''
+    emu_ipv4 = ''
+    emu_ipv6 = ''
+    lan_iface = ''
+    lan_ipv4 = ''
+    lan_ipv6 = ''
+
 
     try:
         name = CONF_PARSER.get('service', 'name')
@@ -116,14 +123,30 @@ def publish_service():
         # the port of each server
         state = CONF_PARSER.getint('state', 'port')
         command = CONF_PARSER.getint('command', 'port')
+        descr = {
+                    'state' : state,
+                    'command' : command,
+                 }
+        if name == 'st' or name == 'ws':
+            instance = CONF_PARSER.get('service', 'instance')
+            descr['id'] = instance
+        if name != 'ws':
+            emu_iface = CONF_PARSER.get('network', 'emu_iface')
+            emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
+            emu_ipv6 = CONF_PARSER.get('network', 'emu_ipv6')
+            descr['emu_iface'] = emu_iface
+            descr['emu_ipv4'] = emu_ipv4
+            descr['emu_ipv6'] = emu_ipv6
+        if name != 'sat':
+            lan_iface = CONF_PARSER.get('network', 'lan_iface')
+            lan_ipv4 = CONF_PARSER.get('network', 'lan_ipv4')
+            lan_ipv6 = CONF_PARSER.get('network', 'lan_ipv6')
+            descr['lan_iface'] = lan_iface
+            descr['lan_ipv4'] = lan_ipv4
+            descr['lan_ipv6'] = lan_ipv6
     except ConfigParser.Error, error:
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
-
-    descr = {
-                'state' : state,
-                'command' : command,
-             }
 
     # do not raise an error for the following fields because they are not
     # used on each host

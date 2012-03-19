@@ -12,17 +12,24 @@ CMD=$1
 #         Cedric Baudoin <cedric.baudoin@thalesaleniaspace.com>
 #         Julien Bernard <julien.bernard@toulouse.viveris.com>
 
+# Source debconf library.
+. /usr/share/debconf/confmodule
 
+# load the configuration file
+load_conf(){
+    # load debconf parameters
+    db_get platine-daemon/network/emu_iface
+    export IFACE=$RET
+    db_get platine-daemon/network/emu_ipv4
+    export IPV4=$RET
+    db_get platine-daemon/network/emu_ipv6
+    export IPV6=$RET
+ 
+    export MODULES=
+    export IPV4_MASK=255.255.255.0
+    export IPV4_BRD=${IPV4%.*}.255
+}
 
-# maximum number of lan
-NB_LAN=5
-
-MODULES=
-IFACE=eth0
-IPV4=192.168.18.15
-IPV4_MASK=255.255.255.0
-IPV4_BRD=192.168.18.255
-IPV6=2001:660:6602:101::15/64
 
 # Print a short help message
 #
@@ -134,15 +141,19 @@ check_root
 echo "# Configure Platine network for satellite"
 case  $CMD in
      CONF )
+        load_conf
         reset_conf
         sat_config
-        ;;
+    ;;
      CHECK ) check_conf ;; 
-     RESET ) reset_conf ;;
+     RESET )
+         load_conf
+         reset_conf
+     ;;
      *) 
-    echo "Error: unknown command $CMD"
-    usage
-    exit 1
+        echo "Error: unknown command $CMD"
+        usage
+        exit 1
     ;;
 esac
  
