@@ -95,9 +95,13 @@ class AdvancedHostModel:
                 self._configuration.set_value(ifaces['emu_ipv4'], "//addr")
                 self._configuration.write()
             except XmlException, msg:
-                raise
+                raise ModelException(str(msg))
+            except KeyError, msg:
+                raise ModelException("cannot find key %s in service information" %
+                                     msg)
             except Exception, msg:
-                raise(str(msg))
+                raise ModelException("unknown exception with message: %s" %
+                                     str(msg))
 
     def reload_conf(self):
         """ reload the configuration file """

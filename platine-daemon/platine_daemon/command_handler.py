@@ -200,11 +200,11 @@ class CommandHandler(MyTcpHandler):
             self.wfile.write("ERROR bad instruction %s" % instr)
             return
                 
-        LOGGER.info("launch test command: %s" % command)
         cmd = shlex.split(command)
         LOGGER.info("set execution rights on %s" % cmd[0])
         os.chmod(cmd[0], stat.S_IRWXU)
-        with open('/tmp/platine_tests/result', 'w') as output:
+        LOGGER.info("launch test command: %s" % command)
+        with open('/tmp/platine_tests/result', 'a') as output:
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
                                        stderr=subprocess.STDOUT,
@@ -214,8 +214,10 @@ class CommandHandler(MyTcpHandler):
             process.poll()
             MyTcpHandler._stop.wait(1)
 
-        if not MyTcpHandler._stop.is_set():
+        if process.returncode is None:
             process.kill()
+
+        if not MyTcpHandler._stop.is_set():
             out, err = process.communicate()
             if out is not None:
                 LOGGER.debug("test output:\n" + out)
