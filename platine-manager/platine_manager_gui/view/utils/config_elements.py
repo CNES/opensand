@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -207,7 +207,7 @@ class ConfigurationNotebook(gtk.Notebook):
         for section in self._config.get_sections():
             tab = self.add_section(section)
             self.fill_section(section, tab)
-        
+
     def add_section(self, section):
         """ add a section in the notebook and return the associated vbox """
         name = self._config.get_name(section)
@@ -343,7 +343,7 @@ class ConfigurationNotebook(gtk.Notebook):
             self._new.append(key_path)
             name = self._config.get_name(line)
             nbr = len(self._config.get_all("//%s" % name))
-            hbox.set_name("//%s[%d]" % (name, nbr + 
+            hbox.set_name("//%s[%d]" % (name, nbr +
                                         self._new.count(key_path)))
         dic = self._config.get_element_content(line)
         # keep the model of a line for line addition
@@ -395,6 +395,9 @@ class ConfigurationNotebook(gtk.Notebook):
                 # this is a new line entry
                 path = '//%s[last()]--%s' % (name, att)
             entry = ConfEntry(elt_type, value, path, cb)
+            if value == '':
+                # add new lines to changed list
+                self._changed.append(entry)
             self._backup.append(entry)
             hbox.pack_start(entry.get())
             hbox.set_child_packing(entry.get(), expand=False,
@@ -596,9 +599,9 @@ class ConfEntry(object):
                 return None
             return model[active][0]
         elif type_name == "integer":
-            return self._entry.get_text() 
+            return self._entry.get_text()
         else:
-            return self._entry.get_text() 
+            return self._entry.get_text()
 
     def global_handler(self, source=None, event=None):
         """ handler used to abstract source type """

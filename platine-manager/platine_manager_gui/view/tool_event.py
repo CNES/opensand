@@ -192,7 +192,6 @@ class ToolEvent(ToolView):
                 except XmlException, error:
                     error_popup("%s: %s" % (host_name, error.description))
                     self._tool_lock.release()
-                    self.on_undo_tool_conf_clicked()
                     return
 
         # do that to copy contents else saved tools will contain references on
