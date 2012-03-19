@@ -78,7 +78,7 @@ class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
             But if the opt string list is too long, we put the help
             string on a second line, indented to the same column it would
             start in if it fit on the first line.
-              -fFILENAME, --file=FILENAME
+              -f FILENAME, --file=FILENAME
                   read data from FILENAME
         """
         result = []
@@ -124,6 +124,11 @@ class Test:
                               "output than -v)")
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
+        opt_parser.add_option("-s", "--service", dest="service",
+                              default=SERVICE,
+                              help="listen for Platine entities "\
+                                   "on the specified service type with format: " \
+                                   "_name._transport_protocol")
         opt_parser.add_option("-f", "--folder", dest="folder",
                               default='./tests/',
 help="specify the root folder for tests configurations\n"
@@ -154,11 +159,13 @@ help="specify the root folder for tests configurations\n"
 
         self._type = options.type
         self._folder = options.folder
+        self._service = options.service
 
         # the threads to join when test is finished
         self._threads = []
         # the error returned by a test
         self._error = []
+        self._last_error = ""
         # the workstations controllers
         self._ws_ctrl = []
 
@@ -182,8 +189,8 @@ help="specify the root folder for tests configurations\n"
         try:
             self.load()
             self.run()
-            if len(self._error) > 0:
-                raise TestError('Last error: ', str(self._error))
+            if len(self._last_error) > 0:
+                raise TestError('Last error: ', str(self._last_error))
         except TestError as err:
             self._log.error("%s: %s" % (err.step, err.msg))
             raise
@@ -205,7 +212,7 @@ help="specify the root folder for tests configurations\n"
         # create the Platine model
         self._model = Model(self._log)
         # create the Platine controller
-        self._controller = Controller(self._model, SERVICE, self._log,
+        self._controller = Controller(self._model, self._service, self._log,
                                       False)
         self._controller.start()
         # Launch the mainloop for service_listener
@@ -244,10 +251,14 @@ help="specify the root folder for tests configurations\n"
 #TODO on s'arrete sur erreur: OK ?
         # if the tess is launched with the type option
         # check if it is a supported type
-        types = os.listdir(self._folder)
-        for folder in types:
+        types_init = os.listdir(self._folder)
+        types = list(types_init)
+        for folder in types_init:
             if folder.startswith('.'):
                 types.remove(folder)
+            elif not os.path.isdir(os.path.join(self._folder, folder)):
+                types.remove(folder)
+
         if self._type is not None and self._type not in types:
             raise TestError("Initialization", "test type '%s' is not available,"
                             " supported values are %s" % (self._type, types))
@@ -292,13 +303,20 @@ help="specify the root folder for tests configurations\n"
                         continue
                     try:
                         self.launch_test(host)
+                        # wait for test to initialize or stop on host
+                        time.sleep(0.5)
                     except Exception, msg:
+                        self._error.append(str(msg))
+                        self._last_error = str(msg)
                         break
                     if len(self._error) > 0:
+                        self._last_error = self._error[len(self._error) - 1]
                         break
                 for thread in self._threads:
                     # wait for pending tests to stop
-                    thread.join(60)
+                    self._log.info("waiting for a test thread to stop")
+                    thread.join(120)
+                    self._log.info("thread stopped")
                     self._threads.remove(thread)
                 if len(self._error) > 0:
                     #TODO get the test output
@@ -310,6 +328,7 @@ help="specify the root folder for tests configurations\n"
                     self._log.error(" * Test %s failed: %s" %
                                     (os.path.basename(test_name),
                                      str(self._error)))
+                    self._last_error = self._error[len(self._error) - 1]
                 else:
                     self._log.info(" * Test %s successful" %
                                    os.path.basename(test_name))
@@ -397,23 +416,30 @@ help="specify the root folder for tests configurations\n"
         err = None
         try:
             sock = host_ctrl.connect_command('TEST')
+            if sock is None:
+                err = "%s: cannot connect host" % host_ctrl.get_name()
+                raise TestError("Configuration", err)
             # increase the timeout value because tests could be long
-            sock.settimeout(180)
+            sock.settimeout(120)
             sock.send("COMMAND %s\n" % cmd)
             result = sock.recv(512).strip()
+            self._log.info(" * Test returns %s on %s, expected is %s" %
+                           (result, host_ctrl.get_name(), ret))
         except CommandException, msg:
             err = "%s: %s" % (host_ctrl.get_name(), msg)
         except socket.error, msg:
-            sock.close()
             err = "%s: %s" % (host_ctrl.get_name(), str(msg))
         except socket.timeout:
-            sock.close()
             err = "%s: Timeout" % host_ctrl.get_name()
+        except Exception, msg:
+            err = msg
         finally:
+            if sock:
+                sock.close()
             if err is not None:
+            	self._log.error(err)
                 self._error.append(err)
-
-        sock.close()
+                return
 
         if result != ret:
             self._error.append("Test returned '%s' instead of '%s' on %s" %
@@ -426,13 +452,15 @@ help="specify the root folder for tests configurations\n"
         evt.set('stop_platform')
         resp.wait(None)
         if resp.get_type() != "resp_stop_platform":
+            resp.clear()
             raise TestError("Initialization", "wrong event response %s when "
                                               "stopping platform" %
                                               resp.get_type())
         if resp.get_text() != 'done':
+            resp.clear()
             raise TestError("Initialization", "cannot stop platform")
         resp.clear()
-        time.sleep(1)
+        time.sleep(4)
 
     def start_platine(self):
         """ start the Platine testbed """
@@ -441,13 +469,15 @@ help="specify the root folder for tests configurations\n"
         evt.set('start_platform')
         resp.wait(None)
         if resp.get_type() != "resp_start_platform":
+            evt = resp.get_type()
+            resp.clear()
             raise TestError("Initialization", "wrong event response %s when "
-                                              "starting platform" %
-                                              resp.get_type())
+                                              "starting platform" % evt)
         if resp.get_text() != 'done':
+            resp.clear()
             raise TestError("Initialization", "cannot start platform")
         resp.clear()
-        time.sleep(1)
+        time.sleep(4)
 
         for host in self._model.get_hosts_list():
             if not host.get_state():

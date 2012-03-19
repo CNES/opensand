@@ -11,5 +11,5 @@ files=.lib/platine_tests.py,  .lib/__init__.py
 
 [command]
 exec=/tmp/platine_tests/perf/iperf_files/iperf_client.py
-wait=True
+wait=False
 return=0

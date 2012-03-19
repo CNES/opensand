@@ -9,12 +9,14 @@ iperf_client.py - iperf client for Platine tests
 import subprocess
 import shlex
 import sys
+import time
 
 sys.path.append('../../.lib')
 from platine_tests import Service
 
-COMMAND = '/usr/bin/iperf -y c -t 60'
+COMMAND = '/usr/bin/iperf -y c -t '
 SERVER = 'st3'
+TIME = 40
 
 class IperfClient():
     """ iperf client for Platine tests """
@@ -50,10 +52,14 @@ class IperfClient():
 
     def iperf(self, address, v6=False):
         """ launch an iperf """
-        cmd = "%s -c %s %s" % (COMMAND, address, ('-V' if v6 else ''))
+        cmd = "%s %s -c %s %s -ub 800k" % \
+              (COMMAND, TIME, address, ('-V' if v6 else ''))
         command = shlex.split(cmd)
         iperf = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE,
+                                 close_fds=True, shell=False)
+        time.sleep(TIME + 5)
+        iperf.terminate()
         out, err = iperf.communicate()
         print out
         if err != '':
@@ -65,10 +71,6 @@ class IperfClient():
         if bandwidth < 700000:
             self.print_error("not enough throughput: %s" % bandwidth)
             self.returncode = 1
-         # TODO uncomment once GW thrgought will be limited
-#        elif bandwidth > 1000000:
-#            self.print_error("too many throughput: %s" % bandwidth)
-#            self.returncode = 1
         else:
             print "OK"
 
@@ -79,7 +81,8 @@ class IperfClient():
         # bandwidth(bits/s)
         bdw = 0
         try:
-            bdw = msg.split(',')[8]
+            bdw = msg.split('\n')[1]
+            bdw = bdw.split(',')[8]
         except IndexError:
             self.print_error("cannot parse iperf output (%s)" % msg)
 

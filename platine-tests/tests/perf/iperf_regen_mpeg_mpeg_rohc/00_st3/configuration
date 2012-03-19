@@ -1,0 +1,12 @@
+[prefix]
+# automatically replaced by the binary
+source=.
+destination=/tmp/platine_tests
+
+[st3]
+files=perf/iperf_files/iperf_server.py
+
+[command]
+exec=/tmp/platine_tests/perf/iperf_files/iperf_server.py
+wait=False
+return=0
