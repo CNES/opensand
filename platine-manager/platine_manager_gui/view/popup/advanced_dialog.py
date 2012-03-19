@@ -133,7 +133,6 @@ class AdvancedDialog(WindowView):
 
     def update_host_tree(self):
         """ update the host tree """
-        print "HOST"
         self._host_lock.acquire()
         # disable tool selection when running
         if self._model.is_running():

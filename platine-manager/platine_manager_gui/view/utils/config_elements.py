@@ -221,7 +221,10 @@ class ConfigurationNotebook(gtk.Notebook):
         tab_label.set_markup("<small><b>%s</b></small>" % name)
         description = self._config.get_documentation(name)
         if description != None:
-            tab_label.set_tooltip_text(description.strip())
+            # remove indentation
+            descr = ' '.join(description.split())
+            descr = descr.replace('-', '\n\t-')
+            tab_label.set_tooltip_text(descr)
             tab_label.set_has_tooltip(True)
         self.append_page(scroll_notebook, tab_label)
         return tab_vbox
@@ -252,7 +255,10 @@ class ConfigurationNotebook(gtk.Notebook):
         key_label.set_width_chars(25)
         description = self._config.get_documentation(name)
         if description != None:
-            key_label.set_tooltip_text(description.strip())
+            # remove indentation
+            descr = ' '.join(description.split())
+            descr = descr.replace('-', '\n\t-')
+            key_label.set_tooltip_text(descr)
             key_label.set_has_tooltip(True)
         key_box.pack_start(key_label)
         key_box.set_child_packing(key_label, expand=False,
@@ -286,7 +292,10 @@ class ConfigurationNotebook(gtk.Notebook):
         table_frame.set_label_widget(table_label)
         description = self._config.get_documentation(name)
         if description != None:
-            table_label.set_tooltip_text(description.strip())
+            # remove indentation
+            descr = ' '.join(description.split())
+            descr = descr.replace('-', '\n\t-')
+            table_label.set_tooltip_text(descr)
             table_label.set_has_tooltip(True)
         align_vbox = gtk.VBox()
         alignment.add(align_vbox)
@@ -366,7 +375,10 @@ class ConfigurationNotebook(gtk.Notebook):
             att_label.set_width_chars(len(att) + 1)
             att_description = self._config.get_documentation(att, name)
             if att_description != None:
-                att_label.set_tooltip_text(att_description.strip())
+                # remove indentation
+                descr = ' '.join(att_description.split())
+                descr = descr.replace('-', '\n\t-')
+                att_label.set_tooltip_text(descr)
                 att_label.set_has_tooltip(True)
             hbox.pack_start(att_label)
             hbox.set_child_packing(att_label, expand=False,
@@ -540,7 +552,8 @@ class ConfEntry(object):
         cell = gtk.CellRendererText()
         self._entry.pack_start(cell, True)
         self._entry.add_attribute(cell, 'text', 0)
-        self._entry.set_active(self._type["enum"].index(self._value))
+        if self._value != '':
+            self._entry.set_active(self._type["enum"].index(self._value))
         self._entry.connect('changed', self.global_handler)
 
     def load_int(self):

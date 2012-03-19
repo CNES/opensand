@@ -237,7 +237,7 @@ class XmlParser:
         elem = self._xsd_parser.xpath("//xsd:element[@name = $val]",
                                       namespaces=NAMESPACES,
                                       val = name)
-        if len(elem) == 1:
+        if len(elem) == 0:
             return None
         # sometimes there are 2 elements because debug keys got the same name,
         # take the first one
