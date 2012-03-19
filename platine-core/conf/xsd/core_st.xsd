@@ -205,13 +205,6 @@
 	</xsd:complexType>
 </xsd:element>
 
-<!-- types for qos_agent section -->
-<xsd:simpleType name="stName">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern value="ST[0-6]" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- types for debug section -->
 <xsd:simpleType name="debugValue">
 	<xsd:restriction base="xsd:integer">
@@ -294,7 +287,6 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element name="st_address" type="ipv4Address" />
-            <xsd:element name="st_name" type="stName" />
             <xsd:element name="qos_server_port" type="port" />
         </xsd:sequence>
     </xsd:complexType>

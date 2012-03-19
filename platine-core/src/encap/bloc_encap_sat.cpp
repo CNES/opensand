@@ -134,7 +134,6 @@ mgl_status BlocEncapSat::onInit()
 {
 	const char *FUNCNAME = "[BlocEncapSat::onInit]";
 	int packing_threshold;
-	int qos_nbr;
 
 	// read encapsulation scheme to use to output data
 	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
@@ -203,17 +202,6 @@ mgl_status BlocEncapSat::onInit()
 	        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC ||
 	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
 	{
-		// Get QoS number for GSE encapsulation context
-		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, GSE_QOS_NBR,
-		                                 qos_nbr))
-		if(qos_nbr < 0)
-		{
-			UTI_INFO("%s Section %s missing. QoS number for GSE "
-			         "encapsulation scheme set to %d.\n", FUNCNAME,
-			         GSE_QOS_NBR, DFLT_GSE_QOS_NBR);
-			qos_nbr = DFLT_GSE_QOS_NBR;
-		}
-
 		// read packing threshold from config
 		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
 		                                 packing_threshold))
@@ -237,19 +225,19 @@ mgl_status BlocEncapSat::onInit()
 		   this->downlink_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
 		{
 			// the encapsulation context encapsulates ATM cells into GSE packets
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
+			this->encapCtx = new GseCtx(1, packing_threshold,
 			                            AtmCell::length());
 		}
 		else if(this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE ||
 		        this->downlink_encap_proto == ENCAP_GSE_MPEG_ULE_ROHC)
 		{
 			// the encapsulation context encapsulates MPEG frames into GSE packets
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold,
+			this->encapCtx = new GseCtx(1, packing_threshold,
 			                            MpegPacket::length());
 		}
 		else
 		{
-			this->encapCtx = new GseCtx(qos_nbr, packing_threshold);
+			this->encapCtx = new GseCtx(1, packing_threshold);
 		}
 
 		// check encapsulation context validity
@@ -259,8 +247,6 @@ mgl_status BlocEncapSat::onInit()
 			goto error;
 		}
 
-		UTI_INFO("%s QoS number for GSE encapsulation protocol = %d\n",
-		         FUNCNAME, qos_nbr);
 		UTI_INFO("%s packing threshold for GSE encapsulation protocol = %d ms\n",
 		         FUNCNAME, packing_threshold);
 	}
