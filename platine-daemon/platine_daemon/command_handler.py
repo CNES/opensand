@@ -204,7 +204,7 @@ class CommandHandler(MyTcpHandler):
         cmd = shlex.split(command)
         LOGGER.info("set execution rights on %s" % cmd[0])
         os.chmod(cmd[0], stat.S_IRWXU)
-        with open('/tmp/result') as output:
+        with open('/tmp/platine_tests/result') as output:
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
                                        stderr=subprocess.STOUT)
