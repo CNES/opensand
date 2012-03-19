@@ -400,7 +400,6 @@ class ConfEvent(ConfView) :
                 self.update_view()
         window = AdvancedDialog(self._model, self._log)
         window.go()
-        window.close()
         self.update_view()
         self.enable_conf_buttons(False)
 

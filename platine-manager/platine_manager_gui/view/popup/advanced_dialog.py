@@ -251,6 +251,7 @@ class AdvancedDialog(WindowView):
         try:
             self.reset()
         except ModelException:
+            self._host_lock.release()
             raise
 
         # copy the list (do not only copy the address)
@@ -259,6 +260,7 @@ class AdvancedDialog(WindowView):
         self._tree.foreach(self.select_enabled)
         self._host_lock.release()
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
+        self.close()
 
     def select_enabled(self, tree, path, iterator):
         """ store the saved enabled value in advanced model
