@@ -88,64 +88,75 @@ class ConfigurationFile
 	bool loadConfig(const string confFileName);
 	void unloadConfig();
 
-	// Get a string or integer value
-	bool getStringValue(const char *section, const char *key, string &value);
-	bool getIntegerValue(const char *section, const char *key, int &value);
-	bool getLongIntegerValue(const char *section, const char *key, long &value);
-	bool getBoolValue(const char *section, const char *key, bool &value);
+	// Get a value with format string, int, long or bool
+    bool getValue(const char *section, const char *key, string &value);
+    bool getValue(const char *section, const char *key, int &value);
+    bool getValue(const char *section, const char *key, long &value);
+    bool getValue(const char *section, const char *key, bool &value);
 
 	// Get the number of items in the list; Get the items from the list
 	bool getNbListItems(const char *section, const char *key, int &value);
 	bool getListItems(const char *section, const char *key, ConfigurationList &list);
 
-	// Get a string or integer value from a list attribute
-	bool getAttributeStringValue(ConfigurationList::iterator iter,
-	                             const char *attribute,
-	                             string &value);
-	bool getAttributeIntegerValue(ConfigurationList::iterator iter,
-	                              const char *attribute,
-	                              int &value);
-	bool getAttributeLongIntegerValue(ConfigurationList::iterator iter,
-	                                  const char *attribute,
-	                                  long &value);
-	bool getAttributeBoolValue(ConfigurationList::iterator iter,
-	                           const char *attribute,
-	                           bool &value);
+	// Get a value from a list attribute with format string, int, long or bool
+	bool getAttributeValue(ConfigurationList::iterator iter,
+	                       const char *attribute,
+	                       string &value);
+	bool getAttributeValue(ConfigurationList::iterator iter,
+	                       const char *attribute,
+	                       int &value);
+	bool getAttributeValue(ConfigurationList::iterator iter,
+	                       const char *attribute,
+	                       long &value);
+	bool getAttributeValue(ConfigurationList::iterator iter,
+	                       const char *attribute,
+	                       bool &value);
 
 	// Get a string or integer from a line in a list
-	bool getStringValueInList(ConfigurationList list,
-	                          const char *id,
-	                          const string id_val,
-	                          const char *attribute,
-	                          string &value);
-	bool getStringValueInList(const char *section,
-	                          const char *key,
-	                          const char *id,
-	                          const string id_val,
-	                          const char *attribute,
-	                          string &value);
-	bool getIntegerValueInList(ConfigurationList list,
-	                           const char *id,
-	                           const string id_val,
-	                           const char *attribute,
-	                           int &value);
-	bool getIntegerValueInList(const char *section,
-	                           const char *key,
-	                           const char *id,
-	                           const string id_val,
-	                           const char *attribute,
-	                           int &value);
-	bool getLongIntegerValueInList(ConfigurationList list,
-	                               const char *id,
-	                               const string id_val,
-	                               const char *attribute,
-	                               long int &value);
-	bool getLongIntegerValueInList(const char *section,
-	                               const char *key,
-	                               const char *id,
-	                               const string id_val,
-	                               const char *attribute,
-	                               long &value);
+	bool getValueInList(ConfigurationList list,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    string &value);
+	bool getValueInList(const char *section,
+	                    const char *key,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    string &value);
+	bool getValueInList(ConfigurationList list,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    int &value);
+	bool getValueInList(const char *section,
+	                    const char *key,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    int &value);
+	bool getValueInList(ConfigurationList list,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    long &value);
+	bool getValueInList(const char *section,
+	                    const char *key,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    long &value);
+	bool getValueInList(ConfigurationList list,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    bool &value);
+	bool getValueInList(const char *section,
+	                    const char *key,
+	                    const char *id,
+	                    const string id_val,
+	                    const char *attribute,
+	                    bool &value);
 
  private:
 	/// a vector of XML DOM parsers
@@ -157,6 +168,45 @@ class ConfigurationFile
 	/// get a key node in XML configuration file
 	bool getKey(const char *section,const char*key,
 	            const xmlpp::Element **keyNode);
+
+	/// generic functions to get value
+	bool getStringValue(const char *section, const char *key, string &value);
+	template <class T>
+		bool getValueTemplate(const char *section, const char *key, T &value);
+
+	/// generic functions to get value in list
+	bool getAttributeStringValue(ConfigurationList::iterator iter,
+	                             const char *attribute,
+	                             string &value);
+	template <class T>
+		bool getAttributeValueTemplate(ConfigurationList::iterator iter,
+		                               const char *attribute,
+		                               T &value);
+	/// generic functions to get value in list from elements
+	bool getStringValueInList(ConfigurationList list,
+	                          const char *id,
+	                          const string id_val,
+	                          const char *attribute,
+	                          string &value);
+	template <class T>
+		bool getValueInListTemplate(ConfigurationList list,
+		                             const char *id,
+		                             const string id_val,
+		                             const char *attribute,
+		                             T &value);
+	bool getStringValueInList(const char *section,
+	                          const char *key,
+	                          const char *id,
+	                          const string id_val,
+	                          const char *attribute,
+	                          string &value);
+	template <class T>
+		bool getValueInListTemplate(const char *section,
+		                            const char *key,
+		                            const char *id,
+		                            const string id_val,
+		                            const char *attribute,
+		                            T &value);
 };
 
 
@@ -175,6 +225,7 @@ inline string toString(long val)
 
 	return str.str();
 }
+
 
 // Configuration file content is loaded in this object at main initialization
 extern ConfigurationFile globalConfig;

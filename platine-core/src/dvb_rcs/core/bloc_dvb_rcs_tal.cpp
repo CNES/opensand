@@ -517,7 +517,7 @@ int BlocDVBRcsTal::initParameters()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, val))
 	{
 		val = DA_DFLT_RT_BANDWIDTH;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
@@ -528,7 +528,7 @@ int BlocDVBRcsTal::initParameters()
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
 
 	// Get the satellite MAC address
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_MAC_ID, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_MAC_ID, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_TAL_SECTION, DVB_MAC_ID);
@@ -538,9 +538,8 @@ int BlocDVBRcsTal::initParameters()
 
 	// Get the number of the row in modcod and dra files
 	// TODO long int
-	if(!globalConfig.getIntegerValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
-	                                       toString(m_talId), COLUMN_NBR,
-	                                       val))
+	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
+	                                toString(m_talId), COLUMN_NBR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_SIMU_COL, COLUMN_LIST);
@@ -576,7 +575,7 @@ int BlocDVBRcsTal::initCarrierId()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	 // Get the carrier Id m_carrierIdDvbCtrl
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
 		return -1;
@@ -584,7 +583,7 @@ int BlocDVBRcsTal::initCarrierId()
 	this->m_carrierIdDvbCtrl = val;
 
 	// Get the carrier Id m_carrierIdLogon
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
 		return -1;
@@ -592,7 +591,7 @@ int BlocDVBRcsTal::initCarrierId()
 	this->m_carrierIdLogon = val;
 
 	// Get the carrier Id m_carrierIdData
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
 		return -1;
@@ -659,35 +658,35 @@ int BlocDVBRcsTal::initMacFifo()
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
 		// get fifo_id
-		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_ID, fifo_id))
+		if(!globalConfig.getAttributeValue(iter, FIFO_ID, fifo_id))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
 			          FUNCNAME, FIFO_ID, DVB_TAL_SECTION, FIFO_LIST, i + 1);
 			goto err_fifo_release;
 		}
 		// get fifo_type
-		if(!globalConfig.getAttributeStringValue(iter, FIFO_TYPE, fifo_type))
+		if(!globalConfig.getAttributeValue(iter, FIFO_TYPE, fifo_type))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
 			          FUNCNAME, FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
 			goto err_fifo_release;
 		}
 		// get fifo_size
-		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_SIZE, fifo_size))
+		if(!globalConfig.getAttributeValue(iter, FIFO_SIZE, fifo_size))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
 			          FUNCNAME, FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
 			goto err_fifo_release;
 		}
 		// get pvc
-		if(!globalConfig.getAttributeIntegerValue(iter, FIFO_PVC, pvc))
+		if(!globalConfig.getAttributeValue(iter, FIFO_PVC, pvc))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
 			          FUNCNAME, FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST, i + 1);
 			goto err_fifo_release;
 		}
 		// get the fifo CR type
-		if(!globalConfig.getAttributeStringValue(iter, FIFO_CR_TYPE, fifo_cr_type))
+		if(!globalConfig.getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
 			          FUNCNAME, FIFO_CR_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
@@ -832,7 +831,7 @@ void BlocDVBRcsTal::initObr()
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// get the OBR period - in number of frames
-	if(!globalConfig.getIntegerValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, val))
 	{
 		val = DA_DFLT_OBR_PERIOD_DATA;
 		UTI_ERROR("%s Missing %s => taking default value (%d)\n", FUNCNAME,
@@ -925,16 +924,16 @@ int BlocDVBRcsTal::initQoSServer()
 	const char *FUNCNAME = DVB_DBG_PREFIX "[initQoSServer]";
 
 	// QoS Server: read hostname and port from configuration
-	if(!globalConfig.getStringValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
-	                                this->qos_server_host))
+	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
+	                          this->qos_server_host))
 	{
 		UTI_INFO("%s section %s, %s missing. QoS Server address defaults to %s.\n",
 		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST, QOS_SERVER_DFLT_HOST);
 		this->qos_server_host = QOS_SERVER_DFLT_HOST;
 	}
 
-	if(!globalConfig.getIntegerValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
-	                                this->qos_server_port))
+	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
+	                          this->qos_server_port))
 	{
 		UTI_INFO("%s section %s, %s missing. QoS Server port defaults to %d.\n",
 		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT, QOS_SERVER_DFLT_PORT);

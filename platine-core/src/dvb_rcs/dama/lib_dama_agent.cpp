@@ -64,8 +64,7 @@ DvbRcsDamaAgent::DvbRcsDamaAgent()
 	resetStatsCxt();
 
 	// Frame duration - in ms
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION,
-	                                 DVB_FRM_DURATION, val))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_FRM_DURATION, val))
 	{
 		val = DFLT_FRM_DURATION;
 		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
@@ -74,8 +73,8 @@ DvbRcsDamaAgent::DvbRcsDamaAgent()
 	m_frameDuration = val;
 
 	// get encap packet length and frame duration
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                                encap_scheme))
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                          encap_scheme))
 	{
 		UTI_INFO("%s Section %s, %s missing. Uplink encapsulation "
 		         "scheme set to ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION,

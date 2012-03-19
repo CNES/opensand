@@ -68,7 +68,6 @@ ConfigurationFile::~ConfigurationFile()
 }
 
 
-
 /**
  * Load the whole configuration file content into memory
  * @param confFile path and name of the configuration file
@@ -201,7 +200,7 @@ bool ConfigurationFile::getKey(const char *section,
 		if(keyList.size() > 1)
 		{
 			UTI_ERROR("more than one key named '%s' in section '%s'\n",
-					  key, section);
+			          key, section);
 			goto error;
 		}
 		else if(keyList.size() == 1)
@@ -210,7 +209,7 @@ bool ConfigurationFile::getKey(const char *section,
 			if(!(*keyNode))
 			{
 				UTI_ERROR("cannot convert the key '%s' from section '%s' "
-						  "into element\n", key, section);
+				          "into element\n", key, section);
 				goto error;
 			}
 			found = true;
@@ -220,7 +219,7 @@ bool ConfigurationFile::getKey(const char *section,
 	if(!found)
 	{
 		UTI_ERROR("no key named '%s' in section '%s'\n",
-				key, section);
+		          key, section);
 		goto error;
 	}
 
@@ -274,82 +273,28 @@ bool ConfigurationFile::getStringValue(const char *section,
 error:
 	return false;
 }
-	
-
-/**
- * Read an integer value from configuration
- *
- * @param  section  name of the section
- * @param  key      name of the key
- * @param  value    integer value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getIntegerValue(const char *section,
-                                        const char *key,
-                                        int &value)
-{
-	string valueStr;
-
-	if(this->getStringValue(section, key, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = atoi(valueStr.c_str());
-		return true;
-	}
-
-	return false;
-} // getIntegerValue
 
 
 /**
- * Read a long integer value from configuration
+ * Read a value from configuration
  *
  * @param  section  name of the section
  * @param  key      name of the key
- * @param  value    integer value
+ * @param  value    the value
  * @return  true on success, false otherwise
  */
-bool ConfigurationFile::getLongIntegerValue(const char *section,
-                                            const char *key,
-                                            long &value)
+template <class T>
+bool ConfigurationFile::getValueTemplate(const char *section, const char *key, T &val)
 {
-	string valueStr;
+	string tmp_val;
 
-	if(this->getStringValue(section, key, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = atol(valueStr.c_str());
-		return true;
-	}
+	if(!this->getStringValue(section, key, tmp_val))
+		return false;
 
-	return false;
+	stringstream str(tmp_val);
+	str >> val;
+	return true;
 }
-
-/**
- * Read a boolean value from configuration
- *
- * @param  section  name of the section
- * @param  key      name of the key
- * @param  value    boolean value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getBoolValue(const char *section,
-                                     const char *key,
-                                     bool &value)
-{
-	string valueStr;
-
-	if(this->getStringValue(section, key, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = (((valueStr == "true") ? true : false) ||
-		         ((valueStr == "True") ? true : false));
-		return true;
-	}
-
-	return false;
-}
-
 
 /**
  * Read the number of elements in a list
@@ -461,78 +406,26 @@ error:
 
 
 /**
- * Get the integer value of an attribute in a list element
+ * Get the value of an attribute in a list element
  *
  * @param  elt        an iterator on a ConfigurationList
  * @param  attribute  the attribute name
  * @param  value      attribute value
  * @return  true on success, false otherwise
  */
-bool ConfigurationFile::getAttributeIntegerValue(ConfigurationList::iterator iter,
-                                                 const char *attribute,
-                                                 int &value)
+template <class T>
+bool ConfigurationFile::getAttributeValueTemplate(ConfigurationList::iterator iter,
+                                                  const char *attribute,
+                                                  T &value)
 {
-	string valueStr;
+	string tmp_val;
 
-	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = atoi(valueStr.c_str());
-		return true;
-	}
+	if(!this->getAttributeStringValue(iter, attribute, tmp_val))
+		return false;
 
-	return false;
-}
-
-/**
- * Get the long integer value of an attribute in a list element
- *
- * @param  elt        an iterator on a ConfigurationList
- * @param  attribute  the attribute name
- * @param  value      attribute value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getAttributeLongIntegerValue(ConfigurationList::iterator iter,
-                                                     const char *attribute,
-                                                     long &value)
-
-{
-	string valueStr;
-
-	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = atol(valueStr.c_str());
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * Get the boolean value of an attribute in a list element
- *
- * @param  elt        an iterator on a ConfigurationList
- * @param  attribute  the attribute name
- * @param  value      attribute value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getAttributeBoolValue(ConfigurationList::iterator iter,
-                                              const char *attribute,
-                                              bool &value)
-
-{
-	string valueStr;
-
-	if(this->getAttributeStringValue(iter, attribute, valueStr) &&
-	   (valueStr.size() > 0))
-	{
-		value = (((valueStr == "true") ? true : false) ||
-		         ((valueStr == "True") ? true : false));
-		return true;
-	}
-
-	return false;
+	stringstream str(tmp_val);
+	str >> value;
+	return true;
 }
 
 /**
@@ -560,7 +453,7 @@ bool ConfigurationFile::getStringValueInList(ConfigurationList list,
 		if(!this->getAttributeStringValue(iter, id, ref))
 		{
 			goto error;
-		}	
+		}
 		if(ref == id_val)
 		{
 			continue;
@@ -605,7 +498,7 @@ error:
 
 
 /**
- * Get an integer value from a list element identified by a attribute value
+ * Get a value from a list element identified by a attribute value
  *
  * @param  list      the list
  * @param  id        the reference attribute
@@ -614,26 +507,25 @@ error:
  * @param  value     the desired value
  * @return  true on success, false otherwise
  */
-bool ConfigurationFile::getIntegerValueInList(ConfigurationList list,
-                                              const char *id,
-                                              const string id_val,
-                                              const char *attribute,
-                                              int &value)
+template <class T>
+bool ConfigurationFile::getValueInListTemplate(ConfigurationList list,
+                                               const char *id,
+                                               const string id_val,
+                                               const char *attribute,
+                                               T &value)
 {
-	string valueStr;
+	string tmp_val;
 
-	if(this->getStringValueInList(list, id, id_val, attribute, valueStr)
-	   && (valueStr.size() > 0))
-	{
-		value = atoi(valueStr.c_str());
-		return true;
-	}
+	if(!this->getStringValueInList(list, id, id_val, attribute, tmp_val))
+		return false;
 
-	return false;
+	stringstream str(tmp_val);
+	str >> value;
+	return true;
 }
 
 /**
- * Get an integer value from a list element identified by a attribute value
+ * Get a value from a list element identified by a attribute value
  *
  * @param  section   name of the section identifying the list
  * @param  key       name of the list key identifying the list
@@ -643,81 +535,188 @@ bool ConfigurationFile::getIntegerValueInList(ConfigurationList list,
  * @param  value     the desired value
  * @return  true on success, false otherwise
  */
-bool ConfigurationFile::getIntegerValueInList(const char *section,
-                                              const char *key,
-                                              const char *id,
-                                              const string id_val,
-                                              const char *attribute,
-                                              int &value)
+template <class T>
+bool ConfigurationFile::getValueInListTemplate(const char *section,
+                                               const char *key,
+                                               const char *id,
+                                               const string id_val,
+                                               const char *attribute,
+                                               T &value)
 {
-	string valueStr;
+	string tmp_val;
 
-	if(this->getStringValueInList(section, key, id, id_val, attribute, valueStr)
-	   && (valueStr.size() > 0))
-	{
-		value = atoi(valueStr.c_str());
-		return true;
-	}
+	if(!this->getStringValueInList(section, key, id, id_val,
+	                               attribute, tmp_val))
+		return false;
 
-	return false;
+	stringstream str(tmp_val);
+	str >> value;
+	return true;
 }
 
-/**
- * Get a long integer value from a list element identified by a attribute value
- *
- * @param  list      the list
- * @param  id        the reference attribute
- * @param  id_val    the reference attribute value
- * @param  attribute the desired attribute
- * @param  value     the desired value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getLongIntegerValueInList(ConfigurationList list,
-                                                  const char *id,
-                                                  const string id_val,
-                                                  const char *attribute,
-                                                  long &value)
+// functions used to get values
+bool ConfigurationFile::getValue(const char *section, const char *key, string &val)
 {
-	string valueStr;
-
-	if(this->getStringValueInList(list, id, id_val, attribute, valueStr)
-	   && (valueStr.size() > 0))
-	{
-		value = atol(valueStr.c_str());
-		return true;
-	}
-
-	return false;
+	return this->getValueTemplate<string>(section, key, val);
 }
 
-/**
- * Get a long integer value from a list element identified by a attribute value
- *
- * @param  section   name of the section identifying the list
- * @param  key       name of the list key identifying the list
- * @param  id        the reference attribute
- * @param  id_val    the reference attribute value
- * @param  attribute the desired attribute
- * @param  value     the desired value
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::getLongIntegerValueInList(const char *section,
-                                                  const char *key,
-                                                  const char *id,
-                                                  const string id_val,
-                                                  const char *attribute,
-                                                  long &value)
+bool ConfigurationFile::getValue(const char *section, const char *key, int &val)
 {
-	string valueStr;
-
-	if(this->getStringValueInList(section, key, id, id_val, attribute, valueStr)
-	   && (valueStr.size() > 0))
-	{
-		value = atol(valueStr.c_str());
-		return true;
-	}
-
-	return false;
+	return this->getValueTemplate<int>(section, key, val);
 }
 
+bool ConfigurationFile::getValue(const char *section, const char *key, long &val)
+{
+	return this->getValueTemplate<long>(section, key, val);
+}
+
+bool ConfigurationFile::getValue(const char *section, const char *key, bool &val)
+{
+	string tmp_val;
+
+	if(!this->getValueTemplate<string>(section, key, tmp_val))
+		return false;
+
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> val;
+	return true;
+}
+
+// functions used to get values in list
+bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
+                                          const char *attribute,
+                                          string &value)
+{
+	return this->getAttributeValueTemplate<string>(iter, attribute, value);
+}
+
+bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
+                                          const char *attribute,
+                                          int &value)
+{
+	return this->getAttributeValueTemplate<int>(iter, attribute, value);
+}
+
+bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
+                                          const char *attribute,
+                                          long &value)
+{
+	return this->getAttributeValueTemplate<long>(iter, attribute, value);
+}
+
+bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
+                                          const char *attribute,
+                                          bool &value)
+{
+	string tmp_val;
+
+	if(!this->getAttributeValueTemplate<string>(iter, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> value;
+	return true;
+}
+
+// functions used to get value in a line identified by an attribute
+bool ConfigurationFile::getValueInList(ConfigurationList list,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       string &value)
+{
+	return this->getValueInListTemplate<string>(list, id, id_val,
+	                                            attribute, value);
+}
+
+bool ConfigurationFile::getValueInList(const char *section,
+                                       const char *key,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       string &value)
+{
+	return this->getValueInListTemplate<string>(section, key, id, id_val,
+	                                            attribute, value);
+}
+
+bool ConfigurationFile::getValueInList(ConfigurationList list,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       int &value)
+{
+	return this->getValueInListTemplate<int>(list, id, id_val,
+	                                         attribute, value);
+}
+
+bool ConfigurationFile::getValueInList(const char *section,
+                                       const char *key,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       int &value)
+{
+	return this->getValueInListTemplate<int>(section, key, id, id_val,
+	                                         attribute, value);
+}
+
+
+bool ConfigurationFile::getValueInList(ConfigurationList list,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       long &value)
+{
+	return this->getValueInListTemplate<long>(list, id, id_val,
+	                                          attribute, value);
+}
+
+bool ConfigurationFile::getValueInList(const char *section,
+                                       const char *key,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       long &value)
+{
+	return this->getValueInListTemplate<long>(section, key, id, id_val,
+	                                          attribute, value);
+}
+
+
+bool ConfigurationFile::getValueInList(ConfigurationList list,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       bool &value)
+{
+    string tmp_val;
+
+	if(!this->getValueInListTemplate<string>(list, id, id_val,
+	                                         attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> value;
+	return true;
+}
+
+bool ConfigurationFile::getValueInList(const char *section,
+                                       const char *key,
+                                       const char *id,
+                                       const string id_val,
+                                       const char *attribute,
+                                       bool &value)
+{
+	string tmp_val;
+
+	if(!this->getValueInListTemplate<string>(section, key, id, id_val,
+	                                         attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> std::boolalpha >> value;
+	return true;
+}
 

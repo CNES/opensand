@@ -98,7 +98,7 @@ void UTI_readDebugLevels()
 
 	for(i = 0; i < PKGINFO_NB; i++)
 	{
-		if(globalConfig.getIntegerValue(SECTION_DEBUG, pkgInfo[i].name, level))
+		if(globalConfig.getValue(SECTION_DEBUG, pkgInfo[i].name, level))
 		{
 			*(pkgInfo[i].level) = (unsigned char) level;
 			pkgInfo[i].inConfig = true;

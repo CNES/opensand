@@ -136,8 +136,8 @@ mgl_status BlocEncapSat::onInit()
 	int packing_threshold;
 
 	// read encapsulation scheme to use to output data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                                this->downlink_encap_proto))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                          this->downlink_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
 		         "ATM over MPEG2-TS.\n", FUNCNAME, GLOBAL_SECTION,
@@ -151,8 +151,8 @@ mgl_status BlocEncapSat::onInit()
 	   this->downlink_encap_proto == ENCAP_MPEG_ULE_ROHC)
 	{
 		// read packing threshold from config
-		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                 packing_threshold))
+		if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES,
+		                          packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 			         "encapsulation protocol set to %d ms.\n", FUNCNAME,
@@ -203,8 +203,8 @@ mgl_status BlocEncapSat::onInit()
 	        this->downlink_encap_proto == ENCAP_GSE_ROHC)
 	{
 		// read packing threshold from config
-		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                 packing_threshold))
+		if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES,
+		                          packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for GSE "
 			         "encapsulation protocol set to %d ms.\n", FUNCNAME,

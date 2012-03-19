@@ -76,8 +76,8 @@ BlocDvb::~BlocDvb()
 bool BlocDvb::initCommon()
 {
 	// satellite type
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                                this->satellite_type))
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                          this->satellite_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
@@ -86,8 +86,8 @@ bool BlocDvb::initCommon()
 	UTI_INFO("satellite type = %s\n", this->satellite_type.c_str());
 
 	// encapsulation schemes
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                                this->up_return_encap_scheme))
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                          this->up_return_encap_scheme))
 	{
 		UTI_INFO("section '%s': missing parameter '%s'\n",
 		         GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
@@ -96,8 +96,8 @@ bool BlocDvb::initCommon()
 	UTI_INFO("up/return encapsulation scheme = %s\n",
 	         this->up_return_encap_scheme.c_str());
 
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                                this->down_forward_encap_scheme))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                          this->down_forward_encap_scheme))
 	{
 		UTI_INFO("section '%s': missing parameter '%s'\n",
 		         GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME);
@@ -107,8 +107,8 @@ bool BlocDvb::initCommon()
 	         this->down_forward_encap_scheme.c_str());
 
 	// dama algorithm
-	if(!globalConfig.getStringValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO,
-	                                this->dama_algo))
+	if(!globalConfig.getValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO,
+	                          this->dama_algo))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
@@ -116,8 +116,8 @@ bool BlocDvb::initCommon()
 	}
 
 	// frame duration
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_F_DURATION,
-	                                 this->frame_duration))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_F_DURATION,
+	                          this->frame_duration))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_F_DURATION);
@@ -126,8 +126,8 @@ bool BlocDvb::initCommon()
 	UTI_INFO("frameDuration set to %d\n", this->frame_duration);
 
 	// number of frame per superframe
-	if(!globalConfig.getIntegerValue(DVB_MAC_SECTION, DVB_FPF,
-	                                 this->frames_per_superframe))
+	if(!globalConfig.getValue(DVB_MAC_SECTION, DVB_FPF,
+	                          this->frames_per_superframe))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_MAC_SECTION, DVB_FPF);
@@ -137,8 +137,8 @@ bool BlocDvb::initCommon()
 	         this->frames_per_superframe);
 
 	// simulation scenario
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DVB_SCENARIO,
-	                                this->dvb_scenario))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO,
+	                         this->dvb_scenario))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_SCENARIO);
@@ -154,8 +154,8 @@ bool BlocDvb::initCommon()
 	}
 
 	// scenario refresh interval
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
-	                                 this->dvb_scenario_refresh))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
+	                          this->dvb_scenario_refresh))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_SCENARIO_REFRESH);
@@ -224,8 +224,8 @@ int BlocDvb::initModcodFiles()
 	}
 
 	// Get the value of the bandwidth
-	if(!globalConfig.getIntegerValue(GLOBAL_SECTION, BANDWIDTH,
-	                                 bandwidth))
+	if(!globalConfig.getValue(GLOBAL_SECTION, BANDWIDTH,
+	                          bandwidth))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, BANDWIDTH);

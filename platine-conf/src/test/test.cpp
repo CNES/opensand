@@ -83,8 +83,8 @@ int main(void)
 
         for(vec_it = vec.begin(); vec_it != vec.end(); vec_it++)
         {
-            if(!globalConfig.getStringValue((*iter).first.c_str(),
-                                            (*vec_it).c_str(), value))
+            if(!globalConfig.getValue((*iter).first.c_str(),
+                                      (*vec_it).c_str(), value))
             {
                 cerr << "cannot get the value for section '" << (*iter).first
                     << "', key '" << (*vec_it) << "'" << endl;
@@ -117,8 +117,8 @@ int main(void)
             vec = (*iter_list).second;
             for(vec_it = vec.begin(); vec_it != vec.end(); vec_it++)
             {
-                if(!globalConfig.getAttributeStringValue(line, (*vec_it).c_str(),
-                                                         value))
+                if(!globalConfig.getAttributeValue(line, (*vec_it).c_str(),
+                                                   value))
                 {
                     cerr << "cannot get the vec_itribute '" << (*vec_it)
                          << "' for section '" << table.first << "', key '"

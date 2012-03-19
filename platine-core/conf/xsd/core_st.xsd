@@ -232,10 +232,6 @@
 <xsd:element name="service_class">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="scheduler_type" type="schedulerType" />
-            <xsd:element name="qos_tree_mode" type="qosTreeMode" />
-            <xsd:element name="mapping_sig" type="mappingSig" />
-            <xsd:element name="sig_port" type="port" />
             <xsd:element ref="classes" />
         </xsd:sequence>
     </xsd:complexType>

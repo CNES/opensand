@@ -523,11 +523,9 @@ int BlocDVBRcsNcc::onInit()
 	setTimer(this->scenario_timer, this->dvb_scenario_refresh);
 
 	// get the column number for GW in MODCOD/DRA simulation files
-	if(!globalConfig.getLongIntegerValueInList(DVB_SIMU_COL, COLUMN_LIST,
-	                                           TAL_ID,
-	                                           toString(DVB_GW_MAC_ID),
-	                                           COLUMN_NBR,
-	                                           simu_column_num))
+	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
+	                                TAL_ID, toString(DVB_GW_MAC_ID),
+                                    COLUMN_NBR, simu_column_num))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_SIMU_COL, COLUMN_LIST);
@@ -616,7 +614,7 @@ int BlocDVBRcsNcc::initTimers()
 	int val;
 
 	// read the pep allocation delay
-	if(!globalConfig.getIntegerValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val))
+	if(!globalConfig.getValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
@@ -793,8 +791,7 @@ int BlocDVBRcsNcc::initCarrierIds()
 	int val;
 
 	// Get the carrier Id m_carrierIdDvbCtrl
-	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION,
-	                                 DVB_CTRL_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_CTRL_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_CTRL_CAR);
@@ -804,7 +801,7 @@ int BlocDVBRcsNcc::initCarrierIds()
 	UTI_INFO("carrierIdDvbCtrl set to %ld\n", this->m_carrierIdDvbCtrl);
 
 	// Get the carrier Id m_carrierIdSOF
-	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SOF_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SOF_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SOF_CAR);
@@ -814,7 +811,7 @@ int BlocDVBRcsNcc::initCarrierIds()
 	UTI_INFO("carrierIdSOF set to %ld\n", this->m_carrierIdSOF);
 
 	// Get the carrier Id m_carrierIdData
-	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_DATA_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_DATA_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_DATA_CAR);
@@ -973,8 +970,8 @@ int BlocDVBRcsNcc::initDama()
 	}
 
 	// retrieve the output encapsulation scheme
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                                up_return_encap_proto))
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                          up_return_encap_proto))
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, UP_RETURN_ENCAP_SCHEME);
@@ -1042,7 +1039,7 @@ int BlocDVBRcsNcc::initFifo()
 	int val;
 
 	// retrieve and set FIFO size
-	if(!globalConfig.getIntegerValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);

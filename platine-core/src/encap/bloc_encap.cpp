@@ -200,8 +200,8 @@ mgl_status BlocEncap::onInit()
 	EncapCtx *down_forward_ctx;
 
 	// satellite type: regenerative or transparent ?
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                                satellite_type))
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                          satellite_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
@@ -210,8 +210,8 @@ mgl_status BlocEncap::onInit()
 	UTI_DEBUG("satellite type = %s\n", satellite_type.c_str());
 
 	// read encapsulation scheme to use to output data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
-	                               up_return_encap_proto))
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME,
+	                          up_return_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Send encapsulation scheme set to "
 		         "ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME);
@@ -223,8 +223,8 @@ mgl_status BlocEncap::onInit()
 		up_return_ctx = (AtmCtx *) new AtmAal5Ctx();
 	else if(up_return_encap_proto == ENCAP_MPEG_ULE)
 	{
-		if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-		                                 packing_threshold))
+		if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES,
+		                          packing_threshold))
 		{
 			UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 			         "encapsulation scheme set to %d ms.\n", FUNCNAME,
@@ -333,8 +333,8 @@ mgl_status BlocEncap::onInit()
 	}
 #endif
 	// read encapsulation scheme to use to receive data
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
-	                                downlink_encap_proto))
+	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME,
+	                          downlink_encap_proto))
 	{
 		UTI_INFO("%s Section %s, %s missing. Receive encapsulation "
 					"scheme set to ATM/AAL5.\n", FUNCNAME, GLOBAL_SECTION,
@@ -377,8 +377,7 @@ mgl_status BlocEncap::onInit()
 		else
 		{
 			// Get packing threshold for GSE encapsulation context
-			if(!globalConfig.getIntegerValue(GLOBAL_SECTION, PACK_THRES,
-			                                packing_threshold))
+			if(!globalConfig.getValue(GLOBAL_SECTION, PACK_THRES, packing_threshold))
 			{
 				UTI_INFO("%s Section %s, %s missing. Packing threshold for MPEG "
 				         "encapsulation scheme set to %d ms.\n", FUNCNAME,

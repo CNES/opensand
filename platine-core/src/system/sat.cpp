@@ -190,8 +190,8 @@ int main(int argc, char **argv)
 	UTI_readDebugLevels();
 
 	// retrieve the type of satellite from configuration
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                                satellite_type))
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                          satellite_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);

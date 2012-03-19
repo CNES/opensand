@@ -360,7 +360,7 @@ int BlocDVBRcsSat::initMode()
 	}
 
 	// Delay to apply to the medium
-	if(globalConfig.getIntegerValue(GLOBAL_SECTION, SAT_DELAY, val) < 0)
+	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SAT_DELAY);
@@ -407,8 +407,7 @@ int BlocDVBRcsSat::initErrorGenerator()
 	string err_generator;
 
 	// Load a precalculated data file or use a default generator
-	if(globalConfig.getStringValue(SAT_DVB_SECTION, SAT_ERR_GENERATOR,
-	   err_generator) < 0)
+	if(globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_GENERATOR, err_generator))
 	{
 		UTI_INFO("Section %s, %s missing. No error generator used.\n",
 		         SAT_DVB_SECTION, SAT_ERR_GENERATOR);
@@ -427,8 +426,7 @@ int BlocDVBRcsSat::initErrorGenerator()
 		int err_delta;
 
 		// Get values for default error generator
-		if(globalConfig.getIntegerValue(SAT_DVB_SECTION, SAT_ERR_BER,
-		   err_ber) < 0)
+		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_BER, err_ber))
 		{
 			err_ber = 9;
 			UTI_INFO("Section %s, %s missing setting it to default: "
@@ -436,8 +434,7 @@ int BlocDVBRcsSat::initErrorGenerator()
 			         SAT_ERR_BER, err_ber);
 		}
 
-		if(globalConfig.getIntegerValue(SAT_DVB_SECTION, SAT_ERR_MEAN,
-		   err_mean) < 0)
+		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_MEAN, err_mean))
 		{
 			err_mean = 50;
 			UTI_INFO("Section %s, %s missing setting it to "
@@ -445,8 +442,7 @@ int BlocDVBRcsSat::initErrorGenerator()
 			         SAT_DVB_SECTION, SAT_ERR_MEAN, err_mean);
 		}
 
-		if(globalConfig.getIntegerValue(SAT_DVB_SECTION, SAT_ERR_DELTA,
-		   err_delta) < 0)
+		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_DELTA, err_delta))
 		{
 			err_delta = 10;
 			UTI_INFO("Section %s, %s missing setting it to "
@@ -587,7 +583,7 @@ int BlocDVBRcsSat::initSwitchTable()
 
 		i++;
 		// get the Tal ID attribute
-		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			UTI_ERROR("problem retrieving %s in switching table"
 			          "entry %d\n", TAL_ID, i);
@@ -595,7 +591,7 @@ int BlocDVBRcsSat::initSwitchTable()
 		}
 
 		// get the Spot ID attribute
-		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			UTI_ERROR("problem retrieving %s in switching table"
 			          "entry %d\n", SPOT_ID, i);
@@ -660,42 +656,42 @@ int BlocDVBRcsSat::initSpots()
 
 		i++;
 		// get the spot_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, SPOT_ID, i);
 			goto error;
 		}
 		// get the ctrl_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CTRL_ID, ctrl_id))
+		if(!globalConfig.getAttributeValue(iter, CTRL_ID, ctrl_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, CTRL_ID, i);
 			goto error;
 		}
 		// get the data_in_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_IN_ID, data_in_id))
+		if(!globalConfig.getAttributeValue(iter, DATA_IN_ID, data_in_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_IN_ID, i);
 			goto error;
 		}
 		// get the data_out_gw_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_OUT_GW_ID, data_out_gw_id))
+		if(!globalConfig.getAttributeValue(iter, DATA_OUT_GW_ID, data_out_gw_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_OUT_GW_ID, i);
 			goto error;
 		}
 		// get the data_out_st_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, DATA_OUT_ST_ID, data_out_st_id))
+		if(!globalConfig.getAttributeValue(iter, DATA_OUT_ST_ID, data_out_st_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_OUT_ST_ID, i);
 			goto error;
 		}
 		// get the log_id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, LOG_ID, log_id))
+		if(!globalConfig.getAttributeValue(iter, LOG_ID, log_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, LOG_ID, i);
@@ -762,16 +758,14 @@ int BlocDVBRcsSat::initStList()
 		long column_nbr;
 
 		// Get the Tal ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID,
-		                                              tal_id))
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			UTI_ERROR("problem retrieving %s in simulation column "
 			          "entry %d\n", TAL_ID, i);
 			goto error;
 		}
 		// Get the column nbr
-		if(!globalConfig.getAttributeLongIntegerValue(iter, COLUMN_NBR,
-		                                              column_nbr))
+		if(!globalConfig.getAttributeValue(iter, COLUMN_NBR, column_nbr))
 		{
 			UTI_ERROR("problem retrieving %s in simulation column "
 			          "entry %d\n", COLUMN_NBR, i);
@@ -867,7 +861,7 @@ int BlocDVBRcsSat::onInit()
 	}
 
 	// read and initialize the random seed
-	if(globalConfig.getIntegerValue(SAT_DVB_SECTION, SAT_RAND_SEED, val) < 0)
+	if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_RAND_SEED, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          SAT_DVB_SECTION, SAT_RAND_SEED);

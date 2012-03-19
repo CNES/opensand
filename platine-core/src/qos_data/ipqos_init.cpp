@@ -77,8 +77,8 @@ void BlocIPQoS::getConfig()
 	// Satellite Type (for GW)
 	if(this->_host_name == "GW")
 	{
-		if(!globalConfig.getStringValue(GLOBAL_SECTION, SATELLITE_TYPE,
-		                                this->_satellite_type))
+		if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+		                          this->_satellite_type))
 		{
 			UTI_ERROR(KEY_MISSING, GLOBAL_SECTION, SATELLITE_TYPE);
 			exit(1);
@@ -115,7 +115,7 @@ void BlocIPQoS::getConfig()
 
 		i++;
 		// get class ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_ID, class_id))
+		if(!globalConfig.getAttributeValue(iter, CLASS_ID, class_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
@@ -123,7 +123,7 @@ void BlocIPQoS::getConfig()
 			continue;
 		}
 		// get class name
-		if(!globalConfig.getAttributeStringValue(iter, CLASS_NAME, class_name))
+		if(!globalConfig.getAttributeValue(iter, CLASS_NAME, class_name))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
@@ -131,8 +131,7 @@ void BlocIPQoS::getConfig()
 			continue;
 		}
 		// get scheduler priority
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_SCHED_PRIO,
-		                                              sched_prio))
+		if(!globalConfig.getAttributeValue(iter, CLASS_SCHED_PRIO, sched_prio))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
@@ -140,7 +139,7 @@ void BlocIPQoS::getConfig()
 			continue;
 		}
 		// get mac queue ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CLASS_MAC_ID, mac_queue_id))
+		if(!globalConfig.getAttributeValue(iter, CLASS_MAC_ID, mac_queue_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CLASS, CLASS_LIST,
@@ -158,7 +157,8 @@ void BlocIPQoS::getConfig()
 	sort(classList.begin(), classList.end());
 
 	// Traffic flow categories
-	if(!globalConfig.getListItems(SECTION_CATEGORY, CATEGORY_LIST, category_list))
+	if(!globalConfig.getListItems(SECTION_CATEGORY, CATEGORY_LIST,
+	                              category_list))
 	{
 		UTI_ERROR("%s: missing or empty section [%s, %s]\n", FUNCNAME,
 		          SECTION_CATEGORY, CATEGORY_LIST);
@@ -174,8 +174,7 @@ void BlocIPQoS::getConfig()
 
 		i++;
 		// get category id
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CATEGORY_ID,
-		                                              category_id))
+		if(!globalConfig.getAttributeValue(iter, CATEGORY_ID, category_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
@@ -183,8 +182,7 @@ void BlocIPQoS::getConfig()
 			continue;
 		}
 		// get category name
-		if(!globalConfig.getAttributeStringValue(iter, CATEGORY_NAME,
-		                                         category_name))
+		if(!globalConfig.getAttributeValue(iter, CATEGORY_NAME, category_name))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
@@ -192,8 +190,8 @@ void BlocIPQoS::getConfig()
 			continue;
 		}
 		// get service class
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CATEGORY_SERVICE,
-		                                              category_service))
+		if(!globalConfig.getAttributeValue(iter, CATEGORY_SERVICE,
+		                                   category_service))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "at line %d\n", FUNCNAME, SECTION_CATEGORY, CATEGORY_LIST,
@@ -227,8 +225,8 @@ void BlocIPQoS::getConfig()
 		categoryMap[category_id] = category;
 	}
 	// Get default category
-	if(!globalConfig.getLongIntegerValue(SECTION_CATEGORY, KEY_DEF_CATEGORY,
-	                                     defaultCategory))
+	if(!globalConfig.getValue(SECTION_CATEGORY, KEY_DEF_CATEGORY,
+	                          defaultCategory))
 	{
 		defaultCategory = (categoryMap.begin())->first;
 		UTI_ERROR("%s: cannot find default traffic category, use %s instead\n",
@@ -306,8 +304,7 @@ void BlocIPQoS::initSarpTables()
 
 		i++;
 		// get the IPv4 address
-		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_ADDR,
-		                                         ipv4_addr))
+		if(!globalConfig.getAttributeValue(iter, TERMINAL_ADDR, ipv4_addr))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
@@ -315,8 +312,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the IPv4 mask
-		if(!globalConfig.getAttributeIntegerValue(iter, TERMINAL_IP_MASK,
-		                                          mask))
+		if(!globalConfig.getAttributeValue(iter, TERMINAL_IP_MASK, mask))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
@@ -324,7 +320,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the terminal ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
@@ -332,7 +328,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the spot ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V4, TERMINAL_LIST,
@@ -363,8 +359,7 @@ void BlocIPQoS::initSarpTables()
 
 		i++;
 		// get the IPv6 address
-		if(!globalConfig.getAttributeStringValue(iter, TERMINAL_ADDR,
-		                                         ipv6_addr))
+		if(!globalConfig.getAttributeValue(iter, TERMINAL_ADDR, ipv6_addr))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
@@ -372,8 +367,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the IPv6 mask
-		if(!globalConfig.getAttributeIntegerValue(iter, TERMINAL_IP_MASK,
-		                                          mask))
+		if(!globalConfig.getAttributeValue(iter, TERMINAL_IP_MASK, mask))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
@@ -381,7 +375,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the terminal ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, TAL_ID, tal_id))
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,
@@ -389,7 +383,7 @@ void BlocIPQoS::initSarpTables()
 			continue;
 		}
 		// get the spot ID
-		if(!globalConfig.getAttributeLongIntegerValue(iter, SPOT_ID, spot_id))
+		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			UTI_ERROR("%s: section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", FUNCNAME, IPD_SECTION_V6, TERMINAL_LIST,

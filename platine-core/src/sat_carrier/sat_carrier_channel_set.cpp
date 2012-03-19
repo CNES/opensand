@@ -69,16 +69,16 @@ int sat_carrier_channel_set::readConfig()
 	ConfigurationList carrier_list;
 	ConfigurationList::iterator iter;
 
-	if(!globalConfig.getStringValue(GLOBAL_SECTION, SAT_ETH_IFACE,
-	                                interfaceName))
+	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_ETH_IFACE,
+	                          interfaceName))
 	{
 		UTI_ERROR("Can't get satelliteEthInterface from section Global\n");
 		goto error;
 	}
 
 	// get transmission type
-	if(!globalConfig.getStringValue(SATCAR_SECTION, SOCKET_TYPE,
-	                               this->socket_type))
+	if(!globalConfig.getValue(SATCAR_SECTION, SOCKET_TYPE,
+	                          this->socket_type))
 	{
 		UTI_ERROR("Can't get socket type from section %s, %s\n",
 		          SATCAR_SECTION, SOCKET_TYPE);
@@ -86,13 +86,14 @@ int sat_carrier_channel_set::readConfig()
 	}
 
 	// get local IP address
-	if(globalConfig.getStringValue(SATCAR_SECTION, IPADDR, strConfig))
+	if(globalConfig.getValue(SATCAR_SECTION, IPADDR, strConfig))
 	{
 		sscanf(strConfig.c_str(), "%15s", localIPaddress);
 	}
 	else
 	{
-		UTI_ERROR("Error can't get IP address from section : %s \n", SATCAR_SECTION);
+		UTI_ERROR("Error can't get IP address from section : %s \n",
+		          SATCAR_SECTION);
 	}
 
 	// get satellite channels from configuration
@@ -115,8 +116,7 @@ int sat_carrier_channel_set::readConfig()
 
 		i++;
 		// get carrier ID
-		if(!globalConfig.getAttributeIntegerValue(iter, CARRIER_ID,
-		                                          carrier_id))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_ID, carrier_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -124,8 +124,7 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get IP address
-		if(!globalConfig.getAttributeStringValue(iter, CARRIER_IP,
-		                                         carrier_ip))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_IP, carrier_ip))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -134,8 +133,7 @@ int sat_carrier_channel_set::readConfig()
 		}
 
 		// get port
-		if(!globalConfig.getAttributeLongIntegerValue(iter, CARRIER_PORT,
-		                                              carrier_port))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_PORT, carrier_port))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -143,8 +141,7 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get in
-		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_IN,
-		                                       carrier_in))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_IN, carrier_in))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -152,8 +149,7 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get out
-		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_OUT,
-		                                       carrier_out))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_OUT, carrier_out))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
@@ -161,8 +157,8 @@ int sat_carrier_channel_set::readConfig()
 			goto error;
 		}
 		// get multicast
-		if(!globalConfig.getAttributeBoolValue(iter, CARRIER_MULTICAST,
-		                                       carrier_multicast))
+		if(!globalConfig.getAttributeValue(iter, CARRIER_MULTICAST,
+		                                   carrier_multicast))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
