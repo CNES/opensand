@@ -37,6 +37,23 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<!-- simulation type -->
+<xsd:simpleType name="simuType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="none" />
+        <xsd:enumeration value="file" />
+        <xsd:enumeration value="random" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- simulation random type -->
+<xsd:simpleType name="simuRandom">
+    <xsd:restriction base="xsd:string">
+        <!-- int>100:int:int:int -->
+        <xsd:pattern value="([0-9]*:){3}[0-9]*" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- types for sat_carrier section -->
 <!--<xsd:simpleType name="carrierIp">
     <xsd:restriction base="xsd:string">
@@ -375,8 +392,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <!-- TODO NONE, RANDOM, FILE en enum -->
-            <xsd:element name="simulation" type="xsd:string">
+            <xsd:element name="simulation" type="simuType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Activate simulation requests
@@ -390,21 +406,20 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="simu_random" type="xsd:string">
+            <xsd:element name="simu_random" type="simuRandom">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         If simulation = random:
-                        nb_station (numbered > 100):RT bandwidth
-                        (Kb/s):mean_requests (Kb/s):amplitude_request (Kb/s)
+                        nb_station (numbered > 100):RT bandwidth(Kb/s):mean_requests (Kb/s):amplitude_request (Kb/s)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <!-- TODO ENUM -->
             <xsd:element name="stat_file" type="xsd:string">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Do we generate a stat history ? (same format as
                         simu_file, can be used for replaying a case study)
+                        Possible values are a file name, stdout, stderr or none
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -413,6 +428,7 @@
                     <xsd:documentation xml:lang="en">
                         Do we generate an event history ? (same format as
                         simu_file, can be used for replaying a case study)
+                        Possible values are a file name, stdout, stderr or none
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

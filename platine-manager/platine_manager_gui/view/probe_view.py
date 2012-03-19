@@ -109,19 +109,11 @@ class ProbeView(WindowView):
         formatter = FormatStrFormatter('%2.8g')
 
         if nbr != 0:
-            i = 0
-            while i < nbr:
-                axis = None
-
-                axis = self._fig.add_subplot(nbr, 1, i + 1)
-                axis.xaxis.set_major_formatter(formatter)
-                axis.yaxis.set_major_formatter(formatter)
-                axis.grid()
-
-                i = i + 1
+            for i in range(nbr):
+                self._fig.add_subplot(nbr, 1, i + 1)
         else:
-            axis = None
             self._fig.clear()
+            return
 
         if self._canvas is None:
             self._canvas = FigureCanvasGTK(self._fig)
@@ -240,7 +232,7 @@ class ProbeView(WindowView):
         # Construct the current subplot
         self._fig.subplots_adjust(hspace = 0.8)
 
-        pylab.subplot(nbr, 1, i + 1)
+        sub = pylab.subplot(nbr, 1, i + 1)
 
         self._log.debug('plot file length: %s %s' %
                         (len(x_list) , len(y_list)))
@@ -271,6 +263,10 @@ class ProbeView(WindowView):
         rymin = ymin - ((ymax - ymin) * 0.1)
         rymax = ymax + ((ymax - ymin) * 0.1)
         pylab.ylim(ymin=rymin, ymax=rymax)
+
+        formatter = FormatStrFormatter('%2.8g')
+        sub.yaxis.set_major_formatter(formatter)
+        sub.xaxis.set_major_formatter(formatter)
 
         self._canvas.draw_idle()
 

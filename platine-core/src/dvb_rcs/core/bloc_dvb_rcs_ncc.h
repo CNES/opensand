@@ -117,6 +117,21 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	/// Delay for allocation requests from PEP (in ms)
 	int pepAllocDelay;
 
+	/// parameters for request simulation
+	FILE *event_file;
+	FILE *stat_file;
+	FILE *simu_file;
+    enum
+	{
+		none_simu,
+		file_simu,
+		random_simu,
+	} simulate;
+	long simu_st;
+	long simu_rt;
+	long simu_cr;
+	long simu_interval;
+	mgl_timer simu_timer;
 
  public:
 
@@ -144,6 +159,7 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 
 	// initialization methods
 	int onInit();
+	bool initRequestSimulation();
 	int initTimers();
 	int initMode();
 	int initEncap();
@@ -165,6 +181,9 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 
 	bool getBBFRAMEDuration(unsigned int modcod_id, float *duration);
 
+	// event simulation
+	int simulateFile();
+	int simulateRandom();
 };
 
 #endif

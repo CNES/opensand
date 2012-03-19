@@ -105,6 +105,16 @@ BlocDVBRcsNcc::BlocDVBRcsNcc(mgl_blocmgr *blocmgr,
 	/* NGN network / Policy Enforcement Point (PEP) */
 	this->pep_cmd_apply_timer = -1;
 	this->pepAllocDelay = -1;
+
+	// request simulation
+	this->event_file = NULL;
+	this->stat_file = NULL;
+	this->simu_file = NULL;
+	this->simulate = none_simu;
+	this->simu_st = -1;
+	this->simu_rt = -1;
+	this->simu_cr = -1;
+	this->simu_interval = -1;
 }
 
 
@@ -124,6 +134,21 @@ BlocDVBRcsNcc::~BlocDVBRcsNcc()
 
 	if(this->m_bbframe != NULL)
 		delete this->m_bbframe;
+
+	if(this->event_file != NULL)
+	{
+		fflush(this->event_file);
+		fclose(this->event_file);
+	}
+	if(this->stat_file != NULL)
+	{
+		fflush(this->stat_file);
+		fclose(this->stat_file);
+	}
+	if(this->simu_file != NULL)
+	{
+		fclose(this->simu_file);
+	}
 }
 
 
@@ -300,6 +325,34 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 				status = mgl_ko;
 			}
 		}
+		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->simu_timer))
+		{
+			switch(this->simulate)
+			{
+				case file_simu:
+					ret = this->simulateFile();
+					if(ret == -1)
+					{
+						fclose(this->simu_file);
+						this->simu_file = NULL;
+						this->simulate = none_simu;
+					}
+					break;
+				case random_simu:
+					this->simulateRandom();
+					break;
+				default:
+					break;
+			}
+			// Set the timer for simulated events at next frame
+			if(this->simulate != none_simu)
+			{
+				this->setTimer(this->simu_timer, this->frame_duration);
+			}
+			// flush files
+			fflush(this->stat_file);
+			fflush(this->event_file);
+		}
 		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->scenario_timer))
 		{
 			// it's time to update MODCOD and DRA scheme IDs
@@ -454,6 +507,13 @@ int BlocDVBRcsNcc::onInit()
 		goto error;
 	}
 
+    if(!this->initRequestSimulation())
+    {
+		UTI_ERROR("failed to complete the request simulation part of the "
+		          "initialisation");
+		goto error;
+    }
+
 	// initialize the timers
 	ret = this->initTimers();
 	if(ret != 0)
@@ -603,6 +663,159 @@ error:
 	return -1;
 }
 
+
+/** Read configuration for the request simulation
+ *
+ * @return true in case of success, false otherwise
+ */
+bool BlocDVBRcsNcc::initRequestSimulation()
+{
+	const char *FUNCNAME = DBG_PREFIX "[initRequestSimulation]";
+	string str_config;
+
+	// Get and open the event file
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
+	{
+		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+		        FUNCNAME, DVB_EVENT_FILE, DVB_NCC_SECTION);
+		goto error;
+	}
+	if(str_config ==  "stdout")
+	{
+		this->event_file = stdout;
+	}
+	else if(str_config == "stderr")
+	{
+		this->event_file = stderr;
+	}
+	else if(str_config != "none")
+	{
+		this->event_file = fopen(str_config.c_str(), "a");
+		if(this->event_file == NULL)
+		{
+			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
+		}
+	}
+	if(this->event_file == NULL && str_config != "none")
+	{
+		UTI_ERROR("%s no record file will be used for event\n", FUNCNAME);
+	}
+	else if(this->event_file != NULL)
+	{
+		UTI_INFO("%s events recorded in %s.\n", FUNCNAME, str_config.c_str());
+	}
+
+	// Get and open the stat file
+	this->stat_file = NULL;
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_STAT_FILE, str_config))
+	{
+		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+		          FUNCNAME, DVB_STAT_FILE, DVB_NCC_SECTION);
+		goto error;
+	}
+	if(str_config == "stdout")
+	{
+		this->stat_file = stdout;
+	}
+	else if(str_config == "stderr")
+	{
+		this->stat_file = stderr;
+	}
+	else if(str_config != "none")
+	{
+		this->stat_file = fopen(str_config.c_str(), "a");
+		if(this->stat_file == NULL)
+		{
+			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
+		}
+	}
+	if(this->stat_file == NULL && str_config != "none")
+	{
+		UTI_ERROR("%s no record file will be used for statistics\n", FUNCNAME);
+	}
+	else if(this->stat_file != NULL)
+	{
+		UTI_INFO("%s statistics recorded in %s.\n", FUNCNAME, str_config.c_str());
+	}
+
+	// Get and set simulation parameter
+	//
+	this->simulate = none_simu;
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_MODE, str_config))
+	{
+		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+		          FUNCNAME, DVB_SIMU_MODE, DVB_NCC_SECTION);
+		goto error;
+	}
+
+	if(str_config == "file")
+	{
+		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
+		{
+			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+			          FUNCNAME, DVB_SIMU_FILE, DVB_NCC_SECTION);
+			goto error;
+		}
+		if(str_config == "stdin")
+		{
+			this->simu_file = stdin;
+		}
+		else
+		{
+			this->simu_file = fopen(str_config.c_str(), "r");
+		}
+		if(this->simu_file == NULL && str_config != "none")
+		{
+			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
+			UTI_ERROR("%s no simulation file will be used.\n", FUNCNAME);
+		}
+		else
+		{
+			UTI_INFO("%s events simulated from %s.\n", FUNCNAME,
+			         str_config.c_str());
+			this->simulate = file_simu;
+			this->setTimer(this->simu_timer, this->frame_duration);
+		}
+	}
+	else if(str_config == "random")
+	{
+		int val;
+
+		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_RANDOM, str_config))
+		{
+			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+			          FUNCNAME, DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+            goto error;
+		}
+		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld", &this->simu_st,
+		             &this->simu_rt, &this->simu_cr, &this->simu_interval);
+		if(val < 4)
+		{
+			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
+			          FUNCNAME, DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+			goto error;
+		}
+		else
+		{
+			UTI_INFO("%s random events simulated for %ld terminals with "
+			         "%ld kb/s bandwidth, a mean request of %ld kb/s and "
+			         "a request amplitude of %ld kb/s)" , FUNCNAME,
+			         this->simu_st, this->simu_rt, this->simu_cr, this->simu_interval);
+		}
+		this->simulate = random_simu;
+		this->setTimer(this->simu_timer, this->frame_duration);
+		srandom(times(NULL));
+	}
+	else
+	{
+		UTI_INFO("%s no event simulation\n", FUNCNAME);
+	}
+
+    return true;
+
+error:
+    return false;
+}
 
 /**
  * Read configuration for the different timers
@@ -759,7 +972,7 @@ int BlocDVBRcsNcc::initEncap()
 			UTI_ERROR("bad value for output encapsulation scheme "
 			          "with emission standard %s, check the value "
 			          "of parameter of encapsulation schemes in section "
-                      "'%s'\n", this->emissionStd->type().c_str(),
+			          "'%s'\n", this->emissionStd->type().c_str(),
 			          GLOBAL_SECTION);
 			goto error;
 		}
@@ -885,7 +1098,7 @@ int BlocDVBRcsNcc::initDraFiles()
 	if(access(dra_def_file.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-				  dra_def_file.c_str(), strerror(errno));
+		          dra_def_file.c_str(), strerror(errno));
 		goto error;
 	}
 	UTI_INFO("DRA scheme definition file = '%s'\n", dra_def_file.c_str());
@@ -905,7 +1118,7 @@ int BlocDVBRcsNcc::initDraFiles()
 	if(access(dra_simu_file.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-				  dra_simu_file.c_str(), strerror(errno));
+		          dra_simu_file.c_str(), strerror(errno));
 		goto error;
 	}
 	UTI_INFO("DRA scheme simulation file = '%s'\n", dra_simu_file.c_str());
@@ -1019,6 +1232,7 @@ int BlocDVBRcsNcc::initDama()
 		UTI_ERROR("failed to initialize the DAMA controller\n");
 		goto release_dama;
 	}
+	this->m_pDamaCtrl->setRecordFile(this->event_file, this->stat_file);
 
 	return 0;
 
@@ -1392,4 +1606,189 @@ void BlocDVBRcsNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 
 release:
 	g_memory_pool_dvb_rcs.release((char *) ip_buf);
+}
+
+
+/**
+ * Simulate event based on an input file
+ * @return 0 on success, -1 otherwise
+ */
+int BlocDVBRcsNcc::simulateFile()
+{
+	const char *FUNCNAME = DBG_PREFIX "[simulateEvents]";
+
+	static bool simu_eof = false;
+	static char buffer[255] = "";
+	static T_DVB_SAC_CR sim_cr;
+	static T_DVB_LOGON_REQ sim_logon_req;
+	static T_DVB_LOGOFF sim_logoff;
+	enum
+	{ none, cr, logon, logoff } event_selected;
+
+	int resul;
+	long sf_nr;
+	int st_id;
+	long st_request;
+	long st_rt;
+	int cr_type;
+
+	if(simu_eof)
+	{
+		UTI_DEBUG_L3("%s End of file.\n", FUNCNAME);
+		goto error;
+	}
+
+	sf_nr = -1;
+	while(sf_nr <= this->super_frame_counter)
+	{
+		if(4 ==
+		   sscanf(buffer, "SF%ld CR st%d cr=%ld type=%d", &sf_nr, &st_id,
+		   &st_request, &cr_type))
+		{
+			event_selected = cr;
+		}
+		else if(3 ==
+		        sscanf(buffer, "SF%ld LOGON st%d rt=%ld", &sf_nr, &st_id, &st_rt))
+		{
+			event_selected = logon;
+		}
+		else if(2 == sscanf(buffer, "SF%ld LOGOFF st%d", &sf_nr, &st_id))
+		{
+			event_selected = logoff;
+		}
+		else
+		{
+			event_selected = none;
+		}
+		// TODO fix to avoid sending probe for the simulated ST
+		//      remove once environment plane will be modified
+		if(st_id <= 100)
+		{
+			st_id += 100;
+		}
+		if(event_selected == none)
+			goto loop_step;
+		if(sf_nr < this->super_frame_counter)
+			goto loop_step;
+		if(sf_nr > this->super_frame_counter)
+			break;
+		switch (event_selected)
+		{
+		case cr:
+			sim_cr.hdr.msg_length = sizeof(T_DVB_SAC_CR);
+			sim_cr.hdr.msg_type = MSG_TYPE_CR;
+			sim_cr.cr_number = 1;
+			sim_cr.cr[0].route_id = 0;
+			//      sim_cr.cr[0].scaling_factor = 0;
+			sim_cr.cr[0].type = cr_type;
+			sim_cr.cr[0].channel_id = 255;
+			encode_request_value(&(sim_cr.cr[0]), st_request);
+			sim_cr.cr[0].group_id = 0;
+			sim_cr.cr[0].logon_id = st_id;
+			sim_cr.cr[0].M_and_C = 0;
+			UTI_DEBUG("SF%ld: send a simulated CR of type %d with xbdc = %ld "
+			          "and scale = %d for ST %d\n", this->super_frame_counter,
+			          sim_cr.cr[0].type, sim_cr.cr[0].xbdc,
+			          sim_cr.cr[0].scaling_factor, st_id);
+			this->m_pDamaCtrl->hereIsCR((unsigned char *) &sim_cr,
+			                            (long) sizeof(T_DVB_SAC_CR), 0);
+			break;
+		case logon:
+			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
+			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
+			sim_logon_req.mac = st_id;
+			sim_logon_req.rt_bandwidth = st_rt;
+			UTI_DEBUG("SF%ld: send a simulated logon for ST %d\n",
+			          this->super_frame_counter, st_id);
+			this->m_pDamaCtrl->hereIsLogonReq((unsigned char *) &sim_logon_req,
+			                                  (long) sizeof(T_DVB_LOGON_REQ), 0);
+			break;
+		case logoff:
+			sim_logoff.hdr.msg_type = MSG_TYPE_SESSION_LOGOFF;
+			sim_logoff.hdr.msg_length = sizeof(T_DVB_LOGOFF);
+			sim_logoff.mac = st_id;
+			UTI_DEBUG("SF%ld: send a simulated logoff for ST %d\n",
+			          this->super_frame_counter, st_id);
+			m_pDamaCtrl->hereIsLogoff((unsigned char *) &sim_logoff,
+			                          (long) sizeof(T_DVB_LOGOFF));
+			break;
+		default:
+			break;
+		}
+	 loop_step:
+		resul = -1;
+		while(resul < 1)
+		{
+			resul = fscanf(this->simu_file, "%254[^\n]\n", buffer);
+			if(resul == 0)
+			{
+				int ret;
+				// No conversion occured, we simply skip the line
+				ret = fscanf(this->simu_file, "%*s");
+			}
+			UTI_DEBUG_L3("fscanf resul=%d: %s", resul, buffer);
+			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
+			UTI_DEBUG_L3("frame %ld\n", this->super_frame_counter);
+			if(resul == -1)
+			{
+				simu_eof = true;
+				UTI_DEBUG_L3("%s End of file.\n", FUNCNAME);
+				goto error;
+			}
+		}
+	}
+
+	return 0;
+
+ error:
+	return -1;
+}
+
+/**
+ * Simulate event based on random generation
+ * @return 0 (always a success)    
+ */
+int BlocDVBRcsNcc::simulateRandom()
+{
+	static bool initialized = false;
+	static T_DVB_LOGON_REQ sim_logon_req;
+	static T_DVB_SAC_CR sim_cr;
+
+	int i;
+
+	if(!initialized)
+	{
+		for(i = 0; i < this->simu_st; i++)
+		{
+			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
+			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
+			sim_logon_req.mac = 100 + i + 1;
+			sim_logon_req.rt_bandwidth = this->simu_rt;
+			this->m_pDamaCtrl->hereIsLogonReq((unsigned char *) &sim_logon_req,
+			                                  (long) sizeof(T_DVB_LOGON_REQ), 0);
+		}
+		initialized = true;
+	}
+
+	for(i = 0; i < this->simu_st; i++)
+	{
+		sim_cr.hdr.msg_length = sizeof(T_DVB_SAC_CR);
+		sim_cr.hdr.msg_type = MSG_TYPE_CR;
+		sim_cr.cr[0].route_id = 0;
+		//    sim_cr.cr[0].scaling_factor = 0;
+		sim_cr.cr[0].type = DVB_CR_TYPE_RBDC;
+		sim_cr.cr[0].channel_id = 255;
+		encode_request_value(&(sim_cr.cr[0]),
+		                     this->simu_cr - this->simu_interval / 2 +
+		                    random() % this->simu_interval);
+		sim_cr.cr[0].group_id = 0;
+		sim_cr.cr[0].logon_id = 100 + i + 1;
+		sim_cr.cr[0].M_and_C = 0;
+		sim_cr.cr_number = 1;
+		this->m_pDamaCtrl->hereIsCR((unsigned char *) &sim_cr,
+		                            (long) sizeof(T_DVB_SAC_CR), 0);
+	}
+
+	return 0;
+
 }

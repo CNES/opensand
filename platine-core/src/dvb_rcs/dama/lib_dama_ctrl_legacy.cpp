@@ -114,20 +114,25 @@ int DvbRcsDamaCtrlLegacy::runDama()
 			rbdc_request_number++;
 			rbdc_request_sum += request;
 		}
-
 	}
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_REQUEST_NUMBER,
 	                       0, rbdc_request_number);
+	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_REQUESTED_CAPACITY,
 	                       0,
 	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
+	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
+	               (int) Converter->
+	               ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_VBDC_REQUEST_NUMBER, 0,
 	                       vbdc_request_number);
+	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_VBDC_REQUESTED_CAPACITY,
 	                       0, vbdc_request_sum);
+	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
 
 	// RBDC allocation
 	remaining_capacity = runDamaRbdc(total_capacity);
@@ -136,6 +141,10 @@ int DvbRcsDamaCtrlLegacy::runDama()
 	                       0,
 	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
+	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
 	total_capacity = remaining_capacity;
 
 	// VBDC allocation
@@ -145,6 +154,10 @@ int DvbRcsDamaCtrlLegacy::runDama()
 	                       0,
 	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
+	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
 	total_capacity = remaining_capacity;
 
 	// FCA allocation
@@ -157,6 +170,10 @@ int DvbRcsDamaCtrlLegacy::runDama()
 	                       0,
 	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
+	DC_RECORD_STAT("ALLOC FCA %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
 
 	return 0;
 }
@@ -206,6 +223,7 @@ int DvbRcsDamaCtrlLegacy::runDamaRbdc(int Tac)
 
 			ENV_AGENT_Probe_PutFloat(&EnvAgent, C_PROBE_GW_UPLINK_FAIR_SHARE,
 			                         0, FairShare);
+			DC_RECORD_STAT("FAIR SHARE %f", FairShare);
 			// if there is no congestion,
 			// force the ratio to 1.0 in order to not limit the requests
 			if(FairShare < 1.0)

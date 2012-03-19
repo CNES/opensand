@@ -118,28 +118,40 @@ int DvbRcsDamaCtrlYes::runDama()
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_REQUEST_NUMBER,
 	                       0, rbdc_request_number);
+	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_REQUESTED_CAPACITY,
 	                       0,
 	                       (int) Converter->
 	                       ConvertFromCellsPerFrameToKbits((double)
 	                       rbdc_request_sum));
+	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_VBDC_REQUEST_NUMBER,
 	                       0, vbdc_request_number);
+	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_VBDC_REQUESTED_CAPACITY,
 	                       0, vbdc_request_sum);
+	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_ALLOCATION,
 	                       0,
 	                       (int) Converter->
 	                       ConvertFromCellsPerFrameToKbits((double)
 	                       rbdc_request_sum));
+	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_VBDC_ALLOCATION, 0,
 	                       (int) Converter->
 	                       ConvertFromCellsPerFrameToKbits((double)
 	                       vbdc_request_sum));
+	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) vbdc_request_sum));
 
 	return 0;
 }

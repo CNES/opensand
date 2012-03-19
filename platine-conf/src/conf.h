@@ -168,6 +168,11 @@
 #define DVB_SOF_CAR             "carrier_id_sof"
 #define DVB_DATA_CAR            "carrier_id_data"
 #define DVB_SIZE_FIFO           "max_fifo"
+#define DVB_EVENT_FILE          "event_file"
+#define DVB_STAT_FILE           "stat_file"
+#define DVB_SIMU_FILE           "simu_file"
+#define DVB_SIMU_MODE           "simulation"
+#define DVB_SIMU_RANDOM         "simu_random"
 
 //////////////////////
 //    PEP section   //
@@ -192,11 +197,9 @@
 #define DC_SECTION_MAC_LAYER        "mac_layer"
 #define DC_CARRIER_TRANS_RATE       "carrier_transmission_rate"
 #define DC_CARRIER_NUMBER           "carrier_number"
-#define DC_GAC_PORT                 "gac_port"
 
 #define DC_DFLT_RBDC_TIMEOUT        16
 #define DC_DFLT_CARRIER_TRANS_RATE  4096
-#define DC_DFLT_GAC_PORT            5555
 
 
 
@@ -205,12 +208,10 @@
 //////////
 
 #define DA_MAC_LAYER_SECTION    "mac_layer"
-#define DA_FRM_DURATION         "frame_duration"
 #define DA_CARRIER_TRANS_RATE   "carrier_transmission_rate"
 
 #define DA_TAL_SECTION          "dvb_rcs_tal"
 #define DA_RT_BANDWIDTH         "rt_fixed_bandwidth"
-#define DA_OBR_PERIOD_DATA      "obr_period"
 #define DA_MAX_RBDC_DATA        "max_rbdc"
 #define DA_RBDC_TIMEOUT_DATA    "rbdc_timeout"
 #define DA_MAX_VBDC_DATA        "max_vbdc"
@@ -218,7 +219,6 @@
 #define DA_CR_RULE              "cr_rule_output_fifo_only"
 
 // default parameter values used by NCC
-#define DC_DFLT_DAMA_BHV        SACT_builtin
 #define DC_DFLT_CRA_DECREASE    1
 #define DC_DFLT_FREE_CAP        100 // in kbits/s
 #define DC_DFLT_MIN_VBDC        0   // in kbits/s
@@ -237,7 +237,6 @@
 // default parameter values used by NCC and ST
 #define DFLT_RBDC_TIMEOUT       16   // in frame number
 #define DFLT_CARRIER_TRANS_RATE 4096 // in kbits/s
-#define DFLT_FRMS_PER_SUPER     10
 #define DFLT_FRM_DURATION       53   // in ms
 
 //////////

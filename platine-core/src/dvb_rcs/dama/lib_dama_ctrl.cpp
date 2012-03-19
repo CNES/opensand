@@ -130,6 +130,8 @@ DvbRcsDamaCtrl::DvbRcsDamaCtrl()
 	m_max_rbdc = 0;
 	m_cra_decrease = 0;
 	this->Converter = NULL;
+	this->event_file = NULL;
+	this->stat_file = NULL;
 }
 
 
@@ -384,6 +386,9 @@ int DvbRcsDamaCtrl::hereIsLogonReq(unsigned char *buf, long len, int dra_id)
 		m_total_cra += NewSt->SetCra(Cra);
 	}
 
+	DC_RECORD_EVENT("LOGON st%d rt = %ld", dvb_logon_req->mac,
+	                dvb_logon_req->rt_bandwidth);
+
 	return 0;
 }
 
@@ -424,6 +429,7 @@ int DvbRcsDamaCtrl::hereIsLogoff(unsigned char *buf, long len)
 		m_nb_st -= 1;
 	}
 
+	DC_RECORD_EVENT("LOGOFF st%d", dvb_logoff->mac);
 	return 0;
 }
 
@@ -462,7 +468,6 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 
 	for(i = 0; i < sac_cr->cr_number; i++)
 	{
-
 		// check the request
 		cr = &sac_cr->cr[i];
 
@@ -497,7 +502,12 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 		// take into account the new request
 		if(cr->type == DVB_CR_TYPE_VBDC)
 		{
-			ThisSt->SetVbdc(xbdc);
+			if(ThisSt->SetVbdc(xbdc) == 0)
+			{
+				// Now we are sure to have a valid cr for a valid context
+				DC_RECORD_EVENT("CR st%d cr=%d type=%d", cr->logon_id, xbdc,
+				                DVB_CR_TYPE_VBDC);
+			}
 		}
 		else if(cr->type == DVB_CR_TYPE_RBDC)
 		{
@@ -513,7 +523,12 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 				Request = Converter->ConvertFromKbitsToCellsPerFrame(xbdc);
 			}
 
-			ThisSt->SetRbdc(Request);
+			if(ThisSt->SetRbdc(Request) == 0)
+			{
+				// Now we are sure to have a valid cr for a valid context
+				DC_RECORD_EVENT("CR st%d cr=%d type=%d", cr->logon_id, xbdc,
+				                DVB_CR_TYPE_RBDC);
+			}
 		}
 	}
 
@@ -589,11 +604,21 @@ int DvbRcsDamaCtrl::hereIsSACT(unsigned char *buf, long len)
 		// take into account the new request
 		if(cr->type == DVB_CR_TYPE_VBDC)
 		{
-			ThisSt->SetVbdc(cr->xbdc);
+			if(ThisSt->SetVbdc(cr->xbdc) == 0)
+			{
+				// Now we are sure to have a valid cr for a valid context
+				DC_RECORD_EVENT("CR st%d cr=%ld type=%d", cr->logon_id,
+				                cr->xbdc, DVB_CR_TYPE_VBDC);
+			}
 		}
 		else if(cr->type == DVB_CR_TYPE_RBDC)
 		{
-			ThisSt->SetRbdc(Converter->ConvertFromKbitsToCellsPerFrame(cr->xbdc));
+			if(ThisSt->SetRbdc(Converter->ConvertFromKbitsToCellsPerFrame(cr->xbdc)) == 0)
+			{
+				// Now we are sure to have a valid cr for a valid context
+				DC_RECORD_EVENT("CR st%d cr=%ld type=%d", cr->logon_id,
+				                cr->xbdc, DVB_CR_TYPE_RBDC);
+			}
 		}
 
 		cr = next_sac_ptr(cr);
@@ -681,7 +706,12 @@ int DvbRcsDamaCtrl::runOnSuperFrameChange(long frame_nb)
 	                       0,
 	                      (int) Converter->
 	                       ConvertFromCellsPerFrameToKbits((double) m_total_cra));
+	DC_RECORD_STAT("ALLOC CRA %f kbits/s",
+	               Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) m_total_cra));
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_LOGGED_ST_NUMBER, 0, m_nb_st);
+	DC_RECORD_STAT("ALLOC NB ST %d", m_nb_st);
+
 
 	// init the TBTP (reset the allocation)
 	cleanTBTP();
@@ -692,6 +722,16 @@ int DvbRcsDamaCtrl::runOnSuperFrameChange(long frame_nb)
 	{
 		St_id = st->first;
 		ThisSt = st->second;
+		total_rbdc_max += ThisSt->GetRbdcMax();
+		ThisSt->Update();
+
+		// ignore simulated ST in stats, there ID is > 100
+		// TODO limitation caused by environment plane,
+		//      remove if environment plane is rewritten
+		if(St_id > 100)
+		{
+			continue;
+		}
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
 		                       C_PROBE_GW_CRA_ST_ALLOCATION,
 		                       St_id,
@@ -709,8 +749,6 @@ int DvbRcsDamaCtrl::runOnSuperFrameChange(long frame_nb)
 		                       St_id,
 		                       (int) Converter->
 		                       ConvertFromCellsPerFrameToKbits((double) ThisSt->GetRbdcMax()));
-		total_rbdc_max += ThisSt->GetRbdcMax();
-		ThisSt->Update();
 	}
 	ENV_AGENT_Probe_PutInt(&EnvAgent,
 	                       C_PROBE_GW_RBDC_MAX_ALLOCATION,
@@ -1074,3 +1112,18 @@ long DvbRcsDamaCtrl::getCarrierId()
 {
 	return this->m_carrierId;
 }
+
+/**
+ * Set the file descriptor for storing events
+ * @param event_stream is the file descriptor of an append only opened stream used for event record
+ * @param stat_stream is the file descriptor of an append only opened stream used for stat record
+ *
+ */
+void DvbRcsDamaCtrl::setRecordFile(FILE * event_stream, FILE * stat_stream)
+{
+	this->event_file = event_stream;
+	DC_RECORD_EVENT("%s", "# --------------------------------------\n");
+	this->stat_file = stat_stream;
+	DC_RECORD_STAT("%s", "# --------------------------------------\n");
+}
+

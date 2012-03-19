@@ -106,6 +106,13 @@ class DvbRcsDamaCtrl
 	int m_cra_decrease;       ///< Flag indicating if the RBDC request has to
 	                          ///< be decrease of the CRA value
 
+
+	FILE *event_file;    ///< if set to other than NULL, the fd where recording
+	                     ///< event
+	FILE *stat_file;     ///< if set to other than NULL, the fd where recording
+	                     ///< event
+
+
 	// The tbtp must be built in the same time authorizations are
 	// computed (for efficiency reason). The best place to do that is in
 	// runDama().
@@ -133,6 +140,7 @@ class DvbRcsDamaCtrl
 	virtual int init(long carrier_id, int frame_duration,
 	                 int allocation_cycle, int packet_length,
 	                 DraSchemeDefinitionTable *dra_def_table);
+	virtual void setRecordFile(FILE * event_stream, FILE * stat_stream);
 
 	// Process DVB frames
 	virtual int hereIsLogonReq(unsigned char *ip_buf, long i_len, int dra_id);
@@ -166,11 +174,31 @@ class DvbRcsDamaCtrl
 	 * We use internal SACT, TBTP and context for doing that.
 	 * After DAMA computation, TBTP is completed and context is reinitialized
 	 *
- 	 * @return 0 on success, -1 otherwise
+	 * @return 0 on success, -1 otherwise
 	 */
 	virtual int runDama() = 0;
 
 
 };
+
+/**
+ * used to record event only valid if event_file != NULL
+ */
+#define DC_RECORD_EVENT(fmt,args...){                                 \
+	if (this->event_file != NULL) {                                         \
+		fprintf(this->event_file, "SF%ld "fmt"\n", m_currentSuperFrame, ##args); \
+	}                                                                   \
+}
+
+
+/**
+ * used to record event only valid if stat_file != NULL
+ */
+#define DC_RECORD_STAT(fmt,args...){                                 \
+	if (this->stat_file != NULL) {                                         \
+		fprintf(this->stat_file, "SF%ld "fmt"\n", m_currentSuperFrame, ##args); \
+	}                                                                  \
+}
+
 
 #endif
