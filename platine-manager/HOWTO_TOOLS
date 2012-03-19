@@ -14,8 +14,8 @@ for manager with:
     - the /usr/share/platine/manager/images/tools/NAME.png image (20x20)
       for the tool representation (optionnal)
     - the tool binary (for deploy mode only).
-	- optional configuration files in /usr/share/platine/tools/NAME/HOST/, with
-	  extension in .xml, .conf, .ini
+    - optional configuration files in /usr/share/platine/tools/NAME/HOST/, with
+      extension in .xml, .conf, .ini
 
 and a package for the daemons with:
     - the tool name in the tools section of daemon configuration
@@ -25,7 +25,7 @@ and a package for the daemons with:
 The tools configurations are deployed in /etc/platine/tools/NAME.conf
 
 For advanced users (developpers) you also need to update
-$HOME/.platine/deploy.ini to deploy your tool. 
+$HOME/.platine/deploy.ini to deploy your tool.
 TODO: mettre une structure de répertoire debian
 
 ********************************************************************************
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             print "ERROR: this host does not support the tool"
             sys.exit(1)
     except ConfigParser.Error, msg:
-        print 'ERROR: cannot get host name in configuration file (%s)' % msg 
+        print 'ERROR: cannot get host name in configuration file (%s)' % msg
 
 
     tools = ''
@@ -81,27 +81,27 @@ if __name__ == "__main__":
         os.execv(debconf._frontEndProgram, [debconf._frontEndProgram] + sys.argv)
 
     if sys.argv[1] == "add":
-        if tools.find(TOOL_NAME) != -1: 
+        if tools.find(TOOL_NAME) != -1:
             print "Tool already supported by daemon"
             sys.exit(1)
         try:
             tools = tools + " " + TOOL_NAME
             parser.set('service', 'tools', tools)
         except ConfigParser.Error, msg:
-            print 'ERROR: cannot set tools in configuration file (%s)' % msg 
+            print 'ERROR: cannot set tools in configuration file (%s)' % msg
             sys.exit(1)
 
         if db_tools.find(TOOL_NAME) == -1:
             db_tools = db_tools + " " + TOOL_NAME
     else:
         try:
-            tools = tools.replace(TOOL_NAME, "") 
-            if tools.isspace() or tools == '': 
+            tools = tools.replace(TOOL_NAME, "")
+            if tools.isspace() or tools == '':
                 parser.remove_option('service', 'tools')
             else:
                 parser.set('service', 'tools', tools)
         except ConfigParser.Error, msg:
-            print 'ERROR: cannot set tools in configuration file (%s)' % msg 
+            print 'ERROR: cannot set tools in configuration file (%s)' % msg
             sys.exit(1)
 
         if db_tools.find(TOOL_NAME) != -1:
