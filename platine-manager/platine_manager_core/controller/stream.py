@@ -74,7 +74,8 @@ class Stream:
                               "send an empty file" % src_directory)
             raise IOError
 
-        self._log.debug("send content of folder '%s'" % dst_directory)
+        self._log.debug("send content of folder '%s' to '%s'" %
+                        (src_directory, dst_directory))
 
         # get the whole content of the folder and sort it
         content = glob.glob(src_directory + "/*")
@@ -83,11 +84,11 @@ class Stream:
         if prolog:
             buf = '<?xml version="1.0" encoding="utf-8"?>\n'
             # open directory tag: put complete directory
-            buf = buf + '<directory name="%s">\n' % src_directory
+            buf = buf + '<directory name="%s">\n' % dst_directory
         else:
             # open directory tag
             buf = buf + '<directory name="%s">\n' % \
-                  os.path.basename(src_directory)
+                  os.path.basename(dst_directory)
 
         # write tags
         self._tmp_file.write(buf)
