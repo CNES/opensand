@@ -60,7 +60,6 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  */
 int sat_carrier_channel_set::readConfig()
 {
-	char remoteMacAddr[18];
 	int nbChannel;
 	unsigned short carrierID;
 	char in[2], out[2], multicast[2];
@@ -108,13 +107,12 @@ int sat_carrier_channel_set::readConfig()
 		ret = globalConfig.getListItem(SATCAR_SECTION, i + 1, strConfig);
 		if(ret >= 0)
 		{
-			sscanf(strConfig.c_str(), "%hu %17s %15s %ld %1s %1s %1s",
-			       &carrierID, remoteMacAddr, IPaddress,
-			       &port, in, out, multicast);
-			UTI_DEBUG("Line: %d/%d, Carrier ID : %u, Mac : %s, IPaddress: %s, "
+			sscanf(strConfig.c_str(), "%hu %15s %ld %1s %1s %1s",
+			       &carrierID, IPaddress, &port, in, out, multicast);
+			UTI_DEBUG("Line: %d/%d, Carrier ID : %u, IPaddress: %s, "
 			          "port: %ld, in : %s, out : %s, multicast: %s\n",
-			          i + 1, nbChannel, carrierID, remoteMacAddr,
-			          IPaddress, port, in, out, multicast);
+			          i + 1, nbChannel, carrierID, IPaddress, port, in,
+			          out, multicast);
 		}
 		else
 		{
