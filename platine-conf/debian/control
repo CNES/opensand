@@ -1,14 +1,14 @@
 Source: platine-conf
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
-Build-Depends: debhelper (>= 7), autotools-dev
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config, libxml++2.6-dev
 Standards-Version: 3.8.3
 Section: libs
 
 Package: libplatine-conf-dev
 Section: libdevel
 Architecture: any
-Depends: libplatine-conf (= ${binary:Version})
+Depends: libplatine-conf (= ${binary:Version}), libxml++2.6-dev
 Description: The configuration library and headers for Platine
 
 Package: libplatine-conf-dbg

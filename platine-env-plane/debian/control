@@ -1,7 +1,7 @@
 Source: platine-env-plane
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
-Build-Depends: debhelper (>= 7), autotools-dev
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config
 Standards-Version: 3.8.3
 
 Package: libplatine-env-plane-dev
