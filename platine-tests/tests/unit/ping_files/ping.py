@@ -58,7 +58,8 @@ class PingTest():
         print "Find %s at address %s" % (name, management_address)
 
         i = 0
-        address = ''
+        address_v4 = ''
+        address_v6 = ''
         instance = 0
         args_nbr = len(args[9])
         while i < args_nbr:
@@ -76,7 +77,9 @@ class PingTest():
                 val = val + str(txt[j])
                 j = j + 1
             if key == 'lan_ipv4':
-                address = val
+                address_v4 = val
+            if key == 'lan_ipv6':
+                address_v6 = val
             if key == 'id':
                 instance = val
 
@@ -84,14 +87,18 @@ class PingTest():
         if ((name.startswith('ws') or name.startswith('st')) and \
             (name != WS_NAME and instance != WS_INSTANCE)) or \
            name.startswith('gw'):
-            if address == '':
+            if address_v4 == '':
                 self.print_error('no IPv4 lan address for %s' % name)
             else:
-                self.ping(name, address)
+                self.ping(name, address_v4)
+            if address_v6 == '':
+                self.print_error('no IPv6 lan address for %s' % name)
+            else:
+                self.ping(name, address_v6, True)
 
     def print_error(self, *args):
         """ error handler """
-        sys.stderr.write('service error handler: %s\n' % str(args[0]))
+        print 'service error handler: %s\n' % str(args[0])
         self.returncode = 1
 
     def handler_new(self, interface, protocol, name, stype, domain, flags):
@@ -114,19 +121,22 @@ class PingTest():
         print "AllForNow signal: quit"
         self._mainloop.quit()
 
-    def ping(self, name, address):
+    def ping(self, name, address, v6=False):
         """ ping a st or ws """
         print "ping %s at address %s" % (name, address)
-        ping = subprocess.Popen(["ping", "-c", "1", address],
+        cmd = 'ping'
+        if v6:
+            cmd = 'ping6'
+        ping = subprocess.Popen([cmd, "-c", "1", address],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         out, err = ping.communicate()
-        self.returncode = ping.returncode
         print out
         if err != '':
-            sys.stderr.write(err + '\n')
+            print err + '\n'
         if ping.returncode != 0:
-            sys.stderr.write("ping returned %s\n" % str(ping.returncode))
+            self.returncode = ping.returncode
+            print "ping returned %s\n" % str(ping.returncode)
 
         if ping.returncode == 0:
             # check that time is correct
@@ -135,16 +145,14 @@ class PingTest():
                (name != 'st2' and name != 'gw' and not name.startswith('ws2')):
                 # time ~ 1200ms
                 if time > 1400 or time < 1000:
-                    sys.stderr.write("bad ping time %s for %s\n" %
-                                     (time, name))
+                    print "bad ping time %s for %s\n" % (time, name)
                     self.returncode = 1
                 else:
                     print "OK"
             else:
                 # time ~ 600ms
                 if time > 800 or time < 400:
-                    sys.stderr.write("bad ping time %s for %s\n" %
-                                     (time, name))
+                    print "bad ping time %s for %s\n" % (time, name)
                     self.returncode = 1
                 else:
                     print "OK"
@@ -170,8 +178,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         test = PingTest(sys.argv[1])
     else:
-        sys.stderr.write("Usage: ping.py [sat_type] "
-                         "with sat_type in {transparent, regenerative}\n")
+        print "Usage: ping.py [sat_type] " \
+              "with sat_type in {transparent, regenerative}\n"
         sys.exit(1)
     sys.exit(test.returncode)
 

@@ -1,11 +1,11 @@
 [prefix]
-source=./tests/unit/ping_files
-destination=/tmp
+source=.
+destination=/tmp/platine_tests
 
 [ws1_test]
-files=ping.py
+files=unit/ping_files/ping.py
 
 [command]
-exec=/tmp/ping.py transparent
+exec=/tmp/platine_tests/ping.py transparent
 wait=True
 return=0

@@ -184,7 +184,7 @@ help="specify the root folder for tests configurations\n"
             raise
         except KeyboardInterrupt:
             if self._quiet:
-                print "Intrrupted: please wait..."
+                print "Interrupted: please wait..."
             self._log.info("Interrupted: please wait...")
             self.close()
             raise
@@ -243,7 +243,10 @@ help="specify the root folder for tests configurations\n"
         # if the tess is launched with the type option
         # check if it is a supported type
         types = os.listdir(self._folder)
-        if self._type is not None and self._types not in types:
+        for folder in types:
+            if folder.startswith('.'):
+                types.remove(folder)
+        if self._type is not None and self._type not in types:
             raise TestError("Initialization", "test type '%s' is not available,"
                             " supported values are %s" % (self._type, types))
         # get test_type folders
@@ -325,7 +328,7 @@ help="specify the root folder for tests configurations\n"
 
         try:
             if self._folder != '':
-                config.set('prefix', 'src', self._folder)
+                config.set('prefix', 'source', self._folder)
         except:
             pass
 
