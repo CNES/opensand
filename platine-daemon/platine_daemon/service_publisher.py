@@ -125,9 +125,6 @@ class PlatineServicePublisher():
         elif state == avahi.ENTRY_GROUP_FAILURE:
             LOGGER.error("error in group state changed" +  error)
             self.stop()
-        else:
-            LOGGER.error("unknown state: " + state)
-            self.stop()
 
     def run(self):
         """ run the Platine service """

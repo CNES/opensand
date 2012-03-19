@@ -21,7 +21,7 @@ NB_LAN=5
 # load the configuration file
 load_conf(){
     # load debconf parameters
-    db_get platine-daemon/service/type
+    db_get platine-daemon/service/name
     if  [ ${RET} = 'ST' -o ${RET} = 'st' ]; then
         db_get platine-daemon/service/st_instance
         export LAN=$RET

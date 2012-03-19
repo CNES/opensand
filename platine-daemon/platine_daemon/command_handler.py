@@ -207,7 +207,8 @@ class CommandHandler(MyTcpHandler):
         with open('/tmp/platine_tests/result', 'w') as output:
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
-                                       stderr=subprocess.STDOUT)
+                                       stderr=subprocess.STDOUT,
+                                       cwd=os.path.dirname(command))
         out, err = process.communicate()
         if out is not None:
             LOGGER.debug("test output:\n" + out)
