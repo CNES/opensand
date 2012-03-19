@@ -34,7 +34,6 @@
 tool.py - Tool model for Platine manager
 """
 
-import ConfigParser
 import os
 import glob
 import shutil
@@ -144,7 +143,7 @@ class ToolModel:
             self._state = None
             self._selected = None
             raise ModelException("failed to parse %s configuration file:\n\t%s"
-                                 % (self._name, self._conf_file, msg))
+                                 % (self._name, msg))
 
     def get_name(self):
         """ get the tool name """
@@ -204,7 +203,8 @@ class ToolModel:
 
     def get_conf_files(self):
         """get the configuration files."""
-        conf_directory = "/usr/share/platine/tools/%s/%s/" % (self._name, self._compo)
+        conf_directory = "/usr/share/platine/tools/%s/%s/" % \
+                         (self._name, self._compo)
         conf_files = {}
         for extension in ["*.xml", "*.conf", "*.ini"]:
             for conf_file in glob.glob(conf_directory + extension):

@@ -36,7 +36,6 @@ advanced_dialog.py - The Platine advanced configuration
 
 import gobject
 import gtk
-import ConfigParser
 import threading
 
 from platine_manager_gui.view.window_view import WindowView
@@ -62,6 +61,7 @@ class AdvancedDialog(WindowView):
         self._enabled = []
         self._saved = []
         self._host_lock = threading.Lock()
+        self._refresh_tree = None
 
     def go(self):
         """ run the window """
@@ -77,7 +77,8 @@ class AdvancedDialog(WindowView):
 
     def close(self):
         """ close the window """
-        gobject.source_remove(self._refresh_tree)
+        if self._refresh_tree is not None:
+            gobject.source_remove(self._refresh_tree)
         self._dlg.destroy()
 
     def load(self):
@@ -145,7 +146,7 @@ class AdvancedDialog(WindowView):
         old_host_names = set(self._hosts_name) - set(real_names)
         for host_name in old_host_names:
             gobject.idle_add(self._tree.del_host, host_name)
-            self._hosts_name.premove(host_name)
+            self._hosts_name.remove(host_name)
 
         self._host_lock.release()
 

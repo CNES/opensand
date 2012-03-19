@@ -34,14 +34,13 @@
 tool_event.py - the events on tool tab
 """
 
-import gtk
 import gobject
-import ConfigParser
 
 from platine_manager_core.model.tool import ToolModel
 from platine_manager_gui.view.tool_view import ToolView
 from platine_manager_gui.view.popup.infos import error_popup
-from platine_manager_core.my_exceptions import ToolException
+from platine_manager_gui.view.utils.config_elements import ConfigurationNotebook
+from platine_manager_core.my_exceptions import XmlException
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -150,7 +149,7 @@ class ToolEvent(ToolView):
             if self._current_notebook is not None:
                 self._config_view.remove(self._current_notebook)
             self._config_view.show_all()
-            self._current_notebook = vbox
+            self._current_notebook = notebook
         else:
             self._config_view.show_all()
 
@@ -165,21 +164,21 @@ class ToolEvent(ToolView):
             if not host_name in self._selected_tools.keys():
                 continue
             for tool in [elt for elt in host.get_tools()
-                             if tool_name in self._selected_tools[host_name]]:
+                             if elt.get_name() in self._selected_tools[host_name]]:
                 self._log.debug("tool %s enabled for %s" %
-                                (tool_name.upper(), host_name.upper()))
+                                (elt.get_name().upper(), host_name.upper()))
                 tool.set_selected()
             # save the tool configuration
             for tool in host.get_tools():
-                notebook = tool_model.get_conf_view()
+                notebook = tool.get_conf_view()
                 if notebook is None:
                     continue
                 try:
                     self._log.debug("save %s config for %s" %
-                                    (tool_name, host_name))
+                                    (tool.get_name(), host_name))
                     notebook.save()
                 except XmlException, error:
-                    error_popup("%s: %s" % (name, error), error.description)
+                    error_popup("%s: %s" % (host_name, error.description))
 
         # do that to copy contents else saved tools will contain references on
         # selected tools

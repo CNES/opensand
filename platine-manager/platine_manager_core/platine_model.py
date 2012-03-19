@@ -325,14 +325,15 @@ if __name__ == "__main__":
     LOGGER = ManagerLog('debug', True, True, True)
     MODEL = Model(LOGGER)
     try:
-        LOGGER.debug("payload type: " + MODEL.get_payload_type())
-        LOGGER.debug("emission standard: " + MODEL.get_emission_std())
+        CONFIG = MODEL.get_conf()
+        LOGGER.debug("payload type: " + CONFIG.get_payload_type())
+        LOGGER.debug("emission standard: " + CONFIG.get_emission_std())
         LOGGER.debug("uplink encapsulation protocol: " +
-                     MODEL.get_out_encapsulation())
+                     CONFIG.get_up_return_encap())
         LOGGER.debug("downlink encapsulation protocol: " +
-                     MODEL.get_in_encapsulation())
-        LOGGER.debug("terminal type: " + MODEL.get_terminal_type())
-        LOGGER.debug("frame duration: " + str(MODEL.get_frame_duration()))
+                     CONFIG.get_down_forward_encap())
+        LOGGER.debug("terminal type: " + CONFIG.get_terminal_type())
+        LOGGER.debug("frame duration: " + str(CONFIG.get_frame_duration()))
 
         MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {})
         MODEL.add_host('st3', '3', '127.0.0.1', 1111, 2222, {})

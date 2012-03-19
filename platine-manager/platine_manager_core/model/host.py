@@ -92,11 +92,6 @@ class HostModel:
             except ModelException as error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
 
-    def reload_advanced_configuration(self, scenario):
-        """ update the scenario path for advanced configuration """
-        if self._advanced is not None:
-            self._advanced.load(self._name, scenario)
-
     def get_advanced_conf(self):
         """ get the advanced configuration """
         return self._advanced

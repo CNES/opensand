@@ -40,10 +40,9 @@ import gobject
 
 from platine_manager_gui.view.conf_view import ConfView
 from platine_manager_gui.view.popup.infos import error_popup, yes_no_popup
-from platine_manager_core.my_exceptions import ModelException, XmlException
+from platine_manager_core.my_exceptions import XmlException
 from platine_manager_gui.view.popup.advanced_dialog import AdvancedDialog
 
-#TODO find a way to handle properly links protocols
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
@@ -193,6 +192,12 @@ class ConfEvent(ConfView) :
         widget = self._ui.get_widget('label_emission_standard')
         widget.set_markup('<b>ST Uplink Standard</b>')
 
+        # disable DVB-S2 emission standard on ST because it is not
+        # implemented in regenerative mode yet
+        widget = self._ui.get_widget('DVB-S2')
+        widget.set_sensitive(False)
+
+
     def on_transparent_button_clicked(self, source=None, event=None):
         """ actions performed when transparent is selected """
         self._payload = 'transp'
@@ -209,6 +214,12 @@ class ConfEvent(ConfView) :
         widget.set_markup('<b>Return Link Encapsulation Scheme</b>')
         widget = self._ui.get_widget('label_emission_standard')
         widget.set_markup('<b>ST Return Link Standard</b>')
+
+        # disable DVB-S2 emission standard on ST because it is not
+        # implemented in transparent mode yet
+        widget = self._ui.get_widget('DVB-S2')
+        widget.set_sensitive(False)
+
 
     def on_dvb_rcs_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-RCS is selected """

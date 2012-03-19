@@ -65,10 +65,10 @@ class XmlParser:
         except IOError, err:
             raise
         except etree.XMLSyntaxError, err:
-            raise XmlException(err.error_log)
+            raise XmlException(err.error_log.last_error.message)
 
         if not self._schema.validate(self._tree):
-            raise XmlException(self._schema.error_log)
+            raise XmlException(self._schema.error_log.last_error.message)
 
         root = self._tree.getroot()
         if(root.tag != "configuration"):
@@ -151,6 +151,7 @@ class XmlParser:
             elt.getparent().remove(elt)
 
     def add_line(self, key):
+        """ add a line in the table identified by key """
         tables = self._tree.xpath(key)
         if len(tables) != 1:
             raise XmlException("wrong path: %s is not valid" % key)

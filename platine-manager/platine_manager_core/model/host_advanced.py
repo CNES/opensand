@@ -36,7 +36,6 @@ host_advanced.py - advanced model for hosts
 
 import os
 import shutil
-from xml.sax import parse, SAXException
 
 from platine_manager_core.my_exceptions import ModelException, XmlException
 from platine_manager_core.platine_xml_parser import XmlParser
@@ -91,7 +90,6 @@ class AdvancedHostModel:
             try:
                 # customize ST id
                 self._configuration.set_value(instance, "//dvb_mac_id")
-                self._configuration.set_value(name.upper(), "//st_name")
                 # TODO remove that !!!
                 net = 18 + int(instance)
                 address = "192.168.%d.5" % net

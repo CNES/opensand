@@ -37,6 +37,8 @@ tcp_server.py - server that get Platine commands
 import SocketServer
 import select
 
+from platine_manager_core.my_exceptions import CommandException
+
 class Plop(SocketServer.TCPServer):
     """ The TCP socket server with reuse address to true """
 
@@ -95,6 +97,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
 
 
 class CommandServer(MyTcpHandler):
+    """ A TCP server that handles user command """
     def handle(self):
         """ function for TCPServer """
         self._log.info("command server connected to: %s" %
@@ -109,7 +112,7 @@ class CommandServer(MyTcpHandler):
             self._log.debug("received: '%s'" % self._data)
 
         ret = False
-        #TODO HELP
+        #TODO HELP command to get availabled command
         data = self._data.split(' ', 1)
         instr = data[0]
         cmd = ''

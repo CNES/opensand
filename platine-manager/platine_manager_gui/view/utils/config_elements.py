@@ -330,7 +330,6 @@ class ConfigurationNotebook(gtk.Notebook):
         # keep the model of a line for line addition
         if not key_path in self._table_models:
             self._table_models[key_path] = deepcopy(line)
-            elts = self._config.get_element_content(self._table_models[key_path])
 
         # add a check bo to select elements to remove
         check_button = gtk.CheckButton()
@@ -454,6 +453,8 @@ class ConfigurationNotebook(gtk.Notebook):
             line.hide()
             self._removed.append(line)
 
+        self.check_sensitive()
+
     def on_remove_button_toggled(self, source=None, event=None):
         """ remove button toggled """
         self.check_sensitive()
@@ -466,6 +467,8 @@ class ConfigurationNotebook(gtk.Notebook):
             for check_button in [check
                                  for check in self._tables[button.get_name()]
                                  if check.get_active()]:
-                button.set_sensitive(True)
+                if not check_button.get_parent() in self._removed:
+                    button.set_sensitive(True)
+                    break
 
 

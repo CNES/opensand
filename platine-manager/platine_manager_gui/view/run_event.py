@@ -347,7 +347,7 @@ class RunEvent(RunView):
         self.hide_deploy_button(not self._dev_mode)
         self._model.set_dev_mode(self._dev_mode)
         
-        #TODO add an option to add hosts from scratch in advanced config
+        #TODO add an option to add hosts from scratch in advanced config ?
         #      ie. copy the Dmon with conf, run it and deploy the files
 
     def on_timer_status(self):

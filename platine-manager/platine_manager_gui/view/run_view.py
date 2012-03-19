@@ -73,6 +73,10 @@ class RunView(WindowView):
         self._stylepango = None
         self._context_graph = None
 
+        self._sat_x = SAT_X
+        self._info_x = INFO_X
+        self._legend_y = LEGEND_Y
+
         # set the Platine event and error buffer
 #TODO voir si on pourrait utiliser qqch comme la partie graphique de ManagerLog
 #     et l'utiliser également dans ManagerLog
@@ -99,33 +103,32 @@ class RunView(WindowView):
 
     def expose_handler(self, drawing_area, event):
         """ 'expose' event handler on drawing area """
-        global SAT_X, INFO_X, LEGEND_Y
-        LEGEND_Y = TOP_2
+        self._legend_y = TOP_2
         nbr_st = 0
-        SAT_X = 170
+        self._sat_x = 170
         for host in self._model.get_hosts_list():
             if host.get_component() == 'st':
                 nbr_st += 1
             if host.get_component() == 'gw':
                 nbr_st += 1
-                SAT_X = 30
+                self._sat_x = 30
 
         if nbr_st > 1:
-            SAT_X = COMPO_X  * nbr_st - 35
+            self._sat_x = COMPO_X  * nbr_st - 35
 
         nbr = 0
         for host in self._model.get_hosts_list():
             if host.get_component() == 'gw':
                 self.draw_gw(host, 30, TOP_2)
             elif host.get_component() == 'sat':
-                self.draw_sat(host, SAT_X, TOP_1)
+                self.draw_sat(host, self._sat_x, TOP_1)
             elif host.get_component() == 'st':
                 self.draw_st(host, 170 + nbr * 140, TOP_2)
                 nbr += 1
 
         env_plane_ctrl = self._model.get_env_plane()
         if env_plane_ctrl != None:
-            INFO_X = 170 + (nbr + 1) * 140
+            self._info_x = 170 + (nbr + 1) * 140
             self.draw_env_plane_state(env_plane_ctrl.get_states())
 
         return False
@@ -135,7 +138,7 @@ class RunView(WindowView):
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'monitoring.png')
 
-        xx = INFO_X + 17
+        xx = self._info_x + 17
         yy = TOP_1 + 75
         glob_state = False
         for tab in state_list:
@@ -151,7 +154,8 @@ class RunView(WindowView):
             else:
                 image.set_from_file(os.path.join(IMG_PATH, 'orange.png'))
 
-            self.draw_pixbuf(0, 0, INFO_X - 4 , yy + 1, LED_XY, LED_XY, image)
+            self.draw_pixbuf(0, 0, self._info_x - 4 , yy + 1,
+                             LED_XY, LED_XY, image)
             yy = yy + 20
 
         if not glob_state:
@@ -159,7 +163,7 @@ class RunView(WindowView):
 
         image.set_from_file(png)
 
-        self.draw_pixbuf(0, 0, INFO_X, TOP_1, COMPO_X, COMPO_Y, image)
+        self.draw_pixbuf(0, 0, self._info_x, TOP_1, COMPO_X, COMPO_Y, image)
 
     def draw_st(self, host, x, y):
         """ draw satellite terminal """
@@ -170,10 +174,10 @@ class RunView(WindowView):
             # only manager instance
             self._count += 1
             if not self._logged and self._count > 3:
-                self._log.warning("Cannot get %s status, maybe another PtManager "
-                                      "instance is running on the system, else try "
-                                  "restarting platine-daemon on distant host" %
-                                  host.get_name())
+                self._log.warning("Cannot get %s status, maybe another "
+                                  "PtManager instance is running on the system,"
+                                  " else try restarting platine-daemon on "
+                                  "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'st_grey.png')
         image.set_from_file(png)
@@ -188,7 +192,7 @@ class RunView(WindowView):
 
         if host.get_state():
             if sat is not None and sat.get_state():
-                self.draw_line(SAT_X + int(COMPO_X/2),
+                self.draw_line(self._sat_x + int(COMPO_X/2),
                                TOP_1 + COMPO_Y + 20,
                                x + int(COMPO_X/2), y - 10)
             self.draw_line(x + int(COMPO_X/2),
@@ -218,10 +222,10 @@ class RunView(WindowView):
         if host.get_state() is None:
             self._count += 1
             if not self._logged and self._count > 3:
-                self._log.warning("Cannot get %s status, maybe another PtManager "
-                                  "instance is running on the system, else try "
-                                  "restarting platine-daemon on distant host" %
-                                  host.get_name())
+                self._log.warning("Cannot get %s status, maybe another "
+                                  "PtManager instance is running on the system,"
+                                  " else try restarting platine-daemon on "
+                                  "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'sat_grey.png')
         image.set_from_file(png)
@@ -238,10 +242,10 @@ class RunView(WindowView):
         if host.get_state() is None:
             self._count += 1
             if not self._logged and self._count > 3:
-                self._log.warning("Cannot get %s status, maybe another PtManager "
-                                  "instance is running on the system, else try "
-                                  "restarting platine-daemon on distant host" %
-                                  host.get_name())
+                self._log.warning("Cannot get %s status, maybe another "
+                                  "PtManager instance is running on the system,"
+                                  " else try restarting platine-daemon on "
+                                  "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'gw_grey.png')
         image.set_from_file(png)
@@ -257,7 +261,7 @@ class RunView(WindowView):
 
         if host.get_state() and \
            sat is not None and sat.get_state():
-            self.draw_line(SAT_X + int(COMPO_X/2),
+            self.draw_line(self._sat_x + int(COMPO_X/2),
                            TOP_1 + COMPO_Y + 20,
                            x + int(COMPO_X/2), y - 10)
 
@@ -270,7 +274,7 @@ class RunView(WindowView):
                 self.draw_layout(x + 10, TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
 
         if ws_nbr > 0:
-            # TODO autre nom que workstation car on est derrière la GW
+            # TODO autre nom que workstation car on est derrière la GW ?
             self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
             self.draw_layout(x, TOP_3 + COMPO_Y)
 
@@ -285,7 +289,6 @@ class RunView(WindowView):
 
     def draw_tools(self, host, x, y):
         """ draw the started tools for the specified host """
-        global LEGEND_Y
         for tool in host.get_tools():
             if tool.get_state():
                 png = "%s/tools/%s.png" % (IMG_PATH, tool.get_name())
@@ -293,10 +296,11 @@ class RunView(WindowView):
                     image = gtk.Image()
                     image.set_from_file(png)
                     self.draw_pixbuf(0, 0, x, y, TOOL_X, TOOL_Y, image)
-                    self.draw_pixbuf(0, 0, INFO_X, LEGEND_Y, TOOL_X, TOOL_Y, image)
+                    self.draw_pixbuf(0, 0, self._info_x, self._legend_y,
+                                     TOOL_X, TOOL_Y, image)
                     self._stylepango.set_text(tool.get_name().upper())
-                    self.draw_layout(INFO_X + 25, LEGEND_Y + 5)
-                    LEGEND_Y += 28
+                    self.draw_layout(self._info_x + 25, self._legend_y + 5)
+                    self._legend_y += 28
                 else:
                     self._stylepango.set_text(tool.get_name().upper())
                     self.draw_layout(x, y)

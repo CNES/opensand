@@ -57,6 +57,7 @@ class View(WindowView):
     """ Platine manager view """
     def __init__(self, model, manager_log, glade='',
                  scenario='', dev_mode=False):
+        self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
         if not os.path.exists(glade):
@@ -66,7 +67,6 @@ class View(WindowView):
         WindowView.__init__(self, gladefile=glade)
 
         self._model = model
-        self._log = manager_log
         self._log.run(self._ui, 'manager_textview')
 
         self._log.info("Welcome to Platine Manager !")

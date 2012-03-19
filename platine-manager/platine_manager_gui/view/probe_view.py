@@ -47,7 +47,6 @@ from matplotlib.ticker import FormatStrFormatter
 
 from platine_manager_gui.view.window_view import WindowView
 from platine_manager_gui.view.probes.probe_model import ProbeModel
-from platine_manager_gui.view.probes.probe import Index
 from platine_manager_gui.view.probes.probe_controller import ProbeController
 from platine_manager_gui.view.popup.infos import error_popup
 from platine_manager_core.my_exceptions import ProbeException

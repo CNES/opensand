@@ -51,8 +51,8 @@ DESCRIPTION = (
 "link/uplink standard is the output DVB standard for terminals, only DVB-RCS "
 "is available for the moment\n\tThe DAMA algorithm is the available DAMA "
 "implementations\n\tThe return link/uplink and forward link/dowlink "
-"are the available encapsulation protocols according to the payload\n\ttype and "
-"return link/uplink standard\n\tThe terminal type corresponds to 2 link budget "
+"are the available encapsulation protocols according to the payload\n\ttype and"
+" return link/uplink standard\n\tThe terminal type corresponds to 2 link budget "
 "hypothesis\n\tThe frame duration is the duration of a DVB frame")
 
 #TODO find a way to better handle encapsulation schemes and eventually to add one easily
@@ -94,12 +94,6 @@ class ConfView(WindowView) :
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
         except:
             raise
-
-        # disable DVB-S2 emission standard on ST beacuse it is not
-        # implemented yet
-        widget = self._ui.get_widget('DVB-S2')
-        widget.set_sensitive(False)
-
 
     def update_view(self):
         """ update the configuration view according to model

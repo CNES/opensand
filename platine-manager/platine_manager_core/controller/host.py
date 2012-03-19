@@ -136,7 +136,8 @@ class HostController:
         finally:
             sock.close()
 
-    def configure(self, conf_files, scenario, run, deploy_config, dev_mode=False):
+    def configure(self, conf_files, scenario, run,
+                  deploy_config, dev_mode=False):
         """ send the configure command to command server """
         # connect to command server and send the configure command
         try:
@@ -330,7 +331,8 @@ class HostController:
             component = self._host_model.get_name()
             self.deploy_files(component, sock, deploy_config)
             for tool in self._host_model.get_tools():
-                self.deploy_files(tool.get_name(), sock, deploy_config, is_tool=True)
+                self.deploy_files(tool.get_name(), sock, deploy_config,
+                                  is_tool=True)
         except CommandException:
             self._log.warning("unable to send files to %s" % self.get_name())
             sock.close()

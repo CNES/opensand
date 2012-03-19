@@ -43,7 +43,6 @@ from platine_manager_gui.view.utils.config_elements import ConfigurationTree
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
-#TODO class to create a treeview (also used in probes)
 class ToolView(WindowView):
     """ Elements of the tool tab """
     def __init__(self, parent, model, manager_log):
@@ -76,7 +75,7 @@ class ToolView(WindowView):
             config_area = self._ui.get_widget('tool_config_area')
             config_area.add_with_viewport(self._config_view)
 
-            self._current_vbox = None
+            self._current_notebook = None
 
             # create the tree for tools selection
             treeview = self._ui.get_widget('tools_selection_tree')
@@ -91,7 +90,8 @@ class ToolView(WindowView):
             self.update_tool_tree()
 
         # then update the tree periodically
-        self._refresh_tool_tree = gobject.timeout_add(1000, self.update_tool_tree)
+        self._refresh_tool_tree = gobject.timeout_add(1000,
+                                                      self.update_tool_tree)
 
     def toggled_cb(self, cell, path):
         """ defined in tool_event """

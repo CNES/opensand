@@ -60,8 +60,8 @@ class EnvironmentPlaneProcess():
         if not 'HOME' in os.environ:
             raise ModelException("cannot get HOME environment variable")
 
-        # TODO faire un fichier commun à tous pour éviter qu'un autre utilisateur
-        #      voie les process éteints alors qu'ils ont été lancés par quelqu'un d'autre !
+        # TODO use a file common to all user in order to avoid that an user
+        #      see stopped processes while they were launched by another one
         self._processfile = os.environ['HOME'] + "/.platine/env_plane_process"
 
         try:
