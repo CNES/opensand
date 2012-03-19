@@ -203,6 +203,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	         getChannelID(), inet_ntoa(m_socketAddr.sin_addr),
 			 ntohs(m_socketAddr.sin_port));
 
+	this->init_success = true;
 	return;
 
 error:

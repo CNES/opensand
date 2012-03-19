@@ -264,7 +264,6 @@
 #define INTERFACE_NAME_SIZE 16
 #define SOCKET_TYPE    "type"
 #define UDP            "SOCK_DGRAM"
-#define ETHERNET       "SOCK_RAW"
 #define IPADDR         "addr"
 
 #endif

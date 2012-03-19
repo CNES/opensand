@@ -70,7 +70,6 @@ stop()
 
     if [ -f "$PIDFILE" ] ; then
     	read PID < ${PIDFILE}
-    	read PID < ${PIDFILE}
         killproc -p ${PIDFILE} ${PROGNAME}
         if [ $? -ne 0 ] ; then
             log_end_msg 1

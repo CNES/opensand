@@ -58,6 +58,8 @@ class sat_carrier_channel
 
 	virtual ~sat_carrier_channel() = 0;
 
+	bool isInit();
+
 	unsigned int getChannelID();
 
 	virtual int getChannelFd() = 0;
@@ -82,6 +84,9 @@ class sat_carrier_channel
 
 	/// if channel accept output
 	bool m_output;
+
+	/// is the channel well initialized
+	bool init_success;
 };
 
 #endif

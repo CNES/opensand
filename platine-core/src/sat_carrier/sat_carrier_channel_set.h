@@ -40,7 +40,6 @@
 #include <net/if.h>
 
 #include "sat_carrier_channel.h"
-#include "sat_carrier_eth_channel.h"
 #include "sat_carrier_udp_channel.h"
 #include "platine_conf/conf.h"
 

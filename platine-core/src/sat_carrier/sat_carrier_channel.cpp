@@ -46,7 +46,7 @@ sat_carrier_channel::sat_carrier_channel(unsigned int channelID,
                                          bool input,
                                          bool output)
 {
-
+	this->init_success = false;
 	m_channelID = channelID;
 	m_input = input;
 	m_output = output;
@@ -57,6 +57,14 @@ sat_carrier_channel::sat_carrier_channel(unsigned int channelID,
  */
 sat_carrier_channel::~sat_carrier_channel()
 {
+}
+
+/**
+ * Check if the channel was correctly created
+ */
+bool sat_carrier_channel::isInit()
+{
+	return this->init_success;
 }
 
 /**

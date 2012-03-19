@@ -128,37 +128,26 @@ int sat_carrier_channel_set::readConfig()
 		bMulticast = CONF_VALUE_YES(multicast);
 		if(bIn || bOut)
 		{
-			if(this->socket_type == ETHERNET)
-			{
-				// create a new eth channel configure it, with information from file
-				// and insert it in the channels vector
-				channel = new sat_carrier_eth_channel(carrierID, bIn, bOut,
-				                                      interfaceName.c_str(),
-				                                      remoteMacAddr);
-				this->push_back(channel);
-			}
-			else if(this->socket_type == UDP)
+			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				if(i==0)
+				channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
+				                                      interfaceName.c_str(),
+				                                      port, bMulticast,
+				                                      localIPaddress,
+				                                      IPaddress);
+				if(!channel->isInit())
 				{
-					channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
-					                                      interfaceName.c_str(),
-					                                      port, bMulticast,
-					                                      localIPaddress,
-					                                      IPaddress);
+					UTI_ERROR("failed to create UDP channel %d\n", i + 1);
+					goto error;
 				}
-				else
-				{
-					channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
-					                                      interfaceName.c_str(),
-					                                      port, bMulticast,
-					                                      localIPaddress,
-					                                      IPaddress);
-				}
-				// TODO check that channel is correctly created
 				this->push_back(channel);
+			}
+			else
+			{
+				UTI_ERROR("Wrong socket type: %s\n", this->socket_type.c_str());
+				goto error;
 			}
 		}
 	}

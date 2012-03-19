@@ -169,7 +169,7 @@ int BlocSatCarrier::onInit()
 	// initialize all channels from the configuration file
 	if(m_channelSet.readConfig() < 0)
 	{
-		UTI_ERROR("[onInit] Can't read the configuration file\n");
+		UTI_ERROR("[onInit] Wrong channel set configuration\n");
 		return -1;
 	}
 
