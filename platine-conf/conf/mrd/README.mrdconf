@@ -1,0 +1,24 @@
+-----   Configuration note for running MRD (Multicast routing) on PLATINE  -----
+12/03/2008
+
+NB: In order to make sure that Platine will be able to forward multicast data accordingly, please check that satip6_gw.conf and satip6_st<X>.conf include the following entries in the [ip_dedicated_v6] section:
+ff00::0/8 	<spot_ID>  <Terminal number>
+
+such as on GW:
+ff00::0/8	255	1
+and on STs:
+ff00::0/8	255	0
+
+MRD routing on Platine may be running in two configurations.
+In star topologies, the RendezVous Point (RP) SHOULD be assigned at the gateway using static configuration. In this case, please use the mrd_ST<X>_star.conf and mrd_GW.conf files provided
+
+In mesh topologies, the RP MAY be assigned dynamically, ie. no preferred location makes more sense than other. In this case, the mcast routing protocol elect itself the RP (this can be defined specifically for any group or group prefix). 
+In such topology, the mrd_ST_mesh.conf files may be used.
+However, the static RP configuration also remains a suitable option
+
+The mrd conf files has to be located in /usr/local/sbin/mrd files, and renamed as mrd.conf
+
+
+
+
+

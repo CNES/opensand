@@ -1,0 +1,296 @@
+#!/bin/bash
+
+THIS_SCRIPT=$(basename $0)
+CMD=$1
+LAN=$2
+
+#
+# This script is used to initialize the Platine network on ST
+#
+# Authors Eddy Fromentin (AQL)
+#         Olivier Alphand
+#         Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+#         Cedric Baudoin <cedric.baudoin@thalesaleniaspace.com>
+#         Julien Bernard <julien.bernard@toulouse.viveris.com>
+
+
+# maximum number of lan
+NB_LAN=5
+
+# the satellite network (modify the netinit script for satellite if you modify that)
+IPV4_NET_BASE=18
+IPV6_NET_BASE=101
+
+if [ -z $LAN ]; then
+    LAN=0
+fi
+
+# network parameters
+let IPV4_NET=$IPV4_NET_BASE+$LAN
+let IPV6_NET=$IPV6_NET_BASE+$LAN
+#TODO ce n'est pas vraiment ca
+let IPV6_LOC=0x278b+$LAN
+
+# modules
+MODULES='ip6_tables'
+# host name
+NAME='ST'$LAN
+# interfaces parameters
+#  with sat
+SAT_IFACE='eth0'
+SAT_IPV4=192.168.18.$LAN
+SAT_IPV4_MASK=255.255.255.0
+SAT_IPV4_BRD=192.168.18.255
+SAT_IPV6=2001:660:6602:101::$LAN/64
+#  with lan
+LAN_IFACE='eth1'
+LAN_IPV4=192.168.$IPV4_NET.5
+LAN_IPV4_MASK=255.255.255.0
+LAN_IPV4_BRD=192.168.$IPV4_NET.255
+LAN_IPV4_NET=192.168.$IPV4_NET.0/24
+LAN_IPV6=2001:660:6602:$IPV6_NET::5/64
+NET_IPV6=2001:660:6602:$IPV6_NET::0/64
+#  tun0
+TUN0_IFACE='platine'
+TUN0_IPV4=192.168.$IPV4_NET.4
+TUN0_IPV6_GLOB=2001:660:6602:$IPV6_NET::4
+TUN0_IPV6_LOC=fe80::f893:34ff:fe89:$(printf "%X" $IPV6_LOC)
+
+
+# Print a short help message
+#
+usage(){
+    echo "This script is used to set up static network configuration for platine platform"
+    echo "Usage: $THIS_SCRIPT CONF <st_id>|<command>"
+    echo "    where <st_id> is the satellite terminal lan id"
+    echo "    and   <command> is one among"
+    echo "        CHECK   show the network configuration"
+    echo "        RESET   blank the network configuration"
+    echo
+    return 
+}
+
+halt_on_error(){
+    echo "Error: $*"  >&2
+    echo "" >&2
+    exit 1
+}
+
+# Print the command to be run, then run it.
+# Exit if status !=0
+#
+evecho(){
+    echo $*
+    eval $*
+    typeset my_status=$?
+    [ $my_status -ne 0 ] && halt_on_error "command returned an error, exiting."
+
+    return
+}
+
+# Check if the user running this script is root. 
+# Exit if not
+#
+check_root(){
+    id | grep -q '^uid=0(root)'
+    typeset retstat=$?
+    [ $retstat -ne 0 ] && halt_on_error "you _must_ be root before executing $THIS_SCRIPT"
+    return
+}
+
+# Roughly reset network configuration
+#
+reset_conf() {
+    echo "# Reset Platine network configuration"
+    /sbin/iptables -F 
+    /sbin/ip6tables -F
+    /sbin/ip6tables -F -t mangle
+    /sbin/ip route flush dev $SAT_IFACE
+    /sbin/ip route flush dev $LAN_IFACE
+    /sbin/ip route flush dev $TUN0_IFACE
+    /sbin/ip -6 route flush dev $SAT_IFACE
+    /sbin/ip -6 route flush dev $LAN_IFACE
+    /sbin/ip -6 route flush dev $TUN0_IFACE
+    /sbin/ifconfig $SAT_IFACE 0 down
+    /sbin/ifconfig $LAN_IFACE 0 down
+    /sbin/ifconfig $TUN0_IFACE 0 down
+    return
+}
+
+# Load modules into the kernel
+load_modules(){
+    if [ ! -z "$MODULES" ] ; then
+        echo "# Loading extra necessary modules"
+        for module in $MODULES
+    do
+    evecho modprobe $module
+        done
+    else
+        echo "# No extra modules to load"
+    fi
+
+  return
+}
+
+# Print the network configuration
+#
+check_conf(){
+    /sbin/ifconfig -a
+    /sbin/ip route
+    /sbin/ip -6 route
+    /sbin/iptables -n -v -L 
+    /sbin/ip6tables -n -v -L 
+     
+    return
+}
+
+set_rules(){
+    # - DROP packets routed from the tun0 to tun0 
+    # TBD is there any loop ? what happens if tun do not forward packets
+    evecho /sbin/iptables -A FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
+    evecho /sbin/ip6tables -A FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
+     
+    # - DROP multicast packets
+    # tested    
+    # evecho /sbin/ip6tables -A INPUT -i $TUN0_IFACE -s $TUN0_IPV6_LOC/128 -d ff00::/8 -j DROP
+   
+    return
+}
+
+# Set iptables rules in order to queue incoming multicast packet
+# disallow the resending of mcast packets (this is done by the st software)
+set_multicast_routes(){
+#    ipv4_mcast="239.255.42.1 239.255.42.2 239.255.42.3 239.255.42.4 239.255.42.5"
+#    ipv6_mcast="ff08::1 ff08::2 ff08::3 ff08::4 ff08::5"
+
+    echo "#   Configuring st tables for multicast"
+    for group in $ipv4_mcast
+    do
+        evecho route add $group dev $LAN_IFACE
+    done
+
+    for group in $ipv6_mcast
+    do
+        evecho route -A inet6 add $group dev $LAN_IFACE
+    done
+
+    return
+}
+
+# Set route to others st and sublan
+set_route_to_others(){
+    echo "#   Configuring routes to other networks"
+    # del the automatic route in ipv6
+    evecho /sbin/ip -6 route del $NET_IPV6 dev $TUN0_IFACE
+
+    for lan_dest in `seq 1 $NB_LAN` ; do
+    if [ $lan_dest != $LAN ]; then
+        echo "#    Configuring lan destination $lan_dest"
+
+        let ipv4_dest_net=$IPV4_NET_BASE+$lan_dest
+        let ipv6_dest_net=$IPV6_NET_BASE+$lan_dest
+
+        eval typeset lan_dest_ipv4=192.168.$ipv4_dest_net.0/24
+        eval typeset lan_dest_gw4=192.168.18.$lan_dest
+        eval typeset lan_dest_ipv6=2001:660:6602:$ipv6_dest_net::0/64
+        eval typeset lan_dest_gw6=2001:660:6602:101::$lan_dest
+
+        # ROUTE
+        evecho /sbin/route add -net $lan_dest_ipv4 dev $TUN0_IFACE
+        eval typeset  other_net_ipv6='$IPv6_LAN'$lan
+        evecho /sbin/ip -6 route add $lan_dest_ipv6 dev $TUN0_IFACE
+    fi
+    done
+}
+
+# Configure the interfaces
+set_interfaces(){
+    evecho /sbin/ifconfig $LAN_IFACE $LAN_IPV4 netmask $LAN_IPV4_MASK broadcast $LAN_IPV4_BRD
+    evecho /sbin/ifconfig $SAT_IFACE $SAT_IPV4 netmask $SAT_IPV4_MASK broadcast $SAT_IPV4_BRD
+    evecho /sbin/ifconfig $LAN_IFACE up
+    evecho /sbin/ifconfig $SAT_IFACE up
+    evecho /sbin/ifconfig $SAT_IFACE add $SAT_IPV6
+    evecho /sbin/ifconfig $LAN_IFACE add $LAN_IPV6
+    evecho /sbin/ifconfig $TUN0_IFACE up
+    evecho /sbin/ifconfig $TUN0_IFACE $TUN0_IPV4
+    evecho /sbin/ifconfig $TUN0_IFACE add $TUN0_IPV6_GLOB/64
+    # TODO is this local address really useful ?
+    evecho /sbin/ifconfig $TUN0_IFACE add $TUN0_IPV6_LOC/64
+
+    return
+}
+
+# Configure sysctl
+set_sysctl(){
+    # disable ICMP redirect
+    evecho /sbin/sysctl -w "net/ipv4/conf/all/send_redirects"="0"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/send_redirects"="0"
+    evecho /sbin/sysctl -w "net/ipv4/conf/all/accept_redirects"="0"
+    evecho /sbin/sysctl -w "net/ipv6/conf/all/accept_redirects"="0"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/accept_redirects"="0"
+    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/accept_redirects"="0"
+    # enable forwarding
+    evecho /sbin/sysctl -w "net/ipv4/ip_forward"="1"
+    evecho /sbin/sysctl -w "net/ipv4/conf/all/forwarding"="1"
+    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"="1"
+    # increase TCP buffers
+    evecho /sbin/sysctl -w "net/core/wmem_max"="1048580"
+    evecho /sbin/sysctl -w "net/core/rmem_max"="1048580"
+    evecho /sbin/sysctl -w "net/core/wmem_default"="1048580"
+    evecho /sbin/sysctl -w "net/core/rmem_default"="1048580"
+
+    return
+}
+
+
+# Configure st router
+st_config(){
+    echo "# Configuring $NAME"
+    load_modules
+
+    echo "# Configuring sysctl"
+    set_sysctl
+
+    echo "# Configuring interfaces"
+    set_interfaces
+
+    echo "# Configuring routes"
+    # route to other lan
+    set_route_to_others
+
+    # route for multicast
+    set_multicast_routes
+
+    echo "# Configuring rules"
+    set_rules
+
+    return
+}
+
+#
+# Now the work can begin
+#
+
+check_root
+
+echo "# Configure Platine network for ST$ID"
+case $CMD in
+     CONF )
+         if [ -z "$LAN" ] ; then
+             echo "Error: no host id"
+             usage
+             exit
+         fi
+         reset_conf
+         st_config $ID
+         ;;
+     CHECK ) check_conf     ;; 
+     RESET ) reset_conf     ;;
+     *) 
+    echo "Error: unknown command $CONF"
+    usage
+    exit 1
+    ;;
+esac
+ 
+exit 0

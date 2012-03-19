@@ -1,0 +1,24 @@
+Source: platine-margouilla
+Priority: optional
+Maintainer: Viveris Technologies
+Build-Depends: debhelper (>= 7), autotools-dev
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libplatine-margouilla-dev
+Section: libdevel
+Architecture: any
+Depends: libplatine-margouilla (= ${binary:Version})
+Description: The margouilla library and headers for Platine
+
+Package: libplatine-margouilla-dbg
+Section: debug
+Architecture: any
+Depends: libplatine-margouilla (= ${binary:Version})
+Description: Debugging symbols for Platine Margouilla library
+
+Package: libplatine-margouilla
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The margouilla library for Platine

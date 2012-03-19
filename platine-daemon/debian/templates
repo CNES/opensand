@@ -1,0 +1,56 @@
+Template: platine-daemon/default
+Type: boolean
+Default: false
+Description: Do you want to use the default configuration ?
+  The daemon is configured for satellite by default, ports are choosen arbitrarly
+
+Template: platine-daemon/service/type
+Type: string
+Default: _platine._tcp
+Description: Service type
+  Select the type of service with format:
+    _name._transport_protocol
+  All the hosts from the same platfrom MUST have the same service type
+
+Template: platine-daemon/service/name
+Type: select
+Default: SAT
+Choices: SAT, GW, ST, WS
+Description: Service name
+  Select the name of the service
+
+Template: platine-daemon/service/port
+Type: string
+Default: 3141
+Description: Service port
+  Select the port where the service is published
+
+Template: platine-daemon/service/st_instance
+Type: select
+Choices: ${inst_list}
+Description: Service instance
+  Select the ID of the satellite terminal
+
+Template: platine-daemon/service/ws_instance
+Type: string
+Description: Worksation identifier
+  Select the identifier of the workstation
+  (this can be anything but don't choose 2 workstations
+   on the same platform with the same identifier)
+
+Template: platine-daemon/command/port
+Type: string
+Default: 5926
+Description: Command port
+  Select the port where the daemon will listen for Platine manager commands
+
+Template: platine-daemon/state/port
+Type: string
+Default: 5358
+Description: State port
+  Select the port where the daemon will listen for Platine manager state resquest
+
+Template: platine-daemon/service/tools
+Type: string
+Description: The tools supported by the host
+  This section is empty, it shall be filled by tools packages

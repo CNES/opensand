@@ -1,0 +1,90 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+
+ST_LIST="1, 3, 4, 5"
+WS_LIST="1, 2, 3, 4, 5"
+
+usage(){
+    /bin/echo -e "Usage: $0 command\n\twith command: configure or reconfigure"
+}
+
+configure(){
+    db_beginblock
+    db_input high platine-daemon/service/name || true
+    db_go
+    db_input low platine-daemon/service/type || true
+    db_go
+    db_get platine-daemon/service/name
+    if [ "$RET" = "ST" ]; then
+        db_subst platine-daemon/service/st_instance inst_list ${ST_LIST}
+        db_input high platine-daemon/service/st_instance || true
+        db_go
+    fi
+    if [ "$RET" = "WS" ]; then
+        # enable WS2
+        db_subst platine-daemon/service/st_instance inst_list ${WS_LIST}
+        db_input high platine-daemon/service/st_instance || true
+        db_go
+        db_input high platine-daemon/service/ws_instance || true
+        db_go
+    fi
+    db_input high platine-daemon/service/port || true
+    db_go
+    db_endblock
+    db_beginblock
+    db_input high platine-daemon/command/port || true
+    db_go
+    db_endblock
+    db_beginblock
+    db_input high platine-daemon/state/port || true
+    db_go
+    db_endblock
+}
+
+reset(){
+    db_reset platine-daemon/service/name
+    db_reset platine-daemon/service/type
+    db_reset platine-daemon/service/st_instance
+    db_reset platine-daemon/service/ws_instance
+    db_reset platine-daemon/service/port
+    db_reset platine-daemon/command/port
+    db_reset platine-daemon/state/port
+}
+
+unseen(){
+    db_fset platine-daemon/service/name seen false
+    db_fset platine-daemon/service/type seen false
+    db_fset platine-daemon/service/st_instance seen false
+    db_fset platine-daemon/service/ws_instance seen false
+    db_fset platine-daemon/service/port seen false
+    db_fset platine-daemon/command/port seen false
+    db_fset platine-daemon/state/port seen false
+}
+
+if [ "$#" -gt 0 ]; then
+    if [ "$1" = "configure" ]; then
+        #db_reset platine-daemon/default
+        db_input high platine-daemon/default || true
+        db_go
+        db_get platine-daemon/default
+        if [ "$RET" = "true" ]; then
+            reset
+            db_stop
+        else
+            configure
+        fi
+    elif [ "$1" = "reconfigure" ]; then
+        unseen
+        configure
+    else
+        usage
+        exit 1
+    fi
+else
+    usage
+fi
+
+

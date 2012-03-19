@@ -1,0 +1,14 @@
+platine-margouilla (3.0.0-rc1) unstable; urgency=low
+
+  * Fix issue #0000035: Add a make deb target
+  * Rename platine libraries packages
+  * Add debug packages
+  * Correct some errors in packages scripts
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 05 May 2011 16:30:38 +0100
+
+platine-margouilla (3.0.0-beta1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Tue, 25 Jan 2011 10:22:45 +0100

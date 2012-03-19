@@ -1,0 +1,25 @@
+Source: platine-conf
+Priority: optional
+Maintainer: Viveris Technologies
+Build-Depends: debhelper (>= 7), autotools-dev
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libplatine-conf-dev
+Section: libdevel
+Architecture: any
+Depends: libplatine-conf (= ${binary:Version})
+Description: The configuration library and headers for Platine
+
+Package: libplatine-conf-dbg
+Section: debug
+Architecture: any
+Depends: libplatine-conf (= ${binary:Version})
+Description: Debugging symbols for Platine configuration library
+
+Package: libplatine-conf
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The configuration library for Platine
+

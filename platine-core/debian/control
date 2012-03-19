@@ -1,0 +1,21 @@
+Source: platine-core
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev
+Standards-Version: 3.8.3
+
+Package: platine-core-all
+Architecture: any
+Depends: platine-core-bin (= ${binary:Version})
+Description: The Platine emulation testbed core with all the configuration files
+
+Package: platine-core-dbg
+Section: debug
+Architecture: any
+Depends: platine-core-bin (= ${binary:Version})
+Description: Debugging symbols for Platine Core binaries
+
+Package: platine-core-bin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate
+Description: The Platine emulation testbed core

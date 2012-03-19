@@ -1,0 +1,17 @@
+Source: platine-manager
+Section: non-free
+Priority: optional
+Maintainer: Viveris Technologies
+Build-Depends: debhelper (>= 7), python (>= 2.6)
+Build-Depends-Indep: python-support
+Standards-Version: 3.8.3
+
+Package: platine-manager-core
+Architecture: any
+Depends: ${misc:Depends}, python (>= 2.6), python-avahi, avahi-daemon, python-dbus, platine-core-all, platine-env-plane
+Description: Non graphical part of Manager for Platine emulation testbed
+
+Package: platine-manager-gui
+Architecture: any
+Depends: ${misc:Depends}, platine-manager-core (= ${binary:Version}), python-matplotlib, python-gtk2 (>=2.16)
+Description: GUI of Manager for Platine emulation testbed

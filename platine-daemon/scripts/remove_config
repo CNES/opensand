@@ -1,0 +1,32 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+
+import sys
+import os
+import ConfigParser
+
+CONF = "/etc/platine/daemon.conf"
+SAT_INIT = "/usr/libexec/platine/sat_netinit"
+ST_INIT = "/usr/libexec/platine/st_netinit"
+
+if __name__ == "__main__":
+    parser = ConfigParser.SafeConfigParser()
+    if len(parser.read(CONF)) == 0:
+        sys.stderr.write("cannot load configuration")
+        sys.exit(1)
+
+    try:
+        name = parser.get('service', 'name')
+    except ConfigParser.Error, error:
+        sys.stderr.write("error reading configuration: " + str(error))
+        sys.exit(1)
+
+    if name == 'sat':
+        ret = os.system(SAT_INIT + ' RESET')
+    else:
+        ret = os.system(ST_INIT + ' RESET')
+    #TODO supprimer interface tun
+
+    sys.exit(ret)
+        

@@ -1,0 +1,7 @@
+#!/bin/ksh
+php_fich="tmp.php"
+echo "<?php "                  >$php_fich
+echo "\$Body=\"$1\";"             >>$php_fich
+echo "include(\"core.php\");"   >>$php_fich
+echo "?> "                    >>$php_fich
+php -q $php_fich

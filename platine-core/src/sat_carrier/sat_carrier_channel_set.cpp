@@ -1,0 +1,282 @@
+/**
+ * @file sat_carrier_channel_set.cpp
+ * @brief This implements a set of satellite carrier channels
+ * @author AQL (Antoine)
+ * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
+ */
+
+#include "sat_carrier_channel_set.h"
+
+#define DBG_PACKAGE PKG_SAT_CARRIER
+#include "platine_conf/uti_debug.h"
+
+
+/**
+ * Create an empty set of satellite carrier channels
+ */
+sat_carrier_channel_set::sat_carrier_channel_set():
+	std::vector < sat_carrier_channel * >()
+{
+}
+
+sat_carrier_channel_set::~sat_carrier_channel_set()
+{
+	std::vector < sat_carrier_channel * >::iterator it;
+
+	for(it = this->begin(); it != this->end(); it++)
+		delete(*it);
+}
+
+
+/**
+ * Read data from the configuration file and create channels
+ * @return -1 if failed, 0 if succeed
+ */
+int sat_carrier_channel_set::readConfig()
+{
+	char remoteMacAddr[18];
+	int nbChannel;
+	unsigned short carrierID;
+	char in[2], out[2], multicast[2];
+	bool bIn, bOut, bMulticast;
+	string interfaceName;
+	string strConfig;
+	char IPaddress[16];
+	char localIPaddress[16];
+	long port;
+	int ret;
+	sat_carrier_channel *channel;
+	int i;
+
+	if(globalConfig.getStringValue("Global", "satelliteEthInterface",
+	   interfaceName) < 0)
+	{
+		UTI_ERROR("Can't get satelliteEthInterface from section Global\n");
+		goto error;
+	}
+
+	// get transmission type
+	if(globalConfig.getStringValue(SATCAR_SECTION, SOCKET_TYPE,
+                                       this->socket_type) < 0)
+	{
+		UTI_ERROR("Can't get socket type from satCar section\n");
+		goto error;
+	}
+
+	// get local IP address
+	ret = globalConfig.getStringValue(SATCAR_SECTION, IPADDR, strConfig);
+	if(ret >= 0)
+	{
+		sscanf(strConfig.c_str(), "%15s", localIPaddress);
+	}
+	else
+	{
+		UTI_ERROR("Error can't get IPaddr from section : %s \n", SATCAR_SECTION);
+	}
+
+	// get satellite channels from configuration
+	nbChannel = globalConfig.getNbListItems(SATCAR_SECTION);
+	UTI_DEBUG("%d lines in section [%s]\n", nbChannel, SATCAR_SECTION);
+	for(i = 0; i < nbChannel; i++)
+	{
+		ret = globalConfig.getListItem(SATCAR_SECTION, i + 1, strConfig);
+		if(ret >= 0)
+		{
+			sscanf(strConfig.c_str(), "%hu %17s %15s %ld %1s %1s %1s",
+			       &carrierID, remoteMacAddr, IPaddress,
+			       &port, in, out, multicast);
+			UTI_DEBUG("Line: %d/%d, Carrier ID : %u, Mac : %s, IPaddress: %s, "
+			          "port: %ld, in : %s, out : %s, multicast: %s\n",
+			          i + 1, nbChannel, carrierID, remoteMacAddr,
+			          IPaddress, port, in, out, multicast);
+		}
+		else
+		{
+			UTI_ERROR("Error can't get listItem from section : %s \n",
+			          SATCAR_SECTION);
+		}
+
+		// if for a a channel in=n and out=n channel is not active
+		bIn = CONF_VALUE_YES(in);
+		bOut = CONF_VALUE_YES(out);
+		bMulticast = CONF_VALUE_YES(multicast);
+		if(bIn || bOut)
+		{
+			if(this->socket_type == ETHERNET)
+			{
+				// create a new eth channel configure it, with information from file
+				// and insert it in the channels vector
+				channel = new sat_carrier_eth_channel(carrierID, bIn, bOut,
+				                                      interfaceName.c_str(),
+				                                      remoteMacAddr);
+				this->push_back(channel);
+			}
+			else if(this->socket_type == UDP)
+			{
+				// create a new udp channel configure it, with information from file
+				// and insert it in the channels vector
+				if(i==0)
+				{
+					channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
+					                                      interfaceName.c_str(),
+					                                      port, bMulticast,
+					                                      localIPaddress,
+					                                      IPaddress);
+				}
+				else
+				{
+					channel = new sat_carrier_udp_channel(carrierID, bIn, bOut,
+					                                      interfaceName.c_str(),
+					                                      port, bMulticast,
+					                                      localIPaddress,
+					                                      IPaddress);
+				}
+				// TODO check that channel is correctly created
+				this->push_back(channel);
+			}
+		}
+	}
+
+	return 0;
+
+error:
+	return -1;
+}
+
+
+/**
+ * Send a variable length buffer on the specified satellite Carrier.
+ *
+ * @param channel  Satellite Carrier id
+ * @param buf      pointer to a char buffer
+ * @param len      length of the buffer
+ * @return         the size of sent data if successful, -1 otherwise
+ */
+int sat_carrier_channel_set::send(unsigned int channel,
+                                  unsigned char *buf,
+                                  unsigned int len)
+{
+	std::vector < sat_carrier_channel * >::iterator it;
+	int ret = -1;
+
+	for(it = this->begin(); it != this->end(); it++)
+	{
+		if(channel == (*it)->getChannelID() && (*it)->isOutputOk())
+		{
+			ret = (*it)->send(buf, len);
+			break;
+		}
+	}
+
+	if(it == this->end())
+	{
+		UTI_ERROR("failed to send %u bytes of data through channel %d: "
+		          "channel not found\n", len, channel);
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Receive data on a channel set
+ *
+ * The function works in blocking mode, so call it only when you are sure
+ * some data is ready to be received.
+ *
+ * @param fd            the file descriptor on which the event has been catched
+ * @param op_carrier    Satellite Carrier id
+ * @param op_buf        pointer to a char buffer
+ * @param op_len        the received data length
+ * @param op_max_len    length of the buffer
+ * @param timeout_ms    the time out for the select function
+ * @return
+ */
+int sat_carrier_channel_set::receive(int fd,
+                                     unsigned int *op_carrier,
+                                     unsigned char *op_buf,
+                                     unsigned int *op_len,
+                                     unsigned int op_max_len,
+                                     long timeout_ms)
+{
+	int ret = -1;
+	std::vector < sat_carrier_channel * >::iterator it;
+
+	UTI_DEBUG_L3("try to receive a packet from satellite channel "
+	             "associated with the file descriptor %d\n", fd);
+
+	for(it = this->begin(); it != this->end(); it++)
+	{
+		// does the channel accept input and does the channel file descriptor
+		// match with the given file descriptor?
+		if((*it)->isInputOk() && fd == (*it)->getChannelFd())
+		{
+			// the file descriptors match, try to receive data for the channel
+			ret = (*it)->receive(op_buf, op_len, op_max_len, timeout_ms);
+
+			// received data must not be too large
+			if(ret == 0 && *op_len > op_max_len)
+			{
+				UTI_ERROR("too much data received: %u bytes "
+				          "received while only %u desired\n",
+				          *op_len, op_max_len);
+				ret = -1;
+			}
+
+			// Stop the task on data or error
+			if(*op_len != 0 || ret < 0)
+			{
+				UTI_DEBUG_L3("data/error received, set op_carrier to %i\n",
+				             (*it)->getChannelID());
+				*op_carrier = (*it)->getChannelID();
+				break;
+			}
+		}
+	}
+
+	UTI_DEBUG_L3("Receive packet: size %i, carrier %i\n", *op_len, *op_carrier);
+
+	if(it == this->end())
+		ret = 0;
+
+	return ret;
+}
+
+/**
+* Return the file descriptor coresponding to a channel
+* This allow the caler to manage itself select() fuctions
+* @param i_channel Channel number
+* @return fd
+*/
+int sat_carrier_channel_set::getChannelFdByChannelId(unsigned int i_channel)
+{
+	std::vector < sat_carrier_channel * >::iterator it;
+	int ret = -1;
+
+	for(it = this->begin(); it != this->end(); it++)
+	{
+		if(i_channel == (*it)->getChannelID())
+		{
+			ret = (*it)->getChannelFd();
+			break;
+		}
+	}
+
+	if(ret < 0)
+	{
+		UTI_ERROR("SAT_Carrier_Get_Channel_Fd : Channel not found (%d) \n",
+		          i_channel);
+	}
+
+	return (ret);
+}
+
+/**
+ * Get the number of channels in the set
+ * @return the number of channel
+ */
+unsigned int sat_carrier_channel_set::getNbChannel()
+{
+	return this->size();
+}
+

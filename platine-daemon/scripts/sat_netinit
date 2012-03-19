@@ -1,0 +1,149 @@
+#!/bin/bash
+
+THIS_SCRIPT=$(basename $0)
+CMD=$1
+
+#
+# This script is used to initialize the Platine network for satellite
+#
+# Authors Eddy Fromentin (AQL)
+#         Olivier Alphand
+#         Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+#         Cedric Baudoin <cedric.baudoin@thalesaleniaspace.com>
+#         Julien Bernard <julien.bernard@toulouse.viveris.com>
+
+
+
+# maximum number of lan
+NB_LAN=5
+
+MODULES=
+IFACE=eth0
+IPV4=192.168.18.15
+IPV4_MASK=255.255.255.0
+IPV4_BRD=192.168.18.255
+IPV6=2001:660:6602:101::15/64
+
+# Print a short help message
+#
+usage(){
+    echo "This script is used to set up static network configuration for platine platform"
+    echo "Usage: $THIS_SCRIPT <command>"
+    echo "    where <command> is one among"
+    echo "        CONF    configure the satellite network"
+    echo "        CHECK   show the network configuration"
+    echo "        RESET   blank the network configuration"
+    echo
+    return 
+}
+
+halt_on_error(){
+    echo "Error: $*"  >&2
+    echo "" >&2
+    exit 1
+}
+
+# Print the command to be run, then run it.
+# Exit if status !=0
+#
+evecho(){
+    echo $*
+    eval $*
+    typeset my_status=$?
+    [ $my_status -ne 0 ] && halt_on_error "something weird happened, exiting."
+
+    return
+}
+
+# Check if the user running this script is root. 
+# Exit if not
+#
+check_root(){
+    id | grep -q '^uid=0(root)'
+    typeset retstat=$?
+    [ $retstat -ne 0 ] && halt_on_error "you _must_ be root before executing $THIS_SCRIPT"
+    return
+}
+
+# Roughly reset network configuration
+#
+reset_conf() {
+    echo "# Reset Platine network configuration"
+    /sbin/iptables -F 
+    /sbin/ip6tables -F
+    /sbin/ip6tables -F -t mangle
+    /sbin/ip route flush dev $IFACE
+    /sbin/ip -6 route flush dev $IFACE
+    /sbin/ifconfig $IFACE 0 down
+    return
+}
+
+# Load modules into the kernel
+load_modules(){
+    if [ ! -z "$MODULES" ] ; then
+        echo "# Loading extra necessary modules"
+        for module in $MODULES
+    do
+    evecho modprobe $module
+        done
+    else
+        echo "# No extra modules to load"
+    fi
+
+  return
+}
+
+# Print the network configuration
+check_conf(){
+    /sbin/ifconfig -a
+    /sbin/ip route
+    /sbin/ip -6 route
+    /sbin/iptables -n -v -L 
+    /sbin/ip6tables -n -v -L 
+    return
+}
+
+# Set sysctl parameters for the sat
+set_sysctl(){
+    # increase TCP buffers
+    evecho /sbin/sysctl -w "net/core/wmem_max"="1048580"
+    evecho /sbin/sysctl -w "net/core/rmem_max"="1048580"
+    evecho /sbin/sysctl -w "net/core/wmem_default"="1048580"
+    evecho /sbin/sysctl -w "net/core/rmem_default"="1048580"
+    return
+}
+
+# Configure the Satellite Emulator
+#
+sat_config(){
+    echo "# Configuring SAT"
+    load_modules
+
+    echo "# Configuring sysctl"
+    set_sysctl
+
+    echo "# Configuring interfaces"
+    evecho ifconfig $IFACE $IPV4 netmask $IPV4_MASK broadcast $IPV4_BRD
+    evecho ifconfig $IFACE add $IPV6
+
+    return
+}
+
+check_root
+
+echo "# Configure Platine network for satellite"
+case  $CMD in
+     CONF )
+        reset_conf
+        sat_config
+        ;;
+     CHECK ) check_conf ;; 
+     RESET ) reset_conf ;;
+     *) 
+    echo "Error: unknown command $CMD"
+    usage
+    exit 1
+    ;;
+esac
+ 
+exit 0

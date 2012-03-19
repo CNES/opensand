@@ -1,0 +1,116 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          platine-network
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Startup script for the Platine network
+# Description:       This script configure the network interfaces for Platine
+#                    according to the type of host
+### END INIT INFO
+# -*- coding: utf-8 -*-
+# Debian init.d script for Platine Network
+# Written by Julien BERNARD <jbernard@toulouse.viveris.com>
+
+SCRIPT_NAME="$0"
+LOCK_NAME="platine-network"
+LOGGER="/usr/bin/logger"
+CONFSCRIPT="/usr/libexec/platine/write_initialize_config"
+RESETSCRIPT="/usr/libexec/platine/remove_config"
+
+. /lib/lsb/init-functions
+
+
+# Start the server
+start()
+{
+    log_daemon_msg "Configuring the Platine network"
+
+    # Check that executable is present
+    if [ ! -x ${CONFSCRIPT} ] ; then
+        log_end_msg 1
+        echo "PtDmon binary '${CONFSCRIPT}' not found on system" >&2
+        return 1
+    fi
+
+    # Start the Platine network
+    start-stop-daemon --start --exec ${CONFSCRIPT} >/dev/null
+    if [ $? -ne 0 ] ; then
+        log_end_msg 1
+        echo "failed to configure the Platine network" >&2
+        return 1
+    fi
+
+    # everything went fine
+    log_end_msg 0
+    touch /var/lock/${LOCK_NAME}
+    return 0
+}
+
+
+# Stop the Platine network
+stop()
+{
+    log_daemon_msg "Removing configuration for the Platine network"
+
+    # Check that executable is present
+    if [ ! -x ${RESETSCRIPT} ] ; then
+        log_end_msg 1
+        echo "PtDmon binary '${RESETSCRIPT}' not found on system" >&2
+        return 1
+    fi
+
+    # Start the reset script
+    start-stop-daemon --start --exec ${RESETSCRIPT} >/dev/null
+    if [ $? -ne 0 ] ; then
+        log_end_msg 1
+        echo "failed to remove configuration of the Platine Network" >&2
+        return 1
+    fi
+
+    log_end_msg 0
+    rm -f /var/lock/${LOCK_NAME}
+    return 0
+}
+
+
+# Stop then start the server
+restart()
+{
+    stop || return 1
+    sleep 2
+    start || return 1
+}
+
+
+# Which action to perform?
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    condrestart)
+        [ -e /var/lock/${SCRIPTNAME} ] && restart
+        ;;
+    status)
+        if [ -e /var/lock/${SCRIPTNAME} ]; then
+            log_success_msg "The Platine network is configured."
+            exit 0
+        else
+            log_success_msg "The Platine network is not configured."
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Usage $0 {start|stop|restart|condrestart|status}"
+esac
+
+exit 0
+
+

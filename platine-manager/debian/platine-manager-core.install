@@ -1,0 +1,6 @@
+usr/libexec/platine/*
+usr/lib/python2.6/dist-packages/platine_manager_core/*.py
+usr/lib/python2.6/dist-packages/platine_manager_core/loggers/*.py
+usr/lib/python2.6/dist-packages/platine_manager_core/model/*.py
+usr/lib/python2.6/dist-packages/platine_manager_core/controller/*.py
+etc/platine/*

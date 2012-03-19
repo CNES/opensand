@@ -1,0 +1,15 @@
+#!/bin/bash
+if [[ `ls /home/devel2 |grep radvd.pidfile` != "" ]] ; then
+	kill -9 `cat /home/devel2/radvd.pidfile`
+	rm /home/devel2/radvd.pidfile -f
+else
+	pid=`$rcommand $host ps -e |grep -w radvd | awk '{print $1}'`
+	if [[ pid != "" ]] ; then
+		kill -9 $pid
+		rm -f /usr/local/sbin/radvd/sbin/radvd.pidfile
+	else
+		echo "Warning: No RADVD instance found"
+	fi
+	
+fi
+ 

@@ -1,0 +1,138 @@
+/**
+ * @file MpegDesencapCtx.h
+ * @brief MPEG2-TS desencapsulation context
+ * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
+ */
+
+#ifndef MPEG_DESENCAP_CTX
+#define MPEG_DESENCAP_CTX
+
+#include <NetBurst.h>
+
+
+/**
+ * @class MpegDesencapCtx
+ * @brief MPEG2-TS desencapsulation context
+ */
+class MpegDesencapCtx
+{
+ protected:
+
+	/// Internal buffer to store the SNDU under build
+	Data _data;
+
+	/// The PID that identifies the encapsulation context
+	uint16_t _pid;
+	/// The Continuity Counter (CC) of the last MPEG2-TS frame received
+	uint8_t _cc;
+
+	/// Whether the context needs to synchronized on PUSI or not
+	bool _need_pusi;
+
+	/// The length (in bytes) of the SNDU currently being extracted from the
+	/// MPEG2-TS frame
+	unsigned int _sndu_len;
+
+ public:
+
+	/*
+	 * Build a desencapsulation context identified with PID pid
+	 *
+	 * @param pid the PID that identifies the desencapsulation context
+	 */
+	MpegDesencapCtx(uint16_t pid);
+
+	/**
+	 * Destroy the desencapsulation context
+	 */
+	~MpegDesencapCtx();
+
+	/**
+	 * Clear the desencapsulation context, ie. empty the internal list
+	 * of network packets
+	 */
+	void reset();
+
+	/**
+	 * Get the amount of data partially desencapsulated and temporary stored
+	 * in the context
+	 *
+	 * @return the amount of data stored in the context
+	 */
+	unsigned int length();
+
+	/**
+	 * Get the PID of the desencapsulation context
+	 *
+	 * @return the PID of the desencapsulation context
+	 */
+	uint16_t pid();
+
+	/**
+	 * Get the Continuity Counter (CC) of the last MPEG frame desencapsulated by
+	 * the context
+	 *
+	 * @return the CC of the context
+	 */
+	uint8_t cc();
+
+	/**
+	 * Increment the Continuity Counter (CC) of the context
+	 */
+	void incCc();
+
+	/**
+	 * Set the Continuity Counter (CC) of the context
+	 *
+	 * @param cc  the new CC of the context
+	 */
+	void setCc(uint8_t cc);
+
+	/**
+	 * Whether the context needs to synchronized on PUSI or not
+	 *
+	 * @return true if the context needs to synchronized, false otherwise
+	 */
+	bool need_pusi();
+
+	/**
+	 * Tell the context whether to synchronize on PUSI or not
+	 *
+	 * @param flag  true to tell the context to synchronize, false otherwise
+	 */
+	void set_need_pusi(bool flag);
+
+	/**
+	 * Get the length of the SNDU currently being extracted from the MPEG2-TS
+	 * frame
+	 *
+	 * @return  the length of the SNDU in bytes
+	 */
+	unsigned int sndu_len();
+
+	/**
+	 * Tell the context the length of the SNDU currently being extracted from
+	 * the MPEG2-TS frame
+	 *
+	 * @param len  the length of the SNDU in bytes
+	 */
+	void set_sndu_len(unsigned int len);
+
+	/**
+	 * Add data at the end of the SNDU
+	 *
+	 * @param data    the data to add
+	 * @param length  the length of the data to add
+	 */
+	void add(unsigned char *data, unsigned int length);
+
+	/**
+	 * Get the internal buffer that stores the SNDU under build
+	 *
+	 * @return the internal buffer that stores the SNDU under build
+	 */
+	Data data();
+};
+
+#endif
+

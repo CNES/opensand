@@ -1,0 +1,155 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          platine-daemon
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Startup script for the Platine daemon
+# Description:       This script starts a Platine service and a server
+#                    that listen for Platine manager requests
+### END INIT INFO
+# -*- coding: utf-8 -*-
+# Debian init.d script for Platine Daemon
+# Written by Julien BERNARD <jbernard@toulouse.viveris.com>
+
+DESCR="the Platine Daemon"
+SCRIPT_NAME="$0"
+PROGNAME="PtDmon"
+LOGGER="/usr/bin/logger"
+BIN="/usr/bin/PtDmon"
+CONF="/etc/platine/daemon.conf"
+PIDFILE="/var/run/platine-daemon/pid"
+USER="platine"
+
+. /lib/lsb/init-functions
+
+
+# Start the server
+start()
+{
+    log_daemon_msg "Starting ${DESCR}" "${PROGNAME}"
+
+    # Check that executable is present
+    if [ ! -x ${BIN} ] ; then
+        log_end_msg 1
+        echo "PtDmon binary '${BIN}' not found on system"
+        return 1
+    fi
+
+    # Check that the configuration file is present
+    if [ ! -r ${CONF} ] ; then 
+        log_end_msg 1
+        echo "${DESCR} config file '${CONF}' was not found on system"
+        return 1
+    fi
+
+    # Create the PID directory
+    mkdir -p /var/run/platine-daemon
+    chown ${USER} /var/run/platine-daemon
+
+    # Start the Platine daemon server
+    start-stop-daemon --start --background --quiet --pidfile ${PIDFILE} --exec ${BIN} ${CONF} 1>/dev/null 2>&1 --chuid ${USER} --user ${USER}
+    if [ $? -ne 0 ] ; then
+        log_end_msg 1
+        echo "failed to start ${DESCR}"
+        return 1
+    fi
+
+    # everything went fine
+    log_end_msg 0
+    touch /var/lock/${PROGNAME}
+    return 0
+}
+
+
+# Stop the Platine daemon server
+stop()
+{
+    log_daemon_msg "Shutting down ${DESCR}" "${PROGNAME}"
+
+    if [ -n "$PIDFILE" ] ; then
+    	read PID < ${PIDFILE}
+        killproc -p ${PIDFILE} ${PROGNAME}
+        if [ $? -ne 0 ] ; then
+            log_end_msg 1
+            echo "failed to stop ${DESCR}"
+            return 1
+        fi
+    else
+        log_end_msg 1
+        echo "${PIDFILE} does not exist"
+        return 1
+    fi
+
+    echo "Closing connections"
+    echo "Please wait..."
+
+    # Wait for the daemon to stop
+    for try in $(seq 1 5) ; do
+        NB=$( ps -A -o "%p" | grep -c ${PID} )
+        [ ${NB} -eq 0 ] && break
+        sleep 1
+    done
+
+    # Be less gentle if the daemon is still running
+    if [ ${NB} -ne 0 ] ; then
+        # We failed to stop the daemon normally
+        log_end_msg 1
+        echo "failed to stop ${DESCR}"
+
+        # Force the daemon to stop
+        echo -n $"Force shutting down ${DESCR}: "
+        kill -9 ${PID} >/dev/null 2>&1
+
+        # Wait for the daemon to stop
+        for try in $(seq 1 5) ; do
+            NB=$( ps -A -o "%p" | grep -c ${PID} )
+            [ ${NB} -eq 0 ] && break
+            sleep 1
+        done
+        if [ ${NB} -ne 0 ] ; then
+			log_end_msg 1
+            echo "${DESCR} was impossible to stop"
+            return 1
+        fi
+    fi
+
+    log_end_msg 0
+    rm -f /var/lock/${PROGNAME}
+    return 0
+}
+
+
+# Stop then start the server
+restart()
+{
+    stop || return 1
+    start || return 1
+}
+
+
+# Which action to perform?
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    condrestart)
+        [ -e /var/lock/${PROGNAME} ] && restart
+        ;;
+    status)
+        status_of_proc ${PROGNAME}
+        ;;
+    *)
+        echo "Usage $0 {start|stop|restart|condrestart|status}"
+esac
+
+exit 0
+
+

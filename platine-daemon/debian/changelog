@@ -1,0 +1,38 @@
+platine-daemon (3.0.0-rc1) unstable; urgency=low
+
+  * Close file descriptors when creating subprocess
+    Modify the function which was waiting for process to terminate
+    with a non blocking function
+  * Correctly purge daemon package
+  * Add workstation support
+  * Complete the patch from revision 1382 to avoid polling thread
+    to stop because the event was not cleared
+  * It is now possible to switch from regenerative to transparent and
+    conversely
+    without launching network script, everything is done in gw
+    process
+  * Update manager and daemon dependencies as specified in note
+    #0000040 of issue #0000020 entitled "Dependences problem in dpkg -i
+    installation"
+  * Force IPv4 service
+    Add test support
+  * Fix issue #0000021: Problem restarting PtDmon
+    this patch completes the patches r1393 and r1382
+  * Add a configuration file for rsyslog
+  * Fix issue #0000033:
+    "Multiple Platine emulators controlled by the same Admin-Network"
+    We can now specify the service type in Platine Manager and
+    Platine daemon
+  * Rename platine libraries packages
+  * Add debug packages
+  * Correct some errors in packages scripts
+  * Move files from lib/exec to libexec
+  * Correct the script which removes the Platine configuration
+
+ -- Julien Bernard  <jbernard@toulouse.viveris.com>  Thu, 05 May 2011 16:15:41 +0100
+
+platine-daemon (3.0.0-beta1) unstable; urgency=low
+
+  * Initial release
+
+ -- Julien Bernard  <jbernard@toulouse.viveris.com>  Mon, 24 Jan 2011 10:54:44 +0100

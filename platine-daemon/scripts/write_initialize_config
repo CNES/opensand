@@ -1,0 +1,105 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+
+CONF_FILENAME="/etc/platine/daemon.conf"
+SAT_INIT="/usr/libexec/platine/sat_netinit"
+ST_INIT="/usr/libexec/platine/st_netinit"
+TUN_INIT="/usr/bin/platine_tun"
+
+SERVICE_NAME='sat'
+SERVICE_TYPE='_platine._tcp'
+SERVICE_INSTANCE=1
+SERVICE_IDENTIFIER=''
+SERVICE_PORT=3141
+SERVICE_TOOLS=''
+COMMAND_PORT=5926
+STATE_PORT=5358
+
+# read the daemon configuration from debconf cache
+read_conf(){
+    db_get platine-daemon/service/name
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    SERVICE_NAME=$RET
+    db_get platine-daemon/service/type
+    SERVICE_TYPE=$RET
+    db_get platine-daemon/service/st_instance
+    SERVICE_INSTANCE=$RET
+    db_get platine-daemon/service/ws_instance
+    SERVICE_IDENTIFIER=$RET
+    db_get platine-daemon/service/port
+    SERVICE_PORT=$RET
+    db_get platine-daemon/service/tools
+    SERVICE_TOOLS=$RET
+    db_get platine-daemon/command/port
+    COMMAND_PORT=$RET
+    db_get platine-daemon/state/port
+    STATE_PORT=$RET
+}
+
+# write daemon configuration
+write_conf(){
+    # service section
+    echo "[service]" > ${CONF_FILENAME}
+    echo "name = ${SERVICE_NAME}" >> ${CONF_FILENAME}
+    if [ "${SERVICE_NAME}" = 'st' ]; then
+        echo "instance = ${SERVICE_INSTANCE}" >> ${CONF_FILENAME}
+    fi
+    if [ "${SERVICE_NAME}" = 'ws' ]; then
+        echo "instance = ${SERVICE_INSTANCE}_${SERVICE_IDENTIFIER}" >> ${CONF_FILENAME}
+    fi
+    echo "type = ${SERVICE_TYPE}" >> ${CONF_FILENAME}
+    echo "port = ${SERVICE_PORT}" >> ${CONF_FILENAME}
+    if [ -n "${SERVICE_TOOLS}" ]; then
+        echo "tools  = ${SERVICE_TOOLS}" >> ${CONF_FILENAME}
+    fi
+    echo "" >> ${CONF_FILENAME}
+    echo "[command]" >> ${CONF_FILENAME}
+    echo "port = ${COMMAND_PORT}" >> ${CONF_FILENAME}
+    echo "" >> ${CONF_FILENAME}
+    echo "[state]" >> ${CONF_FILENAME}
+    echo "port = ${STATE_PORT}" >> ${CONF_FILENAME}
+}
+
+# initialize Platine network
+initialize(){
+    if [ "${SERVICE_NAME}" = 'ws' ]; then
+        return 0
+    fi
+
+    if [ "${SERVICE_NAME}" = 'gw' ]; then
+        SERVICE_INSTANCE=2
+    fi
+
+    if [ "${SERVICE_NAME}" = 'sat' ]; then
+        # configure network
+        ${SAT_INIT} CONF > /dev/null
+    else
+        # create the Platine tun interface
+        ${TUN_INIT} > /dev/null
+        if [ $? -ne 0 ] ; then
+            echo "Error when creating the tun interface" >&2
+            exit 1
+        fi
+        # configure network
+        ${ST_INIT} CONF ${SERVICE_INSTANCE} > /dev/null
+    fi
+
+    if [ $? -ne 0 ] ; then
+        echo "Error when configurating the Platine daemon" >&2
+        echo "ERROR: failed to initialize network" >&2
+        exit 1
+    fi
+}
+
+
+echo "Configure Platine Daemon:"
+/bin/echo -e "\tGet user configuration"
+read_conf
+/bin/echo -e "\tWrite configuration file"
+write_conf
+/bin/echo -e "\tInitialize Platine Network"
+initialize
+

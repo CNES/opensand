@@ -1,0 +1,371 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+
+"""
+run_view.py - the run tab view
+"""
+
+import gtk
+import os
+import time
+
+from platine_manager_gui.view.window_view import WindowView
+from platine_manager_core.my_exceptions import RunException
+
+COMPO_X = 70
+COMPO_Y = 69
+LED_XY = 15
+SAT_X = 170
+TOP_1 = 50
+TOP_2 = 200
+TOP_3 = 350
+TOOL_X = 20
+TOOL_Y = 20
+INFO_X = 600
+LEGEND_Y = TOP_2
+
+IMG_PATH = "/usr/share/platine/manager/images/"
+
+class RunView(WindowView):
+    """ Element of the run tab """
+    def __init__(self, parent, model, manager_log):
+        WindowView.__init__(self, parent)
+
+        self._initok = False
+        self._model = model
+        self._log = manager_log
+
+        self._platine_buff = None
+        self._drawing_area = None
+        self._stylepango = None
+        self._context_graph = None
+
+        # set the Platine event and error buffer
+#TODO voir si on pourrait utiliser qqch comme la partie graphique de ManagerLog
+#     et l'utiliser également dans ManagerLog
+        self._platine_buff = gtk.TextBuffer()
+        red = self._platine_buff.create_tag('red')
+        red.set_property('foreground', 'red')
+        orange = self._platine_buff.create_tag('orange')
+        orange.set_property('foreground', 'orange')
+        self._ui.get_widget('platine_textview').set_buffer(self._platine_buff)
+
+        # init drawing area
+        self._drawing_area = self._ui.get_widget('main_drawing_area')
+        self._stylepango = self._drawing_area.create_pango_layout("")
+
+        self._drawing_area.connect("expose-event", self.expose_handler)
+        style = self._drawing_area.get_style()
+        self._context_graph = style.fg_gc[gtk.STATE_NORMAL]
+
+        # check that image path exist
+        if not os.path.exists(IMG_PATH):
+            self._log.error("image path '%s' does not exist" % IMG_PATH)
+            raise RunException("image path '%s' does not exist" %
+                               IMG_PATH)
+
+    def expose_handler(self, drawing_area, event):
+        """ 'expose' event handler on drawing area """
+        global SAT_X, INFO_X, LEGEND_Y
+        LEGEND_Y = TOP_2
+        nbr_st = 0
+        SAT_X = 170
+        for host in self._model.get_hosts_list():
+            if host.get_component() == 'st':
+                nbr_st += 1
+            if host.get_component() == 'gw':
+                nbr_st += 1
+                SAT_X = 30
+
+        if nbr_st > 1:
+            SAT_X = COMPO_X  * nbr_st - 35
+
+        nbr = 0
+        for host in self._model.get_hosts_list():
+            if host.get_component() == 'gw':
+                self.draw_gw(host, 30, TOP_2)
+            elif host.get_component() == 'sat':
+                self.draw_sat(host, SAT_X, TOP_1)
+            elif host.get_component() == 'st':
+                self.draw_st(host, 170 + nbr * 140, TOP_2)
+                nbr += 1
+
+        env_plane_ctrl = self._model.get_env_plane()
+        if env_plane_ctrl != None:
+            INFO_X = 170 + (nbr + 1) * 140
+            self.draw_env_plane_state(env_plane_ctrl.get_states())
+
+        return False
+
+    def draw_env_plane_state(self, state_list):
+        """ draw environment plane """
+        image = gtk.Image()
+        png = os.path.join(IMG_PATH, 'monitoring.png')
+
+        xx = INFO_X + 17
+        yy = TOP_1 + 75
+        glob_state = False
+        for tab in state_list:
+            self._stylepango.set_text(tab[0])
+            self.draw_layout(xx, yy)
+            image = gtk.Image()
+            if tab[1] == True:
+                image.set_from_file(os.path.join(IMG_PATH, 'green.png'))
+                glob_state = True
+            elif tab[1] == False:
+                image.set_from_file(os.path.join(IMG_PATH, 'red.png'))
+                glob_state = True
+            else:
+                image.set_from_file(os.path.join(IMG_PATH, 'orange.png'))
+
+            self.draw_pixbuf(0, 0, INFO_X - 4 , yy + 1, LED_XY, LED_XY, image)
+            yy = yy + 20
+
+        if not glob_state:
+            png = os.path.join(IMG_PATH, 'monitoring_grey.png')
+
+        image.set_from_file(png)
+
+        self.draw_pixbuf(0, 0, INFO_X, TOP_1, COMPO_X, COMPO_Y, image)
+
+    def draw_st(self, host, x, y):
+        """ draw satellite terminal """
+        image = gtk.Image()
+        png = os.path.join(IMG_PATH, 'st.png')
+        if host.get_state() is None:
+            png = os.path.join(IMG_PATH, 'st_grey.png')
+        image.set_from_file(png)
+        self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
+        self._stylepango.set_text('ST ' + str(host.get_instance()))
+        self.draw_layout(x + 10, y + COMPO_Y)
+        self.draw_state(host.get_state(), x, y)
+        self.draw_tools(host, x + COMPO_X + 4, y)
+
+        # get satellite
+        sat = None
+        for compo in self._model.get_hosts_list():
+            if compo.get_component() == 'sat':
+                sat = compo
+                break
+
+        if host.get_state():
+            if sat is not None and sat.get_state():
+                self.draw_line(SAT_X + int(COMPO_X/2),
+                               TOP_1 + COMPO_Y + 20,
+                               x + int(COMPO_X/2), y - 10)
+            self.draw_line(x + int(COMPO_X/2),
+                           y + COMPO_Y + 20,
+                           x + int(COMPO_X/2),
+                           TOP_3 - 10)
+            image = gtk.Image()
+            image.set_from_file(os.path.join(IMG_PATH, 'network.png'))
+            self.draw_pixbuf(0, 0, x, TOP_3, COMPO_X, COMPO_Y, image)
+
+        ws_nbr = 0
+        for workstation in self._model.get_workstations_list():
+            (inst, ident) = workstation.get_instance().split('_', 1)
+            if inst == host.get_instance():
+                ws_nbr += 1
+                self._stylepango.set_text("- " + ident)
+                self.draw_layout(x + 10, TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
+
+        if ws_nbr > 0:
+            self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
+            self.draw_layout(x, TOP_3 + COMPO_Y)
+
+    def draw_sat(self, host, x, y):
+        """ draw satellite """
+        image = gtk.Image()
+        png = os.path.join(IMG_PATH, 'sat.png')
+        if host.get_state() is None:
+            png = os.path.join(IMG_PATH, 'sat_grey.png')
+        image.set_from_file(png)
+        self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
+        self._stylepango.set_text('Satellite')
+        self.draw_layout(x + 10, y + COMPO_Y)
+        self.draw_state(host.get_state(), x, y)
+        self.draw_tools(host, x + COMPO_X + 4, y)
+
+    def draw_gw(self, host, x, y):
+        """ draw gateway """
+        image = gtk.Image()
+        png = os.path.join(IMG_PATH, 'gw.png')
+        if host.get_state() is None:
+            png = os.path.join(IMG_PATH, 'gw_grey.png')
+        image.set_from_file(png)
+        self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
+        self._stylepango.set_text('Gateway (GW)')
+        self.draw_layout(x + 10, y + COMPO_Y)
+        self.draw_state(host.get_state(), x, y)
+
+        self.draw_tools(host, x + COMPO_X + 4, y)
+
+        # get satellite
+        sat = None
+        for compo in self._model.get_hosts_list():
+            if compo.get_component() == 'sat':
+                sat = compo
+                break
+
+        if host.get_state() and \
+           sat is not None and sat.get_state():
+            self.draw_line(SAT_X + int(COMPO_X/2),
+                           TOP_1 + COMPO_Y + 20,
+                           x + int(COMPO_X/2), y - 10)
+
+        ws_nbr = 0
+        for workstation in self._model.get_workstations_list():
+            (inst, ident) = workstation.get_instance().split('_', 1)
+            if inst == '2':
+                ws_nbr += 1
+                self._stylepango.set_text("- " + ident)
+                self.draw_layout(x + 10, TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
+
+        if ws_nbr > 0:
+            # TODO autre nom que workstation car on est derrière la GW
+            self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
+            self.draw_layout(x, TOP_3 + COMPO_Y)
+
+            if host.get_state():
+                self.draw_line(x + int(COMPO_X/2),
+                               y + COMPO_Y + 20,
+                               x + int(COMPO_X/2),
+                               TOP_3 - 10)
+                image = gtk.Image()
+                image.set_from_file(IMG_PATH + 'network.png')
+                self.draw_pixbuf(0, 0, x, TOP_3, COMPO_X, COMPO_Y, image)
+
+    def draw_tools(self, host, x, y):
+        """ draw the started tools for the specified host """
+        global LEGEND_Y
+        for tool in host.get_tools():
+            if tool.get_state():
+                png = "%s/tools/%s.png" % (IMG_PATH, tool.get_name())
+                if os.path.exists(png):
+                    image = gtk.Image()
+                    image.set_from_file(png)
+                    self.draw_pixbuf(0, 0, x, y, TOOL_X, TOOL_Y, image)
+                    self.draw_pixbuf(0, 0, INFO_X, LEGEND_Y, TOOL_X, TOOL_Y, image)
+                    self._stylepango.set_text(tool.get_name().upper())
+                    self.draw_layout(INFO_X + 25, LEGEND_Y + 5)
+                    LEGEND_Y += 28
+                else:
+                    self._stylepango.set_text(tool.get_name().upper())
+                    self.draw_layout(x, y)
+                y = y + TOOL_Y + 2
+
+    def draw_state(self, state, x, y):
+        """ draw component state """
+        if state is None:
+            return
+
+        image = gtk.Image()
+        if state == True:
+            image.set_from_file(IMG_PATH + 'green.png')
+        else:
+            image.set_from_file(IMG_PATH + 'red.png')
+
+        self.draw_pixbuf(0, 0, x - 9, y + 71, LED_XY, LED_XY, image)
+        return
+
+    def draw_line(self, src_x, src_y, dst_x, dst_y):
+        """ draw a line on the drawing area """
+        self._drawing_area.window.draw_line(self._context_graph,
+                                            src_x, src_y, dst_x, dst_y)
+
+
+    def draw_pixbuf(self, src_x, src_y, dst_x, dst_y, width, heigth, image):
+        """ draw an image on the drawing area """
+        self._drawing_area.window.draw_pixbuf(self._context_graph,
+                                              image.get_pixbuf(),
+                                              src_x, src_y, dst_x, dst_y,
+                                              width, heigth,
+                                              gtk.gdk.RGB_DITHER_NORMAL, 0, 0)
+
+
+    def draw_layout(self, x, y):
+        """ draw an area layout on the drawing area """
+        self._drawing_area.window.draw_layout(self._context_graph,
+                                              x, y, self._stylepango)
+
+    def show_platine_event(self, text):
+        """ print Platine events in Platine textview
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self._log.debug("Platine event: " + text)
+        self._platine_buff.insert(self._platine_buff.get_end_iter(),
+                                 time.strftime("%H:%M:%S ", time.gmtime()))
+        self._platine_buff.insert(self._platine_buff.get_end_iter(),
+                                  text + '\n')
+        self._platine_buff.place_cursor(self._platine_buff.get_end_iter())
+        self._ui.get_widget('platine_textview').scroll_to_mark(
+                self._platine_buff.get_insert(), 0.0, False, 0, 0)
+
+    def show_platine_error(self, text, color = None):
+        """ print Platine errors in Platine textview
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self._log.debug("Platine error: " + text)
+        self._platine_buff.insert(self._platine_buff.get_end_iter(),
+                               time.strftime("%H:%M:%S ", time.gmtime()))
+        if color != None:
+            self._platine_buff.insert_with_tags_by_name(
+                    self._platine_buff.get_end_iter(), '[ERROR] ', color)
+        self._platine_buff.insert(self._platine_buff.get_end_iter(),
+                                  text + '\n')
+        self._platine_buff.place_cursor(self._platine_buff.get_end_iter())
+        self._ui.get_widget('platine_textview').scroll_to_mark(
+                self._platine_buff.get_insert(), 0.0, False, 0, 0)
+
+    def update_status(self):
+        """ update the status of the different component
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self._drawing_area.queue_draw()
+
+    def set_run_id(self):
+        """ configure run ID (for file storage)
+            (should be used with gobject.idle_add outside gtk handlers) """
+        widget = self._ui.get_widget('run_id_txt')
+        run_id = widget.get_text()
+        if run_id == '':
+            run_id = 'default_0'
+        if run_id.startswith("default_"):
+            try:
+                nbr = int(run_id[(run_id.find('_') + 1):])
+                # increment the run_id to avoid overwritting the previous one
+                nbr += 1
+                run_id = "default_"  + str(nbr)
+                widget.set_text(run_id)
+            except Exception, msg:
+                self._log.warning("Default Run ID will be overwritten "
+                                  "due to exception (%s)" % str(msg))
+        self._model.set_run(run_id)
+
+    def set_start_stop_button(self):
+        """ modify the start button label according to Platine status
+            (should be used with gobject.idle_add outside gtk handlers) """
+        if self._model.is_running():
+            btn = self._ui.get_widget('start_platine_button')
+            btn.set_label('Stop Platine')
+        else:
+            btn = self._ui.get_widget('start_platine_button')
+            btn.set_label('Start Platine')
+
+    def disable_start_button(self, status):
+        """ set start button sensitive or not
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self._ui.get_widget('start_platine_button').set_sensitive(not status)
+
+    def disable_deploy_button(self, status):
+        """ set deploy button sensitive or not
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self._ui.get_widget('deploy_platine_button').set_sensitive(not status)
+
+    def hide_deploy_button(self, status = True):
+        """ hide or not deploy button
+            (should be used with gobject.idle_add outside gtk handlers) """
+        widget = self._ui.get_widget('deploy_platine_button')
+        if status:
+            widget.hide()
+        else:
+            widget.show()
+

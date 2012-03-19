@@ -1,0 +1,14 @@
+Since version 2.0, Margouilla Runtime is opensource, and released under LGPL.
+
+Please, read readme.txt
+
+2011-04-07 10:04  jbernard
+
+	* Fix issue #0000035: Add a make deb target
+
+2011-04-11 16:44  jbernard
+
+	* - Rename platine libraries packages
+	  - Add debug packages
+	  - Correct some errors in packages scripts
+

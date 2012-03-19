@@ -1,0 +1,557 @@
+<html>
+<head>
+<title>Document sans-titre</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+
+<body bgcolor="#FFFFFF">
+<table width="100%" border="0">
+  <tr bgcolor="#52799e"> 
+    <td><img src="icon/small_tri_right.gif" width="15" height="14"><font face="Arial, Helvetica, sans-serif"><b><font color="#FFFFFF">Tutorial: 
+      Coding a new bloc</font></b></font></td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr>
+    <td><b><font face="Arial, Helvetica, sans-serif"><br>
+      </font></b></td>
+  </tr>
+  <tr>
+    <td>
+      <table width="100%" border="0">
+        <tr>
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left">This tutorial explains how 
+            to write a new bloc able to send and receive events.<br>
+            As you'll see, this is quite easy.</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">I/ Bloc class definition</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left" bordercolor="#00FF00"> 
+            <p>First of all, you must define a new class for this bloc. Blocs 
+              heritate from mgl_bloc class. You only have to redefine the constructor 
+              and the event handler.</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">class 
+                    myBloc: public mgl_bloc { <br>
+                    &nbsp; &nbsp;&nbsp;public: myBloc(mgl_blocmgr *ip_blocmgr, 
+                    mgl_id i_fatherid, char *ip_name); <br>
+                    &nbsp;&nbsp;&nbsp; mgl_status onEvent(mgl_event *ip_event); 
+                    <br>
+                    };<br>
+                    <br>
+                    myBloc::myBloc(mgl_blocmgr *ip_blocmgr, mgl_id i_fatherid, 
+                    char *ip_name) :mgl_bloc(ip_blocmgr, i_fatherid, ip_name) 
+                    { } </font></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">II/ Event Handler</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>The function onEvent(mgl_event *ip_event) is used to receive all 
+              events. <br>
+              Events types are defined in &quot;mgl_event.h&quot; :<br>
+            </p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">typedef 
+                    enum { <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_null, <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_init, <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_terminate, <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_msg, <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_timer, <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_fd,<br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type_last <br>
+                    } mgl_event_type;</font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">typedef 
+                    struct { <br>
+                    &nbsp;&nbsp;&nbsp;mgl_event_type type; <br>
+                    &nbsp;&nbsp;&nbsp;union {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mgl_event_msg msg; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mgl_event_timer timer; 
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mgl_event_fd fd; <br>
+                    &nbsp;&nbsp;&nbsp;} event; <br>
+                    } mgl_event; </font></p>
+                </td>
+              </tr>
+            </table>
+            <p>The type of the received event can be found in : 'ip_event->type'. 
+              <br>
+              Then, depending on this type, the 'event' field must be casted as 
+              'msg', 'timer', or 'fd'.<br>
+              Events mgl_event_type_init, mgl_event_type_msg, mgl_event_type_timer, 
+              mgl_event_type_fd are described hereafter. </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">III/ Init &amp; Terminate Event Handler: mgl_event_type_init</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>The first event a bloc receives is an init event. The last one 
+              should be a terminate event.<br>
+              It is recommended to allocate memory (use of memory pools is recommended) 
+              on the init event, and release it on terminate event.</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">mgl_status 
+                    myBloc::onEvent(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp; if (ip_event->type == mgl_event_type_init) 
+                    {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Could allocate 
+                    or initialise memory </font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+                    &nbsp;&nbsp;&nbsp; } <br>
+                    &nbsp;&nbsp;&nbsp; if (ip_event->type == mgl_event_type_terminate) 
+                    {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Could release 
+                    allocated memory </font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+                    &nbsp;&nbsp;&nbsp; }<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;//... other event handlers</font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+                    &nbsp;&nbsp;&nbsp; return mgl_ok; <br>
+                    } </font></p>
+                  </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">IV/ Message Event Handler: mgl_event_type_msg</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p><font face="Arial, Helvetica, sans-serif" size="4">1/ Messages</font></p>
+            <p>The basic communication scheme between blocs is based on messages 
+              exchanges.<br>
+              The field 'ip_event->event.msg' (type mgl_msginfo) is managed by 
+              the runtime and contains some usefull information about the received 
+              message: <br>
+              - Id of the senderbloc, id of the destination bloc, <br>
+              - port of the senderblocs, port of the bloc destination, <br>
+              - time when the message as been sent, theoritical received time 
+              if the message as been delayed, <br>
+              - unique Id of the message, <br>
+              - A pointer to the message itself.<br>
+            </p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">typedef 
+                    struct { <br>
+                    &nbsp;&nbsp;&nbsp;mgl_msg *ptr; <br>
+                    &nbsp;&nbsp;&nbsp;mgl_id srcBloc; <br>
+                    &nbsp;&nbsp;&nbsp;mgl_id srcPort; <br>
+                    &nbsp;&nbsp;&nbsp;mgl_id dstBloc; <br>
+                    &nbsp;&nbsp;&nbsp;mgl_id dstPort; <br>
+                    &nbsp;&nbsp;&nbsp;long time_in; <br>
+                    &nbsp;&nbsp;&nbsp;long time_out; <br>
+                    &nbsp;&nbsp;&nbsp;long id; <br>
+                    } mgl_msginfo; <br>
+                    typedef mgl_msginfo mgl_event_msg; </font></p>
+                </td>
+              </tr>
+            </table>
+            <p>The message is allocated by the sender bloc thanks to usefull macro, 
+              and is composed by a message type and an optional pointer to the 
+              message content. <br>
+              If not set to 0, the 'len' field indicate the length in byte of 
+              the buffer pointed by pBuf;<br>
+              If set to 1, the 'freeBody' field means that the runtime is in charge 
+              of freeing this buffer thanks to the C 'free' function. Should always 
+              been set to 0 by a bloc.<br>
+            </p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    typedef struct { <br>
+                    &nbsp;&nbsp;&nbsp;long type; <br>
+                    &nbsp;&nbsp;&nbsp;struct { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void *pBuf; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long len; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set freeBody to 1 if 
+                    the eventMgr allocate and free it <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set freeBody to 0 if 
+                    the bloc allocate and free it <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long freeBody; <br>
+                    &nbsp;&nbsp;&nbsp;}; <br>
+                    } mgl_msg; </font></p>
+                </td>
+              </tr>
+            </table>
+            <p><font face="Arial, Helvetica, sans-serif" size="4">2/ Sending a 
+              message</font></p>
+            <p>When sending a message it is possible to send:<br>
+              1/ a message without body. Only the message type is used.<br>
+              2/ a message carrying a structure as body: When such message is 
+              sent, the runtime allocates memory for the body and copy the content. 
+              Such messages are safe.<br>
+              3/ a message carrying a pointer to a struct. Such message is optimized, 
+              but be very carrefull with pointer allocation and free.<br>
+            </p>
+            <p>Messages (type 'mgl_msg *') are allocated thanks to newMsg() for 
+              case 1/ and 2/, and newMsgWithBodyPtr() for case 3/. Those two functions 
+              are inherited from mgl_bloc class.</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    // Allocate memory for a message then for its body. <br>
+                    // Set body to null, or copy from body pointer <br>
+                    mgl_msg *mgl_bloc::newMsg(long i_msgType, char *ip_msgBody=NULL, 
+                    long i_bodyLength=-1); </font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">// 
+                    Allocate memory for a message , not for its body. <br>
+                    // Set body pointer from argument <br>
+                    mgl_msg *mgl_bloc::newMsgWithBodyPtr(long i_msgType, void 
+                    *ip_msgBody=NULL, long i_size=0); </font></p>
+                </td>
+              </tr>
+            </table>
+            <p>&nbsp;</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    #define MSG_TEST_TYPE_1 1<br>
+                    #define MSG_TEST_TYPE_2 2 <br>
+                    #define MSG_TEST_TYPE_3 3 <br>
+                    mgl_msg *lp_msg; </font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">// 
+                    Send msg1: Msg type=MSG_TEST_TYPE_1, no body <br>
+                    lp_msg = newMsg(MSG_TEST_TYPE_1); <br>
+                    sendMsgTo(g_bloc_dest_id, lp_msg); <br>
+                    </font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+                    // Send msg2: Msg type=MSG_TEST_TYPE, body contains a char 
+                    buffer <br>
+                    // The buffer is allocated, then memcopied from bloc buffer 
+                    into message <br>
+                    // This is the safer way to manage messages but it is not 
+                    optimised <br>
+                    // for fast data exchange (lot of memcopy and malloc). <br>
+                    char l_buf[]="Hello world"; <br>
+                    int l_len; <br>
+                    l_len = strlen(l_buf)+1; // Include last \0 <br>
+                    lp_msg = newMsg(MSG_TEST_TYPE_2, l_buf, l_len); <br>
+                    sendMsgTo(g_bloc_dest_id, lp_msg); <br>
+                    </font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+                    // Send msg3: Msg type=MSG_TEST_TYPE, body constains a pointer 
+                    to a buffer <br>
+                    // No memcopy is done, memory is allocated by the sender, 
+                    and only a <br>
+                    // pointer is sent to the receiver. <br>
+                    // This is faster, but be very carrefull with pointer management 
+                    and memory <br>
+                    // allocation, especially with distributed process and threads. 
+                    <br>
+                    lp_ptr = (char *)malloc(150); <br>
+                    sprintf(lp_ptr, "Msg body contains only a pointer."); <br>
+                    lp_msg = newMsgWithBodyPtr(MSG_TEST_TYPE_3, lp_ptr, 150); 
+                    <br>
+                    sendMsgTo(g_bloc_dest_id, lp_msg); <br>
+                    </font></p>
+                </td>
+              </tr>
+            </table>
+            <p><font face="Arial, Helvetica, sans-serif" size="4">3/ Receiving 
+              a message</font></p>
+            <p>Messages are received in the 'onEvent' function.</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    char *lp_ptr;<br>
+                    if (ip_event->type == mgl_event_type_msg) { <br>
+                    &nbsp;&nbsp;&nbsp;// Msg type 1<br>
+                    &nbsp;&nbsp;&nbsp;if (ip_event->event.msg...ptr->type== MSG_TEST_TYPE_1) 
+                    { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("Received Msg 1\n"); 
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    <br>
+                    &nbsp;&nbsp;&nbsp;// Msg type 2 <br>
+                    &nbsp;&nbsp;&nbsp;if (ip_event->event.msg.ptr->type== MSG_TEST_TYPE_2) 
+                    { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("Received Msg 2 
+                    [%s]\n", ip_event->event.msg.ptr->pBuf); <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    <br>
+                    &nbsp;&nbsp;&nbsp;// Msg type 3 <br>
+                    &nbsp;&nbsp;&nbsp;if (ip_event->event.msg.ptr->type== MSG_TEST_TYPE_3) 
+                    { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lp_ptr = (char *)(ip_event->event.msg.ptr->pBuf); 
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("Received Msg 3 
+                    [%s]\n", lp_ptr); <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(lp_ptr); <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    } </font></p>
+                </td>
+              </tr>
+            </table>
+            <p>&nbsp; </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">V/ Timer Event Handler: mgl_event_type_timer</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>A bloc can set many timers and manage them thanks the 'setTimer' 
+              function inheritated from mgl_bloc.</p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    static mgl_id l_timer; <br>
+                    // l_timer could be Static, or member variable. <br>
+                    setTimer(l_timer, 1000); // 1 second</font></p>
+                  <p> <font face="Verdana, Arial, Helvetica, sans-serif" size="2">mgl_status 
+                    myBloc::onEvent(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp; if (ip_event->type == mgl_event_type_timer) 
+                    {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ip_event->event.timer.id 
+                    == l_timer) { }<br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    } </font></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">VI/ Socket Event Handler: mgl_event_type_fd</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>Instead of starting many threads to wait for socket messages with 
+              blocking calls, and cry to synchronise thread or manage memory read/write 
+              between threads, it is possible to delegate the socket handler to 
+              the runtime. Trust me, it is easier to debug. </p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    mgl_status myBloc::onEvent(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp;static int l_s; // Static here, should be 
+                    a member variable. <br>
+                    &nbsp;&nbsp;&nbsp;if (ip_event->type == mgl_event_type_init) 
+                    {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // get a socket fd <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addFd(l_s);<br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    &nbsp;&nbsp;&nbsp;if (ip_event->type == mgl_event_type_fd) 
+                    { <br>
+                    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;// Blocking read, that 
+                    won't block because there is something to read.<br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    &nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    } </font></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">VII/ Bloc States &amp; Step by step processing</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>Asynchronous events managements are powerfull when used with state 
+              machines. It is thus possible to define states that will be used 
+              when tracing.<br>
+              Moreover, blocs can define basic steps when processing an event. 
+              Each step setting the next one. <br>
+              When defining a step by step processing, on must implement 'mgl_status 
+              myBloc::execute(long i_id, mgl_event *ip_event)' function that do 
+              the mapping between a step Id and and a function. <br>
+              Such functionnalities are mainly used by SDL generated code. </p>
+            <table width="100%" border="0" bordercolor="#000000" bgcolor="#CCCCCC">
+              <tr bordercolor="#FF0099" bgcolor="#FFFFFF"> 
+                <td> 
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2"> 
+                    mgl_status bloc_ping::execute(long i_id, mgl_event *ip_event) 
+                    { <br>
+                    &nbsp;&nbsp;&nbsp;switch(i_id) { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 2: onEvent_2(ip_event); 
+                    break; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 3: onEvent_3(ip_event); 
+                    break; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default: return mgl_ko; // 
+                    Warning !!! <br>
+                    &nbsp;&nbsp;&nbsp;} <br>
+                    &nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    } </font></p>
+                  <p><font face="Verdana, Arial, Helvetica, sans-serif" size="2">mgl_status 
+                    bloc_ping::onEvent(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp;switch (_state) { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case state_start: <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ip_event->type 
+                    == mgl_event_type_init) { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MGL_ONEVENT_GOTO(2); 
+                    return mgl_ok; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MGL_WARNING(MGL_CTX, 
+                    "Event lost"); <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} break; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case state_WaitPong: <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ip_event->type 
+                    == mgl_event_type_timer) { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                    if (ip_event->event.timer.id == l_timer) { MGL_ONEVENT_GOTO(9); 
+                    return mgl_ok; } <br>
+                    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;} <br>
+                    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;if &nbsp;&nbsp;&nbsp;(ip_event->type 
+                    == mgl_event_type_msg) { <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                    if (ip_event->event.msg.ptr->type== msgid_pong) { MGL_ONEVENT_GOTO(5); 
+                    return mgl_ok; } <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;MGL_WARNING(MGL_CTX, 
+                    "Event lost"); break; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case state_terminated: 
+                    return mgl_ok; break; <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default: // Warning return 
+                    mgl_ko; break; <br>
+                    &nbsp;&nbsp;&nbsp; } <br>
+                    &nbsp;&nbsp;&nbsp;return mgl_ko; <br>
+                    } <br>
+                    <br>
+                    mgl_status bloc_ping::onEvent_2(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp; MGL_sendMsgType(ping, (char *)NULL, -1); 
+                    <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;MGL_ONEVENT_GOTO(11); <br>
+                    &nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    } <br>
+                    <br>
+                    mgl_status bloc_ping::onEvent_3(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp; MGL_ONEVENT_SETSTATE(WaitPong); <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    } <br>
+                    <br>
+                    mgl_status bloc_ping::onEvent_5(mgl_event *ip_event) { <br>
+                    &nbsp;&nbsp;&nbsp; setTimer(l_timer, 2000); <br>
+                    &nbsp;&nbsp;&nbsp;MGL_ONEVENT_GOTO(6); <br>
+                    &nbsp;&nbsp;&nbsp;return mgl_ok; <br>
+                    } </font></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table width="100%" border="0">
+  <tr> 
+    <td> <b><font face="Arial, Helvetica, sans-serif"><br>
+      <font size="4">VIII/ Complete Exemple</font></font></b></td>
+  </tr>
+  <tr> 
+    <td> 
+      <table width="100%" border="0">
+        <tr> 
+          <td width="4%"><img src="icon/pad.gif" width="1" height="1"></td>
+          <td width="96%" valign="top" align="left"> 
+            <p>Have a look at the exemple: 'test_runtime/test_bloc_msg.cpp', or 
+              generated code exemples such as 'ping_pong'.</p>
+            <p>&nbsp;</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<p></p>
+<p></p>
+<p><b><font face="Arial, Helvetica, sans-serif"> </font></b> </p>
+</body>
+</html>

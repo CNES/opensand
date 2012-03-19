@@ -1,0 +1,15 @@
+platine-env-plane (3.0.0-rc1) unstable; urgency=low
+
+  * Create the scenario path if it does not exist
+  * Fix issue #0000035: Add a make deb target
+  * Rename platine libraries packages
+  * Add debug packages
+  * Correct some errors in packages scripts
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 05 May 2011 16:18:16 +0100
+
+platine-env-plane (3.0.0-beta1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Tue, 25 Jan 2011 11:02:30 +0100

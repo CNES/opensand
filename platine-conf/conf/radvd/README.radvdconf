@@ -1,0 +1,18 @@
+-----   Configuration note for running RADVD on PLATINE  -----
+12/03/2008
+
+RADVD must be running in Platine in order to allow WS IPv6 autoconfiguration. WHen this feature is enabled (check /proc/sys/net/ipv6/conf/ethX/autoconf and accept_RA) both address and route autoconfiguration should work. Such feature may be required to support Mobile IPv6 protocol suite.
+
+In the baseline configuration from the current conf file, we choose to deploy it from all ST EXCEPT the Gateway. In the GW subnetwork, route advertisements are sent by another station, a special WS which act as the HA for MIPv6.
+
+Up to now, these conf files are NOT automatically deployed by the startup platine script, so you have to manually put them at the relevant place (/usr/local/sbin/radvd/sbin/). You also have to rename each file, once deployed, as radvd.conf. Remember to check that launch_RADVD and stop_RADVD scripts are locally present at STs and HA
+
+Consequently, radvd_ST<X>.conf files may be directly used at the relevant ST<X>, while radvd_HA.conf is only expected to work at a station located in the gateway subnetwork. Nevertheless, this last file may easily be adapted to your actual configuration need
+
+The launch_RADVD launcher will remotely create a radvd.pidfile in /home/devel2 which allows to test the presenece of the process. 
+Please use systemtically this script (and stop_RADVD) to start and stop RADVD process
+
+
+
+
+
