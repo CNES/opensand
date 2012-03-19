@@ -1,2 +1,3 @@
-This test consists to ping WS and ST from WS1 (behind ST1) and to check that the ping works and that its time is correct.
+This test consists to ping WS and ST from WS1 (behind ST1) and to check that the
+ping works and that its time is correct.
 For this test WS1 shall have the identifier 'test'.

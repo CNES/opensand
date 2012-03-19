@@ -1,11 +1,16 @@
 [prefix]
+# automatically replaced by the binary
 source=.
 destination=/tmp/platine_tests
 
 [ws1_test]
 files=unit/ping_files/ping.py
+ld_library_path=.lib
+
+[common]
+files=.lib/platine_tests.py,  .lib/__init__.py
 
 [command]
-exec=/tmp/platine_tests/ping.py transparent
+exec=/tmp/platine_tests/unit/ping_files/ping.py transparent
 wait=True
 return=0

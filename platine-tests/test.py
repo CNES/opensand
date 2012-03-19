@@ -24,8 +24,9 @@ from platine_manager_core.controller.host import HostController
 from platine_manager_core.loggers.manager_log import ManagerLog
 from platine_manager_core.my_exceptions import CommandException
 
-#TODO fonction pour récupérer les logs sur erreur
-SERVICE="_platine._tcp"
+# TODO fonction pour récupérer les logs sur erreur
+# TODO fonction pour nettoyer les scénarios
+SERVICE = "_platine._tcp"
 
 class Loop(threading.Thread):
     """ the mainloop for service_listener """
@@ -161,6 +162,8 @@ help="specify the root folder for tests configurations\n"
         # the workstations controllers
         self._ws_ctrl = []
 
+        self._loop = None
+
         ### create the logger
         self._quiet = True
 
@@ -179,8 +182,10 @@ help="specify the root folder for tests configurations\n"
         try:
             self.load()
             self.run()
+            if len(self._error) > 0:
+                raise TestError('Last error: ', str(self._error))
         except TestError as err:
-            self._log.error("%s failure: %s" % (err.step, err.msg))
+            self._log.error("%s: %s" % (err.step, err.msg))
             raise
         except KeyboardInterrupt:
             if self._quiet:
@@ -197,8 +202,6 @@ help="specify the root folder for tests configurations\n"
 
     def load(self):
         """ prepare Platine for the test """
-        ## create the Model and Controller
-        self._loop = None
         # create the Platine model
         self._model = Model(self._log)
         # create the Platine controller
@@ -214,29 +217,28 @@ help="specify the root folder for tests configurations\n"
         self.create_ws_controllers()
 
     def close(self):
-            for thread in self._threads:
-                thread.join(10)
-                self._threads.remove(thread)
-            try:
-                self.stop_platine()
-            except:
-                pass
-            for ws_ctrl in self._ws_ctrl:
-                ws_ctrl.close()
-            if self._model is not None:
-                self._model.close()
-            if self._loop is not None:
-                self._loop.close()
-                self._loop.join()
-            if self._controller is not None:
-                self._controller.join()
+        """ stop the service listener """
+        for thread in self._threads:
+            thread.join(10)
+            self._threads.remove(thread)
+        try:
+            self.stop_platine()
+        except:
+            pass
+        for ws_ctrl in self._ws_ctrl:
+            ws_ctrl.close()
+        if self._model is not None:
+            self._model.close()
+        if self._loop is not None:
+            self._loop.close()
+            self._loop.join()
+        if self._controller is not None:
+            self._controller.join()
 
     def run(self):
         """ launch the tests """
         if not self._model.main_hosts_found():
             raise TestError("Initialization", "main hosts not found")
-
-        self.stop_platine()
 
 #TODO faire une matrice des tests avec résultat dans un fichier
 #TODO on s'arrete sur erreur: OK ?
@@ -262,6 +264,7 @@ help="specify the root folder for tests configurations\n"
             # get test_name folders
             test_names = glob.glob(test_type + '/*')
             for test_name in test_names:
+                self.stop_platine()
                 if not os.path.exists(os.path.join(test_name, 'scenario')):
                     # skip folders that does not contain a scenario directory
                     self._log.debug("skip folder %s as it does not contain a "
@@ -272,6 +275,7 @@ help="specify the root folder for tests configurations\n"
                 # in quiet mode print important output on terminal
                 if self._quiet:
                     print "Start test %s" % os.path.basename(test_name),
+                    sys.stdout.flush()
                 self._model.set_scenario(os.path.join(test_name, 'scenario'))
                 self._error = []
                 # start the platform
@@ -286,27 +290,33 @@ help="specify the root folder for tests configurations\n"
                 for host in orders:
                     if not os.path.isdir(host):
                         continue
+                    try:
+                        self.launch_test(host)
+                    except Exception, msg:
+                        break
                     if len(self._error) > 0:
-                        raise TestError("Test",
-                                        "Got an error: %s" % str(self._error))
-                    self.launch_test(host)
+                        break
                 for thread in self._threads:
-                    thread.join(10)
+                    # wait for pending tests to stop
+                    thread.join(60)
                     self._threads.remove(thread)
                 if len(self._error) > 0:
-                    #TODO get the test result
+                    #TODO get the test output
                     # in quiet mode print important output on terminal
                     if self._quiet:
                         print "    \033[91mERROR\033[0m"
-                    raise TestError("Test",
-                                    "Got an error: %s" % str(self._error))
+                        sys.stdout.flush()
+                    # continue on other tests
+                    self._log.error(" * Test %s failed: %s" %
+                                    (os.path.basename(test_name),
+                                     str(self._error)))
                 else:
                     self._log.info(" * Test %s successful" %
                                    os.path.basename(test_name))
                     # in quiet mode print important output on terminal
                     if self._quiet:
                         print "    \033[92mSUCCESS\033[0m"
-                self.stop_platine()
+                        sys.stdout.flush()
 
     def launch_test(self, path):
         """ initialize the test: load configuration, deploy files
@@ -327,8 +337,7 @@ help="specify the root folder for tests configurations\n"
                             "Cannot load configuration in %s" % path)
 
         try:
-            if self._folder != '':
-                config.set('prefix', 'source', self._folder)
+            config.set('prefix', 'source', self._folder)
         except:
             pass
 
@@ -377,7 +386,7 @@ help="specify the root folder for tests configurations\n"
             self.connect_host(host_ctrl, cmd, ret)
         else:
             connect = threading.Thread(target=self.connect_host,
-                                       args=((host_ctrl,), (cmd,), (ret,)))
+                                       args=(host_ctrl, cmd, ret))
             self._threads.append(connect)
             connect.start()
 
@@ -385,28 +394,30 @@ help="specify the root folder for tests configurations\n"
         """ connect the host and launch the command,
             and exception is raised if the test return is not ret
             and complete the self._error dictionnary """
+        err = None
         try:
             sock = host_ctrl.connect_command('TEST')
             # increase the timeout value because tests could be long
-            sock.settimeout(120)
+            sock.settimeout(180)
             sock.send("COMMAND %s\n" % cmd)
             result = sock.recv(512).strip()
         except CommandException, msg:
-            raise TestError("Connection", "%s" % msg)
+            err = "%s: %s" % (host_ctrl.get_name(), msg)
         except socket.error, msg:
             sock.close()
-            raise TestError("Connection", str(msg))
+            err = "%s: %s" % (host_ctrl.get_name(), str(msg))
         except socket.timeout:
             sock.close()
-            raise TestError("Connection", "Timeout")
+            err = "%s: Timeout" % host_ctrl.get_name()
+        finally:
+            if err is not None:
+                self._error.append(err)
 
         sock.close()
 
         if result != ret:
-            self._error.append("Test returned '%s' instead of '%s'" %
-                               (result, ret))
-            raise TestError("Return code", "Test returned '%s' instead of '%s'"
-                            % (result, ret))
+            self._error.append("Test returned '%s' instead of '%s' on %s" %
+                               (result, ret, host_ctrl.get_name()))
 
     def stop_platine(self):
         """ stop the Platine testbed """
@@ -459,7 +470,7 @@ class TestError(Exception):
         self.msg = descr
 
     def __repr__(self):
-        return 'Error context: %s  Error message: %s' % (self.step, self.msg)
+        return '\tCONTEXT: %s\n\tMESSAGE: %s' % (self.step, self.msg)
 
     def __str__(self):
         return repr(self)
