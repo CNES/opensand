@@ -72,15 +72,15 @@ endif
 
 libplatine_encap_la_SOURCES = \
 	$(libplatine_encap_la_cpp) \
-	$(libplatine_encap_la_rohc_cpp) \
-	$(libplatine_encap_la_h) \
-	$(libplatine_encap_la_rohc_h)
+	$(libplatine_encap_la_h)
+#	$(libplatine_encap_la_rohc_cpp) \
+#	$(libplatine_encap_la_rohc_h)
 
 libplatine_encap_la_DEPENDENCIES = \
 	$(libplatine_encap_la_cpp) \
-	$(libplatine_encap_la_rohc_cpp) \
-	$(libplatine_encap_la_h) \
-	$(libplatine_encap_la_rohc_h)
+	$(libplatine_encap_la_h)
+#	$(libplatine_encap_la_rohc_cpp) \
+#	$(libplatine_encap_la_rohc_h)
 
 INCLUDES = \
 	-I../dvb_rcs_base \

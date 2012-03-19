@@ -55,12 +55,14 @@
 #include "NetBurst.h"
 #include "UleExtTest.h"
 #include "UleExtPadding.h"
+#if 0
 #include "AtmAal5RohcCtx.h"
 #include "MpegUleRohcCtx.h"
 #include "MpegAtmAal5RohcCtx.h"
 #include "GseRohcCtx.h"
 #include "GseAtmAal5RohcCtx.h"
 #include "GseMpegUleRohcCtx.h"
+#endif
 #if ULE_SECURITY
 	#include "UleExtSecurity.h"
 #endif

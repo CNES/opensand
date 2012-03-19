@@ -242,22 +242,24 @@ mgl_status BlocEncap::onInit()
 			qos_nbr = DFLT_GSE_QOS_NBR;
 		}
 
+#if 0
 		if(output_encap_proto == ENCAP_GSE_ROHC)
 		{
 			this->emissionCxt = (GseCtx *) new GseRohcCtx(qos_nbr);
 		}
 		else
-		{
-			this->emissionCxt = (GseCtx *) new GseCtx(qos_nbr);
-		}
+#endif
+		this->emissionCxt = (GseCtx *) new GseCtx(qos_nbr);
 
 		UTI_INFO("%s QoS number for GSE encapsulation scheme = %d\n",
 		         FUNCNAME, qos_nbr);
 	}
+#if 0
 	else if(output_encap_proto == ENCAP_ATM_AAL5_ROHC)
 		this->emissionCxt = (AtmCtx *) new AtmAal5RohcCtx();
 	else if(output_encap_proto == ENCAP_MPEG_ULE_ROHC)
 		this->emissionCxt = (MpegCtx *) new MpegUleRohcCtx(0);
+#endif
 	else
 	{
 		UTI_INFO("%s bad value for output encapsulation scheme. ATM/AAL5 used "
@@ -353,10 +355,12 @@ mgl_status BlocEncap::onInit()
 		{
 			this->receptionCxt = (GseCtx *) new GseCtx(qos_nbr);
 		}
+#if 0
 		else if(input_encap_proto == ENCAP_GSE_ROHC)
 		{
 			this->receptionCxt = (GseCtx *) new GseRohcCtx(qos_nbr);
 		}
+#endif
 		else
 		{
 			// Get packing threshold for GSE encapsulation context
@@ -387,6 +391,7 @@ mgl_status BlocEncap::onInit()
 				this->receptionCxt =
 					(GseCtx *) new GseMpegUleCtx(qos_nbr, packing_threshold);
 			}
+#if 0
 			else if(input_encap_proto == ENCAP_GSE_ATM_AAL5_ROHC)
 			{
 				this->receptionCxt =
@@ -397,6 +402,7 @@ mgl_status BlocEncap::onInit()
 				this->receptionCxt =
 					(GseCtx *) new GseMpegUleRohcCtx(qos_nbr, packing_threshold);
 			}
+#endif
 			else
 			{
 				UTI_ERROR("%s bad value for input encapsulation scheme (%s)",
@@ -413,12 +419,14 @@ mgl_status BlocEncap::onInit()
 	}
 	else if(input_encap_proto == ENCAP_MPEG_ATM_AAL5)
 		this->receptionCxt = (MpegCtx *) new MpegAtmAal5Ctx(0);
+#if 0
 	else if(input_encap_proto == ENCAP_ATM_AAL5_ROHC)
 		this->receptionCxt = (AtmCtx *) new AtmAal5RohcCtx();
 	else if(input_encap_proto == ENCAP_MPEG_ULE_ROHC)
 		this->receptionCxt = (MpegCtx *) new MpegUleRohcCtx(0);
 	else if(input_encap_proto == ENCAP_MPEG_ATM_AAL5_ROHC)
 		this->receptionCxt = (MpegCtx *) new MpegAtmAal5RohcCtx(0);
+#endif
 	else
 	{
 		UTI_ERROR("%s bad value for input encapsulation scheme (%s). "

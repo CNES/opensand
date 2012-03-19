@@ -41,16 +41,14 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket sqrt strchr strerror strstr])
 
 
-# check for ROHC library presence if enabled
-
 # check pkg-config presence
 AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found!])])
 
 
 # check for ROHC library path
-PKG_CHECK_MODULES([PLATINE_ROHC], [rohc >= 1.3.1])
-LIBS="$PLATINE_ROHC_LIBS $LIBS"
-CFLAGS="$PLATINE_ROHC_CFLAGS $CFLAGS"
+#PKG_CHECK_MODULES([PLATINE_ROHC], [rohc >= 1.3.1])
+#LIBS="$PLATINE_ROHC_LIBS $LIBS"
+#CFLAGS="$PLATINE_ROHC_CFLAGS $CFLAGS"
 
 # check for gse library
 PKG_CHECK_MODULES([PLATINE_GSE], [gse >= 1.0.0])
