@@ -385,18 +385,15 @@ class ConfigurationNotebook(gtk.Notebook):
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
             elt_type = self._config.get_attribute_type(att, name)
-            cb = []
             value = ''
             path = ''
-            cb.append(self.handle_param_chanded)
-            if self._changed_cb is not None:
-                try:
-                    path = '%s--%s' % (self._config.get_path(line), att)
-                    cb.append(self._changed_cb)
-                    value = dic[att]
-                except:
-                    # this is a new line entry
-                    path = '//%s[last()]--%s' % (name, att)
+            cb = [self.handle_param_chanded, self._changed_cb]
+            try:
+                path = '%s--%s' % (self._config.get_path(line), att)
+                value = dic[att]
+            except:
+                # this is a new line entry
+                path = '//%s[last()]--%s' % (name, att)
             entry = ConfEntry(elt_type, value, path, cb)
             self._backup.append(entry)
             hbox.pack_start(entry.get())
@@ -419,21 +416,21 @@ class ConfigurationNotebook(gtk.Notebook):
             len(self._new) == 0):
             return
 
-        for table in self._new:
-            self._config.add_line(table)
+        try:
+            for table in self._new:
+                self._config.add_line(table)
 
-        for entry in self._changed:
-            path = entry.get_name().split('--')
-            val = entry.get_value()
-            try:
+            for entry in self._changed:
+                path = entry.get_name().split('--')
+                val = entry.get_value()
                 if len(path) == 0 or len(path) > 2:
                     raise XmlException("wrong xpath")
                 elif len(path) == 1:
                     self._config.set_value(val, path[0])
                 elif len(path) == 2:
                     self._config.set_value(val, path[0], path[1])
-            except XmlException:
-                raise
+        except XmlException:
+            raise
 
         # remove lines in reversed order because each suppression shift indexes
         # in the XML document
@@ -441,7 +438,6 @@ class ConfigurationNotebook(gtk.Notebook):
             line_path = line.get_name()
             self._config.del_element(line_path)
             line.destroy()
-
 
         self._config.write()
         self._changed = []

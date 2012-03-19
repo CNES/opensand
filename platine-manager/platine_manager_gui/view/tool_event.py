@@ -63,7 +63,7 @@ class ToolEvent(ToolView):
             self._refresh_tool_tree = None
         elif val:
             # update the tree immediately then add a periodic update
-            self.update_tool_tree
+            self.update_tool_tree()
             self._refresh_tool_tree = gobject.timeout_add(1000,
                                                           self.update_tool_tree)
 
@@ -171,7 +171,7 @@ class ToolEvent(ToolView):
         for host in self._model.get_hosts_list():
             host_name = host.get_name()
             # reset the tools
-            map(ToolModel.set_selected(False), host.get_tools())
+            map(lambda x : x.set_selected(False), host.get_tools())
             # mark selected tools
             if not host_name in self._selected_tools.keys():
                 continue
@@ -191,6 +191,9 @@ class ToolEvent(ToolView):
                     notebook.save()
                 except XmlException, error:
                     error_popup("%s: %s" % (host_name, error.description))
+                    self._tool_lock.release()
+                    self.on_undo_tool_conf_clicked()
+                    return
 
         # do that to copy contents else saved tools will contain references on
         # selected tools
@@ -215,7 +218,9 @@ class ToolEvent(ToolView):
 
         self._tree.foreach(self.select_saved)
 
+        page = self._current_notebook.get_current_page()
         self.on_tool_select(self._tree.get_selection())
+        self._current_notebook.set_current_page(page)
 
         self._tool_lock.release()
         self._ui.get_widget('save_tool_conf').set_sensitive(False)
