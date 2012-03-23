@@ -22,6 +22,7 @@ override_dh_auto_configure:
 
 override_dh_strip:
 	dh_strip --dbg-package=libplatine-encap-plugin-dbg
+	dh_strip --dbg-package=platine-core-dbg
 
 override_dh_install:
 	dh_install
@@ -46,8 +47,6 @@ override_dh_install:
 	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/platine-core-bin/etc/rsyslog.d/platine-core.conf
 	install -D -m 0644 conf/logrotate.conf $(CURDIR)/debian/platine-core-bin/etc/logrotate.d/platine-core.conf
 
-override_dh_strip:
-	dh_strip --dbg-package=platine-core-dbg
 
 %:
 	dh  $@
