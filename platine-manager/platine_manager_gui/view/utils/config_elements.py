@@ -574,6 +574,7 @@ class ConfEntry(object):
         if self._value != '':
             self._entry.set_active(self._type["enum"].index(self._value))
         self._entry.connect('changed', self.global_handler)
+        self._entry.connect('scroll-event', self.do_not_scroll)
 
     def load_int(self):
         """ load a gtk.SpinButton """
@@ -591,6 +592,11 @@ class ConfEntry(object):
                              step_incr=1, page_incr=0, page_size=0)
         self._entry = gtk.SpinButton(adjustment=adj, climb_rate=1)
         self._entry.connect('value-changed', self.global_handler)
+        self._entry.connect('scroll-event', self.do_not_scroll)
+
+    def do_not_scroll(self, source=None, event=None):
+        source.emit_stop_by_name('scroll-event')
+        return False
 
     def get(self):
         """ get the gtk element """

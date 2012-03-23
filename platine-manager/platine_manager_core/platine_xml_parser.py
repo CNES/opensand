@@ -245,9 +245,25 @@ class XmlParser:
         doc = elem.xpath("xsd:annotation/xsd:documentation",
                          namespaces=NAMESPACES)
         if len(doc) != 1:
-            return None
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                doc = elem.xpath("xsd:annotation/xsd:documentation",
+                                 namespaces=NAMESPACES)
+            if len(doc) != 1:
+                return None
 
         return doc[0].text
+
+    def get_reference(self, name):
+        """ get a reference in the XSD document """
+        elem = self._xsd_parser.xpath("//xsd:element[@ref = $val]",
+                                      namespaces=NAMESPACES,
+                                      val = name)
+        if len(elem) != 1:
+            return None
+
+        return elem[0]
 
     def get_element(self, name, with_type=False):
         """ get an element in the XSD document """
@@ -258,7 +274,7 @@ class XmlParser:
             return None
         # sometimes there are 2 elements because debug keys got the same name,
         # take the first one with or without type
-        if len(elem) == 0:
+        if len(elem) == 1:
             return elem[0]
         else:
             for i in range(len(elem)):
