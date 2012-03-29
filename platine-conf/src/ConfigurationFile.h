@@ -187,6 +187,11 @@ bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
 
 	stringstream str(tmp_val);
 	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -210,6 +215,11 @@ bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
 
 	stringstream str(tmp_val);
 	str >> value;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -237,6 +247,11 @@ bool ConfigurationFile::getValueInList(ConfigurationList list,
 
 	stringstream str(tmp_val);
 	str >> value;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -283,6 +298,11 @@ inline bool ConfigurationFile::getValue<bool>(const char *section,
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -298,6 +318,11 @@ inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterat
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> value;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -317,6 +342,11 @@ inline bool ConfigurationFile::getValueInList<bool>(ConfigurationList list,
 
 	stringstream str(tmp_val);
 	str >> std::boolalpha >> value;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -333,6 +363,11 @@ inline bool ConfigurationFile::getValue<uint8_t>(const char *section,
 
 	stringstream str(tmp_val);
 	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	value = val;
 	return true;
 }
@@ -350,6 +385,11 @@ inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::ite
 
 	stringstream str(tmp_val);
 	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	value = val;
 	return true;
 }
@@ -371,6 +411,11 @@ inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
 
 	stringstream str(tmp_val);
 	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
 	value = val;
 	return true;
 }
