@@ -18,6 +18,8 @@ SERVICE_TOOLS=''
 SERVICE_MODULES=''
 COMMAND_PORT=5926
 STATE_PORT=5358
+CONFIG_LEVEL='advanced'
+DHCP=''
 EMU_IFACE='eth0'
 EMU_IPV4=''
 EMU_IPV6=''
@@ -46,6 +48,11 @@ read_conf(){
     COMMAND_PORT=$RET
     db_get platine-daemon/state/port
     STATE_PORT=$RET
+    db_get platine-daemon/network/config_level
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    CONFIG_LEVEL=$RET
+    db_get platine-daemon/network/dhcp
+    DHCP=$RET
     db_get platine-daemon/network/emu_iface
     EMU_IFACE=$RET
     db_get platine-daemon/network/emu_ipv4
@@ -89,15 +96,30 @@ write_conf(){
     echo "" >> ${DAEMON_CONF}
     # network section
     echo "[network]" >> ${DAEMON_CONF}
-    if [ ${SERVICE_NAME} != 'ws' ]; then
-        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
-        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+    echo "config_level" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
+    if [ ${SERVICE_NAME} = 'ws' ]; then
+        echo "dhcp" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
     fi
-    if [ ${SERVICE_NAME} != 'sat' ]; then
-        echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-        echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
-        echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+    if [ ${CONFIG_LEVEL} = "advanced" ]; then
+        if [ ${SERVICE_NAME} != 'ws' ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+            echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ] &&
+           [ "${SERVICE_NAME}" != "ws" -o "$DHCP" != "false" ]; then
+            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+        fi
+    else
+        if [ ${SERVICE_NAME} != 'ws' ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ] &&
+           [ "${SERVICE_NAME}" != "ws" -o "$DHCP" != "false" ]; then
+            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+        fi
     fi
 }
 
@@ -137,3 +159,4 @@ write_conf
 /bin/echo -e "\tInitialize Platine Network"
 initialize
 
+exit 0

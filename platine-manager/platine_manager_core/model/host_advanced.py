@@ -90,9 +90,10 @@ class AdvancedHostModel:
             try:
                 # customize ST id
                 self._configuration.set_value(instance, "//dvb_mac_id")
-                self._configuration.set_value(ifaces['lan_ipv4'],
+                self._configuration.set_value(ifaces['lan_ipv4'].split('/')[0],
                                               "//st_address")
-                self._configuration.set_value(ifaces['emu_ipv4'], "//addr")
+                self._configuration.set_value(ifaces['emu_ipv4'].split('/')[0],
+                                              "//addr")
                 self._configuration.write()
             except XmlException, msg:
                 raise ModelException(str(msg))

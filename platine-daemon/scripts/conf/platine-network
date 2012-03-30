@@ -1,0 +1,22 @@
+# default sysctl configuration values for Platine, used by
+# /usr/libexec/platine/st_netinit script loaded in platine-network service
+# you may encounter problems with Platine if you change these values
+
+# whether the sysctl commands will be used,
+# if false, the following parameters won't be used
+SYSCTL="true"
+
+# ICMP redirects
+SEND_REDIRECTS="0"
+ACCEPT_REDIRECTS="0"
+
+# Forwarding: necessary to be able to forward satellite trafic toward
+# workstations
+IP_FORWARD="1"
+FORWARDING="1"
+
+# UDP buffer size: incresed to support high traffic
+WMEM_MAX="1048580"
+RMEM_MAX="1048580"
+WMEM_DEFAULT="1048580"
+RMEM_DEFAULT="1048580"

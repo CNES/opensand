@@ -2,8 +2,11 @@ Template: platine-daemon/default
 Type: boolean
 Default: false
 Description: Do you want to use the default configuration ?
-  The daemon is configured for satellite by default, ports are choosen arbitrarly
-  Interface 'eth0' and 'eth1' will be configured automatically !!
+  The daemon is configured for satellite by default, ports are choosen
+  arbitrarly.
+  Interface 'eth0' and 'eth1' will be configured automatically, you shall choose
+  ADVANCED network configuration on other hosts and keep the default values for
+  adresses !!
 
 Template: platine-daemon/service/type
 Type: string
@@ -49,7 +52,8 @@ Template: platine-daemon/state/port
 Type: string
 Default: 5358
 Description: State port
-  Select the port where the daemon will listen for Platine manager state resquest
+  Select the port where the daemon will listen for Platine manager state
+  resquest
 
 Template: platine-daemon/service/tools
 Type: string
@@ -66,32 +70,68 @@ Type: string
 Default: eth0
 Description: Platine network interface name
   Select the physical interface for Platine network
+  The Platine network corresponds to the sub-network used for the DVB-RCS/S2
+  link emulation
 
 Template: platine-daemon/network/emu_ipv4
 Type: string
-Default: 192.168.18.15
+Default: 192.168.18.15/24
 Description: Platine network IPv4 address
-  Select the IPv4 address of the Platine interface
+  Select the IPv4 address/mask of the Platine interface, the TUN interface will
+  have the same address with last byte + 1
 
 Template: platine-daemon/network/emu_ipv6
 Type: string
-Default: 2001:660:6602:101::15
+Default: 2001:660:6602:101::15/64
 Description: Platine network IPv6 address
-  Select the IPv6 address of the Platine interface
+  Select the IPv6 address/mask of the Platine interface
 
 Template: platine-daemon/network/lan_iface
 Type: string
 Default: eth1
-Description: Satellite terminal network interface name
-  Select the physical interface for Satellite terminal network
+Description: Satellite Terminal network interface name
+  Select the physical interface for Satellite Terminal network
+  The Satellite Terminal network corresponds to the sub-network used by the
+  workstations behind the ST to connect on the satellite network
 
 Template: platine-daemon/network/lan_ipv4
 Type: string
-Description: Satellite terminal network IPv4 address
-  Select the IPv4 address of the Satellite terminal
+Description: Satellite Terminal network IPv4 address
+  Select the IPv4 address/mask of the Satellite Terminal
+  It is recommended to use a common network for all STs (with mask smaller than
+  the ST lan mask) for workstation routing management
+  You must not use a mask smalle than /29, smaller than /27 is recommended
 
 Template: platine-daemon/network/lan_ipv6
 Type: string
-Description: Satellite terminal network IPv6 address
-  Select the IPv6 address of the Satellite terminal
+Description: Satellite Terminal network IPv6 address
+  Select the IPv6 address/mask of the Satellite Terminal
+  You must not use a mask smalle than /125
+
+Template: platine-daemon/network/config_level
+Type: select
+Default: ADVANCED
+Choices: AUTOMATIC, ADVANCED
+Description: Level of network configuration
+  Select the level of configuration you need for your network:
+   - AUTOMATIC: the daemon automatically read your network configuration
+                according to the choosen interfaces and try to keep it for
+                Platine, be sure that tour network will be compatible with
+                Platine,
+   - ADVANCED: you will be able to select the interfaces and addresses,
+               for default configuration choose this mode and press enter for
+               each value.
+  Basically, you need to respect the following constraints on emulation network:
+   - on emulation network all the hosts shall be on the same sub-network (i.e.
+     should have the same mask),
+   - on ST or GW lan, your workstations should be in the same subnetwork as the
+     terminal if not configured automatically with DHCP.
+
+Template: platine-daemon/network/dhcp
+Type: boolean
+Default: false
+Description: Do you want to use DHCP server for workstations ?
+  Select if you want to generate a DHCP server configuration file
+  Please check it (/var/cache/dnsmasq/lan_st.conf) before starting your DHCP
+  server
 

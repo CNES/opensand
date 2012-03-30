@@ -43,11 +43,13 @@ class IperfClient():
             self.print_error('no IPv4 lan address for %s' % SERVER)
         elif not v6:
             address_v4 = info['lan_ipv4']
+            address_v4 = address_v4.split("/")[0]
             self.iperf(address_v4)
         if v6 and not 'lan_ipv6' in info:
             self.print_error('no IPv6 lan address for %s' % SERVER)
         elif v6:
             address_v6 = info['lan_ipv6']
+            address_v6 = address_v6.split("/")[0]
             self.iperf(address_v6, True)
 
     def iperf(self, address, v6=False):

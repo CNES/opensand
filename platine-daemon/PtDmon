@@ -43,13 +43,15 @@ import thread
 import os
 import logging
 import time
-#from xml.sax import make_parser, SAXException
 import ConfigParser
+import pwd
+import prctl
 from platine_daemon.tcp_server import Plop
 from platine_daemon.command_handler import CommandHandler
 from platine_daemon.state_handler import StateHandler
-from platine_daemon.service_publisher import PlatineServicePublisher
+from platine_daemon.service import PlatineService
 from platine_daemon.syslog_handler import SysLogHandler, syslog
+from platine_daemon.nl_utils import NlAddress, NlError, NlExists
 
 
 #==============================================================================
@@ -114,7 +116,6 @@ def publish_service():
     lan_ipv4 = ''
     lan_ipv6 = ''
 
-
     try:
         name = CONF_PARSER.get('service', 'name')
         port = CONF_PARSER.getint('service', 'port')
@@ -130,6 +131,7 @@ def publish_service():
         if name == 'st' or name == 'ws':
             instance = CONF_PARSER.get('service', 'instance')
             descr['id'] = instance
+        config_type = CONF_PARSER.get('network', 'config_level')
         if name != 'ws':
             emu_iface = CONF_PARSER.get('network', 'emu_iface')
             emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
@@ -147,6 +149,103 @@ def publish_service():
     except ConfigParser.Error, error:
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
+
+# TODO ifaces UP
+    if config_type == 'advanced':
+        nladd = {}
+        address = NlAddress()
+        try:
+            # if interface exists this is not an error, do not keep it in nladd
+            # to avoid removing it at exit
+            if name != 'sat':
+                try:
+                    address.add(lan_ipv4, lan_iface)
+                except NlExists:
+                    pass
+                else:
+                    nladd[lan_ipv4] = lan_iface
+                try:
+                    address.add(lan_ipv6, lan_iface)
+                except NlExists:
+                    pass
+                else:
+                    nladd[lan_ipv6] = lan_iface
+            if name != 'ws':
+                try:
+                    address.add(emu_ipv4, emu_iface)
+                except NlExists:
+                    pass
+                else:
+                    nladd[emu_ipv4] = emu_iface
+                try:
+                    address.add(emu_ipv6, emu_iface)
+                except NlExists:
+                    pass
+                else:
+                    nladd[emu_ipv6] = emu_iface
+        except NlError, msg:
+            LOGGER.error("unable to set addresses: %s" % msg)
+            # delete the address that were already set
+            for add in nladd:
+                try:
+                    address.delete(add, nladd[add])
+                except:
+                    continue
+            thread.exit()
+    # in automatic mode the addresses should have already been configured
+    elif config_type != 'automatic':
+        LOGGER.error("wrong configuration level: %s\n" % config_type)
+        thread.exit()
+
+    # check sysctrl values and log if the value may lead to errors
+    if name != 'ws' and name != 'sat':
+        for iface in [emu_iface, lan_iface]:
+            with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface, 'ro') \
+                 as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "1":
+                    LOGGER.warning("IPv4 forwarding on interface %s is "
+                                   "disabled, you won't be able to route "
+                                   "packets toward WS behind this host" %
+                                   iface)
+        for iface in [emu_iface, lan_iface]:
+            with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
+                 as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "1":
+                    LOGGER.warning("IPv6 forwarding on interface %s is "
+                                   "disabled, you won't be able to route "
+                                   "packets toward WS behind this host" %
+                                   iface)
+        for iface in [emu_iface, lan_iface]:
+            with open("/proc/sys/net/ipv4/conf/%s/send_redirects" % iface, 'ro') \
+                 as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "0":
+                    LOGGER.warning("IPv4 send_redirects on interface %s is "
+                                   "enabled, you should disable it" %
+                                   iface)
+        for iface in [emu_iface, lan_iface]:
+            with open("/proc/sys/net/ipv4/conf/%s/accept_redirects" % iface, 'ro') \
+                 as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "0":
+                    LOGGER.warning("IPv4 accept_redirects on interface %s is "
+                                   "enabled, you should disable it" %
+                                   iface)
+        for iface in [emu_iface, lan_iface]:
+            with open("/proc/sys/net/ipv6/conf/%s/accept_redirects" % iface, 'ro') \
+                 as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "0":
+                    LOGGER.warning("IPv6 accept_redirects on interface %s is "
+                                   "enabled, you should disable it" %
+                                   iface)
+        with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctrl:
+            if sysctrl.read().rstrip('\r\n') != "1":
+                LOGGER.warning("IPv4 ip_forward is disabled, you should enable "
+                               "it")
+        for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
+            with open("/proc/sys/net/core/%s" % val, 'ro') as sysctrl:
+                if int(sysctrl.read().rstrip('\r\n')) < 1048580:
+                    LOGGER.warning("%s should be set to a value greater than "
+                                   "1048580 in order to support high bitrates "
+                                   "through Platine" % val)
 
     # do not raise an error for the following fields because they are not
     # used on each host
@@ -176,14 +275,11 @@ def publish_service():
         # modules section found, add the information to description
         descr['modules'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
 
-    # TODO launch the script to modify the IP address according to name and instance
-    #      (a l'installation du package plutot)
-
     if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted", name)
         thread.exit()
 
-    SERVICE = PlatineServicePublisher(service_type, name, port, descr)
+    SERVICE = PlatineService(service_type, name, instance, port, descr)
 
     try:
         SERVICE.run()
@@ -191,6 +287,13 @@ def publish_service():
         LOGGER.error("exception when running service " + str(error))
         SERVICE = None
         thread.exit()
+    finally:
+        for add in nladd:
+            try:
+                address.delete(add, nladd[add])
+            except:
+                continue
+
 
 def stop_service():
     """ stop the Platine service """
@@ -259,6 +362,7 @@ def start_state():
         STATE = None
         thread.exit()
 
+
 def stop_state():
     """ stop the Platine daemon state server """
     if STATE is not None:
@@ -321,6 +425,27 @@ if __name__ == "__main__":
         # wait that father write the PID
         time.sleep(2)
 
+        # set user id to platine and only keep CAP_NET_ADMIN capabilities
+        try:
+            pw = pwd.getpwnam("platine")
+            uid = pw.pw_uid
+            prctl.cap_inheritable.net_admin = True
+            prctl.set_keepcaps(True)
+            os.setuid(uid)
+            prctl.cap_inheritable.limit('CAP_NET_ADMIN')
+            prctl.cap_effective.limit('CAP_NET_ADMIN')
+            prctl.cap_permitted.limit('CAP_NET_ADMIN')
+            prctl.cap_effective.net_admin = True
+        except KeyError:
+            LOGGER.ERROR("cannot find platine user")
+            try:
+                os.remove(PID_FILE)
+            except OSError, (errno, strerror):
+                LOGGER.error("cannot remove PID file (%d: %s)",
+                             errno, strerror)
+            sys.exit(1)
+
+
         # start the threads
         try:
             LOGGER.debug("start service thread")
@@ -340,7 +465,7 @@ if __name__ == "__main__":
                                  errno, strerror)
             sys.exit(1)
 
-        # wait that thread are correctly started
+        # wait that threads are correctly started
         time.sleep(2)
 
         if not SERVICE_THREAD.is_alive():

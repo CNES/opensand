@@ -49,7 +49,7 @@ def error_popup(error, text = ''):
     if not dialog.modal:
         dialog.set_modal(True)
     dialog.connect('response', dialog_response_cb)
-    dialog.show()
+    dialog.run()
 
 def dialog_response_cb(dialog, response_id):
     """ on click close the error popup """

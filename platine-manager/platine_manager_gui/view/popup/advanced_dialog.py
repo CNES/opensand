@@ -70,8 +70,6 @@ class AdvancedDialog(WindowView):
             self.load()
         except ModelException, msg:
             error_popup(str(msg))
-            self.close()
-            return
         self._dlg.set_title("Advanced configuration - PtManager")
         self._dlg.set_icon_name('gtk-properties')
         self._dlg.run()
@@ -88,10 +86,7 @@ class AdvancedDialog(WindowView):
 
     def load(self):
         """ load the hosts configuration """
-        try:
-            self.reset()
-        except ModelException:
-            raise
+        self.reset()
 
         # add a widget to the sroll view, once it will be destroyed the
         # scroll view will also be destroyed because it won't have
@@ -122,15 +117,22 @@ class AdvancedDialog(WindowView):
 
     def reset(self):
         """ reset the advanced configuration """
+        self._host_lock.acquire()
         for host in self._model.get_hosts_list() + [self._model.get_conf()]:
             adv = host.get_advanced_conf()
             if adv is None:
-                raise ModelException("cannot get advanced configuration for %s"
-                                     % host.get_name().upper())
+                self._host_lock.release()
+                error_popup("cannot get advanced configuration for %s" %
+                            host.get_name().upper())
+                self._host_lock.acquire()
+                continue
+
             try:
                 adv.reload_conf()
-            except ModelException:
-                raise
+            except ModelException, msg:
+                error_popup("error when reloading %s advanced configuration" %
+                            host.get_name().upper())
+        self._host_lock.release()
 
     def update_host_tree(self):
         """ update the host tree """
@@ -173,7 +175,9 @@ class AdvancedDialog(WindowView):
             return
 
         adv = host.get_advanced_conf()
-        config = adv.get_configuration()
+        config = None
+        if adv is not None:
+            config = adv.get_configuration()
         if config is None:
             tree.set(iterator, ACTIVATABLE, False, ACTIVE, False)
             self._config_view.hide_all()
@@ -216,17 +220,16 @@ class AdvancedDialog(WindowView):
     def on_apply_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on apply button """
         self._host_lock.acquire()
-        #TODO currently this button destroy the popup because it emits the
-        #     reponse signal, try to avoid destroying it
-        #     A solution could be to use a Window instead of a Dialog
         for host in self._model.get_hosts_list() + [self._model.get_conf()]:
             host.enable(False)
             if host in self._enabled:
                 host.enable(True)
             name = host.get_name()
             adv = host.get_advanced_conf()
-            self._log.debug("save %s advanced configuration" % name)
-            notebook = adv.get_conf_view()
+            notebook = None
+            if adv is not None:
+                self._log.debug("save %s advanced configuration" % name)
+                notebook = adv.get_conf_view()
             if notebook is None:
                 continue
             try:
@@ -251,14 +254,10 @@ class AdvancedDialog(WindowView):
 
     def on_undo_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on undo button """
-        self._host_lock.acquire()
         # delete vbox to reload advanced configurations
-        try:
-            self.reset()
-        except ModelException:
-            self._host_lock.release()
-            raise
+        self.reset()
 
+        self._host_lock.acquire()
         # copy the list (do not only copy the address)
         self._enabled = list(self._saved)
 

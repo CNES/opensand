@@ -386,6 +386,7 @@ bool SatelliteTerminalList::goNextScenarioStepModcod()
 	// read next line of the modcod simulation file
 	if(!this->setList(this->modcod_simu_file, this->modcod_list))
 	{
+        UTI_ERROR("PUTAINNNNNNN\n");
 		UTI_ERROR("failed to get the next line in the MODCOD scheme simulation file\n");
 		goto error;
 	}
@@ -480,6 +481,8 @@ error:
 bool SatelliteTerminalList::setList(std::ifstream &simu_file, char **list)
 {
 	int i = 0;
+
+    UTI_ERROR("line = %s\n", this->line);
 
 	// get the next line in the file
 	simu_file.getline(this->line, 3 * NB_MAX_ST, '\n');

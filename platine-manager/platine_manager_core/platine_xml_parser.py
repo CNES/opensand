@@ -191,7 +191,7 @@ class XmlParser:
         if not self._schema.validate(self._tree):
             error = self._schema.error_log.last_error.message
             self.__init__(self._filename, self._xsd) 
-            raise XmlException("the new values are incorrect",
+            raise XmlException("the new values are incorrect: %s" %
                                error)
 
         with open(self._filename, 'w') as conf:

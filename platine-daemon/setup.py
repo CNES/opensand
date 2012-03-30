@@ -1,5 +1,6 @@
 import os
 from setuptools import setup, find_packages
+from distutils.core import Extension
 
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
@@ -12,7 +13,23 @@ def read(fname):
 script_files = ['scripts/sat_netinit', 'scripts/st_netinit', 'scripts/write_initialize_config', 'scripts/remove_config']
 bin_files = ['PtDmon']
 
-#packages = find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"])
+# libnl files
+opts = ['-O', '-nodefaultctor']
+include = ['/usr/include/libnl3']
+
+netlink_capi = Extension('netlink/_capi',
+                         sources = ['netlink/capi.i'],
+             include_dirs = include,
+             swig_opts = opts,
+             libraries = ['nl-3'],
+            )
+
+route_capi = Extension('netlink/route/_capi',
+                         sources = ['netlink/route/capi.i'],
+             include_dirs = include,
+             swig_opts = opts,
+             libraries = ['nl-3', 'nl-route-3'],
+            )
 
 setup(
     name="PtDmon",
@@ -21,7 +38,7 @@ setup(
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for Platine entity (sat, gw, st or ws)"),
     license="GPL",
-#    long_description=read('README'),
+    ext_modules = [netlink_capi, route_capi],
 
     packages=find_packages(),
 
@@ -31,3 +48,4 @@ setup(
                   ('libexec/platine/', script_files),
                   ]
 )
+
