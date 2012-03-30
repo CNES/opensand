@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
  libplatine-conf-dev (>= 3.0.0), libplatine-env-plane-dev (>= 3.0.0), libplatine-margouilla-dev (>= 3.0.0),
- libgse-dev
+ libgse-dev, python-lxml
 Standards-Version: 3.8.3
 
 Package: platine-core-all

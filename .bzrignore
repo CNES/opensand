@@ -65,6 +65,13 @@ platine-core/src/system/st
 platine-core/src/tun_interface/platine_tun
 platine-core/src/common/tests/ip_addr
 platine-core/src/common/tests/test_plugins
+platine-core/debian/files
+platine-core/debian/libplatine-encap-plugin
+platine-core/debian/libplatine-encap-plugin-dbg
+platine-core/debian/libplatine-encap-plugin-dev
+platine-core/debian/platine-core-all
+platine-core/debian/platine-core-bin
+platine-core/debian/platine-core-dbg
 platine-plugins/atm/debian/files
 platine-plugins/atm/debian/libplatine-atm-aal5-plugin
 platine-plugins/atm/debian/libplatine-atm-aal5-plugin-dbg
