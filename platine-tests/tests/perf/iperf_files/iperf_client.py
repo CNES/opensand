@@ -65,9 +65,10 @@ class IperfClient():
         if err != '':
             self.print_error(err + '\n')
 
-        bandwidth = float(self.get_bandwidth(out))
-        if not bandwidth:
+        bw = self.get_bandwidth(out)
+        if bw is None or bw == '':
             return
+        bandwidth = float(bw)
         if bandwidth < 700000:
             self.print_error("not enough throughput: %s" % bandwidth)
             self.returncode = 1
@@ -85,6 +86,7 @@ class IperfClient():
             bdw = bdw.split(',')[8]
         except IndexError:
             self.print_error("cannot parse iperf output (%s)" % msg)
+            return None
 
         return bdw
 
