@@ -40,7 +40,6 @@
 
 #include <sstream>
 #include <cstdlib>
-#include <cstring>
 
 /**
  * @brief Create a list of Satellite Terminals (ST)
@@ -92,9 +91,25 @@ bool SatelliteTerminalList::add(long id,
 	}
 
 	// create the new ST
+	if(this->is_modcod_simu_file_defined &&
+	   this->modcod_list.size() < simu_column_num)
+	{
+		UTI_ERROR("cannot access modcod column %lu for ST%ld\n",
+		          simu_column_num, id);
+		return false;
+	}
+	if(this->is_dra_scheme_simu_file_defined &&
+	   this->dra_list.size() < simu_column_num)
+	{
+		UTI_ERROR("cannot access dra column %lu for ST%ld\n",
+		          simu_column_num, id);
+		return false;
+	}
 	new_st = new SatelliteTerminal(id, simu_column_num,
-		this->is_modcod_simu_file_defined ? atoi(this->modcod_list[simu_column_num]) : 0,
-	  this->is_dra_scheme_simu_file_defined ? atoi(this->dra_list[simu_column_num]) : 0);
+		this->is_modcod_simu_file_defined ?
+			atoi(this->modcod_list[simu_column_num].c_str()) : 0,
+		this->is_dra_scheme_simu_file_defined ?
+			atoi(this->dra_list[simu_column_num].c_str()) : 0);
 	if(new_st == NULL)
 	{
 		UTI_ERROR("failed to create a new ST\n");
@@ -404,11 +419,17 @@ bool SatelliteTerminalList::goNextScenarioStepModcod()
 		UTI_DEBUG_L3("ST with ID %ld uses MODCOD ID at column %lu\n",
 		             st_id, column);
 
+		if(this->modcod_list.size() < column)
+		{
+			UTI_ERROR("cannot access modcod column %lu for ST%ld\n",
+			          column, st_id);
+			goto error;
+		}
 		// replace the current MODCOD ID by the new one
-		st->updateModcodId(atoi(this->modcod_list[column]));
+		st->updateModcodId(atoi(this->modcod_list[column].c_str()));
 
 		UTI_DEBUG_L3("new MODCOD ID of ST with ID %ld = %u\n", st_id,
-		             atoi(this->modcod_list[column]));
+		             atoi(this->modcod_list[column].c_str()));
 	}
 
 	return true;
@@ -454,11 +475,17 @@ bool SatelliteTerminalList::goNextScenarioStepDraScheme()
 		UTI_DEBUG("ST with ID %ld uses DRA scheme ID at column %lu\n",
 		          st_id, column);
 
+		if(this->dra_list.size() < column)
+		{
+			UTI_ERROR("cannot access dra column %lu for ST%ld\n",
+			          column, st_id);
+			goto error;
+		}
 		// replace the current MODCOD ID by the new one
-		st->updateDraSchemeId(atoi(this->dra_list[column]));
+		st->updateDraSchemeId(atoi(this->dra_list[column].c_str()));
 
 		UTI_DEBUG("new DRA scheme ID of ST with ID %ld = %u\n", st_id,
-		          atoi(this->dra_list[column]));
+		          atoi(this->dra_list[column].c_str()));
 	}
 
 	return true;
@@ -477,57 +504,71 @@ error:
  *
  * @todo better parsing
  */
-bool SatelliteTerminalList::setList(std::ifstream &simu_file, char **list)
+bool SatelliteTerminalList::setList(std::ifstream &simu_file, vector<string> &list)
 {
-	int i = 0;
+	std::stringbuf buf;
+	std::stringstream line;
+	std::stringbuf token;
 
 	// get the next line in the file
-	simu_file.getline(this->line, 3 * NB_MAX_ST, '\n');
-
-	// get each element of the line
-	// Be careful, strtok write over line
-	list[i] = strtok(this->line, " ");
-	while(list[i] != NULL && i < NB_MAX_ST)
+	simu_file.get(buf);
+	if(buf.str() != "")
 	{
-		i++;
-		list[i] = strtok(NULL, " ");
+		line.str(buf.str());
+		// get each element of the line
+		while(!line.fail())
+		{
+			token.str("");
+			line.get(token, ' ');
+			list.push_back(token.str());
+			line.ignore();
+		}
 	}
 
-
-  // restart from beginning of file when we reach the end of file
-  if(simu_file.eof())
-  {
-    // reset the error flags
-    simu_file.clear();
-    UTI_INFO("end of simulation file reached, restart at beginning...\n");
-    simu_file.seekg(0, ios::beg);
-    if(simu_file.fail())
-    {   
-      UTI_ERROR("Error when going to the begining of the simulation file\n");
-      goto error;
-    }   
-    else
-    {   
-      // read the first line and get elements
-      simu_file.getline(this->line, 3 * NB_MAX_ST, '\n');
-			list[i] = strtok(this->line, " ");
-			while(list[i] != NULL && i < NB_MAX_ST)
+	// restart from beginning of file when we reach the end of file
+	if(simu_file.eof())
+	{
+		// reset the error flags
+		simu_file.clear();
+		UTI_INFO("end of simulation file reached, restart at beginning...\n");
+		simu_file.seekg(0, ios::beg);
+		if(simu_file.fail())
+		{   
+			UTI_ERROR("Error when going to the begining of the simulation file\n");
+			goto error;
+		}   
+		else
+		{   
+			buf.str("");
+			// read the first line and get elements
+			simu_file.get(buf);
+			if(buf.str() != "")
 			{
-				i++;
-				list[i] = strtok(NULL, " ");
+				line.str(buf.str());
+				// get each element of the line
+				while(!line.fail())
+				{
+					token.str("");
+					line.get(token, ' ');
+					list.push_back(token.str());
+					line.ignore();
+				}
 			}
-    }   
-  }
+		}   
+	}
 
-  // check if getline returned an error
-  if(simu_file.fail())
-  {
-    UTI_ERROR("Error when getting next line of the simulation file\n");
-    goto error;
-  }
+	// check if getline returned an error
+	if(simu_file.fail())
+	{
+		UTI_ERROR("Error when getting next line of the simulation file\n");
+		goto error;
+	}
 
 	// reset the error flags
 	simu_file.clear();
+
+	// jump after the '\n' as get does not read it
+	simu_file.ignore();
 
 	return true;
 

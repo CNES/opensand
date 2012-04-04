@@ -36,7 +36,7 @@
 #define SATELLITE_TERMINAL_LIST_H
 
 #include "SatelliteTerminal.h"
-#include "platine_conf/conf.h"
+#include <platine_conf/conf.h>
 
 #include <map>
 #include <fstream>
@@ -66,12 +66,10 @@ class SatelliteTerminalList
 	bool is_dra_scheme_simu_file_defined;
 
 	/** A list of the current MODCOD */
-	char *modcod_list[NB_MAX_ST];
+	std::vector<std::string> modcod_list;
 
 	/** A list of the current DRA */
-	char *dra_list[NB_MAX_ST];
-
-	char line[3 * NB_MAX_ST];
+	std::vector<std::string> dra_list;
 
  public:
 
@@ -149,7 +147,7 @@ class SatelliteTerminalList
 	/* read the next line of the simulation file
 	 * and store it in the appropriate list */
 	bool setList(std::ifstream &simu_file,
-	             char** list);
+	             vector<string> &list);
 
 };
 
