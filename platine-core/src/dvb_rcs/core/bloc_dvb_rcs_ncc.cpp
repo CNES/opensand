@@ -580,7 +580,7 @@ int BlocDVBRcsNcc::onInit()
 		          DVB_SIMU_COL, COLUMN_LIST);
 		goto release_dama;
 	}
-	if(simu_column_num <= 0 || simu_column_num > NB_MAX_ST)
+	if(simu_column_num <= 0)
 	{
 		UTI_ERROR("section '%s': invalid value %ld for parameter "
 		          "'%s'\n", DVB_SIMU_COL, simu_column_num,

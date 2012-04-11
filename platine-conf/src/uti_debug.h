@@ -95,7 +95,8 @@
 #ifndef _UTI_DEBUG_H_
 #define _UTI_DEBUG_H_
 
-#include "syslog.h"
+#include <syslog.h>
+#include <string>
 
 // Each package has its own level of debug
 #define PKG_DEFAULT       default
@@ -193,7 +194,7 @@ extern unsigned char dbgLevel(DBG_PACKAGE);
 { \
 	if(dbgLevel(DBG_PACKAGE)>=2) \
 	{ \
-		string str=label; char x[4]; int i; \
+		std::string str=label; char x[4]; int i; \
 		for(i=0;i<len;i++) \
 		{ \
 			sprintf(x, "%02X ", ((unsigned char *)data)[i]); \

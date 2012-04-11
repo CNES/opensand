@@ -51,6 +51,7 @@ DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	this->realModcod = 11;
 	this->receivedModcod = this->realModcod;
 	this->dra_scheme_definitions = new DraSchemeDefinitionTable;
+	this->pending_bbframe = NULL;
 }
 
 DvbS2Std::~DvbS2Std()
@@ -823,7 +824,6 @@ bool DvbS2Std::getIncompleteBBFrame(unsigned int tal_id,
 		// add the BBFrame in the map and list
 		this->incomplete_bb_frames[modcod_id] = *bbframe;
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);
-
 	}
 
 skip:

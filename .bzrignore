@@ -97,3 +97,11 @@ platine-plugins/ule/debian/libplatine-ule-plugin
 platine-plugins/ule/debian/libplatine-ule-plugin-dbg
 platine-plugins/ule/debian/libplatine-ule-plugin-manager
 platine-plugins/ule/debian/tmp
+platine-tests/tests/*/*/scenario/default
+RE:platine-tests/tests/.*/.*_atm_gse/scenario/plugins/(?!(atm|gse)).*conf
+RE:platine-tests/tests/.*/.*_atm_gse_rohc/scenario/plugins/(?!(atm|gse|rohc)).*conf
+RE:platine-tests/tests/.*/.*_atm_mpeg/scenario/plugins/(?!(atm|mpeg)).*conf
+RE:platine-tests/tests/.*/.*_atm_mpeg_rohc/scenario/plugins/(?!(atm|mpeg|rohc)).*conf
+RE:platine-tests/tests/.*/.*_mpeg_gse/scenario/plugins/(?!(mpeg|gse)).*conf
+RE:platine-tests/tests/.*/.*_mpeg_mpeg/scenario/plugins/(?!(mpeg)).*conf
+RE:platine-tests/tests/.*/.*_mpeg_mpeg_rohc/scenario/plugins/(?!(mpeg|rohc)).*conf
