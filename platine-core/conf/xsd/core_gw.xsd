@@ -54,81 +54,11 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for sat_carrier section -->
-<!--<xsd:simpleType name="carrierIp">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern ref="ipv4Address" />
-        <xsd:enumeration value="LOCAL" />
-    </xsd:restriction>
-</xsd:simpleType>-->
-
 <xsd:simpleType name="socketType">
 	<xsd:restriction base="xsd:string">
 		<xsd:enumeration value="SOCK_DGRAM"/>
 	</xsd:restriction>
 </xsd:simpleType>
-
-<xsd:element name="carriers">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="carrier" minOccurs="1" maxOccurs="7"/>
-		</xsd:sequence>
-	</xsd:complexType>
-</xsd:element>
-
-<xsd:element name="carrier">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The carrier unique identifier
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <!-- TODO ipv4Adderss -->
-		<xsd:attribute name="ip_address" type="xsd:string">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    depending on the case the IP address contains:
-                      - input unicast:   the parameter is not used
-                      - input multicast: the multicast IP address
-                      - output:          the remote IP address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="port" type="port">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The port of the UDP socket
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="in" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    receive flow or not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="out" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    send flow or not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="ip_multicast" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    manage multicast flow
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-	</xsd:complexType>
-</xsd:element>
 
 <!-- types for pep section -->
 <xsd:simpleType name="msTime">
@@ -336,7 +266,6 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="dvb_rcs_ncc" />
-            <xsd:element ref="sat_carrier" />
             <xsd:element ref="pep" />
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
@@ -457,34 +386,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximal size of the BBFrame FIFO
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- sat_carrier section description -->
-<xsd:element name="sat_carrier">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The satellite carriers description
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="carriers" />
-            <xsd:element name="socket_type" type="socketType">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The type of the socket
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="addr" type="ipv4Address">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The local IP address for emulation network
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

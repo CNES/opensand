@@ -83,8 +83,9 @@ pkgInfo_t pkgInfo[] =
  */
 void reloadDbgLevels(int UNUSED(sig))
 {
+	vector<string> conf(1, CONF_DEFAULT_FILE);
 	globalConfig.unloadConfig();
-	globalConfig.loadConfig(CONF_DEFAULT_FILE);
+	globalConfig.loadConfig(conf);
 	UTI_readDebugLevels();
 }
 

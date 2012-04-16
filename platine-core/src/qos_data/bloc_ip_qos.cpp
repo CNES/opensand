@@ -49,7 +49,7 @@ const int C_DEFAULT_LABEL = 255;
  * constructor
  */
 BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                     const char *name, string host_name):
+                     const char *name, t_component host):
 	mgl_bloc(blocmgr, fatherid, name),
 	sarpTable()
 {
@@ -57,7 +57,7 @@ BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	// group & TAL id
 	this->_group_id = -1;
 	this->_tal_id = -1;
-	this->_host_name = host_name;
+	this->host = host;
 	this->_satellite_type = "";
 
 	// link state
@@ -226,7 +226,7 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	packet->addTrace(HERE());
 
 	// check if packet should be forwarded
-	if(this->_host_name == "GW" &&
+	if(this->host == gateway &&
 	   this->_satellite_type == TRANSPARENT_SATELLITE)
 	{
 		IpAddress *ip_addr;
@@ -441,7 +441,7 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 
 	ip_packet->setQos(foundCategory->second->svcClass->macQueueId);
 
-	if(this->_host_name != "GW" && this->_satellite_type == TRANSPARENT_SATELLITE)
+	if(this->host != gateway && this->_satellite_type == TRANSPARENT_SATELLITE)
 	{
 		// ST in transparent mode:
 		// DST Tal Id = GW

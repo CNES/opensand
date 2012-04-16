@@ -89,7 +89,6 @@ class HostModel:
         self.reload_conf(scenario)
         self.reload_tools(scenario)
 
-
     def reload_conf(self, scenario):
         """ reload the host configuration """
         try:
@@ -169,6 +168,15 @@ class HostModel:
     def get_ip_address(self):
         """ get the host IP address """
         return self._ifaces["discovered"]
+
+    def get_emulation_address(self):
+        """ get the host emulation IPv4 address """
+        try:
+            return self._ifaces["emu_ipv4"].split('/')[0]
+        except KeyError:
+            self._log.error("cannot retrieve IPv4 emulation address, mandatory "
+                            "for component starting")
+            return ""
 
     def get_state_port(self):
         """ get the state server port """

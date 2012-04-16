@@ -86,13 +86,13 @@ bool alive = true;
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv)
+bool init_process(int argc, char **argv, string &ip_addr)
 {
 	T_INT16 scenario_id = 1, run_id = 1, opt;
 	T_COMPONENT_TYPE comp_type = C_COMP_SAT;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:i")) != EOF)
+	while((opt = getopt(argc, argv, "-s:hr:a:i")) != EOF)
 	{
 		switch(opt)
 		{
@@ -104,16 +104,22 @@ bool init_process(int argc, char **argv)
 				// get run id
 				run_id = atoi(optarg);
 				break;
+			case 'a':
+				/// get local IP address
+				ip_addr = optarg;
+				break;
 			case 'i':
 				// instance id ignored
 				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [-e -s scenario_id -r run_id]\n",
+				fprintf(stderr, "usage: %s [-h] [-e -s scenario_id -r run_id "
+				                "-a ip_address]\n",
 				        argv[0]);
 				fprintf(stderr, "\t-h              print this message\n");
 				fprintf(stderr, "\t-s <scenario>   set the scenario id\n");
 				fprintf(stderr, "\t-r <run>        set the run id\n");
+				fprintf(stderr, "\t-a <ip_address  set the IP address\n");
 				fprintf(stderr, "\t-i <instance>   set the instance id (ignored)\n");
 
 				UTI_ERROR("usage printed on stderr\n");
@@ -128,6 +134,12 @@ bool init_process(int argc, char **argv)
 	if(ENV_AGENT_Init(&EnvAgent, comp_type, 0, scenario_id, run_id) != C_ERROR_OK)
 	{
 		UTI_ERROR("failed to init the environment agent\n");
+		return false;
+	}
+
+	if(ip_addr.size() == 0)
+	{
+		UTI_ERROR("missing mandatory IP address option");
 		return false;
 	}
 
@@ -147,6 +159,7 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
 	struct sched_param param;
 	bool is_init = false;
+	string ip_addr;
 
 	mgl_eventmgr *eventmgr;
 	mgl_blocmgr *blocmgr;
@@ -157,6 +170,7 @@ int main(int argc, char **argv)
 	BlocEncapSat *blocEncapSat;
 	BlocSatCarrier *blocSatCarrier;
 	PluginUtils utils;
+	vector<string> conf_files;
 
 	std::map<std::string, EncapPlugin *> encap_plug;
 
@@ -167,7 +181,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, sigendHandler);
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv) == false)
+	if(init_process(argc, argv, ip_addr) == false)
 	{
 		UTI_ERROR("%s: failed to init the process\n", progname);
 		goto quit;
@@ -177,18 +191,15 @@ int main(int argc, char **argv)
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
-	// Load configuration file content
-	if(!globalConfig.loadConfig(CONF_GLOBAL_FILE))
+	conf_files.push_back(CONF_TOPOLOGY);
+	conf_files.push_back(CONF_GLOBAL_FILE);
+	conf_files.push_back(CONF_DEFAULT_FILE);
+	// Load configuration files content
+	if(!globalConfig.loadConfig(conf_files))
 	{
-		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
-		          progname, CONF_GLOBAL_FILE);
-		goto term_env_agent;
-	}
-	if(!globalConfig.loadConfig(CONF_DEFAULT_FILE))
-	{
-		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
-		          progname, CONF_DEFAULT_FILE);
-		goto term_env_agent;
+		UTI_ERROR("%s: cannot load configuration files, quit\n",
+		          progname);
+		goto unload_config;
 	}
 
 	// read all packages debug levels
@@ -220,7 +231,7 @@ int main(int argc, char **argv)
 		goto destroy_eventmgr;
 	}
 
-	MGL_TRACE_SET_LEVEL(0);		  // set mgl runtime debug level
+	MGL_TRACE_SET_LEVEL(0); // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
 	// load the encapsulation plugins
@@ -254,7 +265,8 @@ int main(int argc, char **argv)
 		blocDVBRcsSat->setUpperLayer(blocEncapSat->getId());
 	}
 
-	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier");
+	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
+	                                    satellite, ip_addr);
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
@@ -296,7 +308,6 @@ destroy_eventmgr:
 	delete eventmgr;
 unload_config:
 	globalConfig.unloadConfig();
-term_env_agent:
 	ENV_AGENT_Terminate(&EnvAgent);
 quit:
 	UTI_PRINT(LOG_INFO, "%s: SAT process stopped with exit code %d\n",

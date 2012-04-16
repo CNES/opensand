@@ -113,15 +113,6 @@
 #define MSG_TYPE_SESSION_LOGOFF 51
 
 
-/** The different types of DVB components */
-typedef enum
-{
-	satellite,
-	gateway,
-	terminal
-} t_component;
-
-
 /**
  * Basic DVB Header, other structures defined below should follow in a packet
  */

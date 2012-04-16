@@ -150,7 +150,6 @@ def publish_service():
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
 
-# TODO ifaces UP
     if config_type == 'advanced':
         nladd = {}
         address = NlAddress()

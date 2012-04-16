@@ -14,6 +14,7 @@ libplatine_common_la_cpp = \
 	PluginUtils.cpp
 
 libplatine_common_la_h = \
+	PlatineCore.h \
 	msg_dvb_rcs.h \
 	IpPacket.h \
 	Ipv4Packet.h \

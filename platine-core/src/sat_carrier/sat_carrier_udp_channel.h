@@ -52,8 +52,8 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	sat_carrier_udp_channel(unsigned int channelID, bool input, bool output,
 	                        const char *localInterfaceName, unsigned short port,
-	                        bool multicast, const char *localIPaddr,
-	                        const char *IPaddr);
+	                        bool multicast, const string local_ip_addr,
+	                        const string ip_addr);
 
 	~sat_carrier_udp_channel();
 

@@ -72,7 +72,7 @@ write_conf(){
     # service section
     echo "[service]" > ${DAEMON_CONF}
     echo "name = ${SERVICE_NAME}" >> ${DAEMON_CONF}
-    if [ "${SERVICE_NAME}" = 'st' ]; then
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' ]; then
         echo "instance = ${SERVICE_INSTANCE}" >> ${DAEMON_CONF}
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then

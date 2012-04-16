@@ -18,6 +18,7 @@ int main(void)
     int failure = 1;
     int lcount;
     string value;
+    vector<string> conf_files;
 
     // sections, keys map
     map<string, vector<string> > config;
@@ -30,6 +31,9 @@ int main(void)
     ofstream comp_ofile(COMP_FILE);
     ifstream res_file("input/result");
     ifstream comp_ifile;
+
+    conf_files.push_back("input/test.xml");
+    conf_files.push_back("input/test2.xml");
 
     // load the output file for comparison
     if(!comp_ofile || !comp_ofile.is_open())
@@ -65,15 +69,10 @@ int main(void)
     // be careful the maps are ordered, the output will not be ordered like above
 
     // load the configuration files
-    if(!globalConfig.loadConfig("input/test.xml"))
+    if(!globalConfig.loadConfig(conf_files))
     {
-        cerr << "cannot load 'test.xml' configuration file" << endl;
+        cerr << "cannot load configuration files" << endl;
         goto close;
-    }
-    if(!globalConfig.loadConfig("input/test2.xml"))
-    {
-        cerr << "cannot load 'test2.xml' configuration file" << endl;
-        goto unload;
     }
 
     // get the values in configuration file

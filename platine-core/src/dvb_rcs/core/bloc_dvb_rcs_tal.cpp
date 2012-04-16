@@ -56,7 +56,8 @@ int BlocDVBRcsTal::qos_server_sock = -1;
  * constructor use mgl_bloc default constructor
  * @see mgl_bloc::mgl_bloc()
  */
-BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
+                             const char *name, const tal_id_t mac_id,
                              std::map<std::string, EncapPlugin *> &encap_plug):
 	BlocDvb(blocmgr, fatherid, name, encap_plug),
 	complete_dvb_frames(),
@@ -65,7 +66,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *
 	this->init_ok = false;
 
 	// MAC ID and registration with NCC
-	this->macId = 0;
+	this->mac_id = mac_id;
 	this->_state = state_initializing;
 	this->m_logonTimer = -1;
 
@@ -226,7 +227,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 				UTI_INFO("still no answer from NCC to the "
 				         "logon request we sent for MAC ID %d, "
 				         "send a new logon request\n",
-				         this->macId);
+				         this->mac_id);
 				this->sendLogonReq();
 			}
 		}
@@ -462,18 +463,9 @@ int BlocDVBRcsTal::initParameters()
 	this->m_fixedBandwidth = val;
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
 
-	// Get the satellite MAC address
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_MAC_ID, val))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_TAL_SECTION, DVB_MAC_ID);
-		goto error;
-	}
-	this->macId = val;
-
 	// Get the number of the row in modcod and dra files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
-	                                toString(this->macId), COLUMN_NBR, val))
+	                                toString(this->mac_id), COLUMN_NBR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_SIMU_COL, COLUMN_LIST);
@@ -777,10 +769,10 @@ void BlocDVBRcsTal::initObr()
 	// address and the OBR period
 	// ObrSlotFrame= MacAddress 'modulo' Obr Period
 	// NB : ObrSlotFrame is within [0, Obr Period -1]
-	m_obrSlotFrame = macId % m_obrPeriod;
+	m_obrSlotFrame = this->mac_id % m_obrPeriod;
 	UTI_INFO("%s SF#%ld: MAC adress = %d, OBR period = %d, "
 	         "OBR slot frame = %d\n", FUNCNAME, this->super_frame_counter,
-	         macId, m_obrPeriod, m_obrSlotFrame);
+	         this->mac_id, m_obrPeriod, m_obrSlotFrame);
 }
 
 
@@ -978,7 +970,7 @@ int BlocDVBRcsTal::onInit()
 
 	// after all of things have been initialized successfully,
 	// send a logon request
-	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n", this->macId);
+	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n", this->mac_id);
 	this->_state = state_wait_logon_resp;
 	if(this->sendLogonReq() < 0)
 	{
@@ -1169,7 +1161,7 @@ int BlocDVBRcsTal::sendLogonReq()
 	l_size = sizeof(T_DVB_LOGON_REQ);
 	lp_logon_req->hdr.msg_length = l_size;
 	lp_logon_req->hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
-	lp_logon_req->mac = macId;
+	lp_logon_req->mac = this->mac_id;
 	lp_logon_req->nb_row = m_nbRow;
 	lp_logon_req->rt_bandwidth = m_fixedBandwidth;	/* in kbits/s */
 
@@ -1186,7 +1178,7 @@ int BlocDVBRcsTal::sendLogonReq()
 	this->setTimer(m_logonTimer, 5000);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, macId, 0, C_EVENT_LOGIN_SENT);
+	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0, C_EVENT_LOGIN_SENT);
 
 	return 0;
 
@@ -1221,7 +1213,7 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 			NetBurst *burst;
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->macId, &burst) < 0)
+			                                  this->mac_id, &burst) < 0)
 			{
 				UTI_ERROR("failed to handle the reception of "
 				          "BB frame (length = %ld)\n", i_len);
@@ -1257,7 +1249,7 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 			}
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->macId, &burst) < 0)
+			                                  this->mac_id, &burst) < 0)
 			{
 				UTI_ERROR("failed to handle the reception of "
 				          "DVB frame (length = %ld)\n", i_len);
@@ -1608,16 +1600,15 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	g_memory_pool_dvb_rcs.add_function(name, (char *) ip_buf);
 	// Retrieve the Logon Response frame
 	lp_logon_resp = (T_DVB_LOGON_RESP *) ip_buf;
-	if(lp_logon_resp->mac != macId)
+	if(lp_logon_resp->mac != this->mac_id)
 	{
 		UTI_DEBUG("%s SF#%ld Loggon_resp for mac=%d, not %d\n", FUNCNAME,
-		          this->super_frame_counter, lp_logon_resp->mac, macId);
+		          this->super_frame_counter, lp_logon_resp->mac, this->mac_id);
 		goto ok;
 	}
 
 	// Remember the id
 	m_groupId = lp_logon_resp->group_id;
-	// TODO m_talID = this->macId !!!!!!!
 	m_talId = lp_logon_resp->logon_id;
 
 	// Inform Dama agent
@@ -1654,7 +1645,7 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	         this->super_frame_counter, this->m_groupId, this->m_talId);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, macId, 0,
+	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0,
 	                    C_EVENT_LOGIN_COMPLETE);
 
 	// set the terminal ID in emission and reception standards

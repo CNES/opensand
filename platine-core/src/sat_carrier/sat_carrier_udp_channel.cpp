@@ -48,8 +48,8 @@
  * @param localInterfaceName  the name of the local network interface to use
  * @param port                the port on which the channel is bind
  * @param multicast           true is this is a multicast channel
- * @param localIPaddr         the host IP address
- * @param IPaddr              the IP address of the remote host in case of
+ * @param local_ip_addr       the host IP address
+ * @param ip_addr             the IP address of the remote host in case of
  *                            output channel or the multicast IP address in
  *                            case of input multicast channel
  *
@@ -61,8 +61,8 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  const char *localInterfaceName,
                                                  unsigned short port,
                                                  bool multicast,
-                                                 const char *localIPaddr,
-                                                 const char *IPaddr):
+                                                 const string local_ip_addr,
+                                                 const string ip_addr):
 	sat_carrier_channel(channelID, input, output)
 {
 	int ifIndex;
@@ -112,14 +112,15 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	{
 		this->counter = 0;
 		// get the remote IP address
-		if(inet_aton(IPaddr, &(m_remoteIPAddress.sin_addr))<0)
+		if(inet_aton(ip_addr.c_str(), &(m_remoteIPAddress.sin_addr))<0)
 		{
-			UTI_ERROR("cannot get the remote IP address for %s \n", IPaddr);
+			UTI_ERROR("cannot get the remote IP address for %s \n",
+			          ip_addr.c_str());
 			goto error;
 		}
 		m_remoteIPAddress.sin_family = AF_INET;
 		m_remoteIPAddress.sin_port = htons(port);
-		m_socketAddr.sin_addr.s_addr = inet_addr(localIPaddr);
+		m_socketAddr.sin_addr.s_addr = inet_addr(local_ip_addr.c_str());
 
 		// creation of the link between the socket and its port
 		if(bind(this->sock_channel, (struct sockaddr *) &this->m_socketAddr,
@@ -153,7 +154,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 
 		if(this->m_multicast)
 		{
-			if(inet_aton(IPaddr, &this->m_socketAddr.sin_addr) < 0)
+			if(inet_aton(ip_addr.c_str(), &this->m_socketAddr.sin_addr) < 0)
 			{
 				perror("inet_aton");
 				goto error;
@@ -169,20 +170,21 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 			}
 
 			memset(&imr, 0, sizeof(struct ip_mreq));
-			imr.imr_multiaddr.s_addr = inet_addr(IPaddr);
-			imr.imr_interface.s_addr = inet_addr(localIPaddr);
+			imr.imr_multiaddr.s_addr = inet_addr(ip_addr.c_str());
+			imr.imr_interface.s_addr = inet_addr(local_ip_addr.c_str());
 
 			if(setsockopt(this->sock_channel, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 			              (void *) &imr, sizeof(struct ip_mreq)) < 0)
 			{
-				UTI_ERROR("failed to join multicast group: %s (%d)\n",
-				          strerror(errno), errno);
+				UTI_ERROR("failed to join multicast group with multicast address "
+				          "%s and interface address %s: %s (%d)\n",
+				          ip_addr.c_str(), local_ip_addr.c_str(), strerror(errno), errno);
 				goto error;
 			}
 		}
 		else
 		{
-			m_socketAddr.sin_addr.s_addr = inet_addr(localIPaddr);
+			m_socketAddr.sin_addr.s_addr = inet_addr(local_ip_addr.c_str());
 			// creation of the link between the socket and its port
 			if(bind(this->sock_channel, (struct sockaddr *) &this->m_socketAddr,
 			        sizeof(this->m_socketAddr)) < 0)

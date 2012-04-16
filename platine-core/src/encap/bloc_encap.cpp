@@ -59,7 +59,7 @@ sat_type_t strToSatType(std::string sat_type)
 }
 
 BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
-                     string host_name,
+                     t_component host,
                      std::map<std::string, EncapPlugin *> &encap_plug):
 	mgl_bloc(blocmgr, fatherid, name),
 	encap_plug(encap_plug)
@@ -69,7 +69,7 @@ BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
 	// group & TAL id
 	this->group_id = -1;
 	this->tal_id = -1;
-	this->name = host_name;
+	this->host = host;
 
 	// link state
 	this->state = link_down;
@@ -405,7 +405,7 @@ mgl_status BlocEncap::onInit()
 		          FUNCNAME, upper_name.c_str());
 	}
 
-	if(this->name == "ST" || satellite_type == "regenerative")
+	if(this->host == terminal || satellite_type == "regenerative")
 	{
 		this->emission_ctx = up_return_ctx;
 		this->reception_ctx = down_forward_ctx;

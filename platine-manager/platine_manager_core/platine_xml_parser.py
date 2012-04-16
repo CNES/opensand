@@ -135,6 +135,19 @@ class XmlParser:
         else:
             elt[0].text = str(val)
 
+    def set_values(self, val, xpath, attribute):
+        """ set a value on one or more paths """
+        elts = self.get_all(xpath)
+        if len(elts) < 1:
+            raise XmlException("Cannot find %s path" % xpath)
+        
+        for elem in elts:
+            att_list = self.get_element_content(elem)
+            if not attribute in att_list:
+                raise XmlException("wrong path: %s is not a valid attribute" %
+                                   attribute)
+            att_list[attribute] = val
+
     def get(self, xpath):
         """ get a XML element with its path """
         elts = self._tree.xpath(xpath)
@@ -153,15 +166,15 @@ class XmlParser:
             elt = elts[0]
             elt.getparent().remove(elt)
 
-    def add_line(self, key):
-        """ add a line in the table identified by key """
-        tables = self._tree.xpath(key)
+    def add_line(self, xpath):
+        """ add a line in the table identified its path """
+        tables = self._tree.xpath(xpath)
         if len(tables) != 1:
-            raise XmlException("wrong path: %s is not valid" % key)
+            raise XmlException("wrong path: %s is not valid" % xpath)
         table = tables[0]
         children = table.getchildren()
         if len(children) == 0:
-            raise XmlException("wrong path: %s is not a table" % key)
+            raise XmlException("wrong path: %s is not a table" % xpath)
         i = 0;
         # copy the first line for the base, but skip comments
         while(i < len(children)):
@@ -174,19 +187,27 @@ class XmlParser:
             new.attrib[att] = ''
         table.append(new)
 
-    def remove_line(self, key):
-        """ remove a line in the table identified by key """
-        tables = self._tree.xpath(key)
+    def create_line(self, attributes, key, xpath):
+        """ create a new line in a table """
+        table = self.get(xpath)
+        if table is None:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        table.append(etree.Element(key, attributes))
+
+    def remove_line(self, xpath):
+        """ remove a line in the table identified by its path """
+        print xpath
+        tables = self._tree.xpath(xpath)
         if len(tables) != 1:
-            raise XmlException("wrong path: %s is not valid" % key)
+            raise XmlException("wrong path: %s is not valid" % xpath)
         table = tables[0]
         children = table.getchildren()
         if len(children) == 0:
-            raise XmlException("wrong path: %s is not a table" % key)
+            raise XmlException("wrong path: %s is not a table" % xpath)
         child = children[0]
         table.remove(child)
 
-    def write(self):
+    def write(self, filename=None):
         """ write the new configuration in file """
         if not self._schema.validate(self._tree):
             error = self._schema.error_log.last_error.message
@@ -194,7 +215,9 @@ class XmlParser:
             raise XmlException("the new values are incorrect: %s" %
                                error)
 
-        with open(self._filename, 'w') as conf:
+        if filename is  None:
+            filename = self._filename
+        with open(filename, 'w') as conf:
             conf.write(etree.tostring(self._tree, pretty_print=True,
                                       encoding=self._tree.docinfo.encoding,
                                       xml_declaration=True))

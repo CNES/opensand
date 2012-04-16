@@ -135,105 +135,19 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for ip_dedicated_v4 section -->
-<xsd:simpleType name="ipv4Address">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="ipv4NetMask">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="32" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- types for ip_dedicated_v6 section -->
-<xsd:simpleType name="ipv6Address">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern value="([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4}|
-                            (([0-9a-fA-F]+:){7}[0-9a-fA-F]+)|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?|
-                            ([0-9a-fA-F]{0,4}:){0,6}((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])|
-                            (([0-9a-fA-F]+:){6}|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::([0-9a-fA-F]+:)*)((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="ipv6NetMask">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="64" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- the terminals for ip_dedicated sections -->
-<xsd:element name="terminals">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="terminal_v4" minOccurs="1" maxOccurs="6" />
-            <xsd:element ref="terminal_v6" minOccurs="1" maxOccurs="6" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="terminal_v4">
-    <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv4Address">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv4 address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="mask" type="ipv4NetMask">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv4 mask
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="terminal_v6">
-    <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv6Address">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv6 address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="mask" type="ipv6NetMask">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv6 mask
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- type for simulation column section -->
 <xsd:simpleType name="columnNbr">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="1532" />
     </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for sat_carrier section -->
+<xsd:simpleType name="socketType">
+	<xsd:restriction base="xsd:string">
+		<xsd:enumeration value="SOCK_DGRAM"/>
+	</xsd:restriction>
 </xsd:simpleType>
 
 <!-- the columns for simulation_column section -->
@@ -281,10 +195,9 @@
         <xsd:sequence>
             <xsd:element ref="global" />
             <xsd:element ref="mac_layer" />
-            <xsd:element ref="ip_dedicated_v4" />
-            <xsd:element ref="ip_dedicated_v6" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="dvb_rcs" />
+            <xsd:element ref="sat_carrier" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -407,34 +320,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- ip_dedicated_v4 section description -->
-<xsd:element name="ip_dedicated_v4">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The IP description of terminals and their spot for IPv4 addresses
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="terminals" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- ip_dedicated_v6 section description -->
-<xsd:element name="ip_dedicated_v6">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The IP description of terminals and their spot for IPv4 addresses
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="terminals" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- simulation_column section description -->
 <xsd:element name="simulation_column">
     <xsd:annotation>
@@ -463,6 +348,26 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The DAMA algorithm
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- sat_carrier section description -->
+<xsd:element name="sat_carrier">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The satellite carriers description
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="socket_type" type="socketType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of the socket
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -32,7 +32,7 @@
 # TODO lien vers exemple avahi
 
 """
-service_publisher.py - publish a Platine service with Avahi
+service.py - handle Platine services with Avahi
 """
 
 import dbus
@@ -188,7 +188,7 @@ class PlatineService(object):
                 self._text = {}
             else:
                 self._text = descr
-                if 'id' in descr:
+                if 'id' in descr and name.lower() != 'gw':
                     self._name = name + str(descr['id'])
 
             self._domain = "" # domain to publish on, default to .local

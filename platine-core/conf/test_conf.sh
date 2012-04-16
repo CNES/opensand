@@ -6,7 +6,7 @@
 # Author: Didier Barvaux <didier.barvaux@b2i-toulouse.com>
 #
 
-FILES="core_sat core_gw core_st core_global"
+FILES="core_sat core_gw core_st core_global topology"
 
 for file in $FILES ; do
 

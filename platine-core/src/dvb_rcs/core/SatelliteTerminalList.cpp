@@ -511,8 +511,6 @@ bool SatelliteTerminalList::setList(std::ifstream &simu_file, vector<string> &li
 	std::stringstream line;
 	std::stringbuf token;
 
-    UTI_ERROR("line = %s\n", this->line);
-
 	// get the next line in the file
 	simu_file.get(buf);
 	if(buf.str() != "")

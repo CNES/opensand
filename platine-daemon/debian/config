@@ -36,6 +36,9 @@ configure(){
         db_get platine-daemon/service/st_instance
         INST=$RET
     fi
+    if [ "$NAME" = "GW" ]; then
+        db_set platine-daemon/service/st_instance 0
+    fi
     if [ "$NAME" = "WS" ]; then
         # enable WS2
         db_subst platine-daemon/service/st_instance inst_list ${WS_LIST}

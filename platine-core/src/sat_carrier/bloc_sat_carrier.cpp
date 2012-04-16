@@ -38,6 +38,7 @@
 #include "platine_conf/uti_debug.h"
 #include "msg_dvb_rcs.h"
 #include "lib_dvb_rcs.h"
+#include "PlatineCore.h"
 
 
 /**
@@ -45,9 +46,13 @@
  * @see mgl_bloc::mgl_bloc(mgl_blocmgr *ip_blocmgr, mgl_id i_fatherid, char *ip_name)
  */
 BlocSatCarrier::BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                              const char *name): mgl_bloc(blocmgr, fatherid, name)
+                               const char *name,
+                               const t_component host, const string ip_addr):
+    mgl_bloc(blocmgr, fatherid, name)
 {
-	initOk = false;
+	this->init_ok = false;
+	this->host = host;
+	this->ip_addr = ip_addr;
 }
 
 /**
@@ -83,9 +88,9 @@ mgl_status BlocSatCarrier::onEvent(mgl_event *event)
 		}
 
 		UTI_DEBUG("sat_carrier bloc is now ready\n");
-		this->initOk = true;
+		this->init_ok = true;
 	}
-	else if(!this->initOk)
+	else if(!this->init_ok)
 	{
 		UTI_ERROR("sat_carrier bloc not initialized, ignore "
 		          "non-init event\n");
@@ -167,7 +172,7 @@ int BlocSatCarrier::onInit()
 	sat_carrier_channel *channel;
 
 	// initialize all channels from the configuration file
-	if(m_channelSet.readConfig() < 0)
+	if(m_channelSet.readConfig(this->host, this->ip_addr) < 0)
 	{
 		UTI_ERROR("[onInit] Wrong channel set configuration\n");
 		return -1;

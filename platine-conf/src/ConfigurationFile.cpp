@@ -67,58 +67,63 @@ ConfigurationFile::~ConfigurationFile()
 	unloadConfig();
 }
 
+bool ConfigurationFile::loadConfig(const string conf_file)
+{
+	vector<string> file(1, conf_file);
+	return this->loadConfig(file);
+}
 
-/**
- * Load the whole configuration file content into memory
- * @param confFile path and name of the configuration file
- * @return  true on success, false otherwise
- */
-bool ConfigurationFile::loadConfig(const string confFile)
+bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 {
 	string section, key, value;
-	bool ret = false;
 	xmlpp::DomParser *new_parser;
 	const xmlpp::Element *root;
+	vector<string>::const_iterator it;
 
-	// Build whole path and name of configuration file
-	if(confFile.empty())
+	if(conf_files.size() == 0)
 	{
-		UTI_ERROR("Configuration filename is empty\n");
-		goto FCT_END;
+		UTI_ERROR("No configuration files provided\n");
+		return false;
 	}
 
-	if(access(confFile.c_str(), R_OK) < 0)
+	for(it = conf_files.begin(); it != conf_files.end(); ++it)
 	{
-		UTI_ERROR("unable to access configuration file '%s' (%s)\n",
-		          confFile.c_str(), strerror(errno));
-		goto FCT_END;
-	}
-
-	try
-	{
-		new_parser = new xmlpp::DomParser();
-		new_parser->set_substitute_entities();
-		new_parser->parse_file(confFile);
-		root = new_parser->get_document()->get_root_node();
-		if(root->get_name() != "configuration")
+		if((*it).empty())
 		{
-			UTI_ERROR("Root element is not 'configuration' (%s)\n",
-			          root->get_name().c_str());
-			goto FCT_END;
+			UTI_ERROR("Configuration filename is empty\n");
+			return false;
 		}
-		this->parsers.push_back(new_parser);
-	}
-	catch(const std::exception& ex)
-	{
-		UTI_ERROR("Exception when parsing the configuration file %s: %s\n",
-		          confFile.c_str(), ex.what());
-		goto FCT_END;
+
+		if(access((*it).c_str(), R_OK) < 0)
+		{
+			UTI_ERROR("unable to access configuration file '%s' (%s)\n",
+			          (*it).c_str(), strerror(errno));
+			return false;
+		}
+
+		try
+		{
+			new_parser = new xmlpp::DomParser();
+			new_parser->set_substitute_entities();
+			new_parser->parse_file((*it));
+			root = new_parser->get_document()->get_root_node();
+			if(root->get_name() != "configuration")
+			{
+				UTI_ERROR("Root element is not 'configuration' (%s)\n",
+				           root->get_name().c_str());
+				return false;
+			}
+			this->parsers.push_back(new_parser);
+		}
+		catch(const std::exception& ex)
+		{
+			UTI_ERROR("Exception when parsing the configuration file %s: %s\n",
+			          (*it).c_str(), ex.what());
+			return false;
+		}
 	}
 
-	ret = true;
-
-FCT_END:
-	return ret;
+	return true;
 }
 
 

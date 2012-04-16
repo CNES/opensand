@@ -325,8 +325,11 @@ class Controller(threading.Thread):
                     shutil.copy(os.path.join(default_path, 'core.conf'),
                                 conf_file)
                 #TODO try to simplify file deployment
-                host.configure([os.path.join(self._model.get_scenario(),
-                                             'core_global.conf'), conf_file],
+                scenario = self._model.get_scenario()
+                conf_files = [os.path.join(scenario, 'core_global.conf'),
+                              os.path.join(scenario, 'topology.conf'),
+                              conf_file]
+                host.configure(conf_files,
                                1, 1, self._deploy_config,
                                self._model.get_dev_mode())
 #TODO uncomment lines below and remove line above when the environment plane

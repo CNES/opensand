@@ -105,3 +105,5 @@ RE:platine-tests/tests/.*/.*_atm_mpeg_rohc/scenario/plugins/(?!(atm|mpeg|rohc)).
 RE:platine-tests/tests/.*/.*_mpeg_gse/scenario/plugins/(?!(mpeg|gse)).*conf
 RE:platine-tests/tests/.*/.*_mpeg_mpeg/scenario/plugins/(?!(mpeg)).*conf
 RE:platine-tests/tests/.*/.*_mpeg_mpeg_rohc/scenario/plugins/(?!(mpeg|rohc)).*conf
+platine-manager/platine_manager_core/modules/*.py
+!platine-manager/platine_manager_core/modules/__init__.py

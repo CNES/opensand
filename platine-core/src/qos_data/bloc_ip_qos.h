@@ -58,8 +58,8 @@
 using namespace std;
 
 // Margouilla includes
-#include "platine_margouilla/mgl_bloc.h"
-#include "platine_margouilla/msg_ip.h"
+#include <platine_margouilla/mgl_bloc.h>
+#include <platine_margouilla/msg_ip.h>
 
 // Project includes
 #include <IpPacket.h>
@@ -73,6 +73,7 @@ using namespace std;
 
 // environment plane
 #include "platine_env_plane/EnvironmentAgent_e.h"
+#include "PlatineCore.h"
 
 /// The debug prefix for the IP QoS block
 #define IPQOS_DBG_PREFIX "[IPQOS]"
@@ -91,7 +92,7 @@ class BlocIPQoS: public mgl_bloc
  public:
 
 	BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, string host_name);
+	          const char *name, t_component host);
 	~BlocIPQoS();
 
 	// Margouilla event handler
@@ -103,7 +104,7 @@ class BlocIPQoS: public mgl_bloc
 
 	/// Whether the bloc has been initialized or not
 	bool _initOk;
-	string _host_name;
+	t_component host;
 
 	string _satellite_type;
 

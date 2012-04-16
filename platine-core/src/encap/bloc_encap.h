@@ -50,6 +50,7 @@
 #include "EncapPlugin.h"
 
 #include "IpPacketHandler.h"
+#include "PlatineCore.h"
 
 
 /**
@@ -79,8 +80,8 @@ class BlocEncap: public mgl_bloc
 	/// it is the MAC layer MAC id received through msg_link_up
 	long tal_id;
 
-	/// the component name (GW or ST)
-	string name;
+	/// the component name type
+	t_component host;
 
 	/// the list of available encapsulation plugins
 	std::map <std::string, EncapPlugin *> &encap_plug;
@@ -105,7 +106,7 @@ class BlocEncap: public mgl_bloc
      * @param host_name The name og the host
 	 */
 	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, string host_name,
+	          const char *name, t_component host,
 	          std::map<std::string, EncapPlugin *> &encap_plug);
 
 	/**
