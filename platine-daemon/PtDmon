@@ -214,27 +214,6 @@ def publish_service():
                                    "disabled, you won't be able to route "
                                    "packets toward WS behind this host" %
                                    iface)
-        for iface in [emu_iface, lan_iface]:
-            with open("/proc/sys/net/ipv4/conf/%s/send_redirects" % iface, 'ro') \
-                 as sysctrl:
-                if sysctrl.read().rstrip('\r\n') != "0":
-                    LOGGER.warning("IPv4 send_redirects on interface %s is "
-                                   "enabled, you should disable it" %
-                                   iface)
-        for iface in [emu_iface, lan_iface]:
-            with open("/proc/sys/net/ipv4/conf/%s/accept_redirects" % iface, 'ro') \
-                 as sysctrl:
-                if sysctrl.read().rstrip('\r\n') != "0":
-                    LOGGER.warning("IPv4 accept_redirects on interface %s is "
-                                   "enabled, you should disable it" %
-                                   iface)
-        for iface in [emu_iface, lan_iface]:
-            with open("/proc/sys/net/ipv6/conf/%s/accept_redirects" % iface, 'ro') \
-                 as sysctrl:
-                if sysctrl.read().rstrip('\r\n') != "0":
-                    LOGGER.warning("IPv6 accept_redirects on interface %s is "
-                                   "enabled, you should disable it" %
-                                   iface)
         with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctrl:
             if sysctrl.read().rstrip('\r\n') != "1":
                 LOGGER.warning("IPv4 ip_forward is disabled, you should enable "

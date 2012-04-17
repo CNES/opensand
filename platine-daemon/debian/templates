@@ -100,13 +100,13 @@ Description: Satellite Terminal network IPv4 address
   Select the IPv4 address/mask of the Satellite Terminal
   It is recommended to use a common network for all STs (with mask smaller than
   the ST lan mask) for workstation routing management
-  You must not use a mask smalle than /29, smaller than /27 is recommended
+  You must use a mask smaller than /29, smaller than /27 is recommended
 
 Template: platine-daemon/network/lan_ipv6
 Type: string
 Description: Satellite Terminal network IPv6 address
   Select the IPv6 address/mask of the Satellite Terminal
-  You must not use a mask smalle than /125
+  You must use a mask smaller than /125
 
 Template: platine-daemon/network/config_level
 Type: select

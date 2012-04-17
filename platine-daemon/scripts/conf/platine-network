@@ -6,10 +6,6 @@
 # if false, the following parameters won't be used
 SYSCTL="true"
 
-# ICMP redirects
-SEND_REDIRECTS="0"
-ACCEPT_REDIRECTS="0"
-
 # Forwarding: necessary to be able to forward satellite trafic toward
 # workstations
 IP_FORWARD="1"

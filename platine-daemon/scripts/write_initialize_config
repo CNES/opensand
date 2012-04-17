@@ -112,14 +112,7 @@ write_conf(){
             echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
             echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
         fi
-    else
-        if [ ${SERVICE_NAME} != 'ws' ]; then
-            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
-        fi
-        if [ ${SERVICE_NAME} != 'sat' ] &&
-           [ "${SERVICE_NAME}" != "ws" -o "$DHCP" != "false" ]; then
-            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-        fi
+    # for automatic mode the file will be completed by the netinit script
     fi
 }
 

@@ -13,10 +13,6 @@ CMD=$1
 
 # Source default library
 SYSCTL="true"
-# ICMP redirects
-# TODO check if it is necessary
-SEND_REDIRECTS="0"
-ACCEPT_REDIRECTS="0"
 
 # Forwarding: necessary to be able to forward satellite trafic toward
 # workstations
@@ -32,13 +28,16 @@ if [ -f /etc/default/platine-network ]; then
     . /etc/default/platine-network
 fi
 
-DHCP_CONFIG_FILE="/var/cache/dnsmasq/lan_st.conf"
+DHCP_CONFIG_FILE="/etc/dnsmasq.d/lan_st.conf"
+DAEMON_CONF="/etc/platine/daemon.conf"
 
 # load the configuration file
 load_conf(){
     # load debconf parameters
     db_get platine-daemon/service/name
-    if  [ ${RET} = 'ST' -o ${RET} = 'st' ]; then
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    SERVICE_NAME=$RET
+    if  [ ${RET} = 'st' ]; then
         db_get platine-daemon/service/st_instance
         export LAN=$RET
     else
@@ -58,6 +57,32 @@ load_conf(){
     else
         export LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
         export LAN_IPV6=`ip addr show ${LAN_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        if [ -z "$LAN_IPV4" ]; then
+            halt_on_error "cannot retrive ${LAN_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        fi
+        if [ -z "$LAN_IPV6" ]; then
+            halt_on_error "cannot retrive ${LAN_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
+        fi
+        export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+        export EMU_IPV6=`ip addr show ${EMU_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        if [ -z "$EMU_IPV4" ]; then
+            halt_on_error "cannot retrive ${EMU_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        fi
+        if [ -z "$EMU_IPV6" ]; then
+            halt_on_error "cannot retrive ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
+        fi
+        # complete the configuration file (the last section shall be [network])
+        if [ ${SERVICE_NAME} != 'ws' ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+            echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ] &&
+           [ "${SERVICE_NAME}" != "ws" -o "$DHCP" != "false" ]; then
+            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+        fi
     fi
 
     db_get platine-daemon/network/dhcp
@@ -220,22 +245,6 @@ set_interfaces(){
 #TODO try to remove redirects modifs
 # Configure sysctl
 set_sysctl(){
-    # disable ICMP redirect
-    echo -n  "Set send_redirects=$SEND_REDIRECTS on "
-    echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE intefaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/send_redirects"=$SEND_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/send_redirects"=$SEND_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/send_redirects"=$SEND_REDIRECTS
-
-    echo -n  "Set accept_redirects=$ACCEPT_REDIRECTS on "
-    echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE intefaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv6/conf/$EMU_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv6/conf/$LAN_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-
     # enable forwarding
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
@@ -261,14 +270,6 @@ set_sysctl(){
     return
 }
 set_tun_sysctl(){
-    # disable ICMP redirect
-    echo "Set send_redirects=$SEND_REDIRECTS on $TUN0_IFACE inteface"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/send_redirects"=$SEND_REDIRECTS
-
-    echo "Set accept_redirects=$ACCEPT_REDIRECTS on $TUN0_IFACE inteface"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/accept_redirects"=$ACCEPT_REDIRECTS
-
     # enable forwarding
     echo "Set forwarding=$FORWARDING on $TUN0_IFACE inteface"
     evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
