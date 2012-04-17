@@ -95,12 +95,116 @@ class ConfEvent(ConfView) :
 #        elif self.is_button_active('DVB-S2'):
 
         # output encapsulation scheme
-        #TODO dynamic encapsulation bloc drawing
-
-        # input encapsulation scheme
-        #TODO dynamic encapsulation bloc drawing
+        widget = self._ui.get_widget("repr_stack_label_st_encap")
+        widget.set_has_tooltip(True)
+        widget.connect("query-tooltip", self.build_encap_tooltip)
+        widget = self._ui.get_widget("repr_stack_label_gw_encap")
+        widget.set_has_tooltip(True)
+        widget.connect("query-tooltip", self.build_encap_tooltip)
+        if self.is_button_active('regenerative'):
+            widget = self._ui.get_widget("repr_stack_label_sat_encap")
+            widget.set_has_tooltip(True)
+            widget.connect("query-tooltip", self.build_encap_tooltip)
 
         self._drawing_area.queue_draw()
+
+    def build_encap_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        """ show the encapsulation stack in a tooltip """
+        box = gtk.VBox()
+        hbox = gtk.HBox()
+        vbox_in = gtk.VBox()
+        vbox_out = gtk.VBox()
+        in_stack = self._in_stack.get_stack()
+        out_stack = self._out_stack.get_stack()
+        in_label = None
+        out_label = None
+        packed = False
+        for pos in range(max(len(in_stack), len(out_stack))):
+            if pos < len(out_stack):
+                out_frame = gtk.AspectFrame()
+                out_label = gtk.Label()
+                out_label.set_size_request(70, 45)
+                out_label.set_text(out_stack[str(pos)])
+                out_frame.add(out_label)
+            elif out_label is not None:
+                heigth = out_label.get_size_request()[1]
+                out_label.set_size_request(70, heigth + 50)
+            if pos < len(in_stack):
+                if pos < len(out_stack):
+                    if out_stack[str(pos)] == in_stack[str(pos)]:
+                        if packed:
+                            hbox.pack_end(vbox_in)
+                            sep = gtk.VSeparator()
+                            hbox.pack_end(sep)
+                            hbox.pack_end(vbox_out)
+                            hbox.set_child_packing(vbox_in, expand=False,
+                                                   fill=False, padding=0,
+                                                   pack_type=gtk.PACK_END)
+                            hbox.set_child_packing(sep, expand=False,
+                                                   fill=False, padding=0,
+                                                   pack_type=gtk.PACK_END)
+                            hbox.set_child_packing(vbox_out, expand=False,
+                                                   fill=False, padding=0,
+                                                   pack_type=gtk.PACK_END)
+                            box.pack_start(hbox)
+
+                            hbox = gtk.HBox()
+                            vbox_in = gtk.VBox()
+                            vbox_out = gtk.VBox()
+                            in_label = None
+                            packed = False
+
+                        box.pack_start(out_frame)
+                        out_label.set_size_request(145, 45)
+                        box.set_child_packing(out_frame, expand=False,
+                                              fill=False, padding=0,
+                                              pack_type=gtk.PACK_START)
+                        out_label = None
+                        continue
+                    else:
+                        vbox_out.pack_start(out_frame)
+                        vbox_out.set_child_packing(out_frame, expand=False,
+                                                   fill=False, padding=0,
+                                                   pack_type=gtk.PACK_START)
+                        packed = True
+                in_frame = gtk.AspectFrame()
+                in_label = gtk.Label()
+                in_label.set_size_request(70, 45)
+                in_label.set_text(in_stack[str(pos)])
+                in_frame.add(in_label)
+                vbox_in.pack_start(in_frame)
+                vbox_in.set_child_packing(in_frame, expand=False,
+                                          fill=False, padding=0,
+                                          pack_type=gtk.PACK_START)
+                packed = True
+            elif in_label is not None:
+                heigth = in_label.get_size_request()[1]
+                in_label.set_size_request(70, heigth + 50)
+            elif pos < len(out_stack):
+                vbox_out.pack_start(out_frame)
+                vbox_out.set_child_packing(out_frame, expand=False,
+                                           fill=False, padding=0,
+                                           pack_type=gtk.PACK_START)
+                packed = True
+
+        hbox.pack_end(vbox_in)
+        sep = gtk.VSeparator()
+        hbox.pack_end(sep)
+        hbox.pack_end(vbox_out)
+        hbox.set_child_packing(vbox_in, expand=False,
+                               fill=False, padding=0,
+                               pack_type=gtk.PACK_END)
+        hbox.set_child_packing(sep, expand=False,
+                               fill=False, padding=0,
+                               pack_type=gtk.PACK_END)
+        hbox.set_child_packing(vbox_out, expand=False,
+                               fill=False, padding=0,
+                               pack_type=gtk.PACK_END)
+        box.pack_start(hbox)
+        box.show_all()
+        tooltip.set_custom(box)
+
+        return True
 
     def is_button_active(self, button):
         """ check if a button is active """
