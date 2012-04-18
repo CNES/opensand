@@ -181,7 +181,7 @@ class XmlParser:
             child = children[i]
             i += 1
             if not child.tag is etree.Comment:
-            	break
+                break
         new = deepcopy(child)
         for att in new.attrib.keys():
             new.attrib[att] = ''
@@ -196,7 +196,6 @@ class XmlParser:
 
     def remove_line(self, xpath):
         """ remove a line in the table identified by its path """
-        print xpath
         tables = self._tree.xpath(xpath)
         if len(tables) != 1:
             raise XmlException("wrong path: %s is not valid" % xpath)
@@ -380,6 +379,19 @@ class XmlParser:
         else:
             return {"type": base.lstrip("xsd:")}
 
+    def get_minoccurs(self, table_name):
+        """ get minOccurs value for table elements """
+        values = self._xsd_parser.xpath("//xsd:element[@ref='%s']/@minOccurs" %
+                                        table_name, namespaces=NAMESPACES)
+        if values is not None:
+            return int(values[0])
+
+    def get_maxoccurs(self, table_name):
+        """ get maxOccurs value for table elements """
+        values =  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
+                                         table_name, namespaces=NAMESPACES)
+        if values is not None:
+            return int(values[0])
 
 
 if __name__ == "__main__":
