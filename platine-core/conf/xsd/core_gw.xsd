@@ -72,7 +72,7 @@
 <xsd:simpleType name="classId">
 	<xsd:restriction base="xsd:integer">
 		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="4" />
+		<xsd:maxInclusive value="31" />
 	</xsd:restriction>
 </xsd:simpleType>
 
@@ -89,21 +89,21 @@
 <xsd:simpleType name="schedulerPrio">
 	<xsd:restriction base="xsd:integer">
 		<xsd:minInclusive value="1" />
-		<xsd:maxInclusive value="5" />
+		<xsd:maxInclusive value="32" />
 	</xsd:restriction>
 </xsd:simpleType>
 
 <xsd:simpleType name="macQueueId">
 	<xsd:restriction base="xsd:integer">
 		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="4" />
+		<xsd:maxInclusive value="31" />
 	</xsd:restriction>
 </xsd:simpleType>
 
 <xsd:element name="classes">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element ref="class" minOccurs="1" maxOccurs="5"/>
+			<xsd:element ref="class" minOccurs="1" maxOccurs="32"/>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>
@@ -144,8 +144,8 @@
 <!-- types for traffic_category section -->
 <xsd:simpleType name="categoryId">
 	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="1" />
-		<xsd:maxInclusive value="7" />
+		<xsd:minInclusive value="0" />
+		<xsd:maxInclusive value="255" />
 	</xsd:restriction>
 </xsd:simpleType>
 
@@ -164,7 +164,7 @@
 <xsd:element name="categories">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element ref="category" minOccurs="1" maxOccurs="7"/>
+			<xsd:element ref="category" minOccurs="1" maxOccurs="32"/>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>
@@ -208,7 +208,7 @@
 <xsd:element name="fifos">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element ref="fifo" minOccurs="1" maxOccurs="5"/>
+			<xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>

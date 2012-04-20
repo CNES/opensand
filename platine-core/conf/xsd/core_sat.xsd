@@ -33,7 +33,7 @@
 <xsd:element name="spots">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element ref="spot" minOccurs="1" maxOccurs="255"/>
+			<xsd:element ref="spot" minOccurs="1" maxOccurs="256"/>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>
@@ -89,7 +89,7 @@
 <xsd:simpleType name="talId">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="6" />
+        <xsd:maxInclusive value="31" /> <!-- 0x1f -->
     </xsd:restriction>
 </xsd:simpleType>
 
