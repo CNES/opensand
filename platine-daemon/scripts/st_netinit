@@ -72,17 +72,12 @@ load_conf(){
             halt_on_error "cannot retrive ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
         fi
         # complete the configuration file (the last section shall be [network])
-        if [ ${SERVICE_NAME} != 'ws' ]; then
-            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
-            echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
-        fi
-        if [ ${SERVICE_NAME} != 'sat' ] &&
-           [ "${SERVICE_NAME}" != "ws" -o "$DHCP" != "false" ]; then
-            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
-            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
-        fi
+        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+        echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+        echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
     fi
 
     db_get platine-daemon/network/dhcp
@@ -150,6 +145,7 @@ usage(){
 halt_on_error(){
     echo "Error: $*"  >&2
     echo "" >&2
+    db_stop
     exit 1
 }
 
@@ -159,8 +155,8 @@ halt_on_error(){
 evecho(){
     echo $*
     eval $*
-    typeset my_status=$?
-    [ $my_status -ne 0 ] && halt_on_error "command returned an error, exiting."
+    my_status=$?
+    [ $my_status -ne 0 ] && halt_on_error "last command returned an error"
 
     return
 }
@@ -170,7 +166,7 @@ evecho(){
 #
 check_root(){
     id | grep -q '^uid=0(root)'
-    typeset retstat=$?
+    retstat=$?
     [ $retstat -ne 0 ] && halt_on_error "you _must_ be root before executing $THIS_SCRIPT"
     return
 }
@@ -179,12 +175,12 @@ check_root(){
 #
 reset_conf() {
     echo "# Reset Platine TUN0 interface configuration"
-    /sbin/iptables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
-    /sbin/ip6tables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
-    /sbin/ip route flush dev $TUN0_IFACE
-    /sbin/ip -6 route flush dev $TUN0_IFACE
-    /sbin/ifconfig $TUN0_IFACE 0 down
-    /bin/rm -f ${DHCP_CONFIG_FILE}
+    evecho /sbin/iptables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
+    evecho /sbin/ip6tables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
+    evecho /sbin/ip route flush dev $TUN0_IFACE
+    evecho /sbin/ip -6 route flush dev $TUN0_IFACE
+    evecho /sbin/ifconfig $TUN0_IFACE 0 down
+    evecho /bin/rm -f ${DHCP_CONFIG_FILE}
     return
 }
 
@@ -238,17 +234,19 @@ set_interfaces(){
     echo "Assign $TUN0_IPV4 and $TUN0_IPV6 addresses on $TUN0_IFACE interface"
     evecho /sbin/ifconfig $TUN0_IFACE $TUN0_IPV4
     evecho /sbin/ifconfig $TUN0_IFACE add $TUN0_IPV6
+    # remove automatic routes
+    evecho /sbin/ip route flush dev $TUN0_IFACE
+    evecho /sbin/ip -6 route flush dev $TUN0_IFACE
 
     return
 }
 
-#TODO try to remove redirects modifs
 # Configure sysctl
 set_sysctl(){
     # enable forwarding
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
-    echo -n  "Set forwarding=$FORWARDING"
+    echo -n  "Set forwarding=$FORWARDING on "
     echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE intefaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
@@ -286,8 +284,8 @@ set_dhcp_server(){
 
     echo "# Configure DHCP server"
 
-    full_octets=$(($1/8))
-    local partial_octet=$(($1%8))
+    full_octets=$(($MASK4/8))
+    local partial_octet=$(($MASK4%8))
     mask=""
 
     for i in `seq 1 4`; do
@@ -298,7 +296,7 @@ set_dhcp_server(){
         else
             mask+=0
         fi  
-        test $i -lt 3 && mask+=.
+        test $i -lt 4 && mask+=.
     done
 
     if [ ${MASK4} -gt 27 ]; then
@@ -319,7 +317,7 @@ set_dhcp_server(){
         range_end=${LAN4%.*}.$((min+30))
     fi
 
-    subnet=${LAN_IPV4%.*}
+    subnet=${LAN4%.*}
     subnet+=.0
     if [ ${MASK4} -gt 24 ]; then
         cidr=24
@@ -335,6 +333,13 @@ set_dhcp_server(){
         cidr=8
     fi
 
+
+    opt3="dhcp-option=3"
+    db_get platine-daemon/network/default_route
+    if [ $RET = "true" ]; then
+        opt3="#dhcp-option=3"
+    fi
+
     /bin/cat 2>/dev/null << EOF > "${DHCP_CONFIG_FILE}"
 
 # IP range
@@ -348,7 +353,12 @@ interface=${LAN_IFACE}
 # is not the case please modify it
 # If the STs are not on a same subnetwork please do no use this option and set
 # your routes manually or use the daemon
-dhcp-option=121,${cidr}.${subnet},${LAN_IPV4}
+dhcp-option=121,${subnet}/${cidr},${LAN4}
+# Override the default route supplied by dnsmasq and send no default
+# route at all. Note that this only works for the options sent by
+# default (1, 3, 6, 12, 28) the same line will send a zero-length option 
+# for all other option numbers.
+${opt3}
 
 EOF
 
@@ -405,8 +415,10 @@ case $CMD in
      *)
         echo "Error: unknown command $CONF"
         usage
+        db_stop
         exit 1
     ;;
 esac
 
+db_stop
 exit 0

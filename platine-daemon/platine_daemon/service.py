@@ -50,7 +50,6 @@ TUN_IFACE = "platine"
 class PlatineService(object):
     """ Avahi service for Platine Daemon """
 
-# TODO routes for WS
     _bus = None
     _routes = None
 
@@ -63,11 +62,16 @@ class PlatineService(object):
         self._main_loop = gobject.MainLoop()
         PlatineService._bus = dbus.SystemBus(mainloop=loop)
 
-        if name.lower() != "sat" and name.lower() != "ws":
-            PlatineService._routes = PlatineRoutes()
-            PlatineService._routes.load(TUN_IFACE)
+        PlatineService._routes = PlatineRoutes()
+        if name.lower() != "sat":
+            if name.lower() != "ws":
+                PlatineService._routes.load(TUN_IFACE)
+            else:
+                PlatineService._routes.load(descr['lan_iface'], True)
+            self._listener = self.Listener(service_type, name, instance)
+        else:
             # no route to handle on satellite
-            self._listener = self.Listener(service_type, name + instance)
+            PlatineService._routes.set_unused()
         self._publisher = self.Publisher(service_type, name, port, descr)
 
     def run(self):
@@ -79,6 +83,8 @@ class PlatineService(object):
         self._main_loop.quit()
         if self._publisher._group is not None:
             self._publisher._group.Free()
+        if PlatineService._routes is not None:
+            del PlatineService._routes
 
     def print_error(self, *args):
         """ error handler """
@@ -88,9 +94,15 @@ class PlatineService(object):
 
     class Listener(object):
         """ listen for Platine service with avahi """
-        def __init__(self, service_type, name):
+        def __init__(self, service_type, compo, instance):
+            self._compo = compo.lower()
+            # for WS get only the number, not the name of the instance
+            self._instance = instance.split("_", 1)[0]
             # add name in _names to avoid adding route for the current host
-            self._names = [name]
+            self._names = [compo + instance]
+            self._new_routes = []
+            self._router_v4 = None
+            self._router_v6 = None
             self._listener_server = \
                 dbus.Interface(PlatineService._bus.get_object(avahi.DBUS_NAME, '/'),
                                'org.freedesktop.Avahi.Server')
@@ -107,14 +119,14 @@ class PlatineService(object):
             """ get the parameter of service once it is resolved """
             name = args[2]
             if name in self._names:
-                LOGGER.debug("ignore %s that is already discovereed" % name)
+                LOGGER.debug("ignore %s that is already discovered" % name)
                 return
             elif not name.startswith('st') and name != 'gw':
                 LOGGER.debug("ignore %s that is not a ST" % name)
                 return
             address = args[7]
             LOGGER.debug('service resolved')
-            LOGGER.debug('name: ' + args[2])
+            LOGGER.debug('name: ' + name)
             LOGGER.debug("Find %s at address %s" %
                          (name, address))
 
@@ -126,6 +138,7 @@ class PlatineService(object):
 
             v4 = None
             v6 = None
+            inst = ''
             i = 0
             args_nbr = len(args[9])
             while i < args_nbr:
@@ -147,9 +160,33 @@ class PlatineService(object):
                     v4 = val
                 elif key == 'lan_ipv6':
                     v6 = val
+                elif key == 'id':
+                    inst = val
 
             self._names.append(name)
-            PlatineService._routes.add_distant_host(name, v4, v6)
+            if self._compo == 'gw' or self._compo == 'st':
+                PlatineService._routes.add_distant_host(name, v4, v6)
+            elif self._compo == 'ws' and not name.startswith('ws') and name != 'sat':
+                if self._router_v4 is not None or self._router_v6 is not None:
+                    # add the distant network route
+                    PlatineService._routes.add_distant_host(name, v4, v6,
+                                                            self._router_v4,
+                                                            self._router_v6)
+                elif inst == self._instance:
+                    # this host is our router (ST with the same ID)
+                    self._router_v4 = v4.rsplit('/')[0]
+                    self._router_v6 = v6.rsplit('/')[0]
+                    # add the route toward other network that was not added yet
+                    for route in self._new_routes:
+                        PlatineService._routes.add_distant_host(route[0],
+                                                                route[1],
+                                                                route[2],
+                                                                self._router_v4,
+                                                                self._router_v6)
+                else:
+                    # we need to know the router address to set the route
+                    # gateway so keep this route until we got it
+                    self._new_routes.append((name, v4, v6))
 
         def handler_new(self, interface, protocol, name, stype, domain, flags):
             """ handle a new service """

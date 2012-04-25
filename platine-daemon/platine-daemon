@@ -144,7 +144,7 @@ case "$1" in
         [ -e /var/lock/${PROGNAME} ] && restart
         ;;
     status)
-        status_of_proc ${PROGNAME}
+        status_of_proc -p ${PIDFILE} ${BIN} ${PROGNAME}
         ;;
     *)
         echo "Usage $0 {start|stop|restart|condrestart|status}"

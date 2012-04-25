@@ -16,3 +16,7 @@ WMEM_MAX="1048580"
 RMEM_MAX="1048580"
 WMEM_DEFAULT="1048580"
 RMEM_DEFAULT="1048580"
+
+# The DHCP client command concatenated with interface name to automatically set
+# up the address when DHCP is enabled
+DHCP_CLIENT_CMD="dhclient"

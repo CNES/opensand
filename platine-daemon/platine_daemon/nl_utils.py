@@ -26,7 +26,7 @@ class NlRoute(object):
     def __init__(self, iface_name):
         self._link = link.resolve(iface_name)
 
-    def add(self, dst):
+    def add(self, dst, gw=None):
         """ add a new route """
         nh = capi.rtnl_route_nh_alloc()
         route = capi.rtnl_route_alloc()
@@ -38,6 +38,9 @@ class NlRoute(object):
 
         capi.rtnl_route_set_dst(route, addr_dst._nl_addr)
         capi.rtnl_route_nh_set_ifindex(nh, ifidx)
+        if gw is not None:
+            addr_gw = netlink.AbstractAddress(gw)
+            capi.rtnl_route_nh_set_gateway(nh, addr_gw._nl_addr)
         capi.rtnl_route_add_nexthop(route, nh)
         ret = capi.rtnl_route_add(sock._sock, route, 0)
         if ret == -6:
@@ -46,7 +49,7 @@ class NlRoute(object):
             raise NlError(ret)
         
 
-    def delete(self, dst):
+    def delete(self, dst, gw=None):
         """ delete a route """
         nh = capi.rtnl_route_nh_alloc()
         route = capi.rtnl_route_alloc()
@@ -58,6 +61,9 @@ class NlRoute(object):
 
         capi.rtnl_route_set_dst(route, addr_dst._nl_addr)
         capi.rtnl_route_nh_set_ifindex(nh, ifidx)
+        if gw is not None:
+            addr_gw = netlink.AbstractAddress(gw)
+            capi.rtnl_route_nh_set_gateway(nh, addr_gw._nl_addr)
         capi.rtnl_route_add_nexthop(route, nh)
         ret = capi.rtnl_route_delete(sock._sock, route, 0)
         if ret == -6:

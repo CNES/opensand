@@ -36,7 +36,6 @@ stream.py - transform files and directory into a stream
 
 import os
 import shutil
-import glob
 import select
 import logging
 import tempfile

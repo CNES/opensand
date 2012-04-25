@@ -125,13 +125,19 @@ Description: Level of network configuration
    - on emulation network all the hosts shall be on the same sub-network (i.e.
      should have the same mask),
    - on ST or GW lan, your workstations should be in the same subnetwork as the
-     terminal if not configured automatically with DHCP.
+     terminal if not configured automatically with DHCP
 
 Template: platine-daemon/network/dhcp
 Type: boolean
 Default: false
 Description: Do you want to use DHCP server for workstations ?
-  Select if you want to generate a DHCP server configuration file
-  Please check it (/var/cache/dnsmasq/lan_st.conf) before starting your DHCP
-  server
+  On ST, select if you want to generate a DHCP server configuration file on
+  terminal (please check it (/etc/dnsmasq.d/lan_st.conf) before starting your
+  DHCP server)
+  On WS, select if the address should be obtained with DHCP
 
+Template: platine-daemon/network/default_route
+Type: boolean
+Default: false
+Description: Do you want to use enable the default route toward terminal for workstations ?
+  Select if you want your DCHP server to set the default route toward the terminal.

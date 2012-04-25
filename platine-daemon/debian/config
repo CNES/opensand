@@ -65,12 +65,15 @@ configure(){
     db_go
     db_get platine-daemon/network/config_level
     CONFIG_LEVEL=$RET
-	#TODO for ST also
-    if [ "$NAME" = "WS" ]; then
+    if [ "$NAME" != "SAT" ]; then
         db_input high platine-daemon/network/dhcp || true
         db_go
         db_get platine-daemon/network/dhcp
         DHCP=$RET
+        if [ "$NAME" != "WS" -a "$DHCP" = "true" ]; then
+            db_input high platine-daemon/network/default_route || true
+            db_go
+        fi
     fi
     set_ifaces
     db_endblock
@@ -98,33 +101,40 @@ set_ifaces(){
             db_input high platine-daemon/network/emu_ipv6 || true
             db_go
         fi
-        if [ "$NAME" != "SAT" ] && [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
+        if [ "$NAME" != "SAT" ]; then
+            db_input high platine-daemon/network/lan_iface || true
+            db_go
             add=1
             if [ "$NAME" = "WS" ]; then
                 # use a random value to limit WS with the same address
                 # ST physical interface has address .1 and tun interface
                 # (platine) has address .2
                 add=`od -An -N1 -tu1 /dev/urandom`
-                add=$((add % 253))
+                add=$((add % 252))
                 add=$((add + 3))
             fi
-            db_input high platine-daemon/network/lan_iface || true
-            db_go
-            if [ "$RECONFIG" = "false" ]; then
-                if [ "$NAME" != "GW" ]; then
-                    net=$((18+$INST))
-                    db_set platine-daemon/network/lan_ipv4 "192.168.${net}.${add}/24"
-                    net=$((101+$INST))
-                    db_set platine-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/24"
-                else
-                    db_set platine-daemon/network/lan_ipv4 ${GW_IP4ADDR}
-                    db_set platine-daemon/network/lan_ipv6 ${GW_IP6ADDR}
+            if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
+                if [ "$RECONFIG" = "false" ]; then
+                    if [ "$NAME" != "GW" ]; then
+                        net=$((18+$INST))
+                        db_set platine-daemon/network/lan_ipv4 "192.168.${net}.${add}/24"
+                        net=$((101+$INST))
+                        db_set platine-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/24"
+                    else
+                        db_set platine-daemon/network/lan_ipv4 ${GW_IP4ADDR}
+                        db_set platine-daemon/network/lan_ipv6 ${GW_IP6ADDR}
+                    fi
                 fi
+                db_input high platine-daemon/network/lan_ipv4 || true
+                db_go
+                db_input high platine-daemon/network/lan_ipv6 || true
+                db_go
+            elif [ "$NAME" = "WS" -a "$DHCP" != "false" ]; then
+                net=$((101+$INST))
+                db_set platine-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/24"
+                db_input high platine-daemon/network/lan_ipv6 || true
+                db_go
             fi
-            db_input high platine-daemon/network/lan_ipv4 || true
-            db_go
-            db_input high platine-daemon/network/lan_ipv6 || true
-            db_go
         fi
     else
         if [ "$NAME" != "WS" ]; then
@@ -148,6 +158,7 @@ reset(){
     db_reset platine-daemon/state/port
     db_reset platine-daemon/network/config_level
     db_reset platine-daemon/network/dhcp
+    db_reset platine-daemon/network/default_route
     db_reset platine-daemon/network/emu_iface
     db_reset platine-daemon/network/emu_ipv4
     db_reset platine-daemon/network/emu_ipv6
@@ -166,6 +177,7 @@ unseen(){
     db_fset platine-daemon/state/port seen false
     db_fset platine-daemon/network/config_level seen false
     db_fset platine-daemon/network/dhcp seen false
+    db_fset platine-daemon/network/default_route seen false
     db_fset platine-daemon/network/emu_iface seen false
     db_fset platine-daemon/network/emu_ipv4 seen false
     db_fset platine-daemon/network/emu_ipv6 seen false

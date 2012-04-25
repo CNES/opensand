@@ -60,15 +60,21 @@ class PlatineRoutes(object):
     _started = False
     _initialized = False
     _iface = None
+    _unused = True
+    _is_ws = False
 
     def __init__(self):
         pass
 
-    def load(self, iface):
+    def __del__(self):
+        if PlatineRoutes._is_ws:
+            self.remove_routes()
+
+    def load(self, iface, is_ws = False):
         PlatineRoutes._routes_lock.acquire()
-        if iface is not None:
-            PlatineRoutes._route_hdl = NlRoute(iface)
-            PlatineRoutes._iface = iface
+        PlatineRoutes._route_hdl = NlRoute(iface)
+        PlatineRoutes._iface = iface
+        PlatineRoutes._is_ws = is_ws
 
         # read the routes file
         routes = {}
@@ -98,59 +104,84 @@ class PlatineRoutes(object):
             finally:
                 route_file.close()
 
+        # always set up the routes for WS as they won't receive the 'START'
+        # command
+        if is_ws:
+            PlatineRoutes._started = True
         PlatineRoutes._initialized = True
+        PlatineRoutes._unused = False
 
         PlatineRoutes._routes_lock.release()
+
+    def set_unused(self):
+        """ for satellite we do not need routes but we don't want initialization
+            errors """
+        PlatineRoutes._initialized = True
+        PlatineRoutes._unused = True
 
     def is_initialized(self):
         """ is the route object initialized """
         return PlatineRoutes._initialized
 
-    def add_distant_host(self, name, v4, v6):
+    def add_distant_host(self, name, v4, v6, gw_v4=None, gw_v6=None):
         """ add a new distant host """
+        if PlatineRoutes._unused:
+            return
         PlatineRoutes._routes_lock.acquire()
         LOGGER.debug("new distant host %s with addresses %s and %s" %
                      (name, v4, v6))
+        if gw_v4 is not None or gw_v6 is not None:
+            LOGGER.debug("routers %s %s" % (gw_v4, gw_v6))
+
+        prefix_v4 = ''
+        prefix_v6 = ''
         if not name in PlatineRoutes._routes_v4: 
             net = IPNetwork(v4)
             prefix_v4 = "%s/%s" % (net.network, net.prefixlen)
-            PlatineRoutes._routes_v4[name] = prefix_v4
+            PlatineRoutes._routes_v4[name] = (prefix_v4, gw_v4)
         if not name in PlatineRoutes._routes_v6: 
-            net = IPNetwork(v4)
-            prefix_v4 = "%s/%s" % (net.network, net.prefixlen)
             net = IPNetwork(v6)
             prefix_v6 = "%s/%s" % (net.network, net.prefixlen)
-            PlatineRoutes._routes_v4[name] = prefix_v4
-            PlatineRoutes._routes_v6[name] = prefix_v6
+            PlatineRoutes._routes_v6[name] = (prefix_v6, gw_v6)
 
-            if PlatineRoutes._started:
-                LOGGER.debug("Platform is started, add a route for this host")
-                try:
-                    self.add_route(name, v4, v6)
-                except (NlError, NlExists):
-                    PlatineRoutes._routes_lock.release()
-                    raise
-                self.serialize()
+        if prefix_v4 == '' and prefix_v6 == '':
+            LOGGER.debug("the route is already set")
+            return
+
+        if PlatineRoutes._started:
+            LOGGER.debug("Platform is started, add a route for this host")
+            try:
+                self.add_route(name, prefix_v4, prefix_v6, gw_v4, gw_v6)
+            except (NlError, NlExists):
+                PlatineRoutes._routes_lock.release()
+                raise
+            self.serialize()
         PlatineRoutes._routes_lock.release()
 
     def remove_distant_host(self, host):
         """ remove a distant host """
+        if PlatineRoutes._unused:
+            return
         PlatineRoutes._routes_lock.acquire()
         LOGGER.debug("remove distant host %s" % host)
         if PlatineRoutes._started:
             LOGGER.debug("Platform is started, remove the route for this host")
             v4 = None
             v6 = None
+            gw_v4 = None
+            gw_v6 = None
             try:
-                v4 = PlatineRoutes._routes_v4[host]
+                v4 = PlatineRoutes._routes_v4[host][0]
+                gw_v4 = PlatineRoutes._routes_v4[host][1]
             except KeyError:
                 pass
             try:
-                v6 = PlatineRoutes._routes_v6[host]
+                v6 = PlatineRoutes._routes_v6[host][0]
+                gw_v6 = PlatineRoutes._routes_v6[host][1]
             except KeyError:
                 pass
             try:
-                self.remove_route(host, v4, v6),
+                self.remove_route(host, v4, v6, gw_v4, gw_v6)
             except NlError:
                 pass
             if v4:
@@ -165,6 +196,8 @@ class PlatineRoutes(object):
 
     def setup_routes(self):
         """ apply the routes when started """
+        if PlatineRoutes._unused:
+            return
         PlatineRoutes._routes_lock.acquire()
         PlatineRoutes._started = True
         LOGGER.info("set route before starting platform")
@@ -173,16 +206,20 @@ class PlatineRoutes(object):
                         PlatineRoutes._routes_v6.keys()):
             v4 = None
             v6 = None
+            gw_v4 = None
+            gw_v6 = None
             try:
-                v4 = PlatineRoutes._routes_v4[host]
+                v4 = PlatineRoutes._routes_v4[host][0]
+                gw_v4 = PlatineRoutes._routes_v4[host][1]
             except KeyError:
                 pass
             try:
-                v6 = PlatineRoutes._routes_v6[host]
+                v6 = PlatineRoutes._routes_v6[host][0]
+                gw_v6 = PlatineRoutes._routes_v6[host][1]
             except KeyError:
                 pass
             try:
-                self.add_route(host, v4, v6),
+                self.add_route(host, v4, v6, gw_v4, gw_v6)
             except (NlError, NlExists):
                 PlatineRoutes._routes_lock.release()
                 raise
@@ -190,6 +227,8 @@ class PlatineRoutes(object):
 
     def remove_routes(self):
         """ remove the current routes when stopped """
+        if PlatineRoutes._unused:
+            return
         PlatineRoutes._routes_lock.acquire()
         PlatineRoutes._started = False
         LOGGER.info("remove route after stopping platform")
@@ -197,16 +236,20 @@ class PlatineRoutes(object):
                         PlatineRoutes._routes_v6.keys()):
             v4 = None
             v6 = None
+            gw_v4 = None
+            gw_v6 = None
             try:
-                v4 = PlatineRoutes._routes_v4[host]
+                v4 = PlatineRoutes._routes_v4[host][0]
+                gw_v4 = PlatineRoutes._routes_v4[host][1]
             except KeyError:
                 pass
             try:
-                v6 = PlatineRoutes._routes_v6[host]
+                v6 = PlatineRoutes._routes_v6[host][0]
+                gw_v6 = PlatineRoutes._routes_v6[host][1]
             except KeyError:
                 pass
             try:
-                self.remove_route(host, v4, v6)
+                self.remove_route(host, v4, v6, gw_v4, gw_v6)
             except NlError:
                 pass
         try:
@@ -215,13 +258,17 @@ class PlatineRoutes(object):
             pass
         PlatineRoutes._routes_lock.release()
 
-    def add_route(self, host, route_v4, route_v6):
+    def add_route(self, host, route_v4, route_v6, gw_v4, gw_v6):
         """ add a new route """
+        if PlatineRoutes._unused:
+            return
         LOGGER.info("add routes for host %s toward %s and %s via %s" %
                     (host, route_v4, route_v6, PlatineRoutes._iface))
+        if gw_v4 is not None or gw_v6 is not None:
+            LOGGER.debug("routers %s %s" % (gw_v4, gw_v6))
         try:
             if route_v4:
-                PlatineRoutes._route_hdl.add(route_v4)
+                PlatineRoutes._route_hdl.add(route_v4, gw_v4)
         except NlExists:
             LOGGER.info("route already exists on %s" % host)
             del PlatineRoutes._routes_v4[host]
@@ -232,7 +279,7 @@ class PlatineRoutes(object):
             raise
         try:
             if route_v6:
-                PlatineRoutes._route_hdl.add(route_v6)
+                PlatineRoutes._route_hdl.add(route_v6, gw_v6)
         except NlExists:
             LOGGER.info("route already exists on %s" % host)
             del PlatineRoutes._routes_v6[host]
@@ -242,13 +289,17 @@ class PlatineRoutes(object):
             del PlatineRoutes._routes_v6[host]
             raise
 
-    def remove_route(self, host, route_v4, route_v6):
+    def remove_route(self, host, route_v4, route_v6, gw_v4, gw_v6):
         """ remove a route """
+        if PlatineRoutes._unused:
+            return
         LOGGER.info("remove route for host %s toward %s and %s via %s" %
                     (host, route_v4, route_v6, PlatineRoutes._iface))
+        if gw_v4 is not None or gw_v6 is not None:
+            LOGGER.debug("routers %s %s" % (gw_v4, gw_v6))
         try:
             if route_v4:
-                PlatineRoutes._route_hdl.delete(route_v4)
+                PlatineRoutes._route_hdl.delete(route_v4, gw_v4)
         except NlError, msg:
             LOGGER.error("fail to delete route for %s: %s" % (host, msg))
             raise
@@ -256,7 +307,7 @@ class PlatineRoutes(object):
             # try to remove the IPv6 route anyway
             try:
                 if route_v6:
-                    PlatineRoutes._route_hdl.delete(route_v6)
+                    PlatineRoutes._route_hdl.delete(route_v6, gw_v6)
             except NlError, msg:
                 LOGGER.error("fail to delete route for %s: %s" % (host, msg))
                 raise
@@ -265,6 +316,8 @@ class PlatineRoutes(object):
     def serialize(self):
         """ serialize the routes in order to keep them in case
             of daemon restart """
+        if PlatineRoutes._unused or PlatineRoutes._is_ws:
+            return
         routes = {}
         for host in set(PlatineRoutes._routes_v4.keys() +
                         PlatineRoutes._routes_v6.keys()):

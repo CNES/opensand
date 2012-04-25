@@ -35,7 +35,7 @@ start()
     fi
 
     # Start the Platine network
-    start-stop-daemon --start --exec ${CONFSCRIPT} >/dev/null
+    start-stop-daemon --start --exec ${CONFSCRIPT} 1>/dev/null
     if [ $? -ne 0 ] ; then
         log_end_msg 1
         echo "failed to configure the Platine network" >&2
@@ -62,7 +62,7 @@ stop()
     fi
 
     # Start the reset script
-    start-stop-daemon --start --exec ${RESETSCRIPT} >/dev/null
+    start-stop-daemon --start --exec ${RESETSCRIPT} 1>/dev/null
     if [ $? -ne 0 ] ; then
         log_end_msg 1
         echo "failed to remove configuration of the Platine Network" >&2
@@ -103,7 +103,7 @@ case "$1" in
             log_success_msg "The Platine network is configured."
             exit 0
         else
-            log_success_msg "The Platine network is not configured."
+            log_error_msg "The Platine network is not configured."
             exit 1
         fi
         ;;
