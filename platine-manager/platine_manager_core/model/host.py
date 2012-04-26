@@ -63,6 +63,8 @@ class HostModel:
         self._advanced = None
         self._state = None
 
+        self._initialisation_failed = False;
+
         if self._component != 'ws':
             try:
                 self._advanced = AdvancedHostModel(self._name, self._instance,
@@ -133,6 +135,19 @@ class HostModel:
         self._lock.release()
         return state
 
+    def get_initialisation_failed(self):
+        """ get the host initialisation state """
+        self._lock.acquire()
+        state = self._initialisation_failed
+        self._lock.release()
+        return state
+
+    def set_initialisation_failed(self, state):
+        """ set the host initialisation state """
+        self._lock.acquire()
+        self._initialisation_failed = state
+        self._lock.release()
+
     def set_started(self, started_list):
         """ set the specified hosts states to True """
         self._lock.acquire()
@@ -147,6 +162,7 @@ class HostModel:
         self._state = False
 
         if len(started_list) == 0:
+            self._initialisation_failed = False
             self._lock.release()
             return
 
@@ -160,7 +176,10 @@ class HostModel:
             if key in self._tools:
                 self._tools[key].set_state(True)
             elif key == self._component:
-                self._state = True
+                if self._initialisation_failed == True:
+                    self._state = False
+                else:
+                    self._state = True
             else:
                 self._log.warning(self._name + ": component '" +
                                   key + "' does not belong to model")

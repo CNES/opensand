@@ -101,6 +101,7 @@ class RunEvent(RunView):
             self._error_id = gobject.io_add_watch(self._error_socket,
                                                   gobject.IO_IN,
                                                   self.on_rcv_error)
+            
         except socket.error , (errno, strerror) :
             self._log.error("error on error controller socket : " + strerror)
             raise
@@ -112,6 +113,7 @@ class RunEvent(RunView):
             # do not show deploy button
             gobject.idle_add(self.hide_deploy_button,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+
 
     def close(self):
         """ 'close' signal handler """
@@ -136,7 +138,6 @@ class RunEvent(RunView):
             self._log.debug("Run Event: response event handler joined")
 
         self._log.debug("Run Event: closed")
-
 
     def activate(self, val):
         """ 'activate' signal handler """
@@ -203,7 +204,14 @@ class RunEvent(RunView):
             elif state[2] == '1':
                 event = 'Initializing'
             elif state[2] == '2':
-                event = 'running'
+                host_name = name.replace('ST', 'st')
+                host_name = host_name.replace('GW', 'gw')
+                host_name = host_name.replace('SAT', 'sat')
+                host = self._model.get_host(host_name)
+                if host.get_initialisation_failed() == True:
+                    event = 'WARNING: Running BUT initialization failed!'
+                elif host.get_initialisation_failed() == False:
+                    event = 'Running'
             elif state[2] == '3':
                 event = 'Terminating'
             else:
@@ -299,6 +307,11 @@ class RunEvent(RunView):
             error = 'Initializing'
         elif type.startswith('Component_initialisation'):
             error = 'Initialization failed'
+            # TO DO: Define new errors to detail which part of the
+            # initialisation have failed
+            host_name = name.lower();
+            host = self._model.get_host(host_name)
+            host.set_initialisation_failed(True)
         else:
             gobject.idle_add(self.show_platine_error,
                              "unknown event: " + str(data), 'orange')

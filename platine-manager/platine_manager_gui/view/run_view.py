@@ -189,7 +189,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('ST ' + str(host.get_instance()))
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), x, y)
+        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
@@ -227,7 +227,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Satellite')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), x, y)
+        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
     def draw_gw(self, host, x, y):
@@ -247,7 +247,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Gateway (GW)')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), x, y)
+        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
 
         self.draw_tools(host, x + COMPO_X + 4, y)
 
@@ -315,7 +315,7 @@ class RunView(WindowView):
                 self.draw_layout(x, y)
             y = y + TOOL_Y + 2
 
-    def draw_state(self, state, x, y):
+    def draw_state(self, state, initialisation_failed, x, y):
         """ draw component state """
         if state is None:
             return
@@ -323,8 +323,11 @@ class RunView(WindowView):
         image = gtk.Image()
         if state == True:
             image.set_from_file(IMG_PATH + 'green.png')
-        else:
-            image.set_from_file(IMG_PATH + 'red.png')
+        elif state == False:
+            if initialisation_failed == True:
+                image.set_from_file(IMG_PATH + 'orange.png')
+            elif initialisation_failed == False:
+                image.set_from_file(IMG_PATH + 'red.png')
 
         self.draw_pixbuf(0, 0, x - 9, y + 71, LED_XY, LED_XY, image)
         return
