@@ -366,7 +366,7 @@ class Controller(threading.Thread):
             self._model.get_env_plane().set_options('probe',
                                                     '-f ' + frame_duration)
             self._env_plane.start()
-            for host in self._hosts + self._ws:
+            for host in self._hosts:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
         except CommandException:
@@ -391,7 +391,7 @@ class Controller(threading.Thread):
         try:
             self._log.info("Stopping Environment Plane")
             self._env_plane.stop()
-            for host in self._hosts + self._ws:
+            for host in self._hosts:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
         except CommandException:
