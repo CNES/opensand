@@ -99,7 +99,7 @@
         <xsd:attribute name="name" type="IpOptionName">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-	                The name of the IP "option"
+                    The name of the IP "option"
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -119,7 +119,7 @@
         <xsd:attribute name="encap" type="EncapScheme">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-	                The type of encapsulation
+                    The type of encapsulation
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -145,9 +145,9 @@
 
 <!-- types for sat_carrier section -->
 <xsd:simpleType name="socketType">
-	<xsd:restriction base="xsd:string">
-		<xsd:enumeration value="SOCK_DGRAM"/>
-	</xsd:restriction>
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="SOCK_DGRAM"/>
+    </xsd:restriction>
 </xsd:simpleType>
 
 <!-- the columns for simulation_column section -->

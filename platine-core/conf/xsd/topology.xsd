@@ -133,16 +133,16 @@
 
 <!-- the carrier for sat_carrier section -->
 <xsd:element name="carriers">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="carrier" minOccurs="7" maxOccurs="7"/>
-		</xsd:sequence>
-	</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="carrier" minOccurs="7" maxOccurs="7"/>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <xsd:element name="carrier">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="carrierId">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="carrierId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The carrier unique identifier
@@ -150,7 +150,7 @@
             </xsd:annotation>
         </xsd:attribute>
         <!-- TODO ipv4Address -->
-		<xsd:attribute name="ip_address" type="xsd:string">
+        <xsd:attribute name="ip_address" type="xsd:string">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     depending on the case the IP address contains:
@@ -160,21 +160,21 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="port" type="port">
+        <xsd:attribute name="port" type="port">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The port of the UDP socket
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="up" type="xsd:boolean">
+        <xsd:attribute name="up" type="xsd:boolean">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     Indicates whether the carrier is used for uplink data or not
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="down" type="xsd:boolean">
+        <xsd:attribute name="down" type="xsd:boolean">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     Indicates whether the carrier is used for downlink data or
@@ -182,7 +182,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="ip_multicast" type="xsd:boolean">
+        <xsd:attribute name="ip_multicast" type="xsd:boolean">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     Indicates whether the carrier is used by the component to
@@ -190,14 +190,14 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="disabled_on" type="disabledCompo">
+        <xsd:attribute name="disabled_on" type="disabledCompo">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     Indicates whether the carrier is disabled on a component
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-	</xsd:complexType>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- Complete XML description -->
