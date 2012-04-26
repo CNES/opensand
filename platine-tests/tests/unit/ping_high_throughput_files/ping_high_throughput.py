@@ -46,11 +46,13 @@ class PingTest():
                     self.print_error('no IPv4 lan address for %s' % name)
                 else:
                     address_v4 = services[name]['lan_ipv4']
+                    address_v4 = address_v4.split("/")[0]
                     self.ping(name, address_v4)
                 if not 'lan_ipv6' in services[name]:
                     self.print_error('no IPv6 lan address for %s' % name)
                 else:
                     address_v6 = services[name]['lan_ipv6']
+                    address_v6 = address_v6.split("/")[0]
                     self.ping(name, address_v6, True)
 
     def print_error(self, msg):

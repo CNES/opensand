@@ -10,7 +10,7 @@ platine_tests.py - elements for Platine tests
 import dbus, gobject, avahi
 from dbus.mainloop.glib import DBusGMainLoop
 
-TYPE = "_platine._tcp"
+TYPE = "_platine2._tcp"
 
 def print_error(err):
     """ error hanlder """
@@ -80,11 +80,12 @@ class Service():
                                               domain, avahi.PROTO_INET,
                                               dbus.UInt32(0))
         except dbus.DBusException, msg:
-            self._error_handler(str(msg))
+            if msg.get_dbus_name() == 'org.freedesktop.Avahi.TimeoutError':
+                print str(msg)
+            else:
+                self._error_handler(str(msg))
         else:
             self.service_resolved(res)
-
-
 
     def handler_end(self):
         """ all service discovered: stop the program """

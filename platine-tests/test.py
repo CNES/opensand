@@ -262,6 +262,23 @@ help="specify the root folder for tests configurations\n"
         if self._type is not None and self._type not in types:
             raise TestError("Initialization", "test type '%s' is not available,"
                             " supported values are %s" % (self._type, types))
+
+        # modify the service in the test library
+        lib = os.path.join(self._folder, '.lib/platine_tests.py')
+        buf = ""
+        try:
+            with open(lib, 'r') as flib:
+                for line in flib:
+                    if line.startswith("TYPE ="):
+                        buf += 'TYPE = "%s"\n' % self._service
+                    else:
+                        buf += line
+            with open(lib, 'w') as flib:
+                flib.write(buf)
+        except IOError, msg:
+            raise TestError("Configuration",
+                            "Cannot edit test libraries: %s" % msg)
+
         # get test_type folders
         test_types = glob.glob(self._folder + '/*')
         for test_type in test_types:
@@ -437,7 +454,7 @@ help="specify the root folder for tests configurations\n"
             if sock:
                 sock.close()
             if err is not None:
-            	self._log.error(err)
+                self._log.error(err)
                 self._error.append(err)
                 return
 

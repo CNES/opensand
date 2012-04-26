@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
     try:
         lan_ipv4 = parser.get('network', 'lan_ipv4')
+        lan_ipv4 = lan_ipv4.split("/")[0]
 #        lan_ipv6 = parser.get('network', 'lan_ipv6')
     except ConfigParser.Error, error:
         print >> sys.stderr, "unable to parse configuration file:", str(error)
