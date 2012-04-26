@@ -66,7 +66,7 @@ class PlatineRoutes(object):
     def __init__(self):
         pass
 
-    def __del__(self):
+    def delete(self):
         if PlatineRoutes._is_ws:
             self.remove_routes()
 
@@ -133,20 +133,12 @@ class PlatineRoutes(object):
         if gw_v4 is not None or gw_v6 is not None:
             LOGGER.debug("routers %s %s" % (gw_v4, gw_v6))
 
-        prefix_v4 = ''
-        prefix_v6 = ''
-        if not name in PlatineRoutes._routes_v4: 
-            net = IPNetwork(v4)
-            prefix_v4 = "%s/%s" % (net.network, net.prefixlen)
-            PlatineRoutes._routes_v4[name] = (prefix_v4, gw_v4)
-        if not name in PlatineRoutes._routes_v6: 
-            net = IPNetwork(v6)
-            prefix_v6 = "%s/%s" % (net.network, net.prefixlen)
-            PlatineRoutes._routes_v6[name] = (prefix_v6, gw_v6)
-
-        if prefix_v4 == '' and prefix_v6 == '':
-            LOGGER.debug("the route is already set")
-            return
+        net = IPNetwork(v4)
+        prefix_v4 = "%s/%s" % (net.network, net.prefixlen)
+        PlatineRoutes._routes_v4[name] = (prefix_v4, gw_v4)
+        net = IPNetwork(v6)
+        prefix_v6 = "%s/%s" % (net.network, net.prefixlen)
+        PlatineRoutes._routes_v6[name] = (prefix_v6, gw_v6)
 
         if PlatineRoutes._started:
             LOGGER.debug("Platform is started, add a route for this host")

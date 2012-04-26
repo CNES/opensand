@@ -209,6 +209,7 @@ class CommandHandler(MyTcpHandler):
         os.chmod(cmd[0], stat.S_IRWXU)
         LOGGER.info("launch test command: %s" % command)
         with open('/tmp/platine_tests/result', 'a') as output:
+            output.write("\n\n*********************************************\n")
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
                                        stderr=subprocess.STDOUT,

@@ -84,7 +84,7 @@ class PlatineService(object):
         if self._publisher._group is not None:
             self._publisher._group.Free()
         if PlatineService._routes is not None:
-            del PlatineService._routes
+            PlatineService._routes.delete()
 
     def print_error(self, *args):
         """ error handler """
