@@ -216,15 +216,44 @@ IpAddress * Ipv4Packet::dstAddr()
 	return this->dst_addr;
 }
 
-uint8_t Ipv4Packet::trafficClass()
+uint8_t Ipv4Packet::diffServField()
 {
+	uint8_t diffServField;
+	
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv4Packet::trafficClass] invalid IPv4 packet\n");
+		UTI_ERROR("[Ipv4Packet::diffServField] invalid IPv4 packet\n");
 		return 0;
 	}
 
-	return (uint8_t) this->data.at(1);
+	diffServField = (uint8_t) this->data.at(1);
+	return diffServField;
 }
 
+uint8_t Ipv4Packet::diffServCodePoint()
+{
+	uint8_t diffServCodePoint;
 
+	if(!this->isValid())
+	{
+		UTI_ERROR("[Ipv4Packet::diffServCodePoint] invalid IPv4 packet\n");
+		return 0;
+	}
+
+	diffServCodePoint = (uint8_t) (this->data.at(1) & 0xfc);
+	return diffServCodePoint;
+}
+
+uint8_t Ipv4Packet::explicitCongestionNotification()
+{
+	uint8_t explicitCongestionNotification;
+
+	if(!this->isValid())
+	{
+		UTI_ERROR("[Ipv4Packet::explicitCongestionNotification] invalid IPv4 packet\n");
+		return 0;
+	}
+
+	explicitCongestionNotification = (uint8_t) (this->data.at(1) & 0x03);
+	return explicitCongestionNotification;
+}

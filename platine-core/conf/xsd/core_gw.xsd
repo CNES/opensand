@@ -214,8 +214,8 @@
 <!-- types for traffic_category section -->
 <xsd:simpleType name="categoryId">
 	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="1" />
-		<xsd:maxInclusive value="7" />
+		<xsd:minInclusive value="0" />
+		<xsd:maxInclusive value="255" />
 	</xsd:restriction>
 </xsd:simpleType>
 
@@ -244,7 +244,8 @@
 		<xsd:attribute name="id" type="categoryId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The traffic category identifier
+                    The traffic category identifier, default values observe the
+					RFC2474 (DiffServ)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

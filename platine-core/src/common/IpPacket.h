@@ -120,10 +120,26 @@ class IpPacket: public NetPacket
 	virtual IpAddress *dstAddr() = 0;
 
 	/**
-	 * Retrieve the Type Of Service (TOS) or Traffic Class (TC) of the IP packet
-	 * @return the Type Of Service (TOS) or Traffic Class (TC) of the IP packet
+	 * Retrieve the DiffServField of the IP packet, that is the Type Of Service
+	 * (TOS) (IPv4) or Traffic Class (TC) (IPv6) of the IP packet
+	 * @return the DiffServField, that is the Type Of Service (TOS) 
+	 * or Traffic Class (TC) of the IP packet
 	 */
-	virtual uint8_t trafficClass() = 0;
+	virtual uint8_t diffServField() = 0;
+
+	/** 
+	 * Retrieve the diffServCodePoint (DSCP) value of the IP packet, 
+	 * that is the 6 leftmost bits of the DiffServField.
+	 * @return the diffServCodePoint (DSCP)
+	 */
+	virtual uint8_t diffServCodePoint() = 0;
+
+	/**
+	 * Retrieve the explicitCongestionNoficiation (ECN) value of the IP packet,
+	 * that is the 2 rightmost bits of the DiffServField. 
+	 * @return the explicitCongestionNotification (ECN)
+	 */
+	virtual uint8_t explicitCongestionNotification() = 0;
 
 	/**
 	 * Is the network-layer packet a valid one?

@@ -135,8 +135,8 @@
 <!-- types for traffic_category section -->
 <xsd:simpleType name="categoryId">
 	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="1" />
-		<xsd:maxInclusive value="7" />
+		<xsd:minInclusive value="0" />
+		<xsd:maxInclusive value="255" />
 	</xsd:restriction>
 </xsd:simpleType>
 
@@ -361,7 +361,8 @@
 <xsd:element name="traffic_category">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The traffic categories for QoS at IP layer
+            The traffic categories for QoS at IP layer, default values observe
+			the RFC2474 (DiffServ) 
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
