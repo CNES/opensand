@@ -77,7 +77,9 @@ class Ipv6Packet: public IpPacket
 	uint16_t getPayloadLength();
 	IpAddress *srcAddr();
 	IpAddress *dstAddr();
-	uint8_t trafficClass();
+	uint8_t diffServField();
+	uint8_t diffServCodePoint();
+	uint8_t explicitCongestionNotification();
 
  protected:
 

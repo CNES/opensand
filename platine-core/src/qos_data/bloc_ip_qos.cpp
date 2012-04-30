@@ -419,10 +419,10 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 	mgl_msg *lp_msg;
 
 	// set QoS:
-	//  - retrieve the QoS set by TC using DCSP
+	//  - retrieve the QoS set by TC using DSCP
 	//  - if unknown category, put packet in the default category
 	//  - assign QoS to the IP packet
-	traffic_category = (int) ip_packet->trafficClass();
+	traffic_category = (int) ip_packet->diffServCodePoint();
 
 	foundCategory = categoryMap.find(traffic_category);
 	if(foundCategory == categoryMap.end())

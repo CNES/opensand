@@ -147,16 +147,46 @@ unsigned int Ipv6Packet::headerLength()
 	return 40;
 }
 
-uint8_t Ipv6Packet::trafficClass()
+uint8_t Ipv6Packet::diffServField()
 {
+	uint8_t diffServField;
+
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::trafficClass] invalid IPv6 packet\n");
+		UTI_ERROR("[Ipv6Packet::diffServField] invalid IPv6 packet\n");
 		return 0;
 	}
 
-	return (uint8_t) (((this->data.at(0) & 0x0f) << 4)
+	diffServField = (uint8_t) (((this->data.at(0) & 0x0f) << 4)
 	                + ((this->data.at(1) & 0xf0) >> 4));
+	return diffServField;
 }
 
+uint8_t Ipv6Packet::diffServCodePoint()
+{
+	uint8_t diffServCodePoint;
 
+	if(!this->isValid())
+	{
+		UTI_ERROR("[Ipv6Packet::diffServCodePoint] invalid IPv6 packet\n");
+		return 0;
+	}
+
+	diffServCodePoint = (uint8_t) (((this->data.at(0) & 0x0f) << 4)
+	                + ((this->data.at(1) & 0xc0) >> 4));
+	return diffServCodePoint;
+}
+
+uint8_t Ipv6Packet::explicitCongestionNotification()
+{
+	uint8_t explicitCongestionNotification;
+
+	if(!this->isValid())
+	{
+		UTI_ERROR("[Ipv6Packet::explicitCongestionNoticiation] invalid IPv6 packet\n");
+		return 0;
+	}
+
+	explicitCongestionNotification = (uint8_t) ((this->data.at(1) & 0x03) >> 4);
+	return explicitCongestionNotification;
+}
