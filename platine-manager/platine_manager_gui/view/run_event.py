@@ -303,7 +303,9 @@ class RunEvent(RunView):
         elif category == 'MINOR':
             color = 'orange'
 
-        if type.startswith('Component_initialisation'):
+        if type.startswith('Initialisation_ref'):
+            error = 'Initializing'
+        elif type.startswith('Component_initialisation'):
             error = 'Initialization failed'
             # TODO: Define new errors to detail which part of the
             # initialisation have failed
@@ -354,11 +356,14 @@ class RunEvent(RunView):
             self.disable_start_button(True)
             self.disable_deploy_button(True)
 
+            # add a line in the event text views
+            self.show_platine_event("***** New run: %s *****" %
+                                    self._model.get_run())
+
             # tell the hosts controller to start Platine on all hosts
             # (startup will be finished when we will receive a
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
-
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -370,6 +375,9 @@ class RunEvent(RunView):
             # (stop will be finished when we will receive a
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
+
+            # add an empty line in the event text views
+            self.show_platine_event("")
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
         """ 'toggled' event on dev_mode button """
@@ -455,3 +463,19 @@ class RunEvent(RunView):
         window.go()
         window.close()
         pass
+
+    def on_event_notebook_switch_page(self, notebook, page, page_num):
+        """ event notebook page changed """
+        img0 = self._ui.get_widget("img_manager")
+        img1 = self._ui.get_widget("img_platine")
+        # manager events
+        if page_num == 0:
+            img0.hide()
+        # platine events
+        elif page_num == 1:
+            img1.hide()
+        img0.set_from_stock(gtk.STOCK_INFO,
+                            gtk.ICON_SIZE_MENU)
+        img1.set_from_stock(gtk.STOCK_INFO,
+                            gtk.ICON_SIZE_MENU)
+

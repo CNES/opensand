@@ -355,14 +355,21 @@ class RunView(WindowView):
     def show_platine_event(self, text):
         """ print Platine events in Platine textview
             (should be used with gobject.idle_add outside gtk handlers) """
-        self._log.debug("Platine event: " + text)
-        self._platine_buff.insert(self._platine_buff.get_end_iter(),
-                                 time.strftime("%H:%M:%S ", time.gmtime()))
+        if text != "":
+            self._log.debug("Platine event: " + text)
+            self._platine_buff.insert(self._platine_buff.get_end_iter(),
+                                     time.strftime("%H:%M:%S ", time.gmtime()))
         self._platine_buff.insert(self._platine_buff.get_end_iter(),
                                   text + '\n')
         self._platine_buff.place_cursor(self._platine_buff.get_end_iter())
         self._ui.get_widget('platine_textview').scroll_to_mark(
                 self._platine_buff.get_insert(), 0.0, False, 0, 0)
+        
+        # show info image if page is not active
+        if text != "" and \
+           self._ui.get_widget('event_notebook').get_current_page() != 1:
+            img = self._ui.get_widget('img_platine')
+            img.show()
 
     def show_platine_error(self, text, color = None):
         """ print Platine errors in Platine textview
@@ -377,7 +384,15 @@ class RunView(WindowView):
                                   text + '\n')
         self._platine_buff.place_cursor(self._platine_buff.get_end_iter())
         self._ui.get_widget('platine_textview').scroll_to_mark(
-                self._platine_buff.get_insert(), 0.0, False, 0, 0)
+        self._platine_buff.get_insert(), 0.0, False, 0, 0)
+        
+        # show warning image if page is not active
+        if self._ui.get_widget('event_notebook').get_current_page() != 1:
+            img = self._ui.get_widget('img_platine')
+            if color is not None:
+                img.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                                   gtk.ICON_SIZE_MENU)
+            img.show()
 
     def update_status(self):
         """ update the status of the different component
@@ -435,3 +450,5 @@ class RunView(WindowView):
 
     def is_running(self):
         return self._model.is_running()
+    
+

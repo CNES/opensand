@@ -116,6 +116,10 @@ class ManagerLog():
             self._buff.place_cursor(self._buff.get_end_iter())
             widget = self._ui.get_widget(self._text_widget)
             widget.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
+            # show warning image if page is not active
+            if self._ui.get_widget('event_notebook').get_current_page() != 0:
+                img = self._ui.get_widget('img_manager')
+                img.show()
         return False
 
     def run(self, gui, text_widget = ''):
@@ -131,6 +135,9 @@ class ManagerLog():
             self._logger.error(text)
         if self._gui:
             gobject.idle_add(self._print_, '[ERROR]: ', 'red', text)
+            img = self._ui.get_widget("img_manager")
+            img.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                               gtk.ICON_SIZE_MENU)
 
     def info(self, text):
         """ print an information in text view and/or in logger """
@@ -149,6 +156,9 @@ class ManagerLog():
             self._logger.warning(text)
         if self._gui:
             gobject.idle_add(self._print_, '[WARNING]: ', 'orange', text)
+            img = self._ui.get_widget("img_manager")
+            img.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                               gtk.ICON_SIZE_MENU)
 
     def debug(self, text):
         """ print a debug message in logger """
