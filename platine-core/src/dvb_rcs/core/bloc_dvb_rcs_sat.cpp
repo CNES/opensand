@@ -124,7 +124,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 		{
 			UTI_ERROR("bloc initialization failed\n");
 			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT);
+			                     C_ERROR_INIT_COMPO);
 		}
 		else
 		{

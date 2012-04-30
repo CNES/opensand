@@ -174,7 +174,7 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
 			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT);
+			                     C_ERROR_INIT_COMPO);
 		}
 		else
 		{

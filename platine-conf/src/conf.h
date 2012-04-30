@@ -63,7 +63,6 @@
 
 #define SAT_DELAY                 "delay"
 
-#define NB_MAX_ST                 (1941)
 #define DVB_F_DURATION            "frame_duration"
 
 #define DVB_SCENARIO              "dvb_scenario"
@@ -177,8 +176,6 @@
 
 #define DC_SECTION_NCC              "dvb_rcs_ncc"
 #define DC_CRA_DECREASE             "cra_decrease"
-#define DC_YES                      "true"
-#define DC_NO                       "false"
 #define DC_FREE_CAP                 "fca"
 #define DC_RBDC_TIMEOUT             "rbdc_timeout"
 #define DC_MAX_RBDC                 "max_rbdc"
@@ -186,11 +183,6 @@
 #define DC_SECTION_MAC_LAYER        "mac_layer"
 #define DC_CARRIER_TRANS_RATE       "carrier_transmission_rate"
 #define DC_CARRIER_NUMBER           "carrier_number"
-
-#define DC_DFLT_RBDC_TIMEOUT        16
-#define DC_DFLT_CARRIER_TRANS_RATE  4096
-
-
 
 //////////
 // DAMA //
@@ -207,27 +199,6 @@
 #define DA_MSL_DURATION         "msl_duration"
 #define DA_CR_RULE              "cr_rule_output_fifo_only"
 
-// default parameter values used by NCC
-#define DC_DFLT_CRA_DECREASE    1
-#define DC_DFLT_FREE_CAP        100 // in kbits/s
-#define DC_DFLT_MIN_VBDC        0   // in kbits/s
-#define DC_DFLT_CARRIER_NUMBER  1
-
-// default parameter values used by ST
-#define DA_DFLT_RT_BANDWIDTH    0    // in kbits/s
-#define DA_DFLT_OBR_PERIOD_DATA 16   // in frame number
-#define DA_DFLT_MAX_RBDC_DATA   8192 // in kbits/s
-#define DA_DFLT_MAX_VBDC_DATA   8192 // in number of time-slots
-#define DA_DFLT_MSL_DURATION    23   // in frame number
-#define DA_DFLT_CR_RULE         "no" // output fifo size only = no --> both
-                                     // input and output DLB fifos size are
-                                     // taken into account in CR
-
-// default parameter values used by NCC and ST
-#define DFLT_RBDC_TIMEOUT       16   // in frame number
-#define DFLT_CARRIER_TRANS_RATE 4096 // in kbits/s
-#define DFLT_FRM_DURATION       53   // in ms
-
 //////////
 // QOS //
 //////////
@@ -238,8 +209,6 @@
 #define ST_NAME              "st_name"
 #define QOS_SERVER_HOST      "st_address"
 #define QOS_SERVER_PORT      "qos_server_port"
-#define QOS_SERVER_DFLT_HOST "192.168.21.5"
-#define QOS_SERVER_DFLT_PORT 12000
 
 #define SECTION_IPQOS   "ip_qos"
 

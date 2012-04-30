@@ -303,11 +303,9 @@ class RunEvent(RunView):
         elif category == 'MINOR':
             color = 'orange'
 
-        if type.startswith('Initialisation_ref'):
-            error = 'Initializing'
-        elif type.startswith('Component_initialisation'):
+        if type.startswith('Component_initialisation'):
             error = 'Initialization failed'
-            # TO DO: Define new errors to detail which part of the
+            # TODO: Define new errors to detail which part of the
             # initialisation have failed
             host_name = name.lower();
             host = self._model.get_host(host_name)

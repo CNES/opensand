@@ -446,47 +446,34 @@ error:
 int BlocDVBRcsTal::initParameters()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	string strConfig;
-	int val;
 
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, this->m_fixedBandwidth))
 	{
-		val = DA_DFLT_RT_BANDWIDTH;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n", FUNCNAME,
-		          DVB_RT_BANDWIDTH, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DVB_RT_BANDWIDTH);
 		goto error;
 	}
-	this->m_fixedBandwidth = val;
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
 
 	// Get the satellite MAC address
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_MAC_ID, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_MAC_ID, this->macId))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_TAL_SECTION, DVB_MAC_ID);
 		goto error;
 	}
-	this->macId = val;
 
 	// Get the number of the row in modcod and dra files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
-	                                toString(this->macId), COLUMN_NBR, val))
+	                                toString(this->macId), COLUMN_NBR,
+	                                this->m_nbRow))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_SIMU_COL, COLUMN_LIST);
 		goto error;
 	}
-	if(val <= 0 || val > NB_MAX_ST)
-	{
-		UTI_ERROR("section '%s': invalid value %d for parameter "
-		          "'%s'\n", DVB_SIMU_COL, val,
-		          COLUMN_NBR);
-		goto error;
-	}
-	this->m_nbRow = val;
 	UTI_INFO("nb row = %d\n", this->m_nbRow);
 
 	return 0;
@@ -756,22 +743,20 @@ error:
 
 /**
  * Read configuration for the OBR period
+ * @return -1 if failed, 0 if succeed
  */
-void BlocDVBRcsTal::initObr()
+int BlocDVBRcsTal::initObr()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	int val;
 
 #define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
 
 	// get the OBR period - in number of frames
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, m_obrPeriod))
 	{
-		val = DA_DFLT_OBR_PERIOD_DATA;
-		UTI_ERROR("%s Missing %s => taking default value (%d)\n", FUNCNAME,
-		          DVB_OBR_PERIOD_DATA, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DVB_OBR_PERIOD_DATA);
+		goto error;
 	}
-	m_obrPeriod = val;
 
 	// deduce the Obr slot position within the multi-frame, from the mac
 	// address and the OBR period
@@ -781,6 +766,10 @@ void BlocDVBRcsTal::initObr()
 	UTI_INFO("%s SF#%ld: MAC adress = %d, OBR period = %d, "
 	         "OBR slot frame = %d\n", FUNCNAME, this->super_frame_counter,
 	         macId, m_obrPeriod, m_obrSlotFrame);
+
+	return 0;
+error:
+	return -1;
 }
 
 
@@ -864,30 +853,23 @@ int BlocDVBRcsTal::initQoSServer()
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
 	                          this->qos_server_host))
 	{
-		UTI_INFO("%s section %s, %s missing. QoS Server address defaults to %s.\n",
-		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST, QOS_SERVER_DFLT_HOST);
-		this->qos_server_host = QOS_SERVER_DFLT_HOST;
+		UTI_INFO("%s section %s, %s missing",
+		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST);
+		goto error;
 	}
 
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
 	                          this->qos_server_port))
 	{
-		UTI_INFO("%s section %s, %s missing. QoS Server port defaults to %d.\n",
-		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT, QOS_SERVER_DFLT_PORT);
-		this->qos_server_port = QOS_SERVER_DFLT_PORT;
-
-		if(this->qos_server_port <= 0 || this->qos_server_port > 0xffff)
-		{
-			UTI_ERROR("%s default QoS Server port (%d) not valid, break init\n",
-			          FUNCNAME, QOS_SERVER_DFLT_PORT);
-			goto error;
-		}
+		UTI_INFO("%s section %s, %s missing\n",
+		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT);
+		goto error;
 	}
-	else if(this->qos_server_port <= 0 || this->qos_server_port > 0xffff)
+	else if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
 	{
-		UTI_INFO("%s QoS Server port (%d) not valid, defaults to %d.\n",
-		         FUNCNAME, this->qos_server_port, QOS_SERVER_DFLT_PORT);
-		this->qos_server_port = QOS_SERVER_DFLT_PORT;
+		UTI_INFO("%s QoS Server port (%d) not valid\n",
+		         FUNCNAME, this->qos_server_port);
+		goto error;
 	}
 
 	// QoS Server: catch the SIGFIFO signal that is sent to the process
@@ -958,7 +940,13 @@ int BlocDVBRcsTal::onInit()
 		goto error;
 	}
 
-	this->initObr();
+	ret = this->initObr();
+	if(ret != 0)
+	{
+		UTI_ERROR("failed to complete the OBR part of the "
+		          "initialisation");
+		goto error;
+	}
 
 	ret = this->initDama();
 	if(ret != 0)

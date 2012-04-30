@@ -168,7 +168,6 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
                          DraSchemeDefinitionTable *dra_def_table)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[init]";
-	string s;
 	long transmission_rate;
 	int carrier_number;
 
@@ -182,74 +181,44 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	m_allocation_cycle = allocation_cycle;
 
 	// Retrieving the cra decrease parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, s))
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, m_cra_decrease))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%s)\n", FUNCNAME,
-		         DC_CRA_DECREASE, DC_DFLT_CRA_DECREASE == 1 ? DC_YES : DC_NO);
-		m_cra_decrease = DC_DFLT_CRA_DECREASE;
-	}
-	else if(s == DC_YES)
-	{
-		m_cra_decrease = 1;
-	}
-	else if(s == DC_NO)
-	{
-		m_cra_decrease = 0;
-	}
-	else
-	{
-		UTI_INFO("%s bad value (%s) for %s parameter, default value set (%s)\n",
-		         FUNCNAME, s.c_str(), DC_CRA_DECREASE,
-		         DC_DFLT_CRA_DECREASE == 1 ? DC_YES : DC_NO);
-		m_cra_decrease = DC_DFLT_CRA_DECREASE;
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_CRA_DECREASE);
+		goto error;
 	}
 	UTI_INFO("%s cra_decrease = %s\n", FUNCNAME,
-	         m_cra_decrease == 1 ? DC_YES : DC_NO);
+	         m_cra_decrease == true ? "true" : "false");
 
 	// Retrieving the free capacity assignement parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_FREE_CAP, m_fca))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%d)\n",
-		         FUNCNAME, DC_FREE_CAP, DC_DFLT_FREE_CAP);
-		m_fca = DC_DFLT_FREE_CAP;
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_FREE_CAP);
+		goto error;
 	}
 	UTI_INFO("%s fca = %d\n", FUNCNAME, m_fca);
 
 	// Retrieving the rbdc timeout parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, m_rbdc_timeout))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
-		         FUNCNAME, DC_RBDC_TIMEOUT, DC_DFLT_RBDC_TIMEOUT);
-		m_rbdc_timeout = DC_DFLT_RBDC_TIMEOUT;
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_RBDC_TIMEOUT);
+		goto error;
 	}
 	UTI_INFO("%s rbdc_timeout = %d\n", FUNCNAME, m_rbdc_timeout);
 
 	// Retrieving the min VBDC parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_MIN_VBDC, m_min_vbdc))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
-		         FUNCNAME, DC_MIN_VBDC, DC_DFLT_MIN_VBDC);
-		m_min_vbdc = DC_DFLT_MIN_VBDC;
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_MIN_VBDC);
+		goto error;
 	}
 	UTI_INFO("%s min_vbdc = %d\n", FUNCNAME, m_min_vbdc);
 
 	// Retrieving carrier rate
 	if(!globalConfig.getValue(DC_SECTION_MAC_LAYER,
-	                          DC_CARRIER_TRANS_RATE, s))
+	                          DC_CARRIER_TRANS_RATE, transmission_rate))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
-		         FUNCNAME, DC_CARRIER_TRANS_RATE, DC_DFLT_CARRIER_TRANS_RATE);
-		transmission_rate = DC_DFLT_CARRIER_TRANS_RATE;
-	}
-	else
-	{
-		transmission_rate = strtol(s.c_str(), NULL, 10);
-		if(transmission_rate == LONG_MIN || transmission_rate == LONG_MAX)
-		{
-			UTI_INFO("%s bad value for parameter %s, default value set (%d).\n",
-			         FUNCNAME, DC_CARRIER_TRANS_RATE, DC_DFLT_CARRIER_TRANS_RATE);
-			transmission_rate = DC_DFLT_CARRIER_TRANS_RATE;
-		}
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_CARRIER_TRANS_RATE);
+		goto error;
 	}
 	UTI_INFO("%s carrier_transmission_rate = %ld\n", FUNCNAME, transmission_rate);
 
@@ -257,9 +226,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	if(!globalConfig.getValue(DC_SECTION_MAC_LAYER,
 	                          DC_CARRIER_NUMBER, carrier_number))
 	{
-		UTI_INFO("%s missing %s parameter, default value set (%d).\n",
-		         FUNCNAME, DC_CARRIER_NUMBER, DC_DFLT_CARRIER_NUMBER);
-		carrier_number = DC_DFLT_CARRIER_NUMBER;
+		UTI_ERROR("%s missing %s parameter", FUNCNAME, DC_CARRIER_NUMBER);
+		goto error;
 	}
 	UTI_INFO("%s carrier_number = %d\n", FUNCNAME, carrier_number);
 
@@ -270,7 +238,7 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	if(this->Converter == NULL)
 	{
 		UTI_ERROR("%s cannot create the DU converter\n", FUNCNAME);
-		goto quit;
+		goto error;
 	}
 	m_carrier_capacity =
 		(int) Converter->ConvertFromKbitsToCellsPerFrame(transmission_rate);
@@ -311,7 +279,7 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 
 destroy_converter:
 	delete this->Converter;
-quit:
+error:
 	return -1;
 }
 

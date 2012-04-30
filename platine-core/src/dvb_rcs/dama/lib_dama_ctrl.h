@@ -103,8 +103,8 @@ class DvbRcsDamaCtrl
 	                          ///< allocation loop
 	int m_fca_start_ptr;      ///< Index of the last treated ST in the FCA
 	                          ///< allocation loop
-	int m_cra_decrease;       ///< Flag indicating if the RBDC request has to
-	                          ///< be decrease of the CRA value
+	bool m_cra_decrease;       ///< Flag indicating if the RBDC request has to
+	                           ///< be decrease of the CRA value
 
 
 	FILE *event_file;    ///< if set to other than NULL, the fd where recording

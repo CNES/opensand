@@ -125,8 +125,6 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 {
 	const char *FUNCNAME = DA_DBG_PREFIX "[initComplete]";
 	int i;
-	int val;
-	string strConfig;
 
 	/* set variables given by the MAC layer */
 	m_craBw = craBw;
@@ -137,13 +135,11 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 
 	// UL carrier rate in kbits/s
 	if(!globalConfig.getValue(DA_MAC_LAYER_SECTION,
-	                          DA_CARRIER_TRANS_RATE, val))
+	                          DA_CARRIER_TRANS_RATE, m_ulCarrierBw))
 	{
-		val = DFLT_CARRIER_TRANS_RATE;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
-		          FUNCNAME, DA_CARRIER_TRANS_RATE, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DA_CARRIER_TRANS_RATE);
+		goto error;
 	}
-	m_ulCarrierBw = val;
 	if(m_ulCarrierBw < m_craBw)
 	{
 		UTI_ERROR("%s fixed bandwidth (%d) > UL carrier BW (%d).\n",
@@ -152,56 +148,36 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 	}
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, val))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, m_maxRbdc))
 	{
-		val = DA_DFLT_MAX_RBDC_DATA;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
-		          FUNCNAME, DA_MAX_RBDC_DATA, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DA_MAX_RBDC_DATA);
+		goto error;
 	}
-	m_maxRbdc = val;
 	if(!globalConfig.getValue(DA_TAL_SECTION,
-	                          DA_RBDC_TIMEOUT_DATA, val))
+	                          DA_RBDC_TIMEOUT_DATA, m_rbdcTimeout))
 	{
-		val = DFLT_RBDC_TIMEOUT;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
-		          FUNCNAME, DA_RBDC_TIMEOUT_DATA, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DA_RBDC_TIMEOUT_DATA);
 	}
-	m_rbdcTimeout = val;
 
 	// Max VBDC -- in packets number
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, val))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, m_maxVbdc))
 	{
-		val = DA_DFLT_MAX_VBDC_DATA;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
-		          FUNCNAME, DA_MAX_VBDC_DATA, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DA_MAX_VBDC_DATA);
+		goto error;
 	}
-	m_maxVbdc = val;
-
+	
 	// MSL duration -- in frames number
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MSL_DURATION, val))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MSL_DURATION, m_mslDuration))
 	{
-		val = DA_DFLT_MSL_DURATION;
-		UTI_ERROR("%s Missing %s, taking default value (%d).\n",
-		          FUNCNAME, DA_MSL_DURATION, val);
+		UTI_ERROR("%s Missing %s", FUNCNAME, DA_MSL_DURATION);
+		goto error;
 	}
-	m_mslDuration = val;
 
 	// CR computation rule
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_CR_RULE, strConfig))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_CR_RULE, m_getIpOutputFifoSizeOnly))
 	{
-		strConfig = DA_DFLT_CR_RULE;
-		UTI_ERROR("%s Missing %s, taking default value (%s).\n",
-		          FUNCNAME, DA_CR_RULE, strConfig.c_str());
-	}
-	if(strcmp(strConfig.c_str(), "true") == 0)
-	{
-		// for Legacy algo only OUPUT IP fifo sizes are taken into acount
-		m_getIpOutputFifoSizeOnly = true;
-	}
-	else
-	{
-		// for Legacy algo, both INPUT and OUPUT IP fifo sizes are taken into acount
-		m_getIpOutputFifoSizeOnly = false;
+		UTI_ERROR("%s Missing %s\n", FUNCNAME, DA_CR_RULE);
+		goto error;
 	}
 
 	UTI_INFO("%s ULCarrierBw %d kbits/s, maxRbdc %d kbits/s, rbdcTimeout %d "

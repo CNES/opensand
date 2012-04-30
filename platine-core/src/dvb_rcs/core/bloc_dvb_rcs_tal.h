@@ -230,10 +230,9 @@ class BlocDVBRcsTal: public BlocDvb
 	int initMode();
 	int initEncapsulation();
 	int initParameters();
-	void initFrame();
 	int initCarrierId();
 	int initMacFifo();
-	void initObr();
+	int initObr();
 	int initDama();
 	int initQoSServer();
 

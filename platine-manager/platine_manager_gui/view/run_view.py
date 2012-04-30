@@ -369,7 +369,7 @@ class RunView(WindowView):
             (should be used with gobject.idle_add outside gtk handlers) """
         self._log.debug("Platine error: " + text)
         self._platine_buff.insert(self._platine_buff.get_end_iter(),
-                               time.strftime("%H:%M:%S ", time.gmtime()))
+                                  time.strftime("%H:%M:%S ", time.gmtime()))
         if color != None:
             self._platine_buff.insert_with_tags_by_name(
                     self._platine_buff.get_end_iter(), '[ERROR] ', color)

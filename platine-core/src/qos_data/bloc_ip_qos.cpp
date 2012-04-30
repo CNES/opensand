@@ -102,6 +102,8 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->_tun_fd < 0)
 		{
 			UTI_ERROR("%s error in creating TUN interface\n", FUNCNAME);
+			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
+			                     C_ERROR_INIT_COMPO);
 			return mgl_ko;
 		}
 
@@ -109,6 +111,8 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->addFd(this->_tun_fd) == mgl_ko)
 		{
 			UTI_ERROR("%s failed to register TUN handle fd\n", FUNCNAME);
+			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
+			                     C_ERROR_INIT_COMPO);
 			return mgl_ko;
 		}
 
