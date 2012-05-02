@@ -1,21 +1,10 @@
-SUBDIRS=src test_runtime
+SUBDIRS=src test_runtime doc_src
 
 readme_files = \
 	readme.txt \
 	doc/readme.txt
 
-configure_files = \
-	aclocal.m4 \
-	config.h.in \
-	configure \
-	Makefile.am \
-	configure.in \
-	install-sh \
-	mkinstalldirs \
-	missing \
-	depcomp
-
-EXTRA_DIST= $(readme_files) $(configure_files)
+EXTRA_DIST= $(readme_files)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = platine_margouilla.pc

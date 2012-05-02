@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/sh
 php_fich="tmp.php"
 echo "<?php "                  >$php_fich
 echo "\$Body=\"$1\";"             >>$php_fich
