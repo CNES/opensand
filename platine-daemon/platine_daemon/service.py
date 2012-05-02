@@ -99,7 +99,10 @@ class PlatineService(object):
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
             # add name in _names to avoid adding route for the current host
-            self._names = [compo + instance]
+            if compo != "gw":
+                self._names = [compo + instance]
+            else:
+                self._names = [compo]
             self._new_routes = []
             self._router_v4 = None
             self._router_v6 = None
