@@ -34,7 +34,7 @@ build
 platine-conf/debian/libplatine-conf
 platine-conf/debian/libplatine-conf-dbg
 platine-conf/debian/libplatine-conf-dev
-platine-conf/src/test/test
+platine-conf/src/test/test_configuration
 platine-conf/debian/files
 platine-env-plane/debian/files
 platine-env-plane/debian/libplatine-env-plane

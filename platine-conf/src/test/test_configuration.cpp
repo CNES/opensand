@@ -6,6 +6,7 @@
  */
 
 #include "ConfigurationFile.h"
+
 #include <fstream>
 #include <cstring>
 
@@ -13,11 +14,27 @@ using namespace std;
 
 #define COMP_FILE "comparison"
 
-int main(void)
+
+/**
+ * @brief Print usage of the test application
+ */
+static void usage(void)
+{
+	cerr << "Configuration test: test the platine configuration library" << endl
+	     << "usage: configuration_test [OPTIONS]" << endl
+	     << "with:" << endl
+	     << "options" << endl
+	     << "   -i                 Input file (may be used more than once" << endl
+	     << "   -r                 Result file" << endl;
+}
+
+
+int main(int argc, char **argv)
 {
     int failure = 1;
     int lcount;
     string value;
+    int args_used;
 
     // sections, keys map
     map<string, vector<string> > config;
@@ -28,8 +45,54 @@ int main(void)
     vector<string>::iterator vec_it;
     vector<string> vec;
     ofstream comp_ofile(COMP_FILE);
-    ifstream res_file("input/result");
+    ifstream res_file;
     ifstream comp_ifile;
+    vector<string> input_files;
+    string result_filename;
+
+		/* parse program arguments, print the help message in case of failure */
+	if(argc <= 1)
+	{
+		usage();
+		goto error;
+	}
+
+	for(argc--, argv++; argc > 0; argc -= args_used, argv += args_used)
+	{
+		args_used = 1;
+
+		if(!strcmp(*argv, "-h"))
+		{
+			/* print help */
+			usage();
+			goto error;
+		}
+		else if(!strcmp(*argv, "-i"))
+		{
+			/* get the name of the file where the configuration is stored */
+			input_files.push_back(argv[1]);
+			args_used++;
+		}
+		else if(!strcmp(*argv, "-r"))
+		{
+			/* get the name of the file where the configuration is stored */
+			result_filename = argv[1];
+			args_used++;
+		}
+		else
+		{
+			usage();
+			goto error;
+		}
+	}
+
+	res_file.open(result_filename.c_str(), ifstream::in);
+	if(!res_file.is_open())
+	{
+		cerr << "cannot open result file: " << result_filename << endl;
+		goto close;
+	}
+
 
     // load the output file for comparison
     if(!comp_ofile || !comp_ofile.is_open())
@@ -65,16 +128,16 @@ int main(void)
     // be careful the maps are ordered, the output will not be ordered like above
 
     // load the configuration files
-    if(!globalConfig.loadConfig("input/test.xml"))
+    for(vector<string>::const_iterator it = input_files.begin();
+        it != input_files.end();
+        ++it)
     {
-        cerr << "cannot load 'test.xml' configuration file" << endl;
-        goto close;
-    }
-    if(!globalConfig.loadConfig("input/test2.xml"))
-    {
-        cerr << "cannot load 'test2.xml' configuration file" << endl;
-        goto unload;
-    }
+    	if(!globalConfig.loadConfig(*it))
+		{
+			cerr << "cannot load '" << *it << "' configuration file" << endl;
+			goto close;
+		}
+	}
 
     // get the values in configuration file
     for(iter = config.begin(); iter != config.end(); iter++)
@@ -179,6 +242,7 @@ close:
     {
         comp_ifile.close();
     }
+error:
     remove(COMP_FILE);
     return failure;
 }
