@@ -7,21 +7,25 @@
 SUBDIRS = \
 	src
 
-configure_files = \
-	aclocal.m4 \
-	config.h.in \
-	configure \
-	Makefile.am \
-	configure.in \
-	install-sh \
-	mkinstalldirs \
-	missing \
-	depcomp
-
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = platine_env_plane.pc
 
-sysconf_DATA = conf/exec/* conf/stat/*
+exec_data = \
+	conf/exec/com_parameters.conf \
+	conf/exec/error_def.conf \
+	conf/exec/event_def.conf \
+	conf/exec/stat_def_gw.conf \
+	conf/exec/stat_def_sat.conf \
+	conf/exec/stat_def_st.conf
+
+stat_data = \
+	conf/stat/event_conf.conf \
+	conf/stat/stat_conf_gw.conf \
+	conf/stat/stat_conf_sat.conf \
+	conf/stat/stat_conf_st.conf \
+	conf/stat/trace_param.conf
+
+dist_sysconf_DATA = $(exec_data) $(stat_data)
 
 .PHONY: doc
 

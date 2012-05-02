@@ -33,6 +33,7 @@ ProtoConstants_e.h \
 DominoConstants_e.h \
 EnumCouple_e.h \
 Trace_e.h \
+TracesDef_e.h \
 Error_e.h \
 Event_e.h \
 Time_e.h \
@@ -64,42 +65,48 @@ libplatine_env_plane_la_LIBADD = -lm -lrt
 TestEnvironmentAgent_SOURCES =  TestEnvironmentAgent.c
 TestEnvironmentAgent_LDADD = libplatine_env_plane.la
 
-ErrorController_SOURCES = \
-ErrorController.c \
-ErrorControllerInterface.c \
-ErrorDef.c \
-ErrorOutputFormatter.c
-
 ErrorController_INCLUDES = \
+Controller_e.h \
 ErrorController_e.h \
 ErrorControllerInterface_e.h \
 ErrorDef_e.h \
 ErrorOutputFormatter_e.h
+
+ErrorController_SOURCES = \
+ErrorController.c \
+ErrorControllerInterface.c \
+ErrorDef.c \
+ErrorOutputFormatter.c \
+$(ErrorController_INCLUDES)
+
  
 ErrorController_LDADD = libplatine_env_plane.la
 # SNMP ErrorController_LDADD = libplatine_env_plane.la -lpthread
-
-EventController_SOURCES = \
-EventController.c \
-EventControllerInterface.c \
-EventOutputFormatter.c
 
 EventController_INCLUDES = \
 EventController_e.h \
 EventControllerInterface_e.h \
 EventOutputFormatter_e.h
 
+EventController_SOURCES = \
+EventController.c \
+EventControllerInterface.c \
+EventOutputFormatter.c \
+$(EventController_INCLUDES)
+
+
 EventController_LDADD = libplatine_env_plane.la
 # SNMP EventController_LDADD = libplatine_env_plane.la -lpthread
 
 
-ProbeController_SOURCES = \
-ProbeController.c \
-ProbeControllerInterface.c
-
 ProbeController_INCLUDES = \
 ProbeController_e.h \
 ProbeControllerInterface_e.h
+
+ProbeController_SOURCES = \
+ProbeController.c \
+ProbeControllerInterface.c \
+$(ProbeController_INCLUDES)
 
 ProbeController_LDADD = libplatine_env_plane.la 
 # SNMP ProbeController_LDADD = libplatine_env_plane.la -lpthread

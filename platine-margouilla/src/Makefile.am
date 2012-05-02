@@ -88,6 +88,6 @@ lib_ip_udp_cx.h \
 lib_mac.h \
 msg_ip.h
 
-EXTRA_DIST=readme.txt makefile.am
+EXTRA_DIST=readme.txt
 
 AM_CPPFLAGS= -Werror
