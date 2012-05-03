@@ -31,12 +31,8 @@ libplatine_dama_la_SOURCES = \
 	$(libplatine_dama_la_h)
 
 INCLUDES = \
-	-I.. \
-	-I../utils \
-	-I../dra \
-	-I../pep \
-	-I../core \
+	-I$(top_srcdir)/src/dvb_rcs/utils \
+	-I$(top_srcdir)/src/dvb_rcs/dra \
+	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/core \
 	-I$(top_srcdir)/src/common
-
-#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
-

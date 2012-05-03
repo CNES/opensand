@@ -1,30 +1,28 @@
 bin_PROGRAMS = st gw sat
 
 INCLUDES = \
-	-I../dvb_rcs/utils \
-	-I../dvb_rcs/switch \
-	-I../dvb_rcs/pep \
-	-I../dvb_rcs/dra \
-	-I../dvb_rcs/modcod \
-	-I../dvb_rcs/dama \
-	-I../dvb_rcs/core \
-	-I../qos_data \
-	-I../sat_carrier \
-	-I../encap \
-	-I../common
-
-#AM_CPPFLAGS= -g -DUTI_DEBUG_ON -Wall -Werror
+	-I$(top_srcdir)/src/dvb_rcs/utils \
+	-I$(top_srcdir)/src/dvb_rcs/switch \
+	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/dra \
+	-I$(top_srcdir)/src/dvb_rcs/modcod \
+	-I$(top_srcdir)/src/dvb_rcs/dama \
+	-I$(top_srcdir)/src/dvb_rcs/core \
+	-I$(top_srcdir)/src/qos_data \
+	-I$(top_srcdir)/src/sat_carrier \
+	-I$(top_srcdir)/src/encap \
+	-I$(top_srcdir)/src/common
 
 PACKED_COMMON_LIBS= \
-	../encap/libplatine_encap.la \
-	../qos_data/libplatine_qosdata.la \
-	../dvb_rcs/libplatine_dvb.la \
-	../dvb_rcs/dama/libplatine_dama.la \
-	../dvb_rcs/pep/libplatine_dvb_pep.la \
-	../dvb_rcs/utils/libplatine_dvb_utils.la \
-	../sat_carrier/libplatine_satcarrier.la \
-	../common/libplatine_encap_plugin.la \
-	../common/libplatine_common.la
+	$(top_builddir)/src/encap/libplatine_encap.la \
+	$(top_builddir)/src/qos_data/libplatine_qosdata.la \
+	$(top_builddir)/src/dvb_rcs/libplatine_dvb.la \
+	$(top_builddir)/src/dvb_rcs/dama/libplatine_dama.la \
+	$(top_builddir)/src/dvb_rcs/pep/libplatine_dvb_pep.la \
+	$(top_builddir)/src/dvb_rcs/utils/libplatine_dvb_utils.la \
+	$(top_builddir)/src/sat_carrier/libplatine_satcarrier.la \
+	$(top_builddir)/src/common/libplatine_encap_plugin.la \
+	$(top_builddir)/src/common/libplatine_common.la
 
 allexec_LDADD = \
 	-lpthread \

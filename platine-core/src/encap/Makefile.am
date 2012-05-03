@@ -19,9 +19,5 @@ libplatine_encap_la_DEPENDENCIES = \
 	$(libplatine_encap_la_h)
 
 INCLUDES = \
-	-I../dvb_rcs_base \
-	-I../qos_data \
-	-I../dama \
-	-I../common
-
-
+	-I$(top_srcdir)/src/qos_data \
+	-I$(top_srcdir)/src/common

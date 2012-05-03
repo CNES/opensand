@@ -13,7 +13,4 @@ libplatine_dvb_modcod_la_SOURCES = \
 	$(libplatine_dvb_modcod_la_h)
 
 INCLUDES = \
-	-I../utils
-
-#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
-
+	-I$(top_srcdir)/src/dvb_rcs/utils

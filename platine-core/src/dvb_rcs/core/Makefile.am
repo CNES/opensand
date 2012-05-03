@@ -34,15 +34,13 @@ libplatine_dvb_core_la_SOURCES = \
 	$(libplatine_dvb_core_la_cpp) \
 	$(libplatine_dvb_core_la_h)
 
-#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
-
 INCLUDES = \
-	-I../utils \
-	-I../dama \
-	-I../modcod \
-	-I../dra \
-	-I../switch \
-	-I../pep \
+	-I$(top_srcdir)/src/dvb_rcs/utils \
+	-I$(top_srcdir)/src/dvb_rcs/dama \
+	-I$(top_srcdir)/src/dvb_rcs/modcod \
+	-I$(top_srcdir)/src/dvb_rcs/dra \
+	-I$(top_srcdir)/src/dvb_rcs/switch \
+	-I$(top_srcdir)/src/dvb_rcs/pep \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/common
 

@@ -11,5 +11,3 @@ libplatine_dvb_switch_la_SOURCES = \
 	$(libplatine_dvb_switch_la_h)
 
 INCLUDES = -I$(top_srcdir)/src/common
-
-

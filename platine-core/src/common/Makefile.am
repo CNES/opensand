@@ -1,4 +1,4 @@
-SUBDIRS = tests
+SUBDIRS = . tests
 
 noinst_LTLIBRARIES = libplatine_common.la
 lib_LTLIBRARIES = libplatine_encap_plugin.la
@@ -42,13 +42,6 @@ libplatine_common_la_SOURCES = \
 libplatine_encap_plugin_la_SOURCES = \
 	$(libplatine_encap_plugin_la_cpp) \
 	$(libplatine_encap_plugin_la_h)
-
-
-INCLUDES = \
-	-I../dama \
-	-I../dvb_rcs_base
-
-#AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON
 
 libplatine_encap_plugin_includedir = ${includedir}/platine_encap_plugin
 

@@ -1,21 +1,20 @@
+################################################################################
+#	Name       : Makefile
+#	Author     : Julien Bernard <julien.bernard@toulouse.viveris.fr>
+#	Description: build the Platine platform
+################################################################################
+
 SUBDIRS= \
 	src \
 	conf
 
-readme_files = readme.txt 
-
-configure_files = \
-	aclocal.m4 \
-	config.h.in \
-	configure \
-	Makefile.am \
-	configure.in \
-	install-sh \
-	mkinstalldirs \
-	missing \
-	depcomp
-
-EXTRA_DIST= $(readme_files) $(configure_files)
+dist_doc_DATA = \
+	README \
+	INSTALL \
+	COPYING \
+	COPYING.LESSER \
+	AUTHORS \
+	ChangeLog
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = platine_encap_plugin.pc

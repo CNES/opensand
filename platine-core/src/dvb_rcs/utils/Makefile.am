@@ -8,6 +8,7 @@ libplatine_dvb_utils_la_cpp = \
      
 libplatine_dvb_utils_la_h = \
 	dvb_fifo.h \
+	ModulationType.h \
 	MacFifoElement.h \
 	sat_emulator_err.h \
 	lib_dvb_rcs.h
@@ -18,6 +19,3 @@ libplatine_dvb_utils_la_SOURCES = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common
-
-#AM_CPPFLAGS = -g -Wall -Werror -DUTI_DEBUG_ON
-
