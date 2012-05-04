@@ -185,7 +185,7 @@ class ProcessList():
         """ stop all the process """
         # check if all binaries are already stopped
         if len(ProcessList._process_list) == 0:
-            LOGGER.warning("all process are already stopped")
+            LOGGER.info("all process are already stopped")
             return
 
         ProcessList._process_lock.acquire()
