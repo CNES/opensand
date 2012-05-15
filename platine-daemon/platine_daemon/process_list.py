@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -53,6 +53,8 @@ START_INI = "/var/cache/platine-daemon/start.ini"
 class ProcessList():
     """ handle the process list """
 
+    # the ProcessList class attributes are shared between command and state
+    # threads
     _process_lock = threading.Lock()
     _stop = threading.Event()
     _process_list = {}
@@ -79,9 +81,9 @@ class ProcessList():
         try:
             process_file = open(PROCESS_FILE, 'rb')
         except IOError, (errno, strerror):
-            LOGGER.debug("unable to read the file '%s' (%d: %s). " + \
-                         "keep an empty process list",
-                         PROCESS_FILE, errno, strerror)
+            LOGGER.debug("unable to read the file '%s' (%d: %s). "
+                         "Keep an empty process list" %
+                         (PROCESS_FILE, errno, strerror))
             ProcessList._init = True
             LOGGER.debug("process list is initialized")
         else:
@@ -167,11 +169,12 @@ class ProcessList():
             process_file = open(PROCESS_FILE, 'wb')
             pickle.dump(ProcessList._process_list, process_file)
         except IOError, (errno, strerror):
-            LOGGER.error("unable to create %s file (%d: %s)", PROCESS_FILE,
-                          errno, strerror)
+            LOGGER.error("unable to create %s file (%d: %s)" % (PROCESS_FILE,
+                          errno, strerror))
             raise
         except pickle.PickleError, error:
             LOGGER.error("unable to serialize process list: " + str(error))
+            process_file.close()
             raise
         else:
             process_file.close()
@@ -182,7 +185,7 @@ class ProcessList():
         """ stop all the process """
         # check if all binaries are already stopped
         if len(ProcessList._process_list) == 0:
-            LOGGER.warning("all process are already stopped")
+            LOGGER.info("all process are already stopped")
             return
 
         ProcessList._process_lock.acquire()
@@ -209,7 +212,7 @@ class ProcessList():
         if ProcessList._wait is not None:
             ProcessList._wait.join()
         if kill is not None:
-        	kill.join()
+            kill.join()
         ProcessList._stop.clear()
 
         ProcessList._process_list = {}
@@ -279,8 +282,8 @@ class ProcessList():
 
     def check_terminate(self, process):
         """ if terminate does not stop process in 5 seconds, kill it """
-       	ProcessList._stop.wait(5)
-       	process.poll()
+        ProcessList._stop.wait(5)
+        process.poll()
         if not process.returncode:
-        	process.kill()
+            process.kill()
 

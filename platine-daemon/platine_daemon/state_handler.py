@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -47,6 +47,7 @@ LOGGER = logging.getLogger('PtDmon')
 
 class StateHandler(MyTcpHandler):
     """ The RequestHandler class for the state server """
+    _running = False
 
     def setup(self):
         """ the function called when StateHandler is created """
@@ -137,6 +138,10 @@ class StateHandler(MyTcpHandler):
         while not MyTcpHandler._stop.is_set():
             # check program state to detect crashes
             self._process_list.update(True)
+            if self._process_list.is_running():
+                StateHandler._running = True
+            else:
+                StateHandler._running = False
             self.send_and_update_state()
             MyTcpHandler._stop.wait(1.0)
 
@@ -169,3 +174,4 @@ class StateHandler(MyTcpHandler):
         compo_list = compo_list + '\n'
         LOGGER.debug("send: '%s'", compo_list.strip())
         self.wfile.write(compo_list)
+

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="topology" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for ip_dedicated_v4 section -->
+<xsd:simpleType name="ipv4Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv4NetMask">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="32" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="talId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="carrierId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="7" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="port">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1500" />
+        <xsd:maxInclusive value="65535" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for ip_dedicated_v6 section -->
+<xsd:simpleType name="ipv6Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4}|
+                            (([0-9a-fA-F]+:){7}[0-9a-fA-F]+)|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?|
+                            ([0-9a-fA-F]{0,4}:){0,6}((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])|
+                            (([0-9a-fA-F]+:){6}|(([0-9a-fA-F]+:)*[0-9a-fA-F]+)?::([0-9a-fA-F]+:)*)((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv6NetMask">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="64" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for sat_carrier section -->
+<xsd:simpleType name="disabledCompo">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="none" />
+        <xsd:enumeration value="st" />
+        <xsd:enumeration value="gw" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the terminals for ip_dedicated sections -->
+<xsd:element name="terminals">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="terminal_v4" minOccurs="0" maxOccurs="6" />
+            <xsd:element ref="terminal_v6" minOccurs="0" maxOccurs="6" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="terminal_v4">
+    <xsd:complexType>
+        <xsd:attribute name="addr" type="ipv4Address">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv4 address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mask" type="ipv4NetMask">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv4 mask
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="terminal_v6">
+    <xsd:complexType>
+        <xsd:attribute name="addr" type="ipv6Address">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv6 address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mask" type="ipv6NetMask">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal IPv6 mask
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- the carrier for sat_carrier section -->
+<xsd:element name="carriers">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="carrier" minOccurs="7" maxOccurs="7"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="carrier">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The carrier unique identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <!-- TODO ipv4Address -->
+        <xsd:attribute name="ip_address" type="xsd:string">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    depending on the case the IP address contains:
+                      - input unicast:   the parameter is not used
+                      - input multicast: the multicast IP address
+                      - output:          the remote IP address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="port" type="port">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The port of the UDP socket
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="up" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used for uplink data or not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="down" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used for downlink data or
+                    not
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="ip_multicast" type="xsd:boolean">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is used by the component to
+                    manage multicast flow
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="disabled_on" type="disabledCompo">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    Indicates whether the carrier is disabled on a component
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="ip_dedicated_v4" />
+            <xsd:element ref="ip_dedicated_v6" />
+            <xsd:element ref="sat_carrier" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- ip_dedicated_v4 section description -->
+<xsd:element name="ip_dedicated_v4">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The IP description of terminals and their spot for IPv4 addresses
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="terminals" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- ip_dedicated_v6 section description -->
+<xsd:element name="ip_dedicated_v6">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The IP description of terminals and their spot for IPv4 addresses
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="terminals" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- sat_carrier section description -->
+<xsd:element name="sat_carrier">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The satellite carriers description
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="carriers" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

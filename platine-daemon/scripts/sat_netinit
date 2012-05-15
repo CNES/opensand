@@ -6,30 +6,61 @@ CMD=$1
 #
 # This script is used to initialize the Platine network for satellite
 #
-# Authors Eddy Fromentin (AQL)
-#         Olivier Alphand
-#         Didier Barvaux <didier.barvaux@toulouse.viveris.com>
-#         Cedric Baudoin <cedric.baudoin@thalesaleniaspace.com>
-#         Julien Bernard <julien.bernard@toulouse.viveris.com>
+# Authors Julien Bernard <julien.bernard@toulouse.viveris.com>
 
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+# Source default library
+SYSCTL="true"
+
+# UDP buffer size: incresed to support high traffic
+WMEM_MAX="1048580"
+RMEM_MAX="1048580"
+WMEM_DEFAULT="1048580"
+RMEM_DEFAULT="1048580"
+if [ -f /etc/default/platine-network ]; then
+    . /etc/default/platine-network
+fi
+
 # load the configuration file
 load_conf(){
     # load debconf parameters
-    db_get platine-daemon/network/emu_iface
-    export IFACE=$RET
-    db_get platine-daemon/network/emu_ipv4
-    export IPV4=$RET
-    db_get platine-daemon/network/emu_ipv6
-    export IPV6=$RET
- 
-    export MODULES=
-    export IPV4_MASK=255.255.255.0
-    export IPV4_BRD=${IPV4%.*}.255
+    db_get platine-daemon/network/config_level
+    config=$RET
+    if [ "$config" != "AUTOMATIC" ]; then
+        db_get platine-daemon/network/emu_iface
+        export EMU_IFACE=$RET
+        db_get platine-daemon/network/emu_ipv4
+        export EMU_IPV4=$RET
+        db_get platine-daemon/network/emu_ipv6
+        export EMU_IPV6=$RET
+    else
+        export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+        export EMU_IPV6=`ip addr show ${EMU_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        if [ -z "$EMU_IPV4" ]; then
+            halt_on_error "cannot retrieve ${EMU_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        fi
+        if [ -z "$EMU_IPV6" ]; then
+            halt_on_error "cannot retrieve ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
+        fi
+        # complete the configuration file (the last section shall be [network])
+        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+    fi
+    
 }
 
+sanity_check(){
+    for addr in $EMU_IPV4 $EMU_IPV6; do
+        echo $addr | grep -q "/"
+        ret=$?
+        if [ "$ret" != "0" ]; then
+            halt_on_error "please add mask in network address $addr"
+        fi
+    done
+}
 
 # Print a short help message
 #
@@ -45,8 +76,9 @@ usage(){
 }
 
 halt_on_error(){
-    echo "Error: $*"  >&2
+    echo "ERROR (FATAL): $*"  >&2
     echo "" >&2
+    db_stop
     exit 1
 }
 
@@ -56,10 +88,10 @@ halt_on_error(){
 evecho(){
     echo $*
     eval $*
-    typeset my_status=$?
-    [ $my_status -ne 0 ] && halt_on_error "something weird happened, exiting."
+    my_status=$?
+    [ $my_status -ne 0 ] && "WARNING: last command returned an error ($*)" >&2
 
-    return
+    return $my_status
 }
 
 # Check if the user running this script is root. 
@@ -67,37 +99,9 @@ evecho(){
 #
 check_root(){
     id | grep -q '^uid=0(root)'
-    typeset retstat=$?
+    retstat=$?
     [ $retstat -ne 0 ] && halt_on_error "you _must_ be root before executing $THIS_SCRIPT"
     return
-}
-
-# Roughly reset network configuration
-#
-reset_conf() {
-    echo "# Reset Platine network configuration"
-    /sbin/iptables -F 
-    /sbin/ip6tables -F
-    /sbin/ip6tables -F -t mangle
-    /sbin/ip route flush dev $IFACE
-    /sbin/ip -6 route flush dev $IFACE
-    /sbin/ifconfig $IFACE 0 down
-    return
-}
-
-# Load modules into the kernel
-load_modules(){
-    if [ ! -z "$MODULES" ] ; then
-        echo "# Loading extra necessary modules"
-        for module in $MODULES
-    do
-    evecho modprobe $module
-        done
-    else
-        echo "# No extra modules to load"
-    fi
-
-  return
 }
 
 # Print the network configuration
@@ -105,18 +109,20 @@ check_conf(){
     /sbin/ifconfig -a
     /sbin/ip route
     /sbin/ip -6 route
-    /sbin/iptables -n -v -L 
-    /sbin/ip6tables -n -v -L 
     return
 }
 
 # Set sysctl parameters for the sat
 set_sysctl(){
-    # increase TCP buffers
-    evecho /sbin/sysctl -w "net/core/wmem_max"="1048580"
-    evecho /sbin/sysctl -w "net/core/rmem_max"="1048580"
-    evecho /sbin/sysctl -w "net/core/wmem_default"="1048580"
-    evecho /sbin/sysctl -w "net/core/rmem_default"="1048580"
+    # increase UDP buffers
+    echo "Set wmem_max=$WMEM_MAX"
+    evecho /sbin/sysctl -w "net/core/wmem_max"=$WMEM_MAX
+    echo "Set rmem_max=$RMEM_MAX"
+    evecho /sbin/sysctl -w "net/core/rmem_max"=$RMEM_MAX
+    echo "Set wmem_default=$WMEM_DEFAULT"
+    evecho /sbin/sysctl -w "net/core/wmem_default"=$WMEM_DEFAULT
+    echo "Set rmem_default=$RMEM_DEFAULT"
+    evecho /sbin/sysctl -w "net/core/rmem_default"=$RMEM_DEFAULT
     return
 }
 
@@ -124,14 +130,15 @@ set_sysctl(){
 #
 sat_config(){
     echo "# Configuring SAT"
-    load_modules
 
-    echo "# Configuring sysctl"
-    set_sysctl
+    if [ ${SYSCTL} = "true" ]; then
+        echo "# Configuring sysctl"
+        echo "  See /etc/default/platine-daemon to avoid this modifications" 
+        set_sysctl
+    fi
 
     echo "# Configuring interfaces"
-    evecho ifconfig $IFACE $IPV4 netmask $IPV4_MASK broadcast $IPV4_BRD
-    evecho ifconfig $IFACE add $IPV6
+    evecho ifconfig $EMU_IFACE up || halt_on_error "cannot set $EMU_IFACE up"
 
     return
 }
@@ -142,19 +149,21 @@ echo "# Configure Platine network for satellite"
 case  $CMD in
      CONF )
         load_conf
-        reset_conf
+        sanity_check
         sat_config
-    ;;
-     CHECK ) check_conf ;; 
+     ;;
+     CHECK )
+         check_conf
+     ;; 
      RESET )
-         load_conf
-         reset_conf
      ;;
      *) 
         echo "Error: unknown command $CMD"
         usage
+        db_stop
         exit 1
     ;;
 esac
  
+db_stop
 exit 0

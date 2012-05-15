@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -325,8 +325,11 @@ class Controller(threading.Thread):
                     shutil.copy(os.path.join(default_path, 'core.conf'),
                                 conf_file)
                 #TODO try to simplify file deployment
-                host.configure([os.path.join(self._model.get_scenario(),
-                                             'core_global.conf'), conf_file],
+                scenario = self._model.get_scenario()
+                conf_files = [os.path.join(scenario, 'core_global.conf'),
+                              os.path.join(scenario, 'topology.conf'),
+                              conf_file]
+                host.configure(conf_files,
                                1, 1, self._deploy_config,
                                self._model.get_dev_mode())
 #TODO uncomment lines below and remove line above when the environment plane
@@ -363,7 +366,7 @@ class Controller(threading.Thread):
             self._model.get_env_plane().set_options('probe',
                                                     '-f ' + frame_duration)
             self._env_plane.start()
-            for host in self._hosts + self._ws:
+            for host in self._hosts:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
         except CommandException:
@@ -388,7 +391,7 @@ class Controller(threading.Thread):
         try:
             self._log.info("Stopping Environment Plane")
             self._env_plane.stop()
-            for host in self._hosts + self._ws:
+            for host in self._hosts:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
         except CommandException:

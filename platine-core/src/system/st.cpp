@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -92,13 +92,14 @@ bool alive = true;
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv)
+bool init_process(int argc, char **argv,
+                  string &ip_addr, tal_id_t &instance_id)
 {
-	T_INT16 scenario_id = 1, run_id = 1, instance_id = 0, opt;
+	T_INT16 scenario_id = 1, run_id = 1, opt;
 	T_COMPONENT_TYPE comp_type = C_COMP_ST;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:i:")) != EOF)
+	while((opt = getopt(argc, argv, "-s:hr:i:a:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -114,13 +115,19 @@ bool init_process(int argc, char **argv)
 			/* get instance id */
 			instance_id = atoi(optarg);
 			break;
+		case 'a':
+			/// get local IP address
+			ip_addr = optarg;
+			break;
 		case 'h':
 		case '?':
-			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i instance_id]\n",
+			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i "
+			                "instance_id -a ip_address]\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
 			fprintf(stderr, "\t-s <scenario>        set the scenario id\n");
 			fprintf(stderr, "\t-r <run>             set the run id\n");
+			fprintf(stderr, "\t-a <ip_address       set the IP address\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
 
 			UTI_ERROR("usage printed on stderr\n");
@@ -135,6 +142,12 @@ bool init_process(int argc, char **argv)
 	if(ENV_AGENT_Init(&EnvAgent, comp_type, instance_id, scenario_id, run_id) != C_ERROR_OK)
 	{
 		UTI_ERROR("failed to init the environment agent\n");
+		return false;
+	}
+
+	if(ip_addr.size() == 0)
+	{
+		UTI_ERROR("missing mandatory IP address option");
 		return false;
 	}
 
@@ -155,6 +168,8 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
 	struct sched_param param;
 	bool is_init = false;
+	string ip_addr;
+	tal_id_t mac_id;
 
 	mgl_eventmgr *eventmgr;
 	mgl_blocmgr *blocmgr;
@@ -164,6 +179,7 @@ int main(int argc, char **argv)
 	BlocDVBRcsTal *blocDvbRcsTal;
 	BlocSatCarrier *blocSatCarrier;
 	PluginUtils utils;
+	vector<string> conf_files;
 
 	std::map<std::string, EncapPlugin *> encap_plug;
 
@@ -174,7 +190,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, sigendHandler);
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv) == false)
+	if(init_process(argc, argv, ip_addr, mac_id) == false)
 	{
 		UTI_ERROR("%s: failed to init the process\n", progname);
 		goto quit;
@@ -184,18 +200,15 @@ int main(int argc, char **argv)
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
-	// Load configuration file content
-	if(!globalConfig.loadConfig(CONF_GLOBAL_FILE))
+	conf_files.push_back(CONF_TOPOLOGY);
+	conf_files.push_back(CONF_GLOBAL_FILE);
+	conf_files.push_back(CONF_DEFAULT_FILE);
+	// Load configuration files content
+	if(!globalConfig.loadConfig(conf_files))
 	{
-		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
-		          progname, CONF_GLOBAL_FILE);
-		goto term_env_agent;
-	}
-	if(!globalConfig.loadConfig(CONF_DEFAULT_FILE))
-	{
-		UTI_ERROR("%s: cannot load config from file '%s', quit\n",
-		          progname, CONF_DEFAULT_FILE);
-		goto term_env_agent;
+		UTI_ERROR("%s: cannot load configuration files, quit\n",
+		          progname);
+		goto unload_config;
 	}
 
 	// read all packages debug levels
@@ -228,14 +241,14 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
-	blocIPQoS = new BlocIPQoS(blocmgr, 0, "IP-QoS", "ST");
+	blocIPQoS = new BlocIPQoS(blocmgr, 0, "IP-QoS", terminal);
 	if(blocIPQoS == NULL)
 	{
 		UTI_ERROR("%s: cannot create the IP-QoS bloc\n", progname);
 		goto release_plugins;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "Encap", "ST", encap_plug);
+	blocEncap = new BlocEncap(blocmgr, 0, "Encap", terminal, encap_plug);
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
@@ -246,7 +259,7 @@ int main(int argc, char **argv)
 	blocEncap->setUpperLayer(blocIPQoS->getId());
 
 	blocDvbRcsTal = new BlocDVBRcsTal(blocmgr, 0, "DvbRcsTal",
-	                                  encap_plug);
+	                                  mac_id, encap_plug);
 	if(blocDvbRcsTal == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DvbRcsTal bloc\n", progname);
@@ -256,7 +269,8 @@ int main(int argc, char **argv)
 	blocEncap->setLowerLayer(blocDvbRcsTal->getId());
 	blocDvbRcsTal->setUpperLayer(blocEncap->getId());
 
-	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier");
+	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
+	                                    terminal, ip_addr);
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
@@ -297,7 +311,6 @@ destroy_eventmgr:
 	delete eventmgr;
 unload_config:
 	globalConfig.unloadConfig();
-term_env_agent:
 	ENV_AGENT_Terminate(&EnvAgent);
 quit:
 	UTI_PRINT(LOG_INFO, "%s: end of the ST process\n", progname);

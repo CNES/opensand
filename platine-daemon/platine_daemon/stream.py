@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -36,7 +36,6 @@ stream.py - transform files and directory into a stream
 
 import os
 import shutil
-import glob
 import select
 import logging
 import tempfile
@@ -73,8 +72,8 @@ class DirectoryHandler(object):
             return False
         # wrong instruction
         if not self._buf == 'DATA':
-            LOGGER.error("bad instruction: '%s' (expecting 'DATA')", self._buf)
-            raise InstructionError("bad instruction: '%s' (expecting 'DATA')",
+            LOGGER.error("bad instruction: '%s' (expecting 'DATA')" % self._buf)
+            raise InstructionError("bad instruction: '%s' (expecting 'DATA')" %
                                    self._buf)
 
         LOGGER.debug("received: 'DATA'")
@@ -100,7 +99,7 @@ class DirectoryHandler(object):
             while not stop:
                 for line in self._fd:
                     if(line.strip().endswith(end_tag) == True):
-                        LOGGER.debug("received: '%s'", end_tag)
+                        LOGGER.debug("received: '%s'" % end_tag)
                         pos = line.rfind(end_tag)
                         line = line[0:pos]
                         parser.feed(line)
@@ -163,7 +162,7 @@ class XmlParser(handler.ContentHandler):
                 self._curr_dir = self._curr_dir + "/" + name
             self._curr_dir = self._curr_dir.replace("//", "/")
             self._directory_tree.append(self._curr_dir)
-            LOGGER.debug("enter directory '%s'", self._curr_dir)
+            LOGGER.debug("enter directory '%s'" % self._curr_dir)
             if(os.path.exists(self._curr_dir) == False):
                 try:
                     os.makedirs(self._curr_dir) #TODO mode
@@ -207,7 +206,7 @@ class XmlParser(handler.ContentHandler):
     def endElement(self, name):
         """ end of a XML element """
         if(name == "directory"):
-            LOGGER.debug("quit '%s'", self._curr_dir)
+            LOGGER.debug("quit '%s'" % self._curr_dir)
             self._curr_dir = os.path.dirname(self._curr_dir)
         elif(name == "file" and self._is_file == True):
             try:
@@ -230,7 +229,7 @@ class XmlParser(handler.ContentHandler):
                 self._tmp_file.close()
 
             self._is_file = False
-            LOGGER.debug("file '%s' written", self._curr_filename)
+            LOGGER.debug("file '%s' written" % self._curr_filename)
             self._curr_filename = ''
             self._curr_mode = -1
             self._tmp_file = None

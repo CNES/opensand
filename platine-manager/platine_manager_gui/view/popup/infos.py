@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -49,7 +49,7 @@ def error_popup(error, text = ''):
     if not dialog.modal:
         dialog.set_modal(True)
     dialog.connect('response', dialog_response_cb)
-    dialog.show()
+    dialog.run()
 
 def dialog_response_cb(dialog, response_id):
     """ on click close the error popup """

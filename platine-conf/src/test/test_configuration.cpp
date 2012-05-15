@@ -1,8 +1,34 @@
+/*
+ *
+ * Platine is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2012 TAS
+ *
+ *
+ * This file is part of the Platine testbed.
+ *
+ *
+ * Platine is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
 /**
  * @file     src/test.cpp
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief    Test the configuration parsing
- *
  */
 
 #include "ConfigurationFile.h"
@@ -35,6 +61,7 @@ int main(int argc, char **argv)
     int lcount;
     string value;
     int args_used;
+    vector<string> conf_files;
 
     // sections, keys map
     map<string, vector<string> > config;
@@ -94,6 +121,9 @@ int main(int argc, char **argv)
 	}
 
 
+    conf_files.push_back("input/test.xml");
+    conf_files.push_back("input/test2.xml");
+
     // load the output file for comparison
     if(!comp_ofile || !comp_ofile.is_open())
     {
@@ -128,16 +158,11 @@ int main(int argc, char **argv)
     // be careful the maps are ordered, the output will not be ordered like above
 
     // load the configuration files
-    for(vector<string>::const_iterator it = input_files.begin();
-        it != input_files.end();
-        ++it)
+    if(!globalConfig.loadConfig(conf_files))
     {
-    	if(!globalConfig.loadConfig(*it))
-		{
-			cerr << "cannot load '" << *it << "' configuration file" << endl;
-			goto close;
-		}
-	}
+        cerr << "cannot load configuration files" << endl;
+        goto close;
+    }
 
     // get the values in configuration file
     for(iter = config.begin(); iter != config.end(); iter++)

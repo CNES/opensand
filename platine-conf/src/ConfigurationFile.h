@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -53,7 +53,8 @@ using namespace std;
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
-#define CONF_GLOBAL_FILE  "/etc/platine/core_global.conf"
+#define CONF_TOPOLOGY      "/etc/platine/topology.conf"
+#define CONF_GLOBAL_FILE   "/etc/platine/core_global.conf"
 #define CONF_DEFAULT_FILE  "/etc/platine/core.conf"
 
 
@@ -85,8 +86,18 @@ class ConfigurationFile
 	ConfigurationFile(void);
 	virtual ~ConfigurationFile(void);
 
-	// Load/unload the whole configuration file content into/from memory
-	bool loadConfig(const string confFileName);
+	/**
+	 * Load the whole configuration file content into memory
+	 * @param conf_file the configuration file path
+	 * @return  true on success, false otherwise
+	 */
+	bool loadConfig(const string conf_file);
+	/**
+	 * Load some configuration files content into memory
+	 * @param conf_files the configuration files path
+	 * @return  true on success, false otherwise
+	 */
+	bool loadConfig(const vector<string> conf_files);
 	void unloadConfig();
 
 	/* Get a value */

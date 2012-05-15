@@ -54,81 +54,11 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for sat_carrier section -->
-<!--<xsd:simpleType name="carrierIp">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern ref="ipv4Address" />
-        <xsd:enumeration value="LOCAL" />
-    </xsd:restriction>
-</xsd:simpleType>-->
-
 <xsd:simpleType name="socketType">
-	<xsd:restriction base="xsd:string">
-		<xsd:enumeration value="SOCK_DGRAM"/>
-	</xsd:restriction>
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="SOCK_DGRAM"/>
+    </xsd:restriction>
 </xsd:simpleType>
-
-<xsd:element name="carriers">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="carrier" minOccurs="1" maxOccurs="7"/>
-		</xsd:sequence>
-	</xsd:complexType>
-</xsd:element>
-
-<xsd:element name="carrier">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The carrier unique identifier
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <!-- TODO ipv4Adderss -->
-		<xsd:attribute name="ip_address" type="xsd:string">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    depending on the case the IP address contains:
-                      - input unicast:   the parameter is not used
-                      - input multicast: the multicast IP address
-                      - output:          the remote IP address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="port" type="port">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The port of the UDP socket
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="in" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    receive flow or not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="out" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    send flow or not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-		<xsd:attribute name="ip_multicast" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used by the component to
-                    manage multicast flow
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-	</xsd:complexType>
-</xsd:element>
 
 <!-- types for pep section -->
 <xsd:simpleType name="msTime">
@@ -140,196 +70,196 @@
 
 <!-- types for service_class section -->
 <xsd:simpleType name="classId">
-	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="4" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:simpleType name="className">
-	<xsd:restriction base="xsd:string">
-		<xsd:enumeration value="NM" />
-		<xsd:enumeration value="EF"/>
-		<xsd:enumeration value="SIG"/>
-		<xsd:enumeration value="AF"/>
-		<xsd:enumeration value="BE"/>
-	</xsd:restriction>
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:simpleType name="schedulerPrio">
-	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="1" />
-		<xsd:maxInclusive value="5" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="32" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:simpleType name="macQueueId">
-	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="4" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:element name="classes">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="class" minOccurs="1" maxOccurs="5"/>
-		</xsd:sequence>
-	</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="class" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <xsd:element name="class">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="classId">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="classId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The ID for the service class
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="name" type="className">
+        <xsd:attribute name="name" type="className">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The service class name
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="scheduler_priority" type="schedulerPrio">
+        <xsd:attribute name="scheduler_priority" type="schedulerPrio">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The scheduler priority
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="mac_queue_id" type="macQueueId">
+        <xsd:attribute name="mac_queue_id" type="macQueueId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The ID of the associated FIFO at MAC layer
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-	</xsd:complexType>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- types for traffic_category section -->
 <xsd:simpleType name="categoryId">
-	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="255" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:simpleType name="categoryName">
-	<xsd:restriction base="xsd:string">
-		<xsd:enumeration value="NM" />
-		<xsd:enumeration value="EF"/>
-		<xsd:enumeration value="SIG"/>
-		<xsd:enumeration value="AF_1"/>
-		<xsd:enumeration value="AF_2"/>
-		<xsd:enumeration value="AF_3"/>
-		<xsd:enumeration value="BE"/>
-	</xsd:restriction>
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF_1"/>
+        <xsd:enumeration value="AF_2"/>
+        <xsd:enumeration value="AF_3"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:element name="categories">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="category" minOccurs="1" maxOccurs="7"/>
-		</xsd:sequence>
-	</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="category" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <xsd:element name="category">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="categoryId">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="categoryId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The traffic category identifier, default values observe the
-					RFC2474 (DiffServ)
+                    RFC2474 (DiffServ)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="name" type="categoryName">
+        <xsd:attribute name="name" type="categoryName">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The traffic category name
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="class" type="classId">
+        <xsd:attribute name="class" type="classId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The service class identifier related to the category
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-	</xsd:complexType>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- types for dvb_rcs_tal section -->
 <!-- see class section for some types -->
 <xsd:simpleType name="crType">
-	<xsd:restriction base="xsd:string">
-		<xsd:enumeration value="RBDC" />
-		<xsd:enumeration value="VBDC"/>
-		<xsd:enumeration value="NONE"/>
-	</xsd:restriction>
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="RBDC" />
+        <xsd:enumeration value="VBDC"/>
+        <xsd:enumeration value="NONE"/>
+    </xsd:restriction>
 </xsd:simpleType>
 
 <xsd:element name="fifos">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element ref="fifo" minOccurs="1" maxOccurs="5"/>
-		</xsd:sequence>
-	</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <xsd:element name="fifo">
-	<xsd:complexType>
-		<xsd:attribute name="id" type="classId">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="classId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The ID og the class related to the FIFO
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="type" type="className">
+        <xsd:attribute name="type" type="className">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The name of the FIFO
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="size_max" type="xsd:integer">
+        <xsd:attribute name="size_max" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The size of the FIFO
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="pvc" type="xsd:integer">
+        <xsd:attribute name="pvc" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     TODO, PVC must be in increasing order
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-		<xsd:attribute name="cr_type" type="crType">
+        <xsd:attribute name="cr_type" type="crType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The type of capacity request
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-	</xsd:complexType>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- types for debug section -->
 <xsd:simpleType name="debugValue">
-	<xsd:restriction base="xsd:integer">
-		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="3" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="3" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 <!-- Complete XML description -->
@@ -337,7 +267,6 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="dvb_rcs_ncc" />
-            <xsd:element ref="sat_carrier" />
             <xsd:element ref="pep" />
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
@@ -458,34 +387,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximal size of the BBFrame FIFO
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- sat_carrier section description -->
-<xsd:element name="sat_carrier">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The satellite carriers description
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="carriers" />
-            <xsd:element name="socket_type" type="socketType">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The type of the socket
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="addr" type="ipv4Address">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The local IP address for emulation network
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

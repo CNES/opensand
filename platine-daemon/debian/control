@@ -10,6 +10,10 @@ XS-Python-Version: >= 2.6
 Depends: ${misc:Depends}, python (>= 2.6),
  python-dbus,
  python-avahi, avahi-daemon,
+ python-ipaddr,
+ python-prctl,
+ libnl-3-200, libnl-route-3-200,
  rsyslog, logrotate,
  platine-core-bin
+Recommends: dnsmasq
 Description: Daemon for Platine entity (sat, gw, st or ws)

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -99,7 +99,6 @@
 #define FIFO_CR_TYPE              "cr_type"
 #define DVB_TYPE                  "dvb_type"
 #define DVB_RT_BANDWIDTH          "rt_fixed_bandwidth"
-#define DVB_MAC_ID                "dvb_mac_id"
 #define DVB_SIMU_COL              "simulation_column"
 #define COLUMN_LIST               "columns"
 #define COLUMN_NBR                "column_nbr"
@@ -246,13 +245,13 @@
 #define CARRIER_ID          "id"
 #define CARRIER_IP          "ip_address"
 #define CARRIER_PORT        "port"
-#define CARRIER_IN          "in"
-#define CARRIER_OUT         "out"
+#define CARRIER_UP          "up"
+#define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
+#define CARRIER_DISABLED    "disabled_on"
 #define INTERFACE_NAME_SIZE 16
 #define SOCKET_TYPE         "socket_type"
 #define UDP                 "SOCK_DGRAM"
-#define IPADDR              "addr"
 
 /////////////////
 //    Debug    //

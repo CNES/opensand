@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the Platine testbed.
@@ -46,8 +46,14 @@
 #include "lib_dama_agent_uor.h"
 #include "lib_dama_utils.h"
 #include "msg_dvb_rcs.h"
-#include "platine_conf/conf.h"
 #include "bloc_dvb.h"
+#include "PlatineCore.h"
+
+// configuration
+#include <platine_conf/conf.h>
+
+// environment plane
+#include <platine_env_plane/EnvironmentAgent_e.h>
 
 // system includes
 #include <stdarg.h>       // for va_* macros (ANSI format)
@@ -60,13 +66,12 @@
 #include <sys/times.h>
 // END STAT
 
-// environment plane
-#include "platine_env_plane/EnvironmentAgent_e.h"
-
 
 // Adjust timer to linux timer precision (10 ms):
 // e.g., if a frame lasts 53 ms, but we wake up every 50 ms
 // so as to consume all allocated bandwidth during a superframe
+// TODO find a way to detect if the linux kernel contain the RT patch
+//      to disable this macro consequently
 #define DVB_TIMER_ADJUST(x)  ((long)x/10)*10
 
 
@@ -127,11 +132,11 @@ class BlocDVBRcsTal: public BlocDvb
 	} _state;
 
 	// the MAC ID of the ST (as specified in configuration)
-	int macId;
+	int mac_id;
 	/// the group ID sent by NCC (only valid in state \ref state_running)
 	long m_groupId;
 	/// the logon ID sent by NCC (only valid in state \ref state_running,
-	/// should be the same as \ref macId)
+	/// should be the same as \ref mac_d)
 	long m_talId;
 	/// the column associated to the ST in the MODCOD and DRA scheme
 	/// simulation files
@@ -216,8 +221,9 @@ class BlocDVBRcsTal: public BlocDvb
 
  public:
 
-	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	              std::map<std::string, EncapPlugin *> &encap_plug);
+	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
+                  const char *name, const tal_id_t mac_id,
+                  std::map<std::string, EncapPlugin *> &encap_plug);
 	virtual ~BlocDVBRcsTal();
 
 	mgl_status onEvent(mgl_event *event);

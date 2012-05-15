@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -36,7 +36,6 @@ command_handler.py - server that get Platine commands
 
 import logging
 import time
-import shutil
 import pickle
 import ConfigParser
 import shlex
@@ -48,6 +47,7 @@ from platine_daemon.tcp_server import MyTcpHandler
 from platine_daemon.process_list import ProcessList
 from platine_daemon.my_exceptions import Timeout, InstructionError, XmlError
 from platine_daemon.stream import DirectoryHandler
+from platine_daemon.routes import PlatineRoutes
 
 #macros
 LOGGER = logging.getLogger('PtDmon')
@@ -63,12 +63,15 @@ class CommandHandler(MyTcpHandler):
         """ the function called when CommandHandler is created """
         MyTcpHandler.setup(self)
         self._process_list = ProcessList()
+        self._routes = PlatineRoutes()
         # wait a little bit that component list is initialized
         nbr = 0
         while self._process_list.is_initialized() == False and nbr < 5:
             LOGGER.warning("process list is still not initialized")
             time.sleep(1)
             nbr = nbr + 1
+        if not self._routes.is_initialized():
+            LOGGER.warning("routes are not initialized")
 
     def handle(self):
         """ handle a Platine manager request """
@@ -144,6 +147,7 @@ class CommandHandler(MyTcpHandler):
     def handle_start(self):
         """ handle a START request """
         try:
+            self._routes.setup_routes()
             self.start_binaries()
         except InstructionError as error:
             self.wfile.write("ERROR %s\n" % error.value)
@@ -176,10 +180,10 @@ class CommandHandler(MyTcpHandler):
         except Exception:
             raise
 
-
     def handle_stop(self):
         """ handle a STOP request """
         self._process_list.stop()
+        self._routes.remove_routes()
 
         LOGGER.debug("send: 'OK'")
         self.wfile.write("OK\n")
@@ -205,6 +209,7 @@ class CommandHandler(MyTcpHandler):
         os.chmod(cmd[0], stat.S_IRWXU)
         LOGGER.info("launch test command: %s" % command)
         with open('/tmp/platine_tests/result', 'a') as output:
+            output.write("\n\n*********************************************\n")
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
                                        stderr=subprocess.STDOUT,
@@ -237,4 +242,9 @@ class CommandHandler(MyTcpHandler):
             LOGGER.warning("test did not stopped normally\n")
 
 
+    def setup_routes(self):
+        """ set the routes for Platine """
 
+
+    def remove_routes(self):
+        """ remove the Platine routes """

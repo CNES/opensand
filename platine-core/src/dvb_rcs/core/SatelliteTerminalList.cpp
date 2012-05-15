@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -401,6 +401,7 @@ bool SatelliteTerminalList::goNextScenarioStepModcod()
 	// read next line of the modcod simulation file
 	if(!this->setList(this->modcod_simu_file, this->modcod_list))
 	{
+        UTI_ERROR("PUTAINNNNNNN\n");
 		UTI_ERROR("failed to get the next line in the MODCOD scheme simulation file\n");
 		goto error;
 	}

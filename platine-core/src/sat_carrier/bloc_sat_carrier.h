@@ -1,11 +1,10 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -49,7 +48,8 @@ class BlocSatCarrier: public mgl_bloc
  public:
 
 	/// Use mgl_bloc default constructor
-	BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name);
+	BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
+	               const t_component host, const string ip_addr);
 
 	~BlocSatCarrier();
 
@@ -64,7 +64,11 @@ class BlocSatCarrier: public mgl_bloc
  private:
 
 	/// Whether the bloc has been initialized or not
-	bool initOk;
+	bool init_ok;
+	/// the component type
+	t_component host;
+	/// the IP address for emulation newtork
+	string ip_addr;
 	// Internal event handlers
 	int onInit();
 	void onReceivePktFromCarrier(unsigned int i_channel,

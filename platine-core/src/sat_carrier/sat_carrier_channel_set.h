@@ -1,11 +1,10 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -42,6 +41,7 @@
 #include "sat_carrier_channel.h"
 #include "sat_carrier_udp_channel.h"
 #include "platine_conf/conf.h"
+#include "PlatineCore.h"
 
 /**
  * @class sat_carrier_channel_set
@@ -54,7 +54,7 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	sat_carrier_channel_set();
 	~sat_carrier_channel_set();
 
-	int readConfig();
+	int readConfig(t_component host, const string local_ip_addr);
 
 	int send(unsigned int i_carrier, unsigned char *ip_buf,
 	         unsigned int i_len);

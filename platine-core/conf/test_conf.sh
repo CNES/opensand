@@ -13,7 +13,7 @@ SCRIPT="$0"
 BASEDIR=$( dirname "${SCRIPT}" )
 APP="${BASEDIR}/${APP}"
 
-FILES="core_sat core_gw core_st core_global"
+FILES="core_sat core_gw core_st core_global topology"
 
 for file in $FILES ; do
 	echo "Testing $file..."

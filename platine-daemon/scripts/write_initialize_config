@@ -7,6 +7,7 @@
 DAEMON_CONF="/etc/platine/daemon.conf"
 SAT_INIT="/usr/libexec/platine/sat_netinit"
 ST_INIT="/usr/libexec/platine/st_netinit"
+WS_INIT="/usr/libexec/platine/ws_netinit"
 TUN_INIT="/usr/bin/platine_tun"
 
 SERVICE_NAME='sat'
@@ -18,6 +19,8 @@ SERVICE_TOOLS=''
 SERVICE_MODULES=''
 COMMAND_PORT=5926
 STATE_PORT=5358
+CONFIG_LEVEL='advanced'
+DHCP=''
 EMU_IFACE='eth0'
 EMU_IPV4=''
 EMU_IPV6=''
@@ -46,6 +49,11 @@ read_conf(){
     COMMAND_PORT=$RET
     db_get platine-daemon/state/port
     STATE_PORT=$RET
+    db_get platine-daemon/network/config_level
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    CONFIG_LEVEL=$RET
+    db_get platine-daemon/network/dhcp
+    DHCP=$RET
     db_get platine-daemon/network/emu_iface
     EMU_IFACE=$RET
     db_get platine-daemon/network/emu_ipv4
@@ -65,7 +73,7 @@ write_conf(){
     # service section
     echo "[service]" > ${DAEMON_CONF}
     echo "name = ${SERVICE_NAME}" >> ${DAEMON_CONF}
-    if [ "${SERVICE_NAME}" = 'st' ]; then
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' ]; then
         echo "instance = ${SERVICE_INSTANCE}" >> ${DAEMON_CONF}
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
@@ -89,27 +97,36 @@ write_conf(){
     echo "" >> ${DAEMON_CONF}
     # network section
     echo "[network]" >> ${DAEMON_CONF}
-    if [ ${SERVICE_NAME} != 'ws' ]; then
-        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
-        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+    echo "config_level" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
+    if [ "${SERVICE_NAME}" = "ws" ]; then
+        echo "dhcp" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
     fi
-    if [ ${SERVICE_NAME} != 'sat' ]; then
-        echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-        echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
-        echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+    if [ "${CONFIG_LEVEL}" = "advanced" ]; then
+        if [ "${SERVICE_NAME}" != "ws" ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+            echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ] &&
+           [ "${SERVICE_NAME}" != "ws" -o "${DHCP}" != "true" ]; then
+            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+        fi
+    # for automatic mode the file will be completed by the netinit script
     fi
 }
 
 # initialize Platine network
 initialize(){
     if [ "${SERVICE_NAME}" = 'ws' ]; then
-        return 0
-    fi
-
-    if [ "${SERVICE_NAME}" = 'sat' ]; then
+        # configure WS interface
+        ${WS_INIT} CONF > /dev/null
+        RET=$?
+    elif [ "${SERVICE_NAME}" = 'sat' ]; then
         # configure network
         ${SAT_INIT} CONF > /dev/null
+        RET=$?
     else
         # create the Platine tun interface
         ${TUN_INIT} > /dev/null
@@ -119,9 +136,10 @@ initialize(){
         fi
         # configure network
         ${ST_INIT} CONF > /dev/null
+        RET=$?
     fi
 
-    if [ $? -ne 0 ] ; then
+    if [ ${RET} -ne 0 ] ; then
         echo "Error when configurating the Platine daemon" >&2
         echo "ERROR: failed to initialize network" >&2
         exit 1
@@ -137,3 +155,5 @@ write_conf
 /bin/echo -e "\tInitialize Platine Network"
 initialize
 
+db_stop
+exit 0

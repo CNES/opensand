@@ -29,23 +29,22 @@ start()
 
     # Check that executable is present
     if [ ! -x ${CONFSCRIPT} ] ; then
+        log_failure_msg "Platine daemon script '${CONFSCRIPT}' not found on system"
         log_end_msg 1
-        echo "PtDmon binary '${CONFSCRIPT}' not found on system" >&2
-        return 1
+        exit 1
     fi
 
     # Start the Platine network
-    start-stop-daemon --start --exec ${CONFSCRIPT} >/dev/null
+    start-stop-daemon --start --exec ${CONFSCRIPT} 1>/dev/null
     if [ $? -ne 0 ] ; then
+        log_failure_msg "failed to configure the Platine network"
         log_end_msg 1
-        echo "failed to configure the Platine network" >&2
-        return 1
+        exit 1
     fi
 
     # everything went fine
     log_end_msg 0
     touch /var/lock/${LOCK_NAME}
-    return 0
 }
 
 
@@ -56,31 +55,30 @@ stop()
 
     # Check that executable is present
     if [ ! -x ${RESETSCRIPT} ] ; then
+        log_failure_msg "PtDmon binary '${RESETSCRIPT}' not found on system"
         log_end_msg 1
-        echo "PtDmon binary '${RESETSCRIPT}' not found on system" >&2
-        return 1
+        exit 1
     fi
 
     # Start the reset script
-    start-stop-daemon --start --exec ${RESETSCRIPT} >/dev/null
+    start-stop-daemon --start --exec ${RESETSCRIPT} 1>/dev/null
     if [ $? -ne 0 ] ; then
+        log_failure_msg "failed to remove configuration of the Platine Network"
         log_end_msg 1
-        echo "failed to remove configuration of the Platine Network" >&2
-        return 1
+        exit 1
     fi
 
     log_end_msg 0
     rm -f /var/lock/${LOCK_NAME}
-    return 0
 }
 
 
 # Stop then start the server
 restart()
 {
-    stop || return 1
+    stop
     sleep 2
-    start || return 1
+    start || exit 1
 }
 
 
@@ -96,14 +94,13 @@ case "$1" in
         restart
         ;;
     condrestart)
-        [ -e /var/lock/${SCRIPTNAME} ] && restart
+        [ -e /var/lock/${LOCK_NAME} ] && restart
         ;;
     status)
-        if [ -e /var/lock/${SCRIPTNAME} ]; then
+        if [ -e /var/lock/${LOCK_NAME} ]; then
             log_success_msg "The Platine network is configured."
-            exit 0
         else
-            log_success_msg "The Platine network is not configured."
+            log_failure_msg "The Platine network is not configured."
             exit 1
         fi
         ;;

@@ -1,11 +1,10 @@
 /*
  *
- *
  * Platine is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -52,8 +51,8 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	sat_carrier_udp_channel(unsigned int channelID, bool input, bool output,
 	                        const char *localInterfaceName, unsigned short port,
-	                        bool multicast, const char *localIPaddr,
-	                        const char *IPaddr);
+	                        bool multicast, const string local_ip_addr,
+	                        const string ip_addr);
 
 	~sat_carrier_udp_channel();
 

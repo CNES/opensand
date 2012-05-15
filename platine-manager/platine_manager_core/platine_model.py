@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -50,6 +50,9 @@ from platine_manager_core.encap_module import encap_methods
 
 MAX_RECENT = 5
 
+TOPOLOGY_CONF = "topology.conf"
+TOPOLOGY_XSD = "topology.xsd"
+
 class Model:
     """ Model for Platine """
     def __init__(self, manager_log, scenario = ''):
@@ -76,6 +79,7 @@ class Model:
         self._ws = []
 
         self._config = None
+        self._topology = None
 
         # load modules
         self.load_modules()
@@ -131,6 +135,9 @@ class Model:
                 raise ModelException("cannot create directory '%s': %s" %
                                      (self._scenario_path, strerror))
 
+        # load the topology configuration
+        self.load_topology()
+
         # actualize the tools scenario path
         for host in self._hosts:
             host.reload_all(self._scenario_path)
@@ -151,6 +158,23 @@ class Model:
             module = encap_methods[name]()
             self._modules[name] = module
 
+    def load_topology(self):
+        """ load or reload the topology configuration """
+        topo_conf = os.path.join(self._scenario_path, TOPOLOGY_CONF)
+        topo_xsd = os.path.join('/usr/share/platine', TOPOLOGY_XSD)
+        try:
+            if self._topology is not None:
+                # copy the previous topology in the new file
+                self._topology.write(topo_conf)
+            else:
+                # get the default topology file
+                default_topo = os.path.join('/usr/share/platine', TOPOLOGY_CONF)
+                shutil.copy(default_topo, topo_conf)
+
+            self._topology = XmlParser(topo_conf, topo_xsd)
+        except IOError, (errno, strerror):
+            raise ModelException("cannot load topology configuration: %s " %
+                                 strerror)
             
     def reload_modules(self):
         """ load or reload the modules configuration """
@@ -192,6 +216,70 @@ class Model:
                                      "\n\t%s" % (name, msg))
             module.set_config_parser(config_parser)
 
+    def add_topology(self, name, instance, net_config):
+        """ Add a new host in the topology configuration file """
+        try:
+            if name == 'sat':
+                att_path = '/configuration/sat_carrier/carriers/carrier' \
+                           '[@up="true" and @ip_multicast="false"]'
+                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
+                                          att_path, 'ip_address')
+            elif name == 'gw':
+                att_path = '/configuration/sat_carrier/carriers/carrier' \
+                           '[@up="false" and @ip_multicast="false"]'
+                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
+                                          att_path, 'ip_address')
+
+            if name != "sat":
+                addr = net_config['lan_ipv4'].split('/')
+                ip = addr[0]
+                net = ip[0:ip.rfind('.') + 1] + "0"
+                mask = addr[1]
+                line = {'addr': net,
+                        'mask': mask,
+                        'tal_id': instance,
+                       }
+                xpath = '/configuration/ip_dedicated_v4/terminals'
+                self._topology.create_line(line, 'terminal_v4', xpath)
+                addr = net_config['lan_ipv6'].split('/')
+                ip = addr[0]
+                net = ip[0:ip.rfind(':') + 1] + "0"
+                mask = addr[1]
+                line = {'addr': net,
+                        'mask': mask,
+                        'tal_id': instance,
+                       }
+                xpath = '/configuration/ip_dedicated_v6/terminals'
+                self._topology.create_line(line, 'terminal_v6', xpath)
+
+            self._topology.write()
+        except XmlException, msg:
+            self._log.error("failed to add topology for %s: %s" % (name,
+                                                                   str(msg)))
+        except KeyError, msg:
+            self._log.error("cannot find network keys %s for topology updating "
+                            "on %s" % (msg, name))
+        except Exception, msg:
+            self._log.error("unknown exception when trying to add topology for "
+                            "%s: %s" % (name, str(msg)))
+
+    def remove_topology(self, instance):
+        """ remove a host from topology configuration file """
+        try:
+            xpath = "/configuration/ip_dedicated_v4/terminals/terminal_v4" \
+                    "[@tal_id='%s']" % instance
+            self._topology.del_element(xpath)
+            xpath = "/configuration/ip_dedicated_v6/terminals/terminal_v6" \
+                    "[@tal_id='%s']" % instance
+            self._topology.del_element(xpath)
+            self._topology.write()
+        except XmlException, msg:
+            self._log.error("failed to remove host with id %s in topology: %s" %
+                            (instance, str(msg)))
+        except Exception, msg:
+            self._log.error("unknown exception when trying to remove topology "
+                            "for host with instance %s: %s" % (instance,
+                                                               str(msg)))
 
     def close(self):
         """ release the model """
@@ -227,6 +315,8 @@ class Model:
         for host in self._hosts:
             if name == host.get_name():
                 self._log.debug("remove host: '" + name + "'")
+                if not name == 'sat':
+                    self.remove_topology(self._hosts[idx].get_instance())
                 del self._hosts[idx]
             idx += 1
 
@@ -299,6 +389,9 @@ class Model:
             self._hosts.append(host)
         else:
             self._ws.append(host)
+
+        if component != "ws":
+            self.add_topology(name, instance, network_config)
 
         if not checked:
             raise ModelException

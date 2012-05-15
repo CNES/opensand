@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -83,8 +83,9 @@ pkgInfo_t pkgInfo[] =
  */
 void reloadDbgLevels(int UNUSED(sig))
 {
+	vector<string> conf(1, CONF_DEFAULT_FILE);
 	globalConfig.unloadConfig();
-	globalConfig.loadConfig(CONF_DEFAULT_FILE);
+	globalConfig.loadConfig(conf);
 	UTI_readDebugLevels();
 }
 

@@ -13,8 +13,8 @@ override_dh_auto_install:
 	python setup.py install --root=$(CURDIR)/debian/platine-daemon --install-layout=deb
 
 override_dh_installinit:
-	dh_installinit --name=platine-network
-	dh_installinit --name=platine-daemon
+	dh_installinit --name=platine-network --error-handler=ignore
+	dh_installinit --name=platine-daemon --error-handler=ignore
 
 override_dh_install:
 	dh_install
@@ -25,6 +25,7 @@ override_dh_install:
 
 
 override_dh_pysupport:
+
 
 %:
 	dh  $@

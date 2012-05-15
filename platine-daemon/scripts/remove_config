@@ -9,6 +9,7 @@ import ConfigParser
 CONF = "/etc/platine/daemon.conf"
 SAT_INIT = "/usr/libexec/platine/sat_netinit"
 ST_INIT = "/usr/libexec/platine/st_netinit"
+WS_INIT = "/usr/libexec/platine/ws_netinit"
 
 if __name__ == "__main__":
     parser = ConfigParser.SafeConfigParser()
@@ -27,6 +28,8 @@ if __name__ == "__main__":
         ret = os.system(SAT_INIT + ' RESET')
     elif name != 'ws':
         ret = os.system(ST_INIT + ' RESET')
+    else:
+        ret = os.system(WS_INIT + ' RESET')
     #TODO supprimer interface tun
 
     sys.exit(ret)

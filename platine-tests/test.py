@@ -1,5 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#
+#
+# Platine is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2012 TAS
+#
+#
+# This file is part of the Platine testbed.
+#
+#
+# Platine is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 
 """
@@ -262,6 +290,23 @@ help="specify the root folder for tests configurations\n"
         if self._type is not None and self._type not in types:
             raise TestError("Initialization", "test type '%s' is not available,"
                             " supported values are %s" % (self._type, types))
+
+        # modify the service in the test library
+        lib = os.path.join(self._folder, '.lib/platine_tests.py')
+        buf = ""
+        try:
+            with open(lib, 'r') as flib:
+                for line in flib:
+                    if line.startswith("TYPE ="):
+                        buf += 'TYPE = "%s"\n' % self._service
+                    else:
+                        buf += line
+            with open(lib, 'w') as flib:
+                flib.write(buf)
+        except IOError, msg:
+            raise TestError("Configuration",
+                            "Cannot edit test libraries: %s" % msg)
+
         # get test_type folders
         test_types = glob.glob(self._folder + '/*')
         for test_type in test_types:
@@ -437,7 +482,7 @@ help="specify the root folder for tests configurations\n"
             if sock:
                 sock.close()
             if err is not None:
-            	self._log.error(err)
+                self._log.error(err)
                 self._error.append(err)
                 return
 

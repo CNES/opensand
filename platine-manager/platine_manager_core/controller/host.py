@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -162,7 +162,8 @@ class HostController:
             sock.close()
             raise
 
-        # only configure if disabled or if dev mode and no deploy information
+        # stop after configuration if disabled or if dev mode and no deploy
+        # information
         if not self._host_model.is_enabled() or \
            (dev_mode and not self._host_model.get_name() in
             deploy_config.sections()):
@@ -170,6 +171,29 @@ class HostController:
                 self._log.warning("%s :disabled because it has no deploy "
                                   "information" % self.get_name())
                 self.disable()
+
+            # send an empty start.ini file because we will send the start
+            # command in order to apply routes on host
+            with tempfile.NamedTemporaryFile() as tmp_file:
+                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+
+            try:
+                # send 'STOP' tag
+                sock.send('STOP\n')
+                self._log.debug("%s: send 'STOP'" % self.get_name())
+            except socket.error, strerror:
+                self._log.error("Cannot contact %s command server: %s" %
+                                (self.get_name(), strerror))
+                raise CommandException("Cannot contact %s command server: %s" %
+                                        (self.get_name(), strerror))
+
+            try:
+                self.receive_ok(sock)
+            except CommandException:
+                sock.close()
+                raise
+
+            sock.close()
             return
 
         prefix = '/'
@@ -191,9 +215,10 @@ class HostController:
 
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
-        command_line = '%s -s %s -r %s -i %s' % \
+        command_line = '%s -s %s -r %s -i %s -a %s' % \
                        (bin_file, scenario,
-                        run, self._host_model.get_instance())
+                        run, self._host_model.get_instance(),
+                        self._host_model.get_emulation_address())
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',
@@ -522,11 +547,6 @@ class HostController:
 
     def connect_command(self, command):
         """ connect to command server and send a command """
-        # check if the host is enabled
-        if not self._host_model.is_enabled() and \
-           command != "CONFIGURE" and command != "DEPLOY":
-            self._log.warning("%s is disabled" % self.get_name())
-            return None
         if self._host_model.get_state() is None:
             self._log.error("cannot get %s status" % self.get_name())
             return None

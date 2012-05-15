@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -211,8 +211,12 @@ class ConfigurationNotebook(gtk.Notebook):
         self.connect('hide', self.on_hide)
         # list of tables with format: {table path : [check button per line]}
         self._tables = {}
+        # list of table length
+        self._table_length = {}
         # list of tables with format: {table path : format}
         self._table_models = {}
+        # list of add buttons
+        self._add_buttons = []
         # list of delete buttons
         self._del_buttons = []
         # list of added lines
@@ -331,6 +335,7 @@ class ConfigurationNotebook(gtk.Notebook):
         add_button.connect('clicked', self._changed_cb)
         add_button.set_tooltip_text("Add a line in the table")
         add_button.set_has_tooltip(True)
+        self._add_buttons.append(add_button)
         del_button = gtk.ToolButton('gtk-remove')
         del_button.set_name(self._config.get_path(key))
         del_button.connect('clicked', self.on_del_button_clicked)
@@ -341,7 +346,9 @@ class ConfigurationNotebook(gtk.Notebook):
         toolbar.insert(add_button, -1)
         toolbar.insert(del_button, -1)
         # add lines
+        self._table_length[self._config.get_path(key)] = 0
         for line in self._config.get_table_elements(key):
+            self._table_length[self._config.get_path(key)] += 1
             hbox = self.add_line(key, line, check_buttons)
             align_vbox.pack_end(hbox)
             align_vbox.set_child_packing(hbox, expand=False,
@@ -487,6 +494,9 @@ class ConfigurationNotebook(gtk.Notebook):
         align.set_child_packing(hbox, expand=False,
                                 fill=False, padding=5,
                                 pack_type=gtk.PACK_START)
+
+        self._table_length[table_key] += 1
+        self.check_sensitive()
         hbox.show_all()
 
     def on_del_button_clicked(self, source=None, event=None):
@@ -500,6 +510,7 @@ class ConfigurationNotebook(gtk.Notebook):
             line = check_button.get_parent()
             line.hide()
             self._removed.append(line)
+            self._table_length[name] -= 1
 
         self.check_sensitive()
 
@@ -512,12 +523,34 @@ class ConfigurationNotebook(gtk.Notebook):
         for button in [but for but in self._del_buttons
                            if but.get_name() in self._tables]:
             button.set_sensitive(False)
+            for check_button in self._tables[button.get_name()]:
+                check_button.set_inconsistent(False)
+            name = button.get_name()
+            key = self._config.get(name)
+            key_entries = self._config.get_table_elements(key)
+            key_name = self._config.get_name(key_entries[0])
+            if self._table_length[name] <= self._config.get_minoccurs(key_name):
+                # we should not remove button else the configuration won't be
+                # valid
+                for check_button in self._tables[button.get_name()]:
+                    check_button.set_inconsistent(True)
+                continue
             for check_button in [check
                                  for check in self._tables[button.get_name()]
                                  if check.get_active()]:
                 if not check_button.get_parent() in self._removed:
                     button.set_sensitive(True)
                     break
+        for button in self._add_buttons:
+            button.set_sensitive(True)
+            name = button.get_name()
+            key = self._config.get(name)
+            key_entries = self._config.get_table_elements(key)
+            key_name = self._config.get_name(key_entries[0])
+            if self._table_length[name] >= self._config.get_maxoccurs(key_name):
+                button.set_sensitive(False)
+
+        
 
 
 class ConfEntry(object):

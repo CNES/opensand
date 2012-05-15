@@ -8,6 +8,7 @@
     <property name="title">Platine Manager</property>
     <property name="icon">/usr/share/pixmaps/platine-manager.png</property>
     <signal name="destroy" handler="on_quit"/>
+    <signal name="key_press_event" handler="on_window_key_press_event"/>
     <child>
       <widget class="GtkVBox" id="vbox2">
         <property name="visible">True</property>

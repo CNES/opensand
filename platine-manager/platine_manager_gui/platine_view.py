@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -35,7 +35,6 @@ platine_view.py - Platine manager view
 """
 
 import gtk
-import gtk.glade
 import time
 import gobject
 import os
@@ -47,12 +46,13 @@ from platine_manager_gui.view.run_event import RunEvent
 from platine_manager_gui.view.probe_event import ProbeEvent
 from platine_manager_gui.view.tool_event import ToolEvent
 from platine_manager_gui.view.popup.infos import error_popup, yes_no_popup
-from platine_manager_core.my_exceptions import RunException, ProbeException, \
+from platine_manager_gui.view.utils.mines import SizeDialog, MineWindow
+from platine_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
 from platine_manager_core.utils import copytree
 
 GLADE_PATH = '/usr/share/platine/manager/platine.glade'
-
+KONAMI = ['Up', 'Up', 'Down', 'Down', 'Left', 'Right', 'Left', 'Right', 'b', 'a']
 
 class View(WindowView):
     """ Platine manager view """
@@ -106,6 +106,11 @@ class View(WindowView):
         else:
             gobject.idle_add(self.set_title,
                              "Platine Manager - [%s]" % scenario)
+
+
+        self._ui.get_widget('window').connect('key-press-event', self.on_window_key_press_event)
+
+        self._keylist = []
 
         gobject.idle_add(self.set_recents)
 
@@ -453,6 +458,20 @@ class View(WindowView):
         widget = self._ui.get_widget('run_id_txt')
         widget.set_text("")
         self._eventprobe.on_clear_clicked()
+
+    def on_window_key_press_event(self, source=None, event=None):
+        """ callback called on keyboard press """
+        current = gtk.gdk.keyval_name(event.keyval)
+        self._keylist.append(current)
+        if len(self._keylist) > len(KONAMI):
+            self._keylist.pop(0)
+        if self._keylist == KONAMI:
+            dlg = SizeDialog()
+            dlg.run()
+            h,v,n = dlg.size_options
+            dlg.destroy()
+            w = MineWindow(h,v,n)
+        return False
 
 
 ##### TEST #####

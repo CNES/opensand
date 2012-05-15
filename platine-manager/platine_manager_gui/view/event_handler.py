@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -103,12 +103,12 @@ class EventReponseHandler(threading.Thread):
                     # enable back the 'start platine' button
                     gobject.idle_add(self._view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    # stopping platine platform succeeded:
-                    # enable all the buttons
-                    gobject.idle_add(self._view.disable_start_button, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._view.disable_deploy_button, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+
+                # enable all the buttons
+                gobject.idle_add(self._view.disable_start_button, False,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                gobject.idle_add(self._view.disable_deploy_button, False,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == 'quit':
                 # quit event

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the Platine testbed.
@@ -58,11 +58,11 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  * Read data from the configuration file and create channels
  * @return -1 if failed, 0 if succeed
  */
-int sat_carrier_channel_set::readConfig()
+int sat_carrier_channel_set::readConfig(t_component host,
+                                        const string local_ip_addr)
 {
 	string interfaceName;
 	string strConfig;
-	char localIPaddress[16];
 
 	int i;
 	sat_carrier_channel *channel;
@@ -85,17 +85,6 @@ int sat_carrier_channel_set::readConfig()
 		goto error;
 	}
 
-	// get local IP address
-	if(globalConfig.getValue(SATCAR_SECTION, IPADDR, strConfig))
-	{
-		sscanf(strConfig.c_str(), "%15s", localIPaddress);
-	}
-	else
-	{
-		UTI_ERROR("Error can't get IP address from section : %s \n",
-		          SATCAR_SECTION);
-	}
-
 	// get satellite channels from configuration
 	if(!globalConfig.getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 	{
@@ -109,10 +98,11 @@ int sat_carrier_channel_set::readConfig()
 	{
 		int carrier_id;
 		long carrier_port;
-		string carrier_ip;
-		bool carrier_in;
-		bool carrier_out;
+		bool carrier_up;
+		bool carrier_down;
 		bool carrier_multicast;
+		string carrier_ip;
+		string carrier_disabled;
 
 		i++;
 		// get carrier ID
@@ -140,20 +130,20 @@ int sat_carrier_channel_set::readConfig()
 			          CARRIER_PORT, i);
 			goto error;
 		}
-		// get in
-		if(!globalConfig.getAttributeValue(iter, CARRIER_IN, carrier_in))
+		// get up
+		if(!globalConfig.getAttributeValue(iter, CARRIER_UP, carrier_up))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_IN, i);
+			          CARRIER_UP, i);
 			goto error;
 		}
-		// get out
-		if(!globalConfig.getAttributeValue(iter, CARRIER_OUT, carrier_out))
+		// get down
+		if(!globalConfig.getAttributeValue(iter, CARRIER_DOWN, carrier_down))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_OUT, i);
+			          CARRIER_DOWN, i);
 			goto error;
 		}
 		// get multicast
@@ -165,28 +155,47 @@ int sat_carrier_channel_set::readConfig()
 			          CARRIER_MULTICAST, i);
 			goto error;
 		}
+		// get disabled_on
+		if(!globalConfig.getAttributeValue(iter, CARRIER_DISABLED,
+		                                   carrier_disabled))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			          CARRIER_DISABLED, i);
+			goto error;
+		}
 
-		UTI_DEBUG("Line: %d, Carrier ID : %u, IP address: %s, "
-		          "port: %ld, in : %s, out : %s, multicast: %s\n",
+		if(carrier_disabled.c_str() == getComponentName(host))
+		{
+			continue;
+		}
+
+		UTI_DEBUG("Line: %d, Carrier ID: %u, IP address: %s, "
+		          "port: %ld, up: %s, down: %s, multicast: %s, "
+		          "disabled on: %s\n",
 		          i, carrier_id, carrier_ip.c_str(),
-		          carrier_port, (carrier_in ? "true" : "false"),
-		          (carrier_out ? "true" : "false"),
-		          (carrier_multicast ? "true" : "false"));
+		          carrier_port, (carrier_up ? "true" : "false"),
+		          (carrier_down ? "true" : "false"),
+		          (carrier_multicast ? "true" : "false"),
+		          carrier_disabled.c_str());
 
 		// if for a a channel in=false and out=false channel is not active
-		if(carrier_in || carrier_out)
+		if(carrier_down || carrier_up)
 		{
 			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				channel = new sat_carrier_udp_channel(carrier_id, carrier_in,
-				                                      carrier_out,
+				channel = new sat_carrier_udp_channel(carrier_id,
+				                                      (host == satellite) ?
+				                                            carrier_up : carrier_down,
+				                                      (host == satellite) ?
+				                                            carrier_down : carrier_up,
 				                                      interfaceName.c_str(),
 				                                      carrier_port,
 				                                      carrier_multicast,
-				                                      localIPaddress,
-				                                      carrier_ip.c_str());
+				                                      local_ip_addr,
+				                                      carrier_ip);
 				if(!channel->isInit())
 				{
 					UTI_ERROR("failed to create UDP channel %d\n", i);

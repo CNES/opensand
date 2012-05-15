@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the Platine testbed.
@@ -85,23 +85,6 @@ class AdvancedHostModel:
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
-
-        if component == 'st':
-            try:
-                # customize ST id
-                self._configuration.set_value(instance, "//dvb_mac_id")
-                self._configuration.set_value(ifaces['lan_ipv4'],
-                                              "//st_address")
-                self._configuration.set_value(ifaces['emu_ipv4'], "//addr")
-                self._configuration.write()
-            except XmlException, msg:
-                raise ModelException(str(msg))
-            except KeyError, msg:
-                raise ModelException("cannot find key %s in service information" %
-                                     msg)
-            except Exception, msg:
-                raise ModelException("unknown exception with message: %s" %
-                                     str(msg))
 
     def reload_conf(self):
         """ reload the configuration file """
