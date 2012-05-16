@@ -1,7 +1,7 @@
 Source: platine-daemon
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
-Build-Depends: debhelper (>= 7), python (>=2.6), python-support, python-setuptools
+Build-Depends: debhelper (>= 7), python (>=2.6), python-support, python-setuptools, swig
 Standards-Version: 3.8.3
 
 Package: platine-daemon
