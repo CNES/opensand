@@ -39,6 +39,7 @@ and workstations of the network and check that no packet was lost
 
 import sys
 import subprocess
+import time
 
 
 sys.path.append('../../.lib')
@@ -54,6 +55,10 @@ class PingTest():
     returncode = 0
 
     def __init__(self):
+        print "************************************************"
+        print "**  NEW TEST (%s) **" % time.strftime("%c", time.gmtime())
+        print "************************************************"
+        print ""
         services = {}
         Service(services, self.print_error)
 
@@ -64,6 +69,7 @@ class PingTest():
         address_v4 = ''
         address_v6 = ''
         instance = 0
+        nbr_hosts = 0
         for name in services.keys():
             if 'id' in services[name]:
                 instance = services[name]['id']
@@ -82,6 +88,9 @@ class PingTest():
                     address_v6 = services[name]['lan_ipv6']
                     address_v6 = address_v6.split("/")[0]
                     self.ping(name, address_v6, True)
+                nbr_hosts += 1
+        if nbr_hosts < 1:
+            self.print_error("cannot find ST or WS to ping")
 
     def print_error(self, msg):
         """ error handler """

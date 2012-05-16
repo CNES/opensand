@@ -52,6 +52,11 @@ class IperfClient():
     returncode = 0
 
     def __init__(self, v6=False):
+        print "************************************************"
+        print "**  NEW TEST (%s) **" % time.strftime("%c", time.gmtime())
+        print "************************************************"
+        print ""
+
         services = {}
         Service(services, self.print_error)
 

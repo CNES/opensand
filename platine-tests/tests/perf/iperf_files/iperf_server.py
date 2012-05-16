@@ -46,6 +46,11 @@ CONF_FILE = "/etc/platine/daemon.conf"
 
 if __name__ == '__main__':
     """ iperf server for Platine tests """
+    print "************************************************"
+    print "**  NEW TEST (%s) **" % time.strftime("%c", time.gmtime())
+    print "************************************************"
+    print ""
+
     if not os.path.exists(CONF_FILE):
         print >> sys.stderr, "configuration file '%s' does not exist" % CONF_FILE
         sys.exit(1)
