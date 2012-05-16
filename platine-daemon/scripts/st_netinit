@@ -132,9 +132,6 @@ load_conf(){
     fi
 
     export TUN0_IPV6="${lan6%:*}:`printf '%x' $(((0x${lan6##*:} + 1 % ${modulo}) + 1))`/${mask6}"
-
-    # modules
-    export MODULES='ip6_tables'
 }
 
 # Print a short help message
@@ -183,28 +180,11 @@ check_root(){
 #
 reset_conf() {
     echo "# Reset Platine TUN0 interface configuration"
-    evecho /sbin/iptables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
-    evecho /sbin/ip6tables -D FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
     evecho /sbin/ip route flush dev $TUN0_IFACE
     evecho /sbin/ip -6 route flush dev $TUN0_IFACE
     evecho /sbin/ifconfig $TUN0_IFACE 0 down
     evecho /bin/rm -f ${DHCP_CONFIG_FILE}
     return
-}
-
-# Load modules into the kernel
-load_modules(){
-    if [ ! -z "$MODULES" ] ; then
-        echo "# Loading extra necessary modules"
-        for module in $MODULES
-    do
-    evecho modprobe $module
-        done
-    else
-        echo "# No extra modules to load"
-    fi
-
-  return
 }
 
 # Print the network configuration
@@ -213,19 +193,6 @@ check_conf(){
     /sbin/ifconfig -a
     /sbin/ip route
     /sbin/ip -6 route
-    /sbin/iptables -n -v -L
-    /sbin/ip6tables -n -v -L
-
-    return
-}
-
-set_rules(){
-    # - DROP packets routed from the tun0 to tun0
-    evecho /sbin/iptables -A FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
-    evecho /sbin/ip6tables -A FORWARD -i $TUN0_IFACE -o $TUN0_IFACE -j DROP
-
-    # - DROP multicast packets
-    # evecho /sbin/ip6tables -A INPUT -i $TUN0_IFACE -s $TUN0_IPV6_LOC/128 -d ff00::/8 -j DROP
 
     return
 }
@@ -233,6 +200,7 @@ set_rules(){
 
 # Configure the interfaces
 set_interfaces(){
+    # TODO use ip route instead of ifconfig
     echo "Set $LAN_IFACE up"
     evecho /sbin/ifconfig $LAN_IFACE up || halt_on_error "cannot set $LAN_IFACE up"
     echo "Set $EMU_IFACE up"
@@ -380,7 +348,6 @@ EOF
 # Configure st router
 st_config(){
     echo "# Configuring $NAME"
-    load_modules
 
     echo "# Configuring interfaces"
     set_interfaces
@@ -392,9 +359,6 @@ st_config(){
     fi
     echo "# Configuring sysctl for TUN interface"
     set_tun_sysctl
-
-    echo "# Configuring rules"
-    set_rules
 
     set_dhcp_server
     return
@@ -413,12 +377,10 @@ case $CMD in
          st_config
      ;;
      CHECK )
-         load_modules
          check_conf
      ;;
      RESET )
          load_conf
-         load_modules
          reset_conf
      ;;
      *)

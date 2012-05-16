@@ -42,6 +42,7 @@ ws_config(){
         export LAN_IPV6=$RET
     else
         if [ "$DHCP" != "false" ]; then
+        	echo "Starting DHCP client '$DHCP_CLIENT_CMD $LAN_IFACE'"
             $DHCP_CLIENT_CMD $LAN_IFACE 1>/dev/null 2>&1
             db_get platine-daemon/network/lan_ipv6
             export LAN_IPV6=$RET
