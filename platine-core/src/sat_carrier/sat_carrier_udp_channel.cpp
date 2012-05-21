@@ -45,7 +45,7 @@
  * @param channelID           the Id of the new channel
  * @param input               true if the channel accept incoming data
  * @param output              true if channel send data
- * @param localInterfaceName  the name of the local network interface to use
+ * @param local_interface_name.c_str()  the name of the local network interface to use
  * @param port                the port on which the channel is bind
  * @param multicast           true is this is a multicast channel
  * @param local_ip_addr       the host IP address
@@ -58,7 +58,7 @@
 sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  bool input,
                                                  bool output,
-                                                 const char *localInterfaceName,
+                                                 const string local_interface_name,
                                                  unsigned short port,
                                                  bool multicast,
                                                  const string local_ip_addr,
@@ -99,11 +99,11 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	}
 
 	// get the index of the network interface
-	ifIndex = this->getIfIndex(localInterfaceName);
+	ifIndex = this->getIfIndex(local_interface_name.c_str());
 
 	if(ifIndex < 0)
 	{
-		UTI_ERROR("cannot get the index for %s\n", localInterfaceName);
+		UTI_ERROR("cannot get the index for %s\n", local_interface_name.c_str());
 		goto error;
 	}
 

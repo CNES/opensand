@@ -47,12 +47,15 @@
  */
 BlocSatCarrier::BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid,
                                const char *name,
-                               const t_component host, const string ip_addr):
+                               const t_component host,
+                               const string ip_addr,
+                               const string interface_name):
     mgl_bloc(blocmgr, fatherid, name)
 {
 	this->init_ok = false;
 	this->host = host;
 	this->ip_addr = ip_addr;
+	this->interface_name = interface_name;
 }
 
 /**
@@ -172,7 +175,9 @@ int BlocSatCarrier::onInit()
 	sat_carrier_channel *channel;
 
 	// initialize all channels from the configuration file
-	if(m_channelSet.readConfig(this->host, this->ip_addr) < 0)
+	if(m_channelSet.readConfig(this->host,
+	                           this->ip_addr,
+	                           this->interface_name) < 0)
 	{
 		UTI_ERROR("[onInit] Wrong channel set configuration\n");
 		return -1;

@@ -215,10 +215,11 @@ class HostController:
 
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
-        command_line = '%s -s %s -r %s -i %s -a %s' % \
+        command_line = '%s -s %s -r %s -i %s -a %s -n %s' % \
                        (bin_file, scenario,
                         run, self._host_model.get_instance(),
-                        self._host_model.get_emulation_address())
+                        self._host_model.get_emulation_address(),
+                        self._host_model.get_emulation_interface())
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',

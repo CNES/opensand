@@ -44,12 +44,11 @@
 #include "config.h"
 
 ////////////////////
-// section Global //
+// section global //
 ////////////////////
 
 #define GLOBAL_SECTION            "global"
 
-#define SAT_ETH_IFACE             "satellite_eth_interface"
 #define IP_OPTION_LIST            "ip_options"
 #define OPTION_NAME               "name"
 #define UP_RETURN_ENCAP_SCHEME_LIST "up_return_encap_schemes"
@@ -70,23 +69,14 @@
 
 #define BANDWIDTH                 "bandwidth"
 
-//////////////////////
-// section macLayer //
-//////////////////////
-
-#define DVB_MAC_LAYER_SECTION     "mac_layer"
-
-#define DVB_FRMS_PER_SUPER        "frames_per_superframe"
-#define DVB_FRM_DURATION          "frame_duration"
-
 /////////////////////////
-//   section Dvb_rcs   //
+//   section dvb_rcs   //
 /////////////////////////
 
 #define DVB_GLOBAL_SECTION        "dvb_rcs"
 
 /////////////////////////
-// section Dvb_rcs_tal //
+// section dvb_rcs_tal //
 /////////////////////////
 
 #define DVB_TAL_SECTION           "dvb_rcs_tal"
@@ -110,7 +100,7 @@
 
 
 /////////////////////////
-// section Dvb_rcs_sat //
+// section dvb_rcs_sat //
 /////////////////////////
 
 #define SPOT_ID                   "spot_id"
@@ -146,7 +136,6 @@
 
 #define DVB_GW_MAC_ID           (0L)
 #define DVB_MAC_SECTION         "mac_layer"
-#define DVB_MEDIUM_RATE         "transmission_rate"
 #define DVB_FPF                 "frames_per_superframe"
 
 #define DVB_NCC_SECTION         "dvb_rcs_ncc"
@@ -191,7 +180,6 @@
 #define DA_CARRIER_TRANS_RATE   "carrier_transmission_rate"
 
 #define DA_TAL_SECTION          "dvb_rcs_tal"
-#define DA_RT_BANDWIDTH         "rt_fixed_bandwidth"
 #define DA_MAX_RBDC_DATA        "max_rbdc"
 #define DA_RBDC_TIMEOUT_DATA    "rbdc_timeout"
 #define DA_MAX_VBDC_DATA        "max_vbdc"
@@ -249,7 +237,6 @@
 #define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
 #define CARRIER_DISABLED    "disabled_on"
-#define INTERFACE_NAME_SIZE 16
 #define SOCKET_TYPE         "socket_type"
 #define UDP                 "SOCK_DGRAM"
 

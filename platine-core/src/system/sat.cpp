@@ -86,13 +86,13 @@ bool alive = true;
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr)
+bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 {
 	T_INT16 scenario_id = 1, run_id = 1, opt;
 	T_COMPONENT_TYPE comp_type = C_COMP_SAT;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:a:i")) != EOF)
+	while((opt = getopt(argc, argv, "-s:hr:a:n:i")) != EOF)
 	{
 		switch(opt)
 		{
@@ -108,18 +108,23 @@ bool init_process(int argc, char **argv, string &ip_addr)
 				/// get local IP address
 				ip_addr = optarg;
 				break;
+			case 'n':
+				// get local interface name
+				iface_name = optarg;
+				break;
 			case 'i':
 				// instance id ignored
 				break;
 			case 'h':
 			case '?':
 				fprintf(stderr, "usage: %s [-h] [-e -s scenario_id -r run_id "
-				                "-a ip_address]\n",
+				                "-a ip_address -n interface_name]\n",
 				        argv[0]);
 				fprintf(stderr, "\t-h              print this message\n");
 				fprintf(stderr, "\t-s <scenario>   set the scenario id\n");
 				fprintf(stderr, "\t-r <run>        set the run id\n");
 				fprintf(stderr, "\t-a <ip_address  set the IP address\n");
+				fprintf(stderr, "\t-n <interface_name   set the interface name\n");
 				fprintf(stderr, "\t-i <instance>   set the instance id (ignored)\n");
 
 				UTI_ERROR("usage printed on stderr\n");
@@ -143,6 +148,11 @@ bool init_process(int argc, char **argv, string &ip_addr)
 		return false;
 	}
 
+	if(iface_name.size() == 0)
+	{
+		UTI_ERROR("missing mandatory interface name option");
+		return false;
+	}
 	return true;
 }
 
@@ -160,6 +170,7 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool is_init = false;
 	string ip_addr;
+	string iface_name;
 
 	mgl_eventmgr *eventmgr;
 	mgl_blocmgr *blocmgr;
@@ -181,7 +192,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, sigendHandler);
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr) == false)
+	if(init_process(argc, argv, ip_addr, iface_name) == false)
 	{
 		UTI_ERROR("%s: failed to init the process\n", progname);
 		goto quit;
@@ -266,7 +277,7 @@ int main(int argc, char **argv)
 	}
 
 	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
-	                                    satellite, ip_addr);
+	                                    satellite, ip_addr, iface_name);
 	if(blocSatCarrier == NULL)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);

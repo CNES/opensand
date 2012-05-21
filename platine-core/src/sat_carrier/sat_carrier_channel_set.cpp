@@ -59,22 +59,15 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  * @return -1 if failed, 0 if succeed
  */
 int sat_carrier_channel_set::readConfig(t_component host,
-                                        const string local_ip_addr)
+                                        const string local_ip_addr,
+                                        const string interface_name)
 {
-	string interfaceName;
 	string strConfig;
 
 	int i;
 	sat_carrier_channel *channel;
 	ConfigurationList carrier_list;
 	ConfigurationList::iterator iter;
-
-	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_ETH_IFACE,
-	                          interfaceName))
-	{
-		UTI_ERROR("Can't get satelliteEthInterface from section Global\n");
-		goto error;
-	}
 
 	// get transmission type
 	if(!globalConfig.getValue(SATCAR_SECTION, SOCKET_TYPE,
@@ -191,7 +184,7 @@ int sat_carrier_channel_set::readConfig(t_component host,
 				                                            carrier_up : carrier_down,
 				                                      (host == satellite) ?
 				                                            carrier_down : carrier_up,
-				                                      interfaceName.c_str(),
+				                                      interface_name,
 				                                      carrier_port,
 				                                      carrier_multicast,
 				                                      local_ip_addr,

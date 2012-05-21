@@ -197,6 +197,15 @@ class HostModel:
                             "for component starting")
             return ""
 
+    def get_emulation_interface(self):
+        """ get the host emulation interface """
+        try:
+            return self._ifaces["emu_iface"].split('/')[0]
+        except KeyError:
+            self._log.error("cannot retrieve IPv4 emulation interface name, "
+                            "mandatory for component starting")
+            return ""
+
     def get_state_port(self):
         """ get the state server port """
         return int(self._state_port)

@@ -6,7 +6,6 @@
 encap_module.py - Encapsulation module for Platine Manager
 """
 
-import types
 
 encap_methods = {}
 
