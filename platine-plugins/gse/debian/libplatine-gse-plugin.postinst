@@ -23,8 +23,8 @@ add_module()
     name="gse"
     chmod u+x /usr/libexec/platine/${name}_support.py || true
     /usr/libexec/platine/${name}_support.py add || true
-    service platine-daemon stop || trrue
-    service platine-daemon start || trrue
+    service platine-daemon stop || true
+    service platine-daemon start || true
 }
 
 case "$1" in

@@ -228,8 +228,8 @@ if [ "$#" -gt 0 ]; then
         db_fget platine-daemon/default seen
         if [ "$RET" = "false" ]; then
             db_input high platine-daemon/default || true
-            if !db_go; then
-                exit 10
+            if db_go; then
+            	return
             fi
             db_get platine-daemon/default
             if [ "$RET" = "true" ]; then
@@ -254,4 +254,5 @@ else
     usage
 fi
 
+exit 0
 
