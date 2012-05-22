@@ -50,7 +50,7 @@ static void usage(void)
 	     << "usage: configuration_test [OPTIONS]" << endl
 	     << "with:" << endl
 	     << "options" << endl
-	     << "   -i                 Input file (may be used more than once" << endl
+	     << "   -i                 Input file (may be used more than once)" << endl
 	     << "   -r                 Result file" << endl;
 }
 
@@ -120,10 +120,6 @@ int main(int argc, char **argv)
 		goto close;
 	}
 
-
-    conf_files.push_back("input/test.xml");
-    conf_files.push_back("input/test2.xml");
-
     // load the output file for comparison
     if(!comp_ofile || !comp_ofile.is_open())
     {
@@ -158,7 +154,7 @@ int main(int argc, char **argv)
     // be careful the maps are ordered, the output will not be ordered like above
 
     // load the configuration files
-    if(!globalConfig.loadConfig(conf_files))
+    if(!globalConfig.loadConfig(input_files))
     {
         cerr << "cannot load configuration files" << endl;
         goto close;
