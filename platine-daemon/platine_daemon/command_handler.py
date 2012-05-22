@@ -242,9 +242,3 @@ class CommandHandler(MyTcpHandler):
             LOGGER.warning("test did not stopped normally\n")
 
 
-    def setup_routes(self):
-        """ set the routes for Platine """
-
-
-    def remove_routes(self):
-        """ remove the Platine routes """
