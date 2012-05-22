@@ -17,13 +17,6 @@
 </xsd:simpleType>
 
 <!-- types for global section -->
-<xsd:simpleType name="ethInterface">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="eth0" />
-        <xsd:enumeration value="eth1" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -212,13 +205,6 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="satellite_eth_interface" type="ethInterface">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The physical interface for the satellite network
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="satellite_type" type="satelliteType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
