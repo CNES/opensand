@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Platine Manager
-Comment=The GUI for Platine emulation plateform
-Exec=PtManager -f
-Icon=platine-manager
-Categories=Network;Education;Science;ComputerScience;GTK;
-#MimeType=*.ptm;

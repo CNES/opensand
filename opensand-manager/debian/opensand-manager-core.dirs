@@ -1,0 +1,6 @@
+usr/libexec/opensand/
+usr/lib/python2.6/dist-packages/opensand_manager_core
+usr/lib/python2.6/dist-packages/opensand_manager_core/loggers
+usr/lib/python2.6/dist-packages/opensand_manager_core/model
+usr/lib/python2.6/dist-packages/opensand_manager_core/controller
+usr/lib/python2.6/dist-packages/opensand_manager_core/modules

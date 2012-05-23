@@ -1,0 +1,54 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+#
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+#
+# Modified to make a template file for a multi-binary package with separated
+# build-arch and build-indep targets  by Bill Allombert 2001
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+# enable to disable memory pool in packages
+#override_dh_auto_configure:
+#	dh_auto_configure -- --disable-memory-pool
+
+override_dh_strip:
+	dh_strip --dbg-package=libopensand-encap-plugin-dbg
+	dh_strip --dbg-package=opensand-core-dbg
+
+override_dh_install:
+	dh_install
+
+    # Configuration for all
+	install -m 0644 conf/core_sat.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/core.conf
+	install -m 0644 conf/core_st.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/core.conf
+	install -m 0644 conf/core_gw.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/core.conf
+	install -m 0644 conf/core_global.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/core_global.conf
+	install -m 0644 conf/topology.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/topology.conf
+	install -m 0644 conf/xsd/core_sat.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/core.xsd
+	install -m 0644 conf/xsd/core_st.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/core.xsd
+	install -m 0644 conf/xsd/core_gw.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/core.xsd
+	install -m 0644 conf/xsd/core_global.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/core_global.xsd
+	install -m 0644 conf/xsd/topology.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/topology.xsd
+
+	install -m 0644 conf/deploy.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/deploy.ini
+
+    # Configuration for bin
+	install -D -m 0644 conf/modcod_dra/collective/*.txt -t $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/collective
+	install -D -m 0644 conf/modcod_dra/individual/*.txt -t $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/individual
+
+	# Configuration for syslog/logrotate
+	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/opensand-core-bin/etc/rsyslog.d/opensand-core.conf
+	install -D -m 0644 conf/logrotate.conf $(CURDIR)/debian/opensand-core-bin/etc/logrotate.d/opensand-core.conf
+
+
+%:
+	dh  $@

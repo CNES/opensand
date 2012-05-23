@@ -1,0 +1,23 @@
+Source: opensand-manager
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), python (>= 2.6), python-support, python-setuptools
+Standards-Version: 3.8.3
+
+Package: opensand-manager-core
+Architecture: any
+Depends: ${misc:Depends}, python (>= 2.6),
+ python-avahi, avahi-daemon,
+ python-dbus, python-lxml,
+ opensand-core-all, opensand-env-plane
+Conflicts: platine-manager-core
+Replaces: platine-manager-core
+Description: Non graphical part of Manager for OpenSAND emulation testbed
+
+Package: opensand-manager-gui
+Architecture: any
+Depends: ${misc:Depends}, opensand-manager-core (= ${binary:Version}),
+ python-matplotlib, python-gtk2 (>=2.16), rsyslog, logrotate
+Conflicts: platine-manager-gui
+Replaces: platine-manager-gui
+Description: GUI of Manager for OpenSAND emulation testbed

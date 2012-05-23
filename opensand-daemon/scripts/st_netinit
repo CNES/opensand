@@ -1,0 +1,395 @@
+#!/bin/bash
+
+THIS_SCRIPT=$(basename $0)
+CMD=$1
+
+#
+# This script is used to initialize the OpenSAND network on ST
+#
+# Authors Julien Bernard <julien.bernard@toulouse.viveris.com>
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# Source default library
+SYSCTL="true"
+
+# Forwarding: necessary to be able to forward satellite trafic toward
+# workstations
+IP_FORWARD="1"
+FORWARDING="1"
+
+# UDP buffer size: incresed to support high traffic
+WMEM_MAX="1048580"
+RMEM_MAX="1048580"
+WMEM_DEFAULT="1048580"
+RMEM_DEFAULT="1048580"
+if [ -f /etc/default/opensand-network ]; then
+    . /etc/default/opensand-network
+fi
+
+DHCP_CONFIG_FILE="/etc/dnsmasq.d/lan_st.conf"
+DAEMON_CONF="/etc/opensand/daemon.conf"
+# TODO evecho, halt_on_error, ... in a separate file loaded from the 3 scripts
+
+# load the configuration file
+load_conf(){
+    # load debconf parameters
+    db_get opensand-daemon/service/name
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    SERVICE_NAME=$RET
+    if  [ ${RET} = 'st' ]; then
+        db_get opensand-daemon/service/st_instance
+        export LAN=$RET
+    else
+        export LAN=0
+    fi
+    db_get opensand-daemon/network/emu_iface
+    export EMU_IFACE=$RET
+    db_get opensand-daemon/network/lan_iface
+    export LAN_IFACE=$RET
+    db_get opensand-daemon/network/config_level
+    config=$RET
+    if [ "$config" != "AUTOMATIC" ]; then
+        db_get opensand-daemon/network/lan_ipv4
+        export LAN_IPV4=$RET
+        db_get opensand-daemon/network/lan_ipv6
+        export LAN_IPV6=$RET
+    else
+        export LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+        export LAN_IPV6=`ip addr show ${LAN_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        if [ -z "$LAN_IPV4" ]; then
+            halt_on_error "cannot retrieve ${LAN_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        fi
+        if [ -z "$LAN_IPV6" ]; then
+            halt_on_error "cannot retrieve ${LAN_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
+        fi
+        export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+        export EMU_IPV6=`ip addr show ${EMU_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        if [ -z "$EMU_IPV4" ]; then
+            halt_on_error "cannot retrieve ${EMU_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        fi
+        if [ -z "$EMU_IPV6" ]; then
+            halt_on_error "cannot retrieve ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
+        fi
+        # complete the configuration file (the last section shall be [network])
+        echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+        echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+        echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+    fi
+
+    db_get opensand-daemon/network/dhcp
+    export DHCP=$RET
+
+    # host name
+    if [ "$LAN" = "0" ]; then
+        export NAME='GW'
+    else
+        export NAME='ST'$LAN
+    fi
+
+    # sanity check
+    for addr in $LAN_IPV4 $LAN_IPV6 $EMU_IPV4 $EMU_IPV6; do
+        echo $addr | grep -q "/"
+        ret=$?
+        if [ "$ret" != "0" ]; then
+            halt_on_error "please add mask in network address $addr"
+        fi
+    done
+
+    # TUN0 parameters
+    # TUN0 address is lan address + 2 (+1 before module and +1 after to avoid 0)
+    export LAN4=${LAN_IPV4%/*}
+    export MASK4=${LAN_IPV4##*/}
+    export TUN0_IFACE='opensand'
+    # the address elements LAN4=net4.add4
+    net4=${LAN4%.*}
+    add4=${LAN4##*.}
+    # Do as if the mask is /24 when it is smaller
+    if [ ${MASK4} -le 24 ]; then
+        modulo=254
+    # we need enough addresses for eth interface, tun interface and some WS
+    elif [ ${MASK4} -ge 30 ]; then 
+        halt_on_error "the ST lan IPv4 mask should be smaller than 30"
+    else
+        modulo=$((2 ** (32-${MASK4}) - 2))
+    fi
+    export TUN0_IPV4="${LAN4%.*}.$(((${LAN4##*.} + 1 % ${modulo}) +1))/${MASK4}"
+    lan6=${LAN_IPV6%/*}
+    mask6=${LAN_IPV6##*/}
+
+    # Do as if the mask is /112 when it is smaller
+    if [ ${MASK4} -le $((0xFFFE)) ]; then
+        modulo=0xFFFE
+    # we need enough addresses for eth interface, tun interface and some WS
+    elif [ ${MASK4} -ge  126 ]; then 
+        halt_on_error "the ST lan IPv6 mask should be smaller than 126"
+    else
+        modulo=$(($((2**$((256-${mask6}))))-2))
+    fi
+
+    export TUN0_IPV6="${lan6%:*}:`printf '%x' $(((0x${lan6##*:} + 1 % ${modulo}) + 1))`/${mask6}"
+}
+
+# Print a short help message
+#
+usage(){
+    echo "This script is used to set up static network configuration for opensand platform"
+    echo "Usage: $THIS_SCRIPT <command>"
+    echo "    with   <command> is one among"
+    echo "        CONF    configure the network"
+    echo "        CHECK   show the network configuration"
+    echo "        RESET   blank the network configuration"
+    echo
+    return
+}
+
+halt_on_error(){
+    echo "ERROR (FATAL): $*"  >&2
+    echo "" >&2
+    db_stop
+    exit 1
+}
+
+# Print the command to be run, then run it.
+# Exit if status !=0
+#
+evecho(){
+    echo $*
+    eval $*
+    my_status=$?
+    [ $my_status -ne 0 ] && echo "WARNING: last command returned an error ($*)" >&2
+
+    return $my_status
+}
+
+# Check if the user running this script is root.
+# Exit if not
+#
+check_root(){
+    id | grep -q '^uid=0(root)'
+    retstat=$?
+    [ $retstat -ne 0 ] && halt_on_error "you _must_ be root before executing $THIS_SCRIPT"
+    return
+}
+
+# Roughly reset network configuration
+#
+reset_conf() {
+    echo "# Reset OpenSAND TUN0 interface configuration"
+    evecho /sbin/ip route flush dev $TUN0_IFACE
+    evecho /sbin/ip -6 route flush dev $TUN0_IFACE
+    evecho /sbin/ifconfig $TUN0_IFACE 0 down
+    evecho /bin/rm -f ${DHCP_CONFIG_FILE}
+    return
+}
+
+# Print the network configuration
+#
+check_conf(){
+    /sbin/ifconfig -a
+    /sbin/ip route
+    /sbin/ip -6 route
+
+    return
+}
+
+
+# Configure the interfaces
+set_interfaces(){
+    # TODO use ip route instead of ifconfig
+    echo "Set $LAN_IFACE up"
+    evecho /sbin/ifconfig $LAN_IFACE up || halt_on_error "cannot set $LAN_IFACE up"
+    echo "Set $EMU_IFACE up"
+    evecho /sbin/ifconfig $EMU_IFACE up || halt_on_error "cannot set $EMU_IFACE up"
+    echo "Set $TUN0_IFACE up"
+    evecho /sbin/ifconfig $TUN0_IFACE up || halt_on_error "cannot set $TUN0_IFACE up"
+    echo "Assign $TUN0_IPV4 and $TUN0_IPV6 addresses on $TUN0_IFACE interface"
+    evecho /sbin/ifconfig $TUN0_IFACE $TUN0_IPV4 || halt_on_error "cannot set $TUN0_IFACE IPv4 address"
+    evecho /sbin/ifconfig $TUN0_IFACE add $TUN0_IPV6 || halt_on_error "cannot set $TUN0_IFACE IPv6 address"
+    # remove automatic routes
+    evecho /sbin/ip route flush dev $TUN0_IFACE
+    evecho /sbin/ip -6 route flush dev $TUN0_IFACE
+
+    return
+}
+
+# Configure sysctl
+set_sysctl(){
+    # enable forwarding
+    echo "Set ip_forward=$IP_FORWARD"
+    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
+    echo -n  "Set forwarding=$FORWARDING on "
+    echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE interfaces"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
+    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+
+    # increase UDP buffers
+    echo "Set wmem_max=$WMEM_MAX"
+    evecho /sbin/sysctl -w "net/core/wmem_max"=$WMEM_MAX
+    echo "Set rmem_max=$RMEM_MAX"
+    evecho /sbin/sysctl -w "net/core/rmem_max"=$RMEM_MAX
+    echo "Set wmem_default=$WMEM_DEFAULT"
+    evecho /sbin/sysctl -w "net/core/wmem_default"=$WMEM_DEFAULT
+    echo "Set rmem_default=$RMEM_DEFAULT"
+    evecho /sbin/sysctl -w "net/core/rmem_default"=$RMEM_DEFAULT
+
+    return
+}
+set_tun_sysctl(){
+    # enable forwarding
+    echo "Set forwarding=$FORWARDING on $TUN0_IFACE inteface"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+
+    return
+}
+
+set_dhcp_server(){
+    # check if DHCP server is enabled
+    if [ "$DHCP" != "true" ]; then
+        return
+    fi
+
+    echo "# Configure DHCP server"
+
+    full_octets=$(($MASK4/8))
+    local partial_octet=$(($MASK4%8))
+    mask=""
+
+    for i in `seq 1 4`; do
+        if [ $i -lt $full_octets ]; then
+            mask+=255
+        elif [ $i -eq $full_octets ]; then
+            mask+=$((256 - 2**(8-$partial_octet)))
+        else
+            mask+=0
+        fi  
+        test $i -lt 4 && mask+=.
+    done
+
+    if [ ${MASK4} -gt 27 ]; then
+        echo "mask is too high, please configure DHCP manually"
+        return
+    elif [ ${MASK4} -gt 24 ]; then
+        min=$((256 - 2**(32-${MASK4})))
+    else
+        min=0
+    fi
+
+    # range is at least based on mask /24 for more simplicity and limited to 10 hosts
+    if [ ${LAN4##*.} -gt $((min+20)) ]; then
+        range_start=${LAN4%.*}.$((min+10))
+        range_end=${LAN4%.*}.$((min+19))
+    else
+        range_start=${LAN4%.*}.$((min+21))
+        range_end=${LAN4%.*}.$((min+30))
+    fi
+
+    subnet=${LAN4%.*}
+    subnet+=.0
+    if [ ${MASK4} -gt 24 ]; then
+        cidr=24
+    elif [ ${MASK4} -gt 16 ]; then
+        subnet=${subnet%.*}
+        subnet+=".0"
+        cidr=16
+    else
+        subnet=${subnet%.*}
+        subnet=${subnet%.*}
+        subnet+=".0"
+        subnet+=".0"
+        cidr=8
+    fi
+
+
+    opt3="dhcp-option=3"
+    db_get opensand-daemon/network/default_route
+    if [ $RET = "true" ]; then
+        opt3="#dhcp-option=3"
+    fi
+
+    /bin/cat 2>/dev/null << EOF > "${DHCP_CONFIG_FILE}"
+
+# IP range
+dhcp-range=${range_start},${range_end},${mask},1h
+# interface name
+interface=${LAN_IFACE}
+# add classless-static-routes option to configure an automatic static route
+# 121 is the code for classless-static-routes
+# Be careful, we assume that the mask for all STs is your ST lan maks is the
+# previous mask being a power of 2 (e.g. /16 for mask from /17 to /24), if this
+# is not the case please modify it
+# If the STs are not on a same subnetwork please do no use this option and set
+# your routes manually or use the daemon
+dhcp-option=121,${subnet}/${cidr},${LAN4}
+# Override the default route supplied by dnsmasq and send no default
+# route at all. Note that this only works for the options sent by
+# default (1, 3, 6, 12, 28) the same line will send a zero-length option 
+# for all other option numbers.
+${opt3}
+
+EOF
+
+    if [ $? -ne 0 ] ; then
+        # not an error, this is only an exemple so it is not fatal
+        echo "Failed to write DHCP range to DHCP config file"
+    fi
+}
+
+# Configure st router
+st_config(){
+    echo "# Configuring $NAME"
+
+    echo "# Configuring interfaces"
+    set_interfaces
+
+    if [ ${SYSCTL} = "true" ]; then
+        echo "# Configuring sysctl"
+        echo "  See /etc/default/opensand-daemon to avoid this modifications" 
+        set_sysctl
+    fi
+    echo "# Configuring sysctl for TUN interface"
+    set_tun_sysctl
+
+    set_dhcp_server
+    return
+}
+
+#
+# Now the work can begin
+#
+
+check_root
+
+echo "# Configure OpenSAND network for ST"
+case $CMD in
+     CONF )
+         load_conf
+         st_config
+     ;;
+     CHECK )
+         check_conf
+     ;;
+     RESET )
+         load_conf
+         reset_conf
+     ;;
+     *)
+        echo "Error: unknown command $CONF"
+        usage
+        db_stop
+        exit 1
+    ;;
+esac
+
+db_stop
+exit 0

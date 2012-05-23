@@ -1,0 +1,2 @@
+var/run/opensand-daemon
+var/cache/opensand-daemon

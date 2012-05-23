@@ -1,0 +1,489 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#
+#
+# OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2011 TAS
+#
+#
+# This file is part of the OpenSAND testbed.
+#
+#
+# OpenSAND is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
+# Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+
+"""
+opensand_daemon.py - OpenSAND daemon that wait for OpenSAND manager commands
+                    and publish a OpenSAND service
+"""
+
+import socket
+import sys
+import signal
+import threading
+import thread
+import os
+import logging
+import time
+import ConfigParser
+import pwd
+import prctl
+from opensand_daemon.tcp_server import Plop
+from opensand_daemon.command_handler import CommandHandler
+from opensand_daemon.state_handler import StateHandler
+from opensand_daemon.service import OpenSandService
+from opensand_daemon.syslog_handler import SysLogHandler, syslog
+from opensand_daemon.nl_utils import NlAddress, NlError, NlExists
+
+#==============================================================================
+#MAIN
+#==============================================================================
+
+# macros
+CONF_FILE = "/etc/opensand/daemon.conf"
+PID_FILE = "/var/run/opensand-daemon/pid"
+SERVICE = None
+COMMAND = None
+STATE = None
+LOGGER = logging.getLogger('opensand-daemon')
+
+def sig_handler(signum, frame):
+    """ signal handler """
+    LOGGER.debug("Signal %s received" % str(signum))
+    if os.path.exists(PID_FILE):
+        LOGGER.debug("remove PID file")
+
+    try:
+        os.remove(PID_FILE)
+    except OSError, (errno, strerror):
+        LOGGER.error("cannot remove PID file (%d: %s)" % (errno, strerror))
+    finally:
+        if SERVICE_THREAD.is_alive():
+            LOGGER.debug("stop service threads")
+            stop_service()
+            SERVICE_THREAD.join()
+            LOGGER.debug("service thread joined")
+        if COMMAND_THREAD.is_alive():
+            LOGGER.debug("stop command threads")
+            stop_command()
+            COMMAND_THREAD.join()
+            LOGGER.debug("command thread joined")
+        if STATE_THREAD.is_alive():
+            LOGGER.debug("stop state threads")
+            stop_state()
+            STATE_THREAD.join()
+            LOGGER.debug("state thread joined")
+
+        if signum == signal.SIGTERM:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+
+def publish_service():
+    """ publish the OpenSAND service """
+    global SERVICE
+
+    # get configuration
+    name = ''
+    service_type = '_opensand._tcp'
+    port = ''
+    instance = ''
+    tools = ''
+    emu_iface = ''
+    emu_ipv4 = ''
+    emu_ipv6 = ''
+    lan_iface = ''
+    lan_ipv4 = ''
+    lan_ipv6 = ''
+
+    try:
+        name = CONF_PARSER.get('service', 'name')
+        port = CONF_PARSER.getint('service', 'port')
+        if CONF_PARSER.has_option('service', 'type'):
+            service_type = CONF_PARSER.get('service', 'type')
+        # the port of each server
+        state = CONF_PARSER.getint('state', 'port')
+        command = CONF_PARSER.getint('command', 'port')
+        descr = {
+                    'state' : state,
+                    'command' : command,
+                 }
+        if name == 'st' or name == 'ws':
+            instance = CONF_PARSER.get('service', 'instance')
+            descr['id'] = instance
+        config_type = CONF_PARSER.get('network', 'config_level')
+        if name != 'ws':
+            emu_iface = CONF_PARSER.get('network', 'emu_iface')
+            emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
+            emu_ipv6 = CONF_PARSER.get('network', 'emu_ipv6')
+            descr['emu_iface'] = emu_iface
+            descr['emu_ipv4'] = emu_ipv4
+            descr['emu_ipv6'] = emu_ipv6
+        if name != 'sat':
+            lan_iface = CONF_PARSER.get('network', 'lan_iface')
+            lan_ipv4 = CONF_PARSER.get('network', 'lan_ipv4')
+            lan_ipv6 = CONF_PARSER.get('network', 'lan_ipv6')
+            descr['lan_iface'] = lan_iface
+            descr['lan_ipv4'] = lan_ipv4
+            descr['lan_ipv6'] = lan_ipv6
+    except ConfigParser.Error, error:
+        LOGGER.error("unable to parse configuration file: " + str(error))
+        thread.exit()
+
+    if config_type == 'advanced':
+        nladd = {}
+        address = NlAddress()
+        try:
+            # if interface exists this is not an error, do not keep it in nladd
+            # to avoid removing it at exit
+            if name != 'sat':
+                try:
+                    address.add(lan_ipv4, lan_iface)
+                except NlExists:
+                    LOGGER.info("address %s already exists on %s" %
+                                (lan_ipv4, lan_iface))
+                finally:
+                    nladd[lan_ipv4] = lan_iface
+                try:
+                    address.add(lan_ipv6, lan_iface)
+                except NlExists:
+                    LOGGER.info("address %s already exists on %s" %
+                                (lan_ipv6, lan_iface))
+                finally:
+                    nladd[lan_ipv6] = lan_iface
+            if name != 'ws':
+                try:
+                    address.add(emu_ipv4, emu_iface)
+                except NlExists:
+                    LOGGER.info("address %s already exists on %s" %
+                                (emu_ipv4, emu_iface))
+                finally:
+                    nladd[emu_ipv4] = emu_iface
+                try:
+                    address.add(emu_ipv6, emu_iface)
+                except NlExists:
+                    LOGGER.info("address %s already exists on %s" %
+                                (emu_ipv6, emu_iface))
+                finally:
+                    nladd[emu_ipv6] = emu_iface
+        except NlError, msg:
+            LOGGER.error("unable to set addresses: %s" % msg)
+            # delete the address that were already set
+            for add in nladd:
+                try:
+                    address.delete(add, nladd[add])
+                except:
+                    continue
+            thread.exit()
+    # in automatic mode the addresses should have already been configured
+    elif config_type != 'automatic':
+        LOGGER.error("wrong configuration level: %s\n" % config_type)
+        thread.exit()
+
+    # check sysctrl values and log if the value may lead to errors
+    if name != 'ws':
+        if name != 'sat':
+            for iface in [emu_iface, lan_iface]:
+                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface, 'ro') \
+                     as sysctrl:
+                    if sysctrl.read().rstrip('\r\n') != "1":
+                        LOGGER.warning("IPv4 forwarding on interface %s is "
+                                       "disabled, you won't be able to route "
+                                       "packets toward WS behind this host" %
+                                       iface)
+            for iface in [emu_iface, lan_iface]:
+                with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
+                     as sysctrl:
+                    if sysctrl.read().rstrip('\r\n') != "1":
+                        LOGGER.warning("IPv6 forwarding on interface %s is "
+                                       "disabled, you won't be able to route "
+                                       "packets toward WS behind this host" %
+                                       iface)
+            with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctrl:
+                if sysctrl.read().rstrip('\r\n') != "1":
+                    LOGGER.warning("IPv4 ip_forward is disabled, you should enable "
+                                   "it")
+        for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
+            with open("/proc/sys/net/core/%s" % val, 'ro') as sysctrl:
+                if int(sysctrl.read().rstrip('\r\n')) < 1048580:
+                    LOGGER.warning("%s should be set to a value greater than "
+                                   "1048580 in order to support high bitrates "
+                                   "through OpenSAND" % val)
+
+    # do not raise an error for the following fields because they are not
+    # used on each host
+    try:
+        instance = CONF_PARSER.get('service', 'instance')
+    except ConfigParser.Error:
+        pass
+    else:
+        # instance section found, add the information to description
+        descr['id'] = instance
+
+    # add supported tools
+    try:
+        tools = CONF_PARSER.get('service', 'tools')
+    except ConfigParser.Error:
+        pass
+    else:
+        # tools section found, add the information to description
+        descr['tools'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
+
+    # add supported plugins
+    try:
+        tools = CONF_PARSER.get('service', 'modules')
+    except ConfigParser.Error:
+        pass
+    else:
+        # modules section found, add the information to description
+        descr['modules'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
+
+    if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
+        LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
+        thread.exit()
+
+    SERVICE = OpenSandService(service_type, name, instance, port, descr)
+
+    try:
+        SERVICE.run()
+    except Exception, error:
+        LOGGER.error("exception when running service " + str(error))
+        SERVICE = None
+        thread.exit()
+    finally:
+        if STATE.RequestHandlerClass._running:
+            return
+        # remove addresses only if OpenSAND is not running
+        for add in nladd:
+            try:
+                address.delete(add, nladd[add])
+            except:
+                continue
+
+
+def stop_service():
+    """ stop the OpenSAND service """
+    if SERVICE is not None:
+        SERVICE.stop()
+
+def start_command():
+    """ start the OpenSAND daemon server which will receive manager commands """
+    global COMMAND
+
+    # get configuration
+    port = ''
+    try:
+        port = CONF_PARSER.getint('command', 'port')
+    except ConfigParser.Error, error:
+        LOGGER.error("unable to parse configuration file: " + str(error))
+        thread.exit()
+
+    # Create the command server
+    try:
+        COMMAND = Plop(('0.0.0.0', port), CommandHandler)
+    except socket.error, (errno, strerror):
+        LOGGER.error("cannot create server ('%d: %s')" % (errno, strerror))
+        thread.exit()
+
+    LOGGER.info("listen on 0.0.0.0:" + str(port))
+
+    try:
+        COMMAND.run()
+    except Exception, error:
+        LOGGER.error("exception when running server " + str(error))
+        COMMAND = None
+        thread.exit()
+
+def stop_command():
+    """ stop the OpenSAND daemon server """
+    if COMMAND is not None:
+        COMMAND.stop()
+
+def start_state():
+    """ start the OpenSAND daemon state server
+        which will send component status to manager """
+    global STATE
+
+    # get configuration
+    port = ''
+    try:
+        port = CONF_PARSER.getint('state', 'port')
+    except ConfigParser.Error, error:
+        LOGGER.error("unable to parse configuration file: " + str(error))
+        thread.exit()
+
+    # Create the state server
+    try:
+        STATE = Plop(('0.0.0.0', port), StateHandler)
+    except socket.error, (errno, strerror):
+        LOGGER.error("cannot create server ('%d: %s')" % (errno, strerror))
+        thread.exit()
+
+    LOGGER.info("listen for states on 0.0.0.0:" + str(port))
+
+    try:
+        STATE.run()
+    except Exception, error:
+        LOGGER.error("exception when running server " + str(error))
+        STATE = None
+        thread.exit()
+
+
+def stop_state():
+    """ stop the OpenSAND daemon state server """
+    if STATE is not None:
+        STATE.stop()
+
+if __name__ == "__main__":
+    # Logging configuration
+    ROOT_LOGGER = logging.getLogger('opensand-daemon')
+    LOG_HANDLER = SysLogHandler('opensand-daemon', syslog.LOG_PID,
+                                 syslog.LOG_DAEMON)
+    ROOT_LOGGER.addHandler(LOG_HANDLER)
+
+    # Print logs in terminal for debug
+    LOG_HANDLER = logging.StreamHandler(sys.stdout)
+    FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s "
+                                  "- %(message)s")
+    LOG_HANDLER.setFormatter(FORMATTER)
+    ROOT_LOGGER.addHandler(LOG_HANDLER)
+
+    ROOT_LOGGER.setLevel(logging.INFO)
+
+    # Get configuration filename if it is given
+    if(len(sys.argv) > 1):
+        CONF_FILE = sys.argv[1]
+        if(os.path.exists(CONF_FILE) == False):
+            LOGGER.error("configuration file '%s' does not exists" % CONF_FILE)
+            sys.exit(1)
+
+    CONF_PARSER = ConfigParser.SafeConfigParser()
+    # read configuration file
+    if len(CONF_PARSER.read(CONF_FILE)) == 0:
+        LOGGER.error("configuration file %s does not exist" % CONF_FILE)
+        sys.exit(1)
+
+    # create the OpenSAND service thread
+    SERVICE_THREAD = threading.Thread(None, publish_service, None, (), {})
+
+    # create the server which receives OpenSAND manager commands
+    COMMAND_THREAD = threading.Thread(None, start_command, None, (), {})
+
+    # create the server which check binaries states and send them
+    STATE_THREAD = threading.Thread(None, start_state, None, (), {})
+
+    # check that the PID file does not exists
+    if os.path.exists(PID_FILE):
+        LOGGER.error("PID file already exists: quit")
+        sys.exit(1)
+
+    # catch SIGTERM signal
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGUSR2, sig_handler)
+
+    try:
+        CHILD_PID = os.fork()
+    except OSError, (errno, strerror):
+        LOGGER.error("cannot fork (%d: %s) : quit" % (errno, strerror))
+        sys.exit(1)
+
+    if(CHILD_PID == 0):
+        # wait that father write the PID
+        time.sleep(2)
+
+        # set user id to opensand and only keep CAP_NET_ADMIN capabilities
+        try:
+            pw = pwd.getpwnam("opensand")
+            uid = pw.pw_uid
+            prctl.cap_inheritable.net_admin = True
+            prctl.set_keepcaps(True)
+            os.setuid(uid)
+            prctl.cap_inheritable.limit('CAP_NET_ADMIN')
+            prctl.cap_effective.limit('CAP_NET_ADMIN')
+            prctl.cap_permitted.limit('CAP_NET_ADMIN')
+            prctl.cap_effective.net_admin = True
+        except KeyError:
+            LOGGER.ERROR("cannot find opensand user")
+            try:
+                os.remove(PID_FILE)
+            except OSError, (errno, strerror):
+                LOGGER.error("cannot remove PID file (%d: %s)" %
+                             (errno, strerror))
+            sys.exit(1)
+
+
+        # start the threads
+        try:
+            LOGGER.debug("start service thread")
+            SERVICE_THREAD.start()
+            LOGGER.debug("start command thread")
+            COMMAND_THREAD.start()
+            LOGGER.debug("start state thread")
+            STATE_THREAD.start()
+        except thread.error, msg:
+            LOGGER.error("exception when starting the threads: " + msg)
+            if(os.path.exists(PID_FILE) == True):
+                LOGGER.debug("remove PID file")
+                try:
+                    os.remove(PID_FILE)
+                except OSError, (errno, strerror):
+                    LOGGER.error("cannot remove PID file (%d: %s)" %
+                                 (errno, strerror))
+            sys.exit(1)
+
+        # wait that threads are correctly started
+        time.sleep(2)
+
+        if not SERVICE_THREAD.is_alive():
+            LOGGER.error("service thread is not started correctly: quit")
+            sig_handler(signal.SIGUSR2, None)
+        if not COMMAND_THREAD.is_alive():
+            LOGGER.error("command thread is not started correctly: quit")
+            sig_handler(signal.SIGUSR2, None)
+        if not STATE_THREAD.is_alive():
+            LOGGER.error("state thread is not started correctly: quit")
+            sig_handler(signal.SIGUSR2, None)
+
+        # wait for SIGTERM
+        signal.pause()
+
+        LOGGER.debug("quit OpenSAND Daemon")
+
+        sys.exit(0)
+
+    else:
+        # everything went fine, write the PID of the child
+        LOGGER.debug("write PID: " + str(CHILD_PID))
+        try:
+            PID = open(PID_FILE, "wb")
+            PID.write(str(CHILD_PID))
+        except IOError, (errno, strerror):
+            LOGGER.error("cannot write PID file (%d: %s) : quit" %
+                         (errno, strerror))
+            os.kill(CHILD_PID, signal.SIGUSR2)
+            sys.exit(1)
+        else:
+            PID.close()
+
+        sys.exit(0)
+
+

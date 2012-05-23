@@ -1,0 +1,159 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+
+DAEMON_CONF="/etc/opensand/daemon.conf"
+SAT_INIT="/usr/libexec/opensand/sat_netinit"
+ST_INIT="/usr/libexec/opensand/st_netinit"
+WS_INIT="/usr/libexec/opensand/ws_netinit"
+TUN_INIT="/usr/bin/opensand_tun"
+
+SERVICE_NAME='sat'
+SERVICE_TYPE='_opensand._tcp'
+SERVICE_INSTANCE=1
+SERVICE_IDENTIFIER=''
+SERVICE_PORT=3141
+SERVICE_TOOLS=''
+SERVICE_MODULES=''
+COMMAND_PORT=5926
+STATE_PORT=5358
+CONFIG_LEVEL='advanced'
+DHCP=''
+EMU_IFACE='eth0'
+EMU_IPV4=''
+EMU_IPV6=''
+LAN_IFACE='eth1'
+LAN_IPV4=''
+LAN_IPV6=''
+
+# read the daemon configuration from debconf cache
+read_conf(){
+    db_get opensand-daemon/service/name
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    SERVICE_NAME=$RET
+    db_get opensand-daemon/service/type
+    SERVICE_TYPE=$RET
+    db_get opensand-daemon/service/st_instance
+    SERVICE_INSTANCE=$RET
+    db_get opensand-daemon/service/ws_instance
+    SERVICE_IDENTIFIER=$RET
+    db_get opensand-daemon/service/port
+    SERVICE_PORT=$RET
+    db_get opensand-daemon/service/tools
+    SERVICE_TOOLS=$RET
+    db_get opensand-daemon/service/modules
+    SERVICE_MODULES=$RET
+    db_get opensand-daemon/command/port
+    COMMAND_PORT=$RET
+    db_get opensand-daemon/state/port
+    STATE_PORT=$RET
+    db_get opensand-daemon/network/config_level
+    RET=`echo $RET | tr 'A-Z' 'a-z'`
+    CONFIG_LEVEL=$RET
+    db_get opensand-daemon/network/dhcp
+    DHCP=$RET
+    db_get opensand-daemon/network/emu_iface
+    EMU_IFACE=$RET
+    db_get opensand-daemon/network/emu_ipv4
+    EMU_IPV4=$RET
+    db_get opensand-daemon/network/emu_ipv6
+    EMU_IPV6=$RET
+    db_get opensand-daemon/network/lan_iface
+    LAN_IFACE=$RET
+    db_get opensand-daemon/network/lan_ipv4
+    LAN_IPV4=$RET
+    db_get opensand-daemon/network/lan_ipv6
+    LAN_IPV6=$RET
+}
+
+# write daemon configuration
+write_conf(){
+    # service section
+    echo "[service]" > ${DAEMON_CONF}
+    echo "name = ${SERVICE_NAME}" >> ${DAEMON_CONF}
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' ]; then
+        echo "instance = ${SERVICE_INSTANCE}" >> ${DAEMON_CONF}
+    fi
+    if [ "${SERVICE_NAME}" = 'ws' ]; then
+        echo "instance = ${SERVICE_INSTANCE}_${SERVICE_IDENTIFIER}" >> ${DAEMON_CONF}
+    fi
+    echo "type = ${SERVICE_TYPE}" >> ${DAEMON_CONF}
+    echo "port = ${SERVICE_PORT}" >> ${DAEMON_CONF}
+    if [ -n "${SERVICE_TOOLS}" ]; then
+        echo "tools  = ${SERVICE_TOOLS}" >> ${DAEMON_CONF}
+    fi
+    if [ -n "${SERVICE_MODULES}" ]; then
+        echo "modules  = ${SERVICE_MODULES}" >> ${DAEMON_CONF}
+    fi
+    echo "" >> ${DAEMON_CONF}
+    # command section
+    echo "[command]" >> ${DAEMON_CONF}
+    echo "port = ${COMMAND_PORT}" >> ${DAEMON_CONF}
+    echo "" >> ${DAEMON_CONF}
+    echo "[state]" >> ${DAEMON_CONF}
+    echo "port = ${STATE_PORT}" >> ${DAEMON_CONF}
+    echo "" >> ${DAEMON_CONF}
+    # network section
+    echo "[network]" >> ${DAEMON_CONF}
+    echo "config_level" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
+    if [ "${SERVICE_NAME}" = "ws" ]; then
+        echo "dhcp" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
+    fi
+    if [ "${CONFIG_LEVEL}" = "advanced" ]; then
+        if [ "${SERVICE_NAME}" != "ws" ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+            echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
+            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ] &&
+           [ "${SERVICE_NAME}" != "ws" -o "${DHCP}" != "true" ]; then
+            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+        fi
+    # for automatic mode the file will be completed by the netinit script
+    fi
+}
+
+# initialize OpenSAND network
+initialize(){
+    if [ "${SERVICE_NAME}" = 'ws' ]; then
+        # configure WS interface
+        ${WS_INIT} CONF > /dev/null
+        RET=$?
+    elif [ "${SERVICE_NAME}" = 'sat' ]; then
+        # configure network
+        ${SAT_INIT} CONF > /dev/null
+        RET=$?
+    else
+        # create the OpenSAND tun interface
+        ${TUN_INIT} > /dev/null
+        if [ $? -ne 0 ] ; then
+            echo "Error when creating the tun interface" >&2
+            exit 1
+        fi
+        # configure network
+        ${ST_INIT} CONF > /dev/null
+        RET=$?
+    fi
+
+    if [ ${RET} -ne 0 ] ; then
+        echo "Error when configurating the OpenSAND daemon" >&2
+        echo "ERROR: failed to initialize network" >&2
+        exit 1
+    fi
+}
+
+
+echo "Configure OpenSAND Daemon:"
+/bin/echo -e "\tGet user configuration"
+read_conf
+/bin/echo -e "\tWrite configuration file"
+write_conf
+/bin/echo -e "\tInitialize OpenSAND Network"
+initialize
+
+db_stop
+exit 0

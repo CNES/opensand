@@ -1,0 +1,58 @@
+# Process this file with autoconf to produce a configure script.
+AC_INIT(opensand_gse_plugin, 0.9.0, [Viveris Technologies])
+AC_CONFIG_SRCDIR([src])
+AM_CONFIG_HEADER([config.h])
+AM_INIT_AUTOMAKE
+
+# Disable static libraries by default
+AC_DISABLE_STATIC
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LIBTOOL
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([stdio.h stdlib.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
+# Checks for library functions.
+AC_PROG_GCC_TRADITIONAL
+AC_CHECK_FUNCS([])
+
+# check for pkg-config
+PKG_PROG_PKG_CONFIG
+
+# check for gse library
+PKG_CHECK_MODULES([OPENSAND_GSE], [gse >= 1.0.0])
+LIBS="$OPENSAND_GSE_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_GSE_CFLAGS $AM_CPPFLAGS")
+
+# check for opensand-conf library
+PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf >= 0.9.0])
+LIBS="$OPENSAND_CONF_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
+
+# check for opensand-encap-plugin library
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_encap_plugin >= 0.9.0])
+LIBS="$OPENSAND_PLUG_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
+
+
+AC_SUBST(AM_CPPFLAGS, "-g -Wall -W -Werror -DUTI_DEBUG_ON $AM_CPPFLAGS")
+
+AM_DEP_TRACK
+
+AC_CONFIG_FILES([Makefile \
+                 src/Makefile \
+                 ])
+
+AC_OUTPUT
+

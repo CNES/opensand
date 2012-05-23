@@ -1,0 +1,31 @@
+Source: opensand-ule-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-ule-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-ule-plugin (= ${binary:Version})
+Conflicts: libplatine-ule-plugin-dbg
+Replaces: libplatine-ule-plugin-dbg
+Description: Debugging symbols for OpenSAND ULE plugin
+
+Package: libopensand-ule-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libplatine-ule-plugin
+Replaces: libplatine-ule-plugin
+Description: The ULE plugin for OpenSAND
+
+Package: libopensand-ule-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-ule-plugin (= ${binary:Version}), python (>= 2.6)
+Conflicts: libplatine-ule-plugin-manager
+Replaces: libplatine-ule-plugin-manager
+Description: The ULE plugin configuration for OpenSAND Manager
+

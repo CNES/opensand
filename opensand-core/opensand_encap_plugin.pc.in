@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libopensand-encap-plugin
+Description: Headers for OpenSAND encapsulation plugins
+Version: @VERSION@
+Libs: -L${libdir} -lopensand_encap_plugin
+Cflags: -I${includedir}/opensand_encap_plugin
+

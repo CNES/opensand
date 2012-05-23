@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="st" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types that can be useful for many section -->
+<xsd:simpleType name="carrierId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="7" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="talId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv4Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="port">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1500" />
+        <xsd:maxInclusive value="65535" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- types for service_class section -->
+<xsd:simpleType name="schedulerType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="HTB" />
+        <xsd:enumeration value="HDLB" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="qosTreeMode">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="DEFAULT" />
+        <xsd:enumeration value="DYN_EF_BRANCHES" />
+        <xsd:enumeration value="USERS" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="mappingSig">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NONE" />
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="SIG" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="classId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="className">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="schedulerPrio">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="32" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="macQueueId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="classes">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="class" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="class">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID for the service class
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The service class name
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="scheduler_priority" type="schedulerPrio">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The scheduler priority
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mac_queue_id" type="macQueueId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the associated FIFO at MAC layer
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- types for traffic_category section -->
+<xsd:simpleType name="categoryId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="categoryName">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF_1"/>
+        <xsd:enumeration value="AF_2"/>
+        <xsd:enumeration value="AF_3"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="categories">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="category" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="category">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="categoryId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The traffic category identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="categoryName">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The traffic category name
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="class" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The service class identifier related to the category
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- types for dvb_rcs_tal section -->
+<!-- see class section for some types -->
+<xsd:simpleType name="bitRate">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="50000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="crType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="RBDC" />
+        <xsd:enumeration value="VBDC"/>
+        <xsd:enumeration value="NONE"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="fifos">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="fifo">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID og the class related to the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="type" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The name of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="size_max" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The size of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="pvc" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    TODO, PVC must be in increasing order
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="cr_type" type="crType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of capacity request
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- types for debug section -->
+<xsd:simpleType name="debugValue">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="3" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="service_class" />
+            <xsd:element ref="traffic_category" />
+            <xsd:element ref="dvb_rcs_tal" />
+            <xsd:element ref="qos_agent" />
+            <xsd:element ref="debug" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- service_class section description -->
+<xsd:element name="service_class">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The service classes for QoS relation between IP and MAC layers
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="classes" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- traffic_category section description -->
+<xsd:element name="traffic_category">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The traffic categories for QoS at IP layer, default values observe
+            the RFC2474 (DiffServ) 
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="default_category" type="categoryId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default traffic category
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="categories" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- dvb_rcs_tal section description -->
+<xsd:element name="dvb_rcs_tal">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The dvb layer configuration for terminal
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="obr_period" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The OBR period (frame number):
+                         period used to determine when we should send a request
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for DVB control
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_logon" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for login information
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_data" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for ATM cells, MPEG or GSE packets
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rbdc_timeout" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The RBDC Timeout (frame number)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="msl_duration" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The Minimum Scheduling Latency (frame number):
+                        time between the capacity request emission and the
+                        reception of the corresponding Terminal Burst Time Plan
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="cr_rule_output_fifo_only" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        RBDC and VBDC Capacity requests computation rules
+                         - "false" = both INPUT + OUTPUT DLB fifos size are
+                                     taken into account
+                         - "true"  = only OUTPUT DLB fifos size are taken into
+                                     account
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dvb_mac_id" type="talId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The Dvb Mac identifier = the terminal id (integer)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rt_fixed_bandwidth" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The static bandwidth allocated to ST (kbits/s) = the
+                        bandwidth for real time traffic
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="fifos" />
+            <xsd:element name="max_rbdc" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum RBDC value for the terminal (kbits/s)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="max_vbdc" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum VBDC value for the terminal (cells or
+                        packets number)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- qos_agent section description -->
+<xsd:element name="qos_agent">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The QoS data parameters
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="st_address" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The ST address in the OpenSAND network
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="qos_server_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The QoS server port
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- debug section description -->
+<xsd:element name="debug">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The debug parameters
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="default" type="debugValue" />
+            <xsd:element name="qos_data" type="debugValue" />
+            <xsd:element name="dama_da" type="debugValue" />
+            <xsd:element name="dvb_rcs" type="debugValue" />
+            <xsd:element name="dvb_rcs_tal" type="debugValue" />
+            <xsd:element name="qos_control" type="debugValue" />
+            <xsd:element name="sat_carrier" type="debugValue" />
+            <xsd:element name="encap" type="debugValue" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

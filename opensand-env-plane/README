@@ -1,0 +1,26 @@
+Introduction
+------------
+
+This piece of software is the environment plane libraries and binaries for the
+satellite emulation testbed OpenSAND
+
+License
+-------
+
+Proprietary license.
+
+
+Library
+-------
+
+The sources are in the src subdirectory. The sources build libraries and binaries
+that handle Error, Probes and Events. See the INSTALL file to learn how to build
+the libraries.
+To compile an application using the OpenSAND environment plane library use the
+following expression:
+gcc `pkg-config opensand_env_plane --cflags` `pkg-config opensand_env_plane --libs` -o myappli myappli.c
+
+
+References
+----------
+

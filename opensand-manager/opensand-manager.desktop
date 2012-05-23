@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OpenSAND Manager
+Comment=The GUI for OpenSAND emulation plateform
+Exec=opensand-manager -f
+Icon=opensand-manager
+Categories=Network;Education;Science;ComputerScience;GTK;
+#MimeType=*.ptm;

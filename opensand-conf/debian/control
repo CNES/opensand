@@ -1,0 +1,31 @@
+Source: opensand-conf
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config, libxml++2.6-dev
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-conf-dev
+Section: libdevel
+Architecture: any
+Depends: libopensand-conf (= ${binary:Version}), libxml++2.6-dev
+Conflicts: libplatine-conf-dev
+Replaces: libplatine-conf-dev
+Description: The configuration library and headers for OpenSAND
+
+Package: libopensand-conf-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-conf (= ${binary:Version})
+Conflicts: libplatine-conf-dbg
+Replaces: libplatine-conf-dbg
+Description: Debugging symbols for OpenSAND configuration library
+
+Package: libopensand-conf
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libplatine-conf
+Replaces: libplatine-conf
+Description: The configuration library for OpenSAND
+

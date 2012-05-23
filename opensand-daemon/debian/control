@@ -1,0 +1,27 @@
+Source: opensand-daemon
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), python (>=2.6),
+ python-support,
+ python-setuptools,
+ python-dev,
+ swig,
+ libnl-3-dev,
+ libnl-route-3-dev
+Standards-Version: 3.8.3
+
+Package: opensand-daemon
+Architecture: any
+XS-Python-Version: >= 2.6
+Depends: ${misc:Depends}, python (>= 2.6),
+ python-dbus,
+ python-avahi, avahi-daemon,
+ python-ipaddr,
+ python-prctl,
+ libnl-3-200, libnl-route-3-200,
+ rsyslog, logrotate,
+ opensand-core-bin
+Conflicts: platine-daemon
+Replaces: platine-daemon
+Recommends: dnsmasq
+Description: Daemon for OpenSAND entity (sat, gw, st or ws)
