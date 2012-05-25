@@ -387,9 +387,6 @@ class RunEvent(RunView):
         self._model.set_dev_mode(self._dev_mode)
         self._ui.get_widget('options').set_visible(self._dev_mode)
         
-        #TODO add an option to add hosts from scratch in advanced config ?
-        #      ie. copy the Dmon with conf, run it and deploy the files
-
     def on_timer_status(self):
         """ handler to get OpenSAND status from model periodicaly """
         # determine the current status of the platform at first refresh

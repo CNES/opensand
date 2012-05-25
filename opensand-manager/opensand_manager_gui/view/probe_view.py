@@ -259,7 +259,6 @@ class ProbeView(WindowView):
 
         pylab.title(title)
 
-        # TODO y_list -> y_list
         ymin = min(y_list)
         ymax = max(y_list)
         rymin = ymin - ((ymax - ymin) * 0.1)

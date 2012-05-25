@@ -78,8 +78,6 @@ class RunView(WindowView):
         self._legend_y = LEGEND_Y
 
         # set the OpenSAND event and error buffer
-#TODO voir si on pourrait utiliser qqch comme la partie graphique de ManagerLog
-#     et l'utiliser également dans ManagerLog
         self._opensand_buff = gtk.TextBuffer()
         red = self._opensand_buff.create_tag('red')
         red.set_property('foreground', 'red')
@@ -282,7 +280,6 @@ class RunView(WindowView):
                                      TOP_3 + COMPO_Y + 2 + ws_nbr * 10)
 
         if ws_nbr > 0:
-            # TODO autre nom que workstation car on est derrière la GW ?
             self._stylepango.set_text(str(ws_nbr) + " workstation(s):")
             self.draw_layout(x, TOP_3 + COMPO_Y)
 

@@ -52,8 +52,8 @@ from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.my_exceptions import CommandException
 
-# TODO fonction pour récupérer les logs sur erreur
-# TODO fonction pour nettoyer les scénarios
+# TODO get logs on error
+# TODO clean scenarios
 SERVICE = "_opensand._tcp"
 
 class Loop(threading.Thread):
@@ -142,6 +142,8 @@ class Test:
 
         ### parse options
 
+# TODO option to get available tess types with descriptions
+# TODO option to specify the installed plugins
         opt_parser = OptionParser(formatter=IndentedHelpFormatterWithNL())
         opt_parser.add_option("-v", "--verbose", action="store_true",
                               dest="verbose", default=False,
@@ -290,8 +292,7 @@ help="specify the root folder for tests configurations\n"
         if not self._model.main_hosts_found():
             raise TestError("Initialization", "main hosts not found")
 
-#TODO faire une matrice des tests avec résultat dans un fichier
-#TODO on s'arrete sur erreur: OK ?
+        # TODO test matrix
         # if the tess is launched with the type option
         # check if it is a supported type
         types_init = os.listdir(self._folder)
