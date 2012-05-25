@@ -17,7 +17,7 @@ set -e
 # the debian-policy package
 
 remove_cache(){
-    rm -f /var/cache/opensand-daemon/* || true
+    rm -f /var/cache/sand-daemon/* || true
 }
 
 case "$1" in

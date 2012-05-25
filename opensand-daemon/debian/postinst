@@ -26,13 +26,13 @@ set_owner(){
     USER_NAME="opensand"
 
     ${EXE_CHOWN} ${USER_NAME} /etc/opensand/
-    ${EXE_CHOWN} ${USER_NAME} /var/cache/opensand-daemon
-    ${EXE_CHOWN} ${USER_NAME} /var/run/opensand-daemon
+    ${EXE_CHOWN} ${USER_NAME} /var/cache/sand-daemon
+    ${EXE_CHOWN} ${USER_NAME} /var/run/sand-daemon
     ${EXE_CHOWN} ${USER_NAME} /usr/libexec/opensand
 }
 
 set_capabilities(){
-    setcap 'CAP_NET_ADMIN+eip' /usr/bin/opensand-daemon
+    setcap 'CAP_NET_ADMIN+eip' /usr/bin/sand-daemon
 }
 
 restart_syslog(){

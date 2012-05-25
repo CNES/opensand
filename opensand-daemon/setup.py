@@ -13,7 +13,7 @@ def read(fname):
 script_files = ['scripts/sat_netinit', 'scripts/st_netinit',
                 'scripts/ws_netinit', 'scripts/write_initialize_config',
                 'scripts/remove_config']
-bin_files = ['opensand-daemon']
+bin_files = ['sand-daemon']
 
 # libnl files
 opts = ['-O', '-nodefaultctor']
@@ -35,7 +35,7 @@ route_capi = Extension('netlink/route/_capi',
 
 setup(
     name="opensand-daemon",
-    version="3.0.0",
+    version="0.9.0",
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for OpenSAND entity (sat, gw, st or ws)"),

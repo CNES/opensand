@@ -43,7 +43,7 @@ from opensand_daemon.tcp_server import MyTcpHandler
 from opensand_daemon.my_exceptions import Timeout
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 
 class StateHandler(MyTcpHandler):
     """ The RequestHandler class for the state server """

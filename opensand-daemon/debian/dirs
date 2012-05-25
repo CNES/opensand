@@ -1,2 +1,2 @@
-var/run/opensand-daemon
-var/cache/opensand-daemon
+var/run/sand-daemon
+var/cache/sand-daemon

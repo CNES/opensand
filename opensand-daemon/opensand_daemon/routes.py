@@ -44,8 +44,8 @@ from ipaddr import IPNetwork
 from opensand_daemon.nl_utils import NlRoute, NlError, NlExists
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
-ROUTE_FILE = "/var/cache/opensand-daemon/routes"
+LOGGER = logging.getLogger('sand-daemon')
+ROUTE_FILE = "/var/cache/sand-daemon/routes"
 
 
 class OpenSandRoutes(object):

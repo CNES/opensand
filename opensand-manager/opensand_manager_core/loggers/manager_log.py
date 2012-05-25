@@ -54,7 +54,7 @@ class ManagerLog():
     def __init__(self, level='debug',
                  enable_std=True, enable_gui=False,
                  enable_syslog=False,
-                 logger_name='opensand-manager'):
+                 logger_name='sand-manager'):
         """ constructor, initialization """
         levels = {
                     'debug'  : 0,
@@ -92,7 +92,7 @@ class ManagerLog():
 
         if enable_syslog:
             # syslog logger
-            log = SysLogHandler('opensand-manager', syslog.LOG_PID,
+            log = SysLogHandler('sand-manager', syslog.LOG_PID,
                                 syslog.LOG_DAEMON)
             self._logger.addHandler(log)
 

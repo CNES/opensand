@@ -45,9 +45,9 @@ import os
 import signal
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
-PROCESS_FILE = "/var/cache/opensand-daemon/process"
-START_INI = "/var/cache/opensand-daemon/start.ini"
+LOGGER = logging.getLogger('sand-daemon')
+PROCESS_FILE = "/var/cache/sand-daemon/process"
+START_INI = "/var/cache/sand-daemon/start.ini"
 
 
 class ProcessList():

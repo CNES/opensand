@@ -20,7 +20,7 @@ script_files = ['searchEntry.sh']
 
 setup(
     name="opensand-manager",
-    version="0.1",
+    version="0.9.0",
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Manager for OpenSAND emulation testbed"),
@@ -30,7 +30,7 @@ setup(
     packages=find_packages(),
 
     data_files=[
-                  ('bin/', ['opensand-manager']), # binary
+                  ('bin/', ['sand-manager']), # binary
                   # opensand-manager files
                   ('share/opensand/manager', data_files),
                   ('share/opensand/manager/images', img_files),

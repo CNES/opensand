@@ -44,7 +44,7 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from opensand_daemon.routes import OpenSandRoutes
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 TUN_IFACE = "opensand"
 
 class OpenSandService(object):

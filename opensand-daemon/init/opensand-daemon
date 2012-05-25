@@ -15,11 +15,11 @@
 
 DESCR="the OpenSAND Daemon"
 SCRIPT_NAME="$0"
-PROGNAME="opensand-daemon"
+PROGNAME="sand-daemon"
 LOGGER="/usr/bin/logger"
-BIN="/usr/bin/opensand-daemon"
+BIN="/usr/bin/sand-daemon"
 CONF="/etc/opensand/daemon.conf"
-PIDFILE="/var/run/opensand-daemon/pid"
+PIDFILE="/var/run/sand-daemon/pid"
 USER="opensand"
 
 . /lib/lsb/init-functions
@@ -32,7 +32,7 @@ start()
 
     # Check that executable is present
     if [ ! -x ${BIN} ] ; then
-        log_failure_msg "opensand-daemon binary '${BIN}' not found on system"
+        log_failure_msg "sand-daemon binary '${BIN}' not found on system"
         log_end_msg 1
         exit 1
     fi
@@ -45,8 +45,8 @@ start()
     fi
 
     # Create the PID directory
-    mkdir -p /var/run/opensand-daemon
-    chown ${USER} /var/run/opensand-daemon
+    mkdir -p /var/run/sand-daemon
+    chown ${USER} /var/run/sand-daemon
 
     # Start the OpenSAND daemon server
     start-stop-daemon --start --background --quiet --pidfile ${PIDFILE} --exec ${BIN} ${CONF} 1>/dev/null 2>&1 # --chuid ${USER} --user ${USER}

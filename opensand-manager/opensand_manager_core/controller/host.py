@@ -46,7 +46,7 @@ from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
-START_DESTINATION_PATH = '/var/cache/opensand-daemon/start.ini'
+START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
 DATA_END = 'DATA_END\n'
 
 #TODO factorize

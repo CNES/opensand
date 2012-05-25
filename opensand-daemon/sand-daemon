@@ -59,11 +59,11 @@ from opensand_daemon.nl_utils import NlAddress, NlError, NlExists
 
 # macros
 CONF_FILE = "/etc/opensand/daemon.conf"
-PID_FILE = "/var/run/opensand-daemon/pid"
+PID_FILE = "/var/run/sand-daemon/pid"
 SERVICE = None
 COMMAND = None
 STATE = None
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 
 def sig_handler(signum, frame):
     """ signal handler """
@@ -355,8 +355,8 @@ def stop_state():
 
 if __name__ == "__main__":
     # Logging configuration
-    ROOT_LOGGER = logging.getLogger('opensand-daemon')
-    LOG_HANDLER = SysLogHandler('opensand-daemon', syslog.LOG_PID,
+    ROOT_LOGGER = logging.getLogger('sand-daemon')
+    LOG_HANDLER = SysLogHandler('sand-daemon', syslog.LOG_PID,
                                  syslog.LOG_DAEMON)
     ROOT_LOGGER.addHandler(LOG_HANDLER)
 

@@ -44,7 +44,7 @@ from xml.sax import make_parser, handler, SAXException
 from opensand_daemon.my_exceptions import Timeout, InstructionError, XmlError
 
 # macros
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 TIMEOUT = 20
 DATA_END = "DATA_END\n"
 

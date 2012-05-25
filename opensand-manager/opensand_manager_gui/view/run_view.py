@@ -180,8 +180,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "opensand-manager instance is running on the system,"
-                                  " else try restarting opensand-daemon on "
+                                  "sand-manager instance is running on the system,"
+                                  " else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'st_grey.png')
@@ -218,8 +218,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "opensand-manager instance is running on the system,"
-                                  " else try restarting opensand-daemon on "
+                                  "sand-manager instance is running on the system,"
+                                  " else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'sat_grey.png')
@@ -238,8 +238,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "opensand-manager instance is running on the system,"
-                                  " else try restarting opensand-daemon on "
+                                  "sand-manager instance is running on the system,"
+                                  " else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'gw_grey.png')

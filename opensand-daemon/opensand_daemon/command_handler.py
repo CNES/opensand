@@ -50,7 +50,7 @@ from opensand_daemon.stream import DirectoryHandler
 from opensand_daemon.routes import OpenSandRoutes
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 
 class CommandHandler(MyTcpHandler):
     """ The RequestHandler class for the command server """

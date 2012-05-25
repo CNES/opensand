@@ -55,7 +55,7 @@ stop()
 
     # Check that executable is present
     if [ ! -x ${RESETSCRIPT} ] ; then
-        log_failure_msg "opensand-daemon binary '${RESETSCRIPT}' not found on system"
+        log_failure_msg "sand-daemon binary '${RESETSCRIPT}' not found on system"
         log_end_msg 1
         exit 1
     fi

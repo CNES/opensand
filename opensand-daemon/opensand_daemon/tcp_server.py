@@ -43,7 +43,7 @@ from opensand_daemon.my_exceptions import Timeout
 from opensand_daemon.stream import TIMEOUT
 
 #macros
-LOGGER = logging.getLogger('opensand-daemon')
+LOGGER = logging.getLogger('sand-daemon')
 
 class Plop(SocketServer.TCPServer):
     """ The TCP socket server with reuse address to true """
