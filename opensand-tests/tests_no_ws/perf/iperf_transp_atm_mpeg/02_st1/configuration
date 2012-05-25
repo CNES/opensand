@@ -1,0 +1,15 @@
+[prefix]
+# automatically replaced by the binary
+source=.
+destination=/tmp/opensand_tests
+
+[st1]
+files=perf/iperf_files/iperf_client.py
+
+[common]
+files=.lib/opensand_tests.py,  .lib/__init__.py
+
+[command]
+exec=/tmp/opensand_tests/perf/iperf_files/iperf_client.py
+wait=True
+return=0
