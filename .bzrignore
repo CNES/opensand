@@ -97,16 +97,16 @@ opensand-plugins/ule/debian/libopensand-ule-plugin
 opensand-plugins/ule/debian/libopensand-ule-plugin-dbg
 opensand-plugins/ule/debian/libopensand-ule-plugin-manager
 opensand-plugins/ule/debian/tmp
-opensand-tests/tests/*/*/scenario/default*
-RE:opensand-tests/tests/.*/.*_atm_gse/scenario/plugins/(?!(atm|gse)).*conf
-RE:opensand-tests/tests/.*/.*_atm_gse_rohc/scenario/plugins/(?!(atm|gse|rohc)).*conf
-RE:opensand-tests/tests/.*/.*_atm_mpeg/scenario/plugins/(?!(atm|mpeg)).*conf
-RE:opensand-tests/tests/.*/.*_atm_mpeg_rohc/scenario/plugins/(?!(atm|mpeg|rohc)).*conf
-RE:opensand-tests/tests/.*/.*_mpeg_gse/scenario/plugins/(?!(mpeg|gse)).*conf
-RE:opensand-tests/tests/.*/.*_mpeg_mpeg/scenario/plugins/(?!(mpeg)).*conf
-RE:opensand-tests/tests/.*/.*_mpeg_mpeg_rohc/scenario/plugins/(?!(mpeg|rohc)).*conf
+opensand-tests/tests*/*/*/scenario/default*
+opensand-tests/tests*/*/*/scenario/topology.conf
+opensand-tests/tests*/*/*/scenario/tools
+RE:opensand-tests/tests*/.*/.*_atm_gse/scenario/plugins/(?!(atm|gse)).*conf
+RE:opensand-tests/tests*/.*/.*_atm_gse_rohc/scenario/plugins/(?!(atm|gse|rohc)).*conf
+RE:opensand-tests/tests*/.*/.*_atm_mpeg/scenario/plugins/(?!(atm|mpeg)).*conf
+RE:opensand-tests/tests*/.*/.*_atm_mpeg_rohc/scenario/plugins/(?!(atm|mpeg|rohc)).*conf
+RE:opensand-tests/tests*/.*/.*_mpeg_gse/scenario/plugins/(?!(mpeg|gse)).*conf
+RE:opensand-tests/tests*/.*/.*_mpeg_mpeg/scenario/plugins/(?!(mpeg)).*conf
+RE:opensand-tests/tests*/.*/.*_mpeg_mpeg_rohc/scenario/plugins/(?!(mpeg|rohc)).*conf
 opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/__init__.py
-opensand-tests/tests/*/*/scenario/topology.conf
-opensand-tests/tests/*/*/scenario/tools
 
