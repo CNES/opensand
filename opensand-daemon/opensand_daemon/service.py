@@ -170,12 +170,7 @@ class OpenSandService(object):
             if self._compo == 'gw' or self._compo == 'st':
                 OpenSandService._routes.add_distant_host(name, v4, v6)
             elif self._compo == 'ws' and not name.startswith('ws') and name != 'sat':
-                if self._router_v4 is not None or self._router_v6 is not None:
-                    # add the distant network route
-                    OpenSandService._routes.add_distant_host(name, v4, v6,
-                                                            self._router_v4,
-                                                            self._router_v6)
-                elif inst == self._instance:
+                if inst == self._instance:
                     # this host is our router (ST with the same ID)
                     self._router_v4 = v4.rsplit('/')[0]
                     self._router_v6 = v6.rsplit('/')[0]
@@ -186,6 +181,12 @@ class OpenSandService(object):
                                                                 route[2],
                                                                 self._router_v4,
                                                                 self._router_v6)
+                elif self._router_v4 is not None or self._router_v6 is not None:
+                    # add the distant network route
+                    OpenSandService._routes.add_distant_host(name, v4, v6,
+                                                            self._router_v4,
+                                                            self._router_v6)
+
                 else:
                     # we need to know the router address to set the route
                     # gateway so keep this route until we got it
