@@ -67,13 +67,13 @@ inline string getComponentName(t_component host)
 	}
 }
 
-// TODO TBC (eg. GW_ID = 0, BROADCAST = 0x1F)
+// Broadcast tal id is maximal tal_id value authorized (5 bits).
+#define BROADCAST_TAL_ID 0x1F
 
 /// The types used in OpenSAND
 typedef uint8_t tal_id_t;
 typedef uint8_t spot_id_t;
 typedef uint8_t qos_t;
-
 
 #endif
 

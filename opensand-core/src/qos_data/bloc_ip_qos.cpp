@@ -44,7 +44,6 @@ extern T_ENV_AGENT EnvAgent;
 /// The default LABEL to associate with one IP packet if no MAC ID is found
 const int C_DEFAULT_LABEL = 255;
 
-
 /**
  * constructor
  */
@@ -229,80 +228,84 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	}
 	packet->addTrace(HERE());
 
+	IpAddress *ip_addr;
+	uint8_t tal_id;
+	// get destination Tal ID from IP information because
+	// packet tal_id could be wrong
+	ip_addr = packet->dstAddr();
+	tal_id = this->sarpTable.getTalByIp(ip_addr);
+	
+	// check if the packet should be read
+	if (tal_id == BROADCAST_TAL_ID || tal_id == this->_tal_id)
+	{
+		UTI_DEBUG("%s: Packet IPv%d received from lower layer & shloud be read\n", 
+				FUNCNAME, packet->version());
+		
+		// allocate memory for IP data
+		ip_length = packet->getTotalLength();
+
+		pkt = (unsigned char *) calloc(ip_length + 4, sizeof(unsigned char));
+
+		if(pkt == NULL)
+		{
+			UTI_ERROR("%s cannot allocate memory for sending IP data on TUN\n",
+					  FUNCNAME);
+			status = -1;
+			goto drop;
+		}
+
+		bzero(pkt, ip_length + 4);
+		memcpy(pkt + 4, packet->getData().c_str(), ip_length);
+
+		// find the protocol flag according to IP version
+		switch(packet->version())
+		{
+			case 4:
+				flags = flags4;
+				break;
+			case 6:
+				flags = flags6;
+				break;
+			default:
+				UTI_ERROR("IP packet (version %d) received from lower bloc and "
+						  "dropped\n", packet->version());
+				status = -1;
+				free(pkt);
+				goto drop;
+		}
+
+		// add the protocol flag in the TUN header
+		pkt[0] = flags[0];
+		pkt[1] = flags[1];
+		pkt[2] = flags[2];
+		pkt[3] = flags[3];
+
+		// write data on TUN device
+		if(write(this->_tun_fd, pkt, ip_length + 4) < 0)
+		{
+			UTI_ERROR("%s: Unable to write data on tun interface (errno: %d)\n",
+					  FUNCNAME, errno);
+			status = -1;
+			free(pkt);
+			goto drop;
+		}
+
+		UTI_DEBUG("%s: Packet IPv%d received from lower layer & forwarded to "
+				  "network layer\n", FUNCNAME, packet->version());
+		free(pkt);
+	}
+
 	// check if packet should be forwarded
 	if(this->host == gateway &&
-	   this->_satellite_type == TRANSPARENT_SATELLITE)
+	   this->_satellite_type == TRANSPARENT_SATELLITE &&
+	   tal_id != DVB_GW_MAC_ID)
 	{
-		IpAddress *ip_addr;
-		uint8_t tal_id;
-
-		// get destination Tal ID from IP information because
-		// packet tal_id could be wrong
-		ip_addr = packet->dstAddr();
-		tal_id = this->sarpTable.getTalByIp(ip_addr);
-
-		// check if destination is GW
-		if(tal_id != DVB_GW_MAC_ID)
-		{
-			UTI_DEBUG_L3("%s IP packet is not for GW, forward it\n", FUNCNAME);
-			status = this->onMsgIp(packet);
-			goto quit;
-		}
-		UTI_DEBUG_L3("%s IP packet is for GW\n", FUNCNAME);
+		UTI_DEBUG("%s: Packet should be forwarded (multicast/broadcast or"
+		          " unicast not for GW)", FUNCNAME);
+		status = this->onMsgIp(packet);
+		goto quit;
 	}
 
-	// allocate memory for IP data
-	ip_length = packet->getTotalLength();
-
-	pkt = (unsigned char *) calloc(ip_length + 4, sizeof(unsigned char));
-
-	if(pkt == NULL)
-	{
-		UTI_ERROR("%s cannot allocate memory for sending IP data on TUN\n",
-		          FUNCNAME);
-		status = -1;
-		goto drop;
-	}
-
-	bzero(pkt, ip_length + 4);
-	memcpy(pkt + 4, packet->getData().c_str(), ip_length);
-
-	// find the protocol flag according to IP version
-	switch(packet->version())
-	{
-		case 4:
-			flags = flags4;
-			break;
-		case 6:
-			flags = flags6;
-			break;
-		default:
-			UTI_ERROR("IP packet (version %d) received from lower bloc and "
-			          "dropped\n", packet->version());
-			status = -1;
-			goto clean_and_drop;
-	}
-
-	// add the protocol flag in the TUN header
-	pkt[0] = flags[0];
-	pkt[1] = flags[1];
-	pkt[2] = flags[2];
-	pkt[3] = flags[3];
-
-	// write data on TUN device
-	if(write(this->_tun_fd, pkt, ip_length + 4) < 0)
-	{
-		UTI_ERROR("%s: Unable to write data on tun interface (errno: %d)\n",
-		          FUNCNAME, errno);
-		status = -1;
-		goto clean_and_drop;
-	}
-
-	UTI_DEBUG("%s: Packet IPv%d received from lower layer & forwarded to "
-	          "network\n", FUNCNAME, packet->version());
-
-clean_and_drop:
-	free(pkt);
 drop:
 	delete packet;
 quit:

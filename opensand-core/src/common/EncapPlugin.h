@@ -42,6 +42,7 @@
 
 #include "NetPacket.h"
 #include "NetBurst.h"
+#include "OpenSandCore.h"
 
 /** unused macro to avoid compilation warning with unused parameters.
  * May be used by some implementations of the EncapPlugin inner classes.
@@ -60,9 +61,6 @@ typedef enum
 	REGENERATIVE,
 	TRANSPARENT,
 } sat_type_t;
-
-// Broadcast tal id is maximal tal_id value authorized (5 bits).
-#define BROADCAST_TAL_ID 0x1F
 
 
 /**

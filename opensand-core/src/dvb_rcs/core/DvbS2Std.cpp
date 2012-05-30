@@ -40,7 +40,6 @@
 #include <opensand_conf/uti_debug.h>
 #include <algorithm>
 
-
 DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
 	modcod_definitions()
@@ -298,6 +297,22 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 
 		// retrieve the ST ID associated to the packet
 		tal_id = encap_packet->getDstTalId();
+	    if(tal_id == BROADCAST_TAL_ID)
+			// This is a broadcast/multicast destination
+		{
+			// Select the tal_id corresponding to the lower modcod in order to
+			// make all terminal able to read the message
+			tal_id = 
+				this->satellite_terminals.getTalIdCorrespondingToLowerModcod();
+			if (tal_id < 0)
+			{
+				UTI_ERROR("The forwarding of a multicast frame failed.\n");
+				UTI_ERROR("The Tal_Id corresponding to the terminal using the "
+						"lower modcod can not be retrieved\n");
+				goto error;
+			}
+			UTI_DEBUG("TAL_ID corresponding to lower MODCOD = %li\n", tal_id);
+		}	
 
 		if(!this->getIncompleteBBFrame(tal_id, &current_bbframe))
 		{

@@ -306,6 +306,74 @@ error:
 	return false;
 }
 
+/**
+ * @brief Get the terminal ID for wich the used ModCod is the lower
+ *
+ * @return terminal ID (should be positive, return -1 if an error occurs)
+ */
+long SatelliteTerminalList::getTalIdCorrespondingToLowerModcod()
+{
+	std::map<long, SatelliteTerminal*>::iterator st_iterator;
+	unsigned int modcod_id;
+	unsigned int lower_modcod_id = 0;
+	long tal_id;
+	long lower_tal_id = -1;
+	bool do_advertise_modcod;
+
+	UTI_DEBUG_L3("In getTalIdCorrespondingToLowerModcod()\n");
+	
+	for (st_iterator=this->sts.begin(); st_iterator != this->sts.end(); 
+			st_iterator++)
+	{
+		// Retrieve the lower modcod
+		tal_id = st_iterator->first;
+		
+		UTI_DEBUG_L3("reading modcod of tal_id: %ld\n", tal_id);
+		
+
+		// retrieve the current MODCOD for the ST and whether
+		// it changed or not
+		if(!this->do_exist(tal_id))
+		{
+			UTI_ERROR("encapsulation packet is for ST with ID %ld "
+		          "that is not registered\n", tal_id);
+			goto error;
+		}
+		do_advertise_modcod = 
+			!this->isCurrentModcodAdvertised(tal_id);
+		if(!do_advertise_modcod)
+		{
+			modcod_id = this->getCurrentModcodId(tal_id);
+		}
+		else
+		{
+			modcod_id = this->getPreviousModcodId(tal_id);
+		}
+		UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
+	             tal_id, modcod_id,
+	             do_advertise_modcod ? "yes" : "no");
+
+#if 0 /* TODO: manage options */
+		if(do_advertise_modcod)
+		{
+			this->createOptionModcod(comp, nb_row, *modcod_id, id);
+		}
+#endif
+
+		if((st_iterator==this->sts.begin()) || (modcod_id < lower_modcod_id))
+		{
+			lower_modcod_id = modcod_id;
+			lower_tal_id = tal_id;
+		}
+	}
+
+	UTI_DEBUG_L3("TAL_ID corresponding to lower modcod: %ld\n", lower_tal_id);
+
+	return lower_tal_id;	
+
+error:
+	return -1;
+}
 
 /**
  * @brief Get the column # associated to the ST whose ID is given as input

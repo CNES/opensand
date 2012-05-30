@@ -136,6 +136,9 @@ class SatelliteTerminalList
 	   whose ID is given as input */
 	unsigned int getCurrentDraSchemeId(long id);
 
+	/*  get the terminal ID corresponding to the lower modcod */
+	long getTalIdCorrespondingToLowerModcod();
+
  private:
 
 	/* update the current MODCOD IDs of all STs from MODCOD simulation file */
