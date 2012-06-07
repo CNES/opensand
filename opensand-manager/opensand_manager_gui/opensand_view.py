@@ -58,6 +58,7 @@ class View(WindowView):
     """ OpenSAND manager view """
     def __init__(self, model, manager_log, glade='',
                  scenario='', dev_mode=False):
+        print "INIT !!!!"
         self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
@@ -106,9 +107,6 @@ class View(WindowView):
         else:
             gobject.idle_add(self.set_title,
                              "OpenSAND Manager - [%s]" % scenario)
-
-
-        self._ui.get_widget('window').connect('key-press-event', self.on_window_key_press_event)
 
         self._keylist = []
 
@@ -463,6 +461,7 @@ class View(WindowView):
         """ callback called on keyboard press """
         current = gtk.gdk.keyval_name(event.keyval)
         self._keylist.append(current)
+        print "TOTO"
         if len(self._keylist) > len(KONAMI):
             self._keylist.pop(0)
         if self._keylist == KONAMI:
