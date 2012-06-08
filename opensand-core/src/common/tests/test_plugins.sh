@@ -38,7 +38,8 @@ if [ -z "${INPUT_DIR}" ] ; then
 	exit 1
 fi
 
-CMD="${APP} -f ${BASEDIR}/${INPUT_DIR} ${BASEDIR}/${INPUT_DIR}/sources.pcap"
+CMD="${APP} -f ${BASEDIR}/${INPUT_DIR} ${BASEDIR}/${INPUT_DIR}/source.pcap"
+echo $CMD
  
 # run in verbose mode or quiet mode     
 if [ "${VERBOSE}" = "verbose" ] ; then  
