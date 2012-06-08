@@ -14,7 +14,6 @@ libopensand_common_la_cpp = \
 	PluginUtils.cpp
 
 libopensand_common_la_h = \
-	OpenSandCore.h \
 	msg_dvb_rcs.h \
 	IpPacket.h \
 	Ipv4Packet.h \
@@ -31,6 +30,7 @@ libopensand_encap_plugin_la_cpp = \
 	NetBurst.cpp
 
 libopensand_encap_plugin_la_h = \
+	OpenSandCore.h \
 	Data.h \
 	NetPacket.h \
 	NetBurst.h \
