@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2012 TAS
+# Copyright © 2012 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -205,12 +206,7 @@ class ConfEvent(ConfView) :
 
         return True
 
-    def is_button_active(self, button):
-        """ check if a button is active """
-        widget = self._ui.get_widget(button)
-        return widget.get_active()
-
-    def enable_conf_buttons(self, enable = True):
+    def enable_conf_buttons(self, enable=True):
         """ make apply and cancel buttons sensitive or not """
         self._modif = True
 
@@ -329,8 +325,8 @@ class ConfEvent(ConfView) :
         modules = self._model.get_modules()
         stack = self._out_stack.get_stack()
         if len(stack) == 0:
-             error_popup("Out stack is empty !")
-             return
+            error_popup("Out stack is empty !")
+            return
         pos = max(stack.keys())
         if not modules[stack[pos]].get_condition(emission_std.lower()):
             error_popup("Module %s does not support %s link" %
@@ -342,8 +338,8 @@ class ConfEvent(ConfView) :
             return
         stack = self._in_stack.get_stack()
         if len(stack) == 0:
-             error_popup("In stack is empty !")
-             return
+            error_popup("In stack is empty !")
+            return
         pos = max(stack.keys())
         if not modules[stack[pos]].get_condition('dvb-s2'):
             error_popup("Module %s does not support DVB-S2 link" % stack[pos])
@@ -357,8 +353,8 @@ class ConfEvent(ConfView) :
         if self.is_button_active('regenerative'):
             if len(set(self._out_stack.get_stack().items()) - \
                    set(self._in_stack.get_stack().items())) != 0:
-                error_popup("In regenerative mode, the downlink stack should be at "
-                            "least the same as the uplink one")
+                error_popup("In regenerative mode, the downlink stack should "
+                            " be at least the same as the uplink one")
                 # TODO we could update the down stack with the up stack in
                 # protocol_stack.py to avoid this error
                 return

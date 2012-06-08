@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2011 TAS
+# Copyright © 2011 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -36,7 +37,6 @@ tool_event.py - the events on tool tab
 
 import gobject
 
-from opensand_manager_core.model.tool import ToolModel
 from opensand_manager_gui.view.tool_view import ToolView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ConfigurationNotebook

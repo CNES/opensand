@@ -63,7 +63,7 @@ class HostModel:
         self._advanced = None
         self._state = None
 
-        self._initialisation_failed = False;
+        self._initialisation_failed = False
 
         if self._component != 'ws':
             try:

@@ -63,7 +63,7 @@ class View(WindowView):
             glade = GLADE_PATH
         if not os.path.exists(glade):
             self._log.error("cannot find glade file at %s" % glade)
-            raise ViewException
+            raise ViewException("cannot find glade file at %s" % glade)
 
         WindowView.__init__(self, gladefile=glade)
 
@@ -465,9 +465,9 @@ class View(WindowView):
         if self._keylist == KONAMI:
             dlg = SizeDialog()
             dlg.run()
-            h,v,n = dlg.size_options
+            h, v, n = dlg.size_options
             dlg.destroy()
-            w = MineWindow(h,v,n)
+            MineWindow(h,v,n)
         return False
 
 

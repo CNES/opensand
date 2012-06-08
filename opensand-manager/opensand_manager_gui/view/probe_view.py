@@ -35,7 +35,6 @@ probe_view.py - the probe tab view
 """
 
 import gtk
-import gtk.glade
 import gobject
 import threading
 import os
@@ -107,7 +106,6 @@ class ProbeView(WindowView):
     def init_canvas(self, nbr):
         """ initialize the graphic canvas """
         pylab.clf()
-        formatter = FormatStrFormatter('%2.8g')
 
         if nbr != 0:
             for i in range(nbr):

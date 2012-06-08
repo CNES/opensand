@@ -522,8 +522,8 @@ if __name__ == "__main__":
         LOGGER.debug("terminal type: " + CONFIG.get_terminal_type())
         LOGGER.debug("frame duration: " + str(CONFIG.get_frame_duration()))
 
-        MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {})
-        MODEL.add_host('st3', '3', '127.0.0.1', 1111, 2222, {})
+        MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {}, {})
+        MODEL.add_host('st3', '3', '127.0.0.1', 1111, 2222, {}, {})
         NAMES = ''
         for HOST in MODEL.get_hosts_list():
             NAMES = NAMES + HOST.get_name() + ", "

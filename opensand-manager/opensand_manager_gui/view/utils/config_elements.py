@@ -165,8 +165,6 @@ class ConfigurationTree(gtk.TreeStore):
                           ACTIVE, False,
                           ACTIVATABLE, False)
         for name in modules.keys():
-            module = modules[name]
-            descr = module.get_description()
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
                                VISIBLE, False,
@@ -288,8 +286,6 @@ class ConfigurationNotebook(gtk.Notebook):
         key_box.set_child_packing(key_label, expand=False,
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
-        # TODO get the type of data and depending on it add correponding entry
-        #      type
         elt_type = self._config.get_type(name)
         entry = ConfEntry(elt_type, self._config.get_value(key),
                           self._config.get_path(key),
@@ -628,6 +624,7 @@ class ConfEntry(object):
         self._entry.connect('scroll-event', self.do_not_scroll)
 
     def do_not_scroll(self, source=None, event=None):
+        """ stop scolling in the element which emits the scroll-event signal """
         source.emit_stop_by_name('scroll-event')
         return False
 

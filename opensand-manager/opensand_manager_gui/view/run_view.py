@@ -446,6 +446,7 @@ class RunView(WindowView):
             widget.show()
 
     def is_running(self):
+        """ check if at least one host or controller is running """
         return self._model.is_running()
     
 

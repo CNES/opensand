@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2011 TAS
+# Copyright © 2011 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -34,14 +35,10 @@
 conf_view.py - the configuration tab view
 """
 
-import os
-import gobject
 import gtk
 
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
-from opensand_manager_gui.view.popup.infos import error_popup
-from opensand_manager_core.my_exceptions import ConfException
 
 IMG_PATH = "/usr/share/opensand/manager/images/"
 
@@ -71,7 +68,6 @@ class ConfView(WindowView):
         self._ip_options = {}
 
         self._drawing_area = self._ui.get_widget('repr_stack_links')
-        pango = self._drawing_area.create_pango_layout("")
         self._drawing_area.connect("expose-event", self.draw_links)
         style = self._drawing_area.get_style()
         self._context_graph = style.fg_gc[gtk.STATE_NORMAL]
@@ -122,8 +118,8 @@ class ConfView(WindowView):
         for active in config.get_ip_options():
             try:
                 self._ip_options[active].set_active(True)
-            except KeyError, msg:
-                self._log.error("cannot fine IP option %s" % active)
+            except KeyError:
+                self._log.error("cannot find IP option %s" % active)
         # up_return_encap
         self._out_stack.load(config.get_up_return_encap(),
                              config.get_payload_type())
@@ -287,10 +283,17 @@ class ConfView(WindowView):
         """ 'changed' event on a combobox from the stack """
         self.enable_conf_buttons()
 
-    def enable_conf_buttons(self):
+    def enable_conf_buttons(self, enable=True):
         """ defined in conf_event """
         pass
 
     def on_button_clicked(self, source, event=None):
         """ defined in conf_event """
         pass
+
+    def is_button_active(self, button):
+        """ check if a button is active """
+        widget = self._ui.get_widget(button)
+        return widget.get_active()
+
+

@@ -43,7 +43,7 @@ from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.event_handler import EventReponseHandler
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
-from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
+from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 INIT_ITER = 4
 

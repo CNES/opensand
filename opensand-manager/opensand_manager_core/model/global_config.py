@@ -55,8 +55,8 @@ class GlobalConfig(AdvancedHostModel):
         self._dama = ''
         self._terminal_type = ''
         self._ip_options = []
-        self._down_forward_encap = {}
-        self._up_return_encap = {}
+        self._down_forward = {}
+        self._up_return = {}
         self._frame_duration = ''
 
     def load(self, name, instance, ifaces, scenario):
@@ -183,7 +183,7 @@ class GlobalConfig(AdvancedHostModel):
                 if elt['name'].upper() != "NONE":
                     options.append(elt['name'])
             except KeyError, msg:
-                raise ConfException("cannot get IP options: %s" % msg);
+                raise ConfException("cannot get IP options: %s" % msg)
         return options
 
     def get_encap(self, name):

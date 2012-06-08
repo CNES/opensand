@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2011 TAS
+# Copyright © 2011 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -39,10 +40,7 @@ import gobject
 import threading
 
 from opensand_manager_gui.view.window_view import WindowView
-from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
-                                                           ConfigurationNotebook
-from opensand_manager_core.my_exceptions import ModelException, XmlException
-from opensand_manager_core.opensand_xml_parser import XmlParser
+from opensand_manager_gui.view.utils.config_elements import ConfigurationTree
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -140,6 +138,6 @@ class ToolView(WindowView):
         # continue to refresh
         return True
 
-    def handle_param_changed(self):
+    def handle_param_changed(self, source=None, event=None):
         """ defined in tool_event """
         pass
