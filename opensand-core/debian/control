@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
  libopensand-conf-dev (>= 0.9.0), libopensand-env-plane-dev (>= 0.9.0), libopensand-margouilla-dev (>= 0.9.0),
- libgse-dev, python-lxml
+ python-lxml
 Standards-Version: 3.8.3
 
 Package: opensand-core-all
