@@ -1,4 +1,3 @@
-usr/libexec/opensand/*
 usr/lib/python2.6/dist-packages/opensand_manager_core/*.py
 usr/lib/python2.6/dist-packages/opensand_manager_core/loggers/*.py
 usr/lib/python2.6/dist-packages/opensand_manager_core/model/*.py

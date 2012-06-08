@@ -16,15 +16,8 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-remove_elts(){
-    rm -f /usr/libexec/opensand/searchEntry.sh || true
-    # remove script directory if empty
-    rmdir --ignore-fail-on-non-empty /usr/libexec/opensand || true
-}
-
 case "$1" in
     remove|upgrade|deconfigure)
-        remove_elts
     ;;
 
     failed-upgrade)

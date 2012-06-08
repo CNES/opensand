@@ -53,7 +53,6 @@ from opensand_manager_core.controller.tcp_server import Plop, CommandServer
 from opensand_manager_core.controller.stream import Stream
 from opensand_manager_core.utils import copytree
 
-SCRIPT_PATH = '/usr/libexec/opensand/'
 DEFAUL_PATH = '/usr/share/opensand/'
 DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
 COM_PARAMETERS = '/etc/opensand/env_plane/com_parameters.conf'
