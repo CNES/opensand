@@ -127,7 +127,7 @@ def publish_service():
                     'state' : state,
                     'command' : command,
                  }
-        if name == 'st' or name == 'ws':
+        if name != 'sat':
             instance = CONF_PARSER.get('service', 'instance')
             descr['id'] = instance
         config_type = CONF_PARSER.get('network', 'config_level')
@@ -231,14 +231,6 @@ def publish_service():
 
     # do not raise an error for the following fields because they are not
     # used on each host
-    try:
-        instance = CONF_PARSER.get('service', 'instance')
-    except ConfigParser.Error:
-        pass
-    else:
-        # instance section found, add the information to description
-        descr['id'] = instance
-
     # add supported tools
     try:
         tools = CONF_PARSER.get('service', 'tools')
