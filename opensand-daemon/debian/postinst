@@ -31,10 +31,6 @@ set_owner(){
     ${EXE_CHOWN} ${USER_NAME} /usr/libexec/opensand
 }
 
-set_capabilities(){
-    setcap 'CAP_NET_ADMIN+eip' /usr/bin/sand-daemon
-}
-
 restart_syslog(){
     service rsyslog restart
 }
@@ -43,7 +39,6 @@ case "$1" in
     configure)
         set_owner
         restart_syslog
-        set_capabilities
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
