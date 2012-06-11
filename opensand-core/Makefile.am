@@ -14,6 +14,7 @@ dist_doc_DATA = \
 	COPYING \
 	COPYING.LESSER \
 	AUTHORS \
+	CHANGES \
 	ChangeLog
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -25,7 +26,7 @@ doc:
 	doxygen $(opensand_doc_dir)/doxygen
 
 clean-doc: 
-	rm -rf $(opensand_doc_dir)/html
+	$(RM) -r $(opensand_doc_dir)/html
 
 deb:
 	dpkg-buildpackage

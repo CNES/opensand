@@ -7,16 +7,18 @@
 SUBDIRS = \
 	src
 
-configure_files = \
-	aclocal.m4 \
-	config.h.in \
-	configure \
-	Makefile.am \
-	configure.in \
-	install-sh \
-	mkinstalldirs \
-	missing \
-	depcomp
+dist_doc_DATA = \
+	AUTHORS \
+	ChangeLog \
+	COPYING \
+	INSTALL \
+	NEWS \
+	README
+
+EXTRA_DIST = \
+	doc/doxygen \
+	conf/gse.conf \
+	conf/gse.xsd
 
 .PHONY: doc
 

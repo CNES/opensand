@@ -106,8 +106,8 @@ AC_CONFIG_FILES([ \
 	src/sat_carrier/Makefile \
 	src/system/Makefile \
 	src/tun_interface/Makefile \
-    conf/Makefile \
-	opensand_encap_plugin.pc
+	conf/Makefile \
+	opensand_encap_plugin.pc \
 	doc/doxygen \
 ])
 

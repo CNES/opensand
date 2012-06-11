@@ -7,6 +7,18 @@
 SUBDIRS = \
 	src
 
+dist_doc_DATA = \
+	AUTHORS \
+	ChangeLog \
+	COPYING \
+	INSTALL \
+	NEWS \
+	README
+
+EXTRA_DIST = \
+	doc/doxygen \
+	TODO
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_env_plane.pc
 

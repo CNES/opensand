@@ -1,10 +1,18 @@
 SUBDIRS=src test_runtime doc_src
 
-readme_files = \
-	readme.txt \
-	doc/readme.txt
 
-EXTRA_DIST= $(readme_files)
+dist_doc_DATA = \
+	AUTHORS \
+	ChangeLog \
+	COPYING \
+	INSTALL \
+	LICENSE.LGPL \
+	NEWS \
+	README \
+	readme.txt
+
+EXTRA_DIST = \
+	doc/readme.txt
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_margouilla.pc
