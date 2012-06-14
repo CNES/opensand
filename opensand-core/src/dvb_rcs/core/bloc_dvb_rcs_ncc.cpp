@@ -986,45 +986,32 @@ error:
  */
 int BlocDVBRcsNcc::initDraFiles()
 {
-	std::string dra_def_file;
-	std::string dra_simu_file;
-
-	// build the path to the DRA scheme definition file
-	dra_def_file = MODCOD_DRA_PATH;
-	dra_def_file += "/";
-	dra_def_file += this->dvb_scenario;
-	dra_def_file += "/def_dra_scheme.txt";
-
-	if(access(dra_def_file.c_str(), R_OK) < 0)
+	if(access(this->dra_def.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          dra_def_file.c_str(), strerror(errno));
+		          this->dra_def.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("DRA scheme definition file = '%s'\n", dra_def_file.c_str());
+	UTI_INFO("DRA scheme definition file = '%s'\n", this->dra_def.c_str());
 
 	// load all the DRA scheme definitions from file
-	if(!dynamic_cast<DvbS2Std *>( this->emissionStd)->loadDraSchemeDefinitionFile(dra_def_file))
+	if(!dynamic_cast<DvbS2Std *>
+            (this->emissionStd)->loadDraSchemeDefinitionFile(this->dra_def))
 	{
 		goto error;
 	}
 
-	// build the path to the DRA scheme simulation file
-	dra_simu_file += MODCOD_DRA_PATH;
-	dra_simu_file += "/";
-	dra_simu_file += this->dvb_scenario;
-	dra_simu_file += "/sim_dra_scheme.txt";
-
-	if(access(dra_simu_file.c_str(), R_OK) < 0)
+	if(access(this->dra_simu.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          dra_simu_file.c_str(), strerror(errno));
+		          this->dra_simu.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("DRA scheme simulation file = '%s'\n", dra_simu_file.c_str());
+	UTI_INFO("DRA scheme simulation file = '%s'\n", this->dra_simu.c_str());
 
 	// associate the simulation file with the list of STs
-	if(!dynamic_cast<DvbS2Std *>(this->emissionStd)->loadDraSchemeSimulationFile(dra_simu_file))
+	if(!dynamic_cast<DvbS2Std *>
+            (this->emissionStd)->loadDraSchemeSimulationFile(this->dra_simu))
 	{
 		goto error;
 	}

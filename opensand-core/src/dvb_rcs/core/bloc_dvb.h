@@ -61,7 +61,6 @@
 #include "opensand_margouilla/mgl_bloc.h"
 #include "NccPepInterface.h"
 
-#define MODCOD_DRA_PATH "/etc/opensand/modcod_dra/"
 
 class BlocDvb: public mgl_bloc
 {
@@ -113,12 +112,6 @@ class BlocDvb: public mgl_bloc
 	/// the satellite type (regenerative o transparent)
 	string satellite_type;
 
-/*	/// the up/return link encapsulation scheme
-	string up_return_encap_scheme;
-
-	/// the down/forward link encapsulation scheme
-	string down_forward_encap_scheme;*/
-
 	/// the DAMA algorithpm
 	string dama_algo;
 
@@ -128,8 +121,14 @@ class BlocDvb: public mgl_bloc
 	/// the number of frame per superframe
 	int frames_per_superframe;
 
-	/// the DVB scenario
-	string dvb_scenario;
+	/// the MODCOD definition file
+	string modcod_def;
+	/// the MODCOD simulation file
+	string modcod_simu;
+	/// the DRA definition file
+	string dra_def;
+	/// the DRA simulation file
+	string dra_simu;
 
 	/// the scenario refresh interval
 	int dvb_scenario_refresh;

@@ -62,7 +62,10 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
 	this->dama_algo = "";
 	this->frame_duration = -1;
 	this->frames_per_superframe = -1;
-	this->dvb_scenario = "";
+	this->modcod_def = "";
+	this->modcod_simu = "";
+	this->dra_def = "";
+	this->dra_simu = "";
 	this->dvb_scenario_refresh = -1;
 }
 
@@ -194,22 +197,42 @@ bool BlocDvb::initCommon()
 	UTI_INFO("frames_per_superframe set to %d\n",
 	         this->frames_per_superframe);
 
-	// simulation scenario
-	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO,
-	                         this->dvb_scenario))
+	// MODCOD/DRA simulations and definitions
+	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_SIMU,
+	                          this->modcod_simu))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, DVB_SCENARIO);
+		          GLOBAL_SECTION, MODCOD_SIMU);
 		goto error;
 	}
-	UTI_INFO("dvb_scenario set to %s\n", this->dvb_scenario.c_str());
+	UTI_INFO("MODCOD simulation path set to %s\n", this->modcod_simu.c_str());
 
-	if(this->dvb_scenario != "individual" && this->dvb_scenario != "collective")
+	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_DEF,
+	                          this->modcod_def))
 	{
-		UTI_ERROR("invalid value '%s' for config key '%s' in section '%s'\n",
-		          this->dvb_scenario.c_str(), DVB_SCENARIO, GLOBAL_SECTION);
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		          GLOBAL_SECTION, MODCOD_DEF);
 		goto error;
 	}
+	UTI_INFO("MODCOD definition path set to %s\n", this->modcod_def.c_str());
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_SIMU,
+	                          this->dra_simu))
+	{
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		           GLOBAL_SECTION, DRA_SIMU);
+		goto error;
+	}
+	UTI_INFO("DRA simulation path set to %s\n", this->dra_simu.c_str());
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_DEF,
+	                          this->dra_def))
+	{
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		           GLOBAL_SECTION, DRA_DEF);
+		goto error;
+	}
+	UTI_INFO("DRA definition path set to %s\n", this->dra_def.c_str());
 
 	// scenario refresh interval
 	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
@@ -236,47 +259,34 @@ error:
  */
 int BlocDvb::initModcodFiles()
 {
-	std::string modcod_def_file;
-	std::string modcod_simu_file;
 	int bandwidth;
 
-	// build the path to the modcod definition file
-	modcod_def_file += MODCOD_DRA_PATH;
-	modcod_def_file += "/";
-	modcod_def_file += this->dvb_scenario;
-	modcod_def_file += "/def_modcods.txt";
-
-	if(access(modcod_def_file.c_str(), R_OK) < 0)
+	if(access(this->modcod_def.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           modcod_def_file.c_str(), strerror(errno));
+		           this->modcod_def.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("modcod definition file = '%s'\n", modcod_def_file.c_str());
+	UTI_INFO("modcod definition file = '%s'\n", this->modcod_def.c_str());
 
 	// load all the MODCOD definitions from file
 	if(!dynamic_cast<DvbS2Std *>
-			(this->emissionStd)->loadModcodDefinitionFile(modcod_def_file))
+			(this->emissionStd)->loadModcodDefinitionFile(this->modcod_def))
 	{
 		goto error;
 	}
 
-	// build the path to the modcod simulation file
-	modcod_simu_file += MODCOD_DRA_PATH;
-	modcod_simu_file += "/";
-	modcod_simu_file += this->dvb_scenario;
-	modcod_simu_file += "/sim_modcods.txt";
-
-	if(access(modcod_def_file.c_str(), R_OK) < 0)
+	if(access(this->modcod_simu.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-				  modcod_simu_file.c_str(), strerror(errno));
+		           this->modcod_simu.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("modcod simulation file = '%s'\n", modcod_simu_file.c_str());
+	UTI_INFO("modcod simulation file = '%s'\n", this->modcod_simu.c_str());
 
 	// associate the simulation file with the list of STs
-	if(!dynamic_cast<DvbS2Std *>(this->emissionStd)->loadModcodSimulationFile(modcod_simu_file))
+	if(!dynamic_cast<DvbS2Std *>
+			(this->emissionStd)->loadModcodSimulationFile(this->modcod_simu))
 	{
 		goto error;
 	}
@@ -305,7 +315,7 @@ error:
 
 /**
  * Send the complete DVB frames created
- * by \ref DvbRcsStd::scheduleEncapPackets or
+ * by ef DvbRcsStd::scheduleEncapPackets or
  * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
  *
  * @param complete_frames the list of complete DVB frames
@@ -410,7 +420,7 @@ bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id)
 	dvb_meta = (T_DVB_META *) g_memory_pool_dvb_rcs.get(HERE());
 	dvb_meta->carrier_id = carrier_id;
 	dvb_meta->hdr = dvb_frame;
-	
+
 	// create the Margouilla message with burst as data
 	msg = this->newMsgWithBodyPtr(msg_dvb,
 	                              dvb_meta, dvb_frame->msg_length);

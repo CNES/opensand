@@ -126,10 +126,6 @@ class ConfView(WindowView):
         # down_forward_encap
         self._in_stack.load(config.get_down_forward_encap(),
                             config.get_payload_type())
-        # terminal_type
-        widget = self._ui.get_widget(config.get_terminal_type())
-        widget.set_active(True)
-        widget.clicked()
         # frame_duration
         widget = self._ui.get_widget('FrameDuration')
         widget.set_value(int(config.get_frame_duration()))
@@ -165,10 +161,6 @@ class ConfView(WindowView):
             if self._in_stack.get_stack() != config.get_down_forward_encap():
                 return True
 
-            # terminal_type
-            widget = self._ui.get_widget(config.get_terminal_type())
-            if not widget.get_active():
-                return True
             # frame_duration
             widget = self._ui.get_widget('FrameDuration')
             if widget.get_text() == int(config.get_frame_duration()):

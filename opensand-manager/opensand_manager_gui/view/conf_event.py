@@ -372,13 +372,6 @@ class ConfEvent(ConfView) :
         # input encapsulation scheme
         config.set_down_forward_encap(self._in_stack.get_stack())
 
-        # terminal type
-        if (self.is_button_active('collective') == True):
-            terminal_type = 'collective'
-        else:
-            terminal_type = 'individual'
-        config.set_terminal_type(terminal_type)
-
         # fame duration
         widget = self._ui.get_widget('FrameDuration')
         frame_duration = widget.get_text()

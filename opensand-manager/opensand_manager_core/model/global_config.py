@@ -53,7 +53,6 @@ class GlobalConfig(AdvancedHostModel):
         self._payload_type = ''
         self._emission_std = ''
         self._dama = ''
-        self._terminal_type = ''
         self._ip_options = []
         self._down_forward = {}
         self._up_return = {}
@@ -110,7 +109,6 @@ class GlobalConfig(AdvancedHostModel):
                            self._down_forward)
             self.set_encap('up_return_encap_schemes',
                            self._up_return)
-            self._configuration.set_value(self._terminal_type, "//dvb_scenario")
             self._configuration.set_value(self._frame_duration,
                                           "//frame_duration")
             self._configuration.write()
@@ -237,14 +235,6 @@ class GlobalConfig(AdvancedHostModel):
             self._configuration.set_value(pos, path, 'pos')
             self._configuration.set_value(stack[pos], path, 'encap')
             idx += 1
-
-    def set_terminal_type(self, val):
-        """ set the terminal_type value """
-        self._terminal_type = val
-
-    def get_terminal_type(self):
-        """ get the terminal_type value """
-        return self.get_param("dvb_scenario")
 
     def set_frame_duration(self, val):
         """ set the frame_duration value """

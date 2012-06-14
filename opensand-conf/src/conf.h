@@ -64,7 +64,11 @@
 
 #define DVB_F_DURATION            "frame_duration"
 
-#define DVB_SCENARIO              "dvb_scenario"
+#define MODCOD_DEF                "modcod_definition_file"
+#define MODCOD_SIMU               "modcod_simulation_file"
+#define DRA_DEF                   "dra_definition_file"
+#define DRA_SIMU                  "dra_simulation_file"
+
 #define DVB_SCENARIO_REFRESH      "dvb_scenario_refresh"
 
 #define BANDWIDTH                 "bandwidth"

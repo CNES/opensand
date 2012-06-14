@@ -16,6 +16,11 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="file">
+    <xsd:restriction base="xsd:string" />
+</xsd:simpleType>
+
+
 <!-- types for global section -->
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
@@ -28,13 +33,6 @@
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="transparent" />
         <xsd:enumeration value="regenerative" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="dvbScenario">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="collective" />
-        <xsd:enumeration value="individual" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -219,10 +217,31 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dvb_scenario" type="dvbScenario">
+            <xsd:element name="modcod_definition_file" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The DVB scenario type for adaptative physical layer simulation
+                        The MODCOD definition file
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="modcod_simulation_file" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD simulation file
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dra_definition_file" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DRA definition file
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dra_simulation_file" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DRA simulation file
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

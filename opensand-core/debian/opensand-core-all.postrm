@@ -18,8 +18,19 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+remove_conf(){
+    EXE_RM="/bin/rm"
+    MODCOD_DRA_DIR="/usr/share/opensand/modcod_dra"
+
+    ${EXE_RM} -rf ${MODCOD_DRA_DIR} || true
+}
+
 case "$1" in
-    purge|remove)
+    purge)
+        remove_conf
+    ;;
+
+    remove)
     ;;
     
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
