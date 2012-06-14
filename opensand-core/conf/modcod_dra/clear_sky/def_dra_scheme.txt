@@ -1,0 +1,4 @@
+/* DRA-Schemes definition collective terminal*/
+/* scheme_number, modulation, coding_rate, spectral_efficiency, symbol_rate, bit_rate, required_C_N0 */
+nb_dra_schemes = 1
+11 8PSK 4/5 2.40 6144 14746 82.48
