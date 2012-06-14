@@ -38,7 +38,7 @@ opensand_tests.py - elements for OpenSAND tests
 import dbus, gobject, avahi
 from dbus.mainloop.glib import DBusGMainLoop
 
-TYPE = "_opensand2._tcp"
+TYPE = "_opensand._tcp"
 
 def print_error(err):
     """ error hanlder """
