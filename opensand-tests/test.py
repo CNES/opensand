@@ -423,15 +423,18 @@ help="specify the root folder for tests configurations\n"
 
         # get the host controller
         host_ctrl = None
+        found = False
         if host_name.startswith("WS"):
-            for host_ctrl in self._ws_ctrl:
-                if host_ctrl.get_name() == host_name:
+            for ctrl in self._ws_ctrl:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
                     break
         else:
-            for host_ctrl in self._controller._hosts:
-                if host_ctrl.get_name() == host_name:
+            for ctrl in self._controller._hosts:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
                     break
-
+                
         if host_ctrl is None:
             raise TestError("Configuration", "Cannot find host %s" % host_name)
 
