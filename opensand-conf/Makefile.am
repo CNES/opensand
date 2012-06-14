@@ -15,8 +15,25 @@ dist_doc_DATA = \
 	NEWS \
 	README
 	
+DEBIAN = \
+	debian/changelog \
+	debian/compat \
+	debian/control \
+	debian/copyright \
+	debian/docs \
+	debian/libopensand-conf-dev.dirs \
+	debian/libopensand-conf-dev.install \
+	debian/libopensand-conf.dirs \
+	debian/libopensand-conf.install \
+	debian/postinst \
+	debian/postrm \
+	debian/preinst \
+	debian/prerm \
+	debian/rules
+	
 EXTRA_DIST = \
-	doc/doxygen
+	doc/doxygen \
+	$(DEBIAN)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_conf.pc

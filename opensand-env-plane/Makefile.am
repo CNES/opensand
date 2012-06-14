@@ -14,10 +14,29 @@ dist_doc_DATA = \
 	INSTALL \
 	NEWS \
 	README
+	
+DEBIAN = \
+	debian/changelog \
+	debian/control \
+	debian/docs \
+	debian/libopensand-env-plane-dev.install \
+	debian/libopensand-env-plane.install \
+	debian/opensand-env-plane.install \
+	debian/postrm \
+	debian/prerm \
+	debian/compat \
+	debian/copyright \
+	debian/libopensand-env-plane-dev.dirs \
+	debian/libopensand-env-plane.dirs \
+	debian/opensand-env-plane.dirs \
+	debian/postinst \
+	debian/preinst \
+	debian/rules
 
 EXTRA_DIST = \
 	doc/doxygen \
-	TODO
+	TODO \
+	$(DEBIAN)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_env_plane.pc
