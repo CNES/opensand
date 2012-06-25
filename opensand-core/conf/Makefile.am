@@ -35,5 +35,6 @@ EXTRA_DIST = \
 	check_xml.py \
 	$(HOSTS_CONF) \
 	$(HOSTS_XSD) \
+	$(MODCOD_DRA) \
 	dama.input
 
