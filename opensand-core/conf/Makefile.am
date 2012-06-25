@@ -36,5 +36,6 @@ EXTRA_DIST = \
 	$(HOSTS_CONF) \
 	$(HOSTS_XSD) \
 	$(MODCOD_DRA) \
+	deploy.ini \
 	dama.input
 
