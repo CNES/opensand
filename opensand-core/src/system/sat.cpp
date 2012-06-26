@@ -123,8 +123,8 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				fprintf(stderr, "\t-h              print this message\n");
 				fprintf(stderr, "\t-s <scenario>   set the scenario id\n");
 				fprintf(stderr, "\t-r <run>        set the run id\n");
-				fprintf(stderr, "\t-a <ip_address  set the IP address\n");
-				fprintf(stderr, "\t-n <interface_name   set the interface name\n");
+				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
+				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
 				fprintf(stderr, "\t-i <instance>   set the instance id (ignored)\n");
 
 				UTI_ERROR("usage printed on stderr\n");

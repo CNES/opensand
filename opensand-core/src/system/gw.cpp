@@ -122,14 +122,14 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 			break;
 		case 'h':
 		case '?':
-			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i instance_id"
-                            "-a ip_address -e interface_name]\n",
+			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i instance_id "
+                            "-a ip_address -n interface_name]\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
 			fprintf(stderr, "\t-s <scenario>        set the scenario id\n");
 			fprintf(stderr, "\t-r <run>             set the run id\n");
-			fprintf(stderr, "\t-a <ip_address       set the IP address\n");
-			fprintf(stderr, "\t-n <interface_name   set the interface name\n");
+			fprintf(stderr, "\t-a <ip_address>      set the IP address\n");
+			fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id (ignored)\n");
 
 			UTI_ERROR("usage printed on stderr\n");
