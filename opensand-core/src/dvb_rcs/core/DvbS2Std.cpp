@@ -423,17 +423,17 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 			{
 				goto error;
 			}
-			else if(ret == -2)
-			{
-				this->pending_bbframe = current_bbframe;
-				break;
-			}
 			else
 			{
 				unsigned int modcod = current_bbframe->getModcodId();
 
 				this->incomplete_bb_frames_ordered.remove(current_bbframe);
 				this->incomplete_bb_frames.erase(modcod);
+				if(ret == -2)
+				{
+					this->pending_bbframe = current_bbframe;
+					break;
+				}
 			}
 		}
 	}
