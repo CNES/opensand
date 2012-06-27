@@ -1,5 +1,7 @@
+#!/bin/bash
+
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand_ule_plugin, 0.9.0, [Viveris Technologies])
+AC_INIT(opensand-ule-plugin, 0.9.0, [Viveris Technologies])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE

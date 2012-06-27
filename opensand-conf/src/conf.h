@@ -5,7 +5,6 @@
  *
  *
  * Copyright © 2012 TAS
- * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.

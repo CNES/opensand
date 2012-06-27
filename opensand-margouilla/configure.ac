@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Process this file with autoconf to produce a configure script.
 AC_INIT(opensand-margouilla, 0.9.0, [Viveris Technologies])
 AC_CONFIG_SRCDIR([src/mgl_bloc.cpp])

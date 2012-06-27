@@ -1,6 +1,5 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *

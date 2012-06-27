@@ -4,12 +4,10 @@ SUBDIRS=src test_runtime doc_src
 dist_doc_DATA = \
 	AUTHORS \
 	ChangeLog \
-	COPYING \
+	COPYING.LGPL \
 	INSTALL \
-	LICENSE.LGPL \
 	NEWS \
-	README \
-	readme.txt
+	README
 	
 DEBIAN = \
 	debian/changelog \

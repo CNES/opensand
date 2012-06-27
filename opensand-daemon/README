@@ -1,0 +1,22 @@
+Introduction
+------------
+
+This piece of software is a daemon for the satellite emulation testbed
+OpenSAND
+
+License
+-------
+
+see COPYING
+
+
+Program
+-------
+
+See the INSTALL file to learn how to install the daemon.
+
+
+References
+----------
+
+

@@ -1,11 +1,11 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
  * Copyright © 2011 TAS
+ * Copyright © 2011 CNES
  *
  *
  * This file is part of the OpenSAND testbed.

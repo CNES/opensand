@@ -4,6 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
+ * Copyright © 2011 TAS
  * Copyright © 2011 CNES
  *
  *

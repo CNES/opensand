@@ -38,3 +38,5 @@ Run the functional tests and non-regression tests:
 
  $ make check
 
+
+See the installation manual on OpenSAND website (www.opensand.org) for more details

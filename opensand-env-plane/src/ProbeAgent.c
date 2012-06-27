@@ -478,7 +478,7 @@ T_ERROR PROBE_AGENT_SendAllProbes(
 								 ptr_this->_ptr_errorAgent, C_ERROR_CRITICAL,
 								 C_PROBE_COMMAND, (C_TRACE_THREAD_UNKNOWN,
 														 C_TRACE_COMP_PROBE, C_TRACE_ERROR,
-														 "GENERIC_PACKET_GetEltPkt() cannot get elt generic packet n°%d",
+														 "GENERIC_PACKET_GetEltPkt() cannot get elt generic packet nÂ°%d",
 														 i));
 
 			/* update packet value */

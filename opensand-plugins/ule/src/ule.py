@@ -31,7 +31,7 @@
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 
 """
-mpeg.py - The MPEG encapsulation module
+ule.py - The ULE encapsulation module
 """
 
 from opensand_manager_core.encap_module import EncapModule

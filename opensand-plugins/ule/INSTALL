@@ -29,3 +29,5 @@ If you want to clean the documentation:
 
  $ make clean-doc
 
+
+See the installation manual on OpenSAND website (www.opensand.org) for more details
