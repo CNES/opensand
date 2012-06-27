@@ -20,9 +20,6 @@ remove_elts(){
     rm /usr/share/icons/hicolor/scalable/apps/opensand-manager.svg || true
     rm /usr/share/icons/hicolor/32x32/apps/opensand-manager.png || true
     rm /usr/share/icons/hicolor/48x48/apps/opensand-manager.png || true
-    rm /usr/share/pixmaps/opensand-manager.png || true
-    rm /usr/share/pixmaps/opensand-manager32.png || true
-    rm /usr/share/pixmaps/opensand-manager48.png || true
     rm /usr/share/applications/opensand-manager.desktop || true
 }
 

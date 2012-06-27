@@ -13,6 +13,7 @@ def read(fname):
 
 # List of files
 img_files = ['images/' + png for png in os.listdir('images') if png.endswith('.png')]
+icon_files = ['images/icones/' + png for png in os.listdir('images/icones') if png.endswith('.png')]
 data_files = ['opensand.glade']
 
 #packages = find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"])
@@ -33,5 +34,6 @@ setup(
                   # opensand-manager files
                   ('share/opensand/manager', data_files),
                   ('share/opensand/manager/images', img_files),
+                  ('share/pixmaps/', icon_files), 
                   ]
 )

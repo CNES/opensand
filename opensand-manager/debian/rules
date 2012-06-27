@@ -18,9 +18,6 @@ override_dh_install:
 	install -D -m 0644 images/icones/opensand-manager.svg $(CURDIR)/debian/opensand-manager-gui/usr/share/icons/hicolor/scalable/apps/opensand-manager.svg
 	install -D -m 0644 images/icones/opensand-manager32.png $(CURDIR)/debian/opensand-manager-gui/usr/share/icons/hicolor/32x32/apps/opensand-manager.png
 	install -D -m 0644 images/icones/opensand-manager48.png $(CURDIR)/debian/opensand-manager-gui/usr/share/icons/hicolor/48x48/apps/opensand-manager.png
-	install -D -m 0644 images/icones/opensand-manager32.png $(CURDIR)/debian/opensand-manager-gui/usr/share/pixmaps/opensand-manager32.png
-	install -D -m 0644 images/icones/opensand-manager32.png $(CURDIR)/debian/opensand-manager-gui/usr/share/pixmaps/opensand-manager.png
-	install -D -m 0644 images/icones/opensand-manager48.png $(CURDIR)/debian/opensand-manager-gui/usr/share/pixmaps/opensand-manager48.png
 	install -D -m 0644 opensand-manager.desktop $(CURDIR)/debian/opensand-manager-gui/usr/share/applications/opensand-manager.desktop
 	# install configuration for syslog/logrotate
 	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/opensand-manager-gui/etc/rsyslog.d/opensand-manager.conf
