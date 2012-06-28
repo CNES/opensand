@@ -47,7 +47,18 @@ PKG_CHECK_MODULES([OPENSAND_ROHC], [rohc >= 1.3.1])
 LIBS="$OPENSAND_ROHC_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_ROHC_CFLAGS $AM_CPPFLAGS")
 
-AC_SUBST(AM_CPPFLAGS, "-g -Wall -W -Werror -DUTI_DEBUG_ON $AM_CPPFLAGS")
+# check if -Werror must be appended to CFLAGS
+WERROR=""
+AC_ARG_ENABLE(fail_on_warning,
+              AS_HELP_STRING([--enable-fail-on-warning],
+                             [build fails on warnings if enabled [[default=no]]]),
+              fail_on_warning=$enableval,
+              fail_on_warning=no)
+if test "x$fail_on_warning" != "xno"; then
+	WERROR="-Werror"
+fi
+
+AC_SUBST(AM_CPPFLAGS, "-g -Wall -W ${WERROR} -DUTI_DEBUG_ON $AM_CPPFLAGS")
 
 AM_DEP_TRACK
 

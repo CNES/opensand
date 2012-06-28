@@ -17,5 +17,3 @@ test_thread_LDADD = $(top_builddir)/src/libopensand_margouilla.la -lpthread
 
 EXTRA_DIST=readme.txt test_config_file.cfg
 
-
-AM_CPPFLAGS= -Werror

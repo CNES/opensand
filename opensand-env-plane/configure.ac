@@ -34,7 +34,18 @@ AC_CHECK_FUNCS([malloc free])
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
 
-AC_SUBST(AM_CFLAGS, "-g -Wall -W -Werror")
+# check if -Werror must be appended to CFLAGS
+WERROR=""
+AC_ARG_ENABLE(fail_on_warning,
+              AS_HELP_STRING([--enable-fail-on-warning],
+                             [build fails on warnings if enabled [[default=no]]]),
+              fail_on_warning=$enableval,
+              fail_on_warning=no)
+if test "x$fail_on_warning" != "xno"; then
+	WERROR="-Werror"
+fi
+
+AC_SUBST(AM_CFLAGS, "-g -Wall -W ${WERROR} -DUTI_DEBUG_ON -D_ASP_TRACE -D_ASP_PROBE_CHECK  -D_ASP_TRACE_ERROR")
 #AC_SUBST(AM_CFLAGS, "-g -Wall -W -Werror -Wstrict-prototypes")
 
 AM_DEP_TRACK

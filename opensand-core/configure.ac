@@ -75,7 +75,18 @@ else
 fi
 AC_DEFINE_UNQUOTED([MEMORY_POOL], [$memory_pool], [Whether memory pool is enabled or not.])
 
-AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall -Werror -DUTI_DEBUG_ON")
+# check if -Werror must be appended to CFLAGS
+WERROR=""
+AC_ARG_ENABLE(fail_on_warning,
+              AS_HELP_STRING([--enable-fail-on-warning],
+                             [build fails on warnings if enabled [[default=no]]]),
+              fail_on_warning=$enableval,
+              fail_on_warning=no)
+if test "x$fail_on_warning" != "xno"; then
+	WERROR="-Werror"
+fi
+
+AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
 
 # Install binaries and libraries in usr/bin
 #AC_PREFIX_DEFAULT("/usr")

@@ -112,8 +112,6 @@ ProbeController_LDADD = libopensand_env_plane.la
 # SNMP ProbeController_LDADD = libopensand_env_plane.la -lpthread
 
 
-AM_CPPFLAGS= -g -Wall -Werror -DUTI_DEBUG_ON -D_ASP_TRACE -D_ASP_PROBE_CHECK  -D_ASP_TRACE_ERROR
-
 libopensand_env_plane_includedir = ${includedir}/opensand_env_plane
 
 libopensand_env_plane_include_HEADERS = \

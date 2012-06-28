@@ -90,4 +90,3 @@ msg_ip.h
 
 EXTRA_DIST=readme.txt
 
-AM_CPPFLAGS= -Werror
