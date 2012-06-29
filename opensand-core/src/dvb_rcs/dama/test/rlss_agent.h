@@ -28,23 +28,7 @@
 
 #ifndef RLSS_AGENT_H__
 #   define RLSS_AGENT_H__
-/******************************************************************************
-**                                                                           **
-**                                 ALCATEL                                   **
-**                                                                           **
-******************************************************************************/ 
-	
-	
-/*************************** COPYRIGHT INFORMATION ****************************
-**                                                                           **
-** This program contains proprietary information which is a trade            **
-** secret of ALCATEL and also is protected as an unpublished                 **
-** work under applicable Copyright laws. Recipient is to retain this         **
-** program in confidence and is not permitted to use or make copies          **
-** thereof other than as permitted in a written agreement with ALCATEL.      **
-**                                                                           **
-******************************************************************************/ 
-	
+
 /****************************** IDENTIFICATION ********************************
 **
 ** Project          : GAC
@@ -53,7 +37,7 @@
 **
 ** File name        : rlss_agent.h
 **
-** Description      : 
+** Description      :
 **
 ** Reference(s)     : document title and or id, ...
 **
@@ -61,29 +45,29 @@
 **
 ** Creation date    : 03/06/2002
 **
-******************************************************************************/ 
-	
+******************************************************************************/
+
 /*#######################################################################
  #                                                                      #
  #  INCLUDES                                                            #
  #                                                                      #
- ######################################################################*/ 
+ ######################################################################*/
 /*   We use 'header_generic' from the util_funcs module, so make sure this module is included in the agent.
-*/ 
-	config_require(util_funcs)  
+*/
+	config_require(util_funcs)
 /*   Magic number definitions.
      These must be unique for each object implemented within a single mib module callback routine.
      Typically, these will be the last OID sub-component for each entry, or integers incrementing from 1.
      (which may well result in the same values anyway).
      Here, the second and third objects are form a 'sub-table' and the magic numbers are chosen to match these OID sub-components.
      This is purely for programmer convenience. All that really matters is that the numbers are unique.
-*/ 
-	
+*/
+
 /*#######################################################################
  #                                                                      #
  # DEFINES, MACROS                                                      #
  #                                                                      #
- ######################################################################*/ 
+ ######################################################################*/
 #   define MN_sitDescr			        101
 #   define MN_tmSitId       			102
 #   define MN_tmMsgLatency            	       	103
@@ -102,27 +86,27 @@
 #   define MN_terminalTimeStamp   			116
 #   define MN_terminalControl			117
 #   define MN_fwdInteractionPathDescr	       	118
-	
+
 #   define MN_rmRlssState  	       		201
 #   define MN_rmRlssPrimeShipFlag	       		202
 #   define MN_rmRlssPrimeIpAddress	       		203
 #   define MN_rmRlssSecondIpAddress       		204
-	
+
 /*#######################################################################
  #                                                                      #
  # INTERFACE CONSTANT AND INTERFACE VARIABLE EXTERN DECLARATIONS        #
  #                                                                      #
- ######################################################################*/ 
+ ######################################################################*/
 /*   Declare our publically-visible functions.
      Typically, these will include the initialization and shutdown functions, the main request callback routine and any writeable object methods.
      Function prototypes are provided for the callback routine ('FindVarMethod') and writeable object methods ('WriteMethod').
-*/ 
+*/
 	  extern void init_rlss_agent(void);
-	  extern FindVarMethod var_mibdb_simplevar;
-	  extern FindVarMethod var_mibdb_tablevar;
-	  extern WriteMethod write_mibdb_simplevar;
-	  extern WriteMethod write_mibdb_tablevar;
-	  int requestCallback(int majorID, int minorID, void *serverarg,
+	  extern FindVarMethod var_mibdb_simplevar;
+	  extern FindVarMethod var_mibdb_tablevar;
+	  extern WriteMethod write_mibdb_simplevar;
+	  extern WriteMethod write_mibdb_tablevar;
+	  int requestCallback(int majorID, int minorID, void *serverarg,
 									void *clientarg);
-
+
 #endif /* RLSS_AGENT_H__ */
