@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-conf, 0.9.0, [Viveris Technologies])
+AC_INIT(opensand-conf, trunk, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE

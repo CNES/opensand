@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-margouilla, 0.9.0, [Viveris Technologies])
+AC_INIT(opensand-margouilla, trunk, [http://opensand.org])
 AC_CONFIG_SRCDIR([src/mgl_bloc.cpp])
 AM_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE(opensand-margouilla, 0.9.0)
+AM_INIT_AUTOMAKE(opensand-margouilla, trunk)
 
 # Checks for programs.
 AC_PROG_CXX
