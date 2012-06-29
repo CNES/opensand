@@ -15,26 +15,8 @@ dist_doc_DATA = \
 	NEWS \
 	README
 	
-DEBIAN = \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-atm-aal5-plugin.install \
-	debian/libopensand-atm-aal5-plugin.postinst \
-	debian/postinst \
-	debian/preinst \
-	debian/rules \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-atm-aal5-plugin.dirs \
-	debian/libopensand-atm-aal5-plugin-manager.dirs \
-	debian/libopensand-atm-aal5-plugin.prerm \
-	debian/postrm \
-	debian/prerm
-
 EXTRA_DIST = \
-	doc/doxygen \
-	$(DEBIAN)
+	doc/doxygen
 
 .PHONY: doc
 

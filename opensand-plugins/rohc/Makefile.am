@@ -15,28 +15,10 @@ dist_doc_DATA = \
 	NEWS \
 	README
 
-DEBIAN = \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-rohc-plugin.install \
-	debian/libopensand-rohc-plugin.postinst \
-	debian/postinst \
-	debian/preinst \
-	debian/rules \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-rohc-plugin.dirs \
-	debian/libopensand-rohc-plugin-manager.dirs \
-	debian/libopensand-rohc-plugin.prerm \
-	debian/postrm \
-	debian/prerm
-
 EXTRA_DIST = \
 	doc/doxygen \
 	conf/rohc.conf \
-	conf/rohc.xsd \
-	$(DEBIAN)
+	conf/rohc.xsd
 
 .PHONY: doc
 

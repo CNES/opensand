@@ -15,28 +15,10 @@ dist_doc_DATA = \
 	NEWS \
 	README
 	
-DEBIAN = \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-gse-plugin.install \
-	debian/libopensand-gse-plugin.postinst \
-	debian/postinst \
-	debian/preinst \
-	debian/rules \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-gse-plugin.dirs \
-	debian/libopensand-gse-plugin-manager.dirs \
-	debian/libopensand-gse-plugin.prerm \
-	debian/postrm \
-	debian/prerm
-
 EXTRA_DIST = \
 	doc/doxygen \
 	conf/gse.conf \
-	conf/gse.xsd \
-	$(DEBIAN)
+	conf/gse.xsd
 
 .PHONY: doc
 

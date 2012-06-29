@@ -9,25 +9,8 @@ dist_doc_DATA = \
 	NEWS \
 	README
 	
-DEBIAN = \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-margouilla-dev.install \
-	debian/libopensand-margouilla.install \
-	debian/postrm \
-	debian/prerm \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-margouilla-dev.dirs \
-	debian/libopensand-margouilla.dirs \
-	debian/postinst \
-	debian/preinst \
-	debian/rules
-
 EXTRA_DIST = \
-	doc/readme.txt \
-	$(DEBIAN)
+	doc/readme.txt
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_margouilla.pc

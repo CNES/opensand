@@ -15,28 +15,10 @@ dist_doc_DATA = \
 	NEWS \
 	README
 
-DEBIAN = \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-mpeg-plugin.install \
-	debian/libopensand-mpeg-plugin.postinst \
-	debian/postinst \
-	debian/preinst \
-	debian/rules \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-mpeg-plugin.dirs \
-	debian/libopensand-mpeg-plugin-manager.dirs \
-	debian/libopensand-mpeg-plugin.prerm \
-	debian/postrm \
-	debian/prerm
-	
 EXTRA_DIST = \
 	doc/doxygen \
 	conf/mpeg.conf \
-	conf/mpeg.xsd \
-	$(DEBIAN)
+	conf/mpeg.xsd
 
 .PHONY: doc
 

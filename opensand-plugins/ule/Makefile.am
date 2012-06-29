@@ -15,26 +15,8 @@ dist_doc_DATA = \
 	NEWS \
 	README
 
-DEBIAN= \
-	debian/changelog \
-	debian/control \
-	debian/docs \
-	debian/libopensand-ule-plugin.install \
-	debian/libopensand-ule-plugin.postinst \
-	debian/postinst \
-	debian/preinst \
-	debian/rules \
-	debian/compat \
-	debian/copyright \
-	debian/libopensand-ule-plugin.dirs \
-	debian/libopensand-ule-plugin-manager.dirs \
-	debian/libopensand-ule-plugin.prerm \
-	debian/postrm \
-	debian/prerm
-
 EXTRA_DIST = \
-	doc/doxygen \
-	$(DEBIAN)
+	doc/doxygen
 
 .PHONY: doc
 
