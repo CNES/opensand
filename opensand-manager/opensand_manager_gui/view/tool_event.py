@@ -40,7 +40,7 @@ import gobject
 from opensand_manager_gui.view.tool_view import ToolView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ConfigurationNotebook
-from opensand_manager_core.my_exceptions import XmlException
+from opensand_manager_core.my_exceptions import XmlException, ModelException
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -258,7 +258,12 @@ class ToolEvent(ToolView):
         # delete tools vbox to reload tool info
         for host in self._model.get_all():
             for tool in host.get_tools():
-                tool.reload_conf()
+                try:
+                    tool.reload_conf()
+                except ModelException, msg:
+                    self._tool_lock.release()
+                    error_popup("%s: %s" % (tool.get_name(), msg))
+                    self._tool_lock.acquire()
 
         for name in self._modules:
             self._modules[name].set_conf_view(None)
