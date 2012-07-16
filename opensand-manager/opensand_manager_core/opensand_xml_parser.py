@@ -68,7 +68,7 @@ class XmlParser:
             self._xsd_parser = etree.parse(xsd)
         except IOError, err:
             raise
-        except etree.XMLSyntaxError, err:
+        except (etree.XMLSyntaxError, etree.XMLSchemaParseError), err:
             raise XmlException(err.error_log.last_error.message)
 
         if not self._schema.validate(self._tree):
