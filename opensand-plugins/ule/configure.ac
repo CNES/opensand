@@ -33,7 +33,7 @@ AC_CHECK_FUNCS([])
 PKG_PROG_PKG_CONFIG
 
 # check for opensand-encap-plugin library
-PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_encap_plugin >= 0.9.0])
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_encap_plugin = trunk])
 LIBS="$OPENSAND_PLUG_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
 

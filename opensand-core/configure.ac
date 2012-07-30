@@ -46,17 +46,17 @@ AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found
 
 
 # check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf >= 0.9.0])
+PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = trunk])
 LIBS="$OPENSAND_CONF_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-env-plane library
-PKG_CHECK_MODULES([OPENSAND_ENV_PLANE], [opensand_env_plane >= 0.9.0])
+PKG_CHECK_MODULES([OPENSAND_ENV_PLANE], [opensand_env_plane = trunk])
 LIBS="$OPENSAND_ENV_PLANE_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_ENV_PLANE_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-margouilla library
-PKG_CHECK_MODULES([OPENSAND_MARGOUILLA], [opensand_margouilla >= 0.9.0])
+PKG_CHECK_MODULES([OPENSAND_MARGOUILLA], [opensand_margouilla = trunk])
 LIBS="$OPENSAND_MARGOUILLA_LIBS $LIBS"
 echo "$AM_CPPFLAGS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_MARGOUILLA_CFLAGS $AM_CPPFLAGS")
