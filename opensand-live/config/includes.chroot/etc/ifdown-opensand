@@ -1,0 +1,15 @@
+#!/bin/sh 
+# 
+# Script to bring down and delete bridge br0 when QEMU exits 
+
+# Delete the bridge
+#
+
+ip link set br_opensand down
+/usr/sbin/brctl delbr br_opensand 
+
+# delete the tap device
+#
+
+tunctl -d tap_gw
+tunctl -d tap_st1

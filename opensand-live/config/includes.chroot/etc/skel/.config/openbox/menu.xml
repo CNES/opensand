@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<openbox_menu xmlns="http://openbox.org/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://openbox.org/
+                file:///usr/share/openbox/menu.xsd">
+
+<menu id="root-menu" label="Openbox 3">
+  <item label="xterm">
+    <action name="Execute"><execute>x-terminal-emulator</execute></action>
+  </item>
+  <item label="Start OpenSand VMs (gw and st1)">
+    <action name="Execute"><execute>/usr/bin/opensand-live</execute></action>
+  </item>
+  <item label="OpenSand manager">
+    <action name="Execute"><execute>/usr/bin/sand-manager -t _opensand_live._tcp </execute></action>
+  </item>
+  <separator />
+  <menu id="kbl" label="Keyboard Layout">
+    <item label="us">
+      <action name="Execute"><execute>setxkbmap us</execute></action>
+    </item>
+    <item label="fr">
+      <action name="Execute"><execute>setxkbmap fr</execute></action>
+    </item>
+  </menu>
+  <separator />
+  <item label="Exit">
+    <action name="Execute"><execute>sudo halt</execute></action>
+  </item>
+</menu>
+
+</openbox_menu>

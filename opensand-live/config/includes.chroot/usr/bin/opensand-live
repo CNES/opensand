@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Will start VMs, wait for them to be ready 
+# and start opensand-daemon on them
+# Authors : Alexandre Chataignon <alexandre.chataignon@toulouse.viveris.com>
+
+tell() {
+	# Will show dialog
+	if [ -n "$DIALOG_PID" ]; then
+		kill $DIALOG_PID &> /dev/null
+	fi
+
+	gxmessage -center -title "Opensand live" "$@" &> /dev/null &
+	DIALOG_PID=$!
+}
+
+stop_error() {
+	if [ -n "$DIALOG_PID" ]; then
+		kill $DIALOG_PID &> /dev/null
+	fi
+	gxmessage -center -title "Opensand live error" "Error : $@" &> /dev/null&
+	sudo killall qemu-system-i386 
+	exit 1
+}
+
+# Prepare right for ping
+sudo chown root /bin/ping
+sudo chmod +s /bin/ping
+
+# Test if VMs are already launched
+ps ax | grep  qemu-system-i386 | grep -v grep &> /dev/null
+if [ $? -eq 0 ]; then
+	gxmessage -center -title "Opensand live error" "VMs are already running, please kill them before re-executing this script"
+	exit 1
+fi
+
+#
+# Start VMs
+#
+
+tell "Please wait, the VMs are starting..."
+
+sudo qemu-system-i386 -m 256 -hda /usr/share/opensand/vm/debian_gw.img -net nic,macaddr=00:11:22:33:ca:fe -net tap,ifname=tap_gw,script=no,downscript=no -net nic,macaddr=00:11:22:33:de:ad -net none -vga std -loadvm opensand_gw -name GW -vnc :1  &
+sudo qemu-system-i386 -m 256 -hda /usr/share/opensand/vm/debian_st1.img -net nic,macaddr=00:11:22:33:ba:be -net tap,ifname=tap_st1,script=no,downscript=no -net nic,macaddr=00:11:22:33:be:ef -net none -vga std -loadvm opensand_st1 -name ST1  -vnc :2 &
+
+#
+# Wait for ping 
+#
+
+wait_and_start() {
+	VM="$1"
+
+	count=30
+	while [ $count -ne 0 ]; do
+		ping -c1 $VM &> /dev/null
+		r=$?
+		if [ $r -eq 0 ]; then
+			break
+		fi
+		count=$((count - 1))
+	done
+		
+	if [ $r -eq 0 ]; then
+		tell "Starting $VM daemon..."
+		ssh $VM /etc/init.d/opensand-daemon start
+		if [ $? -ne 0 ]; then
+			stop_error "Unable to start $VM daemon"
+		fi
+	else
+		stop_error "Timeout while starting $VM vm"
+	fi
+}
+
+wait_and_start st1
+wait_and_start gw
+
+#
+# All went good
+#
+
+tell "VMs are started, you can now use Opensand via the manager"
+
+/usr/bin/sand-manager -t _opensand_live._tcp
