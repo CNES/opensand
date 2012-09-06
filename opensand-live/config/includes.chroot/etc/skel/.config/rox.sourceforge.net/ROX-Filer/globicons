@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<special-files>
+  <rule match="/usr/bin/xterm">
+    <icon>/usr/share/opensand/manager/images/orange.png</icon>
+  </rule>
+  <rule match="/usr/bin/opensand-live">
+    <icon>/usr/share/opensand/manager/images/network.png</icon>
+  </rule>
+  <rule match="/usr/bin/sand-manager">
+    <icon>/usr/share/opensand/manager/images/monitoring.png</icon>
+  </rule>
+</special-files>

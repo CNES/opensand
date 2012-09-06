@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<pinboard>
+  <backdrop style="Tiled">/home/user/wp-opensand.png</backdrop>
+  <icon x="64" y="320" label="Test ping ST1" args="-e /home/user/ping_st1">/usr/bin/xterm</icon>
+  <icon x="64" y="256" label="Test ping gateway" args="-e /home/user/ping_gw">/usr/bin/xterm</icon>
+  <icon x="64" y="128" label="OpenSand Manager" args="-t _opensand_live._tcp">/usr/bin/sand-manager</icon>
+  <icon x="32" y="32" label="Start OpenSand VMs">/usr/bin/opensand-live</icon>
+  <icon x="64" y="448" label="OpenSand live manual">/home/user/opensand_live.pdf</icon>
+</pinboard>

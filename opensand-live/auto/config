@@ -1,0 +1,14 @@
+#!/bin/sh
+
+lb config noauto \
+	--distribution "squeeze" \
+	--architecture i386 \
+	--linux-flavours 686 \
+	--package-lists "standard" \
+	--memtest "none" \
+	--debian-installer-gui false \
+	--apt-indices "false" \
+	--source "false" \
+	--bootappend-live "locales=en_US.UTF-8 keyboard-layouts=us hostname=opensand swapon ramdisk-size=2G hdd-size=2G nonetworking" \
+	"${@}"
+

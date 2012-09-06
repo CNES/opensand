@@ -1,0 +1,15 @@
+openbox
+xinit
+xserver-xorg
+bridge-utils
+psmisc
+qemu
+ssh
+avahi-discover
+vim
+less
+uml-utilities
+gxmessage
+xtightvncviewer
+epdfview
+rox-filer
