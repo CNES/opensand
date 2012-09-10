@@ -1,7 +1,7 @@
 Source: opensand-env-plane
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
-Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config, libopensand-conf-dev
 Standards-Version: 3.8.3
 
 Package: libopensand-env-plane-dev
