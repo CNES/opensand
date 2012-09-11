@@ -60,6 +60,7 @@ class ProcessList():
     _process_list = {}
     _init = False
     _wait = None
+    _callbacks = []
 
     def __init__(self):
         pass
@@ -135,6 +136,7 @@ class ProcessList():
                     os.environ['LD_LIBRARY_PATH'] = ld_library_path
                     LOGGER.info('Library path: %s' % ld_library_path) 
                 process = subprocess.Popen(cmd, close_fds=True)
+                process.prog_name = section
                 if 'LD_LIBRARY_PATH' in os.environ:
                     del os.environ['LD_LIBRARY_PATH']
                 ProcessList._process_list[section] = process
@@ -208,6 +210,10 @@ class ProcessList():
                     LOGGER.warning("Error when terminating %s: %s" %
                                    (name, strerror))
                     pass
+
+            for callback in ProcessList._callbacks:
+                callback(process)
+
         ProcessList._stop.set()
         if ProcessList._wait is not None:
             ProcessList._wait.join()
@@ -251,11 +257,35 @@ class ProcessList():
 
             if not running:
                 del ProcessList._process_list[name]
+                for callback in ProcessList._callbacks:
+                    callback(process)
                 LOGGER.info("assume that process %s is stopped", name)
 #            else:
 #                LOGGER.debug("process '%s' is running", name)
 
         ProcessList._process_lock.release()
+
+    def find_process(self, attr, value):
+        """ find the process whose attribute attr equals value """
+
+        with ProcessList._process_lock:
+            for process in ProcessList._process_list.itervalues():
+                if getattr(process, attr, None) == value:
+                    return process
+
+        return None
+
+    def get_processes_attr(self, attr):
+        """ return a list of the processes’ specified attribute """
+
+        result = []
+        with ProcessList._process_lock:
+            for process in ProcessList._process_list.itervalues():
+                value = getattr(process, attr, None)
+                if value is not None:
+                    result.append(value)
+
+        return result
 
     def get_components(self):
         """ return the components of the process list """
@@ -284,6 +314,10 @@ class ProcessList():
         """ if terminate does not stop process in 5 seconds, kill it """
         ProcessList._stop.wait(5)
         process.poll()
-        if not process.returncode:
+        if process.returncode is not None:
             process.kill()
+
+    def register_end_callback(self, callback):
+        """ registers a callback to be called when a process is stopped """
+        ProcessList._callbacks.append(callback)
 
