@@ -5,6 +5,7 @@ Main file for the OpenSAND collector.
 """
 
 from messages_handler import MessagesHandler
+from optparse import OptionParser
 from probes_manager import HostManager
 from service_handler import ServiceHandler
 import gobject
@@ -27,11 +28,23 @@ class OpenSandCollector(object):
         Start the collector
         """
 
-        logging.basicConfig(level=logging.DEBUG)
+        parser = OptionParser()
+        parser.set_defaults(debug=False)
+        parser.add_option("-t", "--service_type", dest="service_type",
+            help="OpenSAND service type (default: _opensand._tcp)")
+        (options, args) = parser.parse_args()
+        parser.add_option("-d", action="store_true", dest="debug")
+
+
+        service_type = options.service_type or "_opensand._tcp"
+        level = logging.DEBUG if options.debug else logging.INFO
+
+        logging.basicConfig(level=level)
 
         main_loop = gobject.MainLoop()
 
         with MessagesHandler(self) as msg_handler:
-            with ServiceHandler(self, msg_handler.get_port()):
+            port = msg_handler.get_port()
+            with ServiceHandler(self, port, service_type):
                 main_loop.run()
 

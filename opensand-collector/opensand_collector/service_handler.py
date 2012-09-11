@@ -8,7 +8,6 @@ import dbus
 import logging
 
 LOGGER = logging.getLogger('service_handler')
-OPENSAND_DOMAIN = "_opensand._tcp"
 
 class ServiceHandler(object):
     """
@@ -16,9 +15,10 @@ class ServiceHandler(object):
     daemons can find it) and find the OpenSAND daemons and their IPs.
     """
 
-    def __init__(self, collector, listen_port):
+    def __init__(self, collector, listen_port, service_type):
         self.collector = collector
         self.listen_port = listen_port
+        self.service_type = service_type
         self._pub_group = None
         self._disco_server = None
         self._known_hosts = set()
@@ -38,7 +38,7 @@ class ServiceHandler(object):
             pub_server.EntryGroupNew()), avahi.DBUS_INTERFACE_ENTRY_GROUP)
 
         self._pub_group.AddService(avahi.IF_UNSPEC, avahi.PROTO_UNSPEC,
-            dbus.UInt32(0), "collector", OPENSAND_DOMAIN, "", "",
+            dbus.UInt32(0), "collector", self.service_type, "", "",
             dbus.UInt16(self.listen_port), ["OpenSAND collector=Hello World!"])
 
         self._pub_group.Commit()
@@ -49,8 +49,8 @@ class ServiceHandler(object):
 
         disco_browser = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
             self._disco_server.ServiceBrowserNew(avahi.IF_UNSPEC,
-                avahi.PROTO_UNSPEC, OPENSAND_DOMAIN, 'local', dbus.UInt32(0))),
-            avahi.DBUS_INTERFACE_SERVICE_BROWSER)
+                avahi.PROTO_UNSPEC, self.service_type, 'local',
+                dbus.UInt32(0))), avahi.DBUS_INTERFACE_SERVICE_BROWSER)
 
         disco_browser.connect_to_signal("ItemNew", self._handle_new)
         disco_browser.connect_to_signal("ItemRemove", self._handle_remove)
