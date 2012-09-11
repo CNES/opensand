@@ -1,0 +1,20 @@
+Source: opensand-collector
+Priority: optional
+Maintainer: Vincent Duvert <vincent.duvert@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), python (>=2.6),
+ python-support,
+ python-setuptools,
+ python-dev
+Standards-Version: 3.8.3
+
+Package: opensand-collector
+Architecture: any
+XS-Python-Version: >= 2.6
+Depends: ${misc:Depends}, python (>= 2.6),
+ python-dbus,
+ python-avahi, avahi-daemon,
+ python-ipaddr,
+ python-prctl,
+ rsyslog, logrotate
+Description: Stats collector for OpenSAND
+

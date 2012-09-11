@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf8 -*-
+
+from opensand_collector import OpenSandCollector
+
+if __name__ == '__main__':
+    OpenSandCollector().run()
