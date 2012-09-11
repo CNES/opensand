@@ -49,6 +49,8 @@
 #include "EncapPlugin.h"
 #include "IpPacketHandler.h"
 
+// environment plane
+#include "opensand_env_plane/EnvPlane.h"
 
 /**
  * @class BlocEncapSat
@@ -149,6 +151,9 @@ class BlocEncapSat: public mgl_bloc
 	 *               or not
 	 */
 	mgl_status EncapsulatePackets(NetBurst *burst);
+	
+	/// environment plane events
+	static Event* error_init;
 };
 
 #endif

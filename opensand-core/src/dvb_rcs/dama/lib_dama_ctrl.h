@@ -48,7 +48,7 @@
 #include "DraSchemeDefinitionTable.h"
 
 #include "opensand_conf/conf.h"
-
+#include "opensand_env_plane/EnvPlane.h"
 
 /**
  * Describe a station identificator
@@ -159,6 +159,24 @@ class DvbRcsDamaCtrl
 	long getCarrierId();
 
 
+ protected:
+ 	// Environment plane events and probes
+	static Event* error_alloc;
+	static Event* error_ncc_req;
+
+	static Probe<int>* probe_gw_rdbc_req_num;
+	static Probe<int>* probe_gw_rdbc_req_capacity;
+	static Probe<int>* probe_gw_vdbc_req_num;
+	static Probe<int>* probe_gw_vdbc_req_capacity;
+	static Probe<int>* probe_gw_cra_alloc;
+	static Probe<int>* probe_gw_cra_st_alloc;
+	static Probe<int>* probe_gw_rbdc_alloc;
+	static Probe<int>* probe_gw_rbdc_st_alloc;
+	static Probe<int>* probe_gw_rbdc_max_alloc;
+	static Probe<int>* probe_gw_rbdc_max_st_alloc;
+ 	static Probe<int>* probe_gw_vbdc_alloc;
+	static Probe<int>* probe_gw_logger_st_num;
+
  private:
 
 	// Associated utility to reallocate internal buffers
@@ -177,8 +195,6 @@ class DvbRcsDamaCtrl
 	 * @return 0 on success, -1 otherwise
 	 */
 	virtual int runDama() = 0;
-
-
 };
 
 /**

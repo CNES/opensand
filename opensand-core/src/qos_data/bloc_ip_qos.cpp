@@ -38,8 +38,8 @@
 #define DBG_PACKAGE PKG_QOS_DATA
 #include "opensand_conf/uti_debug.h"
 
-
-extern T_ENV_AGENT EnvAgent;
+// environment plane events
+Event* BlocIPQoS::error_init = NULL;
 
 /// The default LABEL to associate with one IP packet if no MAC ID is found
 const int C_DEFAULT_LABEL = 255;
@@ -61,6 +61,10 @@ BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
 
 	// link state
 	this->_state = link_down;
+
+	if (error_init == NULL) {
+		error_init = EnvPlane::register_event("bloc_ip_qos:init", LEVEL_ERROR);
+	}
 }
 
 
@@ -101,8 +105,7 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->_tun_fd < 0)
 		{
 			UTI_ERROR("%s error in creating TUN interface\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			EnvPlane::send_event(error_init, "%s error in creating TUN interface\n", FUNCNAME);
 			return mgl_ko;
 		}
 
@@ -110,8 +113,7 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->addFd(this->_tun_fd) == mgl_ko)
 		{
 			UTI_ERROR("%s failed to register TUN handle fd\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			EnvPlane::send_event(error_init, "%s failed to register TUN handle fd\n", FUNCNAME);
 			return mgl_ko;
 		}
 

@@ -36,7 +36,6 @@
 
 #define DBG_PACKAGE PKG_DEFAULT
 #include "opensand_conf/uti_debug.h"
-#include "opensand_env_plane/EnvironmentAgent_e.h"
 #include "opensand_conf/conf.h"
 
 #include <sys/types.h>
@@ -46,16 +45,17 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <sstream>
-
-
-extern T_ENV_AGENT EnvAgent;
 
 
 /** The size of the receive buffer */
 #define RCVBUFSIZE 200
 
+
+/* static */
+Event* NccPepInterface::error_sock_open = NULL;
 
 /**
  * @brief Initialize the interface between NCC and PEP components
@@ -65,6 +65,10 @@ NccPepInterface::NccPepInterface(): requests_list()
 	this->socket_listen = -1;
 	this->socket_client = -1;
 	this->is_connected = false;
+	
+	if (error_sock_open == NULL) {
+		error_sock_open = EnvPlane::register_event("ncc_pep_interface", LEVEL_ERROR);
+	}
 }
 
 
@@ -207,8 +211,9 @@ bool NccPepInterface::listenForPepConnections()
 	{
 		UTI_ERROR("failed to create socket to listen for PEP "
 		          "connections: %s (%d)\n", strerror(errno), errno);
-		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_PEP_SOCKET,
-		                     errno, C_ERROR_SOCK_OPEN);
+		EnvPlane::send_event(error_sock_open, "failed to create socket"
+			" to listen for PEP connections: %s (%d)\n", strerror(errno),
+			errno);
 		goto error;
 	}
 

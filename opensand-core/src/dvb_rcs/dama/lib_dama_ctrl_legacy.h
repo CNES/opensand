@@ -53,6 +53,10 @@ class DvbRcsDamaCtrlLegacy: public DvbRcsDamaCtrl
 	DvbRcsDamaCtrlLegacy();
 	virtual ~ DvbRcsDamaCtrlLegacy();
 
+ protected:
+	/// Environment plane probes
+	static Probe<int>* probe_gw_fca_alloc;
+	static Probe<float>* probe_gw_uplink_fair_share;
 
  private:
 	/// the core of the class

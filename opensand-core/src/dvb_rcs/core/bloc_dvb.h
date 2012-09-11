@@ -61,6 +61,8 @@
 #include "opensand_margouilla/mgl_bloc.h"
 #include "NccPepInterface.h"
 
+#include <opensand_env_plane/EnvPlane.h>
+
 
 class BlocDvb: public mgl_bloc
 {
@@ -142,6 +144,10 @@ class BlocDvb: public mgl_bloc
 	/// The down/forward link encapsulation packet
 	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
 	
+	/// environment plane events
+	static Event* error_init;
+	static Event* event_login_received;
+	static Event* event_login_response;
 };
 
 #endif

@@ -50,14 +50,9 @@
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
-
 // Logging configuration
 #define DBG_PACKAGE PKG_DVB_RCS_SAT
 #include "opensand_conf/uti_debug.h"
-
 
 // BlocDVBRcsSat ctor
 BlocDVBRcsSat::BlocDVBRcsSat(mgl_blocmgr *blocmgr,
@@ -123,8 +118,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("bloc initialization failed\n");
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			EnvPlane::send_event(error_init, "Bloc initialization failed\n");
 		}
 		else
 		{

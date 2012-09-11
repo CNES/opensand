@@ -71,7 +71,7 @@ using namespace std;
 #include <opensand_conf/conf.h>
 
 // environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
+#include <opensand_env_plane/EnvPlane.h>
 #include "OpenSandCore.h"
 
 /// The debug prefix for the IP QoS block
@@ -152,6 +152,9 @@ class BlocIPQoS: public mgl_bloc
 
 	/// statistic timer
 	mgl_timer stats_timer;
+	
+	/// environment plane events
+	static Event* error_init;
 };
 
 

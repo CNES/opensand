@@ -41,15 +41,28 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 
-// environment plane
-extern T_ENV_AGENT EnvAgent;
-
 // logs configuration
 #define DBG_PACKAGE PKG_DVB_RCS_TAL
 #include "opensand_conf/uti_debug.h"
 #define DVB_DBG_PREFIX "[Tal]"
 
 int BlocDVBRcsTal::qos_server_sock = -1;
+
+
+Event* BlocDVBRcsTal::event_login_sent = NULL;
+Event* BlocDVBRcsTal::event_login_complete = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_terminal_queue_size = NULL;
+Probe<float>* BlocDVBRcsTal::probe_st_real_in_thr = NULL;
+Probe<float>* BlocDVBRcsTal::probe_st_real_out_thr = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_phys_out_thr = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_rbdc_req_size = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_vbdc_req_size = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_cra = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_alloc_size = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_unused_capacity = NULL;
+Probe<float>* BlocDVBRcsTal::probe_st_bbframe_drop_rate = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_real_modcod = NULL;
+Probe<int>* BlocDVBRcsTal::probe_st_used_modcod = NULL;
 
 
 /**
@@ -110,6 +123,23 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_statCounters.ulIncomingCells = NULL;
 	this->m_statContext.ulOutgoingThroughput = NULL;
 	this->m_statContext.ulIncomingThroughput = NULL;
+
+	// environment plane
+	if (event_login_sent == NULL) {
+		event_login_sent = EnvPlane::register_event("bloc_dvb:login_sent", LEVEL_INFO);
+		event_login_complete = EnvPlane::register_event("bloc_dvb:login_complete", LEVEL_INFO);
+		probe_st_terminal_queue_size = EnvPlane::register_probe<int>("Terminal_queue_size", true, SAMPLE_AVG);
+		probe_st_real_in_thr = EnvPlane::register_probe<float>("Real_incoming_throughput", true, SAMPLE_AVG);
+		probe_st_real_out_thr = EnvPlane::register_probe<float>("Real_outgoing_throughput", true, SAMPLE_AVG);
+		probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", true, SAMPLE_LAST);
+		probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", true, SAMPLE_LAST);
+		probe_st_cra = EnvPlane::register_probe<int>("CRA", true, SAMPLE_LAST);
+		probe_st_alloc_size = EnvPlane::register_probe<int>("Allocation", true, SAMPLE_LAST);
+		probe_st_unused_capacity = EnvPlane::register_probe<int>("Unused_capacity", true, SAMPLE_LAST);
+		probe_st_bbframe_drop_rate = EnvPlane::register_probe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
+		probe_st_real_modcod = EnvPlane::register_probe<int>("Real_modcod", true, SAMPLE_LAST);
+		probe_st_used_modcod = EnvPlane::register_probe<int>("Received_modcod", true, SAMPLE_LAST);
+	}
 
 	// QoS Server
 	this->qos_server_sock = -1;
@@ -183,8 +213,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("bloc initialization failed\n");
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			EnvPlane::send_event(error_init, "bloc initialization failed\n");
 		}
 		else
 		{
@@ -1167,7 +1196,8 @@ int BlocDVBRcsTal::sendLogonReq()
 	this->setTimer(m_logonTimer, 5000);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0, C_EVENT_LOGIN_SENT);
+	EnvPlane::send_event(event_login_sent, "%s Login sent to %d", FUNCNAME,
+		this->mac_id);
 
 	return 0;
 
@@ -1432,13 +1462,11 @@ int BlocDVBRcsTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	}
 
 	// as long as the frame is changing, send all probes and event
-	ENV_AGENT_Send(&EnvAgent);
+	// FIXME: Still useful ? Events are sent automatically now
+	EnvPlane::send_probes();
 
 	// update the frame numerotation
 	this->super_frame_counter = sfn;
-
-	// sync environment plane
-	ENV_AGENT_Sync(&EnvAgent, this->super_frame_counter, 0);
 
 	// Inform dama agent
 	if(m_pDamaAgent->hereIsSOF(ip_buf, i_len) < 0)
@@ -1634,8 +1662,8 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	         this->super_frame_counter, this->m_groupId, this->m_talId);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0,
-	                    C_EVENT_LOGIN_COMPLETE);
+	
+	EnvPlane::send_event(event_login_complete, "%s Login complete with MAC %d", FUNCNAME, this->mac_id);
 
 	// set the terminal ID in emission and reception standards
 	this->receptionStd->setTalId(m_talId);
@@ -1694,14 +1722,8 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// write in statitics file
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_REAL_INCOMING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulIncomingThroughput[fifoIndex]);
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_REAL_OUTGOING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulOutgoingThroughput[fifoIndex]);
+		probe_st_real_in_thr->put(m_statContext.ulIncomingThroughput[fifoIndex]);
+		probe_st_real_out_thr->put(m_statContext.ulOutgoingThroughput[fifoIndex]);
 	}
 
 	// outgoing DL throughput
@@ -1711,9 +1733,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 		this->frame_duration;
 
 	// write in statitics file
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_ST_PHYSICAL_OUTGOING_THROUGHPUT,
-	                       0, m_statContext.dlOutgoingThroughput);
+	probe_st_phys_out_thr->put(m_statContext.dlOutgoingThroughput);
 
 	// reset stat context for next frame
 	resetStatsCxt();
@@ -1750,21 +1770,14 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 	damaStat = m_pDamaAgent->getStatsCxt();
 
 	// write in statitics file
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_RBDC_REQUEST_SIZE,
-	                       0, damaStat->rbdcRequest);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_VBDC_REQUEST_SIZE,
-	                       0, damaStat->vbdcRequest);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_CRA, 0, damaStat->craAlloc);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_ALLOCATION_SIZE, 0,
-	                       damaStat->globalAlloc);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_UNUSED_CAPACITY, 0,
-	                       damaStat->unusedAlloc);
-	ENV_AGENT_Probe_PutFloat(&EnvAgent, C_PROBE_ST_BBFRAME_DROPED_RATE, 0,
-	                         m_bbframe_dropped_rate);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_REAL_MODCOD, 0, 
-	                       this->receptionStd->getRealModcod());
-	ENV_AGENT_Probe_PutInt(&EnvAgent,  C_PROBE_ST_USED_MODCOD, 0,
-	                       this->receptionStd->getReceivedModcod());
+	probe_st_rbdc_req_size->put(damaStat->rbdcRequest);
+	probe_st_vbdc_req_size->put(damaStat->vbdcRequest);
+	probe_st_cra->put(damaStat->craAlloc);
+	probe_st_alloc_size->put(damaStat->globalAlloc);
+	probe_st_unused_capacity->put(damaStat->unusedAlloc);
+	probe_st_bbframe_drop_rate->put(m_bbframe_dropped_rate);
+	probe_st_real_modcod->put(this->receptionStd->getRealModcod());
+	probe_st_used_modcod->put(this->receptionStd->getReceivedModcod());
 
 	// MAC fifos stats
 	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
@@ -1772,10 +1785,7 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 		this->dvb_fifos[fifoIndex].getStatsCxt(macQStat);
 
 		// write in statitics file : mac queue size
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_TERMINAL_QUEUE_SIZE,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       macQStat.currentPkNb);
+		probe_st_terminal_queue_size->put(macQStat.currentPkNb);
 	}
 }
 

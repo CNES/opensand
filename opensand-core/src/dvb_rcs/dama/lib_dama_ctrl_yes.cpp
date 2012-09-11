@@ -35,8 +35,7 @@
 #include "lib_dama_ctrl_yes.h"
 
 // environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+#include "opensand_env_plane/EnvPlane.h"
 
 #define DBG_PACKAGE PKG_DAMA_DC
 #include "opensand_conf/uti_debug.h"
@@ -115,40 +114,22 @@ int DvbRcsDamaCtrlYes::runDama()
 			          "(%d timeslots)", st_id, Alloc);
 		}
 	}
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_REQUEST_NUMBER,
-	                       0, rbdc_request_number);
+	
+	probe_gw_rdbc_req_num->put(rbdc_request_number);
 	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_REQUESTED_CAPACITY,
-	                       0,
-	                       (int) Converter->
-	                       ConvertFromCellsPerFrameToKbits((double)
-	                       rbdc_request_sum));
+	probe_gw_rdbc_req_capacity->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)rbdc_request_sum));
 	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
 	               (int) Converter->
 	               		ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_VBDC_REQUEST_NUMBER,
-	                       0, vbdc_request_number);
+	probe_gw_vdbc_req_num->put(vbdc_request_number);
 	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_VBDC_REQUESTED_CAPACITY,
-	                       0, vbdc_request_sum);
+	probe_gw_rdbc_req_capacity->put(vbdc_request_sum);
 	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_ALLOCATION,
-	                       0,
-	                       (int) Converter->
-	                       ConvertFromCellsPerFrameToKbits((double)
-	                       rbdc_request_sum));
+	probe_gw_rbdc_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)rbdc_request_sum));
 	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
 	               (int) Converter->
 	               		ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_VBDC_ALLOCATION, 0,
-	                       (int) Converter->
-	                       ConvertFromCellsPerFrameToKbits((double)
-	                       vbdc_request_sum));
+	probe_gw_vbdc_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)vbdc_request_sum));
 	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
 	               (int) Converter->
 	               		ConvertFromCellsPerFrameToKbits((double) vbdc_request_sum));

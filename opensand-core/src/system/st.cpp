@@ -79,11 +79,8 @@
 #include "PluginUtils.h"
 
 // environment plane include
-#include "opensand_env_plane/EnvironmentAgent_e.h"
+#include "opensand_env_plane/EnvPlane.h"
 
-
-// global variable for the environment agent
-T_ENV_AGENT EnvAgent;
 
 /// global variable saying whether the ST component is alive or not
 bool alive = true;
@@ -97,28 +94,28 @@ bool init_process(int argc, char **argv,
                   string &iface_name,
                   tal_id_t &instance_id)
 {
-	T_INT16 scenario_id = 1, run_id = 1, opt;
-	T_COMPONENT_TYPE comp_type = C_COMP_ST;
+	int opt;
+	bool env_plane_enabled = true;
+	event_level env_plane_event_level = LEVEL_INFO;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:i:a:n:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:a:n:")) != EOF)
 	{
 		switch(opt)
 		{
-		case 's':
-			/* get scenario id */
-			scenario_id = atoi(optarg);
+		case 'q':
+			// disable environment plane
+			env_plane_enabled = false;
 			break;
-		case 'r':
-			/* get run id */
-			run_id = atoi(optarg);
-			break;
+		case 'd':
+			// enable environment plane debug
+			env_plane_event_level = LEVEL_DEBUG;
 		case 'i':
-			/* get instance id */
+			// get instance id
 			instance_id = atoi(optarg);
 			break;
 		case 'a':
-			/// get local IP address
+			// get local IP address
 			ip_addr = optarg;
 			break;
 		case 'n':
@@ -127,12 +124,12 @@ bool init_process(int argc, char **argv,
 			break;
 		case 'h':
 		case '?':
-			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i "
-			                "instance_id -a ip_address -n interface_name]\n",
+			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
+				"-n interface_name]\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
-			fprintf(stderr, "\t-s <scenario>        set the scenario id\n");
-			fprintf(stderr, "\t-r <run>             set the run id\n");
+			fprintf(stderr, "\t-q                   disable environment plane\n");
+			fprintf(stderr, "\t-d                   enable environment plane debug events\n");
 			fprintf(stderr, "\t-a <ip_address>      set the IP address\n");
 			fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
@@ -142,15 +139,10 @@ bool init_process(int argc, char **argv,
 		}
 	}
 
-	UTI_PRINT(LOG_INFO, "starting environment plane scenario %d run %d\n",
-	          scenario_id, run_id);
+	UTI_PRINT(LOG_INFO, "starting environment plane\n");
 
-	// environment agent initialisation
-	if(ENV_AGENT_Init(&EnvAgent, comp_type, instance_id, scenario_id, run_id) != C_ERROR_OK)
-	{
-		UTI_ERROR("failed to init the environment agent\n");
-		return false;
-	}
+	// environment plane initialisation
+	EnvPlane::init(env_plane_enabled, env_plane_event_level);
 
 	if(ip_addr.size() == 0)
 	{
@@ -195,6 +187,8 @@ int main(int argc, char **argv)
 	vector<string> conf_files;
 
 	std::map<std::string, EncapPlugin *> encap_plug;
+
+	Event* status = NULL;
 
 	int is_failure = 1;
 
@@ -293,9 +287,6 @@ int main(int argc, char **argv)
 	blocDvbRcsTal->setLowerLayer(blocSatCarrier->getId());
 	blocSatCarrier->setUpperLayer(blocDvbRcsTal->getId());
 
-	// send the init event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_INIT,
-	                    C_EVENT_COMP_STATE);
 
 	// make the ST alive
 	while(alive)
@@ -303,14 +294,20 @@ int main(int argc, char **argv)
 		blocmgr->process_step();
 		if(!is_init && blocmgr->isRunning())
 		{
-			ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_RUN,
-			                    C_EVENT_COMP_STATE);
+			// finish environment plane init, sent the initial event
+			status = EnvPlane::register_event("status", LEVEL_INFO);
+			if(!EnvPlane::finish_init())
+			{
+				UTI_ERROR("%s: failed to init the environment plane\n", progname);
+				goto release_plugins;
+			}
+
+			EnvPlane::send_event(status, "Simulation started");
 			is_init = true;
 		}
 	}
 
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_STOP,
-	                    C_EVENT_COMP_STATE);
+	EnvPlane::send_event(status, "Simulation stopped");
 
 	// everything went fine, so report success
 	is_failure = 0;
@@ -324,7 +321,6 @@ destroy_eventmgr:
 	delete eventmgr;
 unload_config:
 	globalConfig.unloadConfig();
-	ENV_AGENT_Terminate(&EnvAgent);
 quit:
 	UTI_PRINT(LOG_INFO, "%s: end of the ST process\n", progname);
 	closelog();

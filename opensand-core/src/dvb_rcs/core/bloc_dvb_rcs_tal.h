@@ -53,9 +53,10 @@
 #include <opensand_conf/conf.h>
 
 // environment plane
-#include <opensand_env_plane/EnvironmentAgent_e.h>
+#include <opensand_env_plane/EnvPlane.h>
 
 // system includes
+#include <errno.h>
 #include <stdarg.h>       // for va_* macros (ANSI format)
 #include <netdb.h>        // for h_errno and hstrerror
 #include <arpa/inet.h>    // for inet_ntoa
@@ -266,7 +267,24 @@ class BlocDVBRcsTal: public BlocDvb
 	// communication with QoS Server:
 	bool connectToQoSServer();
 	static void closeQosSocket(int sig);
-
+	
+	// environment plane probes and events
+	static Event* event_login_sent;
+	static Event* event_login_complete;
+	
+	static Probe<int>* probe_st_terminal_queue_size;
+	static Probe<float>* probe_st_real_in_thr;
+	static Probe<float>* probe_st_real_out_thr;
+	static Probe<int>* probe_st_phys_out_thr;
+	static Probe<int>* probe_st_rbdc_req_size;
+	static Probe<int>* probe_st_vbdc_req_size;
+	static Probe<int>* probe_st_cra;
+	static Probe<int>* probe_st_alloc_size;
+	static Probe<int>* probe_st_unused_capacity;
+	static Probe<float>* probe_st_bbframe_drop_rate;
+	static Probe<int>* probe_st_real_modcod;
+	static Probe<int>* probe_st_used_modcod;
+	
 };
 
 #endif

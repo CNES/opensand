@@ -52,6 +52,9 @@
 #include "IpPacketHandler.h"
 #include "OpenSandCore.h"
 
+// environment plane
+#include "opensand_env_plane/EnvPlane.h"
+
 
 /**
  * @class BlocEncap
@@ -155,6 +158,9 @@ class BlocEncap: public mgl_bloc
 	 * @return       Whether the burst was successful handled or not
 	 */
 	mgl_status onRcvBurstFromDown(NetBurst *burst);
+
+	/// environment plane events
+	static Event* error_init;
 };
 
 #endif

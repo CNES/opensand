@@ -59,8 +59,7 @@
 #include "DvbS2Std.h"
 
 // environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+#include "opensand_env_plane/EnvPlane.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS_NCC
@@ -173,8 +172,7 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			EnvPlane::send_event(error_init, "%s bloc initialization failed\n", FUNCNAME);
 		}
 		else
 		{
@@ -1358,8 +1356,8 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, lp_logon_req->mac, 0,
-	                    C_EVENT_LOGIN_RECEIVED);
+	EnvPlane::send_event(event_login_received, "[onRcvLogonReq] Logon "
+		"request from %d\n", lp_logon_req->mac);
 
 	// register the new ST
 	if(this->emissionStd->doSatelliteTerminalExist(lp_logon_req->mac))
@@ -1419,9 +1417,8 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 
 
 		// send the corresponding event
-		ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, lp_logon_req->mac, 0,
-		                    C_EVENT_LOGIN_RESPONSE);
-
+		EnvPlane::send_event(event_login_response, "[onRcvLogonReq] Login "
+			"response from %d\n", lp_logon_req->mac);
 	}
 
 release:

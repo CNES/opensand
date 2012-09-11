@@ -49,8 +49,7 @@ using namespace std;
 #include "lib_dama_ctrl.h"
 
 // environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+#include "opensand_env_plane/EnvPlane.h"
 
 #define DC_DBG_PREFIX "[Generic]"
 #define DBG_PACKAGE PKG_DAMA_DC
@@ -106,6 +105,22 @@ extern T_ENV_AGENT EnvAgent;
 //
 
 
+// Static environment plane events and probes
+Event* DvbRcsDamaCtrl::error_alloc = NULL;
+Event* DvbRcsDamaCtrl::error_ncc_req = NULL;
+
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rdbc_req_num = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rdbc_req_capacity = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_vdbc_req_num = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_vdbc_req_capacity = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_cra_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_cra_st_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rbdc_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rbdc_st_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rbdc_max_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_rbdc_max_st_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_vbdc_alloc = NULL;
+Probe<int>* DvbRcsDamaCtrl::probe_gw_logger_st_num = NULL;
 
 
 /**
@@ -132,6 +147,26 @@ DvbRcsDamaCtrl::DvbRcsDamaCtrl()
 	this->Converter = NULL;
 	this->event_file = NULL;
 	this->stat_file = NULL;
+
+	if (error_alloc == NULL) {
+		// Initialize the environment plane events and probes
+
+		error_alloc = EnvPlane::register_event("lib_dama_ctrl:alloc", LEVEL_ERROR);
+		error_ncc_req = EnvPlane::register_event("lib_dama_ctrl:ncc_req", LEVEL_ERROR);
+
+		probe_gw_rdbc_req_num = EnvPlane::register_probe<int>("RBDC_requests_number", true, SAMPLE_LAST);
+		probe_gw_rdbc_req_capacity = EnvPlane::register_probe<int>("RBDC_requested_capacity", true, SAMPLE_LAST);
+		probe_gw_vdbc_req_num = EnvPlane::register_probe<int>("VBDC_requests_number", true, SAMPLE_LAST);
+		probe_gw_vdbc_req_capacity = EnvPlane::register_probe<int>("VBDC_requested_capacity", true, SAMPLE_LAST);
+		probe_gw_cra_alloc = EnvPlane::register_probe<int>("CRA_allocation", true, SAMPLE_LAST);
+		probe_gw_cra_st_alloc = EnvPlane::register_probe<int>("CRA_st_allocation", true, SAMPLE_LAST);
+		probe_gw_rbdc_alloc = EnvPlane::register_probe<int>("RBDC_allocation", true, SAMPLE_LAST);
+		probe_gw_rbdc_st_alloc = EnvPlane::register_probe<int>("RBDC_st_allocation", true, SAMPLE_LAST);
+		probe_gw_rbdc_max_alloc = EnvPlane::register_probe<int>("RBDC_MAX_allocation", true, SAMPLE_LAST);
+		probe_gw_rbdc_max_st_alloc = EnvPlane::register_probe<int>("RBDC_MAX_st_allocation", true, SAMPLE_LAST);
+		probe_gw_vbdc_alloc = EnvPlane::register_probe<int>("VBDC_allocation", true, SAMPLE_LAST);
+		probe_gw_logger_st_num = EnvPlane::register_probe<int>("Logged_ST_number", true, SAMPLE_LAST);
+	}
 }
 
 
@@ -268,8 +303,8 @@ int DvbRcsDamaCtrl::init(long carrier_id, int frame_duration,
 	if(m_tbtp == NULL)
 	{
 		UTI_ERROR("%s error during memory allocation.\n", FUNCNAME);
-		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, errno,
-		                     C_ERROR_ALLOC);
+		EnvPlane::send_event(error_alloc, "%s Error allocating memory: %s (%d)",
+			FUNCNAME, strerror(errno), errno);
 		goto destroy_converter;
 	}
 	bzero(m_tbtp, m_tbtp_size);
@@ -429,8 +464,9 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 	{
 		UTI_ERROR("unattended type (%ld) of DVB frame, drop frame\n",
 		          sac_cr->hdr.msg_type);
-		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_BAD_TYPE_ERROR,
-		                     sac_cr->hdr.msg_type, C_ERROR_NCC_REQUEST);
+		EnvPlane::send_event(error_ncc_req, "Unattended type (%ld) of "
+			"DVB frame, drop frame\n", sac_cr->hdr.msg_type);
+
 		goto error;
 	}
 
@@ -445,8 +481,8 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 		{
 			UTI_ERROR("%s CR for a unknown st (logon_id=%d). Discarded.\n",
 			          FUNCNAME, cr->logon_id);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_UNKNOWN_ST_ERROR,
-			                     cr->logon_id, C_ERROR_NCC_REQUEST);
+			EnvPlane::send_event(error_ncc_req, "%s CR for a unknown st "
+				"(logon_id=%d). Discarded.\n", FUNCNAME, cr->logon_id);
 			goto error;
 		}
 		ThisSt = st->second; // Now st_context points to a valid context
@@ -462,8 +498,8 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 		{
 			UTI_ERROR("%s Capacity request decoding error. Discarded.\n",
 			          FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_BAD_VALUE_ERROR,
-			                     cr->xbdc, C_ERROR_NCC_REQUEST);
+			EnvPlane::send_event(error_ncc_req, "%s Capacity request "
+				"decoding error. Discarded.\n", FUNCNAME);
 			goto error;
 		}
 
@@ -669,15 +705,11 @@ int DvbRcsDamaCtrl::runOnSuperFrameChange(long frame_nb)
 				 m_currentSuperFrame);
 
 	// statistics
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_CRA_ALLOCATION,
-	                       0,
-	                      (int) Converter->
-	                       ConvertFromCellsPerFrameToKbits((double) m_total_cra));
+	probe_gw_cra_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double) m_total_cra));
 	DC_RECORD_STAT("ALLOC CRA %f kbits/s",
 	               Converter->
 	               		ConvertFromCellsPerFrameToKbits((double) m_total_cra));
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_LOGGED_ST_NUMBER, 0, m_nb_st);
+	probe_gw_logger_st_num->put(m_nb_st);
 	DC_RECORD_STAT("ALLOC NB ST %d", m_nb_st);
 
 
@@ -700,43 +732,24 @@ int DvbRcsDamaCtrl::runOnSuperFrameChange(long frame_nb)
 		{
 			continue;
 		}
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_CRA_ST_ALLOCATION,
-		                       St_id,
-		                       (int) Converter->
-		                       ConvertFromCellsPerFrameToKbits((double) ThisSt->GetCra()));
 
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_RBDC_ST_ALLOCATION,
-		                       St_id,
-		                       (int) Converter->
-		                       ConvertFromCellsPerFrameToKbits((double) ThisSt->GetRbdc()));
 
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_RBDC_MAX_ST_ALLOCATION,
-		                       St_id,
-		                       (int) Converter->
-		                       ConvertFromCellsPerFrameToKbits((double) ThisSt->GetRbdcMax()));
+		probe_gw_cra_st_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)ThisSt->GetCra()));
+		probe_gw_rbdc_st_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)ThisSt->GetRbdc()));
+		probe_gw_rbdc_max_st_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)ThisSt->GetRbdcMax()));
 	}
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_MAX_ALLOCATION,
-	                       0,
-	                       (int) Converter->
-	                       ConvertFromCellsPerFrameToKbits((double) total_rbdc_max));
+	probe_gw_rbdc_max_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)total_rbdc_max));
 
 	// dama processing
 	resul = runDama();
 
 	// we cannot clean TBTP before a caller requested it! See buildTBTP()
 
-	// as long as the frame is changing, send all probes and event
-	ENV_AGENT_Send(&EnvAgent);
+	// as long as the frame is changing, send all probes
+	EnvPlane::send_probes();
 
 	// update the frame numerotation
 	m_currentSuperFrame = frame_nb;
-
-	// sync environment plane
-	ENV_AGENT_Sync(&EnvAgent, frame_nb, 0);
 
 	if(resul == -1)
 	{ // dama_error

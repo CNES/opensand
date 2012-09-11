@@ -58,6 +58,8 @@ using namespace std;
 #include "bloc_dvb.h"
 #include "SatSpot.h"
 
+// environment plane
+#include "opensand_env_plane/EnvPlane.h"
 
 /**
  * Blocs heritate from mgl_bloc clam_singleSpot.sse

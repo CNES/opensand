@@ -39,13 +39,15 @@ using namespace std;
 #include "lib_dama_ctrl_legacy.h"
 
 // environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+#include "opensand_env_plane/EnvPlane.h"
 
 #define DBG_PACKAGE PKG_DAMA_DC
 #include "opensand_conf/uti_debug.h"
 #define DC_DBG_PREFIX "[Legacy]"
 
+// Environment plane probes
+Probe<int>* DvbRcsDamaCtrlLegacy::probe_gw_fca_alloc = NULL;
+Probe<float>* DvbRcsDamaCtrlLegacy::probe_gw_uplink_fair_share = NULL;
 
 /**
  * Constructor
@@ -53,6 +55,10 @@ extern T_ENV_AGENT EnvAgent;
 DvbRcsDamaCtrlLegacy::DvbRcsDamaCtrlLegacy():
 	DvbRcsDamaCtrl()
 {
+	if (probe_gw_fca_alloc == NULL) {
+		probe_gw_fca_alloc = EnvPlane::register_probe<int>("FCA_allocation", true, SAMPLE_LAST);
+		probe_gw_uplink_fair_share = EnvPlane::register_probe<float>("Uplink_fair_share", true, SAMPLE_LAST);
+	}
 }
 
 
@@ -115,31 +121,20 @@ int DvbRcsDamaCtrlLegacy::runDama()
 			rbdc_request_sum += request;
 		}
 	}
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_REQUEST_NUMBER,
-	                       0, rbdc_request_number);
+	probe_gw_rdbc_req_num->put(rbdc_request_number);
 	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_REQUESTED_CAPACITY,
-	                       0,
-	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
+	probe_gw_rdbc_req_capacity->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)rbdc_request_sum));
 	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
 	               (int) Converter->
 	               ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_GW_VBDC_REQUEST_NUMBER, 0,
-	                       vbdc_request_number);
+	probe_gw_vdbc_req_num->put(vbdc_request_number);
 	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_VBDC_REQUESTED_CAPACITY,
-	                       0, vbdc_request_sum);
+	probe_gw_vdbc_req_capacity->put(vbdc_request_sum);
 	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
 
 	// RBDC allocation
 	remaining_capacity = runDamaRbdc(total_capacity);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_RBDC_ALLOCATION,
-	                       0,
-	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
+	probe_gw_rbdc_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
 	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
 	               (int) Converter->
@@ -149,10 +144,7 @@ int DvbRcsDamaCtrlLegacy::runDama()
 
 	// VBDC allocation
 	remaining_capacity = runDamaVbdc(total_capacity);
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_VBDC_ALLOCATION,
-	                       0,
-	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
+	probe_gw_vbdc_alloc->put((int)Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
 	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
 	               (int) Converter->
@@ -165,10 +157,8 @@ int DvbRcsDamaCtrlLegacy::runDama()
 		remaining_capacity = runDamaFca(total_capacity);
 	else
 		remaining_capacity = total_capacity;
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_GW_FCA_ALLOCATION,
-	                       0,
-	                       (int) Converter->ConvertFromCellsPerFrameToKbits((double)
+	
+	probe_gw_fca_alloc->put((int) Converter->ConvertFromCellsPerFrameToKbits((double)
 	                               total_capacity - remaining_capacity));
 	DC_RECORD_STAT("ALLOC FCA %d kbits/s",
 	               (int) Converter->
@@ -221,8 +211,7 @@ int DvbRcsDamaCtrlLegacy::runDamaRbdc(int Tac)
 			// Fair share calculation
 			FairShare = (double) TotalRequest / (double) Tac;
 
-			ENV_AGENT_Probe_PutFloat(&EnvAgent, C_PROBE_GW_UPLINK_FAIR_SHARE,
-			                         0, FairShare);
+			probe_gw_uplink_fair_share->put(FairShare);
 			DC_RECORD_STAT("FAIR SHARE %f", FairShare);
 			// if there is no congestion,
 			// force the ratio to 1.0 in order to not limit the requests

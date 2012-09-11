@@ -48,6 +48,11 @@
 #include <opensand_conf/uti_debug.h>
 
 
+// environment plane events
+Event* BlocDvb::error_init = NULL;
+Event* BlocDvb::event_login_received = NULL;
+Event* BlocDvb::event_login_response = NULL;
+
 /**
  * Constructor
  */
@@ -67,6 +72,12 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
 	this->dra_def = "";
 	this->dra_simu = "";
 	this->dvb_scenario_refresh = -1;
+		
+	if (error_init == NULL) {
+		error_init = EnvPlane::register_event("bloc_dvb:init", LEVEL_ERROR);
+		event_login_received = EnvPlane::register_event("bloc_dvb:login_received", LEVEL_INFO);
+		event_login_response = EnvPlane::register_event("bloc_dvb:login_response", LEVEL_INFO);
+	}
 }
 
 /**
