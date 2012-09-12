@@ -81,6 +81,7 @@ class Host(object):
         self.ident = ident
         self.name = name
         self.address = address
+        self.ref_count = 1
         self._programs = {}
 
     def add_program(self, ident, name, probe_list, event_list):
@@ -126,7 +127,7 @@ class HostManager(object):
 
     def add_host(self, name, address):
         """
-        Adds an host with the specified address (IP, port tuple)
+        Adds a host with the specified address (IP, port tuple)
         """
 
         if name in self._host_by_name:
@@ -150,14 +151,42 @@ class HostManager(object):
 
         LOGGER.info("Host %s (%s:%d) registered.", name, *address)
 
+    def add_host_addr(self, name, addr):
+        """
+        Registers an extra IP address for tn already registered host.
+        """
+
+        host = self._host_by_name.get(name)
+
+        if not host:
+            LOGGER.error("Host name %s is not registered, ignoring.", name)
+            return
+
+        host.ref_count += 1
+        self._host_by_addr[addr] = host
+
+        LOGGER.info("Host %s has an extra address %s:%d.", name, *addr)
+
     def remove_host(self, name):
         """
         Removes a host identified by an address.
         """
 
-        host = self._host_by_name.pop(name)
+        host = self._host_by_name.get(name)
+        if not host:
+            LOGGER.error("Host name %s is not registered, ignoring.", name)
+            return
+
+        host.ref_count -= 1
+
+        if host.ref_count > 0:
+            LOGGER.info("Host %s is unregistering.", name)
+            return
+
+        del self._host_by_name[name]
         del self._host_by_addr[host.address]
         self._used_idents.remove(host.ident)
+        LOGGER.info("Host %s is unregistered.", name)
 
     def get_host(self, address):
         """

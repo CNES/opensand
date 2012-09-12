@@ -85,10 +85,10 @@ class ServiceHandler(object):
             return
 
         if name in self._known_hosts:
-            LOGGER.warn("Host '%s' found on another IP, ignoring.", name)
+            self.collector.host_manager.add_host_addr(name, (addr, port))
             return
 
-        LOGGER.info("Daemon on host '%s' has address %s:%d.", name, addr, port)
+        LOGGER.debug("Daemon on host '%s' has address %s:%d.", name, addr, port)
         self._known_hosts.add(name)
         self.collector.host_manager.add_host(name, (addr, port))
 
@@ -96,13 +96,9 @@ class ServiceHandler(object):
         if name == "collector":
             return
 
-        if name not in self._known_hosts:
-            LOGGER.warn("Unregistered host '%s' disconnected.", name)
-            return
-
-        LOGGER.info("Daemon on host '%s' has exited.", name)
+        LOGGER.debug("Daemon on host '%s' has exited.", name)
         self.collector.host_manager.remove_host(name)
-        self._known_hosts.remove(name)
+        self._known_hosts.discard(name)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
