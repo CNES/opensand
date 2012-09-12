@@ -134,10 +134,9 @@ def publish_service():
         if name != 'ws':
             emu_iface = CONF_PARSER.get('network', 'emu_iface')
             emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
-            emu_ipv6 = CONF_PARSER.get('network', 'emu_ipv6')
             descr['emu_iface'] = emu_iface
             descr['emu_ipv4'] = emu_ipv4
-            descr['emu_ipv6'] = emu_ipv6
+   
         if name != 'sat':
             lan_iface = CONF_PARSER.get('network', 'lan_iface')
             lan_ipv4 = CONF_PARSER.get('network', 'lan_ipv4')
@@ -178,13 +177,7 @@ def publish_service():
                                 (emu_ipv4, emu_iface))
                 finally:
                     nladd[emu_ipv4] = emu_iface
-                try:
-                    address.add(emu_ipv6, emu_iface)
-                except NlExists:
-                    LOGGER.info("address %s already exists on %s" %
-                                (emu_ipv6, emu_iface))
-                finally:
-                    nladd[emu_ipv6] = emu_iface
+     
         except NlError, msg:
             LOGGER.error("unable to set addresses: %s" % msg)
             # delete the address that were already set
@@ -210,7 +203,7 @@ def publish_service():
                                        "disabled, you won't be able to route "
                                        "packets toward WS behind this host" %
                                        iface)
-            for iface in [emu_iface, lan_iface]:
+            for iface in [lan_iface]:
                 with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
                      as sysctrl:
                     if sysctrl.read().rstrip('\r\n') != "1":

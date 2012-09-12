@@ -85,8 +85,8 @@ read_conf(){
     EMU_IFACE=$RET
     db_get opensand-daemon/network/emu_ipv4
     EMU_IPV4=$RET
-    db_get opensand-daemon/network/emu_ipv6
-    EMU_IPV6=$RET
+#    db_get opensand-daemon/network/emu_ipv6
+#    EMU_IPV6=$RET
     db_get opensand-daemon/network/lan_iface
     LAN_IFACE=$RET
     db_get opensand-daemon/network/lan_ipv4
@@ -132,7 +132,7 @@ write_conf(){
         if [ "${SERVICE_NAME}" != "ws" ]; then
             echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
             echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-            echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+        #    echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
         fi
         if [ ${SERVICE_NAME} != 'sat' ] &&
            [ "${SERVICE_NAME}" != "ws" -o "${DHCP}" != "true" ]; then
