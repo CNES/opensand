@@ -74,6 +74,7 @@ class EnvironmentPlaneController():
 
     def start(self):
         """ start the environment plane """
+        return
         if not self._process_list.is_initialized():
             error = "The Environment Plane is broken, please fix the " + \
                     "problem and restart the Manager"
@@ -91,6 +92,7 @@ class EnvironmentPlaneController():
 
     def stop(self):
         """ stop the environment plane """
+        return
         if not self._process_list.is_initialized():
             error = "The Environment Plane is broken, please fix the " + \
                     "problem and restart the Manager"
