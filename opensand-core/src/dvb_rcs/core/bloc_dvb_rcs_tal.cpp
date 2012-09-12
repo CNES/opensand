@@ -131,6 +131,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 		probe_st_terminal_queue_size = EnvPlane::register_probe<int>("Terminal_queue_size", true, SAMPLE_AVG);
 		probe_st_real_in_thr = EnvPlane::register_probe<float>("Real_incoming_throughput", true, SAMPLE_AVG);
 		probe_st_real_out_thr = EnvPlane::register_probe<float>("Real_outgoing_throughput", true, SAMPLE_AVG);
+		probe_st_phys_out_thr = EnvPlane::register_probe<int>("Physical_outgoing_throughput", true, SAMPLE_AVG);
 		probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", true, SAMPLE_LAST);
 		probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", true, SAMPLE_LAST);
 		probe_st_cra = EnvPlane::register_probe<int>("CRA", true, SAMPLE_LAST);
@@ -1662,7 +1663,7 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	         this->super_frame_counter, this->m_groupId, this->m_talId);
 
 	// send the corresponding event
-	
+
 	EnvPlane::send_event(event_login_complete, "%s Login complete with MAC %d", FUNCNAME, this->mac_id);
 
 	// set the terminal ID in emission and reception standards
