@@ -82,6 +82,7 @@ class ServiceHandler(object):
             port = int(items.get('ext_port', ""))
         except ValueError:
             LOGGER.error("Failed to get UDP port from '%s' daemon.", name)
+            return
 
         if name in self._known_hosts:
             LOGGER.warn("Host '%s' found on another IP, ignoring.", name)
