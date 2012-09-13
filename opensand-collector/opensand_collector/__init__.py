@@ -43,8 +43,10 @@ class OpenSandCollector(object):
 
         main_loop = gobject.MainLoop()
 
-        with MessagesHandler(self) as msg_handler:
-            port = msg_handler.get_port()
-            with ServiceHandler(self, port, service_type):
-                main_loop.run()
-
+        try:
+            with MessagesHandler(self) as msg_handler:
+                port = msg_handler.get_port()
+                with ServiceHandler(self, port, service_type):
+                    main_loop.run()
+        finally:
+            self.host_manager.cleanup()

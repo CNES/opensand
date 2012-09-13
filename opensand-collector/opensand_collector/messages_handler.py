@@ -2,6 +2,7 @@
 OpenSAND collector UDP messages handler.
 """
 
+from time import time
 import gobject
 import socket
 import struct
@@ -25,6 +26,7 @@ class MessagesHandler(object):
         self.collector = collector
         self._sock = None
         self._tag = None
+        self._time = 0
 
     def get_port(self):
         _, port = self._sock.getsockname()
@@ -63,6 +65,8 @@ class MessagesHandler(object):
         Called when a packet is received on the socket. Checks the message
         validity and finds the command number
         """
+
+        self._time = time()
 
         packet, addr = self._sock.recvfrom(4096)
 
@@ -208,6 +212,7 @@ class MessagesHandler(object):
                 return False
 
             value, pos = probe.read_value(data, pos)
+            probe.log_value(self._time, value)
 
             LOGGER.debug("Probe %s: Value %s", probe, value)
 
@@ -224,6 +229,7 @@ class MessagesHandler(object):
             return False
 
         text = data[1:]
+        event.log(self._time, text)
 
         LOGGER.debug("Event %s: %s", event, text)
 
