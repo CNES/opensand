@@ -32,9 +32,9 @@ class OpenSandCollector(object):
         parser.set_defaults(debug=False)
         parser.add_option("-t", "--service_type", dest="service_type",
             help="OpenSAND service type (default: _opensand._tcp)")
+        parser.add_option("-d", action="store_true", dest="debug",
+            help="Show debug messages")
         (options, args) = parser.parse_args()
-        parser.add_option("-d", action="store_true", dest="debug")
-
 
         service_type = options.service_type or "_opensand._tcp"
         level = logging.DEBUG if options.debug else logging.INFO
