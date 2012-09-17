@@ -208,7 +208,7 @@ class CommandHandler(MyTcpHandler):
         LOGGER.info("set execution rights on %s" % cmd[0])
         os.chmod(cmd[0], stat.S_IRWXU)
         LOGGER.info("launch test command: %s" % command)
-        name = cmd[0]
+        name = os.path.basename(cmd[0])
         with open('/tmp/opensand_tests/result', 'a') as output:
             output.write("\n")
             process = subprocess.Popen(cmd, close_fds=True,
