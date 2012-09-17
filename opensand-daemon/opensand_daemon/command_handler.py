@@ -208,12 +208,21 @@ class CommandHandler(MyTcpHandler):
         LOGGER.info("set execution rights on %s" % cmd[0])
         os.chmod(cmd[0], stat.S_IRWXU)
         LOGGER.info("launch test command: %s" % command)
+        name = cmd[0]
         with open('/tmp/opensand_tests/result', 'a') as output:
             output.write("\n")
             process = subprocess.Popen(cmd, close_fds=True,
                                        stdout=output,
                                        stderr=subprocess.STDOUT,
                                        cwd=os.path.dirname(command))
+            
+            # Put the process in the process list
+            
+            process.prog_name = name
+            ProcessList._process_lock.acquire()
+            ProcessList._process_list[name] = process
+            ProcessList._process_lock.release()
+            
         while not MyTcpHandler._stop.is_set() and \
               process.returncode is None:
             process.poll()
@@ -225,6 +234,10 @@ class CommandHandler(MyTcpHandler):
             process.kill()
 
         process.wait()
+        
+        ProcessList._process_lock.acquire()
+        del ProcessList._process_list[name]
+        ProcessList._process_lock.release()
 
         if not MyTcpHandler._stop.is_set():
             out, err = process.communicate()
