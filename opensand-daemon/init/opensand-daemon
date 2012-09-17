@@ -21,7 +21,8 @@ BIN="/usr/bin/sand-daemon"
 CONF="/etc/opensand/daemon.conf"
 PIDFILE="/var/run/sand-daemon/pid"
 USER="opensand"
-
+Foreground=''
+LOG_DAEMON="/etc/opensand/log_daemon.log"
 . /lib/lsb/init-functions
 
 
@@ -49,7 +50,14 @@ start()
     chown ${USER} /var/run/sand-daemon
 
     # Start the OpenSAND daemon server
-    start-stop-daemon --start --background --quiet --pidfile ${PIDFILE} --exec ${BIN} ${CONF} 1>/dev/null 2>&1 # --chuid ${USER} --user ${USER}
+	
+
+    if [ -z ${Foreground} ] ; then
+	start-stop-daemon --start --background --exec ${BIN} ${CONF} -- -p ${PIDFILE} 1>/dev/null 2>&1 # --chuid ${USER} --user ${USER}
+    else
+	start-stop-daemon --start --exec ${BIN} ${CONF} -- -p ${PIDFILE} 1>${LOG_DAEMON} 2>&1 #--chuid ${USER} --user ${USER}
+    fi
+
     if [ $? -ne 0 ] ; then
         log_failure_msg "failed to start ${DESCR}"
         log_end_msg 1
@@ -125,11 +133,9 @@ restart()
     stop
     start || exit 1
 }
-
-
 # check that network is configured
 if [ -e /var/lock/opensand-network ]; then
-	echo -n ""
+       echo -n ""
 else
     log_failure_msg "Please configure the OpenSAND network before starting the daemon"
     log_end_msg 1
@@ -137,27 +143,65 @@ else
 fi
 
 # Which action to perform?
-case "$1" in
-    start)
-        start
-        ;;
-    stop)
-        stop
-        ;;
-    restart)
-        restart
-        ;;
-    condrestart)
-        [ -e /var/lock/${PROGNAME} ] && restart
-        ;;
-    status)
-        status_of_proc -p ${PIDFILE} ${BIN} ${PROGNAME}
-        ;;
-    *)
-        echo "Usage $0 {start|stop|restart|condrestart|status}"
-        exit 1
-esac
+# Choose option when starting daemon
+while :
+do
+    case "$1" in
+        start)
+                start
+                shift
+                ;;
+        stop)
+                stop
+                shift
+                ;;
+        restart)
+                restart
+                shift
+                ;;
+        condrestart)
+                [ -e /var/lock/${PROGNAME} ] && restart
+                shift
+                ;;
+        status)
+                status_of_proc -p ${PIDFILE} ${BIN} ${PROGNAME}
+                shift
+                ;;
+        -f | --fore) # Start in Foreground mode
+                echo "OpenSAND Daemon launched in Foreground"
+                Foreground='f'
+                shift
+                ;;
+
+        -p | --pidfile) # Change pid file
+                PIDFILE="$2"
+                shift 2
+		;;
+        -l | --logfile) # Change daemon log file (for debugging)
+                LOG_DAEMON="$2"
+                shift 2
+                ;;
+	-m | --man)
+		echo ""
+		echo "- Basic user:     service opensand-daemon {start|stop|restart|condrestart|status}."
+		echo "- Advanced user:  service opensand-daemon <options> {Start|restart|condrestart}."
+		echo "       Option commands:"
+		echo "        	-f (--fore) --> Launch Daemon in Foreground mode." 
+		echo "        	-p (--pidfile) <ARG> --> Change PID file."
+		echo "        	-l (--logfile) <ARG> --> Change Daemon log file (for debugging)."
+		break
+		;;		
+        -* | --*)
+		echo "WARN: Unknown option (ignored): use '-m' or '--man' for help"
+		break
+		;;
+	*) 	echo "Use '-m' or '--man' for help"
+                break
+		;;
+    esac
+done
 
 exit 0
+
 
 

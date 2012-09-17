@@ -46,6 +46,8 @@ import time
 import ConfigParser
 import pwd
 import prctl
+from optparse import OptionParser
+
 from opensand_daemon.tcp_server import Plop
 from opensand_daemon.command_handler import CommandHandler
 from opensand_daemon.state_handler import StateHandler
@@ -63,7 +65,12 @@ PID_FILE = "/var/run/sand-daemon/pid"
 SERVICE = None
 COMMAND = None
 STATE = None
-LOGGER = logging.getLogger('sand-daemon')
+
+LOGGER=logging.getLogger('sand-daemon')
+LOGGER_HANDLER = logging.StreamHandler(sys.stdout)
+LOGGER.addHandler(LOGGER_HANDLER)
+LOGGER.setLevel(logging.DEBUG) #Set level of logging information
+
 
 def sig_handler(signum, frame):
     """ signal handler """
@@ -346,6 +353,15 @@ def stop_state():
         STATE.stop()
 
 if __name__ == "__main__":
+    
+    #Get new PID file path (if specified)	
+    opt_parser = OptionParser()
+    opt_parser.add_option("-p", "--pidfile", dest="pidfile", default='/var/run/sand-daemon/pid2', action="store", help="Specify file to save sand-daemon PID")
+    (options, args) = opt_parser.parse_args()
+    PID_FILE = options.pidfile
+    LOGGER.debug ("file pid is: %s" % PID_FILE)
+
+
     # Logging configuration
     ROOT_LOGGER = logging.getLogger('sand-daemon')
     LOG_HANDLER = SysLogHandler('sand-daemon', syslog.LOG_PID,
