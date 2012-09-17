@@ -87,6 +87,9 @@ class OpenSandServiceListener():
         self._log.info("Find %s at address %s" %
                        (name, address))
 
+        if name == "collector":
+            return
+
         if address.count(':') > 0:
             self._log.warning("IPv6 service: ignore it")
             self._log.warning("Restart the manager and/or the daemon if no "
@@ -183,6 +186,10 @@ class OpenSandServiceListener():
         self._log.debug("Service removed '%s' type '%s' domain '%s' " %
                         (name, stype, domain))
         self._log.info("the component %s was disconnected" % name)
+        
+        if name == "collector":
+            return
+        
         self._model.del_host(name)
         for host in self._hosts:
             if host.get_name().lower() == name:
