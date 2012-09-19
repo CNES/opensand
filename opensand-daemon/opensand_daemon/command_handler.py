@@ -236,7 +236,10 @@ class CommandHandler(MyTcpHandler):
         process.wait()
         
         ProcessList._process_lock.acquire()
-        del ProcessList._process_list[name]
+        try:
+            del ProcessList._process_list[name]
+        except KeyError:
+            pass
         ProcessList._process_lock.release()
 
         if not MyTcpHandler._stop.is_set():
