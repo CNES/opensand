@@ -6,7 +6,7 @@ connected to the collector.
 """
 
 from os import mkdir
-from os.path import join
+from os.path import join, isdir
 import logging
 import shutil
 import struct
@@ -184,8 +184,9 @@ class Program(object):
         """
 
         path = self.host.get_storage_path(self.name)
-        LOGGER.debug("Creating program folder %s", path)
-        mkdir(path)
+        if not isdir(path):
+            LOGGER.debug("Creating program folder %s", path)
+            mkdir(path)
 
         path = join(path, "event_log.txt")
         LOGGER.debug("Creating event log file %s", path)
@@ -282,8 +283,9 @@ class Host(object):
         """
 
         path = self.manager.get_storage_path(self.name)
-        LOGGER.debug("Creating host folder %s", path)
-        mkdir(path)
+        if not isdir(path):
+            LOGGER.debug("Creating host folder %s", path)
+            mkdir(path)
 
     def __str__(self):
         return self.name
@@ -355,7 +357,7 @@ class HostManager(object):
 
     def add_host_addr(self, name, addr):
         """
-        Registers an extra IP address for tn already registered host.
+        Registers an extra IP address for an already registered host.
         """
 
         host = self._host_by_name.get(name)
