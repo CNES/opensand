@@ -42,6 +42,7 @@ class StatsHandler(threading.Thread):
         self._process_list.register_end_callback(self._proc_stopped)
         self._collector_addr = None
         self._running = False
+        self._stopped = False
 
         # Internal socket for processes
         self._int_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
@@ -63,6 +64,11 @@ class StatsHandler(threading.Thread):
         """
 
         self._running = False
+        
+        if self._stopped:
+            return
+        
+        self._stopped = True
 
         try:
             self._int_socket.shutdown(socket.SHUT_RDWR)
