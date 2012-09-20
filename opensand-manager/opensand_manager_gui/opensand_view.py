@@ -368,7 +368,7 @@ class View(WindowView):
         return folder
 
     def on_close_activate(self, source=None, event=None):
-        """ event handler for close button """
+        """ event handler for close scenario button """
         # update the window title
         self.set_title("OpenSAND Manager - [new]")
         try:
