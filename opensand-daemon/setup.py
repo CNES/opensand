@@ -40,14 +40,11 @@ setup(
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for OpenSAND entity (sat, gw, st or ws)"),
     license="GPL",
-    ext_modules = [netlink_capi, route_capi],
+    ext_modules=[netlink_capi, route_capi],
 
     packages=find_packages(),
 
-    data_files=[
-                  ('bin/', bin_files), # binary
-                  # PtDaemon files
-                  ('libexec/opensand/', script_files),
-                  ]
+    data_files=[('libexec/opensand/', script_files)],
+    scripts=bin_files
 )
 
