@@ -30,10 +30,10 @@ setup(
     packages=find_packages(),
 
     data_files=[
-                  ('bin/', ['sand-manager']), # binary
                   # opensand-manager files
                   ('share/opensand/manager', data_files),
                   ('share/opensand/manager/images', img_files),
                   ('share/pixmaps/', icon_files), 
-                  ]
+                  ],
+    scripts=['sand-manager']
 )
