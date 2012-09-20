@@ -101,17 +101,17 @@ configure(){
                     if [ "$RECONFIG" = "false" ]; then
                         if [ "$NAME" = "SAT" ]; then
                             db_set opensand-daemon/network/emu_ipv4 ${SAT_EMU_IP4ADDR}
-                            db_set opensand-daemon/network/emu_ipv6 ${SAT_EMU_IP6ADDR}
+                     
                         elif [ "$NAME" = "GW" ]; then
                             db_set opensand-daemon/network/emu_ipv4 ${GW_EMU_IP4ADDR}
-                            db_set opensand-daemon/network/emu_ipv6 ${GW_EMU_IP6ADDR}
+                    
                         elif [ "$NAME" = "ST" ]; then
                             db_set opensand-daemon/network/emu_ipv4 "192.168.18.${INST}/24"
-                            db_set opensand-daemon/network/emu_ipv6 "2001:660:6602:101::${INST}/64"
+                   
                         fi
                     fi
                     db_input high opensand-daemon/network/emu_ipv4 || true
-                    db_input high opensand-daemon/network/emu_ipv6 || true
+                  
                 fi
                 if [ "$NAME" != "SAT" ]; then
                     db_input high opensand-daemon/network/lan_iface || true
@@ -196,7 +196,6 @@ reset(){
     db_reset opensand-daemon/network/default_route
     db_reset opensand-daemon/network/emu_iface
     db_reset opensand-daemon/network/emu_ipv4
-    db_reset opensand-daemon/network/emu_ipv6
     db_reset opensand-daemon/network/lan_iface
     db_reset opensand-daemon/network/lan_ipv4
     db_reset opensand-daemon/network/lan_ipv6
@@ -215,7 +214,6 @@ unseen(){
     db_fset opensand-daemon/network/default_route seen false
     db_fset opensand-daemon/network/emu_iface seen false
     db_fset opensand-daemon/network/emu_ipv4 seen false
-    db_fset opensand-daemon/network/emu_ipv6 seen false
     db_fset opensand-daemon/network/lan_iface seen false
     db_fset opensand-daemon/network/lan_ipv4 seen false
     db_fset opensand-daemon/network/lan_ipv6 seen false
