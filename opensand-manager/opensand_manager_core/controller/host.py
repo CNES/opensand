@@ -47,6 +47,7 @@ from opensand_manager_core.controller.stream import Stream
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
 START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
+START_INI = 'start.ini'
 DATA_END = 'DATA_END\n'
 
 #TODO factorize
@@ -54,7 +55,7 @@ class HostController:
     """ controller which implements the client that connects in order to get
         program states on distant host and the client that sends command to
         the distant host """
-    def __init__(self, host_model, manager_log):
+    def __init__(self, host_model, cache_dir, manager_log):
         self._host_model = host_model
         self._log = manager_log
 
@@ -62,6 +63,9 @@ class HostController:
                                               None, (), {})
         self._stop = threading.Event()
         self._state_thread.start()
+        self._cache = START_DESTINATION_PATH
+        if cache_dir is not None:
+            self._cache = os.path.join(cache_dir, START_INI)
 
     def close(self):
         """ close the host connections """
@@ -175,7 +179,7 @@ class HostController:
             # send an empty start.ini file because we will send the start
             # command in order to apply routes on host
             with tempfile.NamedTemporaryFile() as tmp_file:
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
 
             try:
                 # send 'STOP' tag
@@ -234,7 +238,7 @@ class HostController:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 start_ini.write(tmp_file)
                 tmp_file.flush()
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
@@ -280,7 +284,7 @@ class HostController:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 start_ini.write(tmp_file)
                 tmp_file.flush()
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
