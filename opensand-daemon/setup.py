@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 import os
 from setuptools import setup, find_packages
 from distutils.core import Extension
