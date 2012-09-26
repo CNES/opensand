@@ -25,3 +25,7 @@ libopensand_mpeg_plugin_la_SOURCES = \
     $(libopensand_mpeg_plugin_la_h)
 
 pluginsdir = $(prefix)/lib/opensand/plugins
+
+EXTRA_DIST = \
+	mpeg.py
+

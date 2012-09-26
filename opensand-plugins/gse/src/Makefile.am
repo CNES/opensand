@@ -23,3 +23,7 @@ libopensand_gse_plugin_la_SOURCES = \
     $(libopensand_gse_plugin_la_h)
 
 pluginsdir = $(prefix)/lib/opensand/plugins
+
+EXTRA_DIST = \
+	gse.py
+
