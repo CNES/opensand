@@ -16,6 +16,7 @@ dist_doc_DATA = \
 	README
 	
 EXTRA_DIST = \
+	autogen.sh \
 	doc/doxygen
 
 .PHONY: doc

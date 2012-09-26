@@ -10,6 +10,7 @@ dist_doc_DATA = \
 	README
 	
 EXTRA_DIST = \
+	autogen.sh \
 	doc/readme.txt
 
 pkgconfigdir = $(libdir)/pkgconfig
