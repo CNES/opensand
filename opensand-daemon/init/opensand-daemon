@@ -1,7 +1,7 @@
 #!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          opensand-daemon
-# Required-Start:    $remote_fs $syslog $opensand-network
+# Required-Start:    $remote_fs $syslog opensand-network
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
