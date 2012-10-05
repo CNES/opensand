@@ -121,9 +121,9 @@ class BlocDVBRcsSat: public BlocDvb
 
 	// event management
 	mgl_status onRcvDVBFrame(unsigned char *frame, unsigned int length, long carrier_id);
-	int sendSigFrames(dvb_fifo * sigFifo);
-	mgl_status forwardDVBFrame(dvb_fifo * sigFifo, char *ip_buf, int i_len);
-	int onSendFrames(dvb_fifo *fifo, long current_time);
+	int sendSigFrames(DvbFifo * sigFifo);
+	mgl_status forwardDVBFrame(DvbFifo * sigFifo, char *ip_buf, int i_len);
+	int onSendFrames(DvbFifo *fifo, long current_time);
 
 	/**
 	 * Get next random delay provided the two preceeding members
@@ -137,7 +137,7 @@ class BlocDVBRcsSat: public BlocDvb
 	void errorGenerator(NetPacket * encap_packet);
 
 	/// update the probes
-	void getProbe(NetBurst burst, dvb_fifo fifo, sat_StatBloc m_stat_fifo);
+	void getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo);
 };
 
 #endif

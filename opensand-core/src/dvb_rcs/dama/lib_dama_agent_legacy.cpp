@@ -117,11 +117,11 @@ DvbRcsDamaAgentLegacy::~DvbRcsDamaAgentLegacy()
  *
  * @return 0 on success -1 otherwise
  */
-int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
-                                     int dvb_fifos_number,
-                                     double frameDuration,
-                                     int craBw,
-                                     int obrPeriod)
+int DvbRcsDamaAgentLegacy::initComplete(DvbFifo *dvb_fifos,
+                                        int dvb_fifos_number,
+                                        double frameDuration,
+                                        int craBw,
+                                        int obrPeriod)
 {
 	const char *FUNCNAME = DA_DBG_PREFIX "[initComplete]";
 	int i;
@@ -208,14 +208,14 @@ int DvbRcsDamaAgentLegacy::initComplete(dvb_fifo *dvb_fifos,
 
 	for(i = 0; i < dvb_fifos_number; i++)
 	{
-		if(dvb_fifos[i].getCrType() == DVB_FIFO_CR_RBDC)
+		if(dvb_fifos[i].getCrType() == cr_rbdc)
 			m_rbdcStatus = true;
-		else if(dvb_fifos[i].getCrType() == DVB_FIFO_CR_VBDC)
+		else if(dvb_fifos[i].getCrType() == cr_vbdc)
 			m_vbdcStatus = true;
-		else if(dvb_fifos[i].getCrType() == DVB_FIFO_CR_NONE)
+		else if(dvb_fifos[i].getCrType() == cr_none)
 		{
 			// it is possible only for EF
-			if(dvb_fifos[i].getKind() != DVB_FIFO_EF)
+			if(dvb_fifos[i].getMacPriority() != fifo_ef)
 			{
 				UTI_ERROR("NONE CR set for a non-EF FIFO\n");
 				goto error;
@@ -304,10 +304,10 @@ int DvbRcsDamaAgentLegacy::hereIsTBTP(unsigned char *buf, long len)
  * @return                  0 if at least 1 CR is computed,
  *                          -1 in case of error or if 0 CR built
  */
-int DvbRcsDamaAgentLegacy::buildCR(dvb_fifo *dvb_fifos,
-                                int dvb_fifos_number,
-                                unsigned char *frame,
-                                long length)
+int DvbRcsDamaAgentLegacy::buildCR(DvbFifo *dvb_fifos,
+                                   int dvb_fifos_number,
+                                   unsigned char *frame,
+                                   long length)
 {
 	const char *FUNCNAME = DA_DBG_PREFIX "[buildCR]";
 	T_DVB_SAC_CR *init_cr; // Cast for buf
@@ -401,7 +401,7 @@ int DvbRcsDamaAgentLegacy::buildCR(dvb_fifo *dvb_fifos,
 		// reset counter of arrival cells in MAC FIFOs related to RBDC
 		for(j = 0; j < dvb_fifos_number; j++)
 		{
-			dvb_fifos[j].resetFilled(DVB_FIFO_CR_RBDC);
+			dvb_fifos[j].resetFilled(cr_rbdc);
 		}
 
 		i++;
@@ -505,14 +505,14 @@ int DvbRcsDamaAgentLegacy::processOnFrameTick()
  *                                  from the DVB FIFOs
  * @return                          0 if KO, -1 if failure
  */
-int DvbRcsDamaAgentLegacy::globalSchedule(dvb_fifo *dvb_fifos,
-                                       int dvb_fifos_number,
-                                       int &outRemainingAlloc,
-                                       int encap_packet_type,
-                                       std::list<DvbFrame *> *complete_dvb_frames)
+int DvbRcsDamaAgentLegacy::globalSchedule(DvbFifo *dvb_fifos,
+                                          int dvb_fifos_number,
+                                          int &outRemainingAlloc,
+                                          int encap_packet_type,
+                                          std::list<DvbFrame *> *complete_dvb_frames)
 {
 	int ret = 0;
-	int pvcId;
+	unsigned int pvcId;
 
 	outRemainingAlloc = this->m_remainingAlloc;
 
@@ -563,12 +563,12 @@ int DvbRcsDamaAgentLegacy::globalSchedule(dvb_fifo *dvb_fifos,
  *                                  from the DVB FIFOs
  * @return                          0 if KO, -1 if failure
  */
-int DvbRcsDamaAgentLegacy::macSchedule(dvb_fifo *dvb_fifos,
-                                    int dvb_fifos_number,
-                                    int pvc,
-                                    int &extractedEncapPacketsNb,
-                                    int encap_packet_type,
-                                    std::list<DvbFrame *> *complete_dvb_frames)
+int DvbRcsDamaAgentLegacy::macSchedule(DvbFifo *dvb_fifos,
+                                       int dvb_fifos_number,
+                                       unsigned int pvc,
+                                       int &extractedEncapPacketsNb,
+                                       int encap_packet_type,
+                                       std::list<DvbFrame *> *complete_dvb_frames)
 {
 	const unsigned int frame_index = 0;
 	unsigned int complete_frames_count;
@@ -777,8 +777,8 @@ error:
  * @param dvb_fifos_number  the number of DVB FIFOs in the array
  * @return                  RBDC Request in kbits/s (ready to be set in SAC field)
  */
-int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
-                                           int dvb_fifos_number)
+int DvbRcsDamaAgentLegacy::rbdcRequestCompute(DvbFifo *dvb_fifos,
+                                              int dvb_fifos_number)
 {
 	const char *FUNCNAME = DA_DBG_PREFIX "[rbdcCompute]";
 	double RateNeed;      // cells /sec
@@ -789,7 +789,7 @@ int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
 	double sumRbdcPreceedingMSL_inCellsPs;
 
 	/* get number of outstanding cells in RBDC related MAC FIFOs (in cells number) */
-	RbdcRLength = getMacBufferLength(DVB_FIFO_CR_RBDC, dvb_fifos,
+	RbdcRLength = getMacBufferLength(cr_rbdc, dvb_fifos,
 	                                 dvb_fifos_number);
 
 	// get number of cells arrived in RBDC related IP FIFOs since last RBDC request sent
@@ -797,7 +797,7 @@ int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
 	// NB: arrivals in MAC FIfos must NOT be taken into account because these cells
 	// represent only cells buffered because there is no more available allocation, but its arrival
 	// has been taken into account in IP fifos
-	RbdcRCellArrival = getMacBufferArrivals(DVB_FIFO_CR_RBDC, dvb_fifos,
+	RbdcRCellArrival = getMacBufferArrivals(cr_rbdc, dvb_fifos,
 	                                        dvb_fifos_number);
 
 	/* rbdc timer = (current frame - last rbdcrequest frame) * frame duration in sec */
@@ -868,15 +868,15 @@ int DvbRcsDamaAgentLegacy::rbdcRequestCompute(dvb_fifo *dvb_fifos,
  *                          ready to be set in SAC field
  *                          (TODO: is it really in packets ?)
  */
-int DvbRcsDamaAgentLegacy::vbdcRequestCompute(dvb_fifo *dvb_fifos,
-                                           int dvb_fifos_number)
+int DvbRcsDamaAgentLegacy::vbdcRequestCompute(DvbFifo *dvb_fifos,
+                                              int dvb_fifos_number)
 {
 	int VbdcNeed;
 	int VbdcRequest;
 
 	/* Compute VBDC_need : */
 	/* get number of outstanding cells in VBDC related MAC and IP FIFOs (in cells number) */
-	VbdcNeed = getMacBufferLength(DVB_FIFO_CR_VBDC, dvb_fifos, dvb_fifos_number);
+	VbdcNeed = getMacBufferLength(cr_vbdc, dvb_fifos, dvb_fifos_number);
 	UTI_DEBUG_L3("frame %ld: getMacBufferLength = %d, m_vbdcCredit = %ld\n",
 	             m_currentFrameNumber, VbdcNeed, m_vbdcCredit);
 
@@ -915,8 +915,8 @@ int DvbRcsDamaAgentLegacy::vbdcRequestCompute(dvb_fifo *dvb_fifos,
  *                          (TODO: is it really in packets ?)
  */
 int DvbRcsDamaAgentLegacy::getMacBufferLength(int crType,
-                                           dvb_fifo *dvb_fifos,
-                                           int dvb_fifos_number)
+                                              DvbFifo *dvb_fifos,
+                                              int dvb_fifos_number)
 {
 	int nb_cells_in_fifo; // absolute number of cells in fifo
 	int i;
@@ -947,8 +947,8 @@ int DvbRcsDamaAgentLegacy::getMacBufferLength(int crType,
  *                          (TODO: is it really in packet number ?)
  */
 int DvbRcsDamaAgentLegacy::getMacBufferArrivals(int crType,
-                                             dvb_fifo *dvb_fifos,
-                                             int dvb_fifos_number)
+                                                DvbFifo *dvb_fifos,
+                                                int dvb_fifos_number)
 {
 	int nb_cells_input; // # cells that filled the queue since last RBDC request
 	int i;

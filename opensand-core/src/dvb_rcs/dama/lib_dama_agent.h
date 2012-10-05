@@ -38,7 +38,7 @@
 #define LIB_DAMA_AGENT_H
 
 #include "lib_dama_utils.h"
-#include "dvb_fifo.h"
+#include "DvbFifo.h"
 #include "NetBurst.h"
 #include "DvbFrame.h"
 #include "EncapPlugin.h"
@@ -74,7 +74,7 @@ class DvbRcsDamaAgent
 	long m_CRCarrierId;       ///< Carrier Id where CR goes
 	long m_currentSuperFrame; ///< Current Superframe Number
 	double m_frameDuration;   ///< frame duration in msec
-	dvb_fifo *m_nrt_fifo;     ///< The NRT fifo being under authorization
+	DvbFifo *m_nrt_fifo;     ///< The NRT fifo being under authorization
 	                          ///< management
 	long m_next_allocated;    ///< The number of cells to be allocated for the
 	                          ///< next sf
@@ -92,10 +92,10 @@ class DvbRcsDamaAgent
 	virtual ~DvbRcsDamaAgent();
 
 	// Initializations
-	virtual int init(dvb_fifo * nrt_fifo,
+	virtual int init(DvbFifo *nrt_fifo,
 	                 long max_bandwidth,
 	                 long carrier_id);
-	virtual int initComplete(dvb_fifo *dvb_fifos,
+	virtual int initComplete(DvbFifo *dvb_fifos,
 	                         int dvb_fifos_number,
 	                         double frameDuration,
 	                         int craBw,
@@ -108,13 +108,13 @@ class DvbRcsDamaAgent
 	virtual int hereIsTBTP(unsigned char *buf, long len);
 
 	// Result in CR Computation
-	virtual int buildCR(dvb_fifo *dvb_fifo,
+	virtual int buildCR(DvbFifo *dvb_fifo,
 	                    int dvb_fifos_number,
 	                    unsigned char *frame,
 	                    long length) = 0;
 
 	// scheduling
-	virtual int globalSchedule(dvb_fifo *dvb_fifos,
+	virtual int globalSchedule(DvbFifo *dvb_fifos,
 	                           int dvb_fifos_number,
 	                           int &remainingAlloc,
 	                           int encap_packet_type,

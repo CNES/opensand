@@ -89,7 +89,7 @@ class DvbS2Std: public PhysicStd
 	 */
 	static unsigned int getPayload(std::string coding_rate);
 
-	int scheduleEncapPackets(dvb_fifo *fifo,
+	int scheduleEncapPackets(DvbFifo *fifo,
 	                         long current_time,
 	                         std::list<DvbFrame *> *complete_dvb_frames);
 

@@ -106,7 +106,7 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	/**** Fifo parameters ****/
 
 	/// a fifo to keep the received packet from encap bloc
-	dvb_fifo data_dvb_fifo;
+	DvbFifo data_dvb_fifo;
 
 
 	/**** NGN network / Policy Enforcement Point (PEP) ****/

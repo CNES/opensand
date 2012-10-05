@@ -188,13 +188,13 @@ class BlocDVBRcsTal: public BlocDvb
 	/* Fifos */
 
 	/// an array of fifo to manage different queues
-	dvb_fifo *dvb_fifos;
+	DvbFifo *dvb_fifos;
 	/// the number of fifo
 	int dvb_fifos_number;
 	/// the default MAC fifo index = fifo with the smallest priority
 	int m_defaultFifoIndex;
 	/// the number of PVCs
-	int m_nbPvc;
+	unsigned int nbr_pvc;
 
 
 	/* QoS Server / Policy Enforcement Point (PEP) on ST side */

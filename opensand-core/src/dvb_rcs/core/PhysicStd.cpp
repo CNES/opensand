@@ -64,7 +64,7 @@ std::string PhysicStd::type()
 
 
 int PhysicStd::onRcvEncapPacket(NetPacket *packet,
-                                dvb_fifo *fifo,
+                                DvbFifo *fifo,
                                 long current_time,
                                 int fifo_delay)
 {
@@ -100,7 +100,7 @@ error:
 	return -1;
 }
 
-int PhysicStd::onForwardFrame(dvb_fifo *data_fifo,
+int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
                               unsigned char *frame,
                               unsigned int length,
                               long current_time,

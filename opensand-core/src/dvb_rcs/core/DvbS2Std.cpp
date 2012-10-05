@@ -203,7 +203,7 @@ error:
 }
 #endif
 
-int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
+int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
                                    long current_time,
                                    std::list<DvbFrame *> *complete_dvb_frames)
 {

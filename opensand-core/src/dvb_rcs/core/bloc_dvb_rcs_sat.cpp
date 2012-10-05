@@ -1111,7 +1111,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
  * @param sigFifo    a pointer to the associated fifo being flushed
  * @return 0 on succes , -1 on failure
  */
-int BlocDVBRcsSat::sendSigFrames(dvb_fifo * sigFifo)
+int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 {
 	const char *FUNCNAME = "[sendSigFrames]";
 	long max_cells;
@@ -1190,7 +1190,7 @@ release_fifo_elem:
  * @param fifo         The fifo where was the packets
  * @param m_stat_fifo  TODO
  */
-void BlocDVBRcsSat::getProbe(NetBurst burst, dvb_fifo fifo, sat_StatBloc m_stat_fifo)
+void BlocDVBRcsSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo)
 {
 	const char *FUNCNAME = "[BlocDVBRcsSat::getProbe]";
 	clock_t this_tick;          // stats
@@ -1267,7 +1267,7 @@ void BlocDVBRcsSat::errorGenerator(NetPacket * encap_packet)
 #endif
 
 
-mgl_status BlocDVBRcsSat::forwardDVBFrame(dvb_fifo *sigFifo, char *ip_buf, int i_len)
+mgl_status BlocDVBRcsSat::forwardDVBFrame(DvbFifo *sigFifo, char *ip_buf, int i_len)
 {
 	MacFifoElement *elem;
 	long l_current;
@@ -1311,7 +1311,7 @@ error:
  * @param current_time  the current time
  * @return              0 if successful, -1 otherwise
  */
-int BlocDVBRcsSat::onSendFrames(dvb_fifo *fifo, long current_time)
+int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 {
 	MacFifoElement *elem;
 

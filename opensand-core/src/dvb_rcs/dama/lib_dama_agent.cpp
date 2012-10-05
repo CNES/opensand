@@ -83,7 +83,7 @@ DvbRcsDamaAgent::~DvbRcsDamaAgent()
  * @param carrier_id is where the CR goes
  * @return 0 on success -1 otherwise and set m_error
  */
-int DvbRcsDamaAgent::init(dvb_fifo * nrt_fifo, long max_bandwidth,
+int DvbRcsDamaAgent::init(DvbFifo *nrt_fifo, long max_bandwidth,
                           long carrier_id)
 {
 	if(nrt_fifo == NULL)

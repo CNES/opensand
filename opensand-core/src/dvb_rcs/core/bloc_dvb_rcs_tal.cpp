@@ -94,7 +94,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->dvb_fifos_number = -1;
 	this->dvb_fifos = NULL;
 	this->m_defaultFifoIndex = -1;
-	this->m_nbPvc = -1;
+	//this->nbr_pvc = -1;
 
 	// misc
 	this->out_encap_packet_length = -1;
@@ -260,7 +260,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 			// messages from upper layer: burst of encapsulation packets
 			NetBurst *burst;
 			NetBurst::iterator pkt_it;
-			int fifo_id;
+			unsigned int fifo_id;
 			std::string message;
 			std::ostringstream oss;
 			int i;
@@ -552,7 +552,7 @@ int BlocDVBRcsTal::initMacFifo()
 		          "of configuration file\n", DVB_TAL_SECTION, FIFO_LIST);
 		goto error;
 	}
-	this->dvb_fifos = new dvb_fifo[this->dvb_fifos_number];
+	this->dvb_fifos = new DvbFifo[this->dvb_fifos_number];
 	if(this->dvb_fifos == NULL)
 	{
 		UTI_ERROR("failed to create DVB FIFOs\n");
@@ -610,23 +610,17 @@ int BlocDVBRcsTal::initMacFifo()
 		// DVB fifo kind is the MAC QoS. With Legacy DAMA it is the same
 		// as Diffserv IP QoS: it can be AF, EF, BE
 		// NM and SIG filters are for Network Managment and Signalisation
+		// TODO map ?
 		if(fifo_type == "NM")
-			this->dvb_fifos[i].setKind(DVB_FIFO_NM);
+			this->dvb_fifos[i].setMacPriority(fifo_nm);
 		else if(fifo_type == "EF")
-			this->dvb_fifos[i].setKind(DVB_FIFO_EF);
+			this->dvb_fifos[i].setMacPriority(fifo_ef);
 		else if(fifo_type == "SIG")
-			this->dvb_fifos[i].setKind(DVB_FIFO_SIG);
+			this->dvb_fifos[i].setMacPriority(fifo_sig);
 		else if(fifo_type == "AF")
-			this->dvb_fifos[i].setKind(DVB_FIFO_AF);
+			this->dvb_fifos[i].setMacPriority(fifo_af);
 		else if(fifo_type == "BE")
-			this->dvb_fifos[i].setKind(DVB_FIFO_BE);
-		// TODO check if this is Legacy DAMA agent
-		else if(fifo_type == "RT" || fifo_type == "NRT")
-		{
-			UTI_ERROR("%s: kind of fifo not managed by Legacy DAMA agent: "
-			          "%s\n", FUNCNAME, fifo_type.c_str());
-			goto err_fifo_release;
-		}
+			this->dvb_fifos[i].setMacPriority(fifo_be);
 		else
 		{
 			UTI_ERROR("%s: unknown kind of fifo: %s\n", FUNCNAME,
@@ -656,14 +650,15 @@ int BlocDVBRcsTal::initMacFifo()
 		}
 
 		// capacity request type associated to the Fifo: NONE, RBDC or VBDC
+		// TODO map ?
 		if(fifo_cr_type == "RBDC")
-			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_RBDC);
+			this->dvb_fifos[i].setCrType(cr_rbdc);
 		else if(fifo_cr_type == "VBDC")
-			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_VBDC);
+			this->dvb_fifos[i].setCrType(cr_vbdc);
 		else if(fifo_cr_type == "NONE")
 		{
 			// this will be used by DAMA agent for CR computation
-			this->dvb_fifos[i].setCrType(DVB_FIFO_CR_NONE);
+			this->dvb_fifos[i].setCrType(cr_none);
 		}
 		else
 		{
@@ -676,10 +671,10 @@ int BlocDVBRcsTal::initMacFifo()
 		this->dvb_fifos[i].setId(fifo_id);
 		this->dvb_fifos[i].init(fifo_size);
 
-		UTI_INFO("%s: Fifo = id %d, kind %d, size %ld, pvc %d, "
+		UTI_INFO("%s: Fifo = id %u, MAC priority %d, size %u, pvc %u, "
 		         "CR type %d\n", FUNCNAME,
 		         this->dvb_fifos[i].getId(),
-		         this->dvb_fifos[i].getKind(),
+		         this->dvb_fifos[i].getMacPriority(),
 		         this->dvb_fifos[i].getMaxSize(),
 		         this->dvb_fifos[i].getPvc(),
 		         this->dvb_fifos[i].getCrType());
@@ -694,10 +689,10 @@ int BlocDVBRcsTal::initMacFifo()
 	highestPrioMacFifoIndex = 0;
 
 	// set the number of PVC = the maximum PVC is (first PVC is is 1)
-	m_nbPvc = 0;
+	this->nbr_pvc = 0;
 	for(i = 0; i < this->dvb_fifos_number; i++)
 	{
-		m_nbPvc = MAX(this->dvb_fifos[i].getPvc(), m_nbPvc);
+		this->nbr_pvc = MAX(this->dvb_fifos[i].getPvc(), this->nbr_pvc);
 	}
 
 	// init stats context per QoS
@@ -1664,7 +1659,7 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
  */
 void BlocDVBRcsTal::updateStatsOnFrame()
 {
-	MacFifoStatContext macQStat;
+	mac_fifo_stat_context_t fifo_stat;
 	DAStatContext *damaStat;
 	int fifoIndex;
 	int ulOutgoingCells = 0;
@@ -1675,9 +1670,9 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 	// MAC fifos stats
 	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
 	{
-		this->dvb_fifos[fifoIndex].getStatsCxt(macQStat);
+		this->dvb_fifos[fifoIndex].getStatsCxt(fifo_stat);
 
-		// NB: mac queueing delay = macQStat.lastPkQueuingDelay
+		// NB: mac queueing delay = fifo_stat.lastPkQueuingDelay
 		// is writing at each UL cell emission by MAC layer and DA
 
 		// compute UL incoming Throughput - in kbits/s
@@ -1689,7 +1684,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 		// NB: outgoingCells = cells directly sent from IP packets + cells
 		//     stored before extraction next frame
 		ulOutgoingCells = m_statCounters.ulOutgoingCells[fifoIndex] +
-		                  macQStat.outPkNb;
+		                  fifo_stat.out_pkt_nbr;
 		m_statContext.ulOutgoingThroughput[fifoIndex] = (ulOutgoingCells
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
@@ -1736,7 +1731,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
  */
 void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 {
-	MacFifoStatContext macQStat;
+	mac_fifo_stat_context_t fifo_stat;
 	DAStatContext *damaStat;
 	int fifoIndex;
 	if(m_bbframe_dropped != 0 ||  m_bbframe_received !=0)
@@ -1769,13 +1764,13 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 	// MAC fifos stats
 	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
 	{
-		this->dvb_fifos[fifoIndex].getStatsCxt(macQStat);
+		this->dvb_fifos[fifoIndex].getStatsCxt(fifo_stat);
 
 		// write in statitics file : mac queue size
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
 		                       C_PROBE_ST_TERMINAL_QUEUE_SIZE,
 		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       macQStat.currentPkNb);
+		                       fifo_stat.current_pkt_nbr);
 	}
 }
 

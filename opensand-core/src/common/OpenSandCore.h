@@ -34,6 +34,9 @@
 #ifndef OPENSAND_CORE_H
 #define OPENSAND_CORE_H
 
+#include <string>
+#include <stdint.h>
+
 using std::string;
 
 /** The different types of DVB components */
@@ -71,9 +74,11 @@ inline string getComponentName(t_component host)
 #define BROADCAST_TAL_ID 0x1F
 
 /// The types used in OpenSAND
-typedef uint8_t tal_id_t;
-typedef uint8_t spot_id_t;
-typedef uint8_t qos_t;
+typedef uint8_t tal_id_t; // on 5 bits
+typedef uint8_t spot_id_t; // on 5 bits
+typedef uint8_t qos_t; // on 3 bits
+// TODO check size
+typedef uint32_t pkt_nbr_t;
 
 #endif
 

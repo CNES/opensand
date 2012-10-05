@@ -59,7 +59,7 @@ DvbRcsStd::~DvbRcsStd()
 	}
 }
 
-int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
+int DvbRcsStd::scheduleEncapPackets(DvbFifo *fifo,
                                     long current_time,
                                     std::list<DvbFrame *> *complete_dvb_frames)
 {

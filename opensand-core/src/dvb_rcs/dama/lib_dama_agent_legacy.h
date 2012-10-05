@@ -91,7 +91,7 @@ class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 	long m_vbdcCredit;   ///< in cells number
 	int m_maxVbdc;       ///< in cells number
 
-	int m_nbPvc;         ///< the number of PVCs
+	unsigned int m_nbPvc;  ///< the number of PVCs
 
 
  public:
@@ -100,13 +100,13 @@ class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 	                      double frame_duration);
 	virtual ~DvbRcsDamaAgentLegacy();
 
-	int initComplete(dvb_fifo *dvb_fifos,
+	int initComplete(DvbFifo *dvb_fifos,
 	                 int dvb_fifos_number,
 	                 double frameDuration,
 	                 int craBw,
 	                 int obrPeriod);
 
-	int buildCR(dvb_fifo *dvb_fifo,
+	int buildCR(DvbFifo *dvb_fifo,
 	            int dvb_fifos_number,
 	            unsigned char *frame,
 	            long length);
@@ -117,7 +117,7 @@ class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 
 	// at each frame
 	int processOnFrameTick();
-	int globalSchedule(dvb_fifo *dvb_fifos,
+	int globalSchedule(DvbFifo *dvb_fifos,
 	                   int dvb_fifos_number,
 	                   int &remainingAlloc,
 	                   int encap_packet_type,
@@ -129,20 +129,20 @@ class DvbRcsDamaAgentLegacy: public DvbRcsDamaAgent
 	// utility functions to get MAC / IP fifo buffers size/arrivals
 	// (in number of equivalent encap packets)
 	int getMacBufferLength(int crType,
-	                       dvb_fifo *dvb_fifos,
+	                       DvbFifo *dvb_fifos,
 	                       int dvb_fifos_number);
 	                       int getMacBufferArrivals(int crType,
-	                       dvb_fifo *dvb_fifos,
+	                       DvbFifo *dvb_fifos,
 	                       int dvb_fifos_number);
 
 	// compute CR requets functions
-	int rbdcRequestCompute(dvb_fifo *dvb_fifos, int dvb_fifos_number);
-	int vbdcRequestCompute(dvb_fifo *dvb_fifos, int dvb_fifos_number);
+	int rbdcRequestCompute(DvbFifo *dvb_fifos, int dvb_fifos_number);
+	int vbdcRequestCompute(DvbFifo *dvb_fifos, int dvb_fifos_number);
 
 	// MAC scheduling
-	int macSchedule(dvb_fifo *dvb_fifos,
+	int macSchedule(DvbFifo *dvb_fifos,
 	                int dvb_fifos_number,
-	                int pvc,
+	                unsigned int pvc,
 	                int &extractedEncapPacketsNb,
 	                int encap_packet_type,
 	                std::list<DvbFrame *> *complete_dvb_frames);
