@@ -1,0 +1,16 @@
+[prefix]
+# automatically replaced by the binary
+source=.
+destination=/tmp/opensand_tests
+
+[sat]
+files=stats/daemon_collector_files/stop_collector.sh
+ld_library_path=.lib
+
+#[common]
+#files=
+
+[command]
+exec=/tmp/opensand_tests/stats/daemon_collector_files/stop_collector.sh
+wait=True
+return=0
