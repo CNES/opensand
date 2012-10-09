@@ -127,10 +127,13 @@ bool EnvPlaneInternal::finish_init()
 
 	for (std::size_t i = 0 ; i < this->probes.size() ; i++) {
 		const char* name = this->probes[i]->name();
+		const char* unit = this->probes[i]->unit();
 
 		message.append(1, (((int)this->probes[i]->is_enabled()) << 7) | this->probes[i]->storage_type_id());
 		message.append(1, strlen(name));
+		message.append(1, strlen(unit));
 		message.append(name);
+		message.append(unit);
 	}
 
 	for (std::size_t i = 0 ; i < this->events.size() ; i++) {

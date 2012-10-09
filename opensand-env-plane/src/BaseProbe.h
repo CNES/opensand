@@ -23,9 +23,10 @@ class BaseProbe
 public:
 	inline bool is_enabled() const { return this->enabled; };
 	inline const char* name() const { return this->_name; };
+	inline const char* unit() const { return this->_unit; };
 
 protected:
-	BaseProbe(uint8_t id, const char* name, bool enabled, sample_type type);
+	BaseProbe(uint8_t id, const char* name, const char* unit, bool enabled, sample_type type);
 	virtual ~BaseProbe();
 	
 	virtual uint8_t storage_type_id() = 0;
@@ -33,6 +34,7 @@ protected:
 
 	uint8_t id;
 	char* _name;
+	char* _unit;
 	sample_type s_type;
 	bool enabled;
 	

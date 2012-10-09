@@ -18,7 +18,7 @@ public:
 	void put(T value);
 
 private:
-	Probe(uint8_t id, const char* name, bool enabled, sample_type type);
+	Probe(uint8_t id, const char* name, const char* unit, bool enabled, sample_type type);
 	
 	virtual uint8_t storage_type_id();
 	virtual void append_value_and_reset(std::string& str);
@@ -27,8 +27,8 @@ private:
 };
 
 template<typename T>
-Probe<T>::Probe(uint8_t id, const char* name, bool enabled, sample_type type)
-	: BaseProbe(id, name, enabled, type)
+Probe<T>::Probe(uint8_t id, const char* name, const char* unit, bool enabled, sample_type type)
+	: BaseProbe(id, name, unit, enabled, type)
 {
 }
 

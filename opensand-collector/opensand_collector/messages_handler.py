@@ -144,17 +144,26 @@ class MessagesHandler(object):
 
         probe_list = []
         for _ in xrange(num_probes):
-            storage_type, name_length = struct.unpack("!BB", data[pos:pos+2])
+            storage_type, name_length, unit_length = struct.unpack("!BBB",
+                data[pos:pos + 3])
             enabled = bool(storage_type >> 7)
             storage_type = storage_type & ~(1 << 7)
-            pos += 2
+            pos += 3
 
             name = data[pos:pos + name_length]
             if len(name) != name_length:
                 return False
-
-            probe_list.append((name, storage_type, enabled))
+            
             pos += name_length
+            
+            unit = data[pos:pos + unit_length]
+            if len(unit) != unit_length:
+                return False
+
+            pos += unit_length
+
+            probe_list.append((name, unit, storage_type, enabled))
+            
 
         event_list = []
         for _ in xrange(num_events):

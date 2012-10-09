@@ -20,7 +20,7 @@ private:
 
 	void init(bool enabled, event_level min_level, const char* sock_prefix);
 	template<typename T>
-	Probe<T>* register_probe(const char* name, bool enabled, sample_type type);
+	Probe<T>* register_probe(const char* name, const char* unit, bool enabled, sample_type type);
 	Event* register_event(const char* identifier, event_level level);
 	bool finish_init(void);
 	void send_probes(void);
@@ -39,7 +39,7 @@ private:
 };
 
 template<typename T>
-Probe<T>* EnvPlaneInternal::register_probe(const char* name, bool enabled, sample_type type) {
+Probe<T>* EnvPlaneInternal::register_probe(const char* name, const char* unit, bool enabled, sample_type type) {
 	assert(this->initializing);
 
 	// FIXME: uti_debug.h cannot be included in this file because it does not properly support
@@ -47,7 +47,7 @@ Probe<T>* EnvPlaneInternal::register_probe(const char* name, bool enabled, sampl
 	//UTI_DEBUG("Registering probe %s with type %d\n", name, type);
 
 	uint8_t new_id = this->probes.size();
-	Probe<T>* probe = new Probe<T>(new_id, name, enabled, type);
+	Probe<T>* probe = new Probe<T>(new_id, name, unit, enabled, type);
 	this->probes.push_back(probe);
 
 	return probe;

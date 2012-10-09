@@ -20,9 +20,10 @@ class Probe(object):
     Class representing a probe
     """
 
-    def __init__(self, program, name, storage_type, enabled):
+    def __init__(self, program, name, unit, storage_type, enabled):
         self.program = program
         self.name = name
+        self.unit = unit
         self.storage_type = storage_type
         self.enabled = enabled
         self.displayed = False

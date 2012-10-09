@@ -30,9 +30,9 @@ int main(int argc, char* argv[]) {
 
 	EnvPlane::init(env_plane_enabled, min_level, argv[1]);
 
-	Probe<int32_t>* int32_last_probe = EnvPlane::register_probe<int32_t>("int32_last_probe", true, SAMPLE_LAST);
-	Probe<int32_t>* int32_max_probe = EnvPlane::register_probe<int32_t>("int32_max_probe", true, SAMPLE_MAX);
-	Probe<int32_t>* int32_min_probe = EnvPlane::register_probe<int32_t>("int32_min_probe", true, SAMPLE_MIN);
+	Probe<int32_t>* int32_last_probe = EnvPlane::register_probe<int32_t>("int32_last_probe", "µF", true, SAMPLE_LAST);
+	Probe<int32_t>* int32_max_probe = EnvPlane::register_probe<int32_t>("int32_max_probe", "mm/s", true, SAMPLE_MAX);
+	Probe<int32_t>* int32_min_probe = EnvPlane::register_probe<int32_t>("int32_min_probe", "m²", true, SAMPLE_MIN);
 	Probe<int32_t>* int32_avg_probe = EnvPlane::register_probe<int32_t>("int32_avg_probe", true, SAMPLE_AVG);
 	Probe<int32_t>* int32_sum_probe = EnvPlane::register_probe<int32_t>("int32_sum_probe", true, SAMPLE_SUM);
 	Probe<int32_t>* int32_dis_probe = EnvPlane::register_probe<int32_t>("int32_dis_probe", false, SAMPLE_LAST);

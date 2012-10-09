@@ -19,6 +19,8 @@ public:
 
 	template<typename T>
 	static Probe<T>* register_probe(const char* name, bool enabled, sample_type type);
+	template<typename T>
+	static Probe<T>* register_probe(const char* name, const char* unit, bool enabled, sample_type type);
 
 	static Event* register_event(const char* identifier, event_level level);
 
@@ -41,7 +43,13 @@ private:
 template<typename T>
 Probe<T>* EnvPlane::register_probe(const char* name, bool enabled, sample_type type)
 {
-	return EnvPlane::instance.register_probe<T>(name, enabled, type);
+	return EnvPlane::register_probe<T>(name, "", enabled, type);
+}
+
+template<typename T>
+Probe<T>* EnvPlane::register_probe(const char* name, const char* unit, bool enabled, sample_type type)
+{
+	return EnvPlane::instance.register_probe<T>(name, unit, enabled, type);
 }
 
 #endif

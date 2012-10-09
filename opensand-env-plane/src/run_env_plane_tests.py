@@ -47,15 +47,19 @@ class MessageRegister(object):
 
         pos = 6
         for _ in xrange(num_probes):
-            storage_type, length = struct.unpack("!BB", data[pos:pos + 2])
-            pos += 2
+            storage_type, name_length, unit_length = struct.unpack("!BBB", data[pos:pos + 3])
+            pos += 3
             enabled = bool(storage_type & (1 << 7))
             storage_type = (storage_type & ~(1 << 7))
-            name = data[pos:pos + length]
-            assert len(name) == length, "Incorrect length during string unpacking"
-            pos += length
+            name = data[pos:pos + name_length]
+            assert len(name) == name_length, "Incorrect length during string unpacking"
+            pos += name_length
+            
+            unit = data[pos:pos + unit_length]
+            assert len(unit) == unit_length, "Incorrect length during string unpacking"
+            pos += unit_length
 
-            self.probes.append((name, enabled, storage_type))
+            self.probes.append((name, unit, enabled, storage_type))
 
         for _ in xrange(num_events):
             level, length = struct.unpack("!BB", data[pos:pos + 2])
@@ -213,22 +217,22 @@ class EnvironmentPlaneBaseTester(object):
         assert isinstance(msg, MessageRegister)
         assert msg.pid == self.proc.pid
         assert msg.probes == [
-            ("int32_last_probe", True, TYPE_INT),
-            ("int32_max_probe", True, TYPE_INT),
-            ("int32_min_probe", True, TYPE_INT),
-            ("int32_avg_probe", True, TYPE_INT),
-            ("int32_sum_probe", True, TYPE_INT),
-            ("int32_dis_probe", False, TYPE_INT),
+            ("int32_last_probe", "µF", True, TYPE_INT),
+            ("int32_max_probe", "mm/s", True, TYPE_INT),
+            ("int32_min_probe", "m²", True, TYPE_INT),
+            ("int32_avg_probe", "", True, TYPE_INT),
+            ("int32_sum_probe", "", True, TYPE_INT),
+            ("int32_dis_probe", "", False, TYPE_INT),
 
-            ("float_probe", True, TYPE_FLOAT),
-            ("double_probe", True, TYPE_DOUBLE),
+            ("float_probe", "", True, TYPE_FLOAT),
+            ("double_probe", "", True, TYPE_DOUBLE),
         ]
         assert msg.events == [
             ("debug_event", LEVEL_DEBUG),
             ("info_event", LEVEL_INFO),
         ]
 
-        self.probe_types = [t for _, _, t in msg.probes]
+        self.probe_types = [t for _, _, _, t in msg.probes]
 
         self.socket.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK), self.program_sock_path)
 
