@@ -2,6 +2,8 @@
 
 set -e
 
+rm -f /tmp/test_sand_collector.log
+
 if [ -f /tmp/sand_collector_pid ]; then
 	echo "/tmp/sand_collector_pid already exists; exiting" | tee -a /tmp/test_sand_collector.log
 	exit 1
