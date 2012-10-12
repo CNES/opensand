@@ -483,7 +483,7 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 			{
 				// remove the CRA of the RBDC request
 				Request =
-					MAX(Converter->ConvertFromKbitsToCellsPerFrame(xbdc) -
+					std::max(Converter->ConvertFromKbitsToCellsPerFrame(xbdc) -
 					    (double) ThisSt->GetCra(), 0.0);
 			}
 			else
@@ -795,12 +795,12 @@ bool DvbRcsDamaCtrl::applyPepCommand(PepRequest *request)
 
 		if(st->SetMaxRbdc(rbdcMaxCells) == 0)
 		{
-			UTI_INFO("ST%u: update RBDC MAX to %u kbits/s\n",
+			UTI_INFO("ST%u: update RBDC std::max to %u kbits/s\n",
 			         request->getStId(), request->getRbdcMax());
 		}
 		else
 		{
-			UTI_ERROR("ST%u: failed to update RBDC MAX to %u kbits/s\n",
+			UTI_ERROR("ST%u: failed to update RBDC std::max to %u kbits/s\n",
 			           request->getStId(), request->getRbdcMax());
 			success = false;
 		}

@@ -66,11 +66,66 @@ DvbFifo::DvbFifo(): mgl_fifo(),
  * @param id           fifo identifier
  * @param mac_priority the MAC priority of fifo
  */
-DvbFifo::DvbFifo(unsigned int id, mac_priority_t mac_priority):
+DvbFifo::DvbFifo(unsigned int id, string mac_prio_name,
+                 string cr_type_name, unsigned int pvc,
+                 vol_pkt_t size):
+	id(id),
+	pvc(pvc)
+{
+	if(mac_prio_name == "NM")
+	{
+		this->mac_priority = fifo_nm;
+	}
+	else if(mac_prio_name == "EF")
+	{
+		this->mac_priority = fifo_ef;
+	}
+	else if(mac_prio_name == "SIG")
+	{
+		this->mac_priority = fifo_sig;
+	}
+	else if(mac_prio_name == "AF")
+	{
+		this->mac_priority = fifo_af;
+	}
+	else if(mac_prio_name == "BE")
+	{
+		this->mac_priority = fifo_be;
+	}
+	else
+	{
+		UTI_ERROR("unknown kind of fifo: %s\n",
+				  mac_prio_name.c_str());
+	}
+
+	if(cr_type_name == "RBDC")
+	{
+		this->cr_type = cr_rbdc;
+	}
+	else if(cr_type_name == "VBDC")
+	{
+		this->cr_type = cr_vbdc;
+	}
+	else if(cr_type_name == "NONE")
+	{
+		this->cr_type = cr_none;
+	}
+	else
+	{
+		UTI_ERROR("unknown CR type of FIFO: %s\n",
+		          cr_type_name.c_str());
+	}
+
+	this->init(size);
+}
+
+/* TODO remove
+DvbFifo::DvbFifo(unsigned int id, mac_prio_t mac_priority):
 	id(id),
 	mac_priority(mac_priority)
 {
 }
+*/
 
 /**
  * Constructor
@@ -78,7 +133,8 @@ DvbFifo::DvbFifo(unsigned int id, mac_priority_t mac_priority):
  * @param mac_priority the MAC priority of fifo
  * @param pvc          the PVC of fifo
  */
-DvbFifo::DvbFifo(unsigned int id, mac_priority_t mac_priority, unsigned int pvc):
+/*
+DvbFifo::DvbFifo(unsigned int id, mac_prio_t mac_priority, unsigned int pvc):
 	id(id),
 	mac_priority(mac_priority),
 	pvc(pvc),
@@ -89,7 +145,7 @@ DvbFifo::DvbFifo(unsigned int id, mac_priority_t mac_priority, unsigned int pvc)
 	this_tick(0),
 	notice_tick(0)
 {
-}
+}*/
 
 /**
  * Destructor
@@ -98,11 +154,13 @@ DvbFifo::~DvbFifo()
 {
 }
 
+//TODO remove ID and use mac_prio only ?
+
 /**
  * Return the mac_priority of the fifo
  * @return the mac_priority of the fifo
  */
-mac_priority_t DvbFifo::getMacPriority()
+mac_prio_t DvbFifo::getMacPriority()
 {
 	return this->mac_priority;
 }
@@ -111,19 +169,23 @@ mac_priority_t DvbFifo::getMacPriority()
  * Set the mac_priority of the fifo
  * @param mac_priority is the mac_priority of the fifo
  */
-void DvbFifo::setMacPriority(mac_priority_t mac_priority)
+/*
+void DvbFifo::setMacPriority(mac_prio_t mac_priority)
 {
 	this->mac_priority = mac_priority;
 }
+*/
 
 /**
  * Set the PVC associated to the fifo
  * @param pvc is the PVC of the fifo
  */
+/*
 void DvbFifo::setPvc(unsigned int pvc)
 {
 	this->pvc = pvc;
 }
+*/
 
 /**
  * Get the PVC associated to the fifo
@@ -139,10 +201,12 @@ unsigned int DvbFifo::getPvc()
  * Set the CR type associated to the fifo
  * @param cr_type is the CR type associated to the fifo
  */
+/*
 void DvbFifo::setCrType(cr_type_t cr_type)
 {
 	this->cr_type = cr_type;
 }
+*/
 
 /**
  * Get the CR type associated to the fifo
@@ -177,7 +241,7 @@ void DvbFifo::setId(unsigned int id)
  * @param i_size is the fifo maximum size
  * @return 0 on success
  */
-int DvbFifo::init(long i_size)
+int DvbFifo::init(vol_pkt_t i_size)
 {
 	this->size = i_size;
 	this->avg_queue_size = 0;
@@ -238,16 +302,16 @@ void *DvbFifo::remove()
  * Set the capacity to emit for this superframe
  * @param capacity is the MAC capacity associated to the fifo - if any
  */
-void DvbFifo::setCapacity(long capacity)
+/*void DvbFifo::setCapacity(long capacity)
 {
 	this->capacity = capacity;
-}
+}*/
 
 /**
  * Get the capacity to emit for this superframe
  * @return the MAC capacity associated to the fifo - if any
  */
-pkt_nbr_t DvbFifo::getCapacity()
+vol_pkt_t DvbFifo::getCapacity()
 {
 	return this->capacity;
 }
@@ -256,7 +320,7 @@ pkt_nbr_t DvbFifo::getCapacity()
  * Get the number of cells that fed the queue since last call, reset filled
  * @return the number of cells that fed the queue since last call
  */
-pkt_nbr_t DvbFifo::getFilled()
+vol_pkt_t DvbFifo::getFilled()
 {
 	long ret;
 	ret = this->filled;
@@ -270,7 +334,7 @@ pkt_nbr_t DvbFifo::getFilled()
  *  BUT DO NOT RESET filled
  * @return the number of cells that fed the queue since last call
  */
-pkt_nbr_t DvbFifo::getFilledWithNoReset()
+vol_pkt_t DvbFifo::getFilledWithNoReset()
 {
 	return this->filled;
 }
@@ -295,13 +359,13 @@ void DvbFifo::resetFilled(cr_type_t cr_type)
 bool DvbFifo::allowed()
 {
 	// TODO reuse OpenSandCore types in Margouilla
-	return ((pkt_nbr_t)mgl_fifo::getCount() < this->threshold);
+	return ((vol_pkt_t)mgl_fifo::getCount() < this->threshold);
 }
 
 /**
  * @return the queue maximum size
  */
-pkt_nbr_t DvbFifo::getMaxSize()
+vol_pkt_t DvbFifo::getMaxSize()
 {
 	return this->size;
 }

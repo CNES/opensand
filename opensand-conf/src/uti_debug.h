@@ -213,6 +213,10 @@ extern unsigned char dbgLevel(DBG_PACKAGE);
 	TOSTRING(__LINE__) + " " + \
 	__FUNCTION__ + "()"
 
+/** Convert a boolean to a string to be used in debug function */
+#define UTI_BOOL(x) x ? "true":"false"
+
+
 extern void UTI_readDebugLevels();
 extern void UTI_setDefaultLevel(const char *pkg, unsigned char level);
 

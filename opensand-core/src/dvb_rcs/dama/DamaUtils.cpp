@@ -31,7 +31,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 
 /*
  * @param Duration is the Frame duration in ms
@@ -94,4 +94,10 @@ double DU_Converter::ConvertFromKbitsToCellsPerFrame(int RateKbits)
 double DU_Converter::ConvertFromCellsPerFrameToKbits(double RateCells)
 {
 	return (RateCells / KbitsToCellsPerFrameRatio);
+}
+
+
+vol_b_t DU_Converter::pktToBits(vol_pkt_t vol_pkt)
+{
+	return vol_pkt * CellSize * 1000; // TODO try to get CellSize in bit instead
 }

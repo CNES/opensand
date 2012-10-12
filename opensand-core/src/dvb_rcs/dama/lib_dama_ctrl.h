@@ -42,7 +42,7 @@
 #include <vector>
 
 #include "lib_dvb_rcs.h"
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 #include "lib_dama_ctrl_st.h"
 #include "PepRequest.h"
 #include "DraSchemeDefinitionTable.h"

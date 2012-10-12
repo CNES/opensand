@@ -27,15 +27,15 @@
  */
 
 /**
- * @file lib_circular_buffer.h
+ * @file CicrularBuffer.h
  * @brief This is a circular buffer class.
  * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
  */
 
-#ifndef _CIRCULAR_BUFFER_FUNC_HEADER
-#define _CIRCULAR_BUFFER_FUNC_HEADER
+#ifndef _CIRCULAR_BUFFER_H
+#define _CIRCULAR_BUFFER_H
 
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 
 
 /**
@@ -48,26 +48,26 @@ class CircularBuffer
  private:
 
 	/// if size = 0 --> flag = true --> only last value is saved, sum = 0
-	bool m_SaveOnlyLastValue;
+	bool save_only_last_value;;
 
-	int m_Size;      ///< circular buffer max size
-	int m_Index;     ///< current index
-	int m_NbValues;  ///< current nb of elem
-	double *m_Value; ///< circular buffer array
-	double m_Min;    ///< min value contained in the circular buffer
-	double m_Sum;    ///< sum of all values contained in the circular buffer
+	size_t size;              ///< circular buffer max size
+	size_t index;       ///< current index
+	size_t nbr_values;  ///< current nb of elem
+	rate_kbps_t sum;    ///< sum of all values contained in the circular buffer
+	rate_kbps_t min_value;    ///< min value contained in the circular buffer
+	rate_kbps_t *values; ///< circular buffer array
 
  public:
 
-	CircularBuffer(int size);
+	CircularBuffer(size_t buffer_size);
 	virtual ~CircularBuffer();
 
-	void Update(double newValue);
-	double GetLastValue();
-	double GetPreviousValue();
-	double GetMean();
-	double GetMin();
-	double GetSum();
+	void Update(rate_kbps_t new_value);
+	rate_kbps_t GetLastValue();
+	rate_kbps_t GetPreviousValue();
+	rate_kbps_t GetMean();
+	rate_kbps_t GetMin();
+	rate_kbps_t GetSum();
 	void Debug();
 };
 

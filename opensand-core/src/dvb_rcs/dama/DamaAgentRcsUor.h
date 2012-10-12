@@ -1,11 +1,10 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,45 +26,23 @@
  */
 
 /**
- * @file lib_dama_utils.h
- * @brief Utilities definitions and functions for DAMA
+ * @file    DamaAgentRcsUor.h
+ * @brief   Dama Agent for UoR algorithm.
  * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
+ *
  */
 
-#ifndef LIB_DAMA_UTILS_H
-#define LIB_DAMA_UTILS_H
+#ifndef _DAMA_AGENT_RCS_UOR_H_
+#define _DAMA_AGENT_RCS_UOR_H_
 
-#ifndef MIN
-#define MIN(a,b)  (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a,b)  (((a) > (b)) ? (a) : (b))
-#endif
+#include "DamaAgentRcsLegacy.h"
 
 
-/**
- * @class DU_Converter
- * @brief class managing unit conversion between kbits/s, cells per frame, etc
- */
-class DU_Converter
+class DamaAgentRcsUor: public DamaAgentRcsLegacy
 {
- protected:
-
-	int CellSize;      ///< UL packet size, in bytes
-	int FrameDuration; ///< UL frame duration, in ms
-	double KbitsToCellsPerSecRatio;
-	double KbitsToCellsPerFrameRatio;
-
  public:
-
-	DU_Converter(int Duration, int Size);
-	~DU_Converter();
-
-	double /*kbits/s */ ConvertFromCellsPerSecToKbits(double RateCells);
-	double /*cells/s */ ConvertFromKbitsToCellsPerSec(int RateKbits);
-	double /*kbits/s */ ConvertFromCellsPerFrameToKbits(double RateCells);
-	double /*cells/s */ ConvertFromKbitsToCellsPerFrame(int RateKbits);
+	DamaAgentRcsUor(EncapPlugin::EncapPacketHandler *pkt_hdl);
 };
 
-#endif //LIB_DAMA_UTILS_H
+#endif
+

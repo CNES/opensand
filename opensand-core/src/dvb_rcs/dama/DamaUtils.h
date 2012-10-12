@@ -27,47 +27,40 @@
  */
 
 /**
- * @file lib_dama_ctrl_legacy.h
- * @brief This library defines the legacy DAMA controller.
- *
- * @author ASP - IUSO, DTP (B. BAUDOIN)
- * @author Didier Barvaux / Viveris Technologies
+ * @file lib_dama_utils.h
+ * @brief Utilities definitions and functions for DAMA
+ * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
  */
 
-#ifndef LIB_DAMA_CTRL_Legacy_H
-#define LIB_DAMA_CTRL_Legacy_H
+#ifndef LIB_DAMA_UTILS_H
+#define LIB_DAMA_UTILS_H
 
-#include "lib_dama_ctrl.h"
-#include "DamaUtils.h"
+#include "OpenSandCore.h"
 
 
 /**
- *  @class DvbRcsDamaCtrlLegacy
- *  @brief This library defines the legacy DAMA controller.
+ * @class DU_Converter
+ * @brief class managing unit conversion between kbits/s, cells per frame, etc
  */
-class DvbRcsDamaCtrlLegacy: public DvbRcsDamaCtrl
+class DU_Converter
 {
+ protected:
+
+	int CellSize;      ///< UL packet size, in bytes
+	int FrameDuration; ///< UL frame duration, in ms
+	double KbitsToCellsPerSecRatio;
+	double KbitsToCellsPerFrameRatio;
 
  public:
 
-	DvbRcsDamaCtrlLegacy();
-	virtual ~ DvbRcsDamaCtrlLegacy();
+	DU_Converter(int Duration, int Size);
+	~DU_Converter();
 
-
- private:
-	/// the core of the class
-	int runDama();
-
-	///RBDC allocation
-	int runDamaRbdc(int);
-	/// VBDC allocation
-	int runDamaVbdc(int);
-	/// FCA allocation
-	int runDamaFca(int);
-
-	/// in charge of the round robin management
-	DC_St *RoundRobin(int *);
-
+	double /*kbits/s */ ConvertFromCellsPerSecToKbits(double RateCells);
+	double /*cells/s */ ConvertFromKbitsToCellsPerSec(int RateKbits);
+	double /*kbits/s */ ConvertFromCellsPerFrameToKbits(double RateCells);
+	double /*cells/s */ ConvertFromKbitsToCellsPerFrame(int RateKbits);
+	vol_b_t pktToBits(vol_pkt_t vol_pkt);
 };
 
-#endif
+#endif //LIB_DAMA_UTILS_H

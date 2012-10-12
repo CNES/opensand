@@ -418,4 +418,12 @@ typedef struct
 } T_DVB_ENCAP_BURST;
 
 
+/** TODO: Create classes with accessors and "toRaw" function that
+ * handles endianess and packing */
+typedef T_DVB_SACT SACT;
+typedef T_DVB_LOGON_REQ LogonRequest;
+typedef T_DVB_LOGON_RESP LogonResponse;
+typedef T_DVB_LOGOFF LogoffRequest;
+
+
 #endif

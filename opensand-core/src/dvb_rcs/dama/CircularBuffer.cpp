@@ -26,7 +26,7 @@
  */
 
 /**
- * @file lib_circular_buffer.cpp
+ * @file CircularBuffer.cpp
  * @brief This is a circular buffer class.
  * @author Viveris Technologies
  */
@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "lib_circular_buffer.h"
+#include "CircularBuffer.h"
 
 #define DBG_PACKAGE PKG_DAMA_DA
 #include "opensand_conf/uti_debug.h"
@@ -44,45 +44,38 @@
 /**
  * Create and initialize the circular buffer
  *
- * @param BufferSize Circular buffer size
+ * @param buffer_size Circular buffer size
  */
-CircularBuffer::CircularBuffer(int BufferSize)
+CircularBuffer::CircularBuffer(size_t buffer_size):
+	nbr_values(0),
+	sum(0),
+	min_value(0)
 {
-	const char *FUNCNAME = "[CircularBuffer]";
-	int i;
-
-	if(BufferSize == 0)
+	if(buffer_size == 0)
 	{
-		m_SaveOnlyLastValue = true;
-		m_Size = 1;
-		UTI_INFO("%s Circular buffer size was %d --> set to %d, with only "
-		         "saving last value option (sum = 0) \n",
-		         FUNCNAME, BufferSize, m_Size);
+		this->save_only_last_value = true;
+		this->size = 1;
+		UTI_INFO("Circular buffer size was %u --> set to %u, with only "
+		         "saving last value option (sum = 0)\n",
+		         buffer_size, this->size);
 	}
 	else
 	{
-		m_SaveOnlyLastValue = false;
-		m_Size = BufferSize;
+		this->save_only_last_value = false;
+		this->size = buffer_size;
 	}
 
-	m_Index = m_Size - 1;
-	m_NbValues = 0;
-	m_Value = (double *) malloc(m_Size * sizeof(double));
-	if(this->m_Value == NULL)
+	this->index = this->size - 1;
+	this->nbr_values = 0;
+	this->values = (rate_kbps_t *) calloc(this->size, sizeof(rate_kbps_t));
+	if(this->values == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for circular buffer\n",
-		          FUNCNAME);
+		UTI_ERROR("cannot allocate memory for circular buffer\n");
 		goto err_alloc;
 	}
 
-	for(i = 0; i < m_Size; i++)
-	{
-		m_Value[i] = 0.0;
-	}
-
 err_alloc:
-	m_Sum = 0.0;
-	m_Min = 65536.0;
+	return;
 }
 
 /**
@@ -90,59 +83,59 @@ err_alloc:
  */
 CircularBuffer::~CircularBuffer()
 {
-	if(this->m_Value != NULL)
-		free(this->m_Value);
+	if(this->values != NULL)
+		free(this->values);
 }
 
 
 /**
  * Update the circular buffer : insert a new value
  *
- * @param Value New value to be inserted
+ * @param value New value to be inserted
  */
-void CircularBuffer::Update(double Value)
+void CircularBuffer::Update(rate_kbps_t value)
 {
-	int i;
-	double Min = 65536.0;
+	size_t i;
+	rate_kbps_t min = 0;
 
-	if(this->m_Value == NULL)
+	if(this->values == NULL)
 	{
-		UTI_ERROR("[CircularBuffer::Update] circular buffer not initialized\n");
+		UTI_ERROR("circular buffer not initialized\n");
 		return;
 	}
 
 	// number of value update
-	m_NbValues = MIN(m_NbValues + 1, m_Size);
+	this->nbr_values = std::min(this->nbr_values + 1, this->size);
 
 	// circular buffer index update
-	m_Index = (m_Index + 1) % m_Size;
+	this->index = (this->index + 1) % this->size;
 
 	// sum calculation
-	m_Sum = m_Sum - m_Value[m_Index] + Value;
+	this->sum = this->sum - this->values[this->index] + value;
 
 	// minimum update
 	// if the new value is smaller it becames the MIN
-	if(Value <= m_Min)
+	if(value <= this->min_value)
 	{
-		m_Min = Value;
+		this->min_value = value;
 	}
 	// otherwise, if the updated value was the MIN, one has to search for
 	// the new MIN around the whole buffer
-	else if(m_Value[m_Index] == m_Min)
+	else if(this->values[this->index] == this->min_value)
 	{
 		// minimum calculation
-		for(i = 0; i < m_NbValues; i++)
+		for(i = 0; i < this->nbr_values; i++)
 		{
-			if(i == m_Index)
-				Min = MIN(Min, Value);
+			if(i == this->index)
+				min = std::min(min, value);
 			else
-				Min = MIN(Min, m_Value[i]);
+				min = std::min(min, this->values[i]);
 		}
-		m_Min = Min;
+		this->min_value = min;
 	}
 
 	// new value insertion
-	m_Value[m_Index] = Value;
+	this->values[this->index] = value;
 }
 
 /**
@@ -151,21 +144,20 @@ void CircularBuffer::Update(double Value)
  *
  * @return Last value
  */
-double CircularBuffer::GetLastValue()
+rate_kbps_t CircularBuffer::GetLastValue()
 {
-	int Index;
-	double last_value;
+	size_t index;
+	rate_kbps_t last_value;
 
-	Index = (m_Index + 1) % m_Size;
+	index = (this->index + 1) % this->size;
 
-	if(this->m_Value == NULL)
+	if(this->values == NULL)
 	{
-		UTI_ERROR("[CircularBuffer::GetLastValue] circular buffer not "
-		          "initialized\n");
+		UTI_ERROR("circular buffer not initialized\n");
 		last_value = 0;
 	}
 	else
-		last_value = this->m_Value[Index];
+		last_value = this->values[index];
 
 	return last_value;
 }
@@ -176,18 +168,17 @@ double CircularBuffer::GetLastValue()
  *
  * @return Previous value
  */
-double CircularBuffer::GetPreviousValue()
+rate_kbps_t CircularBuffer::GetPreviousValue()
 {
-	double previous_value;
+	rate_kbps_t previous_value;
 
-	if(this->m_Value == NULL)
+	if(this->values == NULL)
 	{
-		UTI_ERROR("[CircularBuffer::GetPreviousValue] circular buffer not "
-		          "initialized\n");
+		UTI_ERROR("circular buffer not initialized\n");
 		previous_value = 0;
 	}
 	else
-		previous_value = this->m_Value[m_Index];
+		previous_value = this->values[this->index];
 
 	return previous_value;
 }
@@ -197,9 +188,9 @@ double CircularBuffer::GetPreviousValue()
  *
  * @return Mean value
  */
-double CircularBuffer::GetMean()
+rate_kbps_t CircularBuffer::GetMean()
 {
-	return (m_Sum / (double) m_NbValues);
+	return (this->sum / this->nbr_values);
 }
 
 /**
@@ -207,9 +198,9 @@ double CircularBuffer::GetMean()
  *
  * @return Min value
  */
-double CircularBuffer::GetMin()
+rate_kbps_t CircularBuffer::GetMin()
 {
-	return (m_Min);
+	return (this->min_value);
 }
 
 /**
@@ -217,12 +208,12 @@ double CircularBuffer::GetMin()
  *
  * @return Sum value
  */
-double CircularBuffer::GetSum()
+rate_kbps_t CircularBuffer::GetSum()
 {
-	if(m_SaveOnlyLastValue)
-		return 0.0;
+	if(this->save_only_last_value)
+		return 0;
 	else
-		return m_Sum;
+		return this->sum;
 }
 
 /**
@@ -230,14 +221,14 @@ double CircularBuffer::GetSum()
  */
 void CircularBuffer::Debug()
 {
-	int i;
-	fprintf(stderr, "CB : Size %d Index %d NbValue %d Min %f Sum %f\n",
-	        m_Size, m_Index, m_NbValues, m_Min, m_Sum);
+	size_t i;
+	fprintf(stderr, "CB : size %u index %u nbr_alues %u min_value %u sum %u\n",
+	        this->size, this->index, this->nbr_values, this->min_value, this->sum);
 	fprintf(stderr, "CB : ");
-	if(this->m_Value != NULL)
+	if(this->values != NULL)
 	{
-		for(i = 0; i < m_Size; i++)
-			fprintf(stderr, "%4.2f ", m_Value[i]);
+		for(i = 0; i < this->size; i++)
+			fprintf(stderr, "%u ", this->values[i]);
 	}
 	else
 		fprintf(stderr, "null");

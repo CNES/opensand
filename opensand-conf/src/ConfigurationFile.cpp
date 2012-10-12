@@ -303,7 +303,14 @@ bool ConfigurationFile::getNbListItems(const char *section,
 error:
 	return false;
 
-} // getNbListItems
+}
+
+bool ConfigurationFile::getNbListItems(const char *section,
+                                       const char *key,
+                                       unsigned int &nbr)
+{
+	return this->getNbListItems(section, key, (int &)nbr);
+}
 
 
 /**

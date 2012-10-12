@@ -41,10 +41,10 @@
 #define BLOC_DVB_RCS_TAL_H
 
 // OpenSAND includes
-#include "lib_dama_agent.h"
-#include "lib_dama_agent_legacy.h"
-#include "lib_dama_agent_uor.h"
-#include "lib_dama_utils.h"
+#include "DamaAgentRcs.h"
+#include "DamaAgentRcsLegacy.h"
+#include "DamaAgentRcsUor.h"
+#include "DamaUtils.h"
 #include "msg_dvb_rcs.h"
 #include "bloc_dvb.h"
 #include "OpenSandCore.h"
@@ -143,7 +143,7 @@ class BlocDVBRcsTal: public BlocDvb
 	int m_nbRow;
 
 	/// the DAMA agent
-	DvbRcsDamaAgent *m_pDamaAgent;
+	DamaAgentRcs *m_pDamaAgent;
 
 
 	/* carrier IDs */
@@ -171,7 +171,7 @@ class BlocDVBRcsTal: public BlocDvb
 	int in_encap_packet_length;
 
 	int m_fixedBandwidth;   ///< fixed bandwidth (CRA) in kbits/s
-	int m_totalAvailAlloc;  ///< remaining available UL packets on the current frame
+	size_t total_available_alloc;  ///< remaining available UL packets on the current frame
 
 
 	/* Timers and their values */
@@ -187,12 +187,10 @@ class BlocDVBRcsTal: public BlocDvb
 
 	/* Fifos */
 
-	/// an array of fifo to manage different queues
-	DvbFifo *dvb_fifos;
-	/// the number of fifo
-	int dvb_fifos_number;
+	/// map of FIFOs per MAX priority to manage different queues
+	std::map<unsigned int, DvbFifo *> dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
-	int m_defaultFifoIndex;
+	unsigned int default_fifo_id;
 	/// the number of PVCs
 	unsigned int nbr_pvc;
 

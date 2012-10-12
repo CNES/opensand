@@ -1,11 +1,10 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,47 +26,19 @@
  */
 
 /**
- * @file lib_dama_ctrl_legacy.h
- * @brief This library defines the legacy DAMA controller.
+ * @file    DamaAgentRcsUor.cpp
+ * @brief   Dama Agent for UoR algorithm.
+ * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
  *
- * @author ASP - IUSO, DTP (B. BAUDOIN)
- * @author Didier Barvaux / Viveris Technologies
  */
 
-#ifndef LIB_DAMA_CTRL_Legacy_H
-#define LIB_DAMA_CTRL_Legacy_H
+#include "DamaAgentRcsUor.h"
 
-#include "lib_dama_ctrl.h"
-#include "DamaUtils.h"
+#define DBG_PACKAGE PKG_DAMA_DA
+#include "opensand_conf/uti_debug.h"
+#define DA_DBG_PREFIX "[UOR]"
 
-
-/**
- *  @class DvbRcsDamaCtrlLegacy
- *  @brief This library defines the legacy DAMA controller.
- */
-class DvbRcsDamaCtrlLegacy: public DvbRcsDamaCtrl
+DamaAgentRcsUor::DamaAgentRcsUor(EncapPlugin::EncapPacketHandler *pkt_hdl)
+	: DamaAgentRcsLegacy(pkt_hdl)
 {
-
- public:
-
-	DvbRcsDamaCtrlLegacy();
-	virtual ~ DvbRcsDamaCtrlLegacy();
-
-
- private:
-	/// the core of the class
-	int runDama();
-
-	///RBDC allocation
-	int runDamaRbdc(int);
-	/// VBDC allocation
-	int runDamaVbdc(int);
-	/// FCA allocation
-	int runDamaFca(int);
-
-	/// in charge of the round robin management
-	DC_St *RoundRobin(int *);
-
-};
-
-#endif
+}

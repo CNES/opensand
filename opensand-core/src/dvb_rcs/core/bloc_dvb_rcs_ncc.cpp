@@ -49,7 +49,6 @@
 
 #include "bloc_dvb_rcs_ncc.h"
 
-#include "lib_dama_ctrl_stub.h"
 #include "lib_dama_ctrl_yes.h"
 #include "lib_dama_ctrl_legacy.h"
 #include "lib_dama_ctrl_uor.h"
@@ -1049,11 +1048,6 @@ int BlocDVBRcsNcc::initDama()
 	{
 		UTI_INFO("creating Yes DAMA controller\n");
 		this->m_pDamaCtrl = new DvbRcsDamaCtrlYes();
-	}
-	else if(this->dama_algo == "Stub" || this->dama_algo == "None")
-	{
-		UTI_INFO("creating Stub DAMA controller\n");
-		this->m_pDamaCtrl = new DvbRcsDamaCtrlStub();
 	}
 	else
 	{

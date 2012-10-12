@@ -1,11 +1,10 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,47 +26,36 @@
  */
 
 /**
- * @file lib_dama_ctrl_legacy.h
- * @brief This library defines the legacy DAMA controller.
- *
- * @author ASP - IUSO, DTP (B. BAUDOIN)
- * @author Didier Barvaux / Viveris Technologies
+ * @file DamaAgentRcs.h
+ * @brief Implementation of the DAMA agent for DVB-RCS emission standard.
+ * @author Audric Schiltknecht / Viveris Technologies
  */
 
-#ifndef LIB_DAMA_CTRL_Legacy_H
-#define LIB_DAMA_CTRL_Legacy_H
+#ifndef _DAMA_AGENT_RCS_H_
+#define _DAMA_AGENT_RCS_H_
 
-#include "lib_dama_ctrl.h"
-#include "DamaUtils.h"
+#include "DamaAgent.h"
 
-
-/**
- *  @class DvbRcsDamaCtrlLegacy
- *  @brief This library defines the legacy DAMA controller.
- */
-class DvbRcsDamaCtrlLegacy: public DvbRcsDamaCtrl
+class DamaAgentRcs : public DamaAgent
 {
-
  public:
+	DamaAgentRcs(EncapPlugin::EncapPacketHandler *pkt_hdl);
 
-	DvbRcsDamaCtrlLegacy();
-	virtual ~ DvbRcsDamaCtrlLegacy();
+	// Inherited methods
+	virtual bool processOnFrameTick();
+	virtual bool hereIsTTP(unsigned char *buf, size_t len);
 
+ protected:
+	/** Current frame 0 <= current_frame < frames_per_superframes */
+	time_frame_t current_frame;
+	/** Number of allocated timeslots */
+	time_pkt_t allocated_pkt;
 
- private:
-	/// the core of the class
-	int runDama();
-
-	///RBDC allocation
-	int runDamaRbdc(int);
-	/// VBDC allocation
-	int runDamaVbdc(int);
-	/// FCA allocation
-	int runDamaFca(int);
-
-	/// in charge of the round robin management
-	DC_St *RoundRobin(int *);
-
+	/** Dynamic allocation in packets/cells number */
+	time_pkt_t dynamic_allocation_pkt;
+	/** Remaining allocation for frames between two SF */
+	rate_pktpsf_t remaining_allocation_pktpsf;
 };
 
 #endif
+

@@ -42,8 +42,8 @@
 #include <sys/times.h>
 
 
-//> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
-//  to Diffserv IP QoS
+///> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
+///>  to Diffserv IP QoS
 //TODO use the Diffserv values as in configuration ?
 typedef enum
 {
@@ -52,9 +52,10 @@ typedef enum
 	fifo_sig = 2, /* Signalisation */
 	fifo_af = 3, /* Assured Forwarding */
 	fifo_be = 4, /* Best Effort */
-} mac_priority_t;
+} mac_prio_t;
 
-//> The type of capacity request associated to each FIFO among RBDC, VBDC or None
+// TODO move in CapacityRequest.h
+///> The type of capacity request associated to each FIFO among RBDC, VBDC or None
 typedef enum
 {
 	cr_none = 0, /* No CR, only use Constant Allocation */
@@ -67,9 +68,9 @@ typedef enum
 /// DVB fifo statistics context
 typedef struct
 {
-	pkt_nbr_t current_pkt_nbr; // current pk number
-	pkt_nbr_t in_pkt_nbr;      // number of pk inserted during period
-	pkt_nbr_t out_pkt_nbr;     // number of pk extracted during period
+	vol_pkt_t current_pkt_nbr; // current pk number
+	vol_pkt_t in_pkt_nbr;      // number of pk inserted during period
+	vol_pkt_t out_pkt_nbr;     // number of pk extracted during period
 } mac_fifo_stat_context_t;
 
 
@@ -84,33 +85,31 @@ class DvbFifo: public mgl_fifo
  public:
 
 	DvbFifo();
-	DvbFifo(unsigned int id, mac_priority_t mac_priority);
-	DvbFifo(unsigned int id, mac_priority_t mac_priority, unsigned int pvc);
+	DvbFifo(unsigned int id, string mac_prio_name,
+	        string cr_type_name, unsigned int pvc,
+	        vol_pkt_t size);
 	virtual ~DvbFifo();
 
-	mac_priority_t getMacPriority();
-	void setMacPriority(mac_priority_t mac_priority);
+	mac_prio_t getMacPriority();
 
-	void setPvc(unsigned int pvc);
 	unsigned int getPvc();
 
-	void setCrType(cr_type_t cr_type);
 	cr_type_t getCrType();
 
 	unsigned int getId();
 	void setId(unsigned int id);
 
-	pkt_nbr_t getFilled();
-	pkt_nbr_t getFilledWithNoReset();
+	vol_pkt_t getFilled();
+	vol_pkt_t getFilledWithNoReset();
 	void resetFilled(cr_type_t cr_type);
 
-	void setCapacity(long capacity);
-	pkt_nbr_t getCapacity();
+	void setCapacity(vol_pkt_t capacity);
+	vol_pkt_t getCapacity();
 
 	bool allowed();
-	pkt_nbr_t getMaxSize();
+	vol_pkt_t getMaxSize();
 
-	int init(long i_size);
+	int init(vol_pkt_t i_size);
 	long append(void *ptr_data);
 	void *remove();
 	void flush();
@@ -120,15 +119,20 @@ class DvbFifo: public mgl_fifo
  protected:
 
 	unsigned int id;     ///< the fifo ID
-	mac_priority_t mac_priority;  ///< the QoS MAC priority of the fifo: EF, AF, BE, ...
-	unsigned int pvc;    ///< the MAC PVC associated to the FIFO.
+	mac_prio_t mac_priority;  ///< the QoS MAC priority of the fifo: EF, AF, BE, ...
+	unsigned int pvc;    ///< the MAC PVC (Pemanent Virtual Channel)
+	                     ///< associated to the FIFO
+	                     ///< No used in starred or mono-spot
+	                     ///< In meshed satellite, a PVC should be associated to a
+	                     ///< spot and allocation would depend of it as it depends
+	                     ///< of spot
 	cr_type_t cr_type;   ///< the associated Capacity Request
-	pkt_nbr_t filled;    ///< the number of cells or packets that filled the fifo
+	vol_pkt_t filled;    ///< the number of cells or packets that filled the fifo
 	                     ///< since previous check
-	pkt_nbr_t capacity;  ///< the allocated number of cells for the current
+	vol_pkt_t capacity;  ///< the allocated number of cells for the current
 	                     ///< superframe
-	pkt_nbr_t size;      ///< the maximum size for that FIFO
-	pkt_nbr_t threshold; ///< the computed threshold that should block upper
+	vol_pkt_t size;      ///< the maximum size for that FIFO
+	vol_pkt_t threshold; ///< the computed threshold that should block upper
 	                     ///< transmission
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
@@ -143,8 +147,8 @@ class DvbFifo: public mgl_fifo
 	// then 1 times
 	//    avg_queue_size += current_size >> x
 	//
-	pkt_nbr_t avg_queue_size; // NB: avg_queue_size is computed but not used yet
-	pkt_nbr_t current_size;
+	vol_pkt_t avg_queue_size; // NB: avg_queue_size is computed but not used yet
+	vol_pkt_t current_size;
 	// TODO check clock_t
 	clock_t previous_tick;
 	clock_t this_tick;

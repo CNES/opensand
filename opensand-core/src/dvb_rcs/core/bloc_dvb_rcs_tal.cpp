@@ -91,9 +91,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_bbframe_received = 0;
 
 	// DVB FIFOs
-	this->dvb_fifos_number = -1;
-	this->dvb_fifos = NULL;
-	this->m_defaultFifoIndex = -1;
+	this->default_fifo_id = -1;
 	//this->nbr_pvc = -1;
 
 	// misc
@@ -103,7 +101,7 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_obrPeriod = -1;
 	this->m_obrSlotFrame = -1;
 	this->m_fixedBandwidth = -1;
-	this->m_totalAvailAlloc = -1;
+	this->total_available_alloc = -1;
 
 	// statistics
 	this->m_statCounters.ulOutgoingCells = NULL;
@@ -126,11 +124,13 @@ BlocDVBRcsTal::~BlocDVBRcsTal()
 		delete this->m_pDamaAgent;
 	}
 
-	if(this->dvb_fifos != NULL && this->dvb_fifos_number != 0)
+	deletePackets();
+	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		deletePackets();
-		delete[] this->dvb_fifos;
+		delete (*it).second;
 	}
+	this->dvb_fifos.clear();
 
 	if(this->m_statCounters.ulOutgoingCells != NULL)
 		delete[] this->m_statCounters.ulOutgoingCells;
@@ -263,7 +263,6 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 			unsigned int fifo_id;
 			std::string message;
 			std::ostringstream oss;
-			int i;
 			int ret;
 
 			burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
@@ -279,7 +278,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 
 				// find the FIFO id (!= FIFO index)
 				if((*pkt_it)->getQos() == -1)
-					fifo_id = this->dvb_fifos[m_defaultFifoIndex].getId();
+					fifo_id = this->default_fifo_id;
 				else
 					fifo_id = (*pkt_it)->getQos();
 
@@ -288,12 +287,8 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 				(*pkt_it)->addTrace(HERE());
 
 				// find the FIFO associated to the IP QoS (= MAC FIFO id)
-				for(i = 0; i < this->dvb_fifos_number; i++)
-				{
-					if(this->dvb_fifos[i].getId() == fifo_id)
-						break;
-				}
-				if(i == this->dvb_fifos_number)
+				// TODO why not in default fifo ?
+				if(!this->dvb_fifos[fifo_id])
 				{
 					UTI_ERROR("SF#%ld: frame %ld: MAC FIFO ID #%d not "
 					          "registered => packet dropped\n",
@@ -306,7 +301,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 				// store the encapsulation packet in the FIFO
 				if(this->emissionStd->onRcvEncapPacket(
 				   *pkt_it,
-				   &(this->dvb_fifos[i]),
+				   this->dvb_fifos[fifo_id],
 				   this->getCurrentTime(),
 				   0) < 0)
 				{
@@ -319,7 +314,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 				}
 
 				// update incoming counter (if packet is stored or sent)
-				m_statCounters.ulIncomingCells[i]++;
+				m_statCounters.ulIncomingCells[this->dvb_fifos[fifo_id]->getId()]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -339,10 +334,11 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 			message.append("</Sender>\n");
 			message.append(" <Type type=\"CrossLayer\" >\n");
 			message.append(" <Infos ");
-			for(i = 0; i < this->dvb_fifos_number; i++)
+			for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+			    it != this->dvb_fifos.end(); ++it)
 			{
-				int nbFreeFrames = this->dvb_fifos[i].getMaxSize() -
-				                   this->dvb_fifos[i].getCount();
+				int nbFreeFrames = (*it).second->getMaxSize() -
+				                   (*it).second->getCount();
 				int nbFreeBits = nbFreeFrames * this->out_encap_packet_length * 8; // bits
 				float macRate = nbFreeBits / this->frame_duration ; // bits/ms or kbits/s
 				oss << "File=\"" << (int) macRate << "\" ";
@@ -528,14 +524,6 @@ int BlocDVBRcsTal::initCarrierId()
 int BlocDVBRcsTal::initMacFifo()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	int i = 0;
-	int fifo_id;
-	int fifo_size;
-	string fifo_type;
-	string fifo_cr_type;
-	int highestPrioMacFifoIndex;
-	int pvc;
-	int lastPvc;
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
 
@@ -545,23 +533,6 @@ int BlocDVBRcsTal::initMacFifo()
 	* Read the MAC queues configuration in the configuration file.
 	* Create and initialize MAC FIFOs
 	*/
-	if(!globalConfig.getNbListItems(DVB_TAL_SECTION, FIFO_LIST,
-	                                this->dvb_fifos_number))
-	{
-		UTI_ERROR("invalid number of DVB FIFOs defined in section '%s, %s' "
-		          "of configuration file\n", DVB_TAL_SECTION, FIFO_LIST);
-		goto error;
-	}
-	this->dvb_fifos = new DvbFifo[this->dvb_fifos_number];
-	if(this->dvb_fifos == NULL)
-	{
-		UTI_ERROR("failed to create DVB FIFOs\n");
-		goto error;
-	}
-	UTI_INFO("%d DVB FIFOs defined in section [%s]\n",
-	this->dvb_fifos_number, DVB_TAL_SECTION);
-
-	lastPvc = 0;
 	if(!globalConfig.getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
 	{
 		UTI_ERROR("section '%s, %s': missing fifo list", DVB_TAL_SECTION,
@@ -571,144 +542,86 @@ int BlocDVBRcsTal::initMacFifo()
 
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
+		unsigned int fifo_id;
+		unsigned int pvc;
+		vol_pkt_t fifo_size = 0;
+		string fifo_mac_prio;
+		string fifo_cr_type;
+		DvbFifo *fifo;
+
 		// get fifo_id
 		if(!globalConfig.getAttributeValue(iter, FIFO_ID, fifo_id))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
-			          FUNCNAME, FIFO_ID, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
+			          FUNCNAME, FIFO_ID, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		// get fifo_type
-		if(!globalConfig.getAttributeValue(iter, FIFO_TYPE, fifo_type))
+		// get fifo_mac_prio
+		if(!globalConfig.getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
-			          FUNCNAME, FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
+			          FUNCNAME, FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_size
 		if(!globalConfig.getAttributeValue(iter, FIFO_SIZE, fifo_size))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
-			          FUNCNAME, FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
+			          FUNCNAME, FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get pvc
 		if(!globalConfig.getAttributeValue(iter, FIFO_PVC, pvc))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
-			          FUNCNAME, FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
+			          FUNCNAME, FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get the fifo CR type
 		if(!globalConfig.getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s' line %d\n",
-			          FUNCNAME, FIFO_CR_TYPE, DVB_TAL_SECTION, FIFO_LIST, i + 1);
+			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
+			          FUNCNAME, FIFO_CR_TYPE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 
-		// DVB fifo kind is the MAC QoS. With Legacy DAMA it is the same
-		// as Diffserv IP QoS: it can be AF, EF, BE
-		// NM and SIG filters are for Network Managment and Signalisation
-		// TODO map ?
-		if(fifo_type == "NM")
-			this->dvb_fifos[i].setMacPriority(fifo_nm);
-		else if(fifo_type == "EF")
-			this->dvb_fifos[i].setMacPriority(fifo_ef);
-		else if(fifo_type == "SIG")
-			this->dvb_fifos[i].setMacPriority(fifo_sig);
-		else if(fifo_type == "AF")
-			this->dvb_fifos[i].setMacPriority(fifo_af);
-		else if(fifo_type == "BE")
-			this->dvb_fifos[i].setMacPriority(fifo_be);
-		else
-		{
-			UTI_ERROR("%s: unknown kind of fifo: %s\n", FUNCNAME,
-			          fifo_type.c_str());
-			goto err_fifo_release;
-		}
-
-		// set PVC id: several FIFOs can be gathered in a single PVC
-		// PVC id must be > 0
-		if(pvc <= 0)
-		{
-			UTI_ERROR("%s: PVC %d is not valid (first PVC id is 1)\n",
-			          FUNCNAME, pvc);
-			goto err_fifo_release;
-		}
-		// PVC ids must be in increasing order
-		else if(pvc < lastPvc)
-		{
-			UTI_ERROR("%s: PVC %d is not valid (PVC ids must be in "
-			          "increasing order\n", FUNCNAME, pvc);
-			goto err_fifo_release;
-		}
-		else
-		{
-			this->dvb_fifos[i].setPvc(pvc);
-			lastPvc = pvc;
-		}
-
-		// capacity request type associated to the Fifo: NONE, RBDC or VBDC
-		// TODO map ?
-		if(fifo_cr_type == "RBDC")
-			this->dvb_fifos[i].setCrType(cr_rbdc);
-		else if(fifo_cr_type == "VBDC")
-			this->dvb_fifos[i].setCrType(cr_vbdc);
-		else if(fifo_cr_type == "NONE")
-		{
-			// this will be used by DAMA agent for CR computation
-			this->dvb_fifos[i].setCrType(cr_none);
-		}
-		else
-		{
-			UTI_ERROR("%s: unknown CR type of FIFO: %s\n", FUNCNAME,
-			          fifo_cr_type.c_str());
-			goto err_fifo_release;
-		}
-
-		// set other DVB FIFOs atributes
-		this->dvb_fifos[i].setId(fifo_id);
-		this->dvb_fifos[i].init(fifo_size);
+		fifo = new DvbFifo(fifo_id, fifo_mac_prio,
+		                   fifo_cr_type, pvc, fifo_size);
 
 		UTI_INFO("%s: Fifo = id %u, MAC priority %d, size %u, pvc %u, "
 		         "CR type %d\n", FUNCNAME,
-		         this->dvb_fifos[i].getId(),
-		         this->dvb_fifos[i].getMacPriority(),
-		         this->dvb_fifos[i].getMaxSize(),
-		         this->dvb_fifos[i].getPvc(),
-		         this->dvb_fifos[i].getCrType());
+		         fifo->getId(),
+		         fifo->getMacPriority(),
+		         fifo->getMaxSize(),
+		         fifo->getPvc(),
+		         fifo->getCrType());
 
-		i++;
+		// update the number of PVC = the maximum PVC
+		this->nbr_pvc = std::max(this->nbr_pvc, pvc);
+
+		// the default FIFO is the last one = the one with the smallest priority
+		// TODO read in conf ?
+		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getId());
+
+		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getMacPriority(), fifo));
 	} // end for(queues are now instanciated and initialized)
 
-	// the default FIFO is the last one = the one with the smallest priority
-	m_defaultFifoIndex = i - 1;
 
-	// the fifo with the highest priority is the first one
-	highestPrioMacFifoIndex = 0;
-
-	// set the number of PVC = the maximum PVC is (first PVC is is 1)
-	this->nbr_pvc = 0;
-	for(i = 0; i < this->dvb_fifos_number; i++)
-	{
-		this->nbr_pvc = MAX(this->dvb_fifos[i].getPvc(), this->nbr_pvc);
-	}
 
 	// init stats context per QoS
-	m_statContext.ulIncomingThroughput = new int[this->dvb_fifos_number];
+	m_statContext.ulIncomingThroughput = new int[this->dvb_fifos.size()];
 	if(this->m_statContext.ulIncomingThroughput == NULL)
 		goto err_fifo_release;
 
-	m_statContext.ulOutgoingThroughput = new int[this->dvb_fifos_number];
+	m_statContext.ulOutgoingThroughput = new int[this->dvb_fifos.size()];
 	if(this->m_statContext.ulOutgoingThroughput == NULL)
 		goto err_incoming_throughput_release;
 
-	m_statCounters.ulIncomingCells = new int[this->dvb_fifos_number];
+	m_statCounters.ulIncomingCells = new int[this->dvb_fifos.size()];
 	if(this->m_statCounters.ulIncomingCells == NULL)
 		goto err_outgoing_throughput_release;
 
-	m_statCounters.ulOutgoingCells = new int[this->dvb_fifos_number];
+	m_statCounters.ulOutgoingCells = new int[this->dvb_fifos.size()];
 	if(this->m_statCounters.ulOutgoingCells == NULL)
 		goto err_incoming_cells_release;
 
@@ -723,8 +636,12 @@ err_outgoing_throughput_release:
 err_incoming_throughput_release:
 	delete[] this->m_statContext.ulIncomingThroughput;
 err_fifo_release:
-	delete[] this->dvb_fifos;
-error:
+	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->dvb_fifos.clear();
 	return -1;
 }
 
@@ -768,32 +685,79 @@ error:
 int BlocDVBRcsTal::initDama()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	int ret;
+	rate_kbps_t max_rbdc_kbps;
+	time_sf_t rbdc_timeout_sf = 0;
+	vol_pkt_t max_vbdc_pkt;
+	time_sf_t msl_sf = 0;
+	bool cr_output_only;
 
-#define FMT_KEY_MISSING "%s SF#%ld %s missing from section %s\n",FUNCNAME,this->super_frame_counter
+	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, max_rbdc_kbps))
+	{
+		UTI_ERROR("%s Missing %s\n",
+		          FUNCNAME, DA_MAX_RBDC_DATA);
+		goto error;
+	}
+
+	if(!globalConfig.getValue(DA_TAL_SECTION,
+	                          DA_RBDC_TIMEOUT_DATA, rbdc_timeout_sf))
+	{
+		UTI_ERROR("%s Missing %s\n",
+		          FUNCNAME, DA_RBDC_TIMEOUT_DATA);
+		goto error;
+	}
+
+	// Max VBDC
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, max_vbdc_pkt))
+	{
+		UTI_ERROR("%s Missing %s\n",
+		          FUNCNAME, DA_MAX_VBDC_DATA);
+		goto error;
+	}
+
+	// MSL duration -- in frames number
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MSL_DURATION, msl_sf))
+	{
+		UTI_ERROR("%s Missing %s\n",
+		          FUNCNAME, DA_MSL_DURATION);
+		goto error;
+	}
+
+	// CR computation rule
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_CR_RULE, cr_output_only))
+	{
+		UTI_ERROR("%s Missing %s\n",
+		          FUNCNAME, DA_CR_RULE);
+		goto error;
+	}
+
+	UTI_INFO("%s ULCarrierBw %d kbits/s, "
+	         "RBDC max %d kbits/s, RBDC Timeout %d frame, "
+	         "VBDC max %d kbits, mslDuration %d frames, "
+	         "getIpOutputFifoSizeOnly %s\n",
+	         FUNCNAME,
+	         this->m_fixedBandwidth, max_rbdc_kbps,
+	         rbdc_timeout_sf, max_vbdc_pkt, msl_sf,
+	         UTI_BOOL(cr_output_only));
 
 	if(this->dama_algo == "Legacy")
 	{
 		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DvbRcsDamaAgentLegacy(this->up_return_pkt_hdl,
-		                                         this->frame_duration);
+		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl);
 	}
 	else if(this->dama_algo == "UoR")
 	{
 		UTI_INFO("%s SF#%ld: create UoR DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DvbRcsDamaAgentUoR(this->up_return_pkt_hdl,
-		                                      this->frame_duration);
+		m_pDamaAgent = new DamaAgentRcsUor(this->up_return_pkt_hdl);
 	}
-	// TODO we have a common dama agent thus for stub and yes we need to choose
-	//      a dama agent
-	else if(this->dama_algo == "Yes" || this->dama_algo == "Stub")
+	// TODO remove here because DamaAgent and DAMACtrl choice will be separated
+	else if(this->dama_algo == "Yes")
 	{
 		UTI_INFO("%s SF#%ld: no %s DAMA agent thus Legacy dama is used by default\n",
 		         FUNCNAME, this->super_frame_counter, this->dama_algo.c_str());
-		m_pDamaAgent = new DvbRcsDamaAgentLegacy(this->up_return_pkt_hdl,
-		                                         this->frame_duration);
+		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl);
 		goto error;
 	}
 	else
@@ -809,14 +773,28 @@ int BlocDVBRcsTal::initDama()
 		goto error;
 	}
 
-	// call the onInit() method of the Dama algorithm
-	ret = m_pDamaAgent->initComplete(this->dvb_fifos, this->dvb_fifos_number,
-	                                 (double) (this->frame_duration / 1000.0),
-	                                 m_fixedBandwidth, m_obrPeriod);
-	if(ret != 0)
+	// Initialize the DamaAgent parent class
+	if(!this->m_pDamaAgent->initParent(this->dvb_fifos,
+	                                   this->frame_duration,
+	                                   this->m_fixedBandwidth,
+	                                   max_rbdc_kbps,
+	                                   rbdc_timeout_sf,
+	                                   max_vbdc_pkt,
+	                                   msl_sf,
+	                                   this->m_obrPeriod,
+	                                   cr_output_only))
 	{
+
 		UTI_ERROR("%s SF#%ld Dama Agent Initialization failed.\n", FUNCNAME,
 		          this->super_frame_counter);
+		goto err_agent_release;
+	}
+
+	// Initialize the DamaAgentRcsXXX class
+	// TODO generic function
+	if(!m_pDamaAgent->init())
+	{
+		UTI_ERROR("%s Dama Agent initialization failed.\n", FUNCNAME);
 		goto err_agent_release;
 	}
 
@@ -1283,7 +1261,7 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 		case MSG_TYPE_TBTP:
 			if(this->_state == state_running)
 			{
-				if(this->m_pDamaAgent->hereIsTBTP(ip_buf, i_len) < 0)
+				if(!this->m_pDamaAgent->hereIsTTP(ip_buf, i_len))
 				{
 					g_memory_pool_dvb_rcs.release((char *) ip_buf);
 					goto error_on_TBTP;
@@ -1333,8 +1311,9 @@ int BlocDVBRcsTal::sendCR()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[sendCR]";
 	unsigned char *dvb_frame;
-	int ret;
 	long dvb_size;
+	size_t size = MSG_DVB_RCS_SIZE_MAX;
+	bool empty;
 
 	// Get a dvb frame
 	dvb_frame = (unsigned char *) g_memory_pool_dvb_rcs.get(HERE());
@@ -1347,34 +1326,40 @@ int BlocDVBRcsTal::sendCR()
 	}
 
 	// Set CR body
-	ret = this->m_pDamaAgent->buildCR(this->dvb_fifos,
-	                                  this->dvb_fifos_number,
-	                                  dvb_frame,
-	                                  MSG_DVB_RCS_SIZE_MAX);
-
-	// ignore if no CR built
-	if(ret != 0)
+	// NB: cr_type parameter is not used here as CR is built for both
+	// RBDC and VBDC
+	if(!this->m_pDamaAgent->buildCR(cr_none,
+	                                dvb_frame,
+	                                size,
+	                                empty))
 	{
 		g_memory_pool_dvb_rcs.release((char *) dvb_frame);
-		UTI_DEBUG_L3("%s SF#%ld frame %ld: DAMA cannot build CR\n", FUNCNAME,
-		             this->super_frame_counter, this->frame_counter);
-	}
-	else // else Send CR
-	{
-		dvb_size = ((T_DVB_SAC_CR *) dvb_frame)->hdr.msg_length; // real size now
-
-		// Send message
-		if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl))
-		{
-			UTI_ERROR("%s SF#%ld frame %ld: failed to allocate mgl msg\n",
-			          FUNCNAME, this->super_frame_counter, this->frame_counter);
-			g_memory_pool_dvb_rcs.release((char *) dvb_frame);
-			goto error;
-		}
-
-		UTI_DEBUG("%s SF#%ld frame %ld: CR sent\n", FUNCNAME,
+		UTI_ERROR("%s SF#%ld frame %ld: DAMA cannot build CR\n", FUNCNAME,
 		          this->super_frame_counter, this->frame_counter);
+		goto error;
 	}
+
+	if(empty)
+	{
+		g_memory_pool_dvb_rcs.release((char *) dvb_frame);
+		UTI_DEBUG_L3("SF#%ld frame %ld: Empty CR\n",
+		             this->super_frame_counter, this->frame_counter);
+		return 0;
+	}
+
+	dvb_size = ((T_DVB_SAC_CR *) dvb_frame)->hdr.msg_length; // real size now
+
+	// Send message
+	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl))
+	{
+		UTI_ERROR("%s SF#%ld frame %ld: failed to allocate mgl msg\n",
+				  FUNCNAME, this->super_frame_counter, this->frame_counter);
+		g_memory_pool_dvb_rcs.release((char *) dvb_frame);
+		goto error;
+	}
+
+	UTI_DEBUG("%s SF#%ld frame %ld: CR sent\n", FUNCNAME,
+			  this->super_frame_counter, this->frame_counter);
 
 	return 0;
 
@@ -1411,10 +1396,7 @@ int BlocDVBRcsTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		          "resend a logon request\n",
 		          this->super_frame_counter);
 
-		if(this->dvb_fifos != NULL)
-		{
-			deletePackets();
-		}
+		deletePackets();
 		if(sendLogonReq() < 0)
 		{
 			goto error;
@@ -1436,7 +1418,7 @@ int BlocDVBRcsTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	ENV_AGENT_Sync(&EnvAgent, this->super_frame_counter, 0);
 
 	// Inform dama agent
-	if(m_pDamaAgent->hereIsSOF(ip_buf, i_len) < 0)
+	if(!m_pDamaAgent->hereIsSOF(ip_buf, i_len))
 		goto error;
 
 	// There is a risk of unprecise timing so the following hack
@@ -1516,19 +1498,21 @@ int BlocDVBRcsTal::processOnFrameTick()
 	// ---------- tell the DAMA agent that a new frame begins ----------
 	// Inform dama agent, and update total Available Allocation
 	// for current frame
-	m_totalAvailAlloc = this->m_pDamaAgent->processOnFrameTick();
+	if(!this->m_pDamaAgent->processOnFrameTick())
+	{
+		UTI_ERROR("SF#%ld: frame %ld: failed to process frame tick\n",
+	          this->super_frame_counter, this->frame_counter);
+	    goto error;
+	}
 
 	// ---------- schedule and send data frames ---------
 	// schedule packets extracted from DVB FIFOs according to
 	// the algorithm defined in DAMA agent
-	ret = this->m_pDamaAgent->globalSchedule(this->dvb_fifos,
-	                                         this->dvb_fifos_number,
-	                                         m_totalAvailAlloc,
-	                                         this->out_encap_packet_type,
-	                                         &this->complete_dvb_frames);
-	if(ret != 0)
+	if(!this->m_pDamaAgent->uplinkSchedule(&this->complete_dvb_frames,
+	                                       this->total_available_alloc))
 	{
-		UTI_ERROR("failed to schedule packets from DVB FIFOs\n");
+		UTI_ERROR("SF#%ld: frame %ld: failed to schedule packets from DVB FIFOs\n",
+		          this->super_frame_counter, this->frame_counter);
 		goto error;
 	}
 
@@ -1660,43 +1644,43 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 void BlocDVBRcsTal::updateStatsOnFrame()
 {
 	mac_fifo_stat_context_t fifo_stat;
-	DAStatContext *damaStat;
-	int fifoIndex;
+	//da_stat_context_t dama_stat;
 	int ulOutgoingCells = 0;
 
 	// DAMA agent stat
-	damaStat = m_pDamaAgent->getStatsCxt();
+	//dama_stat = m_pDamaAgent->getStatsCxt();
 
 	// MAC fifos stats
-	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
+	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		this->dvb_fifos[fifoIndex].getStatsCxt(fifo_stat);
+		(*it).second->getStatsCxt(fifo_stat);
 
 		// NB: mac queueing delay = fifo_stat.lastPkQueuingDelay
 		// is writing at each UL cell emission by MAC layer and DA
 
 		// compute UL incoming Throughput - in kbits/s
-		m_statContext.ulIncomingThroughput[fifoIndex] =
-			(m_statCounters.ulIncomingCells[fifoIndex]
+		m_statContext.ulIncomingThroughput[(*it).first] =
+			(m_statCounters.ulIncomingCells[(*it).first]
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// compute UL outgoing Throughput
 		// NB: outgoingCells = cells directly sent from IP packets + cells
 		//     stored before extraction next frame
-		ulOutgoingCells = m_statCounters.ulOutgoingCells[fifoIndex] +
+		ulOutgoingCells = m_statCounters.ulOutgoingCells[(*it).first] +
 		                  fifo_stat.out_pkt_nbr;
-		m_statContext.ulOutgoingThroughput[fifoIndex] = (ulOutgoingCells
+		m_statContext.ulOutgoingThroughput[(*it).first] = (ulOutgoingCells
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// write in statitics file
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
 		                       C_PROBE_ST_REAL_INCOMING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulIncomingThroughput[fifoIndex]);
+		                       (*it).first + 1,
+		                       m_statContext.ulIncomingThroughput[(*it).first]);
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
 		                       C_PROBE_ST_REAL_OUTGOING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulOutgoingThroughput[fifoIndex]);
+		                       (*it).first + 1,
+		                       m_statContext.ulOutgoingThroughput[(*it).first]);
 	}
 
 	// outgoing DL throughput
@@ -1732,8 +1716,6 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 {
 	mac_fifo_stat_context_t fifo_stat;
-	DAStatContext *damaStat;
-	int fifoIndex;
 	if(m_bbframe_dropped != 0 ||  m_bbframe_received !=0)
 	{
 		m_bbframe_dropped_rate = ((float) m_bbframe_dropped) /
@@ -1742,18 +1724,18 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 	}
 
 	// DAMA agent stat
-	damaStat = m_pDamaAgent->getStatsCxt();
+	const da_stat_context_t &dama_stat = m_pDamaAgent->getStatsCxt();
 
 	// write in statitics file
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_RBDC_REQUEST_SIZE,
-	                       0, damaStat->rbdcRequest);
+	                       0, dama_stat.rbdc_request_kbps);
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_VBDC_REQUEST_SIZE,
-	                       0, damaStat->vbdcRequest);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_CRA, 0, damaStat->craAlloc);
+	                       0, dama_stat.vbdc_request_pkt);
+	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_CRA, 0, dama_stat.cra_alloc_kbps);
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_ALLOCATION_SIZE, 0,
-	                       damaStat->globalAlloc);
+	                       dama_stat.global_alloc_kbps);
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_UNUSED_CAPACITY, 0,
-	                       damaStat->unusedAlloc);
+	                       dama_stat.unused_alloc_kbps);
 	ENV_AGENT_Probe_PutFloat(&EnvAgent, C_PROBE_ST_BBFRAME_DROPED_RATE, 0,
 	                         m_bbframe_dropped_rate);
 	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_REAL_MODCOD, 0, 
@@ -1762,16 +1744,20 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 	                       this->receptionStd->getReceivedModcod());
 
 	// MAC fifos stats
-	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
+	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		this->dvb_fifos[fifoIndex].getStatsCxt(fifo_stat);
+		(*it).second->getStatsCxt(fifo_stat);
 
 		// write in statitics file : mac queue size
 		ENV_AGENT_Probe_PutInt(&EnvAgent,
 		                       C_PROBE_ST_TERMINAL_QUEUE_SIZE,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
+		                       (*it).first + 1,
 		                       fifo_stat.current_pkt_nbr);
 	}
+
+	// Reset stats for next frame
+	this->m_pDamaAgent->resetStatsCxt();
 }
 
 
@@ -1781,10 +1767,10 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
  */
 void BlocDVBRcsTal::resetStatsCxt()
 {
-	int i;
+	unsigned int i;
 	m_statCounters.dlOutgoingCells = 0;
 	m_statContext.dlOutgoingThroughput = 0;
-	for(i = 0; i < this->dvb_fifos_number; i++)
+	for(i = 0; i < this->dvb_fifos.size(); i++)
 	{
 		m_statContext.ulIncomingThroughput[i] = 0;
 		m_statContext.ulOutgoingThroughput[i] = 0;
@@ -1801,12 +1787,13 @@ void BlocDVBRcsTal::deletePackets()
 {
 	int size;
 	MacFifoElement *elem;
-	for(int j = 0; j < this->dvb_fifos_number; j++)
+	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		size = this->dvb_fifos[j].getCount();
+		size = (*it).second->getCount();
 		for(int i = 0; i < size; i++)
 		{
-			elem = (MacFifoElement *) this->dvb_fifos[j].remove();
+			elem = (MacFifoElement *) (*it).second->remove();
 			delete elem;
 		}
 	}

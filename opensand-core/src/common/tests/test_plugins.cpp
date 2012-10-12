@@ -80,9 +80,6 @@ usage: test [-h] [-v] [-d level] [-o] [-f folder] flow\n\
   flow      flow of Ethernet frames to encapsulate (PCAP format)\n\n"
 
 
-/** A very simple minimum macro */
-#define MIN(x, y)  (((x) < (y)) ? (x) : (y))
-
 static unsigned int verbose;
 
 /** DEBUG macro */
@@ -793,7 +790,7 @@ static bool compare_packets(const unsigned char *pkt1, int pkt1_size,
 	min_size = pkt1_size > pkt2_size ? pkt2_size : pkt1_size;
 
 	/* do not compare more than 180 bytes to avoid huge output */
-	min_size = MIN(180, min_size);
+	min_size = std::min(180, min_size);
 
 	/* if packets are equal, do not print the packets */
 	if(pkt1_size == pkt2_size && memcmp(pkt1, pkt2, pkt1_size) == 0)

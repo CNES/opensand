@@ -106,6 +106,7 @@ class ConfigurationFile
 
 	// Get the number of items in the list; Get the items from the list
 	bool getNbListItems(const char *section, const char *key, int &value);
+	bool getNbListItems(const char *section, const char *key, unsigned int &value);
 	bool getListItems(const char *section, const char *key, ConfigurationList &list);
 
 	// Get a value from a list attribute
@@ -385,8 +386,8 @@ inline bool ConfigurationFile::getValue<uint8_t>(const char *section,
 
 template <>
 inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::iterator iter,
-		                                                 const char *attribute,
-                                                         uint8_t &value)
+                                                          const char *attribute,
+                                                          uint8_t &value)
 {
 	string tmp_val;
 	unsigned int val;
@@ -409,10 +410,59 @@ inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::ite
  * and we should not surccharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
-                                                    const char *id,
-                                                    const string id_val,
-                                                    const char *attribute,
-                                                    uint8_t &value)
+                                                       const char *id,
+                                                       const string id_val,
+                                                       const char *attribute,
+                                                       uint8_t &value)
+{
+	string tmp_val;
+	unsigned int val;
+
+	if(!this->getValueInList(list, id, id_val, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
+	value = val;
+	return true;
+}
+
+
+template <>
+inline bool ConfigurationFile::getAttributeValue<uint16_t>(ConfigurationList::iterator iter,
+                                                           const char *attribute,
+                                                           uint16_t &value)
+{
+	string tmp_val;
+	unsigned int val;
+
+	if(!this->getAttributeValue(iter, attribute, tmp_val))
+		return false;
+
+	stringstream str(tmp_val);
+	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
+	value = val;
+	return true;
+}
+
+/* only write this specialization because it will be called by the other one
+ * and we should not surccharge a specialization */
+template <>
+inline bool ConfigurationFile::getValueInList<uint16_t>(ConfigurationList list,
+                                                        const char *id,
+                                                        const string id_val,
+                                                        const char *attribute,
+                                                        uint16_t &value)
 {
 	string tmp_val;
 	unsigned int val;

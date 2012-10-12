@@ -73,12 +73,66 @@ inline string getComponentName(t_component host)
 // Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
 
-/// The types used in OpenSAND
-typedef uint8_t tal_id_t; // on 5 bits
-typedef uint8_t spot_id_t; // on 5 bits
-typedef uint8_t qos_t; // on 3 bits
-// TODO check size
-typedef uint32_t pkt_nbr_t;
+// The types used in OpenSAND
+
+// addressing
+typedef uint8_t tal_id_t; ///< Terminal ID (5 bits)
+typedef uint8_t spot_id_t; ///< Spot ID (5 bits)
+typedef uint8_t qos_t; ///< QoS (3 bits)
+typedef uint8_t group_id_t; ///< Groupe ID (no used but in the standard)
+
+// TODO check types according to max value
+// data
+typedef uint16_t rate_kbps_t; ///< Bitrate in kb/s (suffix kbps)
+typedef uint16_t rate_pktpsf_t; ///< Rate in packets/cells per superframe (suffix pktpsf)
+
+// time
+typedef uint8_t time_sf_t; ///< time in number of superframes (suffix sf)
+typedef uint8_t time_frame_t; ///< time in number of frames (5 bits) (suffix frame)
+typedef uint32_t time_ms_t; ///< time in ms (suffix ms)
+typedef uint16_t time_pkt_t; ///< time in number of packets, cells, ... (suffix pkt)
+
+// volume
+typedef uint16_t vol_pkt_t; ///< volume in number of packets/cells (suffix pkt)
+typedef uint16_t vol_kb_t; ///< volume in kbits (suffix kb)
+typedef uint32_t vol_b_t; ///< volume in bits (suffix b)
+
+
+/**
+ * @brief Generic Superframe description
+ *
+ *  freq
+ *  ^
+ *  |
+ *  | +--------------+
+ *  | |  f   |       |
+ *  | |---+--|  sf   | sf_id
+ *  | | f |f |       |
+ *  | |--------------+
+ *  | |   |  sf   |  | sf_id
+ *  | +--------------+
+ *  |
+ *  +-----------------------> time
+ *
+ *  with sf = superframe and f = frame
+ */
+
+/**
+ * @brief Superframe for DVB-RCS in OpenSAND
+ *
+ *  freq
+ *  ^
+ *  | frame duration (default: 53ms)
+ *  | <-->
+ *  | +---------------+
+ *  | | f | f |  sf   | sf_id
+ *  | |---------------+
+ *  | |  sf   |  sf   | sf_id
+ *  | +---------------+
+ *  |
+ *  +-----------------------> time
+ */
+
 
 #endif
 

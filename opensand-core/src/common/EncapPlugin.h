@@ -93,7 +93,7 @@ class EncapPlugin
 		virtual ~EncapPacketHandler() {};
 
 		/**
-		 * @brief get the packet length if constant
+		 * @brief get the packet length if constant (Bytes)
 		 *
 		 * @return the packet length if constant, 0 otherwise
 		 */
