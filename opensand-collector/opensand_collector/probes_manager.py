@@ -49,6 +49,23 @@ class Probe(object):
             return value, pos + 8
 
         raise Exception("Unknown storage type")
+    
+    def encode_value(self, value):
+        """
+        Encodes a probe value to a string (which may be decoded later with
+        read_value)
+        """
+        
+        if self.storage_type == 0:
+            return struct.pack("!i", value)
+        
+        if self.storage_type == 1:
+            return struct.pack("!f", value)
+        
+        if self.storage_type == 2:
+            return struct.pack("!d", value)
+        
+        raise Exception("Unknown storage type")
 
     def switch_storage(self):
         """
@@ -74,6 +91,14 @@ class Probe(object):
         """
 
         self._log_file.write("%.6f %s\n" % (time, value))
+
+    def attributes(self):
+        """
+        Returns the probe’s properties as a tuple.
+        """
+        
+        return (self.name, self.unit, self.storage_type, self.enabled,
+            self.displayed)
 
     def _create_file(self):
         """
@@ -110,6 +135,13 @@ class Event(object):
 
         self.program._event_log_file.write("%.6f %s %s\n" % (time, self.ident,
             text))
+    
+    def attributes(self):
+        """
+        Returns the event’s properties as a tuple.
+        """
+        
+        return (self.ident, self.level)
 
     def __str__(self):
         return self.ident
@@ -123,8 +155,9 @@ class Program(object):
     Class representing a program
     """
 
-    def __init__(self, host, name, probe_list, event_list):
+    def __init__(self, host, ident, name, probe_list, event_list):
         self.host = host
+        self.ident = ident
         self.name = name
 
         self._event_log_file = None
@@ -178,6 +211,18 @@ class Program(object):
         """
 
         return join(self.host.get_storage_path(self.name), name)
+    
+    def attributes(self):
+        """
+        Returns a tuple containing the full program name (host.program), the
+        host and program identifiers, a list of probe attributes, and a list
+        of event attributes.
+        """
+        
+        return ("%s.%s" % (self.host.name, self.name), self.host.ident,
+            self.ident,
+            [probe.attributes() for probe in self.probes],
+            [event.attributes() for event in self.events])
 
     def _setup_storage(self):
         """
@@ -224,10 +269,12 @@ class Host(object):
             LOGGER.error("Tried to add program with ID %d already on host %s",
                 ident, self)
 
-        prog = Program(self, name, probe_list, event_list)
+        prog = Program(self, ident, name, probe_list, event_list)
         self._programs[ident] = prog
         LOGGER.info("Program %s was added to host %s. Probes: %r, events: %r",
             name, self, prog.probes, prog.events)
+        
+        return prog
 
     def remove_program(self, ident):
         """
@@ -277,6 +324,13 @@ class Host(object):
         """
 
         return self._programs[ident]
+    
+    def all_programs(self):
+        """
+        Return an iterator of all programs on this host
+        """
+        
+        return self._programs.itervalues()
 
     def _create_host_folder(self):
         """
@@ -303,7 +357,7 @@ class HostManager(object):
     def __init__(self):
         self._host_by_name = {}
         self._host_by_addr = {}
-        self._used_idents = set()
+        self._host_by_id = {}
         self._storage_folder = tempfile.mkdtemp("_opensand_collector")
         LOGGER.debug("Initialized storage folder at %s", self._storage_folder)
 
@@ -353,6 +407,7 @@ class HostManager(object):
         host = Host(self, ident, name, address)
         self._host_by_name[name] = host
         self._host_by_addr[address] = host
+        self._host_by_id[ident] = host
 
         LOGGER.info("Host %s (%s:%d) registered.", name, *address)
 
@@ -390,7 +445,7 @@ class HostManager(object):
 
         del self._host_by_name[name]
         del self._host_by_addr[host.address]
-        self._used_idents.remove(host.ident)
+        del self._host_by_id[host.ident]
         host.cleanup()
         LOGGER.info("Host %s is unregistered.", name)
 
@@ -400,6 +455,45 @@ class HostManager(object):
         """
 
         return self._host_by_addr[address]
+    
+    def set_probe_status(self, host_id, program_id, probe_id, new_enabled, 
+        new_displayed):
+        """
+        Sets the status of a given probe.
+        Returns the host object corresponding to the ID if an update to the
+        enabled state of the probe is needed.
+        """
+        
+        try:
+            host = self._host_by_id[host_id]
+        except KeyError:
+            LOGGER.error("Host with ID %d not found in set_probe_status",
+                host_id)
+            return None
+        
+        try:
+            program = host.get_program(program_id)
+        except KeyError:
+            LOGGER.error("Program with ID %d not found in set_probe_status",
+                program_id)
+            return None
+        
+        try:
+            probe = program.get_probe(probe_id)
+        except IndexError:
+            LOGGER.error("Probe with id %d not found in set_probe_status",
+                probe_id)
+            return None
+        
+        enabled_changed = (new_enabled != probe.enabled)
+        
+        probe.enabled = new_enabled
+        probe.displayed = new_displayed
+        
+        if enabled_changed:
+            return host
+        
+        return None
 
     def cleanup(self):
         """
@@ -407,6 +501,14 @@ class HostManager(object):
         """
 
         shutil.rmtree(self._storage_folder)
+    
+    def all_programs(self):
+        """
+        Return an iterator of all programs on all hosts
+        """
+        
+        return (p for h in self._host_by_name.itervalues()
+            for p in h.all_programs())
 
     def _new_ident(self):
         """
@@ -415,8 +517,7 @@ class HostManager(object):
         """
 
         for i in xrange(0, 255):
-            if i not in self._used_idents:
-                self._used_idents.add(i)
+            if i not in self._host_by_id:
                 return i
 
         return 255
