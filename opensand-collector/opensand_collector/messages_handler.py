@@ -246,9 +246,9 @@ class MessagesHandler(object):
             probe.log_value(self._time, value)
             
             if probe.displayed:
-                displayed_values.append((probe, value))
+                displayed_values.append((probe_id, probe, value))
 
-            LOGGER.debug("Probe %s: Value %s", probe_id, probe, value)
+            LOGGER.debug("Probe %s: Value %s", probe, value)
         
         self._notify_manager_probes(host, prog, displayed_values)
 
