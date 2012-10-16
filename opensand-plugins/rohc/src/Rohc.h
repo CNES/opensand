@@ -113,9 +113,9 @@ class Rohc: public EncapPlugin
 
 		NetPacket *build(unsigned char *data, size_t data_length,
 		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
-		size_t getFixedLength() {return 0;};
-		size_t getLength(const unsigned char *UNUSED(data)) {return 0;};
-		size_t getMinLength() {assert(0);};
+		size_t getFixedLength() const {return 0;};
+		size_t getLength(const unsigned char *UNUSED(data)) const {return 0;};
+		size_t getMinLength() const {assert(0);};
 		bool getChunk(NetPacket *UNUSED(packet),
 		              size_t UNUSED(remaining_length),
 		              NetPacket **UNUSED(data),

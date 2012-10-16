@@ -39,7 +39,8 @@
 class DamaAgentRcs : public DamaAgent
 {
  public:
-	DamaAgentRcs(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DamaAgentRcs(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	             const std::map<unsigned int, DvbFifo *> &dvb_fifos);
 
 	// Inherited methods
 	virtual bool processOnFrameTick();

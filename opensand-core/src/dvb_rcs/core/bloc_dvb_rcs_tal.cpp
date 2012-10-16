@@ -101,7 +101,6 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_obrPeriod = -1;
 	this->m_obrSlotFrame = -1;
 	this->m_fixedBandwidth = -1;
-	this->total_available_alloc = -1;
 
 	// statistics
 	this->m_statCounters.ulOutgoingCells = NULL;
@@ -744,20 +743,23 @@ int BlocDVBRcsTal::initDama()
 	{
 		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl);
+		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl,
+		                                      this->dvb_fifos);
 	}
 	else if(this->dama_algo == "UoR")
 	{
 		UTI_INFO("%s SF#%ld: create UoR DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DamaAgentRcsUor(this->up_return_pkt_hdl);
+		m_pDamaAgent = new DamaAgentRcsUor(this->up_return_pkt_hdl,
+		                                   this->dvb_fifos);
 	}
 	// TODO remove here because DamaAgent and DAMACtrl choice will be separated
 	else if(this->dama_algo == "Yes")
 	{
 		UTI_INFO("%s SF#%ld: no %s DAMA agent thus Legacy dama is used by default\n",
 		         FUNCNAME, this->super_frame_counter, this->dama_algo.c_str());
-		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl);
+		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl,
+		                                      this->dvb_fifos);
 		goto error;
 	}
 	else
@@ -774,8 +776,7 @@ int BlocDVBRcsTal::initDama()
 	}
 
 	// Initialize the DamaAgent parent class
-	if(!this->m_pDamaAgent->initParent(this->dvb_fifos,
-	                                   this->frame_duration,
+	if(!this->m_pDamaAgent->initParent(this->frame_duration,
 	                                   this->m_fixedBandwidth,
 	                                   max_rbdc_kbps,
 	                                   rbdc_timeout_sf,
@@ -791,7 +792,6 @@ int BlocDVBRcsTal::initDama()
 	}
 
 	// Initialize the DamaAgentRcsXXX class
-	// TODO generic function
 	if(!m_pDamaAgent->init())
 	{
 		UTI_ERROR("%s Dama Agent initialization failed.\n", FUNCNAME);
@@ -1508,8 +1508,7 @@ int BlocDVBRcsTal::processOnFrameTick()
 	// ---------- schedule and send data frames ---------
 	// schedule packets extracted from DVB FIFOs according to
 	// the algorithm defined in DAMA agent
-	if(!this->m_pDamaAgent->uplinkSchedule(&this->complete_dvb_frames,
-	                                       this->total_available_alloc))
+	if(!this->m_pDamaAgent->uplinkSchedule(&this->complete_dvb_frames))
 	{
 		UTI_ERROR("SF#%ld: frame %ld: failed to schedule packets from DVB FIFOs\n",
 		          this->super_frame_counter, this->frame_counter);

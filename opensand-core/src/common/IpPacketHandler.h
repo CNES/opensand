@@ -62,7 +62,7 @@ class IpPacketHandler:
 	{};
 
 
-	size_t getFixedLength() {return 0;};
+	size_t getFixedLength() const {return 0;};
 	NetPacket *build(unsigned char *data, size_t data_length,
 	                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id)
 	{
@@ -91,12 +91,12 @@ class IpPacketHandler:
 		}
 	};
 
-	size_t getLength(const unsigned char *data)
+	size_t getLength(const unsigned char *data) const
 	{
 		return 0;
 	}
 
-	size_t getMinLength()
+	size_t getMinLength() const
 	{
 		assert(0);
 	}
@@ -107,8 +107,8 @@ class IpPacketHandler:
 		assert(0);
 	}
 
-	uint16_t getEtherType() {return NET_PROTO_ERROR;}
-	std::string getName() {return "IP";}
+	uint16_t getEtherType() const {return NET_PROTO_ERROR;}
+	std::string getName() const {return "IP";}
 };
 
 

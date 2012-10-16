@@ -2,6 +2,8 @@ lib_LTLIBRARIES = libopensand_dama.la
 
 libopensand_dama_la_cpp = \
 	CircularBuffer.cpp \
+	CapacityRequest.cpp \
+	UplinkSchedulingRcs.cpp \
 	DamaUtils.cpp \
 	DamaAgent.cpp \
 	DamaAgentRcs.cpp \
@@ -15,6 +17,8 @@ libopensand_dama_la_cpp = \
        
 libopensand_dama_la_h = \
 	CircularBuffer.h \
+	UplinkScheduling.h \
+	UplinkSchedulingRcs.h \
 	DamaUtils.h  \
 	Ttp.h \
 	CapacityRequest.h \

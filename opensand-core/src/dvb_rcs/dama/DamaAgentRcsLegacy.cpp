@@ -52,12 +52,13 @@ const vol_pkt_t C_MAX_VBDC_IN_SAC = 4080;     // 4080 packets/ceils, limitation
                                               // due to CR value size in to SAC field
 
 
-DamaAgentRcsLegacy::DamaAgentRcsLegacy(EncapPlugin::EncapPacketHandler *pkt_hdl) :
-	DamaAgentRcs(pkt_hdl),
-	max_pvc(0),
+DamaAgentRcsLegacy::DamaAgentRcsLegacy(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                       const std::map<unsigned int, DvbFifo *> &dvb_fifos):
+	DamaAgentRcs(pkt_hdl, dvb_fifos),
 	cra_in_cr(false),
 	rbdc_timer_sf(0),
-	vbdc_credit_pkt(0)
+	vbdc_credit_pkt(0),
+	up_schedule(pkt_hdl, dvb_fifos)
 {
 }
 
@@ -73,12 +74,9 @@ DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 
 bool DamaAgentRcsLegacy::init()
 {
-	// set the number of PVC = the maximum PVC is (first PVC id is 1)
-	this->max_pvc = 0;
-	for(std::map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		this->max_pvc = std::max((*it).second->getPvc(), this->max_pvc);
 		if((*it).second->getCrType() == cr_none)
 		{
 			this->cra_in_cr = true;
@@ -267,7 +265,7 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		this->rbdc_request_buffer->Update(rbdc_request_kbps);
 
 		// reset counter of arrival packets/cells in MAC FIFOs related to RBDC
-		for(std::map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+		for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
 			(*it).second->resetFilled(cr_rbdc);
@@ -297,232 +295,21 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 	return false;
 }
 
-bool DamaAgentRcsLegacy::uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames,
-                                        size_t &output_length)
+bool DamaAgentRcsLegacy::uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 {
-	bool ret = true;
-	rate_pktpsf_t out_remaining_alloc_pktpsf = this->remaining_allocation_pktpsf;
-
-	// for each PVC, schedule MAC Fifos
-	for(unsigned int pvc_id = 1; pvc_id < this->max_pvc + 1; pvc_id++)
+	if(!this->up_schedule.schedule(this->current_superframe_sf,
+	                               this->current_frame,
+	                               complete_dvb_frames,
+	                               this->remaining_allocation_pktpsf))
 	{
-		vol_pkt_t extracted_packet_number = 0;
-
-		// extract and send encap packets from MAC FIFOs, in function of
-		// UL allocation
-		if(!this->macSchedule(pvc_id,
-		                      extracted_packet_number,
-		                      complete_dvb_frames))
-		{
-			UTI_ERROR("SF#%u: MAC scheduling failed\n", this->current_superframe_sf);
-			ret = false;
-			goto error;
-		}
-
-		// returned outRemainingAlloc is updated only with encap packets
-		// scheduled from MAC fifos because packets issued from IP scheduling
-		// still need to be received by MAC layer
-		out_remaining_alloc_pktpsf -= extracted_packet_number;
+		UTI_ERROR("SF#%u: frame %u: Uplink Scheduling failed",
+		          this->current_superframe_sf, this->current_frame);
+		return false;
 	}
-
 	this->stat_context.unused_alloc_kbps =  // unused bandwith in kbits/s
 	        this->converter->ConvertFromCellsPerFrameToKbits(this->remaining_allocation_pktpsf);
 
- error:
-	return ret;
-}
-
-bool DamaAgentRcsLegacy::macSchedule(unsigned int pvc,
-                                     vol_pkt_t &extracted_packet_number,
-                                     std::list<DvbFrame *> *complete_dvb_frames)
-{
-	unsigned int complete_frames_count;
-	DvbRcsFrame *incomplete_dvb_frame = NULL;
-	unsigned int fifo_index;
-	rate_pktpsf_t initial_allocation_pktpsf;
-	bool ret = true;
-
-	initial_allocation_pktpsf = this->remaining_allocation_pktpsf;
-
-	UTI_DEBUG("SF#%u: frame %u: attempt to extract encap packets from "
-	          "MAC FIFOs for PVC %d (remaining allocation = %d packets)\n",
-	          this->current_superframe_sf, this->current_frame,
-	          pvc, this->remaining_allocation_pktpsf);
-
-	// create an incomplete DVB-RCS frame
-	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
-	{
-		goto error;
-	}
-
-	// extract encap packets from MAC FIFOs while some UL capacity is available
-	// (MAC fifos priorities are in MAC IDs order)
-	fifo_index = 0;
-	complete_frames_count = 0;
-	while(fifo_index < this->dvb_fifos.size() &&
-	      this->remaining_allocation_pktpsf > 0)
-	{
-		NetPacket *encap_packet;
-		MacFifoElement *elem;
-		DvbFifo *fifo = this->dvb_fifos[fifo_index];
-
-		if(fifo->getPvc() != pvc)
-		{
-			// ignore FIFO with a different PVC
-			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
-			             "with ID %d: PVC is %d not %d\n",
-			             this->current_superframe_sf,
-			             this->current_frame,
-			             fifo->getId(),
-			             fifo->getPvc(),
-			             pvc);
-			// pass to next fifo
-			fifo_index++;
-		}
-		else if(fifo->getCount() <= 0)
-		{
-			// FIFO is on correct PVC but got no data
-			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
-			             "with ID %d: correct PVC %d but no data "
-			             "(left) to schedule\n",
-			             this->current_superframe_sf,
-			             this->current_frame,
-			             fifo->getId(),
-			             fifo->getPvc());
-			// pass to next fifo
-			fifo_index++;
-		}
-		else
-		{
-			// FIFO with correct PVC and awaiting data
-			UTI_DEBUG_L3("SF#%u: frame %u: extract packet from "
-			             "MAC FIFO with ID %d: correct PVC %d and "
-			             "%ld awaiting packets (remaining "
-			             "allocation = %d)\n",
-			             this->current_superframe_sf,
-			             this->current_frame,
-			             fifo->getId(),
-			             fifo->getPvc(),
-			             fifo->getCount(),
-			             this->remaining_allocation_pktpsf);
-
-			// extract next encap packet context from MAC fifo
-			elem = (MacFifoElement *) fifo->remove();
-
-			// delete elem context (keep only the packet)
-			encap_packet = elem->getPacket();
-			delete elem;
-			encap_packet->addTrace(HERE());
-
-			// is there enough free space in the DVB frame
-			// for the encapsulation packet ?
-			if(encap_packet->getTotalLength() >
-			   incomplete_dvb_frame->getFreeSpace())
-			{
-				UTI_DEBUG_L3("SF#%u: frame %u: DVB frame #%u "
-				             "is full, change for next one\n",
-				             this->current_superframe_sf,
-				             this->current_frame,
-				             complete_frames_count + 1);
-
-				complete_dvb_frames->push_back(incomplete_dvb_frame);
-
-				// create another incomplete DVB-RCS frame
-				if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
-				{
-					goto error;
-				}
-
-				complete_frames_count++;
-
-				// is there enough free space in the next DVB-RCS frame ?
-				if(encap_packet->getTotalLength() >
-				   incomplete_dvb_frame->getFreeSpace())
-				{
-					UTI_ERROR("DVB-RCS frame #%u got no enough "
-					          "free space, this should never "
-					          "append\n", complete_frames_count + 1);
-					delete encap_packet;
-					continue;
-				}
-			}
-
-			// add the encapsulation packet to the current DVB-RCS frame
-			if(incomplete_dvb_frame->addPacket(encap_packet) != true)
-			{
-				UTI_ERROR("SF#%u: frame %u: cannot add "
-				          "extracted MAC cell in "
-				          "DVB frame #%u\n",
-				          this->current_superframe_sf,
-				          this->current_frame,
-				          complete_frames_count + 1);
-				encap_packet->addTrace(HERE());
-				delete encap_packet;
-				ret = false;
-				continue;
-			}
-
-			UTI_DEBUG_L3("SF#%u: frame %u: extracted packet added "
-			             "to DVB frame #%u\n",
-			             this->current_superframe_sf,
-			             this->current_frame,
-			             complete_frames_count + 1);
-			delete encap_packet;
-
-			// update allocation
-			this->remaining_allocation_pktpsf--;
-		}
-	}
-
-	// add the incomplete DVB-RCS frame to the list of complete DVB-RCS frame
-	// if it is not empty
-	if(incomplete_dvb_frame != NULL)
-	{
-		if(incomplete_dvb_frame->getNumPackets() > 0)
-		{
-			complete_dvb_frames->push_back(incomplete_dvb_frame);
-
-			// increment the counter of complete frames
-			complete_frames_count++;
-		}
-		else
-		{
-			delete incomplete_dvb_frame;
-		}
-	}
-	extracted_packet_number = initial_allocation_pktpsf - this->remaining_allocation_pktpsf;
-
-	// print status
-	UTI_DEBUG("SF#%u: frame %u: %d packets extracted from MAC FIFOs "
-	          "for PVC %d, %u DVB frame(s) were built (remaining allocation "
-	          "= %d packets)\n",
-	          this->current_superframe_sf, this->current_frame,
-	          extracted_packet_number, pvc, complete_frames_count,
-	          this->remaining_allocation_pktpsf);
-
-	return ret;
-error:
-	return false;
-}
-
-bool DamaAgentRcsLegacy::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
-{
-	*incomplete_dvb_frame = new DvbRcsFrame();
-	if(*incomplete_dvb_frame == NULL)
-	{
-		UTI_ERROR("failed to create DVB-RCS frame\n");
-		goto error;
-	}
-
-	// set the max size of the DVB-RCS frame, also set the type
-	// of encapsulation packets the DVB-RCS frame will contain
-	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketEtherType(this->packet_handler->getEtherType());
-
 	return true;
-
-error:
-	return false;
 }
 
 rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
@@ -645,7 +432,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets/cells in fifo
 
 	nb_pkt_in_fifo = 0;
-	for(std::map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)
@@ -663,7 +450,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 	vol_pkt_t nb_pkt_input; // # packets/cells that filled the queue since last RBDC request
 
 	nb_pkt_input = 0;
-	for(std::map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)

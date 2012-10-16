@@ -72,8 +72,10 @@ class DamaAgent
 	 * Build a Dama agent.
 	 *
 	 * @param packet_handler the packet handler
+	 * @param dvb_fifos                The MAC FIFOs
 	 */
-	DamaAgent(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DamaAgent(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	          const std::map<unsigned int, DvbFifo *> &dvb_fifos);
 
 	/**
 	 * Destroy the Dama Agent.
@@ -83,7 +85,6 @@ class DamaAgent
 	/**
 	 * @brief  Initalize the DAMA Agent common parameters
 	 *
-	 * @param dvb_fifos                The MAC FIFOs
 	 * @param superframe_duration_ms   The superframe duration (in ms)
 	 * @param cra_kbps                 The CRA value (in kbits/s)
 	 * @param max_rbdc_kbps            The maximum RBDC value (in kbits/s)
@@ -99,8 +100,7 @@ class DamaAgent
 	 *                                 for CR generation
 	 * @return true on success, false otherwise
 	 */
-    bool initParent(std::map<unsigned int, DvbFifo *> dvb_fifos,
-                    time_ms_t superframe_duration_ms,
+    bool initParent(time_ms_t superframe_duration_ms,
                     rate_kbps_t cra,
                     rate_kbps_t max_rbdc_kb,
                     time_sf_t rbdc_timeout_sf,
@@ -164,11 +164,9 @@ class DamaAgent
 	 * @brief Schedule uplink packets emission.
 	 *
 	 * @param complete_dvb_frames  created DVB frames.
-	 * @param output_length        output sent length.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames,
-	                            size_t &output_length) = 0;
+	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -182,7 +180,7 @@ class DamaAgent
 	 *
 	 * @return Statistics context.
 	 */
-	const da_stat_context_t &getStatsCxt() const;
+	da_stat_context_t getStatsCxt() const;
 
 	/**
 	 * @brief Reset the statistics context.
@@ -205,7 +203,10 @@ protected:
 	bool is_parent_init;
 
     /** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	const EncapPlugin::EncapPacketHandler *packet_handler;
+
+	/** The MAC FIFOs */
+    const std::map<unsigned int, DvbFifo *> dvb_fifos;
 
 	/** Terminal ID of the ST */
 	tal_id_t tal_id;
@@ -223,14 +224,12 @@ protected:
 	/** Flags if VBDC requests are enabled */
 	bool vbdc_enabled;
 
-	/** The MAC FIFOs */
-    std::map<unsigned int, DvbFifo *> dvb_fifos;
 	/** Frame duration (in ms) */
 	time_ms_t frame_duration_ms;
 	/** CRA value for ST (in kb/s) */
 	rate_kbps_t cra_kbps;
 	/** RBDC max value (in kb/s) */
-	double max_rbdc_kbps;
+	rate_kbps_t max_rbdc_kbps;
 	/** RBDC timeout (in frame number) */
 	time_sf_t rbdc_timeout_sf;
 	/** VBDC maximal value (in kb) */

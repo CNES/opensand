@@ -38,7 +38,8 @@
 #include "opensand_conf/uti_debug.h"
 #define DA_DBG_PREFIX "[UOR]"
 
-DamaAgentRcsUor::DamaAgentRcsUor(EncapPlugin::EncapPacketHandler *pkt_hdl)
-	: DamaAgentRcsLegacy(pkt_hdl)
+DamaAgentRcsUor::DamaAgentRcsUor(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                 const std::map<unsigned int, DvbFifo *> &dvb_fifos)
+	: DamaAgentRcsLegacy(pkt_hdl, dvb_fifos)
 {
 }

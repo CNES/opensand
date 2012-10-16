@@ -37,6 +37,7 @@
 #include "DamaAgentRcs.h"
 
 #include "CircularBuffer.h"
+#include "UplinkSchedulingRcs.h"
 
 #include "msg_dvb_rcs.h"
 #include "NetBurst.h"
@@ -46,7 +47,8 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 {
  public:
 
-	DamaAgentRcsLegacy(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DamaAgentRcsLegacy(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                   const std::map<unsigned int, DvbFifo *> &dvb_fifos);
 	virtual ~DamaAgentRcsLegacy();
 
 	// Init method
@@ -56,8 +58,7 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
 	virtual bool hereIsTTP(const Ttp &ttp);
 	virtual bool processOnFrameTick();
-	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames,
-	                            size_t &output_length);
+	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames);
 	virtual bool buildCR(cr_type_t cr_type,
 	                     CapacityRequest **capacity_request,
 	                     bool &emtpy);
@@ -66,8 +67,6 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	virtual bool buildCR(cr_type_t, unsigned char*, size_t&, bool&);
 
  protected:
-	/** Maximum PVC id */
-	unsigned int max_pvc;
 
 	/** Is CRA taken into account in the RBDC computation ? */
 	bool cra_in_cr;
@@ -83,6 +82,9 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 
 	/** Circular buffer to store previous RBDC requests */
 	CircularBuffer *rbdc_request_buffer;
+
+	/** Uplink Scheduling functions */
+	UplinkSchedulingRcs up_schedule;
 
  private:
 
@@ -120,29 +122,6 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	 *                          ready to be set in SAC field
 	 */
 	vol_pkt_t computeVbdcRequest();
-
-	/**
-	 * @brief schedule the DVB packets that are stored in the MAC Fifo
-	 *
-	 * @param pvc                     the current pvc
-	 * @param extracted_packet_number the number of packet extracted from the FIFOs
-	 * @param complete_dvb_frames     a list of completed DVB frames
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool macSchedule(unsigned int pvc,
-	                 vol_pkt_t &extracted_packet_number,
-	                 std::list<DvbFrame *> *complete_dvb_frames);
-
-	/**
-	 * @brief Allocate a new DVB frame
-	 *
-	 * @param incomplete_dvb_frame  the created DVB frame
-	 *
-	 * @return true on sucess, false otherwise
-	 */
-	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
-
 };
 
 #endif

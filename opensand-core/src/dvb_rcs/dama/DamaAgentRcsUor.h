@@ -41,7 +41,8 @@
 class DamaAgentRcsUor: public DamaAgentRcsLegacy
 {
  public:
-	DamaAgentRcsUor(EncapPlugin::EncapPacketHandler *pkt_hdl);
+	DamaAgentRcsUor(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                const std::map<unsigned int, DvbFifo *> &dvb_fifos);
 };
 
 #endif

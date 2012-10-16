@@ -97,14 +97,14 @@ class EncapPlugin
 		 *
 		 * @return the packet length if constant, 0 otherwise
 		 */
-		virtual size_t getFixedLength() = 0;
+		virtual size_t getFixedLength() const = 0;
 
 		/**
 		 * @brief get the minimum packet length
 		 *
 		 * @return the minimum packet length
 		 */
-		virtual size_t getMinLength() = 0;
+		virtual size_t getMinLength() const = 0;
 
 		/**
 		 * @brief Create a NetPacket from data with the relevant attributes.
@@ -127,7 +127,7 @@ class EncapPlugin
 		 * @param data The packet content
 		 * @return the packet length
 		 */
-		virtual size_t getLength(const unsigned char *data) = 0;
+		virtual size_t getLength(const unsigned char *data) const = 0;
 
 		/**
 		 * @brief get a NetPacket that can be encapsulated in the frame
@@ -159,14 +159,14 @@ class EncapPlugin
 		 *
 		 * return The EtherType
 		 */
-		virtual uint16_t getEtherType() {return plugin.ether_type;};
+		virtual uint16_t getEtherType() const {return plugin.ether_type;};
 
 		/**
 		 * @brief Get the type of encapsulation / deencapsulation context (ATM, MPEG, etc.)
 		 *
 		 * @return the name of the encapsulation / deencapsulation context
 		 */
-		virtual std::string getName() {return plugin.encap_name;};
+		virtual std::string getName() const {return plugin.encap_name;};
 
 	  private:
 
@@ -245,7 +245,7 @@ class EncapPlugin
 		 *                                              TRANSPARENT)
 		 *  @param return The list of protocols that can be encapsulated
 		 */
-		std::vector<std::string> getAvailableUpperProto(sat_type_t sat_type)
+		std::vector<std::string> getAvailableUpperProto(sat_type_t sat_type) const
 		{
 			return plugin.upper[sat_type];
 		};
@@ -258,7 +258,7 @@ class EncapPlugin
 		 *
 		 * return The EtherType
 		 */
-		uint16_t getEtherType() {return plugin.ether_type;};
+		uint16_t getEtherType() const {return plugin.ether_type;};
 
 		/**
 		 * @brief Set the encapsulated packet handler
@@ -293,7 +293,7 @@ class EncapPlugin
 		 *
 		 * @return the type of encapsulation / deencapsulation context
 		 */
-		std::string getName() {return plugin.encap_name;};
+		std::string getName() const {return plugin.encap_name;};
 
 		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
@@ -361,21 +361,21 @@ class EncapPlugin
 	 *
 	 * @return the context
 	 */
-	EncapContext *getContext() {return this->context;};
+	EncapContext *getContext() const {return this->context;};
 
 	/**
 	 * @brief Get the encapsulation packet handler
 	 *
 	 * @return the packet handler
 	 */
-	EncapPacketHandler *getPacketHandler() {return this->packet_handler;};
+	EncapPacketHandler *getPacketHandler() const {return this->packet_handler;};
 
 	/**
 	 * @brief Get the type of encapsulation / deencapsulation context (ATM, MPEG, etc.)
 	 *
 	 * @return the type of encapsulation / deencapsulation context
 	 */
-	std::string getName() {return this->encap_name;};
+	std::string getName() const {return this->encap_name;};
 
 	/**
 	 * @brief Create the Plugin, this function should be called instead of constructor

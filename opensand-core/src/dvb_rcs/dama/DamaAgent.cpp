@@ -38,9 +38,11 @@
 #define DBG_PACKAGE PKG_DAMA_DA
 #include "opensand_conf/uti_debug.h"
 
-DamaAgent::DamaAgent(EncapPlugin::EncapPacketHandler *pkt_hdl):
+DamaAgent::DamaAgent(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                     const std::map<unsigned int, DvbFifo *> &dvb_fifos):
 	is_parent_init(false),
 	packet_handler(pkt_hdl),
+	dvb_fifos(dvb_fifos),
 	group_id(0),
 	current_superframe_sf(0),
 	rbdc_enabled(false),
@@ -60,8 +62,7 @@ DamaAgent::~DamaAgent()
 {
 }
 
-bool DamaAgent::initParent(std::map<unsigned int, DvbFifo *> dvb_fifos,
-                           time_ms_t frame_duration_ms,
+bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            rate_kbps_t cra_kbps,
                            rate_kbps_t max_rbdc_kbps,
                            time_sf_t rbdc_timeout_sf,
@@ -76,7 +77,6 @@ bool DamaAgent::initParent(std::map<unsigned int, DvbFifo *> dvb_fifos,
 		goto error;
 	}
 
-	this->dvb_fifos = dvb_fifos;
 	this->frame_duration_ms = frame_duration_ms;
 	this->cra_kbps = cra_kbps;
 	this->max_rbdc_kbps = max_rbdc_kbps;
@@ -87,7 +87,7 @@ bool DamaAgent::initParent(std::map<unsigned int, DvbFifo *> dvb_fifos,
 	this->cr_output_only = cr_output_only;
 
 	// Check if RBDC or VBDC CR are activated
-	for(std::map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
+	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		cr_type_t cr_type = (*it).second->getCrType();
@@ -135,7 +135,7 @@ bool DamaAgent::processOnFrameTick()
 	return true;
 }
 
-const da_stat_context_t &DamaAgent::getStatsCxt() const
+da_stat_context_t DamaAgent::getStatsCxt() const
 {
 	return this->stat_context;
 }

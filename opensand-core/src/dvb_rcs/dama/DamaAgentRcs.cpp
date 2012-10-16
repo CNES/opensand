@@ -37,8 +37,9 @@
 #include "opensand_conf/uti_debug.h"
 #define DA_DBG_PREFIX "[RCS]"
 
-DamaAgentRcs::DamaAgentRcs(EncapPlugin::EncapPacketHandler *pkt_hdl):
-	DamaAgent(pkt_hdl),
+DamaAgentRcs::DamaAgentRcs(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                           const std::map<unsigned int, DvbFifo *> &dvb_fifos):
+	DamaAgent(pkt_hdl, dvb_fifos),
 	allocated_pkt(0),
 	dynamic_allocation_pkt(0),
 	remaining_allocation_pktpsf(0)

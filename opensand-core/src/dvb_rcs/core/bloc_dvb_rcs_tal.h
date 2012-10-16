@@ -171,7 +171,6 @@ class BlocDVBRcsTal: public BlocDvb
 	int in_encap_packet_length;
 
 	int m_fixedBandwidth;   ///< fixed bandwidth (CRA) in kbits/s
-	size_t total_available_alloc;  ///< remaining available UL packets on the current frame
 
 
 	/* Timers and their values */

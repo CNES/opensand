@@ -129,9 +129,9 @@ class Gse: public EncapPlugin
 
 		NetPacket *build(unsigned char *data, size_t data_length,
 		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
-		size_t getFixedLength() {return 0;};
-		size_t getMinLength() {return 3;};
-		size_t getLength(const unsigned char *data);
+		size_t getFixedLength() const {return 0;};
+		size_t getMinLength() const {return 3;};
+		size_t getLength(const unsigned char *data) const;
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data);
 	};
@@ -164,21 +164,21 @@ class Gse: public EncapPlugin
 	 * @param   label  The label to read value from.
 	 * @return  the source TAL Id.
 	 */
-	static uint8_t getSrcTalIdFromLabel(uint8_t label[]);
+	static uint8_t getSrcTalIdFromLabel(const uint8_t label[]);
 
 	/**
 	 * @brief   Get the destination TAL Id from label.
 	 * @param   label  The label to read value from.
 	 * @return  the destination TAL Id.
 	 */
-	static uint8_t getDstTalIdFromLabel(uint8_t label[]);
+	static uint8_t getDstTalIdFromLabel(const uint8_t label[]);
 
 	/**
 	 * @brief   Get the QoS value from label.
 	 * @param   label  The label to read value from.
 	 * @return  the QoS value.
 	 */
-	static uint8_t getQosFromLabel(uint8_t label[]);
+	static uint8_t getQosFromLabel(const uint8_t label[]);
 
 	/**
 	 * @brief   Create a fragment id from a packet.
@@ -199,21 +199,21 @@ class Gse: public EncapPlugin
 	 * @param   frag_id  The fragment dd to read value from.
 	 * @return  the source TAL Id.
 	 */
-	static uint8_t getSrcTalIdFromFragId(uint8_t frag_id);
+	static uint8_t getSrcTalIdFromFragId(const uint8_t frag_id);
 
 	/**
 	 * @brief   Get the destination TAL Id from a fragment id..
 	 * @param   frag_id  The fragment dd to read value from.
 	 * @return  the destination TAL Id.
 	 */
-	static uint8_t getDstTalIdFromFragId(uint8_t frag_id);
+	static uint8_t getDstTalIdFromFragId(const uint8_t frag_id);
 
 	/**
 	 * @brief   Get the QoS value from a fragment id..
 	 * @param   frag_id  The fragment dd to read value from.
 	 * @return  the QoS value.
 	 */
-	static uint8_t getQosFromFragId(uint8_t frag_id);
+	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
 CREATE(Gse, Gse::Context, Gse::PacketHandler);

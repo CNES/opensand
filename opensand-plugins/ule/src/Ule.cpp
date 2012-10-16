@@ -481,7 +481,7 @@ NetPacket *Ule::PacketHandler::build(unsigned char *data, size_t data_length,
 }
 
 
-size_t Ule::PacketHandler::getLength(const unsigned char *data)
+size_t Ule::PacketHandler::getLength(const unsigned char *data) const
 {
 	unsigned int len;
 
