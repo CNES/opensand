@@ -217,7 +217,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	BBFrame *current_bbframe;
 
 	// retrieve the number of packets waiting for retransmission
-	max_to_send = fifo->getCount();
+	max_to_send = fifo->getCurrentSize();
 	if(max_to_send <= 0)
 	{
 		// if there is nothing to send, return with success
@@ -263,27 +263,29 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	this->pending_bbframe = NULL;
 	
 	// now build BB frames with packets extracted from the MAC FIFO
-	while((elem = (MacFifoElement *)fifo->get()) != NULL)
+	while(fifo->getCurrentSize() > 0)
 	{
 		NetPacket *encap_packet;
 		long tal_id;
 		NetPacket *data;
 		NetPacket *remaining_data;
 
-		// first examine the packet to be sent without removing it from the queue
-		if(elem->getType() != 1)
-		{
-			UTI_ERROR("MAC FIFO element does not contain NetPacket\n");
-			goto error_fifo_elem;
-		}
 		// simulate the satellite delay
-		if(elem->getTickOut() > current_time)
+		if(fifo->getTickOut() > current_time)
 		{
 			UTI_DEBUG("packet is not scheduled for the moment, "
 			          "break\n");
 			// this is the first MAC FIFO element that is not ready yet,
 			// there is no more work to do, break now
 			break;
+		}
+
+		elem = fifo->pop();
+		// examine the packet to be sent
+		if(elem->getType() != 1)
+		{
+			UTI_ERROR("MAC FIFO element does not contain NetPacket\n");
+			goto error_fifo_elem;
 		}
 
 		encap_packet = elem->getPacket();
@@ -322,8 +324,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 		}
 		else if(!current_bbframe)
 		{
-			// cannot get modcod for the ST remove the fifo element
-			fifo->remove();
+			// cannot get modcod for the ST delete the element
 			delete encap_packet;
 			delete elem;
 			continue;
@@ -343,7 +344,6 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			UTI_ERROR("error while processing packet #%u\n",
 			          sent_packets + 1);
-			fifo->remove();
 			delete elem;
 		}
 		// use cases 1 (see @ref getChunk)
@@ -362,8 +362,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 			// delete the NetPacket once it has been copied in the BBFrame
 			delete data;
 			sent_packets++;
-			// remove the element from the MAC FIFO and destroy it
-			fifo->remove();
+			// destroy the element
 			delete elem;
 		}
 		// use case 2 (see @ref getChunk)
@@ -384,6 +383,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 
 			// replace the fifo first element with the remaining data
 			elem->setPacket(remaining_data);
+			fifo->pushFront(elem);
 
 			UTI_DEBUG("packet fragmented, there is still %u bytes of data\n",
 			          remaining_data->getTotalLength());
@@ -393,6 +393,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			// replace the fifo first element with the remaining data
 			elem->setPacket(remaining_data);
+			fifo->pushFront(elem);
 
 			// keep the NetPacket in the fifo
 			UTI_DEBUG("not enough free space in BBFrame (%u bytes) "
@@ -406,7 +407,6 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 			UTI_ERROR("bad getChunk function implementation, "
 			          "assert or skip packet #%u\n", sent_packets + 1);
 			assert(0);
-			fifo->remove();
 			delete elem;
 		}
 
@@ -477,7 +477,6 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 skip:
 	return 0;
 error_fifo_elem:
-	fifo->remove();
 	delete elem;
 error:
 	return -1;

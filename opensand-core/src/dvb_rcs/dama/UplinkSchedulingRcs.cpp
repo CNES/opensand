@@ -124,7 +124,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			// pass to next fifo
 			++fifo_it;
 		}
-		else if(fifo->getCount() <= 0)
+		else if(fifo->getCurrentSize() <= 0)
 		{
 			// FIFO is on correct PVC but got no data
 			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
@@ -141,16 +141,16 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			// FIFO with correct PVC and awaiting data
 			UTI_DEBUG_L3("SF#%u: frame %u: extract packet from "
 			             "MAC FIFO with ID %d: correct PVC %d and "
-			             "%ld awaiting packets (remaining "
+			             "%u awaiting packets (remaining "
 			             "allocation = %d)\n",
 			             current_superframe_sf, current_frame,
 			             fifo->getId(),
 			             fifo->getPvc(),
-			             fifo->getCount(),
+			             fifo->getCurrentSize(),
 			             remaining_allocation_pktpsf);
 
 			// extract next encap packet context from MAC fifo
-			elem = (MacFifoElement *) fifo->remove();
+			elem = fifo->pop();
 
 			// delete elem context (keep only the packet)
 			encap_packet = elem->getPacket();

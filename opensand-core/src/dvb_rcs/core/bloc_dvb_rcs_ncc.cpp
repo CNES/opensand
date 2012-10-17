@@ -930,7 +930,6 @@ int BlocDVBRcsNcc::initCarrierIds()
 	goto error;
 	}
 	this->m_carrierIdData = val;
-	this->data_dvb_fifo.setId(m_carrierIdData);
 	UTI_INFO("carrierIdData set to %ld\n", this->m_carrierIdData);
 
 	return 0;
@@ -1112,7 +1111,7 @@ int BlocDVBRcsNcc::initFifo()
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);
 		goto error;
 	}
-	this->data_dvb_fifo.init(val);
+	this->data_dvb_fifo.init(m_carrierIdData, val);
 
 	return 0;
 

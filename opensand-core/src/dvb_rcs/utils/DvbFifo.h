@@ -35,10 +35,11 @@
 #ifndef DVD_FIFO_H
 #define DVD_FIFO_H
 
-#include "opensand_margouilla/mgl_fifo.h"
 #include "OpenSandCore.h"
+#include "MacFifoElement.h"
 
-#include <linux/param.h>
+//#include <linux/param.h>
+#include <vector>
 #include <sys/times.h>
 
 
@@ -68,9 +69,12 @@ typedef enum
 /// DVB fifo statistics context
 typedef struct
 {
-	vol_pkt_t current_pkt_nbr; // current pk number
-	vol_pkt_t in_pkt_nbr;      // number of pk inserted during period
-	vol_pkt_t out_pkt_nbr;     // number of pk extracted during period
+	vol_pkt_t current_pkt_nbr;  // current number of elements
+	vol_kb_t current_length_kb; // current length of data in fifo
+	vol_pkt_t in_pkt_nbr;       // number of elements inserted during period
+	vol_pkt_t out_pkt_nbr;      // number of elements extracted during period
+	vol_kb_t in_length_kb;      // current length of data inserted during period
+	vol_kb_t out_length_kb;     // current length of data extraction during period
 } mac_fifo_stat_context_t;
 
 
@@ -80,43 +84,154 @@ typedef struct
  *
  * Manages a DVB fifo, for queuing, statistics, ...
  */
-class DvbFifo: public mgl_fifo
+class DvbFifo
 {
  public:
 
 	DvbFifo();
+
+	/**
+	 * @brief Create the DvbFifo
+	 *
+	 * @param id            the fifo id
+	 * @param mac_prio_name the MAC priority name for this fifo
+	 * @param cr_type_name  the CR type name for this fifo
+	 * @param pvc           the PVC associated to this fifo
+	 * @param max_size_pkt  the fifo maximum size
+	 */
 	DvbFifo(unsigned int id, string mac_prio_name,
 	        string cr_type_name, unsigned int pvc,
-	        vol_pkt_t size);
+	        vol_pkt_t max_size_pkt);
 	virtual ~DvbFifo();
 
-	mac_prio_t getMacPriority();
+	/**
+	 * @brief Get the mac_priority of the fifo
+	 *
+	 * @return the mac_priority of the fifo
+	 */
+	mac_prio_t getMacPriority() const;
 
-	unsigned int getPvc();
+	/**
+	 * @brief Get the PVC associated to the fifo
+	 *
+	 * return the PVC of the fifo
+	 */
+	unsigned int getPvc() const;
 
-	cr_type_t getCrType();
+	/**
+	 * @brief Get the CR type associated to the fifo
+	 *
+	 * return the CR type associated to the fifo
+	 */
+	cr_type_t getCrType() const;
 
-	unsigned int getId();
-	void setId(unsigned int id);
+	/**
+	 * @brief Get the id of the fifo
+	 *
+	 * @return the id of the fifo
+	 */
+	unsigned int getId() const;
 
-	vol_pkt_t getFilled();
-	vol_pkt_t getFilledWithNoReset();
-	void resetFilled(cr_type_t cr_type);
+	/**
+	 * @brief Get the fifo current size
+	 *
+	 * @return the queue current size
+	 */
+	vol_pkt_t getCurrentSize() const;
 
-	void setCapacity(vol_pkt_t capacity);
-	vol_pkt_t getCapacity();
+	/**
+	 * @brief Get the fifo maximum size
+	 *
+	 * @return the queue maximum size
+	 */
+	vol_pkt_t getMaxSize() const;
 
-	bool allowed();
-	vol_pkt_t getMaxSize();
+	/**
+	 * @brief Get the number of packets or cells that fed the queue since
+	 *        last reset
+	 *
+	 * @return the number of packets/cells that fed the queue since last call
+	 */
+	vol_pkt_t getNewSize() const;
 
-	int init(vol_pkt_t i_size);
-	long append(void *ptr_data);
-	void *remove();
+	/**
+	 * @brief Get the length of data in the fifo (in kbits)
+	 *
+	 * @return the size of data in the fifo (in kbits)
+	 */
+	vol_kb_t getNewDataLength() const;
+
+	/**
+	 * @brief Get the head element tick out
+	 *
+	 * @return the head element tick out
+	 */
+	clock_t getTickOut() const;
+
+	/**
+	 * @brief Reset filled, only if the FIFO has the requested CR type
+	 *
+	 * @param cr_type is the CR type for which reset must be done
+	 */
+	void resetNew(const cr_type_t cr_type);
+
+	/**
+	 * @brief Initialize the FIFO
+	 *
+	 * @param id            the fifo id
+	 * @param max_size_pkt  the fifo maximum size
+	 */
+	void init(unsigned int id, vol_pkt_t max_size_pkt);
+
+	/**
+	 * @brief Add an element at the end of the list
+	 *        (Increments new_size_pkt)
+	 *
+	 * @param elem is the pointer on MacFifoElement
+	 * @return true on success, false otherwise
+	 */
+	bool push(MacFifoElement *elem);
+
+	/**
+	 * @brief Add an element at the head of the list
+	 *        (Decrements new_length_kb)
+	 * @warning This function should be use only to replace a fragment of
+	 *          previously removed data in the fifo
+	 *
+	 * @param elem is the pointer on MacFifoElement
+	 * @return true on success, false otherwise
+	 */
+	bool pushFront(MacFifoElement *elem);
+
+	/**
+	 * @brief Remove an element at the head of the list
+	 *
+	 * @return NULL pointer if extraction failed because fifo is empty
+	 *         pointer on extracted MacFifoElement otherwise
+	 */
+	MacFifoElement *pop();
+
+	/**
+	 * @brief Flush the dvb fifo and reset counters
+	 */
 	void flush();
 
+	/**
+	 * @brief Returns statistics of the fifo in a context
+	 *        and reset counters
+	 *
+	 * @return statistics context
+	 */
 	void getStatsCxt(mac_fifo_stat_context_t &stat_info);
 
  protected:
+
+	/**
+	 * @brief Reset the fifo counters
+	 */
+	void resetStats();
+
+	std::vector<MacFifoElement *> queue; ///< the FIFO itself
 
 	unsigned int id;     ///< the fifo ID
 	mac_prio_t mac_priority;  ///< the QoS MAC priority of the fifo: EF, AF, BE, ...
@@ -127,32 +242,12 @@ class DvbFifo: public mgl_fifo
 	                     ///< spot and allocation would depend of it as it depends
 	                     ///< of spot
 	cr_type_t cr_type;   ///< the associated Capacity Request
-	vol_pkt_t filled;    ///< the number of cells or packets that filled the fifo
-	                     ///< since previous check
-	vol_pkt_t capacity;  ///< the allocated number of cells for the current
-	                     ///< superframe
-	vol_pkt_t size;      ///< the maximum size for that FIFO
-	vol_pkt_t threshold; ///< the computed threshold that should block upper
-	                     ///< transmission
+	vol_pkt_t new_size_pkt;  ///< the number of cells or packets that filled the fifo
+	                         ///< since previous check
+	vol_pkt_t new_length_kb; ///< the size of data that filled the fifo
+	                         ///< since previous check
+	vol_pkt_t max_size_pkt;  ///< the maximum size for that FIFO
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
-
-	// RED like statistics collect base on occupation rate
-	// it is computed like this:
-	//    avg_queue_size = (1 - alpha) * avg_queue_size
-	//                      +   (alpha) * current_size
-	// with alpha being usual CISCO RED parameter
-	// alpha = 2^{-x} we have
-	// If we were n times idle between two interval of time we precomute n times
-	//    avg_queue_size -= avg_queue_size >> x
-	// then 1 times
-	//    avg_queue_size += current_size >> x
-	//
-	vol_pkt_t avg_queue_size; // NB: avg_queue_size is computed but not used yet
-	vol_pkt_t current_size;
-	// TODO check clock_t
-	clock_t previous_tick;
-	clock_t this_tick;
-	clock_t notice_tick;
 };
 
 #endif

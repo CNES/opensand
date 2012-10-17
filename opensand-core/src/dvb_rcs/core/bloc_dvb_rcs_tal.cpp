@@ -124,6 +124,7 @@ BlocDVBRcsTal::~BlocDVBRcsTal()
 	}
 
 	deletePackets();
+	// delete fifos
 	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
@@ -337,7 +338,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 			    it != this->dvb_fifos.end(); ++it)
 			{
 				int nbFreeFrames = (*it).second->getMaxSize() -
-				                   (*it).second->getCount();
+				                   (*it).second->getCurrentSize();
 				int nbFreeBits = nbFreeFrames * this->out_encap_packet_length * 8; // bits
 				float macRate = nbFreeBits / this->frame_duration ; // bits/ms or kbits/s
 				oss << "File=\"" << (int) macRate << "\" ";
@@ -1784,16 +1785,9 @@ void BlocDVBRcsTal::resetStatsCxt()
  */
 void BlocDVBRcsTal::deletePackets()
 {
-	int size;
-	MacFifoElement *elem;
 	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		size = (*it).second->getCount();
-		for(int i = 0; i < size; i++)
-		{
-			elem = (MacFifoElement *) (*it).second->remove();
-			delete elem;
-		}
+		(*it).second->flush();
 	}
 }

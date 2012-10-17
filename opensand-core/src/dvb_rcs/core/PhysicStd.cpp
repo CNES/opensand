@@ -80,7 +80,7 @@ int PhysicStd::onRcvEncapPacket(NetPacket *packet,
 
 	// append the new satellite cell in the ST FIFO of the appropriate
 	// satellite spot
-	if(fifo->append(elem) < 0)
+	if(!fifo->push(elem))
 	{
 		UTI_ERROR("FIFO is full: drop packet\n");
 		goto release_elem;
@@ -125,7 +125,7 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 	}
 
 	// fill the delayed queue
-	if(data_fifo->append(elem) < 0)
+	if(!data_fifo->push(elem))
 	{
 		UTI_ERROR("fifo full, drop the DVB frame\n");
 		goto release_elem;

@@ -31,29 +31,22 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include <unistd.h>
 
 #include "DvbFifo.h"
 
 #define DBG_PACKAGE PKG_DVB_RCS
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
-#define RED_RIGHT_SHIFT (7)
-#define TICKS_INTERVAL  (1*sysconf(_SC_CLK_TCK))
-#define NOTICE_INTERVAL (60*sysconf(_SC_CLK_TCK))
-
+#include <assert.h>
+#include <unistd.h>
 
 
 /**
  * Constructor
  */
-DvbFifo::DvbFifo(): mgl_fifo(),
-	filled(0),
-	avg_queue_size(0),
-	current_size(0),
-	previous_tick(0),
-	this_tick(0),
-	notice_tick(0)
+DvbFifo::DvbFifo():
+	queue(),
+	new_size_pkt(0)
 {
 	this->stat_context.current_pkt_nbr = 0;
 	this->stat_context.in_pkt_nbr = 0;
@@ -69,8 +62,9 @@ DvbFifo::DvbFifo(): mgl_fifo(),
 DvbFifo::DvbFifo(unsigned int id, string mac_prio_name,
                  string cr_type_name, unsigned int pvc,
                  vol_pkt_t size):
-	id(id),
-	pvc(pvc)
+	queue(),
+	pvc(pvc),
+	new_size_pkt(0)
 {
 	if(mac_prio_name == "NM")
 	{
@@ -116,36 +110,8 @@ DvbFifo::DvbFifo(unsigned int id, string mac_prio_name,
 		          cr_type_name.c_str());
 	}
 
-	this->init(size);
+	this->init(id, size);
 }
-
-/* TODO remove
-DvbFifo::DvbFifo(unsigned int id, mac_prio_t mac_priority):
-	id(id),
-	mac_priority(mac_priority)
-{
-}
-*/
-
-/**
- * Constructor
- * @param id           fifo identifier
- * @param mac_priority the MAC priority of fifo
- * @param pvc          the PVC of fifo
- */
-/*
-DvbFifo::DvbFifo(unsigned int id, mac_prio_t mac_priority, unsigned int pvc):
-	id(id),
-	mac_priority(mac_priority),
-	pvc(pvc),
-	filled(0),
-	avg_queue_size(0),
-	current_size(0),
-	previous_tick(0),
-	this_tick(0),
-	notice_tick(0)
-{
-}*/
 
 /**
  * Destructor
@@ -156,247 +122,180 @@ DvbFifo::~DvbFifo()
 
 //TODO remove ID and use mac_prio only ?
 
-/**
- * Return the mac_priority of the fifo
- * @return the mac_priority of the fifo
- */
-mac_prio_t DvbFifo::getMacPriority()
+mac_prio_t DvbFifo::getMacPriority() const
 {
 	return this->mac_priority;
 }
 
-/**
- * Set the mac_priority of the fifo
- * @param mac_priority is the mac_priority of the fifo
- */
-/*
-void DvbFifo::setMacPriority(mac_prio_t mac_priority)
+unsigned int DvbFifo::getPvc() const
 {
-	this->mac_priority = mac_priority;
-}
-*/
-
-/**
- * Set the PVC associated to the fifo
- * @param pvc is the PVC of the fifo
- */
-/*
-void DvbFifo::setPvc(unsigned int pvc)
-{
-	this->pvc = pvc;
-}
-*/
-
-/**
- * Get the PVC associated to the fifo
- * return the PVC of the fifo
- */
-unsigned int DvbFifo::getPvc()
-{
-	return (this->pvc);
+	return this->pvc;
 }
 
-
-/**
- * Set the CR type associated to the fifo
- * @param cr_type is the CR type associated to the fifo
- */
-/*
-void DvbFifo::setCrType(cr_type_t cr_type)
+cr_type_t DvbFifo::getCrType() const
 {
-	this->cr_type = cr_type;
-}
-*/
-
-/**
- * Get the CR type associated to the fifo
- * return the CR type associated to the fifo (int)
- */
-cr_type_t DvbFifo::getCrType()
-{
-	return (this->cr_type);
+	return this->cr_type;
 }
 
-/**
- * get the id of the fifo
- * @return the id of the fifo
- */
-unsigned int DvbFifo::getId()
+unsigned int DvbFifo::getId() const
 {
-	return (this->id);
+	return this->id;
 }
 
-/**
- * set the id of the fifo
- * @param id is the id of the fifo
- */
-void DvbFifo::setId(unsigned int id)
+vol_pkt_t DvbFifo::getNewSize() const
 {
-	this->id = id;
+	return this->new_size_pkt;
 }
 
-/**
- * Set size then call mgl_fifo::init
- *
- * @param i_size is the fifo maximum size
- * @return 0 on success
- */
-int DvbFifo::init(vol_pkt_t i_size)
+vol_kb_t DvbFifo::getNewDataLength() const
 {
-	this->size = i_size;
-	this->avg_queue_size = 0;
-	this->current_size = 0;
-	this->previous_tick = times(NULL);
-	this->this_tick = times(NULL);
-	this->notice_tick = times(NULL);
-
-	return mgl_fifo::init(i_size);
+	return this->new_length_kb;
 }
 
-/**
- * Add an element at the end of the list
- * -- Increments filled then call  mgl_fifo::append
- *
- * @param ptr_data is the pointer on data buffer
- * @return -1 if insertion failed because fifo is full, or return
- *         fifo current size otherwise
- */
-long DvbFifo::append(void *ptr_data)
-{
-	int ret;
-	// insert buffer
-	ret = mgl_fifo::append(ptr_data);
-	if(ret != -1)
-	{
-		// update counter
-		this->filled++;
-		this->current_size++;
-		this->stat_context.current_pkt_nbr = this->current_size;
-		this->stat_context.in_pkt_nbr++;
-	}
-	return ret;
-}
-
-
-/**
- * Remove an element at the head of the list
- * -- capacity then call mgl_fifo::remove
- *
- * @return NULL pointer if extraction failed because fifo is empty
- *         pointer on extracted packet otherwise
- */
-void *DvbFifo::remove()
-{
-
-	//update counters
-	this->capacity--;
-	this->current_size--;
-	this->stat_context.current_pkt_nbr = this->current_size;
-	this->stat_context.out_pkt_nbr++;
-
-	// extract the pk
-	return (mgl_fifo::remove());
-}
-
-/**
- * Set the capacity to emit for this superframe
- * @param capacity is the MAC capacity associated to the fifo - if any
- */
-/*void DvbFifo::setCapacity(long capacity)
-{
-	this->capacity = capacity;
-}*/
-
-/**
- * Get the capacity to emit for this superframe
- * @return the MAC capacity associated to the fifo - if any
- */
-vol_pkt_t DvbFifo::getCapacity()
-{
-	return this->capacity;
-}
-
-/**
- * Get the number of cells that fed the queue since last call, reset filled
- * @return the number of cells that fed the queue since last call
- */
-vol_pkt_t DvbFifo::getFilled()
-{
-	long ret;
-	ret = this->filled;
-	this->filled = 0;
-	return ret;
-}
-
-
-/**
- * Get the number of cells that fed the queue since last filled exlicity reset
- *  BUT DO NOT RESET filled
- * @return the number of cells that fed the queue since last call
- */
-vol_pkt_t DvbFifo::getFilledWithNoReset()
-{
-	return this->filled;
-}
-
-
-/**
- * Reset filled, only if the FIFO  has the requested CR type
- * @param cr_type is the CR type for which reset must be done
- */
-void DvbFifo::resetFilled(cr_type_t cr_type)
+void DvbFifo::resetNew(cr_type_t cr_type)
 {
 	if(this->cr_type == cr_type)
 	{
-		this->filled = 0;
+		this->new_size_pkt = 0;
 	}
 }
 
-/**
- * Informs if we are _soft_ allowed or not to fill the queue
- * @return boolean indicateing if threshold is exceeding or not
- */
-bool DvbFifo::allowed()
+vol_pkt_t DvbFifo::getCurrentSize() const
 {
-	// TODO reuse OpenSandCore types in Margouilla
-	return ((vol_pkt_t)mgl_fifo::getCount() < this->threshold);
+	return this->queue.size();
 }
 
-/**
- * @return the queue maximum size
- */
-vol_pkt_t DvbFifo::getMaxSize()
+vol_pkt_t DvbFifo::getMaxSize() const
 {
-	return this->size;
+	return this->max_size_pkt;
 }
 
-/**
- * Flush the dvb fifo and reset counters
- */
+clock_t DvbFifo::getTickOut() const
+{
+	if(queue.size() > 0)
+	{
+		return this->queue.front()->getTickOut();
+	}
+	return 0;
+}
+
+void DvbFifo::init(unsigned int id, vol_pkt_t max_size_pkt)
+{
+	this->id = id;
+	this->max_size_pkt = max_size_pkt;
+	this->resetStats();
+}
+
+bool DvbFifo::push(MacFifoElement *elem)
+{
+	// insert in top of fifo
+	if(this->queue.size() < this->max_size_pkt)
+	{
+		this->queue.push_back(elem);
+		// update counter
+		this->new_size_pkt++;
+		this->stat_context.current_pkt_nbr = this->queue.size();
+		this->stat_context.in_pkt_nbr++;
+		if(elem->getType() == 1)
+		{
+			// TODO accessor in MacFifoElem directly
+			vol_kb_t length = elem->getPacket()->getTotalLength();
+			this->new_length_kb += length;
+			this->stat_context.current_length_kb += length;
+			this->stat_context.in_length_kb += length;
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool DvbFifo::pushFront(MacFifoElement *elem)
+{
+	assert(elem->getType() == 1);
+
+	// insert in head of fifo
+	if(this->queue.size() < this->max_size_pkt)
+	{
+		vol_kb_t length = elem->getPacket()->getTotalLength();
+
+		this->queue.insert(this->queue.begin(), elem);
+		// update counter but not new ones as it is a fragment of an old element
+		this->stat_context.current_pkt_nbr = this->queue.size();
+		this->stat_context.current_length_kb += length;
+		// remove the remainng part of element from out counter
+		this->stat_context.out_length_kb -= length;
+		return true;
+	}
+
+	return false;
+
+}
+
+MacFifoElement *DvbFifo::pop()
+{
+	MacFifoElement *elem;
+	
+	if(this->queue.size() <= 0)
+	{
+		return NULL;
+	}
+
+	elem = this->queue.front();
+
+	// remove the packet
+	this->queue.erase(this->queue.begin());
+
+	// update counters
+	this->stat_context.current_pkt_nbr = this->queue.size();
+	this->stat_context.out_pkt_nbr++;
+	if(elem->getType() == 1)
+	{
+		// TODO accessor in MacFifoElem directly
+		vol_kb_t length = elem->getPacket()->getTotalLength();
+		this->stat_context.current_length_kb -= length;
+		this->stat_context.out_length_kb += length;
+	}
+
+	return elem;
+}
+
 void DvbFifo::flush()
 {
-	long i;
-	long i_max = this->current_size;
-
-	for(i = 0; i < i_max; i++)
+	for(std::vector<MacFifoElement *>::iterator it = this->queue.begin();
+	    it != this->queue.end(); ++it)
 	{
-		remove();
+		delete (*it)->getPacket();
+		delete (*it);
 	}
-	this->filled = 0;
+	this->queue.clear();
+	this->new_size_pkt = 0;
+	this->new_length_kb = 0;
+	this->resetStats();
 }
 
 
-/**
- * Returns statistics of the fifo in a context
- * @ return statistics context
- */
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
+	stat_info.current_length_kb = this->stat_context.current_length_kb;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
 	stat_info.out_pkt_nbr = this->stat_context.out_pkt_nbr;
+	stat_info.in_length_kb = this->stat_context.in_length_kb;
+	stat_info.out_length_kb = this->stat_context.out_length_kb;
 
 	// reset counters
-	this->stat_context.out_pkt_nbr = 0;
-	this->stat_context.in_pkt_nbr = 0;
+	this->resetStats();
 }
+
+void DvbFifo::resetStats()
+{
+	this->stat_context.current_pkt_nbr = 0;
+	this->stat_context.current_length_kb = 0;
+	this->stat_context.in_pkt_nbr = 0;
+	this->stat_context.out_pkt_nbr = 0;
+	this->stat_context.in_length_kb = 0;
+	this->stat_context.out_length_kb = 0;
+}
+
+

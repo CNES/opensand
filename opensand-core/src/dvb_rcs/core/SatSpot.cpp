@@ -63,32 +63,24 @@ SatSpot::~SatSpot()
 	this->complete_dvb_frames.clear();
 
 	// clear logon fifo
-	while((elem = (MacFifoElement *) this->m_logonFifo.remove()) != NULL)
+	while((elem = this->m_logonFifo.pop()) != NULL)
 	{
 		g_memory_pool_dvb_rcs.release((char *)elem->getData());
 		delete elem;
 	}
 
 	// clear control fifo
-	while((elem = (MacFifoElement *) this->m_ctrlFifo.remove()) != NULL)
+	while((elem = this->m_ctrlFifo.pop()) != NULL)
 	{
 		g_memory_pool_dvb_rcs.release((char *)elem->getData());
 		delete elem;
 	}
 
 	// clear data OUT ST fifo
-	while((elem = (MacFifoElement *) this->m_dataOutStFifo.remove()) != NULL)
-	{
-		delete ((NetPacket *) elem->getPacket());
-		delete elem;
-	}
+	this->m_dataOutStFifo.flush();
 
 	// clear data OUT GW fifo
-	while((elem = (MacFifoElement *) this->m_dataOutGwFifo.remove()) != NULL)
-	{
-		delete ((NetPacket *) elem->getPacket());
-		delete elem;
-	}
+	this->m_dataOutGwFifo.flush();
 }
 
 
@@ -99,15 +91,11 @@ int SatSpot::init(long spotId, long logId, long ctrlId,
 
 	// initialize MAC FIFOs
 #define FIFO_SIZE 5000
-	m_logonFifo.init(FIFO_SIZE);
-	m_logonFifo.setId(logId);
-	m_ctrlFifo.init(FIFO_SIZE);
-	m_ctrlFifo.setId(ctrlId);
+	m_logonFifo.init(logId, FIFO_SIZE);
+	m_ctrlFifo.init(ctrlId, FIFO_SIZE);
 	m_dataInId = dataInId;
-	m_dataOutStFifo.init(FIFO_SIZE);
-	m_dataOutStFifo.setId(dataOutStId);
-	m_dataOutGwFifo.init(FIFO_SIZE);
-	m_dataOutGwFifo.setId(dataOutGwId);
+	m_dataOutStFifo.init(dataOutStId, FIFO_SIZE);
+	m_dataOutGwFifo.init(dataOutGwId, FIFO_SIZE);
 
 	return 0;
 }

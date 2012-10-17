@@ -1125,7 +1125,7 @@ int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 	carrier_id = sigFifo->getId();
 
 	// Get the maximum frames to send
-	max_cells = sigFifo->getCount();
+	max_cells = sigFifo->getCurrentSize();
 
 	UTI_DEBUG_L3("send at most %ld signalling frames on satellite spot\n",
 	             max_cells);
@@ -1141,19 +1141,19 @@ int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 		long frame_len;
 
 		// We must sent till we encounter a postdated frame
-		elem = (MacFifoElement *)sigFifo->get(0);
-		elem->addTrace(HERE());
-		if(elem->getTickOut() > time_of_sig)
+		if(sigFifo->getTickOut() > time_of_sig)
 		{
 			UTI_DEBUG_L3("MAC FIFO element %d and following are not ready, "
 			             "stop here\n", i + 1);
 			break;
 		}
+		elem = sigFifo->pop();
+		assert(elem != NULL);
+		elem->addTrace(HERE());
 
 		if(elem->getType() != 0)
 		{
 			UTI_ERROR("MAC FIFO element type not corresponds to the signalling type\n");
-			sigFifo->remove();
 			goto release_fifo_elem;
 		}
 
@@ -1168,7 +1168,6 @@ int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 		}
 
 		// We succeeded in building and sending the frame we can release ressources
-		sigFifo->remove();
 		delete elem;
 
 		UTI_DEBUG_L3("sig msg sent (i = %d), fifo_id = %d, "
@@ -1286,7 +1285,7 @@ mgl_status BlocDVBRcsSat::forwardDVBFrame(DvbFifo *sigFifo, char *ip_buf, int i_
 	}
 
 	// Fill the delayed queue
-	if(sigFifo->append(elem) < 0)
+	if(!sigFifo->push(elem))
 	{
 		UTI_ERROR("signalling FIFO full, drop signalling frame\n");
 		delete elem;
@@ -1315,9 +1314,12 @@ int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 {
 	MacFifoElement *elem;
 
-	while((elem = (MacFifoElement *) fifo->get()) != NULL &&
-	      elem->getTickOut() <= current_time)
+	while(fifo->getTickOut() <= current_time &&
+	      fifo->getCurrentSize() > 0)
 	{
+		elem = fifo->pop();
+		assert(elem != NULL);
+
 		// check that we got a DVB frame in the SAT cell
 		if(elem->getType() != 0)
 		{
@@ -1334,7 +1336,6 @@ int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 
 		UTI_DEBUG("burst sent with a size of %d\n", elem->getDataLength());
 
-		fifo->remove();
 		delete elem;
 	}
 
@@ -1343,7 +1344,6 @@ int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 release_frame:
 	g_memory_pool_dvb_rcs.release((char *)elem->getData());
 error:
-	fifo->remove();
 	delete elem;
 	return -1;
 }

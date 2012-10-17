@@ -268,7 +268,7 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
-			(*it).second->resetFilled(cr_rbdc);
+			(*it).second->resetNew(cr_rbdc);
 		}
 
 		cr_number--;
@@ -437,7 +437,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 	{
 		if((*it).second->getCrType() == cr_type)
 		{
-			nb_pkt_in_fifo += (*it).second->getCount();
+			nb_pkt_in_fifo += (*it).second->getCurrentSize();
 		}
 	}
 
@@ -455,7 +455,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 	{
 		if((*it).second->getCrType() == cr_type)
 		{
-			nb_pkt_input += (*it).second->getFilledWithNoReset();
+			nb_pkt_input += (*it).second->getNewSize();
 		}
 	}
 
