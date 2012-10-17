@@ -70,8 +70,7 @@ class Controller(threading.Thread):
             self._event_manager_response = self._model.get_event_manager_response()
             self._hosts = []
             self._ws = []
-            self._env_plane = EnvironmentPlaneController(model.get_env_plane(),
-                                                         manager_log)
+            self._env_plane = EnvironmentPlaneController()
             self._server = None
             self._command = None
 
@@ -99,106 +98,13 @@ class Controller(threading.Thread):
             # create the service browser here because we need hosts as argument
             # but it will be started with gtk main loop
             OpenSandServiceListener(self._model, self._hosts, self._ws,
-                                   service_type, self._log)
+                                    self._env_plane, service_type, self._log)
 
             if interactive:
                 self._command = threading.Thread(None, self.start_server, None, (), {})
         except Exception:
             self.close()
             raise
-
-    def update_com_parameters(self, addr):
-        """ modify the output address in com_parameters.conf file """
-        with open(COM_PARAMETERS) as com_param:
-            lines = com_param.readlines()
-            new_lines = []
-            edit = False
-            for line in lines:
-                if edit and addr is not None:
-                    if line == '}\n':
-                        edit = False
-                    elif line != '{\n':
-                        elt = line.split(',')
-                        line = elt[0] + ", " + addr + "," + elt[2]
-                if line == 'Controllers_ports\n':
-                    edit = True
-                new_lines.append(line)
-
-            return new_lines
-
-    def send_com_parameters(self, host, content):
-        """ send the com_parametes.conf file on hosts """
-        sock = None
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            tmp_file.writelines(content)
-            tmp_file.flush()
-            try:
-                sock = host.connect_command('DEPLOY')
-                if sock is None:
-                    return
-                mode = stat.S_IRUSR | stat.S_IWUSR  \
-                       | stat.S_IRGRP | stat.S_IROTH
-                host.send_file(sock, tmp_file.name, COM_PARAMETERS, mode)
-                # send 'STOP' tag
-                sock.send('STOP\n')
-                self._log.debug("%s: send 'STOP'" % host.get_name())
-                host.receive_ok(sock)
-            except socket.error, (errno, strerror):
-                self._log.error("Cannot send conf_parameters: %s" % strerror)
-            except CommandException, error:
-                self._log.error("Cannot send conf_parameters: %s" % error)
-            finally:
-                if sock is not None:
-                    sock.close()
-
-
-    def get_env_plane_output(self):
-        """ get all 'up' interfaces and check if their address mask
-            corresponds to OpenSAND hosts """
-        # create the socket object to get the interface list
-        sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # prepare the struct variable
-        names = array.array('B', '\0' * 4096)
-
-        # get the list from ioctl
-        bytelen = struct.unpack('iL',
-                                fcntl.ioctl(sck.fileno(),
-                                            0x8912, # SIOCGIFCONF
-                                            struct.pack('iL', 4096,
-                                            names.buffer_info()[0])))[0]
-
-        # convert it to string
-        namestr = names.tostring()
-
-        # return the interfaces as array
-        ifaces = [namestr[i:i+32].split('\0', 1)[0]
-                  for i in range(0, bytelen, 32)]
-
-        # now get ip address of each interface and compare to hosts address
-        for ifname in ifaces:
-            # skip localhost
-            if ifname == 'lo':
-                continue
-
-            addr = socket.inet_ntoa(fcntl.ioctl(sck.fileno(),
-                                                0x8915,  # SIOCGIFADDR
-                                                struct.pack('256s', ifname[:15])
-                                                )[20:24])
-            # check for a host with the same /24 mask
-            for host in self._model.get_hosts_list():
-                haddr = host.get_ip_address()
-                haddr = haddr.rsplit(".", 1)[0]
-                if addr.startswith(haddr):
-                    return addr
-            # check for a host with the same /16 mask
-            for host in self._model.get_hosts_list():
-                haddr = host.get_ip_address()
-                haddr = haddr.rsplit(".", 2)[0]
-                if addr.startswith(haddr):
-                    return addr
-
-        return None
 
     def run(self):
         """ main loop that manages the events on OpenSAND Manager """
@@ -236,7 +142,7 @@ class Controller(threading.Thread):
 
         self._log.debug("Controller: close environment plane")
         if self._env_plane is not None:
-            self._env_plane.close()
+            self._env_plane.cleanup()
         self._log.debug("Controller: environment plane closed")
 
         self._log.debug("Controller: closed")
@@ -272,12 +178,7 @@ class Controller(threading.Thread):
     def start_platform(self):
         """ start OpenSAND platform """
         # check that we have at least env_plane, sat, gw and one st
-        if not self._model.main_hosts_found():
-            self._log.info("not enough component to start OpenSAND: " \
-                           "you will need at least a satellite, a gateway, " \
-                           "a ST and the environment plane")
-            self._event_manager_response.set('resp_start_platform', 'fail')
-            return False
+
 
         # check if some components are still running (should not happen)
         if self._model.is_running():
@@ -286,13 +187,6 @@ class Controller(threading.Thread):
             return False
 
         self._log.info("Start OpenSAND platform")
-
-        # get the environment plane controllers address
-        # TODO rustine... à supprimer dès que possible !
-        addr = self.get_env_plane_output()
-        self._log.debug("find address %s for environment plane controllers" %
-                        addr)
-        content = self.update_com_parameters(addr)
 
         # create the base directory for configuration files
         # the configuration is shared between all runs in a scenario
@@ -303,10 +197,7 @@ class Controller(threading.Thread):
                 component = name.lower()
                 if component.startswith('st'):
                     component = 'st'
-                # modify the com_parameters for environment agent
-                # TODO suite de la rustine... à supprimer également dès que possible !
-                self.send_com_parameters(host, content)
-
+                
                 self._log.info("Configuring " + host.get_name().upper())
                 # create the host directory
                 host_path = os.path.join(self._model.get_scenario(),
@@ -358,13 +249,6 @@ class Controller(threading.Thread):
             return False
 
         try:
-            self._log.info("Starting Environment Plane")
-            # set the ProbeController options
-            config = self._model.get_conf()
-            frame_duration = config.get_frame_duration()
-            self._model.get_env_plane().set_options('probe',
-                                                    '-f ' + frame_duration)
-            self._env_plane.start()
             for host in self._hosts:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
@@ -389,7 +273,6 @@ class Controller(threading.Thread):
 
         try:
             self._log.info("Stopping Environment Plane")
-            self._env_plane.stop()
             for host in self._hosts:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
@@ -525,5 +408,5 @@ if __name__ == '__main__':
     except:
         LOGGER.error("test failed")
         sys.exit(1)
-        
+
     sys.exit(0)

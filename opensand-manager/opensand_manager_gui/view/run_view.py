@@ -129,44 +129,23 @@ class RunView(WindowView):
                 self.draw_st(host, 170 + nbr * 140, TOP_2)
                 nbr += 1
 
-        env_plane_ctrl = self._model.get_env_plane()
-        if env_plane_ctrl != None:
-            self._info_x = 170 + (nbr + 1) * 140
-            self.draw_env_plane_state(env_plane_ctrl.get_states())
+        self._info_x = 170 + (nbr + 1) * 140
+        self.draw_env_plane_state(self._model.is_collector_known())
 
         return False
 
-    def draw_env_plane_state(self, state_list):
+    def draw_env_plane_state(self, collector_known):
         """ draw environment plane """
         image = gtk.Image()
-        png = os.path.join(IMG_PATH, 'monitoring.png')
-
-        xx = self._info_x + 17
-        yy = TOP_1 + 75
-        glob_state = False
-        for tab in state_list:
-            self._stylepango.set_text(tab[0])
-            self.draw_layout(xx, yy)
-            image = gtk.Image()
-            if tab[1] == True:
-                image.set_from_file(os.path.join(IMG_PATH, 'green.png'))
-                glob_state = True
-            elif tab[1] == False:
-                image.set_from_file(os.path.join(IMG_PATH, 'red.png'))
-                glob_state = True
-            else:
-                image.set_from_file(os.path.join(IMG_PATH, 'orange.png'))
-
-            self.draw_pixbuf(0, 0, self._info_x - 4 , yy + 1,
-                             LED_XY, LED_XY, image)
-            yy = yy + 20
-
-        if not glob_state:
-            png = os.path.join(IMG_PATH, 'monitoring_grey.png')
-
+        
+        name = "monitoring.png" if collector_known else "monitoring_grey.png"
+        png = os.path.join(IMG_PATH, name)
         image.set_from_file(png)
 
         self.draw_pixbuf(0, 0, self._info_x, TOP_1, COMPO_X, COMPO_Y, image)
+
+        self._stylepango.set_text('Collector')
+        self.draw_layout(self._info_x + 5, TOP_1 + COMPO_Y)
 
     def draw_st(self, host, x, y):
         """ draw satellite terminal """

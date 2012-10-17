@@ -38,7 +38,6 @@ import ConfigParser
 import os
 import shutil
 
-from opensand_manager_core.model.environment_plane import EnvironmentPlaneModel
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
 from opensand_manager_core.model.global_config import GlobalConfig
@@ -60,7 +59,6 @@ class Model:
         self._inifile = None
         self._log = manager_log
 
-        self._env_plane = EnvironmentPlaneModel(self._log)
         # start event managers
         self._event_manager = EventManager("manager")
         self._event_manager_response = EventManager("response")
@@ -77,6 +75,7 @@ class Model:
 
         self._hosts = []
         self._ws = []
+        self._collector_known = False
 
         self._config = None
         self._topology = None
@@ -405,9 +404,6 @@ class Model:
             if host.get_state() is not None:
                 ret = ret or host.get_state()
 
-        if self._env_plane.is_running() is not None:
-            ret = ret or self._env_plane.is_running()
-
         if ret:
             self._modified = True
         return ret
@@ -420,10 +416,6 @@ class Model:
     def get_dev_mode(self):
         """get the dev mode """
         return self._is_dev_mode
-
-    def get_env_plane(self):
-        """ get the environment plane model """
-        return self._env_plane
 
     def set_scenario(self, val):
         """ set the scenario id """
@@ -457,11 +449,11 @@ class Model:
 
     def main_hosts_found(self):
         """ check if OpenSAND main hosts were found in the platform """
-        # check that we have at least env_plane, sat, gw and one st
+        # check that we have at least sat, gw and one st
         sat = False
         gw = False
         st = False
-        env_plane = False
+
         for host in self._hosts:
             if host.get_component() == 'sat' and host.get_state() != None:
                 sat = True
@@ -470,10 +462,19 @@ class Model:
             if host.get_component() == 'st' and host.get_state() != None:
                 st = True
 
-        if self._env_plane.get_states() != None:
-            env_plane = True
-
-        return env_plane and sat and gw and st
+        return sat and gw and st
+    
+    def is_collector_known(self):
+        """ indicates if the environment plane collector service has been
+        found. """
+        
+        return self._collector_known
+    
+    def set_collector_known(self, collector_known):
+        """ called by the service listener when the collector service is found
+        or lost. """
+        
+        self._collector_known = collector_known
 
     def clean_default(self):
         """ clean the $HOME/.opensand directory from default files """

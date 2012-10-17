@@ -47,12 +47,13 @@ from opensand_manager_core.my_exceptions import ModelException
 
 class OpenSandServiceListener():
     """ listen for OpenSAND service with avahi """
-    def __init__(self, model, hosts, ws, service_type, manager_log):
+    def __init__(self, model, hosts, ws, env_plane, service_type, manager_log):
         self._server = None
         self._log = manager_log
         self._model = model
         self._hosts = hosts
         self._ws = ws
+        self._env_plane = env_plane
 
         loop = DBusGMainLoop()
         # enable dbus multithreading
@@ -80,6 +81,7 @@ class OpenSandServiceListener():
         """ get the parameter of service once it is resolved """
         name = args[2]
         address = args[7]
+        port = args[8]
         self._log.debug('service resolved')
         self._log.debug('name: ' + args[2])
         self._log.debug('address: ' + args[7])
@@ -88,6 +90,8 @@ class OpenSandServiceListener():
                        (name, address))
 
         if name == "collector":
+            self._env_plane.register_on_collector(address, port)
+            self._model.set_collector_known(True)
             return
 
         if address.count(':') > 0:
@@ -188,6 +192,8 @@ class OpenSandServiceListener():
         self._log.info("the component %s was disconnected" % name)
         
         if name == "collector":
+            self._env_plane.unregister_on_collector()
+            self._model.set_collector_known(False)
             return
         
         self._model.del_host(name)

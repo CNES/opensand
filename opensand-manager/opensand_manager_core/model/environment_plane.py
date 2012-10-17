@@ -1,129 +1,128 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-#
-#
-# OpenSAND is an emulation testbed aiming to represent in a cost effective way a
-# satellite telecommunication system for research and engineering activities.
-#
-#
-# Copyright © 2011 TAS
-#
-#
-# This file is part of the OpenSAND testbed.
-#
-#
-# OpenSAND is free software : you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see http://www.gnu.org/licenses/.
-#
-#
-
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# -*- coding: utf8 -*-
 
 """
-environment_plane.py - Model for OpenSAND environment plane controllers
+Environment Plane model.
 """
 
-import threading
+import struct
 
-class EnvironmentPlaneModel:
-    """ Model for environement plane controllers """
-    def __init__(self, manager_log):
-        #  key       process name        state options
-        self._env_plane_controllers = {
-           'error' : ['ErrorController', None, "-d"], #"-d -t0"],
-           'probe' : ['ProbeController', None, "-f"], #"-f -t0"],
-           'event' : ['EventController', None, "-d"]  #"-d -t0"]
-        }
 
-        self._log = manager_log
+class Program(object):
+    """
+    Represents a running program.
+    """
 
-        self._lock = threading.Lock()
+    def __init__(self, controller, ident, name, probes, events):
+        self.ident = ident
+        self.name = name
+        self._probes = []
+        for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
+            probe = Probe(controller, self, i, p_name, unit, storage_type,
+                enabled, disp)
+            self._probes.append(probe)
+        self._events = events
+    
+    def get_probes(self):
+        """
+        Returns a list of the probe objects associated with this program
+        """
+        
+        return self._probes
+    
+    def get_probe(self, ident):
+        """
+        Returns the probe identified by ident
+        """
+        
+        return self._probes[ident]
+    
+    def get_event(self, ident):
+        """
+        Returns the event identified by ident as a (name, level) tuple
+        """
+        
+        return self._events[ident]
+    
+    def __str__(self):
+        return self.name
+    
+    def __repr__(self):
+        return "<Program: %s [%d]>" % (self.name, self.ident)
 
-    def _set_(self, key, index, value):
-        """ set the value at desired index for controller specified by key """
-        self._lock.acquire()
-        self._env_plane_controllers[key][index] = value
-        self._lock.release()
 
-    def _get_(self, key, index):
-        """get the value at desired index for controller specified by key """
-        self._lock.acquire()
-        val = self._env_plane_controllers[key][index]
-        self._lock.release()
-        return val
+class Probe(object):
+    """
+    Represents a probe
+    """
+    
+    def __init__(self, controller, program, ident, name, unit, storage_type,
+        enabled, displayed):
+        self._controller = controller
+        self.program = program
+        self.ident = ident
+        self.name = name
+        self.unit = unit
+        self._storage_type = storage_type
+        self._enabled = enabled
+        self._displayed = displayed
+    
+    def _read_value(self, data, pos):
+        """
+        Read a probe value from the specified data string at the specified
+        position. Returns the new position.
+        """
 
-    def get_process(self, key):
-        """ get a process name """
-        return self._get_(key, 0)
+        if self._storage_type == 0:
+            value = struct.unpack("!i", data[pos:pos + 4])[0]
+            return value, pos + 4
 
-    def get_state(self, key):
-        """ get a process state """
-        return self._get_(key, 1)
+        if self._storage_type == 1:
+            value = struct.unpack("!f", data[pos:pos + 4])[0]
+            return value, pos + 4
 
-    def set_started(self, started_list):
-        """ set specified states to True """
-        val = False
-        if started_list == None:
-            val = None
+        if self._storage_type == 2:
+            value = struct.unpack("!d", data[pos:pos + 8])[0]
+            return value, pos + 8
 
-        for key in self._env_plane_controllers.keys():
-            self._set_(key, 1, val)
-        if started_list is not None:
-            for name in started_list:
-                find = False
-                for key in self._env_plane_controllers.keys():
-                    if name == self.get_process(key):
-                        self._set_(key, 1, True)
-                        find = True
-                        break
-                if not find:
-                    self._log.warning("Environment Plane: component '" +
-                                      key + "' does not belong to model")
+        raise Exception("Unknown storage type")
+    
+    @property
+    def enabled(self):
+        return self._enabled
+    
+    @enabled.setter
+    def enabled(self, value):
+        value = bool(value)
+        
+        if value == self._enabled:
+            return
+        
+        if not value:
+            self._displayed = False
+        
+        self._enabled = value
+        self._controller._update_probe_status(self)
 
-    def set_state(self, key, state):
-        """ set a process state """
-        self._set_(key, 1, state)
+    @property
+    def displayed(self):
+        return self._displayed
+    
+    @displayed.setter
+    def displayed(self, value):
+        value = bool(value)
+        
+        if value == self._displayed:
+            return
+        
+        if value and not self._enabled:
+            raise ValueError("Cannot display a disabled probe")
+        
+        self._displayed = value
+        self._controller._update_probe_status(self) 
+    
+    def __str__(self):
+        return self.name
+    
+    def __repr__(self):
+        return "<Probe: %s [%d]>" % (self.name, self.ident)
 
-    def get_options(self, key):
-        """ get the process options """
-        return self._get_(key, 2)
-
-    def set_options(self, key, value):
-        """ set the process options values """
-        self._set_(key, 2, value)
-
-    def get_list(self):
-        """ get the process list """
-        self._lock.acquire()
-        process_list = self._env_plane_controllers.keys()
-        self._lock.release()
-        return process_list
-
-    def get_states(self):
-        """ get all the process states """
-        ret = []
-        for item in self._env_plane_controllers :
-            ret.append([item, self.get_state(item)])
-        return ret
-
-    def is_running(self):
-        """ check if at least one process is running """
-        for item in self._env_plane_controllers:
-            if self.get_state(item):
-                return True
-        return False
-
-    def get_process_name(self, key):
-        """ return the process name """
-        return self._get_(key, 0)
