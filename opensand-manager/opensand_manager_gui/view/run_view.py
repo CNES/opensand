@@ -38,6 +38,7 @@ import gtk
 import os
 import time
 
+from opensand_manager_gui.view.event_tab import EventTab, EventLevel
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_core.my_exceptions import RunException
 
@@ -68,7 +69,6 @@ class RunView(WindowView):
         # only log one time connection problem
         self._logged = False
 
-        self._opensand_buff = None
         self._drawing_area = None
         self._stylepango = None
         self._context_graph = None
@@ -76,14 +76,6 @@ class RunView(WindowView):
         self._sat_x = SAT_X
         self._info_x = INFO_X
         self._legend_y = LEGEND_Y
-
-        # set the OpenSAND event and error buffer
-        self._opensand_buff = gtk.TextBuffer()
-        red = self._opensand_buff.create_tag('red')
-        red.set_property('foreground', 'red')
-        orange = self._opensand_buff.create_tag('orange')
-        orange.set_property('foreground', 'orange')
-        self._ui.get_widget('opensand_textview').set_buffer(self._opensand_buff)
 
         # init drawing area
         self._drawing_area = self._ui.get_widget('main_drawing_area')
@@ -329,46 +321,15 @@ class RunView(WindowView):
                                               x, y, self._stylepango)
 
     def show_opensand_event(self, text):
-        """ print OpenSAND events in OpenSAND textview
-            (should be used with gobject.idle_add outside gtk handlers) """
+        """ print OpenSAND events in OpenSAND textview"""
+        
         if text != "":
             self._log.debug("OpenSAND event: " + text)
-            self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                     time.strftime("%H:%M:%S ", time.gmtime()))
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  text + '\n')
-        self._opensand_buff.place_cursor(self._opensand_buff.get_end_iter())
-        self._ui.get_widget('opensand_textview').scroll_to_mark(
-                self._opensand_buff.get_insert(), 0.0, False, 0, 0)
-        
-        # show info image if page is not active
-        if text != "" and \
-           self._ui.get_widget('event_notebook').get_current_page() != 1:
-            img = self._ui.get_widget('img_opensand')
-            img.show()
 
     def show_opensand_error(self, text, color = None):
         """ print OpenSAND errors in OpenSAND textview
             (should be used with gobject.idle_add outside gtk handlers) """
         self._log.debug("OpenSAND error: " + text)
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  time.strftime("%H:%M:%S ", time.gmtime()))
-        if color != None:
-            self._opensand_buff.insert_with_tags_by_name(
-                    self._opensand_buff.get_end_iter(), '[ERROR] ', color)
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  text + '\n')
-        self._opensand_buff.place_cursor(self._opensand_buff.get_end_iter())
-        self._ui.get_widget('opensand_textview').scroll_to_mark(
-        self._opensand_buff.get_insert(), 0.0, False, 0, 0)
-        
-        # show warning image if page is not active
-        if self._ui.get_widget('event_notebook').get_current_page() != 1:
-            img = self._ui.get_widget('img_opensand')
-            if color is not None:
-                img.set_from_stock(gtk.STOCK_DIALOG_WARNING,
-                                   gtk.ICON_SIZE_MENU)
-            img.show()
 
     def update_status(self):
         """ update the status of the different component

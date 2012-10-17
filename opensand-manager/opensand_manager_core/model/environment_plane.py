@@ -7,6 +7,12 @@ Environment Plane model.
 import struct
 
 
+class EventLevel(object):
+    DEBUG = 0
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+
 class Program(object):
     """
     Represents a running program.

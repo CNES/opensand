@@ -40,6 +40,7 @@ import gobject
 import os
 import shutil
 
+from opensand_manager_gui.view.event_tab import EventTab
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.run_event import RunEvent
@@ -68,7 +69,10 @@ class View(WindowView):
         WindowView.__init__(self, gladefile=glade)
 
         self._model = model
-        self._log.run(self._ui, 'manager_textview')
+        
+        event_notebook = self._ui.get_widget('event_notebook')
+        mgr_event_tab = EventTab(event_notebook, "Manager events")
+        self._log.run(mgr_event_tab)
 
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
