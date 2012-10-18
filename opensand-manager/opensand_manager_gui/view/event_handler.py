@@ -122,5 +122,4 @@ class EventReponseHandler(threading.Thread):
 
     def close(self):
         """ close the event response handler """
-        self._log.debug("Response Event Handler: close")
         self._log.debug("Response Event Handler: closed")

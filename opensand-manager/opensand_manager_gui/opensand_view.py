@@ -70,8 +70,8 @@ class View(WindowView):
 
         self._model = model
         
-        event_notebook = self._ui.get_widget('event_notebook')
-        mgr_event_tab = EventTab(event_notebook, "Manager events")
+        self._event_notebook = self._ui.get_widget('event_notebook')
+        mgr_event_tab = EventTab(self._event_notebook, "Manager events")
         self._log.run(mgr_event_tab)
 
         self._log.info("Welcome to OpenSAND Manager !")
@@ -473,6 +473,10 @@ class View(WindowView):
             dlg.destroy()
             MineWindow(h,v,n)
         return False
+    
+    def get_event_notebook(self):
+        """ returns the event notebook """
+        return self._event_notebook
 
 
 ##### TEST #####

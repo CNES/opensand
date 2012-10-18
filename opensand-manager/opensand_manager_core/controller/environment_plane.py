@@ -4,11 +4,8 @@
 from opensand_manager_core.model.environment_plane import Program, Probe
 from time import time
 import gobject
-import logging
 import socket
 import struct
-
-LOGGER = logging.getLogger("environment_plane")
 
 MAGIC_NUMBER = 0x5A7D0001
 MSG_MGR_REGISTER = 21
@@ -25,7 +22,8 @@ class EnvironmentPlaneController(object):
     Controller for the environment plane.
     """
     
-    def __init__(self):
+    def __init__(self, manager_log):
+        self._log = manager_log
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(('', 0))
         self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
@@ -47,14 +45,14 @@ class EnvironmentPlaneController(object):
         """
         Register the probe controller on the specified collector.
         """
-        
+                
         addr = (ipaddr, port)
     
         if self._collector_addr:
             self.unregister_on_collector()
     
         self._collector_addr = addr
-        LOGGER.info("Registering on collector %s:%d", *addr)
+        self._log.info("Registering on collector %s:%d" % addr)
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
             addr)
     
@@ -66,7 +64,8 @@ class EnvironmentPlaneController(object):
         if not self._collector_addr:
             return
         
-        LOGGER.info("Unregistering on collector %s:%d", *self._collector_addr)
+        self._log.info("Unregistering on collector %s:%d" %
+            self._collector_addr)
         
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_UNREGISTER),
             self._collector_addr)
@@ -111,18 +110,18 @@ class EnvironmentPlaneController(object):
     
         self._time = time()
         packet, addr = self._sock.recvfrom(4096)
-    
+            
         if addr != self._collector_addr:
-            LOGGER.error("Received data from unknown host %s:%d.", *addr)
+            self._log.error("Received data from unknown host %s:%d." % addr)
             return True
         
         if len(packet) < 5:
-            LOGGER.error("Received short packet from the collector.")
+            self._log.error("Received short packet from the collector.")
             return True
         
         magic, cmd = struct.unpack("!LB", packet[0:5])
         if magic != MAGIC_NUMBER:
-            LOGGER.error("Received bad magic number from the collector.")
+            self._log.error("Received bad magic number from the collector.")
             return True
         
         if cmd == MSG_MGR_REGISTER_PROGRAM:
@@ -132,7 +131,8 @@ class EnvironmentPlaneController(object):
                 success = False
 
             if not success:
-                LOGGER.error("Bad data received for REGISTER_PROGRAM command.")
+                self._log.error("Bad data received for REGISTER_PROGRAM "
+                    "command.")
             
             return True
         
@@ -143,7 +143,7 @@ class EnvironmentPlaneController(object):
                 success = False
 
             if not success:
-                LOGGER.error("Bad data received for UNREGISTER_PROGRAM "
+                self._log.error("Bad data received for UNREGISTER_PROGRAM "
                     "command.")
             
             return True
@@ -155,7 +155,7 @@ class EnvironmentPlaneController(object):
                 success = False
             
             if not success:
-                LOGGER.error("Bad data received for SEND_PROBES command.")
+                self._log.error("Bad data received for SEND_PROBES command.")
             
             return True
         
@@ -166,11 +166,12 @@ class EnvironmentPlaneController(object):
                 success = False
             
             if not success:
-                LOGGER.error("Bad data received for SEND_EVENT command.")
+                self._log.error("Bad data received for SEND_EVENT command.")
             
             return True
         
-        LOGGER.error("Unknown message id %d received from the collector.", cmd)
+        self._log.error("Unknown message id %d received from the collector." % 
+            cmd)
     
         return True
     
@@ -178,7 +179,7 @@ class EnvironmentPlaneController(object):
         """
         Handles a registration message.
         """
-        
+                
         host_id, prog_id, num_probes, num_events, name_length = struct.unpack(
             "!BBBBB", data[0:5])
         prog_name = data[5:5 + name_length]
@@ -228,8 +229,8 @@ class EnvironmentPlaneController(object):
         if data[pos:] != "":
             return False
            
-        LOGGER.debug("registration of [%d:%d] %s %r %r", host_id, prog_id,
-            prog_name, probe_list, event_list)
+        self._log.debug("Registration of [%d:%d] %s %r %r" % (host_id, prog_id,
+            prog_name, probe_list, event_list))
         
         
         program = Program(self, full_prog_id, prog_name, probe_list, event_list)
@@ -248,13 +249,13 @@ class EnvironmentPlaneController(object):
         host_id, prog_id = struct.unpack("!BB", data)
         full_prog_id = (host_id << 8) | prog_id
         
-        LOGGER.debug("Unregistration of [%d:%d]", host_id, prog_id)
+        self._log.debug("Unregistration of [%d:%d]" % (host_id, prog_id))
         
         try:
             del self._programs[full_prog_id]
         except KeyError:
-            LOGGER.error("Unregistering program [%d:%d] not found", host_id,
-                prog_id)
+            self._log.error("Unregistering program [%d:%d] not found" %
+                (host_id, prog_id))
         
         if self._observer:
             self._observer.program_list_changed()
@@ -272,8 +273,8 @@ class EnvironmentPlaneController(object):
         try:
             program = self._programs[full_prog_id]
         except KeyError:
-            LOGGER.error("Program [%d:%d] which sent probe data is not found",
-                host_id, prog_id)
+            self._log.error("Program [%d:%d] which sent probe data is not "
+                "found" % (host_id, prog_id))
             return False
         
         pos = 2
@@ -286,7 +287,7 @@ class EnvironmentPlaneController(object):
             try:
                 probe = program.get_probe(probe_id)
             except IndexError:
-                LOGGER.error("Unknown probe ID %d", probe_id)
+                self._log.error("Unknown probe ID %d" % probe_id)
                 return False
 
             value, pos = probe._read_value(data, pos)
@@ -308,15 +309,15 @@ class EnvironmentPlaneController(object):
         try:
             program = self._programs[full_prog_id]
         except KeyError:
-            LOGGER.error("Program [%d:%d] which sent event data is not found",
-                host_id, prog_id)
+            self._log.error("Program [%d:%d] which sent event data is not "
+                "found" % (host_id, prog_id))
             return False
         
         try:
             name, level = program.get_event(event_id)
         except IndexError:
-            LOGGER.error("Incorrect event ID %d for program [%d:%d] received",
-                event_id, host_id, prog_id)
+            self._log.error("Incorrect event ID %d for program [%d:%d] "
+                "received" % (event_id, host_id, prog_id))
             
         if self._observer:
             self._observer.new_event(program, name, level, message)
@@ -336,8 +337,8 @@ class EnvironmentPlaneController(object):
         program_id = probe.program.ident & 0xFF
         probe_id = probe.ident
         
-        LOGGER.debug("Updating status of probe %d on program %d:%d: enabled = "
-            "%s, displayed = %s" % (probe_id, host_id, program_id,
+        self._log.debug("Updating status of probe %d on program %d:%d: "
+            "enabled = %s, displayed = %s" % (probe_id, host_id, program_id,
             probe._enabled, probe._displayed))
         
         state = 2 if probe._displayed else (1 if probe._enabled else 0)

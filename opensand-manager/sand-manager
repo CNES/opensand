@@ -40,6 +40,7 @@ import gtk
 import gobject
 from optparse import OptionParser
 
+from opensand_manager_core.env_plane_dispatcher import EnvPlaneDispatcher
 from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.loggers.manager_log import ManagerLog
@@ -114,6 +115,10 @@ class OpenSandManager:
             # create the host controller and response manager
             self._controller = Controller(self._model, options.service_type,
                                           self._manager_log, options.interactive)
+            
+            EnvPlaneDispatcher(self._controller.get_env_plane_controller(),
+                self._view)
+            
         except Exception, msg :
             self._manager_log.error("failed to initialize OpenSAND Manager: " +
                                     str(msg))
