@@ -20,7 +20,6 @@ libopensand_dama_la_h = \
 	UplinkSchedulingRcs.h \
 	DamaUtils.h  \
 	Ttp.h \
-	CapacityRequest.h \
 	DamaAgent.h  \
 	DamaAgentRcs.h  \
 	DamaAgentRcsLegacy.h \

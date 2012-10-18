@@ -63,9 +63,6 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	                     CapacityRequest **capacity_request,
 	                     bool &emtpy);
 
-	// Inherited Wrappers
-	virtual bool buildCR(cr_type_t, unsigned char*, size_t&, bool&);
-
  protected:
 
 	/** Is CRA taken into account in the RBDC computation ? */

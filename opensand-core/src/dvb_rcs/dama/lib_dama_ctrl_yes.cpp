@@ -96,7 +96,7 @@ int DvbRcsDamaCtrlYes::runDama()
 			rbdc_request_number++;
 			rbdc_request_sum += Request;
 
-			Alloc = ThisSt->SetAllocation(Request, DVB_CR_TYPE_VBDC);
+			Alloc = ThisSt->SetAllocation(Request, cr_rbdc);
 
 			UTI_DEBUG("ST#%d has been fully served for RBDC "
 			          "(%d timeslots)", st_id, Alloc);
@@ -109,7 +109,7 @@ int DvbRcsDamaCtrlYes::runDama()
 			vbdc_request_number++;
 			vbdc_request_sum += Request;
 
-			Alloc = ThisSt->SetAllocation(Request, DVB_CR_TYPE_VBDC);
+			Alloc = ThisSt->SetAllocation(Request, cr_vbdc);
 
 			UTI_DEBUG("ST#%d has been fully served for VBDC "
 			          "(%d timeslots)", st_id, Alloc);

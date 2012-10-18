@@ -242,7 +242,7 @@ int DvbRcsDamaCtrlLegacy::runDamaRbdc(int Tac)
 
 				// allocate the integer part of the calculated need
 				Request = (int) RbdcNeed;
-				Alloc = ThisSt->SetAllocation(Request, DVB_CR_TYPE_RBDC);
+				Alloc = ThisSt->SetAllocation(Request, cr_rbdc);
 				UTI_DEBUG_L3("%s st=%d RBDC alloc %d cells/frame (total %d).\n",
 				             FUNCNAME, st->first, Request, Alloc);
 
@@ -300,7 +300,7 @@ int DvbRcsDamaCtrlLegacy::runDamaRbdc(int Tac)
 						if(ThisSt->GetMaxAllocation() > 1)
 						{
 							// enough capacity to allocate
-							ThisSt->SetAllocation(1, DVB_CR_TYPE_RBDC);
+							ThisSt->SetAllocation(1, cr_rbdc);
 							ThisSt->AddCredit(-1.0);
 							Tac--;
 							UTI_DEBUG_L3("%s step 2 allocating 1 cell to st %d.\n",
@@ -424,7 +424,7 @@ int DvbRcsDamaCtrlLegacy::runDamaVbdc(int Tac)
 					{
 						// enough capacity to allocate
 						Tac -= Request;
-						ThisSt->SetAllocation(Request, DVB_CR_TYPE_VBDC);
+						ThisSt->SetAllocation(Request, cr_vbdc);
 						UTI_DEBUG_L3("%s Allocation ST %d : %d\n", FUNCNAME,
 						             current_ptr, Request);
 
@@ -433,7 +433,7 @@ int DvbRcsDamaCtrlLegacy::runDamaVbdc(int Tac)
 					{
 						// not enough capacity to allocate the complete request
 						ThisSt->SetAllocation(ThisSt->GetMaxAllocation(),
-						                      DVB_CR_TYPE_VBDC);
+						                      cr_vbdc);
 						UTI_DEBUG_L3("%s Partial allocation ST %d : %d<%d\n",
 						             FUNCNAME, current_ptr,
 						             ThisSt->GetMaxAllocation(), Request);
@@ -507,7 +507,7 @@ int DvbRcsDamaCtrlLegacy::runDamaFca(int Tac)
 				Tac -= m_fca;
 				UTI_DEBUG_L3("%s allocating ST %d tac %d (last ptr %d)\n",
 				             FUNCNAME, current_ptr, Tac, last_ptr);
-				ThisSt->SetAllocation(m_fca, DVB_CR_TYPE_FCA);
+				ThisSt->SetAllocation(m_fca, cr_fca);
 			}
 			else
 			{

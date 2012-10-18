@@ -191,10 +191,6 @@ class DamaAgent
 	virtual bool hereIsSOF(unsigned char *buf, size_t len);
 	virtual bool hereIsLogonResp(unsigned char *buf, size_t len);
 
-	virtual bool buildCR(cr_type_t type,
-	                     unsigned char *frame,
-	                     size_t &len,
-	                     bool &empty) = 0;
 	virtual bool hereIsTTP(unsigned char *buf, size_t len) = 0;
 
 

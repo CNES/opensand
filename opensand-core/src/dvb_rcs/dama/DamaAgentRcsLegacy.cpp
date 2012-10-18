@@ -145,41 +145,16 @@ bool DamaAgentRcsLegacy::processOnFrameTick()
 }
 
 
-// TODO: implement these
 bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
                                  CapacityRequest **capacity_request,
                                  bool &empty)
 {
-	UTI_ERROR("SF#%u: You should not be here!\n", this->current_superframe_sf);
-	return false;
-}
-
-bool DamaAgentRcsLegacy::hereIsTTP(const Ttp &ttp)
-{
-	UTI_ERROR("SF#%u: You should not be here!\n", this->current_superframe_sf);
-	return false;
-}
-
-/**  Wrappers **/
-bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
-                                 unsigned char *frame,
-                                 size_t &length,
-                                 bool &empty)
-{
-	T_DVB_SAC_CR *init_cr;
+	std::vector<cr_info_t> requests;
 	bool send_rbdc_request = false;
 	bool send_vbdc_request = false;
 	rate_kbps_t rbdc_request_kbps = 0; 
 	vol_pkt_t vbdc_request_pkt = 0;
-	unsigned int cr_number = 0;
 	empty = false;
-
-	if(length < sizeof(T_DVB_SAC_CR))
-	{
-		UTI_ERROR("SF#%u: Buffer size too small to fit T_DVB_SAC_CR\n",
-		           this->current_superframe_sf);
-		goto error;
-	}
 
 	// Compute RBDC request if needed
 	if(this->rbdc_enabled)
@@ -233,32 +208,15 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		goto end;
 	}
 
-	init_cr = (T_DVB_SAC_CR *) frame;
-	init_cr->hdr.msg_length = sizeof(T_DVB_SAC_CR);
-	init_cr->hdr.msg_type = MSG_TYPE_CR;
-
-	if(!send_rbdc_request || !send_vbdc_request)
-	{
-		cr_number = 1;
-	}
-	else
-	{
-		cr_number = 2;
-	}
-
-	init_cr->cr_number = cr_number;
-	cr_number--;
-
 	// set RBDC request (if any) in SAC
 	if(send_rbdc_request)
 	{
-		init_cr->cr[cr_number].route_id = 0;
-		init_cr->cr[cr_number].type = cr_rbdc;
-		init_cr->cr[cr_number].channel_id = 0;
-		encode_request_value(&(init_cr->cr[cr_number]), rbdc_request_kbps);
-		init_cr->cr[cr_number].group_id = this->group_id;
-		init_cr->cr[cr_number].logon_id = this->tal_id;
-		init_cr->cr[cr_number].M_and_C = 0;
+		cr_info_t tmp_info;
+
+		tmp_info.prio = 0;
+		tmp_info.type = cr_rbdc;
+		tmp_info.value = rbdc_request_kbps;
+		requests.push_back(tmp_info);
 
 		// update variables used for next RBDC CR computation
 		this->rbdc_timer_sf = 0;
@@ -270,28 +228,31 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		{
 			(*it).second->resetNew(cr_rbdc);
 		}
-
-		cr_number--;
 	}
 
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		init_cr->cr[cr_number].route_id = 0;
-		init_cr->cr[cr_number].type = cr_vbdc;
-		init_cr->cr[cr_number].channel_id = 0;
-		encode_request_value(&(init_cr->cr[cr_number]), vbdc_request_pkt);
-		init_cr->cr[cr_number].group_id = this->group_id;
-		init_cr->cr[cr_number].logon_id = this->tal_id;
-		init_cr->cr[cr_number].M_and_C = 0;
+		cr_info_t tmp_info;
+
+		tmp_info.prio = 0;
+		tmp_info.type = cr_vbdc;
+		tmp_info.value = vbdc_request_pkt;
+		requests.push_back(tmp_info);
 	}
+
+	*capacity_request = new CapacityRequest(this->tal_id, requests);
 
 	stat_context.rbdc_request_kbps = rbdc_request_kbps;
 	stat_context.vbdc_request_pkt = vbdc_request_pkt;
 
  end:
 	return true;
- error:
+}
+
+bool DamaAgentRcsLegacy::hereIsTTP(const Ttp &ttp)
+{
+	UTI_ERROR("SF#%u: You should not be here!\n", this->current_superframe_sf);
 	return false;
 }
 
@@ -447,7 +408,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 
 vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 {
-	vol_pkt_t nb_pkt_input; // # packets/cells that filled the queue since last RBDC request
+	vol_pkt_t nb_pkt_input; // packets/cells that filled the queue since last RBDC request
 
 	nb_pkt_input = 0;
 	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();

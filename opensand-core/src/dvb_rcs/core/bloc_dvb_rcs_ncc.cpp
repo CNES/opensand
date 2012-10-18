@@ -1471,7 +1471,6 @@ int BlocDVBRcsNcc::simulateFile()
 
 	static bool simu_eof = false;
 	static char buffer[255] = "";
-	static T_DVB_SAC_CR sim_cr;
 	static T_DVB_LOGON_REQ sim_logon_req;
 	static T_DVB_LOGOFF sim_logoff;
 	enum
@@ -1527,24 +1526,25 @@ int BlocDVBRcsNcc::simulateFile()
 		switch (event_selected)
 		{
 		case cr:
-			sim_cr.hdr.msg_length = sizeof(T_DVB_SAC_CR);
-			sim_cr.hdr.msg_type = MSG_TYPE_CR;
-			sim_cr.cr_number = 1;
-			sim_cr.cr[0].route_id = 0;
-			//      sim_cr.cr[0].scaling_factor = 0;
-			sim_cr.cr[0].type = cr_type;
-			sim_cr.cr[0].channel_id = 255;
-			encode_request_value(&(sim_cr.cr[0]), st_request);
-			sim_cr.cr[0].group_id = 0;
-			sim_cr.cr[0].logon_id = st_id;
-			sim_cr.cr[0].M_and_C = 0;
-			UTI_DEBUG("SF%ld: send a simulated CR of type %d with xbdc = %ld "
-			          "and scale = %d for ST %d\n", this->super_frame_counter,
-			          sim_cr.cr[0].type, sim_cr.cr[0].xbdc,
-			          sim_cr.cr[0].scaling_factor, st_id);
-			this->m_pDamaCtrl->hereIsCR((unsigned char *) &sim_cr,
-			                            (long) sizeof(T_DVB_SAC_CR), 0);
+		{
+			unsigned char sim_cr[sizeof(T_DVB_SAC_CR)];
+			size_t length;
+			CapacityRequest *capacity_request;
+			cr_info_t cr_info;
+			vector<cr_info_t> requests;
+
+			cr_info.prio = 0;
+			cr_info.type = cr_type;
+			cr_info.value = st_request;
+			requests.push_back(cr_info);
+			capacity_request = new CapacityRequest(st_id, requests);
+			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
+			          "for ST %d\n", this->super_frame_counter,
+			          cr_type, st_request, st_id);
+			capacity_request->build(sim_cr, length);
+			this->m_pDamaCtrl->hereIsCR(sim_cr, length, 0);
 			break;
+		}
 		case logon:
 			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
 			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
@@ -1604,7 +1604,6 @@ int BlocDVBRcsNcc::simulateRandom()
 {
 	static bool initialized = false;
 	static T_DVB_LOGON_REQ sim_logon_req;
-	static T_DVB_SAC_CR sim_cr;
 
 	int i;
 
@@ -1614,7 +1613,8 @@ int BlocDVBRcsNcc::simulateRandom()
 		{
 			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
 			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
-			sim_logon_req.mac = 100 + i + 1;
+			// BROADCAST_TAL_ID is maximum tal_id
+			sim_logon_req.mac = BROADCAST_TAL_ID + i + 1;
 			sim_logon_req.rt_bandwidth = this->simu_rt;
 			this->m_pDamaCtrl->hereIsLogonReq((unsigned char *) &sim_logon_req,
 			                                  (long) sizeof(T_DVB_LOGON_REQ), 0);
@@ -1624,21 +1624,21 @@ int BlocDVBRcsNcc::simulateRandom()
 
 	for(i = 0; i < this->simu_st; i++)
 	{
-		sim_cr.hdr.msg_length = sizeof(T_DVB_SAC_CR);
-		sim_cr.hdr.msg_type = MSG_TYPE_CR;
-		sim_cr.cr[0].route_id = 0;
-		//    sim_cr.cr[0].scaling_factor = 0;
-		sim_cr.cr[0].type = DVB_CR_TYPE_RBDC;
-		sim_cr.cr[0].channel_id = 255;
-		encode_request_value(&(sim_cr.cr[0]),
-		                     this->simu_cr - this->simu_interval / 2 +
-		                    random() % this->simu_interval);
-		sim_cr.cr[0].group_id = 0;
-		sim_cr.cr[0].logon_id = 100 + i + 1;
-		sim_cr.cr[0].M_and_C = 0;
-		sim_cr.cr_number = 1;
-		this->m_pDamaCtrl->hereIsCR((unsigned char *) &sim_cr,
-		                            (long) sizeof(T_DVB_SAC_CR), 0);
+		unsigned char sim_cr[sizeof(T_DVB_SAC_CR)];
+		size_t length;
+		CapacityRequest *capacity_request;
+		cr_info_t cr_info;
+		vector<cr_info_t> requests;
+
+		cr_info.prio = 0;
+		cr_info.type = cr_rbdc;
+		cr_info.value = this->simu_cr - this->simu_interval / 2 +
+		                random() % this->simu_interval;
+		requests.push_back(cr_info);
+		capacity_request = new CapacityRequest(BROADCAST_TAL_ID + i + 1,
+		                                       requests);
+		capacity_request->build(sim_cr, length);
+		this->m_pDamaCtrl->hereIsCR(sim_cr, length, 0);
 	}
 
 	return 0;

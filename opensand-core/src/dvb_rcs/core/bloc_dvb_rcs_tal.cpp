@@ -1312,9 +1312,9 @@ int BlocDVBRcsTal::sendCR()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[sendCR]";
 	unsigned char *dvb_frame;
-	long dvb_size;
-	size_t size = MSG_DVB_RCS_SIZE_MAX;
+	size_t length;
 	bool empty;
+	CapacityRequest *capacity_request;
 
 	// Get a dvb frame
 	dvb_frame = (unsigned char *) g_memory_pool_dvb_rcs.get(HERE());
@@ -1330,8 +1330,7 @@ int BlocDVBRcsTal::sendCR()
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
 	if(!this->m_pDamaAgent->buildCR(cr_none,
-	                                dvb_frame,
-	                                size,
+	                                &capacity_request,
 	                                empty))
 	{
 		g_memory_pool_dvb_rcs.release((char *) dvb_frame);
@@ -1348,7 +1347,8 @@ int BlocDVBRcsTal::sendCR()
 		return 0;
 	}
 
-	dvb_size = ((T_DVB_SAC_CR *) dvb_frame)->hdr.msg_length; // real size now
+	capacity_request->build(dvb_frame, length);
+	delete capacity_request;
 
 	// Send message
 	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl))

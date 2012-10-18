@@ -31,6 +31,19 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+#include "lib_dama_ctrl.h"
+
+#include "CapacityRequest.h"
+
+// environment plane
+#include <opensand_env_plane/EnvironmentAgent_e.h>
+extern T_ENV_AGENT EnvAgent;
+
+#define DC_DBG_PREFIX "[Generic]"
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+
+
 #include <math.h>
 #include <string>
 #include <cstdlib>
@@ -45,16 +58,6 @@
 #include <sstream>
 
 using namespace std;
-
-#include "lib_dama_ctrl.h"
-
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
-
-#define DC_DBG_PREFIX "[Generic]"
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
 
 // Note on the whole algorithm
 // ---------------------------
@@ -415,12 +418,10 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[hereIsCR]";
 	T_DVB_SAC_CR *sac_cr;
-	T_DVB_SAC_CR_INFO *cr;
 	DC_Context::iterator st;
 	DC_St *ThisSt;
 	double Request;
-	int xbdc;
-	int i;
+	uint16_t xbdc;
 
 	sac_cr = (T_DVB_SAC_CR *) buf;
 
@@ -434,69 +435,63 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 		goto error;
 	}
 
-	for(i = 0; i < sac_cr->cr_number; i++)
+	// Checking if the station is registered
+	st = m_context.find(sac_cr->sac.tal_id);
+	if(st == m_context.end())
 	{
+		UTI_ERROR("%s CR for a unknown st (logon_id=%d). Discarded.\n",
+		          FUNCNAME, sac_cr->sac.tal_id);
+		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_UNKNOWN_ST_ERROR,
+		                     sac_cr->sac.tal_id, C_ERROR_NCC_REQUEST);
+		goto error;
+	}
+	ThisSt = st->second; // Now st_context points to a valid context
+
+	for(unsigned int i = 0; i < sac_cr->sac.cr_number; i++)
+	{
+		emu_cr_t cr;
 		// check the request
-		cr = &sac_cr->cr[i];
-
-		// Checking if the station is registered
-		st = m_context.find(cr->logon_id);
-		if(st == m_context.end())
-		{
-			UTI_ERROR("%s CR for a unknown st (logon_id=%d). Discarded.\n",
-			          FUNCNAME, cr->logon_id);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_UNKNOWN_ST_ERROR,
-			                     cr->logon_id, C_ERROR_NCC_REQUEST);
-			goto error;
-		}
-		ThisSt = st->second; // Now st_context points to a valid context
-
-		UTI_DEBUG("%s ST %d requests %ld %s\n",
-		          FUNCNAME, cr->logon_id, cr->xbdc,
-		          (cr->type == DVB_CR_TYPE_VBDC) ?
-		          " slots in VBDC" : " kbits/s in RBDC");
+		cr = sac_cr->sac.cr[i];
 
 		// retrieve the requested capacity
-		xbdc = decode_request_value(cr);
-		if(xbdc == -1)
-		{
-			UTI_ERROR("%s Capacity request decoding error. Discarded.\n",
-			          FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_BAD_VALUE_ERROR,
-			                     cr->xbdc, C_ERROR_NCC_REQUEST);
-			goto error;
-		}
+		xbdc = getDecodedCrValue(cr);
+		UTI_DEBUG("%s ST %u requests %u %s\n",
+		          FUNCNAME, sac_cr->sac.tal_id, xbdc,
+		          (cr.type == cr_vbdc) ?
+		          " slots in VBDC" : " kbits/s in RBDC");
 
 		// take into account the new request
-		if(cr->type == DVB_CR_TYPE_VBDC)
+		switch(cr.type)
 		{
-			if(ThisSt->SetVbdc(xbdc) == 0)
-			{
-				// Now we are sure to have a valid cr for a valid context
-				DC_RECORD_EVENT("CR st%d cr=%d type=%d", cr->logon_id, xbdc,
-				                DVB_CR_TYPE_VBDC);
-			}
-		}
-		else if(cr->type == DVB_CR_TYPE_RBDC)
-		{
-			if(m_cra_decrease == 1)
-			{
-				// remove the CRA of the RBDC request
-				Request =
-					std::max(Converter->ConvertFromKbitsToCellsPerFrame(xbdc) -
-					    (double) ThisSt->GetCra(), 0.0);
-			}
-			else
-			{
-				Request = Converter->ConvertFromKbitsToCellsPerFrame(xbdc);
-			}
+			case cr_vbdc:
+				if(ThisSt->SetVbdc(xbdc) == 0)
+				{
+					// Now we are sure to have a valid cr for a valid context
+					DC_RECORD_EVENT("CR ST%u value=%u type=VBDC",
+					                sac_cr->sac.tal_id, xbdc);
+				}
+				break;
 
-			if(ThisSt->SetRbdc(Request) == 0)
-			{
-				// Now we are sure to have a valid cr for a valid context
-				DC_RECORD_EVENT("CR st%d cr=%d type=%d", cr->logon_id, xbdc,
-				                DVB_CR_TYPE_RBDC);
-			}
+			case cr_rbdc:
+				if(m_cra_decrease == 1)
+				{
+					// remove the CRA of the RBDC request
+					Request =
+						std::max(Converter->ConvertFromKbitsToCellsPerFrame(xbdc) -
+							(double) ThisSt->GetCra(), 0.0);
+				}
+				else
+				{
+					Request = Converter->ConvertFromKbitsToCellsPerFrame(xbdc);
+				}
+
+				if(ThisSt->SetRbdc(Request) == 0)
+				{
+					// Now we are sure to have a valid cr for a valid context
+					DC_RECORD_EVENT("CR ST%u value=%u type=RBDC",
+					                sac_cr->sac.tal_id, xbdc);
+				}
+				break;
 		}
 	}
 
@@ -570,22 +565,22 @@ int DvbRcsDamaCtrl::hereIsSACT(unsigned char *buf, long len)
 		ThisSt = st->second;
 
 		// take into account the new request
-		if(cr->type == DVB_CR_TYPE_VBDC)
+		if(cr->type == cr_vbdc)
 		{
 			if(ThisSt->SetVbdc(cr->xbdc) == 0)
 			{
 				// Now we are sure to have a valid cr for a valid context
 				DC_RECORD_EVENT("CR st%d cr=%ld type=%d", cr->logon_id,
-				                cr->xbdc, DVB_CR_TYPE_VBDC);
+				                cr->xbdc, cr_vbdc);
 			}
 		}
-		else if(cr->type == DVB_CR_TYPE_RBDC)
+		else if(cr->type == cr_rbdc)
 		{
 			if(ThisSt->SetRbdc(Converter->ConvertFromKbitsToCellsPerFrame(cr->xbdc)) == 0)
 			{
 				// Now we are sure to have a valid cr for a valid context
 				DC_RECORD_EVENT("CR st%d cr=%ld type=%d", cr->logon_id,
-				                cr->xbdc, DVB_CR_TYPE_RBDC);
+				                cr->xbdc, cr_rbdc);
 			}
 		}
 

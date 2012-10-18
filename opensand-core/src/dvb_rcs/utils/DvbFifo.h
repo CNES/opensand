@@ -37,6 +37,7 @@
 
 #include "OpenSandCore.h"
 #include "MacFifoElement.h"
+#include "CapacityRequest.h"
 
 //#include <linux/param.h>
 #include <vector>
@@ -54,16 +55,6 @@ typedef enum
 	fifo_af = 3, /* Assured Forwarding */
 	fifo_be = 4, /* Best Effort */
 } mac_prio_t;
-
-// TODO move in CapacityRequest.h
-///> The type of capacity request associated to each FIFO among RBDC, VBDC or None
-typedef enum
-{
-	cr_none = 0, /* No CR, only use Constant Allocation */
-	cr_rbdc = 1, /* Rate Based */
-	cr_vbdc = 2, /* Volume Based */
-} cr_type_t;
-
 
 
 /// DVB fifo statistics context

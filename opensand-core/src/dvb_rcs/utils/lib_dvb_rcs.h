@@ -35,6 +35,8 @@
 #ifndef LIB_DVB_RCS_H
 #define LIB_DVB_RCS_H
 
+#include "CapacityRequest.h"
+
 #include <string>
 #include <stdint.h>
 
@@ -212,36 +214,6 @@ typedef struct
 
 
 /**
- * Type of capacity demand (inside a CR)
- * Volume Based Demand Capacity
- */
-#define DVB_CR_TYPE_VBDC 0
-
-/**
- * Type of capacity demand (inside a CR)
- * Rate Based Demand Capacity
- */
-#define DVB_CR_TYPE_RBDC 1
-
-/**
- * Type of capacity demand (inside a CR)
- */
-#define DVB_CR_TYPE_AVBDC 2
-
-/**
- * Other type of capacity demand (used for FCA)
- */
-#define DVB_CR_TYPE_FCA -1
-
-// RBDC request granularity in SAC (in Kbits/s)
-#define DVB_CR_RBDC_GRANULARITY             2
-#define DVB_CR_RBDC_SCALING_FACTOR         32
-#define DVB_CR_VBDC_SCALING_FACTOR         16
-#define DVB_CR_VBDC_SCALING_FACTOR_OFFSET 255
-#define DVB_CR_RBDC_SCALING_FACTOR_OFFSET 510
-
-
-/**
  * Capacity demand information structure
  */
 typedef struct
@@ -256,9 +228,6 @@ typedef struct
 	unsigned short M_and_C;  ///< Set to 0
 } T_DVB_SAC_CR_INFO;
 
-extern int encode_request_value(T_DVB_SAC_CR_INFO * Cr, int CapacityRequest);
-extern int decode_request_value(T_DVB_SAC_CR_INFO * Cr);
-
 
 /**
  * Capacity Request
@@ -266,9 +235,8 @@ extern int decode_request_value(T_DVB_SAC_CR_INFO * Cr);
 typedef struct
 {
 	T_DVB_HDR hdr;           ///< Basic DVB Header
-	T_DVB_SAC_CR_INFO cr[2]; ///< Capacity Request information structure
-	int cr_number;           ///< number of capacity request within cr
-} T_DVB_SAC_CR;
+	emu_sac_t sac;
+} __attribute__((packed)) T_DVB_SAC_CR;
 
 
 /**

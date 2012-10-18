@@ -504,7 +504,7 @@ double DC_St::GetCredit()
 int DC_St::SetAllocation(int Allocation, int Type)
 {
 	// modify the request
-	if(Type == DVB_CR_TYPE_VBDC)
+	if(Type == cr_rbdc)
 	{
 		VbdcCr->Decrease(Allocation * AllocationCycle);
 	}
