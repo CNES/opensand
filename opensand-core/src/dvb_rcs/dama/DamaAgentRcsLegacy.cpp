@@ -245,6 +245,8 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 
 	stat_context.rbdc_request_kbps = rbdc_request_kbps;
 	stat_context.vbdc_request_pkt = vbdc_request_pkt;
+	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets/cells in VBDC",
+	          this->current_superframe_sf, rbdc_request_kbps, vbdc_request_pkt);
 
  end:
 	return true;

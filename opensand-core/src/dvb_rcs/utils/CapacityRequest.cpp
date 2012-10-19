@@ -36,6 +36,7 @@
 
 #include <cstring>
 
+
 // RBDC request granularity in SAC (in Kbits/s)
 #define DVB_CR_RBDC_GRANULARITY             2
 #define DVB_CR_RBDC_SCALING_FACTOR         16
@@ -45,7 +46,7 @@
 
 
 static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
-static uint8_t getEncodedRequestValue(uint8_t value, unsigned int step);
+static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
 
 void CapacityRequest::build(unsigned char *frame, size_t &length)
 {
@@ -129,7 +130,7 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
  * @param the step for encaoded value computation
  * @return the encoded value
  */
-static uint8_t getEncodedRequestValue(uint8_t value, unsigned int step)
+static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step)
 {
 	uint8_t div_quot;
 	uint8_t div_rem;
