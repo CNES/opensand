@@ -58,19 +58,13 @@ class ProbeEvent(ProbeView):
 
         self._selected = {'component' : [], 'stat' : [], 'index' : []}
 
-        self._probe_controller.start()
 
     def close(self):
         """ close probe tab """
         self._log.debug("Probe Event: close")
-        if self._refresh_probe_tree is not None:
-            gobject.source_remove(self._refresh_probe_tree)
+
         if self._timeout_id is not None:
             gobject.source_remove(self._timeout_id)
-        self._probe_controller.close()
-        self._log.debug("Probe Event: join probe controller")
-        self._probe_controller.join()
-        self._log.debug("Probe Event: probe controller joined")
         self._log.debug("Probe Event: closed")
 
     def activate(self, val):
@@ -79,18 +73,8 @@ class ProbeEvent(ProbeView):
             if self._timeout_id is not None:
                 gobject.source_remove(self._timeout_id)
                 self._timeout_id = None
-            if self._refresh_probe_tree is not None:
-                gobject.source_remove(self._refresh_probe_tree)
-                self._refresh_probe_tree = None
         else:
-            # refresh the probe tree immediatly then create an object
-            # which refresh it
-            self.refresh()
-            self._refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
-            if self._updating:
-                # refresh the GUI immediatly then periodically
-                self.update_stat()
-                self._timeout_id = gobject.timeout_add(1000, self.update_stat)
+            pass
 
 
     def toggled_cb(self, cell, path):

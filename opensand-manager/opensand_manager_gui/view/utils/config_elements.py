@@ -42,6 +42,83 @@ from opensand_manager_core.my_exceptions import XmlException
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
+
+class ProbeSelectionController(object):
+    """ The program/probe list controller """
+    def __init__(self, program_listview, probe_listview):
+        self._program_listview = program_listview
+        self._probe_listview = probe_listview
+        self._program_list = {}
+        self._current_program = None
+        self._update_needed = False
+        
+        self._program_store = gtk.ListStore(str, int)
+        program_listview.set_model(self._program_store)
+        
+        column = gtk.TreeViewColumn("Program", gtk.CellRendererText(), text=0)
+        column.set_sort_column_id(0)    
+        program_listview.append_column(column)
+        
+        self._probe_store = gtk.ListStore(str, gobject.TYPE_BOOLEAN, int)
+        probe_listview.set_model(self._probe_store)
+        
+        column = gtk.TreeViewColumn("Probe", gtk.CellRendererText(), text=0)
+        column.set_sort_column_id(0)    
+        column.set_resizable(True)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+        probe_listview.append_column(column)
+        
+        column = gtk.TreeViewColumn(None, gtk.CellRendererToggle())
+        column.set_resizable(True)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+        probe_listview.append_column(column)
+        
+        program_listview.connect('cursor-changed', self._prog_curs_changed)
+    
+    def update_data(self, program_list):
+        self._program_list = program_list
+        self._update_needed = True
+        
+        gobject.idle_add(self._update_data)
+    
+    def _update_data(self):
+        if not self._update_needed:
+            return
+        
+        self._update_needed = False
+    
+        self._program_store.clear()
+        
+        for program in self._program_list.itervalues():
+            self._program_store.append([program.name, program.ident])
+        
+        self._update_probe_list()
+    
+    def _prog_curs_changed(self, _):
+        self._update_probe_list()
+    
+    def _update_probe_list(self):
+        selection = self._program_listview.get_cursor()
+        self._probe_store.clear()
+        if selection[0] is None:
+            self._current_program = None
+            return
+        
+        it = self._program_store.get_iter(selection[0])
+        prog_ident = self._program_store.get_value(it, 1)
+        
+        self._current_program = self._program_list[prog_ident]
+        
+        for probe in self._current_program.get_probes():
+            self._probe_store.append([probe.name, probe.displayed, probe.ident])
+    
+    
+        
+        
+        
+    
+
+
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
     def __init__(self, treeview, col1_title, col2_title,

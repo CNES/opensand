@@ -49,7 +49,7 @@ INIT_ITER = 4
 
 class RunEvent(RunView):
     """ Events for the run tab """
-    def __init__(self, parent, model, dev_mode, manager_log):
+    def __init__(self, parent, model, opensand_view, dev_mode, manager_log):
         try:
             RunView.__init__(self, parent, model, manager_log)
         except RunException:
@@ -71,6 +71,7 @@ class RunEvent(RunView):
         self._timeout_id = gobject.timeout_add(2000, self.on_timer_status)
 
         self._dev_mode = False
+        self._opensand_view = opensand_view
 
         # start event response handler
         self._event_response_handler.start()
@@ -154,6 +155,7 @@ class RunEvent(RunView):
             # (startup will be finished when we will receive a
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
+            self._opensand_view.on_simu_state_changed(True)
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -168,6 +170,7 @@ class RunEvent(RunView):
 
             # add an empty line in the event text views
             self.show_opensand_event("")
+            self._opensand_view.on_simu_state_changed(False)
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
         """ 'toggled' event on dev_mode button """

@@ -1445,108 +1445,18 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkHPaned" id="probe_tab">
+              <widget class="GtkVBox" id="probe_tab">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="position">300</property>
-                <property name="position_set">True</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <widget class="GtkScrolledWindow" id="scrolledwindow2">
-                    <property name="width_request">280</property>
+                  <widget class="GtkHBox" id="probe_header">
+                    <property name="height_request">25</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="hscrollbar_policy">automatic</property>
-                    <property name="vscrollbar_policy">automatic</property>
                     <child>
-                      <widget class="GtkTreeView" id="probe_treeview">
+                      <widget class="GtkLabel" id="label_displayed">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                      </widget>
-                    </child>
-                  </widget>
-                  <packing>
-                    <property name="resize">False</property>
-                    <property name="shrink">True</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkVBox" id="probe_vbox">
-                    <property name="width_request">700</property>
-                    <property name="visible">True</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <widget class="GtkToolbar" id="probe_toolbar">
-                        <property name="visible">True</property>
-                        <property name="toolbar_style">both</property>
-                        <child>
-                          <widget class="GtkToolButton" id="plot">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">   Plot   </property>
-                            <property name="use_underline">True</property>
-                            <property name="stock_id">gtk-apply</property>
-                            <accessibility>
-                              <atkproperty name="AtkObject::accessible-name" translatable="yes">plot</atkproperty>
-                            </accessibility>
-                            <signal name="clicked" handler="on_plot_clicked"/>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkToolButton" id="clear">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">   Clear   </property>
-                            <property name="use_underline">True</property>
-                            <property name="stock_id">gtk-cancel</property>
-                            <accessibility>
-                              <atkproperty name="AtkObject::accessible-name" translatable="yes">clear</atkproperty>
-                            </accessibility>
-                            <signal name="clicked" handler="on_clear_clicked"/>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkToolButton" id="import">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes"> Import </property>
-                            <property name="use_underline">True</property>
-                            <property name="stock_id">gtk-add</property>
-                            <accessibility>
-                              <atkproperty name="AtkObject::accessible-name" translatable="yes">import</atkproperty>
-                            </accessibility>
-                            <signal name="clicked" handler="on_import_clicked"/>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkSeparatorToolItem" id="separatortoolitem1">
-                            <property name="visible">True</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkToolButton" id="savefig">
-                            <property name="visible">True</property>
-                            <property name="tooltip" translatable="yes">Save current graphic</property>
-                            <property name="label" translatable="yes">Save</property>
-                            <property name="stock_id">gtk-save</property>
-                            <signal name="clicked" handler="on_savefig_clicked"/>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
+                        <property name="label" translatable="yes">&lt;b&gt;Displayed:&lt;/b&gt; -</property>
+                        <property name="use_markup">True</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -1555,22 +1465,128 @@
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkLabel" id="run_label">
+                      <widget class="GtkAspectFrame" id="aspectframe2">
+                        <property name="width_request">20</property>
                         <property name="visible">True</property>
+                        <property name="label_xalign">0</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="probe_button">
+                        <property name="label" translatable="yes">Load&#x2026;</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
-                        <property name="position">1</property>
+                        <property name="position">2</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
                     </child>
                   </widget>
                   <packing>
-                    <property name="resize">True</property>
-                    <property name="shrink">True</property>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="padding">5</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkVPaned" id="probe_vpaned">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="position">150</property>
+                    <property name="position_set">True</property>
+                    <child>
+                      <widget class="GtkHBox" id="probe_sel_hbox">
+                        <property name="visible">True</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <widget class="GtkScrolledWindow" id="probe_sel_wnd1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hscrollbar_policy">automatic</property>
+                            <property name="vscrollbar_policy">automatic</property>
+                            <child>
+                              <widget class="GtkTreeView" id="probe_sel_progs">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                              </widget>
+                            </child>
+                          </widget>
+                          <packing>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkScrolledWindow" id="probe_sel_wnd2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hscrollbar_policy">automatic</property>
+                            <property name="vscrollbar_policy">automatic</property>
+                            <child>
+                              <widget class="GtkTreeView" id="probe_sel_probes">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                              </widget>
+                            </child>
+                          </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="resize">False</property>
+                        <property name="shrink">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkVBox" id="probe_vbox">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="run_label">
+                            <property name="visible">True</property>
+                          </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="resize">True</property>
+                        <property name="shrink">True</property>
+                      </packing>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </widget>

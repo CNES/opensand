@@ -46,11 +46,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 
 from opensand_manager_gui.view.window_view import WindowView
-from opensand_manager_gui.view.probes.probe_model import ProbeModel
-from opensand_manager_gui.view.probes.probe_controller import ProbeController
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ProbeException
-from opensand_manager_gui.view.utils.config_elements import ConfigurationTree
+from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
 
 pylab.hold(False)
 
@@ -67,37 +65,28 @@ class ProbeView(WindowView):
 
         # create the probes and the probe controller
         self._probe_lock = threading.Lock()
-        self._probes = ProbeModel(self._model, self._probe_lock, self._log)
-        self._probe_controller = ProbeController(self._probes, manager_log)
-
-        self._host_names_detected = []
 
         # init the treeview used for the probe selection
         self._iter_id = {} # host name : iter string
         # Probe display
         self._vbox = self._ui.get_widget("probe_vbox")
+        
+        self._status_label = self._ui.get_widget("label_displayed")
+        self._probe_button = self._ui.get_widget("probe_button")
 
         # {index_list:[graphic, graphic_type, subplot]}
         self._display = {}
 
-        self._files_path = ''
+        self._scenario = None
+        self._run = None
 
-        with gtk.gdk.lock:
-            treeview = self._ui.get_widget('probe_treeview')
-            self._tree = ConfigurationTree(treeview, 'Statistics', 'Selected',
-                                           None, self.toggled_cb)
-            
+        self._probe_sel_controller = ProbeSelectionController(
+            self._ui.get_widget("probe_sel_progs"),
+            self._ui.get_widget("probe_sel_probes"))
+        
         pylab.clf()
         self._fig = plt.figure()
         self._canvas = None
-
-        gobject.idle_add(self.disable_savefig_button,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
-
-        # refresh the probe tree immediatly then create an object
-        # which refresh it
-        self.refresh()
-        self._refresh_probe_tree = gobject.timeout_add(1000, self.refresh)
 
     def toggled_cb(self, cell, path):
         """ this function is defined in probe_event """
@@ -272,117 +261,86 @@ class ProbeView(WindowView):
         gobject.idle_add(self.enable_savefig_button,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
-    def update_probe_tree(self, new, old):
-        """ update the probe tree view """
-        # get the list of ST to append only relevant substatistics
-        st_names = []
-        for host in self._model.get_hosts_list():
-            if host.get_name().startswith('st'):
-                st_names.append(host.get_name())
+    def simu_program_list_changed(self, programs):
+        """ the program list changed during simulation """
+        self._probe_sel_controller.update_data(programs)
+    
+    def simu_state_changed(self, new_state):
+        if new_state:
+            self._set_state_simulating()
+        else:
+            self._set_state_idle()        
 
-        for probe in [elt for elt in self._probes.get_list()
-                          if elt.get_name() in new]:
-            stats = {}
-            for stat in probe.get_stat_list():
-                # substatistic
-                if len(stat.get_index_list()) > 0 and \
-                   stat.get_index_list()[0].get_name() != '':
-                    stats[stat.get_name()] = []
-                    # add only the relevant ST in the list
-                    for index in stat.get_index_list():
-                        name = index.get_name()
-                        if name != '' and \
-                           (name[:2].lower() != 'st' or 
-                            name.lower() in st_names):
-                            stats[stat.get_name()].append(name)
-                # no substatistic
-                else:
-                    stats[stat.get_name()] = True
-            gobject.idle_add(self._tree.add_host,
-                             probe, stats)
+    def _set_state_idle(self):
+        self._status_label.set_markup("<b>Displayed:</b> -")
+        self._probe_button.set_label("Load…")
+        self._probe_button.set_sensitive(False)
+    
+    def _set_state_simulating(self):
+        self._status_label.set_markup("<b>Displayed:</b> Current simulation")
+        self._probe_button.set_label("Configure collection…")
+        self._probe_button.set_sensitive(True)
+    
+    def _set_state_run_loaded(self):
+        self._status_label.set_markup("<b>Displayed:</b> Run %s" % self._run)
+        self._probe_button.set_label("Load…")
+        self._probe_button.set_sensitive(True)
 
-        for probe in [elt for elt in self._probes.get_list()
-                          if elt.get_name() in old]:
-            gobject.idle_add(self._tree.del_host, probe.get_name())
-            self._probes.remove_probe(probe)
 
     def refresh(self):
-        """ refresh the probe list """
-        if self._model.is_running():
-            self._files_path = ''
-            gobject.idle_add(self.enable_plot_button,
-                             priority=gobject.PRIORITY_HIGH_IDLE+20)
-        # a scenario has been loaded
-        elif self._files_path != '':
-            gobject.idle_add(self.enable_plot_button,
-                             priority=gobject.PRIORITY_HIGH_IDLE+20)
-        # load the last run
-        elif self._model.get_run() != 'default':
-            scenario = self._model.get_scenario()
-            run = self._model.get_run()
-            self._files_path = os.path.join(scenario, run)
-            gobject.idle_add(self.enable_plot_button,
-                             priority=gobject.PRIORITY_HIGH_IDLE+20)
-        # no previous run, nothing loaded
-        else:
-            self._files_path = ''
-            gobject.idle_add(self.disable_plot_button,
-                             priority=gobject.PRIORITY_HIGH_IDLE+20)
-        self._probe_lock.acquire()
-        real_names = []
-        for host in self._model.get_hosts_list():
-            real_names.append(host.get_name())
-
-        # add the new hosts
-        new_host_names = set(real_names) - set(self._host_names_detected)
-        if len(new_host_names) > 0:
-            self._host_names_detected.extend(new_host_names)
-
-            try:
-                self._probes.create(new_host_names)
-            except ProbeException as error:
-                self._log.warning("failed to update probes for %s: %s!" %
-                                  (new_host_names, error.value))
-                self._probe_lock.release()
-                return True
-            else:
-                self._log.debug("new probe successfully append")
-
-        # remove old hosts
-        old_host_names = set(self._host_names_detected) - set(real_names)
-        for host in old_host_names:
-            self._host_names_detected.remove(host)
-
-        gobject.idle_add(self.update_probe_tree,
-                         new_host_names, old_host_names)
-        self._probe_lock.release()
+        """ refresh the display view """
+        
+        
+#         if self._model.is_running():
+#             self._files_path = ''
+#             gobject.idle_add(self.enable_plot_button,
+#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+#         # a scenario has been loaded
+#         elif self._files_path != '':
+#             gobject.idle_add(self.enable_plot_button,
+#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+#         # load the last run
+#         elif self._model.get_run() != 'default':
+#             scenario = self._model.get_scenario()
+#             run = self._model.get_run()
+#             self._files_path = os.path.join(scenario, run)
+#             gobject.idle_add(self.enable_plot_button,
+#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+#         # no previous run, nothing loaded
+#         else:
+#             self._files_path = ''
+#             gobject.idle_add(self.disable_plot_button,
+#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+#         self._probe_lock.acquire()
+#         real_names = []
+#         for host in self._model.get_hosts_list():
+#             real_names.append(host.get_name())
+#
+#         # add the new hosts
+#         new_host_names = set(real_names) - set(self._host_names_detected)
+#         if len(new_host_names) > 0:
+#             self._host_names_detected.extend(new_host_names)
+#
+#             try:
+#                 self._probes.create(new_host_names)
+#             except ProbeException as error:
+#                 self._log.warning("failed to update probes for %s: %s!" %
+#                                   (new_host_names, error.value))
+#                 self._probe_lock.release()
+#                 return True
+#             else:
+#                 self._log.debug("new probe successfully append")
+#
+#         # remove old hosts
+#         old_host_names = set(self._host_names_detected) - set(real_names)
+#         for host in old_host_names:
+#             self._host_names_detected.remove(host)
+#
+#         gobject.idle_add(self.update_probe_tree,
+#                          new_host_names, old_host_names)
+#         self._probe_lock.release()
         return True
 
-    def disable_plot_button(self):
-        """ disable plot probe button
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._ui.get_widget('plot').set_sensitive(False)
-
-    def enable_plot_button(self):
-        """ enable plot probe button
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._ui.get_widget('plot').set_sensitive(True)
-        label = ''
-        if self._model.is_running():
-            label = self._model.get_run()
-        elif self._files_path != '':
-            label = self._files_path
-        self._ui.get_widget('run_label').set_text(label)
-
-    def disable_savefig_button(self):
-        """ disable save probe button
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._ui.get_widget('savefig').set_sensitive(False)
-
-    def enable_savefig_button(self):
-        """ enable save probe button
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._ui.get_widget('savefig').set_sensitive(True)
 
     def save_figure(self, filename):
         """ save the displayed figure """

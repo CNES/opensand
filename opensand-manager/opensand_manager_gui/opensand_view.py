@@ -72,6 +72,7 @@ class View(WindowView):
         
         self._event_notebook = self._ui.get_widget('event_notebook')
         mgr_event_tab = EventTab(self._event_notebook, "Manager events")
+        self._event_tabs = {} # For the individudual program event tabs
         self._log.run(mgr_event_tab)
 
         self._log.info("Welcome to OpenSAND Manager !")
@@ -82,7 +83,7 @@ class View(WindowView):
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
             self._eventrun = RunEvent(self.get_current(), self._model,
-                                      dev_mode, self._log)
+                                      self, dev_mode, self._log)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
@@ -452,7 +453,6 @@ class View(WindowView):
 
         recent_widget.set_submenu(submenu)
 
-
     def set_default_run(self):
         """ reset the run value """
         self._model.set_run("")
@@ -474,10 +474,21 @@ class View(WindowView):
             MineWindow(h,v,n)
         return False
     
-    def get_event_notebook(self):
-        """ returns the event notebook """
-        return self._event_notebook
-
+    def on_program_list_changed(self, programs_dict):
+        """ called by the environment plane program list changes """
+        
+        for program in programs_dict.itervalues():
+            if program.ident not in self._event_tabs:
+                self._event_tabs[program.ident] = EventTab(self._event_notebook,
+                    program.name)
+        
+        self._eventprobe.simu_program_list_changed(programs_dict)
+    
+    def on_new_program_event(self, program, name, level, message):
+        self._event_tabs[program.ident].message(level, name, message)
+    
+    def on_simu_state_changed(self, new_state):
+        self._eventprobe.simu_state_changed(new_state)
 
 ##### TEST #####
 if __name__ == "__main__":
