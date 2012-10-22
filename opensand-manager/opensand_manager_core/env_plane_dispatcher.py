@@ -27,7 +27,10 @@ class EnvPlaneDispatcher(object):
         self._opensand_view.on_program_list_changed(programs)
     
     def new_probe_value(self, probe, time, value):
-        return
+        if not self._opensand_view:
+            return
+    
+        self._opensand_view.on_new_probe_value(probe, time, value)
     
     def new_event(self, program, name, level, message):
         if not self._opensand_view:

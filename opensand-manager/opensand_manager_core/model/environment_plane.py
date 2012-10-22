@@ -124,11 +124,16 @@ class Probe(object):
             raise ValueError("Cannot display a disabled probe")
         
         self._displayed = value
-        self._controller._update_probe_status(self) 
+        self._controller._update_probe_status(self)
+    
+    @property
+    def global_ident(self):
+        return self.ident | (self.program.ident << 8)
     
     def __str__(self):
         return self.name
     
     def __repr__(self):
         return "<Probe: %s [%d]>" % (self.name, self.ident)
+    
 

@@ -40,9 +40,11 @@ import time
 
 class EventReponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
-    def __init__(self, view, event_manager_response, manager_log):
+    def __init__(self, view, event_manager_response, opensand_view,
+        manager_log):
         threading.Thread.__init__(self)
         self._view = view
+        self._opensand_view = opensand_view
         self._event_manager_response = event_manager_response
         self._log = manager_log
 
@@ -79,6 +81,8 @@ class EventReponseHandler(threading.Thread):
                     # enable back the 'stop opensand' button
                     gobject.idle_add(self._view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    gobject.idle_add(self._opensand_view.on_simu_state_changed,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
                 else:
                     # starting opensand platform failed:
                     # enable back all the buttons
@@ -102,6 +106,8 @@ class EventReponseHandler(threading.Thread):
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # enable back the 'start opensand' button
                     gobject.idle_add(self._view.disable_start_button, False,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    gobject.idle_add(self._opensand_view.on_simu_state_changed,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
 
                 # enable all the buttons

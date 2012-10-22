@@ -359,6 +359,7 @@ class RunView(WindowView):
     def set_start_stop_button(self):
         """ modify the start button label according to OpenSAND status
             (should be used with gobject.idle_add outside gtk handlers) """
+        
         if self.is_running():
             btn = self._ui.get_widget('start_opensand_button')
             btn.set_label('Stop OpenSAND')

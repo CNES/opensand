@@ -100,7 +100,7 @@ class EnvironmentPlaneController(object):
         Returns the program identified by ident
         """
         
-        return self._programs[ident]        
+        return self._programs[ident]
         
     def _data_received(self, _sock, _tag):
         """

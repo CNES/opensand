@@ -55,15 +55,13 @@ class RunEvent(RunView):
         except RunException:
             raise
 
-        #TODO read that in configuration
-        event_port = 2612
-        error_port = 2611
-
         self._event_manager = self._model.get_event_manager()
         self._event_response_handler = EventReponseHandler(self,
                             self._model.get_event_manager_response(),
+                            opensand_view,
                             self._log)
 
+        self._opensand_view = opensand_view
         self._first_refresh = True
         self._refresh_iter = 0
         # at beginning check platform state immediatly, then every 2 seconds
@@ -71,7 +69,6 @@ class RunEvent(RunView):
         self._timeout_id = gobject.timeout_add(2000, self.on_timer_status)
 
         self._dev_mode = False
-        self._opensand_view = opensand_view
 
         # start event response handler
         self._event_response_handler.start()
@@ -155,7 +152,6 @@ class RunEvent(RunView):
             # (startup will be finished when we will receive a
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
-            self._opensand_view.on_simu_state_changed(True)
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -170,7 +166,6 @@ class RunEvent(RunView):
 
             # add an empty line in the event text views
             self.show_opensand_event("")
-            self._opensand_view.on_simu_state_changed(False)
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
         """ 'toggled' event on dev_mode button """
@@ -234,6 +229,10 @@ class RunEvent(RunView):
         gobject.idle_add(self.set_start_stop_button,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
         gobject.idle_add(self.update_status)
+        
+        # Update simulation state for the main view
+        gobject.idle_add(self._opensand_view.on_simu_state_changed,
+                         priority=gobject.PRIORITY_HIGH_IDLE+20)
 
         # restart timer
         return True

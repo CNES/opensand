@@ -134,18 +134,18 @@ class View(WindowView):
                 except Exception, err:
                     error_popup("Errors saving scenario:", str(err))
 
-        if self._model.is_running():
-            text = "The platform is still running, " \
-                   "other users won't be able to use it\n\n" \
-                   "Stop it before exiting ?"
-            ret = yes_no_popup(text, "Stop ?", "gtk-dialog-warning")
-            if ret == gtk.RESPONSE_YES:
-                self._eventrun.on_start_opensand_button_clicked()
-                iter = 0
-                while self._model.is_running() and iter < 20:
-                    self._log.info("Waiting for platform to stop...")
-                    iter += 1
-                    time.sleep(1)
+        #if self._model.is_running():
+        #    text = "The platform is still running, " \
+        #           "other users won't be able to use it\n\n" \
+        #           "Stop it before exiting ?"
+        #    ret = yes_no_popup(text, "Stop ?", "gtk-dialog-warning")
+        #    if ret == gtk.RESPONSE_YES:
+        #        self._eventrun.on_start_opensand_button_clicked()
+        #        iter = 0
+        #        while self._model.is_running() and iter < 20:
+        #            self._log.info("Waiting for platform to stop...")
+        #            iter += 1
+        #            time.sleep(1)
 
         self._log.debug("View: close")
         self._log.debug("View: close model")
@@ -487,8 +487,11 @@ class View(WindowView):
     def on_new_program_event(self, program, name, level, message):
         self._event_tabs[program.ident].message(level, name, message)
     
-    def on_simu_state_changed(self, new_state):
-        self._eventprobe.simu_state_changed(new_state)
+    def on_new_probe_value(self, probe, time, value):
+        self._eventprobe.new_probe_value(probe, time, value)
+    
+    def on_simu_state_changed(self):
+        self._eventprobe.simu_state_changed()
 
 ##### TEST #####
 if __name__ == "__main__":

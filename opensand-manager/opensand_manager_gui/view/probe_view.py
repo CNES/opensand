@@ -39,18 +39,11 @@ import gobject
 import threading
 import os
 
-from random import randrange
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTK
-import pylab
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-
+from opensand_manager_gui.view.probe_display import ProbeDisplay
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ProbeException
 from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
-
-pylab.hold(False)
 
 (TEXT, VISIBLE, ACTIVE) = range(3)
 
@@ -77,144 +70,19 @@ class ProbeView(WindowView):
         # {index_list:[graphic, graphic_type, subplot]}
         self._display = {}
 
+        self._simu_running = False
+        self._update_graph_tag = None
         self._scenario = None
         self._run = None
 
-        self._probe_sel_controller = ProbeSelectionController(
+        self._probe_sel_controller = ProbeSelectionController(self,
             self._ui.get_widget("probe_sel_progs"),
             self._ui.get_widget("probe_sel_probes"))
-        
-        pylab.clf()
-        self._fig = plt.figure()
-        self._canvas = None
+        self._probe_display = ProbeDisplay(self._ui.get_widget("probe_vbox"))
 
     def toggled_cb(self, cell, path):
         """ this function is defined in probe_event """
         pass
-
-    def init_canvas(self, nbr):
-        """ initialize the graphic canvas """
-        pylab.clf()
-
-        if nbr != 0:
-            for i in range(nbr):
-                self._fig.add_subplot(nbr, 1, i + 1)
-        else:
-            self._fig.clear()
-            return
-
-        if self._canvas is not None:
-            self._vbox.remove(self._canvas)
-        self._canvas = FigureCanvasGTK(self._fig)
-        self._vbox.pack_start(self._canvas, True, True)
-        self._canvas.show_all()
-        self._canvas.draw_idle()
-
-    def init_graph(self, display_index, x, y, title = '',
-                   xlabel = '', ylabel = '', idx = 0, tot = 0,
-                   graph_type = 'line'):
-        """ initialize a graphic """
-        # Construct the current subplot
-        self._fig.subplots_adjust(hspace = 0.8)
-
-        sub = pylab.subplot(tot, 1, idx + 1)
-
-        colors = self.random_color()
-        pl = None
-        vl = []
-        poly = None
-        if graph_type == 'dot':
-            pl = pylab.plot(x, y, 'o', 2, colors)
-        elif graph_type == 'dotline':
-            pl = pylab.plot(x, y, 'o-', 2, colors)
-        elif graph_type == 'step':
-            pl = pylab.plot(x, y, ls='steps', lw=2, c=colors)
-        elif graph_type == 'stem':
-            vl.append(pylab.plot(x, y, 'o', 2, colors))
-            vl.append(pylab.vlines(x, 0, y,  linestyle='solid', color='b'))
-        elif graph_type == 'fill':
-            poly = pylab.fill(x, y, 0, None, linewidth=2)
-        else: #line by default
-            pl = pylab.plot(x, y, '-', 2, colors)
-
-        pylab.title(title, size="small")
-        pylab.xlabel(xlabel, x=0.9, y=0.9, size="x-small")
-        pylab.ylabel(ylabel, x=0.9, y=0.9, size="x-small")
-        pylab.xticks(size="x-small")
-        pylab.yticks(size="x-small")
-
-        if pl is not None:
-            self._display[display_index][0] = pl
-            self._display[display_index][1] = 'plot'
-            self._display[display_index][2] = sub
-        elif len(vl) != 0:
-            self._display[display_index][0] = vl
-            self._display[display_index][1] = 'vline'
-            self._display[display_index][2] = sub
-        elif poly is not None:
-            self._display[display_index][0] = poly
-            self._display[display_index][1] = 'poly'
-            self._display[display_index][2] = sub
-
-    def update_plots(self, x, y, xmin, ymin, xmax, ymax, graph, sub):
-        """ add new values into a plot graph """
-        graph.set_data(x, y)
-
-        rymin = ymin - ((ymax - ymin) * 0.1)
-        rymax = ymax + ((ymax - ymin) * 0.1)
-
-        sub.axis([xmin, xmax, rymin, rymax])
-
-        formatter = FormatStrFormatter('%2.8g')
-        sub.yaxis.set_major_formatter(formatter)
-        sub.xaxis.set_major_formatter(formatter)
-
-# TODO find an equivalent for set_data for vlines and fill to avoid calling the
-#      function on each update
-    def update_vlines(self, x, y, xmin, ymin, xmax, ymax, graph, sub):
-        """ add new values into a stem graph """
-        graph[0][0].set_data(x, y)
-        sub.vlines(x, 0, y,  linestyle='solid', color='b')
-
-        rymin = ymin - ((ymax - ymin) * 0.1)
-        rymax = ymax + ((ymax - ymin) * 0.1)
-
-        sub.axis([xmin, xmax, rymin, rymax])
-
-        formatter = FormatStrFormatter('%2.8g')
-        sub.yaxis.set_major_formatter(formatter)
-        sub.xaxis.set_major_formatter(formatter)
-
-    def update_polys(self, x, y, xmin, ymin, xmax, ymax, graph, sub):
-        """ add new values into a polygons graph """
-        sub.fill_between(x, y, 0, None, linewidth=2)
-
-        rymin = ymin - ((ymax - ymin) * 0.1)
-        rymax = ymax + ((ymax - ymin) * 0.1)
-
-        sub.axis([xmin, xmax, rymin, rymax])
-
-        formatter = FormatStrFormatter('%2.8g')
-        sub.yaxis.set_major_formatter(formatter)
-        sub.xaxis.set_major_formatter(formatter)
-
-    def random_color(self):
-        """ select a random color """
-        list_colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
-
-        pos = randrange(len(list_colors))
-        elem = list_colors[pos]
-
-        return elem
-
-    def update_all_graphs(self):
-        """ update all graphs """
-        if self._canvas is not None:
-            self.draw_graph()
-
-    def draw_graph(self):
-        """ apply change """
-        self._canvas.draw_idle()
 
     def plot_imported_graph(self, i, nbr, title, plot_type, x_list, y_list):
         """ plot a graph from data in file  """
@@ -265,11 +133,33 @@ class ProbeView(WindowView):
         """ the program list changed during simulation """
         self._probe_sel_controller.update_data(programs)
     
-    def simu_state_changed(self, new_state):
+    def new_probe_value(self, probe, time, value):
+        """ a new probe value was received """
+        self._probe_display.add_probe_value(probe, time, value)
+    
+    def simu_state_changed(self):
+        """ the simulation was (possibly) started or stopped """
+        new_state = self._model.is_running()
+    
+        if self._simu_running == new_state:
+            return
+    
+        self._simu_running = new_state
+    
         if new_state:
             self._set_state_simulating()
+            self._update_graph_tag = gobject.timeout_add(250,
+                self._probe_display.graph_update)
         else:
-            self._set_state_idle()        
+            gobject.source_remove(self._update_graph_tag)
+            self._update_graph_tag = None
+            self._set_state_idle()
+            
+
+    def displayed_probes_changed(self, displayed_probes):
+        """ a probe was selected/unselected for display """
+        
+        self._probe_display.update(displayed_probes)
 
     def _set_state_idle(self):
         self._status_label.set_markup("<b>Displayed:</b> -")
@@ -285,61 +175,6 @@ class ProbeView(WindowView):
         self._status_label.set_markup("<b>Displayed:</b> Run %s" % self._run)
         self._probe_button.set_label("Load…")
         self._probe_button.set_sensitive(True)
-
-
-    def refresh(self):
-        """ refresh the display view """
-        
-        
-#         if self._model.is_running():
-#             self._files_path = ''
-#             gobject.idle_add(self.enable_plot_button,
-#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-#         # a scenario has been loaded
-#         elif self._files_path != '':
-#             gobject.idle_add(self.enable_plot_button,
-#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-#         # load the last run
-#         elif self._model.get_run() != 'default':
-#             scenario = self._model.get_scenario()
-#             run = self._model.get_run()
-#             self._files_path = os.path.join(scenario, run)
-#             gobject.idle_add(self.enable_plot_button,
-#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-#         # no previous run, nothing loaded
-#         else:
-#             self._files_path = ''
-#             gobject.idle_add(self.disable_plot_button,
-#                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-#         self._probe_lock.acquire()
-#         real_names = []
-#         for host in self._model.get_hosts_list():
-#             real_names.append(host.get_name())
-#
-#         # add the new hosts
-#         new_host_names = set(real_names) - set(self._host_names_detected)
-#         if len(new_host_names) > 0:
-#             self._host_names_detected.extend(new_host_names)
-#
-#             try:
-#                 self._probes.create(new_host_names)
-#             except ProbeException as error:
-#                 self._log.warning("failed to update probes for %s: %s!" %
-#                                   (new_host_names, error.value))
-#                 self._probe_lock.release()
-#                 return True
-#             else:
-#                 self._log.debug("new probe successfully append")
-#
-#         # remove old hosts
-#         old_host_names = set(self._host_names_detected) - set(real_names)
-#         for host in old_host_names:
-#             self._host_names_detected.remove(host)
-#
-#         gobject.idle_add(self.update_probe_tree,
-#                          new_host_names, old_host_names)
-#         self._probe_lock.release()
-        return True
 
 
     def save_figure(self, filename):
