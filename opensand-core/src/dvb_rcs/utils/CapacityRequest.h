@@ -29,6 +29,7 @@
  * @file    CapacityRequest.h
  * @brief   Represent a CR (Capacity Request)
  * @author  Audric Schiltknecht / Viveris Technologies
+ * @author  Julien Bernard / Viveris Technologies
  */
 
 #ifndef _CAPACITY_REQUEST_H_
@@ -51,6 +52,23 @@ typedef enum
 	cr_none  = 4, /* No CR, only use Constant Allocation */
 } cr_type_t;
 
+/**
+ * The Emulated Capacity Requests field
+ */
+typedef struct
+{
+	uint8_t type:4;  ///< The CR type
+					   //   for DVB-RCS: 00 => VBDC
+					   //                01 => RBDC
+					   //                10 => AVBDC
+	uint8_t prio:2;    ///< The request priority
+	uint8_t scale:2;   ///< The scale of the request according to the values
+					   //   below (should be as small as possible):
+					   //   for DVB-RCS: 00 => 1
+					   //                01 => 16
+	uint8_t value;     ///< The request value
+					   //   (the final requeted rate will be scale * value)
+} __attribute__((packed)) emu_cr_t;
 
 /**
  * The CR info for CR computation
@@ -61,24 +79,6 @@ typedef struct
 	uint8_t type;
 	uint32_t value;
 } cr_info_t;
-
-/**
- * The Emulated Capacity Requests field
- */
-typedef struct
-{
-	uint8_t type:4;  ///< The CR type
-	                   //   for DVB-RCS: 00 => VBDC
-	                   //                01 => RBDC
-	                   //                10 => AVBDC
-	uint8_t prio:2;    ///< The request priority
-	uint8_t scale:2;   ///< The scale of the request according to the values
-	                   //   below (should be as small as possible):
-	                   //   for DVB-RCS: 00 => 1
-	                   //                01 => 16
-	uint8_t value;     ///< The request value
-	                   //   (the final requeted rate will be scale * value)
-} __attribute__((packed)) emu_cr_t;
 
 /**
  * The Emulated SAC field
@@ -92,15 +92,6 @@ typedef struct
 } __attribute__((packed)) emu_sac_t;
 
 
-/**
- * @brief decode the capacity request in function of the
- *        encoded value  and scaling factor
- *
- * @param cr the emulated capacity request
- * @return the capacity request value
- */
-uint16_t getDecodedCrValue(const emu_cr_t &cr);
-
 
 /**
  * @class CapacityRequest
@@ -110,11 +101,26 @@ class CapacityRequest
 {
  public:
 
+	/**
+	 * @brief Capacity Request constructor for agent, used to build
+	 *        a capacity request
+	 *
+	 * @param tal_id   The terminal ID
+	 * @param requests A list of CR with usefule information
+	 */
 	CapacityRequest(tal_id_t tal_id,
-	                std::vector<cr_info_t> requests):
-		tal_id(tal_id),
-		requests(requests)
-	{};
+	                std::vector<cr_info_t> requests);
+
+	/**
+	 * @brief Capacity Request constructor for controller, used to
+	 *        decode a capacity request
+	 *
+	 * @param data   the RAW data containing the CR
+	 * @param length the data length
+	 */
+	CapacityRequest(const unsigned char *data, size_t length);
+
+	~CapacityRequest();
 
 	/**
 	 * @brief   Get the terminal Id.
@@ -124,10 +130,20 @@ class CapacityRequest
 	tal_id_t getTerminalId() const
 	{
 		return this->tal_id;
-	}
+	};
+
+	/**
+	 * @brief  Get the requests
+	 *
+	 * @return  the requets
+	 */
+	std::vector<cr_info_t> getRequets() const
+	{
+		return this->requests;
+	};
 	
 	/**
-	 * @brief  Build a SAC field
+	 * @brief  Build a SAC field to be sent on the network
 	 * 
 	 * @param frame  the frame containing the SAC field
 	 * @param length the length of the frame

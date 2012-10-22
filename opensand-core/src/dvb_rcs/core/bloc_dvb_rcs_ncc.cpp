@@ -1167,21 +1167,22 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 
 		case MSG_TYPE_CR:
 		{
-			T_DVB_SAC_CR_INFO * cr_info;
+			CapacityRequest *cr = new CapacityRequest(data, len);
+			// TODO dra_id is not used ?
 			unsigned int dra_id;
 
 			UTI_DEBUG_L3("handle received Capacity Request (CR)\n");
 
 			// retrieve the current DRA scheme for the ST
-			cr_info = (T_DVB_SAC_CR_INFO *) (data + sizeof(T_DVB_HDR));
-			dra_id = this->emissionStd->getStCurrentDraSchemeId(cr_info->logon_id);
-
-			if(this->m_pDamaCtrl->hereIsCR(data, len, dra_id) != 0)
+			dra_id = this->emissionStd->getStCurrentDraSchemeId(cr->getTerminalId());
+			if(!this->m_pDamaCtrl->hereIsCR(cr))
 			{
 				UTI_ERROR("failed to handle Capacity Request "
 				          "(CR) frame\n");
+				delete cr;
 				goto error;
 			}
+			delete cr;
 			g_memory_pool_dvb_rcs.release((char *) data);
 		}
 		break;
@@ -1527,8 +1528,6 @@ int BlocDVBRcsNcc::simulateFile()
 		{
 		case cr:
 		{
-			unsigned char sim_cr[sizeof(T_DVB_SAC_CR)];
-			size_t length;
 			CapacityRequest *capacity_request;
 			cr_info_t cr_info;
 			vector<cr_info_t> requests;
@@ -1541,8 +1540,8 @@ int BlocDVBRcsNcc::simulateFile()
 			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
 			          "for ST %d\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			capacity_request->build(sim_cr, length);
-			this->m_pDamaCtrl->hereIsCR(sim_cr, length, 0);
+			this->m_pDamaCtrl->hereIsCR(capacity_request);
+			delete capacity_request;
 			break;
 		}
 		case logon:
@@ -1624,8 +1623,6 @@ int BlocDVBRcsNcc::simulateRandom()
 
 	for(i = 0; i < this->simu_st; i++)
 	{
-		unsigned char sim_cr[sizeof(T_DVB_SAC_CR)];
-		size_t length;
 		CapacityRequest *capacity_request;
 		cr_info_t cr_info;
 		vector<cr_info_t> requests;
@@ -1637,8 +1634,8 @@ int BlocDVBRcsNcc::simulateRandom()
 		requests.push_back(cr_info);
 		capacity_request = new CapacityRequest(BROADCAST_TAL_ID + i + 1,
 		                                       requests);
-		capacity_request->build(sim_cr, length);
-		this->m_pDamaCtrl->hereIsCR(sim_cr, length, 0);
+		this->m_pDamaCtrl->hereIsCR(capacity_request);
+		delete capacity_request;
 	}
 
 	return 0;

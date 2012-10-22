@@ -409,66 +409,49 @@ int DvbRcsDamaCtrl::hereIsLogoff(unsigned char *buf, long len)
  * When receiving a CR, fill the internal SACT table and internal TBTP table
  * Must maintain Invariant 1 true
  *
- * @param buf     the pointer to CR buff to be copied
- * @param len     the length of the buffer
- * @param dra_id  TODO
- * @return        0 on success, -1 otherwise
+ * @param capacity_request The capacity request
+ * @return trur on success, false otherwise
  */
-int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
+bool DvbRcsDamaCtrl::hereIsCR(const CapacityRequest *capacity_request)
 {
-	const char *FUNCNAME = DC_DBG_PREFIX "[hereIsCR]";
-	T_DVB_SAC_CR *sac_cr;
 	DC_Context::iterator st;
 	DC_St *ThisSt;
-	double Request;
-	uint16_t xbdc;
-
-	sac_cr = (T_DVB_SAC_CR *) buf;
-
-	// Type sanity check
-	if(sac_cr->hdr.msg_type != MSG_TYPE_CR)
-	{
-		UTI_ERROR("unattended type (%ld) of DVB frame, drop frame\n",
-		          sac_cr->hdr.msg_type);
-		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_BAD_TYPE_ERROR,
-		                     sac_cr->hdr.msg_type, C_ERROR_NCC_REQUEST);
-		goto error;
-	}
+	tal_id_t tal_id = capacity_request->getTerminalId();
+	std::vector<cr_info_t> requests = capacity_request->getRequets();
 
 	// Checking if the station is registered
-	st = m_context.find(sac_cr->sac.tal_id);
+	st = m_context.find(tal_id);
 	if(st == m_context.end())
 	{
-		UTI_ERROR("%s CR for a unknown st (logon_id=%d). Discarded.\n",
-		          FUNCNAME, sac_cr->sac.tal_id);
+		UTI_ERROR("CR for a unknown st (logon_id=%d). Discarded.\n",
+		          tal_id);
 		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_MINOR, C_CR_UNKNOWN_ST_ERROR,
-		                     sac_cr->sac.tal_id, C_ERROR_NCC_REQUEST);
+		                     tal_id, C_ERROR_NCC_REQUEST);
 		goto error;
 	}
 	ThisSt = st->second; // Now st_context points to a valid context
 
-	for(unsigned int i = 0; i < sac_cr->sac.cr_number; i++)
+	for(std::vector<cr_info_t>::iterator it = requests.begin();
+	    it != requests.end(); ++it)
 	{
-		emu_cr_t cr;
-		// check the request
-		cr = sac_cr->sac.cr[i];
+		double Request;
+		uint16_t xbdc;
 
 		// retrieve the requested capacity
-		xbdc = getDecodedCrValue(cr);
-		UTI_DEBUG("%s ST %u requests %u %s\n",
-		          FUNCNAME, sac_cr->sac.tal_id, xbdc,
-		          (cr.type == cr_vbdc) ?
-		          " slots in VBDC" : " kbits/s in RBDC");
+		xbdc = (*it).value;
+		UTI_DEBUG("ST %u requests %u %s\n", tal_id, xbdc,
+		          ((*it).type == cr_vbdc) ?
+		           " slots in VBDC" : " kbits/s in RBDC");
 
 		// take into account the new request
-		switch(cr.type)
+		switch((*it).type)
 		{
 			case cr_vbdc:
 				if(ThisSt->SetVbdc(xbdc) == 0)
 				{
 					// Now we are sure to have a valid cr for a valid context
 					DC_RECORD_EVENT("CR ST%u value=%u type=VBDC",
-					                sac_cr->sac.tal_id, xbdc);
+					                tal_id, xbdc);
 				}
 				break;
 
@@ -489,16 +472,16 @@ int DvbRcsDamaCtrl::hereIsCR(unsigned char *buf, long len, int dra_id)
 				{
 					// Now we are sure to have a valid cr for a valid context
 					DC_RECORD_EVENT("CR ST%u value=%u type=RBDC",
-					                sac_cr->sac.tal_id, xbdc);
+					                tal_id, xbdc);
 				}
 				break;
 		}
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 /**

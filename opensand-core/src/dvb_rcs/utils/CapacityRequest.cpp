@@ -47,6 +47,50 @@
 
 static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
 static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
+static uint16_t getDecodedCrValue(const emu_cr_t &cr);
+
+CapacityRequest::CapacityRequest(tal_id_t tal_id,
+                                 std::vector<cr_info_t> requests):
+	tal_id(tal_id),
+	requests(requests)
+{}
+
+CapacityRequest::CapacityRequest(const unsigned char *data, size_t length)
+{
+	emu_sac_t *sac;
+
+	/* check that data contains DVB header, tal_id and cr_number */
+	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t))
+	{
+		return;
+	}
+	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t);
+
+	sac = (emu_sac_t *)(data + sizeof(T_DVB_HDR));
+	this->tal_id = sac->tal_id;
+
+	/* check that we can read enough cr */
+	if(length < sac->cr_number * sizeof(emu_cr_t))
+	{
+		return;
+	}
+
+	for(unsigned int i = 0; i < sac->cr_number; i++)
+	{
+		cr_info_t req;
+
+		req.prio = sac->cr[i].prio;
+		req.type = sac->cr[i].type;
+		req.value = getDecodedCrValue(sac->cr[i]);
+
+		this->requests.push_back(req);
+	}
+}
+
+CapacityRequest::~CapacityRequest()
+{
+	this->requests.clear();
+}
 
 void CapacityRequest::build(unsigned char *frame, size_t &length)
 {
@@ -152,7 +196,14 @@ static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step)
 	}
 };
 
-uint16_t getDecodedCrValue(const emu_cr_t &cr)
+/**
+ * @brief decode the capacity request in function of the
+ *        encoded value  and scaling factor
+ *
+ * @param cr the emulated capacity request
+ * @return the capacity request value
+ */
+static uint16_t getDecodedCrValue(const emu_cr_t &cr)
 {
 	uint16_t request = 0;
 

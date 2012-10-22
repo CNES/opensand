@@ -145,7 +145,7 @@ class DvbRcsDamaCtrl
 	// Process DVB frames
 	virtual int hereIsLogonReq(unsigned char *ip_buf, long i_len, int dra_id);
 	virtual int hereIsLogoff(unsigned char *ip_buf, long i_len);
-	virtual int hereIsCR(unsigned char *ip_buf, long i_len, int dra_id);
+	virtual bool hereIsCR(const CapacityRequest *capacity);
 	virtual int hereIsSACT(unsigned char *ip_buf, long i_len);
 	virtual int runOnSuperFrameChange(long i_frame);
 
