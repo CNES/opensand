@@ -80,7 +80,8 @@ class MessageSendProbes(object):
     def __init__(self, probe_types, data):
         self.values = {}
         length = len(data)
-        pos = 0
+        timestamp = struct.unpack("!L", data[0:4])[0]
+        pos = 4
         while pos < length:
             probe_id = struct.unpack("!B", data[pos])[0]
             probe_type = probe_types[probe_id]
