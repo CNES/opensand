@@ -28,7 +28,7 @@ Probe.h
 
 libopensand_env_plane_la_SOURCES = $(libopensand_env_plane_la_cpp) $(libopensand_env_plane_la_h)
 libopensand_env_plane_la_CPPFLAGS = -pthread -W -Wall -ansi -pedantic
-libopensand_env_plane_la_LIBADD = 
+libopensand_env_plane_la_LIBADD = -lrt
 libopensand_env_plane_la_LDFLAGS = -pthread
 
 test_env_plane_SOURCES = test_env_plane.cpp

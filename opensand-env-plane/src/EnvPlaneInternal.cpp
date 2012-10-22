@@ -7,12 +7,19 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <opensand_conf/uti_debug.h>
 
 #include "CommandThread.h"
 #include "messages.h"
+
+static uint32_t getmilis() {
+	struct timespec time;
+	clock_gettime(CLOCK_MONOTONIC, &time);
+	return time.tv_sec * 1000 + time.tv_nsec / 1000000;
+}
 
 EnvPlaneInternal::EnvPlaneInternal()
 {
@@ -168,7 +175,7 @@ bool EnvPlaneInternal::finish_init()
 	this->initializing = false;
 
 	UTI_PRINT(LOG_INFO, "Environment plane initialized.\n");
-	this->started_time = clock() * 1000 / CLOCKS_PER_SEC;
+	this->started_time = getmilis();
 	
 	return true;
 }
@@ -181,7 +188,7 @@ void EnvPlaneInternal::send_probes()
 	bool needs_sending = false;
 
 	std::string message;
-	uint32_t timestamp = clock() * 1000 / CLOCKS_PER_SEC - this->started_time;
+	uint32_t timestamp = getmilis();
 	msg_header_send_probes(message, timestamp);
 
 	for (std::size_t i = 0 ; i < this->probes.size() ; i++) {

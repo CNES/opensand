@@ -62,7 +62,7 @@ class ProbeGraph(object):
     
         self._axes.cla()
         self._axes.set_title(self._title, size="small")
-        self._axes.tick_params(labelsize="x-small")
+        #self._axes.tick_params(labelsize="x-small")
         self._axes.plot(self._times, self._values, 'o-', color=self._color)
         
         self._dirty = False
