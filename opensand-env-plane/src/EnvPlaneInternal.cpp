@@ -188,7 +188,7 @@ void EnvPlaneInternal::send_probes()
 	bool needs_sending = false;
 
 	std::string message;
-	uint32_t timestamp = getmilis();
+	uint32_t timestamp = getmilis() - this->started_time;
 	msg_header_send_probes(message, timestamp);
 
 	for (std::size_t i = 0 ; i < this->probes.size() ; i++) {
