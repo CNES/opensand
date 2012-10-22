@@ -46,7 +46,7 @@ class ProbeGraph(object):
             y = self._values
         
         axes.set_title(self._title, size="small")
-        axes.tick_params(labelsize="x-small")
+        #axes.tick_params(labelsize="x-small") # Not defined on earlier versions
         axes.get_xaxis().set_major_formatter(FORMATTER)
         axes.get_yaxis().set_major_formatter(FORMATTER)
         axes.plot(x, y, 'o-', color=self._color)
@@ -60,7 +60,6 @@ class ProbeGraph(object):
         if not self._dirty:
             return False
     
-        axes.plot([0, 1], [1, 2])
         self._axes.cla()
         self._axes.set_title(self._title, size="small")
         self._axes.tick_params(labelsize="x-small")
@@ -70,13 +69,11 @@ class ProbeGraph(object):
         
         return True
 
-    def add_value(time, value):
+    def add_value(self, time, value):
         self._times.append(time)
         self._values.append(value)
         
         self._dirty = True
-        
-        print "add_value %s, %s" % (time, value)
     
     def __str__(self):
         return self._name
@@ -118,14 +115,14 @@ class ProbeDisplay(object):
         max_index = len(self._displayed_probes) + 1
                 
         for probe in displayed_probes:
-            graph = self._displayed_probes.get(probe.ident)
+            graph = self._displayed_probes.get(probe.global_ident)
             
             if not graph:
                 graph = ProbeGraph(self, probe.program.name, probe.name,
                     probe.unit)
                 graph.index = max_index # Temporary, to put it at the end
             
-            new_probes.append((probe.ident, graph))
+            new_probes.append((probe.global_ident, graph))
         
         new_probes.sort(key=lambda item: item[1].index)
         
@@ -134,7 +131,6 @@ class ProbeDisplay(object):
         
         # Now update the graphs, and construct the new _displayed_probes dict
         self.num_graphs = len(new_probes)
-        
         
         if self.num_graphs == 0:
             return
@@ -162,4 +158,7 @@ class ProbeDisplay(object):
         return True
     
     def add_probe_value(self, probe, time, value):
-        self._displayed_probes[probe.ident].add_value(time, value)
+        try:
+            self._displayed_probes[probe.global_ident].add_value(time, value)
+        except KeyError:
+            pass

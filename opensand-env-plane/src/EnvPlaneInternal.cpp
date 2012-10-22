@@ -168,6 +168,8 @@ bool EnvPlaneInternal::finish_init()
 	this->initializing = false;
 
 	UTI_PRINT(LOG_INFO, "Environment plane initialized.\n");
+	this->started_time = clock() * 1000 / CLOCKS_PER_SEC;
+	
 	return true;
 }
 
@@ -179,7 +181,8 @@ void EnvPlaneInternal::send_probes()
 	bool needs_sending = false;
 
 	std::string message;
-	msg_header_send_probes(message);
+	uint32_t timestamp = clock() * 1000 / CLOCKS_PER_SEC - this->started_time;
+	msg_header_send_probes(message, timestamp);
 
 	for (std::size_t i = 0 ; i < this->probes.size() ; i++) {
 		BaseProbe* probe = this->probes[i];

@@ -228,7 +228,8 @@ class MessagesHandler(object):
 
     def _handle_cmd_send_probes(self, host, prog, data):
         total_length = len(data)
-        pos = 0
+        timestamp = struct.unpack("!L", data[0:4])[0]
+        pos = 4
         
         displayed_values = []
 
@@ -248,9 +249,9 @@ class MessagesHandler(object):
             if probe.displayed:
                 displayed_values.append((probe_id, probe, value))
 
-            LOGGER.debug("Probe %s: Value %s", probe, value)
+        LOGGER.debug("Probe %s: Value %s (t = %d)", probe, value, timestamp)
         
-        self._notify_manager_probes(host, prog, displayed_values)
+        self._notify_manager_probes(host, prog, timestamp, displayed_values)
 
         return True
 
@@ -369,12 +370,12 @@ class MessagesHandler(object):
             MSG_MGR_UNREGISTER_PROGRAM, host_ident, prog_ident),
             self._manager_addr)
     
-    def _notify_manager_probes(self, host, prog, displayed_values):
+    def _notify_manager_probes(self, host, prog, timestamp, displayed_values):
         if not displayed_values:
             return
         
-        message = struct.pack("!LBBB", MAGIC_NUMBER, MSG_MGR_SEND_PROBES,
-            host.ident, prog.ident)
+        message = struct.pack("!LBBBL", MAGIC_NUMBER, MSG_MGR_SEND_PROBES,
+            host.ident, prog.ident, timestamp)
         
         for probe_id, probe, value in displayed_values:
             message += struct.pack("!B", probe_id)

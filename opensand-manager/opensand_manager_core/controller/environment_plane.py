@@ -31,7 +31,6 @@ class EnvironmentPlaneController(object):
         self._collector_addr = None
         self._programs = {}
         self._observer = None
-        self._time = 0
     
     def set_observer(self, observer):
         """
@@ -108,7 +107,6 @@ class EnvironmentPlaneController(object):
         the message.
         """
     
-        self._time = time()
         packet, addr = self._sock.recvfrom(4096)
             
         if addr != self._collector_addr:
@@ -267,7 +265,7 @@ class EnvironmentPlaneController(object):
         Handles probes transmission.
         """
         
-        host_id, prog_id = struct.unpack("!BB", data[0:2])
+        host_id, prog_id, timestamp = struct.unpack("!BBL", data[0:6])
         full_prog_id = (host_id << 8) | prog_id
         
         try:
@@ -277,7 +275,7 @@ class EnvironmentPlaneController(object):
                 "found" % (host_id, prog_id))
             return False
         
-        pos = 2
+        pos = 6
         total_length = len(data)
         
         while pos < total_length:
@@ -293,7 +291,7 @@ class EnvironmentPlaneController(object):
             value, pos = probe._read_value(data, pos)
             
             if self._observer:
-                self._observer.new_probe_value(probe, self._time, value)
+                self._observer.new_probe_value(probe, timestamp, value)
         
         return True
     

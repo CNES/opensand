@@ -17,7 +17,7 @@
 #define SELF_SOCK_NAME "program-%d.socket"
 
 void msg_header_register(std::string& message, pid_t pid, uint8_t num_probes, uint8_t num_events);
-void msg_header_send_probes(std::string& message);
+void msg_header_send_probes(std::string& message, uint32_t timestamp);
 void msg_header_send_event(std::string& message, uint8_t event_id);
 
 uint8_t receive_message(int sock_fd, char* message_data, size_t max_length);

@@ -28,6 +28,12 @@ struct msg_register_struct {
 	uint8_t num_events;
 } PACKED;
 
+struct msg_send_probes_struct {
+	uint32_t magic;
+	uint8_t cmd_type;
+	uint32_t timestamp;
+} PACKED;
+
 struct msg_send_event_struct {
 	uint32_t magic;
 	uint8_t cmd_type;
@@ -46,11 +52,12 @@ void msg_header_register(std::string& message, pid_t pid, uint8_t num_probes, ui
 	message.append((const char*)&header, sizeof(header));
 }
 
-void msg_header_send_probes(std::string& message)
+void msg_header_send_probes(std::string& message, uint32_t timestamp)
 {
-	msg_base_header header;
+	msg_send_probes_struct header;
 	header.magic = htonl(MAGIC_NUMBER);
 	header.cmd_type = MSG_CMD_SEND_PROBES;
+	header.timestamp = htonl(timestamp);
 
 	message.append((const char*)&header, sizeof(header));
 }

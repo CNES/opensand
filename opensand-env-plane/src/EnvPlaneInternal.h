@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <sys/un.h>
+#include <time.h>
 
 #include <vector>
 
@@ -33,6 +34,7 @@ private:
 	std::vector<BaseProbe*> probes;
 	std::vector<Event*> events;
 	int sock;
+	uint32_t started_time;
 
 	sockaddr_un daemon_sock_addr;
 	sockaddr_un self_sock_addr;
