@@ -150,7 +150,8 @@ class ProbeView(WindowView):
             self._set_state_simulating()
             self._start_graph_update()
         else:
-            self._stop_graph_update()
+            if self._update_graph_tag is not None:
+                self._stop_graph_update()
             self._set_state_idle()
             
 

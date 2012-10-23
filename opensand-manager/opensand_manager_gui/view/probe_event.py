@@ -74,7 +74,7 @@ class ProbeEvent(ProbeView):
         if val and self._update_graph_tag is None:
             self._start_graph_update()
         
-        elif not val and self._udpate_graph_tag is not None:
+        elif not val and self._update_graph_tag is not None:
             self._stop_graph_update()
 
     def on_plot_clicked(self, source=None, event=None):
