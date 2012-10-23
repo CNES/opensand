@@ -72,8 +72,6 @@ class ProbeView(WindowView):
 
         self._simu_running = False
         self._update_graph_tag = None
-        self._scenario = None
-        self._run = None
 
         self._probe_sel_controller = ProbeSelectionController(self,
             self._ui.get_widget("probe_sel_progs"),
@@ -153,6 +151,10 @@ class ProbeView(WindowView):
             if self._update_graph_tag is not None:
                 self._stop_graph_update()
             self._set_state_idle()
+    
+    def simu_data_available(self):
+        self._model.get_saved_probes()
+        
             
 
     def displayed_probes_changed(self, displayed_probes):

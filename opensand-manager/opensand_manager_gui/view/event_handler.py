@@ -115,6 +115,10 @@ class EventReponseHandler(threading.Thread):
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
                 gobject.idle_add(self._view.disable_deploy_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
+            
+            elif event_type == "probe_transfer_progress":
+                text = self._event_manager_response.get_text()
+                self._opensand_view.on_probe_transfer_progress(text == "start")
 
             elif event_type == 'quit':
                 # quit event

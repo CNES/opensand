@@ -288,15 +288,15 @@ class Controller(threading.Thread):
             self._log.error("cannot get $HOME environment variable, "
                             "could not save environment plane data")
         else:
-            src = os.path.join(os.environ['HOME'],
-                               ".opensand/scenario_1/run_1")
+            self._event_manager_response.set('probe_transfer_progress', 'start')
             dst = os.path.join(self._model.get_scenario(),
-                               self._model.get_run())
-            try:
-                copytree(src, dst)
-            except Exception, msg:
-                self._log.error("Cannot save environment plane data: %s" %
-                                str(msg))
+                self._model.get_run())
+            
+            def done():
+                self._event_manager_response.set('probe_transfer_progress',
+                    'done')
+            
+            self._env_plane.transfer_from_collector(dst, None, done)
 
         self._log.info("OpenSAND platform stopped")
 

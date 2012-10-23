@@ -4,6 +4,7 @@
 Environment Plane model.
 """
 
+import os
 import struct
 
 
@@ -135,5 +136,62 @@ class Probe(object):
     
     def __repr__(self):
         return "<Probe: %s [%d]>" % (self.name, self.ident)
-    
 
+class SavedProbeLoader(object):
+    """
+    This objects reconstructs a program/probe hierarchy from a saved run
+    """
+    
+    def __init__(self, run_path):
+        self._data = {}
+        self._programs = []
+        prog_id = 0
+        
+        for host_name in os.listdir(run_path):
+            host_path = os.path.join(run_path, host_name)
+            
+            if not os.path.isdir(host_path):
+                continue
+            
+            for prog_name in os.listdir(host_path):
+                prog_path = os.path.join(host_path, prog_name)
+                prog_id += 1
+                
+                if not os.path.isdir(prog_path):
+                    continue
+                
+                probes = []
+                
+                for probe_name in os.listdir(prog_path):
+                    probe_path = os.path.join(prog_path, probe_name)
+                    probe_name, ext = os.path.splitext(probe_name)
+                    probe_full_name = "%s.%s.%s" % (host_name, prog_name,
+                        probe_name)
+
+                    if not os.path.isfile(probe_path) or ext != '.log':
+                        continue
+                
+                    probe_data = []
+                    
+                    with open(probe_path, 'r') as probe_file:
+                        for line in probe_file:
+                            time, value = line.split(" ", 1)
+                            value = float(value)
+                            probe_data.append((time, value))
+                    
+                    self._data[probe_full_name] = probe_data
+                    probes.append((probe_name, "", None, True, False))
+                
+                self._programs.append(Program(self, prog_id,
+                    "%s.%s" % (host_name, prog_name), probes, []))
+        
+        print "Data = %r, programs = %r" % (self._data, self._programs)
+    
+    def _update_probe_status(self, probe):
+        # Nothing to do
+        pass
+    
+    
+    
+    
+                

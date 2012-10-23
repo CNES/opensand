@@ -85,8 +85,6 @@ class ProbeSelectionController(object):
         self._program_list = program_list
         self._update_needed = True
         
-        print program_list
-        
         gobject.idle_add(self._update_data)
     
     def _update_data(self):

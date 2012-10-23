@@ -87,6 +87,12 @@ class ProbeGraph(object):
         except ValueError:
             xmin, xmax, ymin, ymax = (0, 0, 0, 0)
         
+        if xmin == xmax:
+            xmax = xmin + 1
+        
+        if ymin == ymax:
+            ymax = ymin + 1
+        
         rymin = ymin - ((ymax - ymin) * 0.1)
         rymax = ymax + ((ymax - ymin) * 0.1)
         

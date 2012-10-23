@@ -48,6 +48,7 @@ from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
+from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
 from opensand_manager_core.utils import copytree
@@ -74,6 +75,8 @@ class View(WindowView):
         mgr_event_tab = EventTab(self._event_notebook, "Manager events")
         self._event_tabs = {} # For the individudual program event tabs
         self._log.run(mgr_event_tab)
+        
+        self._prog_dialog = None
 
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
@@ -492,6 +495,20 @@ class View(WindowView):
     
     def on_simu_state_changed(self):
         self._eventprobe.simu_state_changed()
+    
+    def on_probe_transfer_progress(self, started):
+        gobject.idle_add(self._on_probe_transfer_progress, started)
+    
+    def _on_probe_transfer_progress(self, started):        
+        if started:
+            self._prog_dialog = ProgressDialog("Saving probe data, please "
+                "wait…", self._model, self._log)
+            self._prog_dialog.show()
+        else:
+            self._prog_dialog.close()
+            self._prog_dialog = None
+            self._eventprobe.simu_data_available()
+        
 
 ##### TEST #####
 if __name__ == "__main__":

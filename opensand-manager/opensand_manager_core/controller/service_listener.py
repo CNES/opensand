@@ -82,6 +82,7 @@ class OpenSandServiceListener():
         name = args[2]
         address = args[7]
         port = args[8]
+        txt = args[9]
         self._log.debug('service resolved')
         self._log.debug('name: ' + args[2])
         self._log.debug('address: ' + args[7])
@@ -90,8 +91,17 @@ class OpenSandServiceListener():
                        (name, address))
 
         if name == "collector":
-            self._env_plane.register_on_collector(address, port)
+            try:
+                items = dict("".join(chr(i) for i in arg).split("=", 1)
+                    for arg in txt)
+                transfer_port = int(items.get('transfer_port', ""))
+            except ValueError:
+                self._log.error("Failed to get the collector transfer port.")
+                return
+            
+            self._env_plane.register_on_collector(address, port, transfer_port)
             self._model.set_collector_known(True)
+                        
             return
 
         if address.count(':') > 0:

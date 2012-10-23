@@ -122,10 +122,14 @@ class OpenSandManager:
         except Exception, msg :
             self._manager_log.error("failed to initialize OpenSAND Manager: " +
                                     str(msg))
+            import os
+            import traceback
+            traceback.print_exc()
             error_popup("Failed to initialize OpenSAND Manager", str(msg))
-            if self._view is not None:
-                self._view.run()
-            raise
+            os._exit(1)
+	    #if self._view is not None:
+            #    self._view.run()
+            #raise
 
     def go(self):
         """ launch OpenSAND Manager """

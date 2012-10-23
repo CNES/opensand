@@ -38,6 +38,7 @@ import ConfigParser
 import os
 import shutil
 
+from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
 from opensand_manager_core.model.global_config import GlobalConfig
@@ -504,7 +505,16 @@ class Model:
     def get_missing(self):
         """ get the missing module list """
         return self._missing_modules
-
+    
+    def get_saved_probes(self, run_id=None):
+        """ get a SavedProbeLoader object with the saved probes objects """
+        
+        if run_id is None:
+            run_id = self.get_run()
+        
+        run_path = os.path.join(self.get_scenario(), run_id)
+        
+        return SavedProbeLoader(run_path)
 
 ##### TEST #####
 if __name__ == "__main__":

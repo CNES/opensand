@@ -2,7 +2,9 @@
 # -*- coding: utf8 -*-
 
 from opensand_manager_core.model.environment_plane import Program, Probe
+from tempfile import TemporaryFile
 from time import time
+from zipfile import ZipFile
 import gobject
 import socket
 import struct
@@ -29,6 +31,14 @@ class EnvironmentPlaneController(object):
         self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
             self._data_received)
         self._collector_addr = None
+        
+        self._transfer_port = 0
+        self._transfer_dest = None
+        self._transfer_dial = None
+        self._transfer_cb = None
+        self._tranfer_file = None
+        self._transfer_remaining = 0
+        
         self._programs = {}
         self._observer = None
     
@@ -40,7 +50,7 @@ class EnvironmentPlaneController(object):
         
         self._observer = observer
     
-    def register_on_collector(self, ipaddr, port):
+    def register_on_collector(self, ipaddr, port, transfer_port):
         """
         Register the probe controller on the specified collector.
         """
@@ -53,6 +63,7 @@ class EnvironmentPlaneController(object):
             return
     
         self._collector_addr = addr
+        self._transfer_port = transfer_port
         self._log.info("Registering on collector %s:%d" % addr)
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
             addr)
@@ -102,6 +113,85 @@ class EnvironmentPlaneController(object):
         """
         
         return self._programs[ident]
+    
+    def transfer_from_collector(self, destination, prog_dialog, comp_callback):
+        """
+        Gets the probe data from the collector and puts the files in the
+        destination folder.
+        """
+        
+        if not self._transfer_port:
+            raise RuntimeError("Collector transfer port not known")
+        
+        self._log.debug("Initiating probe transfer from collector")
+        
+        if prog_dialog:
+            prog_dialog.show()
+        
+        transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        transfer_socket.connect((self._collector_addr[0], self._transfer_port))
+        
+        self._transfer_dest = destination
+        self._transfer_dial = prog_dialog
+        self._transfer_cb = comp_callback
+        self._transfer_file = TemporaryFile()
+        
+        gobject.io_add_watch(transfer_socket, gobject.IO_IN,
+            self._transfer_header)
+        
+    def _transfer_header(self, transfer_socket, _tag):
+        header = ""
+        while len(header) < 4:
+            header += transfer_socket.recv(4 - len(header))
+        
+        length = struct.unpack("!L", header)[0]
+        self._transfer_remaining = length
+        
+        self._log.debug("Probe transfer: got length = %d" % length)
+        
+        gobject.io_add_watch(transfer_socket, gobject.IO_IN,
+            self._transfer_data)
+    
+        if self._transfer_dial:
+            self._transfer_dial.ping()
+    
+        return False
+    
+    def _transfer_data(self, transfer_socket, _tag):
+        if self._transfer_remaining == 0:
+            transfer_socket.close()
+            gobject.idle_add(self._transfer_unzip)
+            return False
+        
+        to_read = min(self._transfer_remaining, 4096)
+        data = transfer_socket.recv(to_read)
+        self._transfer_remaining -= len(data)
+        
+        self._transfer_file.write(data)
+        
+        if self._transfer_dial:
+            self._transfer_dial.ping()
+        
+        self._log.debug("Got data, %d remaining" % self._transfer_remaining)
+        
+        return True
+    
+    def _transfer_unzip(self):
+        self._log.debug("Extracting")
+    
+        self._transfer_file.seek(0)
+        zip_file = ZipFile(self._transfer_file, "r")
+        zip_file.extractall(self._transfer_dest)
+        zip_file.close()
+        
+        self._log.debug("Done")
+        
+        if self._transfer_dial:
+            self._transfer_dial.close()
+        
+        gobject.idle_add(self._transfer_cb)
+    
+        return False
         
     def _data_received(self, _sock, _tag):
         """
@@ -355,7 +445,7 @@ if __name__ == '__main__':
     main_loop = gobject.MainLoop()
     controller = EnvironmentPlaneController()
     try:
-        controller.register_on_collector("127.0.0.1", int(sys.argv[1]))
+        controller.register_on_collector("127.0.0.1", int(sys.argv[1]), 0)
         main_loop.run()
     finally:
         controller.cleanup()
