@@ -91,16 +91,12 @@ class ProbeGraph(object):
         rymax = ymax + ((ymax - ymin) * 0.1)
         
         self._axes.set_title(self._title, size="small")
-        
-        self._xaxis.set_tick_params(labelsize="x-small")
         self._xaxis.set_major_formatter(FORMATTER)
-        self._xaxis.set_xlim(xmin, xmax)
-        
-        self._yaxis.set_tick_params(labelsize="x-small")
         self._yaxis.set_major_formatter(FORMATTER)
-        self._yaxis.set_ylim(rymin, rymax)
-        
+
         self._axes.plot(x, y, 'o-', color=self._color)
+        
+        self._axes.axis([xmin, xmax, rymin, rymax])
     
     def __str__(self):
         return self._name

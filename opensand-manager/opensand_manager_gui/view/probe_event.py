@@ -51,8 +51,6 @@ class ProbeEvent(ProbeView):
     def __init__(self, parent, model, manager_log):
         ProbeView.__init__(self, parent, model, manager_log)
 
-        self._timeout_id = None
-
         self._updating = False
         self._selected_file_list = []
 
@@ -63,182 +61,21 @@ class ProbeEvent(ProbeView):
         """ close probe tab """
         self._log.debug("Probe Event: close")
 
-        if self._timeout_id is not None:
-            gobject.source_remove(self._timeout_id)
+        if self._simu_running and self._update_graph_tag is not None:
+            self._stop_graph_update()
+        
         self._log.debug("Probe Event: closed")
 
     def activate(self, val):
         """ 'activate' signal handler """
-        if val is False:
-            if self._timeout_id is not None:
-                gobject.source_remove(self._timeout_id)
-                self._timeout_id = None
-        else:
-            pass
-
-
-    def toggled_cb(self, cell, path):
-        """ sets the toggled state on the toggle button to true or false
-            and remove it from the list of selected stats """
-        self._probe_lock.acquire()
-        curr_iter = self._tree.get_iter_from_string(path)
-        curr_name = self._tree.get_value(curr_iter, TEXT)
-        parent_iter = self._tree.iter_parent(curr_iter)
-        parent_name = self._tree.get_value(parent_iter, TEXT)
-
-        # modify ACTIVE property
-        val = not self._tree.get_value(curr_iter, ACTIVE)
-        self._tree.set(curr_iter, ACTIVE, val)
-
-        self._log.debug("statistic %s toggled with parent %s" %
-                        (curr_name, parent_name))
-        top_iter = self._tree.iter_parent(parent_iter)
-        if top_iter is not None:
-            top_name = self._tree.get_value(top_iter, TEXT)
-            self._log.debug("root is " + top_name)
-        else:
-            self._log.debug("root is parent")
-
-        if not val:
-            self._log.debug("remove statistic")
-            if top_iter is None:
-                self.del_selected_stat(parent_name, curr_name, '')
-            else:
-                self.del_selected_stat(top_name, parent_name, curr_name)
-        else:
-            self._log.debug("add statistic")
-            if top_iter is None:
-                self.add_selected_stat(parent_name, curr_name, '')
-            else:
-                self.add_selected_stat(top_name, parent_name, curr_name)
-
-        self._probe_lock.release()
-
-    def set_selected_stats(self, list_component, list_stat, list_index):
-        """ setter on selected statistics dictionary """
-        self._selected['component'] = list_component
-        self._selected['stat'] = list_stat
-        self._selected['index'] = list_index
-
-    def add_selected_stat(self, component, stat, index):
-        """ add a new elements into the list of statistics to plot """
-        self._selected['component'].append(component)
-        self._selected['stat'].append(stat)
-        self._selected['index'].append(index)
-
-        self._log.debug("selected stats: %s" % self._selected)
-
-    def del_selected_stat(self, component, stat, index):
-        """ delete a selected statistic """
-        for i in range(0, len(self._selected['component'])):
-            if component == self._selected['component'][i] and \
-               stat == self._selected['stat'][i] and \
-               index == self._selected['index'][i]:
-                del self._selected['component'][i]
-                del self._selected['stat'][i]
-                del self._selected['index'][i]
-                break
-
-        self._log.debug("selected stats: %s" % self._selected)
-
-    def select_stat(self):
-        """ select a given stat to display, and initialize the canvas """
-        #unset timer
-        if self._timeout_id is not None:
-            gobject.source_remove(self._timeout_id)
-            self._timeout_id = None
-
-        sel = self._selected
-        nbr = len(sel['component'])
-
-        self._display = {}
-
-        i = 0
-        while (i < nbr):
-            # find the corresponding index
-            display_index = None
-            display_index = self._probes.find_stat(sel['component'][i],
-                                                     sel['stat'][i],
-                                                     sel['index'][i])
-            self._display[display_index] = [None, '', None]
-
-            # plot the corresponding graph
-            if display_index is not None:
-                stat = display_index.get_stat()
-
-                # set the title
-                ylabel = "(%s)" % stat.get_unit()
-                ylabel = ylabel.replace('_', ' ')
-
-                idx = sel['index'][i]
-                if idx != '':
-                    idx = ': %s' % idx
-                title = "[%s] %s%s (%s)" % \
-                        (sel['component'][i], sel['stat'][i],
-                         idx, stat.get_comment())
-                title = title.replace('_', ' ')
-
-                xlabel = ''
-
-                if len(display_index.get_value()) > 0:
-                    self._probe_lock.acquire()
-                    (x, y) = display_index.get_x_y()
-                    self.init_graph(display_index, x, y, title,
-                                    xlabel, ylabel, i, nbr,
-                                    stat.get_graph_type())
-                    self._probe_lock.release()
-            else:
-                error_popup("failed to load statistic %s for component %s"
-                            % (sel['stat'][i], sel['component'][i]))
-
-            i = i + 1
-
-        if self._updating:
-            # refresh the GUI immediatly then periodically
-            self.update_stat()
-            self._timeout_id = gobject.timeout_add(1000, self.update_stat)
-
-
-    def update_stat(self):
-        """ update the canvas display """
-        self._probe_lock.acquire()
-
-        label = self._model.get_run()
-        self._ui.get_widget('run_label').set_text(label)
-
-        for index in self._display:
-            if index is not None and index.is_value():
-
-                (x, y) = index.get_x_y()
-
-                xmin = index.get_xmin()
-                xmax = index.get_xmax()
-                ymin = index.get_ymin()
-                ymax = index.get_ymax()
-
-                graph = self._display[index][0]
-                sub = self._display[index][2]
-                if graph is None:
-                    continue
-                # update the data
-                if self._display[index][1] == 'plot':
-                    self.update_plots(x, y, xmin, ymin, xmax, ymax,
-                                      graph[0], sub)
-                if self._display[index][1] == 'vline':
-                    self.update_vlines(x, y, xmin, ymin, xmax, ymax,
-                                       graph, sub)
-                if self._display[index][1] == 'poly':
-                    self.update_polys(x, y, xmin, ymin, xmax, ymax,
-                                      graph[0], sub)
-
-        self._probe_lock.release()
-
-        self.update_all_graphs()
-
-        if self._updating:
-            return True
-        else:
-            return False
+        if not self._simu_running:
+            return
+        
+        if val and self._update_graph_tag is None:
+            self._start_graph_update()
+        
+        elif not val and self._udpate_graph_tag is not None:
+            self._stop_graph_update()
 
     def on_plot_clicked(self, source=None, event=None):
         """ event handler for plot button """

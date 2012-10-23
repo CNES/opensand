@@ -148,11 +148,9 @@ class ProbeView(WindowView):
     
         if new_state:
             self._set_state_simulating()
-            self._update_graph_tag = gobject.timeout_add(250,
-                self._probe_display.graph_update)
+            self._start_graph_update()
         else:
-            gobject.source_remove(self._update_graph_tag)
-            self._update_graph_tag = None
+            self._stop_graph_update()
             self._set_state_idle()
             
 
@@ -176,6 +174,16 @@ class ProbeView(WindowView):
         self._probe_button.set_label("Load…")
         self._probe_button.set_sensitive(True)
 
+    def _start_graph_update(self):
+        """ enables the timer to refresh the graphs periodically """
+        
+        self._update_graph_tag = gobject.timeout_add(500,
+            self._probe_display.graph_update,
+            priority=gobject.PRIORITY_HIGH_IDLE)
+    
+    def _stop_graph_update(self):
+        gobject.source_remove(self._update_graph_tag)
+        self._update_graph_tag = None
 
     def save_figure(self, filename):
         """ save the displayed figure """

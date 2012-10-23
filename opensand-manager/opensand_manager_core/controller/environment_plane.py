@@ -46,9 +46,11 @@ class EnvironmentPlaneController(object):
         """
                 
         addr = (ipaddr, port)
-    
+        
         if self._collector_addr:
-            self.unregister_on_collector()
+            self._log.info("Found a duplicate collector on %s:%d, ignoring" %
+                addr)
+            return
     
         self._collector_addr = addr
         self._log.info("Registering on collector %s:%d" % addr)
