@@ -38,42 +38,69 @@ class ProbeGraph(object):
         """
         
         self._axes = axes
+        self._xaxis = axes.get_xaxis()
+        self._yaxis = axes.get_yaxis()
 
         if direct_values is not None:
-            x, y = direct_values
-        else:
-            x = self._times
-            y = self._values
+            self._times, self._values = direct_values
+
+        self._redraw()
         
-        axes.set_title(self._title, size="small")
-        #axes.tick_params(labelsize="x-small") # Not defined on earlier versions
-        axes.get_xaxis().set_major_formatter(FORMATTER)
-        axes.get_yaxis().set_major_formatter(FORMATTER)
-        axes.plot(x, y, 'o-', color=self._color)
         
         
     def update(self):
         """
-        Update the graph display to take new values into account
+        Updates the graph display to take new values into account
         """
     
         if not self._dirty:
             return False
     
-        self._axes.cla()
-        self._axes.set_title(self._title, size="small")
-        #self._axes.tick_params(labelsize="x-small")
-        self._axes.plot(self._times, self._values, 'o-', color=self._color)
+        self._redraw()
         
         self._dirty = False
         
         return True
 
     def add_value(self, time, value):
+        """
+        Appends a value to the graph
+        """
+        
         self._times.append(time)
         self._values.append(value)
         
         self._dirty = True
+    
+    def _redraw(self):
+        """
+        Plots the current values
+        """
+        
+        self._axes.cla()
+        x = self._times
+        y = self._values
+        
+        try:
+            xmin, xmax = min(x), max(x)
+            ymin, ymax = min(y), max(y)
+        except ValueError:
+            xmin, xmax, ymin, ymax = (0, 0, 0, 0)
+        
+        rymin = ymin - ((ymax - ymin) * 0.1)
+        rymax = ymax + ((ymax - ymin) * 0.1)
+        
+        self._axes.set_title(self._title, size="small")
+        
+        self._xaxis.set_tick_params(labelsize="x-small")
+        self._xaxis.set_major_formatter(FORMATTER)
+        self._xaxis.set_xlim(xmin, xmax)
+        
+        self._yaxis.set_tick_params(labelsize="x-small")
+        self._yaxis.set_major_formatter(FORMATTER)
+        self._yaxis.set_ylim(rymin, rymax)
+        
+        self._axes.plot(x, y, 'o-', color=self._color)
     
     def __str__(self):
         return self._name
