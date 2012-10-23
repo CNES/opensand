@@ -37,6 +37,8 @@ class ProbeGraph(object):
         Sets up the graph display.
         """
         
+        print direct_values
+        
         self._axes = axes
         self._xaxis = axes.get_xaxis()
         self._yaxis = axes.get_yaxis()
@@ -45,8 +47,6 @@ class ProbeGraph(object):
             self._times, self._values = direct_values
 
         self._redraw()
-        
-        
         
     def update(self):
         """
@@ -126,6 +126,17 @@ class ProbeDisplay(object):
         self._canvas = FigureCanvasGTK(self._fig)
         parent_box.pack_start(self._canvas, True, True)
         self._canvas.show()
+        self._probe_data = {}
+    
+    def set_probe_data(self, probe_data=None):
+        """
+        Called to provide direct probe data to the display.
+        """
+        
+        if probe_data is None:
+            self._probe_data = {}
+        else:
+            self._probe_data = probe_data
         
     def update(self, displayed_probes):
         """
@@ -146,12 +157,14 @@ class ProbeDisplay(object):
         for probe in displayed_probes:
             graph = self._displayed_probes.get(probe.global_ident)
             
+            probe_data = self._probe_data.get(probe.full_name)
+            
             if not graph:
                 graph = ProbeGraph(self, probe.program.name, probe.name,
                     probe.unit)
                 graph.index = max_index # Temporary, to put it at the end
             
-            new_probes.append((probe.global_ident, graph))
+            new_probes.append((probe.global_ident, graph, probe_data))
         
         new_probes.sort(key=lambda item: item[1].index)
         
@@ -164,10 +177,10 @@ class ProbeDisplay(object):
         if self.num_graphs == 0:
             return
         
-        for i, (probe_ident, graph) in enumerate(new_probes):
+        for i, (probe_ident, graph, probe_data) in enumerate(new_probes):
             axes = self._fig.add_subplot(self.num_graphs, 1, i + 1)
             graph.index = i + 1
-            graph.setup(axes)
+            graph.setup(axes, probe_data)
             self._displayed_probes[probe_ident] = graph
         
         self._canvas.draw_idle()

@@ -15,9 +15,10 @@ class ServiceHandler(object):
     daemons can find it) and find the OpenSAND daemons and their IPs.
     """
 
-    def __init__(self, collector, listen_port, service_type):
+    def __init__(self, collector, listen_port, transfer_port, service_type):
         self.collector = collector
         self.listen_port = listen_port
+        self.transfer_port = transfer_port
         self.service_type = service_type
         self._pub_group = None
         self._disco_server = None
@@ -37,9 +38,11 @@ class ServiceHandler(object):
         self._pub_group = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
             pub_server.EntryGroupNew()), avahi.DBUS_INTERFACE_ENTRY_GROUP)
 
+        additional_data = ["transfer_port=%d" % self.transfer_port]
+
         self._pub_group.AddService(avahi.IF_UNSPEC, avahi.PROTO_UNSPEC,
             dbus.UInt32(0), "collector", self.service_type, "", "",
-            dbus.UInt16(self.listen_port), ["OpenSAND collector=Hello World!"])
+            dbus.UInt16(self.listen_port), additional_data)
 
         self._pub_group.Commit()
 

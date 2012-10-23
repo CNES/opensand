@@ -67,10 +67,8 @@ class ProbeView(WindowView):
         self._status_label = self._ui.get_widget("label_displayed")
         self._probe_button = self._ui.get_widget("probe_button")
 
-        # {index_list:[graphic, graphic_type, subplot]}
-        self._display = {}
-
         self._simu_running = False
+        self._saved_data = None
         self._update_graph_tag = None
 
         self._probe_sel_controller = ProbeSelectionController(self,
@@ -81,51 +79,6 @@ class ProbeView(WindowView):
     def toggled_cb(self, cell, path):
         """ this function is defined in probe_event """
         pass
-
-    def plot_imported_graph(self, i, nbr, title, plot_type, x_list, y_list):
-        """ plot a graph from data in file  """
-        # Construct the current subplot
-        self._fig.subplots_adjust(hspace = 0.8)
-
-        sub = pylab.subplot(nbr, 1, i + 1)
-
-        self._log.debug('plot file length: %s %s' %
-                        (len(x_list) , len(y_list)))
-
-        colors = self.random_color()
-        if plot_type == 'dot':
-            pylab.plot(x_list, y_list, 'o', 1, color=colors)
-        elif plot_type == 'dotline':
-            # dotline is replaced by line when importing graph because there is
-            # too much values
-            pylab.plot(x_list, y_list, '-', 1, color=colors)
-        elif plot_type == 'step':
-            pylab.plot(x_list, y_list, ls='steps', lw=1, color=colors)
-        elif plot_type == 'stem':
-            pylab.plot(x_list, y_list, 'o', 1, color=colors)
-            pylab.vlines(x_list, 0, y_list, linestyle='solid',
-                         color=colors, linewidth=1)
-        elif plot_type == 'fill':
-            pylab.fill(x_list, y_list, colors, 0.5)
-        else: #line by default
-            pylab.plot(x_list, y_list, '-', 1, color=colors)
-
-        pylab.title(title)
-
-        ymin = min(y_list)
-        ymax = max(y_list)
-        rymin = ymin - ((ymax - ymin) * 0.1)
-        rymax = ymax + ((ymax - ymin) * 0.1)
-        pylab.ylim(ymin=rymin, ymax=rymax)
-
-        formatter = FormatStrFormatter('%2.8g')
-        sub.yaxis.set_major_formatter(formatter)
-        sub.xaxis.set_major_formatter(formatter)
-
-        self._canvas.draw_idle()
-
-        gobject.idle_add(self.enable_savefig_button,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
 
     def simu_program_list_changed(self, programs):
         """ the program list changed during simulation """
@@ -143,19 +96,22 @@ class ProbeView(WindowView):
             return
     
         self._simu_running = new_state
-    
+        self._saved_data = None
+        self._probe_display.set_probe_data(None)
+        
         if new_state:
             self._set_state_simulating()
             self._start_graph_update()
         else:
             if self._update_graph_tag is not None:
                 self._stop_graph_update()
+            
             self._set_state_idle()
     
     def simu_data_available(self):
-        self._model.get_saved_probes()
-        
-            
+        self._saved_data = self._model.get_saved_probes()
+        self._probe_display.set_probe_data(self._saved_data.get_data())
+        self._set_state_run_loaded()
 
     def displayed_probes_changed(self, displayed_probes):
         """ a probe was selected/unselected for display """
@@ -163,6 +119,7 @@ class ProbeView(WindowView):
         self._probe_display.update(displayed_probes)
 
     def _set_state_idle(self):
+        self._probe_sel_controller.update_data({})
         self._status_label.set_markup("<b>Displayed:</b> -")
         self._probe_button.set_label("Load…")
         self._probe_button.set_sensitive(False)
@@ -173,9 +130,12 @@ class ProbeView(WindowView):
         self._probe_button.set_sensitive(True)
     
     def _set_state_run_loaded(self):
-        self._status_label.set_markup("<b>Displayed:</b> Run %s" % self._run)
+        self._status_label.set_markup("<b>Displayed:</b> Run %s" % 
+            self._model.get_run())
         self._probe_button.set_label("Load…")
         self._probe_button.set_sensitive(True)
+        
+        self._probe_sel_controller.update_data(self._saved_data.get_programs())
 
     def _start_graph_update(self):
         """ enables the timer to refresh the graphs periodically """

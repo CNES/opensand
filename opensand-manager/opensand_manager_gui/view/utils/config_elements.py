@@ -99,6 +99,10 @@ class ProbeSelectionController(object):
         for program in self._program_list.itervalues():
             self._program_store.append([program.name, program.ident])
         
+        selection = self._program_listview.get_cursor()
+        if selection[0] is None:
+            self._program_listview.set_cursor(0)
+        
         self._update_probe_list()
         self._notify_probe_display_changed()
     

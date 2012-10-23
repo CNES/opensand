@@ -131,6 +131,10 @@ class Probe(object):
     def global_ident(self):
         return self.ident | (self.program.ident << 8)
     
+    @property
+    def full_name(self):
+        return "%s.%s" % (self.program.name, self.name)
+    
     def __str__(self):
         return self.name
     
@@ -144,7 +148,7 @@ class SavedProbeLoader(object):
     
     def __init__(self, run_path):
         self._data = {}
-        self._programs = []
+        self._programs = {}
         prog_id = 0
         
         for host_name in os.listdir(run_path):
@@ -171,26 +175,41 @@ class SavedProbeLoader(object):
                     if not os.path.isfile(probe_path) or ext != '.log':
                         continue
                 
-                    probe_data = []
+                    probe_times = []
+                    probe_values = []
                     
                     with open(probe_path, 'r') as probe_file:
                         for line in probe_file:
                             time, value = line.split(" ", 1)
                             value = float(value)
-                            probe_data.append((time, value))
+                            probe_times.append(time)
+                            probe_values.append(value)
                     
-                    self._data[probe_full_name] = probe_data
+                    self._data[probe_full_name] = (probe_times, probe_values)
                     probes.append((probe_name, "", None, True, False))
                 
-                self._programs.append(Program(self, prog_id,
-                    "%s.%s" % (host_name, prog_name), probes, []))
+                full_prog_name = "%s.%s" % (host_name, prog_name)
+                self._programs[prog_id] = Program(self, prog_id, full_prog_name,
+                    probes, [])
+
+    def get_programs(self):
+        """
+        Return the program list.
+        """
+    
+        return self._programs
+    
+    def get_data(self):
+        """
+        Return the probe data.
+        """
         
-        print "Data = %r, programs = %r" % (self._data, self._programs)
+        return self._data
     
     def _update_probe_status(self, probe):
         # Nothing to do
         pass
-    
+
     
     
     
