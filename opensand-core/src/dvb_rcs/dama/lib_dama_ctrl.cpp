@@ -154,17 +154,18 @@ DvbRcsDamaCtrl::DvbRcsDamaCtrl()
 		error_alloc = EnvPlane::register_event("lib_dama_ctrl:alloc", LEVEL_ERROR);
 		error_ncc_req = EnvPlane::register_event("lib_dama_ctrl:ncc_req", LEVEL_ERROR);
 
-		probe_gw_rdbc_req_num = EnvPlane::register_probe<int>("RBDC_requests_number", true, SAMPLE_LAST);
-		probe_gw_rdbc_req_capacity = EnvPlane::register_probe<int>("RBDC_requested_capacity", true, SAMPLE_LAST);
-		probe_gw_vdbc_req_num = EnvPlane::register_probe<int>("VBDC_requests_number", true, SAMPLE_LAST);
-		probe_gw_vdbc_req_capacity = EnvPlane::register_probe<int>("VBDC_requested_capacity", true, SAMPLE_LAST);
-		probe_gw_cra_alloc = EnvPlane::register_probe<int>("CRA_allocation", true, SAMPLE_LAST);
-		probe_gw_cra_st_alloc = EnvPlane::register_probe<int>("CRA_st_allocation", true, SAMPLE_LAST);
-		probe_gw_rbdc_alloc = EnvPlane::register_probe<int>("RBDC_allocation", true, SAMPLE_LAST);
-		probe_gw_rbdc_st_alloc = EnvPlane::register_probe<int>("RBDC_st_allocation", true, SAMPLE_LAST);
-		probe_gw_rbdc_max_alloc = EnvPlane::register_probe<int>("RBDC_MAX_allocation", true, SAMPLE_LAST);
-		probe_gw_rbdc_max_st_alloc = EnvPlane::register_probe<int>("RBDC_MAX_st_allocation", true, SAMPLE_LAST);
-		probe_gw_vbdc_alloc = EnvPlane::register_probe<int>("VBDC_allocation", true, SAMPLE_LAST);
+		probe_gw_rdbc_req_num = EnvPlane::register_probe<int>("RBDC_requests_number", "requests", true, SAMPLE_LAST);
+		probe_gw_rdbc_req_capacity = EnvPlane::register_probe<int>("RBDC_requested_capacity", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_vdbc_req_num = EnvPlane::register_probe<int>("VBDC_requests_number", "requests", true, SAMPLE_LAST);
+		probe_gw_vdbc_req_capacity = EnvPlane::register_probe<int>("VBDC_requested_capacity", "time slots", true, SAMPLE_LAST);
+		probe_gw_cra_alloc = EnvPlane::register_probe<int>("CRA_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_cra_st_alloc = EnvPlane::register_probe<int>("CRA_st_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_rbdc_alloc = EnvPlane::register_probe<int>("RBDC_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_rbdc_st_alloc = EnvPlane::register_probe<int>("RBDC_st_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_rbdc_max_alloc = EnvPlane::register_probe<int>("RBDC_MAX_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_rbdc_max_st_alloc = EnvPlane::register_probe<int>("RBDC_MAX_st_allocation", "Kbits/s", true, SAMPLE_LAST);
+		probe_gw_vbdc_alloc = EnvPlane::register_probe<int>("VBDC_allocation", "Kbits/s", true, SAMPLE_LAST);
+		// FIXME: Unit?
 		probe_gw_logger_st_num = EnvPlane::register_probe<int>("Logged_ST_number", true, SAMPLE_LAST);
 	}
 }

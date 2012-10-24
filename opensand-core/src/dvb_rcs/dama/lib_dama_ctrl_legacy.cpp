@@ -56,7 +56,8 @@ DvbRcsDamaCtrlLegacy::DvbRcsDamaCtrlLegacy():
 	DvbRcsDamaCtrl()
 {
 	if (probe_gw_fca_alloc == NULL) {
-		probe_gw_fca_alloc = EnvPlane::register_probe<int>("FCA_allocation", true, SAMPLE_LAST);
+		probe_gw_fca_alloc = EnvPlane::register_probe<int>("FCA_allocation", "Kbits/s", true, SAMPLE_LAST);
+		// FIXME: Unit?
 		probe_gw_uplink_fair_share = EnvPlane::register_probe<float>("Uplink_fair_share", true, SAMPLE_LAST);
 	}
 }

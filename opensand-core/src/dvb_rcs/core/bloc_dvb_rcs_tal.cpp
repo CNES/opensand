@@ -909,15 +909,16 @@ int BlocDVBRcsTal::initEnvPlane(const std::vector<std::string>& fifo_types)
 {
 	this->event_login_sent = EnvPlane::register_event("bloc_dvb:login_sent", LEVEL_INFO);
 	this->event_login_complete = EnvPlane::register_event("bloc_dvb:login_complete", LEVEL_INFO);
-	this->probe_st_phys_out_thr = EnvPlane::register_probe<int>("Physical_outgoing_throughput", true, SAMPLE_AVG);
-	this->probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", true, SAMPLE_LAST);
-	this->probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", true, SAMPLE_LAST);
-	this->probe_st_cra = EnvPlane::register_probe<int>("CRA", true, SAMPLE_LAST);
-	this->probe_st_alloc_size = EnvPlane::register_probe<int>("Allocation", true, SAMPLE_LAST);
-	this->probe_st_unused_capacity = EnvPlane::register_probe<int>("Unused_capacity", true, SAMPLE_LAST);
+	this->probe_st_phys_out_thr = EnvPlane::register_probe<int>("Physical_outgoing_throughput", "Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_cra = EnvPlane::register_probe<int>("CRA", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_alloc_size = EnvPlane::register_probe<int>("Allocation", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_unused_capacity = EnvPlane::register_probe<int>("Unused_capacity", "time slots", true, SAMPLE_LAST);
+	// FIXME: Unit?
 	this->probe_st_bbframe_drop_rate = EnvPlane::register_probe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
-	this->probe_st_real_modcod = EnvPlane::register_probe<int>("Real_modcod", true, SAMPLE_LAST);
-	this->probe_st_used_modcod = EnvPlane::register_probe<int>("Received_modcod", true, SAMPLE_LAST);
+	this->probe_st_real_modcod = EnvPlane::register_probe<int>("Real_modcod", "modcod index", true, SAMPLE_LAST);
+	this->probe_st_used_modcod = EnvPlane::register_probe<int>("Received_modcod", "modcod index", true, SAMPLE_LAST);
 	
 	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos_number];
 	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos_number];
@@ -1827,7 +1828,7 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 		this->dvb_fifos[fifoIndex].getStatsCxt(macQStat);
 
 		// write in statitics file : mac queue size
-		probe_st_terminal_queue_size->put(macQStat.currentPkNb);
+		probe_st_terminal_queue_size[fifoIndex]->put(macQStat.currentPkNb);
 	}
 }
 
