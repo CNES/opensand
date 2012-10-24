@@ -186,6 +186,7 @@ class SavedProbeLoader(object):
                     probe_values = []
                     
                     with open(probe_path, 'r') as probe_file:
+                        unit = probe_file.readline().strip()
                         for line in probe_file:
                             time, value = line.split(" ", 1)
                             time = int(time)
@@ -194,7 +195,7 @@ class SavedProbeLoader(object):
                             probe_values.append(value)
                     
                     self._data[probe_full_name] = (probe_times, probe_values)
-                    probes.append((probe_name, "", None, True, False))
+                    probes.append((probe_name, unit, None, True, False))
                 
                 full_prog_name = "%s.%s" % (host_name, prog_name)
                 self._programs[prog_id] = Program(self, prog_id, full_prog_name,

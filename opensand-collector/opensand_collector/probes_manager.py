@@ -137,6 +137,7 @@ class Probe(object):
         path = self.program.get_storage_path(self.name + ".log")
         LOGGER.debug("Creating probe log file %s", path)
         self._log_file = open(path, "w")
+        self._log_file.write("%s\n" % unit)
 
     def __str__(self):
         return self.name
