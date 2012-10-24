@@ -333,6 +333,7 @@ class View(WindowView):
         else:
             self.set_title("OpenSAND Manager - [%s]" % folder)
         # reload the configuration
+        self._eventprobe.scenario_changed()
         try:
             self._eventconf.update_view()
         except ConfException as msg:
@@ -459,9 +460,7 @@ class View(WindowView):
     def set_default_run(self):
         """ reset the run value """
         self._model.set_run("")
-        widget = self._ui.get_widget('run_id_txt')
-        widget.set_text("")
-        self._eventprobe.on_clear_clicked()
+        self._eventprobe.run_changed()
 
     def on_window_key_press_event(self, source=None, event=None):
         """ callback called on keyboard press """

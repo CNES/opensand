@@ -126,6 +126,9 @@ class ProbeDisplay(object):
         self._canvas.show()
         self._probe_data = {}
     
+    def save_figure(self, filename):
+        self._fig.savefig(filename)
+    
     def set_probe_data(self, probe_data=None):
         """
         Called to provide direct probe data to the display.

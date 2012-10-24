@@ -38,6 +38,7 @@ import os
 import gtk
 import gobject
 
+from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.window_view import WindowView
 
 MAX_ST = 5
@@ -50,23 +51,30 @@ class RunDialog(WindowView):
         self._dlg = self._ui.get_widget('run_dialog')
         self._dlg.set_keep_above(True)
         # add available runs into combo box
-        self.populate(scenario, run)
+        self._has_runs = self.populate(scenario, run)
 
     def go(self):
         """ run the window """
         # run the dialog and store the response
-        result = self._dlg.run()
-        if result == 0:
-            return True
+        
+        run = None
+        
+        if self._has_runs:
+            self._dlg.present()
+            result = self._dlg.run()
+        
+            if result == 0:
+                widget = self._ui.get_widget("run_box")
+                model = widget.get_model()
+                active = widget.get_active_iter()
+                run = model.get_value(active, 0)
+        
         else:
-            return False
-
-    def get_run(self):
-        """ get the run value """
-        widget = self._ui.get_widget("run_box")
-        model = widget.get_model()
-        active = widget.get_active_iter()
-        return model.get_value(active, 0)
+            error_popup("No runs found in the current scenario.")
+        
+        self._dlg.destroy()
+        
+        return run
 
     def populate(self, scenario, run):
         """ add run elements into the combo box """
@@ -74,7 +82,7 @@ class RunDialog(WindowView):
         ignore = ['sat', 'gw', 'tools', 'plugins']
         for i in range(MAX_ST + 1):
             ignore.append("st" + str(i))
-
+        
         list_id = 0
         active_id = 0
         store = gtk.ListStore(gobject.TYPE_STRING)
@@ -94,6 +102,4 @@ class RunDialog(WindowView):
         widget.add_attribute(cell, 'text', 0)
         widget.set_active(active_id)
 
-    def close(self):
-        """ close the window """
-        self._dlg.destroy()
+        return list_id > 0

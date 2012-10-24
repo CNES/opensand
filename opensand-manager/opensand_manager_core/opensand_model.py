@@ -514,7 +514,10 @@ class Model:
         
         run_path = os.path.join(self.get_scenario(), run_id)
         
-        return SavedProbeLoader(run_path)
+        try:
+            return SavedProbeLoader(run_path)
+        except ValueError:
+            return None
 
 ##### TEST #####
 if __name__ == "__main__":

@@ -98,11 +98,11 @@ class EventTab(object):
         self._buff.place_cursor(at_end())
         self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
         
-        if self._icon_level < severity:
-            self._icon_level = severity
-            self._act_image.set_from_stock(image, gtk.ICON_SIZE_MENU)
-        
         if self._notebook.get_current_page() != self._page_num:
+            if self._icon_level < severity:
+                self._icon_level = severity
+                self._act_image.set_from_stock(image, gtk.ICON_SIZE_MENU)
+        
             self._act_image.show()        
         
         return False

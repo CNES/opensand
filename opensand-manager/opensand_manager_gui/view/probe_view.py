@@ -43,6 +43,7 @@ from opensand_manager_gui.view.probe_display import ProbeDisplay
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.config_collection_dialog import ConfigCollectionDialog
+from opensand_manager_gui.view.popup.run_dialog import RunDialog
 from opensand_manager_core.my_exceptions import ProbeException
 from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
 
@@ -66,8 +67,11 @@ class ProbeView(WindowView):
         self._vbox = self._ui.get_widget("probe_vbox")
         
         self._status_label = self._ui.get_widget("label_displayed")
-        self._probe_button = self._ui.get_widget("probe_button")
-        self._probe_button.connect('clicked', self._probe_button_clicked)
+        self._load_run_button = self._ui.get_widget("load_run_button")
+        # FIXME the event handled set in Glade does not seem to work
+        self._load_run_button.connect('clicked', self.on_load_run_clicked)
+        self._conf_coll_button = self._ui.get_widget("conf_collection_button")
+        self._save_fig_button = self._ui.get_widget("save_figure_button")
 
         self._simu_running = False
         self._saved_data = None
@@ -79,10 +83,6 @@ class ProbeView(WindowView):
         self._conf_coll_dialog = ConfigCollectionDialog(model, manager_log,
             self._probe_sel_controller)
         self._probe_display = ProbeDisplay(self._ui.get_widget("probe_vbox"))
-
-    def toggled_cb(self, cell, path):
-        """ this function is defined in probe_event """
-        pass
 
     def simu_program_list_changed(self, programs):
         """ the program list changed during simulation """
@@ -114,32 +114,56 @@ class ProbeView(WindowView):
     
     def simu_data_available(self):
         self._saved_data = self._model.get_saved_probes()
-        self._probe_display.set_probe_data(self._saved_data.get_data())
-        self._set_state_run_loaded()
+        
+        if self._saved_data:
+            self._probe_display.set_probe_data(self._saved_data.get_data())
+            self._set_state_run_loaded()
+        else:
+            self._set_state_idle(enable_loading=True)
 
     def displayed_probes_changed(self, displayed_probes):
         """ a probe was selected/unselected for display """
         
         self._probe_display.update(displayed_probes)
+    
+    def scenario_changed(self):
+        if self._simu_running:
+            return
+        
+        self.run_changed()
+    
+    def run_changed(self):
+        if self._simu_running:
+            return
+        
+        if self._model.get_run():
+            self.simu_data_available()
+        else:
+            self._set_state_idle()
 
-    def _set_state_idle(self):
+    def _set_state_idle(self, enable_loading=False):
         self._probe_sel_controller.update_data({})
-        self._conf_coll_dialog.close()
+        self._conf_coll_dialog.hide()
         self._status_label.set_markup("<b>Displayed:</b> -")
-        self._probe_button.set_label("Load…")
-        self._probe_button.set_sensitive(False)
+        self._load_run_button.set_sensitive(enable_loading)
+        self._load_run_button.show()
+        self._conf_coll_button.hide()
+        self._save_fig_button.set_sensitive(False)
     
     def _set_state_simulating(self):
         self._status_label.set_markup("<b>Displayed:</b> Current simulation")
-        self._probe_button.set_label("Configure collection…")
-        self._probe_button.set_sensitive(True)
+        self._load_run_button.hide()
+        self._conf_coll_button.show()
+        self._save_fig_button.set_sensitive(False)
     
-    def _set_state_run_loaded(self):
-        self._conf_coll_dialog.close()
+    def _set_state_run_loaded(self, run=None):
+        self._conf_coll_dialog.hide()
         self._status_label.set_markup("<b>Displayed:</b> Run %s" % 
-            self._model.get_run())
-        self._probe_button.set_label("Load…")
-        self._probe_button.set_sensitive(True)
+            (run or self._model.get_run()))
+        self._load_run_button.set_sensitive(True)
+        self._load_run_button.show()
+        self._conf_coll_button.hide()
+        self._save_fig_button.set_sensitive(True)
         
         self._probe_sel_controller.update_data(self._saved_data.get_programs())
 
@@ -152,17 +176,13 @@ class ProbeView(WindowView):
     
     def _stop_graph_update(self):
         gobject.source_remove(self._update_graph_tag)
-        self._update_graph_tag = None
-    
-    def _probe_button_clicked(self, _):
-        if self._simu_running:
-            self._conf_coll_dialog.show()
-
+        self._update_graph_tag = None        
+            
     def save_figure(self, filename):
         """ save the displayed figure """
         # an error popup is raised on error by the function
         try:
-            pylab.savefig(filename)
+            self._probe_display.save_figure(filename)
         except ValueError, error:
             error = str(error).partition('\n')
             error_popup(error[0], error[2])

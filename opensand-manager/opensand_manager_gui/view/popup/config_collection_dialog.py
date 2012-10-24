@@ -26,11 +26,12 @@ class ConfigCollectionDialog(WindowView):
         self._sel_controller = sel_controller
         self._model = model
         self._log = manager_log
-        self._opened = False
+        self._shown = False
         self._programs = {}
         
         self._probe_store = gtk.ListStore(bool, str, int, int)
         self._listview.set_model(self._probe_store)
+        self._listview.get_selection().set_mode(gtk.SELECTION_NONE)
         
         column_text = gtk.TreeViewColumn("Probe")
         self._listview.append_column(column_text)
@@ -44,29 +45,30 @@ class ConfigCollectionDialog(WindowView):
         column_text.pack_start(cellrenderer_text, True)
         column_text.add_attribute(cellrenderer_text, "text", 1)
         
-        self._dlg.connect('delete-event', self.close)
+        self._dlg.connect('delete-event', self._delete)
 
     def show(self):
         """ show the window """
         
-        if self._opened:
+        if self._shown:
+            self._dlg.present()
             return
         
-        self._opened = True
+        self._shown = True
         
         self._sel_controller.register_collection_dialog(self)
         
         self._dlg.set_icon_name('gtk-properties')
         self._dlg.show()
-        
-    def close(self, _x, _y):
-        """ close the window """
-        if not self._opened:
+    
+    def hide(self):
+        """ hide the window """
+        if not self._shown:
             return
         
         self._sel_controller.register_collection_dialog(None)
-        self._opened = False
-        self._dlg.destroy()
+        self._shown = False
+        self._dlg.hide()
 
     def update_list(self, program_dict):
         """ update the probe list shown by the window """
@@ -98,4 +100,9 @@ class ConfigCollectionDialog(WindowView):
         self._probe_store.set(it, 0, new_value)
         
         self._sel_controller.probe_enabled_changed(probe, was_hidden)
+
+    def _delete(self, _widget, _event):
+        """ the window close button was clicked """
         
+        self.hide()
+        return True        

@@ -61,23 +61,22 @@ class ProbeSelectionController(object):
         column.set_sort_column_id(0)    
         program_listview.append_column(column)
         
-        self._probe_store = gtk.ListStore(str, gobject.TYPE_BOOLEAN, int)
+        self._probe_store = gtk.ListStore(gobject.TYPE_BOOLEAN, str, int)
         probe_listview.set_model(self._probe_store)
         
-        column = gtk.TreeViewColumn("Probe", gtk.CellRendererText(), text=0)
-        column.set_sort_column_id(0)    
-        column.set_resizable(True)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+        column = gtk.TreeViewColumn("Probe")
+        column.set_sort_column_id(0) 
         probe_listview.append_column(column)
+        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         
         cell_renderer = gtk.CellRendererToggle()
-        cell_renderer.set_alignment(0.0, 0.5)
-        cell_renderer.connect('toggled', self._probe_toggled)
-        column = gtk.TreeViewColumn(None, cell_renderer)
-        column.set_resizable(True)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-        column.add_attribute(cell_renderer, "active", 1)
-        probe_listview.append_column(column)
+        column.pack_start(cell_renderer, False)
+        column.add_attribute(cell_renderer, "active", 0)
+        cell_renderer.connect("toggled", self._probe_toggled)
+        
+        cell_renderer = gtk.CellRendererText()
+        column.pack_start(cell_renderer, True)
+        column.add_attribute(cell_renderer, "text", 1)
         
         program_listview.connect('cursor-changed', self._prog_curs_changed)
     
@@ -137,7 +136,7 @@ class ProbeSelectionController(object):
         
         for probe in self._current_program.get_probes():
             if probe.enabled:
-                self._probe_store.append([probe.name, probe.displayed,
+                self._probe_store.append([probe.displayed, probe.name,
                     probe.ident])
     
     def _probe_toggled(self, _, path):
@@ -145,10 +144,10 @@ class ProbeSelectionController(object):
     
         it = self._probe_store.get_iter(path)
         probe_ident = self._probe_store.get_value(it, 2)
-        new_value = not self._probe_store.get_value(it, 1)
+        new_value = not self._probe_store.get_value(it, 0)
         
         self._current_program.get_probe(probe_ident).displayed = new_value
-        self._probe_store.set(it, 1, new_value)
+        self._probe_store.set(it, 0, new_value)
 
         self._notify_probe_display_changed()
     

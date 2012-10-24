@@ -1449,63 +1449,82 @@
                 <property name="visible">True</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <widget class="GtkHBox" id="probe_header">
-                    <property name="height_request">25</property>
+                  <widget class="GtkToolbar" id="probe_toolbar">
                     <property name="visible">True</property>
+                    <property name="toolbar_style">both</property>
+                    <property name="tooltips">False</property>
                     <child>
-                      <widget class="GtkLabel" id="label_displayed">
+                      <widget class="GtkToolItem" id="displayed_container">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Displayed:&lt;/b&gt; -</property>
-                        <property name="use_markup">True</property>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkAspectFrame" id="aspectframe2">
-                        <property name="width_request">20</property>
-                        <property name="visible">True</property>
-                        <property name="label_xalign">0</property>
-                        <property name="shadow_type">none</property>
                         <child>
-                          <placeholder/>
+                          <widget class="GtkLabel" id="label_displayed">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Displayed:&lt;/b&gt; -</property>
+                            <property name="use_markup">True</property>
+                          </widget>
                         </child>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
-                        <property name="position">1</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkButton" id="probe_button">
-                        <property name="label" translatable="yes">Load&#x2026;</property>
+                      <widget class="GtkSeparatorToolItem" id="toolbar_sep">
+                        <property name="width_request">20</property>
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">2</property>
+                        <property name="homogeneous">True</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <widget class="GtkToolButton" id="load_run_button">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="label" translatable="yes">Load run&#x2026;</property>
+                        <property name="use_underline">True</property>
+                        <property name="stock_id">gtk-add</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <widget class="GtkToolButton" id="conf_collection_button">
+                        <property name="label" translatable="yes">Configure collection&#x2026;</property>
+                        <property name="use_underline">True</property>
+                        <property name="stock_id">gtk-properties</property>
+                        <signal name="clicked" handler="on_conf_collection_button_clicked"/>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkToolButton" id="save_figure_button">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="label" translatable="yes">Save figure</property>
+                        <property name="use_underline">True</property>
+                        <property name="stock_id">gtk-save</property>
+                        <signal name="clicked" handler="on_save_figure_button_clicked"/>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
                     </child>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="padding">5</property>
                     <property name="position">0</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
                 <child>
                   <widget class="GtkVPaned" id="probe_vpaned">
@@ -1586,7 +1605,7 @@
                     </child>
                   </widget>
                   <packing>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </widget>

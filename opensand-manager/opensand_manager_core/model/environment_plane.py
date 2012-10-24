@@ -149,8 +149,15 @@ class SavedProbeLoader(object):
     def __init__(self, run_path):
         self._data = {}
         self._programs = {}
-        prog_id = 0
         
+        try:
+            self._load(run_path)
+        except EnvironmentError:
+            raise ValueError("Incorrect probe data")
+    
+    def _load(self, run_path):
+        prog_id = 0
+    
         for host_name in os.listdir(run_path):
             host_path = os.path.join(run_path, host_name)
             
