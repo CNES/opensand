@@ -4,8 +4,10 @@
 OpenSAND collector probe transfer server.
 """
 
+from socket import error as socket_error
 from tempfile import TemporaryFile
 from zipfile import ZipFile, ZIP_DEFLATED
+from socket import error as socket_error
 import logging
 import os
 import socket
@@ -80,8 +82,7 @@ class TransferServer(threading.Thread):
     
         try:
             conn, addr = self._sock.accept()
-        except socket.error:  # Socket closed
-            LOGGER.exception("Socket closed")
+        except socket_error:  # Socket closed
             self._continue = False
             return
         
