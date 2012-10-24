@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 #
 #
 # OpenSAND is an emulation testbed aiming to represent in a cost effective way a
