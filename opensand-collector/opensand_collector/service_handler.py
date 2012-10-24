@@ -63,6 +63,10 @@ class ServiceHandler(object):
         return self
 
     def _handle_new(self, interface, protocol, name, stype, domain, flags):
+        """
+        Handles a newly detected service
+        """
+    
         if name == "collector":
             return
 
@@ -75,6 +79,10 @@ class ServiceHandler(object):
             reply_handler=self._handle_resolve, error_handler=error_handler)
 
     def _handle_resolve(self, *args):
+        """
+        Called when a detected service is resolved
+        """
+    
         name = args[2]
         addr = args[7]
         txt = args[9]
@@ -96,6 +104,10 @@ class ServiceHandler(object):
         self.collector.host_manager.add_host(name, (addr, port))
 
     def _handle_remove(self, interface, protocol, name, stype, domain, flags):
+        """
+        Called when a service is removed
+        """
+    
         if name == "collector":
             return
 

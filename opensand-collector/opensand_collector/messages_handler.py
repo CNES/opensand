@@ -1,3 +1,33 @@
+#
+#
+# OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2012 CNES
+#
+#
+# This file is part of the OpenSAND testbed.
+#
+#
+# OpenSAND is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
+# Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+
+
 """
 OpenSAND collector UDP messages handler.
 """
@@ -227,6 +257,10 @@ class MessagesHandler(object):
             return self._handle_cmd_send_event(host, prog, data[2:])
 
     def _handle_cmd_send_probes(self, host, prog, data):
+        """
+        Handles a SEND_PROBES command from a daemon.
+        """
+        
         total_length = len(data)
         timestamp = struct.unpack("!L", data[0:4])[0]
         pos = 4
@@ -256,6 +290,10 @@ class MessagesHandler(object):
         return True
 
     def _handle_cmd_send_event(self, host, prog, data):
+        """
+        Handles a SEND_EVENT command from a daemon
+        """
+    
         total_length = len(data)
         event_id = struct.unpack("!B", data[0])[0]
 
@@ -371,6 +409,10 @@ class MessagesHandler(object):
             self._manager_addr)
     
     def _notify_manager_probes(self, host, prog, timestamp, displayed_values):
+        """
+        Sends a MSG_MGR_SEND_PROBES to the manager with the displayed probes.
+        """
+    
         if not displayed_values:
             return
         
@@ -385,6 +427,10 @@ class MessagesHandler(object):
             self._sock.sendto(message, self._manager_addr)
     
     def _notify_manager_event(self, host, prog, event_id, text):
+        """
+        Sneds a MSG_MGR_SEND_EVENT to the manager with the relayed event.
+        """
+    
         message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SEND_EVENT,
             host.ident, prog.ident, event_id)
         message += text
