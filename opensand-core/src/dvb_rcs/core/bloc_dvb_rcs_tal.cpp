@@ -1,4 +1,4 @@
-/*
+ /*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
@@ -47,22 +47,6 @@
 #define DVB_DBG_PREFIX "[Tal]"
 
 int BlocDVBRcsTal::qos_server_sock = -1;
-
-
-Event* BlocDVBRcsTal::event_login_sent = NULL;
-Event* BlocDVBRcsTal::event_login_complete = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_terminal_queue_size = NULL;
-Probe<float>* BlocDVBRcsTal::probe_st_real_in_thr = NULL;
-Probe<float>* BlocDVBRcsTal::probe_st_real_out_thr = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_phys_out_thr = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_rbdc_req_size = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_vbdc_req_size = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_cra = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_alloc_size = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_unused_capacity = NULL;
-Probe<float>* BlocDVBRcsTal::probe_st_bbframe_drop_rate = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_real_modcod = NULL;
-Probe<int>* BlocDVBRcsTal::probe_st_used_modcod = NULL;
 
 
 /**
@@ -123,24 +107,21 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_statCounters.ulIncomingCells = NULL;
 	this->m_statContext.ulOutgoingThroughput = NULL;
 	this->m_statContext.ulIncomingThroughput = NULL;
-
+	
 	// environment plane
-	if (event_login_sent == NULL) {
-		event_login_sent = EnvPlane::register_event("bloc_dvb:login_sent", LEVEL_INFO);
-		event_login_complete = EnvPlane::register_event("bloc_dvb:login_complete", LEVEL_INFO);
-		probe_st_terminal_queue_size = EnvPlane::register_probe<int>("Terminal_queue_size", true, SAMPLE_AVG);
-		probe_st_real_in_thr = EnvPlane::register_probe<float>("Real_incoming_throughput", true, SAMPLE_AVG);
-		probe_st_real_out_thr = EnvPlane::register_probe<float>("Real_outgoing_throughput", true, SAMPLE_AVG);
-		probe_st_phys_out_thr = EnvPlane::register_probe<int>("Physical_outgoing_throughput", true, SAMPLE_AVG);
-		probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", true, SAMPLE_LAST);
-		probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", true, SAMPLE_LAST);
-		probe_st_cra = EnvPlane::register_probe<int>("CRA", true, SAMPLE_LAST);
-		probe_st_alloc_size = EnvPlane::register_probe<int>("Allocation", true, SAMPLE_LAST);
-		probe_st_unused_capacity = EnvPlane::register_probe<int>("Unused_capacity", true, SAMPLE_LAST);
-		probe_st_bbframe_drop_rate = EnvPlane::register_probe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
-		probe_st_real_modcod = EnvPlane::register_probe<int>("Real_modcod", true, SAMPLE_LAST);
-		probe_st_used_modcod = EnvPlane::register_probe<int>("Received_modcod", true, SAMPLE_LAST);
-	}
+	this->event_login_sent = NULL;
+	this->event_login_complete = NULL;
+	this->probe_st_terminal_queue_size = NULL;
+	this->probe_st_real_in_thr = NULL;
+	this->probe_st_real_out_thr = NULL;
+	this->probe_st_phys_out_thr = NULL;
+	this->probe_st_rbdc_req_size = NULL;
+	this->probe_st_cra = NULL;
+	this->probe_st_alloc_size = NULL;
+	this->probe_st_unused_capacity = NULL;
+	this->probe_st_bbframe_drop_rate = NULL;
+	this->probe_st_real_modcod = NULL;
+	this->probe_st_used_modcod = NULL;
 
 	// QoS Server
 	this->qos_server_sock = -1;
@@ -187,6 +168,10 @@ BlocDVBRcsTal::~BlocDVBRcsTal()
 	{
 		delete this->receptionStd;
 	}
+	
+	// release the environment plane arrays (no need to delete the probes)
+	delete[] this->probe_st_real_in_thr;
+	delete[] this->probe_st_real_out_thr;
 
 	this->complete_dvb_frames.clear();
 }
@@ -555,7 +540,7 @@ int BlocDVBRcsTal::initCarrierId()
  *
  * @return -1 if failed, 0 if succeed
  */
-int BlocDVBRcsTal::initMacFifo()
+int BlocDVBRcsTal::initMacFifo(std::vector<std::string>& fifo_types)
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
 	int i = 0;
@@ -705,6 +690,8 @@ int BlocDVBRcsTal::initMacFifo()
 		// set other DVB FIFOs atributes
 		this->dvb_fifos[i].setId(fifo_id);
 		this->dvb_fifos[i].init(fifo_size);
+		
+		fifo_types.push_back(fifo_type);
 
 		UTI_INFO("%s: Fifo = id %d, kind %d, size %ld, pvc %d, "
 		         "CR type %d\n", FUNCNAME,
@@ -914,6 +901,50 @@ error:
 	return -1;
 }
 
+/**
+ * @brief Initialize the environment plane
+ * @return  0 in case of success, -1 otherwise
+ */
+int BlocDVBRcsTal::initEnvPlane(const std::vector<std::string>& fifo_types)
+{
+	this->event_login_sent = EnvPlane::register_event("bloc_dvb:login_sent", LEVEL_INFO);
+	this->event_login_complete = EnvPlane::register_event("bloc_dvb:login_complete", LEVEL_INFO);
+	this->probe_st_phys_out_thr = EnvPlane::register_probe<int>("Physical_outgoing_throughput", true, SAMPLE_AVG);
+	this->probe_st_rbdc_req_size = EnvPlane::register_probe<int>("RBDC_request_size", true, SAMPLE_LAST);
+	this->probe_st_vbdc_req_size = EnvPlane::register_probe<int>("VBDC_request_size", true, SAMPLE_LAST);
+	this->probe_st_cra = EnvPlane::register_probe<int>("CRA", true, SAMPLE_LAST);
+	this->probe_st_alloc_size = EnvPlane::register_probe<int>("Allocation", true, SAMPLE_LAST);
+	this->probe_st_unused_capacity = EnvPlane::register_probe<int>("Unused_capacity", true, SAMPLE_LAST);
+	this->probe_st_bbframe_drop_rate = EnvPlane::register_probe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
+	this->probe_st_real_modcod = EnvPlane::register_probe<int>("Real_modcod", true, SAMPLE_LAST);
+	this->probe_st_used_modcod = EnvPlane::register_probe<int>("Received_modcod", true, SAMPLE_LAST);
+	
+	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos_number];
+	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos_number];
+	this->probe_st_real_out_thr = new Probe<int>*[this->dvb_fifos_number];
+	
+	if (this->probe_st_terminal_queue_size == NULL || this->probe_st_real_in_thr == NULL ||
+		this->probe_st_real_out_thr == NULL) {
+		UTI_ERROR("Failed to allocate memory for probe arrays");
+		return -1;
+	}
+		
+	for (int i = 0 ; i < this->dvb_fifos_number ; i++) {
+		const char* fifo_type = fifo_types[i].c_str();
+		char probe_name[32];
+		
+		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s", fifo_type);
+		this->probe_st_terminal_queue_size[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+		
+		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s", fifo_type);
+		this->probe_st_real_in_thr[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+		
+		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s", fifo_type);
+		this->probe_st_real_out_thr[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+	}
+	
+	return 0;
+}
 
 /**
  * @brief Initialize the DVBRCS TAL block
@@ -923,6 +954,7 @@ error:
 int BlocDVBRcsTal::onInit()
 {
 	int ret;
+	std::vector<std::string> fifo_types;
 
 	// get the common parameters
 	if(!this->initCommon())
@@ -955,7 +987,7 @@ int BlocDVBRcsTal::onInit()
 		goto error;
 	}
 
-	ret = this->initMacFifo();
+	ret = this->initMacFifo(fifo_types);
 	if(ret != 0)
 	{
 		UTI_ERROR("failed to complete the MAC FIFO part of the "
@@ -980,6 +1012,15 @@ int BlocDVBRcsTal::onInit()
 	}
 
 	ret = this->initQoSServer();
+	if(ret != 0)
+	{
+		UTI_ERROR("failed to complete the QoS Server part of the "
+		          "initialisation");
+		goto error;
+	}
+	
+	// Init the environment plane here since we now know the FIFOs
+	ret = this->initEnvPlane(fifo_types);
 	if(ret != 0)
 	{
 		UTI_ERROR("failed to complete the QoS Server part of the "
@@ -1723,8 +1764,8 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// write in statitics file
-		probe_st_real_in_thr->put(m_statContext.ulIncomingThroughput[fifoIndex]);
-		probe_st_real_out_thr->put(m_statContext.ulOutgoingThroughput[fifoIndex]);
+		probe_st_real_in_thr[fifoIndex]->put(m_statContext.ulIncomingThroughput[fifoIndex]);
+		probe_st_real_out_thr[fifoIndex]->put(m_statContext.ulOutgoingThroughput[fifoIndex]);
 	}
 
 	// outgoing DL throughput
