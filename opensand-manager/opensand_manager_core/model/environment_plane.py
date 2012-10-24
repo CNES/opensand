@@ -181,6 +181,7 @@ class SavedProbeLoader(object):
                     with open(probe_path, 'r') as probe_file:
                         for line in probe_file:
                             time, value = line.split(" ", 1)
+                            time = int(time)
                             value = float(value)
                             probe_times.append(time)
                             probe_values.append(value)

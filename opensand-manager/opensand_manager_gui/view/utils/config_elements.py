@@ -49,6 +49,7 @@ class ProbeSelectionController(object):
         self._probe_view = probe_view
         self._program_listview = program_listview
         self._probe_listview = probe_listview
+        self._collection_dialog = None
         self._program_list = {}
         self._current_program = None
         self._update_needed = False
@@ -80,6 +81,12 @@ class ProbeSelectionController(object):
         
         program_listview.connect('cursor-changed', self._prog_curs_changed)
     
+    def register_collection_dialog(self, collection_dialog):
+        self._collection_dialog = collection_dialog
+        
+        if collection_dialog:
+            collection_dialog.update_list(self._program_list)
+    
     def update_data(self, program_list):
         """ called when the probe list changes """
         self._program_list = program_list
@@ -105,6 +112,9 @@ class ProbeSelectionController(object):
         
         self._update_probe_list()
         self._notify_probe_display_changed()
+        
+        if self._collection_dialog:
+            self._collection_dialog.update_list(self._program_list)
     
     def _prog_curs_changed(self, _):
         """ called when the user selects a program in the list """
@@ -141,6 +151,15 @@ class ProbeSelectionController(object):
         self._probe_store.set(it, 1, new_value)
 
         self._notify_probe_display_changed()
+    
+    def probe_enabled_changed(self, probe, was_hidden):
+        """ called when the enabled status of a probe is changed """
+        
+        if probe.program == self._current_program:
+            self._update_probe_list()
+        
+        if was_hidden:
+            self._notify_probe_display_changed()
     
     def _notify_probe_display_changed(self):
         """ notifies the main view of the currently displayed probes """

@@ -37,8 +37,6 @@ class ProbeGraph(object):
         Sets up the graph display.
         """
         
-        print direct_values
-        
         self._axes = axes
         self._xaxis = axes.get_xaxis()
         self._yaxis = axes.get_yaxis()
@@ -175,6 +173,7 @@ class ProbeDisplay(object):
         self.num_graphs = len(new_probes)
         
         if self.num_graphs == 0:
+            self._canvas.draw_idle()
             return
         
         for i, (probe_ident, graph, probe_data) in enumerate(new_probes):

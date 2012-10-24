@@ -90,7 +90,7 @@ class Probe(object):
         Writes the specified value to the log.
         """
 
-        self._log_file.write("%.6f %s\n" % (time, value))
+        self._log_file.write("%6d %s\n" % (time, value))
 
     def attributes(self):
         """

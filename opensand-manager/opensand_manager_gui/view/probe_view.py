@@ -42,6 +42,7 @@ import os
 from opensand_manager_gui.view.probe_display import ProbeDisplay
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
+from opensand_manager_gui.view.popup.config_collection_dialog import ConfigCollectionDialog
 from opensand_manager_core.my_exceptions import ProbeException
 from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
 
@@ -66,6 +67,7 @@ class ProbeView(WindowView):
         
         self._status_label = self._ui.get_widget("label_displayed")
         self._probe_button = self._ui.get_widget("probe_button")
+        self._probe_button.connect('clicked', self._probe_button_clicked)
 
         self._simu_running = False
         self._saved_data = None
@@ -74,6 +76,8 @@ class ProbeView(WindowView):
         self._probe_sel_controller = ProbeSelectionController(self,
             self._ui.get_widget("probe_sel_progs"),
             self._ui.get_widget("probe_sel_probes"))
+        self._conf_coll_dialog = ConfigCollectionDialog(model, manager_log,
+            self._probe_sel_controller)
         self._probe_display = ProbeDisplay(self._ui.get_widget("probe_vbox"))
 
     def toggled_cb(self, cell, path):
@@ -120,6 +124,7 @@ class ProbeView(WindowView):
 
     def _set_state_idle(self):
         self._probe_sel_controller.update_data({})
+        self._conf_coll_dialog.close()
         self._status_label.set_markup("<b>Displayed:</b> -")
         self._probe_button.set_label("Load…")
         self._probe_button.set_sensitive(False)
@@ -130,6 +135,7 @@ class ProbeView(WindowView):
         self._probe_button.set_sensitive(True)
     
     def _set_state_run_loaded(self):
+        self._conf_coll_dialog.close()
         self._status_label.set_markup("<b>Displayed:</b> Run %s" % 
             self._model.get_run())
         self._probe_button.set_label("Load…")
@@ -147,6 +153,10 @@ class ProbeView(WindowView):
     def _stop_graph_update(self):
         gobject.source_remove(self._update_graph_tag)
         self._update_graph_tag = None
+    
+    def _probe_button_clicked(self, _):
+        if self._simu_running:
+            self._conf_coll_dialog.show()
 
     def save_figure(self, filename):
         """ save the displayed figure """
