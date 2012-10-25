@@ -77,6 +77,7 @@ class Model:
         self._hosts = []
         self._ws = []
         self._collector_known = False
+        self._collector_functional = False
 
         self._config = None
         self._topology = None
@@ -471,11 +472,25 @@ class Model:
         
         return self._collector_known
     
+    def is_collector_functional(self):
+        """ indicates if the environment plane collector has responded to
+        the manager registration. """
+        
+        return self._collector_functional
+    
     def set_collector_known(self, collector_known):
         """ called by the service listener when the collector service is found
         or lost. """
         
         self._collector_known = collector_known
+        if not collector_known:
+            self._collector_functional = False
+    
+    def set_collector_functional(self, collector_functional):
+        """ called by the probes controller when the collector responds to
+        manager registration. """
+        
+        self._collector_functional = collector_functional
 
     def clean_default(self):
         """ clean the $HOME/.opensand directory from default files """

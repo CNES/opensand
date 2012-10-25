@@ -196,6 +196,10 @@ class RunEvent(RunView):
                                    "a gateway, a ST and the environment plane: "
                                    "please deploy the missing component(s), "
                                    "they will be automatically detected")
+                
+                if self._model.is_collector_functional():
+                    self._log.warning("The OpenSAND collector is not known. "
+                                      "The probes will not be available.")
 
                 # update the label of the 'start/stop opensand' button to
                 gobject.idle_add(self.set_start_stop_button,

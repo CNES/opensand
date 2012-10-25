@@ -58,6 +58,7 @@ MSG_MGR_SET_PROBE_STATUS = 24
 MSG_MGR_SEND_PROBES = 25
 MSG_MGR_SEND_EVENT = 26
 MSG_MGR_UNREGISTER = 27
+MSG_MGR_REGISTER_ACK = 28
 
 class MessagesHandler(object):
     def __init__(self, collector):
@@ -324,6 +325,8 @@ class MessagesHandler(object):
             self._manager_addr = addr
             LOGGER.info("Manager registered from address %s:%d", *addr)
             
+            self._notify_manager_ack()
+            
             for program in self.collector.host_manager.all_programs():
                 self._notify_manager_new_program(program)
             
@@ -362,6 +365,17 @@ class MessagesHandler(object):
         else:
             LOGGER.error("Unknown command id %d received from manager %s:%d",
                 cmd, *addr)
+    
+    def _notify_manager_ack(self):
+        """
+        Sends a MSG_MGR_REGISTER_ACK to the manager.
+        """
+        
+        if not self._manager_addr:
+            return
+        
+        self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER,
+            MSG_MGR_REGISTER_ACK), self._manager_addr)
     
     def _notify_manager_new_program(self, program):
         """

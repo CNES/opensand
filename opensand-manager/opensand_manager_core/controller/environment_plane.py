@@ -47,6 +47,7 @@ MSG_MGR_SET_PROBE_STATUS = 24
 MSG_MGR_SEND_PROBES = 25
 MSG_MGR_SEND_EVENT = 26
 MSG_MGR_UNREGISTER = 27
+MSG_MGR_REGISTER_ACK = 28
 
 
 class EnvironmentPlaneController(object):
@@ -54,7 +55,8 @@ class EnvironmentPlaneController(object):
     Controller for the environment plane.
     """
     
-    def __init__(self, manager_log):
+    def __init__(self, model, manager_log):
+        self._model = model
         self._log = manager_log
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(('', 0))
@@ -242,6 +244,10 @@ class EnvironmentPlaneController(object):
         magic, cmd = struct.unpack("!LB", packet[0:5])
         if magic != MAGIC_NUMBER:
             self._log.error("Received bad magic number from the collector.")
+            return True
+        
+        if cmd == MSG_MGR_REGISTER_ACK:
+            self._model.set_collector_functional(True)
             return True
         
         if cmd == MSG_MGR_REGISTER_PROGRAM:

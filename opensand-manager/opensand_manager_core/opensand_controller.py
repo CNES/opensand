@@ -70,7 +70,7 @@ class Controller(threading.Thread):
             self._event_manager_response = self._model.get_event_manager_response()
             self._hosts = []
             self._ws = []
-            self._env_plane = EnvironmentPlaneController(manager_log)
+            self._env_plane = EnvironmentPlaneController(model, manager_log)
             self._server = None
             self._command = None
 

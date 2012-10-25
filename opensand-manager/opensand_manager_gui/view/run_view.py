@@ -122,15 +122,20 @@ class RunView(WindowView):
                 nbr += 1
 
         self._info_x = 170 + (nbr + 1) * 140
-        self.draw_env_plane_state(self._model.is_collector_known())
+        self.draw_env_plane_state(self._model.is_collector_known(),
+            self._model.is_collector_functional())
 
         return False
 
-    def draw_env_plane_state(self, collector_known):
+    def draw_env_plane_state(self, collector_known, collector_funct):
         """ draw environment plane """
+        
+        if not collector_known:
+            return
+        
         image = gtk.Image()
         
-        name = "monitoring.png" if collector_known else "monitoring_grey.png"
+        name = "monitoring.png" if collector_funct else "monitoring_grey.png"
         png = os.path.join(IMG_PATH, name)
         image.set_from_file(png)
 
