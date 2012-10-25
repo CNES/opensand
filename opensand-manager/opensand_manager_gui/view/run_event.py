@@ -197,7 +197,7 @@ class RunEvent(RunView):
                                    "please deploy the missing component(s), "
                                    "they will be automatically detected")
                 
-                if self._model.is_collector_functional():
+                if not self._model.is_collector_functional():
                     self._log.warning("The OpenSAND collector is not known. "
                                       "The probes will not be available.")
 
