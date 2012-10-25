@@ -60,25 +60,34 @@ class ProbeSelectionController(object):
         column = gtk.TreeViewColumn("Program", gtk.CellRendererText(), text=0)
         column.set_sort_column_id(0)    
         program_listview.append_column(column)
+        program_listview.connect('cursor-changed', self._prog_curs_changed)
         
-        self._probe_store = gtk.ListStore(gobject.TYPE_BOOLEAN, str, int)
+        # The probe tree store uses four columns:
+        # 0) bool: is the probe displayed ? (False if the row is not a probe)
+        # 1) str: the probe name, or section name
+        # 2) int: the probe ID (0 if the row is not a probe)
+        # 3) bool: True for a probe, False for a section (used to hide the
+        # checkbox on sections)
+        # The tree view itself uses one column, with two renderers (checkbox
+        # and text)
+        
+        self._probe_store = gtk.TreeStore(bool, str, int, bool)
         probe_listview.set_model(self._probe_store)
+        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         
         column = gtk.TreeViewColumn("Probe")
-        column.set_sort_column_id(0) 
+        column.set_sort_column_id(1) # Sort on the probe/section name
         probe_listview.append_column(column)
-        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
         column.add_attribute(cell_renderer, "active", 0)
+        column.add_attribute(cell_renderer, "visible", 3)
         cell_renderer.connect("toggled", self._probe_toggled)
         
         cell_renderer = gtk.CellRendererText()
         column.pack_start(cell_renderer, True)
         column.add_attribute(cell_renderer, "text", 1)
-        
-        program_listview.connect('cursor-changed', self._prog_curs_changed)
     
     def register_collection_dialog(self, collection_dialog):
         self._collection_dialog = collection_dialog
@@ -133,11 +142,39 @@ class ProbeSelectionController(object):
         prog_ident = self._program_store.get_value(it, 1)
         
         self._current_program = self._program_list[prog_ident]
+
+        groups = {}
+        # Used to keep track of created probe groups in the tree view.
+        # For instance, probe a.b.c.d will create three recursive tree paths,
+        # stored respectively at groups['a'][''], groups['a']['b'][''],
+        # and groups['a']['b']['c']
         
         for probe in self._current_program.get_probes():
             if probe.enabled:
-                self._probe_store.append([probe.displayed, probe.name,
-                    probe.ident])
+                probe_parent = None
+                cur_group = groups
+                probe_path = probe.name.split(".")
+                probe_name = probe_path.pop()
+                
+                while probe_path:
+                    group_name = probe_path.pop(0)
+                    try:
+                        cur_group = cur_group[group_name]
+                    except KeyError:
+                        # The needed tree path does not exist -- create it and
+                        # continue
+                    
+                        cur_group[group_name] = {
+                            '': self._probe_store.append(probe_parent, [False,
+                                group_name, 0, False])
+                        }
+                        
+                        cur_group = cur_group[group_name]
+                    
+                    probe_parent = cur_group['']
+            
+                self._probe_store.append(probe_parent, [probe.displayed,
+                    probe_name, probe.ident, True])
     
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """

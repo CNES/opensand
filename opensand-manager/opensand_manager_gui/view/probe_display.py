@@ -18,7 +18,8 @@ FORMATTER = FormatStrFormatter('%2.8g')
 class ProbeGraph(object):
     def __init__(self, display, program_name, probe_name, unit):
         self._display = display
-        self._title = "[%s] %s" % (program_name, probe_name.replace("_", " "))
+        probe_name = probe_name.replace("_", " ").replace(".", ": ")
+        self._title = "[%s] %s" % (program_name, probe_name)
         
         if unit:
             self._title += " (%s)" % unit
