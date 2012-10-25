@@ -34,7 +34,6 @@
 Main file for the OpenSAND collector.
 """
 
-from gtk.gdk import threads_init
 from messages_handler import MessagesHandler
 from optparse import OptionParser
 from probes_manager import HostManager
@@ -73,7 +72,7 @@ class OpenSandCollector(object):
 
         logging.basicConfig(level=level)
 
-        threads_init()  # Necessary for the transfer_server thread
+        gobject.threads_init()  # Necessary for the transfer_server thread
         main_loop = gobject.MainLoop()
 
         try:
