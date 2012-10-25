@@ -21,6 +21,10 @@ class Program(object):
 
     def __init__(self, controller, ident, name, probes, events):
         self.ident = ident
+        host_name, prog_name = name.split(".", 1)
+        if host_name.startswith(prog_name):
+            name = host_name
+        
         self.name = name
         self._probes = []
         for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
