@@ -935,13 +935,13 @@ int BlocDVBRcsTal::initEnvPlane(const std::vector<std::string>& fifo_types)
 		char probe_name[32];
 		
 		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s", fifo_type);
-		this->probe_st_terminal_queue_size[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+		this->probe_st_terminal_queue_size[i] = EnvPlane::register_probe<int>(probe_name, "cells", true, SAMPLE_AVG);
 		
 		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s", fifo_type);
-		this->probe_st_real_in_thr[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+		this->probe_st_real_in_thr[i] = EnvPlane::register_probe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 		
 		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s", fifo_type);
-		this->probe_st_real_out_thr[i] = EnvPlane::register_probe<int>(probe_name, true, SAMPLE_AVG);
+		this->probe_st_real_out_thr[i] = EnvPlane::register_probe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 	}
 	
 	return 0;
