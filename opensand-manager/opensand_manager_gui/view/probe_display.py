@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 import random
 
 GRAPH_MAX_POINTS = 30
-FORMATTER = FormatStrFormatter('%2.8g')
+TIME_FORMATTER = FormatStrFormatter('%.1f')
+VALUE_FORMATTER = FormatStrFormatter('%2.8g')
 
 class ProbeGraph(object):
     def __init__(self, display, program_name, probe_name, unit):
@@ -43,7 +44,8 @@ class ProbeGraph(object):
         self._yaxis = axes.get_yaxis()
 
         if direct_values is not None:
-            self._times, self._values = direct_values
+            times, self._values = direct_values
+            self._times = [time / 1000.0 for time in times]
 
         self._redraw()
         
@@ -66,7 +68,7 @@ class ProbeGraph(object):
         Appends a value to the graph
         """
         
-        self._times.append(time)
+        self._times.append(time / 1000.0)
         self._values.append(value)
         
         self._dirty = True
@@ -96,10 +98,10 @@ class ProbeGraph(object):
         rymax = ymax + ((ymax - ymin) * 0.1)
         
         self._axes.set_title(self._title, size="small")
-        self._xaxis.set_major_formatter(FORMATTER)
-        self._yaxis.set_major_formatter(FORMATTER)
+        self._xaxis.set_major_formatter(TIME_FORMATTER)
+        self._yaxis.set_major_formatter(VALUE_FORMATTER)
 
-        self._axes.plot(x, y, 'o-', color=self._color)
+        self._axes.plot(x, y, '-', color=self._color)
         
         self._axes.axis([xmin, xmax, rymin, rymax])
     
