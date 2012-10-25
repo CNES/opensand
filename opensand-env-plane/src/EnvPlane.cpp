@@ -1,7 +1,3 @@
-#ifndef _ENV_PLANE_H
-#define _ENV_PLANE_H
-
-#include <assert.h>
 /*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
