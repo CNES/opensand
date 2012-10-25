@@ -39,10 +39,42 @@ from optparse import OptionParser
 from probes_manager import HostManager
 from service_handler import ServiceHandler
 from transfer_server import TransferServer
+import fcntl
 import gobject
 import logging
+import os
+import pwd
+import signal
 import socket
 import sys
+
+
+PID_PATH = "/var/run/opensand-collector.pid"
+LOG_PATH = "/var/log/opensand/collector.log"
+
+
+def fail(message, *args):
+    """
+    Report a startup error and exits.
+    """
+    
+    sys.exit(message % args)
+
+
+def read_pid_file():
+    """
+    Returns the current content of the PID file, or 0 if it does not exist.
+    """
+    
+    try:
+        with open(PID_PATH) as pid_file:
+            try:
+                return int(pid_file.read())
+            except ValueError:
+                return 0
+            
+    except IOError:
+        return 0
 
 
 class OpenSandCollector(object):
@@ -60,20 +92,62 @@ class OpenSandCollector(object):
         """
 
         parser = OptionParser()
-        parser.set_defaults(debug=False)
+        parser.set_defaults(debug=False, background=False, kill=False)
         parser.add_option("-t", "--service_type", dest="service_type",
             help="OpenSAND service type (default: _opensand._tcp)")
-        parser.add_option("-d", action="store_true", dest="debug",
+        parser.add_option("-d", "--debug", action="store_true", dest="debug",
             help="Show debug messages")
+        parser.add_option("-b", "--background", action="store_true",
+            dest="background", help="Run in background as opensand user")
+        parser.add_option("-k", "--kill", action="store_true", dest="kill",
+            help="Kill a background collector instance")
         (options, args) = parser.parse_args()
 
         service_type = options.service_type or "_opensand._tcp"
         level = logging.DEBUG if options.debug else logging.INFO
 
-        logging.basicConfig(level=level)
-
         gobject.threads_init()  # Necessary for the transfer_server thread
         main_loop = gobject.MainLoop()
+        
+        opensand_uid = pwd.getpwnam('opensand').pw_uid
+        current_uid = os.getuid()
+        
+        if options.kill:
+            if current_uid not in [0, opensand_uid]:
+                fail("This program must be started as the root or opensand "
+                    "user to kill a background collector instance.")
+                
+            pid = read_pid_file()
+            if pid == 0:
+                fail("The collector does not seem to be running (no PID).")
+            
+            os.kill(pid, signal.SIGTERM)
+            
+            return
+                
+        
+        if options.background:
+            logging.basicConfig(level=level, filename=LOG_PATH)
+        
+            if current_uid != 0:
+                fail("The collector must be started as root to run in the "
+                    "background.")
+            
+            try:
+                bg_fd = os.open(PID_PATH, os.O_WRONLY | os.O_CREAT)
+                fcntl.flock(bg_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError, e:
+                fail(str(e))
+            except IOError, e:
+                if e.errno == errno.EACCES or e.errno == errno.EAGAIN:
+                    fail("The collector seem to be already running in the "
+                        "background.")
+                else:
+                    fail(str(e))
+            
+            os.setuid(opensand_uid)
+        else:
+            logging.basicConfig(level=level)
 
         try:
             with MessagesHandler(self) as msg_handler:
@@ -81,6 +155,24 @@ class OpenSandCollector(object):
                 with TransferServer(self.host_manager) as transfer_server:
                     trsfer_port = transfer_server.get_port()
                     with ServiceHandler(self, port, trsfer_port, service_type):
+                        if options.background:
+                            pid = os.fork()
+                            if pid:
+                                os.ftruncate(bg_fd, 0)
+                                os.write(bg_fd, str(pid))
+                                os._exit(0)
+                            
+                            null = open(os.path.devnull)
+                            sys.stdin = sys.stdout = sys.stderr = null
+                            
+                            def handler(_sig, _frame):
+                                logging.info("SIGTERM caught, quitting.")
+                                main_loop.quit()
+                            
+                            signal.signal(signal.SIGTERM, handler)
+                    
                         main_loop.run()
         finally:
             self.host_manager.cleanup()
+            if options.background:
+                os.ftruncate(bg_fd, 0)

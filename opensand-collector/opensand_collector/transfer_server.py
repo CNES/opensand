@@ -34,10 +34,8 @@
 OpenSAND collector probe transfer server.
 """
 
-from socket import error as socket_error
 from tempfile import TemporaryFile
 from zipfile import ZipFile, ZIP_DEFLATED
-from socket import error as socket_error
 import logging
 import os
 import socket
@@ -109,7 +107,12 @@ class TransferServer(threading.Thread):
     
     def _accept_loop(self):
         LOGGER.debug("Waiting for connections...")
-    
+        
+        # Reference socket.error before calling accept(). This exception may
+        # be raised by accept() during the shutdown of the Python interpreter,
+        # and in that case “socket.error” may be invalid
+        socket_error = socket.error
+        
         try:
             conn, addr = self._sock.accept()
         except socket_error:  # Socket closed
