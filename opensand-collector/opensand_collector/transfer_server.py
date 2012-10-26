@@ -107,6 +107,10 @@ class TransferServer(threading.Thread):
             self._accept_loop()
     
     def _accept_loop(self):
+        """
+        Inner method to accept a connection from the manager and handle it.
+        """
+    
         LOGGER.debug("Waiting for connections...")
         
         # Reference socket.error before calling accept(). This exception may
@@ -120,7 +124,7 @@ class TransferServer(threading.Thread):
             self._continue = False
             return
         
-        LOGGER.info("Connected to %s:%d", *addr)
+        LOGGER.info("Connected to %s:%d" % addr)
         
         root_path = self._host_manager.switch_storage()
         LOGGER.debug("Zipping folder %s contents", root_path)
@@ -176,13 +180,13 @@ class TransferServer(threading.Thread):
 
 if __name__ == "__main__":
     from collections import namedtuple
-    from gtk.gdk import threads_init
     import gobject
     logging.basicConfig(level=logging.DEBUG)
 
-    host_manager = namedtuple('FakeHostManager', ['switch_storage'])(lambda: "/tmp/test")
+    SWITCH_STORAGE = lambda: "/tmp/test"
+    FAKE_MGR = namedtuple('FakeHostManager', ['switch_storage'])(SWITCH_STORAGE)
     
-    threads_init()
+    gobject.threads_init()
     
-    with TransferServer(host_manager):
+    with TransferServer(FAKE_MGR):
         gobject.MainLoop().run()

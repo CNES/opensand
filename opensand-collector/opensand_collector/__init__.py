@@ -34,11 +34,12 @@
 Main file for the OpenSAND collector.
 """
 
-from messages_handler import MessagesHandler
+from opensand_collector.messages_handler import MessagesHandler
+from opensand_collector.probes_manager import HostManager
+from opensand_collector.service_handler import ServiceHandler
+from opensand_collector.transfer_server import TransferServer
 from optparse import OptionParser
-from probes_manager import HostManager
-from service_handler import ServiceHandler
-from transfer_server import TransferServer
+import errno
 import fcntl
 import gobject
 import logging
@@ -101,7 +102,7 @@ class OpenSandCollector(object):
             dest="background", help="Run in background as opensand user")
         parser.add_option("-k", "--kill", action="store_true", dest="kill",
             help="Kill a background collector instance")
-        (options, args) = parser.parse_args()
+        (options, _args) = parser.parse_args()
 
         service_type = options.service_type or "_opensand._tcp"
         level = logging.DEBUG if options.debug else logging.INFO
@@ -136,14 +137,14 @@ class OpenSandCollector(object):
             try:
                 bg_fd = os.open(PID_PATH, os.O_WRONLY | os.O_CREAT)
                 fcntl.flock(bg_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError, e:
-                fail(str(e))
-            except IOError, e:
-                if e.errno == errno.EACCES or e.errno == errno.EAGAIN:
+            except OSError, err:
+                fail(str(err))
+            except IOError, err:
+                if err.errno == errno.EACCES or err.errno == errno.EAGAIN:
                     fail("The collector seem to be already running in the "
                         "background.")
                 else:
-                    fail(str(e))
+                    fail(str(err))
             
             os.setuid(opensand_uid)
         else:
@@ -166,6 +167,10 @@ class OpenSandCollector(object):
                             sys.stdin = sys.stdout = sys.stderr = null
                             
                             def handler(_sig, _frame):
+                                """
+                                SIGTERM handler
+                                """
+                                
                                 logging.info("SIGTERM caught, quitting.")
                                 main_loop.quit()
                             

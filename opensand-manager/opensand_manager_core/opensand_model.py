@@ -548,7 +548,6 @@ if __name__ == "__main__":
                      CONFIG.get_up_return_encap())
         LOGGER.debug("downlink encapsulation protocol: " +
                      CONFIG.get_down_forward_encap())
-        LOGGER.debug("terminal type: " + CONFIG.get_terminal_type())
         LOGGER.debug("frame duration: " + str(CONFIG.get_frame_duration()))
 
         MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {}, {})

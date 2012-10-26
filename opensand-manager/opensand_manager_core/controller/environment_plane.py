@@ -31,9 +31,8 @@
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
 
 
-from opensand_manager_core.model.environment_plane import Program, Probe
+from opensand_manager_core.model.environment_plane import Program
 from tempfile import TemporaryFile
-from time import time
 from zipfile import ZipFile
 import gobject
 import socket
@@ -68,7 +67,7 @@ class EnvironmentPlaneController(object):
         self._transfer_dest = None
         self._transfer_dial = None
         self._transfer_cb = None
-        self._tranfer_file = None
+        self._transfer_file = None
         self._transfer_remaining = 0
         
         self._programs = {}
@@ -172,6 +171,10 @@ class EnvironmentPlaneController(object):
             self._transfer_header)
         
     def _transfer_header(self, transfer_socket, _tag):
+        """
+        Handles the transfer of the probe data header
+        """
+    
         header = ""
         while len(header) < 4:
             header += transfer_socket.recv(4 - len(header))
@@ -190,6 +193,10 @@ class EnvironmentPlaneController(object):
         return False
     
     def _transfer_data(self, transfer_socket, _tag):
+        """
+        Handles the transfer of the probe data
+        """
+    
         if self._transfer_remaining == 0:
             transfer_socket.close()
             gobject.idle_add(self._transfer_unzip)
@@ -209,6 +216,10 @@ class EnvironmentPlaneController(object):
         return True
     
     def _transfer_unzip(self):
+        """
+        Handles the decompression of the probe data
+        """
+    
         self._log.debug("Extracting")
     
         self._transfer_file.seek(0)
@@ -416,7 +427,7 @@ class EnvironmentPlaneController(object):
                 self._log.error("Unknown probe ID %d" % probe_id)
                 return False
 
-            value, pos = probe._read_value(data, pos)
+            value, pos = probe.read_value(data, pos)
             
             if self._observer:
                 self._observer.new_probe_value(probe, timestamp, value)
@@ -450,7 +461,7 @@ class EnvironmentPlaneController(object):
         
         return True
     
-    def _update_probe_status(self, probe):
+    def update_probe_status(self, probe):
         """
         Notifies the collector that the status of a given probe has changed.
         """
@@ -475,13 +486,14 @@ class EnvironmentPlaneController(object):
         self._sock.sendto(message, self._collector_addr)        
 
 if __name__ == '__main__':
+    import logging
     import sys
 
     logging.basicConfig(level=logging.DEBUG)
-    main_loop = gobject.MainLoop()
-    controller = EnvironmentPlaneController()
+    MAIN_LOOP = gobject.MainLoop()
+    CONTROLLER = EnvironmentPlaneController()
     try:
-        controller.register_on_collector("127.0.0.1", int(sys.argv[1]), 0)
-        main_loop.run()
+        CONTROLLER.register_on_collector("127.0.0.1", int(sys.argv[1]), 0)
+        MAIN_LOOP.run()
     finally:
-        controller.cleanup()
+        CONTROLLER.cleanup()

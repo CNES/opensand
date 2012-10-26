@@ -9,6 +9,10 @@ import struct
 
 
 class EventLevel(object):
+    """
+    Event level constants
+    """
+
     DEBUG = 0
     INFO = 1
     WARNING = 2
@@ -77,7 +81,7 @@ class Probe(object):
         self._enabled = enabled
         self._displayed = displayed
     
-    def _read_value(self, data, pos):
+    def read_value(self, data, pos):
         """
         Read a probe value from the specified data string at the specified
         position. Returns the new position.
@@ -99,10 +103,18 @@ class Probe(object):
     
     @property
     def enabled(self):
+        """
+        Indicates if the probe is enabled
+        """
+    
         return self._enabled
     
     @enabled.setter
     def enabled(self, value):
+        """
+        Enables or disables the probe
+        """
+    
         value = bool(value)
         
         if value == self._enabled:
@@ -112,14 +124,22 @@ class Probe(object):
             self._displayed = False
         
         self._enabled = value
-        self._controller._update_probe_status(self)
+        self._controller.update_probe_status(self)
 
     @property
     def displayed(self):
+        """
+        Indicates if the probe is enabled
+        """
+    
         return self._displayed
     
     @displayed.setter
     def displayed(self, value):
+        """
+        Displays or hides the probes
+        """
+    
         value = bool(value)
         
         if value == self._displayed:
@@ -129,7 +149,7 @@ class Probe(object):
             raise ValueError("Cannot display a disabled probe")
         
         self._displayed = value
-        self._controller._update_probe_status(self)
+        self._controller.update_probe_status(self)
     
     @property
     def global_ident(self):
@@ -222,7 +242,7 @@ class SavedProbeLoader(object):
         
         return self._data
     
-    def _update_probe_status(self, probe):
+    def update_probe_status(self, probe):
         # Nothing to do
         pass
 

@@ -68,8 +68,6 @@ class ProbeView(WindowView):
         
         self._status_label = self._ui.get_widget("label_displayed")
         self._load_run_button = self._ui.get_widget("load_run_button")
-        # FIXME the event handled set in Glade does not seem to work
-        self._load_run_button.connect('clicked', self.on_load_run_clicked)
         self._conf_coll_button = self._ui.get_widget("conf_collection_button")
         self._save_fig_button = self._ui.get_widget("save_figure_button")
 

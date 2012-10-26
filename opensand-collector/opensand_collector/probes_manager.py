@@ -163,8 +163,7 @@ class Event(object):
         Writes the specified value to the log.
         """
 
-        self.program._event_log_file.write("%.6f %s %s\n" % (time, self.ident,
-            text))
+        self.program.write_event("%.6f %s %s\n" % (time, self.ident, text))
     
     def attributes(self):
         """
@@ -253,6 +252,13 @@ class Program(object):
             self.ident,
             [probe.attributes() for probe in self.probes],
             [event.attributes() for event in self.events])
+    
+    def write_event(self, text):
+        """
+        Write an event to the log.
+        """
+        
+        self._event_log_file.write(text)
 
     def _setup_storage(self):
         """

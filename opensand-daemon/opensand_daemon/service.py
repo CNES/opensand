@@ -317,10 +317,10 @@ class OpenSandService(object):
                 LOGGER.debug("service established")
             elif state == avahi.ENTRY_GROUP_COLLISION:
                 LOGGER.error("service name collision")
-                OpenSandService.stop()
+                self.stop()
             elif state == avahi.ENTRY_GROUP_FAILURE:
                 LOGGER.error("error in group state changed" +  error)
-                OpenSandService.stop()
+                self.stop()
 
 
 ##### TEST #####

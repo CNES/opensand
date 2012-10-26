@@ -168,8 +168,8 @@ class StatsHandler(threading.Thread):
             process = self._process_list.find_process('pid', pid)
 
             if not process:
-                LOGGER.error("Found no PID matching a registering process")
-                # FIXME Should probably not allow programs to continue
+                LOGGER.error("PID %d tried to register but is unknown, sending "
+                    "ACK anyway.")
                 self._int_socket.sendto(struct.pack("!LB", MAGIC_NUMBER,
                     MSG_CMD_ACK), addr)
                 return

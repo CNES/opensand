@@ -7,7 +7,6 @@ probe_display.py - handles the display of probe values on graphs.
 from collections import deque
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTK
 from matplotlib.ticker import FormatStrFormatter
-from threading import Lock
 import gobject
 import matplotlib.pyplot as plt
 import random
@@ -17,6 +16,10 @@ TIME_FORMATTER = FormatStrFormatter('%.1f')
 VALUE_FORMATTER = FormatStrFormatter('%2.8g')
 
 class ProbeGraph(object):
+    """
+    Represents the graph for a probe
+    """
+
     def __init__(self, display, program_name, probe_name, unit):
         self._display = display
         probe_name = probe_name.replace("_", " ").replace(".", ": ")
@@ -31,6 +34,8 @@ class ProbeGraph(object):
         self._values = deque(maxlen=GRAPH_MAX_POINTS)
 
         self._axes = None
+        self._xaxis = None
+        self._yaxis = None
         self._color = random.choice("bgrcmyk")
         self._dirty = False
     
@@ -105,13 +110,6 @@ class ProbeGraph(object):
         
         self._axes.axis([xmin, xmax, rymin, rymax])
     
-    def __str__(self):
-        return self._name
-    
-    def __repr__(self):
-        return "<ProbeGraph: %s (%s) index=%d>" % (self._name, self._unit,
-            self.index)
-    
 
 class ProbeDisplay(object):
     """
@@ -130,6 +128,10 @@ class ProbeDisplay(object):
         self._probe_data = {}
     
     def save_figure(self, filename):
+        """
+        Saves the figure to a file.
+        """
+    
         self._fig.savefig(filename)
     
     def set_probe_data(self, probe_data=None):
@@ -205,6 +207,10 @@ class ProbeDisplay(object):
         return True
     
     def add_probe_value(self, probe, time, value):
+        """
+        Adds a probe value to the graph.
+        """
+    
         try:
             self._displayed_probes[probe.global_ident].add_value(time, value)
         except KeyError:

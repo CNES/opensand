@@ -34,15 +34,11 @@
 probe_event.py - the events on probe tab
 """
 
-import gobject
 import gtk
 import os
-import re
 
 from opensand_manager_gui.view.probe_view import ProbeView
 from opensand_manager_gui.view.popup.run_dialog import RunDialog
-from opensand_manager_gui.view.popup.infos import error_popup
-from opensand_manager_core.my_exceptions import ViewException
 
 (TEXT, VISIBLE, ACTIVE) = range(3)
 
@@ -55,6 +51,9 @@ class ProbeEvent(ProbeView):
         self._selected_file_list = []
 
         self._selected = {'component' : [], 'stat' : [], 'index' : []}
+        
+        # FIXME the event handled set in Glade does not seem to work
+        self._load_run_button.connect('clicked', self.on_load_run_clicked)
 
 
     def close(self):
@@ -78,6 +77,8 @@ class ProbeEvent(ProbeView):
             self._stop_graph_update()
 
     def on_load_run_clicked(self, _):
+        """ The load run button was clicked """
+    
         dlg = RunDialog(self._model.get_scenario(), self._model.get_run())
         run = dlg.go()
             
@@ -89,10 +90,13 @@ class ProbeEvent(ProbeView):
         self._set_state_run_loaded(run)
 
     def on_conf_collection_button_clicked(self, _):
+        """ The Configure Collection button was clicked """
+    
         self._conf_coll_dialog.show()
     
     def on_save_figure_button_clicked(self, _):
-
+        """ The Save Figure button was clicked """
+        
         dlg = gtk.FileChooserDialog("Save Figure", None,
                                     gtk.FILE_CHOOSER_ACTION_SAVE,
                                     (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,

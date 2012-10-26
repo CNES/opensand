@@ -102,7 +102,10 @@ class ServiceHandler(object):
         if name == "collector":
             return
 
-        def error_handler(*args):
+        def error_handler(*_args):
+            """
+            Error handler for service resolution errors
+            """
             LOGGER.error("Unable to get resolve service %s, ignoring.", name)
             return
 
@@ -135,7 +138,7 @@ class ServiceHandler(object):
         self._known_hosts.add(name)
         self.collector.host_manager.add_host(name, (addr, port))
 
-    def _handle_remove(self, interface, protocol, name, stype, domain, flags):
+    def _handle_remove(self, _interface, _proto, name, _stype, _domain, _flags):
         """
         Called when a service is removed
         """

@@ -35,7 +35,6 @@ opensand_view.py - OpenSAND manager view
 """
 
 import gtk
-import time
 import gobject
 import os
 import shutil
@@ -477,7 +476,7 @@ class View(WindowView):
         return False
     
     def on_program_list_changed(self, programs_dict):
-        """ called by the environment plane program list changes """
+        """ called when the environment plane program list changes """
         
         for program in programs_dict.itervalues():
             if program.ident not in self._event_tabs:
@@ -487,18 +486,28 @@ class View(WindowView):
         self._eventprobe.simu_program_list_changed(programs_dict)
     
     def on_new_program_event(self, program, name, level, message):
+        """ called when an environment plane event is received """
+    
         self._event_tabs[program.ident].message(level, name, message)
     
-    def on_new_probe_value(self, probe, time, value):
-        self._eventprobe.new_probe_value(probe, time, value)
+    def on_new_probe_value(self, probe, timestamp, value):
+        """ called when a new probe value is received """
+    
+        self._eventprobe.new_probe_value(probe, timestamp, value)
     
     def on_simu_state_changed(self):
+        """ Called when the simulation state changes """
+    
         self._eventprobe.simu_state_changed()
     
     def on_probe_transfer_progress(self, started):
+        """ Called when probe transfer from the collector starts or stops """
+    
         gobject.idle_add(self._on_probe_transfer_progress, started)
     
-    def _on_probe_transfer_progress(self, started):        
+    def _on_probe_transfer_progress(self, started):
+        """ Internal probe transfer notification handler """
+    
         if started:
             self._prog_dialog = ProgressDialog("Saving probe data, please "
                 "wait…", self._model, self._log)

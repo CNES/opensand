@@ -38,20 +38,14 @@ opensand_controller.py - thread that configure, install, start, stop
 import threading
 import os
 import shutil
-import array
-import struct
 import socket
-import fcntl
-import tempfile
 import ConfigParser
-import stat
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
 from opensand_manager_core.controller.stream import Stream
-from opensand_manager_core.utils import copytree
 
 DEFAUL_PATH = '/usr/share/opensand/'
 DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'

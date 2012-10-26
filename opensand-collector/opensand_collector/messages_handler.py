@@ -61,6 +61,10 @@ MSG_MGR_UNREGISTER = 27
 MSG_MGR_REGISTER_ACK = 28
 
 class MessagesHandler(object):
+    """
+    UDP messages handler class
+    """
+
     def __init__(self, collector):
         self.collector = collector
         self._manager_addr = None
@@ -86,7 +90,7 @@ class MessagesHandler(object):
         self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
             self._data_received)
         
-        LOGGER.debug("Socket bound to port %d.",self.get_port())
+        LOGGER.debug("Socket bound to port %d.", self.get_port())
 
         return self
 
@@ -117,12 +121,12 @@ class MessagesHandler(object):
         packet, addr = self._sock.recvfrom(4096)
 
         if len(packet) < 5:
-            LOGGER.error("Received short packet from address %s:%d.", *addr)
+            LOGGER.error("Received short packet from address %s:%d." % addr)
             return True
         
         magic, cmd = struct.unpack("!LB", packet[0:5])
         if magic != MAGIC_NUMBER:
-            LOGGER.error("Received bad magic number from address %s:%d.", *addr)
+            LOGGER.error("Received bad magic number from address %s:%d." % addr)
             return True
 
         if cmd >= MSG_MGR_REGISTER:
@@ -167,7 +171,7 @@ class MessagesHandler(object):
 
         elif cmd == MSG_CMD_RELAY:
             try:
-                success = self._handle_cmd_relay(host, addr, data)
+                success = self._handle_cmd_relay(host, data)
             except struct.error:
                 success = False
 
@@ -228,7 +232,7 @@ class MessagesHandler(object):
             pos += ident_length
 
         if data[pos:] != "":
-           return False
+            return False
 
         program = host.add_program(prog_id, prog_name, probe_list, event_list)
 
@@ -238,7 +242,7 @@ class MessagesHandler(object):
 
         return True
 
-    def _handle_cmd_relay(self, host, addr, data):
+    def _handle_cmd_relay(self, host, data):
         """
         Handles a relayed command from a daemon.
         """
@@ -297,13 +301,12 @@ class MessagesHandler(object):
         Handles a SEND_EVENT command from a daemon
         """
     
-        total_length = len(data)
         event_id = struct.unpack("!B", data[0])[0]
 
         try:
             event = prog.get_event(event_id)
         except IndexError:
-            LOGGER.error("Unknown event ID %d", probe_id)
+            LOGGER.error("Unknown event ID %d", event_id)
             return False
 
         text = data[1:]
@@ -323,7 +326,7 @@ class MessagesHandler(object):
 
         if cmd == MSG_MGR_REGISTER:
             self._manager_addr = addr
-            LOGGER.info("Manager registered from address %s:%d", *addr)
+            LOGGER.info("Manager registered from address %s:%d" % addr)
             
             self._notify_manager_ack()
             
@@ -334,12 +337,12 @@ class MessagesHandler(object):
         
         if cmd == MSG_MGR_UNREGISTER:
             self._manager_addr = addr
-            LOGGER.info("Manager unregistered from address %s:%d", *addr)
+            LOGGER.info("Manager unregistered from address %s:%d" % addr)
             return
         
         if addr != self._manager_addr:
             LOGGER.error("Ignoring manager command %d from unregistered "
-                "address %s:%d", cmd, *addr)
+                "address %s:%d", cmd, addr[0], addr[1])
             return
         
         if cmd == MSG_MGR_SET_PROBE_STATUS:
@@ -364,7 +367,7 @@ class MessagesHandler(object):
         
         else:
             LOGGER.error("Unknown command id %d received from manager %s:%d",
-                cmd, *addr)
+                cmd, addr[0], addr[1])
     
     def _notify_manager_ack(self):
         """

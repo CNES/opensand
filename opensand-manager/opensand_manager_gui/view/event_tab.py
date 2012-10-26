@@ -63,10 +63,18 @@ class EventTab(object):
         notebook.connect("switch-page", self._check_switch_page)
     
     def message(self, severity, identifier, text):
+        """
+        Adds a message to the event tab
+        """
+    
         now = time.localtime()
         gobject.idle_add(self._message, now, severity, identifier, text)
     
     def _message(self, date, severity, identifier, text):
+        """
+        Internal handler to add a message to the event tab
+        """
+    
         at_end = self._buff.get_end_iter
         
         if severity == EventLevel.ERROR:
@@ -108,6 +116,10 @@ class EventTab(object):
         return False
     
     def _check_switch_page(self, _notebook, _page, page_num):
+        """
+        Called when the notebook page is changed
+        """
+    
         if page_num == self._page_num:
             self._act_image.hide()
             self._icon_level = -1
