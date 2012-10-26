@@ -55,10 +55,11 @@ class ProbeSelectionController(object):
         self._update_needed = False
         
         self._program_store = gtk.ListStore(str, int)
+        self._program_store.set_sort_column_id(0, gtk.SORT_ASCENDING)
         program_listview.set_model(self._program_store)
         
         column = gtk.TreeViewColumn("Program", gtk.CellRendererText(), text=0)
-        column.set_sort_column_id(0)    
+        column.set_sort_column_id(0)
         program_listview.append_column(column)
         program_listview.connect('cursor-changed', self._prog_curs_changed)
         
@@ -72,6 +73,7 @@ class ProbeSelectionController(object):
         # and text)
         
         self._probe_store = gtk.TreeStore(bool, str, int, bool)
+        self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
         probe_listview.set_model(self._probe_store)
         probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         
