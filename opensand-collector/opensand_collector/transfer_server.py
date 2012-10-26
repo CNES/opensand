@@ -38,6 +38,7 @@ from tempfile import TemporaryFile
 from zipfile import ZipFile, ZIP_DEFLATED
 import logging
 import os
+import shutil
 import socket
 import struct
 import threading
@@ -169,6 +170,9 @@ class TransferServer(threading.Thread):
                     pass
                 
                 conn.close()
+        
+        LOGGER.debug("Deleting folder %s", root_path)
+        shutil.rmtree(root_path)
 
 if __name__ == "__main__":
     from collections import namedtuple
