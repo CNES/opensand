@@ -48,6 +48,10 @@ class Probe : public BaseProbe
 	friend class EnvPlaneInternal;
 
 public:
+	/**
+	 * @brief adds a value to the probe, to be sent when \send_probes is called.
+	 * @param value The value to add to the probe
+	 **/
 	void put(T value);
 
 private:

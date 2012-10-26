@@ -39,13 +39,16 @@
 
 class EnvPlaneInternal;
 
+/**
+ * @brief Probe sample type
+ **/
 enum sample_type
 {
-	SAMPLE_LAST,
-	SAMPLE_MIN,
-	SAMPLE_MAX,
-	SAMPLE_AVG,
-	SAMPLE_SUM
+	SAMPLE_LAST,	/*!< Keep the last value */
+	SAMPLE_MIN,		/*!< Keep the minimum value */
+	SAMPLE_MAX,		/*!< Keep the maximum value*/
+	SAMPLE_AVG,		/*!< Calculate the average */
+	SAMPLE_SUM		/*!< Calculate the sum */
 };
 
 class BaseProbe
@@ -53,9 +56,21 @@ class BaseProbe
 	friend class EnvPlaneInternal;
 
 public:
+	
+	/**
+	 * @brief Return true if the probe is currently enabled
+	 **/
 	inline bool is_enabled() const { return this->enabled; };
-	inline const char* name() const { return this->_name; };
-	inline const char* unit() const { return this->_unit; };
+	
+	/**
+	 * @brief Return the name of the probe
+	 **/
+	inline const char* get_name() const { return this->name; };
+	
+	/**
+	 * @brief Return the unit of the probe
+	 **/
+	inline const char* get_unit() const { return this->unit; };
 
 protected:
 	BaseProbe(uint8_t id, const char* name, const char* unit, bool enabled, sample_type type);
@@ -65,8 +80,8 @@ protected:
 	virtual void append_value_and_reset(std::string& str) = 0;
 
 	uint8_t id;
-	char* _name;
-	char* _unit;
+	char* name;
+	char* unit;
 	sample_type s_type;
 	bool enabled;
 	

@@ -36,19 +36,19 @@
 
 #include <stdint.h>
 
+/**
+ * @brief Event severity levels
+ **/
 enum event_level {
-	LEVEL_DEBUG,
-	LEVEL_INFO,
-	LEVEL_WARNING,
-	LEVEL_ERROR
+	LEVEL_DEBUG,	/*!< Debug level */
+	LEVEL_INFO,		/*!< Information level */
+	LEVEL_WARNING,	/*!< Warning level */
+	LEVEL_ERROR		/*!< Error level */
 };
 
 class Event
 {
 	friend class EnvPlaneInternal;
-
-	inline const char* identifier() const { return this->_identifier; };
-	inline event_level level() const { return this->_level; };
 
 protected:
 	Event(uint8_t id, const char* identifier, event_level level);
@@ -56,8 +56,8 @@ protected:
 
 private:
 	uint8_t id;
-	char* _identifier;
-	event_level _level;
+	char* identifier;
+	event_level level;
 };
 
 #endif

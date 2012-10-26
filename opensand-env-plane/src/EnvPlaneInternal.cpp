@@ -166,8 +166,8 @@ bool EnvPlaneInternal::finish_init()
 	msg_header_register(message, getpid(), this->probes.size(), this->events.size());
 
 	for (std::size_t i = 0 ; i < this->probes.size() ; i++) {
-		const char* name = this->probes[i]->name();
-		const char* unit = this->probes[i]->unit();
+		const char* name = this->probes[i]->get_name();
+		const char* unit = this->probes[i]->get_unit();
 
 		message.append(1, (((int)this->probes[i]->is_enabled()) << 7) | this->probes[i]->storage_type_id());
 		message.append(1, strlen(name));
@@ -177,9 +177,9 @@ bool EnvPlaneInternal::finish_init()
 	}
 
 	for (std::size_t i = 0 ; i < this->events.size() ; i++) {
-		const char* identifier = this->events[i]->identifier();
+		const char* identifier = this->events[i]->identifier;
 
-		message.append(1, this->events[i]->level());
+		message.append(1, this->events[i]->level);
 		message.append(1, strlen(identifier));
 		message.append(identifier);
 	}
@@ -244,7 +244,7 @@ void EnvPlaneInternal::send_probes()
 
 void EnvPlaneInternal::send_event(Event* event, const char* message_text)
 {
-	if (!this->enabled || event->level() < this->min_level)
+	if (!this->enabled || event->level < this->min_level)
 		return;
 
 	std::string message;
@@ -259,6 +259,6 @@ void EnvPlaneInternal::send_event(Event* event, const char* message_text)
 
 void EnvPlaneInternal::set_probe_state(uint8_t probe_id, bool enabled)
 {
-	UTI_DEBUG("%s probe %s\n", enabled ? "Enabling" : "Disabling", this->probes[probe_id]->name());
+	UTI_DEBUG("%s probe %s\n", enabled ? "Enabling" : "Disabling", this->probes[probe_id]->get_name());
 	this->probes[probe_id]->enabled = enabled;
 }

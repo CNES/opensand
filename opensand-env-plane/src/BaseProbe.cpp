@@ -38,8 +38,8 @@
 BaseProbe::BaseProbe(uint8_t id, const char* name, const char* unit, bool enabled, sample_type type)
 {
 	this->id = id;
-	this->_name = strdup(name);
-	this->_unit = strdup(unit);
+	this->name = strdup(name);
+	this->unit = strdup(unit);
 	this->enabled = enabled;
 	this->s_type = type;
 	this->values_count = 0;
@@ -47,5 +47,5 @@ BaseProbe::BaseProbe(uint8_t id, const char* name, const char* unit, bool enable
 
 BaseProbe::~BaseProbe()
 {
-	free(this->_name);
+	free(this->name);
 }

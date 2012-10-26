@@ -46,25 +46,66 @@
 class EnvPlane
 {
 	friend class CommandThread;
+	friend uint8_t receive_message(int, char*, size_t);
 
 public:
+
+	/**
+	 * @brief Initializes the environment planes
+	 * Prepares the environment plane for registering probes and events
+	 * @param enabled Set to false to disable the environment plane
+	 * @param min_level The minimum event level which will be reported
+	 * @param sock_prefix Custom socket path prefix (for testing purposes)
+	 */
 	static void init(bool enabled, event_level min_level, const char* sock_prefix = NULL);
 
+	/**
+	 * @brief Registers a probe in the environment plane
+	 * @param name The probe name
+	 * @param enabled true if the probe is enabled by default
+	 * @param sample_type the sample type
+	 **/
 	template<typename T>
 	static Probe<T>* register_probe(const char* name, bool enabled, sample_type type);
+	
+	/**
+	 * @brief Registers a probe in the environment plane
+	 * @param name The probe name
+	 * @param unit The probe unit
+	 * @param enabled true if the probe is enabled by default
+	 * @param sample_type the sample type
+	 **/
 	template<typename T>
 	static Probe<T>* register_probe(const char* name, const char* unit, bool enabled, sample_type type);
 
+	/**
+	 * @brief Registers an event in the environment plane
+	 * @param identifier The event name
+	 * @param event_level the event severity
+	 **/
 	static Event* register_event(const char* identifier, event_level level);
 
+	/**
+	 * @brief Finishes the environment plane initialization
+	 * Performs the environment plane registration on the OpenSAND daemon. Needs
+	 * to be called after registering probes and before starting using them.
+	 **/
 	static bool finish_init(void);
+	
+	/**
+	 * @brief Sends all probes which got new values sinces the last call.
+	 **/
 	static void send_probes(void);
+	
+	/**
+	 * @brief Sends the specified event with the specified message format.
+	 **/
 	static void send_event(Event* event, const char* msg_format, ...) PRINTFLIKE(2, 3);
 
+private:
 	inline static const sockaddr_un* daemon_sock_addr() { return &instance.daemon_sock_addr; };
 	inline static const sockaddr_un* self_sock_addr() { return &instance.self_sock_addr; };
 
-private:
 	EnvPlane();
 	~EnvPlane();
 
