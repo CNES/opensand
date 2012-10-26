@@ -281,7 +281,7 @@ class MessagesHandler(object):
                 return False
 
             value, pos = probe.read_value(data, pos)
-            probe.log_value(self._time, value)
+            probe.log_value(timestamp, value)
             
             if probe.displayed:
                 displayed_values.append((probe_id, probe, value))

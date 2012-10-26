@@ -176,12 +176,15 @@ class SavedProbeLoader(object):
                     continue
                 
                 probes = []
+                if host_name.startswith(prog_name):
+                    prog_full_name = host_name
+                else:
+                    prog_full_name = "%s.%s" % (host_name, prog_name)
                 
                 for probe_name in os.listdir(prog_path):
                     probe_path = os.path.join(prog_path, probe_name)
                     probe_name, ext = os.path.splitext(probe_name)
-                    probe_full_name = "%s.%s.%s" % (host_name, prog_name,
-                        probe_name)
+                    probe_full_name = "%s.%s" % (prog_full_name, probe_name)
 
                     if not os.path.isfile(probe_path) or ext != '.log':
                         continue
