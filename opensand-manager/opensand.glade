@@ -23,23 +23,33 @@
                 <child>
                   <widget class="GtkMenu" id="menuitem1_menu">
                     <child>
-                      <widget class="GtkImageMenuItem" id="new">
-                        <property name="label">gtk-new</property>
+                      <widget class="GtkImageMenuItem" id="new scenario">
+                        <property name="label">New Scenario</property>
                         <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_new_activate"/>
                         <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image6">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-new</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkImageMenuItem" id="open">
-                        <property name="label">gtk-open</property>
+                      <widget class="GtkImageMenuItem" id="open scenario">
+                        <property name="label">Open Scenario</property>
                         <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_open_activate"/>
                         <accelerator key="o" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image7">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-open</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
@@ -70,13 +80,18 @@
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkImageMenuItem" id="close">
-                        <property name="label">gtk-close</property>
+                      <widget class="GtkImageMenuItem" id="close scenario">
+                        <property name="label">Close Scenario</property>
                         <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_close_activate"/>
                         <accelerator key="w" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image5">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-close</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
