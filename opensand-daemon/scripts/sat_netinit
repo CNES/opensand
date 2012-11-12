@@ -52,14 +52,16 @@ if [ -f /etc/default/opensand-network ]; then
     . /etc/default/opensand-network
 fi
 
+DAEMON_CONF="/etc/opensand/daemon.conf"
+
 # load the configuration file
 load_conf(){
     # load debconf parameters
     db_get opensand-daemon/network/config_level
     config=$RET
+    db_get opensand-daemon/network/emu_iface
+    export EMU_IFACE=$RET
     if [ "$config" != "AUTOMATIC" ]; then
-        db_get opensand-daemon/network/emu_iface
-        export EMU_IFACE=$RET
         db_get opensand-daemon/network/emu_ipv4
         export EMU_IPV4=$RET
     else
