@@ -110,7 +110,7 @@ Description: Level of network configuration
   Select the level of configuration you need for your network:
    - AUTOMATIC: the daemon automatically read your network configuration
                 according to the choosen interfaces and try to keep it for
-                OpenSAND, be sure that tour network will be compatible with
+                OpenSAND, be sure that your network will be compatible with
                 OpenSAND,
    - ADVANCED: you will be able to select the interfaces and addresses,
                for default configuration choose this mode and press enter for
