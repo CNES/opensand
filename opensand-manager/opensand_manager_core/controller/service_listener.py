@@ -130,8 +130,6 @@ class OpenSandServiceListener():
                 network_config['emu_iface'] = val
             elif key == 'emu_ipv4':
                 network_config['emu_ipv4'] = val
-            elif key == 'emu_ipv6':
-                network_config['emu_ipv6'] = val
             elif key == 'lan_iface':
                 network_config['lan_iface'] = val
             elif key == 'lan_ipv4':
