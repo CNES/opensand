@@ -261,12 +261,13 @@ def publish_service():
     finally:
         if STATE.RequestHandlerClass._running:
             return
-        # remove addresses only if OpenSAND is not running
-        for add in nladd:
-            try:
-                address.delete(add, nladd[add])
-            except:
-                continue
+        if config_type == 'advanced':
+            # remove addresses only if OpenSAND is not running
+            for add in nladd:
+                try:
+                    address.delete(add, nladd[add])
+                except:
+                    continue
 
 
 def stop_service():
