@@ -36,6 +36,8 @@ libopensand_encap_plugin_la_h = \
 	NetBurst.h \
 	EncapPlugin.h
 
+libopensand_common_la_LIBADD = -ldl
+
 libopensand_common_la_SOURCES = \
 	$(libopensand_common_la_cpp) \
 	$(libopensand_common_la_h)
