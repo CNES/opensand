@@ -31,3 +31,7 @@ libopensand_ule_plugin_la_SOURCES = \
     $(libopensand_ule_plugin_la_h)
 
 pluginsdir = $(prefix)/lib/opensand/plugins
+
+EXTRA_DIST = \
+	ule.py
+

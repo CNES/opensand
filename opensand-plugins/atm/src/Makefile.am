@@ -25,3 +25,7 @@ libopensand_atm_aal5_plugin_la_SOURCES = \
     $(libopensand_atm_aal5_plugin_la_h)
 
 pluginsdir = $(prefix)/lib/opensand/plugins
+
+EXTRA_DIST = \
+	atm_aal5.py
+
