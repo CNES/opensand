@@ -53,7 +53,7 @@ class OpenSandService(object):
     _bus = None
     _routes = None
 
-    def __init__(self, service_type, name, instance, port, descr=None):
+    def __init__(self, cache_dir, service_type, name, instance, port, descr=None):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -65,9 +65,10 @@ class OpenSandService(object):
         OpenSandService._routes = OpenSandRoutes()
         if name.lower() != "sat":
             if name.lower() != "ws":
-                OpenSandService._routes.load(TUN_IFACE)
+                OpenSandService._routes.load(cache_dir, TUN_IFACE)
             else:
-                OpenSandService._routes.load(descr['lan_iface'], True)
+                OpenSandService._routes.load(cache_dir, descr['lan_iface'],
+                                             True)
             self._listener = self.Listener(service_type, name, instance)
         else:
             # no route to handle on satellite

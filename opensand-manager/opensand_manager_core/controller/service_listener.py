@@ -96,6 +96,7 @@ class OpenSandServiceListener():
         inst = ''
         state_port = ''
         command_port = ''
+        cache = None
         tools = []
         modules = []
         network_config = {'discovered' : address}
@@ -136,6 +137,8 @@ class OpenSandServiceListener():
                 network_config['lan_ipv4'] = val
             elif key == 'lan_ipv6':
                 network_config['lan_ipv6'] = val
+            elif key == 'cache':
+                cache = val
         try:
             host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
@@ -145,7 +148,7 @@ class OpenSandServiceListener():
             return
         else:
             if not name.startswith('ws'):
-                new_host = HostController(host_model, self._log)
+                new_host = HostController(host_model, cache, self._log)
                 if name == 'sat':
                     self._hosts.insert(0, new_host)
                 elif name == 'gw':
@@ -155,7 +158,7 @@ class OpenSandServiceListener():
             # we need controller for workstations with tools
             if name.startswith('ws'):
                 if len(host_model.get_tools()) > 0:
-                    new_host = HostController(host_model, self._log)
+                    new_host = HostController(host_model, cache, self._log)
                     self._ws.append(new_host)
 
     def print_error(self, *args):

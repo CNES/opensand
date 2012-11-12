@@ -46,11 +46,14 @@ import time
 import ConfigParser
 import pwd
 import prctl
+from optparse import OptionParser
+
 from opensand_daemon.tcp_server import Plop
 from opensand_daemon.command_handler import CommandHandler
 from opensand_daemon.state_handler import StateHandler
 from opensand_daemon.service import OpenSandService
 from opensand_daemon.syslog_handler import SysLogHandler, syslog
+from opensand_daemon.process_list import ProcessList
 from opensand_daemon.nl_utils import NlAddress, NlError, NlExists
 
 #==============================================================================
@@ -58,40 +61,40 @@ from opensand_daemon.nl_utils import NlAddress, NlError, NlExists
 #==============================================================================
 
 # macros
-CONF_FILE = "/etc/opensand/daemon.conf"
-PID_FILE = "/var/run/sand-daemon/pid"
 SERVICE = None
 COMMAND = None
 STATE = None
-LOGGER = logging.getLogger('sand-daemon')
+
+DEFAULT_CACHE=default='/var/cache/sand-daemon'
 
 def sig_handler(signum, frame):
     """ signal handler """
     LOGGER.debug("Signal %s received" % str(signum))
+        
+    if SERVICE_THREAD.is_alive():
+        LOGGER.debug("stop service thread")
+        stop_service()
+        SERVICE_THREAD.join()
+        LOGGER.debug("service thread joined")
+    if COMMAND_THREAD.is_alive():
+        LOGGER.debug("stop command thread")
+        stop_command()
+        COMMAND_THREAD.join()
+        LOGGER.debug("command thread joined")
+    if STATE_THREAD.is_alive():
+        LOGGER.debug("stop state thread")
+        stop_state()
+        STATE_THREAD.join()
+        LOGGER.debug("state thread joined")
+
     if os.path.exists(PID_FILE):
         LOGGER.debug("remove PID file")
-
     try:
         os.remove(PID_FILE)
     except OSError, (errno, strerror):
         LOGGER.error("cannot remove PID file (%d: %s)" % (errno, strerror))
     finally:
-        if SERVICE_THREAD.is_alive():
-            LOGGER.debug("stop service threads")
-            stop_service()
-            SERVICE_THREAD.join()
-            LOGGER.debug("service thread joined")
-        if COMMAND_THREAD.is_alive():
-            LOGGER.debug("stop command threads")
-            stop_command()
-            COMMAND_THREAD.join()
-            LOGGER.debug("command thread joined")
-        if STATE_THREAD.is_alive():
-            LOGGER.debug("stop state threads")
-            stop_state()
-            STATE_THREAD.join()
-            LOGGER.debug("state thread joined")
-
+        LOGGER.debug("quit OpenSAND Daemon")
         if signum == signal.SIGTERM:
             sys.exit(0)
         else:
@@ -126,6 +129,8 @@ def publish_service():
                     'state' : state,
                     'command' : command,
                  }
+        if CACHE_DIR != DEFAULT_CACHE:
+            descr['cache'] = CACHE_DIR
         if name != 'sat':
             instance = CONF_PARSER.get('service', 'instance')
             descr['id'] = instance
@@ -135,7 +140,7 @@ def publish_service():
             emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
             descr['emu_iface'] = emu_iface
             descr['emu_ipv4'] = emu_ipv4
-   
+
         if name != 'sat':
             lan_iface = CONF_PARSER.get('network', 'lan_iface')
             lan_ipv4 = CONF_PARSER.get('network', 'lan_ipv4')
@@ -176,7 +181,7 @@ def publish_service():
                                 (emu_ipv4, emu_iface))
                 finally:
                     nladd[emu_ipv4] = emu_iface
-     
+
         except NlError, msg:
             LOGGER.error("unable to set addresses: %s" % msg)
             # delete the address that were already set
@@ -197,7 +202,7 @@ def publish_service():
             for iface in [emu_iface, lan_iface]:
                 with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface, 'ro') \
                      as sysctrl:
-                    if sysctrl.read().rstrip('\r\n') != "1":
+                    if sysctrl.read().rstrip('\n') != "1":
                         LOGGER.warning("IPv4 forwarding on interface %s is "
                                        "disabled, you won't be able to route "
                                        "packets toward WS behind this host" %
@@ -205,18 +210,18 @@ def publish_service():
             for iface in [lan_iface]:
                 with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
                      as sysctrl:
-                    if sysctrl.read().rstrip('\r\n') != "1":
+                    if sysctrl.read().rstrip('\n') != "1":
                         LOGGER.warning("IPv6 forwarding on interface %s is "
                                        "disabled, you won't be able to route "
                                        "packets toward WS behind this host" %
                                        iface)
             with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctrl:
-                if sysctrl.read().rstrip('\r\n') != "1":
+                if sysctrl.read().rstrip('\n') != "1":
                     LOGGER.warning("IPv4 ip_forward is disabled, you should enable "
                                    "it")
         for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
             with open("/proc/sys/net/core/%s" % val, 'ro') as sysctrl:
-                if int(sysctrl.read().rstrip('\r\n')) < 1048580:
+                if int(sysctrl.read().rstrip('\n')) < 1048580:
                     LOGGER.warning("%s should be set to a value greater than "
                                    "1048580 in order to support high bitrates "
                                    "through OpenSAND" % val)
@@ -245,7 +250,7 @@ def publish_service():
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
 
-    SERVICE = OpenSandService(service_type, name, instance, port, descr)
+    SERVICE = OpenSandService(CACHE_DIR, service_type, name, instance, port, descr)
 
     try:
         SERVICE.run()
@@ -337,28 +342,145 @@ def stop_state():
     if STATE is not None:
         STATE.stop()
 
+def write_pid(pid):
+    """ write the PID file """
+    # everything went fine, write the PID of the child
+    LOGGER.debug("write PID: " + str(pid))
+    try:
+        PID = open(PID_FILE, "wb")
+        PID.write(str(pid))
+    except IOError, (errno, strerror):
+        LOGGER.error("cannot write PID file (%d: %s) : quit" %
+                     (errno, strerror))
+        os.kill(pid, signal.SIGUSR2)
+        sys.exit(1)
+    else:
+        PID.close()
+
+
+def start_daemon():
+    """ start the daemon """
+    # set user id to opensand and only keep CAP_NET_ADMIN capabilities
+    try:
+        pw = pwd.getpwnam("opensand")
+        uid = pw.pw_uid
+        prctl.cap_inheritable.net_admin = True
+        prctl.set_keepcaps(True)
+        os.setuid(uid)
+        prctl.cap_inheritable.limit('CAP_NET_ADMIN')
+        prctl.cap_effective.limit('CAP_NET_ADMIN')
+        prctl.cap_permitted.limit('CAP_NET_ADMIN')
+        prctl.cap_effective.net_admin = True
+    except KeyError:
+        LOGGER.ERROR("cannot find opensand user")
+        try:
+            os.remove(PID_FILE)
+        except OSError, (errno, strerror):
+            LOGGER.error("cannot remove PID file (%d: %s)" %
+                         (errno, strerror))
+        sys.exit(1)
+
+
+    # start the threads
+    try:
+        LOGGER.debug("start service thread")
+        SERVICE_THREAD.start()
+        LOGGER.debug("start command thread")
+        COMMAND_THREAD.start()
+        LOGGER.debug("start state thread")
+        STATE_THREAD.start()
+    except thread.error, msg:
+        LOGGER.error("exception when starting the threads: " + msg)
+        if(os.path.exists(PID_FILE) == True):
+            LOGGER.debug("remove PID file")
+            try:
+                os.remove(PID_FILE)
+            except OSError, (errno, strerror):
+                LOGGER.error("cannot remove PID file (%d: %s)" %
+                             (errno, strerror))
+        sys.exit(1)
+
+    # wait that threads are correctly started
+    time.sleep(2)
+
+    if not SERVICE_THREAD.is_alive():
+        LOGGER.error("service thread is not started correctly: quit")
+        sig_handler(signal.SIGUSR2, None)
+    if not COMMAND_THREAD.is_alive():
+        LOGGER.error("command thread is not started correctly: quit")
+        sig_handler(signal.SIGUSR2, None)
+    if not STATE_THREAD.is_alive():
+        LOGGER.error("state thread is not started correctly: quit")
+        sig_handler(signal.SIGUSR2, None)
+
+
 if __name__ == "__main__":
+
+    #Get new PID file path (if specified)
+    opt_parser = OptionParser()
+    opt_parser.add_option("-c", "--conf", dest="conf",
+                          default='/etc/opensand/daemon.conf',
+                          action="store",
+                          help="Specify the configuration file")
+    opt_parser.add_option("-p", "--pid", dest="pid",
+                          default='/var/run/sand-daemon/pid',
+                          action="store",
+                          help="Specify the file to save sand-daemon PID, "
+                          "use this option carefully !")
+    opt_parser.add_option("-t", "--cache", dest="cache",
+                          default='/var/cache/sand-daemon',
+                          action="store",
+                          help="Specify the folder for cache files, "
+                          "use this option carefully !")
+    opt_parser.add_option("-f", "--foreground", dest="foreground",
+                          default=False,
+                          action="store_true",
+                          help="Start daemon in foreground")
+    opt_parser.add_option("-v", "--verbose", dest="verbose",
+                          default=False,
+                          action="store_true",
+                          help="Print more information")
+    opt_parser.add_option("-d", "--debug", dest="debug",
+                          default=False,
+                          action="store_true",
+                          help="Print debug")
+    opt_parser.add_option("-q", "--quiet", dest='quiet',
+                          default=False,
+                          action="store_true",
+                          help="Stop printing logs in console")
+
+    (options, args) = opt_parser.parse_args()
+    PID_FILE = options.pid
+    CONF_FILE = options.conf
+    CACHE_DIR = os.path.abspath(options.cache)
+        
+    process_list = ProcessList()
+    process_list.set_cache_dir(CACHE_DIR)
+
     # Logging configuration
-    ROOT_LOGGER = logging.getLogger('sand-daemon')
+    LOGGER = logging.getLogger('sand-daemon')
     LOG_HANDLER = SysLogHandler('sand-daemon', syslog.LOG_PID,
                                  syslog.LOG_DAEMON)
-    ROOT_LOGGER.addHandler(LOG_HANDLER)
+    LOGGER.addHandler(LOG_HANDLER)
 
     # Print logs in terminal for debug
-    LOG_HANDLER = logging.StreamHandler(sys.stdout)
-    FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s "
-                                  "- %(message)s")
-    LOG_HANDLER.setFormatter(FORMATTER)
-    ROOT_LOGGER.addHandler(LOG_HANDLER)
+    if not options.quiet:
+        LOG_HANDLER = logging.StreamHandler(sys.stdout)
+        FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)-5s "
+                                      "- %(message)-50s [%(filename)s:%(lineno)d]")
+        LOG_HANDLER.setFormatter(FORMATTER)
+        LOGGER.addHandler(LOG_HANDLER)
 
-    ROOT_LOGGER.setLevel(logging.INFO)
+    LOGGER.setLevel(logging.WARNING)
+    if options.debug:
+        LOGGER.setLevel(logging.DEBUG)
+    elif options.verbose:
+        LOGGER.setLevel(logging.INFO)
 
-    # Get configuration filename if it is given
-    if(len(sys.argv) > 1):
-        CONF_FILE = sys.argv[1]
-        if(os.path.exists(CONF_FILE) == False):
-            LOGGER.error("configuration file '%s' does not exists" % CONF_FILE)
-            sys.exit(1)
+    # Get configuration file
+    if(os.path.exists(CONF_FILE) == False):
+        LOGGER.error("configuration file '%s' does not exists" % CONF_FILE)
+        sys.exit(1)
 
     CONF_PARSER = ConfigParser.SafeConfigParser()
     # read configuration file
@@ -384,90 +506,34 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGUSR2, sig_handler)
 
-    try:
-        CHILD_PID = os.fork()
-    except OSError, (errno, strerror):
-        LOGGER.error("cannot fork (%d: %s) : quit" % (errno, strerror))
-        sys.exit(1)
-
-    if(CHILD_PID == 0):
-        # wait that father write the PID
-        time.sleep(2)
-
-        # set user id to opensand and only keep CAP_NET_ADMIN capabilities
-        try:
-            pw = pwd.getpwnam("opensand")
-            uid = pw.pw_uid
-            prctl.cap_inheritable.net_admin = True
-            prctl.set_keepcaps(True)
-            os.setuid(uid)
-            prctl.cap_inheritable.limit('CAP_NET_ADMIN')
-            prctl.cap_effective.limit('CAP_NET_ADMIN')
-            prctl.cap_permitted.limit('CAP_NET_ADMIN')
-            prctl.cap_effective.net_admin = True
-        except KeyError:
-            LOGGER.ERROR("cannot find opensand user")
-            try:
-                os.remove(PID_FILE)
-            except OSError, (errno, strerror):
-                LOGGER.error("cannot remove PID file (%d: %s)" %
-                             (errno, strerror))
-            sys.exit(1)
-
-
-        # start the threads
-        try:
-            LOGGER.debug("start service thread")
-            SERVICE_THREAD.start()
-            LOGGER.debug("start command thread")
-            COMMAND_THREAD.start()
-            LOGGER.debug("start state thread")
-            STATE_THREAD.start()
-        except thread.error, msg:
-            LOGGER.error("exception when starting the threads: " + msg)
-            if(os.path.exists(PID_FILE) == True):
-                LOGGER.debug("remove PID file")
-                try:
-                    os.remove(PID_FILE)
-                except OSError, (errno, strerror):
-                    LOGGER.error("cannot remove PID file (%d: %s)" %
-                                 (errno, strerror))
-            sys.exit(1)
-
-        # wait that threads are correctly started
-        time.sleep(2)
-
-        if not SERVICE_THREAD.is_alive():
-            LOGGER.error("service thread is not started correctly: quit")
-            sig_handler(signal.SIGUSR2, None)
-        if not COMMAND_THREAD.is_alive():
-            LOGGER.error("command thread is not started correctly: quit")
-            sig_handler(signal.SIGUSR2, None)
-        if not STATE_THREAD.is_alive():
-            LOGGER.error("state thread is not started correctly: quit")
-            sig_handler(signal.SIGUSR2, None)
-
+    # foreground
+    if options.foreground:
+        write_pid(os.getpid())
+        start_daemon()
         # wait for SIGTERM
-        signal.pause()
-
-        LOGGER.debug("quit OpenSAND Daemon")
-
-        sys.exit(0)
-
-    else:
-        # everything went fine, write the PID of the child
-        LOGGER.debug("write PID: " + str(CHILD_PID))
         try:
-            PID = open(PID_FILE, "wb")
-            PID.write(str(CHILD_PID))
-        except IOError, (errno, strerror):
-            LOGGER.error("cannot write PID file (%d: %s) : quit" %
-                         (errno, strerror))
-            os.kill(CHILD_PID, signal.SIGUSR2)
-            sys.exit(1)
-        else:
-            PID.close()
+            signal.pause()
+        except KeyboardInterrupt:
+            sig_handler(signal.SIGTERM, None)
 
-        sys.exit(0)
+    # background
+    else:
+        try:
+            CHILD_PID = os.fork()
+        except OSError, (errno, strerror):
+            LOGGER.error("cannot fork (%d: %s) : quit" % (errno, strerror))
+            sys.exit(1)
+
+        if(CHILD_PID == 0):
+            # wait that father write the PID
+            time.sleep(2)
+            start_daemon()
+            # wait for SIGTERM
+            signal.pause()
+        else:
+            write_pid(CHILD_PID)
+            sys.exit(0)
+
+    sig_handler(signal.SIGUSR2, None)
 
 
