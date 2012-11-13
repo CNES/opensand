@@ -129,7 +129,6 @@ class ConfigurationFile
 	                    const char *attribute,
 	                    T &value);
 
-
  private:
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;
@@ -319,7 +318,7 @@ inline bool ConfigurationFile::getValue<bool>(const char *section,
 
 template <>
 inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterator iter,
-		                                               const char *attribute,
+                                                       const char *attribute,
                                                        bool &value)
 {
 	string tmp_val;
@@ -385,8 +384,8 @@ inline bool ConfigurationFile::getValue<uint8_t>(const char *section,
 
 template <>
 inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::iterator iter,
-		                                                 const char *attribute,
-                                                         uint8_t &value)
+                                                          const char *attribute,
+                                                          uint8_t &value)
 {
 	string tmp_val;
 	unsigned int val;
@@ -409,10 +408,10 @@ inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::ite
  * and we should not surccharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
-                                                    const char *id,
-                                                    const string id_val,
-                                                    const char *attribute,
-                                                    uint8_t &value)
+                                                       const char *id,
+                                                       const string id_val,
+                                                       const char *attribute,
+                                                       uint8_t &value)
 {
 	string tmp_val;
 	unsigned int val;

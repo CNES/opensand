@@ -43,6 +43,7 @@
 // All the package levels are defined and initialised here
 // each package accesses its debug level with an extern
 unsigned char dbgLevel(PKG_DEFAULT) = 0;
+unsigned char dbgLevel(PKG_PHY_LAYER) = 0;
 unsigned char dbgLevel(PKG_DAMA_DC) = 0;
 unsigned char dbgLevel(PKG_DAMA_DA) = 0;
 unsigned char dbgLevel(PKG_DVB_RCS) = 0;
@@ -51,7 +52,7 @@ unsigned char dbgLevel(PKG_DVB_RCS_NCC) = 0;
 unsigned char dbgLevel(PKG_DVB_RCS_SAT) = 0;
 unsigned char dbgLevel(PKG_QOS_DATA) = 0;
 unsigned char dbgLevel(PKG_SAT_CARRIER) = 0;
-unsigned char dbgLevel(PKG_ENCAP) = 2;
+unsigned char dbgLevel(PKG_ENCAP) = 0;
 
 /// List of packages handled by debug module
 typedef struct
@@ -64,6 +65,7 @@ typedef struct
 pkgInfo_t pkgInfo[] =
 {
 	{dbgPkgStr(PKG_DEFAULT), &dbgLevel(PKG_DEFAULT), false},
+	{dbgPkgStr(PKG_PHY_LAYER), &dbgLevel(PKG_PHY_LAYER), false},
 	{dbgPkgStr(PKG_DAMA_DC), &dbgLevel(PKG_DAMA_DC), false},
 	{dbgPkgStr(PKG_DAMA_DA), &dbgLevel(PKG_DAMA_DA), false},
 	{dbgPkgStr(PKG_DVB_RCS), &dbgLevel(PKG_DVB_RCS), false},

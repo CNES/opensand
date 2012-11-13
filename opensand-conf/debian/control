@@ -9,23 +9,17 @@ Package: libopensand-conf-dev
 Section: libdevel
 Architecture: any
 Depends: libopensand-conf (= ${binary:Version}), libxml++2.6-dev
-Conflicts: libplatine-conf-dev
-Replaces: libplatine-conf-dev
 Description: The configuration library and headers for OpenSAND
 
 Package: libopensand-conf-dbg
 Section: debug
 Architecture: any
 Depends: libopensand-conf (= ${binary:Version})
-Conflicts: libplatine-conf-dbg
-Replaces: libplatine-conf-dbg
 Description: Debugging symbols for OpenSAND configuration library
 
 Package: libopensand-conf
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libplatine-conf
-Replaces: libplatine-conf
 Description: The configuration library for OpenSAND
 
