@@ -21,8 +21,12 @@ set -e
 remove_conf(){
     EXE_RM="/bin/rm"
     MODCOD_DRA_DIR="/usr/share/opensand/modcod_dra"
+    REQ_SIMU_DIR="/usr/share/opensand/request_simu"
+    ATTENUATION_DIR="/usr/share/opensand/attenuation"
 
     ${EXE_RM} -rf ${MODCOD_DRA_DIR} || true
+    ${EXE_RM} -rf ${REQ_SIMU_DIR} || true
+    ${EXE_RM} -rf ${ATTENUATION_DIR} || true
 }
 
 case "$1" in

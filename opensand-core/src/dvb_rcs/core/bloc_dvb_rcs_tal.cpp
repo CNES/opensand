@@ -58,8 +58,8 @@ int BlocDVBRcsTal::qos_server_sock = -1;
  */
 BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
                              const char *name, const tal_id_t mac_id,
-                             std::map<std::string, EncapPlugin *> &encap_plug):
-	BlocDvb(blocmgr, fatherid, name, encap_plug),
+                             PluginUtils utils):
+	BlocDvb(blocmgr, fatherid, name, utils),
 	complete_dvb_frames(),
 	qos_server_host()
 {
@@ -1155,7 +1155,7 @@ int BlocDVBRcsTal::sendLogonReq()
 	lp_logon_req->rt_bandwidth = m_fixedBandwidth;	/* in kbits/s */
 
 	// send the message to the lower layer
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_logon_req, m_carrierIdLogon))
+	if(!this->sendDvbFrame((T_DVB_HDR *) lp_logon_req, m_carrierIdLogon, l_size))
 	{
 		UTI_ERROR("%s Failed to send Logon Request\n", FUNCNAME);
 		goto free_logon_req;
@@ -1310,6 +1310,12 @@ int BlocDVBRcsTal::onRcvDVBFrame(unsigned char *ip_buf, long i_len)
 			g_memory_pool_dvb_rcs.release((char *) ip_buf);
 			break;
 
+		case MSG_TYPE_CORRUPTED:
+			UTI_INFO("SF#%ld: the message was corrupted by physical layer, "
+			         "drop it", this->super_frame_counter);
+			g_memory_pool_dvb_rcs.release((char *) ip_buf);
+			break;
+
 		default:
 			UTI_DEBUG_L3("SF#%ld: unknown type of DVB frame (%ld), ignore\n",
 			             this->super_frame_counter, hdr->msg_type);
@@ -1369,7 +1375,7 @@ int BlocDVBRcsTal::sendCR()
 		dvb_size = ((T_DVB_SAC_CR *) dvb_frame)->hdr.msg_length; // real size now
 
 		// Send message
-		if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl))
+		if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, dvb_size))
 		{
 			UTI_ERROR("%s SF#%ld frame %ld: failed to allocate mgl msg\n",
 			          FUNCNAME, this->super_frame_counter, this->frame_counter);
@@ -1636,14 +1642,6 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	// send the corresponding event
 	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0,
 	                    C_EVENT_LOGIN_COMPLETE);
-
-	// set the terminal ID in emission and reception standards
-	this->receptionStd->setTalId(m_talId);
-	this->emissionStd->setTalId(m_talId);
-
-	// set the terminal ID in emission and reception standards
-	this->receptionStd->setTalId(m_talId);
-	this->emissionStd->setTalId(m_talId);
 
  ok:
 	g_memory_pool_dvb_rcs.release((char *) ip_buf);

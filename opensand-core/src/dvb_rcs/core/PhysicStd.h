@@ -75,9 +75,6 @@ class PhysicStd
 	/** The received MODCOD */
 	int receivedModcod;
 
-	/** The terminal ID (-1 for satellite) */
-	long tal_id;
-
  protected:
 
     /** The packet representation */
@@ -262,13 +259,6 @@ class PhysicStd
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
 	unsigned int getStCurrentDraSchemeId(long id);
-
-	/**
-	 * @brief Set the associated terminal ID
-	 *
-	 * @param tal_id  The terminal ID
-	 */
-	void setTalId(long tal_id);
 
 };
 

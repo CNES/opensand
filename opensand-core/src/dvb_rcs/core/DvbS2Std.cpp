@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -91,7 +91,7 @@ unsigned int DvbS2Std::getPayload(std::string coding_rate)
 
 #if 0 /* TODO: manage options and do not use component_bloc,
                some functions may have changed... */
-bool DvbS2Std::createOptionModcod(t_component comp, long tal_id,
+bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
                                   unsigned int modcod, long spot_id)
 {
 	int ul_encap_packet_length = MpegPacket::length();

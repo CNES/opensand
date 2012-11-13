@@ -47,7 +47,7 @@
  */
 BlocSatCarrier::BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid,
                                const char *name,
-                               const t_component host,
+                               const component_t host,
                                const string ip_addr,
                                const string interface_name):
     mgl_bloc(blocmgr, fatherid, name)

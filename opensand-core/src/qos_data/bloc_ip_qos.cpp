@@ -48,7 +48,7 @@ const int C_DEFAULT_LABEL = 255;
  * constructor
  */
 BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                     const char *name, t_component host):
+                     const char *name, component_t host):
 	mgl_bloc(blocmgr, fatherid, name),
 	sarpTable()
 {

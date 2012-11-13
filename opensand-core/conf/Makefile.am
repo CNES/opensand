@@ -14,7 +14,8 @@ HOSTS_XSD = \
 	xsd/core_gw.xsd \
 	xsd/core_sat.xsd \
 	xsd/core_st.xsd \
-	xsd/topology.xsd
+	xsd/topology.xsd \
+	xsd/common.xsd
 	
 MODCOD_DRA = \
 	modcod_dra/collective/sim_dra_scheme.txt \

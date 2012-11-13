@@ -1,11 +1,10 @@
 /*
  *
- *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -37,7 +36,6 @@
 
 #include "opensand_margouilla/mgl_memorypool.h"
 
-
 const long msg_dvb = 300;
 const long msg_link_up = 302;
 const long msg_dvb_up = 303;
@@ -45,7 +43,7 @@ const long msg_encap_burst = 304;
 
 const unsigned long MSG_DVB_RCS_SIZE_MAX = 1200;
 const unsigned long MSG_BBFRAME_SIZE_MAX = 8100; //7154;
-
+const unsigned long MSG_PHYFRAME_SIZE_MAX = 8;
 
 /// This message is used by dvb rcs layer to advertise the upper layer
 /// that the link is up

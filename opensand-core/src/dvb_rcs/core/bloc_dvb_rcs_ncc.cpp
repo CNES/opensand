@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -73,8 +73,8 @@ extern T_ENV_AGENT EnvAgent;
 BlocDVBRcsNcc::BlocDVBRcsNcc(mgl_blocmgr *blocmgr,
                              mgl_id fatherid,
                              const char *name,
-                             std::map<std::string, EncapPlugin *> &encap_plug):
-	BlocDvb(blocmgr, fatherid, name, encap_plug),
+                             PluginUtils utils):
+	BlocDvb(blocmgr, fatherid, name, utils),
 	NccPepInterface(),
 	complete_dvb_frames()
 {
@@ -845,20 +845,11 @@ int BlocDVBRcsNcc::initMode()
 	{
 		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
-		// set the terminal ID in emission and reception standards
-		// to -1 because the GW should handle all the packets in
-		// transparent mode
-        // TODO do that with something else that -1
-		this->receptionStd->setTalId(-1);
-		this->emissionStd->setTalId(-1);
 	}
 	else if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
 		this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
-		// set the terminal ID in emission and reception standards
-		this->receptionStd->setTalId(DVB_GW_MAC_ID);
-		this->emissionStd->setTalId(DVB_GW_MAC_ID);
 	}
 	else
 	{
@@ -1218,6 +1209,11 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 			g_memory_pool_dvb_rcs.release((char *) data);
 			break;
 
+		case MSG_TYPE_CORRUPTED:
+			UTI_INFO("the message was corrupted by physical layer, drop it");
+			g_memory_pool_dvb_rcs.release((char *) data);
+			break;
+
 		default:
 			UTI_ERROR("unknown type (%ld) of DVB frame\n",
 			          dvb_hdr->msg_type);
@@ -1268,7 +1264,7 @@ void BlocDVBRcsNcc::sendSOF()
 	lp_sof->frame_nr = this->super_frame_counter;
 
 	// Send it
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, m_carrierIdSOF))
+	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, m_carrierIdSOF, l_size))
 	{
 		UTI_ERROR("[sendSOF] Failed to call sendDvbFrame()\n");
 		g_memory_pool_dvb_rcs.release((char *) lp_ptr);
@@ -1308,7 +1304,7 @@ void BlocDVBRcsNcc::sendTBTP()
 	// Send it
 	carrier_id = m_pDamaCtrl->getCarrierId();
 	l_size = ((T_DVB_TBTP *) lp_ptr)->hdr.msg_length;    // real size now
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, carrier_id))
+	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, carrier_id, l_size))
 	{
 		UTI_ERROR("[sendTBTP] Failed to send TBTP\n");
 		g_memory_pool_dvb_rcs.release((char *) lp_ptr);
@@ -1407,7 +1403,7 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 		lp_logon_resp->traffic_burst_type = 0;
 
 		// Send it
-		if(!sendDvbFrame((T_DVB_HDR *) lp_logon_resp, m_carrierIdDvbCtrl))
+		if(!sendDvbFrame((T_DVB_HDR *) lp_logon_resp, m_carrierIdDvbCtrl, l_size))
 		{
 			UTI_ERROR("[onRcvLogonReq] Failed send message\n");
 			goto release;

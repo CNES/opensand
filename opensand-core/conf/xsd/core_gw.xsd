@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 
+<xsd:include schemaLocation="./common.xsd"/> 
+
 <!-- component type -->
 <xsd:simpleType name="componentType">
     <xsd:restriction base="xsd:string">
@@ -8,28 +10,8 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types that can be useful for many section -->
-<xsd:simpleType name="carrierId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1" />
-        <xsd:maxInclusive value="7" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="ipv4Address">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="port">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1500" />
-        <xsd:maxInclusive value="65535" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- types for dvb_rcs_ncc section -->
+<!-- TODO: be more precise that bitrates, depending on parameter -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -51,12 +33,6 @@
     <xsd:restriction base="xsd:string">
         <!-- int>100:int:int:int -->
         <xsd:pattern value="([0-9]*:){3}[0-9]*" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="socketType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="SOCK_DGRAM"/>
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -254,14 +230,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- types for debug section -->
-<xsd:simpleType name="debugValue">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="3" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
@@ -271,6 +239,7 @@
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
             <xsd:element ref="dvb_rcs_tal" />
+            <xsd:element ref="physical_layer" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -329,7 +298,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="simu_file" type="xsd:string">
+            <xsd:element name="simu_file" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         If simulation = file: use a file name or stdin
@@ -477,6 +446,7 @@
         <xsd:sequence>
             <xsd:element name="default" type="debugValue" />
             <xsd:element name="qos_data" type="debugValue" />
+            <xsd:element name="physical_layer" type="debugValue" />
             <xsd:element name="dama_dc" type="debugValue" />
             <xsd:element name="dvb_rcs" type="debugValue" />
             <xsd:element name="dvb_rcs_ncc" type="debugValue" />

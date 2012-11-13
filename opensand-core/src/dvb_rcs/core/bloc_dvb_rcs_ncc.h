@@ -138,7 +138,7 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	/// Class constructor
 	/// Use mgl_bloc default constructor
 	BlocDVBRcsNcc(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
-	              std::map<std::string, EncapPlugin *> &encap_plug);
+	              PluginUtils utils);
 
 	~BlocDVBRcsNcc();
 
