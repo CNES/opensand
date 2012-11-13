@@ -19,7 +19,7 @@ set -e
 
 remove_module()
 {
-    name="on-off"
+    name="on/off"
     /usr/libexec/opensand/module_support.py remove $name || true
 }
 
