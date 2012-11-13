@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="constant" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- common types -->
+<xsd:simpleType name="amplitudes">
+    <xsd:restriction base="xsd:decimal">
+        <xsd:minInclusive value="-200" />
+        <xsd:maxInclusive value="200" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- constant section description -->
+<xsd:element name="constant">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Configuration for constant nominal condition plugin
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="nominal_cn" type="amplitudes">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The constant nominal condition value
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="constant" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

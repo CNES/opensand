@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="modcod" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="file">
+    <xsd:restriction base="xsd:string">
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- modcod section description -->
+<xsd:element name="modcod">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Configuration for constant nominal condition plugin
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="modcod_path" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The path for MODCOD definitions
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="modcod" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

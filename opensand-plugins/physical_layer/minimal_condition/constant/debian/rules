@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh  $@
+
+override_dh_strip:
+	dh_strip --dbg-package=libopensand-constant-minimal-plugin-dbg
+	
+override_dh_install:
+	dh_install
+
+	install -m 0644 src/constant.py $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/lib/python2.6/dist-packages/opensand_manager_core/modules/constant.py
+	install -m 0644 conf/constant.conf $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/sat/plugins/constant.conf
+	install -m 0644 conf/constant.xsd $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/sat/plugins/constant.xsd
+	install -m 0644 conf/constant.conf $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/gw/plugins/constant.conf
+	install -m 0644 conf/constant.xsd $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/gw/plugins/constant.xsd
+	install -m 0644 conf/constant.conf $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/st/plugins/constant.conf
+	install -m 0644 conf/constant.xsd $(CURDIR)/debian/libopensand-constant-minimal-plugin-manager/usr/share/opensand/st/plugins/constant.xsd
+
+override_dh_pysupport:
