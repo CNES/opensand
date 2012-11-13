@@ -385,9 +385,10 @@ class View(WindowView):
     def create_new_scenario(self):
         """ create a new OpenSAND scenario """
         # create a folder for the new scenario
-        #FIXME when an empty path is given it freezes...
+        # do not use gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER as it freeze when an
+        # empty path is given
         dlg = gtk.FileChooserDialog("Create the new scenario folder", None,
-                                    gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
+                                    gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
                                     (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                     gtk.STOCK_APPLY, gtk.RESPONSE_APPLY))
         dlg.set_current_folder(os.path.dirname(self._model.get_scenario()))

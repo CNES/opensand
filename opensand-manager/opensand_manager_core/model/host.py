@@ -36,15 +36,15 @@ host.py - Host model for OpenSAND manager
 
 import threading
 
-#TODO we could modify privates methods from toto to _toto_
 from opensand_manager_core.model.tool import ToolModel
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
+from opensand_manager_core.module import load_modules
 
 class HostModel:
     """ host model """
     def __init__(self, name, instance, network_config, state_port,
-                 command_port, tools, scenario, manager_log):
+                 command_port, tools, modules, scenario, manager_log):
         self._log = manager_log
         self._name = name
         self._instance = instance
@@ -74,7 +74,7 @@ class HostModel:
 
         self._lock = threading.Lock()
 
-        # the tools dictionary [name: ToolModel]
+        # the tools dictionary {name: ToolModel}
         self._tools = {}
         for tool_name in tools:
             self._log.info(self._name.upper() + ": add " + tool_name)
@@ -86,10 +86,24 @@ class HostModel:
             finally:
                 self._tools[tool_name] = new_tool
 
+        # the modules dictionary {category: {name: OpenSandModule}}
+        self._modules = load_modules(self._component)
+
+        # a list of modules that where not detected by the host
+        self._missing_modules = []
+        for module_type in self._modules:
+            for module in [mod for mod in self._modules[module_type]
+                               if mod.upper() not in modules]:
+                self._log.warning("%s: plugin %s may be missing" %
+                                  (name.upper(), module))
+                self._missing_modules.append(module)
+        self.reload_modules(scenario)
+
     def reload_all(self, scenario):
         """ reload host to update the scenario path """
         self.reload_conf(scenario)
         self.reload_tools(scenario)
+        self.reload_modules(scenario)
 
     def reload_conf(self, scenario):
         """ reload the host configuration """
@@ -110,6 +124,24 @@ class HostModel:
                 self._tools[tool_name].update(scenario)
             except ModelException as error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
+
+    def reload_modules(self, scenario):
+        """ update the scenario path for modules configuration """
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                module = self._modules[module_type][module_name]
+                try:
+                    module.update(scenario, self._component, self._name)
+                except ModelException as error:
+                    self._log.warning("%s: %s" % (self._name.upper(), error))
+
+    def get_modules(self):
+        """get the modules """
+        return self._modules
+
+    def get_missing_modules(self):
+        """ get the missing modules """
+        return self._missing_modules
 
     def get_advanced_conf(self):
         """ get the advanced configuration """
@@ -238,3 +270,5 @@ class HostModel:
         if tool_name in self._tools:
             return self._tools[tool_name]
         return None
+
+

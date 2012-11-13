@@ -143,6 +143,8 @@ class Controller(threading.Thread):
                 sock.send('STOP\n')
                 self._log.debug("%s: send 'STOP'" % host.get_name())
                 host.receive_ok(sock)
+            except IOError, msg:
+                self._log.error("Cannot send conf_parameters: %s" % msg)
             except socket.error, (errno, strerror):
                 self._log.error("Cannot send conf_parameters: %s" % strerror)
             except CommandException, error:
@@ -207,12 +209,23 @@ class Controller(threading.Thread):
         while True:
             self._event_manager.wait(None)
             self._log.debug("event: " + self._event_manager.get_type())
+            res = 'fail'
             if self._event_manager.get_type() == 'deploy_platform':
-                self.deploy_platform()
+                if self.deploy_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_deploy_platform', res)
+            elif self._event_manager.get_type() == 'install_files':
+                if self.install_simulation_files():
+                    res = 'done'
+                self._event_manager_response.set('resp_install_files', res)
             elif self._event_manager.get_type() == 'start_platform':
-                self.start_platform()
+                if self.start_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_start_platform', res)
             elif self._event_manager.get_type() == 'stop_platform':
-                self.stop_platform()
+                if self.stop_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_stop_platform', res)
             elif self._event_manager.get_type() == 'quit':
                 self.close()
                 return
@@ -261,13 +274,82 @@ class Controller(threading.Thread):
                 host.deploy(self._deploy_config)
         except CommandException:
             self._log.error("OpenSAND platform failed to deploy")
-            self._event_manager_response.set('resp_deploy_platform', 'fail')
-            return
+            return False
 
         self._log.info("OpenSAND platform deployed")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_deploy_platform', 'done')
+        return True
+
+    def install_simulation_files(self):
+        """ send the simulation files on host """
+        # check that all component are stopped
+        if self._model.is_running():
+            self._log.warning("Some components are still running")
+
+        self._log.info("Install simulation files")
+
+        for host in self._hosts:
+            instance = None
+            name = host.get_name()
+            if name.lower().startswith('st'):
+                instance = 'st'
+            self._log.info("Installing  %s" % name)
+            files = self._model.get_files()
+            if not name.lower() in files and not 'global' in files:
+                self._log.debug("no section for %s in simulation deployment "
+                                "file" % name)
+                continue
+
+            try:
+                sock = host.connect_command('CONFIGURE')
+                if sock is None:
+                    continue
+
+                for elem in files[name.lower()]:
+                    src = elem[1]
+                    dst = elem[2]
+                    if src == '':
+                        self._log.warning("source for %s is empty, the file was"
+                                          " ignored" % elem[0])
+                        continue
+                    if dst == '':
+                        self._log.warning("destination for %s is empty, the file "
+                                          "was ignored" % elem[0])
+                        continue
+                    host.send_file(sock, src, dst)
+                if 'global' in files:
+                    for elem in files['global']:
+                        src = elem[1]
+                        dst = elem[2]
+                        if src == '':
+                            self._log.warning("source for %s is empty, the file was"
+                                              " ignored" % elem[0])
+                        elif dst == '':
+                            self._log.warning("destination for %s is empty, the file "
+                                              "was ignored" % elem[0])
+                        else:
+                            host.send_file(sock, src, dst)
+
+                # send 'STOP' tag
+                sock.send('STOP\n')
+                self._log.debug("%s: send 'STOP'" % name)
+            except IOError, msg:
+                self._log.error("Cannot install simulation files: %s" % msg)
+                return False
+            except socket.error, (errno, strerror):
+                self._log.error("Cannot contact %s command server: %s" %
+                                (name, strerror))
+                return False
+            except CommandException, msg:
+                self._log.error("cannot install simulation files")
+                return False
+            finally:
+                if sock is not None:
+                    sock.close()
+
+
+        self._log.info("Simulation files installed")
+        return True
 
     def start_platform(self):
         """ start OpenSAND platform """
@@ -276,13 +358,11 @@ class Controller(threading.Thread):
             self._log.info("not enough component to start OpenSAND: " \
                            "you will need at least a satellite, a gateway, " \
                            "a ST and the environment plane")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         # check if some components are still running (should not happen)
         if self._model.is_running():
             self._log.warning("Some components are still running")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         self._log.info("Start OpenSAND platform")
@@ -325,17 +405,23 @@ class Controller(threading.Thread):
                                 conf_file)
                 #TODO try to simplify file deployment
                 scenario = self._model.get_scenario()
+                # the list of files to send
                 conf_files = [os.path.join(scenario, 'core_global.conf'),
                               os.path.join(scenario, 'topology.conf'),
                               conf_file]
+                # the list of modules configuration files to send
+                modules_dir = os.path.join(host_path, 'plugins')
+                modules = map(lambda x: os.path.join(modules_dir, x),
+                              os.listdir(modules_dir))
                 host.configure(conf_files,
+                               modules,
                                1, 1, self._deploy_config,
                                self._model.get_dev_mode())
 #TODO uncomment lines below and remove line above when the environment plane
 #     will accept strings as scenario and run
 #                               self._model.get_scenario(),
 #                               self._model.get_run())
-                # configure modules
+                # configure global modules
                 self.configure_modules(host)
 
             # configure tools on workstations
@@ -350,11 +436,9 @@ class Controller(threading.Thread):
         except (OSError, IOError), (errno, strerror):
             self._log.error("Failed to create directory '%s': %s" %
                             (host_path, strerror))
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
         except CommandException:
             self._log.error("OpenSAND platform failed to configure")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         try:
@@ -370,13 +454,10 @@ class Controller(threading.Thread):
                 host.start_stop('START')
         except CommandException:
             self._log.error("OpenSAND platform failed to start")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         self._log.info("OpenSAND platform started")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_start_platform', 'done')
         return True
 
     def stop_platform(self):
@@ -395,7 +476,6 @@ class Controller(threading.Thread):
                 host.start_stop('STOP')
         except CommandException:
             self._log.error("OpenSAND platform failed to stop")
-            self._event_manager_response.set('resp_stop_platform', 'fail')
             return False
 
         # save the environment plane results into the correct path
@@ -417,8 +497,6 @@ class Controller(threading.Thread):
 
         self._log.info("OpenSAND platform stopped")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_stop_platform', 'done')
         return True
 
     def update_deploy_config(self):
@@ -433,7 +511,7 @@ class Controller(threading.Thread):
                                     ".opensand/deploy.ini")
             if not os.path.exists(ini_file):
                 self._log.debug("cannot find file %s, " \
-                                  "copy default" % ini_file)
+                                "copy default" % ini_file)
                 try:
                     shutil.copy(DEFAULT_INI_FILE,
                                 ini_file)
@@ -474,6 +552,7 @@ class Controller(threading.Thread):
             self._log.debug("%s: send 'DATA'" % host.get_name())
 
             stream = Stream(sock, self._log)
+            # configure global modules
             stream.send_dir(os.path.join(self._model.get_scenario(), 'plugins'),
                             '/etc/opensand/plugins')
 
@@ -495,9 +574,6 @@ class Controller(threading.Thread):
         finally:
             if sock is not None:
                 sock.close()
-
-
-
 
 ##### TEST #####
 # TODO thread to run the main loop in order to find hosts

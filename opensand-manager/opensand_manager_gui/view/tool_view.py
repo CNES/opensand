@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
-# Copyright © 2011 CNES
+# Copyright © 2012 TAS
+# Copyright © 2012 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -63,7 +63,6 @@ class ToolView(WindowView):
         self._saved_tools = {}
         # the available modules
         self._modules = self._model.get_modules()
-        self._missing_modules = self._model.get_missing()
 
         with gtk.gdk.lock:
             # get the description widget
@@ -87,13 +86,14 @@ class ToolView(WindowView):
                                            'Selected', self.on_selection,
                                            self.tool_toggled_cb)
             # populate the tree
+            # add the global modules
             self._tree.add_modules(self._modules)
 
             # disable save button
             self._ui.get_widget('save_tool_conf').set_sensitive(False)
             self._ui.get_widget('undo_tool_conf').set_sensitive(False)
             # update the tree immediately
-            self.update_tool_tree()
+            self.update_tree()
 
     def tool_toggled_cb(self, cell, path):
         """ defined in tool_event """
@@ -103,8 +103,8 @@ class ToolView(WindowView):
         """ defined in tool_event """
         pass
 
-    def update_tool_tree(self):
-        """ update the tool tree """
+    def update_tree(self):
+        """ update the tools and modules tree """
         self._tool_lock.acquire()
         # disable tool selection when running
         if self._model.is_running():
@@ -120,7 +120,7 @@ class ToolView(WindowView):
                 tools[tool.get_name().upper()] = tool.get_state()
 
             gobject.idle_add(self._tree.add_host,
-                             host, tools)
+                             host, tools, host.get_modules())
 
         real_names = []
         for host in self._model.get_all():

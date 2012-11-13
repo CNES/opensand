@@ -97,7 +97,7 @@ class ConfigurationTree(gtk.TreeStore):
         if col1_changed_cb is not None:
             self._treeselection.connect('changed', col1_changed_cb)
 
-    def add_host(self, host, elt_info = None):
+    def add_host(self, host, elt_info=None, modules=None):
         """ add a host with its elements in the treeview """
         name = host.get_name()
         # append an element in the treestore
@@ -117,6 +117,20 @@ class ConfigurationTree(gtk.TreeStore):
                               VISIBLE, False,
                               ACTIVE, False,
                               ACTIVATABLE, False)
+            # first add modules in host
+            if modules is not None:
+                for cat in modules:
+                    cat_iter = self.append(top_elt)
+                    self.set(cat_iter, TEXT, cat,
+                                       VISIBLE, False,
+                                       ACTIVE, False,
+                                       ACTIVATABLE, False)
+                    for name in modules[cat].keys():
+                        sub_iter = self.append(cat_iter)
+                        self.set(sub_iter, TEXT, name,
+                                           VISIBLE, False,
+                                           ACTIVE, False,
+                                           ACTIVATABLE, False)
             for sub_name in elt_info.keys():
                 activatable = True
                 sub_iter = self.append(top_elt)
@@ -154,7 +168,7 @@ class ConfigurationTree(gtk.TreeStore):
                               ACTIVATABLE, activatable)
 
     def add_modules(self, modules):
-        """ insert the modules int the tree """
+        """ insert the modules in the tree """
         if len(modules) == 0:
             return
 
@@ -164,12 +178,18 @@ class ConfigurationTree(gtk.TreeStore):
                           VISIBLE, False,
                           ACTIVE, False,
                           ACTIVATABLE, False)
-        for name in modules.keys():
-            sub_iter = self.append(top_elt)
-            self.set(sub_iter, TEXT, name,
+        for cat in modules:
+            cat_iter = self.append(top_elt)
+            self.set(cat_iter, TEXT, cat,
                                VISIBLE, False,
                                ACTIVE, False,
                                ACTIVATABLE, False)
+            for name in modules[cat].keys():
+                sub_iter = self.append(cat_iter)
+                self.set(sub_iter, TEXT, name,
+                                   VISIBLE, False,
+                                   ACTIVE, False,
+                                   ACTIVATABLE, False)
 
     def del_host(self, host_name):
         """ remove a host from the treeview """
@@ -199,7 +219,7 @@ class ConfigurationNotebook(gtk.Notebook):
         self._current_page = 0
         self._changed = []
         self._changed_cb = changed_cb
-        # keep ConEntry objects else we sometimes loose their attributes in the
+        # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._backup = []
 
@@ -568,8 +588,8 @@ class ConfEntry(object):
             self.load_bool()
         elif type_name == "enum":
             self.load_enum()
-        elif type_name == "integer":
-            self.load_int()
+        elif type_name == "numeric":
+            self.load_num()
         else:
             self.load_default()
 
@@ -577,7 +597,7 @@ class ConfEntry(object):
         """ load a gtk.Entry """
         self._entry = gtk.Entry()
         self._entry.set_text(self._value)
-        self._entry.set_width_chars(30)
+        self._entry.set_width_chars(40)
         self._entry.set_inner_border(gtk.Border(1, 1, 1, 1))
         self._entry.connect('changed', self.global_handler)
 
@@ -605,21 +625,24 @@ class ConfEntry(object):
         self._entry.connect('changed', self.global_handler)
         self._entry.connect('scroll-event', self.do_not_scroll)
 
-    def load_int(self):
+    def load_num(self):
         """ load a gtk.SpinButton """
-        low = 0
+        low = -100000
         up = 100000
+        step = 1
         if "min" in self._type:
             low = float(self._type["min"])
         if "max" in self._type:
             up = float(self._type["max"])
+        if " step" in self._type:
+            step = float(self._type["step"])
         if self._value != '':
             val = float(self._value)
         else:
             val = low
         adj = gtk.Adjustment(value=val, lower=low, upper=up,
-                             step_incr=1, page_incr=0, page_size=0)
-        self._entry = gtk.SpinButton(adjustment=adj, climb_rate=1)
+                             step_incr=step, page_incr=0, page_size=0)
+        self._entry = gtk.SpinButton(adjustment=adj, climb_rate=step)
         self._entry.connect('value-changed', self.global_handler)
         self._entry.connect('scroll-event', self.do_not_scroll)
 
@@ -652,7 +675,7 @@ class ConfEntry(object):
             model = self._entry.get_model()
             active = self._entry.get_active_iter()
             return model.get_value(active, 0)
-        elif type_name == "integer":
+        elif type_name == "numeric":
             return self._entry.get_text()
         else:
             return self._entry.get_text()
@@ -663,4 +686,153 @@ class ConfEntry(object):
                             if hdl is not None]:
             handler(self, event)
 
+
+class InstallNotebook(gtk.Notebook):
+    """ the OpenSAND configuration view elements """
+    def __init__(self, files, changed_cb=None):
+        gtk.Notebook.__init__(self)
+
+        self._files = files
+        self._current_page = 0
+        self._changed_cb = changed_cb
+        self._is_first_elt = 0
+
+        self.set_scrollable(True)
+        self.set_tab_pos(gtk.POS_TOP)
+        self.connect('show', self.on_show)
+        self.connect('hide', self.on_hide)
+
+        self.load()
+
+    def load(self):
+        """ load the configuration view """
+        for host in self._files:
+            tab = self.add_host(host)
+            self.fill_host(host, self._files[host], tab)
+
+    def add_host(self, host_name):
+        """ add a tab with host name in the notebook and return the associated
+            vbox """
+        scroll_notebook = gtk.ScrolledWindow()
+        scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+        tab_vbox = gtk.VBox()
+        scroll_notebook.add_with_viewport(tab_vbox)
+        tab_label = gtk.Label()
+        tab_label.set_justify(gtk.JUSTIFY_CENTER)
+        tab_label.set_markup("<small><b>%s</b></small>" % host_name)
+        if host_name == 'global':
+            self.insert_page(scroll_notebook, tab_label, position=0)
+            self._is_first_elt = 1
+        elif host_name == 'sat':
+            self.insert_page(scroll_notebook, tab_label,
+                             position=self._is_first_elt)
+        elif host_name == 'gw':
+            self.insert_page(scroll_notebook, tab_label,
+                             position=self._is_first_elt + 1)
+        else:
+            self.append_page(scroll_notebook, tab_label)
+        return tab_vbox
+
+    def fill_host(self, host, key_list, tab_vbox):
+        """ fill the tabvbox with source and destination file to deploy """
+        for elem in key_list:
+            entry = self.add_line(host, elem[0], elem[1], elem[2])
+            tab_vbox.pack_end(entry)
+            tab_vbox.set_child_packing(entry, expand=False,
+                                       fill=False, padding=5,
+                                       pack_type=gtk.PACK_START)
+
+    def add_line(self, host, xpath, src, dst):
+        """ add a line containing the name of the element to deploy and the
+            source and destination """
+        hbox = gtk.HBox()
+        src_vbox = gtk.VBox()
+        hbox.pack_start(src_vbox)
+        hbox.set_child_packing(src_vbox, expand=False,
+                               fill=False, padding=5,
+                               pack_type=gtk.PACK_START)
+        sep = gtk.VSeparator()
+        hbox.pack_start(sep)
+        hbox.set_child_packing(sep, expand=False,
+                               fill=False, padding=5,
+                               pack_type=gtk.PACK_START)
+        dst_vbox = gtk.VBox()
+        hbox.pack_start(dst_vbox)
+        hbox.set_child_packing(dst_vbox, expand=False,
+                               fill=False, padding=5,
+                               pack_type=gtk.PACK_START)
+
+        frame = gtk.Frame()
+        frame.set_label_align(0, 0.5)
+        frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        alignment = gtk.Alignment(0.5, 0.5, 1, 1)
+        frame.add(alignment)
+        label = gtk.Label()
+        label.set_markup("<b>%s</b>" % xpath_to_name(xpath))
+        frame.set_label_widget(label)
+        alignment.add(hbox)
+
+        # source
+        src_entry = gtk.Entry()
+        src_entry.set_text(src)
+        src_entry.set_name("%s:%s" % (host, xpath))
+        src_entry.set_width_chars(50)
+        src_entry.set_inner_border(gtk.Border(1, 1, 1, 1))
+        src_entry.connect('changed', self._changed_cb)
+        src_vbox.pack_end(src_entry)
+        src_vbox.set_child_packing(src_entry, expand=False,
+                                   fill=False, padding=5,
+                                   pack_type=gtk.PACK_END)
+
+        src_label = gtk.Label()
+        src_label.set_markup("<b>Source</b>")
+        src_label.set_alignment(0.5, 0.5)
+        src_vbox.pack_end(src_label)
+        src_vbox.set_child_packing(src_label, expand=False,
+                                   fill=False, padding=5,
+                                   pack_type=gtk.PACK_END)
+
+        # destination
+        dst_entry = gtk.Entry()
+        dst_entry.set_text(dst)
+        dst_entry.set_width_chars(len(dst))
+        dst_entry.set_inner_border(gtk.Border(1, 1, 1, 1))
+        dst_entry.set_editable(False)
+        dst_vbox.pack_end(dst_entry)
+        dst_vbox.set_child_packing(dst_entry, expand=False,
+                                   fill=False, padding=5,
+                                   pack_type=gtk.PACK_END)
+
+        dst_label = gtk.Label()
+        dst_label.set_markup("<b>Destination</b>")
+        dst_label.set_alignment(0.5, 0.5)
+        dst_vbox.pack_end(dst_label)
+        dst_vbox.set_child_packing(dst_label, expand=False,
+                                   fill=False, padding=5,
+                                   pack_type=gtk.PACK_END)
+
+        return frame
+
+
+    def on_show(self, widget):
+        """ notebook shown """
+        self.set_current_page(self._current_page)
+
+    def on_hide(self, widget):
+        """ notebook hidden """
+        self._current_page = self.get_current_page()
+
+def xpath_to_name(xpath):
+    """ convert a xpath value to a configuration key name """
+    try:
+        path = xpath.rsplit('/', 2)
+        att = path[2]
+        key = path[1]
+        if '@' in xpath:
+            return "%s/%s" % (key, att)
+        else: 
+            return key
+    except:
+        return xpath
 

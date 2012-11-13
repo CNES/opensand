@@ -142,7 +142,7 @@ class HostController:
         finally:
             sock.close()
 
-    def configure(self, conf_files, scenario, run,
+    def configure(self, conf_files, conf_modules, scenario, run,
                   deploy_config, dev_mode=False):
         """ send the configure command to command server """
         # connect to command server and send the configure command
@@ -160,8 +160,12 @@ class HostController:
                 self.send_file(sock, conf,
                                os.path.join(CONF_DESTINATION_PATH,
                                             os.path.basename(conf)))
-                # TODO handle modcod and dra for gw
-                #      (according to regen/transp et coll/ind)
+            for conf in conf_modules:
+                # send the module configuration
+                plugin_path = os.path.join(CONF_DESTINATION_PATH,'plugins')
+                self.send_file(sock, conf,
+                               os.path.join(plugin_path,
+                                            os.path.basename(conf))),
         except CommandException:
             sock.close()
             raise
@@ -386,7 +390,7 @@ class HostController:
                                    (self.get_name(), error))
         except Exception:
             self._log.error("%s: error when sending file '%s'" %
-                            (self.get_name(), file))
+                            (self.get_name(), src_file))
             sock.close()
             raise
 
@@ -531,9 +535,9 @@ class HostController:
             except CommandException:
                 raise
 
-        for (file, dst_file) in files.iteritems():
+        for (src_file, dst_file) in files.iteritems():
             try:
-                self.send_file(sock, file, dst_file)
+                self.send_file(sock, src_file, dst_file)
             except CommandException:
                 raise
 
