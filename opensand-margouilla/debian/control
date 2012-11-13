@@ -9,22 +9,16 @@ Package: libopensand-margouilla-dev
 Section: libdevel
 Architecture: any
 Depends: libopensand-margouilla (= ${binary:Version})
-Conflicts: libplatine-margouilla-dev
-Replaces: libplatine-margouilla-dev
 Description: The margouilla library and headers for OpenSAND
 
 Package: libopensand-margouilla-dbg
 Section: debug
 Architecture: any
 Depends: libopensand-margouilla (= ${binary:Version})
-Conflicts: libplatine-margouilla-dbg
-Replaces: libplatine-margouilla-dbg
 Description: Debugging symbols for OpenSAND Margouilla library
 
 Package: libopensand-margouilla
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libplatine-margouilla
-Replaces: libplatine-margouilla
 Description: The margouilla library for OpenSAND
