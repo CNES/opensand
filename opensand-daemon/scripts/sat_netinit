@@ -51,6 +51,7 @@ RMEM_DEFAULT="1048580"
 if [ -f /etc/default/opensand-network ]; then
     . /etc/default/opensand-network
 fi
+DAEMON_CONF="/etc/opensand/daemon.conf"
 
 DAEMON_CONF="/etc/opensand/daemon.conf"
 

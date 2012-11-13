@@ -28,6 +28,9 @@ USER="opensand"
 # Start the server
 start()
 {
+    # check that opensand-network is configured
+    check_net
+    
     log_daemon_msg "Starting ${DESCR}" "${PROGNAME}"
 
     # Check that executable is present
@@ -128,14 +131,17 @@ restart()
 }
 
 
+check_net()
+{
 # check that network is configured
-if [ -e /var/lock/opensand-network ]; then
-	echo -n ""
-else
-    log_failure_msg "Please configure the OpenSAND network before starting the daemon"
-    log_end_msg 1
-    exit 1
-fi
+    if [ -e /var/lock/opensand-network ]; then
+        echo -n ""
+    else
+        log_failure_msg "Please configure the OpenSAND network before starting the daemon"
+        log_end_msg 1
+        exit 1
+    fi
+}
 
 # Which action to perform?
 case "$1" in

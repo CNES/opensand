@@ -15,7 +15,8 @@ def read(fname):
 # List of files
 script_files = ['scripts/sat_netinit', 'scripts/st_netinit',
                 'scripts/ws_netinit', 'scripts/write_initialize_config',
-                'scripts/remove_config']
+                'scripts/remove_config', 'scripts/module_support.py',
+                'scripts/tool_support.py']
 bin_files = ['sand-daemon']
 
 # libnl files
