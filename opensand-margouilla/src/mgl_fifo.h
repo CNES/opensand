@@ -53,10 +53,6 @@ public:
 
 	mgl_status swap(long i_pos1, long i_pos2);
 	mgl_status sort(mgl_fifo_sort_fct *fct);
-
-	void quick_sort(mgl_fifo_sort_fct *fct, int i_start_index, int i_nb);
-	int  quick_sort_partition(mgl_fifo_sort_fct *fct, int i_start_index, int i_nb);
-	
 };
 
 #endif
