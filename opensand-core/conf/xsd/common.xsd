@@ -79,7 +79,7 @@
             <xsd:element ref="models">
                 <xsd:annotation xml:lang="en">
                     <xsd:documentation xml:lang="en">
-                        TODO
+                        The models for uplink or downlink physical layer
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -108,28 +108,28 @@
         <xsd:attribute name="attenuation_model_type" type="attenuationType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    The type of attenuation model
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="nominal_condition_type" type="nominalCondition">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    The type of nominal conditions
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="minimal_condition_type" type="minimalCondition">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    The type of minimal conditions
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="error_insertion_type" type="errorInsertion">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    The type of error insertion
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -138,10 +138,10 @@
 
 <!-- types for debug section -->
 <xsd:simpleType name="debugValue">
-	<xsd:restriction base="xsd:nonNegativeInteger">
-		<xsd:minInclusive value="0" />
-		<xsd:maxInclusive value="3" />
-	</xsd:restriction>
+    <xsd:restriction base="xsd:nonNegativeInteger">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="3" />
+    </xsd:restriction>
 </xsd:simpleType>
 
 </xsd:schema>

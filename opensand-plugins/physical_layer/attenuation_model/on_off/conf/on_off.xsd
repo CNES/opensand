@@ -70,21 +70,21 @@
         <xsd:attribute name="period_on" type="periods">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    Number of periods (duration defined by the granularity attribute in global configuration) in which the channel will have an attenuation equal to the “amplitude” parameter
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="period_off" type="periods">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    Number of periods (duration by the granularity attribute in global configuration) in which the channel will have an attenuation equal to zero 
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="amplitude" type="amplitudes">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    When the attenuation model is ON, the attenuation attribute is equal to this value
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

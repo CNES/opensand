@@ -63,7 +63,7 @@
         <xsd:attribute name="nominal_cn" type="amplitudes">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO
+                    The clear-sky conditions or the maximum C/N0 achievable by the Channel
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

@@ -216,7 +216,7 @@
         <xsd:attribute name="pvc" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO, PVC must be in increasing order
+                    The Permanent Virtual Channel, it must be in increasing order
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
