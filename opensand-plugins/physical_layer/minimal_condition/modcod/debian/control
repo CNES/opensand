@@ -20,6 +20,6 @@ Description: The MODCOD minimal condition plugin for OpenSAND
 Package: libopensand-modcod-minimal-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-modcod-minimal-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-modcod-minimal-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Description: The MODCOD minimal condition plugin configuration for OpenSAND Manager
 

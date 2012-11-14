@@ -20,6 +20,6 @@ Description: The constant minimal condition plugin for OpenSAND
 Package: libopensand-constant-minimal-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-constant-minimal-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-constant-minimal-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Description: The constant minimal condition plugin configuration for OpenSAND Manager
 

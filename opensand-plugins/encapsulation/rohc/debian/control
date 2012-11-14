@@ -26,7 +26,7 @@ Description: The ROHC plugin for OpenSAND
 Package: libopensand-rohc-encap-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-rohc-encap-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-rohc-encap-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Provides: libopensand-rohc-plugin-manager
 Conflicts: libopensand-rohc-plugin-manager
 Replaces: libopensand-rohc-plugin-manager

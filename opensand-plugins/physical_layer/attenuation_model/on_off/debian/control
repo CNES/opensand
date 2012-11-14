@@ -20,6 +20,6 @@ Description: The on/off attenuation plugin for OpenSAND
 Package: libopensand-on-off-attenuation-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-on-off-attenuation-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-on-off-attenuation-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Description: The on/off attenuation plugin configuration for OpenSAND Manager
 
