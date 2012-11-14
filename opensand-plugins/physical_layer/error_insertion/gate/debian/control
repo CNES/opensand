@@ -1,0 +1,25 @@
+Source: opensand-gate-error-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-gate-error-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-gate-error-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND error insertion plugin
+
+Package: libopensand-gate-error-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Description: The error insertion plugin for OpenSAND
+
+Package: libopensand-gate-error-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-gate-error-plugin (= ${binary:Version}), python (>= 2.6)
+Description: The error insertion plugin configuration for OpenSAND Manager
+

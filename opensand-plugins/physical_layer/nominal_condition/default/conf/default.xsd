@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="default" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- common types -->
+<xsd:simpleType name="attenuationLink">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="up" />
+        <xsd:enumeration value="down" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="amplitudes">
+    <xsd:restriction base="xsd:decimal">
+        <xsd:minInclusive value="-200" />
+        <xsd:maxInclusive value="200" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the default section desscription -->
+<xsd:element name="default">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The default attenuation model configuration
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="default_nominal_conditions">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default nominal_conditions values
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="default_nominal_conditions">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="default_nominal_condition" minOccurs="2" maxOccurs="2" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="default_nominal_condition">
+    <xsd:complexType>
+        <xsd:attribute name="link" type="attenuationLink">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The link on which the attenuation is applied
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="nominal_cn" type="amplitudes">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The clear-sky conditions or the maximum C/N0 achievable by the Channel
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+                <xsd:element ref="default" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

@@ -1,0 +1,34 @@
+Source: opensand-rohc-encap-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-rohc-encap-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-rohc-encap-plugin (= ${binary:Version})
+Provides: libopensand-rohc-plugin-dbg
+Conflicts: libopensand-rohc-plugin-dbg
+Replaces: libopensand-rohc-plugin-dbg
+Description: Debugging symbols for OpenSAND ROHC plugin
+
+Package: libopensand-rohc-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Provides: libopensand-rohc-plugin
+Conflicts: libopensand-rohc-plugin
+Replaces: libopensand-rohc-plugin
+Description: The ROHC plugin for OpenSAND
+
+Package: libopensand-rohc-encap-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-rohc-encap-plugin (= ${binary:Version}), python (>= 2.6)
+Provides: libopensand-rohc-plugin-manager
+Conflicts: libopensand-rohc-plugin-manager
+Replaces: libopensand-rohc-plugin-manager
+Description: The ROHC plugin configuration for OpenSAND Manager
+
