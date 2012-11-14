@@ -54,6 +54,8 @@ from opensand_manager_core.my_exceptions import XmlException
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
 
+COMMON_XSD = "/usr/share/opensand/common.xsd"
+
 class XmlParser:
     """ XML parser for OpenSAND configuration """
     def __init__ (self, xml, xsd):
@@ -61,11 +63,13 @@ class XmlParser:
         self._filename = xml
         self._xsd = xsd
         self._xsd_parser = None
+        self._common_xsd = None
         self._schema = None
         try:
             self._tree = etree.parse(xml)
             self._schema = etree.XMLSchema(etree.parse(xsd))
             self._xsd_parser = etree.parse(xsd)
+            self._common_xsd = etree.parse(COMMON_XSD)
         except IOError, err:
             raise
         except (etree.XMLSyntaxError, etree.XMLSchemaParseError), err:
@@ -221,6 +225,23 @@ class XmlParser:
                                       encoding=self._tree.docinfo.encoding,
                                       xml_declaration=True))
 
+    def get_files(self):
+        """ get the file elements and their value """
+        files = {}
+        # get elements of type file
+        nodes = self.get_file_elements("element")
+        for node in nodes:
+            elems = self.get_all("//%s" % node)
+            for elem in elems:
+                files["%s/text()" % self.get_path(elem)] = self.get_value(elem)
+        # get attributes of type file
+        nodes = self.get_file_elements("attribute")
+        for node in nodes:
+            elems = self.get_all("//*[@%s]" % node)
+            for elem in elems:
+                path = self.get_path(elem)
+                files["%s/@%s" % (path, node)] = self._tree. xpath("%s/@%s" % (path, node))[0]
+        return files
 
     #### functions form XSD parsing ###
 
@@ -235,7 +256,15 @@ class XmlParser:
             return None
 
         if elem_type.startswith("xsd:"):
-            return {"type": elem_type.lstrip("xsd:")}
+            if elem_type in ["xsd:integer",
+                             "xsd:nonNegativeInteger",
+                             "xsd:nonPositiveInteger",
+                             "xsd:PositiveInteger",
+                             "xsd:NegativeInteger",
+                             "xsd:decimal"]:
+                return {"type": "numeric"}
+            else:
+                return {"type": elem_type.replace("xsd:", "", 4)}
         else:
             return self.get_simple_type(elem_type)
 
@@ -250,7 +279,15 @@ class XmlParser:
             return None
 
         if att_type.startswith("xsd:"):
-            return {"type": att_type.lstrip("xsd:")}
+            if att_type in ["xsd:integer",
+                            "xsd:nonNegativeInteger",
+                            "xsd:nonPositiveInteger",
+                            "xsd:positiveInteger",
+                            "xsd:negativeInteger",
+                            "xsd:decimal"]:
+                return {"type": "numeric"}
+            else:
+                return {"type": att_type.replace("xsd:", "", 4)}
         else:
             return self.get_simple_type(att_type)
 
@@ -279,38 +316,50 @@ class XmlParser:
 
     def get_reference(self, name):
         """ get a reference in the XSD document """
-        elem = self._xsd_parser.xpath("//xsd:element[@ref = $val]",
-                                      namespaces=NAMESPACES,
-                                      val = name)
-        if len(elem) != 1:
+        elem = []
+        elem += self._common_xsd.xpath("//xsd:element[@ref = $val]",
+                                       namespaces=NAMESPACES,
+                                       val = name)
+        elem += self._xsd_parser.xpath("//xsd:element[@ref = $val]",
+                                       namespaces=NAMESPACES,
+                                       val = name)
+        if len(elem) == 0:
             return None
 
+        # take the first element it should be better than nothing
         return elem[0]
 
     def get_element(self, name, with_type=False):
         """ get an element in the XSD document """
-        elem = self._xsd_parser.xpath("//xsd:element[@name = $val]",
-                                      namespaces=NAMESPACES,
-                                      val = name)
-        if len(elem) == 0:
-            return None
+        elems = []
+        elems += self._common_xsd.xpath("//xsd:element[@name = $val]",
+                                        namespaces=NAMESPACES,
+                                        val = name)
+        elems += self._xsd_parser.xpath("//xsd:element[@name = $val]",
+                                        namespaces=NAMESPACES,
+                                        val = name)
+
         # sometimes there are 2 elements because debug keys got the same name,
         # take the first one with or without type
-        if len(elem) == 1:
-            return elem[0]
-        else:
-            for i in range(len(elem)):
-                if elem[i].get('type') is None and not with_type:
-                    return elem[i]
-                elif elem[i].get('type') is not None and with_type:
-                    return elem[i]
+        if len(elems) == 1:
+            return elems[0]
+        elif len(elems) != 0:
+            for elem in elems:
+                if elem.get('type') is None and not with_type:
+                    return elem
+                elif elem.get('type') is not None and with_type:
+                    return elem
         return None
 
     def get_attribute(self, name, parent_name):
         """ get an attribute in the XSD document """
-        attribs = self._xsd_parser.xpath("//xsd:attribute[@name = $val]",
-                                        namespaces=NAMESPACES,
-                                        val = name)
+        attribs = []
+        attribs += self._common_xsd.xpath("//xsd:attribute[@name = $val]",
+                                         namespaces=NAMESPACES,
+                                         val = name)
+        attribs += self._xsd_parser.xpath("//xsd:attribute[@name = $val]",
+                                          namespaces=NAMESPACES,
+                                          val = name)
         if attribs is None or len(attribs) == 0:
             return None
 
@@ -323,13 +372,17 @@ class XmlParser:
     def get_simple_type(self, name):
         """ get a simple type and the associated attributes in a XSD document """
         # simpleType
-        elems = self._xsd_parser.xpath("//xsd:simpleType[@name = $val]",
-                                  namespaces=NAMESPACES,
-                                  val = name)
-
-        if len(elems) != 1:
+        elems = []
+        elems += self._common_xsd.xpath("//xsd:simpleType[@name = $val]",
+                                        namespaces=NAMESPACES,
+                                        val = name)
+        elems += self._xsd_parser.xpath("//xsd:simpleType[@name = $val]",
+                                        namespaces=NAMESPACES,
+                                        val = name)
+        if len(elems) == 0:
             return None
 
+        # take the first element it should be better than nothing
         elem = elems[0]
 
         # restriction
@@ -344,23 +397,51 @@ class XmlParser:
         if base is None:
             return None
 
-        if base == "xsd:integer":
+        # TODO also handle long, double, float, etc..
+        if base in ["xsd:integer",
+                    "xsd:nonNegativeInteger",
+                    "xsd:nonPositiveInteger",
+                    "xsd:positiveInteger",
+                    "xsd:negativeInteger",
+                    "xsd:decimal"]:
+            min_val = None
+            max_val = None
+            step = 1
+            # get the minimum or maximum value that can be infered
+            if base == "xsd:nonNegativeInteger":
+                min_val = 0
+            elif base == "xsd:nonPositiveInteger":
+                max_val = 0
+            elif base == "xsd:positiveInteger":
+                min_val = 1
+            elif base == "xsd:negativeInteger":
+                max_val == -1
+            elif base == "xsd:decimal":
+                # arbitrarily fixed
+                step = 0.01
+
+            # get the minimum or maximum value if specified
             min_inc = restriction.xpath("xsd:minInclusive",
                                         namespaces=NAMESPACES)
-            min_val = None
             if len(min_inc) == 1:
                 min_val = min_inc[0].get("value")
             max_inc = restriction.xpath("xsd:maxInclusive",
                                         namespaces=NAMESPACES)
-            max_val = None
             if len(max_inc) != 1:
                 max_inc = None
             else:
                 max_val = max_inc[0].get("value")
+            fraction_digit = restriction.xpath("xsd:fractionDigits",
+                                               namespaces=NAMESPACES)
+            if len(fraction_digit) == 1:
+                step = "0.%s1" % ("0" *
+                                  (int(fraction_digit[0].get("value")) - 1))
+
             return {
-                      "type": "integer",
+                      "type": "numeric",
                       "min": min_val,
                       "max": max_val,
+                      "step": step, 
                    }
         elif base == "xsd:string":
             enum = restriction.xpath("xsd:enumeration",
@@ -377,21 +458,38 @@ class XmlParser:
             else:
                 return {"type": "string"}
         else:
-            return {"type": base.lstrip("xsd:")}
+            return {"type": base.replace("xsd:", "", 4)}
 
     def get_minoccurs(self, table_name):
         """ get minOccurs value for table elements """
-        values = self._xsd_parser.xpath("//xsd:element[@ref='%s']/@minOccurs" %
-                                        table_name, namespaces=NAMESPACES)
-        if values is not None:
+        values = []
+        values += self._common_xsd.xpath("//xsd:element[@ref='%s']/@minOccurs" %
+                                         table_name, namespaces=NAMESPACES)
+        values += self._xsd_parser.xpath("//xsd:element[@ref='%s']/@minOccurs" %
+                                         table_name, namespaces=NAMESPACES)
+        if len(values) > 0:
+            # take the first element it should be better than nothing
             return int(values[0])
 
     def get_maxoccurs(self, table_name):
         """ get maxOccurs value for table elements """
-        values =  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
+        values = []
+        values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
                                          table_name, namespaces=NAMESPACES)
-        if values is not None:
+        values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
+                                         table_name, namespaces=NAMESPACES)
+        if len(values) > 0:
+            # take the first element it should be better than nothing
             return int(values[0])
+
+    def get_file_elements(self, elem):
+        """ get elements or attributes with type: 'file' """
+        values = []
+        values +=  self._common_xsd.xpath("//xsd:%s[@type='file']/@name" %
+                                          elem, namespaces=NAMESPACES)
+        values +=  self._xsd_parser.xpath("//xsd:%s[@type='file']/@name" %
+                                          elem, namespaces=NAMESPACES)
+        return values
 
 
 if __name__ == "__main__":

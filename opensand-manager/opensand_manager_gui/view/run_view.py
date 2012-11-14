@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -419,22 +419,29 @@ class RunView(WindowView):
     def set_start_stop_button(self):
         """ modify the start button label according to OpenSAND status
             (should be used with gobject.idle_add outside gtk handlers) """
+        btn = self._ui.get_widget('start_opensand_button')
+        menu_btn = self._ui.get_widget('start_stop')
         if self.is_running():
-            btn = self._ui.get_widget('start_opensand_button')
             btn.set_label('Stop OpenSAND')
+            menu_btn.set_label('Stop OpenSAND')
         else:
-            btn = self._ui.get_widget('start_opensand_button')
             btn.set_label('Start OpenSAND')
+            menu_btn.set_label('Start OpenSAND')
 
     def disable_start_button(self, status):
         """ set start button sensitive or not
             (should be used with gobject.idle_add outside gtk handlers) """
         self._ui.get_widget('start_opensand_button').set_sensitive(not status)
+        self._ui.get_widget('start_stop').set_sensitive(not status)
 
-    def disable_deploy_button(self, status):
-        """ set deploy button sensitive or not
+    def disable_deploy_buttons(self, status):
+        """ set deploy and intall buttons sensitive or not
             (should be used with gobject.idle_add outside gtk handlers) """
         self._ui.get_widget('deploy_opensand_button').set_sensitive(not status)
+        self._ui.get_widget('deploy').set_sensitive(not status)
+        self._ui.get_widget('edit').set_sensitive(not status)
+        self._ui.get_widget('install').set_sensitive(not status)
+        self._ui.get_widget('edit_install').set_sensitive(not status)
 
     def hide_deploy_button(self, status = True):
         """ hide or not deploy button

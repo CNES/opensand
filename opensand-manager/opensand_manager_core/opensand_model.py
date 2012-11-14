@@ -38,6 +38,7 @@ import ConfigParser
 import os
 import shutil
 
+from opensand_manager_core.utils import GreedyConfigParser
 from opensand_manager_core.model.environment_plane import EnvironmentPlaneModel
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
@@ -45,10 +46,11 @@ from opensand_manager_core.model.global_config import GlobalConfig
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.opensand_xml_parser import XmlParser
-from opensand_manager_core.modules import *
-from opensand_manager_core.encap_module import encap_methods
+from opensand_manager_gui.view.popup.infos import error_popup
+from opensand_manager_core.module import load_modules
 
 MAX_RECENT = 5
+DEFAULT_SIMU_FILE = '/usr/share/opensand/simulation_files.ini'
 
 TOPOLOGY_CONF = "topology.conf"
 TOPOLOGY_XSD = "topology.xsd"
@@ -65,7 +67,7 @@ class Model:
         self._event_manager = EventManager("manager")
         self._event_manager_response = EventManager("response")
 
-        self._modules = {}
+        # a list of modules that where not detected by some hosts
         self._missing_modules = {}
         self._scenario_path = scenario
         self._is_default = False
@@ -78,12 +80,14 @@ class Model:
         self._hosts = []
         self._ws = []
 
+        # the global config
         self._config = None
+        self._deploy_simu = None
         self._topology = None
 
-        # load modules
-        self.load_modules()
-        if len(self._modules) == 0:
+        # load the global modules
+        self._modules = load_modules('global')
+        if not 'encap' in self._modules or len(self._modules['encap']) == 0:
             raise ModelException("You need encapsulation modules to use your "
                                  "platform")
 
@@ -145,18 +149,14 @@ class Model:
         # load modules configuration
         self.reload_modules()
 
+        # load the simulation deployment file
+        self.load_simulation()
+
         # read configuration file
         try:
             self._config = GlobalConfig(self._scenario_path)
         except ModelException:
             raise
-        
-    def load_modules(self):
-        """ load the modules """
-        # add  modules in tree
-        for name in encap_methods.keys():
-            module = encap_methods[name]()
-            self._modules[name] = module
 
     def load_topology(self):
         """ load or reload the topology configuration """
@@ -168,7 +168,8 @@ class Model:
                 self._topology.write(topo_conf)
             else:
                 # get the default topology file
-                default_topo = os.path.join('/usr/share/opensand', TOPOLOGY_CONF)
+                default_topo = os.path.join('/usr/share/opensand',
+                                            TOPOLOGY_CONF)
                 shutil.copy(default_topo, topo_conf)
 
             self._topology = XmlParser(topo_conf, topo_xsd)
@@ -178,43 +179,36 @@ class Model:
             
     def reload_modules(self):
         """ load or reload the modules configuration """
-        for name in self._modules:
-            module = self._modules[name]
-            # handle the module configuration
-            xml = module.get_xml()
-            xsd = module.get_xsd()
-            if xml is None:
-                continue
+        for host_type in self._modules:
+            for host_name in self._modules[host_type]:
+                module = self._modules[host_type][host_name]
+                module.update(self._scenario_path, 'global')
 
-            plugins_path = os.path.join(self._scenario_path, 'plugins')
-            xml_path = os.path.join(plugins_path, xml)
-            xsd_path = os.path.join('/usr/share/opensand/plugins', xsd)
-            # create the plugins path if necessary
-            if not os.path.exists(plugins_path):
-                try:
-                    os.makedirs(plugins_path, 0755)
-                except OSError, (errno, strerror):
-                    raise ModelException("cannot create directory '%s': %s" %
-                                         (plugins_path, strerror))
-            # create the configuration file if necessary
-            if not os.path.exists(xml_path):
-                try:
-                    default_path = os.path.join('/usr/share/opensand/plugins', xml)
-                    shutil.copy(default_path, xml_path)
-                except IOError, (errno, strerror):
-                    raise ModelException("cannot copy %s plugin configuration "
-                                         "from '%s' to '%s': %s" % (name,
-                                         default_path, xml_path, strerror))
+    def load_simulation(self):
+        """ load the simulation deployment file """
+        simu_path = os.path.join(self._scenario_path, 'simulation_files.ini')
 
-            try:
-                config_parser = XmlParser(xml_path, xsd_path)
-            except IOError, msg:
-                raise ModelException("cannot load module %s configuration:"
-                                     "\n\t%s" % (name, msg))
-            except XmlException, msg:
-                raise ModelException("failed to parse module %s configuration file:"
-                                     "\n\t%s" % (name, msg))
-            module.set_config_parser(config_parser)
+        try:
+            # if the simulation deployment file is not loaded, load it from
+            # current scenario or from default path
+            if self._deploy_simu is None:
+                if not os.path.exists(simu_path):
+                    shutil.copy(DEFAULT_SIMU_FILE, simu_path)
+
+                self._deploy_simu = GreedyConfigParser()
+                if len(self._deploy_simu.read(simu_path)) == 0:
+                    raise ModelException("Cannot load simulation deployment "
+                                         "file '%s'" % simu_path)
+            else:
+                # write the current simulation deployment file
+                with open(simu_path, 'w') as simu_file:
+                    self._deploy_simu.write(simu_file)
+        except IOError, msg:
+            raise ModelException("failed to copy the simulation deployment "
+                                 "file: '%s'" % msg)
+        except ConfigParser.Error, msg:
+            raise ModelException("failed to write the simulation deployment "
+                                 "file '%s': %s" % (simu_path, msg))
 
     def add_topology(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
@@ -369,18 +363,20 @@ class Model:
 
         self._log.debug("add host '%s'" % name)
         # report a warning if a module is not supported by the host
-        for module in [mod for mod in self._modules
-                           if mod.upper() not in host_modules]:
-            if component != 'ws':
-                self._log.warning("%s does not support %s plugin" %
-                                  (name.upper(), module))
-                if not module in self._missing_modules:
-                    self._missing_modules[module] = [name]
-                else:
-                    self._missing_modules[module].append(name)
+        for module_type in self._modules:
+            for module in [mod for mod in self._modules[module_type]
+                               if mod.upper() not in host_modules]:
+                if component != 'ws':
+                    self._log.warning("%s: plugin %s may be missing" %
+                                      (name.upper(), module))
+                    if not module in self._missing_modules:
+                        self._missing_modules[module] = [name]
+                    else:
+                        self._missing_modules[module].append(name)
         # the component does not exist so create it
         host = HostModel(name, instance, network_config, state_port,
-                         command_port, tools, self._scenario_path, self._log)
+                         command_port, tools, host_modules, self._scenario_path,
+                         self._log)
         if component == 'sat':
             self._hosts.insert(0, host)
         elif component == 'gw':
@@ -429,6 +425,7 @@ class Model:
         """ set the scenario id """
         self._modified = True
         self._scenario_path = val
+        self._deploy_simu = None
         self.load()
 
     def get_scenario(self):
@@ -454,6 +451,10 @@ class Model:
     def get_event_manager_response(self):
         """ get the event manager response """
         return self._event_manager_response
+
+    def get_simulation_file_parser(self):
+        """ get the simulation file GreedyConfigParser object """
+        return self._deploy_simu
 
     def main_hosts_found(self):
         """ check if OpenSAND main hosts were found in the platform """
@@ -500,9 +501,163 @@ class Model:
         """ get the module list """
         return self._modules
 
+    def get_encap_modules(self):
+        """ get the encapsulation modules """
+        return self._modules['encap']
+
     def get_missing(self):
         """ get the missing module list """
         return self._missing_modules
+
+    def get_files(self):
+        """ get the files to deploy for simulation """
+        files = {}
+        for host in self._hosts:
+            init = []
+            modules = host.get_modules()
+            name = host.get_name().lower()
+            compo = host.get_component().lower()
+            # if the host is not referenced in the deployment file try the
+            # component
+            config = host.get_advanced_conf().get_configuration()
+            files[name] = []
+            if not self._deploy_simu.has_section(name):
+                if self._deploy_simu.has_section(compo):
+                    # copy the component section in the host section
+                    self._deploy_simu.add_section(name)
+                    for item in self._deploy_simu.items(compo):
+                        self._deploy_simu.set(name, item[0], item[1])
+                else:
+                    continue
+            for xpath in self._deploy_simu.options(name):
+                src = self._deploy_simu.get(compo, xpath)
+                dst = config.get(xpath)
+                if dst is None:
+                    # try to find dst in the modules
+                    for module_type in modules:
+                        if dst is not None:
+                            break
+                        for module_name in modules[module_type]:
+                            module = modules[module_type][module_name]
+                            module_config = module.get_config_parser()
+                            if module_config is not None:
+                                dst = module_config.get(xpath)
+                            if dst is not None:
+                                init.append(module_config.get("%s/.." % xpath))
+                                break
+                    if dst is None:
+                        continue
+                else:
+                    init.append(config.get("%s/.." % xpath))
+                files[name].append((xpath, src, dst))
+
+            # detect files that are not in the simulation deployment file in
+            # host configuration and modules configuration
+            config = host.get_advanced_conf().get_configuration()
+            new_files = config.get_files()
+            new = {}
+            # get the elements containing files in configuration
+            for path in new_files:
+                new[config.get("%s/.." % path)] = path
+            for module_type in modules:
+                for module_name in modules[module_type]:
+                    module = modules[module_type][module_name]
+                    module_config = module.get_config_parser()
+                    if module_config is not None:
+                        # get the elements containing files in module
+                        # configuration
+                        new_module_files = module_config.get_files()
+                        for path in new_module_files:
+                            new[module_config.get("%s/.." % path)] = path
+                        new_files.update(new_module_files)
+            # get the elements containing files that are delacred in the
+            # deployment file
+            # keep only the new elements
+            remaining = set(new.keys()) - set(init)
+
+            for new_file in remaining:
+                xpath = new[new_file]
+                dst = new_files[xpath]
+                files[name].append((xpath, '', dst))
+
+        # 'global' section
+        init = []
+        glob = self._config.get_configuration()
+        files['global'] = []
+        if self._deploy_simu.has_section('global'):
+            for xpath in self._deploy_simu.options('global'):
+                src = self._deploy_simu.get('global', xpath)
+                dst = glob.get(xpath)
+                if dst is None:
+                    # try to find dst in the modules
+                    for module_type in self._modules:
+                        if dst is not None:
+                            break
+                        for module_name in modules[module_type]:
+                            module = self._modules[module_type][module_name]
+                            module_config = module.get_config_parser()
+                            if module_config is not None:
+                                dst = module_config.get(xpath)
+                            if dst is not None:
+                                init.append(module_config.get("%s/.." % xpath))
+                                break
+                    if dst is None:
+                        continue
+                else:
+                    init.append(glob.get("%s/.." % xpath))
+                files['global'].append((xpath, src, dst))
+
+        # detect files that are not in the simulation deployment file in
+        # global configuration and global modules configuration
+        new_files = glob.get_files()
+        new = {}
+        # get the elements containing files in configuration
+        for path in new_files:
+            new[glob.get("%s/.." % path)] = path
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                module = self._modules[module_type][module_name]
+                module_config = module.get_config_parser()
+                if module_config is not None:
+                    # get the elements containing files in module
+                    # configuration
+                    new_module_files = module_config.get_files()
+                    for path in new_module_files:
+                        new[module_config.get("%s/.." % path)] = path
+                    new_files.update(new_module_files)
+        # get the elements containing files that are delacred in the
+        # deployment file
+        # keep only the new elements
+        remaining = set(new.keys()) - set(init)
+
+        for new_file in remaining:
+            xpath = new[new_file]
+            dst = new_files[xpath]
+            files['global'].append((xpath, '', dst))
+
+        return files
+
+    def modify_deploy_simu(self, host, xpath, val):
+        """ modify a source in the files to deploy for simulation """
+        if not self._deploy_simu.has_section(host):
+            error_popup("Cannot find host %s in the simulation deployment file"
+                        % host)
+            return
+        if not xpath in self._deploy_simu.options(host):
+            error_popup("Cannot find key %s in the simulation deployment file"
+                        % xpath)
+            return
+        self._deploy_simu.set(host, xpath, val)
+
+    def save_deploy_simu(self):
+        """ write the modified file list """
+        simu_path = os.path.join(self._scenario_path, 'simulation_files.ini')
+        try:
+            with open(simu_path, 'w') as simu_file:
+                self._deploy_simu.write(simu_file)
+        except IOError, msg:
+            error_popup("failed to copy the simulation deployment file: '%s'" %
+                        msg)
 
 
 ##### TEST #####
@@ -519,7 +674,6 @@ if __name__ == "__main__":
                      CONFIG.get_up_return_encap())
         LOGGER.debug("downlink encapsulation protocol: " +
                      CONFIG.get_down_forward_encap())
-        LOGGER.debug("terminal type: " + CONFIG.get_terminal_type())
         LOGGER.debug("frame duration: " + str(CONFIG.get_frame_duration()))
 
         MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {}, {})

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -43,6 +43,7 @@ from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.event_handler import EventReponseHandler
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
+from opensand_manager_gui.view.popup.edit_install_dialog import EditInstallDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 INIT_ITER = 4
@@ -324,13 +325,25 @@ class RunEvent(RunView):
         """ 'clicked' event on deploy OpenSAND button """
         # disable the buttons
         self.disable_start_button(True)
-        self.disable_deploy_button(True)
+        self.disable_deploy_buttons(True)
 
         # tell the hosts controller to deploy OpenSAND on all hosts
         # (the installation will be finished when we will receive a
         # 'resp_deploy_platform' event, the button will be enabled
         # there)
         self._event_manager.set('deploy_platform')
+
+    def on_install_files_button_clicked(self, source=None, event=None):
+        """ 'clicked' event on install files button """
+        # disable the buttons
+        self.disable_start_button(True)
+        self.disable_deploy_buttons(True)
+
+        # tell the hosts controller to install files on all hosts
+        # (the installation will be finished when we will receive a
+        # 'resp_install_files' event, the button will be enabled
+        # there)
+        self._event_manager.set('install_files')
 
     def on_start_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on start OpenSAND button """
@@ -354,7 +367,7 @@ class RunEvent(RunView):
 
             # disable the buttons
             self.disable_start_button(True)
-            self.disable_deploy_button(True)
+            self.disable_deploy_buttons(True)
 
             # add a line in the event text views
             self.show_opensand_event("***** New run: %s *****" %
@@ -367,7 +380,7 @@ class RunEvent(RunView):
         else:
             # disable the buttons
             self.disable_start_button(True)
-            self.disable_deploy_button(True)
+            self.disable_deploy_buttons(True)
 
             # stop the applications
 
@@ -420,7 +433,7 @@ class RunEvent(RunView):
                     gobject.idle_add(self.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # disable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_button, True,
+                    gobject.idle_add(self.disable_deploy_buttons, True,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     if self._refresh_iter <= INIT_ITER:
                         self._log.info("Platform is currently started")
@@ -428,7 +441,7 @@ class RunEvent(RunView):
                     gobject.idle_add(self.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # enable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_button, False,
+                    gobject.idle_add(self.disable_deploy_buttons, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     if self._refresh_iter <= INIT_ITER:
                         self._log.info("Platform is currently stopped")
@@ -457,6 +470,20 @@ class RunEvent(RunView):
     def on_option_edit_clicked(self,  source=None, event=None):
         """ edit button in options menu clicked """
         window = EditDeployDialog(self._model, self._log)
+        window.go()
+        window.close()
+
+    def on_start_stop_activate(self, source=None, event=None):
+        """ start/stop button in action menu clicked """
+        self.on_start_opensand_button_clicked(source, event)
+
+    def on_install_activate(self, source=None, event=None):
+        """ install button in action menu clicked """
+        self.on_install_files_button_clicked(source, event)
+
+    def on_edit_install_activate(self, source=None, event=None):
+        """ edit button in action menu clicked """
+        window = EditInstallDialog(self._model, self._log)
         window.go()
         window.close()
         pass

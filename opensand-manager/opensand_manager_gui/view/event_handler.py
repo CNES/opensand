@@ -59,7 +59,15 @@ class EventReponseHandler(threading.Thread):
                 # enable the buttons back
                 gobject.idle_add(self._view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._view.disable_deploy_button, False,
+                gobject.idle_add(self._view.disable_deploy_buttons, False,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+
+            elif event_type == "resp_install_files":
+                # opensand platform installation answer
+                # enable the buttons back
+                gobject.idle_add(self._view.disable_start_button, False,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                gobject.idle_add(self._view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "resp_start_platform":
@@ -84,7 +92,7 @@ class EventReponseHandler(threading.Thread):
                     # enable back all the buttons
                     gobject.idle_add(self._view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._view.disable_deploy_button, False,
+                    gobject.idle_add(self._view.disable_deploy_buttons, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "resp_stop_platform":
@@ -107,7 +115,7 @@ class EventReponseHandler(threading.Thread):
                 # enable all the buttons
                 gobject.idle_add(self._view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._view.disable_deploy_button, False,
+                gobject.idle_add(self._view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == 'quit':

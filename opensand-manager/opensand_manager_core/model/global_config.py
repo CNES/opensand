@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -57,6 +57,7 @@ class GlobalConfig(AdvancedHostModel):
         self._down_forward = {}
         self._up_return = {}
         self._frame_duration = ''
+        self._enable_phy_layer = None
 
     def load(self, name, instance, ifaces, scenario):
         """ load the global configuration """
@@ -111,6 +112,8 @@ class GlobalConfig(AdvancedHostModel):
                            self._up_return)
             self._configuration.set_value(self._frame_duration,
                                           "//frame_duration")
+            self._configuration.set_value(self._enable_phy_layer,
+                                          "//physical_layer/enable")
             self._configuration.write()
         except XmlException:
             raise
@@ -243,6 +246,14 @@ class GlobalConfig(AdvancedHostModel):
     def get_frame_duration(self):
         """ get the frame_duration value """
         return self.get_param("frame_duration")
+
+    def set_enable_physical_layer(self, val):
+        """ set the enable value in physical layer section """
+        self._enable_phy_layer = val
+
+    def get_enable_physical_layer(self):
+        """ get the enable value from physical layer section """
+        return self.get_param("physical_layer/enable")
 
     def get_param(self, name):
         """ get a parameter in the XML configuration file """

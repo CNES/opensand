@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
-# Copyright © 2011 CNES
+# Copyright © 2012 TAS
+# Copyright © 2012 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -58,11 +58,11 @@ class ConfView(WindowView):
         self._title = 'Protocol stack'
 
         self._out_stack = ProtocolStack(self._ui.get_widget('out_encap_stack'),
-                                        self._model.get_modules(),
+                                        self._model.get_encap_modules(),
                                         self.on_stack_modif)
 
         self._in_stack = ProtocolStack(self._ui.get_widget('in_encap_stack'),
-                                       self._model.get_modules(),
+                                       self._model.get_encap_modules(),
                                        self.on_stack_modif)
 
         self._ip_options = {}
@@ -74,7 +74,7 @@ class ConfView(WindowView):
 
         # add ip options
         vbox = self._ui.get_widget('ip_options_vbox')
-        modules = self._model.get_modules()
+        modules = self._model.get_encap_modules()
         ip_option = False
         for module in modules:
             if modules[module].get_condition('ip_option'):
@@ -129,6 +129,12 @@ class ConfView(WindowView):
         # frame_duration
         widget = self._ui.get_widget('FrameDuration')
         widget.set_value(int(config.get_frame_duration()))
+        # physical layer
+        widget = self._ui.get_widget('enable_physical_layer')
+        if config.get_enable_physical_layer().lower() == "true":
+            widget.set_active(True)
+        else:
+            widget.set_active(False)
 
     def is_modified(self):
         """ check if the configuration was modified by user
@@ -165,6 +171,14 @@ class ConfView(WindowView):
             widget = self._ui.get_widget('FrameDuration')
             if widget.get_text() == int(config.get_frame_duration()):
                 return True
+            # enable physical_layer
+            widget = self._ui.get_widget('enable_physical_layer')
+            if widget.get_active() and \
+               config.get_enable_physical_layer().lower() != "true":
+                return True
+            if not widget.get_active() and \
+               config.get_enable_physical_layer().lower() != "false":
+                return True
         except:
             raise
 
@@ -174,6 +188,7 @@ class ConfView(WindowView):
         """ draw the links in the protocol stack representation """
         yorig = 2
         ydst = 17
+
         self._context_graph.set_line_attributes(line_width=1,
                                                 line_style=gtk.gdk.LINE_SOLID,
                                                 cap_style=gtk.gdk.CAP_NOT_LAST,
@@ -269,7 +284,6 @@ class ConfView(WindowView):
                                                      yorig + 10),
                                                     (xdst - xsrc + orig - 5,
                                                      yorig - 2)])
-
 
     def on_stack_modif(self, source=None, event=None):
         """ 'changed' event on a combobox from the stack """
