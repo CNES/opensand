@@ -25,10 +25,10 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="nominal_cn" type="amplitudes">
+            <xsd:element name="threshold" type="amplitudes">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The constant nominal condition value
+                        Threshold value for QEF communications (dB)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
