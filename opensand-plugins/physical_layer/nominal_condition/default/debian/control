@@ -20,6 +20,6 @@ Description: The default nominal plugin for OpenSAND
 Package: libopensand-default-nominal-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-default-nominal-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-default-nominal-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Description: The default nominal plugin configuration for OpenSAND Manager
 

@@ -26,7 +26,7 @@ Description: The ATM/AAL5 plugin for OpenSAND
 Package: libopensand-atm-aal5-encap-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-atm-aal5-encap-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-atm-aal5-encap-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Provides: libopensand-atm-aal5-plugin-manager
 Conflicts: libopensand-atm-aal5-plugin-manager
 Replaces: libopensand-atm-aal5-plugin-manager

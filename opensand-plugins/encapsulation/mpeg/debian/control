@@ -26,7 +26,7 @@ Description: The MPEG plugin for OpenSAND
 Package: libopensand-mpeg-encap-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-mpeg-encap-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-mpeg-encap-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
 Provides: libopensand-mpeg-plugin-manager
 Conflicts: libopensand-mpeg-plugin-manager
 Replaces: libopensand-mpeg-plugin-manager
