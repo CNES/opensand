@@ -16,7 +16,7 @@ Description: Debugging symbols for OpenSAND ULE plugin
 Package: libopensand-ule-plugin
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopensand-mpeg-plugin
 Conflicts: libplatine-ule-plugin
 Replaces: libplatine-ule-plugin
 Description: The ULE plugin for OpenSAND
@@ -24,7 +24,7 @@ Description: The ULE plugin for OpenSAND
 Package: libopensand-ule-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-ule-plugin (= ${binary:Version}), python (>= 2.6)
+Depends: libopensand-ule-plugin (= ${binary:Version}), libopensand-mpeg-plugin-manager, python (>= 2.6)
 Conflicts: libplatine-ule-plugin-manager
 Replaces: libplatine-ule-plugin-manager
 Description: The ULE plugin configuration for OpenSAND Manager
