@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -142,7 +142,7 @@ bool ModcodDefinitionTable::load(std::string filename)
 					UTI_ERROR("bad syntax at line %u: "
 					          "the 'nb_modcod' "
 					          "keyword should be followed by an "
-						  "equal symbol\n", lines_count);
+					          "equal symbol\n", lines_count);
 					goto malformed;
 				}
 				if(nb_modcod <= 0 || nb_modcod > 100)

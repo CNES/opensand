@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -48,7 +48,6 @@ PhysicStd::PhysicStd(std::string type,
 	this->frameDuration = 0;
 	this->remainingCredit = 0;
 	this->bandwidth = 0;
-	this->tal_id = -1;
 }
 
 
@@ -189,10 +188,5 @@ int PhysicStd::getRealModcod()
 int PhysicStd::getReceivedModcod()
 {
 	return this->receivedModcod;
-}
-
-void PhysicStd::setTalId(long tal_id)
-{
-	this->tal_id = tal_id;
 }
 

@@ -21,25 +21,27 @@ export DH_OPTIONS
 #	dh_auto_configure -- --disable-memory-pool
 
 override_dh_strip:
-	dh_strip --dbg-package=libopensand-encap-plugin-dbg
+	dh_strip --dbg-package=libopensand-plugin-dbg
 	dh_strip --dbg-package=opensand-core-dbg
 
 override_dh_install:
 	dh_install
 
     # Configuration for all
-	install -m 0644 conf/core_sat.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/core.conf
-	install -m 0644 conf/core_st.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/core.conf
-	install -m 0644 conf/core_gw.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/core.conf
+	for host in sat gw st; do \
+		install -m 0644 conf/core_$${host}.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/core.conf ; \
+		dest=$(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/core.xsd ; \
+		install -m 0644 conf/xsd/core_$${host}.xsd $${dest} ; \
+		sed -i "s#schemaLocation=\".*\"#schemaLocation=\"/usr/share/opensand/common.xsd\"#g" $${dest} ; \
+	done
 	install -m 0644 conf/core_global.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/core_global.conf
 	install -m 0644 conf/topology.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/topology.conf
-	install -m 0644 conf/xsd/core_sat.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/core.xsd
-	install -m 0644 conf/xsd/core_st.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/core.xsd
-	install -m 0644 conf/xsd/core_gw.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/core.xsd
 	install -m 0644 conf/xsd/core_global.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/core_global.xsd
 	install -m 0644 conf/xsd/topology.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/topology.xsd
+	install -m 0644 conf/xsd/common.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/common.xsd
 
 	install -m 0644 conf/deploy.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/deploy.ini
+	install -m 0644 conf/simulation_files.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/simulation_files.ini
 
 	# MODCOD and DRA simulation files
 	install -D -m 0644 conf/modcod_dra/collective/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/collective

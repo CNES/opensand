@@ -58,7 +58,6 @@ AC_SUBST(AM_CPPFLAGS, "$OPENSAND_ENV_PLANE_CFLAGS $AM_CPPFLAGS")
 # check for opensand-margouilla library
 PKG_CHECK_MODULES([OPENSAND_MARGOUILLA], [opensand_margouilla = trunk])
 LIBS="$OPENSAND_MARGOUILLA_LIBS $LIBS"
-echo "$AM_CPPFLAGS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_MARGOUILLA_CFLAGS $AM_CPPFLAGS")
 
 
@@ -115,10 +114,11 @@ AC_CONFIG_FILES([ \
 	src/encap/Makefile \
 	src/qos_data/Makefile \
 	src/sat_carrier/Makefile \
+	src/physical_layer/Makefile \
 	src/system/Makefile \
 	src/tun_interface/Makefile \
 	conf/Makefile \
-	opensand_encap_plugin.pc \
+	opensand_plugin.pc \
 	doc/doxygen \
 ])
 

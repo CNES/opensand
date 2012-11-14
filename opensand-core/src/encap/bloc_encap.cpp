@@ -33,6 +33,7 @@
  */
 
 #include "bloc_encap.h"
+#include "PluginUtils.h"
 
 #include <algorithm>
 #include <stdint.h>
@@ -62,10 +63,10 @@ sat_type_t strToSatType(std::string sat_type)
 }
 
 BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
-                     t_component host,
-                     std::map<std::string, EncapPlugin *> &encap_plug):
+                     component_t host,
+                     PluginUtils utils):
 	mgl_bloc(blocmgr, fatherid, name),
-	encap_plug(encap_plug)
+	utils(utils)
 {
 	this->initOk = false;
 
@@ -226,13 +227,14 @@ mgl_status BlocEncap::onInit()
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string satellite_type;
-	string upper_option;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
 	int i;
 	int encap_nbr;
-	string upper_name;
+	EncapPlugin *plugin;
+	EncapPlugin *upper_option = NULL;
+	EncapPlugin *upper_encap = NULL;
 
 	// satellite type: regenerative or transparent ?
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
@@ -252,8 +254,7 @@ mgl_status BlocEncap::onInit()
 		goto error;
 	}
 
-	// TODO factorize
-	upper_option = "";
+	upper_option = NULL;
 	// get all the IP options
 	for(ConfigurationList::iterator iter = option_list.begin();
 	    iter != option_list.end(); ++iter)
@@ -272,17 +273,17 @@ mgl_status BlocEncap::onInit()
 			continue;
 		}
 
-		if(this->encap_plug[option_name] == NULL)
+		if(!this->utils.getEncapsulationPlugins(option_name, &plugin))
 		{
 			UTI_ERROR("%s missing plugin for %s encapsulation",
 			          FUNCNAME, option_name.c_str());
 			goto error;
 		}
 
-		context = this->encap_plug[option_name]->getContext();
+		context = plugin->getContext();
 		up_return_ctx.push_back(context);
 		down_forward_ctx.push_back(context);
-		if(upper_option == "")
+		if(upper_option == NULL)
 		{
 			if(!context->setUpperPacketHandler(this->ip_handler,
 			                                   strToSatType(satellite_type)))
@@ -291,19 +292,20 @@ mgl_status BlocEncap::onInit()
 			}
 		}
 		else if(!context->setUpperPacketHandler(
-					this->encap_plug[upper_option]->getPacketHandler(),
+					upper_option->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("%s %s is not supported for %s "
-			          "IP option", FUNCNAME, upper_option.c_str(),
+			UTI_ERROR("%s %s is not supported for %s IP option",
+			          FUNCNAME, upper_option->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
-		upper_option = context->getName();
+		upper_option = plugin;
 		UTI_INFO("%s add IP option: %s\n",
-		         FUNCNAME, upper_option.c_str());
+		         FUNCNAME, upper_option->getName().c_str());
 	}
 
+	upper_encap = upper_option;
 	// get the number of encapsulation context to use for up/return link
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
@@ -313,7 +315,6 @@ mgl_status BlocEncap::onInit()
 		goto error;
 	}
 
-	upper_name = upper_option;
 	for(i = 0; i < encap_nbr; i++)
 	{
 		string encap_name;
@@ -328,16 +329,16 @@ mgl_status BlocEncap::onInit()
 			goto error;
 		}
 
-		if(this->encap_plug[encap_name] == NULL)
+		if(!utils.getEncapsulationPlugins(encap_name, &plugin))
 		{
-			UTI_ERROR("%s missing plugin for %s encapsulation",
+			UTI_ERROR("%s cannot get plugin for %s encapsulation",
 			          FUNCNAME, encap_name.c_str());
 			goto error;
 		}
 
-		context = this->encap_plug[encap_name]->getContext();
+		context = plugin->getContext();
 		up_return_ctx.push_back(context);
-		if(upper_name == "")
+		if(upper_encap == NULL)
 		{
 			if(!context->setUpperPacketHandler(this->ip_handler,
 			                                   strToSatType(satellite_type)))
@@ -346,17 +347,17 @@ mgl_status BlocEncap::onInit()
 			}
 		}
 		else if(!context->setUpperPacketHandler(
-					this->encap_plug[upper_name]->getPacketHandler(),
+					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
 			UTI_ERROR("%s upper encapsulation type %s is not supported for %s "
-			          "encapsulation", FUNCNAME, upper_name.c_str(),
+			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
-		upper_name = context->getName();
+		upper_encap = plugin;
 		UTI_DEBUG("%s add up/return encapsulation layer: %s\n",
-		          FUNCNAME, upper_name.c_str());
+		          FUNCNAME, upper_encap->getName().c_str());
 	}
 
 	// get the number of encapsulation context to use for down/forward link
@@ -368,7 +369,7 @@ mgl_status BlocEncap::onInit()
 		goto error;
 	}
 
-	upper_name = upper_option;
+	upper_encap = upper_option;
 	for(i = 0; i < encap_nbr; i++)
 	{
 		string encap_name;
@@ -383,16 +384,16 @@ mgl_status BlocEncap::onInit()
 			goto error;
 		}
 
-		if(this->encap_plug[encap_name] == NULL)
+		if(!utils.getEncapsulationPlugins(encap_name, &plugin))
 		{
-			UTI_ERROR("%s missing plugin for %s encapsulation",
+			UTI_ERROR("%s cannot get plugin for %s encapsulation",
 			          FUNCNAME, encap_name.c_str());
 			goto error;
 		}
 
-		context = this->encap_plug[encap_name]->getContext();
+		context = plugin->getContext();
 		down_forward_ctx.push_back(context);
-		if(upper_name == "")
+		if(upper_encap == NULL)
 		{
 			if(!context->setUpperPacketHandler(this->ip_handler,
 			                                   strToSatType(satellite_type)))
@@ -401,17 +402,17 @@ mgl_status BlocEncap::onInit()
 			}
 		}
 		else if(!context->setUpperPacketHandler(
-					this->encap_plug[upper_name]->getPacketHandler(),
+					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
 			UTI_ERROR("%s upper encapsulation type %s is not supported for %s "
-			          "encapsulation", FUNCNAME, upper_name.c_str(),
+			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
-		upper_name = context->getName();
+		upper_encap = plugin;
 		UTI_DEBUG("%s add down/forward encapsulation layer: %s\n",
-		          FUNCNAME, upper_name.c_str());
+		          FUNCNAME, upper_encap->getName().c_str());
 	}
 
 	if(this->host == terminal || satellite_type == "regenerative")

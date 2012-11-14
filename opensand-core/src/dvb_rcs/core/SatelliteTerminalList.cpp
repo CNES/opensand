@@ -469,7 +469,6 @@ bool SatelliteTerminalList::goNextScenarioStepModcod()
 	// read next line of the modcod simulation file
 	if(!this->setList(this->modcod_simu_file, this->modcod_list))
 	{
-        UTI_ERROR("PUTAINNNNNNN\n");
 		UTI_ERROR("failed to get the next line in the MODCOD scheme simulation file\n");
 		goto error;
 	}

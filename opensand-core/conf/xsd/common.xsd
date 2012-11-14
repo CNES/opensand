@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<xsd:simpleType name="talId">
+    <xsd:restriction base="xsd:nonNegativeInteger">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" /> <!-- 0x1f -->
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="carrierId">
+    <xsd:restriction base="xsd:positiveInteger">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="7" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="ipv4Address">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="port">
+    <xsd:restriction base="xsd:positiveInteger">
+        <xsd:minInclusive value="1500" />
+        <xsd:maxInclusive value="65535" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="file">
+    <xsd:restriction base="xsd:string">
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="attenuationLink">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="up" />
+        <xsd:enumeration value="down" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="attenuationType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Ideal" />
+        <xsd:enumeration value="On/Off" />
+        <xsd:enumeration value="Triangular" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="nominalCondition">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Default" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="minimalCondition">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Modcod" />
+        <xsd:enumeration value="Constant" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="errorInsertion">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Gate" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- physical_layer section description -->
+<xsd:element name="physical_layer">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The physical layer description
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="models">
+                <xsd:annotation xml:lang="en">
+                    <xsd:documentation xml:lang="en">
+                        The models for uplink or downlink physical layer
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- the models for physical_layer section -->
+<xsd:element name="models">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="model" minOccurs="2" maxOccurs="2" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="model">
+    <xsd:complexType>
+        <xsd:attribute name="link" type="attenuationLink">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The link on which the attenuation is applied
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="attenuation_model_type" type="attenuationType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of attenuation model
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="nominal_condition_type" type="nominalCondition">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of nominal conditions
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="minimal_condition_type" type="minimalCondition">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of minimal conditions
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="error_insertion_type" type="errorInsertion">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of error insertion
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- types for debug section -->
+<xsd:simpleType name="debugValue">
+    <xsd:restriction base="xsd:nonNegativeInteger">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="3" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+</xsd:schema>

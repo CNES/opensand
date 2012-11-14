@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -54,9 +54,9 @@
 BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
                  mgl_id fatherid,
                  const char *name,
-                 std::map<std::string, EncapPlugin *> &encap_plug):
+                 PluginUtils utils):
 	mgl_bloc(blocmgr, fatherid, name),
-	encap_plug(encap_plug)
+	utils(utils)
 {
 	this->satellite_type = "";
 	this->dama_algo = "";
@@ -86,6 +86,7 @@ bool BlocDvb::initCommon()
 
 	string encap_name;
 	int encap_nbr;
+	EncapPlugin *plugin;
 
 	// satellite type
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
@@ -117,14 +118,14 @@ bool BlocDvb::initCommon()
 		goto error;
 	}
 
-	if(this->encap_plug[encap_name] == NULL)
+	if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
 	{
-		UTI_ERROR("%s missing plugin for %s encapsulation",
+		UTI_ERROR("%s cannot get plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());
 		goto error;
 	}
 
-	this->up_return_pkt_hdl = this->encap_plug[encap_name]->getPacketHandler();
+	this->up_return_pkt_hdl = plugin->getPacketHandler();
 	if(!this->up_return_pkt_hdl)
 	{
 		UTI_ERROR("cannot get %s packet handler\n", encap_name.c_str());
@@ -151,14 +152,14 @@ bool BlocDvb::initCommon()
 		goto error;
 	}
 
-	if(this->encap_plug[encap_name] == NULL)
+	if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
 	{
 		UTI_ERROR("%s missing plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());
 		goto error;
 	}
 
-	this->down_forward_pkt_hdl = this->encap_plug[encap_name]->getPacketHandler();
+	this->down_forward_pkt_hdl = plugin->getPacketHandler();
 	if(!this->down_forward_pkt_hdl)
 	{
 		UTI_ERROR("cannot get %s packet handler\n", encap_name.c_str());
@@ -387,7 +388,7 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	dvb_length = frame->getTotalLength();
 	memcpy(dvb_frame, frame->getData().c_str(), dvb_length);
 
-	if (!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id))
+	if (!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id, (long)dvb_length))
 	{
 		UTI_ERROR("failed to send message\n");
 		goto release_dvb_frame;
@@ -410,9 +411,10 @@ error:
  *
  * @param dvb_frame     the DVB frame
  * @param carrier_id    the DVB carrier Id
+ * @param l_len         XXX
  * @return              true on success, false otherwise
  */
-bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id)
+bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 {
 	T_DVB_META *dvb_meta; // encapsulates the DVB Frame in a structure
 	mgl_msg *msg; // Margouilla message to send to lower layer
@@ -423,7 +425,7 @@ bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id)
 
 	// create the Margouilla message with burst as data
 	msg = this->newMsgWithBodyPtr(msg_dvb,
-	                              dvb_meta, dvb_frame->msg_length);
+	                              dvb_meta, l_len);
 	if(msg == NULL)
 	{
 		UTI_ERROR("failed to create message to send DVB frame, drop the frame\n");

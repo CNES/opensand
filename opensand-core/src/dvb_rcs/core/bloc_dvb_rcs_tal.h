@@ -223,7 +223,7 @@ class BlocDVBRcsTal: public BlocDvb
 
 	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
                   const char *name, const tal_id_t mac_id,
-                  std::map<std::string, EncapPlugin *> &encap_plug);
+                  PluginUtils utils);
 	virtual ~BlocDVBRcsTal();
 
 	mgl_status onEvent(mgl_event *event);

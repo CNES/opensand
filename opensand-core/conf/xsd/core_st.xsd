@@ -1,38 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 
+<xsd:include schemaLocation="./common.xsd"/> 
+
 <!-- component type -->
 <xsd:simpleType name="componentType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="st" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- types that can be useful for many section -->
-<xsd:simpleType name="carrierId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1" />
-        <xsd:maxInclusive value="7" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="talId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="31" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="ipv4Address">
-    <xsd:restriction base="xsd:string">
-        <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="port">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1500" />
-        <xsd:maxInclusive value="65535" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -237,7 +211,7 @@
         <xsd:attribute name="pvc" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    TODO, PVC must be in increasing order
+                    The Permanent Virtual Channel, it must be in increasing order
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -251,13 +225,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- types for debug section -->
-<xsd:simpleType name="debugValue">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="3" />
-    </xsd:restriction>
-</xsd:simpleType>
 
 <!-- Complete XML description -->
 <xsd:element name="configuration">
@@ -266,6 +233,7 @@
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
             <xsd:element ref="dvb_rcs_tal" />
+            <xsd:element ref="physical_layer" />
             <xsd:element ref="qos_agent" />
             <xsd:element ref="debug" />
         </xsd:sequence>
@@ -447,6 +415,7 @@
         <xsd:sequence>
             <xsd:element name="default" type="debugValue" />
             <xsd:element name="qos_data" type="debugValue" />
+            <xsd:element name="physical_layer" type="debugValue" />
             <xsd:element name="dama_da" type="debugValue" />
             <xsd:element name="dvb_rcs" type="debugValue" />
             <xsd:element name="dvb_rcs_tal" type="debugValue" />

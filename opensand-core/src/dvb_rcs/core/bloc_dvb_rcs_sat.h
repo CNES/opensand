@@ -96,7 +96,7 @@ class BlocDVBRcsSat: public BlocDvb
  public:
 
 	BlocDVBRcsSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	              std::map<std::string, EncapPlugin *> &encap_plug);
+	              PluginUtils utils);
 	~BlocDVBRcsSat();
 
 	/// Get the satellite type

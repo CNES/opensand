@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -57,6 +57,7 @@
 #ifndef BLOC_DVB_H
 #define BLOC_DVB_H
 
+#include "PluginUtils.h"
 #include "PhysicStd.h"
 #include "opensand_margouilla/mgl_bloc.h"
 #include "NccPepInterface.h"
@@ -78,7 +79,7 @@ class BlocDvb: public mgl_bloc
 	/// Class constructor
 	/// Use mgl_bloc default constructor
 	BlocDvb(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
-	        std::map<std::string, EncapPlugin *> &encap_plug);
+	        PluginUtils utils);
 
 	~BlocDvb();
 
@@ -106,7 +107,7 @@ class BlocDvb: public mgl_bloc
 	int sendBursts(std::list<DvbFrame *> *complete_frames, long carrier_id);
 
 	// Send a DVB frame to the sat carrier block
-	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id);
+	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len);
 	bool sendDvbFrame(DvbFrame *frame, long carrier_id);
 
 	/// the satellite type (regenerative o transparent)
@@ -134,7 +135,7 @@ class BlocDvb: public mgl_bloc
 	int dvb_scenario_refresh;
 
 	/// The encapsulation plugins
-	std::map<std::string, EncapPlugin *> &encap_plug;
+	PluginUtils utils;
 
 	/// The up/return link encapsulation packet
 	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;

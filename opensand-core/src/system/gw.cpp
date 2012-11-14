@@ -75,6 +75,7 @@
 #include "bloc_dvb_rcs_ncc.h"
 #include "bloc_sat_carrier.h"
 #include "bloc_encap.h"
+#include "BlocPhysicalLayer.h"
 #include "PluginUtils.h"
 
 // environment plane include
@@ -174,6 +175,7 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
  	struct sched_param param;
 	bool is_init = false;
+	bool with_phy_layer = false;
 	string ip_addr;
 	string iface_name;
 
@@ -184,10 +186,9 @@ int main(int argc, char **argv)
 	BlocEncap *blocEncap;
 	BlocDVBRcsNcc *blocDvbRcsNcc;
 	BlocSatCarrier *blocSatCarrier;
+	BlocPhysicalLayer *blocPhysicalLayer;
 	PluginUtils utils;
 	vector<string> conf_files;
-
-	std::map<std::string, EncapPlugin *> encap_plug;
 
 	int is_failure = 1;
 
@@ -220,6 +221,17 @@ int main(int argc, char **argv)
 	// read all packages debug levels
 	UTI_readDebugLevels();
 
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	                          with_phy_layer))
+	{
+		UTI_ERROR("%s: cannot  check if physical layer is enabled\n",
+		          progname);
+		goto unload_config;
+	}
+	UTI_PRINT(LOG_INFO, "%s: physical layer is %s\n",
+	          progname, with_phy_layer ? "enabled" : "disabled");
+
 	// Instantiate mgl event manager and then mgl bloc manager
 	eventmgr = new mgl_eventmgr(realTime);
 	if(eventmgr == NULL)
@@ -238,10 +250,10 @@ int main(int argc, char **argv)
 	MGL_TRACE_SET_LEVEL(0); // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
-	// load the encapsulation plugins
-	if(!utils.loadEncapPlugins(encap_plug))
+	// load the plugins
+	if(!utils.loadPlugins(with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot load the encapsulation plugins\n", progname);
+		UTI_ERROR("%s: cannot load the plugins\n", progname);
 		goto destroy_blocmgr;
 	}
 
@@ -254,20 +266,26 @@ int main(int argc, char **argv)
 	}
 
 	blocEncap = new BlocEncap(blocmgr, 0, "EncapBloc", gateway,
-	                          encap_plug);
+	                          utils);
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
 		goto release_plugins;
 	}
 
+	blocIPQoS->setLowerLayer(blocEncap->getId());
+	blocEncap->setUpperLayer(blocIPQoS->getId());
+
 	blocDvbRcsNcc = new BlocDVBRcsNcc(blocmgr, 0, "DvbRcsNcc",
-	                                  encap_plug);
+	                                  utils);
 	if(blocDvbRcsNcc == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DvbRcsNcc bloc\n", progname);
 		goto release_plugins;
 	}
+
+	blocEncap->setLowerLayer(blocDvbRcsNcc->getId());
+	blocDvbRcsNcc->setUpperLayer(blocEncap->getId());
 
 	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
 	                                    gateway, ip_addr, iface_name);
@@ -277,13 +295,29 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	// blocs communication
-	blocIPQoS->setLowerLayer(blocEncap->getId());
-	blocEncap->setUpperLayer(blocIPQoS->getId());
-	blocEncap->setLowerLayer(blocDvbRcsNcc->getId());
-	blocDvbRcsNcc->setUpperLayer(blocEncap->getId());
-	blocDvbRcsNcc->setLowerLayer(blocSatCarrier->getId());
-	blocSatCarrier->setUpperLayer(blocDvbRcsNcc->getId());
+	if(with_phy_layer)
+	{
+		blocPhysicalLayer = new BlocPhysicalLayer(blocmgr, 0,
+		                                          "PhysicalLayer",
+		                                          gateway,
+		                                          utils);
+		if(blocPhysicalLayer == NULL)
+		{
+			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
+			goto release_plugins;
+		}
+
+		blocDvbRcsNcc->setLowerLayer(blocPhysicalLayer->getId());
+		blocPhysicalLayer->setUpperLayer(blocDvbRcsNcc->getId());
+
+		blocPhysicalLayer->setLowerLayer(blocSatCarrier->getId());
+		blocSatCarrier->setUpperLayer(blocPhysicalLayer->getId());
+	}
+	else
+	{
+		blocDvbRcsNcc->setLowerLayer(blocSatCarrier->getId());
+		blocSatCarrier->setUpperLayer(blocDvbRcsNcc->getId());
+	}
 
 	/// send the init event
 	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_INIT,
@@ -309,12 +343,17 @@ int main(int argc, char **argv)
 
 	// cleanup before GW stops
 release_plugins:
-	utils.releaseEncapPlugins();
+	utils.releasePlugins();
 destroy_blocmgr:
 	delete blocmgr; /* destroy the bloc manager and all the blocs */
 destroy_eventmgr:
 	delete eventmgr;
 unload_config:
+	if(is_failure)
+	{
+		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
+		                     C_ERROR_INIT_COMPO);
+	}
 	globalConfig.unloadConfig();
 	ENV_AGENT_Terminate(&EnvAgent);
 quit:

@@ -35,7 +35,8 @@ ip_addr_LDADD =
 ############## test for encap plugins ##############
 
 INCLUDES = \
-  -I$(top_srcdir)/src/common/
+  -I$(top_srcdir)/src/common/ \
+  -I$(top_srcdir)/src/dvb_rcs/utils/
 
 test_plugins_SOURCES = \
   test_plugins.cpp
@@ -44,7 +45,7 @@ test_plugins_CXXFLAGS = $(CPPFLAGS_COMMON)
 test_plugins_LDFLAGS =
 test_plugins_LDADD = \
   $(top_builddir)/src/common/libopensand_common.la \
-  $(top_builddir)/src/common/libopensand_encap_plugin.la \
+  $(top_builddir)/src/common/libopensand_plugin.la \
   -lpcap
 
 

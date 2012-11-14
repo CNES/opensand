@@ -49,7 +49,7 @@ class BlocSatCarrier: public mgl_bloc
 
 	/// Use mgl_bloc default constructor
 	BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	               const t_component host, const string ip_addr,
+	               const component_t host, const string ip_addr,
 	               const string interface_name);
 
 	~BlocSatCarrier();
@@ -67,7 +67,7 @@ class BlocSatCarrier: public mgl_bloc
 	/// Whether the bloc has been initialized or not
 	bool init_ok;
 	/// the component type
-	t_component host;
+	component_t host;
 	/// the IP address for emulation newtork
 	string ip_addr;
 	/// the interface name for emulation newtork

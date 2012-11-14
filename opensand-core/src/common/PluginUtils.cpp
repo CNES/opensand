@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 CNES
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  */
 
 
+#include "OpenSandPlugin.h"
 #include "PluginUtils.h"
 
 #include <dirent.h>
@@ -44,9 +45,8 @@
 
 
 
-bool PluginUtils::loadEncapPlugins(std::map<std::string, EncapPlugin *> &encap_plug)
+bool PluginUtils::loadPlugins(bool enable_phy_layer)
 {
-	const char *FUNCNAME = "[loadEncapPlugins]";
 	DIR *plugin_dir;
 	char *lib_path;
 	std::vector<std::string> path;
@@ -86,56 +86,177 @@ bool PluginUtils::loadEncapPlugins(std::map<std::string, EncapPlugin *> &encap_p
 			{
 				void *handle;
 				void *sym;
-				fn_create *create;
-				EncapPlugin *plugin;
-				std::map<std::string, EncapPlugin *>::iterator plug;
-
+				fn_init *init;
+				opensand_plugin_t *plugin;
 				std::string plugin_name = dir + filename;
 
-				UTI_DEBUG("%s find plugin library %s\n", FUNCNAME, filename.c_str());
+				UTI_DEBUG("find plugin library %s\n", filename.c_str());
 				handle = dlopen(plugin_name.c_str(), RTLD_LAZY);
 				if(!handle)
 				{
-					UTI_ERROR("%s cannot load plugin %s (%s)\n", FUNCNAME,
+					UTI_ERROR("cannot load plugin %s (%s)\n",
 					          filename.c_str(), dlerror());
 					continue;
 				}
 
-				sym = dlsym(handle, "create");
+				sym = dlsym(handle, "init");
 				if(!sym)
 				{
-					UTI_ERROR("%s cannot find 'create' method in plugin %s (%s)\n",
-					          FUNCNAME, filename.c_str(), dlerror());
+					UTI_ERROR("cannot find 'init' method in plugin %s (%s)\n",
+					          filename.c_str(), dlerror());
 					dlclose(handle);
 					goto close;
 				}
-				create = reinterpret_cast<fn_create *>(sym);
+				init = reinterpret_cast<fn_init *>(sym);
 
-				plugin = create();
+				plugin = init();
 				if(!plugin)
 				{
 					UTI_ERROR("cannot create plugin\n");
 					continue;
 				}
 
-				// if we load twice the same plugin, keep the first one
-				// this is why LD_LIBRARY_PATH should be first in the paths
-				plug = encap_plug.find(plugin->getName());
-				if(plug == encap_plug.end())
+				switch(plugin->type)
 				{
-					UTI_INFO("load plugin %s\n", plugin->getName().c_str());
-					encap_plug[plugin->getName()] = plugin;
+					case encapsulation_plugin:
+					{
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->encapsulation.find(plugin->name);
+						if(plug == this->encapsulation.end())
+						{
+							UTI_INFO("load encapsulation plugin %s\n",
+							         plugin->name);
+							this->encapsulation[plugin->name] = plugin->create;
+						}
+						else
+						{
+							dlclose(handle);
+						}
+						this->handlers.push_back(handle);
+					}
+					break;
+
+
+					case attenuation_plugin:
+					{
+						if(!enable_phy_layer)
+						{
+							dlclose(handle);
+							break;
+						}
+
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->attenuation.find(plugin->name);
+						if(plug == this->attenuation.end())
+						{
+							UTI_INFO("load attenuation model plugin %s\n",
+							         plugin->name);
+							this->attenuation[plugin->name] = plugin->create;
+						}
+						else
+						{
+							dlclose(handle);
+						}
+						this->handlers.push_back(handle);
+					}
+					break;
+
+					case nominal_plugin:
+					{
+						if(!enable_phy_layer)
+						{
+							dlclose(handle);
+							break;
+						}
+
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->nominal.find(plugin->name);
+						if(plug == this->nominal.end())
+						{
+							UTI_INFO("load nominal conditions plugin %s\n",
+							         plugin->name);
+							this->nominal[plugin->name] = plugin->create;
+						}
+						else
+						{
+							dlclose(handle);
+						}
+						this->handlers.push_back(handle);
+					}
+					break;
+
+					case minimal_plugin:
+					{
+						if(!enable_phy_layer)
+						{
+							dlclose(handle);
+							break;
+						}
+
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->minimal.find(plugin->name);
+						if(plug == this->minimal.end())
+						{
+							UTI_INFO("load minimal conditions plugin %s\n",
+							         plugin->name);
+							this->minimal[plugin->name] = plugin->create;
+						}
+						else
+						{
+							dlclose(handle);
+						}
+						this->handlers.push_back(handle);
+					}
+					break;
+
+					case error_plugin:
+					{
+						if(!enable_phy_layer)
+						{
+							dlclose(handle);
+							break;
+						}
+
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->error.find(plugin->name);
+						if(plug == this->error.end())
+						{
+							UTI_INFO("load error insertions plugin %s\n",
+							         plugin->name);
+							this->error[plugin->name] = plugin->create;
+						}
+						else
+						{
+							dlclose(handle);
+						}
+						this->handlers.push_back(handle);
+					}
+					break;
+
+					default:
+						UTI_ERROR("Wrong plugin type %d for %s",
+						          plugin->type, filename.c_str());
 				}
-				else
-				{
-					dlclose(handle);
-				}
-				this->handlers.push_back(handle);
+				delete plugin;
 			}
 		}
 		closedir(plugin_dir);
 	}
-	this->encap_plug = encap_plug;
 
 	return mgl_ok;
 close:
@@ -147,19 +268,117 @@ close:
 }
 
 
-void PluginUtils::releaseEncapPlugins()
+void PluginUtils::releasePlugins()
 {
-	for(std::map<std::string, EncapPlugin *>::iterator iter = this->encap_plug.begin();
-	    iter != this->encap_plug.end(); ++iter)
+	for(std::vector<OpenSandPlugin *>::iterator iter = this->plugins.begin();
+	    iter != this->plugins.end(); ++iter)
 	{
-		delete (*iter).second;
+		delete *iter;
 	}
+
 	for(std::vector<void *>::iterator iter = this->handlers.begin();
 	    iter != this->handlers.end(); ++iter)
 	{
 		dlclose(*iter);
 	}
 }
+
+bool PluginUtils::getEncapsulationPlugins(std::string name,
+	                                      EncapPlugin **encapsulation)
+{
+	fn_create create;
+
+	create = this->encapsulation[name];
+	if(!create)
+	{
+		return false;
+	}
+	*encapsulation = dynamic_cast<EncapPlugin *>(create());
+	if(*encapsulation == NULL)
+	{
+		return false;
+	}
+	plugins.push_back(*encapsulation);
+
+	return true;
+};
+
+bool PluginUtils::getPhysicalLayerPlugins(std::string att_pl_name,
+										  std::string nom_pl_name,
+										  std::string min_pl_name,
+										  std::string err_pl_name,
+										  AttenuationModelPlugin **attenuation,
+										  NominalConditionPlugin **nominal,
+										  MinimalConditionPlugin **minimal,
+										  ErrorInsertionPlugin **error)
+{
+	fn_create create;
+
+	create = this->attenuation[att_pl_name];
+	if(!create)
+	{
+		UTI_ERROR("cannot load attenuation model plugin: %s", att_pl_name.c_str());
+		return false;
+	}
+	*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
+	if(*attenuation == NULL)
+	{
+		UTI_ERROR("cannot create attenuation model plugin: %s", att_pl_name.c_str());
+		return false;
+	}
+	plugins.push_back(*attenuation);
+
+	create = this->nominal[nom_pl_name];
+	if(!create)
+	{
+		UTI_ERROR("cannot load nominal condition plugin: %s", nom_pl_name.c_str());
+		return false;
+	}
+	*nominal = dynamic_cast<NominalConditionPlugin *>(create());
+	if(*nominal == NULL)
+	{
+		UTI_ERROR("cannot create nominal condition plugin: %s", nom_pl_name.c_str());
+		return false;
+	}
+	plugins.push_back(*nominal);
+
+	if(min_pl_name.size() > 0)
+	{
+		create = this->minimal[min_pl_name];
+		if(!create)
+		{
+			UTI_ERROR("cannot load minimal condition plugin: %s", min_pl_name.c_str());
+			return false;
+		}
+		*minimal = dynamic_cast<MinimalConditionPlugin *>(create());
+		if(*minimal == NULL)
+		{
+			UTI_ERROR("cannot create minimal condition plugin: %s", min_pl_name.c_str());
+			return false;
+		}
+		plugins.push_back(*minimal);
+	}
+
+
+	if(err_pl_name.size() > 0)
+	{
+		create = this->error[err_pl_name];
+		if(!create)
+		{
+			UTI_ERROR("cannot load error insertion plugin: %s", err_pl_name.c_str());
+			return false;
+		}
+		*error = dynamic_cast<ErrorInsertionPlugin *>(create());
+		if(*error == NULL)
+		{
+			UTI_ERROR("cannot error insertion model plugin: %s", err_pl_name.c_str());
+			return false;
+		}
+		plugins.push_back(*error);
+	}
+
+	return true;
+};
 
 void PluginUtils::tokenize(const std::string &str,
                            std::vector<std::string> &tokens,

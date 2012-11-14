@@ -91,7 +91,7 @@ class BlocIPQoS: public mgl_bloc
  public:
 
 	BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, t_component host);
+	          const char *name, component_t host);
 	~BlocIPQoS();
 
 	// Margouilla event handler
@@ -103,7 +103,7 @@ class BlocIPQoS: public mgl_bloc
 
 	/// Whether the bloc has been initialized or not
 	bool _initOk;
-	t_component host;
+	component_t host;
 
 	string _satellite_type;
 

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libopensand-plugin
+Description: Headers for OpenSAND plugins
+Version: @VERSION@
+Libs: -L${libdir} -lopensand_plugin
+Cflags: -I${includedir}/opensand_plugin
+
