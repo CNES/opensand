@@ -258,7 +258,7 @@ class RunView(WindowView):
                            TOP_1 + COMPO_Y + 20,
                            x + int(COMPO_X/2), y - 10)
 
-        self.draw_ws(host, '2', x, y)
+        self.draw_ws(host, '0', x, y)
 
     def draw_ws(self, host, host_inst, x, y):
         """ draw the workstations """
