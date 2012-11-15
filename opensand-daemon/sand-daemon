@@ -32,7 +32,7 @@
 
 """
 opensand_daemon.py - OpenSAND daemon that wait for OpenSAND manager commands
-                    and publish a OpenSAND service
+                     and publish a OpenSAND service
 """
 
 import socket
@@ -250,7 +250,14 @@ def publish_service():
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
 
-    SERVICE = OpenSandService(CACHE_DIR, service_type, name, instance, port, descr)
+    # get interface name for service publishing
+    publish_iface = ''
+    try:
+        publish_iface = CONF_PARSER.get('service', 'interface')
+    except ConfigParser.Error:
+        pass
+    SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
+                              name, instance, port, descr)
 
     try:
         SERVICE.run()

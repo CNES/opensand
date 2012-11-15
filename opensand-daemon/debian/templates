@@ -42,6 +42,13 @@ Description: Worksation identifier
   (this can be anything but don't choose 2 workstations
    on the same platform with the same identifier)
 
+Template: opensand-daemon/service/interface
+Type: string
+Default: eth0
+Description: Name of the interface for service publishing
+  The name of the interface where the service should be published,
+  empty for all
+
 Template: opensand-daemon/command/port
 Type: string
 Default: 5926

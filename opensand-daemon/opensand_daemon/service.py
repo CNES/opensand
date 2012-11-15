@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
-# TODO lien vers exemple avahi
 
 """
 service.py - handle OpenSAND services with Avahi
@@ -41,6 +40,7 @@ import avahi
 import logging
 import sys
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
+from dbus.exceptions import DBusException
 from opensand_daemon.routes import OpenSandRoutes
 
 #macros
@@ -53,7 +53,7 @@ class OpenSandService(object):
     _bus = None
     _routes = None
 
-    def __init__(self, cache_dir, service_type, name, instance, port, descr=None):
+    def __init__(self, cache_dir, iface, service_type, name, instance, port, descr=None):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -73,7 +73,7 @@ class OpenSandService(object):
         else:
             # no route to handle on satellite
             OpenSandService._routes.set_unused()
-        self._publisher = self.Publisher(service_type, name, port, descr)
+        self._publisher = self.Publisher(iface, service_type, name, port, descr)
 
     def run(self):
         """ run the dbus loop """
@@ -222,7 +222,8 @@ class OpenSandService(object):
     class Publisher(object):
         """ publish avahi service for OpenSAND """
 
-        def __init__(self, service_type, name, port, descr=None):
+        def __init__(self, iface, service_type, name, port, descr=None):
+            self._iface = iface
             self._name = name # opensand entity name (sat, st, gw, ws)
             self._type = service_type
             self._port = port
@@ -258,11 +259,20 @@ class OpenSandService(object):
                 self._group.connect_to_signal('StateChanged',
                                               self.entry_group_state_changed)
 
-            LOGGER.debug("Adding service '%s' of type '%s' with text %s",
-                         self._name, self._type, self._text)
+            if self._iface != '':
+                try:
+                    iface = self._publisher_server.GetNetworkInterfaceIndexByName(self._iface)
+                except DBusException:
+                    LOGGER.warning("Cannot publish Avahi service on %s iface")
+                    iface = avahi.IF_UNSPEC
+            else:
+                iface = avahi.IF_UNSPEC
+
+            LOGGER.debug("Adding on iface %s (%i) service '%s' of type '%s' with text %s",
+                         self._iface, iface, self._name, self._type, self._text)
 
             self._group.AddService(
-                    avahi.IF_UNSPEC,    #interface
+                    iface,              #interface
                     avahi.PROTO_INET,   #protocol
                     dbus.UInt32(0),     #flags
                     self._name, self._type,

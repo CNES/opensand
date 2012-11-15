@@ -60,31 +60,35 @@ configure(){
             fi
         ;;
         5)
-            db_input low opensand-daemon/service/port || true
+            db_input high opensand-daemon/service/interface || true
             db_endblock
         ;;
         6)
-            db_beginblock
-            db_input low opensand-daemon/command/port || true
+            db_input low opensand-daemon/service/port || true
             db_endblock
         ;;
         7)
             db_beginblock
-            db_input low opensand-daemon/state/port || true
+            db_input low opensand-daemon/command/port || true
             db_endblock
         ;;
         8)
             db_beginblock
-            db_input high opensand-daemon/network/config_level || true
+            db_input low opensand-daemon/state/port || true
+            db_endblock
         ;;
         9)
+            db_beginblock
+            db_input high opensand-daemon/network/config_level || true
+        ;;
+        10)
             db_get opensand-daemon/network/config_level
             CONFIG_LEVEL=$RET
             if [ "$NAME" != "SAT" ]; then
                 db_input high opensand-daemon/network/dhcp || true
             fi
         ;;
-        10)
+        11)
             if [ "$NAME" != "SAT" ]; then
                 db_get opensand-daemon/network/dhcp
                 DHCP=$RET
@@ -93,7 +97,7 @@ configure(){
                 fi
             fi
         ;;
-        11)
+        12)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "WS" ]; then
@@ -200,6 +204,7 @@ reset(){
     db_reset opensand-daemon/service/type
     db_reset opensand-daemon/service/st_instance
     db_reset opensand-daemon/service/ws_instance
+    db_reset opensand-daemon/service/interface
     db_reset opensand-daemon/service/port
     db_reset opensand-daemon/command/port
     db_reset opensand-daemon/state/port
@@ -218,6 +223,7 @@ unseen(){
     db_fset opensand-daemon/service/type seen false
     db_fset opensand-daemon/service/st_instance seen false
     db_fset opensand-daemon/service/ws_instance seen false
+    db_fset opensand-daemon/service/interface seen false
     db_fset opensand-daemon/service/port seen false
     db_fset opensand-daemon/command/port seen false
     db_fset opensand-daemon/state/port seen false

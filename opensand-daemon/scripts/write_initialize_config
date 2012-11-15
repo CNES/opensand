@@ -41,6 +41,7 @@ SERVICE_NAME='sat'
 SERVICE_TYPE='_opensand._tcp'
 SERVICE_INSTANCE=1
 SERVICE_IDENTIFIER=''
+SERVICE_INTERFACE='eth0'
 SERVICE_PORT=3141
 SERVICE_TOOLS=''
 SERVICE_MODULES=''
@@ -65,6 +66,8 @@ read_conf(){
     SERVICE_INSTANCE=$RET
     db_get opensand-daemon/service/ws_instance
     SERVICE_IDENTIFIER=$RET
+    db_get opensand-daemon/service/interface
+    SERVICE_INTERFACE=$RET
     db_get opensand-daemon/service/port
     SERVICE_PORT=$RET
     db_get opensand-daemon/service/tools
@@ -104,6 +107,7 @@ write_conf(){
         echo "instance = ${SERVICE_INSTANCE}_${SERVICE_IDENTIFIER}" >> ${DAEMON_CONF}
     fi
     echo "type = ${SERVICE_TYPE}" >> ${DAEMON_CONF}
+    echo "interface = ${SERVICE_INTERFACE}" >> ${DAEMON_CONF}
     echo "port = ${SERVICE_PORT}" >> ${DAEMON_CONF}
     if [ -n "${SERVICE_TOOLS}" ]; then
         echo "tools  = ${SERVICE_TOOLS}" >> ${DAEMON_CONF}
