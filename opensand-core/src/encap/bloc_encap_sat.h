@@ -50,6 +50,8 @@
 #include "PluginUtils.h"
 #include "IpPacketHandler.h"
 
+// output
+#include "opensand_output/Output.h"
 
 /**
  * @class BlocEncapSat
@@ -151,6 +153,9 @@ class BlocEncapSat: public mgl_bloc
 	 *               or not
 	 */
 	mgl_status EncapsulatePackets(NetBurst *burst);
+	
+	/// output events
+	static Event *error_init;
 };
 
 #endif

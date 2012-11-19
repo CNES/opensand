@@ -51,6 +51,7 @@ from optparse import OptionParser
 from opensand_daemon.tcp_server import Plop
 from opensand_daemon.command_handler import CommandHandler
 from opensand_daemon.state_handler import StateHandler
+from opensand_daemon.stats_handler import StatsHandler
 from opensand_daemon.service import OpenSandService
 from opensand_daemon.syslog_handler import SysLogHandler, syslog
 from opensand_daemon.process_list import ProcessList
@@ -101,7 +102,7 @@ def sig_handler(signum, frame):
             sys.exit(1)
 
 
-def publish_service():
+def publish_service(stats_handler):
     """ publish the OpenSAND service """
     global SERVICE
 
@@ -246,6 +247,9 @@ def publish_service():
         # modules section found, add the information to description
         descr['modules'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
 
+    # add UDP port for exchanging message with the collector
+    descr['ext_port'] = STATS_HANDLER.get_external_port()
+
     if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
@@ -257,7 +261,7 @@ def publish_service():
     except ConfigParser.Error:
         pass
     SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
-                              name, instance, port, descr)
+                              name, instance, port, descr, stats_handler)
 
     try:
         SERVICE.run()
@@ -266,7 +270,7 @@ def publish_service():
         SERVICE = None
         thread.exit()
     finally:
-        if STATE.RequestHandlerClass._running:
+        if STATE and STATE.RequestHandlerClass._running:
             return
         if config_type == 'advanced':
             # remove addresses only if OpenSAND is not running
@@ -496,8 +500,20 @@ if __name__ == "__main__":
         LOGGER.error("configuration file %s does not exist" % CONF_FILE)
         sys.exit(1)
 
+    # get the opensand user ID
+    try:
+        pw = pwd.getpwnam("opensand")
+        uid = pw.pw_uid
+    except KeyError:
+        LOGGER.error("Cannot find opensand user")
+        sys.exit(1)
+
+    # create the stats handler
+    STATS_HANDLER = StatsHandler(uid)
+
     # create the OpenSAND service thread
-    SERVICE_THREAD = threading.Thread(None, publish_service, None, (), {})
+    SERVICE_THREAD = threading.Thread(None, publish_service, None,
+                                      (STATS_HANDLER,), {})
 
     # create the server which receives OpenSAND manager commands
     COMMAND_THREAD = threading.Thread(None, start_command, None, (), {})

@@ -48,6 +48,11 @@
 #include <opensand_conf/uti_debug.h>
 
 
+// output events
+Event *BlocDvb::error_init = NULL;
+Event *BlocDvb::event_login_received = NULL;
+Event *BlocDvb::event_login_response = NULL;
+
 /**
  * Constructor
  */
@@ -67,6 +72,13 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
 	this->dra_def = "";
 	this->dra_simu = "";
 	this->dvb_scenario_refresh = -1;
+		
+	if(error_init == NULL)
+	{
+		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);
+		event_login_received = Output::registerEvent("bloc_dvb:login_received", LEVEL_INFO);
+		event_login_response = Output::registerEvent("bloc_dvb:login_response", LEVEL_INFO);
+	}
 }
 
 /**
@@ -388,7 +400,7 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	dvb_length = frame->getTotalLength();
 	memcpy(dvb_frame, frame->getData().c_str(), dvb_length);
 
-	if (!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id, (long)dvb_length))
+	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id, (long)dvb_length))
 	{
 		UTI_ERROR("failed to send message\n");
 		goto release_dvb_frame;

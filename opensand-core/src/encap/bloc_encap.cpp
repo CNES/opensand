@@ -42,10 +42,8 @@
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_ENCAP
 #include <opensand_conf/uti_debug.h>
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
 
+Event* BlocEncap::error_init = NULL;
 
 /**
  * @brief get the satellite type according to its name
@@ -78,6 +76,11 @@ BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
 	// link state
 	this->state = link_down;
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
+	
+	if(error_init == NULL)
+	{
+		error_init = Output::registerEvent("bloc_encap:init", LEVEL_ERROR);
+	}
 }
 
 BlocEncap::~BlocEncap()
@@ -106,8 +109,8 @@ mgl_status BlocEncap::onEvent(mgl_event *event)
 		else
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s bloc initialization failed\n",
+			                     FUNCNAME);
 		}
 	}
 	else if(!this->initOk)

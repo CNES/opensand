@@ -41,12 +41,10 @@ opensand-env-plane/debian/libopensand-env-plane
 opensand-env-plane/debian/libopensand-env-plane-dbg
 opensand-env-plane/debian/libopensand-env-plane-dev
 opensand-env-plane/debian/opensand-env-plane
-opensand-env-plane/src/ErrorController
-opensand-env-plane/src/EventController
-opensand-env-plane/src/ProbeController
-opensand-env-plane/src/TestEnvironmentAgent
+opensand-env-plane/src/test_env_plane
 opensand-daemon/debian/files
 opensand-daemon/debian/opensand-daemon
+opensand-daemon/dist
 opensand-manager/debian/files
 opensand-manager/debian/opensand-manager-gui
 opensand-manager/debian/opensand-manager-core
@@ -151,3 +149,4 @@ opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modc
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-dbg/
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-manager/
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/tmp
+opensand-output/src/test_output

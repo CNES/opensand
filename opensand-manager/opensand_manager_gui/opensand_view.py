@@ -35,11 +35,11 @@ opensand_view.py - OpenSAND manager view
 """
 
 import gtk
-import time
 import gobject
 import os
 import shutil
 
+from opensand_manager_gui.view.event_tab import EventTab
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.run_event import RunEvent
@@ -47,6 +47,7 @@ from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
+from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
 from opensand_manager_core.utils import copytree
@@ -68,7 +69,13 @@ class View(WindowView):
         WindowView.__init__(self, gladefile=glade)
 
         self._model = model
-        self._log.run(self._ui, 'manager_textview')
+        
+        self._event_notebook = self._ui.get_widget('event_notebook')
+        mgr_event_tab = EventTab(self._event_notebook, "Manager events")
+        self._event_tabs = {} # For the individudual program event tabs
+        self._log.run(mgr_event_tab)
+        
+        self._prog_dialog = None
 
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
@@ -78,7 +85,7 @@ class View(WindowView):
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
             self._eventrun = RunEvent(self.get_current(), self._model,
-                                      dev_mode, self._log)
+                                      self, dev_mode, self._log)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
@@ -129,18 +136,19 @@ class View(WindowView):
                 except Exception, err:
                     error_popup("Errors saving scenario:", str(err))
 
-        if self._model.is_running():
-            text = "The platform is still running, " \
-                   "other users won't be able to use it\n\n" \
-                   "Stop it before exiting ?"
-            ret = yes_no_popup(text, "Stop ?", "gtk-dialog-warning")
-            if ret == gtk.RESPONSE_YES:
-                self._eventrun.on_start_opensand_button_clicked()
-                iter = 0
-                while self._model.is_running() and iter < 20:
-                    self._log.info("Waiting for platform to stop...")
-                    iter += 1
-                    time.sleep(1)
+        # TODO do we keep this part
+        #if self._model.is_running():
+        #    text = "The platform is still running, " \
+        #           "other users won't be able to use it\n\n" \
+        #           "Stop it before exiting ?"
+        #    ret = yes_no_popup(text, "Stop ?", "gtk-dialog-warning")
+        #    if ret == gtk.RESPONSE_YES:
+        #        self._eventrun.on_start_opensand_button_clicked()
+        #        iter = 0
+        #        while self._model.is_running() and iter < 20:
+        #            self._log.info("Waiting for platform to stop...")
+        #            iter += 1
+        #            time.sleep(1)
 
         self._log.debug("View: close")
         self._log.debug("View: close model")
@@ -325,6 +333,7 @@ class View(WindowView):
         else:
             self.set_title("OpenSAND Manager - [%s]" % folder)
         # reload the configuration
+        self._eventprobe.scenario_changed()
         try:
             self._eventconf.update_view()
         except ConfException as msg:
@@ -449,13 +458,10 @@ class View(WindowView):
 
         recent_widget.set_submenu(submenu)
 
-
     def set_default_run(self):
         """ reset the run value """
         self._model.set_run("")
-        widget = self._ui.get_widget('run_id_txt')
-        widget.set_text("")
-        self._eventprobe.on_clear_clicked()
+        self._eventprobe.run_changed()
 
     def on_window_key_press_event(self, source=None, event=None):
         """ callback called on keyboard press """
@@ -470,7 +476,47 @@ class View(WindowView):
             dlg.destroy()
             MineWindow(h,v,n)
         return False
-
+    
+    def on_program_list_changed(self, programs_dict):
+        """ called when the environment plane program list changes """
+        for program in programs_dict.itervalues():
+            if program.ident not in self._event_tabs:
+                self._event_tabs[program.ident] = EventTab(self._event_notebook,
+                    program.name)
+        
+        self._eventprobe.simu_program_list_changed(programs_dict)
+    
+    def on_new_program_event(self, program, name, level, message):
+        """ called when an environment plane event is received """
+        self._event_tabs[program.ident].message(level, name, message)
+    
+    def on_new_probe_value(self, probe, timestamp, value):
+        """ called when a new probe value is received """
+    
+        self._eventprobe.new_probe_value(probe, timestamp, value)
+    
+    def on_simu_state_changed(self):
+        """ Called when the simulation state changes """
+    
+        self._eventprobe.simu_state_changed()
+    
+    def on_probe_transfer_progress(self, started):
+        """ Called when probe transfer from the collector starts or stops """
+    
+        gobject.idle_add(self._on_probe_transfer_progress, started)
+    
+    def _on_probe_transfer_progress(self, started):
+        """ Internal probe transfer notification handler """
+    
+        if started:
+            self._prog_dialog = ProgressDialog("Saving probe data, please "
+                "wait…", self._model, self._log)
+            self._prog_dialog.show()
+        else:
+            self._prog_dialog.close()
+            self._prog_dialog = None
+            self._eventprobe.simu_data_available()
+        
 
 ##### TEST #####
 if __name__ == "__main__":

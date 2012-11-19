@@ -9,7 +9,7 @@ Architecture: any
 Depends: ${misc:Depends}, python (>= 2.6),
  python-avahi, avahi-daemon,
  python-dbus, python-lxml,
- opensand-core-all, opensand-env-plane
+ opensand-core-all
 Description: Non graphical part of Manager for OpenSAND emulation testbed
 
 Package: opensand-manager-gui

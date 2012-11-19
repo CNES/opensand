@@ -53,7 +53,8 @@ class OpenSandService(object):
     _bus = None
     _routes = None
 
-    def __init__(self, cache_dir, iface, service_type, name, instance, port, descr=None):
+    def __init__(self, cache_dir, iface, service_type, name,
+                 instance, port, descr=None, stats_handler=None):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -69,7 +70,8 @@ class OpenSandService(object):
             else:
                 OpenSandService._routes.load(cache_dir, descr['lan_iface'],
                                              True)
-            self._listener = self.Listener(service_type, name, instance)
+            self._listener = self.Listener(service_type, name, instance,
+                                           stats_handler)
         else:
             # no route to handle on satellite
             OpenSandService._routes.set_unused()
@@ -95,10 +97,11 @@ class OpenSandService(object):
 
     class Listener(object):
         """ listen for OpenSAND service with avahi """
-        def __init__(self, service_type, compo, instance):
+        def __init__(self, service_type, compo, instance, stats_handler):
             self._compo = compo.lower()
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
+            self._stats_handler = stats_handler
             # add name in _names to avoid adding route for the current host
             if compo != "gw":
                 self._names = [compo + instance]
@@ -119,9 +122,21 @@ class OpenSandService(object):
             sbrowser.connect_to_signal("ItemNew", self.handler_new)
             sbrowser.connect_to_signal("ItemRemove", self.handler_remove)
 
+            LOGGER.debug("Avahi listener started")
+
         def service_resolved(self, *args):
             """ get the parameter of service once it is resolved """
             name = args[2]
+            if name == 'collector':
+                address = args[7]
+                port = int(args[8])
+                if ':' in address:
+                    LOGGER.debug("Ignoring collector IPv6 address")
+                    return
+                LOGGER.debug("found collector at %s:%d", address, port)
+                self._stats_handler.set_collector_addr(address, port)
+                return
+
             if name in self._names:
                 LOGGER.debug("ignore %s that is already discovered" % name)
                 return
@@ -209,6 +224,12 @@ class OpenSandService(object):
 
         def handler_remove(self, interface, protocol, name, stype, domain, flags):
             """ handle a removed service """
+
+            if name == 'collector':
+                LOGGER.debug("Collector service disconnected")
+                self._stats_handler.unset_collector_addr()
+                return
+
             LOGGER.debug("Service removed '%s' type '%s' domain '%s' " %
                          (name, stype, domain))
             if not name in self._names:
@@ -307,10 +328,10 @@ class OpenSandService(object):
                 LOGGER.debug("service established")
             elif state == avahi.ENTRY_GROUP_COLLISION:
                 LOGGER.error("service name collision")
-                OpenSandService.stop()
+                self.stop()
             elif state == avahi.ENTRY_GROUP_FAILURE:
                 LOGGER.error("error in group state changed" +  error)
-                OpenSandService.stop()
+                self.stop()
 
 
 ##### TEST #####

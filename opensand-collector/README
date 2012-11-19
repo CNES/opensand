@@ -1,0 +1,23 @@
+Introduction
+------------
+
+This piece of software is a collector for the satellite emulation
+testbed OpenSAND.
+It receives, stores and transmits events, errors and statistics.
+
+License
+-------
+
+see COPYING
+
+
+Program
+-------
+
+See the INSTALL file to learn how to install the collector.
+
+
+References
+----------
+
+

@@ -142,7 +142,7 @@ class HostController:
         finally:
             sock.close()
 
-    def configure(self, conf_files, conf_modules, scenario, run,
+    def configure(self, conf_files, conf_modules,
                   deploy_config, dev_mode=False):
         """ send the configure command to command server """
         # connect to command server and send the configure command
@@ -223,9 +223,8 @@ class HostController:
 
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
-        command_line = '%s -s %s -r %s -i %s -a %s -n %s' % \
-                       (bin_file, scenario,
-                        run, self._host_model.get_instance(),
+        command_line = '%s -i %s -a %s -n %s' % \
+                       (bin_file, self._host_model.get_instance(),
                         self._host_model.get_emulation_address(),
                         self._host_model.get_emulation_interface())
         try:

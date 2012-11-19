@@ -1,4 +1,4 @@
-/*
+ /*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
@@ -40,9 +40,6 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-
-// environment plane
-extern T_ENV_AGENT EnvAgent;
 
 // logs configuration
 #define DBG_PACKAGE PKG_DVB_RCS_TAL
@@ -110,6 +107,21 @@ BlocDVBRcsTal::BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
 	this->m_statCounters.ulIncomingCells = NULL;
 	this->m_statContext.ulOutgoingThroughput = NULL;
 	this->m_statContext.ulIncomingThroughput = NULL;
+	
+	// output
+	this->event_login_sent = NULL;
+	this->event_login_complete = NULL;
+	this->probe_st_terminal_queue_size = NULL;
+	this->probe_st_real_in_thr = NULL;
+	this->probe_st_real_out_thr = NULL;
+	this->probe_st_phys_out_thr = NULL;
+	this->probe_st_rbdc_req_size = NULL;
+	this->probe_st_cra = NULL;
+	this->probe_st_alloc_size = NULL;
+	this->probe_st_unused_capacity = NULL;
+	this->probe_st_bbframe_drop_rate = NULL;
+	this->probe_st_real_modcod = NULL;
+	this->probe_st_used_modcod = NULL;
 
 	// QoS Server
 	this->qos_server_sock = -1;
@@ -156,6 +168,10 @@ BlocDVBRcsTal::~BlocDVBRcsTal()
 	{
 		delete this->receptionStd;
 	}
+	
+	// release the output arrays (no need to delete the probes)
+	delete[] this->probe_st_real_in_thr;
+	delete[] this->probe_st_real_out_thr;
 
 	this->complete_dvb_frames.clear();
 }
@@ -183,8 +199,7 @@ mgl_status BlocDVBRcsTal::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("bloc initialization failed\n");
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "bloc initialization failed\n");
 		}
 		else
 		{
@@ -525,7 +540,7 @@ int BlocDVBRcsTal::initCarrierId()
  *
  * @return -1 if failed, 0 if succeed
  */
-int BlocDVBRcsTal::initMacFifo()
+int BlocDVBRcsTal::initMacFifo(std::vector<std::string>& fifo_types)
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
 	int i = 0;
@@ -675,6 +690,8 @@ int BlocDVBRcsTal::initMacFifo()
 		// set other DVB FIFOs atributes
 		this->dvb_fifos[i].setId(fifo_id);
 		this->dvb_fifos[i].init(fifo_size);
+		
+		fifo_types.push_back(fifo_type);
 
 		UTI_INFO("%s: Fifo = id %d, kind %d, size %ld, pvc %d, "
 		         "CR type %d\n", FUNCNAME,
@@ -838,7 +855,7 @@ error:
  * Read configuration for the QoS Server
  * @return -1 if failed, 0 if succeed
  */
-int BlocDVBRcsTal::initQoSServer()
+bool BlocDVBRcsTal::initQoSServer()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[initQoSServer]";
 
@@ -884,6 +901,78 @@ error:
 	return -1;
 }
 
+/**
+ * @brief Initialize the output
+ * @return  true on success, false otherwise
+ */
+bool BlocDVBRcsTal::initOutput(const std::vector<std::string>& fifo_types)
+{
+	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent",
+	                                                  LEVEL_INFO);
+	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete",
+	                                                      LEVEL_INFO);
+	this->probe_st_phys_out_thr = Output::registerProbe<int>(
+			"Physical_outgoing_throughput",
+			"Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
+		"RBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_vbdc_req_size = Output::registerProbe<int>(
+		"VBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_cra = Output::registerProbe<int>("CRA", "Kbits/s",
+	                                                   true, SAMPLE_LAST);
+	this->probe_st_alloc_size = Output::registerProbe<int>("Allocation",
+	                                                          "Kbits/s", true,
+	                                                          SAMPLE_LAST);
+	this->probe_st_unused_capacity = Output::registerProbe<int>(
+		"Unused_capacity", "time slots", true, SAMPLE_LAST);
+	// FIXME: Unit?
+	this->probe_st_bbframe_drop_rate = Output::registerProbe<float>(
+		"BBFrames_dropped_rate", true, SAMPLE_LAST);
+	this->probe_st_real_modcod = Output::registerProbe<int>("Real_modcod",
+	                                                           "modcod index",
+	                                                           true, SAMPLE_LAST);
+	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
+	                                                           "modcod index",
+	                                                           true, SAMPLE_LAST);
+	
+	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos_number];
+	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos_number];
+	this->probe_st_real_out_thr = new Probe<int>*[this->dvb_fifos_number];
+	
+	if(this->probe_st_terminal_queue_size == NULL ||
+	    this->probe_st_real_in_thr == NULL ||
+		this->probe_st_real_out_thr == NULL)
+	{
+		UTI_ERROR("Failed to allocate memory for probe arrays");
+		return false;
+	}
+		
+	for (int i = 0 ; i < this->dvb_fifos_number ; i++) {
+		const char* fifo_type = fifo_types[i].c_str();
+		char probe_name[32];
+		
+		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s",
+		         fifo_type);
+		this->probe_st_terminal_queue_size[i] = Output::registerProbe<int>(
+			probe_name, "cells", true, SAMPLE_AVG);
+		
+		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s",
+		         fifo_type);
+		this->probe_st_real_in_thr[i] = Output::registerProbe<int>(probe_name,
+		                                                              "Kbits/s",
+		                                                              true,
+		                                                              SAMPLE_AVG);
+		
+		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s",
+		         fifo_type);
+		this->probe_st_real_out_thr[i] = Output::registerProbe<int>(probe_name,
+		                                                               "Kbits/s",
+		                                                               true,
+		                                                               SAMPLE_AVG);
+	}
+	
+	return true;
+}
 
 /**
  * @brief Initialize the DVBRCS TAL block
@@ -893,6 +982,7 @@ error:
 int BlocDVBRcsTal::onInit()
 {
 	int ret;
+	std::vector<std::string> fifo_types;
 
 	// get the common parameters
 	if(!this->initCommon())
@@ -925,7 +1015,7 @@ int BlocDVBRcsTal::onInit()
 		goto error;
 	}
 
-	ret = this->initMacFifo();
+	ret = this->initMacFifo(fifo_types);
 	if(ret != 0)
 	{
 		UTI_ERROR("failed to complete the MAC FIFO part of the "
@@ -950,6 +1040,15 @@ int BlocDVBRcsTal::onInit()
 	}
 
 	ret = this->initQoSServer();
+	if(ret != 0)
+	{
+		UTI_ERROR("failed to complete the QoS Server part of the "
+		          "initialisation");
+		goto error;
+	}
+	
+	// Init the output here since we now know the FIFOs
+	ret = this->initOutput(fifo_types);
 	if(ret != 0)
 	{
 		UTI_ERROR("failed to complete the QoS Server part of the "
@@ -1167,7 +1266,8 @@ int BlocDVBRcsTal::sendLogonReq()
 	this->setTimer(m_logonTimer, 5000);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0, C_EVENT_LOGIN_SENT);
+	Output::sendEvent(event_login_sent, "%s Login sent to %d", FUNCNAME,
+	                     this->mac_id);
 
 	return 0;
 
@@ -1438,13 +1538,11 @@ int BlocDVBRcsTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	}
 
 	// as long as the frame is changing, send all probes and event
-	ENV_AGENT_Send(&EnvAgent);
+	// FIXME: Still useful ? Events are sent automatically now
+	Output::sendProbes();
 
 	// update the frame numerotation
 	this->super_frame_counter = sfn;
-
-	// sync environment plane
-	ENV_AGENT_Sync(&EnvAgent, this->super_frame_counter, 0);
 
 	// Inform dama agent
 	if(m_pDamaAgent->hereIsSOF(ip_buf, i_len) < 0)
@@ -1640,8 +1738,9 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	         this->super_frame_counter, this->m_groupId, this->m_talId);
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, this->mac_id, 0,
-	                    C_EVENT_LOGIN_COMPLETE);
+
+	Output::sendEvent(event_login_complete, "%s Login complete with MAC %d",
+	                     FUNCNAME, this->mac_id);
 
  ok:
 	g_memory_pool_dvb_rcs.release((char *) ip_buf);
@@ -1692,14 +1791,8 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
 
 		// write in statitics file
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_REAL_INCOMING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulIncomingThroughput[fifoIndex]);
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_REAL_OUTGOING_THROUGHPUT,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       m_statContext.ulOutgoingThroughput[fifoIndex]);
+		probe_st_real_in_thr[fifoIndex]->put(m_statContext.ulIncomingThroughput[fifoIndex]);
+		probe_st_real_out_thr[fifoIndex]->put(m_statContext.ulOutgoingThroughput[fifoIndex]);
 	}
 
 	// outgoing DL throughput
@@ -1709,9 +1802,7 @@ void BlocDVBRcsTal::updateStatsOnFrame()
 		this->frame_duration;
 
 	// write in statitics file
-	ENV_AGENT_Probe_PutInt(&EnvAgent,
-	                       C_PROBE_ST_PHYSICAL_OUTGOING_THROUGHPUT,
-	                       0, m_statContext.dlOutgoingThroughput);
+	probe_st_phys_out_thr->put(m_statContext.dlOutgoingThroughput);
 
 	// reset stat context for next frame
 	resetStatsCxt();
@@ -1748,21 +1839,14 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 	damaStat = m_pDamaAgent->getStatsCxt();
 
 	// write in statitics file
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_RBDC_REQUEST_SIZE,
-	                       0, damaStat->rbdcRequest);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_VBDC_REQUEST_SIZE,
-	                       0, damaStat->vbdcRequest);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_CRA, 0, damaStat->craAlloc);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_ALLOCATION_SIZE, 0,
-	                       damaStat->globalAlloc);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_UNUSED_CAPACITY, 0,
-	                       damaStat->unusedAlloc);
-	ENV_AGENT_Probe_PutFloat(&EnvAgent, C_PROBE_ST_BBFRAME_DROPED_RATE, 0,
-	                         m_bbframe_dropped_rate);
-	ENV_AGENT_Probe_PutInt(&EnvAgent, C_PROBE_ST_REAL_MODCOD, 0, 
-	                       this->receptionStd->getRealModcod());
-	ENV_AGENT_Probe_PutInt(&EnvAgent,  C_PROBE_ST_USED_MODCOD, 0,
-	                       this->receptionStd->getReceivedModcod());
+	probe_st_rbdc_req_size->put(damaStat->rbdcRequest);
+	probe_st_vbdc_req_size->put(damaStat->vbdcRequest);
+	probe_st_cra->put(damaStat->craAlloc);
+	probe_st_alloc_size->put(damaStat->globalAlloc);
+	probe_st_unused_capacity->put(damaStat->unusedAlloc);
+	probe_st_bbframe_drop_rate->put(m_bbframe_dropped_rate);
+	probe_st_real_modcod->put(this->receptionStd->getRealModcod());
+	probe_st_used_modcod->put(this->receptionStd->getReceivedModcod());
 
 	// MAC fifos stats
 	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)
@@ -1770,10 +1854,7 @@ void BlocDVBRcsTal::updateStatsOnFrameAndEncap()
 		this->dvb_fifos[fifoIndex].getStatsCxt(macQStat);
 
 		// write in statitics file : mac queue size
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_ST_TERMINAL_QUEUE_SIZE,
-		                       this->dvb_fifos[fifoIndex].getId() + 1,
-		                       macQStat.currentPkNb);
+		probe_st_terminal_queue_size[fifoIndex]->put(macQStat.currentPkNb);
 	}
 }
 

@@ -38,15 +38,14 @@
 
 
 #include <opensand_conf/conf.h>
-#include <opensand_env_plane/EnvironmentAgent_e.h>
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
 
-
-extern T_ENV_AGENT EnvAgent;
-
+// output events
+Event *BlocPhysicalLayer::error_init = NULL;
+Event *BlocPhysicalLayer::init_done = NULL;
 
 BlocPhysicalLayer::BlocPhysicalLayer(mgl_blocmgr *blocmgr,
                                      mgl_id fatherid,
@@ -73,6 +72,9 @@ BlocPhysicalLayer::BlocPhysicalLayer(mgl_blocmgr *blocmgr,
 
 	// Type of Terminal (st, gw or st) 
 	this->component_type = type;
+
+	error_init = Output::registerEvent("BlocPhysicalLayer::init", LEVEL_ERROR);
+	init_done = Output::registerEvent("BlocPhysicalLayer::init_done", LEVEL_INFO);
 }
 
 
@@ -308,14 +310,13 @@ mgl_status BlocPhysicalLayer::onEvent(mgl_event *event)
 		else if(!this->onInit())
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "bloc initialization failed\n");
 			status = mgl_ko;
 		}
 		else
 		{
 			this->init_ok = true;
-			ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_INIT, 4, 0, 12);
+			Output::sendEvent(init_done, "bloc initialized\n");
 		}
 	}
 	else if(!this->init_ok)

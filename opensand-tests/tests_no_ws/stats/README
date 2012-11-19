@@ -1,0 +1,1 @@
+To be able to run this test, you first need to cd to tests/stats/daemon_collector_files and run build_test_prog.sh to generate the test_prog executable.

@@ -1,0 +1,10 @@
+Build the collector:
+
+ $ python setup.py build
+
+Install the collector
+
+ $ python setup.py install
+
+
+See the installation manual on OpenSAND website (www.opensand.org) for more details
