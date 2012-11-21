@@ -60,6 +60,7 @@ class TransferServer(threading.Thread):
         self._host_manager = host_manager
         self._continue = True
         self._daemon = True
+        self._sock = None
 
     def get_port(self):
         """

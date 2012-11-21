@@ -37,4 +37,7 @@ sand-collector - OpenSand collector startup script
 from opensand_collector import OpenSandCollector
 
 if __name__ == '__main__':
-    OpenSandCollector().run()
+    try:
+        OpenSandCollector().run()
+    except KeyboardInterrupt:
+        pass

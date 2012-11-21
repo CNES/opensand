@@ -36,7 +36,7 @@ __init__.py -  Main file for the OpenSAND collector.
 """
 
 from opensand_collector.messages_handler import MessagesHandler
-from opensand_collector.probes_manager import HostManager
+from opensand_collector.manager import HostManager
 from opensand_collector.service_handler import ServiceHandler
 from opensand_collector.transfer_server import TransferServer
 from optparse import OptionParser
@@ -95,8 +95,16 @@ class OpenSandCollector(object):
         parser.add_option("-t", "--service_type", dest="service_type",
                           default='_opensand._tcp', action="store",
                           help="OpenSAND service type (default: _opensand._tcp)")
+        parser.add_option("-i", "--iface", dest="iface",
+                          default='', action="store",
+                          help="Interface for service publishing (default: all)")
+        parser.add_option("-v", "--verbose", action="store_true",
+                          dest="verbose", default=False,
+                          help = "Print more informations")
         parser.add_option("-d", "--debug", action="store_true", dest="debug",
-                          help="Show debug messages")
+                          default=False, help="Show debug messages")
+        parser.add_option("-q", "--quiet", action="store_true", dest="quiet",
+                          default=False, help="Stop printing logs in console")
         parser.add_option("-b", "--background", action="store_true",
                           dest="background",
                           help="Run in background as opensand user")
@@ -104,8 +112,13 @@ class OpenSandCollector(object):
                           help="Kill a background collector instance")
         (options, _args) = parser.parse_args()
 
-        service_type = options.service_type or "_opensand._tcp"
-        level = logging.DEBUG if options.debug else logging.INFO
+        service_type = options.service_type
+        iface = options.iface
+        level = logging.WARNING
+        if options.debug:
+            level = logging.DEBUG
+        elif options.verbose:
+            level = logging.INFO
 
         gobject.threads_init()  # Necessary for the transfer_server thread
         main_loop = gobject.MainLoop()
@@ -126,10 +139,12 @@ class OpenSandCollector(object):
 
             return
 
+        if options.background or options.quiet:
+            logging.basicConfig(level=level, filename=LOG_PATH)
+        else:
+            logging.basicConfig(level=level)
 
         if options.background:
-            logging.basicConfig(level=level, filename=LOG_PATH)
-
             if current_uid != 0:
                 fail("The collector must be started as root to run in the "
                      "background.")
@@ -147,15 +162,14 @@ class OpenSandCollector(object):
                     fail(str(err))
 
             os.setuid(opensand_uid)
-        else:
-            logging.basicConfig(level=level)
 
         try:
             with MessagesHandler(self) as msg_handler:
                 port = msg_handler.get_port()
                 with TransferServer(self.host_manager) as transfer_server:
                     trsfer_port = transfer_server.get_port()
-                    with ServiceHandler(self, port, trsfer_port, service_type):
+                    with ServiceHandler(self, port, trsfer_port,
+                                        service_type, iface):
                         if options.background:
                             pid = os.fork()
                             if pid:

@@ -31,8 +31,8 @@
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
 
 """
-probes_manager.py  - This module manages the different hosts, programs,
-                     and probes which are connected to the collector.
+manager.py  - This module manages the different hosts, programs,
+              and probes which are connected to the collector.
 """
 
 from os import mkdir
@@ -42,7 +42,7 @@ import shutil
 import struct
 import tempfile
 
-LOGGER = logging.getLogger("probes_manager")
+LOGGER = logging.getLogger("manager")
 
 
 class Probe(object):
@@ -132,6 +132,34 @@ class Probe(object):
         LOGGER.debug("Creating probe log file %s", path)
         self._log_file = open(path, "w")
         self._log_file.write("%s\n" % self._unit)
+
+    @property
+    def enabled(self):
+        """
+        Check whether the probe is enabled
+        """
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        """
+        Set the enabled value
+        """
+        self._enabled = value
+
+    @property
+    def displayed(self):
+        """
+        Check whether the probe is displayed
+        """
+        return self._displayed
+
+    @displayed.setter
+    def displayed(self, value):
+        """
+        Set the displayed value
+        """
+        self._displayed = value
 
     def __str__(self):
         return self._name
@@ -236,8 +264,8 @@ class Program(object):
         host and program identifiers, a list of probe attributes, and a list
         of event attributes.
         """
-        return ("%s.%s" % (self._host.name, self._name), self._host.ident,
-                self._ident,
+        return ("%s.%s" % (self._host.name, self._name),
+                self._host.ident, self._ident,
                 [probe.attributes() for probe in self._probes],
                 [event.attributes() for event in self._events])
 
@@ -259,6 +287,34 @@ class Program(object):
         path = join(path, "event_log.txt")
         LOGGER.debug("Creating event log file %s", path)
         self._event_log_file = open(path, 'w')
+
+    @property
+    def name(self):
+        """
+        Get the program name
+        """
+        return self._name
+
+    @property
+    def ident(self):
+        """
+        Get the program ident
+        """
+        return self._ident
+
+    @property
+    def probes(self):
+        """
+        Get the probes
+        """
+        return self._probes
+
+    @property
+    def events(self):
+        """
+        Get the events
+        """
+        return self._events
 
     def __str__(self):
         return self._name
@@ -347,23 +403,19 @@ class Host(object):
         """
         return self._programs.itervalues()
 
-    def increment_ref_count(self):
-        """
-        increment ref count
-        """
-        self._ref_count += 1
-
-    def decrement_ref_count(self):
-        """
-        decrement ref count
-        """
-        self._ref_count -= 1
-
-    def get_ref_count(self):
+    @property
+    def ref_count(self):
         """
         Get ref count value
         """
         return self._ref_count
+
+    @ref_count.setter
+    def ref_count(self, value):
+        """
+        set ref count value
+        """
+        self._ref_count = int(value)
 
     def _create_host_folder(self):
         """
@@ -373,6 +425,27 @@ class Host(object):
         if not isdir(path):
             LOGGER.debug("Creating host folder %s", path)
             mkdir(path)
+
+    @property
+    def name(self):
+        """
+        Get the host name
+        """
+        return self._name
+
+    @property
+    def ident(self):
+        """
+        Get the host ident
+        """
+        return self._ident
+
+    @property
+    def address(self):
+        """
+        Get the host address
+        """
+        return self._address
 
     def __str__(self):
         return self._name
@@ -450,7 +523,7 @@ class HostManager(object):
             LOGGER.error("Host name %s is not registered, ignoring.", name)
             return
 
-        host.increment_ref_count()
+        host.ref_count += 1
         self._host_by_addr[addr] = host
 
         LOGGER.info("Host %s has an extra address %s:%d.", name, *addr)
@@ -464,9 +537,9 @@ class HostManager(object):
             LOGGER.error("Host name %s is not registered, ignoring.", name)
             return
 
-        host.decrement_ref_count()
+        host.ref_count -= 1
 
-        if host.get_ref_count() > 0:
+        if host.ref_count > 0:
             LOGGER.info("Host %s is unregistering.", name)
             return
 

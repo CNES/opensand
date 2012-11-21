@@ -214,7 +214,6 @@ class MessagesHandler(object):
 
             probe_list.append((name, unit, storage_type, enabled))
 
-
         event_list = []
         for _ in xrange(num_events):
             level, ident_length = struct.unpack("!BB", data[pos:pos+2])

@@ -36,6 +36,7 @@ service_handler.py - OpenSAND collector Avahi service handler.
 """
 
 from dbus.mainloop.glib import DBusGMainLoop
+from dbus.exceptions import DBusException
 import avahi
 import dbus
 import logging
@@ -48,11 +49,13 @@ class ServiceHandler(object):
     daemons can find it) and find the OpenSAND daemons and their IPs.
     """
 
-    def __init__(self, collector, listen_port, transfer_port, service_type):
+    def __init__(self, collector, listen_port, transfer_port,
+                 service_type, iface):
         self._collector = collector
         self._listen_port = listen_port
         self._transfer_port = transfer_port
         self._service_type = service_type
+        self._iface = iface
         self._pub_group = None
         self._disco_server = None
         self._known_hosts = set()
@@ -72,7 +75,16 @@ class ServiceHandler(object):
 
         additional_data = ["transfer_port=%d" % self._transfer_port]
 
-        self._pub_group.AddService(avahi.IF_UNSPEC, avahi.PROTO_UNSPEC,
+        if self._iface != '':
+            try:
+                iface = pub_server.GetNetworkInterfaceIndexByName(self._iface)
+            except DBusException:
+                LOGGER.warning("Cannot publish Avahi service on %s iface")
+                iface = avahi.IF_UNSPEC
+        else:
+            iface = avahi.IF_UNSPEC
+
+        self._pub_group.AddService(iface, avahi.PROTO_UNSPEC,
             dbus.UInt32(0), "collector", self._service_type, "", "",
             dbus.UInt16(self._listen_port), additional_data)
 
