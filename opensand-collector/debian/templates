@@ -1,0 +1,15 @@
+Template: opensand-collector/service/type
+Type: string
+Default: _opensand._tcp
+Description: Service type
+  Select the type of service with format:
+    _name._transport_protocol
+  All the hosts from the same platfrom MUST have the same service type
+
+Template: opensand-collector/service/interface
+Type: string
+Default: eth0
+Description: Name of the interface for service publishing
+  The name of the interface where the service should be published,
+  empty for all
+

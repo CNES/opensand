@@ -1,5 +1,5 @@
 #!/bin/sh
-# postrm script for opensand-daemon
+# postrm script for opensand-collector
 #
 # see: dh_installdeb(1)
 
@@ -20,28 +20,16 @@ set -e
 
 remove_syslog_conf(){
     EXE_RM="/bin/rm"
-    SYSLOG_CONF="/etc/rsyslog.d/opensand-daemon.conf"
-    LOGROTATE_CONF="/etc/logrotate.d/opensand-daemon.conf"
+    SYSLOG_CONF="/etc/rsyslog.d/opensand-collector.conf"
+    LOGROTATE_CONF="/etc/logrotate.d/opensand-collector.conf"
 
     ${EXE_RM} -f ${SYSLOG_CONF} || true
     ${EXE_RM} -f ${LOGROTATE_CONF} || true
 }
 
-remove_opensand_conf(){
-    EXE_RM="/bin/rm"
-    EXE_RMDIR="/bin/rmdir"
-    CONF="/etc/opensand"
-    DAEMON_CONF="/etc/opensand/daemon.conf"
-    CORE_CONF="/etc/opensand/core.conf"
-
-    ${EXE_RM} -f ${DAEMON_CONF} ${CORE_CONF} || true
-    ${EXE_RMDIR} --ignore-fail-on-non-empty ${CONF} || true
-}
-
 case "$1" in
     purge)
         remove_syslog_conf
-        remove_opensand_conf
     ;;    
         
     remove)

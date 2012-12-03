@@ -70,6 +70,8 @@ opensand-core/debian/libopensand-plugin-dev
 opensand-core/debian/opensand-core-all
 opensand-core/debian/opensand-core-bin
 opensand-core/debian/opensand-core-dbg
+opensand-collector/debian/files
+opensand-collector/debian/opensand-collector
 opensand-plugins/encapsulation/atm/debian/files
 opensand-plugins/encapsulation/atm/debian/libopensand-atm-aal5-encap-plugin
 opensand-plugins/encapsulation/atm/debian/libopensand-atm-aal5-encap-plugin-dbg
