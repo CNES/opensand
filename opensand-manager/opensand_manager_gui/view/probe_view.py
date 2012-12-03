@@ -107,8 +107,8 @@ class ProbeView(WindowView):
             self._set_state_idle()
 
     def simu_data_available(self):
+        """ run when simulation data is available """
         self._saved_data = self._model.get_saved_probes()
-
         if self._saved_data:
             self._probe_display.set_probe_data(self._saved_data.get_data())
             self._set_state_run_loaded()
@@ -117,16 +117,17 @@ class ProbeView(WindowView):
 
     def displayed_probes_changed(self, displayed_probes):
         """ a probe was selected/unselected for display """
-
         self._probe_display.update(displayed_probes)
 
     def scenario_changed(self):
+        """ the scenario was changed """
         if self._simu_running:
             return
 
         self.run_changed()
 
     def run_changed(self):
+        """ the run was changed """
         if self._simu_running:
             return
 
@@ -136,6 +137,7 @@ class ProbeView(WindowView):
             self._set_state_idle()
 
     def _set_state_idle(self, enable_loading=False):
+        """ update status when idle """
         self._probe_sel_controller.update_data({})
         self._conf_coll_dialog.hide()
         self._status_label.set_markup("<b>Displayed:</b> -")
@@ -145,12 +147,14 @@ class ProbeView(WindowView):
         self._save_fig_button.set_sensitive(False)
 
     def _set_state_simulating(self):
+        """ update status when a simulation is running """
         self._status_label.set_markup("<b>Displayed:</b> Current simulation")
         self._load_run_button.hide()
         self._conf_coll_button.show()
         self._save_fig_button.set_sensitive(False)
 
     def _set_state_run_loaded(self, run=None):
+        """ update status when a scenario is loaded """
         self._conf_coll_dialog.hide()
         self._status_label.set_markup("<b>Displayed:</b> Run %s" %
                                       (run or self._model.get_run()))
@@ -169,6 +173,7 @@ class ProbeView(WindowView):
             priority=gobject.PRIORITY_HIGH_IDLE)
 
     def _stop_graph_update(self):
+        """ stop updating graph """
         gobject.source_remove(self._update_graph_tag)
         self._update_graph_tag = None
 

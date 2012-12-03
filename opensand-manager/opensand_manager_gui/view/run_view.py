@@ -39,6 +39,7 @@ import os
 
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_core.my_exceptions import RunException
+from opensand_manager_core.model.host import InitStatus
 
 COMPO_X = 70
 COMPO_Y = 69
@@ -151,8 +152,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system, else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'st_grey.png')
@@ -160,7 +161,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('ST ' + str(host.get_instance()))
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
@@ -189,8 +190,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system,  else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'sat_grey.png')
@@ -198,7 +199,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Satellite')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
     def draw_gw(self, host, x, y):
@@ -209,8 +210,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system,  else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'gw_grey.png')
@@ -218,7 +219,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Gateway (GW)')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
 
         self.draw_tools(host, x + COMPO_X + 4, y)
 
@@ -285,18 +286,23 @@ class RunView(WindowView):
                 self.draw_layout(x, y)
             y = y + TOOL_Y + 2
 
-    def draw_state(self, state, initialisation_failed, x, y):
+    def draw_state(self, state, init_status, x, y):
         """ draw component state """
         if state is None:
             return
 
         image = gtk.Image()
-        if state == True:
-            image.set_from_file(IMG_PATH + 'green.png')
-        elif state == False:
-            if initialisation_failed == True:
+        if state:
+            if init_status == InitStatus.PENDING:
+                image.set_from_file(IMG_PATH + 'blue.png')
+            elif init_status == InitStatus.FAIL:
                 image.set_from_file(IMG_PATH + 'orange.png')
-            elif initialisation_failed == False:
+            else:
+                image.set_from_file(IMG_PATH + 'green.png')
+        else:
+            if init_status == InitStatus.FAIL:
+                image.set_from_file(IMG_PATH + 'orange.png')
+            else:
                 image.set_from_file(IMG_PATH + 'red.png')
 
         self.draw_pixbuf(0, 0, x - 9, y + 71, LED_XY, LED_XY, image)

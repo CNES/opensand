@@ -81,21 +81,31 @@ void CommandThread::run()
 		uint8_t command_id = receiveMessage(this->sock_fd, buffer,
 		                                    sizeof(buffer));
 
-		if(command_id == 0)
+		switch(command_id)
 		{
-			return;
+			case 0:
+				return;
+
+			case MSG_CMD_ENABLE_PROBE:
+			case MSG_CMD_DISABLE_PROBE:
+			{
+				uint8_t probe_id = buffer[5];
+				bool enabling = (command_id == MSG_CMD_ENABLE_PROBE);
+
+				Output::setProbeState(probe_id, enabling);
+			}
+			break;
+
+			case MSG_CMD_ENABLE:
+				Output::enable();
+				break;
+
+			case MSG_CMD_DISABLE:
+				Output::disable();
+				break;
+
+			default:
+				UTI_ERROR("Received a message with unknown command ID %d\n", command_id);
 		}
-
-		if(command_id == MSG_CMD_ENABLE_PROBE ||
-		   command_id == MSG_CMD_DISABLE_PROBE)
-		{
-			uint8_t probe_id = buffer[5];
-			bool enabling = (command_id == MSG_CMD_ENABLE_PROBE);
-
-			Output::setProbeState(probe_id, enabling);
-			continue;
-		}
-
-		UTI_ERROR("Received a message with unknown command ID %d\n", command_id);
 	}
 }

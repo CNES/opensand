@@ -49,7 +49,7 @@ CONF_NAME = "core_global.conf"
 class GlobalConfig(AdvancedHostModel):
     """ Global OpenSAND configuration, displayed in configuration tab """
     def __init__(self, scenario):
-        AdvancedHostModel.__init__(self, 'global', 0, {}, scenario)
+        AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
         self._emission_std = ''
         self._dama = ''
@@ -59,14 +59,14 @@ class GlobalConfig(AdvancedHostModel):
         self._frame_duration = ''
         self._enable_phy_layer = None
 
-    def load(self, name, instance, ifaces, scenario):
+    def load(self, name, scenario):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("failed to create directory '%s': %s" %
                                      (conf_path, strerror))
 

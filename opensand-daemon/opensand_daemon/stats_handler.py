@@ -41,6 +41,7 @@ import select
 import socket
 import struct
 import threading
+import time
 
 from opensand_daemon.process_list import ProcessList
 
@@ -56,6 +57,9 @@ MSG_CMD_SEND_EVENT = 4
 MSG_CMD_ENABLE_PROBE = 5
 MSG_CMD_DISABLE_PROBE = 6
 MSG_CMD_UNREGISTER = 7
+MSG_CMD_DISABLE = 8
+MSG_CMD_ENABLE = 9
+MSG_CMD_NACK = 11
 MSG_CMD_RELAY = 10
 
 REL_MSGS_PROG_TO_COL = frozenset([MSG_CMD_SEND_PROBES, MSG_CMD_SEND_EVENT])
@@ -74,6 +78,8 @@ class StatsHandler(threading.Thread):
         self._collector_addr = None
         self._running = False
         self._stopped = False
+        self._rstop, self._wstop = os.pipe()  # pipe to stop select
+        self._register_msg = {}
 
         # Internal socket for processes
         self._int_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
@@ -93,12 +99,17 @@ class StatsHandler(threading.Thread):
         Closes the sockets used by the stats handler. This will automatically
         tear down the listener thread if it is running.
         """
-        self._running = False
-
         if self._stopped:
             return
 
+        LOGGER.debug("clean stats sockets")
+
+        self._enable_output(False)
+
+        self._running = False
         self._stopped = True
+        # write something in pipe to beak the select command
+        os.write(self._wstop, "stop")
 
         try:
             self._int_socket.shutdown(socket.SHUT_RDWR)
@@ -129,7 +140,20 @@ class StatsHandler(threading.Thread):
         """
         Set the address used to send messages to the collector.
         """
+        register = False
+        if self._collector_addr is None:
+            register = True
+
         self._collector_addr = (address, port)
+
+        if register:
+            # resend all register commands and enable outputs
+            self._resend_register()
+
+            # enable output in case it was stopped previously
+            enable = threading.Thread(None, self._send_enable, None, (), {})
+            enable.start()
+
         LOGGER.debug("Collector address set to %s:%d", address, port)
 
     def unset_collector_addr(self):
@@ -140,6 +164,9 @@ class StatsHandler(threading.Thread):
             return
 
         self._collector_addr = None
+        # disable output as it won't be save or transmitted to
+        # manager anymore
+        self._enable_output(False)
         LOGGER.debug("Collector address unset")
 
     def run(self):
@@ -156,7 +183,7 @@ class StatsHandler(threading.Thread):
         except StandardError:
             LOGGER.exception("Exception in stats handler:")
 
-        LOGGER.info("Stats handler exiting...")
+        LOGGER.debug("Stats handler exiting...")
         self.cleanup()
 
     def _handle(self):
@@ -164,7 +191,8 @@ class StatsHandler(threading.Thread):
         Handles a command received on one of the two sockets.
         """
         rlist, _, _ = select.select([self._int_socket,
-            self._ext_socket], [], [])
+                                     self._ext_socket,
+                                     self._rstop], [], [])
 
         if self._int_socket in rlist:
             self._handle_prog_message()
@@ -193,9 +221,9 @@ class StatsHandler(threading.Thread):
 
             if not process:
                 LOGGER.error("PID %d tried to register but is unknown, sending "
-                             "ACK anyway.")
-                self._int_socket.sendto(struct.pack("!LB", MAGIC_NUMBER,
-                                        MSG_CMD_ACK), addr)
+                             "NACK.")
+                sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
+                                                         MSG_CMD_NACK), addr)
                 return
 
             used_ids = self._process_list.get_processes_attr('prog_id')
@@ -211,32 +239,40 @@ class StatsHandler(threading.Thread):
             LOGGER.info("Registering program ‘%s’ with program ID %d.",
                         process.prog_name, prog_id)
 
+            resp = MSG_CMD_ACK
             if self._collector_addr:
                 # Send REGISTER to the collector
                 header = struct.pack("!LBBBBB", MAGIC_NUMBER,
                                      MSG_CMD_REGISTER, prog_id, num_probes, num_events,
                                      len(process.prog_name))
 
-                self._ext_socket.sendto(header + prog_name + msg[6:],
-                                        self._collector_addr)
+                sendtosock(self._ext_socket, header + prog_name + msg[6:],
+                           self._collector_addr)
 
                 # Wait for ACK
                 rlist, _, _ = select.select([self._ext_socket], [], [], 5)
                 if not rlist:
                     LOGGER.error("No ACK message from collector")
-
+                    resp = MSG_CMD_NACK
                 else:
                     cmd, _, _ = self._get_message(self._ext_socket,
                                                   self._collector_addr)
 
                     if cmd != MSG_CMD_ACK:
+                        resp = MSG_CMD_NACK
                         LOGGER.error("Bad ACK message from collector")
+                    else:
+                        # store the register message to send it back if
+                        # collector is restarted or moved
+                        self._register_msg[prog_id] = \
+                                header + prog_name + msg[6:]
 
             else:
+                resp = MSG_CMD_NACK
                 LOGGER.error("Collector not known, not relaying REGISTER")
 
-            self._int_socket.sendto(struct.pack("!LB", MAGIC_NUMBER,
-                                                MSG_CMD_ACK), addr)
+            sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
+                                                     resp), addr)
 
             return
 
@@ -251,6 +287,7 @@ class StatsHandler(threading.Thread):
             if not self._collector_addr:
                 LOGGER.error("Collector not known, not relaying "
                              "message %d from ‘%s’", cmd, process.prog_name)
+                self._enable_output(False)
                 return
 
             LOGGER.debug("Relaying message %d from program ‘%s’", cmd,
@@ -258,11 +295,11 @@ class StatsHandler(threading.Thread):
 
             header = struct.pack("!LBBB", MAGIC_NUMBER, MSG_CMD_RELAY,
                                  process.prog_id, cmd)
-            self._ext_socket.sendto(header + msg, self._collector_addr)
+            sendtosock(self._ext_socket, header + msg, self._collector_addr)
             return
 
         LOGGER.error("Unexpected message %d received from %s.", cmd,
-            addr)
+                     addr)
 
     def _handle_collector_message(self):
         """
@@ -283,8 +320,8 @@ class StatsHandler(threading.Thread):
             LOGGER.debug("Relaying message from collector to program ‘%s’",
                          process.prog_name)
 
-            self._int_socket.sendto(struct.pack("!L", MAGIC_NUMBER) +
-                                    msg[1:], process.prog_addr)
+            sendtosock(self._int_socket, struct.pack("!L", MAGIC_NUMBER) +
+                       msg[1:], process.prog_addr)
             return
 
         LOGGER.error("Unexpected message %d received from the collector.",
@@ -306,11 +343,13 @@ class StatsHandler(threading.Thread):
             # Send UNREGISTER to the collector
             message = struct.pack("!LBB", MAGIC_NUMBER, MSG_CMD_UNREGISTER,
                                   prog_id)
-
-            self._ext_socket.sendto(message, self._collector_addr)
-
+            sendtosock(self._ext_socket, message, self._collector_addr)
         else:
             LOGGER.error("Collector not known, not relaying UNREGISTER")
+        try:
+            del self._register_msg[prog_id]
+        except KeyError:
+            pass
 
     def _get_message(self, sock, expected_addr=None):
         """
@@ -344,3 +383,49 @@ class StatsHandler(threading.Thread):
             return (-1, None, addr)
 
         return cmd, packet[5:], addr
+
+    def _resend_register(self):
+        """ send the stored REGISTERED messages because the collector was
+            restarted """
+        for msg in self._register_msg.values():
+            sendtosock(self._ext_socket, msg, self._collector_addr)
+            # Wait for ACK
+            rlist, _, _ = select.select([self._ext_socket], [], [], 5)
+            # TODO enable/disable on programs according to collector response
+            self._get_message(self._ext_socket, self._collector_addr)
+
+    def _enable_output(self, value=True):
+        """
+        Tell the programs to stop sending outputs
+        """
+        if value:
+            cmd = MSG_CMD_ENABLE
+        else:
+            cmd = MSG_CMD_DISABLE
+        proc_addr = self._process_list.get_processes_attr('prog_addr')
+        for addr in proc_addr:
+            sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
+                                                     cmd), addr)
+
+    def _send_enable(self):
+        """
+        Send the enable commands once process list was initialized
+        """
+        nbr = 0
+        time.sleep(0.5)
+        while self._process_list.is_initialized() == False and nbr < 5:
+            time.sleep(1)
+            nbr = nbr + 1
+        # enable output
+        self._enable_output()
+
+
+def sendtosock(sock, msg, addr):
+    """
+    Send a message on a socket
+    """
+    try:
+        sock.sendto(msg, addr)
+    except socket.error, err:
+        LOGGER.error("Cannot send a message on socket: %s" % err)
+

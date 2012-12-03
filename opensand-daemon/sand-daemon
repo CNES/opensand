@@ -77,6 +77,11 @@ def sig_handler(signum, frame):
         stop_service()
         SERVICE_THREAD.join()
         LOGGER.debug("service thread joined")
+    # should be stopped before command and state
+    if STATS_HANDLER.is_alive():
+        STATS_HANDLER.cleanup()
+        STATS_HANDLER.join()
+        LOGGER.debug("stats thread joined")
     if COMMAND_THREAD.is_alive():
         LOGGER.debug("stop command thread")
         stop_command()
@@ -401,6 +406,8 @@ def start_daemon():
         COMMAND_THREAD.start()
         LOGGER.debug("start state thread")
         STATE_THREAD.start()
+        LOGGER.debug("start stats handler")
+        STATS_HANDLER.start()
     except thread.error, msg:
         LOGGER.error("exception when starting the threads: " + msg)
         if(os.path.exists(PID_FILE) == True):
@@ -413,7 +420,10 @@ def start_daemon():
         sys.exit(1)
 
     # wait that threads are correctly started
-    time.sleep(2)
+    try:
+        time.sleep(2)
+    except KeyboardInterrupt:
+        sig_handler(signal.SIGTERM, None)
 
     if not SERVICE_THREAD.is_alive():
         LOGGER.error("service thread is not started correctly: quit")

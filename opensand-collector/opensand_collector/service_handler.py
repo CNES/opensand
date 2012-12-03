@@ -49,9 +49,9 @@ class ServiceHandler(object):
     daemons can find it) and find the OpenSAND daemons and their IPs.
     """
 
-    def __init__(self, collector, listen_port, transfer_port,
+    def __init__(self, host_manager, listen_port, transfer_port,
                  service_type, iface):
-        self._collector = collector
+        self._host_manager = host_manager
         self._listen_port = listen_port
         self._transfer_port = transfer_port
         self._service_type = service_type
@@ -141,12 +141,12 @@ class ServiceHandler(object):
             return
 
         if name in self._known_hosts:
-            self._collector.host_manager.add_host_addr(name, (addr, port))
+            self._host_manager.add_host_addr(name, (addr, port))
             return
 
         LOGGER.debug("Daemon on host '%s' has address %s:%d.", name, addr, port)
         self._known_hosts.add(name)
-        self._collector.host_manager.add_host(name, (addr, port))
+        self._host_manager.add_host(name, (addr, port))
 
     def _handle_remove(self, _interface, _proto, name, _stype, _domain, _flags):
         """
@@ -156,7 +156,7 @@ class ServiceHandler(object):
             return
 
         LOGGER.debug("Daemon on host '%s' has exited.", name)
-        self._collector.host_manager.remove_host(name)
+        self._host_manager.remove_host(name)
         self._known_hosts.discard(name)
 
     def __exit__(self, exc_type, exc_val, exc_tb):

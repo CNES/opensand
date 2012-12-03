@@ -136,7 +136,7 @@ class Model:
         if not os.path.exists(self._scenario_path):
             try:
                 os.makedirs(self._scenario_path, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("cannot create directory '%s': %s" %
                                      (self._scenario_path, strerror))
 
@@ -174,7 +174,7 @@ class Model:
                 shutil.copy(default_topo, topo_conf)
 
             self._topology = XmlParser(topo_conf, topo_xsd)
-        except IOError, (errno, strerror):
+        except IOError, (_, strerror):
             raise ModelException("cannot load topology configuration: %s " %
                                  strerror)
             
@@ -377,7 +377,7 @@ class Model:
         # the component does not exist so create it
         host = HostModel(name, instance, network_config, state_port,
                          command_port, tools, host_modules, self._scenario_path,
-                         self._log)
+                         self._log, self._collector_functional)
         if component == 'sat':
             self._hosts.insert(0, host)
         elif component == 'gw':
@@ -480,7 +480,6 @@ class Model:
     def set_collector_known(self, collector_known):
         """ called by the service listener when the collector service is found
             or lost. """
-        
         self._collector_known = collector_known
         if not collector_known:
             self._collector_functional = False
@@ -488,8 +487,9 @@ class Model:
     def set_collector_functional(self, collector_functional):
         """ called by the probes controller when the collector responds to
             manager registration. """
-        
         self._collector_functional = collector_functional
+        for host in self.get_all():
+            host.set_collector_functional(collector_functional)
 
     def clean_default(self):
         """ clean the $HOME/.opensand directory from default files """

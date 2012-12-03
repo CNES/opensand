@@ -53,7 +53,9 @@ from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
 from opensand_manager_core.utils import copytree
 
 GLADE_PATH = '/usr/share/opensand/manager/opensand.glade'
-KONAMI = ['Up', 'Up', 'Down', 'Down', 'Left', 'Right', 'Left', 'Right', 'b', 'a']
+KONAMI = ['Up', 'Up', 'Down', 'Down',
+          'Left', 'Right', 'Left', 'Right',
+          'b', 'a']
 
 class View(WindowView):
     """ OpenSAND manager view """
@@ -417,7 +419,7 @@ class View(WindowView):
                     try:
                         shutil.rmtree(folder)
                         os.makedirs(folder)
-                    except (OSError, IOError), (errno, strerror):
+                    except (OSError, IOError), (_, strerror):
                         self._log.error("Failed to overwrite '%s': %s" %
                                         (folder, strerror))
         else:
@@ -474,15 +476,15 @@ class View(WindowView):
             dlg.run()
             h, v, n = dlg.size_options
             dlg.destroy()
-            MineWindow(h,v,n)
+            MineWindow(h, v, n)
         return False
     
     def on_program_list_changed(self, programs_dict):
         """ called when the environment plane program list changes """
         for program in programs_dict.itervalues():
             if program.ident not in self._event_tabs:
-                self._event_tabs[program.ident] = EventTab(self._event_notebook,
-                    program.name)
+                self._event_tabs[program.ident] = \
+                    EventTab(self._event_notebook, program.name)
         
         self._eventprobe.simu_program_list_changed(programs_dict)
     
@@ -502,15 +504,13 @@ class View(WindowView):
     
     def on_probe_transfer_progress(self, started):
         """ Called when probe transfer from the collector starts or stops """
-    
         gobject.idle_add(self._on_probe_transfer_progress, started)
     
     def _on_probe_transfer_progress(self, started):
         """ Internal probe transfer notification handler """
-    
         if started:
             self._prog_dialog = ProgressDialog("Saving probe data, please "
-                "wait…", self._model, self._log)
+                                               "wait…", self._model, self._log)
             self._prog_dialog.show()
         else:
             self._prog_dialog.close()

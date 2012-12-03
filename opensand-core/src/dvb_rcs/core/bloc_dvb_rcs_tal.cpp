@@ -853,7 +853,7 @@ error:
 
 /**
  * Read configuration for the QoS Server
- * @return -1 if failed, 0 if succeed
+ * @return true on success, false otherwise
  */
 bool BlocDVBRcsTal::initQoSServer()
 {
@@ -863,22 +863,22 @@ bool BlocDVBRcsTal::initQoSServer()
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
 	                          this->qos_server_host))
 	{
-		UTI_INFO("%s section %s, %s missing",
-		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST);
+		UTI_ERROR("%s section %s, %s missing",
+		          FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST);
 		goto error;
 	}
 
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
 	                          this->qos_server_port))
 	{
-		UTI_INFO("%s section %s, %s missing\n",
-		         FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT);
+		UTI_ERROR("%s section %s, %s missing\n",
+		          FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT);
 		goto error;
 	}
 	else if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
 	{
-		UTI_INFO("%s QoS Server port (%d) not valid\n",
-		         FUNCNAME, this->qos_server_port);
+		UTI_ERROR("%s QoS Server port (%d) not valid\n",
+		          FUNCNAME, this->qos_server_port);
 		goto error;
 	}
 
@@ -886,7 +886,7 @@ bool BlocDVBRcsTal::initQoSServer()
 	// when QoS Server kills the TCP connection
 	if(signal(SIGPIPE, BlocDVBRcsTal::closeQosSocket) == SIG_ERR)
 	{
-		printf("cannot catch signal SIGPIPE\n");
+		UTI_ERROR("cannot catch signal SIGPIPE\n");
 		goto error;
 	}
 
@@ -896,9 +896,9 @@ bool BlocDVBRcsTal::initQoSServer()
 	// QoS Server: check connection status in 5 seconds
 	this->setTimer(this->qos_server_timer, 5000);
 
-	return 0;
+	return true;
 error:
-	return -1;
+	return false;
 }
 
 /**
@@ -908,67 +908,68 @@ error:
 bool BlocDVBRcsTal::initOutput(const std::vector<std::string>& fifo_types)
 {
 	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent",
-	                                                  LEVEL_INFO);
+	                                               LEVEL_INFO);
 	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete",
-	                                                      LEVEL_INFO);
-	this->probe_st_phys_out_thr = Output::registerProbe<int>(
-			"Physical_outgoing_throughput",
-			"Kbits/s", true, SAMPLE_AVG);
-	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
-		"RBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
-	this->probe_st_vbdc_req_size = Output::registerProbe<int>(
-		"VBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	                                                   LEVEL_INFO);
+	this->probe_st_phys_out_thr =
+		Output::registerProbe<int>("Physical_outgoing_throughput",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_rbdc_req_size =
+		Output::registerProbe<int>("RBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
+	this->probe_st_vbdc_req_size =
+		Output::registerProbe<int>("VBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
 	this->probe_st_cra = Output::registerProbe<int>("CRA", "Kbits/s",
-	                                                   true, SAMPLE_LAST);
+	                                                true, SAMPLE_LAST);
 	this->probe_st_alloc_size = Output::registerProbe<int>("Allocation",
-	                                                          "Kbits/s", true,
-	                                                          SAMPLE_LAST);
-	this->probe_st_unused_capacity = Output::registerProbe<int>(
-		"Unused_capacity", "time slots", true, SAMPLE_LAST);
+	                                                       "Kbits/s", true,
+	                                                       SAMPLE_LAST);
+	this->probe_st_unused_capacity =
+		Output::registerProbe<int>("Unused_capacity", "time slots", true, SAMPLE_LAST);
 	// FIXME: Unit?
-	this->probe_st_bbframe_drop_rate = Output::registerProbe<float>(
-		"BBFrames_dropped_rate", true, SAMPLE_LAST);
+	this->probe_st_bbframe_drop_rate =
+		Output::registerProbe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
 	this->probe_st_real_modcod = Output::registerProbe<int>("Real_modcod",
-	                                                           "modcod index",
-	                                                           true, SAMPLE_LAST);
+	                                                        "modcod index",
+	                                                        true, SAMPLE_LAST);
 	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
-	                                                           "modcod index",
-	                                                           true, SAMPLE_LAST);
+	                                                        "modcod index",
+	                                                        true, SAMPLE_LAST);
 	
 	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos_number];
 	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos_number];
 	this->probe_st_real_out_thr = new Probe<int>*[this->dvb_fifos_number];
 	
 	if(this->probe_st_terminal_queue_size == NULL ||
-	    this->probe_st_real_in_thr == NULL ||
-		this->probe_st_real_out_thr == NULL)
+	   this->probe_st_real_in_thr == NULL ||
+	   this->probe_st_real_out_thr == NULL)
 	{
 		UTI_ERROR("Failed to allocate memory for probe arrays");
 		return false;
 	}
 		
-	for (int i = 0 ; i < this->dvb_fifos_number ; i++) {
+	for (int i = 0 ; i < this->dvb_fifos_number ; i++)
+	{
 		const char* fifo_type = fifo_types[i].c_str();
 		char probe_name[32];
 		
 		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s",
 		         fifo_type);
-		this->probe_st_terminal_queue_size[i] = Output::registerProbe<int>(
-			probe_name, "cells", true, SAMPLE_AVG);
+		this->probe_st_terminal_queue_size[i] =
+			Output::registerProbe<int>(probe_name, "cells", true, SAMPLE_AVG);
 		
 		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s",
 		         fifo_type);
 		this->probe_st_real_in_thr[i] = Output::registerProbe<int>(probe_name,
-		                                                              "Kbits/s",
-		                                                              true,
-		                                                              SAMPLE_AVG);
+		                                                           "Kbits/s",
+		                                                           true,
+		                                                           SAMPLE_AVG);
 		
 		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s",
 		         fifo_type);
 		this->probe_st_real_out_thr[i] = Output::registerProbe<int>(probe_name,
-		                                                               "Kbits/s",
-		                                                               true,
-		                                                               SAMPLE_AVG);
+		                                                            "Kbits/s",
+		                                                            true,
+		                                                            SAMPLE_AVG);
 	}
 	
 	return true;
@@ -1039,8 +1040,7 @@ int BlocDVBRcsTal::onInit()
 		goto error;
 	}
 
-	ret = this->initQoSServer();
-	if(ret != 0)
+	if(!this->initQoSServer())
 	{
 		UTI_ERROR("failed to complete the QoS Server part of the "
 		          "initialisation");
@@ -1048,11 +1048,9 @@ int BlocDVBRcsTal::onInit()
 	}
 	
 	// Init the output here since we now know the FIFOs
-	ret = this->initOutput(fifo_types);
-	if(ret != 0)
+	if(!this->initOutput(fifo_types))
 	{
-		UTI_ERROR("failed to complete the QoS Server part of the "
-		          "initialisation");
+		UTI_ERROR("failed to complete the initialisation of output");
 		goto error;
 	}
 

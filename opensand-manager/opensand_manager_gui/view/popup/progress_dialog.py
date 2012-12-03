@@ -35,8 +35,12 @@
 progress_dialog.py - A generic progress dialog
 """
 
+import gobject
+
 from opensand_manager_gui.view.window_view import WindowView
 
+
+# TODO use that for deployment, start, etc.
 class ProgressDialog(WindowView):
     """ a window enabling to edit the deploy.ini file """
     def __init__(self, text, model, manager_log):
@@ -46,15 +50,38 @@ class ProgressDialog(WindowView):
         self._log = manager_log
         self._ui.get_widget('progress_label').set_text(text)
         self._dlg.set_transient_for(self._ui.get_widget('window'))
+        self._dlg.set_title("Progress - OpenSAND")
+        self._running = True
 
     def ping(self):
         """ indicates progress """
-        self._ui.get_widget('progress_bar').pulse()
+        if self._running:
+            self._ui.get_widget('progress_bar').pulse()
+            return True
+        return False
 
     def show(self):
         """ show the window """
         self._dlg.show()
+        gobject.timeout_add(100, self.ping)
 
     def close(self):
         """ close the window """
+        self._running = False
         self._dlg.destroy()
+
+
+if __name__ == "__main__":
+    from opensand_manager_core.loggers.manager_log import ManagerLog
+    from opensand_manager_core.opensand_model import Model
+ 
+    gobject.threads_init()
+    LOGGER = ManagerLog('debug', True, True, True)
+    MODEL = Model(LOGGER)
+    WindowView(None, 'none', 'opensand.glade')
+    DIALOG = ProgressDialog("test progress dialog", MODEL, LOGGER)
+    DIALOG.show()
+    try:
+        gobject.MainLoop().run()
+    except KeyboardInterrupt:
+        DIALOG.close()

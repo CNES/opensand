@@ -47,7 +47,9 @@
 #include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
+#define TIMEOUT 10
 
 static uint32_t getMilis()
 {
@@ -166,6 +168,11 @@ bool OutputInternal::finishInit()
 	CommandThread *command_thread;
 	uint8_t command_id;
 
+	int ret;
+	struct timespec tv;
+	fd_set readfds;
+	sigset_t sigmask;
+
 	this->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 
 	if(this->sock == -1)
@@ -222,12 +229,37 @@ bool OutputInternal::finishInit()
 
 	// Wait for the ACK response
 
-	alarm(10);
+	// TODO try with select
+	sigemptyset(&sigmask);
+	sigaddset(&sigmask, SIGTERM);
+	sigaddset(&sigmask, SIGINT);
+
+
+	FD_ZERO(&readfds);
+	FD_SET(this->sock, &readfds);
+
+	tv.tv_sec = TIMEOUT;
+	tv.tv_nsec = 0;
+	ret = pselect(this->sock + 1, &readfds, NULL, NULL, &tv, &sigmask);
+	if(ret <= 0)
+	{
+		UTI_ERROR("cannot contact daemon or no answer in the "
+		          "last %d seconds\n", TIMEOUT);
+		this->disable();
+		return false;
+	}
 	command_id = receiveMessage(this->sock, buffer, sizeof(buffer));
-	alarm(0);
 	if(command_id != MSG_CMD_ACK)
 	{
-		UTI_ERROR("Incorrect ACK response for initial probe list\n");
+		if(command_id == MSG_CMD_NACK)
+		{
+			UTI_INFO("receive NACK for initial probe list, disable output");
+			this->disable();
+		}
+		else
+		{
+			UTI_ERROR("Incorrect ACK response for initial probe list\n");
+		}
 		return false;
 	}
 
@@ -308,4 +340,14 @@ void OutputInternal::setProbeState(uint8_t probe_id, bool enabled)
 	UTI_DEBUG("%s probe %s\n", enabled ? "Enabling" : "Disabling",
 	          this->probes[probe_id]->getName());
 	this->probes[probe_id]->enabled = enabled;
+}
+
+void OutputInternal::disable()
+{
+	this->enabled = false;
+}
+
+void OutputInternal::enable()
+{
+	this->enabled = true;
 }

@@ -91,7 +91,7 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 	event_level_t output_event_level = LEVEL_INFO;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqda:n:i")) != EOF)
+	while((opt = getopt(argc, argv, "-hqda:n:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -110,9 +110,6 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				// get local interface name
 				iface_name = optarg;
 				break;
-			case 'i':
-				// instance id ignored
-				break;
 			case 'h':
 			case '?':
 				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name]\n",
@@ -122,7 +119,6 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				fprintf(stderr, "\t-d              enable output debug events\n");
 				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
 				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
-				fprintf(stderr, "\t-i <instance>   set the instance id (ignored)\n");
 
 				UTI_ERROR("usage printed on stderr\n");
 				return false;
@@ -325,8 +321,9 @@ int main(int argc, char **argv)
 			status = Output::registerEvent("status", LEVEL_INFO);
 			if(!Output::finishInit())
 			{
-				UTI_ERROR("%s: failed to init the output\n", progname);
-				goto release_plugins;
+				UTI_PRINT(LOG_INFO,
+				          "%s: failed to init the output => disable it\n",
+				         progname);
 			}
 
 			Output::sendEvent(status, "Simulation started");

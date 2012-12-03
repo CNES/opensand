@@ -47,6 +47,7 @@ from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_gui.opensand_view import View
 from opensand_manager_gui.view.popup.infos import error_popup
 
+# TODO add option load plugin from another directory if it is possible ?
 class OpenSandManager:
     """ the OpenSAND Manager initialization class """
     def __init__(self, print_debug = False, enable_std = True,

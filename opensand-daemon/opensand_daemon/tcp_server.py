@@ -92,6 +92,8 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
+    # TODO use a pipe as for stats_handler to break the select to avoid TIMEOUT
+    # and loop
     def read_data(self, timeout=True):
         """ read data on socket.
             Can raise Timeout and EOFError exceptions """

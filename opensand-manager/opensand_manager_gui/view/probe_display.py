@@ -137,6 +137,20 @@ class ProbeGraph(object):
 
         self._axes.axis([xmin, xmax, rymin, rymax])
 
+    @property
+    def index(self):
+        """
+        Get graph index
+        """
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        """
+        Set the index value
+        """
+        self._index = value
+
 
 class ProbeDisplay(object):
     """

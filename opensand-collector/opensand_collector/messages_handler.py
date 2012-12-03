@@ -66,8 +66,8 @@ class MessagesHandler(object):
     UDP messages handler class
     """
 
-    def __init__(self, collector):
-        self._collector = collector
+    def __init__(self, host_manager):
+        self._host_manager = host_manager
         self._manager_addr = None
         self._sock = None
         self._tag = None
@@ -131,7 +131,7 @@ class MessagesHandler(object):
             return True
 
         try:
-            host = self._collector.host_manager.get_host(addr)
+            host = self._host_manager.get_host(addr)
         except KeyError:
             LOGGER.error("Received data from unknown host %s:%d." % addr)
             return True
@@ -320,7 +320,7 @@ class MessagesHandler(object):
 
             self._notify_manager_ack()
 
-            for program in self._collector.host_manager.all_programs():
+            for program in self._host_manager.all_programs():
                 self._notify_manager_new_program(program)
 
             return
@@ -345,18 +345,18 @@ class MessagesHandler(object):
                         "program %d:%d: enabled = %s, displayed = %s", host_id,
                         probe_id, program_id, new_enabled, new_displayed)
 
-            host = self._collector.host_manager.set_probe_status(host_id,
-                                                                 program_id,
-                                                                 probe_id,
-                                                                 new_enabled,
-                                                                 new_displayed)
+            host = self._host_manager.set_probe_status(host_id,
+                                                       program_id,
+                                                       probe_id,
+                                                       new_enabled,
+                                                       new_displayed)
 
             cmd = MSG_CMD_ENABLE_PROBE if new_enabled else MSG_CMD_DISABLE_PROBE
 
             if host:  # Need to propagate the new enabled state upstream
                 LOGGER.debug("The enabled of the above probe has been relayed.")
-                self._sock.sendto(struct.pack("!LBBB", MAGIC_NUMBER,
-                                              MSG_CMD_RELAY, program_id,
+                self._sock.sendto(struct.pack("!LBBBB", MAGIC_NUMBER,
+                                              MSG_CMD_RELAY, program_id, cmd,
                                               probe_id), host.address)
 
         else:

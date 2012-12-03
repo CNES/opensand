@@ -35,6 +35,8 @@
 environment_plane.py - Model for environment plane elements
 """
 
+from opensand_manager_core.model.host import InitStatus
+
 import os
 import struct
 
@@ -43,18 +45,18 @@ class EventLevel(object):
     """
     Event level constants
     """
-
     DEBUG = 0
     INFO = 1
     WARNING = 2
     ERROR = 3
+    CRITICAL = 4
 
 class Program(object):
     """
     Represents a running program.
     """
 
-    def __init__(self, controller, ident, name, probes, events):
+    def __init__(self, controller, ident, name, probes, events, host_model=None):
         self._ident = ident
         host_name, prog_name = name.split(".", 1)
         if host_name.startswith(prog_name):
@@ -67,6 +69,15 @@ class Program(object):
                 enabled, disp)
             self._probes.append(probe)
         self._events = events
+        self._host_model = host_model
+
+    def handle_critical_event(self):
+        """
+        critical event received for this host, set host status
+        """
+        if self._host_model is None:
+            return
+        self._host_model.set_init_status(InitStatus.FAIL)
 
     def get_probes(self):
         """
@@ -85,6 +96,21 @@ class Program(object):
         Returns the event identified by ident as a (name, level) tuple
         """
         return self._events[ident]
+
+    @property
+    def name(self):
+        """
+        Get the program name
+        """
+        return self._name
+
+    @property
+    def ident(self):
+        """
+        Get the program ident
+        """
+        return self._ident
+
 
     def __str__(self):
         return self._name
@@ -128,11 +154,39 @@ class Probe(object):
         raise Exception("Unknown storage type")
 
     @property
+    def ident(self):
+        """
+        Get the probe ident
+        """
+        return self._ident
+
+    @property
+    def name(self):
+        """
+        Get the probe name
+        """
+        return self._name
+
+    @property
     def enabled(self):
         """
         Indicates if the probe is enabled
         """
         return self._enabled
+
+    @property
+    def program(self):
+        """
+        The program associated to the probe
+        """
+        return self._program
+
+    @property
+    def unit(self):
+        """
+        The probe unit
+        """
+        return self._unit
 
     @enabled.setter
     def enabled(self, value):
@@ -247,7 +301,7 @@ class SavedProbeLoader(object):
 
                 full_prog_name = "%s.%s" % (host_name, prog_name)
                 self._programs[prog_id] = Program(self, prog_id, full_prog_name,
-                    probes, [])
+                                                  probes, [])
 
     def get_programs(self):
         """

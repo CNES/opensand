@@ -157,6 +157,16 @@ private:
 	 */
 	static void setProbeState(uint8_t probe_id, bool enabled);
 
+	/**
+	 * @brief disable all stats
+	 */
+	static void disable();
+
+	/**
+	 * @brief Enable output
+	 */
+	static void enable();
+
 	/// The output instance
 	static OutputInternal instance;
 };

@@ -51,10 +51,6 @@ class ProbeEvent(ProbeView):
         self._selected_file_list = []
 
         self._selected = {'component' : [], 'stat' : [], 'index' : []}
-        
-        # FIXME the event handled set in Glade does not seem to work
-        self._load_run_button.connect('clicked', self.on_load_run_clicked)
-
 
     def close(self):
         """ close probe tab """
@@ -76,7 +72,7 @@ class ProbeEvent(ProbeView):
         elif not val and self._update_graph_tag is not None:
             self._stop_graph_update()
 
-    def on_load_run_clicked(self, _):
+    def on_load_run_button_clicked(self, _):
         """ The load run button was clicked """
     
         dlg = RunDialog(self._model.get_scenario(), self._model.get_run())
@@ -91,7 +87,6 @@ class ProbeEvent(ProbeView):
 
     def on_conf_collection_button_clicked(self, _):
         """ The Configure Collection button was clicked """
-    
         self._conf_coll_dialog.show()
     
     def on_save_figure_button_clicked(self, _):
@@ -115,7 +110,7 @@ class ProbeEvent(ProbeView):
         ret = dlg.run()
         filename = dlg.get_filename()
         if ret == gtk.RESPONSE_APPLY and filename is not None:
-            (name, ext) = os.path.splitext(filename)
+            (_, ext) = os.path.splitext(filename)
             if ext == '':
                 # set default filetype to svg, jpg gives bad results
                 filename = filename + '.svg'

@@ -115,6 +115,16 @@ private:
 	 */
 	void setProbeState(uint8_t probe_id, bool enabled);
 
+	/**
+	 * @brief disable all stats
+	 */
+	void disable();
+
+	/**
+	 * @brief Enable output
+	 */
+	void enable();
+
 	/// whether the element is enabled
 	bool enabled;
 

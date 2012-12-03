@@ -304,7 +304,6 @@ class ProcessList():
 
     def get_processes_attr(self, attr):
         """ return a list of the processes’ specified attribute """
-
         result = []
         with ProcessList._process_lock:
             for process in ProcessList._process_list.itervalues():

@@ -85,3 +85,13 @@ void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
 	instance.setProbeState(probe_id, enabled);
 }
+
+void Output::disable()
+{
+	instance.disable();
+}
+
+void Output::enable()
+{
+	instance.enable();
+}

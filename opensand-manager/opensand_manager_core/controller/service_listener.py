@@ -205,6 +205,7 @@ class OpenSandServiceListener():
         if name == "collector":
             self._env_plane.unregister_on_collector()
             self._model.set_collector_known(False)
+            self._model.set_collector_functional(False)
             return
         
         self._model.del_host(name)
@@ -225,7 +226,8 @@ if __name__ == '__main__':
     HOSTS = []
     gobject.threads_init()
 
-    SERVICE = OpenSandServiceListener(MODEL, HOSTS, [], '_opensand._tcp', LOGGER)
+    SERVICE = OpenSandServiceListener(MODEL, HOSTS, [], '_opensand._tcp',
+                                      LOGGER)
     try:
         gobject.MainLoop().run()
     except KeyboardInterrupt:

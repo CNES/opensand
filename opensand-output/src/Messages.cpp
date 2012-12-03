@@ -124,6 +124,7 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 
 	if(got == 0)
 	{
+		UTI_NOTICE("Socket closed");
 		// The socket was probably closed
 		return 0;
 	}

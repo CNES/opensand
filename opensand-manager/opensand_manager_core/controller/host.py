@@ -121,7 +121,13 @@ class HostController:
             self._log.debug("%s: received '%s' from state server" %
                             (self.get_name(), received))
             cmd = received.split()
-            if len(cmd) < 1 or cmd[0] != 'STARTED':
+            if len(cmd) < 1:
+                self._log.warning("%s: socket seems to be closed by host" %
+                                  self.get_name())
+                self._host_model.set_started(None)
+                sock.close()
+                thread.exit()
+            if cmd[0] != 'STARTED':
                 sock.send("ERROR wrong command '%s' \n" % cmd)
                 self._log.error("%s: received '%s' while waiting for 'STARTED'"
                                 % (self.get_name(), cmd))
@@ -218,15 +224,19 @@ class HostController:
         if not dev_mode:
             bin_file = self._host_model.get_component()
         else:
-            bin_file = deploy_config.get(self._host_model.get_name(), 'binary')
+            bin_file = deploy_config.get(component, 'binary')
             bin_file = os.path.join(prefix, bin_file.lstrip('/'))
 
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
-        command_line = '%s -i %s -a %s -n %s' % \
-                       (bin_file, self._host_model.get_instance(),
+        instance_param = ''
+        if component.startswith('st'):
+            instance_param = '-i ' + self._host_model.get_instance()
+        command_line = '%s -a %s -n %s %s' % \
+                       (bin_file,
                         self._host_model.get_emulation_address(),
-                        self._host_model.get_emulation_interface())
+                        self._host_model.get_emulation_interface(),
+                        instance_param)
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',
@@ -300,7 +310,7 @@ class HostController:
             # send 'STOP' tag
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, (_, strerror):
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -613,5 +623,5 @@ class HostController:
                                    "for 'OK'" % (self.get_name(), received))
 
     def disable(self):
-        """ diasable the host """
+        """ disable the host """
         self._host_model.enable(False)

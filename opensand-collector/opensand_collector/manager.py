@@ -111,6 +111,12 @@ class Probe(object):
             self._log_file.close()
         self._log_file = None
 
+    def restore(self):
+        """
+        Restore previously cleaned resources
+        """
+        self._create_file(mode='a')
+
     def log_value(self, time, value):
         """
         Writes the specified value to the log.
@@ -124,14 +130,20 @@ class Probe(object):
         return (self._name, self._unit, self._storage_type, self._enabled,
                 self._displayed)
 
-    def _create_file(self):
+    def _create_file(self, mode='w'):
         """
         Create the probe log file in the program’s storage folder.
         """
         path = self._program.get_storage_path(self._name + ".log")
-        LOGGER.debug("Creating probe log file %s", path)
-        self._log_file = open(path, "w")
-        self._log_file.write("%s\n" % self._unit)
+        try:
+            self._log_file = open(path, mode)
+        except (IOError, OSError), err:
+            LOGGER.error("cannot open probe log file: %s", err)
+        if mode != 'a':
+            LOGGER.debug("Creating probe log file %s", path)
+            self._log_file.write("%s\n" % self._unit)
+        else:
+            LOGGER.debug("Opening probe log file %s", path)
 
     @property
     def enabled(self):
@@ -251,6 +263,15 @@ class Program(object):
         for probe in self._probes:
             probe.cleanup()
 
+    def restore(self):
+        """
+        Restore previously cleaned resources
+        """
+        self._setup_storage(mode='a')
+
+        for probe in self._probes:
+            probe.restore()
+
     def get_storage_path(self, name):
         """
         Return the full path for a filename stored in the program’s storage
@@ -275,7 +296,7 @@ class Program(object):
         """
         self._event_log_file.write(text)
 
-    def _setup_storage(self):
+    def _setup_storage(self, mode='w'):
         """
         Creates the storage folder for the program, and the events log file.
         """
@@ -285,8 +306,14 @@ class Program(object):
             mkdir(path)
 
         path = join(path, "event_log.txt")
-        LOGGER.debug("Creating event log file %s", path)
-        self._event_log_file = open(path, 'w')
+        if mode != 'a':
+            LOGGER.debug("Creating event log file %s", path)
+        else:
+            LOGGER.debug("Opening event log file %s", path)
+        try:
+            self._event_log_file = open(path, mode)
+        except (IOError, OSError), err:
+            LOGGER.error("cannot open event log file: %s", err)
 
     @property
     def name(self):
@@ -344,12 +371,12 @@ class Host(object):
         """
         if ident in self._programs:
             LOGGER.error("Tried to add program with ID %d already on host %s",
-                ident, self)
+                         ident, self)
 
         prog = Program(self, ident, name, probe_list, event_list)
         self._programs[ident] = prog
         LOGGER.info("Program %s was added to host %s. Probes: %r, events: %r",
-            name, self, prog.probes, prog.events)
+                    name, self, prog.probes, prog.events)
 
         return prog
 
@@ -359,7 +386,7 @@ class Host(object):
         """
         if ident not in self._programs:
             LOGGER.error("Tried to remove program with ID %d not on host %s",
-                ident, self)
+                         ident, self)
             return
 
         name = self._programs[ident].name
@@ -383,6 +410,13 @@ class Host(object):
         """
         for program in self._programs.itervalues():
             program.cleanup()
+
+    def restore(self):
+        """
+        Restore previously cleaned resources
+        """
+        for program in self._programs.itervalues():
+            program.restore()
 
     def get_storage_path(self, name):
         """
@@ -447,6 +481,13 @@ class Host(object):
         """
         return self._address
 
+    @address.setter
+    def address(self, value):
+        """
+        Set host address
+        """
+        self._address = value
+
     def __str__(self):
         return self._name
 
@@ -463,6 +504,7 @@ class HostManager(object):
         self._host_by_name = {}
         self._host_by_addr = {}
         self._host_by_id = {}
+        self._removed_hosts = []
         self._storage_folder = tempfile.mkdtemp("_opensand_collector")
         LOGGER.debug("Initialized storage folder at %s", self._storage_folder)
 
@@ -477,6 +519,9 @@ class HostManager(object):
         Creates a new storage folder, asks the components to switch to this
         folder, and returns the initial folder path.
         """
+        # clean remove hosts as the simulation was stopped
+        self._removed_hosts = []
+
         previous_folder = self._storage_folder
         self._storage_folder = tempfile.mkdtemp("opensand_collector")
         LOGGER.debug("Initialized new storage folder at %s",
@@ -500,16 +545,30 @@ class HostManager(object):
                          address)
             return
 
-        ident = self._new_ident()
+        found = False
+        for host in self._removed_hosts:
+            if name == host.name:
+                new_host = host
+                new_host.restore()
+                # update address
+                host.address = address
+                ident = host.ident
+                found = True
+                self._removed_hosts.remove(host)
+                break
 
-        if ident == 255:
-            LOGGER.error("Unable to add host %s: no more available IDs", name)
-            return
+        if not found:
+            ident = self._new_ident()
 
-        host = Host(self, ident, name, address)
-        self._host_by_name[name] = host
-        self._host_by_addr[address] = host
-        self._host_by_id[ident] = host
+            if ident == 255:
+                LOGGER.error("Unable to add host %s: no more available IDs", name)
+                return
+
+            new_host = Host(self, ident, name, address)
+
+        self._host_by_name[name] = new_host
+        self._host_by_addr[address] = new_host
+        self._host_by_id[ident] = new_host
 
         LOGGER.info("Host %s (%s:%d) registered.", name, *address)
 
@@ -543,6 +602,7 @@ class HostManager(object):
             LOGGER.info("Host %s is unregistering.", name)
             return
 
+        self._removed_hosts.append(host)
         del self._host_by_name[name]
         del self._host_by_addr[host.address]
         del self._host_by_id[host.ident]
@@ -556,7 +616,7 @@ class HostManager(object):
         return self._host_by_addr[address]
 
     def set_probe_status(self, host_id, program_id, probe_id, new_enabled,
-        new_displayed):
+                         new_displayed):
         """
         Sets the status of a given probe.
         Returns the host object corresponding to the ID if an update to the
@@ -612,7 +672,8 @@ class HostManager(object):
         with the manager.
         """
         for i in xrange(0, 255):
-            if i not in self._host_by_id:
+            if i not in self._host_by_id and \
+               i not in map(lambda x: x.ident, self._removed_hosts):
                 return i
 
         return 255

@@ -190,8 +190,11 @@ class OpenSandRoutes(object):
                 del OpenSandRoutes._routes_v6[host]
             self.serialize()
         else:
-            del OpenSandRoutes._routes_v4[host]
-            del OpenSandRoutes._routes_v6[host]
+            try:
+                del OpenSandRoutes._routes_v4[host]
+                del OpenSandRoutes._routes_v6[host]
+            except KeyError:
+                pass
         OpenSandRoutes._routes_lock.release()
 
     def setup_routes(self):

@@ -46,6 +46,9 @@
 #define MSG_CMD_SEND_EVENT 4
 #define MSG_CMD_ENABLE_PROBE 5
 #define MSG_CMD_DISABLE_PROBE 6
+#define MSG_CMD_DISABLE 8
+#define MSG_CMD_ENABLE 9
+#define MSG_CMD_NACK 11
 
 #define DAEMON_SOCK_NAME "sand-daemon.socket"
 #define SELF_SOCK_NAME "program-%d.socket"

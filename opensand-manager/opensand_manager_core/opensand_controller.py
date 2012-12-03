@@ -83,8 +83,8 @@ class Controller(threading.Thread):
                         shutil.copy(DEFAULT_INI_FILE,
                                     ini_file)
                     except IOError, msg:
-                        self._log.warning("failed to copy %s configuration file "
-                                          "in '%s': %s, default deploy file "
+                        self._log.warning("failed to copy %s configuration file"
+                                          " in '%s': %s, default deploy file "
                                           "will be used"
                                           % (DEFAULT_INI_FILE, ini_file, msg))
 
@@ -94,7 +94,8 @@ class Controller(threading.Thread):
                                     self._env_plane, service_type, self._log)
             
             if interactive:
-                self._command = threading.Thread(None, self.start_server, None, (), {})
+                self._command = threading.Thread(None, self.start_server, None,
+                                                 (), {})
         except Exception:
             self.close()
             raise
@@ -186,10 +187,7 @@ class Controller(threading.Thread):
         self._log.info("Install simulation files")
 
         for host in self._hosts:
-            instance = None
             name = host.get_name()
-            if name.lower().startswith('st'):
-                instance = 'st'
             self._log.info("Installing  %s" % name)
             files = self._model.get_files()
             if not name.lower() in files and not 'global' in files:
@@ -210,8 +208,8 @@ class Controller(threading.Thread):
                                           " ignored" % elem[0])
                         continue
                     if dst == '':
-                        self._log.warning("destination for %s is empty, the file "
-                                          "was ignored" % elem[0])
+                        self._log.warning("destination for %s is empty, the "
+                                          "file was ignored" % elem[0])
                         continue
                     host.send_file(sock, src, dst)
                 if 'global' in files:
@@ -219,11 +217,11 @@ class Controller(threading.Thread):
                         src = elem[1]
                         dst = elem[2]
                         if src == '':
-                            self._log.warning("source for %s is empty, the file was"
-                                              " ignored" % elem[0])
+                            self._log.warning("source for %s is empty, the file"
+                                              " was ignored" % elem[0])
                         elif dst == '':
-                            self._log.warning("destination for %s is empty, the file "
-                                              "was ignored" % elem[0])
+                            self._log.warning("destination for %s is empty, the"
+                                              " file was ignored" % elem[0])
                         else:
                             host.send_file(sock, src, dst)
 
@@ -233,7 +231,7 @@ class Controller(threading.Thread):
             except IOError, msg:
                 self._log.error("Cannot install simulation files: %s" % msg)
                 return False
-            except socket.error, (errno, strerror):
+            except socket.error, (_, strerror):
                 self._log.error("Cannot contact %s command server: %s" %
                                 (name, strerror))
                 return False
@@ -290,7 +288,6 @@ class Controller(threading.Thread):
                     default_path = os.path.join(DEFAUL_PATH, component)
                     shutil.copy(os.path.join(default_path, 'core.conf'),
                                 conf_file)
-                #TODO try to simplify file deployment
                 scenario = self._model.get_scenario()
                 # the list of files to send
                 conf_files = [os.path.join(scenario, 'core_global.conf'),
@@ -316,7 +313,7 @@ class Controller(threading.Thread):
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
                 ws.configure_ws(self._deploy_config, self._model.get_dev_mode())
-        except (OSError, IOError), (errno, strerror):
+        except (OSError, IOError), (_, strerror):
             self._log.error("Failed to create directory '%s': %s" %
                             (host_path, strerror))
             return False
@@ -354,16 +351,17 @@ class Controller(threading.Thread):
 
         # save the environment plane results into the correct path
         # everything is saved in scenario/run
-        self._log.ingo("Save the environment plane outputs")
-        self._event_manager_response.set('probe_transfer_progress', 'start')
-        dst = os.path.join(self._model.get_scenario(),
-                           self._model.get_run())
+        if self._model.is_collector_functional():
+            self._log.info("Save the environment plane outputs")
+            self._event_manager_response.set('probe_transfer_progress', 'start')
+            dst = os.path.join(self._model.get_scenario(),
+                               self._model.get_run())
             
-        def done():
-            self._event_manager_response.set('probe_transfer_progress',
-                                             'done')
+            def done():
+                self._event_manager_response.set('probe_transfer_progress',
+                                                 'done')
             
-        self._env_plane.transfer_from_collector(dst, None, done)
+            self._env_plane.transfer_from_collector(dst, done)
 
         self._log.info("OpenSAND platform stopped")
 
@@ -435,7 +433,7 @@ class Controller(threading.Thread):
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % host.get_name())
 
-        except socket.error, (errno, strerror):
+        except socket.error, (_, strerror):
             self._log.error("Cannot contact %s command server: %s" %
                             (host.get_name(), strerror))
         except CommandException:

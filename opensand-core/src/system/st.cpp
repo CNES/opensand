@@ -333,8 +333,9 @@ int main(int argc, char **argv)
 			status = Output::registerEvent("status", LEVEL_INFO);
 			if(!Output::finishInit())
 			{
-				UTI_ERROR("%s: failed to init the output\n", progname);
-				goto release_plugins;
+				UTI_PRINT(LOG_INFO,
+				          "%s: failed to init the output => disable it\n",
+				         progname);
 			}
 
 			Output::sendEvent(status, "Simulation started");

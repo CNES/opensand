@@ -36,6 +36,7 @@ environment_plane.py - controller for environment plane
 """
 
 from opensand_manager_core.model.environment_plane import Program
+from opensand_manager_core.model.host import InitStatus
 from tempfile import TemporaryFile
 from zipfile import ZipFile
 import gobject
@@ -69,7 +70,6 @@ class EnvironmentPlaneController(object):
 
         self._transfer_port = 0
         self._transfer_dest = None
-        self._transfer_dial = None
         self._transfer_cb = None
         self._transfer_file = None
         self._transfer_remaining = 0
@@ -91,8 +91,6 @@ class EnvironmentPlaneController(object):
         addr = (ipaddr, port)
 
         if self._collector_addr:
-            self._log.info("Found a duplicate collector on %s:%d, ignoring" %
-                           addr)
             return
 
         self._collector_addr = addr
@@ -143,24 +141,21 @@ class EnvironmentPlaneController(object):
         """
         return self._programs[ident]
 
-    def transfer_from_collector(self, destination, prog_dialog, comp_callback):
+    def transfer_from_collector(self, destination, comp_callback):
         """
         Gets the probe data from the collector and puts the files in the
         destination folder.
         """
         if not self._transfer_port:
-            raise RuntimeError("Collector transfer port not known")
+            self._log.info("Collector transfer port not known")
+            return
 
         self._log.debug("Initiating probe transfer from collector")
-
-        if prog_dialog:
-            prog_dialog.show()
 
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         transfer_socket.connect((self._collector_addr[0], self._transfer_port))
 
         self._transfer_dest = destination
-        self._transfer_dial = prog_dialog
         self._transfer_cb = comp_callback
         self._transfer_file = TemporaryFile()
 
@@ -183,9 +178,6 @@ class EnvironmentPlaneController(object):
         gobject.io_add_watch(transfer_socket, gobject.IO_IN,
                              self._transfer_data)
 
-        if self._transfer_dial:
-            self._transfer_dial.ping()
-
         return False
 
     def _transfer_data(self, transfer_socket, _tag):
@@ -202,9 +194,6 @@ class EnvironmentPlaneController(object):
         self._transfer_remaining -= len(data)
 
         self._transfer_file.write(data)
-
-        if self._transfer_dial:
-            self._transfer_dial.ping()
 
         self._log.debug("Got data, %d remaining" % self._transfer_remaining)
 
@@ -223,10 +212,8 @@ class EnvironmentPlaneController(object):
 
         self._log.debug("Done")
 
-        if self._transfer_dial:
-            self._transfer_dial.close()
-
-        gobject.idle_add(self._transfer_cb)
+        if self._transfer_cb is not None:
+            gobject.idle_add(self._transfer_cb)
 
         return False
 
@@ -309,8 +296,8 @@ class EnvironmentPlaneController(object):
         """
         Handles a registration message.
         """
-        host_id, prog_id, num_probes, num_events, name_length = struct.unpack(
-            "!BBBBB", data[0:5])
+        host_id, prog_id, num_probes, num_events, name_length = \
+            struct.unpack("!BBBBB", data[0:5])
         prog_name = data[5:5 + name_length]
         full_prog_id = (host_id << 8) | prog_id
 
@@ -321,8 +308,8 @@ class EnvironmentPlaneController(object):
 
         probe_list = []
         for _ in xrange(num_probes):
-            storage_type, name_length, unit_length = struct.unpack("!BBB",
-                                                                   data[pos:pos + 3])
+            storage_type, name_length, unit_length = \
+                    struct.unpack("!BBB", data[pos:pos + 3])
             enabled = bool(storage_type & (1 << 7))
             displayed = bool(storage_type & (1 << 6))
             storage_type = storage_type & ~(3 << 6)
@@ -362,8 +349,16 @@ class EnvironmentPlaneController(object):
                                                               probe_list,
                                                               event_list))
 
-
-        program = Program(self, full_prog_id, prog_name, probe_list, event_list)
+        # try to get host model
+        splitted = prog_name.split('.', 1)
+        if len(splitted) > 1:
+            host_name = splitted[1]
+        host_model = self._model.get_host(host_name)
+        if host_model is not None:
+            self._log.debug("Found a model for host")
+            host_model.set_init_status(InitStatus.SUCCESS)
+        program = Program(self, full_prog_id, prog_name, probe_list, event_list,
+                          host_model)
         self._programs[full_prog_id] = program
 
         if self._observer:
@@ -384,7 +379,7 @@ class EnvironmentPlaneController(object):
             del self._programs[full_prog_id]
         except KeyError:
             self._log.error("Unregistering program [%d:%d] not found" %
-                (host_id, prog_id))
+                            (host_id, prog_id))
 
         if self._observer:
             self._observer.program_list_changed()
@@ -402,7 +397,7 @@ class EnvironmentPlaneController(object):
             program = self._programs[full_prog_id]
         except KeyError:
             self._log.error("Program [%d:%d] which sent probe data is not "
-                "found" % (host_id, prog_id))
+                            "found" % (host_id, prog_id))
             return False
 
         pos = 6
@@ -444,7 +439,7 @@ class EnvironmentPlaneController(object):
             name, level = program.get_event(event_id)
         except IndexError:
             self._log.error("Incorrect event ID %d for program [%d:%d] "
-                "received" % (event_id, host_id, prog_id))
+                            "received" % (event_id, host_id, prog_id))
 
         if self._observer:
             self._observer.new_event(program, name, level, message)
@@ -456,8 +451,7 @@ class EnvironmentPlaneController(object):
         Notifies the collector that the status of a given probe has changed.
         """
         if not self._collector_addr:
-            raise RuntimeError("Unable to update probe status: collector "
-                "unknown.")
+            return
 
         host_id = (probe.program.ident >> 8) & 0xFF
         program_id = probe.program.ident & 0xFF
@@ -466,10 +460,10 @@ class EnvironmentPlaneController(object):
         self._log.debug("Updating status of probe %d on program %d:%d: "
                         "enabled = %s, displayed = %s" % (probe_id, host_id,
                                                           program_id,
-                                                          probe._enabled,
-                                                          probe._displayed))
+                                                          probe.enabled,
+                                                          probe.displayed))
 
-        state = 2 if probe._displayed else (1 if probe._enabled else 0)
+        state = 2 if probe.displayed else (1 if probe.enabled else 0)
 
         message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SET_PROBE_STATUS,
                               host_id, program_id, probe_id, state)

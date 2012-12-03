@@ -92,8 +92,8 @@ class ProbeSelectionController(object):
         column.add_attribute(cell_renderer, "text", 1)
     
     def register_collection_dialog(self, collection_dialog):
+        """ register a collection dialog """
         self._collection_dialog = collection_dialog
-        
         if collection_dialog:
             collection_dialog.update_list(self._program_list)
     
@@ -114,7 +114,8 @@ class ProbeSelectionController(object):
         self._program_store.clear()
         
         for program in self._program_list.itervalues():
-            self._program_store.append([program.name, program.ident])
+            self._program_store.append([program.name,
+                                        program.ident])
         
         selection = self._program_listview.get_cursor()
         if selection[0] is None:
@@ -176,7 +177,8 @@ class ProbeSelectionController(object):
                     probe_parent = cur_group['']
             
                 self._probe_store.append(probe_parent, [probe.displayed,
-                    probe_name, probe.ident, True])
+                                                        probe_name, probe.ident,
+                                                        True])
     
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
@@ -547,7 +549,6 @@ class ConfigurationNotebook(gtk.Notebook):
         self._tables[self._config.get_path(key)] = check_buttons
         self.check_sensitive()
         return table_frame
-
 
     def add_line(self, key, line, check_buttons):
         """ add a line in the configuration """

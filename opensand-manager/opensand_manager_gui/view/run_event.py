@@ -266,7 +266,6 @@ class RunEvent(RunView):
         """ edit button in options menu clicked """
         window = EditDeployDialog(self._model, self._log)
         window.go()
-        window.close()
 
     def on_start_stop_activate(self, source=None, event=None):
         """ start/stop button in action menu clicked """
@@ -281,6 +280,5 @@ class RunEvent(RunView):
         window = EditInstallDialog(self._model, self._log)
         window.go()
         window.close()
-        pass
 
 

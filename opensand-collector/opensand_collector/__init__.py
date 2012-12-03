@@ -83,8 +83,7 @@ class OpenSandCollector(object):
     """
 
     def __init__(self):
-        self.sock = None
-        self.host_manager = HostManager()
+        self._host_manager = HostManager()
 
     def run(self):
         """
@@ -164,11 +163,11 @@ class OpenSandCollector(object):
             os.setuid(opensand_uid)
 
         try:
-            with MessagesHandler(self) as msg_handler:
+            with MessagesHandler(self._host_manager) as msg_handler:
                 port = msg_handler.get_port()
-                with TransferServer(self.host_manager) as transfer_server:
+                with TransferServer(self._host_manager) as transfer_server:
                     trsfer_port = transfer_server.get_port()
-                    with ServiceHandler(self, port, trsfer_port,
+                    with ServiceHandler(self._host_manager, port, trsfer_port,
                                         service_type, iface):
                         if options.background:
                             pid = os.fork()
@@ -191,6 +190,6 @@ class OpenSandCollector(object):
 
                         main_loop.run()
         finally:
-            self.host_manager.cleanup()
+            self._host_manager.cleanup()
             if options.background:
                 os.ftruncate(bg_fd, 0)
