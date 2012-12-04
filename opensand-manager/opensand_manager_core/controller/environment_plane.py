@@ -38,10 +38,11 @@ environment_plane.py - controller for environment plane
 from opensand_manager_core.model.environment_plane import Program
 from opensand_manager_core.model.host import InitStatus
 from tempfile import TemporaryFile
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipfile
 import gobject
 import socket
 import struct
+import select
 
 MAGIC_NUMBER = 0x5A7D0001
 MSG_MGR_REGISTER = 21
@@ -146,19 +147,30 @@ class EnvironmentPlaneController(object):
         Gets the probe data from the collector and puts the files in the
         destination folder.
         """
+        self._transfer_cb = comp_callback
         if not self._transfer_port:
             self._log.info("Collector transfer port not known")
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb)
             return
 
         self._log.debug("Initiating probe transfer from collector")
 
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        transfer_socket.settimeout(10.0)
         transfer_socket.connect((self._collector_addr[0], self._transfer_port))
 
         self._transfer_dest = destination
-        self._transfer_cb = comp_callback
         self._transfer_file = TemporaryFile()
 
+
+        inputready, _, _ = select.select([transfer_socket], [], [], 5)
+        if(len(inputready) == 0):
+            self._log.warning("Cannot get data from collector")
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+            transfer_socket.close()
+            return
         gobject.io_add_watch(transfer_socket, gobject.IO_IN,
                              self._transfer_header)
 
@@ -206,7 +218,13 @@ class EnvironmentPlaneController(object):
         self._log.debug("Extracting")
 
         self._transfer_file.seek(0)
-        zip_file = ZipFile(self._transfer_file, "r")
+        try:
+            zip_file = ZipFile(self._transfer_file, "r")
+        except BadZipfile, msg:
+            self._log.warning("Error when getting controller data: " + str(msg))
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+                return False
         zip_file.extractall(self._transfer_dest)
         zip_file.close()
 
@@ -249,7 +267,7 @@ class EnvironmentPlaneController(object):
 
             if not success:
                 self._log.error("Bad data received for REGISTER_PROGRAM "
-                    "command.")
+                                "command.")
 
             return True
 

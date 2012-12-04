@@ -126,7 +126,9 @@ class EventReponseHandler(threading.Thread):
             
             elif event_type == "probe_transfer_progress":
                 text = self._event_manager_response.get_text()
-                self._opensand_view.on_probe_transfer_progress(text == "start")
+                gobject.idle_add(self._opensand_view.on_probe_transfer_progress,
+                                 text == 'start')
+                # TODO: if text == 'fail':
 
             elif event_type == 'quit':
                 # quit event

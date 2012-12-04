@@ -44,7 +44,7 @@ import socket
 import struct
 import threading
 
-LOGGER = logging.getLogger('transfer_server')
+LOGGER = logging.getLogger('service_handler')
 
 class TransferServer(threading.Thread):
     """

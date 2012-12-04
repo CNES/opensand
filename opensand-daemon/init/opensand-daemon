@@ -81,7 +81,8 @@ stop()
     else
         log_failure_msg "${PIDFILE} does not exist"
         log_end_msg 1
-        exit 1
+#        exit 1
+		return
     fi
 
     echo "Closing connections"

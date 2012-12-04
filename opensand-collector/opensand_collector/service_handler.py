@@ -37,11 +37,12 @@ service_handler.py - OpenSAND collector Avahi service handler.
 
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.exceptions import DBusException
+import gobject
 import avahi
 import dbus
 import logging
 
-LOGGER = logging.getLogger('service_handler')
+LOGGER = logging.getLogger('sand-collector')
 
 class ServiceHandler(object):
     """
@@ -90,6 +91,9 @@ class ServiceHandler(object):
 
         self._pub_group.Commit()
 
+        self._mainloop = gobject.MainLoop()
+        gobject.threads_init()  # Necessary for the transfer_server thread
+
         # Discovery
         self._disco_server = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
             '/'), 'org.freedesktop.Avahi.Server')
@@ -105,6 +109,11 @@ class ServiceHandler(object):
         LOGGER.info("Avahi service handler started.")
 
         return self
+
+    def run(self):
+        """ start the mainloop for service listening """
+        self._mainloop.run()
+
 
     def _handle_new(self, interface, protocol, name, stype, domain, flags):
         """
@@ -158,6 +167,10 @@ class ServiceHandler(object):
         LOGGER.debug("Daemon on host '%s' has exited.", name)
         self._host_manager.remove_host(name)
         self._known_hosts.discard(name)
+
+    def stop(self):
+        """ stop the mainloop """
+        self._mainloop.quit()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """

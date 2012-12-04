@@ -66,7 +66,7 @@ SERVICE = None
 COMMAND = None
 STATE = None
 
-DEFAULT_CACHE=default='/var/cache/sand-daemon'
+DEFAULT_CACHE='/var/cache/sand-daemon'
 
 def sig_handler(signum, frame):
     """ signal handler """
@@ -558,7 +558,7 @@ if __name__ == "__main__":
             LOGGER.error("cannot fork (%d: %s) : quit" % (errno, strerror))
             sys.exit(1)
 
-        if(CHILD_PID == 0):
+        if CHILD_PID == 0:
             # wait that father write the PID
             time.sleep(2)
             start_daemon()

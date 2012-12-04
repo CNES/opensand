@@ -42,7 +42,7 @@ import shutil
 import struct
 import tempfile
 
-LOGGER = logging.getLogger("manager")
+LOGGER = logging.getLogger('sand-collector')
 
 
 class Probe(object):

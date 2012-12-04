@@ -33,6 +33,7 @@ remove_opensand_conf(){
     CONF="/etc/opensand"
     DAEMON_CONF="/etc/opensand/daemon.conf"
     CORE_CONF="/etc/opensand/core.conf"
+    # TODO check for plugins and other deployed files to remove
 
     ${EXE_RM} -f ${DAEMON_CONF} ${CORE_CONF} || true
     ${EXE_RMDIR} --ignore-fail-on-non-empty ${CONF} || true

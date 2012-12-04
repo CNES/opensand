@@ -41,7 +41,7 @@ import socket
 import struct
 import logging
 
-LOGGER = logging.getLogger('messages_handler')
+LOGGER = logging.getLogger('sand-collector')
 
 MAGIC_NUMBER = 0x5A7D0001
 MSG_CMD_REGISTER = 1

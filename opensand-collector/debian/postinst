@@ -20,6 +20,15 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+set_owner(){
+    # Set owner to files and directories
+    EXE_CHOWN="/bin/chown"
+    USER_NAME="opensand"
+
+    ${EXE_CHOWN} ${USER_NAME} /var/run/sand-collector
+}
+
+
 restart_syslog(){
     service rsyslog restart
 }
@@ -27,6 +36,7 @@ restart_syslog(){
 case "$1" in
     configure)
         restart_syslog
+        set_owner
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

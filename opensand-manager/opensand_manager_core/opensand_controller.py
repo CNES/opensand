@@ -357,9 +357,9 @@ class Controller(threading.Thread):
             dst = os.path.join(self._model.get_scenario(),
                                self._model.get_run())
             
-            def done():
+            def done(status='done'):
                 self._event_manager_response.set('probe_transfer_progress',
-                                                 'done')
+                                                 status)
             
             self._env_plane.transfer_from_collector(dst, done)
 

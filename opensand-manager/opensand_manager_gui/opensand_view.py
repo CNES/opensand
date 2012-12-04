@@ -504,10 +504,6 @@ class View(WindowView):
     
     def on_probe_transfer_progress(self, started):
         """ Called when probe transfer from the collector starts or stops """
-        gobject.idle_add(self._on_probe_transfer_progress, started)
-    
-    def _on_probe_transfer_progress(self, started):
-        """ Internal probe transfer notification handler """
         if started:
             self._prog_dialog = ProgressDialog("Saving probe data, please "
                                                "wait…", self._model, self._log)
@@ -516,7 +512,7 @@ class View(WindowView):
             self._prog_dialog.close()
             self._prog_dialog = None
             self._eventprobe.simu_data_available()
-        
+
 
 ##### TEST #####
 if __name__ == "__main__":
