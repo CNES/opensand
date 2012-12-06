@@ -157,13 +157,16 @@ class RunEvent(RunView):
             self.disable_deploy_buttons(True)
 
             # add a line in the event text views
-            self.show_opensand_event("***** New run: %s *****" %
-                                    self._model.get_run())
+            self._log.info("***** New run: %s *****" % self._model.get_run(),
+                           True, True)
 
             # tell the hosts controller to start OpenSAND on all hosts
             # (startup will be finished when we will receive a
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
+
+            self._opensand_view.global_event("***** New run: %s *****" %
+                                             self._model.get_run())
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -176,8 +179,6 @@ class RunEvent(RunView):
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
 
-            # add an empty line in the event text views
-            self.show_opensand_event("")
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
         """ 'toggled' event on dev_mode button """

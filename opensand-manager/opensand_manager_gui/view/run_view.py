@@ -328,17 +328,6 @@ class RunView(WindowView):
         self._drawing_area.window.draw_layout(self._context_graph,
                                               x, y, self._stylepango)
 
-    def show_opensand_event(self, text):
-        """ print OpenSAND events in OpenSAND textview"""
-        
-        if text != "":
-            self._log.debug("OpenSAND event: " + text)
-
-    def show_opensand_error(self, text, color = None):
-        """ print OpenSAND errors in OpenSAND textview
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._log.debug("OpenSAND error: " + text)
-
     def update_status(self):
         """ update the status of the different component
             (should be used with gobject.idle_add outside gtk handlers) """

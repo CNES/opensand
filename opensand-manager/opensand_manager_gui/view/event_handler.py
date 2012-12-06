@@ -41,7 +41,7 @@ import time
 class EventReponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
     def __init__(self, view, event_manager_response, opensand_view,
-        manager_log):
+                 manager_log):
         threading.Thread.__init__(self)
         self._view = view
         self._opensand_view = opensand_view
@@ -79,9 +79,9 @@ class EventReponseHandler(threading.Thread):
                     # avoid to update buttons while state has not been correctly
                     # updated
                     idx = 0
-                    while not self._view.is_running() and idx < 5:
+                    while not self._view.is_running() and idx < 10:
                         idx += 1
-                        time.sleep(1)
+                        time.sleep(0.5)
                     # update the label of the 'start/stop opensand' button
                     gobject.idle_add(self._view.set_start_stop_button,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
@@ -106,9 +106,9 @@ class EventReponseHandler(threading.Thread):
                     # avoid to update buttons while state has not been correctly
                     # updated
                     idx = 0
-                    while self._view.is_running() and idx < 5:
+                    while self._view.is_running() and idx < 10:
                         idx += 1
-                        time.sleep(1)
+                        time.sleep(0.5)
                     # update the label of the 'start/stop opensand' button
                     gobject.idle_add(self._view.set_start_stop_button,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)

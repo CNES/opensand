@@ -106,16 +106,16 @@ class ManagerLog():
         if self._event_tab:
             self._event_tab.message(EventLevel.ERROR, None, text)
 
-    def info(self, text):
+    def info(self, text, mandatory=False, new_line=False):
         """ print an information in text view and/or in logger """
-        if self._level > 1:
+        if self._level > 1 and not mandatory:
             return
 
         if self._log:
             self._logger.info(text)
 
         if self._event_tab:
-            self._event_tab.message(EventLevel.INFO, None, text)
+            self._event_tab.message(EventLevel.INFO, None, text, new_line)
 
     def warning(self, text):
         """ print a warning  in text view and/or in logger """
@@ -136,5 +136,5 @@ class ManagerLog():
         if self._log:
             self._logger.debug(text)
 
-        if self._event_tab:
-            self._event_tab.message(EventLevel.DEBUG, None, text)
+#        if self._event_tab:
+#            self._event_tab.message(EventLevel.DEBUG, None, text)

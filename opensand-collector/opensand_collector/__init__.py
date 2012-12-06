@@ -147,7 +147,6 @@ class OpenSandCollector(object):
         elif options.verbose:
             LOGGER.setLevel(logging.INFO)
 
-        LOGGER.error("ICI")
         if options.kill:
             pid = read_pid_file(pid_path)
             if pid == 0:

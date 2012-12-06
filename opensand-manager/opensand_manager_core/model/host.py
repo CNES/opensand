@@ -216,7 +216,8 @@ class HostModel:
             elif key == self._component:
                 # if the collector is registerd and the host status was not
                 # updated set it to pending 
-                if self._init_status != InitStatus.FAIL:
+                if not self._collector_functional and \
+                   self._init_status != InitStatus.FAIL:
                     self._init_status = InitStatus.SUCCESS
                 if self._collector_functional and \
                    self._init_status == InitStatus.NONE:

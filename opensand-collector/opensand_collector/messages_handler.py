@@ -162,8 +162,8 @@ class MessagesHandler(object):
                              host)
 
             prog_id = struct.unpack("!B", data)[0]
-            host.remove_program(prog_id)
-            self._notify_manager_unreg_program(host.ident, prog_id)
+            if host.remove_program(prog_id):
+                self._notify_manager_unreg_program(host.ident, prog_id)
 
         elif cmd == MSG_CMD_RELAY:
             try:
@@ -446,6 +446,7 @@ class MessagesHandler(object):
         message += text
 
         if self._manager_addr:
+            LOGGER.debug("Transmit event to manager")
             self._sock.sendto(message, self._manager_addr)
 
 

@@ -158,7 +158,14 @@ class EnvironmentPlaneController(object):
 
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         transfer_socket.settimeout(10.0)
-        transfer_socket.connect((self._collector_addr[0], self._transfer_port))
+        try:
+            transfer_socket.connect((self._collector_addr[0], self._transfer_port))
+        except socket.error, msg:
+            self._log.error("Cannot connect to collector for transfer: %s" %
+                            msg)
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+            return
 
         self._transfer_dest = destination
         self._transfer_file = TemporaryFile()
@@ -224,9 +231,11 @@ class EnvironmentPlaneController(object):
             self._log.warning("Error when getting controller data: " + str(msg))
             if self._transfer_cb is not None:
                 gobject.idle_add(self._transfer_cb, 'fail')
-                return False
+            self._transfer_file.close()
+            return False
         zip_file.extractall(self._transfer_dest)
         zip_file.close()
+        self._transfer_file.close()
 
         self._log.debug("Done")
 
@@ -370,10 +379,10 @@ class EnvironmentPlaneController(object):
         # try to get host model
         splitted = prog_name.split('.', 1)
         if len(splitted) > 1:
-            host_name = splitted[1]
+            host_name = splitted[0]
         host_model = self._model.get_host(host_name)
         if host_model is not None:
-            self._log.debug("Found a model for host")
+            self._log.debug("Found a model for host %s" % host_name)
             host_model.set_init_status(InitStatus.SUCCESS)
         program = Program(self, full_prog_id, prog_name, probe_list, event_list,
                           host_model)

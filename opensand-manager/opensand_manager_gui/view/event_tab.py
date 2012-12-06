@@ -93,14 +93,15 @@ class EventTab(object):
         self._page_num = notebook.append_page(scroll, tab_hbox)
         notebook.connect("switch-page", self._check_switch_page)
 
-    def message(self, severity, identifier, text):
+    def message(self, severity, identifier, text, new_line=False):
         """
         Adds a message to the event tab
         """
         now = time.localtime()
-        gobject.idle_add(self._message, now, severity, identifier, text)
+        gobject.idle_add(self._message, now, severity, identifier, text,
+                         new_line)
 
-    def _message(self, date, severity, identifier, text):
+    def _message(self, date, severity, identifier, text, new_line):
         """
         Internal handler to add a message to the event tab
         """
@@ -121,17 +122,21 @@ class EventTab(object):
             sev_text = "INFO"
             image = gtk.STOCK_DIALOG_INFO
 
-        else:
+        elif severity is not None:
             color = 'green'
             sev_text = "DEBUG"
             image = gtk.STOCK_DIALOG_INFO
 
+        if new_line:
+            self._buff.insert(at_end(), "\n")
+
         self._buff.insert(at_end(), time.strftime("%H:%M:%S ", date))
         if identifier:
             self._buff.insert(at_end(), "%s: " % identifier)
-        self._buff.insert_with_tags_by_name(at_end(), "[%s]: " % sev_text,
-                                            color)
-        self._buff.insert(at_end(), text + "\n")
+        if severity is not None:
+            self._buff.insert_with_tags_by_name(at_end(), "[%s]: " % sev_text,
+                                                color)
+        self._buff.insert(at_end(), text.rstrip() + "\n")
         self._buff.place_cursor(at_end())
         self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 

@@ -387,12 +387,13 @@ class Host(object):
         if ident not in self._programs:
             LOGGER.error("Tried to remove program with ID %d not on host %s",
                          ident, self)
-            return
+            return False
 
         name = self._programs[ident].name
         self._programs[ident].cleanup()
         del self._programs[ident]
         LOGGER.info("Program %s was removed from host %s", name, self)
+        return True
 
     def switch_storage(self):
         """

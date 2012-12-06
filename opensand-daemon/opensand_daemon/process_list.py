@@ -63,6 +63,7 @@ class ProcessList():
     _wait = {}
     _cache_dir = None
     _callbacks = []
+    _stopping = False
 
     def __init__(self):
         pass
@@ -128,6 +129,8 @@ class ProcessList():
 
     def start(self):
         """ load the binary configuration file and start programs """
+        if ProcessList._stopping:
+            return
         parser = ConfigParser.SafeConfigParser()
         if len(parser.read(os.path.join(ProcessList._cache_dir, START_INI))) == 0:
             LOGGER.error("unable to read %s file",
@@ -205,6 +208,9 @@ class ProcessList():
 
     def stop(self):
         """ stop all the process """
+        # we release lock in the stop process, this boolean is used to avoid
+        # process modification while stopping 
+        ProcessList._stopping = True
         # check if all binaries are already stopped
         if len(ProcessList._process_list) == 0:
             LOGGER.info("all process are already stopped")
@@ -224,6 +230,11 @@ class ProcessList():
             kills.append(kill)
             try:
                 process.terminate()
+                # release process list lock in case program send something
+                # when stopping
+                ProcessList._process_lock.release()
+                ProcessList._stop.wait(0.5)
+                ProcessList._process_lock.acquire()
                 process.wait()
             except OSError, (errno, strerror):
                 # No child processes error reported when stopping while
@@ -250,6 +261,7 @@ class ProcessList():
 
         ProcessList._process_list = {}
         ProcessList._process_lock.release()
+        ProcessList._stopping = False
 
         try:
             self.serialize()
@@ -258,6 +270,8 @@ class ProcessList():
 
     def update(self, check = False):
         """ update the list of started components """
+        if ProcessList._stopping:
+            return
         ProcessList._process_lock.acquire()
 
         for name in ProcessList._process_list.keys():

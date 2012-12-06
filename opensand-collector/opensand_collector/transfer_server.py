@@ -44,7 +44,7 @@ import socket
 import struct
 import threading
 
-LOGGER = logging.getLogger('service_handler')
+LOGGER = logging.getLogger('sand-collector')
 
 class TransferServer(threading.Thread):
     """

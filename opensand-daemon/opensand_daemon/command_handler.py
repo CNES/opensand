@@ -216,8 +216,7 @@ class CommandHandler(MyTcpHandler):
                                        stderr=subprocess.STDOUT,
                                        cwd=os.path.dirname(command))
             
-            # Put the process in the process list
-            
+            # Put the process in the process list            
             process.prog_name = name
             ProcessList._process_lock.acquire()
             ProcessList._process_list[name] = process
@@ -227,7 +226,6 @@ class CommandHandler(MyTcpHandler):
               process.returncode is None:
             process.poll()
             MyTcpHandler._stop.wait(1)
-
 
         if process.returncode is None:
             LOGGER.error("kill test because it was not stopped")

@@ -13,8 +13,6 @@ XS-Python-Version: >= 2.6
 Depends: ${misc:Depends}, python (>= 2.6),
  python-dbus,
  python-avahi, avahi-daemon,
- python-ipaddr,
- python-prctl,
  rsyslog, logrotate
 Provides: opensand-env-plane
 Conflicts: opensand-env-plane

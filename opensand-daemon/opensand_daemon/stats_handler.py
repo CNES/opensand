@@ -160,7 +160,7 @@ class StatsHandler(threading.Thread):
         """
         Unset the address of the collector.
         """
-        if not self._collector_addr:
+        if self._collector_addr is None:
             return
 
         self._collector_addr = None
@@ -210,7 +210,7 @@ class StatsHandler(threading.Thread):
             self._running = False
             return
 
-        msg_len = len(msg) if msg else 0
+        msg_len = len(msg) if msg is not None else 0
 
         if cmd == MSG_CMD_REGISTER and msg_len >= 6:
             pid, num_probes, num_events = struct.unpack("!LBB", msg[0:6])
@@ -240,12 +240,12 @@ class StatsHandler(threading.Thread):
                         process.prog_name, prog_id)
 
             resp = MSG_CMD_ACK
+            header = struct.pack("!LBBBBB", MAGIC_NUMBER,
+                                 MSG_CMD_REGISTER, prog_id, num_probes, num_events,
+                                 len(process.prog_name))
+
             if self._collector_addr:
                 # Send REGISTER to the collector
-                header = struct.pack("!LBBBBB", MAGIC_NUMBER,
-                                     MSG_CMD_REGISTER, prog_id, num_probes, num_events,
-                                     len(process.prog_name))
-
                 sendtosock(self._ext_socket, header + prog_name + msg[6:],
                            self._collector_addr)
 
@@ -268,6 +268,10 @@ class StatsHandler(threading.Thread):
                                 header + prog_name + msg[6:]
 
             else:
+                # store the register message to send it if
+                # collector is started
+                self._register_msg[prog_id] = \
+                        header + prog_name + msg[6:]
                 resp = MSG_CMD_NACK
                 LOGGER.error("Collector not known, not relaying REGISTER")
 
@@ -387,6 +391,7 @@ class StatsHandler(threading.Thread):
     def _resend_register(self):
         """ send the stored REGISTERED messages because the collector was
             restarted """
+        LOGGER.debug("Resend register messages because collector was restarted")
         for msg in self._register_msg.values():
             sendtosock(self._ext_socket, msg, self._collector_addr)
             # Wait for ACK
