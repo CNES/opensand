@@ -3,14 +3,15 @@
 source=.
 destination=/tmp/opensand_tests
 
-[sat]
-files=stats/daemon_collector_files/start_collector.sh
+[st1]
+files=stats/daemon_collector_files/test_prog
 ld_library_path=.lib
 
 #[common]
 #files=
 
 [command]
-exec=/tmp/opensand_tests/stats/daemon_collector_files/start_collector.sh
+exec=/tmp/opensand_tests/stats/daemon_collector_files/test_prog
 wait=True
 return=0
+stats=True

@@ -114,6 +114,7 @@ opensand-tests/tests*/*/*/scenario/*/plugins/default.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/ideal.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/on_off.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/triangular.conf
+opensand-tests/tests*/stats/daemon_collector_test/scenario/*
 opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/__init__.py
 opensand-plugins/physical_layer/attenuation_model/ideal/debian/files
