@@ -49,7 +49,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define TIMEOUT 10
+#define TIMEOUT 6
 
 static uint32_t getMilis()
 {

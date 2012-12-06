@@ -79,6 +79,9 @@ class StatsHandler(threading.Thread):
         self._running = False
         self._stopped = False
         self._rstop, self._wstop = os.pipe()  # pipe to stop select
+        # pipe to transmit collector ack to avoid trying to read on collector
+        # socket two times simulaneously
+        self._rack, self._wack = os.pipe()
         self._register_msg = {}
 
         # Internal socket for processes
@@ -144,6 +147,7 @@ class StatsHandler(threading.Thread):
         if self._collector_addr is None:
             register = True
 
+        LOGGER.info("set collector address: %s:%s" % (address, port))
         self._collector_addr = (address, port)
 
         if register:
@@ -163,6 +167,7 @@ class StatsHandler(threading.Thread):
         if self._collector_addr is None:
             return
 
+        LOGGER.info("unset collector address")
         self._collector_addr = None
         # disable output as it won't be save or transmitted to
         # manager anymore
@@ -250,6 +255,8 @@ class StatsHandler(threading.Thread):
                            self._collector_addr)
 
                 # Wait for ACK
+                # We do not need to read on pipe because we are blocking the
+                # _handle function 
                 rlist, _, _ = select.select([self._ext_socket], [], [], 5)
                 if not rlist:
                     LOGGER.error("No ACK message from collector")
@@ -257,10 +264,9 @@ class StatsHandler(threading.Thread):
                 else:
                     cmd, _, _ = self._get_message(self._ext_socket,
                                                   self._collector_addr)
-
                     if cmd != MSG_CMD_ACK:
                         resp = MSG_CMD_NACK
-                        LOGGER.error("Bad ACK message from collector")
+                        LOGGER.error("Bad ACK message from collector (%s)" % cmd)
                     else:
                         # store the register message to send it back if
                         # collector is restarted or moved
@@ -326,10 +332,12 @@ class StatsHandler(threading.Thread):
 
             sendtosock(self._int_socket, struct.pack("!L", MAGIC_NUMBER) +
                        msg[1:], process.prog_addr)
-            return
-
-        LOGGER.error("Unexpected message %d received from the collector.",
-                     cmd)
+        elif cmd == MSG_CMD_ACK:
+            LOGGER.debug("received ACK from collector, transmist on pipe")
+            os.write(self._wack, "ACK")
+        else:
+            LOGGER.error("Unexpected message %d received from the collector.",
+                         cmd)
 
     def _proc_stopped(self, process):
         """
@@ -391,13 +399,13 @@ class StatsHandler(threading.Thread):
     def _resend_register(self):
         """ send the stored REGISTERED messages because the collector was
             restarted """
-        LOGGER.debug("Resend register messages because collector was restarted")
+        LOGGER.info("Resend register messages because collector was restarted")
         for msg in self._register_msg.values():
             sendtosock(self._ext_socket, msg, self._collector_addr)
             # Wait for ACK
-            rlist, _, _ = select.select([self._ext_socket], [], [], 5)
+            rlist, _, _ = select.select([self._rack], [], [], 5)
             # TODO enable/disable on programs according to collector response
-            self._get_message(self._ext_socket, self._collector_addr)
+            os.read(self._rack, 4)
 
     def _enable_output(self, value=True):
         """
