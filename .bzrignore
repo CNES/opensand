@@ -30,6 +30,7 @@ cscope.out
 */debian/tmp
 *.libs
 build
+dist
 *.egg-info
 opensand-conf/debian/libopensand-conf
 opensand-conf/debian/libopensand-conf-dbg

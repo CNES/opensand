@@ -5,7 +5,7 @@
 Setup file for the OpenSAND collector.
 """
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="opensand-collector",
@@ -14,6 +14,7 @@ setup(
     author_email="vduvert@toulouse.viveris.com",
     description=("Statistics and events collector for OpenSAND platform"),
     license="GPL",
-    packages=['opensand_collector'],
+    url="http://opensand.org",
+    packages=find_packages(),
     scripts=["sand-collector"],
 )

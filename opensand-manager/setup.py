@@ -25,6 +25,7 @@ setup(
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Manager for OpenSAND emulation testbed"),
+    url="http://opensand.org",
     license="GPL",
 #    long_description=read('README'),
 
