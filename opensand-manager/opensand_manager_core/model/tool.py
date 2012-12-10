@@ -70,7 +70,7 @@ class ToolModel:
             size = os.path.getsize(desc_path)
             with open(desc_path) as desc_file:
                 self._descr = desc_file.read(size)
-        except (OSError, IOError), (errno, strerror):
+        except (OSError, IOError), (_, strerror):
             raise ModelException("cannot read %s description file %s (%s)" %
                                  (self._name, desc_path, strerror))
 
@@ -81,7 +81,7 @@ class ToolModel:
             with open(self._bin_path) as bin_file:
                 self._command = bin_file.readline()
                 self._bin = self._command.split()[0]
-        except (OSError, IOError), (errno, strerror):
+        except (OSError, IOError), (_, strerror):
             raise ModelException("cannot read %s binary file %s (%s)" %
                                  (self._name, self._bin_path, strerror))
 
@@ -100,7 +100,7 @@ class ToolModel:
         if not os.path.isdir(self._conf_file):
             try:
                 os.makedirs(self._conf_file, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("cannot create directory '%s': %s" %
                                      (self._conf_file, strerror))
         self._conf_file = os.path.join(self._conf_file, 'config')
@@ -110,7 +110,7 @@ class ToolModel:
                 default_path = "/usr/share/opensand/tools/%s/%s/config" % \
                                (self._name, self._compo)
                 shutil.copy(default_path, self._conf_file)
-            except IOError, (errno, strerror):
+            except IOError, (_, strerror):
                 raise ModelException("cannot copy %s configuration from "
                                      "'%s' to '%s': %s" % (self._name,
                                      default_path, self._conf_file, strerror))

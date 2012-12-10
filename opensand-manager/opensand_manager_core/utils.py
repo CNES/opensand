@@ -63,6 +63,7 @@ def copytree(src, dst):
         raise
 
 class GreedyConfigParser(ConfigParser.SafeConfigParser):
-    """ a ConfigParser that takes the last separator instead of the first one """
+    """ a ConfigParser that takes the last separator
+        instead of the first one """
     ConfigParser.SafeConfigParser.OPTCRE = \
             re.compile('(?P<option>.*)\s*(?P<vi>[:=])\s*(?P<value>.*)$')

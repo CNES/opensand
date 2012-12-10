@@ -58,9 +58,8 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+// output
+#include "opensand_output/Output.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS_NCC
@@ -173,8 +172,8 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s bloc initialization failed\n",
+			                     FUNCNAME);
 		}
 		else
 		{
@@ -1354,8 +1353,8 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// send the corresponding event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, lp_logon_req->mac, 0,
-	                    C_EVENT_LOGIN_RECEIVED);
+	Output::sendEvent(event_login_received, "[onRcvLogonReq] Logon "
+	                     "request from %d\n", lp_logon_req->mac);
 
 	// register the new ST
 	if(this->emissionStd->doSatelliteTerminalExist(lp_logon_req->mac))
@@ -1415,9 +1414,8 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 
 
 		// send the corresponding event
-		ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, lp_logon_req->mac, 0,
-		                    C_EVENT_LOGIN_RESPONSE);
-
+		Output::sendEvent(event_login_response, "[onRcvLogonReq] Login "
+		                     "response from %d\n", lp_logon_req->mac);
 	}
 
 release:
@@ -1516,7 +1514,7 @@ int BlocDVBRcsNcc::simulateFile()
 			event_selected = none;
 		}
 		// TODO fix to avoid sending probe for the simulated ST
-		//      remove once environment plane will be modified
+		//      remove once output will be modified
 		if(st_id <= 100)
 		{
 			st_id += 100;

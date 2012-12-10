@@ -38,6 +38,7 @@
 #include "PepRequest.h"
 #include <vector>
 
+#include "opensand_output/Output.h"
 
 /**
  * @class NccPepInterface
@@ -101,6 +102,9 @@ class NccPepInterface
 	bool readPepMessage();
 
  private:
+ 
+	/* error event to report an already opened socket */
+	static Event *error_sock_open;
 
 	/* parse a message sent by the PEP component */
 	bool parsePepMessage(const char *message);

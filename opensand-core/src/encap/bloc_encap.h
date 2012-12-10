@@ -53,6 +53,9 @@
 #include "OpenSandCore.h"
 #include "PluginUtils.h"
 
+// output
+#include "opensand_output/Output.h"
+
 
 /**
  * @class BlocEncap
@@ -157,6 +160,9 @@ class BlocEncap: public mgl_bloc
 	 * @return       Whether the burst was successful handled or not
 	 */
 	mgl_status onRcvBurstFromDown(NetBurst *burst);
+
+	/// output events
+	static Event *error_init;
 };
 
 #endif

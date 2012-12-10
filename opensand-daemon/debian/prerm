@@ -1,5 +1,5 @@
 #!/bin/sh
-# prerm script for opensand-manager
+# prerm script for opensand-daemon
 #
 # see: dh_installdeb(1)
 

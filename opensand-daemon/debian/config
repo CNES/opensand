@@ -4,14 +4,14 @@
 . /usr/share/debconf/confmodule
 
 
-ST_LIST="1, 3, 4, 5"
-WS_LIST="1, 2, 3, 4, 5"
+ST_LIST="1, 2, 3, 4, 5"
+WS_LIST="0, 1, 2, 3, 4, 5"
 SAT_EMU_IP4ADDR="192.168.18.15/24"
 SAT_EMU_IP6ADDR="2001:660:6602:101::15/64"
-GW_EMU_IP4ADDR="192.168.18.2/24"
-GW_IP4ADDR="192.168.20.1/24"
-GW_EMU_IP6ADDR="2001:660:6602:101::2/64"
-GW_IP6ADDR="2001:660:6602:103::1/64"
+GW_NET=42
+GW_EMU_IP4ADDR="192.168.18.$GW_NET/24"
+GW_IP4ADDR="192.168.$GW_NET.1/24"
+GW_IP6ADDR="2001:660:6602:1$GW_NET::1/64"
 CONFIG_LEVEL="ADVANCED"
 DHCP="false"
 
@@ -60,31 +60,35 @@ configure(){
             fi
         ;;
         5)
-            db_input low opensand-daemon/service/port || true
+            db_input high opensand-daemon/service/interface || true
             db_endblock
         ;;
         6)
-            db_beginblock
-            db_input low opensand-daemon/command/port || true
+            db_input low opensand-daemon/service/port || true
             db_endblock
         ;;
         7)
             db_beginblock
-            db_input low opensand-daemon/state/port || true
+            db_input low opensand-daemon/command/port || true
             db_endblock
         ;;
         8)
             db_beginblock
-            db_input high opensand-daemon/network/config_level || true
+            db_input low opensand-daemon/state/port || true
+            db_endblock
         ;;
         9)
+            db_beginblock
+            db_input high opensand-daemon/network/config_level || true
+        ;;
+        10)
             db_get opensand-daemon/network/config_level
             CONFIG_LEVEL=$RET
             if [ "$NAME" != "SAT" ]; then
                 db_input high opensand-daemon/network/dhcp || true
             fi
         ;;
-        10)
+        11)
             if [ "$NAME" != "SAT" ]; then
                 db_get opensand-daemon/network/dhcp
                 DHCP=$RET
@@ -93,7 +97,7 @@ configure(){
                 fi
             fi
         ;;
-        11)
+        12)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "WS" ]; then
@@ -128,8 +132,16 @@ configure(){
                         if [ "$RECONFIG" = "false" ]; then
                             if [ "$NAME" != "GW" ]; then
                                 net=$((18+$INST))
+                                # WS behind GW
+                                if [ "$INST" = "0" ]; then
+                                    net="$GW_NET"
+                                fi
                                 db_set opensand-daemon/network/lan_ipv4 "192.168.${net}.${add}/24"
+                                # WS behind GW
                                 net=$((101+$INST))
+                                if [ "$INST" = "0" ]; then
+                                    net="1$GW_NET"
+                                fi
                                 db_set opensand-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/64"
                             else
                                 db_set opensand-daemon/network/lan_ipv4 ${GW_IP4ADDR}
@@ -140,6 +152,10 @@ configure(){
                         db_input high opensand-daemon/network/lan_ipv6 || true
                     elif [ "$NAME" = "WS" -a "$DHCP" != "false" ]; then
                         net=$((101+$INST))
+                        # WS behind GW
+                        if [ "$INST" = "0" ]; then
+                            net="1$GW_NET"
+                        fi
                         db_set opensand-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/64"
                         db_input high opensand-daemon/network/lan_ipv6 || true
                     fi
@@ -188,6 +204,7 @@ reset(){
     db_reset opensand-daemon/service/type
     db_reset opensand-daemon/service/st_instance
     db_reset opensand-daemon/service/ws_instance
+    db_reset opensand-daemon/service/interface
     db_reset opensand-daemon/service/port
     db_reset opensand-daemon/command/port
     db_reset opensand-daemon/state/port
@@ -206,6 +223,7 @@ unseen(){
     db_fset opensand-daemon/service/type seen false
     db_fset opensand-daemon/service/st_instance seen false
     db_fset opensand-daemon/service/ws_instance seen false
+    db_fset opensand-daemon/service/interface seen false
     db_fset opensand-daemon/service/port seen false
     db_fset opensand-daemon/command/port seen false
     db_fset opensand-daemon/state/port seen false

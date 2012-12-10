@@ -44,6 +44,7 @@ setup(
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for OpenSAND entity (sat, gw, st or ws)"),
     license="GPL",
+    url="http://opensand.org",
     ext_modules=[netlink_capi, route_capi],
 
     packages=find_packages(),

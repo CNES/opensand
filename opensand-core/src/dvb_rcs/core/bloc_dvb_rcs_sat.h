@@ -58,6 +58,8 @@ using namespace std;
 #include "bloc_dvb.h"
 #include "SatSpot.h"
 
+// output
+#include "opensand_output/Output.h"
 
 /**
  * Blocs heritate from mgl_bloc clam_singleSpot.sse

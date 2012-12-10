@@ -42,6 +42,179 @@ from opensand_manager_core.my_exceptions import XmlException
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
+
+class ProbeSelectionController(object):
+    """ The program/probe list controller """
+    def __init__(self, probe_view, program_listview, probe_listview):
+        self._probe_view = probe_view
+        self._program_listview = program_listview
+        self._probe_listview = probe_listview
+        self._collection_dialog = None
+        self._program_list = {}
+        self._current_program = None
+        self._update_needed = False
+        
+        self._program_store = gtk.ListStore(str, int)
+        self._program_store.set_sort_column_id(0, gtk.SORT_ASCENDING)
+        program_listview.set_model(self._program_store)
+        
+        column = gtk.TreeViewColumn("Program", gtk.CellRendererText(), text=0)
+        column.set_sort_column_id(0)
+        program_listview.append_column(column)
+        program_listview.connect('cursor-changed', self._prog_curs_changed)
+        
+        # The probe tree store uses four columns:
+        # 0) bool: is the probe displayed ? (False if the row is not a probe)
+        # 1) str: the probe name, or section name
+        # 2) int: the probe ID (0 if the row is not a probe)
+        # 3) bool: True for a probe, False for a section (used to hide the
+        # checkbox on sections)
+        # The tree view itself uses one column, with two renderers (checkbox
+        # and text)
+        
+        self._probe_store = gtk.TreeStore(bool, str, int, bool)
+        self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
+        probe_listview.set_model(self._probe_store)
+        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
+        
+        column = gtk.TreeViewColumn("Probe")
+        column.set_sort_column_id(1) # Sort on the probe/section name
+        probe_listview.append_column(column)
+        
+        cell_renderer = gtk.CellRendererToggle()
+        column.pack_start(cell_renderer, False)
+        column.add_attribute(cell_renderer, "active", 0)
+        column.add_attribute(cell_renderer, "visible", 3)
+        cell_renderer.connect("toggled", self._probe_toggled)
+        
+        cell_renderer = gtk.CellRendererText()
+        column.pack_start(cell_renderer, True)
+        column.add_attribute(cell_renderer, "text", 1)
+    
+    def register_collection_dialog(self, collection_dialog):
+        """ register a collection dialog """
+        self._collection_dialog = collection_dialog
+        if collection_dialog:
+            collection_dialog.update_list(self._program_list)
+    
+    def update_data(self, program_list):
+        """ called when the probe list changes """
+        self._program_list = program_list
+        self._update_needed = True
+        
+        gobject.idle_add(self._update_data)
+    
+    def _update_data(self):
+        """ update the current program list """
+        if not self._update_needed:
+            return
+        
+        self._update_needed = False
+    
+        self._program_store.clear()
+        
+        for program in self._program_list.itervalues():
+            self._program_store.append([program.name,
+                                        program.ident])
+        
+        selection = self._program_listview.get_cursor()
+        if selection[0] is None:
+            self._program_listview.set_cursor(0)
+        
+        self._update_probe_list()
+        self._notify_probe_display_changed()
+        
+        if self._collection_dialog:
+            self._collection_dialog.update_list(self._program_list)
+    
+    def _prog_curs_changed(self, _):
+        """ called when the user selects a program in the list """
+        
+        self._update_probe_list()
+    
+    def _update_probe_list(self):
+        """ called when the displayed probe list need to be updated """
+        
+        selection = self._program_listview.get_cursor()
+        self._probe_store.clear()
+        if selection[0] is None:
+            self._current_program = None
+            return
+        
+        it = self._program_store.get_iter(selection[0])
+        prog_ident = self._program_store.get_value(it, 1)
+        
+        self._current_program = self._program_list[prog_ident]
+
+        groups = {}
+        # Used to keep track of created probe groups in the tree view.
+        # For instance, probe a.b.c.d will create three recursive tree paths,
+        # stored respectively at groups['a'][''], groups['a']['b'][''],
+        # and groups['a']['b']['c']
+        
+        for probe in self._current_program.get_probes():
+            if probe.enabled:
+                probe_parent = None
+                cur_group = groups
+                probe_path = probe.name.split(".")
+                probe_name = probe_path.pop()
+                
+                while probe_path:
+                    group_name = probe_path.pop(0)
+                    try:
+                        cur_group = cur_group[group_name]
+                    except KeyError:
+                        # The needed tree path does not exist -- create it and
+                        # continue
+                    
+                        cur_group[group_name] = {
+                            '': self._probe_store.append(probe_parent, [False,
+                                group_name, 0, False])
+                        }
+                        
+                        cur_group = cur_group[group_name]
+                    
+                    probe_parent = cur_group['']
+            
+                self._probe_store.append(probe_parent, [probe.displayed,
+                                                        probe_name, probe.ident,
+                                                        True])
+    
+    def _probe_toggled(self, _, path):
+        """ called when the user selects or deselects a probe """
+    
+        it = self._probe_store.get_iter(path)
+        probe_ident = self._probe_store.get_value(it, 2)
+        new_value = not self._probe_store.get_value(it, 0)
+        
+        self._current_program.get_probe(probe_ident).displayed = new_value
+        self._probe_store.set(it, 0, new_value)
+
+        self._notify_probe_display_changed()
+    
+    def probe_enabled_changed(self, probe, was_hidden):
+        """ called when the enabled status of a probe is changed """
+        
+        if probe.program == self._current_program:
+            self._update_probe_list()
+        
+        if was_hidden:
+            self._notify_probe_display_changed()
+    
+    def _notify_probe_display_changed(self):
+        """ notifies the main view of the currently displayed probes """
+        
+        displayed_probes = []
+        
+        for program in self._program_list.itervalues():
+            for probe in program.get_probes():
+                if probe.displayed:
+                    displayed_probes.append(probe)
+        
+        self._probe_view.displayed_probes_changed(displayed_probes)
+        
+        
+
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
     def __init__(self, treeview, col1_title, col2_title,
@@ -71,18 +244,20 @@ class ConfigurationTree(gtk.TreeStore):
         cell_renderer = gtk.CellRendererText()
         # Connect check box on the treeview
         self._cell_renderer_toggle = gtk.CellRendererToggle()
+        self._cell_renderer_toggle.set_active(True)
+        self._cell_renderer_toggle.set_activatable(True)
         self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
 
         column = gtk.TreeViewColumn(col1_title, cell_renderer, text=TEXT)
         column.set_resizable(True)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+        #column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 
         column_toggle = gtk.TreeViewColumn(col2_title,
                                            self._cell_renderer_toggle,
                                            visible=VISIBLE, active=ACTIVE,
                                            activatable=ACTIVATABLE)
         column_toggle.set_resizable(True)
-        column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+        #column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 
         treeview.append_column(column)
         treeview.append_column(column_toggle)
@@ -374,7 +549,6 @@ class ConfigurationNotebook(gtk.Notebook):
         self._tables[self._config.get_path(key)] = check_buttons
         self.check_sensitive()
         return table_frame
-
 
     def add_line(self, key, line, check_buttons):
         """ add a line in the configuration """

@@ -240,7 +240,8 @@ class XmlParser:
             elems = self.get_all("//*[@%s]" % node)
             for elem in elems:
                 path = self.get_path(elem)
-                files["%s/@%s" % (path, node)] = self._tree. xpath("%s/@%s" % (path, node))[0]
+                files["%s/@%s" % (path, node)] = \
+                        self._tree.xpath("%s/@%s" % (path, node))[0]
         return files
 
     #### functions form XSD parsing ###
@@ -370,7 +371,8 @@ class XmlParser:
                 return attrib
 
     def get_simple_type(self, name):
-        """ get a simple type and the associated attributes in a XSD document """
+        """ get a simple type and the associated attributes
+            in a XSD document """
         # simpleType
         elems = []
         elems += self._common_xsd.xpath("//xsd:simpleType[@name = $val]",
@@ -415,7 +417,7 @@ class XmlParser:
             elif base == "xsd:positiveInteger":
                 min_val = 1
             elif base == "xsd:negativeInteger":
-                max_val == -1
+                max_val = -1
             elif base == "xsd:decimal":
                 # arbitrarily fixed
                 step = 0.01
@@ -474,10 +476,10 @@ class XmlParser:
     def get_maxoccurs(self, table_name):
         """ get maxOccurs value for table elements """
         values = []
-        values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
-                                         table_name, namespaces=NAMESPACES)
-        values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs" %
-                                         table_name, namespaces=NAMESPACES)
+        values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs"
+                                          % table_name, namespaces=NAMESPACES)
+        values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs"
+                                          % table_name, namespaces=NAMESPACES)
         if len(values) > 0:
             # take the first element it should be better than nothing
             return int(values[0])

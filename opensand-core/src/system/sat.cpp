@@ -73,12 +73,9 @@
 #include "BlocPhysicalLayer.h"
 #include "PluginUtils.h"
 
-// environment plane include
-#include "opensand_env_plane/EnvironmentAgent_e.h"
+// output include
+#include "opensand_output/Output.h"
 
-
-/// global variable for the environment agent
-T_ENV_AGENT EnvAgent;
 
 /// global variable saying whether the satellite component is alive or not
 bool alive = true;
@@ -89,22 +86,22 @@ bool alive = true;
  */
 bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 {
-	T_INT16 scenario_id = 1, run_id = 1, opt;
-	T_COMPONENT_TYPE comp_type = C_COMP_SAT;
+	int opt;
+	bool output_enabled = true;
+	event_level_t output_event_level = LEVEL_INFO;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:a:n:i")) != EOF)
+	while((opt = getopt(argc, argv, "-hqda:n:")) != EOF)
 	{
 		switch(opt)
 		{
-			case 's':
-				// get scenario id
-				scenario_id = atoi(optarg);
+			case 'q':
+				// disable output
+				output_enabled = false;
 				break;
-			case 'r':
-				// get run id
-				run_id = atoi(optarg);
-				break;
+			case 'd':
+				// enable output debug
+				output_event_level = LEVEL_DEBUG;
 			case 'a':
 				/// get local IP address
 				ip_addr = optarg;
@@ -113,35 +110,25 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				// get local interface name
 				iface_name = optarg;
 				break;
-			case 'i':
-				// instance id ignored
-				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [-e -s scenario_id -r run_id "
-				                "-a ip_address -n interface_name]\n",
-				        argv[0]);
+				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name]\n",
+					argv[0]);
 				fprintf(stderr, "\t-h              print this message\n");
-				fprintf(stderr, "\t-s <scenario>   set the scenario id\n");
-				fprintf(stderr, "\t-r <run>        set the run id\n");
+				fprintf(stderr, "\t-q              disable output\n");
+				fprintf(stderr, "\t-d              enable output debug events\n");
 				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
 				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
-				fprintf(stderr, "\t-i <instance>   set the instance id (ignored)\n");
 
 				UTI_ERROR("usage printed on stderr\n");
 				return false;
 		}
 	}
 
-	UTI_PRINT(LOG_INFO, "starting environment plane scenario %d run %d\n",
-	          scenario_id, run_id);
+	UTI_PRINT(LOG_INFO, "starting output\n");
 
-	// environment agent initialisation
-	if(ENV_AGENT_Init(&EnvAgent, comp_type, 0, scenario_id, run_id) != C_ERROR_OK)
-	{
-		UTI_ERROR("failed to init the environment agent\n");
-		return false;
-	}
+	// output initialisation
+	Output::init(output_enabled, output_event_level);
 
 	if(ip_addr.size() == 0)
 	{
@@ -187,6 +174,9 @@ int main(int argc, char **argv)
 	vector<string> conf_files;
 
 	int is_failure = 1;
+
+	Event *status = NULL;
+	Event *failure = NULL;
 
 	// catch TERM and INT signals
 	signal(SIGTERM, sigendHandler);
@@ -320,24 +310,29 @@ int main(int argc, char **argv)
 		blocSatCarrier->setUpperLayer(blocDVBRcsSat->getId());
 	}
 
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_INIT,
-	                    C_EVENT_COMP_STATE);
-
 	// make the SAT alive
 	while(alive)
 	{
 		blocmgr->process_step();
 		if(!is_init && blocmgr->isRunning())
 		{
-			ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_RUN,
-			                    C_EVENT_COMP_STATE);
+			// finish output init, sent the initial event
+			failure = Output::registerEvent("failure", LEVEL_ERROR);
+			status = Output::registerEvent("status", LEVEL_INFO);
+			if(!Output::finishInit())
+			{
+				UTI_PRINT(LOG_INFO,
+				          "%s: failed to init the output => disable it\n",
+				         progname);
+			}
+
+			Output::sendEvent(status, "Simulation started");
 			is_init = true;
 		}
 
 	}
 
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_STOP,
-	                    C_EVENT_COMP_STATE);
+	Output::sendEvent(status, "Simulation stopped");
 
 	// everything went fine, so report success
 	is_failure = 0;
@@ -352,11 +347,9 @@ destroy_eventmgr:
 unload_config:
 	if(is_failure)
 	{
-		ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-		                     C_ERROR_INIT_COMPO);
+		Output::sendEvent(failure, "Failure while launching component\n");
 	}
 	globalConfig.unloadConfig();
-	ENV_AGENT_Terminate(&EnvAgent);
 quit:
 	UTI_PRINT(LOG_INFO, "%s: SAT process stopped with exit code %d\n",
 	          progname, is_failure);

@@ -44,6 +44,7 @@
 #include "PluginUtils.h"
 
 #include <opensand_margouilla/mgl_bloc.h>
+#include <opensand_output/Output.h>
 
 #include <map>
 
@@ -124,6 +125,11 @@ class BlocPhysicalLayer: public mgl_bloc
 
 		/// whether the block is initialized
 		bool init_ok;
+
+
+		/// output events
+		static Event *error_init;
+		static Event *init_done;
 };
 
 #endif

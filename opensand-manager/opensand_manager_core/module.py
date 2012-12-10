@@ -136,7 +136,7 @@ class OpenSandModule(object):
         if not os.path.exists(plugins_path):
             try:
                 os.makedirs(plugins_path, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("cannot create directory '%s': %s"
                                      % (plugins_path, strerror))
         # create the configuration file if necessary
@@ -144,9 +144,10 @@ class OpenSandModule(object):
             try:
                 default_path = os.path.join(default_plugin_path, self._xml)
                 shutil.copy(default_path, xml_path)
-            except IOError, (errno, strerror):
+            except IOError, (_, strerror):
                 raise ModelException("cannot copy %s plugin configuration from "
-                                     "'%s' to '%s': %s" % (self._name, default_path,
+                                     "'%s' to '%s': %s" % (self._name,
+                                                           default_path,
                                                            xml_path, strerror))
 
         try:
@@ -247,6 +248,7 @@ class ErrorModule(OpenSandModule):
 from opensand_manager_core.modules import *
 
 def load_modules(component):
+    """ load all modules """
     loaded = {}
     for module_type in modules:
         for module_name in modules[module_type]:

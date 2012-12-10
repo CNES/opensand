@@ -40,9 +40,8 @@
 #define DBG_PACKAGE PKG_ENCAP
 #include "opensand_conf/uti_debug.h"
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+
+Event *BlocEncapSat::error_init = NULL;
 
 BlocEncapSat::BlocEncapSat(mgl_blocmgr * blocmgr,
                            mgl_id fatherid,
@@ -53,6 +52,11 @@ BlocEncapSat::BlocEncapSat(mgl_blocmgr * blocmgr,
 {
 	this->initOk = false;
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
+	
+	if(error_init == NULL)
+	{
+		error_init = Output::registerEvent("bloc_encap_sat:init", LEVEL_ERROR);
+	}
 }
 
 BlocEncapSat::~BlocEncapSat()
@@ -81,8 +85,8 @@ mgl_status BlocEncapSat::onEvent(mgl_event *event)
 		else
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s bloc initialization failed\n",
+			                     FUNCNAME);
 		}
 	}
 	else if(!this->initOk)

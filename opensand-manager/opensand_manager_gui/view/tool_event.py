@@ -272,7 +272,8 @@ class ToolEvent(ToolView):
                         module.save()
                     except XmlException, error:
                         error_popup("cannot save %s module on %s: %s" %
-                                    (module_name, host_name,  error.description))
+                                    (module_name, host_name,
+                                     error.description))
 
             # reset the tools
             map(lambda x : x.set_selected(False), host.get_tools())
@@ -280,7 +281,7 @@ class ToolEvent(ToolView):
             if not host_name in self._selected_tools.keys():
                 continue
             for tool in [elt for elt in host.get_tools()
-                             if elt.get_name() in self._selected_tools[host_name]]:
+                         if elt.get_name() in self._selected_tools[host_name]]:
                 self._log.debug("tool %s enabled for %s" %
                                 (elt.get_name().upper(), host_name.upper()))
                 tool.set_selected()

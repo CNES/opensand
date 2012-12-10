@@ -62,6 +62,8 @@ class ProcessList():
     _init = False
     _wait = {}
     _cache_dir = None
+    _callbacks = []
+    _stopping = False
 
     def __init__(self):
         pass
@@ -127,6 +129,8 @@ class ProcessList():
 
     def start(self):
         """ load the binary configuration file and start programs """
+        if ProcessList._stopping:
+            return
         parser = ConfigParser.SafeConfigParser()
         if len(parser.read(os.path.join(ProcessList._cache_dir, START_INI))) == 0:
             LOGGER.error("unable to read %s file",
@@ -152,6 +156,7 @@ class ProcessList():
                     LOGGER.info('Library path: %s' % ld_library_path) 
                 process = subprocess.Popen(cmd, close_fds=True,
                                            preexec_fn=ignore_sigint)
+                process.prog_name = section
                 if 'LD_LIBRARY_PATH' in os.environ:
                     del os.environ['LD_LIBRARY_PATH']
                 ProcessList._process_list[section] = process
@@ -207,6 +212,10 @@ class ProcessList():
         if len(ProcessList._process_list) == 0:
             LOGGER.info("all process are already stopped")
             return
+        
+        # we release lock in the stop process, this boolean is used to avoid
+        # process modification while stopping 
+        ProcessList._stopping = True
 
         ProcessList._process_lock.acquire()
 
@@ -222,6 +231,11 @@ class ProcessList():
             kills.append(kill)
             try:
                 process.terminate()
+                # release process list lock in case program send something
+                # when stopping
+                ProcessList._process_lock.release()
+                ProcessList._stop.wait(0.5)
+                ProcessList._process_lock.acquire()
                 process.wait()
             except OSError, (errno, strerror):
                 # No child processes error reported when stopping while
@@ -230,6 +244,10 @@ class ProcessList():
                     LOGGER.warning("Error when terminating %s: %s" %
                                    (name, strerror))
                     pass
+
+            for callback in ProcessList._callbacks:
+                callback(process)
+
         ProcessList._stop.set()
         LOGGER.debug("join wait threads")
         for proc in ProcessList._wait:
@@ -244,6 +262,7 @@ class ProcessList():
 
         ProcessList._process_list = {}
         ProcessList._process_lock.release()
+        ProcessList._stopping = False
 
         try:
             self.serialize()
@@ -252,6 +271,8 @@ class ProcessList():
 
     def update(self, check = False):
         """ update the list of started components """
+        if ProcessList._stopping:
+            return
         ProcessList._process_lock.acquire()
 
         for name in ProcessList._process_list.keys():
@@ -278,11 +299,34 @@ class ProcessList():
 
             if not running:
                 del ProcessList._process_list[name]
+                for callback in ProcessList._callbacks:
+                    callback(process)
                 LOGGER.info("assume that process %s is stopped", name)
 #            else:
 #                LOGGER.debug("process '%s' is running", name)
 
         ProcessList._process_lock.release()
+
+    def find_process(self, attr, value):
+        """ find the process whose attribute attr equals value """
+
+        with ProcessList._process_lock:
+            for process in ProcessList._process_list.itervalues():
+                if getattr(process, attr, None) == value:
+                    return process
+
+        return None
+
+    def get_processes_attr(self, attr):
+        """ return a list of the processes’ specified attribute """
+        result = []
+        with ProcessList._process_lock:
+            for process in ProcessList._process_list.itervalues():
+                value = getattr(process, attr, None)
+                if value is not None:
+                    result.append(value)
+
+        return result
 
     def get_components(self):
         """ return the components of the process list """
@@ -313,6 +357,9 @@ class ProcessList():
         if process.returncode is None:
             process.kill()
 
+    def register_end_callback(self, callback):
+        """ registers a callback to be called when a process is stopped """
+        ProcessList._callbacks.append(callback)
 
 # TODO in Python 3.2 use the start_new_session=True of subprocess.Popen instead
 def ignore_sigint():

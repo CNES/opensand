@@ -36,10 +36,10 @@ run_view.py - the run tab view
 
 import gtk
 import os
-import time
 
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_core.my_exceptions import RunException
+from opensand_manager_core.model.host import InitStatus
 
 COMPO_X = 70
 COMPO_Y = 69
@@ -68,7 +68,6 @@ class RunView(WindowView):
         # only log one time connection problem
         self._logged = False
 
-        self._opensand_buff = None
         self._drawing_area = None
         self._stylepango = None
         self._context_graph = None
@@ -76,14 +75,6 @@ class RunView(WindowView):
         self._sat_x = SAT_X
         self._info_x = INFO_X
         self._legend_y = LEGEND_Y
-
-        # set the OpenSAND event and error buffer
-        self._opensand_buff = gtk.TextBuffer()
-        red = self._opensand_buff.create_tag('red')
-        red.set_property('foreground', 'red')
-        orange = self._opensand_buff.create_tag('orange')
-        orange.set_property('foreground', 'orange')
-        self._ui.get_widget('opensand_textview').set_buffer(self._opensand_buff)
 
         # init drawing area
         self._drawing_area = self._ui.get_widget('main_drawing_area')
@@ -129,44 +120,27 @@ class RunView(WindowView):
                 self.draw_st(host, 170 + nbr * 140, TOP_2)
                 nbr += 1
 
-        env_plane_ctrl = self._model.get_env_plane()
-        if env_plane_ctrl != None:
-            self._info_x = 170 + (nbr + 1) * 140
-            self.draw_env_plane_state(env_plane_ctrl.get_states())
+        self._info_x = 170 + (nbr + 1) * 140
+        self.draw_collector_state(self._model.is_collector_known(),
+            self._model.is_collector_functional())
 
         return False
 
-    def draw_env_plane_state(self, state_list):
-        """ draw environment plane """
+    def draw_collector_state(self, collector_known, collector_funct):
+        """ draw collector """
+        if not collector_known:
+            return
+        
         image = gtk.Image()
-        png = os.path.join(IMG_PATH, 'monitoring.png')
-
-        xx = self._info_x + 17
-        yy = TOP_1 + 75
-        glob_state = False
-        for tab in state_list:
-            self._stylepango.set_text(tab[0])
-            self.draw_layout(xx, yy)
-            image = gtk.Image()
-            if tab[1] == True:
-                image.set_from_file(os.path.join(IMG_PATH, 'green.png'))
-                glob_state = True
-            elif tab[1] == False:
-                image.set_from_file(os.path.join(IMG_PATH, 'red.png'))
-                glob_state = True
-            else:
-                image.set_from_file(os.path.join(IMG_PATH, 'orange.png'))
-
-            self.draw_pixbuf(0, 0, self._info_x - 4 , yy + 1,
-                             LED_XY, LED_XY, image)
-            yy = yy + 20
-
-        if not glob_state:
-            png = os.path.join(IMG_PATH, 'monitoring_grey.png')
-
+        
+        name = "monitoring.png" if collector_funct else "monitoring_grey.png"
+        png = os.path.join(IMG_PATH, name)
         image.set_from_file(png)
 
         self.draw_pixbuf(0, 0, self._info_x, TOP_1, COMPO_X, COMPO_Y, image)
+
+        self._stylepango.set_text('Collector')
+        self.draw_layout(self._info_x + 5, TOP_1 + COMPO_Y)
 
     def draw_st(self, host, x, y):
         """ draw satellite terminal """
@@ -178,8 +152,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system, else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'st_grey.png')
@@ -187,7 +161,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('ST ' + str(host.get_instance()))
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
@@ -216,8 +190,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system,  else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'sat_grey.png')
@@ -225,7 +199,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Satellite')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
     def draw_gw(self, host, x, y):
@@ -236,8 +210,8 @@ class RunView(WindowView):
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
-                                  "sand-manager instance is running on the system,"
-                                  " else try restarting sand-daemon on "
+                                  "sand-manager instance is running on the "
+                                  "system,  else try restarting sand-daemon on "
                                   "distant host" % host.get_name())
                 self._logged = True
             png = os.path.join(IMG_PATH, 'gw_grey.png')
@@ -245,7 +219,7 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
         self._stylepango.set_text('Gateway (GW)')
         self.draw_layout(x + 10, y + COMPO_Y)
-        self.draw_state(host.get_state(), host.get_initialisation_failed(), x, y)
+        self.draw_state(host.get_state(), host.get_init_status(), x, y)
 
         self.draw_tools(host, x + COMPO_X + 4, y)
 
@@ -258,7 +232,7 @@ class RunView(WindowView):
                            TOP_1 + COMPO_Y + 20,
                            x + int(COMPO_X/2), y - 10)
 
-        self.draw_ws(host, '2', x, y)
+        self.draw_ws(host, '0', x, y)
 
     def draw_ws(self, host, host_inst, x, y):
         """ draw the workstations """
@@ -312,18 +286,23 @@ class RunView(WindowView):
                 self.draw_layout(x, y)
             y = y + TOOL_Y + 2
 
-    def draw_state(self, state, initialisation_failed, x, y):
+    def draw_state(self, state, init_status, x, y):
         """ draw component state """
         if state is None:
             return
 
         image = gtk.Image()
-        if state == True:
-            image.set_from_file(IMG_PATH + 'green.png')
-        elif state == False:
-            if initialisation_failed == True:
+        if state:
+            if init_status == InitStatus.PENDING:
+                image.set_from_file(IMG_PATH + 'blue.png')
+            elif init_status == InitStatus.FAIL:
                 image.set_from_file(IMG_PATH + 'orange.png')
-            elif initialisation_failed == False:
+            else:
+                image.set_from_file(IMG_PATH + 'green.png')
+        else:
+            if init_status == InitStatus.FAIL:
+                image.set_from_file(IMG_PATH + 'orange.png')
+            else:
                 image.set_from_file(IMG_PATH + 'red.png')
 
         self.draw_pixbuf(0, 0, x - 9, y + 71, LED_XY, LED_XY, image)
@@ -348,48 +327,6 @@ class RunView(WindowView):
         """ draw an area layout on the drawing area """
         self._drawing_area.window.draw_layout(self._context_graph,
                                               x, y, self._stylepango)
-
-    def show_opensand_event(self, text):
-        """ print OpenSAND events in OpenSAND textview
-            (should be used with gobject.idle_add outside gtk handlers) """
-        if text != "":
-            self._log.debug("OpenSAND event: " + text)
-            self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                     time.strftime("%H:%M:%S ", time.gmtime()))
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  text + '\n')
-        self._opensand_buff.place_cursor(self._opensand_buff.get_end_iter())
-        self._ui.get_widget('opensand_textview').scroll_to_mark(
-                self._opensand_buff.get_insert(), 0.0, False, 0, 0)
-        
-        # show info image if page is not active
-        if text != "" and \
-           self._ui.get_widget('event_notebook').get_current_page() != 1:
-            img = self._ui.get_widget('img_opensand')
-            img.show()
-
-    def show_opensand_error(self, text, color = None):
-        """ print OpenSAND errors in OpenSAND textview
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self._log.debug("OpenSAND error: " + text)
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  time.strftime("%H:%M:%S ", time.gmtime()))
-        if color != None:
-            self._opensand_buff.insert_with_tags_by_name(
-                    self._opensand_buff.get_end_iter(), '[ERROR] ', color)
-        self._opensand_buff.insert(self._opensand_buff.get_end_iter(),
-                                  text + '\n')
-        self._opensand_buff.place_cursor(self._opensand_buff.get_end_iter())
-        self._ui.get_widget('opensand_textview').scroll_to_mark(
-        self._opensand_buff.get_insert(), 0.0, False, 0, 0)
-        
-        # show warning image if page is not active
-        if self._ui.get_widget('event_notebook').get_current_page() != 1:
-            img = self._ui.get_widget('img_opensand')
-            if color is not None:
-                img.set_from_stock(gtk.STOCK_DIALOG_WARNING,
-                                   gtk.ICON_SIZE_MENU)
-            img.show()
 
     def update_status(self):
         """ update the status of the different component

@@ -30,6 +30,7 @@ cscope.out
 */debian/tmp
 *.libs
 build
+dist
 *.egg-info
 opensand-conf/debian/libopensand-conf
 opensand-conf/debian/libopensand-conf-dbg
@@ -41,12 +42,10 @@ opensand-env-plane/debian/libopensand-env-plane
 opensand-env-plane/debian/libopensand-env-plane-dbg
 opensand-env-plane/debian/libopensand-env-plane-dev
 opensand-env-plane/debian/opensand-env-plane
-opensand-env-plane/src/ErrorController
-opensand-env-plane/src/EventController
-opensand-env-plane/src/ProbeController
-opensand-env-plane/src/TestEnvironmentAgent
+opensand-env-plane/src/test_env_plane
 opensand-daemon/debian/files
 opensand-daemon/debian/opensand-daemon
+opensand-daemon/dist
 opensand-manager/debian/files
 opensand-manager/debian/opensand-manager-gui
 opensand-manager/debian/opensand-manager-core
@@ -72,6 +71,8 @@ opensand-core/debian/libopensand-plugin-dev
 opensand-core/debian/opensand-core-all
 opensand-core/debian/opensand-core-bin
 opensand-core/debian/opensand-core-dbg
+opensand-collector/debian/files
+opensand-collector/debian/opensand-collector
 opensand-plugins/encapsulation/atm/debian/files
 opensand-plugins/encapsulation/atm/debian/libopensand-atm-aal5-encap-plugin
 opensand-plugins/encapsulation/atm/debian/libopensand-atm-aal5-encap-plugin-dbg
@@ -114,6 +115,7 @@ opensand-tests/tests*/*/*/scenario/*/plugins/default.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/ideal.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/on_off.conf
 opensand-tests/tests*/*/*/scenario/*/plugins/triangular.conf
+opensand-tests/tests*/stats/daemon_collector_test/scenario/*
 opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/__init__.py
 opensand-plugins/physical_layer/attenuation_model/ideal/debian/files
@@ -151,3 +153,4 @@ opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modc
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-dbg/
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-manager/
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/tmp
+opensand-output/src/test_output

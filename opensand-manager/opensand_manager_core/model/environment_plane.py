@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -28,102 +28,294 @@
 #
 #
 
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Vincent DUVERT / <vduvert@toulouse.viveris.com>
+
 
 """
-environment_plane.py - Model for OpenSAND environment plane controllers
+environment_plane.py - Model for environment plane elements
 """
 
-import threading
+from opensand_manager_core.model.host import InitStatus
 
-class EnvironmentPlaneModel:
-    """ Model for environement plane controllers """
-    def __init__(self, manager_log):
-        #  key       process name        state options
-        self._env_plane_controllers = {
-           'error' : ['ErrorController', None, "-d"], #"-d -t0"],
-           'probe' : ['ProbeController', None, "-f"], #"-f -t0"],
-           'event' : ['EventController', None, "-d"]  #"-d -t0"]
-        }
+import os
+import struct
 
-        self._log = manager_log
 
-        self._lock = threading.Lock()
+class EventLevel(object):
+    """
+    Event level constants
+    """
+    DEBUG = 0
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+    CRITICAL = 4
 
-    def _set_(self, key, index, value):
-        """ set the value at desired index for controller specified by key """
-        self._lock.acquire()
-        self._env_plane_controllers[key][index] = value
-        self._lock.release()
+class Program(object):
+    """
+    Represents a running program.
+    """
 
-    def _get_(self, key, index):
-        """get the value at desired index for controller specified by key """
-        self._lock.acquire()
-        val = self._env_plane_controllers[key][index]
-        self._lock.release()
-        return val
+    def __init__(self, controller, ident, name, probes, events, host_model=None):
+        self._ident = ident
+        host_name, prog_name = name.split(".", 1)
+        if host_name.startswith(prog_name):
+            name = host_name
 
-    def get_process(self, key):
-        """ get a process name """
-        return self._get_(key, 0)
+        self._name = name
+        self._probes = []
+        for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
+            probe = Probe(controller, self, i, p_name, unit, storage_type,
+                enabled, disp)
+            self._probes.append(probe)
+        self._events = events
+        self._host_model = host_model
 
-    def get_state(self, key):
-        """ get a process state """
-        return self._get_(key, 1)
+    def handle_critical_event(self):
+        """
+        critical event received for this host, set host status
+        """
+        if self._host_model is None:
+            return
+        self._host_model.set_init_status(InitStatus.FAIL)
 
-    def set_started(self, started_list):
-        """ set specified states to True """
-        val = False
-        if started_list == None:
-            val = None
+    def get_probes(self):
+        """
+        Returns a list of the probe objects associated with this program
+        """
+        return self._probes
 
-        for key in self._env_plane_controllers.keys():
-            self._set_(key, 1, val)
-        if started_list is not None:
-            for name in started_list:
-                find = False
-                for key in self._env_plane_controllers.keys():
-                    if name == self.get_process(key):
-                        self._set_(key, 1, True)
-                        find = True
-                        break
-                if not find:
-                    self._log.warning("Environment Plane: component '" +
-                                      key + "' does not belong to model")
+    def get_probe(self, ident):
+        """
+        Returns the probe identified by ident
+        """
+        return self._probes[ident]
 
-    def set_state(self, key, state):
-        """ set a process state """
-        self._set_(key, 1, state)
+    def get_event(self, ident):
+        """
+        Returns the event identified by ident as a (name, level) tuple
+        """
+        return self._events[ident]
 
-    def get_options(self, key):
-        """ get the process options """
-        return self._get_(key, 2)
+    @property
+    def name(self):
+        """
+        Get the program name
+        """
+        return self._name
 
-    def set_options(self, key, value):
-        """ set the process options values """
-        self._set_(key, 2, value)
+    @property
+    def ident(self):
+        """
+        Get the program ident
+        """
+        return self._ident
 
-    def get_list(self):
-        """ get the process list """
-        self._lock.acquire()
-        process_list = self._env_plane_controllers.keys()
-        self._lock.release()
-        return process_list
 
-    def get_states(self):
-        """ get all the process states """
-        ret = []
-        for item in self._env_plane_controllers :
-            ret.append([item, self.get_state(item)])
-        return ret
+    def __str__(self):
+        return self._name
 
-    def is_running(self):
-        """ check if at least one process is running """
-        for item in self._env_plane_controllers:
-            if self.get_state(item):
-                return True
-        return False
+    def __repr__(self):
+        return "<Program: %s [%d]>" % (self._name, self._ident)
 
-    def get_process_name(self, key):
-        """ return the process name """
-        return self._get_(key, 0)
+
+class Probe(object):
+    """
+    Represents a probe
+    """
+    def __init__(self, controller, program, ident, name, unit, storage_type,
+        enabled, displayed):
+        self._controller = controller
+        self._program = program
+        self._ident = ident
+        self._name = name
+        self._unit = unit
+        self._storage_type = storage_type
+        self._enabled = enabled
+        self._displayed = displayed
+
+    def read_value(self, data, pos):
+        """
+        Read a probe value from the specified data string at the specified
+        position. Returns the new position.
+        """
+        if self._storage_type == 0:
+            value = struct.unpack("!i", data[pos:pos + 4])[0]
+            return value, pos + 4
+
+        if self._storage_type == 1:
+            value = struct.unpack("!f", data[pos:pos + 4])[0]
+            return value, pos + 4
+
+        if self._storage_type == 2:
+            value = struct.unpack("!d", data[pos:pos + 8])[0]
+            return value, pos + 8
+
+        raise Exception("Unknown storage type")
+
+    @property
+    def ident(self):
+        """
+        Get the probe ident
+        """
+        return self._ident
+
+    @property
+    def name(self):
+        """
+        Get the probe name
+        """
+        return self._name
+
+    @property
+    def enabled(self):
+        """
+        Indicates if the probe is enabled
+        """
+        return self._enabled
+
+    @property
+    def program(self):
+        """
+        The program associated to the probe
+        """
+        return self._program
+
+    @property
+    def unit(self):
+        """
+        The probe unit
+        """
+        return self._unit
+
+    @enabled.setter
+    def enabled(self, value):
+        """
+        Enables or disables the probe
+        """
+        value = bool(value)
+
+        if value == self._enabled:
+            return
+
+        if not value:
+            self._displayed = False
+
+        self._enabled = value
+        self._controller.update_probe_status(self)
+
+    @property
+    def displayed(self):
+        """
+        Indicates if the probe is enabled
+        """
+        return self._displayed
+
+    @displayed.setter
+    def displayed(self, value):
+        """
+        Displays or hides the probes
+        """
+        value = bool(value)
+
+        if value == self._displayed:
+            return
+
+        if value and not self._enabled:
+            raise ValueError("Cannot display a disabled probe")
+
+        self._displayed = value
+        self._controller.update_probe_status(self)
+
+    @property
+    def global_ident(self):
+        return self._ident | (self._program.ident << 8)
+
+    @property
+    def full_name(self):
+        return "%s.%s" % (self._program.name, self._name)
+
+    def __str__(self):
+        return self._name
+
+    def __repr__(self):
+        return "<Probe: %s [%d]>" % (self._name, self._ident)
+
+class SavedProbeLoader(object):
+    """
+    This objects reconstructs a program/probe hierarchy from a saved run
+    """
+    def __init__(self, run_path):
+        self._data = {}
+        self._programs = {}
+
+        try:
+            self._load(run_path)
+        except EnvironmentError:
+            raise ValueError("Incorrect probe data")
+
+    def _load(self, run_path):
+        prog_id = 0
+
+        for host_name in os.listdir(run_path):
+            host_path = os.path.join(run_path, host_name)
+
+            if not os.path.isdir(host_path):
+                continue
+
+            for prog_name in os.listdir(host_path):
+                prog_path = os.path.join(host_path, prog_name)
+                prog_id += 1
+
+                if not os.path.isdir(prog_path):
+                    continue
+
+                probes = []
+                if host_name.startswith(prog_name):
+                    prog_full_name = host_name
+                else:
+                    prog_full_name = "%s.%s" % (host_name, prog_name)
+
+                for probe_name in os.listdir(prog_path):
+                    probe_path = os.path.join(prog_path, probe_name)
+                    probe_name, ext = os.path.splitext(probe_name)
+                    probe_full_name = "%s.%s" % (prog_full_name, probe_name)
+
+                    if not os.path.isfile(probe_path) or ext != '.log':
+                        continue
+
+                    probe_times = []
+                    probe_values = []
+
+                    with open(probe_path, 'r') as probe_file:
+                        unit = probe_file.readline().strip()
+                        for line in probe_file:
+                            time, value = line.split(" ", 1)
+                            time = int(time)
+                            value = float(value)
+                            probe_times.append(time)
+                            probe_values.append(value)
+
+                    self._data[probe_full_name] = (probe_times, probe_values)
+                    probes.append((probe_name, unit, None, True, False))
+
+                full_prog_name = "%s.%s" % (host_name, prog_name)
+                self._programs[prog_id] = Program(self, prog_id, full_prog_name,
+                                                  probes, [])
+
+    def get_programs(self):
+        """
+        Return the program list.
+        """
+        return self._programs
+
+    def get_data(self):
+        """
+        Return the probe data.
+        """
+        return self._data
+
+    def update_probe_status(self, probe):
+        # Nothing to do
+        pass
+
