@@ -482,17 +482,15 @@ class View(WindowView):
     def on_program_list_changed(self, programs_dict):
         """ called when the environment plane program list changes """
         for program in programs_dict.itervalues():
-            # TODO check that ident and name correspond (and maybe 
-            # host_model.name)
-            if program.ident not in self._event_tabs:
-                self._event_tabs[program.ident] = \
+            if program.name not in self._event_tabs:
+                self._event_tabs[program.name] = \
                     EventTab(self._event_notebook, program.name)
         
         self._eventprobe.simu_program_list_changed(programs_dict)
     
     def on_new_program_event(self, program, name, level, message):
         """ called when an environment plane event is received """
-        self._event_tabs[program.ident].message(level, name, message)
+        self._event_tabs[program.name].message(level, name, message)
 
     def global_event(self, message):
         """ put an event in all event tabs """

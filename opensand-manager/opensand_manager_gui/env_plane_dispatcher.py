@@ -43,7 +43,6 @@ class EnvPlaneDispatcher(object):
     """
     Environment plane dispatcher object
     """
-
     def __init__(self, controller, opensand_view):
         self._event_notebook = None
         self._controller = controller
@@ -56,9 +55,6 @@ class EnvPlaneDispatcher(object):
         """
         The controller reported that the program list has changed
         """
-        if not self._opensand_view:
-            return
-
         programs = {}
         for program in self._controller.get_programs():
             programs[program.ident] = program
@@ -69,18 +65,12 @@ class EnvPlaneDispatcher(object):
         """
         The controller reported a new probe value
         """
-        if not self._opensand_view:
-            return
-
         self._opensand_view.on_new_probe_value(probe, time, value)
 
     def new_event(self, program, name, level, message):
         """
         The controller reported a new event
         """
-        if not self._opensand_view:
-            return
-
         if level == EventLevel.CRITICAL:
             program.handle_critical_event()
 

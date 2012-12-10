@@ -208,13 +208,14 @@ class ProcessList():
 
     def stop(self):
         """ stop all the process """
-        # we release lock in the stop process, this boolean is used to avoid
-        # process modification while stopping 
-        ProcessList._stopping = True
         # check if all binaries are already stopped
         if len(ProcessList._process_list) == 0:
             LOGGER.info("all process are already stopped")
             return
+        
+        # we release lock in the stop process, this boolean is used to avoid
+        # process modification while stopping 
+        ProcessList._stopping = True
 
         ProcessList._process_lock.acquire()
 
