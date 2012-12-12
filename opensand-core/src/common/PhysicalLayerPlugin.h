@@ -214,7 +214,7 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 		virtual ~ErrorInsertionPlugin() {};
 
 		/**
-		 * @brief initialize the minimal condition
+		 * @brief initialize the error insertion
 		 *
 		 * @return true on success, false otherwise
 		 */

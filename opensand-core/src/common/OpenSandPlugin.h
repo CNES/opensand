@@ -97,7 +97,7 @@ class OpenSandPlugin
 	};
 
 	/**
-	 * @breif Initialize the plugin
+	 * @brief Initialize the plugin
 	 *
 	 * @return the plugin data
 	 */
