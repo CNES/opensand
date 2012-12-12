@@ -72,7 +72,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="opensand-collector",
-    version="trunk",
+    version="1.0.0",
     author="Vincent Duvert",
     author_email="vduvert@toulouse.viveris.com",
     description=("Statistics and events collector for OpenSAND platform"),
