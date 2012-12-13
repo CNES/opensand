@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-ule-encap-plugin, 1.0.0, [http://opensand.org])
+AC_INIT(opensand-ule-encap-plugin, trunk, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -33,7 +33,7 @@ AC_CHECK_FUNCS([])
 PKG_PROG_PKG_CONFIG
 
 # check for opensand-plugin library
-PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin >= 1.0.0])
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = trunk])
 LIBS="$OPENSAND_PLUG_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
 
