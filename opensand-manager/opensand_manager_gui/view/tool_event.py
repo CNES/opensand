@@ -117,7 +117,8 @@ class ToolEvent(ToolView):
             if parent in self._modules:
                 self.on_module_select(iterator)
             # tool
-            elif parent in self._model.get_all():
+            elif parent.upper() in map(lambda x: x.get_name().upper(),
+                                       self._model.get_all()):
                 self.on_tool_select(iterator)
             # host module type
             else:
