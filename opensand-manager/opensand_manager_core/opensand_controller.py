@@ -295,8 +295,10 @@ class Controller(threading.Thread):
                               conf_file]
                 # the list of modules configuration files to send
                 modules_dir = os.path.join(host_path, 'plugins')
-                modules = map(lambda x: os.path.join(modules_dir, x),
-                              os.listdir(modules_dir))
+                modules = []
+                if os.path.isdir(modules_dir):
+                    modules = map(lambda x: os.path.join(modules_dir, x),
+                                  os.listdir(modules_dir))
                 host.configure(conf_files,
                                modules,
                                self._deploy_config,
@@ -313,9 +315,9 @@ class Controller(threading.Thread):
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
                 ws.configure_ws(self._deploy_config, self._model.get_dev_mode())
-        except (OSError, IOError), (_, strerror):
-            self._log.error("Failed to create directory '%s': %s" %
-                            (host_path, strerror))
+        except (OSError, IOError), error:
+            self._log.error("Failed to handle configuration %s" %
+                            (error))
             return False
         except CommandException:
             self._log.error("OpenSAND platform failed to configure")
