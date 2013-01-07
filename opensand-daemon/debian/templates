@@ -14,7 +14,7 @@ Default: _opensand._tcp
 Description: Service type
   Select the type of service with format:
     _name._transport_protocol
-  All the hosts from the same platfrom MUST have the same service type
+  All the hosts from the same platform MUST have the same service type
 
 Template: opensand-daemon/service/name
 Type: select
@@ -85,7 +85,7 @@ Type: string
 Default: 192.168.18.15/24
 Description: OpenSAND network IPv4 address
   Select the IPv4 address/mask of the OpenSAND interface, the TUN interface will
-  have the same address with last byte + 1
+  have the same address with last byte + 2
 
 Template: opensand-daemon/network/lan_iface
 Type: string
