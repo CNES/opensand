@@ -100,8 +100,10 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="install">
-                        <property name="label" translatable="yes">Install</property>
+                        <property name="label" translatable="yes">Copy simulation files</property>
                         <property name="visible">True</property>
+                        <property name="tooltip" translatable="yes">Copy the simulation files to the different hosts.
+You can choose the sources with the button below and  the destination in advanced configuration</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_install_activate"/>
                         <child internal-child="image">
@@ -114,8 +116,9 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="edit_install">
-                        <property name="label" translatable="yes">Edit</property>
+                        <property name="label" translatable="yes">Configure copy</property>
                         <property name="visible">True</property>
+                        <property name="tooltip" translatable="yes">Specify the sources for simulation files copy</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_edit_install_activate"/>
                         <child internal-child="image">
@@ -659,6 +662,43 @@
                           </packing>
                         </child>
                         <child>
+                          <widget class="GtkFrame" id="frame_out_encap">
+                            <property name="visible">True</property>
+                            <property name="label_xalign">0</property>
+                            <property name="shadow_type">etched-out</property>
+                            <child>
+                              <widget class="GtkAlignment" id="align_out_encap">
+                                <property name="visible">True</property>
+                                <property name="left_padding">12</property>
+                                <property name="right_padding">50</property>
+                                <child>
+                                  <widget class="GtkVBox" id="out_encap_stack">
+                                    <property name="visible">True</property>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                  </widget>
+                                </child>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkLabel" id="label_out_encap">
+                                <property name="visible">True</property>
+                                <property name="has_tooltip">True</property>
+                                <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
+                                <property name="label" translatable="yes">&lt;b&gt;ST Uplink Encapsulation Scheme&lt;/b&gt;</property>
+                                <property name="use_markup">True</property>
+                              </widget>
+                              <packing>
+                                <property name="type">label_item</property>
+                              </packing>
+                            </child>
+                          </widget>
+                          <packing>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
                           <widget class="GtkFrame" id="frame_in_encap">
                             <property name="width_request">270</property>
                             <property name="visible">True</property>
@@ -685,43 +725,6 @@
                                 <property name="has_tooltip">True</property>
                                 <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
                                 <property name="label" translatable="yes">&lt;b&gt;ST Downlink Encapsulation Scheme&lt;/b&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="type">label_item</property>
-                              </packing>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="position">4</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkFrame" id="frame_out_encap">
-                            <property name="visible">True</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">etched-out</property>
-                            <child>
-                              <widget class="GtkAlignment" id="align_out_encap">
-                                <property name="visible">True</property>
-                                <property name="left_padding">12</property>
-                                <property name="right_padding">50</property>
-                                <child>
-                                  <widget class="GtkVBox" id="out_encap_stack">
-                                    <property name="visible">True</property>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label_out_encap">
-                                <property name="visible">True</property>
-                                <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
-                                <property name="label" translatable="yes">&lt;b&gt;ST Uplink Encapsulation Scheme&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
@@ -2244,7 +2247,6 @@ Viveris Technologies:
         <child>
           <widget class="GtkVBox" id="vbox2">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <child>
               <widget class="GtkLabel" id="progress_label">
                 <property name="visible">True</property>
