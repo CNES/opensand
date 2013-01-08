@@ -328,7 +328,10 @@ class Controller(threading.Thread):
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
         except CommandException:
-            self._log.error("OpenSAND platform failed to start")
+            msg = "OpenSAND platform failed to start"
+            if self._model.get_dev_mode():
+                msg += ", deploy OpenSAND before starting it"
+            self._log.error(msg)
             return False
 
         self._log.info("OpenSAND platform started")
