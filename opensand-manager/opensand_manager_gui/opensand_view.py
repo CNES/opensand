@@ -60,7 +60,7 @@ KONAMI = ['Up', 'Up', 'Down', 'Down',
 class View(WindowView):
     """ OpenSAND manager view """
     def __init__(self, model, manager_log, glade='',
-                 scenario='', dev_mode=False):
+                 scenario='', dev_mode=False, service_type=''):
         self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
@@ -76,6 +76,11 @@ class View(WindowView):
         mgr_event_tab = EventTab(self._event_notebook, "Manager events")
         self._event_tabs = {} # For the individudual program event tabs
         self._log.run(mgr_event_tab)
+
+        self._info_label = self._ui.get_widget('info_label')
+        self._counter = 0
+        infos = ['Service type: ' + service_type]
+        gobject.timeout_add(5000, self.update_label, infos)
         
         self._prog_dialog = None
 
@@ -515,6 +520,20 @@ class View(WindowView):
             self._prog_dialog.close()
             self._prog_dialog = None
             self._eventprobe.simu_data_available()
+
+    def update_label(self, infos=[]):
+        """ Update the message displayed on Manager """
+        self._info_label.set_label(infos[self._counter])
+
+        msg = 'Developer mode enabled'
+        if self._model.get_dev_mode() and not msg in infos:
+            infos.append(msg)
+        elif msg in infos:
+            infos.remove(msg)
+        if len(infos) == 0:
+            return True
+        self._counter = (self._counter + 1) % len(infos)
+        return True
 
 
 ##### TEST #####

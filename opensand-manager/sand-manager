@@ -111,7 +111,8 @@ class OpenSandManager:
 
             # create the View
             self._view = View(self._model, self._manager_log,
-                              options.glade, options.scenario, options.dev_mode)
+                              options.glade, options.scenario, options.dev_mode,
+                              options.service_type)
 
             # create the host controller and response manager
             self._controller = Controller(self._model, options.service_type,
