@@ -61,7 +61,7 @@ class EditInstallDialog(WindowView):
             error_popup(str(msg))
             self.close()
             return
-        self._dlg.set_title("Edit install dialog - PtManager")
+        self._dlg.set_title("Edit install dialog - OpenSAND Manager")
         self._dlg.set_icon_name('gtk-edit')
         self._dlg.run()
 

@@ -47,6 +47,7 @@ class ConfigCollectionDialog(WindowView):
         WindowView.__init__(self, None, 'config_collection_window')
 
         self._dlg = self._ui.get_widget('config_collection_window')
+        self._dlg.set_title("Configure collection - OpenSAND Manager")
         self._listview = self._ui.get_widget('config_collection_view')
         self._sel_controller = sel_controller
         self._model = model
@@ -74,7 +75,6 @@ class ConfigCollectionDialog(WindowView):
 
     def show(self):
         """ show the window """
-        
         if self._shown:
             self._dlg.present()
             return

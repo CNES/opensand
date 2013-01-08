@@ -70,7 +70,7 @@ class AdvancedDialog(WindowView):
             self.load()
         except ModelException, msg:
             error_popup(str(msg))
-        self._dlg.set_title("Advanced configuration - OpenSAND")
+        self._dlg.set_title("Advanced configuration - OpenSAND Manager")
         self._dlg.set_icon_name('gtk-properties')
         self._dlg.run()
 
