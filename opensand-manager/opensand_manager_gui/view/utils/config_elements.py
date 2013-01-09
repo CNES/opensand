@@ -67,15 +67,15 @@ class ProbeSelectionController(object):
         # 0) bool: is the probe displayed ? (False if the row is not a probe)
         # 1) str: the probe name, or section name
         # 2) int: the probe ID (0 if the row is not a probe)
-        # 3) bool: True for a probe, False for a section (used to hide the
-        # checkbox on sections)
+        # 3) int: the checkbox size (used to hide the checkbox on sections while
+        #         keeping the alignment)
         # The tree view itself uses one column, with two renderers (checkbox
         # and text)
-        
-        self._probe_store = gtk.TreeStore(bool, str, int, bool)
+        self._probe_store = gtk.TreeStore(bool, str, int, int)
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
         probe_listview.set_model(self._probe_store)
         probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
+        probe_listview.set_enable_tree_lines(True)
         
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(1) # Sort on the probe/section name
@@ -84,7 +84,7 @@ class ProbeSelectionController(object):
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
         column.add_attribute(cell_renderer, "active", 0)
-        column.add_attribute(cell_renderer, "visible", 3)
+        column.add_attribute(cell_renderer, "indicator-size", 3)
         cell_renderer.connect("toggled", self._probe_toggled)
         
         cell_renderer = gtk.CellRendererText()
@@ -168,8 +168,9 @@ class ProbeSelectionController(object):
                         # continue
                     
                         cur_group[group_name] = {
-                            '': self._probe_store.append(probe_parent, [False,
-                                group_name, 0, False])
+                            '': self._probe_store.append(probe_parent,
+                                                         [False, group_name, 0,
+                                                          0])
                         }
                         
                         cur_group = cur_group[group_name]
@@ -178,7 +179,7 @@ class ProbeSelectionController(object):
             
                 self._probe_store.append(probe_parent, [probe.displayed,
                                                         probe_name, probe.ident,
-                                                        True])
+                                                        12])
     
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
@@ -203,7 +204,6 @@ class ProbeSelectionController(object):
     
     def _notify_probe_display_changed(self):
         """ notifies the main view of the currently displayed probes """
-        
         displayed_probes = []
         
         for program in self._program_list.itervalues():
