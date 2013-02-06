@@ -1,0 +1,35 @@
+Source: opensand-ule-encap-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-plugin-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-ule-encap-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-ule-encap-plugin (= ${binary:Version})
+Provides: libopensand-ule-plugin-dbg
+Conflicts: libopensand-ule-plugin-dbg
+Replaces: libopensand-ule-plugin-dbg
+Description: Debugging symbols for OpenSAND ULE plugin
+
+Package: libopensand-ule-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopensand-mpeg-encap-plugin, opensand-daemon
+Provides: libopensand-ule-plugin
+Conflicts: libopensand-ule-plugin
+Replaces: libopensand-ule-plugin
+Description: The ULE plugin for OpenSAND
+
+Package: libopensand-ule-encap-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-ule-encap-plugin (= ${binary:Version}), libopensand-mpeg-encap-plugin-manager, python (>= 2.6), opensand-manager-gui
+Provides: libopensand-ule-plugin-manager
+Conflicts: libopensand-ule-plugin-manager
+Replaces: libopensand-ule-plugin-manager
+Description: The ULE plugin configuration for OpenSAND Manager
+

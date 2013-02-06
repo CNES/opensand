@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -117,7 +117,7 @@ class Stream:
         try:
             for line in self._tmp_file.readlines():
                 self._sock.send(line)
-        except socket.error, (errno, strerror):
+        except socket.error, (_, strerror):
             raise CommandException(strerror)
         finally:
             self._tmp_file.close()
@@ -133,7 +133,7 @@ class Stream:
         # open the file
         try:
             new_file = open(src_filename, "rb")
-        except IOError, (errno, strerror):
+        except IOError, (_, strerror):
             self._log.warning("error when opening '%s': %s. Send empty data"
                               % (src_filename, strerror))
             raise
@@ -186,7 +186,7 @@ class Stream:
             try:
                 for line in self._tmp_file.readlines():
                     self._sock.send(line)
-            except socket.error, (errno, strerror):
+            except socket.error, (_, strerror):
                 raise CommandException(strerror)
             finally:
                 self._tmp_file.close()

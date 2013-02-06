@@ -47,8 +47,11 @@
 
 #include "opensand_conf/conf.h"
 #include "EncapPlugin.h"
+#include "PluginUtils.h"
 #include "IpPacketHandler.h"
 
+// output
+#include "opensand_output/Output.h"
 
 /**
  * @class BlocEncapSat
@@ -67,8 +70,8 @@ class BlocEncapSat: public mgl_bloc
 	/// Whether the bloc has been initialized or not
 	bool initOk;
 
-	/// The encapsulation plugins
-	std::map<std::string, EncapPlugin *> encap_plug;
+	/// The plugins elements
+	PluginUtils utils;
 
 	/// the IP packet handler for plugins
 	IpPacketHandler *ip_handler;
@@ -81,9 +84,10 @@ class BlocEncapSat: public mgl_bloc
 	 * @param blocmgr   The bloc manager
 	 * @param fatherid  The father of the bloc
 	 * @param name      The name of the bloc
+	 * @param utils     The plugin elements
 	 */
 	BlocEncapSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	             std::map<std::string, EncapPlugin *> encap_plug);
+	             PluginUtils utils);
 
 	/**
 	 * Destroy the encapsulation bloc
@@ -149,6 +153,9 @@ class BlocEncapSat: public mgl_bloc
 	 *               or not
 	 */
 	mgl_status EncapsulatePackets(NetBurst *burst);
+	
+	/// output events
+	static Event *error_init;
 };
 
 #endif

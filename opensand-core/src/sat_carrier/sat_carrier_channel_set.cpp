@@ -58,7 +58,7 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  * Read data from the configuration file and create channels
  * @return -1 if failed, 0 if succeed
  */
-int sat_carrier_channel_set::readConfig(t_component host,
+int sat_carrier_channel_set::readConfig(component_t host,
                                         const string local_ip_addr,
                                         const string interface_name)
 {

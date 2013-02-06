@@ -92,17 +92,14 @@ load_conf(){
             halt_on_error "cannot retrieve ${LAN_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
         fi
         export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
-        export EMU_IPV6=`ip addr show ${EMU_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+    
         if [ -z "$EMU_IPV4" ]; then
             halt_on_error "cannot retrieve ${EMU_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
         fi
-        if [ -z "$EMU_IPV6" ]; then
-            halt_on_error "cannot retrieve ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
-        fi
+ 
         # complete the configuration file (the last section shall be [network])
         echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
         echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
         echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
         echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
         echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
@@ -119,7 +116,7 @@ load_conf(){
     fi
 
     # sanity check
-    for addr in $LAN_IPV4 $LAN_IPV6 $EMU_IPV4 $EMU_IPV6; do
+    for addr in $LAN_IPV4 $LAN_IPV6 $EMU_IPV4; do
         echo $addr | grep -q "/"
         ret=$?
         if [ "$ret" != "0" ]; then

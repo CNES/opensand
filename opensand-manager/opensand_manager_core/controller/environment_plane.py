@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -28,108 +28,484 @@
 #
 #
 
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+
 
 """
-environment_plane.py - controller that configure, install, start, stop
-                       and get status of Environment Plane processes
+environment_plane.py - controller for environment plane
 """
 
-import threading
-import signal
+from opensand_manager_core.model.environment_plane import Program
+from opensand_manager_core.model.host import InitStatus
+from tempfile import TemporaryFile
+from zipfile import ZipFile, BadZipfile
+import gobject
+import socket
+import struct
+import select
 
-from opensand_manager_core.my_exceptions import CommandException
-from opensand_manager_core.controller.environment_plane_process import EnvironmentPlaneProcess
+MAGIC_NUMBER = 0x5A7D0001
+MSG_MGR_REGISTER = 21
+MSG_MGR_REGISTER_PROGRAM = 22
+MSG_MGR_UNREGISTER_PROGRAM = 23
+MSG_MGR_SET_PROBE_STATUS = 24
+MSG_MGR_SEND_PROBES = 25
+MSG_MGR_SEND_EVENT = 26
+MSG_MGR_UNREGISTER = 27
+MSG_MGR_REGISTER_ACK = 28
 
-class EnvironmentPlaneController():
-    """ controller which implements the client that connect in order to get
-        environment plane state and that commands the environment plane """
-    def __init__(self, env_plane_model, manager_log):
-        self._env_plane_model = env_plane_model
+
+class EnvironmentPlaneController(object):
+    """
+    Controller for the environment plane.
+    """
+
+    def __init__(self, model, manager_log):
+        self._model = model
         self._log = manager_log
-        self._started_list = [] # the list of started components
-        self._process_list = EnvironmentPlaneProcess(env_plane_model,
-                                                     manager_log)
-        self._stop = threading.Event()
-        self._state_handler = threading.Thread(None, self.refresh_state,
-                                               None, (), {})
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._sock.bind(('', 0))
+        self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
+                                         self._data_received)
+        self._collector_addr = None
 
-        signal.signal(signal.SIGALRM, self.sig_handler)
-        self._state_handler.start()
+        self._transfer_port = 0
+        self._transfer_dest = None
+        self._transfer_cb = None
+        self._transfer_file = None
+        self._transfer_remaining = 0
 
-    def sig_handler(self, signum, frame):
-        """ handle SIGALRM because environment plane send it on error """
-        self._log.warning("Signal %s received, stop environment plane" %
-                          str(signum))
-        self.stop()
+        self._programs = {}
+        self._observer = None
 
-    def close(self):
-        """ close the host connections """
-        self._log.debug("Environment plane: close")
-        self._log.debug("Environment plane: join state client")
-        self._stop.set()
-        self._state_handler.join()
-        self._log.debug("Environment plane: state client joined")
-        self._log.debug("Environment plane: closed")
+    def set_observer(self, observer):
+        """
+        Sets the observer object which will be notified of changes on the
+        program list.
+        """
+        self._observer = observer
 
-    def start(self):
-        """ start the environment plane """
-        if not self._process_list.is_initialized():
-            error = "The Environment Plane is broken, please fix the " + \
-                    "problem and restart the Manager"
-            self._log.error(error)
-            raise CommandException(error)
+    def register_on_collector(self, ipaddr, port, transfer_port):
+        """
+        Register the probe controller on the specified collector.
+        """
+        addr = (ipaddr, port)
 
-        if self._process_list.is_running():
-            self._log.error("Some process are already started")
-            raise CommandException("Some process are already started")
+        if self._collector_addr:
+            return
+
+        self._collector_addr = addr
+        self._transfer_port = transfer_port
+        self._log.info("Registering on collector %s:%d" % addr)
+        self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
+                          addr)
+
+    def unregister_on_collector(self):
+        """
+        Unregisters on the specified collector.
+        """
+        if not self._collector_addr:
+            return
+
+        self._log.info("Unregistering on collector %s:%d" %
+                       self._collector_addr)
+
+        self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_UNREGISTER),
+                          self._collector_addr)
+
+        self._collector_addr = None
+
+    def cleanup(self):
+        """
+        Shut down the probe controller.
+        """
+        self.unregister_on_collector()
+
+        gobject.source_remove(self._tag)
 
         try:
-            self._process_list.start()
-        except Exception:
-            raise
+            self._sock.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            pass
 
-    def stop(self):
-        """ stop the environment plane """
-        if not self._process_list.is_initialized():
-            error = "The Environment Plane is broken, please fix the " + \
-                    "problem and restart the Manager"
-            self._log.error(error)
-            raise CommandException(error)
+        self._sock.close()
 
+    def get_programs(self):
+        """
+        Returns a list of all known programs.
+        """
+        return self._programs.values()
+
+    def get_program(self, ident):
+        """
+        Returns the program identified by ident
+        """
+        return self._programs[ident]
+
+    def transfer_from_collector(self, destination, comp_callback):
+        """
+        Gets the probe data from the collector and puts the files in the
+        destination folder.
+        """
+        self._transfer_cb = comp_callback
+        if not self._transfer_port:
+            self._log.info("Collector transfer port not known")
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb)
+            return
+
+        self._log.debug("Initiating probe transfer from collector")
+
+        transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        transfer_socket.settimeout(10.0)
         try:
-            self._process_list.stop()
-        except Exception:
-            raise
+            transfer_socket.connect((self._collector_addr[0], self._transfer_port))
+        except socket.error, msg:
+            self._log.error("Cannot connect to collector for transfer: %s" %
+                            msg)
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+            return
 
-    def refresh_state(self):
-        """ update process list """
+        self._transfer_dest = destination
+        self._transfer_file = TemporaryFile()
+
+
+        inputready, _, _ = select.select([transfer_socket], [], [], 5)
+        if(len(inputready) == 0):
+            self._log.warning("Cannot get data from collector")
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+            transfer_socket.close()
+            return
+        gobject.io_add_watch(transfer_socket, gobject.IO_IN,
+                             self._transfer_header)
+
+    def _transfer_header(self, transfer_socket, _tag):
+        """
+        Handles the transfer of the probe data header
+        """
+        header = ""
+        while len(header) < 4:
+            header += transfer_socket.recv(4 - len(header))
+
+        length = struct.unpack("!L", header)[0]
+        self._transfer_remaining = length
+
+        self._log.debug("Probe transfer: got length = %d" % length)
+
+        gobject.io_add_watch(transfer_socket, gobject.IO_IN,
+                             self._transfer_data)
+
+        return False
+
+    def _transfer_data(self, transfer_socket, _tag):
+        """
+        Handles the transfer of the probe data
+        """
+        if self._transfer_remaining == 0:
+            transfer_socket.close()
+            gobject.idle_add(self._transfer_unzip)
+            return False
+
+        to_read = min(self._transfer_remaining, 4096)
+        data = transfer_socket.recv(to_read)
+        self._transfer_remaining -= len(data)
+
+        self._transfer_file.write(data)
+
+        self._log.debug("Got data, %d remaining" % self._transfer_remaining)
+
+        return True
+
+    def _transfer_unzip(self):
+        """
+        Handles the decompression of the probe data
+        """
+        self._log.debug("Extracting")
+
+        self._transfer_file.seek(0)
         try:
-            self._process_list.load()
-        except Exception:
-            self._log.warning("Failed to initialize the Environment Plane")
+            zip_file = ZipFile(self._transfer_file, "r")
+        except BadZipfile, msg:
+            self._log.warning("Error when getting controller data: " + str(msg))
+            if self._transfer_cb is not None:
+                gobject.idle_add(self._transfer_cb, 'fail')
+            self._transfer_file.close()
+            return False
+        zip_file.extractall(self._transfer_dest)
+        zip_file.close()
+        self._transfer_file.close()
 
-        self.update_state(True)
-        while not self._stop.isSet():
-            # check program state to detect crashes
-            self._process_list.update(True)
-            self.update_state()
-            self._stop.wait(1.0)
+        self._log.debug("Done")
 
-    def update_state(self, first = False):
-        """ send the status of each component for
-            which the state has changed """
-        new_compo_list = self._process_list.get_components()
+        if self._transfer_cb is not None:
+            gobject.idle_add(self._transfer_cb)
 
-        self._started_list.sort()
-        new_compo_list.sort()
-        if first or self._started_list != new_compo_list:
-            # update the component list
-            self._started_list = new_compo_list
-            self._log.debug("component list has changed: " +
-                            str(self._started_list))
-            self._env_plane_model.set_started(self._started_list)
+        return False
+
+    def _data_received(self, _sock, _tag):
+        """
+        Called when a packet is received on the socket. Decodes and interprets
+        the message.
+        """
+        packet, addr = self._sock.recvfrom(4096)
+
+        if addr != self._collector_addr:
+            self._log.error("Received data from unknown host %s:%d." % addr)
+            return True
+
+        if len(packet) < 5:
+            self._log.error("Received short packet from the collector.")
+            return True
+
+        magic, cmd = struct.unpack("!LB", packet[0:5])
+        if magic != MAGIC_NUMBER:
+            self._log.error("Received bad magic number from the collector.")
+            return True
+
+        if cmd == MSG_MGR_REGISTER_ACK:
+            self._model.set_collector_functional(True)
+            return True
+
+        if cmd == MSG_MGR_REGISTER_PROGRAM:
             try:
-                self._process_list.serialize()
-            except Exception:
-                self._log.error("error when serializing process list")
+                success = self._handle_register_program(packet[5:])
+            except struct.error:
+                success = False
+
+            if not success:
+                self._log.error("Bad data received for REGISTER_PROGRAM "
+                                "command.")
+
+            return True
+
+        if cmd == MSG_MGR_UNREGISTER_PROGRAM:
+            try:
+                success = self._handle_unregister_program(packet[5:])
+            except struct.error:
+                success = False
+
+            if not success:
+                self._log.error("Bad data received for UNREGISTER_PROGRAM "
+                    "command.")
+
+            return True
+
+        if cmd == MSG_MGR_SEND_PROBES:
+            try:
+                success = self._handle_send_probes(packet[5:])
+            except struct.error:
+                success = False
+
+            if not success:
+                self._log.error("Bad data received for SEND_PROBES command.")
+
+            return True
+
+        if cmd == MSG_MGR_SEND_EVENT:
+            try:
+                success = self._handle_send_event(packet[5:])
+            except struct.error:
+                success = False
+
+            if not success:
+                self._log.error("Bad data received for SEND_EVENT command.")
+
+            return True
+
+        self._log.error("Unknown message id %d received from the collector." %
+            cmd)
+
+        return True
+
+    def _handle_register_program(self, data):
+        """
+        Handles a registration message.
+        """
+        host_id, prog_id, num_probes, num_events, name_length = \
+            struct.unpack("!BBBBB", data[0:5])
+        prog_name = data[5:5 + name_length]
+        full_prog_id = (host_id << 8) | prog_id
+
+        if len(prog_name) != name_length:
+            return False
+
+        pos = 5 + name_length
+
+        probe_list = []
+        for _ in xrange(num_probes):
+            storage_type, name_length, unit_length = \
+                    struct.unpack("!BBB", data[pos:pos + 3])
+            enabled = bool(storage_type & (1 << 7))
+            displayed = bool(storage_type & (1 << 6))
+            storage_type = storage_type & ~(3 << 6)
+            pos += 3
+
+            name = data[pos:pos + name_length]
+            if len(name) != name_length:
+                return False
+
+            pos += name_length
+
+            unit = data[pos:pos + unit_length]
+            if len(unit) != unit_length:
+                return False
+
+            pos += unit_length
+
+            probe_list.append((name, unit, storage_type, enabled, displayed))
+
+        event_list = []
+        for _ in xrange(num_events):
+            level, ident_length = struct.unpack("!BB", data[pos:pos+2])
+            pos += 2
+
+            ident = data[pos:pos + ident_length]
+            if len(ident) != ident_length:
+                return False
+
+            event_list.append((ident, level))
+            pos += ident_length
+
+        if data[pos:] != "":
+            return False
+
+        self._log.debug("Registration of [%d:%d] %s %r %r" % (host_id, prog_id,
+                                                              prog_name,
+                                                              probe_list,
+                                                              event_list))
+
+        # try to get host model
+        splitted = prog_name.split('.', 1)
+        if len(splitted) > 1:
+            host_name = splitted[0]
+        host_model = self._model.get_host(host_name)
+        if host_model is not None:
+            self._log.debug("Found a model for host %s" % host_name)
+            host_model.set_init_status(InitStatus.SUCCESS)
+        program = Program(self, full_prog_id, prog_name, probe_list, event_list,
+                          host_model)
+        self._programs[full_prog_id] = program
+
+        if self._observer:
+            self._observer.program_list_changed()
+
+        return True
+
+    def _handle_unregister_program(self, data):
+        """
+        Handles an unregistration message.
+        """
+        host_id, prog_id = struct.unpack("!BB", data)
+        full_prog_id = (host_id << 8) | prog_id
+
+        self._log.debug("Unregistration of [%d:%d]" % (host_id, prog_id))
+
+        try:
+            del self._programs[full_prog_id]
+        except KeyError:
+            self._log.error("Unregistering program [%d:%d] not found" %
+                            (host_id, prog_id))
+
+        if self._observer:
+            self._observer.program_list_changed()
+
+        return True
+
+    def _handle_send_probes(self, data):
+        """
+        Handles probes transmission.
+        """
+        host_id, prog_id, timestamp = struct.unpack("!BBL", data[0:6])
+        full_prog_id = (host_id << 8) | prog_id
+
+        try:
+            program = self._programs[full_prog_id]
+        except KeyError:
+            self._log.error("Program [%d:%d] which sent probe data is not "
+                            "found" % (host_id, prog_id))
+            return False
+
+        pos = 6
+        total_length = len(data)
+
+        while pos < total_length:
+            probe_id = struct.unpack("!B", data[pos])[0]
+            pos += 1
+
+            try:
+                probe = program.get_probe(probe_id)
+            except IndexError:
+                self._log.error("Unknown probe ID %d" % probe_id)
+                return False
+
+            value, pos = probe.read_value(data, pos)
+
+            if self._observer:
+                self._observer.new_probe_value(probe, timestamp, value)
+
+        return True
+
+    def _handle_send_event(self, data):
+        """
+        Handles events transmission.
+        """
+        host_id, prog_id, event_id = struct.unpack("!BBB", data[0:3])
+        message = data[3:]
+        full_prog_id = (host_id << 8) | prog_id
+
+        try:
+            program = self._programs[full_prog_id]
+        except KeyError:
+            self._log.error("Program [%d:%d] which sent event data is not "
+                "found" % (host_id, prog_id))
+            return False
+
+        try:
+            name, level = program.get_event(event_id)
+        except IndexError:
+            self._log.error("Incorrect event ID %d for program [%d:%d] "
+                            "received" % (event_id, host_id, prog_id))
+
+        if self._observer:
+            self._observer.new_event(program, name, level, message)
+
+        return True
+
+    def update_probe_status(self, probe):
+        """
+        Notifies the collector that the status of a given probe has changed.
+        """
+        if not self._collector_addr:
+            return
+
+        host_id = (probe.program.ident >> 8) & 0xFF
+        program_id = probe.program.ident & 0xFF
+        probe_id = probe.ident
+
+        self._log.debug("Updating status of probe %d on program %d:%d: "
+                        "enabled = %s, displayed = %s" % (probe_id, host_id,
+                                                          program_id,
+                                                          probe.enabled,
+                                                          probe.displayed))
+
+        state = 2 if probe.displayed else (1 if probe.enabled else 0)
+
+        message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SET_PROBE_STATUS,
+                              host_id, program_id, probe_id, state)
+
+        self._sock.sendto(message, self._collector_addr)
+
+if __name__ == '__main__':
+    import logging
+    import sys
+
+    logging.basicConfig(level=logging.DEBUG)
+    MAIN_LOOP = gobject.MainLoop()
+    CONTROLLER = EnvironmentPlaneController()
+    try:
+        CONTROLLER.register_on_collector("127.0.0.1", int(sys.argv[1]), 0)
+        MAIN_LOOP.run()
+    finally:
+        CONTROLLER.cleanup()

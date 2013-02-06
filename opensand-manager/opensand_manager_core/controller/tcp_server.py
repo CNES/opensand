@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -45,7 +45,8 @@ class Plop(SocketServer.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, controller):
-        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
+        SocketServer.TCPServer.__init__(self, server_address,
+                                        RequestHandlerClass)
         self.controller = controller
 
     def run(self):
@@ -87,7 +88,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
     def read_data(self, timeout = True):
         """ read data on socket """
         if timeout:
-            inputready, out, err = select.select([self.rfile], [], [], 60)
+            inputready, _, _ = select.select([self.rfile], [], [], 60)
             if(len(inputready) == 0):
                 raise CommandException("timeout")
 

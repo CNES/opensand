@@ -10,7 +10,7 @@ test_bloc_delayed_msg_LDADD = $(top_builddir)/src/libopensand_margouilla.la -lpt
 
 test_config_file_SOURCES = test_config_file.cpp
 test_config_file_LDADD = $(top_builddir)/src/libopensand_margouilla.la -lpthread
-dcl test_config_file_DATA = test_config_file.cfg
+# test_config_file_DATA = test_config_file.cfg
 
 test_thread_SOURCES = test_thread.cpp
 test_thread_LDADD = $(top_builddir)/src/libopensand_margouilla.la -lpthread

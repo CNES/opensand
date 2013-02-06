@@ -1,0 +1,27 @@
+Source: opensand-modcod-minimal-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-conf-dev (>= 1.0.0),
+ libopensand-plugin-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-modcod-minimal-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-modcod-minimal-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND MODCOD minimal condition plugin
+
+Package: libopensand-modcod-minimal-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Description: The MODCOD minimal condition plugin for OpenSAND
+
+Package: libopensand-modcod-minimal-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-modcod-minimal-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
+Description: The MODCOD minimal condition plugin configuration for OpenSAND Manager
+

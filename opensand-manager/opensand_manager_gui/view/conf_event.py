@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -82,13 +82,20 @@ class ConfEvent(ConfView) :
     def refresh_gui(self):
         """ the part of the refreshing that modifies GUI
             (should be used with gobject.idle_add outside gtk ) """
+        empty = 0
+
         # payload type
         if self.is_button_active('transparent'):
+            empty = 80
             self._ui.get_widget("repr_stack_sat_encap").hide_all()
             self._ui.get_widget("repr_stack_label_gw").set_markup("<b>GW</b>")
         elif self.is_button_active('regenerative'):
+            empty = 40
             self._ui.get_widget("repr_stack_sat_encap").show_all()
             self._ui.get_widget("repr_stack_label_gw").set_markup("<b>ST</b>")
+
+        widget = self._ui.get_widget("repr_stack_sat_empty_ip")
+        widget.set_size_request(100, empty)
 
         # emission standard
 #        if self.is_button_active('DVB-RCS'):
@@ -105,6 +112,26 @@ class ConfEvent(ConfView) :
             widget = self._ui.get_widget("repr_stack_label_sat_encap")
             widget.set_has_tooltip(True)
             widget.connect("query-tooltip", self.build_encap_tooltip)
+
+        # physical layer
+        widget1 = self._ui.get_widget("repr_stack_st_physical_layer")
+        widget2 = self._ui.get_widget("repr_stack_sat_physical_layer")
+        widget3 = self._ui.get_widget("repr_stack_gw_physical_layer")
+        widget = self._ui.get_widget('enable_physical_layer')
+        if widget.get_active():
+            widget1.set_size_request(100, 40)
+            widget2.set_size_request(100, 40)
+            widget3.set_size_request(100, 40)
+            widget1.show_all()
+            widget2.show_all()
+            widget3.show_all()
+        else:
+            widget1.set_size_request(100, 0)
+            widget2.set_size_request(100, 0)
+            widget3.set_size_request(100, 0)
+            widget1.hide_all()
+            widget2.hide_all()
+            widget3.hide_all()
 
         self._drawing_area.queue_draw()
 
@@ -284,6 +311,11 @@ class ConfEvent(ConfView) :
         """ 'clicked' event on teminal type buttons """
         self.enable_conf_buttons()
 
+    def on_enable_physical_layer_toggled(self, source=None, event=None):
+        """ 'toggled' event on enable button """
+        self.enable_conf_buttons()
+
+
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
         try:
@@ -322,7 +354,7 @@ class ConfEvent(ConfView) :
         config.set_dama(model.get_value(active, 0))
 
         # check stacks with modules conditions
-        modules = self._model.get_modules()
+        modules = self._model.get_encap_modules()
         stack = self._out_stack.get_stack()
         if len(stack) == 0:
             error_popup("Out stack is empty !")
@@ -376,6 +408,13 @@ class ConfEvent(ConfView) :
         widget = self._ui.get_widget('FrameDuration')
         frame_duration = widget.get_text()
         config.set_frame_duration(frame_duration)
+
+        # enable physical layer
+        widget = self._ui.get_widget('enable_physical_layer')
+        if widget.get_active():
+            config.set_enable_physical_layer("true")
+        else:
+            config.set_enable_physical_layer("false")
 
         try:
             config.save()

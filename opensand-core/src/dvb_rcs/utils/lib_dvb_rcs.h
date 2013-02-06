@@ -63,6 +63,11 @@
 #define MSG_TYPE_SOF 1
 
 /**
+ * The message has been corrupted by the physical layer
+ */
+#define MSG_TYPE_CORRUPTED 5
+
+/**
  * Capacity Request, ST -> NCC
  */
 #define MSG_TYPE_CR 10
@@ -113,7 +118,6 @@
  */
 #define MSG_TYPE_SESSION_LOGOFF 51
 
-
 /**
  * Basic DVB Header, other structures defined below should follow in a packet
  */
@@ -132,8 +136,16 @@ typedef struct
 {
 	long carrier_id; ///< Identifier of the carrier
 	T_DVB_HDR *hdr;  ///< Pointer to the DVB Header
-} T_DVB_META;
+} __attribute__((__packed__)) T_DVB_META;
 
+/**
+ * Internal structure between DVB and Carrier blocks.
+ * Carry information about physicalLayer block.
+ */
+typedef struct
+{
+    double cn_previous;
+} T_DVB_PHY;
 
 /**
  * This message type is a trick.

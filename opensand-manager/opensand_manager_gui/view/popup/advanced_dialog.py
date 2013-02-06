@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -130,8 +130,8 @@ class AdvancedDialog(WindowView):
             try:
                 adv.reload_conf()
             except ModelException, msg:
-                error_popup("error when reloading %s advanced configuration: %s" %
-                            (host.get_name().upper(), msg))
+                error_popup("error when reloading %s advanced configuration: %s"
+                            % (host.get_name().upper(), msg))
         self._host_lock.release()
 
     def update_host_tree(self):

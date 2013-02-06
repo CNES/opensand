@@ -179,54 +179,6 @@ mgl_status mgl_fifo::swap(long i_pos1, long i_pos2)
 }
 
 
-void dump(mgl_fifo &fifo) 
-{
-	long l_cpt;
-	long l_nb;
-	printf("\n");
-	l_nb = fifo.getCount();
-	for (l_cpt=0; l_cpt<l_nb; l_cpt++) {
-		printf("%d, ", (int)*(fifo.ptr+l_cpt));
-	}
-	printf("\n");
-
-}
-
-void mgl_fifo::quick_sort(mgl_fifo_sort_fct *ip_fct, int i_start_index, int i_nb)
-{       
-	int pivotpos;
-	if(i_nb<=1) { return; }
-	pivotpos=quick_sort_partition(ip_fct, i_start_index, i_nb);
-	quick_sort(ip_fct, i_start_index,pivotpos);
-	quick_sort(ip_fct, i_start_index+pivotpos+1,i_nb-pivotpos-1);
-}
-
-
-int mgl_fifo::quick_sort_partition(mgl_fifo_sort_fct *ip_fct, int i_start_index, int i_nb)
-{       
-	void *pivot;
-	int left,right;
-	pivot=get(i_start_index); // First element is pivot
-
-	left=i_start_index; right=i_start_index+i_nb-1;
-	for( ; ; )
-	 {
-		 while((left<right) && ((*ip_fct)(get(left), pivot)==mgl_false)) { left++; }
-		 while((left<right) && ((*ip_fct)(get(right),pivot)==mgl_true)) { right--; }
-
-		 if(left==right)
-		 {
-			 if(((*ip_fct)(get(right),pivot)==mgl_true)) { left=left-1; }
-			 break;
-		 }
-		 swap(left, right);
-	 }
-	swap(i_start_index, left);
-	dump(*this);
-    return left;
-}
-
-
 mgl_status mgl_fifo::sort(mgl_fifo_sort_fct *ip_fct)
 {
 	long l_cpt1;
@@ -237,10 +189,6 @@ mgl_status mgl_fifo::sort(mgl_fifo_sort_fct *ip_fct)
 
 	l_nb = getCount();
 
-	// Quick sort
-	//quick_sort(ip_fct, 0, l_nb);
-	//return mgl_ok;
-
 	// Bubble sort
 	for (l_cpt1=0; l_cpt1<l_nb; l_cpt1++) {	
 		lp_data1 = get(l_cpt1);
@@ -249,7 +197,6 @@ mgl_status mgl_fifo::sort(mgl_fifo_sort_fct *ip_fct)
 			if ((*ip_fct)(lp_data1, lp_data2)) {
 				swap(l_cpt1, l_cpt2);
 				lp_data1 = lp_data2;
-				//dump(*this);
 			}
 		}
 	}
@@ -265,30 +212,4 @@ mgl_bool fifo_sort_fct(void *ip_data1, void *ip_data2)
 		return mgl_false;
 	}
 }
-
-
-void test_fifo()
-{
-	mgl_fifo l_fifo;
-
-	l_fifo.init(6);
-	l_fifo.append((void *)1);
-	l_fifo.append((void *)5);
-	l_fifo.append((void *)3);
-	l_fifo.remove();
-	l_fifo.remove();
-	l_fifo.remove();
-	l_fifo.append((void *)1);
-	l_fifo.append((void *)5);
-	l_fifo.append((void *)3);
-	l_fifo.append((void *)7);
-	l_fifo.append((void *)2);
-	l_fifo.append((void *)4);
-	l_fifo.sort(&fifo_sort_fct);
-	while (l_fifo.getCount()>0) {
-		printf("%d\n", (int)l_fifo.remove());
-	}
-	// Result should be 1, 2, 3, 4, 5, 7
-}
-
 

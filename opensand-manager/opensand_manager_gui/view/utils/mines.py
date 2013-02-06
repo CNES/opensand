@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: UTF8 -*-
 
 # PyGTK Simple Minesweeper 0.3

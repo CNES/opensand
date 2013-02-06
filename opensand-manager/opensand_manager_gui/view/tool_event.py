@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
-# Copyright © 2011 CNES
+# Copyright © 2012 TAS
+# Copyright © 2012 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -64,9 +64,9 @@ class ToolEvent(ToolView):
             self._refresh_tool_tree = None
         elif val:
             # update the tree immediately then add a periodic update
-            self.update_tool_tree()
+            self.update_tree()
             self._refresh_tool_tree = gobject.timeout_add(1000,
-                                                          self.update_tool_tree)
+                                                          self.update_tree)
 
     def on_selection(self, selection):
         """ callback called when a tool is selected """
@@ -75,29 +75,53 @@ class ToolEvent(ToolView):
             self._desc_txt.set_markup('')
             self._config_view.hide_all()
             return
+
+        # Tree format:
+        #
+        # > Plugins
+        #   > global module type
+        #     > global module name
+        # > Host name
+        #   > host module type
+        #     > host module name
+        #   > tool name
         
+        start = "<span size='x-large' foreground='#1088EB'><b>"
+        end = "</b></span>"
+        # Plugins or Host name
         if tree.iter_parent(iterator) == None:
-            start = "<span size='x-large' foreground='#1088EB'><b>"
-            end = "</b></span>"
-            # modules
+            # global module
             if tree.get_value(iterator, TEXT) == 'Plugins':
-                self._desc_txt.set_markup("%sDeploy to see available modules%s"
-                                          % (start, end))
-            # host
+                self._desc_txt.set_markup("%sDeploy to see available "
+                                          "modules%s" % (start, end))
+            # host without tool or module
             elif not tree.iter_has_child(iterator):
                 self._desc_txt.set_markup("%sThis host has no available "
-                                          "tool%s" % (start, end))
+                                          "tool/module%s" % (start, end))
+            # host with tools or modules
             else:
                 self._desc_txt.set_markup("%sDeploy host to see "
-                                          "available tools%s" % (start, end))
+                                          "available tools/modules%s" %
+                                          (start, end))
 
             self._config_view.hide_all()
         else:
             name = tree.get_value(iterator, TEXT)
-            if name in self._modules:
+            # any module type with children
+            if tree.iter_has_child(iterator):
+                self._desc_txt.set_markup("%sDeploy to see available %s "
+                                          "modules%s" % (start, name, end))
+                return
+            parent = tree.get_value(tree.iter_parent(iterator), TEXT)
+            # global module name
+            if parent in self._modules:
                 self.on_module_select(iterator)
-            else:
+            # tool
+            elif parent in self._model.get_all():
                 self.on_tool_select(iterator)
+            # host module type
+            else:
+                self.on_host_module_select(iterator)
                 
     def on_tool_select(self, iterator):
         """ a tool has been selected """
@@ -130,24 +154,56 @@ class ToolEvent(ToolView):
     def on_module_select(self, iterator):
         """ a module has been selected """
         module_name = self._tree.get_value(iterator, TEXT)
+        parent_name = self._tree.get_value(self._tree.iter_parent(iterator),
+                                           TEXT)
 
-        self._missing_modules = self._model.get_missing()
-        description = self._modules[module_name].get_description()
-        if module_name in self._missing_modules:
-            missing = self._missing_modules[module_name]
+        description = self._modules[parent_name][module_name].get_description()
+        try:
+            # get the missing hosts per module
+            missing = self._model.get_missing()[module_name]
             msg = ''
             for host in missing:
                 msg = msg + host.upper() + ', '
             msg = msg.rstrip(', ')
             warning = "<span size='x-large' background='red' " + \
                       "foreground='white'>" + \
-                      "The module is not installed on the following hosts: " + \
+                      "The module could be missing on the following hosts: " + \
                       "%s\n\n</span>" % msg
             description = warning + description
+        except KeyError:
+            pass
 
         self._desc_txt.set_markup(description)
         
-        self.display_config_view(self._modules[module_name], iterator)
+        self.display_config_view(self._modules[parent_name][module_name],
+                                 iterator)
+
+    def on_host_module_select(self, iterator):
+        """ a module under host has been selected """
+        module_name = self._tree.get_value(iterator, TEXT)
+        type_iter = self._tree.iter_parent(iterator)
+        module_type = self._tree.get_value(type_iter, TEXT)
+        host_name = self._tree.get_value(self._tree.iter_parent(type_iter),
+                                         TEXT)
+        host = self._model.get_host(host_name.lower())
+
+        module = None
+        description = ''
+        if host is not None:
+            modules = host.get_modules()
+            module = modules[module_type][module_name]
+            description = module.get_description()
+
+            # get the missing modules for the host
+            missing = host.get_missing_modules()
+            if module_name in missing:
+                warning = "<span size='x-large' background='red' " + \
+                          "foreground='white'>The module could be missing " + \
+                          "on the host\n\n</span>"
+                description = warning + description
+
+        self._desc_txt.set_markup(description)
+        self.display_config_view(module, iterator)
             
     def tool_toggled_cb(self, cell, path):
         """ sets the toggled state on the toggle button to true or false
@@ -205,13 +261,27 @@ class ToolEvent(ToolView):
         self._tool_lock.acquire()
         for host in self._model.get_all():
             host_name = host.get_name()
+            # save the modules
+            modules = host.get_modules()
+            for module_type in host.get_modules():
+                for module_name in modules[module_type]:
+                    try:
+                        module = modules[module_type][module_name]
+                        self._log.debug("save %s module on %s" %
+                                        (module_name, host_name))
+                        module.save()
+                    except XmlException, error:
+                        error_popup("cannot save %s module on %s: %s" %
+                                    (module_name, host_name,
+                                     error.description))
+
             # reset the tools
             map(lambda x : x.set_selected(False), host.get_tools())
             # mark selected tools
             if not host_name in self._selected_tools.keys():
                 continue
             for tool in [elt for elt in host.get_tools()
-                             if elt.get_name() in self._selected_tools[host_name]]:
+                         if elt.get_name() in self._selected_tools[host_name]]:
                 self._log.debug("tool %s enabled for %s" %
                                 (elt.get_name().upper(), host_name.upper()))
                 tool.set_selected()
@@ -228,16 +298,18 @@ class ToolEvent(ToolView):
                     error_popup("%s: %s" % (host_name, error.description))
                     continue
 
-        for name in self._modules:
-            try:
-                module = self._modules[name]
-                notebook = module.get_conf_view()
-                if notebook is not None:
-                    self._log.debug("save %s config" % name)
-                    notebook.save()
-            except XmlException, error:
-                error_popup("%s: %s" % (name, error.description))
-                continue
+        # save the global modules
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                try:
+                    module = self._modules[module_type][module_name]
+                    notebook = module.get_conf_view()
+                    if notebook is not None:
+                        self._log.debug("save %s config" % module_name)
+                        notebook.save()
+                except XmlException, error:
+                    error_popup("%s: %s" % (module_name, error.description))
+                    continue
 
         # do that to copy contents else saved tools will contain references on
         # selected tools
@@ -265,8 +337,9 @@ class ToolEvent(ToolView):
                     error_popup("%s: %s" % (tool.get_name(), msg))
                     self._tool_lock.acquire()
 
-        for name in self._modules:
-            self._modules[name].set_conf_view(None)
+        for cat in self._modules:
+            for name in self._modules[cat]:
+                self._modules[cat][name].set_conf_view(None)
 
 
         self._tree.foreach(self.select_saved)

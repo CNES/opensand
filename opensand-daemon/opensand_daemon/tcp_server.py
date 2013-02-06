@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -62,6 +62,7 @@ class Plop(SocketServer.TCPServer):
 
     def stop(self):
         """ stop the TCP server """
+        MyTcpHandler._stop.set()
         self.shutdown()
 
 
@@ -91,7 +92,9 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
-    def read_data(self, timeout = True):
+    # TODO use a pipe as for stats_handler to break the select to avoid TIMEOUT
+    # and loop
+    def read_data(self, timeout=True):
         """ read data on socket.
             Can raise Timeout and EOFError exceptions """
         if timeout:
@@ -99,8 +102,17 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
             if(len(inputready) == 0):
                 LOGGER.warning("timeout when trying to read")
                 raise Timeout
+        else:
+            # do not block on socket polling
+            while not MyTcpHandler._stop.is_set():
+                inputready, out, err = select.select([self.rfile], [], [], 1)
+                if(len(inputready) == 0):
+                    MyTcpHandler._stop.wait(1.0)
+                else:
+                    break
 
-        self._data = self.rfile.readline().strip()
-        if (self._data == ''):
-            LOGGER.info("distant socket is closed")
-            raise EOFError
+        if not MyTcpHandler._stop.is_set():
+            self._data = self.rfile.readline().strip()
+            if (self._data == ''):
+                LOGGER.info("distant socket is closed")
+                raise EOFError

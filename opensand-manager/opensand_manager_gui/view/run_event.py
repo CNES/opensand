@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -35,7 +35,6 @@ run_event.py - the events on the run view
 """
 
 import gobject
-import socket
 import os
 import gtk
 
@@ -43,31 +42,26 @@ from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.event_handler import EventReponseHandler
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
+from opensand_manager_gui.view.popup.edit_install_dialog import EditInstallDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 INIT_ITER = 4
 
 class RunEvent(RunView):
     """ Events for the run tab """
-    def __init__(self, parent, model, dev_mode, manager_log):
+    def __init__(self, parent, model, opensand_view, dev_mode, manager_log):
         try:
             RunView.__init__(self, parent, model, manager_log)
         except RunException:
             raise
 
-        #TODO read that in configuration
-        event_port = 2612
-        error_port = 2611
-
         self._event_manager = self._model.get_event_manager()
         self._event_response_handler = EventReponseHandler(self,
                             self._model.get_event_manager_response(),
+                            opensand_view,
                             self._log)
 
-        self._event_socket = None
-        self._error_socket = None
-        self._event_id = None
-        self._error_id = None
+        self._opensand_view = opensand_view
         self._first_refresh = True
         self._refresh_iter = 0
         # at beginning check platform state immediatly, then every 2 seconds
@@ -78,33 +72,6 @@ class RunEvent(RunView):
 
         # start event response handler
         self._event_response_handler.start()
-
-        # Initialize socket for error and event controllers
-        try:
-            self._event_socket = socket.socket(socket.AF_INET,
-                                               socket.SOCK_DGRAM)
-            self._event_socket.setsockopt(socket.SOL_SOCKET,
-                                          socket.SO_REUSEADDR, 1)
-            self._event_socket.bind(('', event_port))
-            self._event_id = gobject.io_add_watch(self._event_socket,
-                                                  gobject.IO_IN,
-                                                  self.on_rcv_event)
-        except socket.error , (errno, strerror) :
-            self._log.error("error on event controller socket : " + strerror)
-            raise
-        try :
-            self._error_socket = socket.socket(socket.AF_INET,
-                                               socket.SOCK_DGRAM)
-            self._error_socket.setsockopt(socket.SOL_SOCKET,
-                                          socket.SO_REUSEADDR, 1)
-            self._error_socket.bind(('', error_port))
-            self._error_id = gobject.io_add_watch(self._error_socket,
-                                                  gobject.IO_IN,
-                                                  self.on_rcv_error)
-            
-        except socket.error , (errno, strerror) :
-            self._log.error("error on error controller socket : " + strerror)
-            raise
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
@@ -121,16 +88,6 @@ class RunEvent(RunView):
         if self._timeout_id != None :
             gobject.source_remove(self._timeout_id)
             self._timeout_id = None
-
-        if self._event_socket != None :
-            self._log.debug("Run Event: close event socket")
-            gobject.source_remove(self._event_id)
-            self._event_socket.close()
-
-        if self._error_socket != None :
-            self._log.debug("Run Event: close error socket")
-            gobject.source_remove(self._error_id)
-            self._error_socket.close()
 
         if self._event_response_handler.is_alive():
             self._log.debug("Run Event: join response event handler")
@@ -151,186 +108,29 @@ class RunEvent(RunView):
             self.on_timer_status()
             self._timeout_id = gobject.timeout_add(1000, self.on_timer_status)
 
-    def on_rcv_event(self, source, condition):
-        """ event socket callback """
-        (data, address) = self._event_socket.recvfrom(255)
-        info = self.parse_rcv_event(data)
-        if info != 0:
-            gobject.idle_add(self.show_opensand_event, info)
-        else:
-            gobject.idle_add(self.show_opensand_error,
-                             "event parsing failed...", 'orange')
-        # if this callback return True it will be called again
-        return True
-
-    def parse_rcv_event(self, data):
-        """ parse a message received on the event socket """
-        values = map(str.strip, str(data).split(','))
-        # get each value in the event and remove spaces before or
-        # after the string
-        if len(values) == 7:
-            FRSFrame = values[0].lstrip()
-            FSM      = values[1].lstrip()
-            appli    = values[2].lstrip()
-            category = values[3].lstrip()
-            type     = values[4].lstrip()
-            id       = values[5].lstrip()
-            state    = values[6].lstrip()
-        elif len(values) == 6:
-            FRSFrame = values[0].lstrip()
-            FSM      = values[1].lstrip()
-            appli    = values[2].lstrip()
-            category = values[3].lstrip()
-            type     = values[4].lstrip()
-            state    = values[5].lstrip()
-        else:
-            return 0
-
-        # appli format is "application_id" with id = 0 if there is only
-        # one possible instance
-        name = appli.strip('_0')
-        name = name.replace('_', '')
-        event = ''
-
-        if type == 'Component_state':
-            # state format is "state = id (Unit : N/A)"
-            state = state.split()
-            if state[2].isdigit() is not True:
-                gobject.idle_add(self.show_opensand_error,
-                                 "can not get component state", 'orange')
-                return 0
-            if state[2] == '0':
-                event = 'Starting'
-            elif state[2] == '1':
-                event = 'Initializing'
-            elif state[2] == '2':
-                host_name = name.replace('ST', 'st')
-                host_name = host_name.replace('GW', 'gw')
-                host_name = host_name.replace('SAT', 'sat')
-                host = self._model.get_host(host_name)
-                if host.get_initialisation_failed() == True:
-                    event = 'WARNING: Running BUT initialization failed!'
-                elif host.get_initialisation_failed() == False:
-                    event = 'Running'
-            elif state[2] == '3':
-                event = 'Terminating'
-            else:
-                gobject.idle_add(self.show_opensand_error,
-                                 "bad component state value " + state[2],
-                                        'orange')
-                return 0
-        elif type.startswith('Initialisation_ref'):
-            event = 'Initializing'
-        elif type == 'Login_received':
-            # id format is "StId = id"
-            id = id.split()
-            if id[2].isdigit() is not True:
-                gobject.idle_add(self.show_opensand_error,
-                                 "can not get component id", 'orange')
-                return 0
-            event = 'Login Request received for ST' + id[2]
-        elif type == 'Login_response':
-            # id format is "StId = id"
-            id = id.split()
-            if id[2].isdigit() is not True:
-                gobject.idle_add(self.show_opensand_error,
-                                 "can not get component id", 'orange')
-                return 0
-            event = 'Login Response sent to ST' + id[2]
-        elif type == 'Login_sent':
-            event = 'Login Request sent'
-        elif type == 'Login_complete':
-            event = 'Login Complete'
-        else:
-            gobject.idle_add(self.show_opensand_error,
-                             "unknown event: " + str(data), 'orange')
-            return 0
-
-        info = name + ": " + event
-        return info
-
-    def on_rcv_error(self, source, condition):
-        """ error socket callback """
-        (data, address) = self._error_socket.recvfrom(255)
-        (error, color) = self.parse_rcv_error(data)
-        if error != 0:
-            gobject.idle_add(self.show_opensand_error, error, color)
-        else:
-            gobject.idle_add(self.show_opensand_error,
-                             "error parsing failed...", 'orange')
-        # if this callback return True it will be called again
-        return True
-
-    def parse_rcv_error(self, data):
-        """ parse a message received on the error socket """
-        values = map(str.strip, str(data).split(','))
-        # get each value in the error and remove spaces before or
-        # after the string
-        if len(values) == 7:
-            FRSFrame = values[0].lstrip()
-            FSM      = values[1].lstrip()
-            appli    = values[2].lstrip()
-            category = values[3].lstrip()
-            type     = values[4].lstrip()
-            cause    = values[5].lstrip()
-            error    = values[6].lstrip()
-        elif len(values) == 6:
-            FRSFrame = values[0].lstrip()
-            FSM      = values[1].lstrip()
-            appli    = values[2].lstrip()
-            category = values[3].lstrip()
-            type     = values[4].lstrip()
-            state    = values[5].lstrip()
-        else:
-            return (0, 0)
-
-        # appli format is "application_id" with id = 0 if there is only
-        # one possible instance
-        name = appli.strip('_0')
-        name = name.replace('_', '')
-        error = ''
-        color = None
-
-        # category format is Category
-        categories = category.split()
-        if len(categories) < 1:
-            gobject.idle_add(self.show_opensand_error,
-                             "unable to read category", 'orange')
-            return (0, 0)
-        category = categories[1].strip('()')
-        if category == 'CRITICAL':
-            color = 'red'
-        elif category == 'MINOR':
-            color = 'orange'
-
-        if type.startswith('Initialisation_ref'):
-            error = 'Initializing'
-        elif type.startswith('Component_initialisation'):
-            error = 'Initialization failed'
-            # TODO: Define new errors to detail which part of the
-            # initialisation have failed
-            host_name = name.lower();
-            host = self._model.get_host(host_name)
-            host.set_initialisation_failed(True)
-        else:
-            gobject.idle_add(self.show_opensand_error,
-                             "unknown event: " + str(data), 'orange')
-            return (0, 0)
-
-        info = name + ': ' + error
-        return (info, color)
-
     def on_deploy_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on deploy OpenSAND button """
         # disable the buttons
         self.disable_start_button(True)
-        self.disable_deploy_button(True)
+        self.disable_deploy_buttons(True)
 
         # tell the hosts controller to deploy OpenSAND on all hosts
         # (the installation will be finished when we will receive a
         # 'resp_deploy_platform' event, the button will be enabled
         # there)
         self._event_manager.set('deploy_platform')
+
+    def on_install_files_button_clicked(self, source=None, event=None):
+        """ 'clicked' event on install files button """
+        # disable the buttons
+        self.disable_start_button(True)
+        self.disable_deploy_buttons(True)
+
+        # tell the hosts controller to install files on all hosts
+        # (the installation will be finished when we will receive a
+        # 'resp_install_files' event, the button will be enabled
+        # there)
+        self._event_manager.set('install_files')
 
     def on_start_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on start OpenSAND button """
@@ -354,20 +154,23 @@ class RunEvent(RunView):
 
             # disable the buttons
             self.disable_start_button(True)
-            self.disable_deploy_button(True)
+            self.disable_deploy_buttons(True)
 
             # add a line in the event text views
-            self.show_opensand_event("***** New run: %s *****" %
-                                    self._model.get_run())
+            self._log.info("***** New run: %s *****" % self._model.get_run(),
+                           True, True)
 
             # tell the hosts controller to start OpenSAND on all hosts
             # (startup will be finished when we will receive a
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
+
+            self._opensand_view.global_event("***** New run: %s *****" %
+                                             self._model.get_run())
         else:
             # disable the buttons
             self.disable_start_button(True)
-            self.disable_deploy_button(True)
+            self.disable_deploy_buttons(True)
 
             # stop the applications
 
@@ -376,8 +179,6 @@ class RunEvent(RunView):
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
 
-            # add an empty line in the event text views
-            self.show_opensand_event("")
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
         """ 'toggled' event on dev_mode button """
@@ -405,9 +206,13 @@ class RunEvent(RunView):
                                       "found on the system, the platform "
                                       "won't be able to start")
                     self._log.info("you will need at least a satellite, "
-                                   "a gateway, a ST and the environment plane: "
+                                   "a gateway and a ST: "
                                    "please deploy the missing component(s), "
                                    "they will be automatically detected")
+                
+                if not self._model.is_collector_functional():
+                    self._log.warning("The OpenSAND collector is not known. "
+                                      "The probes will not be available.")
 
                 # update the label of the 'start/stop opensand' button to
                 gobject.idle_add(self.set_start_stop_button,
@@ -420,7 +225,7 @@ class RunEvent(RunView):
                     gobject.idle_add(self.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # disable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_button, True,
+                    gobject.idle_add(self.disable_deploy_buttons, True,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     if self._refresh_iter <= INIT_ITER:
                         self._log.info("Platform is currently started")
@@ -428,7 +233,7 @@ class RunEvent(RunView):
                     gobject.idle_add(self.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # enable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_button, False,
+                    gobject.idle_add(self.disable_deploy_buttons, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     if self._refresh_iter <= INIT_ITER:
                         self._log.info("Platform is currently stopped")
@@ -441,6 +246,10 @@ class RunEvent(RunView):
         gobject.idle_add(self.set_start_stop_button,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
         gobject.idle_add(self.update_status)
+        
+        # Update simulation state for the main view
+        gobject.idle_add(self._opensand_view.on_simu_state_changed,
+                         priority=gobject.PRIORITY_HIGH_IDLE+20)
 
         # restart timer
         return True
@@ -458,21 +267,19 @@ class RunEvent(RunView):
         """ edit button in options menu clicked """
         window = EditDeployDialog(self._model, self._log)
         window.go()
-        window.close()
-        pass
 
-    def on_event_notebook_switch_page(self, notebook, page, page_num):
-        """ event notebook page changed """
-        img0 = self._ui.get_widget("img_manager")
-        img1 = self._ui.get_widget("img_opensand")
-        # manager events
-        if page_num == 0:
-            img0.hide()
-        # opensand events
-        elif page_num == 1:
-            img1.hide()
-        img0.set_from_stock(gtk.STOCK_INFO,
-                            gtk.ICON_SIZE_MENU)
-        img1.set_from_stock(gtk.STOCK_INFO,
-                            gtk.ICON_SIZE_MENU)
+    def on_start_stop_activate(self, source=None, event=None):
+        """ start/stop button in action menu clicked """
+        self.on_start_opensand_button_clicked(source, event)
+
+    def on_install_activate(self, source=None, event=None):
+        """ install button in action menu clicked """
+        self.on_install_files_button_clicked(source, event)
+
+    def on_edit_install_activate(self, source=None, event=None):
+        """ edit button in action menu clicked """
+        window = EditInstallDialog(self._model, self._log)
+        window.go()
+        window.close()
+
 

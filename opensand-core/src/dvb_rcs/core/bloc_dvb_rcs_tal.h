@@ -52,10 +52,11 @@
 // configuration
 #include <opensand_conf/conf.h>
 
-// environment plane
-#include <opensand_env_plane/EnvironmentAgent_e.h>
+// output
+#include <opensand_output/Output.h>
 
 // system includes
+#include <errno.h>
 #include <stdarg.h>       // for va_* macros (ANSI format)
 #include <netdb.h>        // for h_errno and hstrerror
 #include <arpa/inet.h>    // for inet_ntoa
@@ -220,7 +221,7 @@ class BlocDVBRcsTal: public BlocDvb
 
 	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
                   const char *name, const tal_id_t mac_id,
-                  std::map<std::string, EncapPlugin *> &encap_plug);
+                  PluginUtils utils);
 	virtual ~BlocDVBRcsTal();
 
 	mgl_status onEvent(mgl_event *event);
@@ -234,10 +235,11 @@ class BlocDVBRcsTal: public BlocDvb
 	int initEncapsulation();
 	int initParameters();
 	int initCarrierId();
-	int initMacFifo();
+	int initMacFifo(std::vector<std::string>&);
 	int initObr();
 	int initDama();
-	int initQoSServer();
+	bool initQoSServer();
+	bool initOutput(const std::vector<std::string>&);
 
 	int onStartOfFrame(unsigned char *ip_buf, long l_len);
 	int processOnFrameTick();
@@ -263,7 +265,24 @@ class BlocDVBRcsTal: public BlocDvb
 	// communication with QoS Server:
 	bool connectToQoSServer();
 	static void closeQosSocket(int sig);
-
+	
+	// output probes and events
+	Event *event_login_sent;
+	Event *event_login_complete;
+	
+	Probe<int> **probe_st_terminal_queue_size;
+	Probe<int> **probe_st_real_in_thr;
+	Probe<int> **probe_st_real_out_thr;
+	Probe<int> *probe_st_phys_out_thr;
+	Probe<int> *probe_st_rbdc_req_size;
+	Probe<int> *probe_st_vbdc_req_size;
+	Probe<int> *probe_st_cra;
+	Probe<int> *probe_st_alloc_size;
+	Probe<int> *probe_st_unused_capacity;
+	Probe<float> *probe_st_bbframe_drop_rate;
+	Probe<int> *probe_st_real_modcod;
+	Probe<int> *probe_st_used_modcod;
+	
 };
 
 #endif

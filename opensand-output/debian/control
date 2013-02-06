@@ -1,0 +1,34 @@
+Source: opensand-output
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config, libopensand-conf-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+
+Package: libopensand-output-dev
+Section: libdevel
+Architecture: any
+Depends: libopensand-output (= ${binary:Version})
+Provides: libopensand-env-plane-dev
+Conflicts: libopensand-env-plane-dev
+Replaces: libopensand-env-plane-dev
+Description: The output libraries and headers for OpenSAND
+
+Package: libopensand-output-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-output (= ${binary:Version})
+Provides: libopensand-env-plane-dbg
+Conflicts: libopensand-env-plane-dbg
+Replaces: libopensand-env-plane-dbg
+Description: Debugging symbols for OpenSAND Output library
+
+Package: libopensand-output
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libopensand-env-plane
+Conflicts: libopensand-env-plane
+Replaces: libopensand-env-plane
+Description: The output libraries for OpenSAND
+
+

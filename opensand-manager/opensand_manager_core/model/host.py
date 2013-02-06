@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -36,15 +36,24 @@ host.py - Host model for OpenSAND manager
 
 import threading
 
-#TODO we could modify privates methods from toto to _toto_
 from opensand_manager_core.model.tool import ToolModel
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
+from opensand_manager_core.module import load_modules
+
+class InitStatus:
+    """ status of host initialization """
+    SUCCESS = 0  # host process successfully initialized
+    FAIL = 1     # host process failed to initialize
+    PENDING = 2  # host process is still initializing
+    NONE = 3     # no host process info or no environment plane
+
 
 class HostModel:
     """ host model """
     def __init__(self, name, instance, network_config, state_port,
-                 command_port, tools, scenario, manager_log):
+                 command_port, tools, modules, scenario, manager_log,
+                 collector_functional):
         self._log = manager_log
         self._name = name
         self._instance = instance
@@ -63,18 +72,18 @@ class HostModel:
         self._advanced = None
         self._state = None
 
-        self._initialisation_failed = False
+        self._init_status = InitStatus.NONE
+        self._collector_functional = collector_functional
 
         if self._component != 'ws':
             try:
-                self._advanced = AdvancedHostModel(self._name, self._instance,
-                                                   self._ifaces, scenario)
+                self._advanced = AdvancedHostModel(self._name, scenario)
             except ModelException, error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
 
         self._lock = threading.Lock()
 
-        # the tools dictionary [name: ToolModel]
+        # the tools dictionary {name: ToolModel}
         self._tools = {}
         for tool_name in tools:
             self._log.info(self._name.upper() + ": add " + tool_name)
@@ -86,20 +95,32 @@ class HostModel:
             finally:
                 self._tools[tool_name] = new_tool
 
+        # the modules dictionary {category: {name: OpenSandModule}}
+        self._modules = load_modules(self._component)
+
+        # a list of modules that where not detected by the host
+        self._missing_modules = []
+        for module_type in self._modules:
+            for module in [mod for mod in self._modules[module_type]
+                               if mod.upper() not in modules]:
+                self._log.warning("%s: plugin %s may be missing" %
+                                  (name.upper(), module))
+                self._missing_modules.append(module)
+        self.reload_modules(scenario)
+
     def reload_all(self, scenario):
         """ reload host to update the scenario path """
         self.reload_conf(scenario)
         self.reload_tools(scenario)
+        self.reload_modules(scenario)
 
     def reload_conf(self, scenario):
         """ reload the host configuration """
         try:
             if not self._advanced:
-                self._advanced = AdvancedHostModel(self._name, self._instance,
-                                                   self._ifaces, scenario)
+                self._advanced = AdvancedHostModel(self._name, scenario)
             else:
-                self._advanced.load(self._name, self._instance,
-                                    self._ifaces, scenario)
+                self._advanced.load(self._name, scenario)
         except ModelException as error:
             self._log.warning("%s: %s" % (self._name.upper(), error))
 
@@ -110,6 +131,24 @@ class HostModel:
                 self._tools[tool_name].update(scenario)
             except ModelException as error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
+
+    def reload_modules(self, scenario):
+        """ update the scenario path for modules configuration """
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                module = self._modules[module_type][module_name]
+                try:
+                    module.update(scenario, self._component, self._name)
+                except ModelException as error:
+                    self._log.warning("%s: %s" % (self._name.upper(), error))
+
+    def get_modules(self):
+        """get the modules """
+        return self._modules
+
+    def get_missing_modules(self):
+        """ get the missing modules """
+        return self._missing_modules
 
     def get_advanced_conf(self):
         """ get the advanced configuration """
@@ -134,17 +173,17 @@ class HostModel:
         self._lock.release()
         return state
 
-    def get_initialisation_failed(self):
+    def get_init_status(self):
         """ get the host initialisation state """
         self._lock.acquire()
-        state = self._initialisation_failed
+        status = self._init_status
         self._lock.release()
-        return state
+        return status
 
-    def set_initialisation_failed(self, state):
+    def set_init_status(self, status):
         """ set the host initialisation state """
         self._lock.acquire()
-        self._initialisation_failed = state
+        self._init_status = status
         self._lock.release()
 
     def set_started(self, started_list):
@@ -161,7 +200,7 @@ class HostModel:
         self._state = False
 
         if len(started_list) == 0:
-            self._initialisation_failed = False
+            self._init_status = InitStatus.NONE
             self._lock.release()
             return
 
@@ -175,10 +214,15 @@ class HostModel:
             if key in self._tools:
                 self._tools[key].set_state(True)
             elif key == self._component:
-                if self._initialisation_failed == True:
-                    self._state = False
-                else:
-                    self._state = True
+                # if the collector is registerd and the host status was not
+                # updated set it to pending 
+                if not self._collector_functional and \
+                   self._init_status != InitStatus.FAIL:
+                    self._init_status = InitStatus.SUCCESS
+                if self._collector_functional and \
+                   self._init_status == InitStatus.NONE:
+                    self._init_status = InitStatus.PENDING
+                self._state = True
             else:
                 self._log.warning(self._name + ": component '" +
                                   key + "' does not belong to model")
@@ -238,3 +282,7 @@ class HostModel:
         if tool_name in self._tools:
             return self._tools[tool_name]
         return None
+
+    def set_collector_functional(self, status):
+        """ the collector responds to manager registration """
+        self._collector_functional = status

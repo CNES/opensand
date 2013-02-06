@@ -152,7 +152,7 @@ class DvbS2Std: public PhysicStd
 	 * @param spot_id  the id of the spot of the destination terminal
 	 * @return         true in case of success, false otherwise
 	 */
-	bool createOptionModcod(t_component comp, long pid,
+	bool createOptionModcod(component_t comp, long pid,
 	                        unsigned int modcod, long spot_id);
 #endif
 

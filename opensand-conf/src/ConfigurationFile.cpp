@@ -345,7 +345,7 @@ bool ConfigurationFile::getListItems(const char *section,
 		nodeComment = dynamic_cast<const xmlpp::CommentNode*>(*iter);
 		nodename = (*iter)->get_name();
 
-		if(!nodeText && !nodeComment && !nodename.empty()) //Let's not say "name: text".
+		if(!nodeText && !nodeComment && !nodename.empty())
 		{   
 			list.push_back(*iter);
 		}   
@@ -432,6 +432,7 @@ bool ConfigurationFile::getStringValueInList(ConfigurationList list,
 error:
 	return false;
 }
+
 
 
 

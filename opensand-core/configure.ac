@@ -50,15 +50,14 @@ PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = trunk])
 LIBS="$OPENSAND_CONF_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
 
-# check for opensand-env-plane library
-PKG_CHECK_MODULES([OPENSAND_ENV_PLANE], [opensand_env_plane = trunk])
-LIBS="$OPENSAND_ENV_PLANE_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_ENV_PLANE_CFLAGS $AM_CPPFLAGS")
+# check for opensand-output library
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = trunk])
+LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-margouilla library
 PKG_CHECK_MODULES([OPENSAND_MARGOUILLA], [opensand_margouilla = trunk])
 LIBS="$OPENSAND_MARGOUILLA_LIBS $LIBS"
-echo "$AM_CPPFLAGS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_MARGOUILLA_CFLAGS $AM_CPPFLAGS")
 
 
@@ -115,10 +114,11 @@ AC_CONFIG_FILES([ \
 	src/encap/Makefile \
 	src/qos_data/Makefile \
 	src/sat_carrier/Makefile \
+	src/physical_layer/Makefile \
 	src/system/Makefile \
 	src/tun_interface/Makefile \
 	conf/Makefile \
-	opensand_encap_plugin.pc \
+	opensand_plugin.pc \
 	doc/doxygen \
 ])
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -42,22 +42,22 @@ from opensand_manager_core.opensand_xml_parser import XmlParser
 
 class AdvancedHostModel:
     """ Advanced host model"""
-    def __init__(self, name, instance, ifaces, scenario):
+    def __init__(self, name, scenario):
         self._conf_file = ''
         self._xsd = ''
         self._config_view = None
         self._configuration = None
         self._enabled = True
-        self.load(name, instance, ifaces, scenario)
+        self.load(name, scenario)
 
-    def load(self, name, instance, ifaces, scenario):
+    def load(self, name, scenario):
         """ load the advanced configuration """
         # create the host configuration directory
         conf_path = os.path.join(scenario, name)
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("failed to create directory '%s': %s" %
                                      (conf_path, strerror))
 

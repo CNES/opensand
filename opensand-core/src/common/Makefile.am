@@ -1,7 +1,7 @@
 SUBDIRS = . tests
 
 noinst_LTLIBRARIES = libopensand_common.la
-lib_LTLIBRARIES = libopensand_encap_plugin.la
+lib_LTLIBRARIES = libopensand_plugin.la
 
 libopensand_common_la_cpp = \
 	msg_dvb_rcs.cpp \
@@ -24,27 +24,36 @@ libopensand_common_la_h = \
 	IpPacketHandler.h \
 	PluginUtils.h
 
-libopensand_encap_plugin_la_cpp = \
+libopensand_plugin_la_cpp = \
 	Data.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp
 
-libopensand_encap_plugin_la_h = \
+libopensand_plugin_la_h = \
+	OpenSandPlugin.h \
 	OpenSandCore.h \
 	Data.h \
 	NetPacket.h \
 	NetBurst.h \
-	EncapPlugin.h
+	EncapPlugin.h \
+	PhysicalLayerPlugin.h
+	
+INCLUDES = \
+	-I$(top_srcdir)/src/dvb_rcs/utils/
+
+libopensand_common_la_LIBADD = -ldl
 
 libopensand_common_la_SOURCES = \
 	$(libopensand_common_la_cpp) \
 	$(libopensand_common_la_h)
 
-libopensand_encap_plugin_la_SOURCES = \
-	$(libopensand_encap_plugin_la_cpp) \
-	$(libopensand_encap_plugin_la_h)
+libopensand_plugin_la_SOURCES = \
+	$(libopensand_plugin_la_cpp) \
+	$(libopensand_plugin_la_h)
 
-libopensand_encap_plugin_includedir = ${includedir}/opensand_encap_plugin
+libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
-libopensand_encap_plugin_include_HEADERS = \
-	$(libopensand_encap_plugin_la_h)
+libopensand_plugin_include_HEADERS = \
+	$(libopensand_plugin_la_h) \
+	$(top_srcdir)/src/dvb_rcs/utils/lib_dvb_rcs.h \
+	$(top_srcdir)/src/dvb_rcs/utils/CapacityRequest.h

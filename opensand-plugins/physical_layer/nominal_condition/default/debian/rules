@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh  $@
+
+override_dh_strip:
+	dh_strip --dbg-package=libopensand-default-nominal-plugin-dbg
+	
+override_dh_install:
+	dh_install
+
+	install -m 0644 src/default.py $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/lib/python2.6/dist-packages/opensand_manager_core/modules/default.py
+	install -m 0644 conf/default.conf $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/sat/plugins/default.conf
+	install -m 0644 conf/default.xsd $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/sat/plugins/default.xsd
+	install -m 0644 conf/default.conf $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/gw/plugins/default.conf
+	install -m 0644 conf/default.xsd $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/gw/plugins/default.xsd
+	install -m 0644 conf/default.conf $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/st/plugins/default.conf
+	install -m 0644 conf/default.xsd $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/st/plugins/default.xsd
+
+override_dh_pysupport:

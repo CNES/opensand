@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<!-- TODO integer => nonNegativeInteger -->
 
 <!-- component type -->
 <xsd:simpleType name="componentType">
@@ -10,7 +11,7 @@
 
 <!-- types that can be useful for many section -->
 <xsd:simpleType name="talId">
-    <xsd:restriction base="xsd:integer">
+    <xsd:restriction base="xsd:nonNegativeInteger">
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="31" /> <!-- 0x1f -->
     </xsd:restriction>
@@ -19,7 +20,6 @@
 <xsd:simpleType name="file">
     <xsd:restriction base="xsd:string" />
 </xsd:simpleType>
-
 
 <!-- types for global section -->
 <xsd:simpleType name="msTime">
@@ -169,7 +169,6 @@
     </xsd:complexType>
 </xsd:element>
 
-
 <!-- type for dvb_rcs section -->
 <xsd:simpleType name="damaAlgorithm">
     <xsd:restriction base="xsd:string">
@@ -188,6 +187,7 @@
             <xsd:element ref="mac_layer" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="dvb_rcs" />
+            <xsd:element ref="physical_layer" />
             <xsd:element ref="sat_carrier" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -314,7 +314,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="carrier_number" type="xsd:integer">
+            <xsd:element name="carrier_number" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of carriers
@@ -360,6 +360,33 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- physical_layer section description -->
+<xsd:element name="physical_layer">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The physical layer description
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="enable" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Enable the physical layer
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="granularity" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The channel refreshing (ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 <!-- sat_carrier section description -->
 <xsd:element name="sat_carrier">
     <xsd:annotation>
@@ -379,5 +406,6 @@
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
+
 
 </xsd:schema>

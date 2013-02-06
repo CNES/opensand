@@ -130,7 +130,6 @@ class ConfigurationFile
 	                    const char *attribute,
 	                    T &value);
 
-
  private:
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;
@@ -320,7 +319,7 @@ inline bool ConfigurationFile::getValue<bool>(const char *section,
 
 template <>
 inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterator iter,
-		                                               const char *attribute,
+                                                       const char *attribute,
                                                        bool &value)
 {
 	string tmp_val;

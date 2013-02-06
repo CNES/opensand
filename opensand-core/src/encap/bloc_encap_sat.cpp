@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -40,19 +40,23 @@
 #define DBG_PACKAGE PKG_ENCAP
 #include "opensand_conf/uti_debug.h"
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
+
+Event *BlocEncapSat::error_init = NULL;
 
 BlocEncapSat::BlocEncapSat(mgl_blocmgr * blocmgr,
                            mgl_id fatherid,
                            const char *name,
-                           std::map<std::string, EncapPlugin *> encap_plug):
+                           PluginUtils utils):
 	mgl_bloc(blocmgr, fatherid, name),
-	encap_plug(encap_plug)
+	utils(utils)
 {
 	this->initOk = false;
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
+	
+	if(error_init == NULL)
+	{
+		error_init = Output::registerEvent("bloc_encap_sat:init", LEVEL_ERROR);
+	}
 }
 
 BlocEncapSat::~BlocEncapSat()
@@ -81,8 +85,8 @@ mgl_status BlocEncapSat::onEvent(mgl_event *event)
 		else
 		{
 			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s bloc initialization failed\n",
+			                     FUNCNAME);
 		}
 	}
 	else if(!this->initOk)
@@ -142,8 +146,8 @@ mgl_status BlocEncapSat::onInit()
 	const char *FUNCNAME = "[BlocEncapSat::onInit]";
 	int i;
 	int encap_nbr;
-	string upper_name;
-	string upper_option;
+	EncapPlugin *plugin = NULL;
+	EncapPlugin *upper_encap = NULL;
 	// The list of uplink encapsulation protocols to ignore them at downlink
 	// encapsulation
 	vector <string> up_proto;
@@ -182,7 +186,7 @@ mgl_status BlocEncapSat::onInit()
 		goto error;
 	}
 
-	upper_name = upper_option;
+	upper_encap = NULL;
 	for(i = 0; i < encap_nbr; i++)
 	{
 		bool next = false;
@@ -200,19 +204,19 @@ mgl_status BlocEncapSat::onInit()
 			goto error;
 		}
 
-		if(this->encap_plug[encap_name] == NULL)
+		if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
 		{
-			UTI_ERROR("%s missing plugin for %s encapsulation",
+			UTI_ERROR("%s cannot get plugin for %s encapsulation",
 			          FUNCNAME, encap_name.c_str());
 			goto error;
 		}
 
-		context = this->encap_plug[encap_name]->getContext();
+		context = plugin->getContext();
 		for(iter = up_proto.begin(); iter!= up_proto.end(); iter++)
 		{
 			if(*iter == encap_name)
 			{
-				upper_name = context->getName();
+				upper_encap = plugin;
 				// no need to encapsulate with this protocol because it will
 				// already be done on uplink
 				next = true;
@@ -225,7 +229,7 @@ mgl_status BlocEncapSat::onInit()
 		}
 
 		this->downlink_ctx.push_back(context);
-		if(upper_name == "")
+		if(upper_encap == NULL)
 		{
 			if(!context->setUpperPacketHandler(this->ip_handler,
 			                                   REGENERATIVE))
@@ -234,17 +238,17 @@ mgl_status BlocEncapSat::onInit()
 			}
 		}
 		else if(!context->setUpperPacketHandler(
-					this->encap_plug[upper_name]->getPacketHandler(),
+					upper_encap->getPacketHandler(),
 					REGENERATIVE))
 		{
 			UTI_ERROR("%s upper encapsulation type %s not supported for %s "
-			          "encapsulation", FUNCNAME, upper_name.c_str(),
+			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
-		upper_name = context->getName();
+		upper_encap = plugin;
 		UTI_DEBUG("%s add downlink encapsulation layer: %s\n",
-		          FUNCNAME, upper_name.c_str());
+		          FUNCNAME, upper_encap->getName().c_str());
 	}
 
 	return mgl_ok;

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,4 +33,5 @@
 
 #include "msg_dvb_rcs.h"
 
-mgl_memory_pool g_memory_pool_dvb_rcs(MSG_BBFRAME_SIZE_MAX, 10000, (const char *)"gmp_dvb_rcs");
+mgl_memory_pool g_memory_pool_dvb_rcs(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+                                      10000, (const char *)"gmp_dvb_rcs");

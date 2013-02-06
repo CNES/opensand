@@ -1,0 +1,36 @@
+Source: opensand-mpeg-encap-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-conf-dev (>= 1.0.0),
+ libopensand-plugin-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-mpeg-encap-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-mpeg-encap-plugin (= ${binary:Version})
+Provides: libopensand-mpeg-plugin-dbg
+Conflicts: libopensand-mpeg-plugin-dbg
+Replaces: libopensand-mpeg-plugin-dbg
+Description: Debugging symbols for OpenSAND MPEG plugin
+
+Package: libopensand-mpeg-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Provides: libopensand-mpeg-plugin
+Conflicts: libopensand-mpeg-plugin
+Replaces: libopensand-mpeg-plugin
+Description: The MPEG plugin for OpenSAND
+
+Package: libopensand-mpeg-encap-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-mpeg-encap-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
+Provides: libopensand-mpeg-plugin-manager
+Conflicts: libopensand-mpeg-plugin-manager
+Replaces: libopensand-mpeg-plugin-manager
+Description: The MPEG plugin configuration for OpenSAND Manager
+

@@ -38,8 +38,8 @@
 #define DBG_PACKAGE PKG_QOS_DATA
 #include "opensand_conf/uti_debug.h"
 
-
-extern T_ENV_AGENT EnvAgent;
+// output events
+Event* BlocIPQoS::error_init = NULL;
 
 /// The default LABEL to associate with one IP packet if no MAC ID is found
 const int C_DEFAULT_LABEL = 255;
@@ -48,7 +48,7 @@ const int C_DEFAULT_LABEL = 255;
  * constructor
  */
 BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                     const char *name, t_component host):
+                     const char *name, component_t host):
 	mgl_bloc(blocmgr, fatherid, name),
 	sarpTable()
 {
@@ -61,6 +61,11 @@ BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
 
 	// link state
 	this->_state = link_down;
+
+	if(error_init == NULL)
+	{
+		error_init = Output::registerEvent("bloc_ip_qos:init", LEVEL_ERROR);
+	}
 }
 
 
@@ -101,8 +106,8 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->_tun_fd < 0)
 		{
 			UTI_ERROR("%s error in creating TUN interface\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s error in creating TUN interface\n",
+			                     FUNCNAME);
 			return mgl_ko;
 		}
 
@@ -110,8 +115,8 @@ mgl_status BlocIPQoS::onEvent(mgl_event *event)
 		if(this->addFd(this->_tun_fd) == mgl_ko)
 		{
 			UTI_ERROR("%s failed to register TUN handle fd\n", FUNCNAME);
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "%s failed to register TUN handle fd\n",
+			                     FUNCNAME);
 			return mgl_ko;
 		}
 
@@ -236,7 +241,7 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	tal_id = this->sarpTable.getTalByIp(ip_addr);
 	
 	// check if the packet should be read
-	if (tal_id == BROADCAST_TAL_ID || tal_id == this->_tal_id)
+	if(tal_id == BROADCAST_TAL_ID || tal_id == this->_tal_id)
 	{
 		UTI_DEBUG("%s: Packet IPv%d received from lower layer & shloud be read\n", 
 				FUNCNAME, packet->version());

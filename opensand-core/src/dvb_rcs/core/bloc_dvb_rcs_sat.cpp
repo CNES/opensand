@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
- * Copyright © 2011 CNES
+ * Copyright © 2012 TAS
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -50,21 +50,16 @@
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
-extern T_ENV_AGENT EnvAgent;
-
 // Logging configuration
 #define DBG_PACKAGE PKG_DVB_RCS_SAT
 #include "opensand_conf/uti_debug.h"
-
 
 // BlocDVBRcsSat ctor
 BlocDVBRcsSat::BlocDVBRcsSat(mgl_blocmgr *blocmgr,
                              mgl_id fatherid,
                              const char *name,
-                             std::map<std::string, EncapPlugin *> &encap_plug):
-	BlocDvb(blocmgr, fatherid, name, encap_plug),
+                             PluginUtils utils):
+	BlocDvb(blocmgr, fatherid, name, utils),
 	spots()
 {
 	this->initOk = false;
@@ -123,8 +118,7 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 		else if(this->onInit() < 0)
 		{
 			UTI_ERROR("bloc initialization failed\n");
-			ENV_AGENT_Error_Send(&EnvAgent, C_ERROR_CRITICAL, 0, 0,
-			                     C_ERROR_INIT_COMPO);
+			Output::sendEvent(error_init, "Bloc initialization failed\n");
 		}
 		else
 		{
@@ -355,8 +349,6 @@ int BlocDVBRcsSat::initMode()
 			UTI_ERROR("failed to create the emission standard\n");
 			goto error;
 		}
-		// TODO modify that
-		this->emissionStd->setTalId(-1);
 
 		// create the reception standard
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
@@ -376,8 +368,6 @@ int BlocDVBRcsSat::initMode()
 			UTI_ERROR("failed to create the emission standard\n");
 			goto error;
 		}
-		// TODO modify that
-		this->emissionStd->setTalId(-1);
 
 		// create the reception standard
 		this->receptionStd = new DvbRcsStd();
@@ -1093,6 +1083,11 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 	}
 	break;
 
+	case MSG_TYPE_CORRUPTED:
+		UTI_INFO("the message was corrupted by physical layer, drop it");
+		g_memory_pool_dvb_rcs.release((char *) frame);
+		break;
+
 	default:
 	{
 		UTI_ERROR("unknown type (%ld) of DVB frame\n", hdr->msg_type);
@@ -1161,7 +1156,7 @@ int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 		// Reminder: DVB frame is ready to be sent (carrier id already set)
 		frame = elem->getData();
 		frame_len = elem->getDataLength();
-		if(!sendDvbFrame((T_DVB_HDR *) frame, carrier_id))
+		if(!sendDvbFrame((T_DVB_HDR *) frame, carrier_id, frame_len))
 		{
 			UTI_ERROR("%s sendDvbFrame() failed, buffers preserved\n", FUNCNAME);
 			goto release_fifo_elem;
@@ -1328,7 +1323,8 @@ int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 		}
 
 		// create a message for the DVB frame
-		if(!this->sendDvbFrame((T_DVB_HDR *) elem->getData(), fifo->getId()))
+		if(!this->sendDvbFrame((T_DVB_HDR *) elem->getData(), fifo->getId(),
+		                        elem->getDataLength()))
 		{
 			UTI_ERROR("failed to send message, drop the DVB or BB frame\n");
 			goto error;

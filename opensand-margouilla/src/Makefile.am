@@ -55,7 +55,7 @@ msg_ip.h
 
 libopensand_margouilla_la_SOURCES = $(libopensand_margouilla_la_cpp) $(libopensand_margouilla_la_h)
 
-libopensand_margouilla_la_LIBADD = -lrt
+libopensand_margouilla_la_LIBADD = -lrt -lpthread
 
 libopensand_margouilla_includedir = ${includedir}/opensand_margouilla
 

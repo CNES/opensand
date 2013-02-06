@@ -41,6 +41,8 @@ CMD=$1
 # Source default library
 SYSCTL="true"
 
+DAEMON_CONF="/etc/opensand/daemon.conf"
+
 # UDP buffer size: incresed to support high traffic
 WMEM_MAX="1048580"
 RMEM_MAX="1048580"
@@ -49,38 +51,38 @@ RMEM_DEFAULT="1048580"
 if [ -f /etc/default/opensand-network ]; then
     . /etc/default/opensand-network
 fi
+DAEMON_CONF="/etc/opensand/daemon.conf"
+
+DAEMON_CONF="/etc/opensand/daemon.conf"
 
 # load the configuration file
 load_conf(){
     # load debconf parameters
     db_get opensand-daemon/network/config_level
     config=$RET
+    db_get opensand-daemon/network/emu_iface
+    export EMU_IFACE=$RET
     if [ "$config" != "AUTOMATIC" ]; then
-        db_get opensand-daemon/network/emu_iface
-        export EMU_IFACE=$RET
         db_get opensand-daemon/network/emu_ipv4
         export EMU_IPV4=$RET
-        db_get opensand-daemon/network/emu_ipv6
-        export EMU_IPV6=$RET
     else
-        export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
-        export EMU_IPV6=`ip addr show ${EMU_IFACE} | grep global | grep -o -e "inet6 [^ ]*" | grep -o -e "[^ ]*$"`
+        db_get opensand-daemon/network/emu_iface
+        EMU_IFACE=$RET 
+    export EMU_IPV4=`ip addr show ${EMU_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
         if [ -z "$EMU_IPV4" ]; then
             halt_on_error "cannot retrieve ${EMU_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
         fi
-        if [ -z "$EMU_IPV6" ]; then
-            halt_on_error "cannot retrieve ${EMU_IFACE} IPv6 address, please select ADVANCED mode or assign an address"
-        fi
+
         # complete the configuration file (the last section shall be [network])
         echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
         echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
-        echo "emu_ipv6 = ${EMU_IPV6}" >> ${DAEMON_CONF}
+
     fi
     
 }
 
 sanity_check(){
-    for addr in $EMU_IPV4 $EMU_IPV6; do
+    for addr in $EMU_IPV4; do
         echo $addr | grep -q "/"
         ret=$?
         if [ "$ret" != "0" ]; then

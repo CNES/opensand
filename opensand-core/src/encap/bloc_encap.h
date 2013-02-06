@@ -51,6 +51,10 @@
 
 #include "IpPacketHandler.h"
 #include "OpenSandCore.h"
+#include "PluginUtils.h"
+
+// output
+#include "opensand_output/Output.h"
 
 
 /**
@@ -81,10 +85,10 @@ class BlocEncap: public mgl_bloc
 	long tal_id;
 
 	/// the component name type
-	t_component host;
+	component_t host;
 
-	/// the list of available encapsulation plugins
-	std::map <std::string, EncapPlugin *> &encap_plug;
+	/// the plugins elements
+	PluginUtils utils;
 
 	/// the emission contexts list from lower to upper context
 	std::vector <EncapPlugin::EncapContext *> emission_ctx;
@@ -104,10 +108,11 @@ class BlocEncap: public mgl_bloc
 	 * @param fatherid The father of the bloc
 	 * @param name The name of the bloc
      * @param host_name The name og the host
+     * @param utils The plugins elements
 	 */
 	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, t_component host,
-	          std::map<std::string, EncapPlugin *> &encap_plug);
+	          const char *name, component_t host,
+	          PluginUtils utils);
 
 	/**
 	 * Destroy the encapsulation bloc
@@ -155,6 +160,9 @@ class BlocEncap: public mgl_bloc
 	 * @return       Whether the burst was successful handled or not
 	 */
 	mgl_status onRcvBurstFromDown(NetBurst *burst);
+
+	/// output events
+	static Event *error_init;
 };
 
 #endif

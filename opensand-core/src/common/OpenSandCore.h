@@ -37,6 +37,15 @@
 #include <string>
 #include <stdint.h>
 
+/** unused macro to avoid compilation warning with unused parameters. */
+#ifdef __GNUC__
+#  define UNUSED(x) x __attribute__((unused))
+#elif __LCLINT__
+#  define UNUSED(x) /*@unused@*/ x
+#else               /* !__GNUC__ && !__LCLINT__ */
+#  define UNUSED(x) x
+#endif              /* !__GNUC__ && !__LCLINT__ */
+
 using std::string;
 
 /** The different types of DVB components */
@@ -45,14 +54,14 @@ typedef enum
 	satellite,
 	gateway,
 	terminal
-} t_component;
+} component_t;
 
 /** @brief Get the name of a component
  *
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline string getComponentName(t_component host)
+inline string getComponentName(component_t host)
 {
 	switch(host)
 	{

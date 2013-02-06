@@ -2,15 +2,13 @@ Source: opensand-core
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
- libopensand-conf-dev (>= 0.9.0), libopensand-env-plane-dev (>= 0.9.0), libopensand-margouilla-dev (>= 0.9.0),
+ libopensand-conf-dev (>= 1.0.0), libopensand-output-dev (>= 1.0.0), libopensand-margouilla-dev (>= 1.0.0),
  python-lxml, libpcap-dev
 Standards-Version: 3.8.3
 
 Package: opensand-core-all
 Architecture: any
 Depends: opensand-core-bin (= ${binary:Version})
-Conflicts: platine-core-all
-Replaces: platine-core-all
 Description: The OpenSAND emulation testbed core with all the configuration files
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
@@ -19,8 +17,6 @@ Package: opensand-core-dbg
 Section: debug
 Architecture: any
 Depends: opensand-core-bin (= ${binary:Version})
-Conflicts: platine-core-dbg
-Replaces: platine-core-dbg
 Description: Debugging symbols for OpenSAND Core binaries
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
@@ -28,34 +24,35 @@ Description: Debugging symbols for OpenSAND Core binaries
 Package: opensand-core-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate
-Conflicts: platine-core-bin
-Replaces: platine-core-bin
 Description: The OpenSAND emulation testbed core
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
   
-Package: libopensand-encap-plugin
+Package: libopensand-plugin
 Section: libdevel
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libplatine-encap-plugin
-Replaces: libplatine-encap-plugin
-Description: The library for OpenSAND encapsulation plugins
+Provides: libopensand-encap-plugin
+Conflicts: libopensand-encap-plugin
+Replaces: libopensand-encap-plugin
+Description: The library for OpenSAND plugins
 
-Package: libopensand-encap-plugin-dev
+Package: libopensand-plugin-dev
 Section: libdevel
 Architecture: any
-Depends: libopensand-encap-plugin (= ${binary:Version})
-Conflicts: libplatine-encap-plugin-dev
-Replaces: libplatine-encap-plugin-dev
-Description: The library for OpenSAND encapsulation plugins
+Depends: libopensand-plugin (= ${binary:Version})
+Provides: libopensand-encap-plugin-dev
+Conflicts: libopensand-encap-plugin-dev
+Replaces: libopensand-encap-plugin-dev
+Description: The library for OpenSAND plugins
 
-Package: libopensand-encap-plugin-dbg
+Package: libopensand-plugin-dbg
 Section: debug
 Architecture: any
-Depends: libopensand-encap-plugin (= ${binary:Version})
-Conflicts: libplatine-encap-plugin-dbg
-Replaces: libplatine-encap-plugin-dbg
-Description: Debugging symbols for OpenSAND encapsulation plugins' library
+Depends: libopensand-plugin (= ${binary:Version})
+Provides: libopensand-encap-plugin-dbg
+Conflicts: libopensand-encap-plugin-dbg
+Replaces: libopensand-encap-plugin-dbg
+Description: Debugging symbols for OpenSAND plugins' library
 
 

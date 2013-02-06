@@ -76,14 +76,12 @@
 #include "bloc_encap.h"
 #include "bloc_dvb_rcs_tal.h"
 #include "bloc_sat_carrier.h"
+#include "BlocPhysicalLayer.h"
 #include "PluginUtils.h"
 
-// environment plane include
-#include "opensand_env_plane/EnvironmentAgent_e.h"
+// output include
+#include "opensand_output/Output.h"
 
-
-// global variable for the environment agent
-T_ENV_AGENT EnvAgent;
 
 /// global variable saying whether the ST component is alive or not
 bool alive = true;
@@ -97,28 +95,28 @@ bool init_process(int argc, char **argv,
                   string &iface_name,
                   tal_id_t &instance_id)
 {
-	T_INT16 scenario_id = 1, run_id = 1, opt;
-	T_COMPONENT_TYPE comp_type = C_COMP_ST;
+	int opt;
+	bool output_enabled = true;
+	event_level_t output_event_level = LEVEL_INFO;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-s:hr:i:a:n:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:a:n:")) != EOF)
 	{
 		switch(opt)
 		{
-		case 's':
-			/* get scenario id */
-			scenario_id = atoi(optarg);
+		case 'q':
+			// disable output
+			output_enabled = false;
 			break;
-		case 'r':
-			/* get run id */
-			run_id = atoi(optarg);
-			break;
+		case 'd':
+			// enable output debug
+			output_event_level = LEVEL_DEBUG;
 		case 'i':
-			/* get instance id */
+			// get instance id
 			instance_id = atoi(optarg);
 			break;
 		case 'a':
-			/// get local IP address
+			// get local IP address
 			ip_addr = optarg;
 			break;
 		case 'n':
@@ -127,12 +125,12 @@ bool init_process(int argc, char **argv,
 			break;
 		case 'h':
 		case '?':
-			fprintf(stderr, "usage: %s [-h] [-s scenario_id -r run_id -i "
-			                "instance_id -a ip_address -n interface_name]\n",
+			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
+				"-n interface_name]\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
-			fprintf(stderr, "\t-s <scenario>        set the scenario id\n");
-			fprintf(stderr, "\t-r <run>             set the run id\n");
+			fprintf(stderr, "\t-q                   disable output\n");
+			fprintf(stderr, "\t-d                   enable output debug events\n");
 			fprintf(stderr, "\t-a <ip_address>      set the IP address\n");
 			fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
@@ -142,15 +140,10 @@ bool init_process(int argc, char **argv,
 		}
 	}
 
-	UTI_PRINT(LOG_INFO, "starting environment plane scenario %d run %d\n",
-	          scenario_id, run_id);
+	UTI_PRINT(LOG_INFO, "starting output\n");
 
-	// environment agent initialisation
-	if(ENV_AGENT_Init(&EnvAgent, comp_type, instance_id, scenario_id, run_id) != C_ERROR_OK)
-	{
-		UTI_ERROR("failed to init the environment agent\n");
-		return false;
-	}
+	// output initialisation
+	Output::init(output_enabled, output_event_level);
 
 	if(ip_addr.size() == 0)
 	{
@@ -180,6 +173,7 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
 	struct sched_param param;
 	bool is_init = false;
+	bool with_phy_layer = false;
 	string ip_addr;
 	string iface_name;
 	tal_id_t mac_id;
@@ -190,11 +184,13 @@ int main(int argc, char **argv)
 	BlocIPQoS *blocIPQoS;
 	BlocEncap *blocEncap;
 	BlocDVBRcsTal *blocDvbRcsTal;
+    BlocPhysicalLayer *blocPhysicalLayer;
 	BlocSatCarrier *blocSatCarrier;
 	PluginUtils utils;
 	vector<string> conf_files;
 
-	std::map<std::string, EncapPlugin *> encap_plug;
+	Event *status = NULL;
+	Event *failure = NULL;
 
 	int is_failure = 1;
 
@@ -227,6 +223,17 @@ int main(int argc, char **argv)
 	// read all packages debug levels
 	UTI_readDebugLevels();
 
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	                          with_phy_layer))
+	{
+		UTI_ERROR("%s: cannot  check if physical layer is enabled\n",
+		          progname);
+		goto unload_config;
+	}
+	UTI_PRINT(LOG_INFO, "%s: physical layer is %s\n",
+	          progname, with_phy_layer ? "enabled" : "disabled");
+
 	// instantiate event manager
 	eventmgr = new mgl_eventmgr(realTime);
 	if(eventmgr == NULL)
@@ -246,10 +253,10 @@ int main(int argc, char **argv)
 	MGL_TRACE_SET_LEVEL(0);		  // set mgl runtime debug level
 	blocmgr->setEventMgr(eventmgr);
 
-	// load the encapsulation plugins
-	if(!utils.loadEncapPlugins(encap_plug))
+	// load the plugins
+	if(!utils.loadPlugins(with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot load the encapsulation plugins\n", progname);
+		UTI_ERROR("%s: cannot load the plugins\n", progname);
 		goto destroy_blocmgr;
 	}
 
@@ -261,7 +268,7 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "Encap", terminal, encap_plug);
+	blocEncap = new BlocEncap(blocmgr, 0, "Encap", terminal, utils);
 	if(blocEncap == NULL)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
@@ -272,7 +279,7 @@ int main(int argc, char **argv)
 	blocEncap->setUpperLayer(blocIPQoS->getId());
 
 	blocDvbRcsTal = new BlocDVBRcsTal(blocmgr, 0, "DvbRcsTal",
-	                                  mac_id, encap_plug);
+	                                  mac_id, utils);
 	if(blocDvbRcsTal == NULL)
 	{
 		UTI_ERROR("%s: cannot create the DvbRcsTal bloc\n", progname);
@@ -290,12 +297,30 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	blocDvbRcsTal->setLowerLayer(blocSatCarrier->getId());
-	blocSatCarrier->setUpperLayer(blocDvbRcsTal->getId());
+	if(with_phy_layer)
+	{
+		blocPhysicalLayer = new BlocPhysicalLayer(blocmgr, 0,
+		                                          "PhysicalLayer",
+		                                          terminal,
+		                                          utils);
+		if(blocPhysicalLayer == NULL)
+		{
+			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
+			goto release_plugins;
+		}
 
-	// send the init event
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_INIT,
-	                    C_EVENT_COMP_STATE);
+		blocDvbRcsTal->setLowerLayer(blocPhysicalLayer->getId());
+		blocPhysicalLayer->setUpperLayer(blocDvbRcsTal->getId());
+
+		blocPhysicalLayer->setLowerLayer(blocSatCarrier->getId());
+		blocSatCarrier->setUpperLayer(blocPhysicalLayer->getId());
+	}
+	else
+	{
+		blocDvbRcsTal->setLowerLayer(blocSatCarrier->getId());
+		blocSatCarrier->setUpperLayer(blocDvbRcsTal->getId());
+	}
+
 
 	// make the ST alive
 	while(alive)
@@ -303,28 +328,39 @@ int main(int argc, char **argv)
 		blocmgr->process_step();
 		if(!is_init && blocmgr->isRunning())
 		{
-			ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_RUN,
-			                    C_EVENT_COMP_STATE);
+			// finish output init, sent the initial event
+			failure = Output::registerEvent("failure", LEVEL_ERROR);
+			status = Output::registerEvent("status", LEVEL_INFO);
+			if(!Output::finishInit())
+			{
+				UTI_PRINT(LOG_INFO,
+				          "%s: failed to init the output => disable it\n",
+				         progname);
+			}
+
+			Output::sendEvent(status, "Simulation started");
 			is_init = true;
 		}
 	}
 
-	ENV_AGENT_Event_Put(&EnvAgent, C_EVENT_SIMU, 0, C_EVENT_STATE_STOP,
-	                    C_EVENT_COMP_STATE);
+	Output::sendEvent(status, "Simulation stopped");
 
 	// everything went fine, so report success
 	is_failure = 0;
 
 	// cleanup before ST stops
 release_plugins:
-	utils.releaseEncapPlugins();
+	utils.releasePlugins();
 destroy_blocmgr:
 	delete blocmgr; /* destroy the bloc manager and all the blocs */
 destroy_eventmgr:
 	delete eventmgr;
 unload_config:
+	if(is_failure)
+	{
+		Output::sendEvent(failure, "Failure while launching component\n");
+	}
 	globalConfig.unloadConfig();
-	ENV_AGENT_Terminate(&EnvAgent);
 quit:
 	UTI_PRINT(LOG_INFO, "%s: end of the ST process\n", progname);
 	closelog();

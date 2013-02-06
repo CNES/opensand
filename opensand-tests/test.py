@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -45,6 +45,9 @@ from optparse import OptionParser, IndentedHelpFormatter
 import textwrap
 import ConfigParser
 import socket
+import shlex
+import subprocess
+import shutil
 
 from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.opensand_controller import Controller
@@ -421,57 +424,112 @@ help="specify the root folder for tests configurations\n"
         except:
             pass
 
-        # get the host controller
-        host_ctrl = None
-        found = False
-        if host_name.startswith("WS"):
-            for ctrl in self._ws_ctrl:
-                if ctrl.get_name() == host_name:
-                    host_ctrl = ctrl
-                    break
-        else:
-            for ctrl in self._controller._hosts:
-                if ctrl.get_name() == host_name:
-                    host_ctrl = ctrl
-                    break
-                
-        if host_ctrl is None:
-            raise TestError("Configuration", "Cannot find host %s" % host_name)
-
-        # deploy the test files
-        # the deploy section has the same format as in deploy.ini file so
-        # we can directly use the deploy fonction from hosts
-        try:
-            host_ctrl.deploy(config)
-        except CommandException as msg:
-            raise TestError("Configuration", "Cannot deploy host %s: %s" %
-                            (host_name, msg))
-
-        cmd = ''
-        wait = False
-        ret = 0
-        try:
-            cmd = config.get('command', 'exec')
-            wait = config.get('command', 'wait')
-            if wait.lower() == 'true':
-                wait = True
+        if host_name != "TEST":
+            # get the host controller
+            host_ctrl = None
+            found = False
+            if host_name.startswith("WS"):
+                for ctrl in self._ws_ctrl:
+                    if ctrl.get_name() == host_name:
+                        host_ctrl = ctrl
+                        break
             else:
-                wait = False
-            ret = config.get('command', 'return')
-        except ConfigParser.Error, err:
-            raise TestError("Configuration",
-                            "Error when parsing configuration in %s : %s" %
-                            (path, err))
+                for ctrl in self._controller._hosts:
+                    if ctrl.get_name() == host_name:
+                        host_ctrl = ctrl
+                        break
 
-        # if wait is True we need to wait the host response before launching the
-        # next command so we don't need to connect the host in a thread
-        if wait:
-            self.connect_host(host_ctrl, cmd, ret)
+            if host_ctrl is None:
+                raise TestError("Configuration", "Cannot find host %s" % host_name)
+
+            # deploy the test files
+            # the deploy section has the same format as in deploy.ini file so
+            # we can directly use the deploy fonction from hosts
+            try:
+                host_ctrl.deploy(config)
+            except CommandException as msg:
+                raise TestError("Configuration", "Cannot deploy host %s: %s" %
+                                (host_name, msg))
+
+            cmd = ''
+            wait = False
+            ret = 0
+            try:
+                cmd = config.get('command', 'exec')
+                wait = config.get('command', 'wait')
+                if wait.lower() == 'true':
+                    wait = True
+                else:
+                    wait = False
+                ret = config.get('command', 'return')
+            except ConfigParser.Error, err:
+                raise TestError("Configuration",
+                                "Error when parsing configuration in %s : %s" %
+                                (path, err))
+            # check if we have to get stats in /tmp/opensand_tests/stats for the next step
+            stats_dst = ''
+            try:
+                stats_dst = config.get('command', 'stats')
+            except:
+                pass
+
+            # if wait is True we need to wait the host response before launching the
+            # next command so we don't need to connect the host in a thread
+            if wait:
+                self.connect_host(host_ctrl, cmd, ret)
+            else:
+                connect = threading.Thread(target=self.connect_host,
+                                           args=(host_ctrl, cmd, ret))
+                self._threads.append(connect)
+                connect.start()
+
+            if stats_dst != '':
+                stats = os.path.dirname(path)
+                stats = os.path.join(stats, 'scenario/default/')
+
+                if not os.path.exists('/tmp/opensand_tests'):
+                    os.mkdir('/tmp/opensand_tests')
+                elif os.path.exists('/tmp/opensand_tests/stats/'):
+                    shutil.rmtree('/tmp/opensand_tests/stats/')
+                # wait that all stats are collected
+                time.sleep(10)
+                shutil.copytree(stats,
+                                '/tmp/opensand_tests/stats/')
         else:
-            connect = threading.Thread(target=self.connect_host,
-                                       args=(host_ctrl, cmd, ret))
-            self._threads.append(connect)
-            connect.start()
+            cmd = ''
+            ret = 0
+            try:
+                cmd = config.get('test_command', 'exec')
+                ret = config.getint('test_command', 'return')
+            except ConfigParser.Error, err:
+                raise TestError("Configuration",
+                                "Error when parsing configuration in %s : %s" %
+                                (path, err))
+
+            command = os.path.join(self._folder, cmd)
+            cmd = shlex.split(command)
+            if not os.path.exists('/tmp/opensand_tests'):
+                os.mkdir('/tmp/opensand_tests')
+            with open('/tmp/opensand_tests/result', 'a') as output:
+                output.write("\n")
+                process = subprocess.Popen(cmd, close_fds=True,
+                                           stdout=output,
+                                           stderr=subprocess.STDOUT)
+                while process.returncode is None:
+                    process.poll()
+                    time.sleep(1)
+
+                if process.returncode is None:
+                    process.kill()
+
+                process.wait()
+
+                if process.returncode != ret:
+                    self._log.info(" * Test returns %s, expected is %s" %
+                                   (process.returncode, ret))
+                    self._error.append("Test returned '%s' instead of '%s'" %
+                                       (process.returncode, ret))
+
 
     def connect_host(self, host_ctrl, cmd, ret):
         """ connect the host and launch the command,
@@ -515,11 +573,20 @@ help="specify the root folder for tests configurations\n"
         resp = self._model.get_event_manager_response()
         evt.set('stop_platform')
         resp.wait(None)
-        if resp.get_type() != "resp_stop_platform":
+#        if resp.get_type() != "resp_stop_platform":
+#            resp.clear()
+#            raise TestError("Initialization", "wrong event response %s when "
+#                                              "stopping platform" %
+#                                              resp.get_type())
+        # TODO remove if we implement a progress_event_handler instead of using
+        # the reponse event handler and uncomment above
+        while resp.get_type() != "resp_stop_platform":
+            self._log.info("%s event received, wait fro stop event" %
+                           resp.get_type())
             resp.clear()
-            raise TestError("Initialization", "wrong event response %s when "
-                                              "stopping platform" %
-                                              resp.get_type())
+            resp.wait(None)
+        self._log.info("%s event received" % resp.get_type())
+        # end TODO
         if resp.get_text() != 'done':
             resp.clear()
             raise TestError("Initialization", "cannot stop platform")
@@ -532,11 +599,20 @@ help="specify the root folder for tests configurations\n"
         resp = self._model.get_event_manager_response()
         evt.set('start_platform')
         resp.wait(None)
-        if resp.get_type() != "resp_start_platform":
-            evt = resp.get_type()
+#        if resp.get_type() != "resp_start_platform":
+#            evt = resp.get_type()
+#            resp.clear()
+#            raise TestError("Initialization", "wrong event response %s when "
+#                                              "starting platform" % evt)
+        # TODO remove if we implement a progress_event_handler instead of using
+        # the reponse event handler and uncomment above
+        while resp.get_type() != "resp_start_platform":
+            self._log.info("%s event received, wait fro stop event" %
+                           resp.get_type())
             resp.clear()
-            raise TestError("Initialization", "wrong event response %s when "
-                                              "starting platform" % evt)
+            resp.wait(None)
+        self._log.info("%s event received" % resp.get_type())
+        # end TODO
         if resp.get_text() != 'done':
             resp.clear()
             raise TestError("Initialization", "cannot start platform")
@@ -552,7 +628,7 @@ help="specify the root folder for tests configurations\n"
         """ create controllers for WS because the manager
             controller does not handle it """
         for ws_model in self._model.get_workstations_list():
-            new_ws = HostController(ws_model, self._log)
+            new_ws = HostController(ws_model, None, self._log)
             self._ws_ctrl.append(new_ws)
 
 

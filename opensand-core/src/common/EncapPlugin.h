@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 CNES
+ * Copyright © 2012 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -43,17 +43,7 @@
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "OpenSandCore.h"
-
-/** unused macro to avoid compilation warning with unused parameters.
- * May be used by some implementations of the EncapPlugin inner classes.
- */
-#ifdef __GNUC__
-#  define UNUSED(x) x __attribute__((unused))
-#elif __LCLINT__
-#  define UNUSED(x) /*@unused@*/ x
-#else               /* !__GNUC__ && !__LCLINT__ */
-#  define UNUSED(x) x
-#endif              /* !__GNUC__ && !__LCLINT__ */
+#include "OpenSandPlugin.h"
 
 
 typedef enum
@@ -67,7 +57,7 @@ typedef enum
  * @class EncapPlugin
  * @brief Generic encapsulation / deencapsulation plugin
  */
-class EncapPlugin
+class EncapPlugin:public OpenSandPlugin
 {
 
  public:
@@ -166,7 +156,7 @@ class EncapPlugin
 		 *
 		 * @return the name of the encapsulation / deencapsulation context
 		 */
-		virtual std::string getName() const {return plugin.encap_name;};
+		virtual std::string const getName() {return plugin.name;};
 
 	  private:
 
@@ -205,7 +195,7 @@ class EncapPlugin
 		 * @param time_contexts a map of time and context ID where:
 		 *                       - context ID identifies the context in which the
 		 *                         IP packet was encapsulated
-		 * @param time           - time is the time before the context identified by
+		 *                       - time is the time before the context identified by
 		 *                         the context ID expires
 		 * @return              a list of packets
 		 */
@@ -293,7 +283,7 @@ class EncapPlugin
 		 *
 		 * @return the type of encapsulation / deencapsulation context
 		 */
-		std::string getName() const {return plugin.encap_name;};
+		std::string getName() const {return plugin.name;};
 
 		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
@@ -338,6 +328,14 @@ class EncapPlugin
 		EncapPlugin &plugin;
 
 	};
+	
+	/**
+	 * @brief EncapPlugin constructor
+	 */
+	EncapPlugin(uint16_t ether_type): OpenSandPlugin()
+	{
+		this->ether_type = ether_type;
+	};
 
 
 	/**
@@ -371,11 +369,11 @@ class EncapPlugin
 	EncapPacketHandler *getPacketHandler() const {return this->packet_handler;};
 
 	/**
-	 * @brief Get the type of encapsulation / deencapsulation context (ATM, MPEG, etc.)
+	 * @brief Get The plugin name
 	 *
-	 * @return the type of encapsulation / deencapsulation context
+	 * @return the plugin name
 	 */
-	std::string getName() const {return this->encap_name;};
+	std::string getName() const {return this->name;};
 
 	/**
 	 * @brief Create the Plugin, this function should be called instead of constructor
@@ -383,23 +381,21 @@ class EncapPlugin
 	 * @return The plugin
 	 */
 	template<class Plugin, class Context, class Handler>
-	static EncapPlugin *create()
+	static OpenSandPlugin *create(std::string name)
 	{
-		EncapPlugin *plugin = new Plugin();
+		Plugin *plugin = new Plugin();
 		Context *context = new Context(*plugin);
 		Handler *handler = new Handler(*plugin);
 		plugin->context = context;
 		plugin->packet_handler = handler;
+		plugin->name = name;
 		return plugin;
-	}
+	};
 
  protected:
 
 	/// The EtherType (or EtherType like) of the associated protocol
 	uint16_t ether_type;
-
-	/// The type of encapsulation
-	std::string encap_name;
 
 	/** The list of protocols that can be encapsulated according to satellite
 	 *  payload type */
@@ -413,26 +409,20 @@ class EncapPlugin
 
 };
 
-typedef EncapPlugin *fn_create();
-
 /// Define the function that will create the plugin class
-#define CREATE(TYPE, CONTEXT, HANDLER) \
-	extern "C" EncapPlugin *create(){return TYPE::create<TYPE, CONTEXT, HANDLER>();};
+#ifdef CREATE
+#undef CREATE
+#define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
+	extern "C" OpenSandPlugin *create_ptr(){return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name);}; \
+	extern "C" opensand_plugin_t *init() \
+	{\
+		opensand_plugin_t *pl = (opensand_plugin_t *)calloc(1, sizeof(opensand_plugin_t)); \
+		pl->create = create_ptr; \
+		pl->type = encapsulation_plugin; \
+		strncpy(pl->name, pl_name, PLUGIN_MAX_LEN - 1); \
+		pl->name[PLUGIN_MAX_LEN - 1] = '\0'; \
+		return pl; \
+	};
 #endif
 
-
-/**
- * @brief load the encapsulation plugins
- *
- * @param encap_plug  A map of plugin name and loaded plugins
- *
- * @return  true on success, false otherwise
- */
-bool loadEncapPlugins(std::map<std::string, EncapPlugin *> &encap_plug);
-
-/**
- * @brief release the encapsulation plugins
- */
-void releaseEncapPlugins(std::map<std::string, EncapPlugin *> &encap_plug);
-
-
+#endif

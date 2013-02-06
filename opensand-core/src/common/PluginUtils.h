@@ -35,8 +35,16 @@
 #ifndef PLUGIN_UTILS_HEADER_H
 #define PLUGIN_UTILS_HEADER_H
 
-
 #include "EncapPlugin.h"
+#include "PhysicalLayerPlugin.h"
+
+#include <map>
+#include <vector>
+#include <string>
+
+typedef std::map<std::string, fn_create> pl_list_t;
+typedef std::map<std::string, fn_create>::iterator pl_list_it_t;
+
 
 /**
  * @class PluginUtils
@@ -46,22 +54,72 @@ class PluginUtils
 {
   protected:
 
-	std::map<std::string, EncapPlugin *> encap_plug;
+	pl_list_t encapsulation;
+	pl_list_t attenuation;
+	pl_list_t nominal;
+	pl_list_t minimal;
+	pl_list_t error;
 	std::vector <void *> handlers;
+	std::vector<OpenSandPlugin *> plugins;
 
   public:
 	/**
-	 * @brief load the Encapsulation plugins
+	 * @brief load the plugins
 	 *
-	 * @param encap_plug A map of encapsulation plugins
+	 * @param enable_phy_layer Whether the physical layer is enabled or not
 	 * @return true on success, false otherwise
 	 */
-	bool loadEncapPlugins(std::map<std::string, EncapPlugin *> &encap_plug);
+	bool loadPlugins(bool enable_phy_layer);
 
 	/**
-	 * @brief release the class elements
+	 * @brief release the class elements for plugins
 	 */
-	void releaseEncapPlugins();
+	void releasePlugins();
+
+	/**
+	 * @brief get a encapsulation plugins
+	 *
+	 * @param name           The name of the encapsulation plugin
+	 * @param encapsulation  The encapsulation plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getEncapsulationPlugins(std::string name,
+	                             EncapPlugin **encapsulation);
+
+	/**
+	 * @brief get physical layer plugins
+	 *
+	 * @param att_pl_name  The name of the attenuation model plugin
+	 * @param nom_pl_name  The name of the nominal condition plugin
+	 * @param min_pl_name  The name of the minimal condition plugin
+	 * @param err_pl_name  The name of the erroe insertion plugin
+	 * @param attenuation  The attenuation model plugin
+	 * @param nominal      The nominal condition plugin
+	 * @param minimal      The minimal condition plugin
+	 * @param error        The error insertion plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getPhysicalLayerPlugins(std::string att_pl_name,
+	                             std::string nom_pl_name,
+	                             std::string min_pl_name,
+	                             std::string err_pl_name,
+	                             AttenuationModelPlugin **attenuation,
+	                             NominalConditionPlugin **nominal,
+	                             MinimalConditionPlugin **minimal,
+	                             ErrorInsertionPlugin **error);
+
+	/**
+	 * @brief get the encapsulation plugins list
+	 *
+	 * @param name           The name of the encapsulation plugin
+	 * @param encapsulation  The encapsulation plugin
+	 * @return true on success, false otherwise
+	 */
+	void getAllEncapsulationPlugins(pl_list_t &encapsulation)
+	{
+		encapsulation = this->encapsulation;
+	}
+
 
 	/**
 	 * @brief  Tokenize a string

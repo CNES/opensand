@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -45,7 +45,7 @@ from opensand_daemon.nl_utils import NlRoute, NlError, NlExists
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
-ROUTE_FILE = "/var/cache/sand-daemon/routes"
+ROUTE_FILE = "routes"
 
 
 class OpenSandRoutes(object):
@@ -62,6 +62,7 @@ class OpenSandRoutes(object):
     _iface = None
     _unused = True
     _is_ws = False
+    _cache_dir = '/var/cache/sand-daemon/'
 
     def __init__(self):
         pass
@@ -70,20 +71,27 @@ class OpenSandRoutes(object):
         if OpenSandRoutes._is_ws:
             self.remove_routes()
 
-    def load(self, iface, is_ws = False):
+    def load(self, cache_dir, iface, is_ws=False):
         OpenSandRoutes._routes_lock.acquire()
-        OpenSandRoutes._route_hdl = NlRoute(iface)
+        OpenSandRoutes._cache_dir = cache_dir
+        try:
+            OpenSandRoutes._route_hdl = NlRoute(iface)
+        except KeyError:
+            LOGGER.error("unable to find interface %s" % iface)
+
         OpenSandRoutes._iface = iface
         OpenSandRoutes._is_ws = is_ws
 
         # read the routes file
         routes = {}
         try:
-            route_file = open(ROUTE_FILE, 'rb')
+            route_file = open(os.path.join(OpenSandRoutes._cache_dir,
+                                           ROUTE_FILE), 'rb')
         except IOError, (errno, strerror):
             LOGGER.debug("the route file '%s' cannot be read: "
                          "assume the process are stopped, "
-                         "keep an empty route list" % ROUTE_FILE)
+                         "keep an empty route list" %
+                         os.path.join(OpenSandRoutes._cache_dir, ROUTE_FILE))
             LOGGER.debug("route list is initialized")
         else:
             try:
@@ -182,8 +190,11 @@ class OpenSandRoutes(object):
                 del OpenSandRoutes._routes_v6[host]
             self.serialize()
         else:
-            del OpenSandRoutes._routes_v4[host]
-            del OpenSandRoutes._routes_v6[host]
+            try:
+                del OpenSandRoutes._routes_v4[host]
+                del OpenSandRoutes._routes_v6[host]
+            except KeyError:
+                pass
         OpenSandRoutes._routes_lock.release()
 
     def setup_routes(self):
@@ -245,7 +256,7 @@ class OpenSandRoutes(object):
             except NlError:
                 pass
         try:
-            os.remove(ROUTE_FILE)
+            os.remove(os.path.join(OpenSandRoutes._cache_dir, ROUTE_FILE))
         except OSError:
             pass
         OpenSandRoutes._routes_lock.release()
@@ -327,10 +338,12 @@ class OpenSandRoutes(object):
         if len(routes) == 0:
             return
         try:
-            route_file = open(ROUTE_FILE, 'wb')
+            route_file = open(os.path.join(OpenSandRoutes._cache_dir,
+                                           ROUTE_FILE), 'wb')
             pickle.dump(routes, route_file)
         except IOError, (errno, strerror):
-            LOGGER.error("unable to create %s file (%d: %s)" % (ROUTE_FILE,
+            LOGGER.error("unable to create %s file (%d: %s)" %
+                         (os.path.join(OpenSandRoutes._cache_dir, ROUTE_FILE),
                           errno, strerror))
         except pickle.PickleError, error:
             LOGGER.error("unable to serialize route list: " + str(error))

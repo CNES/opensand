@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -109,6 +109,7 @@
 #define PKG_QOS_DATA      qos_data
 #define PKG_SAT_CARRIER   sat_carrier
 #define PKG_ENCAP         encap
+#define PKG_PHY_LAYER     physical_layer
 
 #ifndef DBG_PACKAGE
 #define DBG_PACKAGE  PKG_DEFAULT

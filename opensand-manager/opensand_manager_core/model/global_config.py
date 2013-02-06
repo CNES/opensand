@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -49,7 +49,7 @@ CONF_NAME = "core_global.conf"
 class GlobalConfig(AdvancedHostModel):
     """ Global OpenSAND configuration, displayed in configuration tab """
     def __init__(self, scenario):
-        AdvancedHostModel.__init__(self, 'global', 0, {}, scenario)
+        AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
         self._emission_std = ''
         self._dama = ''
@@ -57,15 +57,16 @@ class GlobalConfig(AdvancedHostModel):
         self._down_forward = {}
         self._up_return = {}
         self._frame_duration = ''
+        self._enable_phy_layer = None
 
-    def load(self, name, instance, ifaces, scenario):
+    def load(self, name, scenario):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
-            except OSError, (errno, strerror):
+            except OSError, (_, strerror):
                 raise ModelException("failed to create directory '%s': %s" %
                                      (conf_path, strerror))
 
@@ -111,6 +112,8 @@ class GlobalConfig(AdvancedHostModel):
                            self._up_return)
             self._configuration.set_value(self._frame_duration,
                                           "//frame_duration")
+            self._configuration.set_value(self._enable_phy_layer,
+                                          "//physical_layer/enable")
             self._configuration.write()
         except XmlException:
             raise
@@ -243,6 +246,14 @@ class GlobalConfig(AdvancedHostModel):
     def get_frame_duration(self):
         """ get the frame_duration value """
         return self.get_param("frame_duration")
+
+    def set_enable_physical_layer(self, val):
+        """ set the enable value in physical layer section """
+        self._enable_phy_layer = val
+
+    def get_enable_physical_layer(self):
+        """ get the enable value from physical layer section """
+        return self.get_param("physical_layer/enable")
 
     def get_param(self, name):
         """ get a parameter in the XML configuration file """

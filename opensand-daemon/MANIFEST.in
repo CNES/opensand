@@ -1,0 +1,9 @@
+include AUTHORS
+include ChangeLog
+include COPYING
+include INSTALL
+include NEWS
+graft conf
+graft init
+graft scripts
+

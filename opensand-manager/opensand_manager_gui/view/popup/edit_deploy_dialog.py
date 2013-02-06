@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -36,10 +36,13 @@ edit_deploy_dialog.py - A window that enable to edit the deploy.ini file
 
 import gtk
 import os
+import shutil
 
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException
+
+DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
 
 class EditDeployDialog(WindowView):
     """ a window enabling to edit the deploy.ini file """
@@ -80,7 +83,7 @@ class EditDeployDialog(WindowView):
 
         try:
             self.copy_file_in_buffer()
-        except (OSError, IOError), (errno, strerror):
+        except (OSError, IOError), (_, strerror):
             raise ModelException("cannot load deploy file %s (%s)" %
                                  (self._path, strerror))
 
@@ -119,6 +122,18 @@ class EditDeployDialog(WindowView):
     def on_cancel_deploy_edit_clicked(self, source=None, event=None):
         """ 'clicked' event callback on undo button """
         self.close()
+
+    def on_get_default_file_clicked(self, source=None, event=None):
+        """ 'clicked' event callback on restore default button """
+        try:
+            shutil.copy(DEFAULT_INI_FILE, self._path)
+        except IOError, msg:
+            self._log.warning("failed to copy %s configuration file "
+                              "in '%s': %s, default deploy file will "
+                              "be used"
+                              % (DEFAULT_INI_FILE, self._path, msg))
+        self.copy_file_in_buffer()
+
 
     def interactive_color(self, source=None, event=None):
         cursor = source.get_iter_at_mark(source.get_insert())

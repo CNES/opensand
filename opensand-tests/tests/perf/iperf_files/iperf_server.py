@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -45,7 +45,7 @@ COMMAND = '/usr/bin/iperf -s -u -B '
 CONF_FILE = "/etc/opensand/daemon.conf"
 
 if __name__ == '__main__':
-    """ iperf server for Platine tests """
+    """ iperf server for OpenSAND tests """
     print "************************************************"
     print "**  NEW TEST (%s) **" % time.strftime("%c", time.gmtime())
     print "************************************************"

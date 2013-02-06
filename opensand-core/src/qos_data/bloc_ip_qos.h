@@ -70,8 +70,8 @@ using namespace std;
 #include <msg_dvb_rcs.h>
 #include <opensand_conf/conf.h>
 
-// environment plane
-#include "opensand_env_plane/EnvironmentAgent_e.h"
+// output
+#include <opensand_output/Output.h>
 #include "OpenSandCore.h"
 
 /// The debug prefix for the IP QoS block
@@ -91,7 +91,7 @@ class BlocIPQoS: public mgl_bloc
  public:
 
 	BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, t_component host);
+	          const char *name, component_t host);
 	~BlocIPQoS();
 
 	// Margouilla event handler
@@ -103,7 +103,7 @@ class BlocIPQoS: public mgl_bloc
 
 	/// Whether the bloc has been initialized or not
 	bool _initOk;
-	t_component host;
+	component_t host;
 
 	string _satellite_type;
 
@@ -152,6 +152,9 @@ class BlocIPQoS: public mgl_bloc
 
 	/// statistic timer
 	mgl_timer stats_timer;
+	
+	/// output events
+	static Event* error_init;
 };
 
 

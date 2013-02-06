@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2011 TAS
+ * Copyright © 2012 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -197,17 +197,19 @@ static bool test_encap_and_decap(std::string src_filename,
 {
 	IpPacketHandler *ip_hdl = new IpPacketHandler(*((EncapPlugin *)NULL));
 	PluginUtils utils;
-	std::map<std::string, EncapPlugin *> encap_plug;
-	std::map<std::string, EncapPlugin *>::iterator plugit;
+	pl_list_t encap_plug;
+	pl_list_it_t plugit;
 	std::vector<std::string> failure;
 	bool success = false;
 
 	// load the plugins
-	if(!utils.loadEncapPlugins(encap_plug))
+	if(!utils.loadPlugins(false))
 	{
-		ERROR("cannot load the encapsulation plugins\n");
+		ERROR("cannot load the plugins\n");
 		goto error;
 	}
+
+	utils.getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
 	for(plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
@@ -217,15 +219,24 @@ static bool test_encap_and_decap(std::string src_filename,
 		std::string name_low = name;
 		std::transform(name.begin(), name.end(),
 		               name_low.begin(), ::tolower);
+		EncapPlugin *plugin = NULL;
+		EncapPlugin::EncapContext *context;
 		unsigned int found;
+
 		found = name_low.find("/");
 		while(found != std::string::npos)
 		{
 			name_low.replace(found, 1, "_");
 			found = name_low.find("/", found);
 		}
-		EncapPlugin::EncapContext *context = plugit->second->getContext();
 
+		if(!utils.getEncapsulationPlugins(name, &plugin))
+		{
+			ERROR("failed to initialize plugin %s", name.c_str());
+			failure.push_back(name.c_str());
+			continue;
+		}
+		context = plugin->getContext();
 		if(!context->setUpperPacketHandler(ip_hdl, TRANSPARENT))
 		{
 
@@ -239,8 +250,16 @@ static bool test_encap_and_decap(std::string src_filename,
 			{
 				if(encap_plug[*iter] != NULL)
 				{
+					EncapPlugin *up_plugin = NULL;
+					if(!utils.getEncapsulationPlugins(name, &up_plugin))
+					{
+						ERROR("failed to initialize upper plugin %s for %s",
+						      (*iter).c_str(), name.c_str());
+						failure.push_back(name.c_str());
+						continue;
+					}
 					if(!context->setUpperPacketHandler(
-								encap_plug[*iter]->getPacketHandler(),
+								up_plugin->getPacketHandler(),
 								TRANSPARENT))
 					{
 						ERROR("failed to set upper packet src_handler for "
@@ -250,17 +269,17 @@ static bool test_encap_and_decap(std::string src_filename,
 					}
 
 					// add IP over this context
-					if(!encap_plug[*iter]->getContext()->setUpperPacketHandler(ip_hdl, TRANSPARENT))
+					if(!up_plugin->getContext()->setUpperPacketHandler(ip_hdl, TRANSPARENT))
 					{
 						DEBUG("%s does not support IP as upper layer either",
-						      encap_plug[*iter]->getName().c_str());
+						      up_plugin->getName().c_str());
 						continue;
 					}
 
 					DEBUG("add %s context over %s\n",
-					       encap_plug[*iter]->getName().c_str(), name.c_str());
+					       up_plugin->getName().c_str(), name.c_str());
 
-					contexts.push_back(encap_plug[*iter]->getContext());
+					contexts.push_back(up_plugin->getContext());
 					break;
 				}
 			}
@@ -290,6 +309,7 @@ static bool test_encap_and_decap(std::string src_filename,
 			failure.push_back(name.c_str());
 			continue;
 	  	}
+	  	delete plugin;
 	}
 
 	if(failure.size() == 0)
@@ -311,7 +331,7 @@ static bool test_encap_and_decap(std::string src_filename,
 	
 error:
 	delete ip_hdl;
-	utils.releaseEncapPlugins();
+	utils.releasePlugins();
 	return success;
 }
 

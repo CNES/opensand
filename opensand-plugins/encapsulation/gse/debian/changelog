@@ -1,0 +1,13 @@
+opensand-gse-encap-plugin (1.0.0) lucid; urgency=low
+
+  * Release 1.0.0
+  * Modifications for physical layer support
+  * Various bugfixes 
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Wed, 12 Dec 2012 11:16:36 +0100
+
+opensand-gse-encap-plugin (0.9.0) lucid; urgency=low
+
+  * Initial release
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Tue, 22 May 2012 15:49:56 +0200

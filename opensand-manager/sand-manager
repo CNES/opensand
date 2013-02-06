@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -45,7 +45,9 @@ from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_gui.opensand_view import View
 from opensand_manager_gui.view.popup.infos import error_popup
+from opensand_manager_gui.env_plane_dispatcher import EnvPlaneDispatcher
 
+# TODO add option load plugin from another directory if it is possible ?
 class OpenSandManager:
     """ the OpenSAND Manager initialization class """
     def __init__(self, print_debug = False, enable_std = True,
@@ -114,13 +116,21 @@ class OpenSandManager:
             # create the host controller and response manager
             self._controller = Controller(self._model, options.service_type,
                                           self._manager_log, options.interactive)
+            
+            EnvPlaneDispatcher(self._controller.get_env_plane_controller(),
+					           self._view)
+            
         except Exception, msg :
             self._manager_log.error("failed to initialize OpenSAND Manager: " +
                                     str(msg))
+            import os
+            import traceback
+            traceback.print_exc()
             error_popup("Failed to initialize OpenSAND Manager", str(msg))
-            if self._view is not None:
-                self._view.run()
-            raise
+            os._exit(1)
+	    #if self._view is not None:
+            #    self._view.run()
+            #raise
 
     def go(self):
         """ launch OpenSAND Manager """

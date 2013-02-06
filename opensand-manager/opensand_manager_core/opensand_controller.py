@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -38,24 +38,17 @@ opensand_controller.py - thread that configure, install, start, stop
 import threading
 import os
 import shutil
-import array
-import struct
 import socket
-import fcntl
-import tempfile
 import ConfigParser
-import stat
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
 from opensand_manager_core.controller.stream import Stream
-from opensand_manager_core.utils import copytree
 
 DEFAUL_PATH = '/usr/share/opensand/'
 DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
-COM_PARAMETERS = '/etc/opensand/env_plane/com_parameters.conf'
 CMD_PORT = 5656
 DATA_END = 'DATA_END\n'
 
@@ -70,8 +63,7 @@ class Controller(threading.Thread):
             self._event_manager_response = self._model.get_event_manager_response()
             self._hosts = []
             self._ws = []
-            self._env_plane = EnvironmentPlaneController(model.get_env_plane(),
-                                                         manager_log)
+            self._env_plane = EnvironmentPlaneController(model, manager_log)
             self._server = None
             self._command = None
 
@@ -91,114 +83,22 @@ class Controller(threading.Thread):
                         shutil.copy(DEFAULT_INI_FILE,
                                     ini_file)
                     except IOError, msg:
-                        self._log.warning("failed to copy %s configuration file "
-                                          "in '%s': %s, default deploy file "
+                        self._log.warning("failed to copy %s configuration file"
+                                          " in '%s': %s, default deploy file "
                                           "will be used"
                                           % (DEFAULT_INI_FILE, ini_file, msg))
 
             # create the service browser here because we need hosts as argument
             # but it will be started with gtk main loop
             OpenSandServiceListener(self._model, self._hosts, self._ws,
-                                   service_type, self._log)
-
+                                    self._env_plane, service_type, self._log)
+            
             if interactive:
-                self._command = threading.Thread(None, self.start_server, None, (), {})
+                self._command = threading.Thread(None, self.start_server, None,
+                                                 (), {})
         except Exception:
             self.close()
             raise
-
-    def update_com_parameters(self, addr):
-        """ modify the output address in com_parameters.conf file """
-        with open(COM_PARAMETERS) as com_param:
-            lines = com_param.readlines()
-            new_lines = []
-            edit = False
-            for line in lines:
-                if edit and addr is not None:
-                    if line == '}\n':
-                        edit = False
-                    elif line != '{\n':
-                        elt = line.split(',')
-                        line = elt[0] + ", " + addr + "," + elt[2]
-                if line == 'Controllers_ports\n':
-                    edit = True
-                new_lines.append(line)
-
-            return new_lines
-
-    def send_com_parameters(self, host, content):
-        """ send the com_parametes.conf file on hosts """
-        sock = None
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            tmp_file.writelines(content)
-            tmp_file.flush()
-            try:
-                sock = host.connect_command('DEPLOY')
-                if sock is None:
-                    return
-                mode = stat.S_IRUSR | stat.S_IWUSR  \
-                       | stat.S_IRGRP | stat.S_IROTH
-                host.send_file(sock, tmp_file.name, COM_PARAMETERS, mode)
-                # send 'STOP' tag
-                sock.send('STOP\n')
-                self._log.debug("%s: send 'STOP'" % host.get_name())
-                host.receive_ok(sock)
-            except socket.error, (errno, strerror):
-                self._log.error("Cannot send conf_parameters: %s" % strerror)
-            except CommandException, error:
-                self._log.error("Cannot send conf_parameters: %s" % error)
-            finally:
-                if sock is not None:
-                    sock.close()
-
-
-    def get_env_plane_output(self):
-        """ get all 'up' interfaces and check if their address mask
-            corresponds to OpenSAND hosts """
-        # create the socket object to get the interface list
-        sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # prepare the struct variable
-        names = array.array('B', '\0' * 4096)
-
-        # get the list from ioctl
-        bytelen = struct.unpack('iL',
-                                fcntl.ioctl(sck.fileno(),
-                                            0x8912, # SIOCGIFCONF
-                                            struct.pack('iL', 4096,
-                                            names.buffer_info()[0])))[0]
-
-        # convert it to string
-        namestr = names.tostring()
-
-        # return the interfaces as array
-        ifaces = [namestr[i:i+32].split('\0', 1)[0]
-                  for i in range(0, bytelen, 32)]
-
-        # now get ip address of each interface and compare to hosts address
-        for ifname in ifaces:
-            # skip localhost
-            if ifname == 'lo':
-                continue
-
-            addr = socket.inet_ntoa(fcntl.ioctl(sck.fileno(),
-                                                0x8915,  # SIOCGIFADDR
-                                                struct.pack('256s', ifname[:15])
-                                                )[20:24])
-            # check for a host with the same /24 mask
-            for host in self._model.get_hosts_list():
-                haddr = host.get_ip_address()
-                haddr = haddr.rsplit(".", 1)[0]
-                if addr.startswith(haddr):
-                    return addr
-            # check for a host with the same /16 mask
-            for host in self._model.get_hosts_list():
-                haddr = host.get_ip_address()
-                haddr = haddr.rsplit(".", 2)[0]
-                if addr.startswith(haddr):
-                    return addr
-
-        return None
 
     def run(self):
         """ main loop that manages the events on OpenSAND Manager """
@@ -207,12 +107,23 @@ class Controller(threading.Thread):
         while True:
             self._event_manager.wait(None)
             self._log.debug("event: " + self._event_manager.get_type())
+            res = 'fail'
             if self._event_manager.get_type() == 'deploy_platform':
-                self.deploy_platform()
+                if self.deploy_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_deploy_platform', res)
+            elif self._event_manager.get_type() == 'install_files':
+                if self.install_simulation_files():
+                    res = 'done'
+                self._event_manager_response.set('resp_install_files', res)
             elif self._event_manager.get_type() == 'start_platform':
-                self.start_platform()
+                if self.start_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_start_platform', res)
             elif self._event_manager.get_type() == 'stop_platform':
-                self.stop_platform()
+                if self.stop_platform():
+                    res = 'done'
+                self._event_manager_response.set('resp_stop_platform', res)
             elif self._event_manager.get_type() == 'quit':
                 self.close()
                 return
@@ -236,7 +147,7 @@ class Controller(threading.Thread):
 
         self._log.debug("Controller: close environment plane")
         if self._env_plane is not None:
-            self._env_plane.close()
+            self._env_plane.cleanup()
         self._log.debug("Controller: environment plane closed")
 
         self._log.debug("Controller: closed")
@@ -261,38 +172,95 @@ class Controller(threading.Thread):
                 host.deploy(self._deploy_config)
         except CommandException:
             self._log.error("OpenSAND platform failed to deploy")
-            self._event_manager_response.set('resp_deploy_platform', 'fail')
-            return
+            return False
 
         self._log.info("OpenSAND platform deployed")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_deploy_platform', 'done')
+        return True
+
+    def install_simulation_files(self):
+        """ send the simulation files on host """
+        # check that all component are stopped
+        if self._model.is_running():
+            self._log.warning("Some components are still running")
+
+        self._log.info("Install simulation files")
+
+        for host in self._hosts:
+            name = host.get_name()
+            self._log.info("Installing  %s" % name)
+            files = self._model.get_files()
+            if not name.lower() in files and not 'global' in files:
+                self._log.debug("no section for %s in simulation deployment "
+                                "file" % name)
+                continue
+
+            try:
+                sock = host.connect_command('CONFIGURE')
+                if sock is None:
+                    continue
+
+                for elem in files[name.lower()]:
+                    src = elem[1]
+                    dst = elem[2]
+                    if src == '':
+                        self._log.warning("source for %s is empty, the file was"
+                                          " ignored" % elem[0])
+                        continue
+                    if dst == '':
+                        self._log.warning("destination for %s is empty, the "
+                                          "file was ignored" % elem[0])
+                        continue
+                    host.send_file(sock, src, dst)
+                if 'global' in files:
+                    for elem in files['global']:
+                        src = elem[1]
+                        dst = elem[2]
+                        if src == '':
+                            self._log.warning("source for %s is empty, the file"
+                                              " was ignored" % elem[0])
+                        elif dst == '':
+                            self._log.warning("destination for %s is empty, the"
+                                              " file was ignored" % elem[0])
+                        else:
+                            host.send_file(sock, src, dst)
+
+                # send 'STOP' tag
+                sock.send('STOP\n')
+                self._log.debug("%s: send 'STOP'" % name)
+            except IOError, msg:
+                self._log.error("Cannot install simulation files: %s" % msg)
+                return False
+            except socket.error, (_, strerror):
+                self._log.error("Cannot contact %s command server: %s" %
+                                (name, strerror))
+                return False
+            except CommandException, msg:
+                self._log.error("cannot install simulation files")
+                return False
+            finally:
+                if sock is not None:
+                    sock.close()
+
+
+        self._log.info("Simulation files installed")
+        return True
 
     def start_platform(self):
         """ start OpenSAND platform """
         # check that we have at least env_plane, sat, gw and one st
         if not self._model.main_hosts_found():
             self._log.info("not enough component to start OpenSAND: " \
-                           "you will need at least a satellite, a gateway, " \
-                           "a ST and the environment plane")
-            self._event_manager_response.set('resp_start_platform', 'fail')
+                           "you will need at least a satellite, a gateway " \
+                           "and a ST")
             return False
 
         # check if some components are still running (should not happen)
         if self._model.is_running():
             self._log.warning("Some components are still running")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         self._log.info("Start OpenSAND platform")
-
-        # get the environment plane controllers address
-        # TODO rustine... à supprimer dès que possible !
-        addr = self.get_env_plane_output()
-        self._log.debug("find address %s for environment plane controllers" %
-                        addr)
-        content = self.update_com_parameters(addr)
 
         # create the base directory for configuration files
         # the configuration is shared between all runs in a scenario
@@ -303,10 +271,7 @@ class Controller(threading.Thread):
                 component = name.lower()
                 if component.startswith('st'):
                     component = 'st'
-                # modify the com_parameters for environment agent
-                # TODO suite de la rustine... à supprimer également dès que possible !
-                self.send_com_parameters(host, content)
-
+                
                 self._log.info("Configuring " + host.get_name().upper())
                 # create the host directory
                 host_path = os.path.join(self._model.get_scenario(),
@@ -323,19 +288,20 @@ class Controller(threading.Thread):
                     default_path = os.path.join(DEFAUL_PATH, component)
                     shutil.copy(os.path.join(default_path, 'core.conf'),
                                 conf_file)
-                #TODO try to simplify file deployment
                 scenario = self._model.get_scenario()
+                # the list of files to send
                 conf_files = [os.path.join(scenario, 'core_global.conf'),
                               os.path.join(scenario, 'topology.conf'),
                               conf_file]
+                # the list of modules configuration files to send
+                modules_dir = os.path.join(host_path, 'plugins')
+                modules = map(lambda x: os.path.join(modules_dir, x),
+                              os.listdir(modules_dir))
                 host.configure(conf_files,
-                               1, 1, self._deploy_config,
+                               modules,
+                               self._deploy_config,
                                self._model.get_dev_mode())
-#TODO uncomment lines below and remove line above when the environment plane
-#     will accept strings as scenario and run
-#                               self._model.get_scenario(),
-#                               self._model.get_run())
-                # configure modules
+                # configure global modules
                 self.configure_modules(host)
 
             # configure tools on workstations
@@ -347,36 +313,24 @@ class Controller(threading.Thread):
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
                 ws.configure_ws(self._deploy_config, self._model.get_dev_mode())
-        except (OSError, IOError), (errno, strerror):
+        except (OSError, IOError), (_, strerror):
             self._log.error("Failed to create directory '%s': %s" %
                             (host_path, strerror))
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
         except CommandException:
             self._log.error("OpenSAND platform failed to configure")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         try:
-            self._log.info("Starting Environment Plane")
-            # set the ProbeController options
-            config = self._model.get_conf()
-            frame_duration = config.get_frame_duration()
-            self._model.get_env_plane().set_options('probe',
-                                                    '-f ' + frame_duration)
-            self._env_plane.start()
             for host in self._hosts:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START')
         except CommandException:
             self._log.error("OpenSAND platform failed to start")
-            self._event_manager_response.set('resp_start_platform', 'fail')
             return False
 
         self._log.info("OpenSAND platform started")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_start_platform', 'done')
         return True
 
     def stop_platform(self):
@@ -388,37 +342,29 @@ class Controller(threading.Thread):
         self._log.info("Stop OpenSAND platform")
 
         try:
-            self._log.info("Stopping Environment Plane")
-            self._env_plane.stop()
             for host in self._hosts:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
         except CommandException:
             self._log.error("OpenSAND platform failed to stop")
-            self._event_manager_response.set('resp_stop_platform', 'fail')
             return False
 
         # save the environment plane results into the correct path
-        # everything is saved in $HOME/.opensand/scenario_1/run_1
-        # TODO modify the environment plane to allow string as scenario and run
-        if not 'HOME' in os.environ:
-            self._log.error("cannot get $HOME environment variable, "
-                            "could not save environment plane data")
-        else:
-            src = os.path.join(os.environ['HOME'],
-                               ".opensand/scenario_1/run_1")
+        # everything is saved in scenario/run
+        if self._model.is_collector_functional():
+            self._log.info("Save the environment plane outputs")
+            self._event_manager_response.set('probe_transfer_progress', 'start')
             dst = os.path.join(self._model.get_scenario(),
                                self._model.get_run())
-            try:
-                copytree(src, dst)
-            except Exception, msg:
-                self._log.error("Cannot save environment plane data: %s" %
-                                str(msg))
+            
+            def done(status='done'):
+                self._event_manager_response.set('probe_transfer_progress',
+                                                 status)
+            
+            self._env_plane.transfer_from_collector(dst, done)
 
         self._log.info("OpenSAND platform stopped")
 
-        # tell the GUI event manager that opensand installation is over
-        self._event_manager_response.set('resp_stop_platform', 'done')
         return True
 
     def update_deploy_config(self):
@@ -433,7 +379,7 @@ class Controller(threading.Thread):
                                     ".opensand/deploy.ini")
             if not os.path.exists(ini_file):
                 self._log.debug("cannot find file %s, " \
-                                  "copy default" % ini_file)
+                                "copy default" % ini_file)
                 try:
                     shutil.copy(DEFAULT_INI_FILE,
                                 ini_file)
@@ -474,6 +420,7 @@ class Controller(threading.Thread):
             self._log.debug("%s: send 'DATA'" % host.get_name())
 
             stream = Stream(sock, self._log)
+            # configure global modules
             stream.send_dir(os.path.join(self._model.get_scenario(), 'plugins'),
                             '/etc/opensand/plugins')
 
@@ -486,7 +433,7 @@ class Controller(threading.Thread):
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % host.get_name())
 
-        except socket.error, (errno, strerror):
+        except socket.error, (_, strerror):
             self._log.error("Cannot contact %s command server: %s" %
                             (host.get_name(), strerror))
         except CommandException:
@@ -495,9 +442,10 @@ class Controller(threading.Thread):
         finally:
             if sock is not None:
                 sock.close()
-
-
-
+    
+    def get_env_plane_controller(self):
+        """ return the environment plane controller """
+        return self._env_plane
 
 ##### TEST #####
 # TODO thread to run the main loop in order to find hosts
@@ -525,5 +473,5 @@ if __name__ == '__main__':
     except:
         LOGGER.error("test failed")
         sys.exit(1)
-        
+
     sys.exit(0)

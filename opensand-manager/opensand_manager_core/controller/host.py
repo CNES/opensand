@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -47,6 +47,7 @@ from opensand_manager_core.controller.stream import Stream
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
 START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
+START_INI = 'start.ini'
 DATA_END = 'DATA_END\n'
 
 #TODO factorize
@@ -54,7 +55,7 @@ class HostController:
     """ controller which implements the client that connects in order to get
         program states on distant host and the client that sends command to
         the distant host """
-    def __init__(self, host_model, manager_log):
+    def __init__(self, host_model, cache_dir, manager_log):
         self._host_model = host_model
         self._log = manager_log
 
@@ -62,6 +63,9 @@ class HostController:
                                               None, (), {})
         self._stop = threading.Event()
         self._state_thread.start()
+        self._cache = START_DESTINATION_PATH
+        if cache_dir is not None:
+            self._cache = os.path.join(cache_dir, START_INI)
 
     def close(self):
         """ close the host connections """
@@ -117,7 +121,13 @@ class HostController:
             self._log.debug("%s: received '%s' from state server" %
                             (self.get_name(), received))
             cmd = received.split()
-            if len(cmd) < 1 or cmd[0] != 'STARTED':
+            if len(cmd) < 1:
+                self._log.warning("%s: socket seems to be closed by host" %
+                                  self.get_name())
+                self._host_model.set_started(None)
+                sock.close()
+                thread.exit()
+            if cmd[0] != 'STARTED':
                 sock.send("ERROR wrong command '%s' \n" % cmd)
                 self._log.error("%s: received '%s' while waiting for 'STARTED'"
                                 % (self.get_name(), cmd))
@@ -138,7 +148,7 @@ class HostController:
         finally:
             sock.close()
 
-    def configure(self, conf_files, scenario, run,
+    def configure(self, conf_files, conf_modules,
                   deploy_config, dev_mode=False):
         """ send the configure command to command server """
         # connect to command server and send the configure command
@@ -156,8 +166,12 @@ class HostController:
                 self.send_file(sock, conf,
                                os.path.join(CONF_DESTINATION_PATH,
                                             os.path.basename(conf)))
-                # TODO handle modcod and dra for gw
-                #      (according to regen/transp et coll/ind)
+            for conf in conf_modules:
+                # send the module configuration
+                plugin_path = os.path.join(CONF_DESTINATION_PATH,'plugins')
+                self.send_file(sock, conf,
+                               os.path.join(plugin_path,
+                                            os.path.basename(conf))),
         except CommandException:
             sock.close()
             raise
@@ -175,7 +189,7 @@ class HostController:
             # send an empty start.ini file because we will send the start
             # command in order to apply routes on host
             with tempfile.NamedTemporaryFile() as tmp_file:
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
 
             try:
                 # send 'STOP' tag
@@ -210,16 +224,19 @@ class HostController:
         if not dev_mode:
             bin_file = self._host_model.get_component()
         else:
-            bin_file = deploy_config.get(self._host_model.get_name(), 'binary')
+            bin_file = deploy_config.get(component, 'binary')
             bin_file = os.path.join(prefix, bin_file.lstrip('/'))
 
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
-        command_line = '%s -s %s -r %s -i %s -a %s -n %s' % \
-                       (bin_file, scenario,
-                        run, self._host_model.get_instance(),
+        instance_param = ''
+        if component.startswith('st'):
+            instance_param = '-i ' + self._host_model.get_instance()
+        command_line = '%s -a %s -n %s %s' % \
+                       (bin_file,
                         self._host_model.get_emulation_address(),
-                        self._host_model.get_emulation_interface())
+                        self._host_model.get_emulation_interface(),
+                        instance_param)
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',
@@ -234,7 +251,7 @@ class HostController:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 start_ini.write(tmp_file)
                 tmp_file.flush()
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
@@ -280,7 +297,7 @@ class HostController:
             with tempfile.NamedTemporaryFile() as tmp_file:
                 start_ini.write(tmp_file)
                 tmp_file.flush()
-                self.send_file(sock, tmp_file.name, START_DESTINATION_PATH)
+                self.send_file(sock, tmp_file.name, self._cache)
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
@@ -293,7 +310,7 @@ class HostController:
             # send 'STOP' tag
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % self.get_name())
-        except socket.error, (errno, strerror):
+        except socket.error, (_, strerror):
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
             raise CommandException("Cannot contact %s command server: %s" %
@@ -382,7 +399,7 @@ class HostController:
                                    (self.get_name(), error))
         except Exception:
             self._log.error("%s: error when sending file '%s'" %
-                            (self.get_name(), file))
+                            (self.get_name(), src_file))
             sock.close()
             raise
 
@@ -527,9 +544,9 @@ class HostController:
             except CommandException:
                 raise
 
-        for (file, dst_file) in files.iteritems():
+        for (src_file, dst_file) in files.iteritems():
             try:
-                self.send_file(sock, file, dst_file)
+                self.send_file(sock, src_file, dst_file)
             except CommandException:
                 raise
 
@@ -606,5 +623,5 @@ class HostController:
                                    "for 'OK'" % (self.get_name(), received))
 
     def disable(self):
-        """ diasable the host """
+        """ disable the host """
         self._host_model.enable(False)

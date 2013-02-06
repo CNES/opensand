@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 TAS
+# Copyright © 2012 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -47,12 +47,13 @@ from opensand_manager_core.my_exceptions import ModelException
 
 class OpenSandServiceListener():
     """ listen for OpenSAND service with avahi """
-    def __init__(self, model, hosts, ws, service_type, manager_log):
+    def __init__(self, model, hosts, ws, env_plane, service_type, manager_log):
         self._server = None
         self._log = manager_log
         self._model = model
         self._hosts = hosts
         self._ws = ws
+        self._env_plane = env_plane
 
         loop = DBusGMainLoop()
         # enable dbus multithreading
@@ -80,12 +81,28 @@ class OpenSandServiceListener():
         """ get the parameter of service once it is resolved """
         name = args[2]
         address = args[7]
+        port = args[8]
+        txt = args[9]
         self._log.debug('service resolved')
         self._log.debug('name: ' + args[2])
         self._log.debug('address: ' + args[7])
         self._log.debug('port: ' + str(args[8]))
         self._log.info("Find %s at address %s" %
                        (name, address))
+
+        if name == "collector":
+            try:
+                items = dict("".join(chr(i) for i in arg).split("=", 1)
+                             for arg in txt)
+                transfer_port = int(items.get('transfer_port', ""))
+            except ValueError:
+                self._log.error("Failed to get the collector transfer port.")
+                return
+            
+            self._env_plane.register_on_collector(address, port, transfer_port)
+            self._model.set_collector_known(True)
+                        
+            return
 
         if address.count(':') > 0:
             self._log.warning("IPv6 service: ignore it")
@@ -96,6 +113,7 @@ class OpenSandServiceListener():
         inst = ''
         state_port = ''
         command_port = ''
+        cache = None
         tools = []
         modules = []
         network_config = {'discovered' : address}
@@ -130,14 +148,14 @@ class OpenSandServiceListener():
                 network_config['emu_iface'] = val
             elif key == 'emu_ipv4':
                 network_config['emu_ipv4'] = val
-            elif key == 'emu_ipv6':
-                network_config['emu_ipv6'] = val
             elif key == 'lan_iface':
                 network_config['lan_iface'] = val
             elif key == 'lan_ipv4':
                 network_config['lan_ipv4'] = val
             elif key == 'lan_ipv6':
                 network_config['lan_ipv6'] = val
+            elif key == 'cache':
+                cache = val
         try:
             host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
@@ -147,7 +165,7 @@ class OpenSandServiceListener():
             return
         else:
             if not name.startswith('ws'):
-                new_host = HostController(host_model, self._log)
+                new_host = HostController(host_model, cache, self._log)
                 if name == 'sat':
                     self._hosts.insert(0, new_host)
                 elif name == 'gw':
@@ -157,7 +175,7 @@ class OpenSandServiceListener():
             # we need controller for workstations with tools
             if name.startswith('ws'):
                 if len(host_model.get_tools()) > 0:
-                    new_host = HostController(host_model, self._log)
+                    new_host = HostController(host_model, cache, self._log)
                     self._ws.append(new_host)
 
     def print_error(self, *args):
@@ -183,6 +201,13 @@ class OpenSandServiceListener():
         self._log.debug("Service removed '%s' type '%s' domain '%s' " %
                         (name, stype, domain))
         self._log.info("the component %s was disconnected" % name)
+        
+        if name == "collector":
+            self._env_plane.unregister_on_collector()
+            self._model.set_collector_known(False)
+            self._model.set_collector_functional(False)
+            return
+        
         self._model.del_host(name)
         for host in self._hosts:
             if host.get_name().lower() == name:
@@ -201,7 +226,8 @@ if __name__ == '__main__':
     HOSTS = []
     gobject.threads_init()
 
-    SERVICE = OpenSandServiceListener(MODEL, HOSTS, [], '_opensand._tcp', LOGGER)
+    SERVICE = OpenSandServiceListener(MODEL, HOSTS, [], '_opensand._tcp',
+                                      LOGGER)
     try:
         gobject.MainLoop().run()
     except KeyboardInterrupt:

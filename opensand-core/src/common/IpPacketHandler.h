@@ -94,21 +94,21 @@ class IpPacketHandler:
 	size_t getLength(const unsigned char *data) const
 	{
 		return 0;
-	}
+	};
 
 	size_t getMinLength() const
 	{
 		assert(0);
-	}
+	};
 
 	bool getChunk(NetPacket *packet, size_t remaining_length,
 	              NetPacket **data, NetPacket **remaining_data)
 	{
 		assert(0);
-	}
+	};
 
-	uint16_t getEtherType() const {return NET_PROTO_ERROR;}
-	std::string getName() const {return "IP";}
+	uint16_t getEtherType() const {return NET_PROTO_ERROR;};
+	std::string const getName() {return "IP";};
 };
 
 

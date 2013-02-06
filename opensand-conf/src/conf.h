@@ -227,6 +227,21 @@
 #define TERMINAL_ADDR     "addr"
 #define TERMINAL_IP_MASK  "mask"
 
+////////////////////
+// Physical Layer //
+////////////////////
+
+#define LINK                      "link"
+
+#define PHYSICAL_LAYER_SECTION    "physical_layer"
+#define ENABLE                    "enable"
+#define MODEL_LIST                "models"
+#define ATTENUATION_MODEL_TYPE    "attenuation_model_type"
+#define NOMINAL_CONDITION_TYPE    "nominal_condition_type"
+#define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
+#define ERROR_INSERTION_TYPE      "error_insertion_type"
+#define GRANULARITY               "granularity"
+
 /////////////////
 // SAT Carrier //
 /////////////////

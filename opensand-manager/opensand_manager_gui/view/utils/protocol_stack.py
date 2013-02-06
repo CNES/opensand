@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2011 CNES
+# Copyright © 2012 CNES
+# Copyright © 2012 CNES
 #
 #
 # This file is part of the OpenSAND testbed.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -82,7 +82,8 @@ class StateHandler(MyTcpHandler):
 
         try:
             if self._data == 'STATE':
-                update_thread = threading.Thread(None, self.update, None, (), {})
+                update_thread = threading.Thread(None, self.update, None,
+                                                 (), {})
                 LOGGER.debug("start update thread")
                 update_thread.start()
             else:
@@ -121,13 +122,13 @@ class StateHandler(MyTcpHandler):
             LOGGER.debug("stop update thread")
             MyTcpHandler._stop.set()
             if update_thread.is_alive():
-                update_thread.join(10)
+                update_thread.join()
             LOGGER.debug("update thread joined")
 
         if self._data == 'BYE':
             LOGGER.info("manager is stopped")
             self.wfile.write("OK\n")
-        else:
+        elif not MyTcpHandler._stop.is_set():
             LOGGER.error("%s received from manager", self._data)
 
 
@@ -146,7 +147,7 @@ class StateHandler(MyTcpHandler):
             MyTcpHandler._stop.wait(1.0)
 
 
-    def send_and_update_state(self, first = False):
+    def send_and_update_state(self, first=False):
         """ send the status of each component for
             which the state has changed """
         new_compo_list = self._process_list.get_components()

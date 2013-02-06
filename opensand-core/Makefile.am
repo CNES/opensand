@@ -17,8 +17,11 @@ dist_doc_DATA = \
 	CHANGES \
 	ChangeLog
 
+EXTRA_DIST = \
+	autogen.sh
+
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = opensand_encap_plugin.pc
+pkgconfig_DATA = opensand_plugin.pc
 
 .PHONY: doc
 

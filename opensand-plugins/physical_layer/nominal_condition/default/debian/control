@@ -1,0 +1,27 @@
+Source: opensand-default-nominal-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-conf-dev (>= 1.0.0),
+ libopensand-plugin-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-default-nominal-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-default-nominal-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND default nominal plugin
+
+Package: libopensand-default-nominal-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Description: The default nominal plugin for OpenSAND
+
+Package: libopensand-default-nominal-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-default-nominal-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
+Description: The default nominal plugin configuration for OpenSAND Manager
+

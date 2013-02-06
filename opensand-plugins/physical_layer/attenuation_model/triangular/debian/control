@@ -1,0 +1,27 @@
+Source: opensand-triangular-attenuation-plugin
+Priority: optional
+Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-conf-dev (>= 1.0.0),
+ libopensand-plugin-dev (>= 1.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-triangular-attenuation-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-triangular-attenuation-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND triangular attenuation plugin
+
+Package: libopensand-triangular-attenuation-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Description: The triangular attenuation plugin for OpenSAND
+
+Package: libopensand-triangular-attenuation-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-triangular-attenuation-plugin (= ${binary:Version}), python (>= 2.6), opensand-manager-gui
+Description: The triangular attenuation plugin configuration for OpenSAND Manager
+
