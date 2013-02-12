@@ -64,6 +64,7 @@ class ProtocolStack():
     def load(self, stack, payload, emission_std=''):
         """ load or reload the protocol stack from configuration """
         self._payload = payload.lower()
+        self._emission_std = emission_std.lower()
         self.reset()
         upper_val = "IP"
         idx_stack = 0
@@ -171,18 +172,19 @@ class ProtocolStack():
                 active_idx = idx
         # if the module need a lower encapsulation protocol and there is
         # only one remove the empty value
-        if upper_val != '' and \
-           self._modules[upper_val].get_condition('mandatory_down') and \
-           idx == 1:
+        if upper_val != "IP" and \
+           self._modules[upper_val].get_condition('mandatory_down'):
             removed = True
             store.remove(empty)
-            active_idx = 0
-        if upper_val != '' and \
+            if active_idx > 0:
+                active_idx -= 1
+        if upper_val != "IP" and \
            not self._modules[upper_val].get_condition(self._emission_std) and \
-           idx == 1 and not removed:
+           not removed:
             removed = True
             store.remove(empty)
-            active_idx = 0
+            if active_idx > 0:
+                active_idx -= 1
         if idx == 0:
             return True
         combo.set_model(store)
