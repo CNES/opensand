@@ -122,10 +122,12 @@ class ConfView(WindowView):
                 self._log.error("cannot find IP option %s" % active)
         # up_return_encap
         self._out_stack.load(config.get_up_return_encap(),
-                             config.get_payload_type())
+                             config.get_payload_type(),
+                             config.get_emission_std())
         # down_forward_encap
         self._in_stack.load(config.get_down_forward_encap(),
-                            config.get_payload_type())
+                            config.get_payload_type(),
+                            "DVB-S2")
         # frame_duration
         widget = self._ui.get_widget('FrameDuration')
         widget.set_value(int(config.get_frame_duration()))

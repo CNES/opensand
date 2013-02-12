@@ -57,10 +57,11 @@ class ProtocolStack():
         # file {pos:name}
         self._displayed_stack = {}
         self._payload = ''
+        self._emission_std = ''
         self._stack = {}
         self._modif_cb = modif_callback
-       
-    def load(self, stack, payload):
+
+    def load(self, stack, payload, emission_std=''):
         """ load or reload the protocol stack from configuration """
         self._payload = payload.lower()
         self.reset()
@@ -80,7 +81,7 @@ class ProtocolStack():
         # add an empty layer
         self.add_layer(upper_val, idx_stack)
         self._vbox.show_all()
-        
+
     def update(self, modif_pos=0):
         """ update the protocol stack """
         upper_val = "IP"
@@ -128,22 +129,23 @@ class ProtocolStack():
         elif last in self._stack and get_combo_val(self._stack[last]) != '':
             self.add_layer(upper_val, last + 1)
         self._vbox.show_all()
-        
+
     def reset(self):
         """ reset the vbox """
         for child in self._vbox.get_children():
             self._vbox.remove(child)
         self._stack.clear()
-                
+
     def on_stack_changed(self, source=None):
         """ 'changed' event on an encap Combobox """
         if source not in self._vbox.get_children():
             return
         pos = self._vbox.child_get_property(source, "position")
         self.update(pos)
-        
+
     def add_layer(self, upper_val, idx_stack, active=''):
         """ add a new layer in the protocol stack """
+        removed = False
         combo = gtk.ComboBox()
         combo.connect('changed', self.on_stack_changed)
         if self._modif_cb is not None:
@@ -152,17 +154,35 @@ class ProtocolStack():
         idx = 0
         active_idx = 0
         # add an empty value that will be used to unselect the layer
-        store.append([''])
+        empty = store.append([''])
         # add each encapsulation  protocol that can encapsulate the upper_val
         # protocol
-        for name in self._modules.keys():
-            module = self._modules[name]
-            if upper_val in module.get_available_upper_protocols(self._payload):
-                idx += 1
-                store.append([name])
+        for name in self.get_lower_list(upper_val):
+            # if the module cannot be encapsulated and does not support the emission
+            # standard do not keep it
+            lower = self.get_lower_list(name)
+            if not self._modules[name].get_condition(self._emission_std):
+                if len(lower) == 0:
+                    continue
+            idx += 1
+            store.append([name])
             # keep the index of the active protocol
             if active == name:
                 active_idx = idx
+        # if the module need a lower encapsulation protocol and there is
+        # only one remove the empty value
+        if upper_val != '' and \
+           self._modules[upper_val].get_condition('mandatory_down') and \
+           idx == 1:
+            removed = True
+            store.remove(empty)
+            active_idx = 0
+        if upper_val != '' and \
+           not self._modules[upper_val].get_condition(self._emission_std) and \
+           idx == 1 and not removed:
+            removed = True
+            store.remove(empty)
+            active_idx = 0
         if idx == 0:
             return True
         combo.set_model(store)
@@ -176,15 +196,26 @@ class ProtocolStack():
         self._vbox.reorder_child(combo, idx_stack)
         self._vbox.set_child_packing(combo, expand=False, fill=False,
                                      padding=5, pack_type=gtk.PACK_START)
-        if active != '' and active_idx == 0:
+        if active != '' and active_idx == 0 and not removed:
             return False
         return True
+
+    def get_lower_list(self, module_name):
+        """ get the list of protocols that can encapsulate the current one """
+        lower = []
+        for name in self._modules.keys():
+            module = self._modules[name]
+            if module_name in module.get_available_upper_protocols(self._payload) \
+               or (module_name == "" and module.handle_upper_bloc()):
+                lower.append(name)
+        return lower
+
 
     def set_payload_type(self, payload):
         """ set the satellite payload type """
         self._payload = payload.lower()
         self.update()
-        
+
     def get_stack(self):
         """ get the protocol stack """
         stack = {}
