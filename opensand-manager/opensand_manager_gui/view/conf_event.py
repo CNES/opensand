@@ -315,7 +315,6 @@ class ConfEvent(ConfView) :
         """ 'toggled' event on enable button """
         self.enable_conf_buttons()
 
-
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
         try:
