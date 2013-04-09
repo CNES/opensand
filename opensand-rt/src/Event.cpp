@@ -26,29 +26,28 @@
  */
 /* $Id: Event.cpp,v 1.1.1.1 2013/04/04 11:00:02 cgaillardet Exp $ */
 
-#include <cstdlib> // abs, null
-
-
 #include "Event.h"
+
+#include <cstdlib> // abs, null
 
 Event::Event(uint8_t new_priority)
 {
-    this->priority = new_priority;
-    this->SetCreationTime();
+	this->priority = new_priority;
+	this->SetCreationTime();
 }
 
 void Event::SetCreationTime(void)
 {
-    gettimeofday(&this->time_in,NULL);
+	gettimeofday(&this->time_in,NULL);
 }
 
 timeval Event::GetLifetime()
 {
-    timeval res;
-    timeval current;
-    gettimeofday(&current,NULL);
+	timeval res;
+	timeval current;
+	gettimeofday(&current,NULL);
 
-    res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
-    res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
-    return res;
+	res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
+	res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
+	return res;
 }

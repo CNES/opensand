@@ -31,30 +31,31 @@
 #ifndef SIGNALEVENT_H
 #define SIGNALEVENT_H
 
-#include <sys/time.h>
-#include <sys/signalfd.h>
 
 #include "Types.h"
 #include "Event.h"
 
+#include <sys/time.h>
+#include <sys/signalfd.h>
+
+
 class SignalEvent:public Event
 {
 
-public:
-    SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
-    ~SignalEvent(void);
+  public:
+	SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
+	~SignalEvent(void);
 
-    void Enable(void){this->enabled = true;};
-    void Disable(void){this->enabled = false;};
-    bool IsActive(void) { return this->enabled;};
+	void Enable(void){this->enabled = true;};
+	void Disable(void){this->enabled = false;};
+	bool IsActive(void) { return this->enabled;};
 
-    void SetData(char *data, int32_t size);
+	void SetData(char *data, int32_t size);
 
-protected:
+  protected:
 	sigset_t mask;
-    signalfd_siginfo sig_info;
-    bool enabled;
-private:
+	signalfd_siginfo sig_info;
+	bool enabled;
 
 
 };

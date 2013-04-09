@@ -32,21 +32,23 @@
 #include "Event.h"
 
 
-class MsgEvent : public Event
+class MsgEvent: public Event
 {
-    public:
-    MsgEvent(int32_t fd = -1, uint8_t new_priority = 6, char *data = NULL, uint16_t size = 0);
-    ~MsgEvent();
+  public:
+	MsgEvent(int32_t fd = -1,
+	         uint8_t new_priority = 6,
+	         char *data = NULL,
+	         uint16_t size = 0);
+	~MsgEvent();
 
-    char *GetData() {return this->data;};
-    uint16_t GetSize() {return this->size;};
-    void SetData(char *data, uint32_t length);
+	char *GetData() {return this->data;};
+	uint16_t GetSize() {return this->size;};
+	void SetData(char *data, uint32_t length);
 
-    protected:
+  protected:
 
-    char *data;
-    uint16_t size;
-  private:
+	char *data;
+	uint16_t size;
 
 
 

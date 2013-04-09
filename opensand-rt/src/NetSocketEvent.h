@@ -32,26 +32,25 @@
 #define NETSOCKETFDEVENT_H
 
 #include "Types.h"
-#include <sys/time.h>
 #include "Event.h"
+
+#include <sys/time.h>
 
 #define MAX_DATA_IN_FD_EVENT 65535
 
 class NetSocketEvent:public Event
 {
 
-public:
-    NetSocketEvent(int32_t currentFd, uint8_t priority = 8);
-    ~NetSocketEvent();
-    void SetData(char *data, uint32_t size);
-    uint32_t GetSize(){return this->size;};
-    char *GetDataPtr(){return this->data;};
+  public:
+	NetSocketEvent(int32_t currentFd, uint8_t priority = 8);
+	~NetSocketEvent();
+	void SetData(char *data, uint32_t size);
+	uint32_t GetSize(){return this->size;};
+	char *GetDataPtr(){return this->data;};
 
-protected:
-    char *data;
-    uint32_t size;
-
-private:
+  protected:
+	char *data;
+	uint32_t size;
 
 
 };

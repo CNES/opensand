@@ -34,19 +34,19 @@
 
 typedef enum
 {
-    Created,
-    Inited,
-    Stopped,
-    Running,
-    Paused,
-    Terminating
+	Created,
+	Inited,
+	Stopped,
+	Running,
+	Paused,
+	Terminating
 } DirectionThreadState;
 
 typedef enum
 {
-    Fd,
-    Timer,
-    Message,
+	Fd,
+	Timer,
+	Message,
 	Signal
 } EventType;
 

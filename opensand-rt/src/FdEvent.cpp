@@ -26,42 +26,40 @@
  */
 /* $Id: NetSocketEvent.cpp,v 1.1.1.1 2013/04/04 16:34:27 cgaillardet Exp $ */
 
+#include "NetSocketEvent.h"
 
 #include <cstring> //memcpy
 #include <unistd.h> //close
 
-#include "NetSocketEvent.h"
-
-
 NetSocketEvent::NetSocketEvent(int32_t current_fd, uint8_t priority):
-data(NULL),
-size(0)
+	data(NULL),
+	size(0)
 {
-    this->fd = current_fd;
-    this->priority = priority;
+	this->fd = current_fd;
+	this->priority = priority;
 }
 
 NetSocketEvent::~NetSocketEvent()
 {
-    // close FD ?
-    close (this->fd);
+	// close FD ?
+	close (this->fd);
 
-    // delete data
-    if (this->data !=NULL)
-    {
-        delete [] this->data;
-    }
+	// delete data
+	if(this->data !=NULL)
+	{
+		delete [] this->data;
+	}
 }
 
 void NetSocketEvent::SetData(char *data, uint32_t length)
 {
-    if (this->size > 0)
-    {
-        delete this->data;
-    }
-    this->data = (char *)malloc(length + 1);
-    memcpy(this->data, data, length);
-    this->data[length]=0;
+	if(this->size > 0)
+	{
+		delete this->data;
+	}
+	this->data = (char *)malloc(length + 1);
+	memcpy(this->data, data, length);
+	this->data[length]=0;
 }
 
 

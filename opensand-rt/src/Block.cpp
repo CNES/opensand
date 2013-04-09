@@ -26,6 +26,9 @@
  */
 /* $Id: Block.h,v 1.1.1.1 2013/04/03 11:37:12 cgaillardet Exp $ */
 
+
+#include "Block.h"
+
 #include <errno.h>
 #include <cstring>
 #include <fcntl.h>
@@ -33,13 +36,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "Block.h"
 
-
-
-Block::Block(Channel* backward, Channel* forward) :
-    backward(backward),
-    forward(forward),
+Block::Block(Channel* backward, Channel* forward):
+	backward(backward),
+	forward(forward),
 	previous_block(NULL),
 	next_block(NULL)
 {
@@ -48,59 +48,59 @@ Block::Block(Channel* backward, Channel* forward) :
 
 bool Block::Init(void)
 {
-    bool res = false;
+	bool res = false;
 
 #ifdef DEBUG_BLOCK_MUTEX
 	res = forward->Init(&this->mutex) &&  backward->Init(&this->mutex);
 #endif
 	res = forward->Init() &&  backward->Init();
 	res &= forward->CustomInit() &&  backward->CustomInit();
-    return res;
+	return res;
 }
 
 bool Block::Sleep(void)
 {
-    bool res = false;
+	bool res = false;
 	res = forward->Sleep() &&  backward->Sleep();
-    return res;
+	return res;
 }
 
 bool Block::Wake(void)
 {
-    bool res = false;
+	bool res = false;
 	res = forward->Wake() &&  backward->Wake();
-    return res;
+	return res;
 }
 
 bool Block::Start(void)
 {
-    bool res = false;
+	bool res = false;
 	res = forward->Start() &&  backward->Start();
-    return res;
+	return res;
 }
 
 void *Block::StartThread(void *pthis)
 {
-    forward->StartThread(pthis);
+	forward->StartThread(pthis);
 	backward->StartThread(pthis);
 	return NULL;
 }
 
 void Block::Stop(void)
 {
-    this->~Block();
+	this->~Block();
 }
 
 Block::~Block()
 {
-    if (this->forward != NULL)
-    {
-        delete this->forward;
-    }
+	if (this->forward != NULL)
+	{
+		delete this->forward;
+	}
 
-    if (this->backward != NULL)
-    {
-        delete this->backward;
-    }
+	if (this->backward != NULL)
+	{
+		delete this->backward;
+	}
 
 }

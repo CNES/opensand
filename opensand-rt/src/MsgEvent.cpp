@@ -26,34 +26,33 @@
  */
 /* $Id: MsgEvent.cpp,v 1.1.1.1 2013/04/04 09:12:15 cgaillardet Exp $ */
 
-
-#include <cstring> //memcpy
 #include "MsgEvent.h"
 
+#include <cstring> //memcpy
 
 
 MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority, char *data, uint16_t size):
-    size(size)
+	size(size)
 {
-    this->fd= fd;
-    this->priority = new_priority;
-    if ( size > 0 )
-    {
-        this->data = (char *)malloc (size+1);
-        memcpy(this->data, data, size);
-        this->data[size] = 0;
-    }
-    else
-    {
-        this->data = NULL;
-    }
-    this->event_type= Message;
+	this->fd= fd;
+	this->priority = new_priority;
+	if( size > 0 )
+	{
+		this->data = (char *)malloc (size+1);
+		memcpy(this->data, data, size);
+		this->data[size] = 0;
+	}
+	else
+	{
+		this->data = NULL;
+	}
+	this->event_type= Message;
 }
 
 
 void MsgEvent::SetData(char *data, uint32_t length)
 {
-	if (this->size > 0)
+	if(this->size > 0)
 	{
 		delete this->data;
 	}
@@ -65,6 +64,6 @@ void MsgEvent::SetData(char *data, uint32_t length)
 
 MsgEvent::~MsgEvent()
 {
-    delete[] this->data;
+	delete[] this->data;
 }
 

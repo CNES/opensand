@@ -32,32 +32,33 @@
 #define EVENT_H
 
 
-#include <sys/time.h>
-#include "stdlib.h"
-
 #include "Types.h"
+
+#include <sys/time.h>
+#include <cstdlib>
+
 
 class Event
 {
+  public:
 
-public:
-    Event(uint8_t new_priority = 0);
-    ~Event();
+	Event(uint8_t new_priority = 0);
+	~Event();
 
-    EventType GetType(void) {return this->event_type;};
-    timeval GetLifetime(void);
-    uint8_t GetPriority(void) {return this->priority;};
-	void setPriority(uint8_t new_priority){ this->priority = new_priority;};
+	EventType GetType(void) {return this->event_type;};
+	timeval GetLifetime(void);
+	uint8_t GetPriority(void) {return this->priority;};
+	void setPriority(uint8_t new_priority) {this->priority = new_priority;};
 	int32_t GetFd(void) {return this->fd;};
 	void SetFd(int32_t new_fd) {this->fd = new_fd;};
 	void SetCreationTime(void);
 
-protected:
-    int32_t fd;
-    timeval time_in;
-    EventType event_type;
+  protected:
+
+	int32_t fd;
+	timeval time_in;
+	EventType event_type;
 	uint8_t priority;
-private:
 
 };
 

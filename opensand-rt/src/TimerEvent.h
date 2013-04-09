@@ -32,29 +32,32 @@
 #define TIMEREVENT_H
 
 #include "Types.h"
-#include <sys/time.h>
 #include "Event.h"
+
+#include <sys/time.h>
 
 class TimerEvent:public Event
 {
 
-public:
-    TimerEvent(uint32_t timer_duration_ms, uint8_t new_priority= 4, bool auto_rearm = false, bool start= true);
-    ~TimerEvent(void);
+  public:
+	TimerEvent(uint32_t timer_duration_ms,
+	           uint8_t new_priority= 4,
+	           bool auto_rearm = false,
+	           bool start= true);
+	~TimerEvent(void);
 
-    void Start(void);
-    void Disable(void);
-    bool IsAutoRearm(void) { return this->auto_rearm;};
-    bool IsRunning(void) { return this->enabled;};
-    uint32_t GetDuration(void) {return duration_ms;};
+	void Start(void);
+	void Disable(void);
+	bool IsAutoRearm(void) { return this->auto_rearm;};
+	bool IsRunning(void) { return this->enabled;};
+	uint32_t GetDuration(void) {return duration_ms;};
 
 
-protected:
-    uint32_t duration_ms;
-    bool auto_rearm;
-    bool enabled;
-    timeval last_time_out;
-private:
+  protected:
+	uint32_t duration_ms;
+	bool auto_rearm;
+	bool enabled;
+	timeval last_time_out;
 
 
 };

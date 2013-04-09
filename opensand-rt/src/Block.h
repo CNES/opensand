@@ -45,44 +45,44 @@
 class BlockMgr; // for friendly declaration
 
 
-class Block {
+class Block
+{
+  public:
+	Block(Channel* backward, Channel* forward);
+	~Block();
 
-public:
-    Block(Channel* backward, Channel* forward);
-    ~Block();
+	Block *GetBackwardAddress(void){return previous_block;};
+	Block *GetForwardAddress(void) {return next_block;};
 
-    Block *GetBackwardAddress(void){return previous_block;};
-    Block *GetForwardAddress(void) {return next_block;};
+	Channel *GetBackwardChannel(void){return backward;};
+	Channel *GetForwardChannel(void) {return forward;};
 
-    Channel *GetBackwardChannel(void){return backward;};
-    Channel *GetForwardChannel(void) {return forward;};
+  protected:
 
-protected:
+	bool CreateTimer(uint32_t duration_ms, bool auto_rearm);
+	bool Init(void);
+	bool Sleep(void);
+	bool Wake(void);
+	bool Start(void);
 
-    bool CreateTimer(uint32_t duration_ms, bool auto_rearm);
-    bool Init(void);
-    bool Sleep(void);
-    bool Wake(void);
-    bool Start(void);
+	void Stop(void);
+	void * StartThread(void *pthis);
 
-    void Stop(void);
-    void * StartThread(void *pthis);
+	void SetbackwardAddress(Block* previous){previous_block = previous;};
+	void SetForwardAddress(Block* next){next_block = next;};
 
-    void SetbackwardAddress(Block* previous){previous_block = previous;};
-    void SetForwardAddress(Block* next){next_block = next;};
-
-    Channel *backward;
+	Channel *backward;
 	Channel *forward;
 
-    Block *previous_block;
-    Block *next_block;
+	Block *previous_block;
+	Block *next_block;
 
 
-private:
+  private:
 #ifdef DEBUG_BLOCK_MUTEX
 	pthread_mutex_t mutex; //Mutex for critical section
 #endif
-    friend class BlockMgr; // allow the block manager to call protected methods
+	friend class BlockMgr; // allow the block manager to call protected methods
 };
 
 #endif

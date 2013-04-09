@@ -27,17 +27,17 @@
 /* $Id: BlockMgr.h,v 1.1.1.1 2013/03/28 11:29:21 cgaillardet Exp $ */
 
 
-
 #ifndef BLOCKMGR_H
 #define BLOCKMGR_H
 
 
-#include  <list>
-#include <string>
-
 #include "Block.h"
 #include "Channel.h"
 #include "MsgEvent.h"
+
+#include  <list>
+#include <string>
+
 
 using std::string;
 using std::list;
@@ -45,30 +45,34 @@ using std::list;
 class Channel;
 class Block;
 
+class BlockMgr
+{
+  public:
 
-class BlockMgr {
-
-
-public:
-    Block* CreateBlock(Channel *backward, Channel *forward, bool first = false);
-    void SetBlockHierarchy(Block *block, Block *backward_block, Block *forward_block);
-    void Stop(bool hard = false);
-    bool Init(void);
-    void Start(void);
-    void Pause(void);
-    void Resume(void);
+	Block* CreateBlock(Channel *backward, Channel *forward, bool first = false);
+	void SetBlockHierarchy(Block *block,
+	                       Block *backward_block,
+	                       Block *forward_block);
+	void Stop(bool hard = false);
+	bool Init(void);
+	void Start(void);
+	void Pause(void);
+	void Resume(void);
 	static BlockMgr* GetInstance(void);
-    static void Kill (void);
-    static void ReportError(pthread_t thread_id, bool critical, string error="");
-private:
+	static void Kill (void);
+	static void ReportError(pthread_t thread_id,
+	                        bool critical,
+	                        string error="");
 
-    static BlockMgr *singleton;
+   private:
 
-    list<Block *> block_list;
-    Block * first_block;
+	static BlockMgr *singleton;
 
-    BlockMgr();
-    ~BlockMgr();
+	list<Block *> block_list;
+	Block *first_block;
+
+	BlockMgr();
+	~BlockMgr();
 
 };
 
