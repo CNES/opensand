@@ -37,11 +37,13 @@
 
 #include "Types.h"
 
+using std::string;
+
 class Event
 {
 
 public:
-    Event(uint8_t new_priority = 0);
+    Event(string new_name="event", uint8_t new_priority = 0);
     ~Event();
 
     EventType GetType(void) {return this->event_type;};
@@ -51,8 +53,11 @@ public:
 	int32_t GetFd(void) {return this->fd;};
 	void SetFd(int32_t new_fd) {this->fd = new_fd;};
 	void SetCreationTime(void);
+    void SetName(string new_name) {this->name = new_name;};
+    string GetName (void) {return this->name;};
 
 protected:
+    string name;
     int32_t fd;
     timeval time_in;
     EventType event_type;

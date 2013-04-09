@@ -53,15 +53,25 @@ NetSocketEvent::~NetSocketEvent()
     }
 }
 
-void NetSocketEvent::SetData(char *data, uint32_t length)
+void NetSocketEvent::SetData(unsigned char *data, uint16_t length)
 {
     if (this->size > 0)
     {
         delete this->data;
     }
-    this->data = (char *)malloc(length + 1);
-    memcpy(this->data, data, length);
-    this->data[length]=0;
+
+    if (length <= MAX_DATA_IN_NETSOCKET_EVENT)
+    {
+        this->data = (unsigned char *)malloc(length + 1);
+        memcpy(this->data, data, length);
+        this->data[length]=0;
+        this->size= length;
+    }
+    else
+    {
+        this->size= 0;
+    }
+
 }
 
 

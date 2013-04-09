@@ -39,7 +39,7 @@ MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority, char *data, uint16_t size):
     this->priority = new_priority;
     if ( size > 0 )
     {
-        this->data = (char *)malloc (size+1);
+        this->data = (unsigned char *)malloc (size+1);
         memcpy(this->data, data, size);
         this->data[size] = 0;
     }
@@ -51,15 +51,17 @@ MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority, char *data, uint16_t size):
 }
 
 
-void MsgEvent::SetData(char *data, uint32_t length)
+void MsgEvent::SetData(unsigned char *data, uint16_t length)
 {
 	if (this->size > 0)
 	{
 		delete this->data;
 	}
-	this->data = (char *)malloc(length + 1);
+	this->data = (unsigned char *)malloc(length + 1);
 	memcpy(this->data, data, length);
 	this->data[length]=0;
+
+	this->size = length;
 }
 
 

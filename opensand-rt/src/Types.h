@@ -40,7 +40,7 @@ typedef enum
     Running,
     Paused,
     Terminating
-} DirectionThreadState;
+} ChannelThreadState;
 
 typedef enum
 {
