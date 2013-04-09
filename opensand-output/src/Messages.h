@@ -61,7 +61,7 @@
  * @param num_probes The number of probes
  * @param num_events The number of events
  */
-void msgHeaderRegister(std::string& message, pid_t pid, uint8_t num_probes,
+void msgHeaderRegister(std::string &message, pid_t pid, uint8_t num_probes,
                        uint8_t num_events);
 
 
@@ -71,7 +71,7 @@ void msgHeaderRegister(std::string& message, pid_t pid, uint8_t num_probes,
  * @param message    The message
  * @param timestamp  The time ellapsed since startup (ms)
  */
-void msgHeaderSendProbes(std::string& message, uint32_t timestamp);
+void msgHeaderSendProbes(std::string &message, uint32_t timestamp);
 
 /**
  * @brief send event
@@ -79,7 +79,7 @@ void msgHeaderSendProbes(std::string& message, uint32_t timestamp);
  * @param message   The message
  * @param event_id  The ID of the event
  */
-void msgHeaderSendEvent(std::string& message, uint8_t event_id);
+void msgHeaderSendEvent(std::string &message, uint8_t event_id);
 
 /**
  *  @brief receive a message
@@ -90,6 +90,6 @@ void msgHeaderSendEvent(std::string& message, uint8_t event_id);
  *
  * @return the command type on success, 0 on failure
  */
-uint8_t receiveMessage(int sock_fd, char* message_data, size_t max_length);
+uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length);
 
 #endif

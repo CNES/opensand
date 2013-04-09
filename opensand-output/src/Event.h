@@ -35,6 +35,7 @@
 #ifndef _EVENT_H
 #define _EVENT_H
 
+#include <string>
 #include <stdint.h>
 
 /**
@@ -56,14 +57,15 @@ class Event
 	friend class OutputInternal;
 
 protected:
-	Event(uint8_t id, const char *identifier, event_level_t level);
+	Event(uint8_t id, const std::string &identifier,
+	      event_level_t level);
 	virtual ~Event();
 
 private:
 	/// the event ID
 	uint8_t id;
 	/// the event identifier
-	char *identifier;
+	std::string identifier;
 	/// the event level
 	event_level_t level;
 };

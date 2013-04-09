@@ -76,7 +76,8 @@ private:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	Probe<T> *registerProbe(const char *name, const char *unit,
+	Probe<T> *registerProbe(const std::string &name,
+	                        const std::string &unit,
 	                        bool enabled, sample_type_t type);
 
 	/**
@@ -87,7 +88,8 @@ private:
 	 *
 	 * @return the event object
 	 **/
-	Event *registerEvent(const char *identifier, event_level_t level);
+	Event *registerEvent(const std::string &identifier,
+	                     event_level_t level);
 
 	/**
 	 * @brief Finish the element initialization
@@ -105,7 +107,7 @@ private:
 	 * @param event       The event
 	 * @param msg_format  The message format
 	 **/
-	void sendEvent(Event *event, const char *message);
+	void sendEvent(Event *event, const std::string &message);
 
 	/**
 	 * @brief Set the probe state
@@ -154,7 +156,8 @@ private:
 };
 
 template<typename T>
-Probe<T>* OutputInternal::registerProbe(const char *name, const char *unit,
+Probe<T>* OutputInternal::registerProbe(const std::string &name,
+                                        const std::string &unit,
                                         bool enabled, sample_type_t type)
 {
 	assert(this->initializing);

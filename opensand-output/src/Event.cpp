@@ -37,14 +37,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-Event::Event(uint8_t id, const char *identifier, event_level_t level)
+Event::Event(uint8_t id, const std::string &identifier,
+             event_level_t level):
+	id(id),
+	identifier(identifier),
+	level(level)
 {
-	this->id = id;
-	this->identifier = strdup(identifier);
-	this->level = level;
 }
 
 Event::~Event()
 {
-	free(this->identifier);
 }

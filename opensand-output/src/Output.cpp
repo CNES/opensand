@@ -40,12 +40,14 @@
 
 OutputInternal Output::instance;
 
-void Output::init(bool enabled, event_level_t min_level, const char* sock_prefix)
+void Output::init(bool enabled, event_level_t min_level,
+                  const char *sock_prefix)
 {
 	instance.init(enabled, min_level, sock_prefix);
 }
 
-Event* Output::registerEvent(const char* identifier, event_level_t level)
+Event* Output::registerEvent(const std::string &identifier,
+                             event_level_t level)
 {
 	return instance.registerEvent(identifier, level);
 }

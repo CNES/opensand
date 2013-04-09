@@ -74,17 +74,18 @@ public:
 	 *
 	 * @return the name of the probe
 	 **/
-	inline const char *getName() const { return this->name; };
+	inline const std::string getName() const { return this->name; };
 
 	/**
 	 * @brief Get the unit of the probe
 	 *
 	 * @return the unit of the probe
 	 **/
-	inline const char *getUnit() const { return this->unit; };
+	inline const std::string getUnit() const { return this->unit; };
 
 protected:
-	BaseProbe(uint8_t id, const char *name, const char *unit,
+	BaseProbe(uint8_t id, const std::string &name,
+	          const std::string &unit,
 	          bool enabled, sample_type_t type);
 	virtual ~BaseProbe();
 
@@ -100,14 +101,14 @@ protected:
 	 *
 	 * @para str the value
 	 */
-	virtual void appendValueAndReset(std::string& str) = 0;
+	virtual void appendValueAndReset(std::string &str) = 0;
 
 	/// the probe ID
 	uint8_t id;
 	/// the probe name
-	char *name;
+	std::string name;
 	/// the probe unit
-	char *unit;
+	std::string unit;
 	/// the probe sample type
 	sample_type_t s_type;
 	/// whether the probe is enabled

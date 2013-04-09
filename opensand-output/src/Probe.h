@@ -60,7 +60,8 @@ public:
 	void put(T value);
 
 private:
-	Probe(uint8_t id, const char* name, const char* unit,
+	Probe(uint8_t id, const std::string &name,
+	      const std::string &unit,
 	      bool enabled, sample_type_t type);
 	
 	virtual uint8_t storageTypeId();
@@ -72,7 +73,8 @@ private:
 };
 
 template<typename T>
-Probe<T>::Probe(uint8_t id, const char* name, const char* unit,
+Probe<T>::Probe(uint8_t id, const std::string &name,
+                const std::string &unit,
                 bool enabled, sample_type_t type):
 	BaseProbe(id, name, unit, enabled, type)
 {

@@ -129,7 +129,8 @@ void OutputInternal::init(bool enabled, event_level_t min_level,
 	          this->daemon_sock_addr.sun_path, this->self_sock_addr.sun_path);
 }
 
-Event *OutputInternal::registerEvent(const char *identifier, event_level_t level)
+Event *OutputInternal::registerEvent(const std::string &identifier,
+                                     event_level_t level)
 {
 	if(!this->enabled)
 	{
@@ -142,7 +143,8 @@ Event *OutputInternal::registerEvent(const char *identifier, event_level_t level
 	Event *event = new Event(new_id, identifier, level);
 	this->events.push_back(event);
 
-	UTI_DEBUG("Registering event %s with level %d\n", identifier, level);
+	UTI_DEBUG("Registering event %s with level %d\n",
+	          identifier.c_str(), level);
 
 	return event;
 }
@@ -199,23 +201,23 @@ bool OutputInternal::finishInit()
 
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
 	{
-		const char *name = this->probes[i]->getName();
-		const char *unit = this->probes[i]->getUnit();
+		const std::string name = this->probes[i]->getName();
+		const std::string unit = this->probes[i]->getUnit();
 
 		message.append(1, (((int)this->probes[i]->isEnabled()) << 7) |
 		                   this->probes[i]->storageTypeId());
-		message.append(1, strlen(name));
-		message.append(1, strlen(unit));
+		message.append(1, name.size());
+		message.append(1, unit.size());
 		message.append(name);
 		message.append(unit);
 	}
 
 	for(size_t i = 0 ; i < this->events.size() ; i++)
 	{
-		const char *identifier = this->events[i]->identifier;
+		const std::string identifier = this->events[i]->identifier;
 
 		message.append(1, this->events[i]->level);
-		message.append(1, strlen(identifier));
+		message.append(1, identifier.size());
 		message.append(identifier);
 	}
 
@@ -316,7 +318,8 @@ void OutputInternal::sendProbes()
 	}
 }
 
-void OutputInternal::sendEvent(Event *event, const char *message_text)
+void OutputInternal::sendEvent(Event *event,
+                               const std::string &message_text)
 {
 	if(!this->enabled || event->level < this->min_level)
 	{
@@ -338,7 +341,7 @@ void OutputInternal::sendEvent(Event *event, const char *message_text)
 void OutputInternal::setProbeState(uint8_t probe_id, bool enabled)
 {
 	UTI_DEBUG("%s probe %s\n", enabled ? "Enabling" : "Disabling",
-	          this->probes[probe_id]->getName());
+	          this->probes[probe_id]->getName().c_str());
 	this->probes[probe_id]->enabled = enabled;
 }
 

@@ -37,18 +37,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-BaseProbe::BaseProbe(uint8_t id, const char* name, const char* unit,
-                     bool enabled, sample_type_t type)
+BaseProbe::BaseProbe(uint8_t id, const std::string &name,
+                     const std::string &unit,
+                     bool enabled, sample_type_t type):
+	id(id),
+	name(name),
+	unit(unit),
+	enabled(enabled),
+	s_type(type),
+	values_count(0)
 {
-	this->id = id;
-	this->name = strdup(name);
-	this->unit = strdup(unit);
-	this->enabled = enabled;
-	this->s_type = type;
-	this->values_count = 0;
 }
 
 BaseProbe::~BaseProbe()
 {
-	free(this->name);
 }

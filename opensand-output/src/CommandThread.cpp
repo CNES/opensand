@@ -46,9 +46,9 @@
 #include "Output.h"
 #include "Messages.h"
 
-CommandThread::CommandThread(int sock_fd)
+CommandThread::CommandThread(int sock_fd):
+	sock_fd(sock_fd)
 {
-	this->sock_fd = sock_fd;
 }
 
 bool CommandThread::start()

@@ -74,7 +74,7 @@ public:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	static Probe<T> *registerProbe(const char *name,
+	static Probe<T> *registerProbe(const std::string &name,
 	                               bool enabled,
 	                               sample_type_t type);
 
@@ -89,7 +89,8 @@ public:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	static Probe<T> *registerProbe(const char *name, const char *unit,
+	static Probe<T> *registerProbe(const std::string &name,
+	                               const std::string &unit,
 	                               bool enabled, sample_type_t type);
 
 	/**
@@ -100,7 +101,8 @@ public:
 	 *
 	 * @return the event object
 	 **/
-	static Event *registerEvent(const char *identifier, event_level_t level);
+	static Event *registerEvent(const std::string &identifier,
+	                            event_level_t level);
 
 	/**
 	 * @brief Finish the output library initialization
@@ -172,14 +174,15 @@ private:
 };
 
 template<typename T>
-Probe<T> *Output::registerProbe(const char *name, bool enabled,
+Probe<T> *Output::registerProbe(const std::string &name, bool enabled,
                                 sample_type_t type)
 {
 	return Output::registerProbe<T>(name, "", enabled, type);
 }
 
 template<typename T>
-Probe<T> *Output::registerProbe(const char *name, const char *unit,
+Probe<T> *Output::registerProbe(const std::string &name,
+                                const std::string &unit,
                                 bool enabled, sample_type_t type)
 {
 	return Output::instance.registerProbe<T>(name, unit, enabled, type);
