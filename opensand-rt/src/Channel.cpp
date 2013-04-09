@@ -274,9 +274,9 @@ void Channel::ExecuteThread(void)
     uint8_t magicWordSizeFromPrevious = strlen(MAGICSTARTREADWORD);
 	char pipe_from_previous_buffer[magicWordSizeFromPrevious+1];
 
-    char signal_buffer[129]; //signal structure is always 128 bytes long
+    unsigned char signal_buffer[129]; //signal structure is always 128 bytes long
 
-	char external_fd_buffer[READBLOCKSIZE + 1];
+	unsigned char external_fd_buffer[READBLOCKSIZE + 1];
 	list<Event *> priority_sorted_events;
 
    // start timers
@@ -386,7 +386,7 @@ void Channel::ExecuteThread(void)
                         external_fd_buffer[read_data_size]=0;
 
                         error = "unexpected FD raise, FD content: ";
-                        error.append(external_fd_buffer);
+                        error.append((char *)external_fd_buffer);
                         ::BlockMgr::ReportError(this->thread_id, false, error);
 					}
 				}

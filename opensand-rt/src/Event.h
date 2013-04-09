@@ -33,6 +33,8 @@
 
 
 #include <sys/time.h>
+#include <string>
+
 #include "stdlib.h"
 
 #include "Types.h"

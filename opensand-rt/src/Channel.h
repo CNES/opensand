@@ -77,7 +77,7 @@ public:
     void SetPipeFromPrevious(int32_t fd);
 
 
-    DirectionThreadState GetState(void) { return state;};
+    ChannelThreadState GetState(void) { return state;};
 
     virtual bool OnEvent(Event * event) = 0;
     virtual bool CustomInit(void) = 0;
@@ -98,7 +98,7 @@ protected:
 
 	list<Event *> waiting_for_events;
 
-    DirectionThreadState state;
+    ChannelThreadState state;
 
     int32_t pipe_to_next;
     int32_t pipe_from_next;

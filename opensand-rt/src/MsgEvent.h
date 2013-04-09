@@ -29,8 +29,11 @@
 #ifndef MSGEVENT_H
 #define MSGEVENT_H
 
+#include <string>
+
 #include "Event.h"
 
+using std::string;
 
 class MsgEvent : public Event
 {
@@ -40,7 +43,7 @@ class MsgEvent : public Event
 
     unsigned char *GetData() {return this->data;};
     uint16_t GetSize() {return this->size;};
-    void SetData(unsigned char *data, uint32_t length);
+    void SetData(unsigned char *data, uint16_t length);
 
     protected:
 

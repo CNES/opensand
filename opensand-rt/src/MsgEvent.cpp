@@ -32,7 +32,7 @@
 
 
 
-MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority, char *data, uint16_t size):
+MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority,unsigned char *data, uint16_t size):
     size(size)
 {
     this->fd= fd;

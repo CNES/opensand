@@ -44,7 +44,7 @@ SignalEvent::SignalEvent(sigset_t signalMask, uint8_t new_priority)
 
 
 
-void SignalEvent::SetData(char *data, int32_t size) //converts data into signalfd_siginfo
+void SignalEvent::SetData(unsigned char *data, int32_t size) //converts data into signalfd_siginfo
 {
     memcpy(&(this->sig_info), data, size);
 }

@@ -48,7 +48,7 @@ public:
     void Disable(void){this->enabled = false;};
     bool IsActive(void) { return this->enabled;};
 
-    void SetData(char *data, int32_t size);
+    void SetData(unsigned char *data, int32_t size);
     signalfd_siginfo GetTriggerInfo (void) { return this->sig_info;};
 
 protected:

@@ -31,9 +31,10 @@
 
 #include "Event.h"
 
-Event::Event(uint8_t new_priority)
+Event::Event(string new_name, uint8_t new_priority):
+name(new_name),
+priority(new_priority)
 {
-    this->priority = new_priority;
     this->SetCreationTime();
 }
 
