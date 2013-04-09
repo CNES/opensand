@@ -37,10 +37,14 @@
 
 #include "BaseProbe.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <cassert>
 
+#include <pthread.h>
 #include <stdint.h>
 
 /**
@@ -70,6 +74,9 @@ private:
 
 	/// the concatenation of all values
 	T accumulator;
+
+	/// mutex on probe
+	pthread_mutex_t mutex;
 };
 
 template<typename T>
@@ -83,6 +90,12 @@ Probe<T>::Probe(uint8_t id, const std::string &name,
 template<typename T>
 void Probe<T>::put(T value)
 {
+	if(pthread_mutex_lock(&(this->mutex)) != 0)
+	{
+		UTI_ERROR("cannot acquire lock on probe\n");
+		assert(0);
+	}
+
 	if(this->values_count == 0)
 	{
 		this->accumulator = value;
@@ -112,6 +125,11 @@ void Probe<T>::put(T value)
 	}
 	
 	this->values_count++;
+	if(pthread_mutex_unlock(&(this->mutex)) != 0)
+	{
+		UTI_ERROR("cannot release lock on probe\n");
+		assert(0);
+	}
 }
 
 #endif

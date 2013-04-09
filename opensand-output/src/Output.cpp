@@ -39,27 +39,44 @@
 
 
 OutputInternal Output::instance;
+pthread_mutex_t Output::mutex;
 
 void Output::init(bool enabled, event_level_t min_level,
                   const char *sock_prefix)
 {
+	Output::acquireLock();
 	instance.init(enabled, min_level, sock_prefix);
+	Output::releaseLock();
 }
 
 Event* Output::registerEvent(const std::string &identifier,
                              event_level_t level)
 {
-	return instance.registerEvent(identifier, level);
+	Event *evt;
+
+	Output::acquireLock();
+	evt = instance.registerEvent(identifier, level);
+	Output::releaseLock();
+
+	return evt;
 }
 
 bool Output::finishInit()
 {
-	return instance.finishInit();
+	bool ret;
+
+	Output::acquireLock();
+	ret = instance.finishInit();
+	Output::releaseLock();
+
+	return ret;
 }
 
 void Output::sendProbes()
 {
+	Output::acquireLock();
 	instance.sendProbes();
+	Output::releaseLock();
 }
 
 void Output::sendEvent(Event* event, const char* msg_format, ...)
@@ -72,28 +89,64 @@ void Output::sendEvent(Event* event, const char* msg_format, ...)
 
 	va_end(args);
 
+	Output::acquireLock();
 	instance.sendEvent(event, buf);
+	Output::releaseLock();
 }
 
 Output::Output()
 {
+	if(pthread_mutex_init(&this->mutex, NULL) != 0)
+	{
+		UTI_ERROR("cannot initialize mutex\n");
+		assert(0);
+	}
 }
 
 Output::~Output()
 {
+	if(pthread_mutex_destroy(&this->mutex) != 0)
+	{
+		UTI_ERROR("cannot destroymutex\n");
+	}
 }
 
 void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
+	Output::acquireLock();
 	instance.setProbeState(probe_id, enabled);
+	Output::releaseLock();
 }
 
 void Output::disable()
 {
+	Output::acquireLock();
 	instance.disable();
+	Output::releaseLock();
 }
 
 void Output::enable()
 {
+	Output::acquireLock();
 	instance.enable();
+	Output::releaseLock();
 }
+
+void Output::acquireLock()
+{
+	if(pthread_mutex_lock(&(mutex)) != 0)
+	{
+		UTI_ERROR("cannot acquire lock on output\n");
+		assert(0);
+	}
+}
+
+void Output::releaseLock()
+{
+	if(pthread_mutex_unlock(&(mutex)) != 0)
+	{
+		UTI_ERROR("cannot release lock on output\n");
+		assert(0);
+	}
+}
+

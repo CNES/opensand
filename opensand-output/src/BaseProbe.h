@@ -109,10 +109,10 @@ protected:
 	std::string name;
 	/// the probe unit
 	std::string unit;
-	/// the probe sample type
-	sample_type_t s_type;
 	/// whether the probe is enabled
 	bool enabled;
+	/// the probe sample type
+	sample_type_t s_type;
 
 	/// the number of values in probe
 	uint16_t values_count;

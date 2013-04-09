@@ -41,8 +41,11 @@
 #include "Event.h"
 #include "OutputInternal.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <vector>
 #include <assert.h>
+#include <pthread.h>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
@@ -169,8 +172,21 @@ private:
 	 */
 	static void enable();
 
+	/**
+	 * @brief Acquire lock on output
+	 */
+	static void acquireLock();
+
+	/**
+	 * @brief Release lock on output
+	 */
+	static void releaseLock();
+
 	/// The output instance
 	static OutputInternal instance;
+
+	/// The mutex on Output
+	static pthread_mutex_t mutex;
 };
 
 template<typename T>
@@ -185,7 +201,13 @@ Probe<T> *Output::registerProbe(const std::string &name,
                                 const std::string &unit,
                                 bool enabled, sample_type_t type)
 {
-	return Output::instance.registerProbe<T>(name, unit, enabled, type);
+	Probe<T> *probe;
+
+	Output::acquireLock();
+	probe = Output::instance.registerProbe<T>(name, unit, enabled, type);
+	Output::releaseLock();
+
+	return probe;
 }
 
 #endif

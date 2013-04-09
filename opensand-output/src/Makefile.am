@@ -30,12 +30,12 @@ libopensand_output_la_SOURCES = \
 	$(libopensand_output_la_h)
 
 libopensand_output_la_CPPFLAGS = -pthread -W -Wall -ansi -pedantic
-libopensand_output_la_LIBADD = -lrt
+libopensand_output_la_LIBADD = -lrt -lpthread
 libopensand_output_la_LDFLAGS = -pthread
 
 test_output_SOURCES = test_output.cpp
 test_output_CPPFLAGS = -W -Wall -ansi -pedantic
-test_output_LDADD = libopensand_output.la
+test_output_LDADD = libopensand_output.la -lpthread
 
 libopensand_output_includedir = ${includedir}/opensand_output
 
