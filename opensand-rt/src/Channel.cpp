@@ -202,6 +202,7 @@ void * Channel::StartThread(void *pthis)
     {
         ((Channel *)pthis)->ExecuteThread();
     }
+    return NULL;
 }
 
 
@@ -264,11 +265,8 @@ void Channel::ExecuteThread(void)
 	Event *event=NULL;
 	int32_t resSelect = 0 ;
 	int32_t nfds = 0;
-    int32_t resRecv = 0;
     fd_set current_input_fd_set;
-    bool waitingForRoomInQueue = false;
     int32_t read_data_size = 0;
-    uint64_t timerRead;
     string error;
 
     uint8_t magicWordSizeFromPrevious = strlen(MAGICSTARTREADWORD);

@@ -51,8 +51,8 @@ public:
 
 protected:
     uint32_t duration_ms;
-    bool enabled;
     bool auto_rearm;
+    bool enabled;
     timeval last_time_out;
 private:
 

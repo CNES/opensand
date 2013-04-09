@@ -32,13 +32,14 @@
 #include <sys/timerfd.h> //timerfd
 #include <unistd.h> //close
 
-TimerEvent::TimerEvent(uint32_t timer_duration_ms, uint8_t new_priority, bool auto_rearm, bool start):
-auto_rearm(auto_rearm),
-duration_ms(timer_duration_ms)
-
+TimerEvent::TimerEvent(uint32_t timer_duration_ms,
+                       uint8_t new_priority,
+                       bool auto_rearm,
+                       bool start):
+	duration_ms(timer_duration_ms),
+	auto_rearm(auto_rearm),
+	enabled(start)
 {
-    this->enabled = start;
-
     this->fd = timerfd_create(CLOCK_MONOTONIC,0);
 
     if  (this->enabled ==true)

@@ -1,20 +1,36 @@
-SUBDIRS=src test_runtime doc_src
+################################################################################
+#	Name       : Makefile
+#	Author     : Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+#	Description: create the OpenSAND rt library
+################################################################################
 
+SUBDIRS = \
+	src
 
 dist_doc_DATA = \
 	AUTHORS \
 	ChangeLog \
-	COPYING.LGPL \
+	COPYING \
+	COPYING.LESSER \
 	INSTALL \
 	NEWS \
 	README
 	
 EXTRA_DIST = \
 	autogen.sh \
-	doc/readme.txt
+	doc/doxygen
+
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opensand_rt.pc
+
+.PHONY: doc
+
+doc:
+	doxygen doc/doxygen
+
+clean-doc:
+	$(RM) -r doc/html
 
 deb:
 	dpkg-buildpackage

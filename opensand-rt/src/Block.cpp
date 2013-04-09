@@ -79,10 +79,11 @@ bool Block::Start(void)
     return res;
 }
 
-void * Block::StartThread(void *pthis)
+void *Block::StartThread(void *pthis)
 {
     forward->StartThread(pthis);
 	backward->StartThread(pthis);
+	return NULL;
 }
 
 void Block::Stop(void)
