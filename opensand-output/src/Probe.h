@@ -46,6 +46,7 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include <cstdio>
 
 /**
  * @class the probe respresentation
@@ -67,6 +68,7 @@ private:
 	Probe(uint8_t id, const std::string &name,
 	      const std::string &unit,
 	      bool enabled, sample_type_t type);
+	virtual ~Probe();
 	
 	virtual uint8_t storageTypeId();
 
@@ -85,6 +87,20 @@ Probe<T>::Probe(uint8_t id, const std::string &name,
                 bool enabled, sample_type_t type):
 	BaseProbe(id, name, unit, enabled, type)
 {
+	if(pthread_mutex_init(&this->mutex, NULL) != 0)
+	{
+		UTI_ERROR("cannot initialize mutex\n");
+		assert(0);
+	}
+}
+
+template<typename T>
+Probe<T>::~Probe()
+{
+	if(pthread_mutex_destroy(&this->mutex) != 0)
+	{
+		UTI_ERROR("cannot destroy mutex\n");
+	}
 }
 
 template<typename T>

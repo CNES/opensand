@@ -107,7 +107,7 @@ Output::~Output()
 {
 	if(pthread_mutex_destroy(&this->mutex) != 0)
 	{
-		UTI_ERROR("cannot destroymutex\n");
+		UTI_ERROR("cannot destroy mutex\n");
 	}
 }
 

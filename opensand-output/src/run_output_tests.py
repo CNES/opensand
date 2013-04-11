@@ -214,12 +214,13 @@ class EnvironmentPlaneBaseTester(object):
         print "Check /var/log/syslog for details."
 
 
-    def get_line(self, timeout=1):
+    def get_line(self, timeout=5):
         rlist, _, _ = select.select([self.proc.stdout], [], [], timeout)
         if not self.proc.stdout in rlist:
             return "<timeout>"
 
-        return self.proc.stdout.readline()
+        toto = self.proc.stdout.readline()
+        return toto
 
     def send_cmd(self, vlast, vmin, vmax, vavg, vsum, vdis,
                  vfloat, vdouble, cmd):
@@ -327,7 +328,9 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         self.send_cmd(-1, -1, -1, -1, -1, -1, 0, 0, "x")
         self.send_cmd(42, 42, 42, 42, 42, 42, 0, 0, "s")
 
-        assert self.get_line() == "send\n"
+        toto = self.get_line()
+        print toto
+        assert toto == "send\n"
 
         msg = self.get_message()
         assert isinstance(msg, MessageSendProbes)
