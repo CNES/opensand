@@ -41,7 +41,6 @@
 #include "Channel.h"
 #include "BlockMgr.h"
 
-
 class BlockMgr; // for friendly declaration
 
 
@@ -61,9 +60,8 @@ protected:
 
     bool CreateTimer(uint32_t duration_ms, bool auto_rearm);
     bool Init(void);
-    bool Sleep(void);
-    bool Wake(void);
-    bool Start(void);
+    void Pause(void);
+    void Start(void);
 
     void Stop(void);
     void * StartThread(void *pthis);

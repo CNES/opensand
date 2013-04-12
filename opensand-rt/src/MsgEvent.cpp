@@ -32,10 +32,10 @@
 
 
 
-MsgEvent::MsgEvent(int32_t fd, uint8_t new_priority,unsigned char *data, uint16_t size):
+MsgEvent::MsgEvent(int32_t new_input_fd, uint8_t new_priority,unsigned char *data, uint16_t size):
     size(size)
 {
-    this->fd= fd;
+    this->input_fd= new_input_fd;
     this->priority = new_priority;
     if ( size > 0 )
     {

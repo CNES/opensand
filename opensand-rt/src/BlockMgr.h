@@ -39,6 +39,7 @@
 #include "Channel.h"
 #include "MsgEvent.h"
 
+
 using std::string;
 using std::list;
 
@@ -60,10 +61,13 @@ public:
 	static BlockMgr* GetInstance(void);
     static void Kill (void);
     static void ReportError(pthread_t thread_id, bool critical, string error="");
+    bool IsAlive (void) {return this->alive;};
+
+    void RunLoop(void);
 private:
 
     static BlockMgr *singleton;
-
+    bool alive;
     list<Block *> block_list;
     Block * first_block;
 

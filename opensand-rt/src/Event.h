@@ -45,25 +45,28 @@ class Event
 {
 
 public:
-    Event(string new_name="event", uint8_t new_priority = 0);
-    ~Event();
+    Event(string new_name="event", int32_t new_input_fd = -1, uint8_t new_priority = 0);
+    virtual ~Event();
 
     EventType GetType(void) {return this->event_type;};
     timeval GetLifetime(void);
     uint8_t GetPriority(void) {return this->priority;};
 	void setPriority(uint8_t new_priority){ this->priority = new_priority;};
-	int32_t GetFd(void) {return this->fd;};
-	void SetFd(int32_t new_fd) {this->fd = new_fd;};
+
 	void SetCreationTime(void);
     void SetName(string new_name) {this->name = new_name;};
     string GetName (void) {return this->name;};
 
+	int32_t GetFd(void) {return this->input_fd;};
+	void SetFd(int32_t new_fd) {this->input_fd = new_fd;};
+
 protected:
     string name;
-    int32_t fd;
     timeval time_in;
     EventType event_type;
 	uint8_t priority;
+    int32_t input_fd;
+
 private:
 
 };

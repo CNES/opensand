@@ -31,9 +31,10 @@
 
 #include "Event.h"
 
-Event::Event(string new_name, uint8_t new_priority):
+Event::Event(string new_name, int32_t new_input_fd,uint8_t new_priority):
 name(new_name),
-priority(new_priority)
+priority(new_priority),
+input_fd(new_input_fd)
 {
     this->SetCreationTime();
 }
@@ -52,4 +53,11 @@ timeval Event::GetLifetime()
     res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
     res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
     return res;
+}
+
+
+Event::~Event()
+{
+
+
 }

@@ -57,17 +57,23 @@ public:
 
     virtual ~Channel();
 
-    void EnqueueMessage(MsgEvent *message,int32_t pipe_fd_from_next);
+    void EnqueueMessage(MsgEvent *message, int32_t pipe_to_wait);
+
+    Channel* GetNextChannel(void) {return this->next_channel;};
+    Channel* GetPreviousChannel(void) {return this->previous_channel;};
+
+    void SetNextChannel(Channel *chan) { this->next_channel = chan;};
+    void SetPreviousChannel(Channel *chan) {this->previous_channel = chan;};
+
 
 #ifdef DEBUG_BLOCK_MUTEX
-    bool Init(mutex *block_mutex);
+    bool Init(pthread_mutex_t *block_mutex);
 #else
     bool Init(void);
 #endif
 
-    bool Sleep(void);
-    bool Wake(void);
-    bool Start(void);
+    void Pause(void);
+    void Start(void);
 
     uint32_t GetDuration(void);
 
@@ -76,29 +82,36 @@ public:
     void SetPipeToPrevious(int32_t fd);
     void SetPipeFromPrevious(int32_t fd);
 
+    int32_t GetPipeToNext(void){return this->pipe_to_next;};
+    int32_t GetPipeFromNext(void){return this->pipe_from_next;};
+    int32_t GetPipeToPrevious(void){return this->pipe_to_previous;};
+    int32_t GetPipeFromPrevious(void){return this->pipe_from_previous;};
 
-    ChannelThreadState GetState(void) { return state;};
+    void SendEnqueuedSignal(void);
+    bool IsPaused(void) { return paused;};
 
     virtual bool OnEvent(Event * event) = 0;
     virtual bool CustomInit(void) = 0;
 
     static void * StartThread(void *);
 
-
+    bool IsAlive(void) {return this->alive;};
+    void Stop(void) { this->alive = false;};
 protected:
 
     void AddTimerEvent(uint32_t duration_ms, uint8_t priority=2, bool auto_rearm = true);
 	void AddNetSocketEvent(int32_t fd = -1, uint8_t priority=3);
-	void AddSignalFdEvent(sigset_t signal_mask, uint8_t priority=1);
+	void AddSignalEvent(sigset_t signal_mask, uint8_t priority=1);
 
 
     list<MsgEvent *> message_list;
 	uint8_t max_message_size;
 
-
+    bool alive;
 	list<Event *> waiting_for_events;
 
-    ChannelThreadState state;
+
+    bool paused;
 
     int32_t pipe_to_next;
     int32_t pipe_from_next;
@@ -113,8 +126,8 @@ protected:
 
     uint32_t duration_ms;
 
-    Block *previous_block;
-    Block *next_block;
+    Channel *previous_channel;
+    Channel *next_channel;
 
 
 private:
@@ -124,13 +137,12 @@ private:
     void AddOutputFd(int32_t fd);
 
 #ifdef DEBUG_BLOCK_MUTEX
-    mutex *block_mutex;
+    pthread_mutex_t *block_mutex;
 #endif
 
 
 	pthread_t thread_id; //Thread ID
 	pthread_mutex_t mutex; //Mutex for critical section
-	pthread_cond_t cond; //Condition for critical section
 
 
 };

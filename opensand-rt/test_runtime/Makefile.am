@@ -1,19 +1,13 @@
-#noinst_PROGRAMS = test_bloc_msg test_bloc_delayed_msg test_config_file test_thread
+noinst_PROGRAMS = test_single_block test_3_blocks
 
-#INCLUDES = -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir)/src
 
-#test_bloc_msg_SOURCES = test_bloc_msg.cpp
-#test_bloc_msg_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread
+test_single_block_SOURCES = test_channels.cpp
+test_single_block_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread /usr/lib/libtcmalloc_minimal.so
 
-#test_bloc_delayed_msg_SOURCES = test_bloc_delayed_msg.cpp
-#test_bloc_delayed_msg_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread
+test_3_blocks_SOURCES = test_3_blocks.cpp
+test_3_blocks_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread /usr/lib/libtcmalloc_minimal.so
 
-#test_config_file_SOURCES = test_config_file.cpp
-#test_config_file_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread
-# test_config_file_DATA = test_config_file.cfg
 
-#test_thread_SOURCES = test_thread.cpp
-#test_thread_LDADD = $(top_builddir)/src/libopensand_rt.la -lpthread
-
-#EXTRA_DIST=readme.txt test_config_file.cfg
+EXTRA_DIST=readme.txt test_config_file.cfg
 

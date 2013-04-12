@@ -37,7 +37,7 @@
 SignalEvent::SignalEvent(sigset_t signalMask, uint8_t new_priority)
 {
 	this->mask = signalMask;
-    this->fd = signalfd(-1, &(this->mask),0);
+    this->input_fd = signalfd(-1, &(this->mask),0);
     this->event_type = Signal;
     this->priority = new_priority;
 }
@@ -51,5 +51,5 @@ void SignalEvent::SetData(unsigned char *data, int32_t size) //converts data int
 
 SignalEvent::~SignalEvent(void)
 {
-    close(this->fd);
+    close(this->input_fd);
 }

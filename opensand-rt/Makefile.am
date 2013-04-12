@@ -1,5 +1,5 @@
-SUBDIRS=src test_runtime doc_src
-
+#SUBDIRS=src test_runtime doc_src
+SUBDIRS=src test_runtime
 
 dist_doc_DATA = \
 	AUTHORS \

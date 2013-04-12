@@ -24,35 +24,46 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: MsgEvent.h,v 1.1.1.1 2013/03/28 16:30:46 cgaillardet Exp $ */
+/* $Id: test_channels.h,v 1.1.1.1 2013/04/10 9:29:52 cgaillardet Exp $ */
 
-#ifndef MSGEVENT_H
-#define MSGEVENT_H
+/****** System Includes ******/
 
-#include <string>
 
-#include "Event.h"
+/****** Application Includes ******/
+#include "../src/Channel.h"
 
-using std::string;
-
-class MsgEvent : public Event
+class TimerChannel : public Channel
 {
-    public:
-    MsgEvent(int32_t input_fd = -1, uint8_t new_priority = 6, unsigned char *data = NULL, uint16_t size = 0);
-    ~MsgEvent();
 
-    unsigned char *GetData() {return this->data;};
-    uint16_t GetSize() {return this->size;};
-    void SetData(unsigned char *data, uint16_t length);
+    public:
+
+    TimerChannel(int32_t file_in_fd, int32_t timer_out_fd, int32_t file_out_fd);
+    ~TimerChannel();
+    bool OnEvent(Event * event);
+    bool CustomInit(void);
+
+    void SetTimerOutputFd(int32_t fd) {this->timer_output_fd = fd;};
+    void SetSocketOutputFd(int32_t fd) {this->socket_output_fd = fd;};
+
+    int32_t GetTimerOutputFd(void) { return this->timer_output_fd;};
+    int32_t GetSocketOutputFd(void) { return this->socket_output_fd;};
+
+    uint32_t timeouts;
 
     protected:
 
-    unsigned char *data;
-    uint16_t size;
-  private:
+    int32_t timer_output_fd ;
+    int32_t file_input_fd;
+    int32_t socket_output_fd;
 
 
-
+    private:
 };
 
-#endif
+
+class TimerChannelB: public TimerChannel
+{
+    public:
+    TimerChannelB(int32_t file_in_fd, int32_t timer_out_fd, int32_t file_out_fd);
+}
+;

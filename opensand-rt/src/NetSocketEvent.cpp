@@ -37,14 +37,15 @@ NetSocketEvent::NetSocketEvent(int32_t current_fd, uint8_t priority):
 data(NULL),
 size(0)
 {
-    this->fd = current_fd;
+    this->input_fd = current_fd;
     this->priority = priority;
+    this->event_type = NetSocket;
 }
 
 NetSocketEvent::~NetSocketEvent()
 {
     // close FD ?
-    close (this->fd);
+    // close (this->input_fd);
 
     // delete data
     if (this->data !=NULL)

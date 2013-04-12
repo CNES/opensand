@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h> //snprintf
 
 #include "Channel.h"
 
@@ -43,13 +44,16 @@
 
 
 Channel::Channel(uint8_t max_message) :
-    state(Created),
     pipe_to_next(-1),
     pipe_from_next(-1),
     pipe_to_previous(-1),
     pipe_from_previous(-1),
     max_input_fd (-1),
-    max_output_fd(-1)
+    max_output_fd(-1),
+    previous_channel(NULL),
+    next_channel(NULL),
+    alive(false),
+    paused(true)
 {
     if (max_message < 3 )
     {
@@ -73,7 +77,7 @@ void Channel::AddNetSocketEvent(int32_t fd, uint8_t priority)
     AddInputFd(event->GetFd());
 }
 
-void Channel::AddSignalFdEvent(sigset_t signal_mask, uint8_t priority)
+void Channel::AddSignalEvent(sigset_t signal_mask, uint8_t priority)
 {
     SignalEvent *event = new SignalEvent(signal_mask,priority);
     this->waiting_for_events.push_back((Event*) event);
@@ -82,30 +86,45 @@ void Channel::AddSignalFdEvent(sigset_t signal_mask, uint8_t priority)
 }
 
 #ifdef DEBUG_BLOCK_MUTEX
-bool Channel::Init(mutex *block_mutex):
-block_mutex(block_mutex)
+bool Channel::Init(pthread_mutex_t *block_mutex)
+{
+this->block_mutex =block_mutex;
 #else
 bool Channel::Init(void)
-#endif
 {
+#endif
+
     //pipes are created when this method is called
     bool res = false;
     MsgEvent *message_ready;
-    //create thread
-    if (0 == pthread_create(&(this->thread_id), NULL, &Channel::StartThread,(void *)this))
-    {
-            this->state = Inited;
+    pthread_attr_t attr; // thread attribute
 
+    this->alive = true;
+    // set thread detachstate attribute to DETACHED
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    //create thread
+    if (0 == pthread_create(&(this->thread_id), &attr, &Channel::StartThread,(void *)this))
+    {
         //create a msg event with pipe_from_previous as FD
         //add it to this->waiting_for_events
-
-        message_ready = new MsgEvent(this->pipe_from_previous);
-        if (message_ready != NULL)
+        res = true;
+        if (this->pipe_from_previous != -1)
         {
-            this->waiting_for_events.push_back(message_ready);
-            AddInputFd(this->pipe_from_previous);
-            res = true;
+            message_ready = new MsgEvent(this->pipe_from_previous);
+            if (message_ready != NULL)
+            {
+                this->waiting_for_events.push_back(message_ready);
+                AddInputFd(this->pipe_from_previous);
+
+            }
+            else
+            {
+                res= false;
+
+            }
         }
+
     }
 
     return res;
@@ -161,77 +180,61 @@ void Channel::SetPipeFromPrevious(int32_t fd)
     this->AddInputFd(fd);
 }
 
-bool Channel::Sleep(void)
+void Channel::Pause (void)
 {
-    bool res = false;
-
-    if (this->state == Running )
-    {
-        this->state = Paused;
-        res = true;
-    }
-    return res;
+    this->paused= true;
 }
 
-bool Channel::Wake(void)
+void Channel::Start(void)
 {
-    bool res = false;
-    if (this->state == Paused )
-    {
-        this->state = Running;
-        res = true;
-    }
-    return res;
-}
-
-bool Channel::Start(void)
-{
-    bool res = false;
-    if (this->state == Inited )
-    {
-        this->state = Running;
-        res = true;
-    }
-    return res;
+    this->paused = false;
 }
 
 void * Channel::StartThread(void *pthis)
 {
+    ((Channel *)pthis)->ExecuteThread();
 
-    if (((Channel *)pthis)->GetState() == Created)
-    {
-        ((Channel *)pthis)->ExecuteThread();
-    }
 }
 
 
-void Channel::EnqueueMessage(MsgEvent *new_message, int32_t pipe_fd_from_next)
+void Channel::EnqueueMessage(MsgEvent *new_message, int32_t pipe_to_wait)
 {
+    char error_buffer[250];
 	fd_set blocking;
 	int32_t resultat;
     int32_t read_data_size;
     string error;
-	uint8_t magicWordSizeFromNext = strlen(MAGICUNLOCKWORD);
-    char pipe_from_nextBuffer[magicWordSizeFromNext+1];
+	uint8_t magic_word_size_from_next = strlen(MAGICUNLOCKWORD);
+    char pipe_from_next_buffer[magic_word_size_from_next+1];
 
 	if (this->message_list.size() == this->max_message_size)
-	{ //cant enqueue, so select() on the fd
-		FD_ZERO(&blocking);
-		FD_SET(pipe_fd_from_next, &blocking);
-		resultat = select(pipe_fd_from_next +1, &blocking, NULL,NULL,NULL);
-		//verify and clear the pipe
-		read_data_size =read(pipe_fd_from_next,pipe_from_nextBuffer,strlen(MAGICUNLOCKWORD));
-		if ((read_data_size != strlen(MAGICUNLOCKWORD))|| ( strcmp(pipe_from_nextBuffer, MAGICUNLOCKWORD) != 0 ))
-		{
-            pipe_from_nextBuffer[read_data_size] = 0;
-            error = "pipe from next buffer does not contain the magic word. Content: ";
-            error.append(pipe_from_nextBuffer);
-            ::BlockMgr::ReportError(this->thread_id, true, error);
+	{ //cant enqueue, so select() on the pipe_from_next fd ...
+	    //unless this is the last channel.
+	    //if it is the last channel, wait instead of blocking
+	    if (this->pipe_from_next == -1)
+	    {
+	        while(this->message_list.size() == this->max_message_size);
+	    }
+	    else
+	    {
+            FD_ZERO(&blocking);
+            FD_SET(pipe_to_wait, &blocking);
+            resultat = select(pipe_to_wait + 1, &blocking, NULL,NULL,NULL);
 
+            //verify and clear the pipe
+            read_data_size =read(pipe_to_wait,pipe_from_next_buffer,magic_word_size_from_next);
+            pipe_from_next_buffer[read_data_size] = 0;
+            if ((read_data_size != magic_word_size_from_next)|| ( strcmp(pipe_from_next_buffer, MAGICUNLOCKWORD) != 0 ))
+            {
+
+                snprintf(error_buffer,249,"pipe from next buffer does not contain the magic word. Content: =%s=, size=%u, expected size=%u\n",pipe_from_next_buffer,strlen(pipe_from_next_buffer),magic_word_size_from_next);
+                error=error_buffer;
+                ::BlockMgr::ReportError(this->thread_id, true, error);
+
+            }
 		}
 	}
 	// now we can enqueue
-
 	//Critical section - Waiting for a new event
 	if (pthread_mutex_lock(&(this->mutex))== -1) // should never happen - if it does, all we can do is coredump
 	{
@@ -239,8 +242,8 @@ void Channel::EnqueueMessage(MsgEvent *new_message, int32_t pipe_fd_from_next)
         ::BlockMgr::ReportError(this->thread_id, true, error);
 
 	}
-
 	this->message_list.push_back(new_message);
+
 	pthread_mutex_unlock(&(this->mutex));
 }
 
@@ -255,29 +258,58 @@ bool compare_priority (Event *first,Event *second)
 
 
 
+void Channel::SendEnqueuedSignal(void)
+{
+    string error;
+    int32_t res = 0;
+    fd_set write_fd_set;
+
+
+    if (this->pipe_to_next != -1)
+    {
+        FD_ZERO(&write_fd_set);
+        FD_SET(this->pipe_to_next,&write_fd_set);
+        select(this->pipe_to_next+1,NULL,&write_fd_set,NULL,NULL);
+        res = write(this->pipe_to_next,MAGICSTARTREADWORD,strlen(MAGICSTARTREADWORD));
+        if (res != strlen(MAGICSTARTREADWORD))
+        {
+          error = "Magic word write on pipe to next failure";
+        ::BlockMgr::ReportError(this->thread_id, true, error);
+        }
+    }
+
+
+
+}
+
+
 /**
  * Execute the thread - it's the thread body
  *
 */
 void Channel::ExecuteThread(void)
 {
-	Event *event=NULL;
-	int32_t resSelect = 0 ;
+    int32_t resSelect = 0 ;
 	int32_t nfds = 0;
     int32_t resRecv = 0;
     fd_set current_input_fd_set;
-    bool waitingForRoomInQueue = false;
+    fd_set write_fd_set;
     int32_t read_data_size = 0;
+    int32_t write_data_size = 0;
     uint64_t timerRead;
     string error;
-
-    uint8_t magicWordSizeFromPrevious = strlen(MAGICSTARTREADWORD);
-	char pipe_from_previous_buffer[magicWordSizeFromPrevious+1];
+    uint8_t magic_word_size_to_previous = strlen(MAGICUNLOCKWORD);
+    char pipe_to_previous_buffer[magic_word_size_to_previous+1];
+    uint8_t magic_word_size_from_previous = strlen(MAGICSTARTREADWORD);
+	char pipe_from_previous_buffer[magic_word_size_from_previous+1];
 
     unsigned char signal_buffer[129]; //signal structure is always 128 bytes long
 
 	unsigned char external_fd_buffer[READBLOCKSIZE + 1];
 	list<Event *> priority_sorted_events;
+
+    //first, wait until the thread is started
+    while (this->paused == true);
 
    // start timers
     for (list<Event*>::iterator iter= this->waiting_for_events.begin(); iter!=this->waiting_for_events.end(); iter++)
@@ -288,8 +320,7 @@ void Channel::ExecuteThread(void)
 		}
     }
 
-
-	while (this->state != Terminating)
+	while (this->alive ==true)
 	{
 
 #ifdef DEBUG_BLOCK_MUTEX
@@ -300,7 +331,7 @@ void Channel::ExecuteThread(void)
         }
 #endif
 
-	    if (this->state == Running)
+	    if (this->paused == false)
 	    {
             current_input_fd_set = this->input_fd_set;
             nfds = this->max_input_fd ;
@@ -322,7 +353,14 @@ void Channel::ExecuteThread(void)
 					if ((*iter)->GetType() == Signal) // signal
 					{
 						read_data_size = read((*iter)->GetFd(),signal_buffer,128); //signal structure is always 128 bytes
-						((SignalEvent *)event)->SetData(signal_buffer,read_data_size);
+						if (read_data_size != 128)
+						{
+						 error = "Signal read is not 128 bytes";
+                        ::BlockMgr::ReportError(this->thread_id, true, error);
+
+
+						}
+						((SignalEvent *)*iter)->SetData(signal_buffer,read_data_size);
 						priority_sorted_events.push_back(*iter);
 					}
 					//is it a timer ?
@@ -339,7 +377,7 @@ void Channel::ExecuteThread(void)
 						}
 						priority_sorted_events.push_back(*iter);
 					}
-                    // is it a message
+                    // is it a message ?
 					else if ((*iter)->GetType() == Message) //pipe from previous, message ready
                     {
                         //Critical section - dequeue message
@@ -349,19 +387,35 @@ void Channel::ExecuteThread(void)
                             ::BlockMgr::ReportError(this->thread_id, true, error);
 
                         }
+
                         //dequeue message and add it to the event received list
                         ((MsgEvent*)(*iter))->SetData(this->message_list.front()->GetData(), this->message_list.front()->GetSize());
 
                         //delete the message. Users have to "new" messages in OnEvent()
                         delete this->message_list.front();
                         this->message_list.pop_front();
-                        //end of critical section - dequeued message
-                        pthread_mutex_unlock(&(this->mutex));
 
+
+                        if (this->message_list.size() + 1 == this->max_message_size )
+                        {
+                            FD_ZERO(&write_fd_set);
+                            FD_SET(this->pipe_to_previous,&write_fd_set);
+                            select(this->pipe_to_previous+1,NULL,&write_fd_set,NULL,NULL);
+                            // write magic word on pipe to unlock previous thread
+                            write_data_size = write(this->pipe_to_previous, MAGICUNLOCKWORD, strlen(MAGICUNLOCKWORD) );
+
+                            if (write_data_size != strlen(MAGICUNLOCKWORD))
+                            {
+                                error = "Error writing magic unlock word to previous thread";
+                                ::BlockMgr::ReportError(this->thread_id, true, error);
+                            }
+
+                        }
                         priority_sorted_events.push_back(*iter);
 
                         //read the pipe to clear it, should contain the magic word
                         read_data_size =read(this->pipe_from_previous,pipe_from_previous_buffer,strlen(MAGICSTARTREADWORD));
+                        pipe_from_previous_buffer[read_data_size]=0;
                         if ((read_data_size != strlen(MAGICSTARTREADWORD))
                             || ( strcmp(pipe_from_previous_buffer, MAGICSTARTREADWORD) != 0 ))
                         {
@@ -370,13 +424,18 @@ void Channel::ExecuteThread(void)
                             error.append(pipe_from_previous_buffer);
                             ::BlockMgr::ReportError(this->thread_id, true, error);
                         }
+                        //end of critical section - dequeued message
+                        pthread_mutex_unlock(&(this->mutex));
+
+
 
                     }
 					// is it a standard FD ?
-					else if ((*iter)->GetType() == Fd) // socket in
+					else if ((*iter)->GetType() == NetSocket) // socket in
 					{
                         read_data_size = read((*iter)->GetFd(),external_fd_buffer,READBLOCKSIZE);
-						((NetSocketEvent *)event)->SetData(external_fd_buffer,read_data_size);
+                        external_fd_buffer[read_data_size] = 0;
+						((NetSocketEvent *)* iter)->SetData(external_fd_buffer,read_data_size);
 						priority_sorted_events.push_back(*iter);
 					}
 					else // spurious, report event, clear it
@@ -425,20 +484,23 @@ Channel::~Channel()
     {
         close (pipe_from_next);
     }
+
     if (this->pipe_to_previous != -1)
     {
         close(pipe_to_previous);
     }
-
     if (this->pipe_from_previous != -1)
     {
         close(pipe_from_previous);
     }
-
     // delete current enqueued messages
     for (list<MsgEvent*>::iterator iter= this->message_list.begin(); iter!=this->message_list.end(); iter++)
     {
+       if ((*iter) != NULL)
+       {
         delete (*iter);
+       }
+
     }
 
     // delete all events
@@ -468,16 +530,8 @@ Channel::~Channel()
             }
         }
     }
-
-    //Stop thread
-  	this->state=Terminating;
-	//cancel
-	pthread_cancel(this->thread_id);
-
+    this->alive = false;
 	//Delete all resources
 	pthread_mutex_destroy(&(this->mutex));
-	pthread_cond_destroy(&(this->cond));
-
-
 }
 

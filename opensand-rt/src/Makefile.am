@@ -23,8 +23,7 @@ NetSocketEvent.h \
 SignalEvent.h
 
 libopensand_rt_la_SOURCES = $(libopensand_rt_la_cpp) $(libopensand_rt_la_h)
-
-libopensand_rt_la_LIBADD =  /usr/lib/libtcmalloc_minimal.so -lrt -lpthread
+libopensand_rt_la_LIBADD = -lrt -lpthread /usr/lib/libtcmalloc_minimal.so
 
 libopensand_rt_includedir = ${includedir}/opensand_rt
 

@@ -37,9 +37,10 @@ auto_rearm(auto_rearm),
 duration_ms(timer_duration_ms)
 
 {
+    this->event_type = Timer;
     this->enabled = start;
 
-    this->fd = timerfd_create(CLOCK_MONOTONIC,0);
+    this->input_fd = timerfd_create(CLOCK_MONOTONIC,0);
 
     if  (this->enabled ==true)
     {
@@ -54,7 +55,7 @@ duration_ms(timer_duration_ms)
 
 TimerEvent::~TimerEvent(void)
 {
-    close(this->fd);
+    close(this->input_fd);
 }
 
 void TimerEvent::Start(void)
@@ -78,7 +79,7 @@ void TimerEvent::Start(void)
         timer_value.it_value.tv_sec = this->duration_ms / 1000;
     }
     //start timer
-    timerfd_settime(this->fd,0,&timer_value,NULL);
+    timerfd_settime(this->input_fd,0,&timer_value,NULL);
 }
 
 
@@ -94,6 +95,6 @@ void TimerEvent::Disable(void)
     timer_value.it_value.tv_sec = 0;
 
     //stop timer
-    timerfd_settime(this->fd,0,&timer_value,NULL);
+    timerfd_settime(this->input_fd,0,&timer_value,NULL);
 }
 

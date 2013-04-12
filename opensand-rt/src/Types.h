@@ -34,17 +34,7 @@
 
 typedef enum
 {
-    Created,
-    Inited,
-    Stopped,
-    Running,
-    Paused,
-    Terminating
-} ChannelThreadState;
-
-typedef enum
-{
-    Fd,
+    NetSocket,
     Timer,
     Message,
 	Signal

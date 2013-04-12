@@ -32,10 +32,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "Block.h"
-
-
 
 Block::Block(Channel* backward, Channel* forward) :
     backward(backward),
@@ -48,35 +47,33 @@ Block::Block(Channel* backward, Channel* forward) :
 
 bool Block::Init(void)
 {
-    bool res = false;
+    bool res = true;
 
 #ifdef DEBUG_BLOCK_MUTEX
-	res = forward->Init(&this->mutex) &&  backward->Init(&this->mutex);
+   	res = forward->Init(&this->mutex);
+	res = res && backward->Init(&this->mutex);
+#else
+
+	res = forward->Init();
+	res = res && backward->Init();
 #endif
-	res = forward->Init() &&  backward->Init();
-	res &= forward->CustomInit() &&  backward->CustomInit();
+
+	res = res && forward->CustomInit();
+	res = res && backward->CustomInit();
+
     return res;
 }
 
-bool Block::Sleep(void)
+void Block::Pause(void)
 {
-    bool res = false;
-	res = forward->Sleep() &&  backward->Sleep();
-    return res;
+    backward->Pause();
+	forward->Pause();
 }
 
-bool Block::Wake(void)
+void Block::Start(void)
 {
-    bool res = false;
-	res = forward->Wake() &&  backward->Wake();
-    return res;
-}
-
-bool Block::Start(void)
-{
-    bool res = false;
-	res = forward->Start() &&  backward->Start();
-    return res;
+    backward->Start();
+	forward->Start();
 }
 
 void * Block::StartThread(void *pthis)
@@ -92,14 +89,15 @@ void Block::Stop(void)
 
 Block::~Block()
 {
+    if (this->backward != NULL)
+    {
+        delete this->backward;
+    }
+
     if (this->forward != NULL)
     {
         delete this->forward;
     }
 
-    if (this->backward != NULL)
-    {
-        delete this->backward;
-    }
 
 }
