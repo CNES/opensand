@@ -82,9 +82,10 @@ bool MiddleChannel::CustomInit(void)
 {
     sigset_t signal_mask;
     sigemptyset (&signal_mask);
-    //SIGINFO used as it is the only signal that does not kill the app when not processed
-    // and we want to make sure its processing stops the app
+    //SIGUSR1 used
     sigaddset(&signal_mask, SIGUSR1 );
+
+    //add signal event
 	this->AddSignalEvent(signal_mask);
     return true;
 }

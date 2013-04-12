@@ -42,7 +42,9 @@ Block::Block(Channel* backward, Channel* forward) :
 	previous_block(NULL),
 	next_block(NULL)
 {
-
+#ifdef DEBUG_BLOCK_MUTEX
+    pthread_mutex_init(&(this->mutex),NULL);
+#endif
 }
 
 bool Block::Init(void)

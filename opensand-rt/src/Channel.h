@@ -144,7 +144,6 @@ private:
 	pthread_t thread_id; //Thread ID
 	pthread_mutex_t mutex; //Mutex for critical section
 
-
 };
 
 #endif

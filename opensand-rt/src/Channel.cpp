@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h> //snprintf
-
+#include <signal.h> //pthread_sigmask
 #include "Channel.h"
 
 #define MAGICSTARTREADWORD "GO"
@@ -61,6 +61,8 @@ Channel::Channel(uint8_t max_message) :
     }
     this->max_message_size = max_message;
 
+    pthread_mutex_init(&(this->mutex),NULL);
+
 }
 
 void Channel::AddTimerEvent(uint32_t duration_ms, uint8_t priority, bool auto_rearm)
@@ -81,8 +83,8 @@ void Channel::AddSignalEvent(sigset_t signal_mask, uint8_t priority)
 {
     SignalEvent *event = new SignalEvent(signal_mask,priority);
     this->waiting_for_events.push_back((Event*) event);
-    AddInputFd(event->GetFd());
 
+    AddInputFd(event->GetFd());
 }
 
 #ifdef DEBUG_BLOCK_MUTEX
@@ -94,6 +96,8 @@ bool Channel::Init(void)
 {
 #endif
 
+
+    sigset_t blocked_signals;
     //pipes are created when this method is called
     bool res = false;
     MsgEvent *message_ready;
@@ -106,6 +110,11 @@ bool Channel::Init(void)
     //create thread
     if (0 == pthread_create(&(this->thread_id), &attr, &Channel::StartThread,(void *)this))
     {
+        //block all signals by default
+        sigfillset (&blocked_signals);
+        pthread_sigmask(SIG_SETMASK,&blocked_signals,NULL);
+
+
         //create a msg event with pipe_from_previous as FD
         //add it to this->waiting_for_events
         res = true;

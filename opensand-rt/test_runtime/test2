@@ -2,12 +2,12 @@ cd ..
 make
 cd test_runtime
 
-./test_3_blocks
+./test_3_blocks &
 monpid=$!
-#sleep 3
-#kill -USR1 $monpid
-echo "diff backward"
-diff file_in_backward.txt file_out_3blocks_backward.txt
-echo "diff forward"
-diff file_in_forward.txt file_out_3blocks_forward.txt
+sleep 3;
+kill -SIGUSR1 $monpid ;
+echo "diff backward" ;
+diff file_in_backward.txt file_out_3blocks_backward.txt ;
+echo "diff forward" ;
+diff file_in_forward.txt file_out_3blocks_forward.txt ;
       

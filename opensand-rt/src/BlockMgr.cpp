@@ -355,7 +355,10 @@ BlockMgr::~BlockMgr(void)
 
 BlockMgr::BlockMgr() : alive(true)
 {
-
+    //block all signals
+    sigset_t blocked_signals;
+    sigfillset (&blocked_signals);
+    pthread_sigmask(SIG_SETMASK,&blocked_signals,NULL);
 }
 
 
