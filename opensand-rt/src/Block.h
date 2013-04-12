@@ -44,35 +44,120 @@
 class BlockMgr; // for friendly declaration
 
 
+/**
+  * @class Block
+  * @brief describes a block
+  *
+  * next block and previous block are absolute;
+  * forward channel processes data from previous block to next block.
+  * backward channel processes data from previous block to next block.
+  *
+  */
+
 class Block {
 
 public:
+
+	/*
+	 * Constructor
+	 *
+	 * @param backward pointer to the block backward channel
+	 * @param forward pointer to the block forward channel
+	 *
+	 */
+
     Block(Channel* backward, Channel* forward);
     ~Block();
 
+
+	/*
+	 * GetBackwardAddress
+	 *
+	 *
+	 * @return address of the previous block if defined (otherwise NULL)
+	 */
     Block *GetBackwardAddress(void){return previous_block;};
+
+	/*
+	 * GetForwardAddress
+	 *
+	 *
+	 * @return address of the next block if defined (otherwise NULL)
+	 */
     Block *GetForwardAddress(void) {return next_block;};
 
+	/*
+	 * GetBackwardChannel
+	 *
+	 *
+	 * @return address of the backward going channel if defined (otherwise NULL)
+	 */
     Channel *GetBackwardChannel(void){return backward;};
+
+
+	/*
+	 * GetForwardChannel
+	 *
+	 *
+	 * @return address of the forward going channel if defined (otherwise NULL)
+	 */
     Channel *GetForwardChannel(void) {return forward;};
 
 protected:
 
-    bool CreateTimer(uint32_t duration_ms, bool auto_rearm);
+	/*
+	 * Init calls Init() and CustomInit() of its defined channels
+	 *
+	 * @return true if all inits OK, false otherwise
+	 */
     bool Init(void);
+
+	/*
+	 * Pause calls Pause() of its defined channels
+	 *
+	 */
     void Pause(void);
+
+	/*
+	 * Start calls Start() of its defined channels
+	 *
+	 */
     void Start(void);
 
+	/*
+	 * Stop calls the block destructor
+	 *
+	 */
     void Stop(void);
-    void * StartThread(void *pthis);
 
+
+	/*
+	 * SetbackwardAddress setter for previous block
+	 *
+	 * @param previous pointer to the previous block
+	 *
+	 */
     void SetbackwardAddress(Block* previous){previous_block = previous;};
+
+
+	/*
+	 * SetForwardAddress setter for next block
+	 *
+	 * @param previous pointer to the next block
+	 *
+	 */
     void SetForwardAddress(Block* next){next_block = next;};
 
+
+
+    /// pointer to the forward channel, if the block has one.
     Channel *backward;
+    /// pointer to the backward channel, if the block has one.
 	Channel *forward;
 
+    /// pointer to the previous block, if there is one.
     Block *previous_block;
+    /// pointer to the next block, if there is one.
     Block *next_block;
 
 

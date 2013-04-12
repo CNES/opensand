@@ -35,19 +35,62 @@
 
 using std::string;
 
+
+/**
+  * @class MsgEvent
+  * @brief Class describing a message event. Inherits from Event
+  *
+  *
+  */
+
 class MsgEvent : public Event
 {
     public:
+    /*
+	 * Constructor
+	 *
+     * @param input_fd file descriptor of this event, default -1
+     *
+     * @param new_priority priority of the event, default 0
+     *
+     * @param data char pointer to raw data
+     *
+     * @param size size of data pointed
+	 */
     MsgEvent(int32_t input_fd = -1, uint8_t new_priority = 6, unsigned char *data = NULL, uint16_t size = 0);
     ~MsgEvent();
 
+
+	/*
+	 * GetData data pointer getter
+	 *
+	 * @return pointer to data
+	 */
     unsigned char *GetData() {return this->data;};
+
+	/*
+	 * GetSize size getter
+	 *
+	 * @return data size
+	 */
     uint16_t GetSize() {return this->size;};
+
+
+	/*
+	 * SetData data and size setter
+	 *
+	 * @param data pointer to data
+     *
+	 * @param size data length
+	 */
     void SetData(unsigned char *data, uint16_t length);
 
     protected:
 
+    /// data pointer
     unsigned char *data;
+
+    /// data size
     uint16_t size;
   private:
 

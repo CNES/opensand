@@ -37,23 +37,76 @@
 #include "Types.h"
 #include "Event.h"
 
+/**
+  * @class SignalEvent
+  * @brief Class describing a Signal event. Inherits from Event
+  *
+  *
+  */
+
 class SignalEvent:public Event
 {
 
 public:
+ /*
+	 * Constructor
+	 *
+     * @param signal_mask sigset_t containing signal(s) triggering this event
+     *
+     * @param new_priority priority of the event, default 0
+     *
+	 */
     SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
     ~SignalEvent(void);
 
+
+   /*
+	 * Enable setter for enabled boolean
+	 *
+	 * allows the event to trigger
+	 */
     void Enable(void){this->enabled = true;};
+
+   /*
+	 * Disable setter for enabled boolean
+	 *
+	 * disable the event
+	 */
     void Disable(void){this->enabled = false;};
+
+    /*
+     * IsActive Getter for enabled boolean
+	 *
+	 * @return true if enabled, false otherwise
+	 */
     bool IsActive(void) { return this->enabled;};
 
+
+
+	/*
+	 * SetData sig_info setter
+	 *
+	 * @param data pointer to data
+     *
+	 * @param size data length
+	 */
     void SetData(unsigned char *data, int32_t size);
+
+    /*
+	 * GetTriggerInfo triggered signal info getter
+	 *
+	 * @return infos on the triggered signal
+	 */
     signalfd_siginfo GetTriggerInfo (void) { return this->sig_info;};
 
 protected:
+
+    /// contains the signal(s) to trigger this event
 	sigset_t mask;
+	/// contains the infos that come when a signal triggers the event
     signalfd_siginfo sig_info;
+
+    /// enable or disable even monitoring
     bool enabled;
 private:
 

@@ -32,12 +32,13 @@
 
 #include <inttypes.h>
 
+/// enum telling what each event is
 typedef enum
 {
-    NetSocket,
-    Timer,
-    Message,
-	Signal
+    NetSocket,   ///< Event of type NetSocket
+    Timer,       ///< Event of type Timer
+    Message,    ///< Event of type Message
+	Signal      ///< Event of type Signal
 } EventType;
 
 

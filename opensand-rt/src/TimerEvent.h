@@ -35,24 +35,81 @@
 #include <sys/time.h>
 #include "Event.h"
 
+
+
+/**
+  * @class TimerEvent
+  * @brief Class describing a Timer event. Inherits from Event
+  *
+  *
+  */
+
 class TimerEvent:public Event
 {
 
 public:
+
+    /*
+	 * Constructor
+	 *
+     * @param timer_duration_ms timer duration in milliseconds
+     *
+     * @param new_priority priority of the event, default 4
+     *
+     * @param auto_rearm tells if timer is automatically launched again when triggered
+     *
+     * @param start default state, when start the timer starts
+	 */
     TimerEvent(uint32_t timer_duration_ms, uint8_t new_priority= 4, bool auto_rearm = false, bool start= true);
     ~TimerEvent(void);
 
+
+    /*
+	 * Start starts the timer
+	 *
+	 */
     void Start(void);
+
+    /*
+	 * Disable disable the timer
+	 *
+	 */
     void Disable(void);
+
+   /*
+	 * IsAutoRearm Getter for auto_rearm
+	 *
+	 * @return true if timer has to be rearmed automatically, false otherwise
+	 */
     bool IsAutoRearm(void) { return this->auto_rearm;};
+
+   /*
+	 * IsRunning Getter for enabled
+	 *
+	 * @return true if timer is enabled (running), false otherwise
+	 */
     bool IsRunning(void) { return this->enabled;};
+
+
+     /*
+	 * GetDuration Getter for duration_ms
+	 *
+	 * @return timer duration
+	 */
     uint32_t GetDuration(void) {return duration_ms;};
 
 
 protected:
+
+    /// timer duration in milliseconds
     uint32_t duration_ms;
+
+    /// boolean enabling this timer
     bool enabled;
+    /// boolean telling if the timer is rearmed automatically or not
     bool auto_rearm;
+
+    /// date of last time the timer was triggered
     timeval last_time_out;
 private:
 

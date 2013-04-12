@@ -29,7 +29,7 @@
 
 
 #ifndef NETSOCKETEVENT_H
-#define NETSOCKETFDEVENT_H
+#define NETSOCKETEVENT_H
 
 #include "Types.h"
 #include <sys/time.h>
@@ -37,19 +37,62 @@
 
 #define MAX_DATA_IN_NETSOCKET_EVENT 2000
 
+
+
+/**
+  * @class NetSocketEvent
+  * @brief Class describing a NetSocket event. Inherits from Event
+  *
+  *
+  */
+
 class NetSocketEvent:public Event
 {
 
 public:
-    NetSocketEvent(int32_t currentFd, uint8_t priority = 8);
+
+   /*
+	 * Constructor
+	 *
+     * @param current_fd file descriptor of this event
+     *
+     * @param priority priority of the event, default 0
+     *
+	 */
+    NetSocketEvent(int32_t current_fd, uint8_t priority = 8);
     ~NetSocketEvent();
+
+
+	/*
+	 * SetData data and size setter
+	 *
+	 * @param data pointer to data
+     *
+	 * @param size data length
+	 */
     void SetData(unsigned char *data, uint16_t size);
+
+    /*
+	 * GetData data pointer getter
+	 *
+	 * @return pointer to data
+	 */
     unsigned char *GetData(){return this->data;};
+
+	/*
+	 * GetSize size getter
+	 *
+	 * @return data size
+	 */
     uint16_t GetSize(){return this->size;};
 
 
 protected:
+
+    /// data pointer
     unsigned char *data;
+
+    /// data size
     uint16_t size;
 
 private:

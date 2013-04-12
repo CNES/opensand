@@ -78,12 +78,6 @@ void Block::Start(void)
 	forward->Start();
 }
 
-void * Block::StartThread(void *pthis)
-{
-    forward->StartThread(pthis);
-	backward->StartThread(pthis);
-}
-
 void Block::Stop(void)
 {
     this->~Block();
