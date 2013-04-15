@@ -337,7 +337,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		delete atm_id;
 	}
 
-	UTI_DEBUG("%s desencapsulation context contains %d bytes of data\n",
+	UTI_DEBUG("%s desencapsulation context contains %zu bytes of data\n",
 	          FUNCNAME, context->length());
 
 	// create an empty burst of AAL5 packets
@@ -403,7 +403,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	}
 
 	UTI_DEBUG("%s ATM cell is now desencapsulated "
-	          "(context data = %d bytes)\n",
+	          "(context data = %zu bytes)\n",
 	          FUNCNAME, context->length());
 
 	delete atm_cell;
@@ -539,7 +539,7 @@ NetPacket *Atm::PacketHandler::build(unsigned char *data, size_t data_length,
 
 	if(data_length != this->getFixedLength())
 	{
-		UTI_ERROR("%s bad data length (%u) for ATM cell\n",
+		UTI_ERROR("%s bad data length (%zu) for ATM cell\n",
 		          FUNCNAME, data_length);
 		return NULL;
 	}

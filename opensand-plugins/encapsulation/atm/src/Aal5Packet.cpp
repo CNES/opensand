@@ -94,7 +94,7 @@ bool Aal5Packet::isValid()
 	// => we must have (AAL5 payload len + AAL5 trailer len) <= buffer length
 	if((this->getPayloadLength() + 8) > (int) this->data.length())
 	{
-		UTI_NOTICE("%s payload (%d) + trailer (8) > total length (%d)\n",
+		UTI_NOTICE("%s payload (%d) + trailer (8) > total length (%zu)\n",
 		           FUNCNAME, this->getPayloadLength(), this->data.length());
 		goto invalid;
 	}
@@ -102,7 +102,7 @@ bool Aal5Packet::isValid()
 	// AAL5 packet length must be multiple of 48 (= ATM payload length)
 	if(this->data.length() % 48 != 0)
 	{
-		UTI_NOTICE("%s total length (%d) is not a multiple of 48\n",
+		UTI_NOTICE("%s total length (%zu) is not a multiple of 48\n",
 		           FUNCNAME, this->data.length());
 		goto invalid;
 	}

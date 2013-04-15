@@ -292,7 +292,7 @@ mgl_status BlocEncapSat::onTimer(mgl_timer timer)
 		goto error;
 	}
 
-	UTI_DEBUG("%s %d encapsulation packet(s) flushed\n",
+	UTI_DEBUG("%s %zu encapsulation packet(s) flushed\n",
 	          FUNCNAME, burst->size());
 
 	if(burst->size() <= 0)

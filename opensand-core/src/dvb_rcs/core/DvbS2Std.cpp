@@ -330,7 +330,7 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 		}
 
 		UTI_DEBUG_L3("Got the BBFrame for packet #%u, "
-		             "there is now %u complete BBFrames and %u incomplete\n",
+		             "there is now %zu complete BBFrames and %zu incomplete\n",
 		             sent_packets + 1, complete_dvb_frames->size(),
 		             this->incomplete_bb_frames.size());
 
@@ -353,7 +353,7 @@ int DvbS2Std::scheduleEncapPackets(dvb_fifo *fifo,
 			{
 				UTI_ERROR("failed to add encapsulation packet #%u "
 				          "in BB frame with MODCOD ID %u (packet "
-				          "length %u, free space %u",
+				          "length %i, free space %u",
 				          sent_packets + 1, current_bbframe->getModcodId(),
 				          data->getTotalLength(),
 				          current_bbframe->getFreeSpace());

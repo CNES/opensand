@@ -85,7 +85,7 @@ ule_ext_status UleExtPadding::decode(uint8_t hlen, Data payload)
 	// check if payload is large enough
 	if(payload.length() < (size_t) hlen * 2)
 	{
-		UTI_ERROR("%s too few data (%u bytes) for %d-byte extension\n",
+		UTI_ERROR("%s too few data (%zu bytes) for %d-byte extension\n",
 		          FUNCNAME, payload.length(), hlen * 2);
 		goto error;
 	}

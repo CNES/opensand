@@ -472,7 +472,7 @@ mgl_status BlocEncap::onTimer(mgl_timer timer)
 		goto error;
 	}
 
-	UTI_DEBUG("%s %d encapsulation packets flushed\n", FUNCNAME, burst->size());
+	UTI_DEBUG("%s %zu encapsulation packets flushed\n", FUNCNAME, burst->size());
 
 	if(burst->size() <= 0)
 		goto clean;
@@ -590,7 +590,7 @@ mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
 		          burst->front()->getName().c_str(), burst->front()->getQos());
 	}
 
-	UTI_DEBUG("1 %s packet => %d encapsulation packet(s)\n",
+	UTI_DEBUG("1 %s packet => %zu encapsulation packet(s)\n",
 	          name.c_str(), burst->size());
 
 	// if no encapsulation packet was created, avoid sending a message
@@ -659,7 +659,7 @@ mgl_status BlocEncap::onRcvBurstFromDown(NetBurst *burst)
 		}
 	}
 
-	UTI_DEBUG("%s %d %s packet => %d IP packet(s)\n", FUNCNAME,
+	UTI_DEBUG("%s %d %s packet => %zu IP packet(s)\n", FUNCNAME,
 	          nb_bursts, this->reception_ctx[0]->getName().c_str(),
 	          ip_packets->size());
 

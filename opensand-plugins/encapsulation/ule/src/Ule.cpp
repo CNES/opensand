@@ -245,7 +245,7 @@ bool Ule::Context::encapUle(NetPacket *packet,
 		ptype = (*it)->payloadType();
 		payload = (*it)->payload();
 
-		UTI_DEBUG("%s next header: size = %u, type = 0x%04x\n", FUNCNAME,
+		UTI_DEBUG("%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
 		          payload.length(), ptype);
 	}
 
@@ -370,7 +370,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		payload = ext->payload();
 		ptype = ext->payloadType();
 
-		UTI_DEBUG("%s next header: size = %u, type = 0x%04x\n", FUNCNAME,
+		UTI_DEBUG("%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
 		          payload.length(), ptype);
 	}
 

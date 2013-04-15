@@ -98,7 +98,7 @@ void *NetPacket::operator new(size_t size) throw()
 #if MEMORY_POOL
 	if((int) size > NetPacket::mempool._memBlocSize)
 	{
-		syslog(LOG_ERR, "too much memory asked: %u bytes "
+		syslog(LOG_ERR, "too much memory asked: %zu bytes "
 			   "while only %ld is available", size,
 			   NetPacket::mempool._memBlocSize);
 		return NULL;
@@ -117,7 +117,7 @@ void *NetPacket::operator new[](size_t size) throw()
 #if MEMORY_POOL
 	if((int) size > NetPacket::mempool._memBlocSize)
 	{
-		syslog(LOG_ERR, "too much memory asked: %u bytes "
+		syslog(LOG_ERR, "too much memory asked: %zu bytes "
 			   "while only %ld is available", size,
 			   NetPacket::mempool._memBlocSize);
 		return NULL;

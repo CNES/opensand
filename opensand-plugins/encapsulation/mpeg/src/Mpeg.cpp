@@ -567,7 +567,7 @@ restart:
 	   (unsigned int)
 	   (TS_DATASIZE - 1 - mpeg_packet->pp()) < this->current_upper->getMinLength())
 	{
-		UTI_ERROR("%s too few bytes (%d < %d) after Payload Pointer to contain "
+		UTI_ERROR("%s too few bytes (%d < %zu) after Payload Pointer to contain "
 		          "a SNDU fragment, reset context, sync on PUSI\n", FUNCNAME,
 		          TS_DATASIZE - 1 - mpeg_packet->pp(),
 		          this->current_upper->getMinLength());
@@ -973,7 +973,7 @@ NetPacket *Mpeg::PacketHandler::build(unsigned char *data, size_t data_length,
 
 	if(data_length != this->getFixedLength())
 	{   
-		UTI_ERROR("%s bad data length (%u) for ATM cell\n",
+		UTI_ERROR("%s bad data length (%zu) for ATM cell\n",
 		          FUNCNAME, data_length);
 		return NULL;
 	}   

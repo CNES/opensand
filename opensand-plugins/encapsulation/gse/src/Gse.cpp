@@ -262,7 +262,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 
 	if(packet->getTotalLength() != this->current_upper->getFixedLength())
 	{
-		UTI_ERROR("%s Bad packet length (%d), drop packet\n",
+		UTI_ERROR("%s Bad packet length (%zu), drop packet\n",
 		          FUNCNAME, this->current_upper->getFixedLength());
 		return false;
 	}
@@ -286,7 +286,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	else
 	{
 		context = (*context_it).second;
-		UTI_DEBUG("%s find an encapsulation context containing %u "
+		UTI_DEBUG("%s find an encapsulation context containing %zu "
 		          "bytes of data\n", FUNCNAME, context->length());
 		delete identifier;
 	}
@@ -303,7 +303,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	}
 
 	UTI_DEBUG("%s Packet now entirely packed into GSE context, "
-	          "context contains %d bytes\n", FUNCNAME, context->length());
+	          "context contains %zu bytes\n", FUNCNAME, context->length());
 
 	// if there is enough space in buffer for another MPEG/ATM packet or if
 	// packing_threshold is not 0 keep data in the virtual buffer
@@ -633,7 +633,7 @@ bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
 			}
 			if(this->current_upper->getFixedLength() > 0)
 			{
-				UTI_DEBUG("%s Inner packet has a fixed length (%u)\n",
+				UTI_DEBUG("%s Inner packet has a fixed length (%zu)\n",
 				          FUNCNAME, this->current_upper->getFixedLength());
 				return this->deencapFixedLength(vfrag_pdu ,dest_spot,
 				                                label, net_packets);
@@ -730,7 +730,7 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 	}
 
 	UTI_DEBUG("%s Complete PDU received, got %u %d-byte %s packet(s)/frame "
-	          "(GSE packet length = %d, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
+	          "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
 	          FUNCNAME, pkt_nbr, packet->getTotalLength(),
 	          packet->getName().c_str(),
 	          gse_get_vfrag_length(vfrag_pdu),
@@ -774,7 +774,7 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 	pkt_nbr++;
 
 	UTI_DEBUG("%s Complete PDU received, got %u %d-byte %s packet(s)/frame "
-	          "(GSE packet length = %d, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
+	          "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
 	          FUNCNAME, pkt_nbr, packet->getTotalLength(),
 	          packet->getName().c_str(),
 	          gse_get_vfrag_length(vfrag_pdu),
@@ -835,7 +835,7 @@ NetBurst *Gse::Context::flush(int context_id)
 	else
 	{
 		context = (*context_it).second;
-		UTI_DEBUG("%s find an encapsulation context containing %u "
+		UTI_DEBUG("%s find an encapsulation context containing %zu "
 		          "bytes of data\n", FUNCNAME, context->length());
 		delete identifier;
 	}
@@ -950,7 +950,7 @@ NetBurst *Gse::Context::flush(int context_id)
 		}
 	}
 	while(status != GSE_STATUS_FIFO_EMPTY && !gse_packets->isFull());
-	UTI_DEBUG("%s %d-byte %s packet/frame => %u GSE packets\n",
+	UTI_DEBUG("%s %zu-byte %s packet/frame => %u GSE packets\n",
 	          FUNCNAME, ctx_length, packet_name.c_str(),
 	          counter);
 
@@ -1063,7 +1063,7 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data, size_t data_length,
 			header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
 			                label_length;
 		}
-		UTI_DEBUG("%s build a new %u-bytes GSE packet: QoS = %u, Src Tal ID = %u, "
+		UTI_DEBUG("%s build a new %zu-bytes GSE packet: QoS = %u, Src Tal ID = %u, "
 		          "Dst TAL ID = %u, header length = %u\n", FUNCNAME, data_length,
 		          qos, src_tal_id, dst_tal_id, header_length);
 	}
@@ -1121,7 +1121,7 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	}
 
 	UTI_DEBUG_L3("%s Refragment the GSE packet to fit the BB frame "
-	             "(length = %d)\n", FUNCNAME, remaining_length);
+	             "(length = %zu)\n", FUNCNAME, remaining_length);
 	status = gse_refrag_packet(first_frag, &second_frag, 0, 0,
 	                           frag_id,
 	                           MIN(remaining_length, GSE_MAX_PACKET_LENGTH));
@@ -1151,7 +1151,7 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 		// (use case 2)
 
 		UTI_DEBUG("%s packet has been refragmented, first fragment is "
-		          "%u bytes long, second fragment is %u bytes long\n",
+		          "%zu bytes long, second fragment is %zu bytes long\n",
 		          FUNCNAME, gse_get_vfrag_length(first_frag),
 		          gse_get_vfrag_length(second_frag));
 		// add the first fragment to the BB frame

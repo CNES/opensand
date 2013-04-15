@@ -342,7 +342,7 @@ int BlocDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 	int retval = 0;
 
 	// send all complete DVB-RCS frames
-	UTI_DEBUG_L3("send all %u complete DVB-RCS frames...\n",
+	UTI_DEBUG_L3("send all %zu complete DVB-RCS frames...\n",
 	             complete_frames->size());
 	for(frame = complete_frames->begin();
 	    frame != complete_frames->end();

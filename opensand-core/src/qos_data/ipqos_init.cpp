@@ -252,8 +252,8 @@ void BlocIPQoS::getConfig()
 		}
 
 		// display the Service Class parameters and categories
-		UTI_DEBUG("%s: class %s (%d): schedPrio %d, macQueueId %d, "
-		          "nb categories %d\n", FUNCNAME, svcClass.name.c_str(),
+		UTI_DEBUG("%s: class %s (%u): schedPrio %d, macQueueId %d, "
+		          "nb categories %zu\n", FUNCNAME, svcClass.name.c_str(),
 		          svcClass.id, svcClass.schedPrio, svcClass.macQueueId,
 		          svcClass.categoryList.size());
 		for(catIter = svcClass.categoryList.begin();
@@ -263,7 +263,7 @@ void BlocIPQoS::getConfig()
 			          (*catIter)->name.c_str(), (*catIter)->id);
 		}
 	}
-	UTI_INFO("%s: IP QoS activated with %d service classes\n",
+	UTI_INFO("%s: IP QoS activated with %zu service classes\n",
 	         FUNCNAME, classList.size());
 
 	// instantiate IPv4 and IPv6 SARP tables

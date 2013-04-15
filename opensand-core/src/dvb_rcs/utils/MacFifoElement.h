@@ -76,7 +76,7 @@ class MacFifoElement
 	{
 		if((int) size > MacFifoElement::mempool._memBlocSize)
 		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
+			syslog(LOG_ERR, "too much memory asked: %zu bytes "
 			       "while only %ld is available", size,
 			       MacFifoElement::mempool._memBlocSize);
 			return NULL;
@@ -91,7 +91,7 @@ class MacFifoElement
 	{
 		if((int) size > MacFifoElement::mempool._memBlocSize)
 		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
+			syslog(LOG_ERR, "too much memory asked: %zu bytes "
 			       "while only %ld is available", size,
 			       MacFifoElement::mempool._memBlocSize);
 			return NULL;
