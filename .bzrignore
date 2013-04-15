@@ -43,6 +43,10 @@ opensand-env-plane/debian/libopensand-env-plane-dbg
 opensand-env-plane/debian/libopensand-env-plane-dev
 opensand-env-plane/debian/opensand-env-plane
 opensand-env-plane/src/test_env_plane
+opensand-daemon/netlink/capi.py
+opensand-daemon/netlink/capi_wrap.c
+opensand-daemon/netlink/route/capi.py
+opensand-daemon/netlink/route/capi_wrap.c
 opensand-daemon/debian/files
 opensand-daemon/debian/opensand-daemon
 opensand-daemon/dist
