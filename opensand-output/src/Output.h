@@ -41,8 +41,6 @@
 #include "Event.h"
 #include "OutputInternal.h"
 
-#include <opensand_conf/uti_debug.h>
-
 #include <vector>
 #include <assert.h>
 #include <pthread.h>

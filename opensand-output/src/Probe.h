@@ -37,7 +37,8 @@
 
 #include "BaseProbe.h"
 
-#include <opensand_conf/uti_debug.h>
+// FIXME
+//#include <opensand_conf/uti_debug.h>
 
 #include <algorithm>
 #include <string>
@@ -89,7 +90,7 @@ Probe<T>::Probe(uint8_t id, const std::string &name,
 {
 	if(pthread_mutex_init(&this->mutex, NULL) != 0)
 	{
-		UTI_ERROR("cannot initialize mutex\n");
+		//UTI_ERROR("cannot initialize mutex\n");
 		assert(0);
 	}
 }
@@ -99,7 +100,7 @@ Probe<T>::~Probe()
 {
 	if(pthread_mutex_destroy(&this->mutex) != 0)
 	{
-		UTI_ERROR("cannot destroy mutex\n");
+		//UTI_ERROR("cannot destroy mutex\n");
 	}
 }
 
@@ -108,7 +109,7 @@ void Probe<T>::put(T value)
 {
 	if(pthread_mutex_lock(&(this->mutex)) != 0)
 	{
-		UTI_ERROR("cannot acquire lock on probe\n");
+		//UTI_ERROR("cannot acquire lock on probe\n");
 		assert(0);
 	}
 
@@ -143,7 +144,7 @@ void Probe<T>::put(T value)
 	this->values_count++;
 	if(pthread_mutex_unlock(&(this->mutex)) != 0)
 	{
-		UTI_ERROR("cannot release lock on probe\n");
+		//UTI_ERROR("cannot release lock on probe\n");
 		assert(0);
 	}
 }

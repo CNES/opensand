@@ -34,6 +34,8 @@
 
 #include "Output.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <stdio.h>
 #include <stdarg.h>
 
