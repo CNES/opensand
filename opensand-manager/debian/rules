@@ -8,6 +8,7 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
+PYTHON2=$(shell pyversions -vr)
 
 override_dh_auto_install:
 	python setup.py install --root=$(CURDIR)/debian/tmp --install-layout=deb

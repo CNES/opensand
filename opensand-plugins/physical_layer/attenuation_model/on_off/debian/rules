@@ -8,6 +8,7 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
+PYTHON2=$(shell pyversions -vr)
 
 %:
 	dh  $@
@@ -17,8 +18,8 @@ override_dh_strip:
 	
 override_dh_install:
 	dh_install
-
-	install -m 0644 src/on_off.py $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/lib/python2.6/dist-packages/opensand_manager_core/modules/on_off.py
+	mkdir -p  $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/
+	install -m 0644 src/on_off.py $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/on_off.py
 	install -m 0644 conf/on_off.conf $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/share/opensand/sat/plugins/on_off.conf
 	install -m 0644 conf/on_off.xsd $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/share/opensand/sat/plugins/on_off.xsd
 	install -m 0644 conf/on_off.conf $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/share/opensand/gw/plugins/on_off.conf
@@ -27,3 +28,4 @@ override_dh_install:
 	install -m 0644 conf/on_off.xsd $(CURDIR)/debian/libopensand-on-off-attenuation-plugin-manager/usr/share/opensand/st/plugins/on_off.xsd
 
 override_dh_pysupport:
+

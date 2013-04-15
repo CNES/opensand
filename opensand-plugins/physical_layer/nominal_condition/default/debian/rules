@@ -9,6 +9,8 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+PYTHON2=$(shell pyversions -vr)
+
 %:
 	dh  $@
 
@@ -17,8 +19,8 @@ override_dh_strip:
 	
 override_dh_install:
 	dh_install
-
-	install -m 0644 src/default.py $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/lib/python2.6/dist-packages/opensand_manager_core/modules/default.py
+	mkdir -p  $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/
+	install -m 0644 src/default.py $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/default.py
 	install -m 0644 conf/default.conf $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/sat/plugins/default.conf
 	install -m 0644 conf/default.xsd $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/sat/plugins/default.xsd
 	install -m 0644 conf/default.conf $(CURDIR)/debian/libopensand-default-nominal-plugin-manager/usr/share/opensand/gw/plugins/default.conf
