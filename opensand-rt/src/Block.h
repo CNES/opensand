@@ -53,10 +53,9 @@ class BlockMgr; // for friendly declaration
   * backward channel processes data from previous block to next block.
   *
   */
-
-class Block {
-
-public:
+class Block
+{
+  public:
 
 	/*
 	 * Constructor
@@ -66,8 +65,8 @@ public:
 	 *
 	 */
 
-    Block(Channel* backward, Channel* forward);
-    ~Block();
+	Block(Channel* backward, Channel* forward);
+	~Block();
 
 
 	/*
@@ -76,7 +75,7 @@ public:
 	 *
 	 * @return address of the previous block if defined (otherwise NULL)
 	 */
-    Block *GetBackwardAddress(void){return previous_block;};
+	Block *GetBackwardAddress(void){return previous_block;};
 
 	/*
 	 * GetForwardAddress
@@ -84,7 +83,7 @@ public:
 	 *
 	 * @return address of the next block if defined (otherwise NULL)
 	 */
-    Block *GetForwardAddress(void) {return next_block;};
+	Block *GetForwardAddress(void) {return next_block;};
 
 	/*
 	 * GetBackwardChannel
@@ -92,7 +91,7 @@ public:
 	 *
 	 * @return address of the backward going channel if defined (otherwise NULL)
 	 */
-    Channel *GetBackwardChannel(void){return backward;};
+	Channel *GetBackwardChannel(void){return backward;};
 
 
 	/*
@@ -101,16 +100,16 @@ public:
 	 *
 	 * @return address of the forward going channel if defined (otherwise NULL)
 	 */
-    Channel *GetForwardChannel(void) {return forward;};
+	Channel *GetForwardChannel(void) {return forward;};
 
-protected:
+  protected:
 
 	/*
 	 * Init calls Init() and CustomInit() of its defined channels
 	 *
 	 * @return true if all inits OK, false otherwise
 	 */
-    bool Init(void);
+	bool Init(void);
 
 	/*
 	 * Pause calls Pause() of its defined channels
@@ -128,7 +127,7 @@ protected:
 	 * Stop calls the block destructor
 	 *
 	 */
-    void Stop(void);
+	void Stop(void);
 
 
 	/*
@@ -137,7 +136,7 @@ protected:
 	 * @param previous pointer to the previous block
 	 *
 	 */
-    void SetbackwardAddress(Block* previous){previous_block = previous;};
+	void SetbackwardAddress(Block* previous){previous_block = previous;};
 
 
 	/*
@@ -146,26 +145,26 @@ protected:
 	 * @param previous pointer to the next block
 	 *
 	 */
-    void SetForwardAddress(Block* next){next_block = next;};
+	void SetForwardAddress(Block* next){next_block = next;};
 
 
 
     /// pointer to the forward channel, if the block has one.
-    Channel *backward;
+	Channel *backward;
     /// pointer to the backward channel, if the block has one.
 	Channel *forward;
 
     /// pointer to the previous block, if there is one.
-    Block *previous_block;
+	Block *previous_block;
     /// pointer to the next block, if there is one.
-    Block *next_block;
+	Block *next_block;
 
 
-private:
+  private:
 #ifdef DEBUG_BLOCK_MUTEX
 	pthread_mutex_t mutex; //Mutex for critical section
 #endif
-    friend class BlockMgr; // allow the block manager to call protected methods
+	friend class BlockMgr; // allow the block manager to call protected methods
 };
 
 #endif

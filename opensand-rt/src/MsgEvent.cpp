@@ -30,30 +30,31 @@
 #include <cstring> //memcpy
 #include "MsgEvent.h"
 
+#include <cstring> //memcpy
 
 
 MsgEvent::MsgEvent(int32_t new_input_fd, uint8_t new_priority,unsigned char *data, uint16_t size):
-    size(size)
+	size(size)
 {
     this->input_fd= new_input_fd;
-    this->priority = new_priority;
-    if ( size > 0 )
-    {
+	this->priority = new_priority;
+	if( size > 0 )
+	{
         this->data = (unsigned char *)malloc (size+1);
-        memcpy(this->data, data, size);
-        this->data[size] = 0;
-    }
-    else
-    {
-        this->data = NULL;
-    }
-    this->event_type= Message;
+		memcpy(this->data, data, size);
+		this->data[size] = 0;
+	}
+	else
+	{
+		this->data = NULL;
+	}
+	this->event_type= Message;
 }
 
 
 void MsgEvent::SetData(unsigned char *data, uint16_t length)
 {
-	if (this->size > 0)
+	if(this->size > 0)
 	{
 		delete this->data;
 	}
@@ -67,6 +68,6 @@ void MsgEvent::SetData(unsigned char *data, uint16_t length)
 
 MsgEvent::~MsgEvent()
 {
-    delete[] this->data;
+	delete[] this->data;
 }
 

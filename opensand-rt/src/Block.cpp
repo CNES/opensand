@@ -26,6 +26,9 @@
  */
 /* $Id: Block.h,v 1.1.1.1 2013/04/03 11:37:12 cgaillardet Exp $ */
 
+
+#include "Block.h"
+
 #include <errno.h>
 #include <cstring>
 #include <fcntl.h>
@@ -34,11 +37,9 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include "Block.h"
-
-Block::Block(Channel* backward, Channel* forward) :
-    backward(backward),
-    forward(forward),
+Block::Block(Channel* backward, Channel* forward):
+	backward(backward),
+	forward(forward),
 	previous_block(NULL),
 	next_block(NULL)
 {
@@ -63,7 +64,7 @@ bool Block::Init(void)
 	res = res && forward->CustomInit();
 	res = res && backward->CustomInit();
 
-    return res;
+	return res;
 }
 
 void Block::Pause(void)
@@ -80,20 +81,20 @@ void Block::Start(void)
 
 void Block::Stop(void)
 {
-    this->~Block();
+	this->~Block();
 }
 
 Block::~Block()
 {
     if (this->backward != NULL)
-    {
+	{
         delete this->backward;
-    }
+	}
 
     if (this->forward != NULL)
-    {
+	{
         delete this->forward;
-    }
+	}
 
 
 }

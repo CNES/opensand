@@ -47,7 +47,7 @@
 class TimerEvent:public Event
 {
 
-public:
+  public:
 
     /*
 	 * Constructor
@@ -68,27 +68,27 @@ public:
 	 * Start starts the timer
 	 *
 	 */
-    void Start(void);
+	void Start(void);
 
     /*
 	 * Disable disable the timer
 	 *
 	 */
-    void Disable(void);
+	void Disable(void);
 
    /*
 	 * IsAutoRearm Getter for auto_rearm
 	 *
 	 * @return true if timer has to be rearmed automatically, false otherwise
 	 */
-    bool IsAutoRearm(void) { return this->auto_rearm;};
+	bool IsAutoRearm(void) { return this->auto_rearm;};
 
    /*
 	 * IsRunning Getter for enabled
 	 *
 	 * @return true if timer is enabled (running), false otherwise
 	 */
-    bool IsRunning(void) { return this->enabled;};
+	bool IsRunning(void) { return this->enabled;};
 
 
      /*
@@ -96,22 +96,21 @@ public:
 	 *
 	 * @return timer duration
 	 */
-    uint32_t GetDuration(void) {return duration_ms;};
+	uint32_t GetDuration(void) {return duration_ms;};
 
 
-protected:
+  protected:
 
     /// timer duration in milliseconds
-    uint32_t duration_ms;
+	uint32_t duration_ms;
 
     /// boolean enabling this timer
     bool enabled;
     /// boolean telling if the timer is rearmed automatically or not
-    bool auto_rearm;
+	bool auto_rearm;
 
     /// date of last time the timer was triggered
-    timeval last_time_out;
-private:
+	timeval last_time_out;
 
 
 };

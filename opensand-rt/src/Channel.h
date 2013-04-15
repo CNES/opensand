@@ -27,15 +27,8 @@
 /* $Id: Channel.h,v 1.1.1.1 2013/04/08 07:57:49 cgaillardet Exp $ */
 
 
-
 #ifndef CHANNEL_H
 #define CHANNEL_H
-
-#include <stdlib.h>
-#include  <string>
-#include <list>
-#include <vector>
-#include <sys/select.h>
 
 #include "Types.h"
 #include "Block.h"
@@ -43,6 +36,14 @@
 #include "TimerEvent.h"
 #include "NetSocketEvent.h"
 #include "SignalEvent.h"
+
+
+#include <stdlib.h>
+#include  <string>
+#include <list>
+#include <vector>
+#include <sys/select.h>
+
 
 class Block;
 
@@ -72,9 +73,9 @@ public:
      *
 	 */
 
-    Channel(uint8_t max_message= 3);
+	Channel(uint8_t max_message= 3);
 
-    virtual ~Channel();
+	virtual ~Channel();
 
 
 	/*
@@ -133,7 +134,7 @@ public:
 #ifdef DEBUG_BLOCK_MUTEX
     bool Init(pthread_mutex_t *block_mutex);
 #else
-    bool Init(void);
+	bool Init(void);
 #endif
 
 
@@ -162,28 +163,28 @@ public:
 	 *
      * @param fd file descriptor to write when a message has been enqueued
 	 */
-    void SetPipeToNext(int32_t fd);
+	void SetPipeToNext(int32_t fd);
 
      /*
 	 * SetPipeFromNext setter for pipe_from_next
 	 *
      * @param fd file descriptor to read when next channel message fifo is not full anymore
 	 */
-    void SetPipeFromNext(int32_t fd);
+	void SetPipeFromNext(int32_t fd);
 
      /*
 	 * SetPipeToPrevious setter for pipe_to_previous
 	 *
      * @param fd file descriptor to write when own message fifo is not full anymore
 	 */
-    void SetPipeToPrevious(int32_t fd);
+	void SetPipeToPrevious(int32_t fd);
 
      /*
 	 * SetPipeFromPrevious setter for pipe_from_previous
 	 *
      * @param fd file descriptor to read when previous channel has enqueued a message
 	 */
-    void SetPipeFromPrevious(int32_t fd);
+	void SetPipeFromPrevious(int32_t fd);
 
       /*
 	 * GetPipeToNext getter for pipe_to_next
@@ -237,7 +238,7 @@ public:
 	 * it contains custom definitions and is the method where events have to be added
 	 */
 
-    virtual bool CustomInit(void) = 0;
+	virtual bool CustomInit(void) = 0;
 
      /*
 	 * OnEvent virtual method developers have to implement
@@ -258,10 +259,10 @@ public:
 	 * @param pointer to the class
 	 *
 	 */
-    static void * StartThread(void *);
+	static void * StartThread(void *);
 
 
-protected:
+  protected:
 
 
     /*
@@ -290,7 +291,6 @@ protected:
 
 	void AddNetSocketEvent(int32_t fd = -1, uint8_t priority=3);
 
-
     /*
 	 * AddSignalEvent adds a signal event to the channel
 	 *
@@ -305,7 +305,7 @@ protected:
 
 
     /// message fifo
-    list<MsgEvent *> message_list;
+	list<MsgEvent *> message_list;
 
     /// max size of the message fifo
 	uint8_t max_message_size;
@@ -321,28 +321,28 @@ protected:
 
 
     /// pipe FD to write for the next channel
-    int32_t pipe_to_next;
+	int32_t pipe_to_next;
     /// pipe FD to read for the next channel
-    int32_t pipe_from_next;
+	int32_t pipe_from_next;
     /// pipe FD to write for the previous channel
-    int32_t pipe_to_previous;
+	int32_t pipe_to_previous;
     /// pipe FD to read from the previous channel
-    int32_t pipe_from_previous;
+	int32_t pipe_from_previous;
 
     /// contains the highest FD of waiting_for_events
-    int32_t max_input_fd;
+	int32_t max_input_fd;
 
     /// contains the highest FD of output events
-    int32_t max_output_fd;
+	int32_t max_output_fd;
 
     /// fd_set containing monitored FDs
-    fd_set input_fd_set;
+	fd_set input_fd_set;
 
     /// fd_set containing output FDs
-    fd_set output_fd_set;
+	fd_set output_fd_set;
 
     /// duration of the last thread loop (not implemented)
-    uint32_t duration_ms;
+	uint32_t duration_ms;
 
     /// pointer to previous channel (channel that this one receives data)
     Channel *previous_channel;
@@ -357,7 +357,7 @@ private:
 	 * ExecuteThread core thread method
 	 *
 	 */
-    void ExecuteThread(void);
+	void ExecuteThread(void);
 
 
     /*
@@ -365,7 +365,7 @@ private:
 	 *
 	 * @param fd file descriptor to monitor
 	 */
-    void AddInputFd(int32_t fd);
+	void AddInputFd(int32_t fd);
 
 
     /*
@@ -373,7 +373,7 @@ private:
 	 *
 	 * @param fd file descriptor to add
 	 */
-    void AddOutputFd(int32_t fd);
+	void AddOutputFd(int32_t fd);
 
 #ifdef DEBUG_BLOCK_MUTEX
     pthread_mutex_t *block_mutex;
@@ -381,7 +381,6 @@ private:
 
     /// the thread
 	pthread_t thread_id;
-
     /// channel mutex used for message fifo
 	pthread_mutex_t mutex;
 

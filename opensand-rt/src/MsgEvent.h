@@ -43,9 +43,9 @@ using std::string;
   *
   */
 
-class MsgEvent : public Event
+class MsgEvent: public Event
 {
-    public:
+  public:
     /*
 	 * Constructor
 	 *
@@ -58,7 +58,7 @@ class MsgEvent : public Event
      * @param size size of data pointed
 	 */
     MsgEvent(int32_t input_fd = -1, uint8_t new_priority = 6, unsigned char *data = NULL, uint16_t size = 0);
-    ~MsgEvent();
+	~MsgEvent();
 
 
 	/*
@@ -73,7 +73,7 @@ class MsgEvent : public Event
 	 *
 	 * @return data size
 	 */
-    uint16_t GetSize() {return this->size;};
+	uint16_t GetSize() {return this->size;};
 
 
 	/*
@@ -85,14 +85,13 @@ class MsgEvent : public Event
 	 */
     void SetData(unsigned char *data, uint16_t length);
 
-    protected:
+  protected:
 
     /// data pointer
     unsigned char *data;
 
     /// data size
-    uint16_t size;
-  private:
+	uint16_t size;
 
 
 

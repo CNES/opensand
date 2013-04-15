@@ -27,20 +27,19 @@
 /* $Id: SignalEvent.cpp,v 1.1.1.1 2013/04/08 9:10:31 cgaillardet Exp $ */
 
 
-#include <cstring> //memcpy
-#include <unistd.h> //close
 #include <signal.h> //sigprocmask
-
 #include "SignalEvent.h"
 #include "BlockMgr.h"
+#include <cstring>
+#include <unistd.h>
 
 
 SignalEvent::SignalEvent(sigset_t signalMask, uint8_t new_priority)
 {
 	this->mask = signalMask;
     this->input_fd = signalfd(-1, &(this->mask),0);
-    this->event_type = Signal;
-    this->priority = new_priority;
+	this->event_type = Signal;
+	this->priority = new_priority;
 
  	//block the signal(s) so only our handler gets it
  	if (pthread_sigmask(SIG_BLOCK, &this->mask, NULL) < 0)
@@ -53,7 +52,8 @@ SignalEvent::SignalEvent(sigset_t signalMask, uint8_t new_priority)
 
 void SignalEvent::SetData(unsigned char *data, int32_t size) //converts data into signalfd_siginfo
 {
-    memcpy(&(this->sig_info), data, size);
+	//converts data into signalfd_siginfo
+	memcpy(&(this->sig_info), data, size);
 }
 
 SignalEvent::~SignalEvent(void)

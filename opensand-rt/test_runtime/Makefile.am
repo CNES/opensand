@@ -1,3 +1,9 @@
+################################################################################
+#   Name       : Makefile
+#   Author     : Cyrille Gaillardet <cyrille.gaillardet@toulouse.viveris.com>
+#   Description: create the OpenSAND rt library
+################################################################################
+
 noinst_PROGRAMS = test_single_block test_3_blocks
 
 INCLUDES = -I$(top_srcdir)/src

@@ -36,23 +36,23 @@ name(new_name),
 priority(new_priority),
 input_fd(new_input_fd)
 {
-    this->SetCreationTime();
+	this->SetCreationTime();
 }
 
 void Event::SetCreationTime(void)
 {
-    gettimeofday(&this->time_in,NULL);
+	gettimeofday(&this->time_in,NULL);
 }
 
 timeval Event::GetLifetime()
 {
-    timeval res;
-    timeval current;
-    gettimeofday(&current,NULL);
+	timeval res;
+	timeval current;
+	gettimeofday(&current,NULL);
 
-    res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
-    res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
-    return res;
+	res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
+	res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
+	return res;
 }
 
 

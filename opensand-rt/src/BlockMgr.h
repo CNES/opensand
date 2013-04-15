@@ -27,7 +27,6 @@
 /* $Id: BlockMgr.h,v 1.1.1.1 2013/03/28 11:29:21 cgaillardet Exp $ */
 
 
-
 #ifndef BLOCKMGR_H
 #define BLOCKMGR_H
 
@@ -45,7 +44,6 @@ using std::list;
 
 class Channel;
 class Block;
-
 
 
 /**
@@ -71,7 +69,7 @@ public:
 	 * @return address of the newly created block
 	 *
 	 */
-    Block* CreateBlock(Channel *backward, Channel *forward, bool first = false);
+	Block* CreateBlock(Channel *backward, Channel *forward, bool first = false);
 
      /*
 	 * SetBlockHierarchy sets block hierarchy
@@ -91,33 +89,33 @@ public:
 	 * @param hard boolean: true: hard stop, false: soft (cleaner) stop.
 	 *
 	 */
-    void Stop(bool hard = false);
+	void Stop(bool hard = false);
 
      /*
 	 * Init ititialize the manager, creates block pipes if needed then ask each block to init itself
      *
 	 * @return true if succesful, false otherwise
 	 */
-    bool Init(void);
+	bool Init(void);
 
      /*
 	 * Start calls each block Start() method
      *
 	 */
-    void Start(void);
+	void Start(void);
 
      /*
 	 * Pause calls each block Pause() method
      *
 	 */
-    void Pause(void);
+	void Pause(void);
 
      /*
 	 * Resume calls each block Start() method.
 	 * Currently does the same as Start() but may differ later
      *
 	 */
-    void Resume(void);
+	void Resume(void);
 
 
      /*
@@ -132,7 +130,7 @@ public:
 	 * Kill destroys the singleton
      *
 	 */
-    static void Kill (void);
+	static void Kill (void);
 
 
      /*
@@ -156,22 +154,22 @@ public:
      * exits only when application goes stopped.
 	 */
     void RunLoop(void);
-private:
+   private:
 
     /// block manager singleton
-    static BlockMgr *singleton;
+	static BlockMgr *singleton;
 
     /// boolean storing application state
     bool alive;
 
     /// list of pointers to the application blocks
-    list<Block *> block_list;
+	list<Block *> block_list;
 
     /// pointer to the first block of the application, for fast access
-    Block * first_block;
+	Block *first_block;
 
-    BlockMgr();
-    ~BlockMgr();
+	BlockMgr();
+	~BlockMgr();
 
 };
 

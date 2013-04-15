@@ -110,6 +110,11 @@ bool TimerChannel::OnEvent(Event* event)
         }
 
         res = write(this->GetTimerOutputFd(), time_as_string,strlen(time_as_string));
+        if (res == -1)
+       	{
+       		error = "write error on timer log file";
+			::BlockMgr::ReportError(pthread_self(),true, error);        		
+		}
         printf("Timer triggered in thread %lu. value : %s\n",pthread_self(),time_as_string);
 
         // test for duration
@@ -132,7 +137,7 @@ bool TimerChannel::OnEvent(Event* event)
         BlockMgr::ReportError(0,true,error);
 
     }
-
+return (0);
 }
 
 

@@ -47,7 +47,7 @@
 class SignalEvent:public Event
 {
 
-public:
+  public:
  /*
 	 * Constructor
 	 *
@@ -56,8 +56,8 @@ public:
      * @param new_priority priority of the event, default 0
      *
 	 */
-    SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
-    ~SignalEvent(void);
+	SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
+	~SignalEvent(void);
 
 
    /*
@@ -65,21 +65,21 @@ public:
 	 *
 	 * allows the event to trigger
 	 */
-    void Enable(void){this->enabled = true;};
+	void Enable(void){this->enabled = true;};
 
    /*
 	 * Disable setter for enabled boolean
 	 *
 	 * disable the event
 	 */
-    void Disable(void){this->enabled = false;};
+	void Disable(void){this->enabled = false;};
 
     /*
      * IsActive Getter for enabled boolean
 	 *
 	 * @return true if enabled, false otherwise
 	 */
-    bool IsActive(void) { return this->enabled;};
+	bool IsActive(void) { return this->enabled;};
 
 
 
@@ -99,16 +99,15 @@ public:
 	 */
     signalfd_siginfo GetTriggerInfo (void) { return this->sig_info;};
 
-protected:
+  protected:
 
     /// contains the signal(s) to trigger this event
 	sigset_t mask;
 	/// contains the infos that come when a signal triggers the event
-    signalfd_siginfo sig_info;
+	signalfd_siginfo sig_info;
 
     /// enable or disable even monitoring
-    bool enabled;
-private:
+	bool enabled;
 
 
 };

@@ -49,7 +49,7 @@
 class NetSocketEvent:public Event
 {
 
-public:
+  public:
 
    /*
 	 * Constructor
@@ -60,7 +60,7 @@ public:
      *
 	 */
     NetSocketEvent(int32_t current_fd, uint8_t priority = 8);
-    ~NetSocketEvent();
+	~NetSocketEvent();
 
 
 	/*
@@ -87,15 +87,13 @@ public:
     uint16_t GetSize(){return this->size;};
 
 
-protected:
+  protected:
 
     /// data pointer
     unsigned char *data;
 
     /// data size
     uint16_t size;
-
-private:
 
 
 };

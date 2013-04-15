@@ -26,10 +26,12 @@
  */
 /* $Id: BlockMgr.cpp,v 1.1.1.1 2013/04/02 11:42:27 cgaillardet Exp $ */
 
+
+#include "BlockMgr.h"
+
 #include <signal.h>
 #include <iostream>
 #include <stdio.h>
-#include "BlockMgr.h"
 
 
 // Initialisation du singleton à NULL
@@ -38,29 +40,30 @@ BlockMgr *BlockMgr::singleton = NULL;
 
 Block* BlockMgr::CreateBlock(Channel *backward, Channel *forward, bool b_first)
 {
-    Block *block = NULL;
+	Block *block = NULL;
 
-    if ((forward != NULL) || (backward != NULL))
-    {
-        block = new Block (backward,forward);
-        this->block_list.push_back(block);
+	if((forward != NULL) || (backward != NULL))
+	{
+		block = new Block (backward,forward);
+		this->block_list.push_back(block);
 
-        if (true == b_first)
-        {
-            this->first_block = block;
+		if(true == b_first)
+		{
+			this->first_block = block;
 
 
-        }
-    }
-    return block;
+		}
+	}
+	return block;
 }
 
 
-void BlockMgr::SetBlockHierarchy(Block *block, Block *backward_block, Block *forward_block)
+void BlockMgr::SetBlockHierarchy(Block *block, Block *backward_block,
+                                 Block *forward_block)
 {
     //set the block previous and next block
-    block->SetForwardAddress(forward_block);
-    block->SetbackwardAddress(backward_block);
+	block->SetForwardAddress(forward_block);
+	block->SetbackwardAddress(backward_block);
 
     if (backward_block != NULL)
     {
@@ -99,173 +102,168 @@ void BlockMgr::Stop(bool hard)
 {
     this->alive = false;
     if (hard == true) // send a stop signal to each block
-    {
-        raise(SIGSTOP);
-    }
-    else // stop each block
-    {
-        for(list<Block *>::iterator iter= this->block_list.begin(); iter != this->block_list.end(); iter++)
-        {
-            if ( *iter !=NULL)
-            {
-                (*iter)->Stop();
-            }
-        }
-    }
+	{
+		raise(SIGSTOP);
+	}
+	else // stop each block
+	{
+		for(list<Block *>::iterator iter= this->block_list.begin();
+		    iter != this->block_list.end(); ++iter)
+		{
+			if(*iter !=NULL)
+			{
+				(*iter)->Stop();
+			}
+		}
+	}
 
 }
 
 
 bool BlockMgr::Init(void)
 {
-Block *current_block_address= this->first_block;
-Block *previous_block_address = NULL;
-int32_t pipe_fd_from_previous_block[2];
-int32_t pfd[2];
-bool has_first = false;
-bool has_last = false;
-bool result = true;
+	Block *current_block_address= this->first_block;
+	Block *previous_block_address = NULL;
+	int32_t pipe_fd_from_previous_block[2];
+	int32_t pfd[2];
+	bool has_first = false;
+	bool has_last = false;
+	bool result = true;
 
-// [0] contains backward direction, [1] contains forward direction
-pipe_fd_from_previous_block[0] = -1;
-pipe_fd_from_previous_block[1] = -1;
+	// [0] contains backward direction, [1] contains forward direction
+	pipe_fd_from_previous_block[0] = -1;
+	pipe_fd_from_previous_block[1] = -1;
 
-//first, create every pipe and check blocks hierarchy
-    while (current_block_address != NULL && (result == true) && (has_last == false))
-    {
-
-       // is it the first block ?
-        if ((has_first == false) && (current_block_address->GetBackwardAddress() == NULL))
-        {
+	//first, create every pipe and check blocks hierarchy
+	while(current_block_address != NULL && result == true &&
+	      has_last == false)
+	{
+		// is it the first block ?
+		if((has_first == false) &&
+		   (current_block_address->GetBackwardAddress() == NULL))
+		{
         //yes :the first block has no previous
             //is it the last bloc too ?
-
-            if (current_block_address->GetForwardAddress() != NULL)
+			if(current_block_address->GetForwardAddress() != NULL)
             { //no; it has a next
-
-               //create pipe from first to second block (backward)
-                if (pipe(pfd) == -1)
-                {
-                    result = false;
-                }
+				//create pipe from first to second block (backward)
+				if(pipe(pfd) == -1)
+				{
+					result = false;
+				}
                 current_block_address->GetBackwardChannel()->SetPipeToPrevious(pfd[1]);
-                pipe_fd_from_previous_block[0] = pfd[0];
+				pipe_fd_from_previous_block[0] = pfd[0];
 
-               //create pipe from first to second block (forward)
-                if (pipe(pfd) == -1)
-                {
-                    result = false;
-                }
+				//create pipe from first to second block (forward)
+				if(pipe(pfd) == -1)
+				{
+					result = false;
+				}
                 current_block_address->GetForwardChannel()->SetPipeToNext(pfd[1]);
                 pipe_fd_from_previous_block[1] = pfd[0];
 
+				previous_block_address = current_block_address;
+				current_block_address = previous_block_address->GetForwardAddress();
 
 
-                previous_block_address = current_block_address;
-                current_block_address = previous_block_address->GetForwardAddress();
+			}
+			else // if it is also the last block, no pipe required
+			{
+				has_last = true;
+			}
+			has_first = true;
+		}
 
+		//is it a last block ?
+		else if(current_block_address->GetForwardAddress() == NULL)
+		{
+			if((pipe_fd_from_previous_block[0] <0) || (pipe_fd_from_previous_block[1] <0))
+			{
+				result = false;
+			}
 
-            }
-            else // if it is also the last block, no pipe required
-            {
-                has_last = true;
-            }
-            has_first = true;
-        }
+			current_block_address->GetBackwardChannel()->SetPipeFromNext(pipe_fd_from_previous_block[0]);
+			current_block_address->GetForwardChannel()->SetPipeFromPrevious(pipe_fd_from_previous_block[1]);
 
-        //is it a last block ?
-        else if (current_block_address->GetForwardAddress() == NULL)
-        {
-            if ((pipe_fd_from_previous_block[0] <0) || (pipe_fd_from_previous_block[1] <0))
-            {
-                result = false;
-            }
-
-            current_block_address->GetBackwardChannel()->SetPipeFromNext(pipe_fd_from_previous_block[0]);
-            current_block_address->GetForwardChannel()->SetPipeFromPrevious(pipe_fd_from_previous_block[1]);
-
-
-           //create pipe to previous block (backward)
-            if (pipe(pfd) == -1)
-            {
-                 result = false;
-            }
+			//create pipe to previous block (backward)
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetBackwardChannel()->SetPipeToNext(pfd[1]);
             previous_block_address->GetBackwardChannel()->SetPipeFromPrevious(pfd[0]);
 
 
-           //create pipe to previous block (forward)
-            if (pipe(pfd) == -1)
-            {
-                 result = false;
-            }
+			//create pipe to previous block (forward)
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetForwardChannel()->SetPipeToPrevious(pfd[1]);
             previous_block_address->GetForwardChannel()->SetPipeFromNext(pfd[0]);
-            has_last = true;
+			has_last = true;
 
-        }
-        else //it is a middle block
-        {
-            if ((pipe_fd_from_previous_block[0] <0) || (pipe_fd_from_previous_block[1] <0))
-            {
-                result = false;
-            }
+		}
+		else //it is a middle block
+		{
+			if((pipe_fd_from_previous_block[0] <0) || (pipe_fd_from_previous_block[1] <0))
+			{
+				result = false;
+			}
 
-            current_block_address->GetBackwardChannel()->SetPipeFromNext(pipe_fd_from_previous_block[0]);
-            current_block_address->GetForwardChannel()->SetPipeFromPrevious(pipe_fd_from_previous_block[1]);
+			current_block_address->GetBackwardChannel()->SetPipeFromNext(pipe_fd_from_previous_block[0]);
+			current_block_address->GetForwardChannel()->SetPipeFromPrevious(pipe_fd_from_previous_block[1]);
 
-            //create pipe to previous (backward)
+			//create pipe to previous (backward)
 
-            if (pipe(pfd) == -1)
-            {
-               result = false;
-            }
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetBackwardChannel()->SetPipeToNext(pfd[1]);
             previous_block_address->GetBackwardChannel()->SetPipeFromPrevious(pfd[0]);
 
 
 
-            //create pipe to previous (forward)
-            if (pipe(pfd) == -1)
-            {
-               result = false;
-            }
+			//create pipe to previous (forward)
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetForwardChannel()->SetPipeToPrevious(pfd[1]);
             previous_block_address->GetForwardChannel()->SetPipeFromNext(pfd[0]);
 
-             //create pipe to next (backward)
-            if (pipe(pfd) == -1)
-            {
-                result = false;
-            }
+			//create pipe to next (backward)
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetBackwardChannel()->SetPipeToPrevious(pfd[1]);
             pipe_fd_from_previous_block[0] =pfd[0];
 
-            //create pipe to next (forward)
-            if (pipe(pfd) == -1)
-            {
-                result = false;
-            }
+			//create pipe to next (forward)
+			if(pipe(pfd) == -1)
+			{
+				result = false;
+			}
             current_block_address->GetForwardChannel()->SetPipeToNext(pfd[1]);
             pipe_fd_from_previous_block[1] =pfd[0];
 
-            previous_block_address = current_block_address;
-            current_block_address = previous_block_address->GetForwardAddress();
-        }
+			previous_block_address = current_block_address;
+			current_block_address = previous_block_address->GetForwardAddress();
+		}
+	}
 
-
-    }
-
-    // if succesful until now, call each block init to init them and create their threads.
-    // note: threads are not started yet
-    if ((result == true) && (has_first == true) && (has_last ==true))
-    {
+	// if succesful until now, call each block init to init them and create their threads.
+	// note: threads are not started yet
+	if((result == true) && (has_first == true) && (has_last ==true))
+	{
 //uncomment this for pipe association printing
 //        int i=0;
 //end uncomment
-        for(list<Block*>::iterator iter = this->block_list.begin(); (result == true) && (iter !=this->block_list.end()); iter++)
-        {
-
+		for(list<Block*>::iterator iter = this->block_list.begin(); (result == true) && (iter !=this->block_list.end()); iter++)
+		{
+		
 //uncomment this for pipe association printing
 //            i++;
 //          printf("bloc %i \nforward to previous %i - forward to next %i\n",i, (*iter)->GetForwardChannel()->GetPipeToPrevious(),(*iter)->GetForwardChannel()->GetPipeToNext());
@@ -274,81 +272,85 @@ pipe_fd_from_previous_block[1] = -1;
 //            printf("backward from previous %i - backward from next %i\n", (*iter)->GetBackwardChannel()->GetPipeFromPrevious(),(*iter)->GetBackwardChannel()->GetPipeFromNext());
 //end uncomment
 
-            result &= (*iter)->Init();
-        }
+			result &= (*iter)->Init();
+		}
 
-    }
-
-
+	}
 
 
-    return result;
+
+
+	return result;
 }
 
 
 BlockMgr* BlockMgr::GetInstance(void)
 {
-    if ( BlockMgr::singleton == NULL)
-    {
-        BlockMgr::singleton =  new BlockMgr();
+	if(BlockMgr::singleton == NULL)
+	{
+		BlockMgr::singleton =  new BlockMgr();
 
-    }
-    return BlockMgr::singleton;
+	}
+	return BlockMgr::singleton;
 }
 
 void BlockMgr::Kill (void)
 {
-    if (BlockMgr::singleton != NULL)
-    {
-        BlockMgr::singleton = NULL;
-    }
+	if(BlockMgr::singleton != NULL)
+	{
+		BlockMgr::singleton = NULL;
+	}
 }
 
 void BlockMgr::ReportError(pthread_t thread_id, bool critical, string error)
 {
 
-    std::cout<<error<<std::endl;
-    if (critical == true)
-    {
-       BlockMgr::GetInstance()->Stop();
-    }
+	std::cout<<error<<std::endl;
+	if(critical == true)
+	{
+		BlockMgr::GetInstance()->Stop();
+	}
 }
 
 void BlockMgr::Start(void)
 {
-    //start all threads
-    for (list<Block *>::iterator iter= this->block_list.begin(); iter != this->block_list.end();iter++)
-    {
-        (*iter)->Start();
-    }
+	//start all threads
+	for(list<Block *>::iterator iter= this->block_list.begin();
+	    iter != this->block_list.end(); ++iter)
+	{
+		(*iter)->Start();
+	}
 }
 
 void BlockMgr::Pause(void)
 {
-   //puts all threads to sleep
-    for (list<Block *>::iterator iter= this->block_list.begin(); iter != this->block_list.end();iter++)
-    {
+	//puts all threads to sleep
+	for(list<Block *>::iterator iter= this->block_list.begin();
+	    iter != this->block_list.end(); ++iter)
+	{
         (*iter)->Pause();
-    }
+	}
 
 }
 
 void BlockMgr::Resume(void)
 {
-  //wake all threads
-    for (list<Block *>::iterator iter= this->block_list.begin(); iter != this->block_list.end();iter++)
-    {
+	//wake all threads
+	for(list<Block *>::iterator iter= this->block_list.begin();
+	    iter != this->block_list.end(); ++iter)
+	{
         (*iter)->Start();
-    }
+	}
 
 }
 
 BlockMgr::~BlockMgr(void)
 {
-    for(list<Block*>::iterator iter = this->block_list.begin(); iter != this->block_list.end(); iter++)
-    {
-        delete (*iter);
-    }
+	for(list<Block*>::iterator iter = this->block_list.begin();
+	    iter != this->block_list.end(); ++iter)
+	{
+		delete (*iter);
+	}
     delete BlockMgr::singleton;
 }
 

@@ -1,0 +1,29 @@
+2012-12-12 opensand-1.0.0
+
+   * Release 1.0.0
+   * Replace the environment plane with a more efficient version
+   * Add physical layer support
+   * Fix bug #1043813
+   * Fix bug #1076061
+   * Fix bug #1042681
+   * Fix bug #1040664
+   * Fix bug #1044070
+   * Fix bug #1042273
+   * Fix bug #1040625
+   * Fix bug #1045240
+   * Fix bug #1044079
+   * Fix bug #1043832
+   * Fix bug #1042253
+   * Fix bug #1040604
+   * Fix bug #1042724
+   * Fix bug #1042719
+   * Fix bug #1049975
+   * Fix bug #1040610
+   * Fix bug #1040642
+   * Fix bug #1042787
+   * Fix bug #1042655
+   * Add opensand-live
+
+2012-05-22 opensand-0.9.0
+
+   * Initial public release

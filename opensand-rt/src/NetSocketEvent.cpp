@@ -34,38 +34,38 @@
 
 
 NetSocketEvent::NetSocketEvent(int32_t current_fd, uint8_t priority):
-data(NULL),
-size(0)
+	data(NULL),
+	size(0)
 {
     this->input_fd = current_fd;
-    this->priority = priority;
+	this->priority = priority;
     this->event_type = NetSocket;
 }
 
 NetSocketEvent::~NetSocketEvent()
 {
-    // close FD ?
+	// close FD ?
     // close (this->input_fd);
 
-    // delete data
-    if (this->data !=NULL)
-    {
-        delete [] this->data;
-    }
+	// delete data
+	if(this->data !=NULL)
+	{
+		delete [] this->data;
+	}
 }
 
 void NetSocketEvent::SetData(unsigned char *data, uint16_t length)
 {
-    if (this->size > 0)
-    {
-        delete this->data;
-    }
+	if(this->size > 0)
+	{
+		delete this->data;
+	}
 
     if (length <= MAX_DATA_IN_NETSOCKET_EVENT)
     {
         this->data = (unsigned char *)malloc(length + 1);
-        memcpy(this->data, data, length);
-        this->data[length]=0;
+	memcpy(this->data, data, length);
+	this->data[length]=0;
         this->size= length;
     }
     else
