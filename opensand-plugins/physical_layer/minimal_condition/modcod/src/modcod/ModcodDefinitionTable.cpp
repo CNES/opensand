@@ -371,7 +371,7 @@ ModcodDefinition * ModcodDefinitionTable::next(modcod_def_table_pos_t &pos)
 		current = NULL;
 	}
 
-	return NULL;
+	return current;
 }
 
 
