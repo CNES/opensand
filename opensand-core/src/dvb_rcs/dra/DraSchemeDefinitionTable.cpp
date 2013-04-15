@@ -369,7 +369,7 @@ DraSchemeDefinition * DraSchemeDefinitionTable::next(dra_def_table_pos_t &pos)
 		current = NULL;
 	}
 
-	return NULL;
+	return current;
 }
 
 
