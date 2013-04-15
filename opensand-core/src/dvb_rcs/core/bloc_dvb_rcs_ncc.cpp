@@ -193,12 +193,10 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 		{
 			// messages from lower layer: dvb frames
 			T_DVB_META *dvb_meta;
-			long carrier_id;
 			unsigned char *frame;
 			int l_len;
 
 			dvb_meta = (T_DVB_META *) MGL_EVENT_MSG_GET_BODY(event);
-			carrier_id = dvb_meta->carrier_id;
 			frame = (unsigned char *) dvb_meta->hdr;
 			l_len = MGL_EVENT_MSG_GET_BODYLEN(event);
 
@@ -1578,6 +1576,10 @@ int BlocDVBRcsNcc::simulateFile()
 				int ret;
 				// No conversion occured, we simply skip the line
 				ret = fscanf(this->simu_file, "%*s");
+				if ((ret == 0) || (ret == EOF))
+				{
+					goto error;
+				}
 			}
 			UTI_DEBUG_L3("fscanf resul=%d: %s", resul, buffer);
 			//fprintf (stderr, "frame %d\n", this->super_frame_counter);

@@ -135,8 +135,8 @@ int SE_init_error_generator_from_file(char *ip_filename)
 	TS_error_generator *lp_error_generator;
 	FILE *lp_f;
 	int l_ret;
-	int l_cpt;
 	char *lp_char;
+	int l_cpt;
 	int l_val1, l_val2;
 
 	/* Test file */
@@ -164,11 +164,21 @@ int SE_init_error_generator_from_file(char *ip_filename)
 	//l_ret = fscanf(lp_f,"Name=%120s\n", &(lp_error_generator->name));
 	l_ret = fscanf(lp_f, "Name=");
 	lp_char = fgets((char *) &(lp_error_generator->name), 120, lp_f);
+	if (lp_char == NULL)
+	{
+		UTI_INFO("%s Error getting name", FUNCNAME);
+		return 0;	
+	}
+			
 	clean_string(lp_error_generator->name);
 	UTI_INFO("%s Error generator name <%s>\n", FUNCNAME, lp_error_generator->name);
 	lp_error_generator->desc[0] = 0;
 	l_ret = fscanf(lp_f, "Description=");
-	lp_char = fgets((char *) &(lp_error_generator->desc), 498, lp_f);
+	lp_char= fgets((char *) &(lp_error_generator->desc), 498, lp_f);
+	if (lp_char == NULL)
+	{
+		UTI_INFO("%s Error getting desc",FUNCNAME);
+	}
 	clean_string(lp_error_generator->desc);
 	UTI_INFO("%s Error generator description <%s>\n", FUNCNAME,
 	         lp_error_generator->desc);

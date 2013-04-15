@@ -383,10 +383,8 @@ not_connected:
 			unsigned char *dvb_frame;
 			long len;
 			T_DVB_META *dvb_meta;
-			long carrier_id;
 
 			dvb_meta = (T_DVB_META *) MGL_EVENT_MSG_GET_BODY(event);
-			carrier_id = dvb_meta->carrier_id;
 			dvb_frame = (unsigned char *) dvb_meta->hdr;
 			len = MGL_EVENT_MSG_GET_BODYLEN(event);
 
@@ -548,7 +546,6 @@ int BlocDVBRcsTal::initMacFifo(std::vector<std::string>& fifo_types)
 	int fifo_size;
 	string fifo_type;
 	string fifo_cr_type;
-	int highestPrioMacFifoIndex;
 	int pvc;
 	int lastPvc;
 	ConfigurationList fifo_list;
@@ -706,9 +703,6 @@ int BlocDVBRcsTal::initMacFifo(std::vector<std::string>& fifo_types)
 
 	// the default FIFO is the last one = the one with the smallest priority
 	m_defaultFifoIndex = i - 1;
-
-	// the fifo with the highest priority is the first one
-	highestPrioMacFifoIndex = 0;
 
 	// set the number of PVC = the maximum PVC is (first PVC is is 1)
 	m_nbPvc = 0;
@@ -1760,12 +1754,8 @@ int BlocDVBRcsTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 void BlocDVBRcsTal::updateStatsOnFrame()
 {
 	MacFifoStatContext macQStat;
-	DAStatContext *damaStat;
 	int fifoIndex;
 	int ulOutgoingCells = 0;
-
-	// DAMA agent stat
-	damaStat = m_pDamaAgent->getStatsCxt();
 
 	// MAC fifos stats
 	for(fifoIndex = 0; fifoIndex < this->dvb_fifos_number; fifoIndex++)

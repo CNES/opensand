@@ -111,6 +111,10 @@ mgl_status BlocSatCarrier::onEvent(mgl_event *event)
 			UTI_DEBUG("message received from upper layer\n");
 
 			l_ret = m_channelSet.send(lp_ptr->carrier_id, (unsigned char *) (lp_ptr->hdr), l_len);
+			if (l_ret == 0 )
+			{
+				UTI_ERROR("Send didnt work");
+			}
 			g_memory_pool_dvb_rcs.release((char *) (lp_ptr->hdr));
 			g_memory_pool_dvb_rcs.release((char *) lp_ptr);
 		}

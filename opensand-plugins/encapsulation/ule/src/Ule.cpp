@@ -281,8 +281,8 @@ drop:
 bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 {
 	const char *FUNCNAME = "[Ule::Context::deencapUle]";
-	NetPacket *net_packet;
-	UlePacket *ule_packet;
+	NetPacket *net_packet=NULL;
+	UlePacket *ule_packet=NULL;
 	uint16_t ptype;
 	Data payload;
 	// keep the destination spot
@@ -395,7 +395,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	{
 		UTI_ERROR("%s cannot create a %s packet, drop the ULE packet\n",
 		          FUNCNAME, this->current_upper->getName().c_str());
-		goto drop;
+		goto error;
 	}
 
 	// set the destination spot ID

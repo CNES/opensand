@@ -43,7 +43,6 @@ int main()
 	struct ifreq ifr;
 	int fd, err;
     int owner;
-    int group;
 
     struct passwd *pwd;
 
@@ -51,7 +50,6 @@ int main()
 
     pwd = getpwnam("opensand");
     owner = pwd->pw_uid;
-    group = pwd->pw_gid;
 
 	fd = open("/dev/net/tun", O_RDWR);
 	if(fd < 0)
