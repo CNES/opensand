@@ -55,7 +55,8 @@ class HostController:
     """ controller which implements the client that connects in order to get
         program states on distant host and the client that sends command to
         the distant host """
-    def __init__(self, host_model, cache_dir, manager_log):
+    def __init__(self, host_model, manager_log,
+                 cache_dir='/var/cache/sand-daemon/'):
         self._host_model = host_model
         self._log = manager_log
 
