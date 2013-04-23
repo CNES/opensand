@@ -5,8 +5,7 @@ check_PROGRAMS = \
 
 # test programs to run
 TESTS = \
-  test_block \
-  test_multi_blocks
+  test.sh
 
 INCLUDES = -I$(top_srcdir)/src/
 LIBS_COMMON = \

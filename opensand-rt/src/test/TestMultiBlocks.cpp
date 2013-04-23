@@ -87,6 +87,7 @@
 
 using std::ostringstream;
 
+
 static char *read_msg(const MessageEvent *const event, string name, string from)
 {
 	char *data;
