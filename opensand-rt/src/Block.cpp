@@ -24,10 +24,19 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: Block.h,v 1.1.1.1 2013/04/03 11:37:12 cgaillardet Exp $ */
+
+/**
+ * @file Block.cpp
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The block description
+ *
+ */
 
 
 #include "Block.h"
+#include "Channel.h"
+#include "Rt.h"
 
 #include <errno.h>
 #include <cstring>
@@ -36,65 +45,202 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <iostream>
+#include <pthread.h>
+#include <signal.h>
 
-Block::Block(Channel* backward, Channel* forward):
-	backward(backward),
-	forward(forward),
-	previous_block(NULL),
-	next_block(NULL)
+Block::Block(const string &name):
+	name(name),
+	initialized(false)
 {
 #ifdef DEBUG_BLOCK_MUTEX
-    pthread_mutex_init(&(this->mutex),NULL);
+	int ret;
+	ret = pthread_mutex_init(&(this->block_mutex), NULL);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "Mutex initialization failure", ret);
+	}
 #endif
-}
-
-bool Block::Init(void)
-{
-    bool res = true;
-
-#ifdef DEBUG_BLOCK_MUTEX
-   	res = forward->Init(&this->mutex);
-	res = res && backward->Init(&this->mutex);
-#else
-
-	res = forward->Init();
-	res = res && backward->Init();
-#endif
-
-	res = res && forward->CustomInit();
-	res = res && backward->CustomInit();
-
-	return res;
-}
-
-void Block::Pause(void)
-{
-    backward->Pause();
-	forward->Pause();
-}
-
-void Block::Start(void)
-{
-    backward->Start();
-	forward->Start();
-}
-
-void Block::Stop(void)
-{
-	this->~Block();
+	std::cout << "Block " << this->name << ": created" << std::endl;
 }
 
 Block::~Block()
 {
-    if (this->backward != NULL)
+#ifdef DEBUG_BLOCK_MUTEX
+	ret = pthread_mutex_destroy(&(this->block_mutex), NULL);
+	if(ret != 0)
 	{
-        delete this->backward;
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Mutex destroy failure", ret);
+	}
+#endif
+
+	if(this->downward != NULL)
+	{
+		delete this->downward;
 	}
 
-    if (this->forward != NULL)
+	if(this->upward != NULL)
 	{
-        delete this->forward;
+		delete this->upward;
+	}
+}
+
+// TODO remove once onEvent will be specific to channel
+bool Block::sendUp(void *message)
+{
+	return this->upward->enqueueMessage(message);
+}
+
+// TODO remove once onEvent will be specific to channel
+bool Block::sendDown(void *message)
+{
+	return this->downward->enqueueMessage(message);
+}
+
+bool Block::init(void)
+{
+	// specific block initialization
+	if(!this->onInit())
+	{
+		return false;
 	}
 
+	// initialize channels
+	if(!this->upward->init())
+	{
+		return false;
+	}
+	if(!this->downward->init())
+	{
+		return false;
+	}
+	this->initialized = true;
 
+	return true;
+}
+
+bool Block::isInitialized(void)
+{
+	return this->initialized;
+}
+
+bool Block::start(void)
+{
+	int ret;
+	pthread_attr_t attr; // thread attribute
+
+	// set thread detach state attribute to JOINABLE
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	std::cout << "Block " << this->name << ": start upward channel" << std::endl;
+	//create upward thread
+	ret = pthread_create(&(this->up_thread_id), &attr,
+	                     &Upward::startThread, this->upward);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot start upward thread", ret);
+		return false;
+	}
+	std::cout << "Block " << this->name << ": upward channel thread id: "
+	          <<this->up_thread_id << std::endl;
+
+	std::cout << "Block " << this->name << ": start downward channel" << std::endl;
+	//create upward thread
+	ret = pthread_create(&(this->down_thread_id), &attr,
+	                     &Downward::startThread, this->downward);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot downward start thread", ret);
+		return false;
+	}
+	std::cout << "Block " << this->name << ": downward channel thread id: "
+	          <<this->up_thread_id << std::endl;
+	return true;
+}
+
+bool Block::stop(int signal)
+{
+	bool status = true;
+	int ret;
+
+	std::cout << "Block " << this->name << ": stop channels" << std::endl;
+	ret = pthread_kill(this->up_thread_id, signal);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "cannot kill upward thread", ret);
+		status = false;
+	}
+	ret = pthread_kill(this->down_thread_id, signal);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "cannot kill downward thread", ret);
+		status = false;
+	}
+
+	std::cout << "Block " << this->name << ": join channels" << std::endl;
+	ret = pthread_join(this->up_thread_id, NULL);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "cannot join upward thread", ret);
+		status = false;
+	}
+	ret = pthread_join(this->down_thread_id, NULL);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "cannot join downward thread", ret);
+		status = false;
+	}
+	return status;
+}
+
+bool Block::processEvent(const Event *const event, chan_type_t chan)
+{
+	bool ret = false;
+#ifdef DEBUG_BLOCK_MUTEX
+	int err;
+	err = pthread_mutex_lock(&(this->block_mutex));
+	if(err != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Mutex lock failure", err);
+		return false;
+	}
+#endif
+	if(chan == upward_chan)
+	{
+		ret = this->onUpwardEvent(event);
+	}
+	else if(chan == downward_chan)
+	{
+		ret = this->onDownwardEvent(event);
+	}
+#ifdef DEBUG_BLOCK_MUTEX
+	err = pthread_mutex_unlock(&(this->block_mutex));
+	if(err != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Mutex unlock failure", err);
+		return false;
+	}
+#endif
+	return ret;
+}
+
+Channel *Block::getUpwardChannel(void) const
+{
+	return this->upward;
+}
+	
+Channel *Block::getDownwardChannel(void) const
+{
+	return this->downward;
 }

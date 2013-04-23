@@ -24,76 +24,94 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: NetSocketEvent.h,v 1.1.1.1 2013/03/28 16:37:30 cgaillardet Exp $ */
+
+/**
+ * @file NetSocketEvent.h
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The event for message read on network socket, can also be used
+ *         by any fd-like oject such as file
+ *
+ */
 
 
-
-#ifndef NETSOCKETEVENT_H
-#define NETSOCKETEVENT_H
+#ifndef NET_SOCKET_EVENT_H
+#define NET_SOCKET_EVENT_H
 
 #include "Types.h"
+#include "MessageEvent.h"
+
 #include <sys/time.h>
-#include "Event.h"
 
-#define MAX_DATA_IN_NETSOCKET_EVENT 2000
-
+#define MAX_SOCK_SIZE 1500
 
 
 /**
   * @class NetSocketEvent
-  * @brief Class describing a NetSocket event. Inherits from Event
-  *
+  * @brief Events describing data received on a nework socket
   *
   */
-
-class NetSocketEvent:public Event
+class NetSocketEvent: public Event
 {
 
   public:
 
-   /*
-	 * Constructor
+	/**
+	 * @brief NetSocketEvent constructor
 	 *
-     * @param current_fd file descriptor of this event
-     *
-     * @param priority priority of the event, default 0
-     *
+	 * @param name      The name of the event
+	 * @param fd        The file descriptor to monitor for the event
+	 * @param priority  The priority of the event
 	 */
-    NetSocketEvent(int32_t current_fd, uint8_t priority = 8);
+	NetSocketEvent(const string &name,
+	               int32_t fd = -1,
+	               uint8_t priority = 8);
 	~NetSocketEvent();
 
 
-	/*
-	 * SetData data and size setter
+	/**
+	 * @brief Get the message content
 	 *
-	 * @param data pointer to data
-     *
-	 * @param size data length
+	 * @return the data contained in the message
 	 */
-    void SetData(unsigned char *data, uint16_t size);
-
-    /*
-	 * GetData data pointer getter
-	 *
-	 * @return pointer to data
-	 */
-    unsigned char *GetData(){return this->data;};
+	unsigned char *getData() const {return this->data;};
 
 	/*
-	 * GetSize size getter
+	 * @brief Get the size of data in the message
 	 *
-	 * @return data size
+	 * @return the size of data in the message
 	 */
-    uint16_t GetSize(){return this->size;};
+	size_t getSize() const {return this->size;};
 
+	/**
+	 * @brief Set the message content
+	 *
+	 * @param data  The message data
+	 * @param size  The message size
+	 */
+	void setData(unsigned char *data, size_t size)
+	{
+		this->data = data;
+		this->size = size;
+	};
+
+	/**
+	 * @brief Set the message size
+	 *
+	 * @param size  The message size
+	 */
+	void setSize(size_t size)
+	{
+		this->size = size;
+	};
 
   protected:
 
-    /// data pointer
-    unsigned char *data;
+	/// data pointer
+	unsigned char *data;
 
-    /// data size
-    uint16_t size;
+	/// data size
+	size_t size;
 
 
 };

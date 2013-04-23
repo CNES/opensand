@@ -47,13 +47,26 @@ if test "x$fail_on_warning" != "xno"; then
 	WERROR="-Werror"
 fi
 
+AC_DEFINE(ENABLE_TCMALLOC, [0], [use fast and multi-threaded malloc])
+TCMALLOC=""
+AC_ARG_ENABLE(tcmalloc,
+              AS_HELP_STRING([--enable-tcmalloc],
+                             [use fast and multi-threaded malloc [[default=yes]]]),
+              tcmalloc=$enableval,
+              tcmalloc=yes)
+if test "x$tcmalloc" != "xno"; then
+	TCMALLOC="-ltcmalloc"
+	AC_DEFINE(ENABLE_TCMALLOC, [1], [use fast and multi-threaded malloc])
+fi
+
 AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
+AC_SUBST(AM_LDFLAGS, "$AM_LDFLAGS $TCMALLOC -lpthread -lrt")
 
 AM_DEP_TRACK
 
 AC_CONFIG_FILES([Makefile \
                  src/Makefile \
-                 test_runtime/Makefile \
+                 src/test/Makefile \
                  opensand_rt.pc \
                  ])
 

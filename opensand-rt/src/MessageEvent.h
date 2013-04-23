@@ -26,28 +26,65 @@
  */
 
 /**
- * @file NetSocketEvent.cpp
+ * @file MessageEvent.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
+ * @brief  The message events
  *
  */
 
-#include <cstring>
-#include <unistd.h>
+#ifndef MESSAGE_EVENT_H
+#define MESSAGE_EVENT_H
 
-#include "NetSocketEvent.h"
+#include "Event.h"
+
+#include <string>
+
+using std::string;
 
 
-NetSocketEvent::NetSocketEvent(const string &name, int32_t fd, uint8_t priority):
-	Event(evt_net_socket, name, fd, priority),
-	data(NULL),
-	size(0)
+/**
+  * @class MessageEvent
+  * @brief Event describing a message transmitted between blocks
+  *
+  */
+class MessageEvent: public Event
 {
-}
+  public:
 
-NetSocketEvent::~NetSocketEvent()
-{
-}
+	/**
+	 * @brief MessageEvent constructor
+	 *
+	 * @param fd        The file descriptor to monitor for the event
+	 * @param priority  The priority of the event
+	 */
+	MessageEvent(const string &name,
+	             int32_t fd,
+	             uint8_t priority = 6);
 
+	~MessageEvent();
+
+	/**
+	 * @brief Get the message
+	 *
+	 * @return the message
+	 */
+	void *getMessage() const {return this->message;};
+
+
+	/**
+	 * @brief Set the message
+	 *
+	 * @param message  The message
+	 */
+	void setMessage(void *message) {this->message = message;};
+
+
+  protected:
+
+	/// the message
+	void *message;
+
+};
+
+#endif

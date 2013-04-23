@@ -24,7 +24,15 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: Types.h,v 1.1.1.1 2013/03/28 14:47:03 cgaillardet Exp $ */
+
+/**
+ * @file Types.h
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  Types for opensand-rt
+ *
+ */
+
 
 
 #ifndef TYPES_H
@@ -32,14 +40,23 @@
 
 #include <inttypes.h>
 
-/// enum telling what each event is
+
+/// opensand-rt event types
 typedef enum
 {
-    NetSocket,   ///< Event of type NetSocket
-    Timer,       ///< Event of type Timer
-    Message,    ///< Event of type Message
-	Signal      ///< Event of type Signal
-} EventType;
+	evt_net_socket,  ///< Event of type NetSocket
+	evt_timer,       ///< Event of type Timer
+	evt_message,     ///< Event of type Message
+	evt_signal,      ///< Event of type Signal
+} event_type_t;
 
+
+/// the channel direction
+// TODO won't be necessary anymore once everythin will be done in channel
+typedef enum
+{
+	upward_chan,   ///< upward channel
+	downward_chan, ///< downward channel
+} chan_type_t;
 
 #endif

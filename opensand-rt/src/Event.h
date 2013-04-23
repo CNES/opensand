@@ -24,8 +24,14 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: Event.h,v 1.1.1.1 2013/02/04 16:16:54 cgaillardet Exp $ */
 
+/**
+ * @file Event.h
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The generic event
+ *
+ */
 
 
 #ifndef EVENT_H
@@ -41,124 +47,92 @@
 
 using std::string;
 
-
 /**
   * @class Event
   * @brief virtual class that Events are based on
   *
-  *
   */
 class Event
 {
+  public:
 
-public:
-
-
-	/*
-	 * Constructor
+	/**
+	 * @brief Event constructor
 	 *
-	 * @param new_name string containing the name of the event
-	 *
-     * @param new_input_fd file descriptor of this event, default -1
-     *
-     * @param new_priority priority of the event, default 0
+	 * @aram type       The type of event
+	 * @param name      The name of the event
+	 * @param fd        The file descriptor to monitor for the event
+	 * @param priority  The priority of the event
 	 */
-    Event(string new_name="event", int32_t new_input_fd = -1, uint8_t new_priority = 0);
-    virtual ~Event();
+	Event(event_type_t type, const string &name, int32_t fd, uint8_t priority);
+	virtual ~Event();
 
 
-	/*
-	 * GetType
+	/**
+	 * @brief Get the type of the event
 	 *
-	 * @return enum containing the type of event
+	 * @return the type of the event
 	 */
-    EventType GetType(void) {return this->event_type;};
+	event_type_t getType(void) const {return this->type;};
 
-	/*
-	 * GetLifetime
+	/**
+	 * @brief Get the time since event creation
 	 *
-	 * @return timecal containing the currently set event date
+	 * @return the time elapsed since event creation
 	 */
-    timeval GetLifetime(void);
+	timeval getElapsedTime(void) const;
 
-	/*
-	 * GetPriority
+	/**
+	 * @brief Get the event priority
 	 *
-	 * @return event priority
+	 * @return the event priority
 	 */
+	uint8_t getPriority(void) const {return this->priority;};
 
-    uint8_t GetPriority(void) {return this->priority;};
-
-	/*
-	 * SetPriority
+	/**
+	 * @brief Get the event name
 	 *
-	 * @param new_priority new event priority
-	 */
-	void setPriority(uint8_t new_priority){ this->priority = new_priority;};
-
-
-	/*
-	 * SetCreationTime
-	 *
-	 * sets the internal date to the date when this method is called
+	 * @return the event name
 	 *
 	 */
-	void SetCreationTime(void);
+	string getName(void) const {return this->name;};
 
-	/*
-	 * SetName changes the event name
+	/**
+	 * @brief Get the file descriptor on the event
 	 *
-	 * @param new_name
+	 * @return the event file descriptor
+	 */
+	int32_t getFd(void) const {return this->fd;};
+
+	/**
+	 * @brief Update the creation time
 	 *
 	 */
-    void SetName(string new_name) {this->name = new_name;};
+	void setCreationTime(void);
 
+	/// operator < used by sort on events priority
+	bool operator<(const Event *event) const
+	{   
+		return (this->priority < event->priority);
+	}   
+	    
 
-    /*
-	 * GetName name getter
-	 *
-	 * @return event name
-	 *
-	 */
-    string GetName (void) {return this->name;};
+  protected:
 
+	/// type of event, for now Message, Signal, Timer or NetSocket
+	event_type_t type;
 
-    /*
-	 * GetFd fd getter
-	 *
-	 * @return event file descriptor
-	 *
-	 */
-	int32_t GetFd(void) {return this->input_fd;};
-
-    /*
-	 * SetFd fd setter
-	 *
-	 * @param new_fd sets event file descriptor
-	 *
-	 */
-
-	void SetFd(int32_t new_fd) {this->input_fd = new_fd;};
-
-protected:
-
-    /// event name
-    string name;
-
-    /// date, used by default as event creation date
-    timeval time_in;
-
-    /// type of event, for now Message, Signal, Timer or NetSocket
-    EventType event_type;
-
-    /// Event priority
-	uint8_t priority;
+	/// event name
+	const string name;
 
 	/// Event input file descriptor
-    int32_t input_fd;
+	int32_t fd;
 
-private:
+	/// Event priority
+	uint8_t priority;
 
+	/// date, used by default as event creation date
+	timeval creation_time;
 };
 
 #endif

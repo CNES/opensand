@@ -1,0 +1,121 @@
+/*
+ *
+ * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+ * satellite telecommunication system for research and engineering activities.
+ *
+ *
+ * Copyright © 2013 TAS
+ *
+ *
+ * This file is part of the OpenSAND testbed.
+ *
+ *
+ * OpenSAND is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+/**
+ * @file Fifo.h
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The fifo and signaling pipres for opensand-rt
+ *         intra-block messages
+ *
+ */
+
+#ifndef RT_FIFO_H
+#define RT_FIFO_H
+
+#include <queue>
+#include <stdint.h>
+#include <pthread.h>
+
+#define MAGIC_WORD "GO"
+
+using std::queue;
+
+/**
+ * @class Fifo
+ * @brief A fifo between two blocks
+ */
+class Fifo
+{
+  public:
+  
+	/**
+	 * @brief Fifo constructor
+	 *
+	 */
+	Fifo();
+	~Fifo();
+
+	/**
+	 * @brief Initialize the fifo
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool init();
+	
+	/**
+	 * @brief Add a new element in the fifo
+	 * 
+	 * @param the element to add in the fifo
+	 * @return true on success, false otherwise
+	 */
+	bool push(void *message);
+	
+	/**
+	 * @brief Access the first element but do not delete it
+	 * 
+	 * @return the first element
+	 */
+	void *pop(void);
+	
+	/**
+	 * 	@brief Get the file descriptor signaling data
+	 * 	
+	 * 	@return the read end of the pipe for data signaling
+	 */
+	int32_t getSigFd(void) const {return this->r_sig_pipe;};
+
+	/**
+	 * @brief Modify the FIFO size
+	 *
+	 * @param size  The new fifo size
+	 */
+	void resize(size_t size) {this->max_size = size;};
+	
+  private:
+
+	/// the queue
+	queue<const void *> fifo;
+  
+	/// The fifo size
+	size_t max_size;
+	
+	/// The signaling pipe file descriptor for writing operations
+	int32_t w_sig_pipe;
+	
+	/// The signaling pipe file descriptor for reading operations
+	int32_t r_sig_pipe;
+	
+	/// The mutex on fifo access
+	pthread_mutex_t fifo_mutex;
+	
+	/// The mutex for fifo full
+	pthread_mutex_t full_mutex;
+
+};
+
+#endif
+

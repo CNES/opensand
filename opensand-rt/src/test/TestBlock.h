@@ -26,28 +26,36 @@
  */
 
 /**
- * @file NetSocketEvent.cpp
- * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
- *
+ * @file TestBlock.h
+ * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @brief This test check that we can raise a timer on a channel then
+ *        write on a socket that will be monitored by the opposite channel
  */
 
-#include <cstring>
-#include <unistd.h>
+#include "Block.h"
 
-#include "NetSocketEvent.h"
-
-
-NetSocketEvent::NetSocketEvent(const string &name, int32_t fd, uint8_t priority):
-	Event(evt_net_socket, name, fd, priority),
-	data(NULL),
-	size(0)
+class TestBlock: public Block
 {
-}
 
-NetSocketEvent::~NetSocketEvent()
-{
-}
+  public:
+
+	TestBlock(const string &name);
+	~TestBlock();
+	bool onUpwardEvent(const Event *const event);
+	bool onDownwardEvent(const Event *const event);
+	bool onInit(void);
+	
+  protected:
+
+	// for upward
+	uint32_t nbr_timeouts;
+	int32_t output_fd;
+	// for downward
+	int32_t input_fd;
+
+	/// the data written by timer that should be read on socket
+	char last_written[64];
+};
+
+
 

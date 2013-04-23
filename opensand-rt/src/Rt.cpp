@@ -24,50 +24,43 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: MsgEvent.cpp,v 1.1.1.1 2013/04/04 09:12:15 cgaillardet Exp $ */
+
+/**
+ * @file Rt.cpp
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  High level interface for opensand-rt
+ *
+ */
+
+#include "Rt.h"
+
+// Create bloc instance
+BlockManager Rt::manager;
 
 
-#include <cstring> //memcpy
-#include "MsgEvent.h"
-
-#include <cstring> //memcpy
-
-
-MsgEvent::MsgEvent(int32_t new_input_fd, uint8_t new_priority,unsigned char *data, uint16_t size):
-	size(size)
+bool Rt::run(void)
 {
-    this->input_fd= new_input_fd;
-	this->priority = new_priority;
-	if( size > 0 )
+	if(!manager.init())
 	{
-        this->data = (unsigned char *)malloc (size+1);
-		memcpy(this->data, data, size);
-		this->data[size] = 0;
+		return false;
 	}
-	else
+	if(!manager.start())
 	{
-		this->data = NULL;
+		return false;
 	}
-	this->event_type= Message;
+	manager.wait();
+
+	return manager.getStatus();
 }
 
-
-void MsgEvent::SetData(unsigned char *data, uint16_t length)
+void Rt::stop(int signal)
 {
-	if(this->size > 0)
-	{
-		delete this->data;
-	}
-	this->data = (unsigned char *)malloc(length + 1);
-	memcpy(this->data, data, length);
-	this->data[length]=0;
-
-	this->size = length;
+	manager.stop(signal);
 }
 
-
-MsgEvent::~MsgEvent()
+void Rt::reportError(const string &name, pthread_t thread_id,
+                     bool critical, string error, int val)
 {
-	delete[] this->data;
+	manager.reportError(name, thread_id, critical, error, val);
 }
-

@@ -24,8 +24,14 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: SignalEvent.h,v 1.1.1.1 2013/04/08 10:20:15 cgaillardet Exp $ */
 
+/**
+ * @file SignalEvent.h
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The signal event
+ *
+ */
 
 
 #ifndef SIGNALEVENT_H
@@ -39,76 +45,47 @@
 
 /**
   * @class SignalEvent
-  * @brief Class describing a Signal event. Inherits from Event
-  *
-  *
+  * @brief Event decribing a sighandlers on block
   */
-
-class SignalEvent:public Event
+class SignalEvent: public Event
 {
 
   public:
- /*
-	 * Constructor
+	/**
+	 * @brief Event constructor
 	 *
-     * @param signal_mask sigset_t containing signal(s) triggering this event
-     *
-     * @param new_priority priority of the event, default 0
-     *
+	 * @param name         The signal name
+	 * @param signal_mask  Sigset_t containing signal(s) triggering this event
+	 * @param priority     The priority of the event
 	 */
-	SignalEvent(sigset_t signal_mask, uint8_t new_priority=2);
+	SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 2);
 	~SignalEvent(void);
 
-
-   /*
-	 * Enable setter for enabled boolean
+	/**
+	 * @brief Set signal information
 	 *
-	 * allows the event to trigger
+	 * @param data  The signal information
+	 * @param size  The data length
 	 */
-	void Enable(void){this->enabled = true;};
-
-   /*
-	 * Disable setter for enabled boolean
-	 *
-	 * disable the event
-	 */
-	void Disable(void){this->enabled = false;};
-
-    /*
-     * IsActive Getter for enabled boolean
-	 *
-	 * @return true if enabled, false otherwise
-	 */
-	bool IsActive(void) { return this->enabled;};
-
-
+	void setSignalInfo(signalfd_siginfo info) {this->sig_info = info;};
 
 	/*
-	 * SetData sig_info setter
+	 * @brief Get triggered signal information
 	 *
-	 * @param data pointer to data
-     *
-	 * @param size data length
+	 * @return the information on the triggered signal
 	 */
-    void SetData(unsigned char *data, int32_t size);
-
-    /*
-	 * GetTriggerInfo triggered signal info getter
-	 *
-	 * @return infos on the triggered signal
-	 */
-    signalfd_siginfo GetTriggerInfo (void) { return this->sig_info;};
+	signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
 
   protected:
 
-    /// contains the signal(s) to trigger this event
+	/// The signal(s) to trigger this event
 	sigset_t mask;
-	/// contains the infos that come when a signal triggers the event
+	/// The information that come when a signal triggers the event
 	signalfd_siginfo sig_info;
 
-    /// enable or disable even monitoring
+// TODO usefull ??
+	/// enable or disable even monitoring
 	bool enabled;
-
 
 };
 

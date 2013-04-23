@@ -24,40 +24,46 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: Event.cpp,v 1.1.1.1 2013/04/04 11:00:02 cgaillardet Exp $ */
 
-#include <cstdlib> // abs, null
+/**
+ * @file Event.cpp
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The generic event
+ *
+ */
 
+#include <cstdlib>
 
 #include "Event.h"
 
-Event::Event(string new_name, int32_t new_input_fd,uint8_t new_priority):
-name(new_name),
-priority(new_priority),
-input_fd(new_input_fd)
+Event::Event(event_type_t type, const string &name, int32_t fd, uint8_t priority):
+	type(type),
+	name(name),
+	fd(fd),
+	priority(priority)
 {
-	this->SetCreationTime();
+	this->setCreationTime();
 }
-
-void Event::SetCreationTime(void)
-{
-	gettimeofday(&this->time_in,NULL);
-}
-
-timeval Event::GetLifetime()
-{
-	timeval res;
-	timeval current;
-	gettimeofday(&current,NULL);
-
-	res.tv_sec = abs(current.tv_sec - this->time_in.tv_sec) ;
-	res.tv_usec = abs(current.tv_usec - this->time_in.tv_usec);
-	return res;
-}
-
 
 Event::~Event()
 {
-
-
+	close(this->fd);
 }
+
+void Event::setCreationTime(void)
+{
+	gettimeofday(&this->creation_time, NULL);
+}
+
+timeval Event::getElapsedTime() const
+{
+	timeval res;
+	timeval current;
+	gettimeofday(&current, NULL);
+
+	res.tv_sec = abs(current.tv_sec - this->creation_time.tv_sec) ;
+	res.tv_usec = abs(current.tv_usec - this->creation_time.tv_usec);
+	return res;
+}
+

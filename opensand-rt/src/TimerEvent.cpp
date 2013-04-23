@@ -24,69 +24,68 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: TimerEvent.cpp,v 1.1.1.1 2013/04/04 11:26:39 cgaillardet Exp $ */
 
+/**
+ * @file TimerEvent.cpp
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The timer event
+ *
+ */
 
 #include "TimerEvent.h"
 
 #include <sys/timerfd.h>
 #include <unistd.h>
 
-TimerEvent::TimerEvent(uint32_t timer_duration_ms,
-                       uint8_t new_priority,
+TimerEvent::TimerEvent(const string &name,
+                       uint32_t timer_duration_ms,
                        bool auto_rearm,
-                       bool start):
+                       bool start,
+                       uint8_t priority):
+	Event(evt_timer, name, -1, priority),
 	duration_ms(timer_duration_ms),
 	enabled(start),
 	auto_rearm(auto_rearm)
 {
-    this->event_type = Timer;
-    this->enabled = start;
+	this->fd = timerfd_create(CLOCK_MONOTONIC, 0);
 
-    this->input_fd = timerfd_create(CLOCK_MONOTONIC,0);
-
-	if  (this->enabled ==true)
+	if(this->enabled)
 	{
-		this->Start();
+		this->start();
 	}
-
-	this->last_time_out.tv_sec = 0;
-	this->last_time_out.tv_usec = 0;
-	this->priority = new_priority;
 }
-
 
 TimerEvent::~TimerEvent(void)
 {
-    close(this->input_fd);
 }
 
-void TimerEvent::Start(void)
+void TimerEvent::start(void)
 {
 	itimerspec timer_value;
 	this->enabled = true;
 
-	//non periodic
+	// non periodic
 	timer_value.it_interval.tv_nsec = 0;
 	timer_value.it_interval.tv_sec = 0;
 
 	//set value
 	if(this->duration_ms < 1000)
 	{
-		timer_value.it_value.tv_nsec = this->duration_ms *1000000;
+		timer_value.it_value.tv_nsec = this->duration_ms * 1000000;
 		timer_value.it_value.tv_sec = 0;
 	}
 	else
 	{
-		timer_value.it_value.tv_nsec = (this->duration_ms % 1000)*1000000 ;
+		timer_value.it_value.tv_nsec = (this->duration_ms % 1000) * 1000000 ;
 		timer_value.it_value.tv_sec = this->duration_ms / 1000;
 	}
 	//start timer
-    timerfd_settime(this->input_fd,0,&timer_value,NULL);
+	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 
 
-void TimerEvent::Disable(void)
+void TimerEvent::disable(void)
 {
 	itimerspec timer_value;
 	this->enabled = false;
@@ -98,6 +97,6 @@ void TimerEvent::Disable(void)
 	timer_value.it_value.tv_sec = 0;
 
 	//stop timer
-    timerfd_settime(this->input_fd,0,&timer_value,NULL);
+	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 

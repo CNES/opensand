@@ -26,28 +26,23 @@
  */
 
 /**
- * @file NetSocketEvent.cpp
+ * @file MessageEvent.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
+ * @brief  The message event
  *
  */
 
-#include <cstring>
-#include <unistd.h>
-
-#include "NetSocketEvent.h"
+#include "MessageEvent.h"
 
 
-NetSocketEvent::NetSocketEvent(const string &name, int32_t fd, uint8_t priority):
-	Event(evt_net_socket, name, fd, priority),
-	data(NULL),
-	size(0)
+MessageEvent::MessageEvent(const string &name, int32_t fd, uint8_t priority):
+	Event(evt_message, name, fd, priority)
 {
 }
 
-NetSocketEvent::~NetSocketEvent()
+
+MessageEvent::~MessageEvent()
 {
 }
 

@@ -24,39 +24,41 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: SignalEvent.cpp,v 1.1.1.1 2013/04/08 9:10:31 cgaillardet Exp $ */
 
+/**
+ * @file SignalEvent.cpp
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The signal event
+ *
+ */
 
-#include <signal.h> //sigprocmask
 #include "SignalEvent.h"
-#include "BlockMgr.h"
+#include "Rt.h"
+
+#include <signal.h>
 #include <cstring>
 #include <unistd.h>
 
 
-SignalEvent::SignalEvent(sigset_t signalMask, uint8_t new_priority)
+SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority):
+	Event(evt_signal, name, -1, priority),
+	mask(signal_mask)
 {
-	this->mask = signalMask;
-    this->input_fd = signalfd(-1, &(this->mask),0);
-	this->event_type = Signal;
-	this->priority = new_priority;
+	int ret;
+	this->fd = signalfd(-1, &(this->mask), 0);
 
- 	//block the signal(s) so only our handler gets it
- 	if (pthread_sigmask(SIG_BLOCK, &this->mask, NULL) < 0)
+	// block the signal(s) so only our handler gets it
+	ret = pthread_sigmask(SIG_BLOCK, &this->mask, NULL);
+	if(ret != 0)
 	{
-	    ::BlockMgr::GetInstance()->ReportError(pthread_self(),true,"Cannot block signal\n");
+		Rt::reportError("signal constructor", pthread_self(),
+		                true, "Cannot block signal", ret);
 	}
-}
-
-
-
-void SignalEvent::SetData(unsigned char *data, int32_t size) //converts data into signalfd_siginfo
-{
-	//converts data into signalfd_siginfo
-	memcpy(&(this->sig_info), data, size);
 }
 
 SignalEvent::~SignalEvent(void)
 {
-    close(this->input_fd);
 }
+
+

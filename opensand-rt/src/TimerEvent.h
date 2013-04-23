@@ -24,93 +24,97 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
-/* $Id: TimerEvent.h,v 1.1.1.1 2013/03/28 14:52:35 cgaillardet Exp $ */
 
+/**
+ * @file TimerEvent.h
+ * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
+ * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @brief  The timer event
+ *
+ */
 
 
 #ifndef TIMEREVENT_H
 #define TIMEREVENT_H
 
 #include "Types.h"
-#include <sys/time.h>
 #include "Event.h"
 
+#include <sys/time.h>
 
 
 /**
   * @class TimerEvent
-  * @brief Class describing a Timer event. Inherits from Event
-  *
+  * @brief Event describing a timer
   *
   */
-
-class TimerEvent:public Event
+class TimerEvent: public Event
 {
 
   public:
 
-    /*
-	 * Constructor
+	/**
+	 * @brief TimerEvent constructor
 	 *
-     * @param timer_duration_ms timer duration in milliseconds
-     *
-     * @param new_priority priority of the event, default 4
-     *
-     * @param auto_rearm tells if timer is automatically launched again when triggered
-     *
-     * @param start default state, when start the timer starts
+	 * @param name               The event name
+	 * @param timer_duration_ms  The timer duration (in ms)
+	 * @param auto_rearm         Whether the timer is automatically launched again
+	 *                           when triggered
+	 * @param start              default state when created
+	 * @param priority           The priority of the event
 	 */
-    TimerEvent(uint32_t timer_duration_ms, uint8_t new_priority= 4, bool auto_rearm = false, bool start= true);
-    ~TimerEvent(void);
+	TimerEvent(const string &name,
+	           uint32_t timer_duration_ms,
+	           bool auto_rearm = false,
+	           bool start = true,
+	           uint8_t priority = 4);
+	~TimerEvent(void);
 
 
-    /*
-	 * Start starts the timer
+	/**
+	 * @brief Start the timer
+	 */
+	void start(void);
+
+	/**
+	 * @brief Disable the timer
 	 *
 	 */
-	void Start(void);
+	void disable(void);
 
-    /*
-	 * Disable disable the timer
-	 *
-	 */
-	void Disable(void);
-
-   /*
-	 * IsAutoRearm Getter for auto_rearm
+	/**
+	 * @brief Check if timer is auto-rearmed
 	 *
 	 * @return true if timer has to be rearmed automatically, false otherwise
 	 */
-	bool IsAutoRearm(void) { return this->auto_rearm;};
+	bool isAutoRearm(void) {return this->auto_rearm;};
 
-   /*
-	 * IsRunning Getter for enabled
+	/*
+	 * @brief Check if timer is enabled
 	 *
-	 * @return true if timer is enabled (running), false otherwise
+	 * @return true if timer is enabled, false otherwise
 	 */
-	bool IsRunning(void) { return this->enabled;};
+	bool isEnabled(void) {return this->enabled;};
 
 
-     /*
-	 * GetDuration Getter for duration_ms
+	/**
+	 * @brief Get the timer duration
 	 *
-	 * @return timer duration
+	 * @return the timer duration (in ms)
 	 */
-	uint32_t GetDuration(void) {return duration_ms;};
+	uint32_t getDuration(void) {return this->duration_ms;};
 
 
   protected:
 
-    /// timer duration in milliseconds
+	/// Timer duration in milliseconds
 	uint32_t duration_ms;
 
-    /// boolean enabling this timer
-    bool enabled;
-    /// boolean telling if the timer is rearmed automatically or not
-	bool auto_rearm;
+	/// Whether the timer is enabled
+	bool enabled;
 
-    /// date of last time the timer was triggered
-	timeval last_time_out;
+	/// Whether the timer is rearmed automatically or not
+	bool auto_rearm;
 
 
 };
