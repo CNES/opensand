@@ -113,6 +113,8 @@ class Block
 
 	/**
 	 * @brief Send a message to upper block
+	 * @warning The message shall not be reused in the block after this call
+	 *          because will be used in upper blocks
 	 *
 	 * @param message  The message to send to upper block
 	 * @return true on success, false otherwise
@@ -121,8 +123,12 @@ class Block
 
 	/**
 	 * @brief Send a message to lower block
+	 * @warning The message shall not be reused in the block after this call
+	 *          because will be used in upper blocks
+	 *          TODO find a way to prevent that
 	 *
-	 * @param message  The message to send to lower block
+	 * @param message  IN: The message to send to lower block
+	 *                 OUT: NULL
 	 * @return true on success, false otherwise
 	 */
 	bool sendDown(void *message);

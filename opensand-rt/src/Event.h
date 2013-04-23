@@ -103,6 +103,13 @@ class Event
 	 * @return the event file descriptor
 	 */
 	int32_t getFd(void) const {return this->fd;};
+	
+	/**
+	 * @brief This event was received, handle it
+	 * 
+	 * @return true on success, false otherwise
+	 */
+	virtual bool handle(void) = 0;
 
 	/**
 	 * @brief Update the creation time

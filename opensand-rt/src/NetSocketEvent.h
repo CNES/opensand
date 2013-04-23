@@ -74,7 +74,7 @@ class NetSocketEvent: public Event
 	 *
 	 * @return the data contained in the message
 	 */
-	unsigned char *getData() const {return this->data;};
+	const unsigned char *getData() const {return this->data;};
 
 	/*
 	 * @brief Get the size of data in the message
@@ -83,32 +83,12 @@ class NetSocketEvent: public Event
 	 */
 	size_t getSize() const {return this->size;};
 
-	/**
-	 * @brief Set the message content
-	 *
-	 * @param data  The message data
-	 * @param size  The message size
-	 */
-	void setData(unsigned char *data, size_t size)
-	{
-		this->data = data;
-		this->size = size;
-	};
-
-	/**
-	 * @brief Set the message size
-	 *
-	 * @param size  The message size
-	 */
-	void setSize(size_t size)
-	{
-		this->size = size;
-	};
+	virtual bool handle(void);
 
   protected:
 
 	/// data pointer
-	unsigned char *data;
+	unsigned char data[MAX_SOCK_SIZE];
 
 	/// data size
 	size_t size;

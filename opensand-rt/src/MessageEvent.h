@@ -37,6 +37,7 @@
 #define MESSAGE_EVENT_H
 
 #include "Event.h"
+#include "Fifo.h"
 
 #include <string>
 
@@ -55,10 +56,13 @@ class MessageEvent: public Event
 	/**
 	 * @brief MessageEvent constructor
 	 *
+	 * @param fifo      The signaling fifo
+	 * @param name      The event name
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	MessageEvent(const string &name,
+	MessageEvent(Fifo *const fifo,
+	             const string &name,
 	             int32_t fd,
 	             uint8_t priority = 6);
 
@@ -72,18 +76,15 @@ class MessageEvent: public Event
 	void *getMessage() const {return this->message;};
 
 
-	/**
-	 * @brief Set the message
-	 *
-	 * @param message  The message
-	 */
-	void setMessage(void *message) {this->message = message;};
-
+	virtual bool handle(void);
 
   protected:
 
 	/// the message
 	void *message;
+
+	/// the fifo
+	Fifo *const fifo;
 
 };
 

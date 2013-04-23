@@ -65,7 +65,7 @@ void TimerEvent::start(void)
 	itimerspec timer_value;
 	this->enabled = true;
 
-	// non periodic
+	// non periodic, restart manually to avoid more than one timer expiration
 	timer_value.it_interval.tv_nsec = 0;
 	timer_value.it_interval.tv_sec = 0;
 
@@ -100,3 +100,17 @@ void TimerEvent::disable(void)
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 
+bool TimerEvent::handle(void)
+{
+	// auto rearm ? if so rearm
+	if(this->auto_rearm)
+	{
+		this->start();
+	}
+	else
+	{
+		//no auto rearm: disable
+		this->disable();
+	}
+	return true;
+}

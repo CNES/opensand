@@ -251,45 +251,6 @@ class Channel
 	void addInputFd(int32_t fd);
 
 	/**
-	 * @brief handle a signal event
-	 *
-	 * @param the event
-	 * @return true on success, false otherwise
-	 */
-	bool handleSignalEvent(SignalEvent *event);
-
-	/**
-	 * @brief handle a signal event
-	 *
-	 * @param the event
-	 * @return true on success, false otherwise
-	 */
-	bool handleTimerEvent(TimerEvent *event);
-
-	/**
-	 * @brief handle a signal event
-	 *
-	 * @param the event
-	 * @return true on success, false otherwise
-	 */
-	bool handleMessageEvent(MessageEvent *event);
-
-	/**
-	 * @brief handle a signal event
-	 *
-	 * @param the event
-	 * @return true on success, false otherwise
-	 */
-	bool handleNetSocketEvent(NetSocketEvent *event);
-
-	/**
-	 * @brief handle a signal event
-	 *
-	 * @param the event
-	 */
-	void handleUnknownEvent(Event *event);
-
-	/**
 	 * @param Process an event
 	 *
 	 * @param event  The event

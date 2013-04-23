@@ -82,13 +82,6 @@ class TimerEvent: public Event
 	 */
 	void disable(void);
 
-	/**
-	 * @brief Check if timer is auto-rearmed
-	 *
-	 * @return true if timer has to be rearmed automatically, false otherwise
-	 */
-	bool isAutoRearm(void) {return this->auto_rearm;};
-
 	/*
 	 * @brief Check if timer is enabled
 	 *
@@ -104,6 +97,7 @@ class TimerEvent: public Event
 	 */
 	uint32_t getDuration(void) {return this->duration_ms;};
 
+	virtual bool handle(void);
 
   protected:
 

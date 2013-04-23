@@ -34,10 +34,18 @@
  */
 
 #include "MessageEvent.h"
+#include "Rt.h"
+
+#include <cstring>
+#include <errno.h>
 
 
-MessageEvent::MessageEvent(const string &name, int32_t fd, uint8_t priority):
-	Event(evt_message, name, fd, priority)
+MessageEvent::MessageEvent(Fifo *const fifo,
+                           const string &name,
+                           int32_t fd,
+                           uint8_t priority):
+	Event(evt_message, name, fd, priority),
+	fifo(fifo)
 {
 }
 
@@ -46,3 +54,26 @@ MessageEvent::~MessageEvent()
 {
 }
 
+bool MessageEvent::handle(void)
+{
+	unsigned char data[strlen(MAGIC_WORD)];
+	int rlen;
+
+	// read the pipe to clear it, and check that if contains
+	// the correct signaling
+	rlen = read(this->fd, data, strlen(MAGIC_WORD));
+	if(rlen != strlen(MAGIC_WORD) ||
+	   strncmp((char *)data, MAGIC_WORD, strlen(MAGIC_WORD)) != 0)
+	{
+		string error;
+		error = "pipe signaling message from previous block contain wrong data";
+		Rt::reportError(this->name, pthread_self(), false,
+		                error, ((rlen < 0) ? errno : 0));
+		return false;
+	}
+
+	// set the event content
+	this->message = this->fifo->pop();
+	return true;
+
+}

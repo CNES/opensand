@@ -53,7 +53,7 @@ class TopBlock: public Block
   protected:
 
     int32_t input_fd;
-    char last_written[MAX_SOCK_SIZE];
+    char last_written[MAX_SOCK_SIZE + 1];
 
 };
 

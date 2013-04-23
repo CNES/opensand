@@ -152,11 +152,22 @@ bool TopBlock::onDownwardEvent(const Event *const event)
 				kill(getpid(), SIGTERM);
 				break;
 			}
-			data = (char *)calloc(sizeof(char), size);
+			data = (char *)calloc(sizeof(char), size + 1);
 			memcpy(data, ((NetSocketEvent *)event)->getData(), size);
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
+			if(strlen(data) > MAX_SOCK_SIZE)
+			{
+				error << "Block " << this->name << ": too many data received";
+				Rt::reportError(this->name, pthread_self(), true, error.str());
+			}
+			// keep data in order to compare on the opposite block
+			strncpy(this->last_written, data, std::max((int)strlen(data), MAX_SOCK_SIZE) + 1);
+			// wait in order to receive data on the opposite block and compare it
+			// this also allow testing multithreading as this thread is paused
+			// while other should handle the data
+
 			          
 			// transmit to lower layer
 			if(!this->sendDown(data))
@@ -165,11 +176,6 @@ bool TopBlock::onDownwardEvent(const Event *const event)
 				      << "to lower block" << std::endl;
 				Rt::reportError(this->name, pthread_self(), true, error.str());
 			}
-			// keep data in order to compare on the opposite block
-			memcpy(this->last_written, data, std::max((int)strlen(data), MAX_SOCK_SIZE));
-			// wait in order to receive data on the opposite block and compare it
-			// this also allow testing multithreading as this thread is paused
-			// while other should handle the data
 			sleep(1);
 			break;
 
@@ -193,7 +199,9 @@ bool TopBlock::onUpwardEvent(const Event *const event)
 	if(strcmp(data, this->last_written))
 	{
 		ostringstream error;
-		error << "Block " << this->name << ": wrong data received";
+		error << "Block " << this->name << ": wrong data received"
+		      << "'" << data << "' instead of '" << this->last_written
+		      << "'";
 		Rt::reportError(this->name, pthread_self(), true, error.str());
 		free(data);
 		return false;
@@ -325,7 +333,7 @@ bool BottomBlock::onUpwardEvent(const Event *const event)
 	{
 		case evt_net_socket:
 			size = ((NetSocketEvent *)event)->getSize();
-			data = (char *)calloc(sizeof(char), size);
+			data = (char *)calloc(sizeof(char), size + 1);
 			memcpy(data, ((NetSocketEvent *)event)->getData(), size);
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;

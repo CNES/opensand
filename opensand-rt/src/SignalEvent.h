@@ -61,14 +61,6 @@ class SignalEvent: public Event
 	SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 2);
 	~SignalEvent(void);
 
-	/**
-	 * @brief Set signal information
-	 *
-	 * @param data  The signal information
-	 * @param size  The data length
-	 */
-	void setSignalInfo(signalfd_siginfo info) {this->sig_info = info;};
-
 	/*
 	 * @brief Get triggered signal information
 	 *
@@ -76,17 +68,14 @@ class SignalEvent: public Event
 	 */
 	signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
 
+	virtual bool handle(void);
+
   protected:
 
 	/// The signal(s) to trigger this event
 	sigset_t mask;
 	/// The information that come when a signal triggers the event
 	signalfd_siginfo sig_info;
-
-// TODO usefull ??
-	/// enable or disable even monitoring
-	bool enabled;
-
 };
 
 #endif

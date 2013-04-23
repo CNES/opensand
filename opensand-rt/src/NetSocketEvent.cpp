@@ -34,15 +34,16 @@
  *
  */
 
+#include "NetSocketEvent.h"
+#include "Rt.h"
+
 #include <cstring>
 #include <unistd.h>
-
-#include "NetSocketEvent.h"
+#include <errno.h>
 
 
 NetSocketEvent::NetSocketEvent(const string &name, int32_t fd, uint8_t priority):
 	Event(evt_net_socket, name, fd, priority),
-	data(NULL),
 	size(0)
 {
 }
@@ -51,3 +52,15 @@ NetSocketEvent::~NetSocketEvent()
 {
 }
 
+bool NetSocketEvent::handle(void)
+{
+	this->size = read(this->fd, this->data, MAX_SOCK_SIZE);
+	if(this->size < 0)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "unable to read on socket", errno);
+		return false;
+	}
+
+	return true;
+}

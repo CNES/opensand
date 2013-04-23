@@ -39,6 +39,7 @@
 #include <signal.h>
 #include <cstring>
 #include <unistd.h>
+#include <errno.h>
 
 
 SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority):
@@ -61,4 +62,17 @@ SignalEvent::~SignalEvent(void)
 {
 }
 
+bool SignalEvent::handle(void)
+{
+	int rlen;
 
+	// signal structure size is constant
+	rlen = read(this->fd, &this->sig_info, sizeof(struct signalfd_siginfo));
+	if(rlen != sizeof(struct signalfd_siginfo))
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot read signal", ((rlen < 0) ? errno : 0));
+		return false;
+	}
+	return true;
+}

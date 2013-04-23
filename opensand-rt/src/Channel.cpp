@@ -191,7 +191,8 @@ void Channel::addMessageEvent(uint8_t priority)
 		name = "upward";
 	}
 
-	MessageEvent *event = new MessageEvent(name, this->fifo->getSigFd(),
+	MessageEvent *event = new MessageEvent(this->fifo, name,
+	                                       this->fifo->getSigFd(),
 	                                       priority);
 	if(!event)
 	{
@@ -267,47 +268,28 @@ void Channel::executeThread(void)
 			handled++;
 
 			// fd is set
-			switch((*iter)->getType())
+			if(!(*iter)->handle())
 			{
-				case evt_signal:
-					if(!this->handleSignalEvent((SignalEvent *)*(iter)))
-					{
-						// this is the only case where it is critical as
-						// stop event is a signal
-						std::cout << "Channel " << this->chan
-						          << ": stop after signal event" << std::endl;
-						pthread_exit(0);
-					}
-					priority_sorted_events.push_back(*iter);
-					break;
-
-				case evt_timer:
-					if(!this->handleTimerEvent((TimerEvent *)(*iter)))
-					{
-						continue;
-					}
-					priority_sorted_events.push_back(*iter);
-					break;
-
-				case evt_message:
-					if(!this->handleMessageEvent((MessageEvent *)(*iter)))
-					{
-						continue;
-					}
-					priority_sorted_events.push_back(*iter);
-					break;
-
-				case evt_net_socket:
-					if(!this->handleNetSocketEvent((NetSocketEvent *)(*iter)))
-					{
-						continue;
-					}
-					priority_sorted_events.push_back(*iter);
-					break;
-
-				// TODO custom !
-				default:
-					this->handleUnknownEvent(*iter);
+				if((*iter)->getType() == evt_signal)
+				{
+					// this is the only case where it is critical as
+					// stop event is a signal
+					this->reportError(true, "unable to handle signal event"); 
+					pthread_exit(NULL);
+				}
+				this->reportError(false, "unable to handle event");
+				// ignore this event
+				continue;
+			}
+			priority_sorted_events.push_back(*iter);
+			if(this->stop_fd == (*iter)->getFd())
+			{
+				// we have to stop
+				std::cout << "Channel " << this->chan
+				          << ": stop signal received: "
+				          << ((SignalEvent *)(*iter))->getTriggerInfo().ssi_signo
+				          << std::endl;
+				pthread_exit(NULL);
 			}
 		}
 		// sort the list according to priority
@@ -322,108 +304,6 @@ void Channel::executeThread(void)
 			this->processEvent(*iter);
 		}
 	}
-}
-
-
-bool Channel::handleSignalEvent(SignalEvent *event)
-{
-	struct signalfd_siginfo info;
-	int rlen;
-
-	// signal structure size is constant
-	rlen = read(event->getFd(), &info, sizeof(struct signalfd_siginfo));
-	if(rlen != sizeof(struct signalfd_siginfo))
-	{
-		this->reportError(true, "cannot read signal", ((rlen < 0) ? errno : 0));
-		return false;
-	}
-	if(this->stop_fd == event->getFd())
-	{
-		// we have to stop
-		std::cout << "Channel " << this->chan
-		          << ": stop signal received: " << info.ssi_signo <<  std::endl;
-		return false;
-	}
-	event->setSignalInfo(info);
-	return true;
-}
-
-bool Channel::handleTimerEvent(TimerEvent *event)
-{
-	// auto rearm ? if so rearm
-	// TODO is it not automatic ?
-	if(event->isAutoRearm())
-	{
-		event->start();
-	}
-	else
-	{
-		//no auto rearm: disable
-		event->disable();
-	}
-	return true;
-}
-
-
-bool Channel::handleMessageEvent(MessageEvent *event)
-{
-	unsigned char data[strlen(MAGIC_WORD)];
-	int ret;
-
-	// read the pipe to clear it, and check that if contains
-	// the correct signaling
-	ret = read(event->getFd(), // <=> this->fifo->getFd()
-	            data,
-	            strlen(MAGIC_WORD));
-	if(ret != strlen(MAGIC_WORD) ||
-	   strncmp((char *)data, MAGIC_WORD, strlen(MAGIC_WORD)) != 0)
-	{
-		ostringstream error;
-		error << "pipe signaling message from previous block contain wrong data: "
-		      << data;
-		this->reportError(false, error.str(), ((ret < 0) ? errno : 0));
-		return false;
-	}
-
-	// set the event content
-	event->setMessage(this->fifo->pop());
-	return true;
-}
-
-
-bool Channel::handleNetSocketEvent(NetSocketEvent *event)
-{
-	unsigned char data[MAX_SOCK_SIZE];
-	size_t size;
-
-	size = read(event->getFd(), data, MAX_SOCK_SIZE);
-	if(size < 0)
-	{
-		ostringstream error;
-		this->reportError(false, "unable to read on socket", errno);
-		return false;
-	}
-	event->setData(data, size);
-
-	return true;
-}
-
-void Channel::handleUnknownEvent(Event *event)
-{
-	ostringstream error;
-	char data[MAX_SOCK_SIZE + 1];
-	size_t size;
-
-	size = read(event->getFd(), data, MAX_SOCK_SIZE);
-	if(size < 0)
-	{
-		this->reportError(false, "unable to read unknown event", errno);
-		return;
-	}
-	data[size] = '\0';
-	error << "unknown event received: name = " << event->getName()
-	      << " data = " << data;
-	this->reportError(false, error.str());
 }
 
 void Channel::reportError(bool critical, string error, int val)
