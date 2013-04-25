@@ -154,5 +154,5 @@ opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modc
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-manager/
 opensand-plugins/physical_layer/minimal_condition/modcod/debian/tmp
 opensand-output/src/test_output
-opensand-rt/src/test/test_3_blocks
-opensand-rt/src/test/test_single_block
+opensand-rt/src/test/test_block
+opensand-rt/src/test/test_multi_blocks
