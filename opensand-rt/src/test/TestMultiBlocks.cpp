@@ -168,7 +168,7 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 
 			          
 			// transmit to lower layer
-			if(!this->sendDown((unsigned char **)&data), strlen(data))
+			if(!this->sendDown((void **)&data), strlen(data))
 			{
 				Rt::reportError(this->name, pthread_self(), true,
 				                "cannot send data to lower block");
@@ -235,7 +235,7 @@ bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
 	}
 
 	// transmit to upper layer
-	if(!this->sendUp((unsigned char **)&data), strlen(data))
+	if(!this->sendUp((void **)&data), strlen(data))
 	{
 		Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 	}
@@ -251,7 +251,7 @@ bool MiddleBlock::onDownwardEvent(const RtEvent *const event)
 	}
 
 	// transmit to lower layer
-	if(!this->sendDown((unsigned char **)(&data), strlen(data)))
+	if(!this->sendDown((void **)(&data), strlen(data)))
 	{
 		Rt::reportError(this->name, pthread_self(), true, "cannot send data to lower block");
 	}
@@ -328,7 +328,7 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 			fflush(stdout);
 			          
 			// transmit to upper layer
-			if(!this->sendUp((unsigned char **)&data), strlen(data))
+			if(!this->sendUp((void **)&data), strlen(data))
 			{
 				Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 			}

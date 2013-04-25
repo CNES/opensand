@@ -121,7 +121,7 @@ class Block
 	 * @param type  The type of the message
 	 * @return true on success, false otherwise
 	 */
-	bool sendUp(unsigned char **data, size_t size = 0, uint8_t type = 0);
+	bool sendUp(void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
 	 * @brief Send a message to lower block
@@ -133,7 +133,7 @@ class Block
 	 * @param type  The type of the message
 	 * @return true on success, false otherwise
 	 */
-	bool sendDown(unsigned char **data, size_t size = 0, uint8_t type = 0);
+	bool sendDown(void **data, size_t size = 0, uint8_t type = 0);
 	// end TODO
 
 	/**

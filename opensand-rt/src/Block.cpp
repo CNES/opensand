@@ -90,7 +90,7 @@ Block::~Block()
 }
 
 // TODO remove once onEvent will be specific to channel
-bool Block::sendUp(unsigned char **data, size_t size, uint8_t type)
+bool Block::sendUp(void **data, size_t size, uint8_t type)
 {
 	// copy pointer because this is not done in fifo->push
 	//void *msg = *message; // TODO remove
@@ -102,7 +102,7 @@ bool Block::sendUp(unsigned char **data, size_t size, uint8_t type)
 }
 
 // TODO remove once onEvent will be specific to channel
-bool Block::sendDown(unsigned char **data, size_t size, uint8_t type)
+bool Block::sendDown(void **data, size_t size, uint8_t type)
 {
 	int ret;
 	ret = this->downward->enqueueMessage(*data, size, type);

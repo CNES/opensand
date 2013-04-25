@@ -64,9 +64,9 @@ typedef int32_t event_id_t;
 
 typedef struct
 {
-	uint8_t type;
-	unsigned char *data;
+	void *data;
 	size_t length;
+	uint8_t type;
 } rt_msg_t;
 
 #endif

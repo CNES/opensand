@@ -165,7 +165,7 @@ class Channel
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(unsigned char *data, size_t size, uint8_t type = 0);
+	bool enqueueMessage(void *data, size_t size, uint8_t type = 0);
 
 	/**
 	 * @brief Internal channel initialization

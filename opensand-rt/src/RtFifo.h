@@ -75,7 +75,7 @@ class RtFifo
 	 * @param the size of the element to add in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool push(unsigned char *data, size_t size, uint8_t type);
+	bool push(void *data, size_t size, uint8_t type);
 	
 	/**
 	 * @brief Access the first element but do not delete it

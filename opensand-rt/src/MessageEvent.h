@@ -84,14 +84,14 @@ class MessageEvent: public RtEvent
 	 *
 	 * @return the message type
 	 */
-	uint8_t getType() const {return this->message.type;};
+	uint8_t getMessageType() const {return this->message.type;};
 
 	/**
 	 * @brief Get the message content
 	 *
 	 * @return the message conetnt
 	 */
-	unsigned char *getData() const {return this->message.data;};
+	void *getData() const {return this->message.data;};
 	
 	/**
 	 * @brief Get the message length

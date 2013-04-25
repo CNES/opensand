@@ -91,7 +91,7 @@ Channel::~Channel()
 	}
 }
 
-bool Channel::enqueueMessage(unsigned char *data, size_t size, uint8_t type)
+bool Channel::enqueueMessage(void *data, size_t size, uint8_t type)
 {
 	if(!this->next_fifo->push(data, size, type))
 	{

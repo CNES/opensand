@@ -83,7 +83,7 @@ bool RtFifo::init()
 }
 
 
-bool RtFifo::push(unsigned char *data, size_t size, uint8_t type)
+bool RtFifo::push(void *data, size_t size, uint8_t type)
 {
 	fd_set wset;
 	bool status = false;
