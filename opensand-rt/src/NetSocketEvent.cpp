@@ -58,7 +58,7 @@ bool NetSocketEvent::handle(void)
 	if(this->size < 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "unable to read on socket", errno);
+		                "unable to read on socket [%u: %s]", errno, strerror(errno));
 		return false;
 	}
 

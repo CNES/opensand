@@ -35,12 +35,14 @@
 
 #include "BlockManager.h"
 #include "RtFifo.h"
+#include "Rt.h"
 
 #include <signal.h>
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <cstring>
 #include <sys/signalfd.h>
+
 
 BlockManager::BlockManager():
 	stopped(false),
@@ -101,18 +103,12 @@ bool BlockManager::init(void)
 }
 
 
-void BlockManager::reportError(const string &name, pthread_t thread_id,
-                               bool critical, string error, int val = 0)
+void BlockManager::reportError(const char *msg, bool critical)
 {
-	// TODO syslog/output
-	std::cerr << "Error in " << name << ", thread id = " << thread_id
-	          << ": " << error;
-	if(val != 0)
-	{
-		std::cerr << " (code: " << val << ": "
-		          << strerror(val) << ")";
-	}
-	std::cerr << std::endl;
+
+	// TODO syslog
+	fprintf(stderr, "%s", msg);
+
 	if(critical == true)
 	{
 		std::cerr << "FATAL: stop process" << std::endl;
@@ -130,14 +126,14 @@ bool BlockManager::start(void)
 	{
 		if(!(*iter)->isInitialized())
 		{
-			this->reportError("manager", pthread_self(),
-			                  true, "block not initialized");
+			Rt::reportError("manager", pthread_self(),
+			                true, "block not initialized");
 			return false;
 		}
 		if(!(*iter)->start())
 		{
-			this->reportError("manager", pthread_self(),
-			                  true, "block does not start");
+			Rt::reportError("manager", pthread_self(),
+			                true, "block does not start");
 			return false;
 		}
 	}
@@ -163,8 +159,8 @@ void BlockManager::wait(void)
 	ret = select(fd + 1, &fds, NULL, NULL, NULL);
 	if(ret == -1 || !FD_ISSET(fd, &fds))
 	{
-		this->reportError("manager", pthread_self(),
-		                  true, "select error");
+		Rt::reportError("manager", pthread_self(),
+		                true, "select error");
 		this->status = false;
 	}
 	else if(ret)
@@ -174,8 +170,8 @@ void BlockManager::wait(void)
 		rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
 		if(rlen != sizeof(struct signalfd_siginfo))
 		{
-			this->reportError("manager", pthread_self(),
-			                  true, "cannot read signal");
+			Rt::reportError("manager", pthread_self(),
+			                true, "cannot read signal");
 			this->status = false;
 		}
 		std::cout << "signal received: " << fdsi.ssi_signo << std::endl;

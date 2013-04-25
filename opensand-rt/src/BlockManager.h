@@ -117,16 +117,12 @@ class BlockManager
 	bool start(void);
 
 	/**
-	 * @param Internal error report
+	 * @brief Internal error report
 	 *
-	 * @param name       The name of the block or element in which the error occured
-	 * @param thread_id  Identifier of the reporting thread
+	 * @param msg        The error message
 	 * @param critical   Whether the application should be stopped
-	 * @param error      The error message
-	 * @param val        The return value
 	 */
-	void reportError(const string &name, pthread_t thread_id,
-	                 bool critical, string error, int val);
+	void reportError(const char *msg, bool critical);
 
 	/**
 	 * @brief Checks if threads and application are alive or should be stopped

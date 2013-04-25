@@ -133,13 +133,12 @@ class Channel
 	int32_t addSignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 1);
 
 	/**
-	 * @param Internal error report
+	 * @brief Internal error report
 	 *
-	 * @param critical   Whether the application should be stopped
-	 * @param error      The error message
-	 * @param val        The return error code
+	 * @param critical    Whether the application should be stopped
+	 * @param msg_format  The error message
 	 */
-	void reportError(bool critical, string error, int val = 0);
+	void reportError(bool critical, const char *msg_format, ...);
 
 	/**
 	 * @brief Remove an event

@@ -60,7 +60,7 @@ Block::Block(const string &name, void *specific):
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
-		                "Mutex initialization failure", ret);
+		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
 	}
 #endif
 	std::cout << "Block " << this->name << ": created" << std::endl;
@@ -74,7 +74,7 @@ Block::~Block()
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex destroy failure", ret);
+		                "Mutex destroy failure [%u: %s]", ret, strerror(ret));
 	}
 #endif
 
@@ -154,7 +154,7 @@ bool Block::start(void)
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot start upward thread", ret);
+		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
 	std::cout << "Block " << this->name << ": upward channel thread id: "
@@ -167,7 +167,7 @@ bool Block::start(void)
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot downward start thread", ret);
+		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
 	std::cout << "Block " << this->name << ": downward channel thread id: "
@@ -185,14 +185,14 @@ bool Block::stop(int signal)
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot kill upward thread", ret);
+		                "cannot kill upward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
 	ret = pthread_kill(this->down_thread_id, signal);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot kill downward thread", ret);
+		                "cannot kill downward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
 
@@ -201,14 +201,14 @@ bool Block::stop(int signal)
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot join upward thread", ret);
+		                "cannot join upward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
 	ret = pthread_join(this->down_thread_id, NULL);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot join downward thread", ret);
+		                "cannot join downward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
 	return status;
@@ -224,7 +224,7 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	if(err != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex lock failure", err);
+		                "Mutex lock failure [%u: %s]", err, strerror(err));
 		return false;
 	}
 #endif
@@ -241,7 +241,7 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	if(err != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex unlock failure", err);
+		                "Mutex unlock failure [%u: %s]", err, strerror(err));
 		return false;
 	}
 #endif

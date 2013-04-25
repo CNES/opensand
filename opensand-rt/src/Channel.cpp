@@ -52,8 +52,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
-#include <sstream>
 #include <iostream>
+#include <stdarg.h>
 
 #define SIG_STRUCT_SIZE 128
 
@@ -209,7 +209,6 @@ void Channel::addMessageEvent(uint8_t priority)
 	if(!event)
 	{
 		this->reportError(true, "cannot create message event");
-		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
@@ -348,9 +347,7 @@ void Channel::executeThread(void)
 		number_fd = select(nfds + 1, &current_input_fd_set, NULL, NULL, NULL);
 		if(number_fd < 0)
 		{
-			ostringstream error;
-
-			this->reportError(true, "select failed:", errno);
+			this->reportError(true, "select failed: [%u: %s]", errno, strerror(errno));
 		}
 		// unfortunately, FD_ISSET is the only usable thing
 		priority_sorted_events.clear();
@@ -411,10 +408,18 @@ void Channel::executeThread(void)
 	}
 }
 
-void Channel::reportError(bool critical, string error, int val)
+void Channel::reportError(bool critical, const char *msg_format, ...)
 {
+	char msg[512];
+	va_list args;
+	va_start(args, msg_format);
+
+	vsnprintf(msg, 512, msg_format, args);
+
+	va_end(args);
+
 	Rt::reportError(this->block.getName(), pthread_self(),
-	                critical, error, val);
+	                critical, msg);
 };
 
 void Channel::setFifo(RtFifo *fifo)

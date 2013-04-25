@@ -66,10 +66,9 @@ bool MessageEvent::handle(void)
 	if(rlen != strlen(MAGIC_WORD) ||
 	   strncmp((char *)data, MAGIC_WORD, strlen(MAGIC_WORD)) != 0)
 	{
-		string error;
-		error = "pipe signaling message from previous block contain wrong data";
 		Rt::reportError(this->name, pthread_self(), false,
-		                error, ((rlen < 0) ? errno : 0));
+		                "pipe signaling message from previous block contain wrong data ",
+		                "[%u: %s]", errno, strerror(errno));
 		return false;
 	}
 

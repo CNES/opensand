@@ -54,7 +54,7 @@ SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t prior
 	if(ret != 0)
 	{
 		Rt::reportError("signal constructor", pthread_self(),
-		                true, "Cannot block signal", ret);
+		                true, "Cannot block signal [%u: %s]", ret, strerror(ret));
 	}
 }
 
@@ -71,7 +71,7 @@ bool SignalEvent::handle(void)
 	if(rlen != sizeof(struct signalfd_siginfo))
 	{
 		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot read signal", ((rlen < 0) ? errno : 0));
+		                "cannot read signal [%u: %s]", errno, strerror(errno));
 		return false;
 	}
 	return true;

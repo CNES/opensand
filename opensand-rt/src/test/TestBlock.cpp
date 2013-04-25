@@ -146,7 +146,6 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 
 bool TestBlock::onDownwardEvent(const RtEvent *const event)
 {
-	string error;
 	char data[64];
 	size_t size;
 	switch(event->getType())
@@ -161,12 +160,9 @@ bool TestBlock::onDownwardEvent(const RtEvent *const event)
 			          
 			if(strncmp(this->last_written, (char*)data, size))
 			{
-				error = "wrong data received: '";
-				error += data;
-				error += "' instead of: '";
-				error += this->last_written;
-				error += "'";
-				Rt::reportError(this->name, pthread_self(), true, error);
+				Rt::reportError(this->name, pthread_self(), true,
+				                "wrong data received '%s' instead of '%s'",
+				                data, this->last_written);
 			}
 			bzero(this->last_written, 64);
 			break;

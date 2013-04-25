@@ -68,7 +68,6 @@
 #include "Rt.h"
 
 #include <iostream>
-#include <sstream>
 #include <cstdio>
 #include <cstring>
 #include <cassert>
@@ -91,7 +90,6 @@ using std::ostringstream;
 static char *read_msg(const MessageEvent *const event, string name, string from)
 {
 	char *data;
-	ostringstream error;
 	switch(event->getType())
 	{
 		case evt_message:
@@ -104,8 +102,8 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
 			break;
 
 		default:
-			error << "unknown event: " << event->getType();
-			Rt::reportError(name, pthread_self(), true, error.str());
+			Rt::reportError(name, pthread_self(), true,
+			                "unknown event: %u", event->getType());
 			return NULL;
 
 	}
@@ -126,13 +124,12 @@ TopBlock::TopBlock(const string &name):
 
 bool TopBlock::onInit()
 {
-	ostringstream error;
 	this->input_fd = open("TestMultiBlocks.h", O_RDONLY);
 	if(this->input_fd < 0)
 	{
 		//abort test
-		error << "Block: " <<  this->name << ": cannot open input file";
-		Rt::reportError(this->name, pthread_self(), true, error.str());
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot open input file");
 	}
 	// high priority to be sure to read it before another timer
 	this->downward->addNetSocketEvent("top_downward", this->input_fd);
@@ -141,7 +138,6 @@ bool TopBlock::onInit()
 
 bool TopBlock::onDownwardEvent(const RtEvent *const event)
 {
-	ostringstream error;
 	char *data;
 	size_t size;
 	switch(event->getType())
@@ -161,8 +157,8 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 			fflush(stdout);
 			if(strlen(data) > MAX_SOCK_SIZE)
 			{
-				error << "Block " << this->name << ": too many data received";
-				Rt::reportError(this->name, pthread_self(), true, error.str());
+				Rt::reportError(this->name, pthread_self(), true,
+		                        "too many data received");
 			}
 			// keep data in order to compare on the opposite block
 			strncpy(this->last_written, data, std::max((int)strlen(data), MAX_SOCK_SIZE) + 1);
@@ -174,16 +170,15 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 			// transmit to lower layer
 			if(!this->sendDown((unsigned char **)&data), strlen(data))
 			{
-				error << "Block " << this->name << ": cannot send data "
-				      << "to lower block" << std::endl;
-				Rt::reportError(this->name, pthread_self(), true, error.str());
+				Rt::reportError(this->name, pthread_self(), true,
+				                "cannot send data to lower block");
 			}
 			sleep(1);
 			break;
 
 		default:
-			error << "unknown event: " << event->getType();
-			Rt::reportError(this->name, pthread_self(), true, error.str());
+			Rt::reportError(this->name, pthread_self(), true,
+			                "unknown event: %u", event->getType());
 			return false;
 
 	}
@@ -200,11 +195,9 @@ bool TopBlock::onUpwardEvent(const RtEvent *const event)
 	// compare data
 	if(strcmp(data, this->last_written))
 	{
-		ostringstream error;
-		error << "Block " << this->name << ": wrong data received"
-		      << "'" << data << "' instead of '" << this->last_written
-		      << "'";
-		Rt::reportError(this->name, pthread_self(), true, error.str());
+		Rt::reportError(this->name, pthread_self(), true,
+		                "wrong data received '%s' instead of '%s'",
+		                data, this->last_written);
 		free(data);
 		return false;
 	}
@@ -235,7 +228,6 @@ bool MiddleBlock::onInit()
 
 bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
 {
-	ostringstream error;
 	char *data = read_msg((MessageEvent *)event, this->name, "lower");
 	if(!data)
 	{
@@ -245,16 +237,13 @@ bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
 	// transmit to upper layer
 	if(!this->sendUp((unsigned char **)&data), strlen(data))
 	{
-		error << "Block " << this->name << ": cannot send data "
-			  << "to upper block" << std::endl;
-		Rt::reportError(this->name, pthread_self(), true, error.str());
+		Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 	}
 	return true;
 }
 
 bool MiddleBlock::onDownwardEvent(const RtEvent *const event)
 {
-	ostringstream error;
 	char *data = read_msg((MessageEvent *)event, this->name, "upper");
 	if(!data)
 	{
@@ -264,9 +253,7 @@ bool MiddleBlock::onDownwardEvent(const RtEvent *const event)
 	// transmit to lower layer
 	if(!this->sendDown((unsigned char **)(&data), strlen(data)))
 	{
-		error << "Block " << this->name << ": cannot send data "
-			  << "to lower block" << std::endl;
-		Rt::reportError(this->name, pthread_self(), true, error.str());
+		Rt::reportError(this->name, pthread_self(), true, "cannot send data to lower block");
 	}
 	return true;
 }
@@ -328,7 +315,6 @@ bool BottomBlock::onDownwardEvent(const RtEvent *const event)
 
 bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 {
-	ostringstream error;
 	char *data;
 	size_t size;
 	switch(event->getType())
@@ -344,15 +330,13 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 			// transmit to upper layer
 			if(!this->sendUp((unsigned char **)&data), strlen(data))
 			{
-				error << "Block " << this->name << ": cannot send data "
-				      << "to upper block" << std::endl;
-				Rt::reportError(this->name, pthread_self(), true, error.str());
+				Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 			}
 			break;
 
 		default:
-			error << "unknown event: " << event->getType();
-			Rt::reportError(this->name, pthread_self(), true, error.str());
+			Rt::reportError(this->name, pthread_self(), true,
+			                "unknown event %u", event->getType());
 			return false;
 
 	}

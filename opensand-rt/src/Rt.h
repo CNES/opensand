@@ -103,14 +103,13 @@ class Rt
 	/**
 	 * @param Internal error report
 	 *
-	 * @param name       The name of the block or element in which the error occured
-	 * @param thread_id  Identifier of the reporting thread
-	 * @param critical   Whether the application should be stopped
-	 * @param val        The error return value (0 for none)
-	 * @param error      The error message
+	 * @param name        The name of the block or element in which the error occured
+	 * @param thread_id   Identifier of the reporting thread
+	 * @param critical    Whether the application should be stopped
+	 * @param msg_format  The error
 	 */
 	static void reportError(const string &name, pthread_t thread_id,
-	                        bool critical, string error, int val = 0);
+	                        bool critical, const char *msg_format, ...);
 
 	/**
 	 * @brief Send a stop signal

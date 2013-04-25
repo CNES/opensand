@@ -35,9 +35,14 @@
 
 #include "Rt.h"
 
+#include <stdarg.h>
+#include <cstdio>
+#include <algorithm>
+
 // Create bloc instance
 BlockManager Rt::manager;
 
+using std::max;
 
 bool Rt::run(void)
 {
@@ -60,7 +65,19 @@ void Rt::stop(int signal)
 }
 
 void Rt::reportError(const string &name, pthread_t thread_id,
-                     bool critical, string error, int val)
+                     bool critical, const char *msg_format, ...)
 {
-	manager.reportError(name, thread_id, critical, error, val);
+	char buf[1024];
+	char msg[512];
+	va_list args;
+	va_start(args, msg_format);
+
+	vsnprintf(msg, 512, msg_format, args);
+
+	va_end(args);
+
+	snprintf(buf, 1024, "Error in %s (thread: %lu): %s\n",
+	         name.c_str(), (unsigned long)thread_id, msg);
+
+	manager.reportError(buf, critical);
 }
