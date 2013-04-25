@@ -26,7 +26,7 @@
  */
 
 /**
- * @file Event.h
+ * @file RtEvent.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The generic event
@@ -48,25 +48,24 @@
 using std::string;
 
 /**
-  * @class Event
+  * @class RtEvent
   * @brief virtual class that Events are based on
   *
   */
-class Event
+class RtEvent
 {
   public:
 
 	/**
-	 * @brief Event constructor
+	 * @brief RtEvent constructor
 	 *
 	 * @aram type       The type of event
 	 * @param name      The name of the event
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	Event(event_type_t type, const string &name, int32_t fd, uint8_t priority);
-	virtual ~Event();
-
+	RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t priority);
+	virtual ~RtEvent();
 
 	/**
 	 * @brief Get the type of the event
@@ -118,11 +117,16 @@ class Event
 	void setCreationTime(void);
 
 	/// operator < used by sort on events priority
-	bool operator<(const Event *event) const
+	bool operator<(const RtEvent *event) const
 	{   
 		return (this->priority < event->priority);
 	}   
-	    
+
+	/// operator == used to check if the event id corresponds
+	bool operator==(const event_id_t id) const
+	{
+		return (this->fd == id);
+	}
 
   protected:
 

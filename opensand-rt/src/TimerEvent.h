@@ -38,7 +38,7 @@
 #define TIMEREVENT_H
 
 #include "Types.h"
-#include "Event.h"
+#include "RtEvent.h"
 
 #include <sys/time.h>
 
@@ -48,7 +48,7 @@
   * @brief Event describing a timer
   *
   */
-class TimerEvent: public Event
+class TimerEvent: public RtEvent
 {
 
   public:
@@ -67,7 +67,7 @@ class TimerEvent: public Event
 	           uint32_t timer_duration_ms,
 	           bool auto_rearm = false,
 	           bool start = true,
-	           uint8_t priority = 4);
+	           uint8_t priority = 2);
 	~TimerEvent(void);
 
 
@@ -87,15 +87,24 @@ class TimerEvent: public Event
 	 *
 	 * @return true if timer is enabled, false otherwise
 	 */
-	bool isEnabled(void) {return this->enabled;};
-
+	bool isEnabled(void) const {return this->enabled;};
 
 	/**
 	 * @brief Get the timer duration
 	 *
 	 * @return the timer duration (in ms)
 	 */
-	uint32_t getDuration(void) {return this->duration_ms;};
+	uint32_t getDuration(void) const {return this->duration_ms;};
+
+	/**
+	 * @brief Set the timer duration
+	 *
+	 * @param new_duration the timer duration (in ms)
+	 */
+	void setDuration(uint32_t new_duration)
+	{
+		this->duration_ms = new_duration;
+	};
 
 	virtual bool handle(void);
 

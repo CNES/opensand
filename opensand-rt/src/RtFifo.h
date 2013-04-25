@@ -36,6 +36,8 @@
 #ifndef RT_FIFO_H
 #define RT_FIFO_H
 
+#include "Types.h"
+
 #include <queue>
 #include <stdint.h>
 #include <pthread.h>
@@ -45,10 +47,10 @@
 using std::queue;
 
 /**
- * @class Fifo
+ * @class RtFifo
  * @brief A fifo between two blocks
  */
-class Fifo
+class RtFifo
 {
   public:
   
@@ -56,8 +58,8 @@ class Fifo
 	 * @brief Fifo constructor
 	 *
 	 */
-	Fifo();
-	~Fifo();
+	RtFifo();
+	~RtFifo();
 
 	/**
 	 * @brief Initialize the fifo
@@ -69,17 +71,19 @@ class Fifo
 	/**
 	 * @brief Add a new element in the fifo
 	 * 
-	 * @param the element to add in the fifo
+	 * @param the data part of the element to add in the fifo
+	 * @param the size of the element to add in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool push(void *message);
+	bool push(unsigned char *data, size_t size, uint8_t type);
 	
 	/**
 	 * @brief Access the first element but do not delete it
 	 * 
-	 * @return the first element
+	 * @param elem  the first element in the fifo
+	 * @return true on success, false otherwise
 	 */
-	void *pop(void);
+	bool pop(rt_msg_t &message);
 	
 	/**
 	 * 	@brief Get the file descriptor signaling data
@@ -98,7 +102,7 @@ class Fifo
   private:
 
 	/// the queue
-	queue<const void *> fifo;
+	queue<rt_msg_t> fifo;
   
 	/// The fifo size
 	size_t max_size;

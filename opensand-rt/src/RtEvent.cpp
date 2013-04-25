@@ -26,7 +26,7 @@
  */
 
 /**
- * @file Event.cpp
+ * @file RtEvent.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The generic event
@@ -35,9 +35,9 @@
 
 #include <cstdlib>
 
-#include "Event.h"
+#include "RtEvent.h"
 
-Event::Event(event_type_t type, const string &name, int32_t fd, uint8_t priority):
+RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t priority):
 	type(type),
 	name(name),
 	fd(fd),
@@ -46,17 +46,17 @@ Event::Event(event_type_t type, const string &name, int32_t fd, uint8_t priority
 	this->setCreationTime();
 }
 
-Event::~Event()
+RtEvent::~RtEvent()
 {
 	close(this->fd);
 }
 
-void Event::setCreationTime(void)
+void RtEvent::setCreationTime(void)
 {
 	gettimeofday(&this->creation_time, NULL);
 }
 
-timeval Event::getElapsedTime() const
+timeval RtEvent::getElapsedTime() const
 {
 	timeval res;
 	timeval current;

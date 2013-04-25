@@ -43,7 +43,7 @@
 
 
 NetSocketEvent::NetSocketEvent(const string &name, int32_t fd, uint8_t priority):
-	Event(evt_net_socket, name, fd, priority),
+	RtEvent(evt_net_socket, name, fd, priority),
 	size(0)
 {
 }

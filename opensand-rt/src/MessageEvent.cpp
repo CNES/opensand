@@ -34,17 +34,18 @@
  */
 
 #include "MessageEvent.h"
+#include "RtFifo.h"
 #include "Rt.h"
 
 #include <cstring>
 #include <errno.h>
 
 
-MessageEvent::MessageEvent(Fifo *const fifo,
+MessageEvent::MessageEvent(RtFifo *const fifo,
                            const string &name,
                            int32_t fd,
                            uint8_t priority):
-	Event(evt_message, name, fd, priority),
+	RtEvent(evt_message, name, fd, priority),
 	fifo(fifo)
 {
 }
@@ -73,7 +74,10 @@ bool MessageEvent::handle(void)
 	}
 
 	// set the event content
-	this->message = this->fifo->pop();
+	if(!this->fifo->pop(this->message))
+	{
+		return false;
+	}
 	return true;
 
 }

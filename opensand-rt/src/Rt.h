@@ -37,13 +37,18 @@
 #ifndef OPENSAND_RT_H
 #define OPENSAND_RT_H
 
-
 #include "BlockManager.h"
 #include "Block.h"
+#include "Channel.h"
+#include "RtEvent.h"
+#include "Types.h"
 
-class BlockManager;
-class Block;
 
+/**
+ * @class Rt
+ *
+ * @brief The interface for opensand-rt
+ */
 class Rt
 {
 	friend class Channel;
@@ -58,12 +63,33 @@ class Rt
 	 * @brief Creates and adds a block to the application
 	 *        The block should be created from upper to lower
 	 *
-	 * @param name   The name of the block
-	 * @param upper  The upper block or NULL if none
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @param name      The name of the block
+	 * @param upper     The upper block or NULL if none
 	 * @return the block
 	 */
 	template<class Bl, class Up, class Down>
-	static Block *createBlock(const string &name, Block *const upper = NULL);
+	static Block *createBlock(const string &name,
+	                          Block *const upper = NULL);
+
+	/**
+	 * @brief Creates and adds a block to the application
+	 *        The block should be created from upper to lower
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @param name      The name of the block
+	 * @param upper     The upper block or NULL if none
+	 * @param specific  User defined data
+	 * @return the block
+	 */
+	template<class Bl, class Up, class Down>
+	static Block *createBlock(const string &name,
+	                          Block *const upper,
+	                          void *specific);
 
 	/**
 	 * @brief Start the blocks and checks if threads
@@ -101,9 +127,18 @@ class Rt
 };
 
 template<class Bl, class Up, class Down>
-Block *Rt::createBlock(const string &name, Block *const upper)
+Block *Rt::createBlock(const string &name,
+                       Block *const upper)
 {
 	return Rt::manager.createBlock<Bl, Up, Down>(name, upper);
+}
+
+template<class Bl, class Up, class Down>
+Block *Rt::createBlock(const string &name,
+                       Block *const upper,
+                       void *specific)
+{
+	return Rt::manager.createBlock<Bl, Up, Down>(name, upper, specific);
 }
 
 #endif

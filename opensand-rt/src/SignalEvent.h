@@ -41,13 +41,13 @@
 #include <sys/signalfd.h>
 
 #include "Types.h"
-#include "Event.h"
+#include "RtEvent.h"
 
 /**
   * @class SignalEvent
   * @brief Event decribing a sighandlers on block
   */
-class SignalEvent: public Event
+class SignalEvent: public RtEvent
 {
 
   public:
@@ -58,7 +58,7 @@ class SignalEvent: public Event
 	 * @param signal_mask  Sigset_t containing signal(s) triggering this event
 	 * @param priority     The priority of the event
 	 */
-	SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 2);
+	SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 1);
 	~SignalEvent(void);
 
 	/*

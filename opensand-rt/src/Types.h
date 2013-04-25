@@ -39,6 +39,7 @@
 #define TYPES_H
 
 #include <inttypes.h>
+#include <cstring>
 
 
 /// opensand-rt event types
@@ -58,5 +59,14 @@ typedef enum
 	upward_chan,   ///< upward channel
 	downward_chan, ///< downward channel
 } chan_type_t;
+
+typedef int32_t event_id_t;
+
+typedef struct
+{
+	uint8_t type;
+	unsigned char *data;
+	size_t length;
+} rt_msg_t;
 
 #endif

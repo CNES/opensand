@@ -21,4 +21,5 @@ test_multi_blocks_SOURCES = \
 	TestMultiBlocks.cpp
 test_multi_blocks_LDADD = $(LIBS_COMMON)
 
-#TODO enable automatic heap check
+EXTRA_DIST = \
+	test.sh

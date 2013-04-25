@@ -95,7 +95,8 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
 	switch(event->getType())
 	{
 		case evt_message:
-			data = ((char *)(event->getMessage()));
+			data = (char *)event->getData();
+			data[event->getLength()] = '\0';
 			std::cout << "Block " << name << ": " << strlen(data) 
 			          << " bytes of data received from "
 			          << from << " block" << std::endl;
@@ -134,11 +135,11 @@ bool TopBlock::onInit()
 		Rt::reportError(this->name, pthread_self(), true, error.str());
 	}
 	// high priority to be sure to read it before another timer
-	this->downward->addNetSocketEvent(this->input_fd);
+	this->downward->addNetSocketEvent("top_downward", this->input_fd);
 	return true;
 }
 
-bool TopBlock::onDownwardEvent(const Event *const event)
+bool TopBlock::onDownwardEvent(const RtEvent *const event)
 {
 	ostringstream error;
 	char *data;
@@ -171,7 +172,7 @@ bool TopBlock::onDownwardEvent(const Event *const event)
 
 			          
 			// transmit to lower layer
-			if(!this->sendDown(data))
+			if(!this->sendDown((unsigned char **)&data), strlen(data))
 			{
 				error << "Block " << this->name << ": cannot send data "
 				      << "to lower block" << std::endl;
@@ -189,7 +190,7 @@ bool TopBlock::onDownwardEvent(const Event *const event)
 	return true;
 }
 
-bool TopBlock::onUpwardEvent(const Event *const event)
+bool TopBlock::onUpwardEvent(const RtEvent *const event)
 {
 	char *data = read_msg((MessageEvent *)event, this->name, "lower");
 	if(!data)
@@ -232,7 +233,7 @@ bool MiddleBlock::onInit()
 	return true;
 }
 
-bool MiddleBlock::onUpwardEvent(const Event *const event)
+bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
 {
 	ostringstream error;
 	char *data = read_msg((MessageEvent *)event, this->name, "lower");
@@ -242,7 +243,7 @@ bool MiddleBlock::onUpwardEvent(const Event *const event)
 	}
 
 	// transmit to upper layer
-	if(!this->sendUp(data))
+	if(!this->sendUp((unsigned char **)&data), strlen(data))
 	{
 		error << "Block " << this->name << ": cannot send data "
 			  << "to upper block" << std::endl;
@@ -251,7 +252,7 @@ bool MiddleBlock::onUpwardEvent(const Event *const event)
 	return true;
 }
 
-bool MiddleBlock::onDownwardEvent(const Event *const event)
+bool MiddleBlock::onDownwardEvent(const RtEvent *const event)
 {
 	ostringstream error;
 	char *data = read_msg((MessageEvent *)event, this->name, "upper");
@@ -261,7 +262,7 @@ bool MiddleBlock::onDownwardEvent(const Event *const event)
 	}
 
 	// transmit to lower layer
-	if(!this->sendDown(data))
+	if(!this->sendDown((unsigned char **)(&data), strlen(data)))
 	{
 		error << "Block " << this->name << ": cannot send data "
 			  << "to lower block" << std::endl;
@@ -299,11 +300,11 @@ bool BottomBlock::onInit()
 	this->output_fd = pipefd[1];
 
 	// high priority to be sure to read it before another timer
-	this->upward->addNetSocketEvent(this->input_fd, 2);
+	this->upward->addNetSocketEvent("bottom_upward", this->input_fd, 2);
 	return true;
 }
 
-bool BottomBlock::onDownwardEvent(const Event *const event)
+bool BottomBlock::onDownwardEvent(const RtEvent *const event)
 {
 	int res = 0;
 	char *data = read_msg((MessageEvent *)event, this->name, "upper");
@@ -325,7 +326,7 @@ bool BottomBlock::onDownwardEvent(const Event *const event)
 	return true;
 }
 
-bool BottomBlock::onUpwardEvent(const Event *const event)
+bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 {
 	ostringstream error;
 	char *data;
@@ -341,7 +342,7 @@ bool BottomBlock::onUpwardEvent(const Event *const event)
 			fflush(stdout);
 			          
 			// transmit to upper layer
-			if(!this->sendUp(data))
+			if(!this->sendUp((unsigned char **)&data), strlen(data))
 			{
 				error << "Block " << this->name << ": cannot send data "
 				      << "to upper block" << std::endl;
@@ -380,7 +381,7 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	std::cout << "Launch test" << std::endl;
 
 	top = Rt::createBlock<TopBlock, TopBlock::Upward,
-	                      TopBlock::Downward>("top", NULL);
+	                      TopBlock::Downward>("top");
 
 	middle = Rt::createBlock<MiddleBlock, MiddleBlock::Upward,
 	                         MiddleBlock::Downward>("middle", top);

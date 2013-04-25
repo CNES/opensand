@@ -35,8 +35,14 @@
 
 #include "Channel.h"
 
-#include "Block.h"
 #include "Rt.h"
+#include "Block.h"
+#include "RtFifo.h"
+#include "RtEvent.h"
+#include "MessageEvent.h"
+#include "TimerEvent.h"
+#include "NetSocketEvent.h"
+#include "SignalEvent.h"
 
 #include <errno.h>
 #include <cstring>
@@ -53,6 +59,7 @@
 
 using std::ostringstream;
 
+
 // TODO pointer on onEventUp/Down and remove chan and add name
 Channel::Channel(Block &bl, chan_type_t chan):
 	block(bl),
@@ -67,24 +74,26 @@ Channel::Channel(Block &bl, chan_type_t chan):
 Channel::~Channel()
 {
 	// delete all events
-	for(list<Event *>::iterator iter = this->events.begin();
+	this->updateEvents(); // update to also clear new events
+	for(map<event_id_t, RtEvent *>::iterator iter = this->events.begin();
 	    iter != this->events.end(); ++iter)
 	{
-		if(*iter == NULL)
+		if((*iter).second == NULL)
 		{
 			continue;
 		}
-		delete(*iter);
+		delete((*iter).second);
 	}
+	this->events.clear();
 	if(this->fifo)
 	{
 		delete this->fifo;
 	}
 }
 
-bool Channel::enqueueMessage(void *message)
+bool Channel::enqueueMessage(unsigned char *data, size_t size, uint8_t type)
 {
-	if(!this->next_fifo->push(message))
+	if(!this->next_fifo->push(data, size, type))
 	{
 		this->reportError(false,
 		                  "cannot push data in fifo for next block");
@@ -125,47 +134,46 @@ bool Channel::init(void)
 		this->addMessageEvent();
 	}
 
-	// start timers
-	for(list<Event *>::iterator iter = this->events.begin();
-	    iter != this->events.end(); ++iter)
-	{
-		if((*iter) != NULL && (*iter)->getType() == evt_timer)
-		{
-			((TimerEvent *)(*iter))->start();
-		}
-	}
-
 	return true;
 }
 
 int32_t Channel::addTimerEvent(const string &name,
                                uint32_t duration_ms,
-                               uint8_t priority,
-                               bool auto_rearm)
+                               bool auto_rearm,
+                               bool start,
+                               uint8_t priority)
 {
-	TimerEvent *event = new TimerEvent(name, duration_ms, 
-	                                   priority, auto_rearm, false);
+	TimerEvent *event = new TimerEvent(name, duration_ms,
+	                                   auto_rearm, start,
+	                                   priority);
 	if(!event)
 	{
 		this->reportError(true, "cannot create timer event");
 	}
-	this->events.push_back((Event *)event);
-	this->addInputFd(event->getFd());
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return -1;
+	}
+
 	return event->getFd();
 }
 
-int32_t Channel::addNetSocketEvent(int32_t fd, uint8_t priority)
+int32_t Channel::addNetSocketEvent(const string &name,
+                                   int32_t fd,
+                                   uint8_t priority)
 {
-	string name = this->block.getName();
-	name += "/net_socket";
 	NetSocketEvent *event = new NetSocketEvent(name,
 	                                           fd, priority);
 	if(!event)
 	{
 		this->reportError(true, "cannot create net socket event");
+		return -1;
 	}
-	this->events.push_back((Event *)event);
-	this->addInputFd(event->getFd());
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return -1;
+	}
+
 	return event->getFd();
 }
 
@@ -177,9 +185,13 @@ int32_t Channel::addSignalEvent(const string &name,
 	if(!event)
 	{
 		this->reportError(true, "cannot create signal event");
+		return -1;
 	}
-	this->events.push_back((Event *)event);
-	this->addInputFd(event->getFd());
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return -1;
+	}
+
 	return event->getFd();
 }
 
@@ -197,9 +209,94 @@ void Channel::addMessageEvent(uint8_t priority)
 	if(!event)
 	{
 		this->reportError(true, "cannot create message event");
+		return -1;
 	}
-	this->events.push_back((Event *)event);
-	this->addInputFd(this->fifo->getSigFd());
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return;
+	}
+}
+
+bool Channel::addEvent(RtEvent *event)
+{
+	if(this->events[event->getFd()])
+	{
+		this->reportError(true, "duplicated fd");
+		return false;
+	}
+	this->new_events.push_back(event);
+
+	this->addInputFd(event->getFd());
+	
+	return true;
+}
+
+void Channel::updateEvents(void)
+{
+	
+	// add new events
+	for(list<RtEvent *>::iterator iter = this->new_events.begin();
+		iter != this->new_events.end(); ++iter)
+	{
+		this->events[(*iter)->getFd()] = *iter;
+	}
+	this->new_events.clear();
+	
+	// remove old events
+	for(list<event_id_t>::iterator iter = this->removed_events.begin();
+		iter != this->removed_events.end(); ++iter)
+	{
+		map<event_id_t, RtEvent *>::iterator it;
+		
+		it = this->events.find(*iter);
+		if(it != this->events.end())
+		{
+			delete (*it).second;
+			this->events.erase(it);
+		}
+	}
+	this->removed_events.clear();
+}
+
+bool Channel::startTimer(event_id_t id)
+{
+	map<event_id_t, RtEvent *>::iterator it;
+	RtEvent *event = NULL;
+	
+	it = this->events.find(id);
+	if(it == this->events.end())
+	{
+		bool found = false;
+		// check in new events
+		for(list<RtEvent *>::iterator iter = this->new_events.begin();
+			iter != this->new_events.end(); ++iter)
+		{
+			if(*(*iter) == id)
+			{
+				found = true;
+				event = *iter;
+				break;
+			}
+		}
+		if(!found)
+		{
+			this->reportError(false, "cannot find timer");
+			return false;
+		}
+	}
+	else
+	{
+		event = (*it).second;
+	}
+	
+	if(event->getType() != evt_timer)
+	{
+		this->reportError(false, "cannot start event that is not a timer");
+		return false;
+	}
+	((TimerEvent *)event)->start();
+	
+	return true;
 }
 
 void Channel::addInputFd(int32_t fd)
@@ -211,6 +308,11 @@ void Channel::addInputFd(int32_t fd)
 	FD_SET(fd, &(this->input_fd_set));
 }
 
+void Channel::removeEvent(event_id_t id)
+{
+	this->removed_events.push_back(id);
+}
+
 void *Channel::startThread(void *pthis)
 {
 	((Channel *)pthis)->executeThread();
@@ -218,7 +320,7 @@ void *Channel::startThread(void *pthis)
 	return NULL;
 }
 
-bool Channel::processEvent(const Event *const event)
+bool Channel::processEvent(const RtEvent *const event)
 {
 	std::cout << "Channel " << this->chan << ": event received: "
 	          << event->getName() << std::endl;
@@ -235,8 +337,10 @@ void Channel::executeThread(void)
 		int32_t number_fd = 0;
 		int32_t handled = 0;
 
-		list<Event *> priority_sorted_events;
-
+		list<RtEvent *> priority_sorted_events;
+		
+		// get the new events for the next loop
+		this->updateEvents();
 		current_input_fd_set = this->input_fd_set;
 		nfds = this->max_input_fd ;
 
@@ -251,43 +355,44 @@ void Channel::executeThread(void)
 		// unfortunately, FD_ISSET is the only usable thing
 		priority_sorted_events.clear();
 
-		// for each event, stop 
-		for(list<Event *>::iterator iter = this->events.begin();
+		// for each event, stop
+		for(map<event_id_t, RtEvent *>::iterator iter = this->events.begin();
 			iter != this->events.end(); ++iter)
 		{
+			RtEvent *event = (*iter).second;
 			if(handled >= number_fd)
 			{
 				// all events treated, no need to continue the loop
 				break;
 			}
-			// is this event FD has raised
-			if(!FD_ISSET((*iter)->getFd(), &current_input_fd_set))
+			// if this event FD has raised
+			if(!FD_ISSET(event->getFd(), &current_input_fd_set))
 			{
 				continue;
 			}
 			handled++;
 
 			// fd is set
-			if(!(*iter)->handle())
+			if(!event->handle())
 			{
-				if((*iter)->getType() == evt_signal)
+				if(event->getType() == evt_signal)
 				{
 					// this is the only case where it is critical as
 					// stop event is a signal
-					this->reportError(true, "unable to handle signal event"); 
+					this->reportError(true, "unable to handle signal event");
 					pthread_exit(NULL);
 				}
 				this->reportError(false, "unable to handle event");
 				// ignore this event
 				continue;
 			}
-			priority_sorted_events.push_back(*iter);
-			if(this->stop_fd == (*iter)->getFd())
+			priority_sorted_events.push_back(event);
+			if(*event == this->stop_fd)
 			{
 				// we have to stop
 				std::cout << "Channel " << this->chan
 				          << ": stop signal received: "
-				          << ((SignalEvent *)(*iter))->getTriggerInfo().ssi_signo
+				          << ((SignalEvent *)event)->getTriggerInfo().ssi_signo
 				          << std::endl;
 				pthread_exit(NULL);
 			}
@@ -297,7 +402,7 @@ void Channel::executeThread(void)
 		priority_sorted_events.sort();
 
 		// call processEvent on each event
-		for(list<Event *>::iterator iter = priority_sorted_events.begin();
+		for(list<RtEvent *>::iterator iter = priority_sorted_events.begin();
 			iter != priority_sorted_events.end(); ++iter)
 		{
 			(*iter)->setCreationTime();
@@ -310,5 +415,20 @@ void Channel::reportError(bool critical, string error, int val)
 {
 	Rt::reportError(this->block.getName(), pthread_self(),
 	                critical, error, val);
+};
+
+void Channel::setFifo(RtFifo *fifo)
+{
+	this->fifo = fifo;
+};
+
+void Channel::setFifoSize(uint8_t size)
+{
+	this->fifo->resize(size);
+};
+
+void Channel::setNextFifo(RtFifo *fifo)
+{
+	this->next_fifo = fifo;
 };
 

@@ -38,7 +38,6 @@
 
 #include "Channel.h"
 #include "Types.h"
-#include "Event.h"
 
 
 #include <stdlib.h>
@@ -48,9 +47,7 @@
 #include <sys/select.h>
 
 
-#define FIFO_SIZE 3
-
-class Channel;
+class RtEvent;
 
 using std::string;
 
@@ -71,12 +68,15 @@ class Block
 
   public:
 
+
 	/**
 	 * @brief Block constructor
 	 *
-	 * @param name  The name of the block
+	 * @param name      The name of the block
+	 * @param specific  Specific block parameters
 	 */
-	Block(const string &name);
+	Block(const string &name, void *specific = NULL);
+
 	virtual ~Block();
 
 
@@ -85,12 +85,11 @@ class Block
 	 *
 	 * @return true on success, false otherwise
 	 */
-	// TODO once all will be done in channel, the part initialized
-	// here should be transmitted to channel constructor
 	virtual bool onInit(void) = 0;
 
 
-	// TODO remove following functions
+	// TODO remove following functions once channels will be correctly
+	//      separated
 	/**
 	 * @brief Process a downward event in block
 	 * @warning Be careful, at the moment this function can be called
@@ -99,7 +98,7 @@ class Block
 	 * @param event  The event received in block
 	 * @return true if event was correctly processed, false otherwise
 	 */
-	virtual bool onDownwardEvent(const Event *const event) = 0;
+	virtual bool onDownwardEvent(const RtEvent *const event) = 0;
 
 	/**
 	 * @brief Process an upward event in block
@@ -109,29 +108,32 @@ class Block
 	 * @param event  The event received in block
 	 * @return true if event was correctly processed, false otherwise
 	 */
-	virtual bool onUpwardEvent(const Event *const event) = 0;
+	virtual bool onUpwardEvent(const RtEvent *const event) = 0;
 
 	/**
 	 * @brief Send a message to upper block
 	 * @warning The message shall not be reused in the block after this call
 	 *          because will be used in upper blocks
 	 *
-	 * @param message  The message to send to upper block
+	 * @param data  IN: The message to send to upper block
+	 *              OUT: NULL
+	 * @param size  The size of data in message
+	 * @param type  The type of the message
 	 * @return true on success, false otherwise
 	 */
-	bool sendUp(void *message);
+	bool sendUp(unsigned char **data, size_t size = 0, uint8_t type = 0);
 
 	/**
 	 * @brief Send a message to lower block
-	 * @warning The message shall not be reused in the block after this call
-	 *          because will be used in upper blocks
-	 *          TODO find a way to prevent that
 	 *
-	 * @param message  IN: The message to send to lower block
-	 *                 OUT: NULL
+	 * @param data  IN: The message to send to lower block
+	 *              OUT: NULL (to avoid using data that was transmitted
+	 *                   in an other thread)
+	 * @param size  The size of data in message
+	 * @param type  The type of the message
 	 * @return true on success, false otherwise
 	 */
-	bool sendDown(void *message);
+	bool sendDown(unsigned char **data, size_t size = 0, uint8_t type = 0);
 	// end TODO
 
 	/**
@@ -208,7 +210,14 @@ class Block
 	 * @return true on success, false otherwise
 	 */
 	// TODO remove once onEvent will be in channel
-	 bool processEvent(const Event *const event, chan_type_t chan);
+	 bool processEvent(const RtEvent *const event, chan_type_t chan);
+
+	/**
+	 * @brief Get the current timeval
+	 *
+	 * @return the current time
+	 */
+	long getCurrentTime(void);
 
 	/**
 	 * @brief Get the upward channel

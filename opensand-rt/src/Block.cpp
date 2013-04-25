@@ -49,7 +49,8 @@
 #include <pthread.h>
 #include <signal.h>
 
-Block::Block(const string &name):
+
+Block::Block(const string &name, void *specific):
 	name(name),
 	initialized(false)
 {
@@ -64,6 +65,7 @@ Block::Block(const string &name):
 #endif
 	std::cout << "Block " << this->name << ": created" << std::endl;
 }
+
 
 Block::~Block()
 {
@@ -88,15 +90,25 @@ Block::~Block()
 }
 
 // TODO remove once onEvent will be specific to channel
-bool Block::sendUp(void *message)
+bool Block::sendUp(unsigned char **data, size_t size, uint8_t type)
 {
-	return this->upward->enqueueMessage(message);
+	// copy pointer because this is not done in fifo->push
+	//void *msg = *message; // TODO remove
+	int ret;
+	ret = this->upward->enqueueMessage(*data, size, type);
+	// be sure that the pointer won't be used anymore
+	*data = NULL;
+	return ret;
 }
 
 // TODO remove once onEvent will be specific to channel
-bool Block::sendDown(void *message)
+bool Block::sendDown(unsigned char **data, size_t size, uint8_t type)
 {
-	return this->downward->enqueueMessage(message);
+	int ret;
+	ret = this->downward->enqueueMessage(*data, size, type);
+	// be sure that the pointer won't be used anymore
+	*data = NULL;
+	return ret;
 }
 
 bool Block::init(void)
@@ -202,9 +214,10 @@ bool Block::stop(int signal)
 	return status;
 }
 
-bool Block::processEvent(const Event *const event, chan_type_t chan)
+bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 {
 	bool ret = false;
+	// TODO option instead of #ifdef
 #ifdef DEBUG_BLOCK_MUTEX
 	int err;
 	err = pthread_mutex_lock(&(this->block_mutex));
@@ -243,4 +256,11 @@ Channel *Block::getUpwardChannel(void) const
 Channel *Block::getDownwardChannel(void) const
 {
 	return this->downward;
+}
+
+clock_t getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }

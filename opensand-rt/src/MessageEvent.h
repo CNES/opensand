@@ -36,20 +36,24 @@
 #ifndef MESSAGE_EVENT_H
 #define MESSAGE_EVENT_H
 
-#include "Event.h"
-#include "Fifo.h"
+#include "RtEvent.h"
+#include "Types.h"
 
 #include <string>
+#include <utility>
 
 using std::string;
+using std::pair;
 
+
+class RtFifo;
 
 /**
   * @class MessageEvent
   * @brief Event describing a message transmitted between blocks
   *
   */
-class MessageEvent: public Event
+class MessageEvent: public RtEvent
 {
   public:
 
@@ -61,10 +65,10 @@ class MessageEvent: public Event
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	MessageEvent(Fifo *const fifo,
+	MessageEvent(RtFifo *const fifo,
 	             const string &name,
 	             int32_t fd,
-	             uint8_t priority = 6);
+	             uint8_t priority = 3);
 
 	~MessageEvent();
 
@@ -73,7 +77,28 @@ class MessageEvent: public Event
 	 *
 	 * @return the message
 	 */
-	void *getMessage() const {return this->message;};
+	rt_msg_t getMessage() const {return this->message;};
+
+	/**
+	 * @brief Get the message type
+	 *
+	 * @return the message type
+	 */
+	uint8_t getType() const {return this->message.type;};
+
+	/**
+	 * @brief Get the message content
+	 *
+	 * @return the message conetnt
+	 */
+	unsigned char *getData() const {return this->message.data;};
+	
+	/**
+	 * @brief Get the message length
+	 *
+	 * @return the message length
+	 */
+	size_t getLength() const {return this->message.length;};
 
 
 	virtual bool handle(void);
@@ -81,10 +106,10 @@ class MessageEvent: public Event
   protected:
 
 	/// the message
-	void *message;
+	rt_msg_t message;
 
 	/// the fifo
-	Fifo *const fifo;
+	RtFifo *const fifo;
 
 };
 

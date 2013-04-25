@@ -26,13 +26,13 @@
  */
 
 /**
- * @file   Fifo.cpp
+ * @file   RtFifo.cpp
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The fifo and signaling pipres for opensand-rt
  *         intra-block messages
  */
 
-#include "Fifo.h"
+#include "RtFifo.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -40,12 +40,13 @@
 
 #define DEFAULT_FIFO_SIZE 3
 
-Fifo::Fifo():
+
+RtFifo::RtFifo():
 	max_size(DEFAULT_FIFO_SIZE)
 {
 }
 
-Fifo::~Fifo()
+RtFifo::~RtFifo()
 {
 	close(this->r_sig_pipe);
 	close(this->w_sig_pipe);
@@ -53,13 +54,14 @@ Fifo::~Fifo()
 /*	while(!this->fifo.empty())
 	{
 		this->fifo.pop();
-	}*/
+	}
+	delete msg.data*/
 
 	pthread_mutex_destroy(&(this->fifo_mutex));
 	pthread_mutex_destroy(&(this->full_mutex));
 }
 
-bool Fifo::init()
+bool RtFifo::init()
 {
 	int32_t pipefd[2];
 
@@ -81,10 +83,11 @@ bool Fifo::init()
 }
 
 
-bool Fifo::push(void *message)
+bool RtFifo::push(unsigned char *data, size_t size, uint8_t type)
 {
 	fd_set wset;
 	bool status = false;
+	rt_msg_t msg;
 
 	if(this->fifo.size() > this->max_size)
 	{
@@ -101,7 +104,10 @@ bool Fifo::push(void *message)
 		return false;
 	}
 
-	this->fifo.push(message);
+	msg.data = data;
+	msg.length = size;
+	msg.type = type;
+	this->fifo.push(msg);
 	FD_ZERO(&wset);
 	FD_SET(this->w_sig_pipe, &wset);
 	if(select(this->w_sig_pipe + 1, NULL, &wset, NULL, NULL) < 0)
@@ -124,10 +130,9 @@ error:
 
 }
 
-void *Fifo::pop(void)
+bool RtFifo::pop(rt_msg_t &elem)
 {
 	bool full = false;
-	void *msg;
 
 	// lock mutex on fifo
 	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
@@ -144,7 +149,7 @@ void *Fifo::pop(void)
 	}
 
 	// get element in queue
-	msg = (void *)(this->fifo.front());
+	elem = this->fifo.front();
 
 	// remove element from queue
 	this->fifo.pop();
@@ -162,7 +167,7 @@ void *Fifo::pop(void)
 			return false;
 		}
 	}
-	return msg;
+	return true;
 }
 
 

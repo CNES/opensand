@@ -40,9 +40,10 @@ class TestBlock: public Block
   public:
 
 	TestBlock(const string &name);
+
 	~TestBlock();
-	bool onUpwardEvent(const Event *const event);
-	bool onDownwardEvent(const Event *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
   protected:

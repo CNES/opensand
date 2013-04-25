@@ -37,17 +37,16 @@
 #define BLOCK_MANAGER_H
 
 
-#include <list>
-#include <string>
-
 #include "Block.h"
 #include "MessageEvent.h"
+#include "RtFifo.h"
 
+#include <list>
+#include <string>
 
 using std::string;
 using std::list;
 
-class Block;
 
 /**
  * @class BlockManager
@@ -68,12 +67,33 @@ class BlockManager
 	 * @brief Creates and adds a block to the application
 	 *        The block should be created from upper to lower
 	 *
-	 * @param name   The block name
-	 * @param upper  The upper block or NULL if none
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @param name      The block name
+	 * @param upper     The upper block or NULL if none
 	 * @return The block
 	 */
 	template<class Bl, class Up, class Down>
-	Block *createBlock(const string &name, Block *const upper);
+	Block *createBlock(const string &name,
+	                   Block *const upper = NULL);
+
+	/**
+	 * @brief Creates and adds a block to the application
+	 *        The block should be created from upper to lower
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @param name      The block name
+	 * @param upper     The upper block or NULL if none
+	 * @param specific  User defined data
+	 * @return The block
+	 */
+	template<class Bl, class Up, class Down>
+	Block *createBlock(const string &name,
+	                   Block *const upper,
+	                   void *specific);
 
 	/**
 	 * @brief stops the application
@@ -136,9 +156,11 @@ class BlockManager
 };
 
 template<class Bl, class Up, class Down>
-Block *BlockManager::createBlock(const string &name, Block *const upper)
+Block *BlockManager::createBlock(const string &name,
+                                 Block *const upper)
 {
 	Block *block = new Bl(name);
+
 	Block::Upward *up = new Up(*block);
 	Block::Downward *down = new Down(*block);
 
@@ -147,8 +169,40 @@ Block *BlockManager::createBlock(const string &name, Block *const upper)
 
 	if(upper)
 	{
-		Fifo *up_fifo = new Fifo();
-		Fifo *down_fifo = new Fifo();
+		RtFifo *up_fifo = new RtFifo();
+		RtFifo *down_fifo = new RtFifo();
+
+		// set upward fifo for upper block
+		up->setNextFifo(up_fifo);
+		upper->getUpwardChannel()->setFifo(up_fifo);
+
+		// set downward fifo for block
+		down->setFifo(down_fifo);
+		upper->getDownwardChannel()->setNextFifo(down_fifo);
+	}
+
+	this->block_list.push_back(block);
+
+	return block;
+}
+
+template<class Bl, class Up, class Down>
+Block *BlockManager::createBlock(const string &name,
+                                 Block *const upper,
+                                 void *specific)
+{
+	Block *block = new Bl(name, specific);
+
+	Block::Upward *up = new Up(*block);
+	Block::Downward *down = new Down(*block);
+
+	block->upward = up;
+	block->downward = down;
+
+	if(upper)
+	{
+		RtFifo *up_fifo = new RtFifo();
+		RtFifo *down_fifo = new RtFifo();
 
 		// set upward fifo for upper block
 		up->setNextFifo(up_fifo);

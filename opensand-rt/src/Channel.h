@@ -36,28 +36,22 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
 
-//#include "Block.h"
-#include "Event.h"
 #include "Types.h"
-#include "MessageEvent.h"
-#include "TimerEvent.h"
-#include "NetSocketEvent.h"
-#include "SignalEvent.h"
-#include "Fifo.h"
-
 
 #include <stdlib.h>
 #include <string>
+#include <map>
 #include <list>
-#include <vector>
 #include <sys/select.h>
 
 
 class Block;
-
+class RtFifo;
+class RtEvent;
 
 using std::list;
-using std::vector;
+using std::map;
+using std::string;
 
 
 /**
@@ -107,23 +101,26 @@ class Channel
 	 *
 	 * @param name         The name of the timer
 	 * @param duration_ms  The duration of the timer (ms)
+	 * @param auto_rearm   Whether the timer will get rearmed after processing
+	 * @param start        Whether the timer will start after being created
 	 * @param priority     The priority of the event (small for high priority)
-	 * @param auto_rearm   Whteher the timer will get rearmed after processing
-	 * @return the event id
+	 * @return the event id on success, -1 otherwise
 	 */
 	int32_t addTimerEvent(const string &name,
 	                      uint32_t duration_ms,
-	                      uint8_t priority = 2,
-	                      bool auto_rearm = true);
+	                      bool auto_rearm = true,
+	                      bool start = true,
+	                      uint8_t priority = 2);
 
 	/**
 	 * @brief Add a net socket event to the channel
 	 *
+	 * @param name         The name of the eventr
 	 * @param fd       The file descriptor to monitor
 	 * @param priority The priority of the event (small for high priority)
-	 * @return the event id
+	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addNetSocketEvent(int32_t fd, uint8_t priority = 3);
+	int32_t addNetSocketEvent(const string &name, int32_t fd, uint8_t priority = 3);
 
 	/**
 	 * @brief Add a signal event to the channel
@@ -131,19 +128,45 @@ class Channel
 	 * @param name         The name of the event
 	 * @param signal_mask  Mask containing all the signals that trigger this event
 	 * @param priority     The priority of the event (small for high priority)
-	 * @return the event id
+	 * @return the event id on success, -1 otherwise
 	 */
 	int32_t addSignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 1);
+
+	/**
+	 * @param Internal error report
+	 *
+	 * @param critical   Whether the application should be stopped
+	 * @param error      The error message
+	 * @param val        The return error code
+	 */
+	void reportError(bool critical, string error, int val = 0);
+
+	/**
+	 * @brief Remove an event
+	 *
+	 * @param id  The event id
+	 */
+	void removeEvent(event_id_t id);
+
+	/**
+	 * @brief Start a timer
+	 *
+	 * @param id  The timer id
+	 * @return true on success, false otherwise
+	 */
+	bool startTimer(event_id_t id);
 
   protected:
 
 	/**
 	 * @brief Add a message in the next channel queue
 	 *
-	 * @param message  The message to enqueue
+	 * @param data  The message to enqueue
+	 * @param size  The size of data in message
+	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(void *message);
+	bool enqueueMessage(unsigned char *data, size_t size, uint8_t type = 0);
 
 	/**
 	 * @brief Internal channel initialization
@@ -158,21 +181,21 @@ class Channel
 	 *
 	 * @param fifo  The fifo
 	 */
-	void setFifo(Fifo *fifo) {this->fifo = fifo;};
+	void setFifo(RtFifo *fifo);
 
 	/**
 	 * @brief Update the fifo size
 	 *
 	 * @param fifo_size  The new fifo size
 	 */
-	void setFifoSize(uint8_t size) {this->fifo->resize(size);};
+	void setFifoSize(uint8_t size);
 
 	/**
 	 * @brief Set the fifo for next channl
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
-	void setNextFifo(Fifo *fifo) {this->next_fifo = fifo;};
+	void setNextFifo(RtFifo *fifo);
 
 	/*
 	 * @brief Start the channel thread
@@ -203,12 +226,18 @@ class Channel
 	chan_type_t chan;
 
 	/// events that are currently monitored by the channel thread
-	list<Event *> events;
+	map<event_id_t, RtEvent *> events;
+
+	/// the list of new events (used to avoid updates inside the loop)
+	list<RtEvent *> new_events;
+
+	/// the list of removed event id
+	list<event_id_t> removed_events;
 
 	/// The fifo of the channel
-	Fifo *fifo;
+	RtFifo *fifo;
 	/// The fifo on the next channel
-	Fifo *next_fifo;
+	RtFifo *next_fifo;
 
 	/// contains the highest FD of input events
 	int32_t max_input_fd;
@@ -218,15 +247,6 @@ class Channel
 
 	/// fd o the stop signal event
 	int32_t stop_fd;
-
-	/**
-	 * @param Internal error report
-	 *
-	 * @param critical   Whether the application should be stopped
-	 * @param error      The error message
-	 * @param val        The return error code
-	 */
-	void reportError(bool critical, string error, int val = 0);
 
 	/**
 	 * @brief Add a message  event to the channel
@@ -243,6 +263,22 @@ class Channel
 	void executeThread(void);
 
 	/**
+	 * @brief Add an event in event map
+	 *
+	 * @param event  The event
+	 * @return true on success, false otherwise
+	 */
+	bool addEvent(RtEvent *event);
+
+	/**
+	 * @brief Update the events map with the new received event
+	 *        We need to do that in order to avoid modifying the event
+	 *        map while itering on it
+	 *
+	 */
+	void updateEvents(void);
+
+	/**
 	 * @brief Add a fd to input_fd_set
 	 *        Should be called each time the channel got a new event
 	 *
@@ -256,7 +292,7 @@ class Channel
 	 * @param event  The event
 	 * @return true on success, false otherwise
 	 */
-	bool processEvent(const Event *const event);
+	bool processEvent(const RtEvent *const event);
 	// TODO replace with onEvent
 
 };

@@ -55,6 +55,8 @@
 #include "TestBlock.h"
 
 #include "Rt.h"
+#include "TimerEvent.h"
+#include "NetSocketEvent.h"
 
 #include <iostream>
 #include <cstdio>
@@ -95,11 +97,11 @@ bool TestBlock::onInit()
 	this->upward->addTimerEvent("test_timer", 100, true);
 
 	// high priority to be sure to read it before another timer
-	this->downward->addNetSocketEvent(this->input_fd, 2);
+	this->downward->addNetSocketEvent("downward", this->input_fd, 2);
 	return true;
 }
 
-bool TestBlock::onUpwardEvent(const Event *const event)
+bool TestBlock::onUpwardEvent(const RtEvent *const event)
 {
 	string error;
 	timeval elapsed_time;
@@ -142,7 +144,7 @@ bool TestBlock::onUpwardEvent(const Event *const event)
 	return true;
 }
 
-bool TestBlock::onDownwardEvent(const Event *const event)
+bool TestBlock::onDownwardEvent(const RtEvent *const event)
 {
 	string error;
 	char data[64];
@@ -196,7 +198,7 @@ HeapLeakChecker heap_checker("test_block");
 	std::cout << "Launch test" << std::endl;
 
 	block = Rt::createBlock<TestBlock, TestBlock::Upward,
-	                        TestBlock::Downward>("test", NULL);
+	                        TestBlock::Downward>("test");
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	if(!Rt::run())

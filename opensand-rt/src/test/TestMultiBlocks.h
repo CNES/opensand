@@ -38,6 +38,7 @@
 
 
 #include "Block.h"
+#include "NetSocketEvent.h"
 
 class TopBlock: public Block
 {
@@ -46,8 +47,8 @@ class TopBlock: public Block
 
 	TopBlock(const string &name);
 	~TopBlock();
-	bool onUpwardEvent(const Event *const event);
-	bool onDownwardEvent(const Event *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
   protected:
@@ -64,8 +65,8 @@ class MiddleBlock: public Block
 
 	MiddleBlock(const string &name);
 	~MiddleBlock();
-	bool onUpwardEvent(const Event *const event);
-	bool onDownwardEvent(const Event *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
   protected:
@@ -79,8 +80,8 @@ class BottomBlock: public Block
 
 	BottomBlock(const string &name);
 	~BottomBlock();
-	bool onUpwardEvent(const Event *const event);
-	bool onDownwardEvent(const Event *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
   protected:

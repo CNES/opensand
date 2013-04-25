@@ -43,7 +43,7 @@
 
 
 SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority):
-	Event(evt_signal, name, -1, priority),
+	RtEvent(evt_signal, name, -1, priority),
 	mask(signal_mask)
 {
 	int ret;

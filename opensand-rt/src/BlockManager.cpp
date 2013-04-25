@@ -34,12 +34,13 @@
  */
 
 #include "BlockManager.h"
-#include "Fifo.h"
+#include "RtFifo.h"
 
 #include <signal.h>
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
+#include <sys/signalfd.h>
 
 BlockManager::BlockManager():
 	stopped(false),

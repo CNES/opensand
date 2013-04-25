@@ -38,20 +38,22 @@
 #ifndef NET_SOCKET_EVENT_H
 #define NET_SOCKET_EVENT_H
 
+#include "RtEvent.h"
 #include "Types.h"
-#include "MessageEvent.h"
 
 #include <sys/time.h>
 
 #define MAX_SOCK_SIZE 1500
 
 
+class MessageEvent;
+
 /**
   * @class NetSocketEvent
   * @brief Events describing data received on a nework socket
   *
   */
-class NetSocketEvent: public Event
+class NetSocketEvent: public RtEvent
 {
 
   public:
@@ -65,7 +67,7 @@ class NetSocketEvent: public Event
 	 */
 	NetSocketEvent(const string &name,
 	               int32_t fd = -1,
-	               uint8_t priority = 8);
+	               uint8_t priority = 4);
 	~NetSocketEvent();
 
 
