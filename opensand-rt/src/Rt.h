@@ -39,7 +39,7 @@
 
 #include "BlockManager.h"
 #include "Block.h"
-#include "Channel.h"
+#include "RtChannel.h"
 #include "RtEvent.h"
 #include "Types.h"
 
@@ -51,7 +51,7 @@
  */
 class Rt
 {
-	friend class Channel;
+	friend class RtChannel;
 	friend class SignalEvent;
 
   public:

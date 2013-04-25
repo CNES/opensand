@@ -35,7 +35,7 @@
 
 
 #include "Block.h"
-#include "Channel.h"
+#include "RtChannel.h"
 #include "Rt.h"
 
 #include <errno.h>
@@ -248,12 +248,12 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	return ret;
 }
 
-Channel *Block::getUpwardChannel(void) const
+RtChannel *Block::getUpwardChannel(void) const
 {
 	return this->upward;
 }
 	
-Channel *Block::getDownwardChannel(void) const
+RtChannel *Block::getDownwardChannel(void) const
 {
 	return this->downward;
 }

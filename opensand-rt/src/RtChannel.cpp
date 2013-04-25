@@ -26,14 +26,14 @@
  */
 
 /**
- * @file Channel.cpp
+ * @file RtChannel.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The channel included in blocks
  *
  */
 
-#include "Channel.h"
+#include "RtChannel.h"
 
 #include "Rt.h"
 #include "Block.h"
@@ -61,7 +61,7 @@ using std::ostringstream;
 
 
 // TODO pointer on onEventUp/Down and remove chan and add name
-Channel::Channel(Block &bl, chan_type_t chan):
+RtChannel::RtChannel(Block &bl, chan_type_t chan):
 	block(bl),
 	chan(chan),
 	fifo(NULL),
@@ -71,7 +71,7 @@ Channel::Channel(Block &bl, chan_type_t chan):
 	FD_ZERO(&(this->input_fd_set));
 }
 
-Channel::~Channel()
+RtChannel::~RtChannel()
 {
 	// delete all events
 	this->updateEvents(); // update to also clear new events
@@ -91,7 +91,7 @@ Channel::~Channel()
 	}
 }
 
-bool Channel::enqueueMessage(void *data, size_t size, uint8_t type)
+bool RtChannel::enqueueMessage(void *data, size_t size, uint8_t type)
 {
 	if(!this->next_fifo->push(data, size, type))
 	{
@@ -103,7 +103,7 @@ bool Channel::enqueueMessage(void *data, size_t size, uint8_t type)
 }
 
 
-bool Channel::init(void)
+bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
 
@@ -137,7 +137,7 @@ bool Channel::init(void)
 	return true;
 }
 
-int32_t Channel::addTimerEvent(const string &name,
+int32_t RtChannel::addTimerEvent(const string &name,
                                uint32_t duration_ms,
                                bool auto_rearm,
                                bool start,
@@ -158,7 +158,7 @@ int32_t Channel::addTimerEvent(const string &name,
 	return event->getFd();
 }
 
-int32_t Channel::addNetSocketEvent(const string &name,
+int32_t RtChannel::addNetSocketEvent(const string &name,
                                    int32_t fd,
                                    uint8_t priority)
 {
@@ -177,7 +177,7 @@ int32_t Channel::addNetSocketEvent(const string &name,
 	return event->getFd();
 }
 
-int32_t Channel::addSignalEvent(const string &name,
+int32_t RtChannel::addSignalEvent(const string &name,
                                 sigset_t signal_mask,
                                 uint8_t priority)
 {
@@ -195,7 +195,7 @@ int32_t Channel::addSignalEvent(const string &name,
 	return event->getFd();
 }
 
-void Channel::addMessageEvent(uint8_t priority)
+void RtChannel::addMessageEvent(uint8_t priority)
 {
 	string name = "downward";
 	if(this->chan == upward_chan)
@@ -216,7 +216,7 @@ void Channel::addMessageEvent(uint8_t priority)
 	}
 }
 
-bool Channel::addEvent(RtEvent *event)
+bool RtChannel::addEvent(RtEvent *event)
 {
 	if(this->events[event->getFd()])
 	{
@@ -230,7 +230,7 @@ bool Channel::addEvent(RtEvent *event)
 	return true;
 }
 
-void Channel::updateEvents(void)
+void RtChannel::updateEvents(void)
 {
 	
 	// add new events
@@ -257,7 +257,7 @@ void Channel::updateEvents(void)
 	this->removed_events.clear();
 }
 
-bool Channel::startTimer(event_id_t id)
+bool RtChannel::startTimer(event_id_t id)
 {
 	map<event_id_t, RtEvent *>::iterator it;
 	RtEvent *event = NULL;
@@ -298,7 +298,7 @@ bool Channel::startTimer(event_id_t id)
 	return true;
 }
 
-void Channel::addInputFd(int32_t fd)
+void RtChannel::addInputFd(int32_t fd)
 {
 	if(fd > this->max_input_fd)
 	{
@@ -307,19 +307,19 @@ void Channel::addInputFd(int32_t fd)
 	FD_SET(fd, &(this->input_fd_set));
 }
 
-void Channel::removeEvent(event_id_t id)
+void RtChannel::removeEvent(event_id_t id)
 {
 	this->removed_events.push_back(id);
 }
 
-void *Channel::startThread(void *pthis)
+void *RtChannel::startThread(void *pthis)
 {
-	((Channel *)pthis)->executeThread();
+	((RtChannel *)pthis)->executeThread();
 
 	return NULL;
 }
 
-bool Channel::processEvent(const RtEvent *const event)
+bool RtChannel::processEvent(const RtEvent *const event)
 {
 	std::cout << "Channel " << this->chan << ": event received: "
 	          << event->getName() << std::endl;
@@ -327,7 +327,7 @@ bool Channel::processEvent(const RtEvent *const event)
 };
 
 
-void Channel::executeThread(void)
+void RtChannel::executeThread(void)
 {
 	while(true)
 	{
@@ -408,7 +408,7 @@ void Channel::executeThread(void)
 	}
 }
 
-void Channel::reportError(bool critical, const char *msg_format, ...)
+void RtChannel::reportError(bool critical, const char *msg_format, ...)
 {
 	char msg[512];
 	va_list args;
@@ -422,17 +422,17 @@ void Channel::reportError(bool critical, const char *msg_format, ...)
 	                critical, msg);
 };
 
-void Channel::setFifo(RtFifo *fifo)
+void RtChannel::setFifo(RtFifo *fifo)
 {
 	this->fifo = fifo;
 };
 
-void Channel::setFifoSize(uint8_t size)
+void RtChannel::setFifoSize(uint8_t size)
 {
 	this->fifo->resize(size);
 };
 
-void Channel::setNextFifo(RtFifo *fifo)
+void RtChannel::setNextFifo(RtFifo *fifo)
 {
 	this->next_fifo = fifo;
 };

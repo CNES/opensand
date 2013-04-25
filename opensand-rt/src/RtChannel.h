@@ -26,15 +26,15 @@
  */
 
 /**
- * @file Channel.h
+ * @file RtChannel.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The channel included in blocks
  *
  */
 
-#ifndef CHANNEL_H
-#define CHANNEL_H
+#ifndef RT_CHANNEL_H
+#define RT_CHANNEL_H
 
 #include "Types.h"
 
@@ -55,7 +55,7 @@ using std::string;
 
 
 /**
- * @class Channel
+ * @class RtChannel
  * @brief describes a single channel
  *
  * channel direction is always relative to its position.
@@ -63,7 +63,7 @@ using std::string;
  * Its previous channel is the channel it will receive data from.
  *
  */
-class Channel
+class RtChannel
 {
 	friend class Block;
 	friend class BlockManager;
@@ -81,12 +81,12 @@ class Channel
 	 * @param chan  The channel type
      *
 	 */
-	Channel(Block &bl, chan_type_t chan);
+	RtChannel(Block &bl, chan_type_t chan);
 
 
   public:
 
-	virtual ~Channel();
+	virtual ~RtChannel();
 
 	/**
 	 * @brief Initialize the channel

@@ -11,7 +11,7 @@ lib_LTLIBRARIES = libopensand_rt.la
 libopensand_rt_la_cpp = \
 	Rt.cpp \
 	Block.cpp \
-	Channel.cpp \
+	RtChannel.cpp \
 	BlockManager.cpp \
 	RtEvent.cpp \
 	MessageEvent.cpp \
@@ -23,7 +23,7 @@ libopensand_rt_la_cpp = \
 
 libopensand_rt_la_h = \
 	Rt.h \
-	Channel.h \
+	RtChannel.h \
 	Types.h \
 	Block.h \
 	BlockManager.h \

@@ -36,7 +36,7 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include "Channel.h"
+#include "RtChannel.h"
 #include "Types.h"
 
 
@@ -63,7 +63,7 @@ using std::string;
  */
 class Block
 {
-	friend class Channel;
+	friend class RtChannel;
 	friend class BlockManager;
 
   public:
@@ -148,11 +148,11 @@ class Block
 	 *        With this class we are able to define Upward channel
 	 *        functions in Block
 	 */
-	class Upward: public Channel
+	class Upward: public RtChannel
 	{
 	  public:
 		Upward(Block &bl):
-			Channel(bl, upward_chan)
+			RtChannel(bl, upward_chan)
 		{};
 	};
 
@@ -161,11 +161,11 @@ class Block
 	 *        With this class we are able to define Upward channel
 	 *        functions in Block
 	 */
-	class Downward: public Channel
+	class Downward: public RtChannel
 	{
 	  public:
 		Downward(Block &bl):
-			Channel(bl, downward_chan)
+			RtChannel(bl, downward_chan)
 		{};
 	};
 
@@ -224,14 +224,14 @@ class Block
 	 *
 	 * @return the upward channel
 	 */
-	Channel *getUpwardChannel(void) const;
+	RtChannel *getUpwardChannel(void) const;
 
 	/**
 	 * @brief Get the downward channel
 	 *
 	 * @return the downward channel
 	 */
-	Channel *getDownwardChannel(void) const;
+	RtChannel *getDownwardChannel(void) const;
 
 	/// The upward channel
 	Upward *upward;
