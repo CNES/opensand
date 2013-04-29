@@ -85,15 +85,16 @@ class BlockManager
 	 * @tparam Bl       The block class
 	 * @tparam Up       The upward channel class
 	 * @tparam Down     The downward channel class
+	 * @tparam T        The type of the specific parameter
 	 * @param name      The block name
 	 * @param upper     The upper block or NULL if none
 	 * @param specific  User defined data
 	 * @return The block
 	 */
-	template<class Bl, class Up, class Down>
+	template<class Bl, class Up, class Down, class T>
 	Block *createBlock(const string &name,
 	                   Block *const upper,
-	                   void *specific);
+	                   T specific);
 
 	/**
 	 * @brief stops the application
@@ -157,8 +158,8 @@ Block *BlockManager::createBlock(const string &name,
 {
 	Block *block = new Bl(name);
 
-	Block::Upward *up = new Up(*block);
-	Block::Downward *down = new Down(*block);
+	Up *up = new Up(*block);
+	Down *down = new Down(*block);
 
 	block->upward = up;
 	block->downward = down;
@@ -182,15 +183,15 @@ Block *BlockManager::createBlock(const string &name,
 	return block;
 }
 
-template<class Bl, class Up, class Down>
+template<class Bl, class Up, class Down, class T>
 Block *BlockManager::createBlock(const string &name,
                                  Block *const upper,
-                                 void *specific)
+                                 T specific)
 {
 	Block *block = new Bl(name, specific);
 
-	Block::Upward *up = new Up(*block);
-	Block::Downward *down = new Down(*block);
+	Up *up = new Up(*block);
+	Down *down = new Down(*block);
 
 	block->upward = up;
 	block->downward = down;

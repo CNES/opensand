@@ -91,14 +91,16 @@ RtChannel::~RtChannel()
 	}
 }
 
-bool RtChannel::enqueueMessage(void *data, size_t size, uint8_t type)
+bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
 {
-	if(!this->next_fifo->push(data, size, type))
+	if(!this->next_fifo->push(*data, size, type))
 	{
 		this->reportError(false,
 		                  "cannot push data in fifo for next block");
 		return false;
 	}
+	// be sure that the pointer won't be used anymore
+	*data = NULL;
 	return true;
 }
 

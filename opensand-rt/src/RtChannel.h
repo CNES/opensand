@@ -159,13 +159,16 @@ class RtChannel
 
 	/**
 	 * @brief Add a message in the next channel queue
+	 * @warning The message shall not be reused in the channel after this call
+	 *          because will be used in other blocks
 	 *
-	 * @param data  The message to enqueue
+	 * @param data  IN: A pointer on the  message to enqueue
+	 *              OUT: NULL
 	 * @param size  The size of data in message
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(void *data, size_t size, uint8_t type = 0);
+	bool enqueueMessage(void **data, size_t size, uint8_t type = 0);
 
 	/**
 	 * @brief Internal channel initialization

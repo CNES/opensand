@@ -34,8 +34,8 @@
  */
 
 
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef RT_EVENT_H
+#define RT_EVENT_H
 
 
 #include <sys/time.h>
@@ -126,6 +126,12 @@ class RtEvent
 	bool operator==(const event_id_t id) const
 	{
 		return (this->fd == id);
+	}
+
+	/// operator != used to check if the event id corresponds
+	bool operator!=(const event_id_t id) const
+	{
+		return (this->fd != id);
 	}
 
   protected:

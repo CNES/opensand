@@ -154,6 +154,8 @@ class Block
 		Upward(Block &bl):
 			RtChannel(bl, upward_chan)
 		{};
+
+		virtual ~Upward() {};
 	};
 
 	/**
@@ -167,6 +169,8 @@ class Block
 		Downward(Block &bl):
 			RtChannel(bl, downward_chan)
 		{};
+
+		virtual ~Downward() {};
 	};
 
 
@@ -217,7 +221,7 @@ class Block
 	 *
 	 * @return the current time
 	 */
-	long getCurrentTime(void);
+	clock_t getCurrentTime(void);
 
 	/**
 	 * @brief Get the upward channel
@@ -234,9 +238,9 @@ class Block
 	RtChannel *getDownwardChannel(void) const;
 
 	/// The upward channel
-	Upward *upward;
+	RtChannel *upward;
 	/// The downward channel
-	Downward *downward;
+	RtChannel *downward;
 
 	/// The upward channel thread
 	pthread_t up_thread_id;

@@ -81,15 +81,16 @@ class Rt
 	 * @tparam Bl       The block class
 	 * @tparam Up       The upward channel class
 	 * @tparam Down     The downward channel class
+	 * @tparam T        The type of the specific parameter
 	 * @param name      The name of the block
 	 * @param upper     The upper block or NULL if none
 	 * @param specific  User defined data
 	 * @return the block
 	 */
-	template<class Bl, class Up, class Down>
+	template<class Bl, class Up, class Down, class T>
 	static Block *createBlock(const string &name,
 	                          Block *const upper,
-	                          void *specific);
+	                          T specific);
 
 	/**
 	 * @brief Start the blocks and checks if threads
@@ -132,12 +133,12 @@ Block *Rt::createBlock(const string &name,
 	return Rt::manager.createBlock<Bl, Up, Down>(name, upper);
 }
 
-template<class Bl, class Up, class Down>
+template<class Bl, class Up, class Down, class T>
 Block *Rt::createBlock(const string &name,
                        Block *const upper,
-                       void *specific)
+                       T specific)
 {
-	return Rt::manager.createBlock<Bl, Up, Down>(name, upper, specific);
+	return Rt::manager.createBlock<Bl, Up, Down, T>(name, upper, specific);
 }
 
 #endif

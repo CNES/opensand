@@ -92,23 +92,13 @@ Block::~Block()
 // TODO remove once onEvent will be specific to channel
 bool Block::sendUp(void **data, size_t size, uint8_t type)
 {
-	// copy pointer because this is not done in fifo->push
-	//void *msg = *message; // TODO remove
-	int ret;
-	ret = this->upward->enqueueMessage(*data, size, type);
-	// be sure that the pointer won't be used anymore
-	*data = NULL;
-	return ret;
+	return this->upward->enqueueMessage(data, size, type);
 }
 
 // TODO remove once onEvent will be specific to channel
 bool Block::sendDown(void **data, size_t size, uint8_t type)
 {
-	int ret;
-	ret = this->downward->enqueueMessage(*data, size, type);
-	// be sure that the pointer won't be used anymore
-	*data = NULL;
-	return ret;
+	return this->downward->enqueueMessage(data, size, type);
 }
 
 bool Block::init(void)
@@ -248,6 +238,13 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	return ret;
 }
 
+clock_t Block::getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
+}
+
 RtChannel *Block::getUpwardChannel(void) const
 {
 	return this->upward;
@@ -258,9 +255,3 @@ RtChannel *Block::getDownwardChannel(void) const
 	return this->downward;
 }
 
-clock_t getCurrentTime(void)
-{
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
-}
