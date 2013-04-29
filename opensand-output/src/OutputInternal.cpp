@@ -323,6 +323,8 @@ void OutputInternal::sendEvent(Event *event, const char *message_text)
 		return;
 	}
 
+	// TODO use a list of message and if finishInit was not called
+	//      stock events. Send stocked events when calling finishInit
 	std::string message;
 	msgHeaderSendEvent(message, event->id);
 	message.append(message_text);

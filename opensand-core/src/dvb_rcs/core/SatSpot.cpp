@@ -32,13 +32,15 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-// Logging configuration
-#define DBG_PACKAGE PKG_DVB_RCS_SAT
-#include "opensand_conf/uti_debug.h"
 
 #include "SatSpot.h"
 #include "msg_dvb_rcs.h"
 #include "MacFifoElement.h"
+
+#define DBG_PACKAGE PKG_DVB_RCS_SAT
+#include <opensand_conf/uti_debug.h>
+
+#include <stdlib.h>
 
 // Declaring SatSpot necessary ctor and dtor
 SatSpot::SatSpot():
@@ -65,14 +67,14 @@ SatSpot::~SatSpot()
 	// clear logon fifo
 	while((elem = this->m_logonFifo.pop()) != NULL)
 	{
-		g_memory_pool_dvb_rcs.release((char *)elem->getData());
+		free(elem->getData());
 		delete elem;
 	}
 
 	// clear control fifo
 	while((elem = this->m_ctrlFifo.pop()) != NULL)
 	{
-		g_memory_pool_dvb_rcs.release((char *)elem->getData());
+		free(elem->getData());
 		delete elem;
 	}
 

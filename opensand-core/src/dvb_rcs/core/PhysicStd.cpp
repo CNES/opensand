@@ -139,7 +139,7 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 release_elem:
 	delete elem;
 error:
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return -1;
 }
 

@@ -27,13 +27,15 @@
  */
 
 /**
- * @file bloc_encap_sat.cpp
+ * @file BlockEncapSat.cpp
  * @brief Generic Encapsulation Bloc for SE
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#include "bloc_encap_sat.h"
+#include "BlockEncapSat.h"
+
+#include "Plugin.h"
 
 // debug
 #undef DBG_PACKAGE
@@ -41,109 +43,71 @@
 #include "opensand_conf/uti_debug.h"
 
 
-Event *BlocEncapSat::error_init = NULL;
+Event *BlockEncapSat::error_init = NULL;
 
-BlocEncapSat::BlocEncapSat(mgl_blocmgr * blocmgr,
-                           mgl_id fatherid,
-                           const char *name,
-                           PluginUtils utils):
-	mgl_bloc(blocmgr, fatherid, name),
-	utils(utils)
+BlockEncapSat::BlockEncapSat(const string &name):
+	Block(name)
 {
-	this->initOk = false;
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 	
 	if(error_init == NULL)
 	{
-		error_init = Output::registerEvent("bloc_encap_sat:init", LEVEL_ERROR);
+		error_init = Output::registerEvent("BlockEncapSat:init", LEVEL_ERROR);
 	}
 }
 
-BlocEncapSat::~BlocEncapSat()
+BlockEncapSat::~BlockEncapSat()
 {
 	delete this->ip_handler;
 }
 
-mgl_status BlocEncapSat::onEvent(mgl_event *event)
+bool BlockEncapSat::onDownwardEvent(const RtEvent *const event)
 {
-	const char *FUNCNAME = "[BlocEncapSat::onEvent]";
-	mgl_status status = mgl_ko;
+	switch(event->getType())
+	{
+		case evt_timer:
+		{
+			// timer event, flush corresponding encapsulation context
+			return this->onTimer(event->getFd());
+		}
+		break;
 
-	if(MGL_EVENT_IS_INIT(event))
-	{
-		// initialization event
-		if(this->initOk)
-		{
-			UTI_ERROR("%s bloc has already been initialized, "
-			          "ignore init event\n", FUNCNAME);
-		}
-		else if(this->onInit() == mgl_ok)
-		{
-			this->initOk = true;
-			status = mgl_ok;
-		}
-		else
-		{
-			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			Output::sendEvent(error_init, "%s bloc initialization failed\n",
-			                     FUNCNAME);
-		}
-	}
-	else if(!this->initOk)
-	{
-		UTI_ERROR("%s satellite encapsulation bloc not initialized, ignore "
-		          "non-init event\n", FUNCNAME);
-	}
-	else if(MGL_EVENT_IS_TIMER(event))
-	{
-		// timer event, flush corresponding encapsulation context
-		status = this->onTimer((mgl_timer) event->event.timer.id);
-	}
-	else if(MGL_EVENT_IS_MSG(event))
-	{
-		// message received from another bloc
-
-		if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getLowerLayer())
-		{
-			UTI_DEBUG("%s message received from the lower layer\n", FUNCNAME);
-
-			if(MGL_EVENT_MSG_IS_TYPE(event, msg_encap_burst))
-			{
-				NetBurst *burst;
-				burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
-				status = this->onRcvBurstFromDown(burst);
-			}
-			else
-			{
-				UTI_ERROR("%s message type is unknown\n", FUNCNAME);
-			}
-		}
-		else
-		{
-			UTI_ERROR("%s message received from an unknown bloc\n", FUNCNAME);
-		}
-	}
-	else
-	{
-		UTI_ERROR("%s unknown event (type %ld) received\n",
-		          FUNCNAME, event->type);
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
 	}
 
-	return status;
+	return true;
 }
 
-mgl_status BlocEncapSat::setUpperLayer(mgl_id bloc_id)
+bool BlockEncapSat::onUpwardEvent(const RtEvent *const event)
 {
-	const char *FUNCNAME = "[BlocEncapSat::setUpperLayer]";
+	switch(event->getType())
+	{
+		case evt_message:
+		{
+			NetBurst *burst;
 
-	UTI_ERROR("%s bloc does not accept an upper-layer bloc\n", FUNCNAME);
+			UTI_DEBUG("message received from the lower layer\n");
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			return this->onRcvBurstFromDown(burst);
+		}
 
-	return mgl_ko;
+		break;
+
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
+	}
+
+	return true;
 }
 
-mgl_status BlocEncapSat::onInit()
+bool BlockEncapSat::onInit()
 {
-	const char *FUNCNAME = "[BlocEncapSat::onInit]";
+	const char *FUNCNAME = "[BlockEncapSat::onInit]";
 	int i;
 	int encap_nbr;
 	EncapPlugin *plugin = NULL;
@@ -204,7 +168,7 @@ mgl_status BlocEncapSat::onInit()
 			goto error;
 		}
 
-		if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
 		{
 			UTI_ERROR("%s cannot get plugin for %s encapsulation",
 			          FUNCNAME, encap_name.c_str());
@@ -251,25 +215,24 @@ mgl_status BlocEncapSat::onInit()
 		          FUNCNAME, upper_encap->getName().c_str());
 	}
 
-	return mgl_ok;
+	return true;
 
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncapSat::onTimer(mgl_timer timer)
+bool BlockEncapSat::onTimer(event_id_t timer_id)
 {
-	const char *FUNCNAME = "[BlocEncapSat::onTimer]";
-	std::map < mgl_timer, int >::iterator it;
+	const char *FUNCNAME = "[BlockEncapSat::onTimer]";
+	std::map <event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
-	mgl_msg *msg; // margouilla message
 
 	UTI_DEBUG("%s emission timer received, flush corresponding emission "
 	          "context\n", FUNCNAME);
 
 	// find encapsulation context to flush
-	it = this->timers.find(timer);
+	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
 		UTI_ERROR("%s timer not found\n", FUNCNAME);
@@ -298,36 +261,27 @@ mgl_status BlocEncapSat::onTimer(mgl_timer timer)
 	if(burst->size() <= 0)
 		goto clean;
 
-	// create the Margouilla message
-	// with encapsulation burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
-	if(!msg)
-	{
-		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-		goto clean;
-	}
-
 	// send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
+	if(!this->sendDown((void **)&burst, sizeof(burst)))
 	{
-		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
 	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
 
-	return mgl_ok;
+	return true;
 
 clean:
 	delete burst;
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncapSat::onRcvBurstFromDown(NetBurst *burst)
+bool BlockEncapSat::onRcvBurstFromDown(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncapSat::onRcvBurstFromDown]";
-	mgl_status status;
+	const char *FUNCNAME = "[BlockEncapSat::onRcvBurstFromDown]";
+	bool status;
 
 	// check burst validity
 	if(burst == NULL)
@@ -351,13 +305,12 @@ mgl_status BlocEncapSat::onRcvBurstFromDown(NetBurst *burst)
 	return status;
 
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
+bool BlockEncapSat::ForwardPackets(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncapSat::ForwardPackets]";
-	mgl_msg *msg; // margouilla message
+	const char *FUNCNAME = "[BlockEncapSat::ForwardPackets]";
 
 	// check burst validity
 	if(burst == NULL)
@@ -366,39 +319,30 @@ mgl_status BlocEncapSat::ForwardPackets(NetBurst *burst)
 		goto error;
 	}
 
-	// create the Margouilla message with burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
-	if(!msg)
-	{
-		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-		goto clean;
-	}
-
 	// send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
+	if(!this->sendDown((void **)&burst, sizeof(burst)))
 	{
-		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
 	UTI_DEBUG("%s burst sent to the lower layer\n", FUNCNAME);
 
 	// everthing is fine
-	return mgl_ok;
+	return true;
 
 clean:
 	delete burst;
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
+bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncapSat::EncapsulatePackets]";
+	const char *FUNCNAME = "[BlockEncapSat::EncapsulatePackets]";
 	NetBurst::iterator pkt_it;
 	NetBurst *packets;
 	map<long, int> time_contexts;
-	mgl_msg *msg; // margouilla message
 	vector<EncapPlugin::EncapContext *>::iterator iter;
 
 	// check burst validity
@@ -425,7 +369,7 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 	for(map<long, int>::iterator time_iter = time_contexts.begin();
 	    time_iter != time_contexts.end(); time_iter++)
 	{
-		std::map < mgl_timer, int >::iterator it;
+		std::map<event_id_t, int>::iterator it;
 		bool found = false;
 
 		// check if there is already a timer armed for the context
@@ -435,8 +379,12 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 		// set a new timer if no timer was found
 		if(!found && (*time_iter).first != 0)
 		{
-			mgl_timer timer;
-			this->setTimer(timer, (*time_iter).first);
+			event_id_t timer;
+			ostringstream name;
+
+			name << "context_" << (*time_iter).second;
+			timer = this->downward->addTimerEvent(name.str(), (*time_iter).first);
+
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
 			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
 			          FUNCNAME, (*time_iter).second, (*time_iter).first);
@@ -454,19 +402,10 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 		goto clean;
 	}
 
-	// create the Margouilla message with burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst, packets,
-	                              sizeof(packets));
-	if(!msg)
+	// send the message to the lower layer
+	if(!this->sendDown((void **)&packets, sizeof(packets)))
 	{
-		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-		goto clean;
-	}
-
-	//  send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
-	{   
-		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
@@ -474,10 +413,10 @@ mgl_status BlocEncapSat::EncapsulatePackets(NetBurst *burst)
 	          (this->downlink_ctx.back())->getName().c_str());
 
 	// everthing is fine
-	return mgl_ok;
+	return true;
 
 clean:
 	delete packets;
 error:
-	return mgl_ko;
+	return false;
 }

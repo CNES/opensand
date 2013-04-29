@@ -38,15 +38,16 @@
 #ifndef SAT_SPOT_H
 #define SAT_SPOT_H
 
-
-#include <sys/times.h>
-#include <map>
-
-using namespace std;
-
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 
+#include <sys/times.h>
+#include <map>
+#include <list>
+
+
+using std::list;
+using std::map;
 
 typedef struct sat_statBloc
 {

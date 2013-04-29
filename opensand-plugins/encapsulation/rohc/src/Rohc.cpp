@@ -305,15 +305,12 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	packet->addTrace(HERE());
-
 	rohc_packet = new RohcPacket(packet->getData());
 	if(rohc_packet == NULL)
 	{
 		UTI_ERROR("%s cannot create RohcPacket from NetPacket\n", FUNCNAME);
 		goto drop;
 	}
-	rohc_packet->addTrace(HERE());
 
 	// decompress the IP packet thanks to the ROHC library
 	ip_len = rohc_decompress(this->decompressors[packet->getSrcTalId()],

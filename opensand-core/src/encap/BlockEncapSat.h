@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_encap_sat.h
+ * @file BlockEncapSat.h
  * @brief Generic Encapsulation Bloc for SE
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
@@ -36,28 +36,21 @@
 #ifndef BLOC_ENCAP_SAT_H
 #define BLOC_ENCAP_SAT_H
 
-// margouilla includes
-#include "opensand_margouilla/mgl_bloc.h"
-
-// message includes
 #include "msg_dvb_rcs.h"
-#include "opensand_margouilla/msg_ip.h"
-
 #include "NetBurst.h"
-
-#include "opensand_conf/conf.h"
 #include "EncapPlugin.h"
-#include "PluginUtils.h"
 #include "IpPacketHandler.h"
 
-// output
-#include "opensand_output/Output.h"
+#include <opensand_rt/Rt.h>
+#include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
+
 
 /**
- * @class BlocEncapSat
+ * @class BlockEncapSat
  * @brief Generic Encapsulation Bloc for SE
  */
-class BlocEncapSat: public mgl_bloc
+class BlockEncapSat: public Block
 {
  private:
 
@@ -65,13 +58,7 @@ class BlocEncapSat: public mgl_bloc
 	vector<EncapPlugin::EncapContext *> downlink_ctx;
 
 	/// Expiration timers for encapsulation contexts
-	std::map < mgl_timer, int > timers;
-
-	/// Whether the bloc has been initialized or not
-	bool initOk;
-
-	/// The plugins elements
-	PluginUtils utils;
+	std::map<event_id_t, int> timers;
 
 	/// the IP packet handler for plugins
 	IpPacketHandler *ip_handler;
@@ -81,51 +68,33 @@ class BlocEncapSat: public mgl_bloc
 	/**
 	 * Build a satellite encapsulation bloc
 	 *
-	 * @param blocmgr   The bloc manager
-	 * @param fatherid  The father of the bloc
 	 * @param name      The name of the bloc
-	 * @param utils     The plugin elements
 	 */
-	BlocEncapSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	             PluginUtils utils);
+	BlockEncapSat(const string &name);
 
 	/**
 	 * Destroy the encapsulation bloc
 	 */
-	~BlocEncapSat();
+	~BlockEncapSat();
 
-	/**
-	 * Handle the events
-	 *
-	 * @param event  The event to handle
-	 * @return       Whether the event was successfully handled or not
-	 */
-	mgl_status onEvent(mgl_event *event);
+ protected:
 
-	/**
-	 * Set the upper-layer bloc
-	 *
-	 * @param bloc_id  The id of the upper-layer bloc
-	 * @return         Whether the upper-layer bloc was successfully set or not
-	 */
-	mgl_status setUpperLayer(mgl_id bloc_id);
+	/// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+
+	// initialization method
+	bool onInit();
 
  private:
 
 	/**
-	 * Initialize the satellite encapsulation block
-	 *
-	 * @return  Whether the init was successful or not
-	 */
-	mgl_status onInit();
-
-	/**
 	 * Handle the timer event
 	 *
-	 * @param timer  The Margouilla timer to handle
-	 * @return       Whether the timer event was successfully handled or not
+	 * @param timer_id  The id of the timer to handle
+	 * @return          Whether the timer event was successfully handled or not
 	 */
-	mgl_status onTimer(mgl_timer timer);
+	bool onTimer(event_id_t timer_id);
 
 	/**
 	 * Handle a burst of encapsulation packets received from the lower-layer
@@ -134,7 +103,7 @@ class BlocEncapSat: public mgl_bloc
 	 * @param burst  The burst received from the lower-layer block
 	 * @return       Whether the burst was successful handled or not
 	 */
-	mgl_status onRcvBurstFromDown(NetBurst *burst);
+	bool onRcvBurstFromDown(NetBurst *burst);
 
 	/**
 	 * Forward a burst of packets to the lower-layer block
@@ -142,7 +111,7 @@ class BlocEncapSat: public mgl_bloc
 	 * @param burst  The burst to forward
 	 * @return       Whether the burst was successful forwarded or not
 	 */
-	mgl_status ForwardPackets(NetBurst *burst);
+	bool ForwardPackets(NetBurst *burst);
 
 	/**
 	 * Encapsulate a burst of packets and forward the resulting
@@ -152,7 +121,7 @@ class BlocEncapSat: public mgl_bloc
 	 * @return       Whether the burst was successful encapsulated and forwarded
 	 *               or not
 	 */
-	mgl_status EncapsulatePackets(NetBurst *burst);
+	bool EncapsulatePackets(NetBurst *burst);
 	
 	/// output events
 	static Event *error_init;

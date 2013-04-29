@@ -26,57 +26,95 @@
  */
 
 /**
- * @file bloc_sat_carrier.h
+ * @file BlockSatCarrier.h
  * @brief This bloc implements a satellite carrier emulation
  * @author AQL (ame)
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  */
 
-#ifndef BLOC_SAT_CARRIER_H
-#define BLOC_SAT_CARRIER_H
+#ifndef BlockSatCarrier_H
+#define BlockSatCarrier_H
 
-#include "opensand_margouilla/mgl_bloc.h"
 #include "sat_carrier_channel_set.h"
 
+#include <opensand_rt/Rt.h>
+
+struct sc_specific
+{
+	string ip_addr;           ///< the IP address for emulation
+	string iface_name;    ///< the name of the emulation interface
+};
 
 /**
- * @class BlocSatCarrier
+ * @class BlockSatCarrier
  * @brief This bloc implements a satellite carrier emulation
  */
-class BlocSatCarrier: public mgl_bloc
+class BlockSatCarrier: public Block
 {
  public:
 
-	/// Use mgl_bloc default constructor
-	BlocSatCarrier(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	               const component_t host, const string ip_addr,
-	               const string interface_name);
+	/**
+	 * @brief The satellite carrier block
+	 *
+	 * @param name      The block name
+	 * @param host      The type of host
+	 * @param specific  Specific block parameters
+	 */
+	BlockSatCarrier(const string &name,
+	                component_t host,
+	                struct sc_specific specific);
 
-	~BlocSatCarrier();
+	~BlockSatCarrier();
 
-	// Event handlers
-	mgl_status onEvent(mgl_event *event);
 
  protected:
+
+	/// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+
+	// initialization method
+	bool onInit();
 
 	/// List of channels
 	sat_carrier_channel_set m_channelSet;
 
  private:
 
-	/// Whether the bloc has been initialized or not
-	bool init_ok;
 	/// the component type
 	component_t host;
 	/// the IP address for emulation newtork
 	string ip_addr;
 	/// the interface name for emulation newtork
 	string interface_name;
-	// Internal event handlers
-	int onInit();
+
 	void onReceivePktFromCarrier(unsigned int i_channel,
 	                             unsigned char *ip_buf,
 	                             unsigned int i_len);
+};
+
+class BlockSatCarrierTal: public BlockSatCarrier
+{
+ public:
+	BlockSatCarrierTal(const string &name, struct sc_specific specific):
+		BlockSatCarrier(name, terminal, specific)
+	{};
+};
+
+class BlockSatCarrierGw: public BlockSatCarrier
+{
+ public:
+	BlockSatCarrierGw(const string &name, struct sc_specific specific):
+		BlockSatCarrier(name, gateway, specific)
+	{};
+};
+
+class BlockSatCarrierSat: public BlockSatCarrier
+{
+ public:
+	BlockSatCarrierSat(const string &name, struct sc_specific specific):
+		BlockSatCarrier(name, satellite, specific)
+	{};
 };
 
 #endif

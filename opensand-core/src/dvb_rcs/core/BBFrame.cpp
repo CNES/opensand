@@ -37,8 +37,9 @@
 #include "msg_dvb_rcs.h"
 
 #define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
+#include <string.h>
 
 BBFrame::BBFrame(unsigned char *data, unsigned int length):
 	DvbFrame(data, length)

@@ -36,15 +36,14 @@
 #ifndef SATCAR_CHANNEL_H
 #define SATCAR_CHANNEL_H
 
+#include <opensand_conf/conf.h>
+
 #include <vector>
 #include <linux/if_packet.h>
 #include <net/if.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include "opensand_conf/conf.h"
 
-// margouilla includes
-#include "opensand_margouilla/mgl_socket.h"
 
 /**
  * @class sat_carrier_channel

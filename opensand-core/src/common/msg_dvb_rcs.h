@@ -34,12 +34,13 @@
 #ifndef MSG_DVB_RCS_H
 #define MSG_DVB_RCS_H
 
-#include "opensand_margouilla/mgl_memorypool.h"
+enum
+{
+	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
+	               //   default value of sendUp/Down function
+	msg_link_up,   ///< link up message
+};
 
-const long msg_dvb = 300;
-const long msg_link_up = 302;
-const long msg_dvb_up = 303;
-const long msg_encap_burst = 304;
 
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
@@ -55,8 +56,5 @@ typedef struct
 	long tal_id;
 } T_LINK_UP;
 
-
-/// DVB RCS messages from DVB to lower
-extern mgl_memory_pool g_memory_pool_dvb_rcs;
 
 #endif

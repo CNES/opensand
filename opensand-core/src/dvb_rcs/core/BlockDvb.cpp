@@ -27,52 +27,50 @@
  */
 
 /**
- * @file bloc_dvb.cpp
+ * @file BlockDvb.cpp
  * @brief This bloc implements a DVB-S2/RCS stack.
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#include "bloc_dvb.h"
+#include "BlockDvb.h"
 
-#include <string.h>
-#include <errno.h>
-
-#include <opensand_conf/conf.h>
-
+#include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
 #include <opensand_conf/uti_debug.h>
+#include <opensand_conf/conf.h>
+
+
+#include <string.h>
+#include <errno.h>
 
 
 // output events
-Event *BlocDvb::error_init = NULL;
-Event *BlocDvb::event_login_received = NULL;
-Event *BlocDvb::event_login_response = NULL;
+Event *BlockDvb::error_init = NULL;
+Event *BlockDvb::event_login_received = NULL;
+Event *BlockDvb::event_login_response = NULL;
 
 /**
  * Constructor
  */
-BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
-                 mgl_id fatherid,
-                 const char *name,
-                 PluginUtils utils):
-	mgl_bloc(blocmgr, fatherid, name),
-	utils(utils)
+BlockDvb::BlockDvb(const string &name):
+	Block(name),
+	satellite_type(""),
+	dama_algo(""),
+	frame_duration(-1),
+	frames_per_superframe(-1),
+	modcod_def(""),
+	modcod_simu(""),
+	dra_def(""),
+	dra_simu(""),
+	dvb_scenario_refresh(-1),
+	emissionStd(NULL),
+	receptionStd(NULL)
 {
-	this->satellite_type = "";
-	this->dama_algo = "";
-	this->frame_duration = -1;
-	this->frames_per_superframe = -1;
-	this->modcod_def = "";
-	this->modcod_simu = "";
-	this->dra_def = "";
-	this->dra_simu = "";
-	this->dvb_scenario_refresh = -1;
-		
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);
@@ -84,7 +82,7 @@ BlocDvb::BlocDvb(mgl_blocmgr *blocmgr,
 /**
  * Destructor
  */
-BlocDvb::~BlocDvb()
+BlockDvb::~BlockDvb()
 {
 }
 
@@ -92,7 +90,7 @@ BlocDvb::~BlocDvb()
  *
  * @return true on success, false otherwise
  */
-bool BlocDvb::initCommon()
+bool BlockDvb::initCommon()
 {
 	const char *FUNCNAME = DBG_PREFIX "[initCommon]";
 
@@ -130,7 +128,7 @@ bool BlocDvb::initCommon()
 		goto error;
 	}
 
-	if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
+	if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
 	{
 		UTI_ERROR("%s cannot get plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());
@@ -164,7 +162,7 @@ bool BlocDvb::initCommon()
 		goto error;
 	}
 
-	if(!this->utils.getEncapsulationPlugins(encap_name, &plugin))
+	if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
 	{
 		UTI_ERROR("%s missing plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());
@@ -263,14 +261,8 @@ error:
 }
 
 
-/**
- * @brief Read configuration for the MODCOD definition/simulation files
- *
- * Always run this function after initEncap !
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDvb::initModcodFiles()
+
+bool BlockDvb::initModcodFiles()
 {
 	int bandwidth;
 
@@ -319,27 +311,18 @@ int BlocDvb::initModcodFiles()
 		this->emissionStd->setBandwidth(bandwidth);
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * Send the complete DVB frames created
- * by ef DvbRcsStd::scheduleEncapPackets or
- * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
- *
- * @param complete_frames the list of complete DVB frames
- * @param carrier_id      the ID of the carrier where to send the frames
- * @return 0 if successful, -1 otherwise
- */
-int BlocDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
-                        long carrier_id)
+bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
+                          long carrier_id)
 {
 	std::list<DvbFrame *>::iterator frame;
-	int retval = 0;
+	bool status = true;
 
 	// send all complete DVB-RCS frames
 	UTI_DEBUG_L3("send all %u complete DVB-RCS frames...\n",
@@ -351,7 +334,7 @@ int BlocDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 		// Send DVB frames to lower layer
 		if(!this->sendDvbFrame(dynamic_cast<DvbFrame *>(*frame), carrier_id))
 		{
-			retval = -1;
+			status = false;
 			continue;
 		}
 
@@ -361,7 +344,7 @@ int BlocDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 		UTI_DEBUG("complete DVB frame sent to carrier %ld\n", carrier_id);
 	}
 
-	return retval;
+	return status;
 }
 
 /**
@@ -371,7 +354,7 @@ int BlocDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
  * @param carrier_id  the carrier ID used to send the message
  * @return            true on success, false otherwise
  */
-bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
+bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 {
 	unsigned char *dvb_frame;
 	unsigned int dvb_length;
@@ -389,7 +372,8 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	}
 
 	// get memory for a DVB frame
-	dvb_frame = (unsigned char *) g_memory_pool_dvb_rcs.get(HERE());
+	dvb_frame = (unsigned char *)calloc(sizeof(unsigned char),
+	                                    MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
 	if(dvb_frame == NULL)
 	{
 		UTI_ERROR("cannot get memory for DVB frame\n");
@@ -411,14 +395,14 @@ bool BlocDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	return true;
 
 release_dvb_frame:
-	g_memory_pool_dvb_rcs.release((char *) dvb_frame);
+	free(dvb_frame);
 error:
 	return false;
 }
 
 
 /**
- * @brief Create a margouilla message with the given DVB frame
+ * @brief Create a message with the given DVB frame
  *        and send it to lower layer
  *
  * @param dvb_frame     the DVB frame
@@ -426,26 +410,16 @@ error:
  * @param l_len         XXX
  * @return              true on success, false otherwise
  */
-bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
+bool BlockDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 {
 	T_DVB_META *dvb_meta; // encapsulates the DVB Frame in a structure
-	mgl_msg *msg; // Margouilla message to send to lower layer
 
-	dvb_meta = (T_DVB_META *) g_memory_pool_dvb_rcs.get(HERE());
+	dvb_meta = new T_DVB_META;
 	dvb_meta->carrier_id = carrier_id;
 	dvb_meta->hdr = dvb_frame;
 
-	// create the Margouilla message with burst as data
-	msg = this->newMsgWithBodyPtr(msg_dvb,
-	                              dvb_meta, l_len);
-	if(msg == NULL)
-	{
-		UTI_ERROR("failed to create message to send DVB frame, drop the frame\n");
-		return false;
-	}
-
 	// send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) < 0)
+	if(!this->sendDown((void **)(&dvb_meta)))
 	{
 		UTI_ERROR("failed to send DVB frame to lower layer\n");
 		return false;
@@ -456,38 +430,19 @@ bool BlocDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 }
 
 
-/**
- * @brief Create a margouilla message with the given burst
- *        and sned it to upper layer
- *
- * @param burst the burst of encapsulated packets
- * @return      0 on success, -1 on error
- */
-
-int BlocDvb::SendNewMsgToUpperLayer(NetBurst *burst)
+bool BlockDvb::SendNewMsgToUpperLayer(NetBurst *burst)
 {
-	mgl_msg *msg; // Margouilla message to send to upper layer
-
-	// create the Margouilla message with burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst,
-	                              burst, sizeof(burst));
-	if(msg == NULL)
-	{
-		UTI_ERROR("failed to create message to send burst, drop the burst\n");
-		goto release_burst;
-	}
-
 	// send the message to the upper layer
-	if(this->sendMsgTo(this->getUpperLayer(), msg) < 0)
+	if(!this->sendUp((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst of packets to upper layer\n");
 		goto release_burst;
 	}
 	UTI_DEBUG("burst sent to the upper layer\n");
 
-	return 0;
+	return true;
 
 release_burst:
 	delete burst;
-	return -1;
+	return false;
 }

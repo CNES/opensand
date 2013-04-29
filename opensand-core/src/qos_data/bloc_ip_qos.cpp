@@ -38,6 +38,8 @@
 #define DBG_PACKAGE PKG_QOS_DATA
 #include "opensand_conf/uti_debug.h"
 
+#include <cstdio>
+
 // output events
 Event* BlocIPQoS::error_init = NULL;
 
@@ -47,20 +49,15 @@ const int C_DEFAULT_LABEL = 255;
 /**
  * constructor
  */
-BlocIPQoS::BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                     const char *name, component_t host):
-	mgl_bloc(blocmgr, fatherid, name),
-	sarpTable()
+BlocIPQoS::BlocIPQoS(const string &name, component_t host):
+	Block(name),
+	sarpTable(),
+	host(host),
+	_group_id(-1),
+	_tal_id(-1),
+	_satellite_type(),
+	_state(link_down)
 {
-	this->_initOk = false;
-	// group & TAL id
-	this->_group_id = -1;
-	this->_tal_id = -1;
-	this->host = host;
-	this->_satellite_type = "";
-
-	// link state
-	this->_state = link_down;
 
 	if(error_init == NULL)
 	{
@@ -81,129 +78,110 @@ BlocIPQoS::~BlocIPQoS()
 	this->terminate();
 }
 
-/**
- * mgl events handler
- *
- * @param event event delivered to the bloc
- */
-mgl_status BlocIPQoS::onEvent(mgl_event *event)
+bool BlocIPQoS::onInit()
+{
+	const char *FUNCNAME = IPQOS_DBG_PREFIX "[onInit]";
+	std::basic_ostringstream < char >cmd;
+
+	// retrieve bloc config
+	this->getConfig();
+
+	// create TUN virtual interface
+	this->_tun_fd = -1;
+	this->_tun_fd = tun_alloc();
+	if(this->_tun_fd < 0)
+	{
+		UTI_ERROR("%s error in creating TUN interface\n", FUNCNAME);
+		Output::sendEvent(error_init, "%s error in creating TUN interface\n",
+		                  FUNCNAME);
+		return false;
+	}
+
+	// add file descriptor for TUN interface
+	this->downward->addNetSocketEvent("tun", this->_tun_fd);
+
+	UTI_INFO("%s TUN handle with fd %d initialized\n",
+			 FUNCNAME, this->_tun_fd);
+
+return true;
+}
+
+bool BlocIPQoS::onDownwardEvent(const RtEvent *const event)
+{
+	switch(event->getType())
+	{
+		case evt_net_socket:
+			// input data available on TUN handle
+			this->onMsgIpFromUp(event->getFd());
+			break;
+
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
+	}
+
+	return true;
+}
+
+bool BlocIPQoS::onUpwardEvent(const RtEvent *const event)
 {
 	const char *FUNCNAME = IPQOS_DBG_PREFIX "[onEvent]";
-	mgl_status status = mgl_ok;
 	IpPacket *ip_packet;
 	string str;
 
-	if(MGL_EVENT_IS_INIT(event))
+	switch(event->getType())
 	{
-		std::basic_ostringstream < char >cmd;
-
-		// retrieve bloc config
-		this->getConfig();
-
-		// create TUN virtual interface
-		this->_tun_fd = -1;
-		this->_tun_fd = tun_alloc();
-		if(this->_tun_fd < 0)
-		{
-			UTI_ERROR("%s error in creating TUN interface\n", FUNCNAME);
-			Output::sendEvent(error_init, "%s error in creating TUN interface\n",
-			                     FUNCNAME);
-			return mgl_ko;
-		}
-
-		// add file descriptor for TUN interface
-		if(this->addFd(this->_tun_fd) == mgl_ko)
-		{
-			UTI_ERROR("%s failed to register TUN handle fd\n", FUNCNAME);
-			Output::sendEvent(error_init, "%s failed to register TUN handle fd\n",
-			                     FUNCNAME);
-			return mgl_ko;
-		}
-
-		UTI_INFO("%s TUN handle with fd %d initialized\n",
-		         FUNCNAME, this->_tun_fd);
-		this->_initOk = true;
-	}
-	else if(!this->_initOk)
-	{
-		UTI_ERROR("%s IP-QOS bloc not initialized, ignore "
-		          "non-init event\n", FUNCNAME);
-	}
-	else if(MGL_EVENT_IS_FD(event))
-	{
-		// input data available on TUN handle
-
-		if(MGL_EVENT_FD_GET_FD(event) == this->_tun_fd)
-		{
-			this->onMsgIpFromUp(this->_tun_fd);
-		}
-		else
-		{
-			UTI_ERROR("%s data received on unknown socket %ld\n",
-			          FUNCNAME, MGL_EVENT_FD_GET_FD(event));
-			status = mgl_ko;
-		}
-	}
-	else if(MGL_EVENT_IS_MSG(event))
-	{
-		if(MGL_EVENT_MSG_IS_TYPE(event, msg_link_up))
-		{
-			T_LINK_UP *link_up_msg;
-
-			// 'link is up' message advertised
-
-			link_up_msg = (T_LINK_UP *) MGL_EVENT_MSG_GET_BODY(event);
-			UTI_DEBUG("%s link up message received (group = %ld, tal = %ld)\n",
-			          FUNCNAME, link_up_msg->group_id, link_up_msg->tal_id);
-
-			if(this->_state == link_up)
+		case evt_message:
+			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
-				UTI_INFO("%s duplicate link up msg\n", FUNCNAME);
-			}
-			else
-			{
-				// save group id and TAL id sent by MAC layer
-				this->_group_id = link_up_msg->group_id;
-				this->_tal_id = link_up_msg->tal_id;
-				this->_state = link_up;
-			}
+				T_LINK_UP *link_up_msg;
 
-			delete link_up_msg;
-		}
-		else if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getLowerLayer() &&
-		        MGL_EVENT_MSG_IS_TYPE(event, msg_ip))
-		{
+				// 'link is up' message advertised
+
+				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				UTI_DEBUG("%s link up message received (group = %ld, tal = %ld)\n",
+				          FUNCNAME, link_up_msg->group_id, link_up_msg->tal_id);
+
+				if(this->_state == link_up)
+				{
+					UTI_INFO("%s duplicate link up msg\n", FUNCNAME);
+				}
+				else
+				{
+					// save group id and TAL id sent by MAC layer
+					this->_group_id = link_up_msg->group_id;
+					this->_tal_id = link_up_msg->tal_id;
+					this->_state = link_up;
+				}
+
+				delete link_up_msg;
+				break;
+			}
 			UTI_DEBUG("%s IP packet received from lower layer\n", FUNCNAME);
 
-			ip_packet = (IpPacket *) MGL_EVENT_MSG_GET_BODY(event);
+			ip_packet = (IpPacket *)((MessageEvent *)event)->getData();
 
 			if(this->_state != link_up)
 			{
 				UTI_INFO("%s IP packets received from lower layer, but link is down "
 				         "=> drop packets\n", FUNCNAME);
 				delete ip_packet;
+				return false;
 			}
-			else
+			if(this->onMsgIpFromDn(ip_packet) < 0)
 			{
-				if(this->onMsgIpFromDn(ip_packet) < 0)
-					status = mgl_ko;
+				return false;
 			}
-		}
-		else
-		{
-			UTI_ERROR("%s unknown message received from bloc %ld\n",
-			          FUNCNAME, MGL_EVENT_MSG_GET_SRCBLOC(event));
-			status = mgl_ko;
-		}
-	}
-	else
-	{
-		UTI_ERROR("%s unknown event (type %ld) received\n",
-		          FUNCNAME, event->type);
-		status = mgl_ko;
+			break;
+
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
 	}
 
-	return status;
+	return true;
 }
 
 /**
@@ -231,7 +209,6 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 		status = -1;
 		goto drop;
 	}
-	packet->addTrace(HERE());
 
 	IpAddress *ip_addr;
 	uint8_t tal_id;
@@ -393,8 +370,6 @@ int BlocIPQoS::onMsgIpFromUp(int fd)
 		goto drop;
 	}
 
-	ip_packet->addTrace(HERE());
-
 	// set the source terminal ID out of onMsgIp to avoid overwriting it by the
 	// GW when this function is called for forwarding
 	ip_packet->setSrcTalId(this->_tal_id);
@@ -423,8 +398,6 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 
 	IpAddress *ip_addr;
 	uint8_t tal_id; // tal is found in the SARP table
-
-	mgl_msg *lp_msg;
 
 	// set QoS:
 	//  - retrieve the QoS set by TC using DSCP
@@ -486,19 +459,13 @@ int BlocIPQoS::onMsgIp(IpPacket *ip_packet)
 	UTI_DEBUG_L3("%s Dst TAL ID: %u \n", FUNCNAME, ip_packet->getDstTalId());
 
 
-	// create the Margouilla message with IP packet as data
-	lp_msg = this->newMsgWithBodyPtr(msg_ip, ip_packet, sizeof(ip_packet));
-
-	if(!lp_msg)
+	if(!this->sendDown((void **)&ip_packet))
 	{
 		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
 		delete ip_packet; // delete the IP packet
 		status = -1;
 		goto drop;
 	}
-
-	// send the message to the lower layer
-	this->sendMsgTo(getLowerLayer(), lp_msg);
 
 drop:
 	return status;

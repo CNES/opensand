@@ -26,7 +26,7 @@
  */
 
 /**
- * @file PluginUtils.cpp
+ * @file PluginUtils.h
  * @brief Utilities for Plugins
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
@@ -42,8 +42,13 @@
 #include <vector>
 #include <string>
 
-typedef std::map<std::string, fn_create> pl_list_t;
-typedef std::map<std::string, fn_create>::iterator pl_list_it_t;
+
+using std::map;
+using std::vector;
+using std::string;
+
+typedef map<string, fn_create> pl_list_t;
+typedef map<string, fn_create>::iterator pl_list_it_t;
 
 
 /**
@@ -59,10 +64,13 @@ class PluginUtils
 	pl_list_t nominal;
 	pl_list_t minimal;
 	pl_list_t error;
-	std::vector <void *> handlers;
-	std::vector<OpenSandPlugin *> plugins;
+	vector <void *> handlers;
+	vector<OpenSandPlugin *> plugins;
 
   public:
+
+	PluginUtils();
+
 	/**
 	 * @brief load the plugins
 	 *
@@ -83,7 +91,7 @@ class PluginUtils
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getEncapsulationPlugins(std::string name,
+	bool getEncapsulationPlugins(string name,
 	                             EncapPlugin **encapsulation);
 
 	/**
@@ -99,10 +107,10 @@ class PluginUtils
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getPhysicalLayerPlugins(std::string att_pl_name,
-	                             std::string nom_pl_name,
-	                             std::string min_pl_name,
-	                             std::string err_pl_name,
+	bool getPhysicalLayerPlugins(string att_pl_name,
+	                             string nom_pl_name,
+	                             string min_pl_name,
+	                             string err_pl_name,
 	                             AttenuationModelPlugin **attenuation,
 	                             NominalConditionPlugin **nominal,
 	                             MinimalConditionPlugin **minimal,
@@ -128,10 +136,11 @@ class PluginUtils
 	 * @param  tokens     The list to add tokens into.
 	 * @param  delimiter  The tokens' delimiter.
 	 */
-	static void tokenize(const std::string &str,
-	                     std::vector<std::string> &tokens,
-	                     const std::string &delimiter=":");
+	static void tokenize(const string &str,
+	                     vector<string> &tokens,
+	                     const string &delimiter=":");
 };
+
 
 #endif
 

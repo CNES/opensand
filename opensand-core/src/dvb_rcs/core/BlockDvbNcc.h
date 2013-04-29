@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_dvb_rcs_ncc.h
+ * @file BLockDvbNcc.h
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
  * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
@@ -54,21 +54,18 @@
  *
  */
 
-#ifndef BLOC_DVB_RCS_NCC_H
-#define BLOC_DVB_RCS_NCC_H
+#ifndef BLOCK_DVB_NCC_H
+#define BLOCk_DVB_NCC_H
 
-#include "bloc_dvb.h"
+#include "BlockDvb.h"
 #include "lib_dama_ctrl.h"
 #include "NccPepInterface.h"
 
 
-class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
+class BlockDvbNcc: public BlockDvb, NccPepInterface
 {
 
  private:
-
-	/// is true if the bloc is correctly initialized
-	bool init_ok;
 
 	/// The DAMA controller
 	DvbRcsDamaCtrl *m_pDamaCtrl;
@@ -78,41 +75,31 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	long m_carrierIdSOF;
 	long m_carrierIdData;
 
-
-	/* superframes and frames */
-
 	/// the current super frame number
 	long super_frame_counter;
 	/// the current frame number inside the current super frame
 	int frame_counter;
 
 	/// frame timer, used to awake the block every frame period
-	mgl_timer m_frameTimer;
-
-
-	/* DVB-RCS/S2 emulation */
+	event_id_t frame_timer;
 
 	/// ST unique mac id (configuration param)
 	int macId;
 
-	/// timer used to awake the block every second in order to retrieve
-	/// the current MODCODs and DRA schemes
-	mgl_timer scenario_timer;
-
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
 
-
-	/**** Fifo parameters ****/
+	/// timer used to awake the block every second in order to retrieve
+	/// the current MODCODs and DRA schemes
+	event_id_t scenario_timer;
 
 	/// a fifo to keep the received packet from encap bloc
 	DvbFifo data_dvb_fifo;
 
-
 	/**** NGN network / Policy Enforcement Point (PEP) ****/
 
 	/// timer used for applying resources allocations received from PEP
-	mgl_timer pep_cmd_apply_timer;
+	event_id_t pep_cmd_apply_timer;
 
 	/// Delay for allocation requests from PEP (in ms)
 	int pepAllocDelay;
@@ -131,22 +118,22 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	long simu_rt;
 	long simu_cr;
 	long simu_interval;
-	mgl_timer simu_timer;
+	event_id_t simu_timer;
 
  public:
 
 	/// Class constructor
 	/// Use mgl_bloc default constructor
-	BlocDVBRcsNcc(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
-	              PluginUtils utils);
+	BlockDvbNcc(const string &name);
 
-	~BlocDVBRcsNcc();
+	~BlockDvbNcc();
 
-	/// event handlers
-	mgl_status onEvent(mgl_event * event);
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onInit();
 
 	/// a map of bbframes to manage different bbframes
-	std::map<int,T_DVB_BBFRAME *> * m_bbframe;
+	std::map<int, T_DVB_BBFRAME *> *m_bbframe;
 	/// number of the next BBFrame
 	int nb_sequencing;
 
@@ -158,21 +145,63 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 
  private:
 
-	// initialization methods
-	int onInit();
+	/** Read configuration for the request simulation
+	 *
+	 * @return  true on success, false otherwise
+	 */
 	bool initRequestSimulation();
-	int initTimers();
-	int initMode();
-	int initEncap();
-	int initCarrierIds();
-	int initFiles();
-	int initSimuParams();
-	int initDraFiles();
-	int initDama();
-	int initFifo();
+
+	/**
+	 * Read configuration for the downward timers
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDownwardTimers();
+
+	/**
+	 * @brief Initialize the transmission mode
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initMode();
+
+	/**
+	 * Read configuration for the carrier IDs
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initCarrierIds();
+
+	/**
+	 * @brief Read configuration for the different files and open them
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initFiles();
+
+	/**
+	 * @brief Read configuration for the DRA scheme definition/simulation files
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDraFiles();
+
+	/**
+	 * Read configuration for the DAMA algorithm
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDama();
+
+	/**
+	 * @brief Read configuration for the FIFO
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initFifo();
 
 	/// DVB frame from lower layer
-	int onRcvDVBFrame(unsigned char *ip_buf, int l_len);
+	bool onRcvDvbFrame(unsigned char *ip_buf, int l_len);
 	void onRcvLogonReq(unsigned char *ip_buf, int l_len);
 	void onRcvLogoffReq(unsigned char *ip_buf, int l_len);
 
@@ -183,8 +212,17 @@ class BlocDVBRcsNcc: public BlocDvb, NccPepInterface
 	bool getBBFRAMEDuration(unsigned int modcod_id, float *duration);
 
 	// event simulation
-	int simulateFile();
-	int simulateRandom();
+
+	/**
+	 * Simulate event based on an input file
+	 * @return true on success, false otherwise
+	 */
+	bool simulateFile();
+
+	/**
+	 * Simulate event based on random generation
+	 */
+	void simulateRandom();
 };
 
 #endif

@@ -27,13 +27,13 @@
  */
 
 /**
- * @file bloc_encap.cpp
+ * @file BlockEncap.cpp
  * @brief Generic Encapsulation Bloc
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "bloc_encap.h"
-#include "PluginUtils.h"
+#include "BlockEncap.h"
+#include "Plugin.h"
 
 #include <algorithm>
 #include <stdint.h>
@@ -43,7 +43,7 @@
 #define DBG_PACKAGE PKG_ENCAP
 #include <opensand_conf/uti_debug.h>
 
-Event* BlocEncap::error_init = NULL;
+Event* BlockEncap::error_init = NULL;
 
 /**
  * @brief get the satellite type according to its name
@@ -60,108 +60,81 @@ sat_type_t strToSatType(std::string sat_type)
 		return TRANSPARENT;
 }
 
-BlocEncap::BlocEncap(mgl_blocmgr * blocmgr, mgl_id fatherid, const char *name,
-                     component_t host,
-                     PluginUtils utils):
-	mgl_bloc(blocmgr, fatherid, name),
-	utils(utils)
+BlockEncap::BlockEncap(const string &name, component_t host):
+	Block(name),
+	host(host),
+	group_id(-1),
+	tal_id(-1),
+	state(link_down)
 {
-	this->initOk = false;
-
-	// group & TAL id
-	this->group_id = -1;
-	this->tal_id = -1;
-	this->host = host;
-
-	// link state
-	this->state = link_down;
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 	
 	if(error_init == NULL)
 	{
-		error_init = Output::registerEvent("bloc_encap:init", LEVEL_ERROR);
+		error_init = Output::registerEvent("BlockEncap:init", LEVEL_ERROR);
 	}
 }
 
-BlocEncap::~BlocEncap()
+BlockEncap::~BlockEncap()
 {
 	delete this->ip_handler;
 }
 
-mgl_status BlocEncap::onEvent(mgl_event *event)
+
+
+bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 {
-	const char *FUNCNAME = "[BlocEncap::onEvent]";
-	mgl_status status = mgl_ko;
-
-	if(MGL_EVENT_IS_INIT(event))
+	switch(event->getType())
 	{
-		// initialization event
-		if(this->initOk)
+		case evt_timer:
 		{
-			UTI_ERROR("%s bloc has already been initialized, ignore init event\n",
-			          FUNCNAME);
+			// timer event, flush corresponding encapsulation context
+			return this->onTimer(event->getFd());
 		}
-		else if(this->onInit() == mgl_ok)
+		break;
+
+		case evt_message:
 		{
-			this->initOk = true;
-			status = mgl_ok;
+			// message received from another bloc
+			UTI_DEBUG("message received from the upper-layer bloc\n");
+			NetPacket *packet;
+			packet = (NetPacket *)((MessageEvent *)event)->getData();
+			return this->onRcvIpFromUp(packet);
 		}
-		else
-		{
-			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			Output::sendEvent(error_init, "%s bloc initialization failed\n",
-			                     FUNCNAME);
-		}
+		break;
+
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
 	}
-	else if(!this->initOk)
-	{
-		UTI_ERROR("%s encapsulation bloc not initialized, ignore "
-		          "non-init event\n", FUNCNAME);
-	}
-	else if(MGL_EVENT_IS_TIMER(event))
-	{
-		// timer event, flush corresponding encapsulation context
-		status = this->onTimer((mgl_timer) event->event.timer.id);
-	}
-	else if(MGL_EVENT_IS_MSG(event))
-	{
-		// message received from another bloc
 
-		if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getUpperLayer())
+	return true;
+}
+
+
+bool BlockEncap::onUpwardEvent(const RtEvent *const event)
+{
+	switch(event->getType())
+	{
+		case evt_message:
 		{
-			UTI_DEBUG("%s message received from the upper-layer bloc\n", FUNCNAME);
+			UTI_DEBUG("message received from the lower layer\n");
 
-			if(MGL_EVENT_MSG_IS_TYPE(event, msg_ip))
+			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
-				NetPacket *packet;
-				packet = (NetPacket *) MGL_EVENT_MSG_GET_BODY(event);
-				status = this->onRcvIpFromUp(packet);
-			}
-			else
-			{
-				UTI_ERROR("%s message type is unknown\n", FUNCNAME);
-			}
-		}
-		else if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getLowerLayer())
-		{
-			UTI_DEBUG("%s message received from the lower layer\n", FUNCNAME);
-
-			if(MGL_EVENT_MSG_IS_TYPE(event, msg_link_up))
-			{
-				mgl_msg *msg; // margouilla message
 				T_LINK_UP *link_up_msg;
 				vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
 				// 'link up' message received => forward it to upper layer
-				UTI_DEBUG("%s 'link up' message received, forward it\n", FUNCNAME);
+				UTI_DEBUG("'link up' message received, forward it\n");
 
-				link_up_msg = (T_LINK_UP *) MGL_EVENT_MSG_GET_BODY(event);
-
+				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
 				if(this->state == link_up)
 				{
-					UTI_INFO("%s duplicate link up msg\n", FUNCNAME);
+					UTI_INFO("duplicate link up msg\n");
 					delete link_up_msg;
-					goto end_link_up;
+					return false;;
 				}
 
 				// save group id and TAL id sent by MAC layer
@@ -169,25 +142,16 @@ mgl_status BlocEncap::onEvent(mgl_event *event)
 				this->tal_id = link_up_msg->tal_id;
 				this->state = link_up;
 
-				// create the Margouilla message
-				msg = this->newMsgWithBodyPtr(msg_link_up, link_up_msg,
-				                              sizeof(link_up_msg));
-				if(!msg)
-				{
-					UTI_ERROR("%s cannot create 'link up' message\n", FUNCNAME);
-					delete link_up_msg;
-					goto end_link_up;
-				}
-
 				// send the message to the upper layer
-				if(this->sendMsgTo(this->getUpperLayer(), msg) == mgl_ko)
+				if(!this->sendUp((void **)&link_up_msg,
+					             sizeof(T_LINK_UP), msg_link_up))
 				{
-					UTI_ERROR("%s cannot forward 'link up' message\n", FUNCNAME);
+					UTI_ERROR("cannot forward 'link up' message\n");
 					delete link_up_msg;
-					goto end_link_up;
+					return false;
 				}
 
-				UTI_DEBUG("%s 'link up' message sent to the upper layer\n", FUNCNAME);
+				UTI_DEBUG("'link up' message sent to the upper layer\n");
 
 				// Set tal_id 'filter' for reception context
 				for(encap_it = this->reception_ctx.begin();
@@ -196,37 +160,26 @@ mgl_status BlocEncap::onEvent(mgl_event *event)
 				{
 					(*encap_it)->setFilterTalId(this->tal_id);
 				}
-end_link_up:
+				break;
+			}
 
-				status = mgl_ok;
-			}
-			else if(MGL_EVENT_MSG_IS_TYPE(event, msg_encap_burst))
-			{
-				NetBurst *burst;
-				burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
-				status = this->onRcvBurstFromDown(burst);
-			}
-			else
-			{
-				UTI_ERROR("%s message type is unknown\n", FUNCNAME);
-			}
+			// data received
+			NetBurst *burst;
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			return this->onRcvBurstFromDown(burst);
 		}
-		else
-		{
-			UTI_ERROR("%s message received from an unknown bloc\n", FUNCNAME);
-		}
-	}
-	else
-	{
-		UTI_ERROR("%s unknown event (type %ld) received\n", FUNCNAME, event->type);
+
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
 	}
 
-	return status;
+	return true;
 }
 
-mgl_status BlocEncap::onInit()
+bool BlockEncap::onInit()
 {
-	const char *FUNCNAME = "[BlocEncap::onInit]";
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string satellite_type;
@@ -267,8 +220,8 @@ mgl_status BlocEncap::onInit()
 
 		if(!globalConfig.getAttributeValue(iter, OPTION_NAME, option_name))
 		{
-			UTI_ERROR("%s Section %s, invalid value for parameter '%s'\n",
-			          FUNCNAME, GLOBAL_SECTION, OPTION_NAME);
+			UTI_ERROR("Section %s, invalid value for parameter '%s'\n",
+			          GLOBAL_SECTION, OPTION_NAME);
 			goto error;
 		}
 		if(option_name == "NONE")
@@ -276,10 +229,10 @@ mgl_status BlocEncap::onInit()
 			continue;
 		}
 
-		if(!this->utils.getEncapsulationPlugins(option_name, &plugin))
+		if(!Plugin::getEncapsulationPlugins(option_name, &plugin))
 		{
-			UTI_ERROR("%s missing plugin for %s encapsulation",
-			          FUNCNAME, option_name.c_str());
+			UTI_ERROR("missing plugin for %s encapsulation",
+			          option_name.c_str());
 			goto error;
 		}
 
@@ -298,14 +251,14 @@ mgl_status BlocEncap::onInit()
 					upper_option->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("%s %s is not supported for %s IP option",
-			          FUNCNAME, upper_option->getName().c_str(),
+			UTI_ERROR("%s is not supported for %s IP option",
+			          upper_option->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
 		upper_option = plugin;
-		UTI_INFO("%s add IP option: %s\n",
-		         FUNCNAME, upper_option->getName().c_str());
+		UTI_INFO("add IP option: %s\n",
+		         upper_option->getName().c_str());
 	}
 
 	upper_encap = upper_option;
@@ -313,7 +266,7 @@ mgl_status BlocEncap::onInit()
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
 		          UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -327,15 +280,15 @@ mgl_status BlocEncap::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
-			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
+			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
+			          GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
-		if(!utils.getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
 		{
-			UTI_ERROR("%s cannot get plugin for %s encapsulation",
-			          FUNCNAME, encap_name.c_str());
+			UTI_ERROR("cannot get plugin for %s encapsulation",
+			          encap_name.c_str());
 			goto error;
 		}
 
@@ -353,21 +306,21 @@ mgl_status BlocEncap::onInit()
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("%s upper encapsulation type %s is not supported for %s "
-			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
+			UTI_ERROR("upper encapsulation type %s is not supported for %s "
+			          "encapsulation", upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		UTI_DEBUG("%s add up/return encapsulation layer: %s\n",
-		          FUNCNAME, upper_encap->getName().c_str());
+		UTI_DEBUG("add up/return encapsulation layer: %s\n",
+		          upper_encap->getName().c_str());
 	}
 
 	// get the number of encapsulation context to use for down/forward link
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		UTI_ERROR(" Section %s, %s missing\n", GLOBAL_SECTION,
 		          UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -382,15 +335,15 @@ mgl_status BlocEncap::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
-			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
+			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
+			          GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
-		if(!utils.getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
 		{
-			UTI_ERROR("%s cannot get plugin for %s encapsulation",
-			          FUNCNAME, encap_name.c_str());
+			UTI_ERROR("cannot get plugin for %s encapsulation",
+			          encap_name.c_str());
 			goto error;
 		}
 
@@ -408,14 +361,14 @@ mgl_status BlocEncap::onInit()
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("%s upper encapsulation type %s is not supported for %s "
-			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
+			UTI_ERROR("upper encapsulation type %s is not supported for %s "
+			          "encapsulation", upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		UTI_DEBUG("%s add down/forward encapsulation layer: %s\n",
-		          FUNCNAME, upper_encap->getName().c_str());
+		UTI_DEBUG("add down/forward encapsulation layer: %s\n",
+		          upper_encap->getName().c_str());
 	}
 
 	if(this->host == terminal || satellite_type == "regenerative")
@@ -432,24 +385,23 @@ mgl_status BlocEncap::onInit()
 	// right order
 	reverse(this->reception_ctx.begin(), this->reception_ctx.end());
 
-	return mgl_ok;
+	return true;
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncap::onTimer(mgl_timer timer)
+bool BlockEncap::onTimer(event_id_t timer_id)
 {
-	const char *FUNCNAME = "[BlocEncap::onTimer]";
-	std::map < mgl_timer, int >::iterator it;
+	const char *FUNCNAME = "[BlockEncap::onTimer]";
+	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
-	mgl_msg *msg; // margouilla message
 
 	UTI_DEBUG("%s emission timer received, flush corresponding emission "
 	          "context\n", FUNCNAME);
 
 	// find encapsulation context to flush
-	it = this->timers.find(timer);
+	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
 		UTI_ERROR("%s timer not found\n", FUNCNAME);
@@ -477,39 +429,29 @@ mgl_status BlocEncap::onTimer(mgl_timer timer)
 	if(burst->size() <= 0)
 		goto clean;
 
-	// create the Margouilla message
-	// with encapsulation burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
-	if(!msg)
-	{
-		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-		goto clean;
-	}
-
 	// send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
+	if(!this->sendDown((void **)&burst, sizeof(burst)))
 	{
-		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		UTI_ERROR("%s cannot send burst to lower layer failed\n", FUNCNAME);
 		goto clean;
 	}
 
 	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
 
-	return mgl_ok;
+	return true;
 
 clean:
 	delete burst;
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
+bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 {
-	const char *FUNCNAME = "[BlocEncap::onRcvIpFromUp]";
+	const char *FUNCNAME = "[BlockEncap::onRcvIpFromUp]";
 	NetBurst *burst;
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
-	mgl_msg *msg; // margouilla message
 	string name = packet->getName();
 
 	// check packet validity
@@ -518,8 +460,6 @@ mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
 		UTI_ERROR("%s packet is not valid\n", FUNCNAME);
 		goto error;
 	}
-
-	packet->addTrace(HERE());
 
 	// check packet type
 	if(packet->getType() != NET_PROTO_IPV4 && packet->getType() != NET_PROTO_IPV6)
@@ -554,7 +494,7 @@ mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
 	for(map<long, int>::iterator time_iter = time_contexts.begin();
 	    time_iter != time_contexts.end(); time_iter++)
 	{
-		std::map < mgl_timer, int >::iterator it;
+		std::map<event_id_t, int>::iterator it;
 		bool found = false;
 
 		// check if there is already a timer armed for the context
@@ -564,8 +504,12 @@ mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
 		// set a new timer if no timer was found and timer is not null
 		if(!found && (*time_iter).first != 0)
 		{
-			mgl_timer timer;
-			this->setTimer(timer, (*time_iter).first);
+			event_id_t timer;
+			ostringstream name;
+
+			name << "context_" << (*time_iter).second;
+			timer = this->downward->addTimerEvent(name.str(), (*time_iter).first);
+
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
 			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
 			          FUNCNAME, (*time_iter).second, (*time_iter).first);
@@ -597,39 +541,30 @@ mgl_status BlocEncap::onRcvIpFromUp(NetPacket *packet)
 	if(burst->size() <= 0)
 		goto clean;
 
-	// create the Margouilla message
-	// with encapsulation burst as data
-	msg = this->newMsgWithBodyPtr(msg_encap_burst, burst, sizeof(burst));
-	if(!msg)
-	{
-		UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-		goto clean;
-	}
 
 	// send the message to the lower layer
-	if(this->sendMsgTo(this->getLowerLayer(), msg) == mgl_ko)
+	if(!this->sendDown((void **)&burst, sizeof(burst)))
 	{
-		UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
 	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
 
 	// everything is fine
-	return mgl_ok;
+	return true;
 
 clean:
 	delete burst;
 error:
-	return mgl_ko;
+	return false;
 }
 
-mgl_status BlocEncap::onRcvBurstFromDown(NetBurst *burst)
+bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncap::onRcvBurstFromDown]";
+	const char *FUNCNAME = "[BlockEncap::onRcvBurstFromDown]";
 	NetBurst *ip_packets;
 	NetBurst::iterator ip_pkt_it;
-	mgl_msg *msg; // margouilla message
 	vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
 
@@ -675,23 +610,11 @@ mgl_status BlocEncap::onRcvBurstFromDown(NetBurst *burst)
 			delete *ip_pkt_it;
 			continue;
 		}
-		(*ip_pkt_it)->addTrace(HERE());
-
-		// create the Margouilla message
-		// with IP packet as data
-		//
-		msg = this->newMsgWithBodyPtr(msg_ip, *ip_pkt_it, sizeof(*ip_pkt_it));
-		if(!msg)
-		{
-			UTI_ERROR("%s newMsgWithBodyPtr() failed\n", FUNCNAME);
-			delete *ip_pkt_it;
-			continue;
-		}
 
 		// send the message to the upper layer
-		if(this->sendMsgTo(this->getUpperLayer(), msg) == mgl_ko)
+		if(this-sendUp((void **)&(*ip_pkt_it)))
 		{
-			UTI_ERROR("%s sendMsgTo() failed\n", FUNCNAME);
+			UTI_ERROR("failed to send message to upper layer\n");
 			delete *ip_pkt_it;
 			continue;
 		}
@@ -706,8 +629,8 @@ mgl_status BlocEncap::onRcvBurstFromDown(NetBurst *burst)
 
 
 	// everthing is fine
-	return mgl_ok;
+	return true;
 
 error:
-	return mgl_ko;
+	return false;
 }

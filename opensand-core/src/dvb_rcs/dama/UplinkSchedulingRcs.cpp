@@ -155,7 +155,6 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			// delete elem context (keep only the packet)
 			encap_packet = elem->getPacket();
 			delete elem;
-			encap_packet->addTrace(HERE());
 
 			// is there enough free space in the DVB frame
 			// for the encapsulation packet ?

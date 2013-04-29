@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_dvb_rcs_tal.h
+ * @file BlockDvbTal.h
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal,
  *        compatible with Legacy Dama agent.
  * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
@@ -37,27 +37,25 @@
  *
  */
 
-#ifndef BLOC_DVB_RCS_TAL_H
-#define BLOC_DVB_RCS_TAL_H
+#ifndef BLOCK_DVB_TAL_H
+#define BLOCK_DVB_TAL_H
 
-// OpenSAND includes
+#include "BlockDvb.h"
+
 #include "DamaAgentRcs.h"
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsUor.h"
 #include "DamaUtils.h"
 #include "msg_dvb_rcs.h"
-#include "bloc_dvb.h"
 #include "OpenSandCore.h"
 
-// configuration
 #include <opensand_conf/conf.h>
-
-// output
 #include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
 
-// system includes
+
 #include <errno.h>
-#include <stdarg.h>       // for va_* macros (ANSI format)
+//#include <stdarg.h>       // for va_* macros (ANSI format)
 #include <netdb.h>        // for h_errno and hstrerror
 #include <arpa/inet.h>    // for inet_ntoa
 #include <sys/socket.h>
@@ -95,7 +93,7 @@ typedef struct _TalStatCounter
 
 
 /**
- * @class BlocDVBRcsTal
+ * @class BlockDvbTal
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal,
  *        compatible with Legacy Dama agent.
  *
@@ -114,7 +112,7 @@ typedef struct _TalStatCounter
  *            v
  *
  */
-class BlocDVBRcsTal: public BlocDvb
+class BlockDvbTal: public BlockDvb
 {
 
  private:
@@ -153,7 +151,6 @@ class BlocDVBRcsTal: public BlocDvb
 	long m_carrierIdLogon;   ///< carrier id for Logon req  emission
 	long m_carrierIdData;    ///< carrier id for traffic emission
 
-
 	/* DVB-RCS/S2 emulation */
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
@@ -176,8 +173,9 @@ class BlocDVBRcsTal: public BlocDvb
 
 	/* Timers and their values */
 
-	mgl_timer m_logonTimer;  ///< Upon each m_logonTimer event retry logon
-	mgl_timer m_frameTimer;  ///< Upon each m_frameTimer event is a frame
+	event_id_t logon_timer;  ///< Upon each m_logonTimer event retry logon
+	// TODO frame_timer in BlockDvb ?
+	event_id_t frame_timer;   ///< Upon each m_frameTimer event is a frame
 	/// The sf counter
 	long super_frame_counter;
 	/// the frame number WITHIN the current superframe
@@ -197,10 +195,10 @@ class BlocDVBRcsTal: public BlocDvb
 
 	/* QoS Server / Policy Enforcement Point (PEP) on ST side */
 
-	static int qos_server_sock;         ///< The socket for the QoS Server
-	std::string qos_server_host;        ///< The hostname of the QoS Server
-	int qos_server_port;                ///< The TCP port of the QoS Server
-	mgl_timer qos_server_timer;         ///< The timer for connection retry to QoS Server
+	static int qos_server_sock;           ///< The socket for the QoS Server
+	std::string qos_server_host;   ///< The hostname of the QoS Server
+	int qos_server_port;           ///< The TCP port of the QoS Server
+	event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
 
 
 	/* OBR */
@@ -219,26 +217,83 @@ class BlocDVBRcsTal: public BlocDvb
 
  public:
 
-	BlocDVBRcsTal(mgl_blocmgr *blocmgr, mgl_id fatherid,
-                  const char *name, const tal_id_t mac_id,
-                  PluginUtils utils);
-	virtual ~BlocDVBRcsTal();
+	BlockDvbTal(const string &name, tal_id_t mac_id);
+	virtual ~BlockDvbTal();
 
-	mgl_status onEvent(mgl_event *event);
+  protected:
 
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onInit();
 
  private:
 
 	// initialization methods
-	int onInit();
-	int initMode();
-	int initEncapsulation();
-	int initParameters();
-	int initCarrierId();
-	int initMacFifo(std::vector<std::string>&);
-	int initObr();
-	int initDama();
+
+
+	/**
+	 * @brief Initialize the transmission mode
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initMode();
+
+	/**
+	 * Read configuration for the parameters
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initParameters();
+
+	/**
+	 * Read configuration for the carrier ID
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initCarrierId();
+
+	/**
+	 * Read configuration for the MAC FIFOs
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initMacFifo(std::vector<std::string>&);
+
+	/**
+	 * Read configuration for the OBR period
+	 *
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initObr();
+
+	/**
+	 * Read configuration for the DAMA algorithm
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDama();
+
+	/**
+	 * Read configuration for the QoS Server
+	 *
+	 * @return  true on success, false otherwise
+	 */
 	bool initQoSServer();
+
+	/**
+	 * @brief Initialize the timers
+	 *
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDownwardTimers();
+
+	/**
+	 * @brief Initialize the output
+	 *
+	 * @return  true on success, false otherwise
+	 */
 	bool initOutput(const std::vector<std::string>&);
 
 	int onStartOfFrame(unsigned char *ip_buf, long l_len);
@@ -248,11 +303,24 @@ class BlocDVBRcsTal: public BlocDvb
 	int onRcvEncapPacket(int fifo_id, NetPacket *packet);
 
 	// DVB frame from lower layer
-	int onRcvDVBFrame(unsigned char *ip_buf, long l_len);
+
+	/**
+	 * Manage the receipt of the DVB Frames
+	 *
+	 * @param ip_buf the data buffer
+	 * @param i_len the length of the buffer
+	 * @return true on success, false otherwise
+	 */
+	bool  onRcvDvbFrame(unsigned char *ip_buf, long l_len);
 	int onRcvLogonResp(unsigned char *ip_buf, long l_len);
 
 	// UL DVB frames emission
-	int sendLogonReq();
+	/**
+	 * This method send a Logon Req message
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool sendLogonReq();
 	int sendCR();
 
 	void deletePackets();

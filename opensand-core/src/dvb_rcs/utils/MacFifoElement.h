@@ -35,7 +35,6 @@
 #ifndef FIFO_ELEMENT_H
 #define FIFO_ELEMENT_H
 
-#include <opensand_margouilla/mgl_memorypool.h>
 
 #include <syslog.h>
 
@@ -66,11 +65,10 @@ class MacFifoElement
 	/// The minimal time the packet will output the FIFO (in ms)
 	long _tick_out;
 
-	/// Pool of memory for fifo element
-	static mgl_memory_pool mempool;
-
  public:
 
+// TODO
+#if 0
 #if MEMORY_POOL
 	inline void *operator new(size_t size) throw()
 	{
@@ -111,6 +109,7 @@ class MacFifoElement
 	{
 		mempool.release((char *) p);
 	}
+#endif
 #endif
 
 

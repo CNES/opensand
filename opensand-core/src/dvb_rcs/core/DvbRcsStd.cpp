@@ -340,13 +340,13 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 
 skip:
 	// release buffer (data is now saved in NetPacket objects)
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return 0;
 
 release_burst:
 	delete burst;
 error:
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return -1;
 }
 

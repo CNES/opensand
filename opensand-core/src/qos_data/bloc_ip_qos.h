@@ -37,7 +37,20 @@
 #ifndef BLOC_IP_QOS_H
 #define BLOC_IP_QOS_H
 
-// System includes
+
+#include "IpPacket.h"
+#include "Ipv4Packet.h"
+#include "Ipv6Packet.h"
+#include "SarpTable.h"
+#include "TrafficCategory.h"
+#include "ServiceClass.h"
+#include "msg_dvb_rcs.h"
+#include "OpenSandCore.h"
+
+#include <opensand_conf/conf.h>
+#include <opensand_rt/Rt.h>
+#include <opensand_output/Output.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
@@ -45,7 +58,7 @@
 #include <sstream>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <net/if.h> // for IFNAMSIZ //
+#include <net/if.h>
 #include <linux/if_tun.h>
 #include <netinet/if_ether.h>
 #include <sys/ioctl.h>
@@ -54,25 +67,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+
 using namespace std;
-
-// Margouilla includes
-#include <opensand_margouilla/mgl_bloc.h>
-#include <opensand_margouilla/msg_ip.h>
-
-// Project includes
-#include <IpPacket.h>
-#include <Ipv4Packet.h>
-#include <Ipv6Packet.h>
-#include <SarpTable.h>
-#include <TrafficCategory.h>
-#include <ServiceClass.h>
-#include <msg_dvb_rcs.h>
-#include <opensand_conf/conf.h>
-
-// output
-#include <opensand_output/Output.h>
-#include "OpenSandCore.h"
 
 /// The debug prefix for the IP QoS block
 #define IPQOS_DBG_PREFIX "[IPQOS]"
@@ -86,26 +82,25 @@ using namespace std;
  * @brief Apply IP QoS model to outgoing (UL) traffic; by-pass
  *        incoming (DL) traffic
  */
-class BlocIPQoS: public mgl_bloc
+class BlocIPQoS: public Block
 {
  public:
 
-	BlocIPQoS(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, component_t host);
+	BlocIPQoS(const string &name, component_t host);
 	~BlocIPQoS();
 
-	// Margouilla event handler
-	mgl_status onEvent(mgl_event *event);
 
 	void writeStats();
 
+	/// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+
+	// initialization method
+	bool onInit();
+
+
  private:
-
-	/// Whether the bloc has been initialized or not
-	bool _initOk;
-	component_t host;
-
-	string _satellite_type;
 
 	void getConfig();
 	void initSarpTables();
@@ -120,8 +115,13 @@ class BlocIPQoS: public mgl_bloc
 	int onMsgIpFromUp(int fd);  // treatments on reception of pk from upper layer
 	int onMsgIp(IpPacket *packet);  // treatments on reception of pk from upper layer
 
+	SarpTable sarpTable; ///< SARP table
+
 	/// List of service classes ordered by scheduler priority
 	vector < ServiceClass > classList;
+
+	/// Whether the bloc has been initialized or not
+	component_t host;
 
 	/**
 	 * This map associates directly the category identifier (unique) to a ptr
@@ -136,6 +136,14 @@ class BlocIPQoS: public mgl_bloc
 	// TUN file descriptor
 	int _tun_fd;
 
+	long _group_id;      ///< it is the MAC layer group id received through msg_link_up
+	long _tal_id;        ///< it is the MAC layer MAC id received through msg_link_up
+
+	/// The type of satellite
+	string _satellite_type;
+
+	bool tun_configuration();
+
 	/// State of the satellite link
 	enum
 	{
@@ -143,19 +151,29 @@ class BlocIPQoS: public mgl_bloc
 		link_up
 	} _state;
 
-	long _group_id;      ///< it is the MAC layer group id received through msg_link_up
-	long _tal_id;        ///< it is the MAC layer MAC id received through msg_link_up
-
-	SarpTable sarpTable; ///< SARP table
-
-	bool tun_configuration();
-
 	/// statistic timer
-	mgl_timer stats_timer;
+	event_id_t stats_timer;
 	
 	/// output events
 	static Event* error_init;
 };
 
+class BlocIPQoSTal: public BlocIPQoS
+{
+ public:
+
+	BlocIPQoSTal(const string &name):
+		BlocIPQoS(name, terminal)
+	{};
+};
+
+class BlocIPQoSGw: public BlocIPQoS
+{
+ public:
+
+	BlocIPQoSGw(const string &name):
+		BlocIPQoS(name, gateway)
+	{};
+};
 
 #endif

@@ -30,8 +30,9 @@
  * @file st.cpp
  * @brief Satellite station (ST) process
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  *
- * ST uses the following stack of Margouilla blocs installed over 2 NICs
+ * ST uses the following stack of RT blocs installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
  *
  * <pre>
@@ -42,7 +43,7 @@
  *                         |                  |
  *                   Encap/Desencap      IpMacQoSInteraction
  *                         |                  |
- *                    Dvb Rcs Tal  -----------
+ *                      Dvb Tal  -------------
  *                    [Dama Agent]
  *                         |
  *                  Sat Carrier Eth
@@ -54,37 +55,24 @@
  */
 
 
-// System includes
+// Project includes
+#include "bloc_ip_qos.h"
+#include "BlockEncap.h"
+#include "BlockDvbTal.h"
+#include "BlockSatCarrier.h"
+#include "BlockPhysicalLayer.h"
+#include "Plugin.h"
+
+#include <opensand_rt/Rt.h>
+#include <opensand_conf/uti_debug.h>
+#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_output/Output.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-
-// Scheduling policy
 #include <sched.h>
-
-// Margouilla includes
-#include "opensand_margouilla/mgl_eventmgr.h"
-#include "opensand_margouilla/mgl_bloc.h"
-#include "opensand_margouilla/mgl_blocmgr.h"
-
-// Project includes
-#include "opensand_conf/uti_debug.h"
-#include "opensand_conf/ConfigurationFile.h"
-
-#include "bloc_ip_qos.h"
-#include "bloc_encap.h"
-#include "bloc_dvb_rcs_tal.h"
-#include "bloc_sat_carrier.h"
-#include "BlocPhysicalLayer.h"
-#include "PluginUtils.h"
-
-// output include
-#include "opensand_output/Output.h"
-
-
-/// global variable saying whether the ST component is alive or not
-bool alive = true;
 
 
 /**
@@ -160,43 +148,28 @@ bool init_process(int argc, char **argv,
 }
 
 
-// signal handler
-void sigendHandler(int sig)
-{
-	UTI_PRINT(LOG_INFO, "Signal %d received, terminate the process\n", sig);
-	alive = false;
-}
-
-
 int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
 	struct sched_param param;
-	bool is_init = false;
 	bool with_phy_layer = false;
 	string ip_addr;
 	string iface_name;
 	tal_id_t mac_id;
+	struct sc_specific specific;
 
-	mgl_eventmgr *eventmgr;
-	mgl_blocmgr *blocmgr;
-
-	BlocIPQoS *blocIPQoS;
-	BlocEncap *blocEncap;
-	BlocDVBRcsTal *blocDvbRcsTal;
-    BlocPhysicalLayer *blocPhysicalLayer;
-	BlocSatCarrier *blocSatCarrier;
-	PluginUtils utils;
+	Block *block_ip_qos;
+	Block *block_encap;
+	Block *block_dvb;
+	Block *block_phy_layer;
+	Block *up_sat_carrier;
+	Block *block_sat_carrier;
 	vector<string> conf_files;
 
 	Event *status = NULL;
 	Event *failure = NULL;
 
 	int is_failure = 1;
-
-	// catch TERM and INT signals
-	signal(SIGTERM, sigendHandler);
-	signal(SIGINT, sigendHandler);
 
 	// retrieve arguments on command line
 	if(init_process(argc, argv, ip_addr, iface_name, mac_id) == false)
@@ -234,114 +207,74 @@ int main(int argc, char **argv)
 	UTI_PRINT(LOG_INFO, "%s: physical layer is %s\n",
 	          progname, with_phy_layer ? "enabled" : "disabled");
 
-	// instantiate event manager
-	eventmgr = new mgl_eventmgr(realTime);
-	if(eventmgr == NULL)
+	// load the plugins
+	if(!Plugin::loadPlugins(with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot create the event manager\n", progname);
+		UTI_ERROR("%s: cannot load the plugins\n", progname);
 		goto unload_config;
 	}
 
-	// instantiate bloc manager
-	blocmgr = new mgl_blocmgr();
-	if(blocmgr == NULL)
-	{
-		UTI_ERROR("%s: cannot create the bloc manager\n", progname);
-		goto destroy_eventmgr;
-	}
-
-	MGL_TRACE_SET_LEVEL(0);		  // set mgl runtime debug level
-	blocmgr->setEventMgr(eventmgr);
-
-	// load the plugins
-	if(!utils.loadPlugins(with_phy_layer))
-	{
-		UTI_ERROR("%s: cannot load the plugins\n", progname);
-		goto destroy_blocmgr;
-	}
-
 	// instantiate all blocs
-	blocIPQoS = new BlocIPQoS(blocmgr, 0, "IP-QoS", terminal);
-	if(blocIPQoS == NULL)
+	block_ip_qos = Rt::createBlock<BlocIPQoSTal,
+	                               BlocIPQoSTal::Upward,
+	                               BlocIPQoSTal::Downward>("IP-QoS");
+	if(!block_ip_qos)
 	{
 		UTI_ERROR("%s: cannot create the IP-QoS bloc\n", progname);
 		goto release_plugins;
 	}
 
-	blocEncap = new BlocEncap(blocmgr, 0, "Encap", terminal, utils);
-	if(blocEncap == NULL)
+	block_encap = Rt::createBlock<BlockEncapTal,
+	                              BlockEncapTal::Upward,
+	                              BlockEncapTal::Downward>("Encap", block_ip_qos);
+	if(!block_encap)
 	{
 		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
 		goto release_plugins;
 	}
 
-	blocIPQoS->setLowerLayer(blocEncap->getId());
-	blocEncap->setUpperLayer(blocIPQoS->getId());
-
-	blocDvbRcsTal = new BlocDVBRcsTal(blocmgr, 0, "DvbRcsTal",
-	                                  mac_id, utils);
-	if(blocDvbRcsTal == NULL)
+	block_dvb = Rt::createBlock<BlockDvbTal,
+	                            BlockDvbTal::Upward,
+	                            BlockDvbTal::Downward,
+	                            tal_id_t>("DvbTal", block_encap, mac_id);
+	if(!block_dvb)
 	{
-		UTI_ERROR("%s: cannot create the DvbRcsTal bloc\n", progname);
+		UTI_ERROR("%s: cannot create the DvbTal bloc\n", progname);
 		goto release_plugins;
 	}
 
-	blocEncap->setLowerLayer(blocDvbRcsTal->getId());
-	blocDvbRcsTal->setUpperLayer(blocEncap->getId());
+	up_sat_carrier = block_dvb;
+	if(with_phy_layer)
+	{
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayerTal,
+		                                  BlockPhysicalLayerTal::PhyUpward,
+		                                  BlockPhysicalLayerTal::PhyDownward>("PhysicalLayer",
+		                                                                      block_dvb);
+		if(block_phy_layer == NULL)
+		{
+			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
+			goto release_plugins;
+		}
+		up_sat_carrier = block_phy_layer;
+	}
 
-	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
-	                                    terminal, ip_addr, iface_name);
-	if(blocSatCarrier == NULL)
+	specific.ip_addr = ip_addr;
+	specific.iface_name = iface_name;
+	block_sat_carrier = Rt::createBlock<BlockSatCarrierTal,
+	                                    BlockSatCarrierTal::Upward,
+	                                    BlockSatCarrierTal::Downward,
+	                                    struct sc_specific>("SatCarrier",
+	                                                        up_sat_carrier,
+	                                                        specific);
+	if(!block_sat_carrier)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
 		goto release_plugins;
 	}
 
-	if(with_phy_layer)
-	{
-		blocPhysicalLayer = new BlocPhysicalLayer(blocmgr, 0,
-		                                          "PhysicalLayer",
-		                                          terminal,
-		                                          utils);
-		if(blocPhysicalLayer == NULL)
-		{
-			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
-			goto release_plugins;
-		}
-
-		blocDvbRcsTal->setLowerLayer(blocPhysicalLayer->getId());
-		blocPhysicalLayer->setUpperLayer(blocDvbRcsTal->getId());
-
-		blocPhysicalLayer->setLowerLayer(blocSatCarrier->getId());
-		blocSatCarrier->setUpperLayer(blocPhysicalLayer->getId());
-	}
-	else
-	{
-		blocDvbRcsTal->setLowerLayer(blocSatCarrier->getId());
-		blocSatCarrier->setUpperLayer(blocDvbRcsTal->getId());
-	}
-
 
 	// make the ST alive
-	while(alive)
-	{
-		blocmgr->process_step();
-		if(!is_init && blocmgr->isRunning())
-		{
-			// finish output init, sent the initial event
-			failure = Output::registerEvent("failure", LEVEL_ERROR);
-			status = Output::registerEvent("status", LEVEL_INFO);
-			if(!Output::finishInit())
-			{
-				UTI_PRINT(LOG_INFO,
-				          "%s: failed to init the output => disable it\n",
-				         progname);
-			}
-
-			Output::sendEvent(status, "Simulation started");
-			is_init = true;
-		}
-	}
+	Rt::run();
 
 	Output::sendEvent(status, "Simulation stopped");
 
@@ -350,11 +283,7 @@ int main(int argc, char **argv)
 
 	// cleanup before ST stops
 release_plugins:
-	utils.releasePlugins();
-destroy_blocmgr:
-	delete blocmgr; /* destroy the bloc manager and all the blocs */
-destroy_eventmgr:
-	delete eventmgr;
+	Plugin::releasePlugins();
 unload_config:
 	if(is_failure)
 	{

@@ -35,7 +35,6 @@
 #ifndef NET_PACKET_H
 #define NET_PACKET_H
 
-#include <opensand_margouilla/mgl_memorypool.h>
 #include <Data.h>
 
 #include <string>
@@ -100,15 +99,16 @@ class NetPacket
 	/// The packet header length
 	size_t header_length;
 
-	/// Pool of memory for network packets
-	static mgl_memory_pool mempool;
 
  public:
+#if 0
 
+// call new in Rt
 	void *operator new(size_t size) throw();
 	void *operator new[](size_t size) throw();
 	void operator delete(void *p) throw();
 	void operator delete[](void *p) throw();
+#endif
 
 	/**
 	 * Build a network-layer packet
@@ -155,12 +155,6 @@ class NetPacket
 	 * Destroy the network-layer packet
 	 */
 	virtual ~NetPacket();
-
-	/**
-	 * Add trace in memory pool in order to debug memory allocation
-	 */
-	// TODO use it in plugins !
-	void addTrace(std::string name_function);
 
 	/**
 	 * Get the QoS associated with the packet

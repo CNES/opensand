@@ -41,9 +41,6 @@
 #include "opensand_conf/uti_debug.h"
 
 
-mgl_memory_pool NetPacket::mempool(230, 100000, "net_packet");
-
-
 NetPacket::NetPacket(Data data):
 	data(data),
 	name("unknown")
@@ -93,6 +90,7 @@ NetPacket::~NetPacket()
 {
 }
 
+#if 0
 void *NetPacket::operator new(size_t size) throw()
 {
 #if MEMORY_POOL
@@ -148,12 +146,8 @@ void NetPacket::operator delete[](void *p) throw()
 	::operator delete[](p);
 #endif
 }
+#endif
 
-
-void NetPacket::addTrace(std::string name_function)
-{
-	mempool.add_function(name_function, (char *) this);
-}
 
 std::string NetPacket::getName()
 {

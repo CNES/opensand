@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_dvb_rcs_sat.h
+ * @file BlockDvbSat.h
  * @brief This bloc implements a DVB-S/RCS stack for a Satellite
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
@@ -55,17 +55,17 @@
 
 using namespace std;
 
-#include "bloc_dvb.h"
+#include "BlockDvb.h"
 #include "SatSpot.h"
 
 // output
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
 
 /**
  * Blocs heritate from mgl_bloc clam_singleSpot.sse
  * mgl_bloc classe defines some default handlers such as 'onEvent'
  */
-class BlocDVBRcsSat: public BlocDvb
+class BlockDvbSat: public BlockDvb
 {
 
  private:
@@ -84,22 +84,22 @@ class BlocDVBRcsSat: public BlocDvb
 
 	// Internal event handlers
 	/// frame timer, used to awake the block regurlarly in order to send BBFrames
-	mgl_timer m_frameTimer;
+	event_id_t frame_timer;
 	/// timer used to awake the block every second in order to retrieve
 	/// the modcods
-	mgl_timer scenario_timer;
+	event_id_t scenario_timer;
 
 	/* misc */
 	/// Flag set 1 to activate error generator
+	// TODO remove
 	int m_useErrorGenerator;
 
 
 
  public:
 
-	BlocDVBRcsSat(mgl_blocmgr *blocmgr, mgl_id fatherid, const char *name,
-	              PluginUtils utils);
-	~BlocDVBRcsSat();
+	BlockDvbSat(const string &name);
+	~BlockDvbSat();
 
 	/// Get the satellite type
 	string getSatelliteType();
@@ -107,25 +107,82 @@ class BlocDVBRcsSat: public BlocDvb
 	/// get the bandwidth
 	int getBandwidth();
 
-	/// event handlers
-	mgl_status onEvent(mgl_event * event);
+  protected:
+
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onInit();
 
  private:
 
 	// initialization
-	int onInit();
-	int initMode();
-	int initErrorGenerator();
-	int initTimers();
-	int initSwitchTable();
-	int initSpots();
-	int initStList();
+
+	/**
+	 * @brief Initialize the transmission mode
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initMode();
+
+	/**
+	 * @brief Initialize the error generator
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initErrorGenerator();
+
+	/**
+	 * @brief Read configuration for the different downward timers
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDownwardTimers();
+
+	/**
+	 * Retrieves switching table entries
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initSwitchTable();
+
+	/**
+	 * @brief Retrieve the spots description from configuration
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initSpots();
+
+	/**
+	 * @brief Read configuration for the list of STs
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initStList();
 
 	// event management
-	mgl_status onRcvDVBFrame(unsigned char *frame, unsigned int length, long carrier_id);
+	//
+	/**
+	* Called upon reception event it is another layer (below on event) of demultiplexing
+	* Do the appropriate treatment according to the type of the DVB message
+	*
+	* @param frame      the DVB or BB frame to forward
+	* @param length     the length (in bytes) of the frame
+	* @param carrier_id the carrier id of the frame
+	* @return           true on success, false otherwise
+	*/
+	bool onRcvDvbFrame(unsigned char *frame, unsigned int length, long carrier_id);
 	int sendSigFrames(DvbFifo * sigFifo);
-	mgl_status forwardDVBFrame(DvbFifo * sigFifo, char *ip_buf, int i_len);
-	int onSendFrames(DvbFifo *fifo, long current_time);
+	bool forwardDvbFrame(DvbFifo * sigFifo, char *ip_buf, int i_len);
+
+	/**
+	 * Send the DVB frames stored in the given MAC FIFO by
+	 * \ref PhysicStd::onForwardFrame
+	 *
+	 * @param fifo          the MAC fifo which contains the DVB frames to send
+	 * @param current_time  the current time
+	 * @return              true on success, false otherwise
+	 */
+	bool onSendFrames(DvbFifo *fifo, long current_time);
 
 	/**
 	 * Get next random delay provided the two preceeding members

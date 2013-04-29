@@ -1,20 +1,20 @@
 noinst_LTLIBRARIES = libopensand_physical_layer.la
 
 libopensand_physical_layer_la_cpp = \
-	BlocPhysicalLayer.cpp \
+	BlockPhysicalLayer.cpp \
 	AttenuationModel.cpp \
 	NominalCondition.cpp \
 	MinimalCondition.cpp \
     ErrorInsertion.cpp \
-	Channel.cpp 
+	PhyChannel.cpp 
 
 libopensand_physical_layer_la_h = \
-	BlocPhysicalLayer.h \
+	BlockPhysicalLayer.h \
 	AttenuationModel.h \
 	NominalCondition.h \
 	MinimalCondition.h \
 	ErrorInsertion.h \
-	Channel.h 
+	PhyChannel.h 
 
 libopensand_physical_layer_la_SOURCES = \
 	$(libopensand_physical_layer_la_cpp) \

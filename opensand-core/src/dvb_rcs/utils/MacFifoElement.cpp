@@ -37,11 +37,6 @@
 #define DBG_PACKAGE PKG_DEFAULT
 #include "opensand_conf/uti_debug.h"
 
-// Be careful, the maximum FIFO size sum should be smaller than the number of elements
-// in the memory pool (it is the worst case)
-// TODO configuration parameter for that or compute it with FIFO sizes
-mgl_memory_pool MacFifoElement::mempool(sizeof(MacFifoElement), 100000,  "fifo_element");
-
 
 MacFifoElement::MacFifoElement(unsigned char *data, unsigned int length,
                                long tick_in, long tick_out)
@@ -66,12 +61,6 @@ MacFifoElement::MacFifoElement(NetPacket *packet,
 MacFifoElement::~MacFifoElement()
 {
 }
-
-void MacFifoElement::addTrace(std::string name_function)
-{
-	mempool.add_function(name_function, (char *) this);
-}
-
 
 unsigned char *MacFifoElement::getData()
 {

@@ -57,6 +57,8 @@ using namespace std;
 #define CONF_GLOBAL_FILE   "/etc/opensand/core_global.conf"
 #define CONF_DEFAULT_FILE  "/etc/opensand/core.conf"
 
+// TODO high level interface as for Rt and Output
+// TODO remove conf.h and add the defines in related headers (as for plugins)
 
 /*
  * @class ConfigurationFile

@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_dvb_rcs_ncc.cpp
+ * @file BlockDvbNcc.cpp
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
@@ -47,7 +47,7 @@
 #include <sstream>
 #include <ios>
 
-#include "bloc_dvb_rcs_ncc.h"
+#include "BlockDvbNcc.h"
 
 #include "lib_dama_ctrl_yes.h"
 #include "lib_dama_ctrl_legacy.h"
@@ -58,66 +58,48 @@
 #include "DvbS2Std.h"
 
 // output
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS_NCC
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
+#include <opensand_rt/Rt.h>
 
 
 /**
  * Constructor
  */
-BlocDVBRcsNcc::BlocDVBRcsNcc(mgl_blocmgr *blocmgr,
-                             mgl_id fatherid,
-                             const char *name,
-                             PluginUtils utils):
-	BlocDvb(blocmgr, fatherid, name, utils),
+BlockDvbNcc::BlockDvbNcc(const string &name):
+	BlockDvb(name),
 	NccPepInterface(),
-	complete_dvb_frames()
+	m_pDamaCtrl(NULL),
+	m_carrierIdDvbCtrl(-1),
+	m_carrierIdSOF(-1),
+	m_carrierIdData(-1),
+	super_frame_counter(-1),
+	frame_counter(0),
+	frame_timer(-1),
+	macId(DVB_GW_MAC_ID),
+	complete_dvb_frames(),
+	scenario_timer(-1),
+	pep_cmd_apply_timer(-1),
+	pepAllocDelay(-1),
+	event_file(NULL),
+	stat_file(NULL),
+	simu_file(NULL),
+	simulate(none_simu),
+	simu_st(-1),
+	simu_rt(-1),
+	simu_cr(-1),
+	simu_interval(-1)
 {
-	this->init_ok = false;
-
-	this->macId = DVB_GW_MAC_ID;
-
-	// DAMA controller
-	this->m_pDamaCtrl = NULL;
-
-	// carrier IDs
-	this->m_carrierIdDvbCtrl = -1;
-	this->m_carrierIdSOF = -1;
-	this->m_carrierIdData = -1;
-
-	// superframes and frames
-	this->super_frame_counter = -1;
-	this->frame_counter = 0;
-	this->m_frameTimer = -1;
-
-	// DVB-RCS/S2 emulation
-	this->emissionStd = NULL;
-	this->receptionStd = NULL;
-	this->scenario_timer = -1;
-
-	/* NGN network / Policy Enforcement Point (PEP) */
-	this->pep_cmd_apply_timer = -1;
-	this->pepAllocDelay = -1;
-
-	// request simulation
-	this->event_file = NULL;
-	this->stat_file = NULL;
-	this->simu_file = NULL;
-	this->simulate = none_simu;
-	this->simu_st = -1;
-	this->simu_rt = -1;
-	this->simu_cr = -1;
-	this->simu_interval = -1;
 }
 
 
 /**
  * Destructor
  */
-BlocDVBRcsNcc::~BlocDVBRcsNcc()
+BlockDvbNcc::~BlockDvbNcc()
 {
 	if(this->m_pDamaCtrl != NULL)
 		delete this->m_pDamaCtrl;
@@ -148,78 +130,16 @@ BlocDVBRcsNcc::~BlocDVBRcsNcc()
 }
 
 
-/**
- * @brief The event handler
- *
- * @param event  the received event to handle
- * @return       mgl_ok if the event was correctly handled, mgl_ko otherwise
- */
-mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
+bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 {
-	const char *FUNCNAME = DBG_PREFIX "[onEvent]";
-	mgl_status status = mgl_ko;
-	int ret;
-
-	if(MGL_EVENT_IS_INIT(event))
+	switch(event->getType())
 	{
-		// initialization event
-		if(this->init_ok)
-		{
-			UTI_ERROR("%s bloc has already been initialized, ignore init event\n",
-			          FUNCNAME);
-		}
-		else if(this->onInit() < 0)
-		{
-			UTI_ERROR("%s bloc initialization failed\n", FUNCNAME);
-			Output::sendEvent(error_init, "%s bloc initialization failed\n",
-			                     FUNCNAME);
-		}
-		else
-		{
-			this->init_ok = true;
-			status = mgl_ok;
-		}
-	}
-	else if(!this->init_ok)
-	{
-		UTI_ERROR("DVB-RCS SAT bloc not initialized, "
-		          "ignore non-init event\n");
-	}
-	else if(MGL_EVENT_IS_MSG(event))
-	{
-		if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getLowerLayer() &&
-		   MGL_EVENT_MSG_IS_TYPE(event, msg_dvb))
-		{
-			// messages from lower layer: dvb frames
-			T_DVB_META *dvb_meta;
-			long carrier_id;
-			unsigned char *frame;
-			int l_len;
-
-			dvb_meta = (T_DVB_META *) MGL_EVENT_MSG_GET_BODY(event);
-			carrier_id = dvb_meta->carrier_id;
-			frame = (unsigned char *) dvb_meta->hdr;
-			l_len = MGL_EVENT_MSG_GET_BODYLEN(event);
-
-			UTI_DEBUG("[onEvent] DVB frame received\n");
-			if(this->onRcvDVBFrame(frame, l_len) < 0)
-			{
-				status = mgl_ko;
-			}
-			else
-			{
-				status = mgl_ok;
-			}
-			// TODO: release frame ?
-			g_memory_pool_dvb_rcs.release((char *) dvb_meta);
-		}
-		else if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getUpperLayer() &&
-		        MGL_EVENT_MSG_IS_TYPE(event, msg_encap_burst))
+		case evt_message:
 		{
 			NetBurst *burst;
 			NetBurst::iterator pkt_it;
 
-			burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 			UTI_DEBUG("SF#%ld: encapsulation burst received "
 			          "(%d packet(s))\n", this->super_frame_counter,
@@ -227,15 +147,15 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 
 			// set each packet of the burst in MAC FIFO
 			for(pkt_it = burst->begin(); pkt_it != burst->end();
-			    pkt_it++)
+				pkt_it++)
 			{
 				UTI_DEBUG("SF#%ld: store one encapsulation "
 				          "packet\n", this->super_frame_counter);
 
-				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
-				                                       &this->data_dvb_fifo,
-				                                       getCurrentTime(),
-				                                       0) < 0)
+				if(!this->emissionStd->onRcvEncapPacket(*pkt_it,
+				                                        &this->data_dvb_fifo,
+				                                        this->getCurrentTime(),
+				                                        0))
 				{
 					// a problem occured => trace it but
 					// carry on simulation
@@ -245,255 +165,266 @@ mgl_status BlocDVBRcsNcc::onEvent(mgl_event *event)
 					          this->super_frame_counter);
 				}
 
-				(*pkt_it)->addTrace(HERE());
-
 				UTI_DEBUG("SF#%ld: encapsulation packet is "
 				          "successfully stored\n",
 				          this->super_frame_counter);
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
-
-			status = mgl_ok;
 		}
-		else
-		{
-			UTI_ERROR("SF#%ld: unknown message event received\n",
-			          this->super_frame_counter);
-		}
-	}
-	else if(MGL_EVENT_IS_TIMER(event))
-	{
-		status = mgl_ok;
+		break;
 
-		// receive the frame Timer event
-		UTI_DEBUG_L3("timer event received\n");
-
-		if(MGL_EVENT_TIMER_IS_TIMER(event, this->m_frameTimer))
-		{
-			status = mgl_ok;
-
-			// Set the timer again for SOF
-			// must be very careful with the set timer call !
-			//     - at the beginnig of the treatment -> more precise frame
-			//       duration, but in case of overrun the frame is lost
-			//     - at the end of the treatment -> the frame duration is
-			//       theorical frame duration + treatment duration !!!
-			this->setTimer(this->m_frameTimer, this->frame_duration);
-
-			// increment counter of frames per superframe
-			this->frame_counter++;
-
-			// if we reached the end of a superframe and the
-			// beginning of a new one, send SOF and run allocation
-			// algorithms (DAMA)
-			if(this->frame_counter == this->frames_per_superframe)
+		case evt_timer:
+			// receive the frame Timer event
+			UTI_DEBUG_L3("timer event received on downward channel");
+			if(*event == this->frame_timer)
 			{
-				// increase the superframe number and reset
-				// counter of frames per superframe
-				this->super_frame_counter++;
-				this->frame_counter = 0;
+				// increment counter of frames per superframe
+				this->frame_counter++;
 
-				// send Start Of Frame (SOF)
-				this->sendSOF();
+				// if we reached the end of a superframe and the
+				// beginning of a new one, send SOF and run allocation
+				// algorithms (DAMA)
+				if(this->frame_counter == this->frames_per_superframe)
+				{
+					// increase the superframe number and reset
+					// counter of frames per superframe
+					this->super_frame_counter++;
+					this->frame_counter = 0;
 
-				// run the allocation algorithms (DAMA)
-				this->m_pDamaCtrl->runOnSuperFrameChange(this->super_frame_counter);
+					// send Start Of Frame (SOF)
+					this->sendSOF();
 
-				// send TBTP computed by DAMA
-				this->sendTBTP();
+					// run the allocation algorithms (DAMA)
+					this->m_pDamaCtrl->runOnSuperFrameChange(this->super_frame_counter);
+
+					// send TBTP computed by DAMA
+					this->sendTBTP();
+				}
+
+				// schedule encapsulation packets
+				if(this->emissionStd->scheduleEncapPackets(&this->data_dvb_fifo,
+				                                           this->getCurrentTime(),
+				                                           &this->complete_dvb_frames) != 0)
+				{
+					UTI_ERROR("failed to schedule encapsulation "
+							  "packets stored in DVB FIFO\n");
+					return false;
+				}
+
+				if(!this->sendBursts(&this->complete_dvb_frames,
+				                     this->m_carrierIdData))
+				{
+					UTI_ERROR("failed to build and send DVB/BB frames\n");
+					return false;
+				}
 			}
+			else if(*event == this->scenario_timer)
+			{
+				// it's time to update MODCOD and DRA scheme IDs
+				UTI_DEBUG_L3("MODCOD/DRA scenario timer received\n");
 
-			// schedule encapsulation packets
-			if(this->emissionStd->scheduleEncapPackets(&this->data_dvb_fifo,
-			                                           this->getCurrentTime(),
-			                                           &this->complete_dvb_frames) != 0)
-			{
-				UTI_ERROR("failed to schedule encapsulation "
-				          "packets stored in DVB FIFO\n");
-				status = mgl_ko;
+				if(!this->emissionStd->goNextStScenarioStep())
+				{
+					UTI_ERROR("SF#%ld: failed to update MODCOD "
+							  "or DRA scheme IDs\n",
+							  this->super_frame_counter);
+				}
+				else
+				{
+					UTI_DEBUG_L3("SF#%ld: MODCOD and DRA scheme IDs "
+								 "successfully updated\n",
+								 this->super_frame_counter);
+				}
 			}
+			else if(*event == this->pep_cmd_apply_timer)
+			{
+				// it is time to apply the command sent by the external
+				// PEP component
 
-			if(status != mgl_ko &&
-			   this->sendBursts(&this->complete_dvb_frames, this->m_carrierIdData) != 0)
-			{
-				UTI_ERROR("failed to build and send DVB/BB frames\n");
-				status = mgl_ko;
-			}
-		}
-		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->simu_timer))
-		{
-			switch(this->simulate)
-			{
-				case file_simu:
-					ret = this->simulateFile();
-					if(ret == -1)
+				PepRequest *pep_request;
+
+				UTI_INFO("apply PEP requests now\n");
+				while((pep_request = this->getNextPepRequest()) != NULL)
+				{
+					if(m_pDamaCtrl->applyPepCommand(pep_request))
 					{
-						fclose(this->simu_file);
-						this->simu_file = NULL;
-						this->simulate = none_simu;
+						UTI_INFO("PEP request successfully "
+						         "applied in DAMA\n");
 					}
-					break;
-				case random_simu:
-					this->simulateRandom();
-					break;
-				default:
-					break;
-			}
-			// Set the timer for simulated events at next frame
-			if(this->simulate != none_simu)
-			{
-				this->setTimer(this->simu_timer, this->frame_duration);
-			}
-			// flush files
-			fflush(this->stat_file);
-			fflush(this->event_file);
-		}
-		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->scenario_timer))
-		{
-			// it's time to update MODCOD and DRA scheme IDs
-			UTI_DEBUG_L3("MODCOD/DRA scenario timer received\n");
-
-			// set the timer again
-			this->setTimer(this->scenario_timer, this->dvb_scenario_refresh);
-
-			if(!this->emissionStd->goNextStScenarioStep())
-			{
-				UTI_ERROR("SF#%ld: failed to update MODCOD "
-				          "or DRA scheme IDs\n",
-				          this->super_frame_counter);
+					else
+					{
+						UTI_ERROR("failed to apply PEP request "
+						          "in DAMA\n");
+						return false;
+					}
+				}
 			}
 			else
 			{
-				UTI_DEBUG_L3("SF#%ld: MODCOD and DRA scheme IDs "
-				             "successfully updated\n",
-				             this->super_frame_counter);
-				status = mgl_ok;
+				UTI_ERROR("unknown timer event received %s\n",
+				          event->getName().c_str());
+				return false;
 			}
-		}
-		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->pep_cmd_apply_timer))
-		{
-			// it is time to apply the command sent by the external
-			// PEP component
+			break;
 
-			PepRequest *pep_request;
-
-			UTI_INFO("apply PEP requests now\n");
-			while((pep_request = this->getNextPepRequest()) != NULL)
+		case evt_net_socket:
+			if(*event == this->getPepListenSocket())
 			{
-				if(m_pDamaCtrl->applyPepCommand(pep_request))
+				int ret;
+
+				// event received on PEP listen socket
+				UTI_INFO("event received on PEP listen socket\n");
+
+				// create the client socket to receive messages
+				ret = acceptPepConnection();
+				if(ret == 0)
 				{
-					UTI_INFO("PEP request successfully "
-					         "applied in DAMA\n");
+					UTI_INFO("NCC is now connected to PEP\n");
+					// add a fd to handle events on the client socket
+					this->downward->addNetSocketEvent("pep_client",
+					                                  this->getPepClientSocket());
+				}
+				else if(ret == -1)
+				{
+					UTI_NOTICE("failed to accept new connection "
+					           "request from PEP\n");
+				}
+				else if(ret == -2)
+				{
+					UTI_NOTICE("one PEP already connected: "
+					           "reject new connection request\n");
 				}
 				else
 				{
-					UTI_ERROR("failed to apply PEP request "
-					          "in DAMA\n");
+					UTI_ERROR("unknown status %d from "
+					          "acceptPepConnection()\n", ret);
+					return false;
 				}
 			}
-
-			status = mgl_ok;
-		}
-		else
-		{
-			UTI_ERROR("%s unknown timer event received\n", FUNCNAME);
-		}
-	}
-	else if(MGL_EVENT_IS_FD(event))
-	{
-		if(MGL_EVENT_FD_GET_FD(event) == this->getPepListenSocket())
-		{
-			// event received on PEP listen socket
-			UTI_INFO("event received on PEP listen socket\n");
-
-			// create the client socket to receive messages
-			ret = acceptPepConnection();
-			if(ret == 0)
+			else if(*event == this->getPepClientSocket())
 			{
-				UTI_INFO("NCC is now connected to PEP\n");
-				// add a fd to handle events on the client socket
-				this->addFd(this->getPepClientSocket());
-			}
-			else if(ret == -1)
-			{
-				UTI_NOTICE("failed to accept new connection "
-				           "request from PEP\n");
-			}
-			else if(ret == -2)
-			{
-				UTI_NOTICE("one PEP already connected: "
-				           "reject new connection request\n");
-			}
-			else
-			{
-				UTI_ERROR("unknown status %d from "
-				          "acceptPepConnection()\n", ret);
-			}
+				// event received on PEP client socket
+				UTI_INFO("event received on PEP client socket\n");
 
-			status = mgl_ok;
-		}
-		else if(MGL_EVENT_FD_GET_FD(event) == this->getPepClientSocket())
-		{
-			// event received on PEP client socket
-			UTI_INFO("event received on PEP client socket\n");
-
-			// read the message sent by PEP or delete socket
-			// if connection is dead
-			if(this->readPepMessage() == true)
-			{
-				// we have received a set of commands from the
-				// PEP component, let's apply the resources
-				// allocations/releases they contain
-
-				// set delay for applying the commands
-				if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
+				// read the message sent by PEP or delete socket
+				// if connection is dead
+				if(this->readPepMessage() == true)
 				{
-					this->setTimer(this->pep_cmd_apply_timer,
-					               pepAllocDelay);
-					UTI_INFO("PEP Allocation request, apply a %dms delay\n", pepAllocDelay);
-				}
-				else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
-				{
-					this->setTimer(this->pep_cmd_apply_timer, 0);
-					UTI_INFO("PEP Release request, no delay to apply\n");
+					// we have received a set of commands from the
+					// PEP component, let's apply the resources
+					// allocations/releases they contain
+
+					// set delay for applying the commands
+					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
+					{
+						if(!this->downward->startTimer(this->pep_cmd_apply_timer))
+						{
+							UTI_ERROR("cannot start pep timer");
+							return false;
+						}
+						UTI_INFO("PEP Allocation request, apply a %dms delay\n", pepAllocDelay);
+					}
+					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
+					{
+						// TODO find a way to raise timer directly (or update timer)
+						this->downward->startTimer(this->pep_cmd_apply_timer);
+						UTI_INFO("PEP Release request, no delay to apply\n");
+					}
+					else
+					{
+						UTI_ERROR("cannot determine request type!\n");
+						return false;
+					}
 				}
 				else
 				{
-					UTI_ERROR("cannot determine request type!\n");
+					UTI_NOTICE("network problem encountered with PEP, "
+					           "connection was therefore closed\n");
+					this->downward->removeEvent(this->pep_cmd_apply_timer);
+					return false;
 				}
+			}
+		default:
+			UTI_ERROR("unknown event received %s", event->getName().c_str());
+			return false;
+	}
+
+	return true;
+}
+
+bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
+{
+	switch(event->getType())
+	{
+		case evt_message:
+		{
+			// messages from lower layer: dvb frames
+			T_DVB_META *dvb_meta;
+			long carrier_id;
+			unsigned char *frame;
+			int l_len;
+
+			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
+			carrier_id = dvb_meta->carrier_id;
+			frame = (unsigned char *) dvb_meta->hdr;
+			l_len = ((MessageEvent *)event)->getLength();
+
+			UTI_DEBUG("[onEvent] DVB frame received\n");
+			if(!this->onRcvDvbFrame(frame, l_len))
+			{
+				free(dvb_meta);
+				return false;
+			}
+			free(dvb_meta);
+		}
+		break;
+
+		case evt_timer:
+			if(*event == this->simu_timer)
+			{
+				switch(this->simulate)
+				{
+					case file_simu:
+						if(!this->simulateFile())
+						{
+							UTI_ERROR("file simulation failed");
+							fclose(this->simu_file);
+							this->simu_file = NULL;
+							this->simulate = none_simu;
+							this->downward->removeEvent(this->simu_timer);
+						}
+						break;
+					case random_simu:
+						this->simulateRandom();
+						break;
+					default:
+						break;
+				}
+				// flush files
+				fflush(this->stat_file);
+				fflush(this->event_file);
 			}
 			else
 			{
-				UTI_NOTICE("network problem encountered with PEP, "
-				           "connection was therefore closed\n");
-				this->removeFd(this->getPepClientSocket());
+				UTI_ERROR("unknown timer event received %s\n",
+				          event->getName().c_str());
+				return false;
 			}
+			break;
 
-			status = mgl_ok;
-		}
+		default:
+			UTI_ERROR("unknown event received %s",
+			          event->getName().c_str());
+			return false;
 	}
-	else
-	{
-		UTI_ERROR("%s unknown event received\n", FUNCNAME);
-		status = mgl_ko;
-	}
-
-	return status;
+	return true;
 }
 
 
-/**
- * Read configuration when receive the init event
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::onInit()
+bool BlockDvbNcc::onInit()
 {
-	const char *FUNCNAME = DBG_PREFIX "[onInit]";
-	int ret;
 	long simu_column_num;
-	mgl_msg *link_up_msg;
 	T_LINK_UP *link_is_up;
 
 	// get the common parameters
@@ -511,16 +442,14 @@ int BlocDVBRcsNcc::onInit()
     }
 
 	// initialize the timers
-	ret = this->initTimers();
-	if(ret != 0)
+	if(!this->initDownwardTimers())
 	{
 		UTI_ERROR("failed to complete the timers part of the "
 		          "initialisation");
 		goto error;
 	}
 
-	ret = this->initMode();
-	if(ret != 0)
+	if(!this->initMode())
 	{
 		UTI_ERROR("failed to complete the mode part of the "
 		          "initialisation");
@@ -528,8 +457,7 @@ int BlocDVBRcsNcc::onInit()
 	}
 
 	// Get the carrier Ids
-	ret = this->initCarrierIds();
-	if(ret != 0)
+	if(!this->initCarrierIds())
 	{
 		UTI_ERROR("failed to complete the carrier IDs part of the "
 		          "initialisation");
@@ -537,8 +465,7 @@ int BlocDVBRcsNcc::onInit()
 	}
 
 	// Get and open the files
-	ret = this->initFiles();
-	if(ret != 0)
+	if(!this->initFiles())
 	{
 		UTI_ERROR("failed to complete the files part of the "
 		          "initialisation");
@@ -546,16 +473,14 @@ int BlocDVBRcsNcc::onInit()
 	}
 
 	// get and launch the dama algorithm
-	ret = initDama();
-	if(ret != 0)
+	if(!this->initDama())
 	{
 		UTI_ERROR("failed to complete the DAMA part of the "
 		          "initialisation");
 		goto error_mode;
 	}
 
-	ret = initFifo();
-	if(ret != 0)
+	if(!this->initFifo())
 	{
 		UTI_ERROR("failed to complete the FIFO part of the "
 		          "initialisation");
@@ -564,10 +489,12 @@ int BlocDVBRcsNcc::onInit()
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
-	setTimer(m_frameTimer, this->frame_duration);
+	this->frame_timer = this->downward->addTimerEvent("frame",
+	                                                  this->frame_duration);
 
 	// Launch the timer in order to retrieve the modcods
-	setTimer(this->scenario_timer, this->dvb_scenario_refresh);
+	this->scenario_timer = this->downward->addTimerEvent("scenario",
+	                                                     this->dvb_scenario_refresh);
 
 	// get the column number for GW in MODCOD/DRA simulation files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
@@ -602,8 +529,8 @@ int BlocDVBRcsNcc::onInit()
 		this->m_bbframe = new std::map<int, T_DVB_BBFRAME *>;
 		if(this->m_bbframe == NULL)
 		{
-			UTI_ERROR("%s SF#%ld: failed to allocate memory for the BB "
-			          "frame\n", FUNCNAME, this->super_frame_counter);
+			UTI_ERROR("SF#%ld: failed to allocate memory for the BB "
+			          "frame\n", this->super_frame_counter);
 			goto release_dama;
 		}
 	}
@@ -612,50 +539,44 @@ int BlocDVBRcsNcc::onInit()
 	link_is_up = new T_LINK_UP;
 	if(link_is_up == NULL)
 	{
-		UTI_ERROR("%s SF#%ld: failed to allocate memory for link_is_up "
-		          "message\n", FUNCNAME, this->super_frame_counter);
+		UTI_ERROR("SF#%ld: failed to allocate memory for link_is_up "
+		          "message\n", this->super_frame_counter);
 		goto release_dama;
 	}
 	link_is_up->group_id = 0;
 	link_is_up->tal_id = DVB_GW_MAC_ID;
 
-	link_up_msg = newMsgWithBodyPtr(msg_link_up, link_is_up, sizeof(T_LINK_UP));
-	if(link_up_msg == NULL)
+	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
-		UTI_ERROR("%s SF#%ld Failed to allocate a mgl msg.\n", FUNCNAME,
+		UTI_ERROR("SF#%ld: failed to send link up message to upper layer",
 		          this->super_frame_counter);
+		delete link_is_up;
 		goto release_dama;
 	}
-
-	this->sendMsgTo(this->getUpperLayer(), link_up_msg);
-	UTI_DEBUG_L3("%s SF#%ld Link is up msg sent to upper layer\n", FUNCNAME,
+	UTI_DEBUG_L3("SF#%ld Link is up msg sent to upper layer\n",
 	             this->super_frame_counter);
 
 	// listen for connections from external PEP components
-	if(this->listenForPepConnections() != true)
+	if(!this->listenForPepConnections())
 	{
 		UTI_ERROR("failed to listen for PEP connections\n");
 		goto release_dama;
 	}
-	this->addFd(this->getPepListenSocket());
+	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket());
 
 	// everything went fine
-	return 0;
+	return true;
 
 release_dama:
 	delete m_pDamaCtrl;
 error_mode:
 	// TODO: release the emission and reception standards here
 error:
-	return -1;
+	return false;
 }
 
 
-/** Read configuration for the request simulation
- *
- * @return true in case of success, false otherwise
- */
-bool BlocDVBRcsNcc::initRequestSimulation()
+bool BlockDvbNcc::initRequestSimulation()
 {
 	const char *FUNCNAME = DBG_PREFIX "[initRequestSimulation]";
 	string str_config;
@@ -761,7 +682,8 @@ bool BlocDVBRcsNcc::initRequestSimulation()
 			UTI_INFO("%s events simulated from %s.\n", FUNCNAME,
 			         str_config.c_str());
 			this->simulate = file_simu;
-			this->setTimer(this->simu_timer, this->frame_duration);
+			this->simu_timer = this->upward->addTimerEvent("simu_file",
+			                                               this->frame_duration);
 		}
 	}
 	else if(str_config == "random")
@@ -790,7 +712,8 @@ bool BlocDVBRcsNcc::initRequestSimulation()
 			         this->simu_st, this->simu_rt, this->simu_cr, this->simu_interval);
 		}
 		this->simulate = random_simu;
-		this->setTimer(this->simu_timer, this->frame_duration);
+		this->simu_timer = this->upward->addTimerEvent("simu_random",
+		                                               this->frame_duration);
 		srandom(times(NULL));
 	}
 	else
@@ -804,13 +727,11 @@ error:
     return false;
 }
 
-/**
- * Read configuration for the different timers
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::initTimers()
+
+bool BlockDvbNcc::initDownwardTimers()
 {
+	// TODO move all timer creation here !
+	// TODO move in BlockDvbNcc::Downward::onInit
 	int val;
 
 	// read the pep allocation delay
@@ -822,20 +743,21 @@ int BlocDVBRcsNcc::initTimers()
 	}
 	this->pepAllocDelay = val;
 	UTI_INFO("pepAllocDelay set to %d ms\n", this->pepAllocDelay);
+	// create timer
+	this->pep_cmd_apply_timer = this->downward->addTimerEvent("pep_request",
+	                                                          pepAllocDelay,
+	                                                          false, // no rearm
+	                                                          false // do not start
+	                                                          );
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Initialize the transmission mode
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::initMode()
+bool BlockDvbNcc::initMode()
 {
 	// initialize the emission and reception standards depending
 	// on the satellite type
@@ -871,7 +793,7 @@ int BlocDVBRcsNcc::initMode()
 	// set frame duration in emission standard
 	this->emissionStd->setFrameDuration(this->frame_duration);
 
-	return 0;
+	return true;
 
 release_standards:
 	if(this->emissionStd != NULL)
@@ -879,16 +801,11 @@ release_standards:
 	if(this->receptionStd != NULL)
 	  delete this->receptionStd;
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * Read configuration for the carrier IDs
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::initCarrierIds()
+bool BlockDvbNcc::initCarrierIds()
 {
 	int val;
 
@@ -922,23 +839,18 @@ int BlocDVBRcsNcc::initCarrierIds()
 	this->m_carrierIdData = val;
 	UTI_INFO("carrierIdData set to %ld\n", this->m_carrierIdData);
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Read configuration for the different files and open them
- *
- * @return  0 in case of succeed, -1 otherwise
- */
-int BlocDVBRcsNcc::initFiles()
+bool BlockDvbNcc::initFiles()
 {
 	if(this->emissionStd->type() == "DVB-S2")
 	{
-		if(this->initDraFiles() != 0)
+		if(!this->initDraFiles())
 		{
 			UTI_ERROR("failed to initialize the DRA scheme files\n");
 			goto error;
@@ -947,7 +859,7 @@ int BlocDVBRcsNcc::initFiles()
 
 	if(this->emissionStd->type() == "DVB-S2")
 	{
-		if(this->initModcodFiles() != 0)
+		if(!this->initModcodFiles())
 		{
 			UTI_ERROR("failed to initialize the MODCOD files\n");
 			goto error;
@@ -961,18 +873,13 @@ int BlocDVBRcsNcc::initFiles()
 		goto error;
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
-/**
- * @brief Read configuration for the DRA scheme definition/simulation files
- *
- * @return  -1 if failed, 0 if succeed
- */
-int BlocDVBRcsNcc::initDraFiles()
+bool  BlockDvbNcc::initDraFiles()
 {
 	if(access(this->dra_def.c_str(), R_OK) < 0)
 	{
@@ -1004,19 +911,14 @@ int BlocDVBRcsNcc::initDraFiles()
 		goto error;
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * Read configuration for the DAMA algorithm
- *
- * @return  -1 if failed, 0 if succeed
- */
-int BlocDVBRcsNcc::initDama()
+bool BlockDvbNcc::initDama()
 {
 	string up_return_encap_proto;
 	int ret;
@@ -1076,21 +978,16 @@ int BlocDVBRcsNcc::initDama()
 	}
 	this->m_pDamaCtrl->setRecordFile(this->event_file, this->stat_file);
 
-	return 0;
+	return true;
 
 release_dama:
 	delete this->m_pDamaCtrl;
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Read configuration for the FIFO
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsNcc::initFifo()
+bool BlockDvbNcc::initFifo()
 {
 	int val;
 
@@ -1103,10 +1000,10 @@ int BlocDVBRcsNcc::initFifo()
 	}
 	this->data_dvb_fifo.init(m_carrierIdData, val);
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
@@ -1114,7 +1011,7 @@ error:
 /******************* EVENT MANAGEMENT *********************/
 
 
-int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
+bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 {
 	const char *FUNCNAME = DBG_PREFIX "[onRcvDVBFrame]";
 	T_DVB_HDR *dvb_hdr;
@@ -1173,14 +1070,14 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 				goto error;
 			}
 			delete cr;
-			g_memory_pool_dvb_rcs.release((char *) data);
+			free(data);
 		}
 		break;
 
 		case MSG_TYPE_SACT:
 			UTI_DEBUG_L3("%s SACT\n", FUNCNAME);
 			m_pDamaCtrl->hereIsSACT(data, len);
-			g_memory_pool_dvb_rcs.release((char *) data);
+			free(data);
 			break;
 
 		case MSG_TYPE_SESSION_LOGON_REQ:
@@ -1199,47 +1096,47 @@ int BlocDVBRcsNcc::onRcvDVBFrame(unsigned char *data, int len)
 			// nothing to do in this case
 			UTI_DEBUG_L3("ignore TBTP, logon response or SOF frame "
 			             "(type = %ld)\n", dvb_hdr->msg_type);
-			g_memory_pool_dvb_rcs.release((char *) data);
+			free(data);
 			break;
 
 		case MSG_TYPE_CORRUPTED:
 			UTI_INFO("the message was corrupted by physical layer, drop it");
-			g_memory_pool_dvb_rcs.release((char *) data);
+			free(data);
 			break;
 
 		default:
 			UTI_ERROR("unknown type (%ld) of DVB frame\n",
 			          dvb_hdr->msg_type);
-			g_memory_pool_dvb_rcs.release((char *) data);
+			free(data);
 			break;
 	}
 
-	return 0;
+	return true;
 
 drop:
-	g_memory_pool_dvb_rcs.release((char *) data);
-	return 0;
+	free(data);
+	return true;
 
 error:
 	UTI_ERROR("Treatments failed at SF# %ld\n",
 	          this->super_frame_counter);
-	return -1;
+	return false;
 }
 
 
 /**
  * Send a start of frame
  */
-void BlocDVBRcsNcc::sendSOF()
+void BlockDvbNcc::sendSOF()
 {
-	unsigned char *lp_ptr;
+	T_DVB_HDR *lp_ptr;
 	long l_size;
 	T_DVB_HDR *lp_hdr;
 	T_DVB_SOF *lp_sof;
 
 
 	// Get a dvb frame
-	lp_ptr = (unsigned char *) g_memory_pool_dvb_rcs.get(HERE());
+	lp_ptr = new T_DVB_HDR;
 	if(!lp_ptr)
 	{
 		UTI_ERROR("[sendSOF] Failed to get memory from pool dvb_rcs\n");
@@ -1257,10 +1154,10 @@ void BlocDVBRcsNcc::sendSOF()
 	lp_sof->frame_nr = this->super_frame_counter;
 
 	// Send it
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, m_carrierIdSOF, l_size))
+	if(!this->sendDvbFrame(lp_ptr, m_carrierIdSOF, l_size))
 	{
 		UTI_ERROR("[sendSOF] Failed to call sendDvbFrame()\n");
-		g_memory_pool_dvb_rcs.release((char *) lp_ptr);
+		delete lp_ptr;
 		return;
 	}
 
@@ -1268,7 +1165,7 @@ void BlocDVBRcsNcc::sendSOF()
 }
 
 
-void BlocDVBRcsNcc::sendTBTP()
+void BlockDvbNcc::sendTBTP()
 {
 	unsigned char *lp_ptr;
 	long carrier_id;
@@ -1276,7 +1173,7 @@ void BlocDVBRcsNcc::sendTBTP()
 	int ret;
 
 	// Get a dvb frame
-	lp_ptr = (unsigned char *) g_memory_pool_dvb_rcs.get(HERE());
+	lp_ptr = (unsigned char *)malloc(MSG_DVB_RCS_SIZE_MAX);
 	if(!lp_ptr)
 	{
 		UTI_ERROR("[sendTBTP] Failed to get memory from pool dvb_rcs\n");
@@ -1290,7 +1187,7 @@ void BlocDVBRcsNcc::sendTBTP()
 	{
 		UTI_DEBUG_L3("[sendTBTP] Dama didn't build TBTP,"
 		             "releasing buffer.\n");
-		g_memory_pool_dvb_rcs.release((char *) lp_ptr);
+		free(lp_ptr);
 		return;
 	};
 
@@ -1300,7 +1197,7 @@ void BlocDVBRcsNcc::sendTBTP()
 	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, carrier_id, l_size))
 	{
 		UTI_ERROR("[sendTBTP] Failed to send TBTP\n");
-		g_memory_pool_dvb_rcs.release((char *) lp_ptr);
+		free(lp_ptr);
 		return;
 	}
 
@@ -1308,7 +1205,7 @@ void BlocDVBRcsNcc::sendTBTP()
 }
 
 
-void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
+void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 {
 	T_DVB_LOGON_REQ *lp_logon_req;
 	T_DVB_LOGON_RESP *lp_logon_resp;
@@ -1371,7 +1268,7 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// Get a dvb frame
-	lp_logon_resp = (T_DVB_LOGON_RESP *) g_memory_pool_dvb_rcs.get(HERE());
+	lp_logon_resp = new T_DVB_LOGON_RESP;
 	if(!lp_logon_resp)
 	{
 		UTI_ERROR("[onRcvLogonReq] Failed to get memory"
@@ -1413,10 +1310,10 @@ void BlocDVBRcsNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 release:
-	g_memory_pool_dvb_rcs.release((char *) ip_buf);
+	free(ip_buf);
 }
 
-void BlocDVBRcsNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
+void BlockDvbNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 {
 	T_DVB_LOGOFF *lp_logoff;
 	std::list<long>::iterator list_it;
@@ -1452,15 +1349,15 @@ void BlocDVBRcsNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 	             this->super_frame_counter, lp_logoff->mac);
 
 release:
-	g_memory_pool_dvb_rcs.release((char *) ip_buf);
+	free(ip_buf);
 }
 
 
 /**
  * Simulate event based on an input file
- * @return 0 on success, -1 otherwise
+ * @return true on success, false otherwise
  */
-int BlocDVBRcsNcc::simulateFile()
+bool BlockDvbNcc::simulateFile()
 {
 	const char *FUNCNAME = DBG_PREFIX "[simulateEvents]";
 
@@ -1583,17 +1480,14 @@ int BlocDVBRcsNcc::simulateFile()
 		}
 	}
 
-	return 0;
+	return true;
 
  error:
-	return -1;
+	return false;
 }
 
-/**
- * Simulate event based on random generation
- * @return 0 (always a success)    
- */
-int BlocDVBRcsNcc::simulateRandom()
+
+void BlockDvbNcc::simulateRandom()
 {
 	static bool initialized = false;
 	static T_DVB_LOGON_REQ sim_logon_req;
@@ -1631,7 +1525,4 @@ int BlocDVBRcsNcc::simulateRandom()
 		this->m_pDamaCtrl->hereIsCR(capacity_request);
 		delete capacity_request;
 	}
-
-	return 0;
-
 }

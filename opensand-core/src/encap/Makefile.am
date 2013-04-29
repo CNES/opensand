@@ -1,13 +1,13 @@
 noinst_LTLIBRARIES = libopensand_encap.la
 
 libopensand_encap_la_cpp = \
-	bloc_encap.cpp \
-	bloc_encap_sat.cpp
+	BlockEncap.cpp \
+	BlockEncapSat.cpp
 
 
 libopensand_encap_la_h = \
-	bloc_encap.h \
-	bloc_encap_sat.h
+	BlockEncap.h \
+	BlockEncapSat.h
 
 
 libopensand_encap_la_SOURCES = \

@@ -27,7 +27,7 @@
  */
 
 /**
- * @file bloc_dvb.h
+ * @file BlockDvb.h
  * @brief This bloc implements a DVB-S2/RCS stack.
  * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
@@ -54,59 +54,64 @@
  *
  */
 
-#ifndef BLOC_DVB_H
-#define BLOC_DVB_H
+#ifndef BLOCK_DVB_H
+#define BLOCK_DVB_H
 
-#include "PluginUtils.h"
 #include "PhysicStd.h"
-#include "opensand_margouilla/mgl_bloc.h"
 #include "NccPepInterface.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
 
 
-class BlocDvb: public mgl_bloc
+class BlockDvb: public Block
 {
-
- protected:
-
-	/// emission standard (DVB-RCS or DVB-S2)
-	PhysicStd *emissionStd;
-	/// reception standard (DVB-RCS or DVB-S2)
-	PhysicStd *receptionStd;
-
 
  public:
 
-	/// Class constructor
-	/// Use mgl_bloc default constructor
-	BlocDvb(mgl_blocmgr * ip_blocmgr, mgl_id i_fatherid, const char *ip_name,
-	        PluginUtils utils);
+	/**
+	 * @brief DVB block constructor
+	 *
+	 */
+	BlockDvb(const string &name);
 
-	~BlocDvb();
+	~BlockDvb();
 
-	/// event handlers
-	virtual mgl_status onEvent(mgl_event * event) = 0;
-
-
-	/* Methods */
 
  protected:
 
-	// initialization method
-	virtual int onInit() = 0;
-
-	// Send a Netburst to the encap layer
-	int SendNewMsgToUpperLayer(NetBurst *burst);
+	/**
+	 * @brief Create a message with the given burst
+	 *        and sned it to upper layer
+	 *
+	 * @param burst the burst of encapsulated packets
+	 * @return  true on success, false otherwise
+	 */
+	bool SendNewMsgToUpperLayer(NetBurst *burst);
 
 	// Common function for parameters reading
 	bool initCommon();
 
 	// Common functions for satellite and NCC
-	int initModcodFiles();
+	/**
+	 * @brief Read configuration for the MODCOD definition/simulation files
+	 *
+	 * @warning Always run this function after initEncap !
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodFiles();
 
-	// Send DVB bursts to sat carrier block
-	int sendBursts(std::list<DvbFrame *> *complete_frames, long carrier_id);
+	/**
+	 * Send the complete DVB frames created
+	 * by ef DvbRcsStd::scheduleEncapPackets or
+	 * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
+	 *
+	 * @param complete_frames the list of complete DVB frames
+	 * @param carrier_id      the ID of the carrier where to send the frames
+	 * @return true on success, false otherwise
+	 */
+	bool sendBursts(std::list<DvbFrame *> *complete_frames, long carrier_id);
 
 	// Send a DVB frame to the sat carrier block
 	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len);
@@ -136,9 +141,6 @@ class BlocDvb: public mgl_bloc
 	/// the scenario refresh interval
 	int dvb_scenario_refresh;
 
-	/// The encapsulation plugins
-	PluginUtils utils;
-
 	/// The up/return link encapsulation packet
 	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
 
@@ -149,6 +151,11 @@ class BlocDvb: public mgl_bloc
 	static Event *error_init;
 	static Event *event_login_received;
 	static Event *event_login_response;
+
+	/// emission standard (DVB-RCS or DVB-S2)
+	PhysicStd *emissionStd;
+	/// reception standard (DVB-RCS or DVB-S2)
+	PhysicStd *receptionStd;
 };
 
 #endif

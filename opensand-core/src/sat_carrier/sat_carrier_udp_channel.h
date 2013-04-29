@@ -34,12 +34,12 @@
 #ifndef SAT_CARRIER_UDP_CHANNEL_H
 #define SAT_CARRIER_UDP_CHANNEL_H
 
-// system includes
-#include <net/ethernet.h>
-#include <sys/types.h>
-
-// opensand includes
 #include "sat_carrier_channel.h"
+
+//#include <net/ethernet.h> // TODO remove
+#include <sys/types.h>
+#include <netinet/in.h>
+
 
 /*
  * @class sat_carrier_udp_channel

@@ -34,6 +34,7 @@
 #ifndef OPENSAND_CORE_H
 #define OPENSAND_CORE_H
 
+
 #include <string>
 #include <stdint.h>
 
@@ -46,15 +47,17 @@
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
+
 using std::string;
 
-/** The different types of DVB components */
+/// The different types of DVB components
 typedef enum
 {
 	satellite,
 	gateway,
 	terminal
 } component_t;
+
 
 /** @brief Get the name of a component
  *
@@ -77,7 +80,8 @@ inline string getComponentName(component_t host)
 		default:
 			return "";
 	}
-}
+};
+
 
 // Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F

@@ -40,6 +40,12 @@
  * Author: Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+// OpenSAND includes
+#include "EncapPlugin.h"
+#include "IpPacket.h"
+#include "IpPacketHandler.h"
+#include "Plugin.h"
+
 // system includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,11 +57,6 @@
 // include for the PCAP library
 #include <pcap.h>
 
-// OpenSAND includes
-#include "EncapPlugin.h"
-#include "IpPacket.h"
-#include "PluginUtils.h"
-#include "IpPacketHandler.h"
 
 
 /// The length of the Linux Cooked Sockets header
@@ -196,20 +197,19 @@ static bool test_encap_and_decap(std::string src_filename,
                                  bool compare)
 {
 	IpPacketHandler *ip_hdl = new IpPacketHandler(*((EncapPlugin *)NULL));
-	PluginUtils utils;
 	pl_list_t encap_plug;
 	pl_list_it_t plugit;
 	std::vector<std::string> failure;
 	bool success = false;
 
 	// load the plugins
-	if(!utils.loadPlugins(false))
+	if(!Plugin::loadPlugins(false))
 	{
 		ERROR("cannot load the plugins\n");
 		goto error;
 	}
 
-	utils.getAllEncapsulationPlugins(encap_plug);
+	Plugin::getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
 	for(plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
@@ -230,7 +230,7 @@ static bool test_encap_and_decap(std::string src_filename,
 			found = name_low.find("/", found);
 		}
 
-		if(!utils.getEncapsulationPlugins(name, &plugin))
+		if(!Plugin::getEncapsulationPlugins(name, &plugin))
 		{
 			ERROR("failed to initialize plugin %s", name.c_str());
 			failure.push_back(name.c_str());
@@ -251,7 +251,7 @@ static bool test_encap_and_decap(std::string src_filename,
 				if(encap_plug[*iter] != NULL)
 				{
 					EncapPlugin *up_plugin = NULL;
-					if(!utils.getEncapsulationPlugins(name, &up_plugin))
+					if(!Plugin::getEncapsulationPlugins(name, &up_plugin))
 					{
 						ERROR("failed to initialize upper plugin %s for %s",
 						      (*iter).c_str(), name.c_str());
@@ -331,7 +331,7 @@ static bool test_encap_and_decap(std::string src_filename,
 	
 error:
 	delete ip_hdl;
-	utils.releasePlugins();
+	Plugin::releasePlugins();
 	return success;
 }
 

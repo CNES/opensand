@@ -217,7 +217,6 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	packet->addTrace(HERE());
 	UTI_DEBUG("%s encapsulate a %d-byte packet of type 0x%04x\n", FUNCNAME,
 	          packet->getTotalLength(), packet->getType());
 
@@ -288,8 +287,6 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	packet->addTrace(HERE());
-
 	// packet must be an ULE packet
 	if(packet->getType() != NET_PROTO_ULE)
 	{
@@ -305,7 +302,6 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		UTI_ERROR("%s cannot create UlePacket from NetPacket\n", FUNCNAME);
 		goto error;
 	}
-	ule_packet->addTrace(HERE());
 
 	// decode ULE extension if present
 	ptype = ule_packet->getPayloadType();

@@ -31,12 +31,17 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include <stdlib.h>
-
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include "opensand_conf/uti_debug.h"
 
 #include "sat_carrier_udp_channel.h"
+
+#define DBG_PACKAGE PKG_SAT_CARRIER
+#include <opensand_conf/uti_debug.h>
+
+#include <stdlib.h>
+#include <strings.h>
+#include <cstring>
+#include <arpa/inet.h>
+#include <errno.h>
 
 
 /**
@@ -156,7 +161,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		{
 			if(inet_aton(ip_addr.c_str(), &this->m_socketAddr.sin_addr) < 0)
 			{
-				perror("inet_aton");
+				UTI_ERROR("error with inet_aton: %s", strerror(errno));
 				goto error;
 			}
 

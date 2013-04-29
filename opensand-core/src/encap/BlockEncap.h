@@ -27,49 +27,45 @@
  */
 
 /**
- * @file bloc_encap.h
+ * @file BlockEncap.h
  * @brief Generic Encapsulation Bloc
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#ifndef BLOC_ENCAP_H
-#define BLOC_ENCAP_H
+#ifndef BLOCK_ENCAP_H
+#define BLOCK_ENCAP_H
 
-// margouilla includes
-#include "opensand_margouilla/mgl_bloc.h"
 
-// message includes
 #include "msg_dvb_rcs.h"
-#include "opensand_margouilla/msg_ip.h"
-
-#include "opensand_conf/conf.h"
-
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "EncapPlugin.h"
-
 #include "IpPacketHandler.h"
 #include "OpenSandCore.h"
-#include "PluginUtils.h"
-
-// output
-#include "opensand_output/Output.h"
-
+#include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
+#include <opensand_conf/conf.h>
 
 /**
- * @class BlocEncap
+ * @class BlockEncap
  * @brief Generic Encapsulation Bloc
  */
-class BlocEncap: public mgl_bloc
+class BlockEncap: public Block
 {
  private:
 
 	/// Expiration timers for encapsulation contexts
-	std::map < mgl_timer, int > timers;
+	std::map<event_id_t, int> timers;
 
-	/// Whether the bloc has been initialized or not
-	bool initOk;
+	/// the component name type
+	component_t host;
+
+	/// it is the MAC layer group id received through msg_link_up
+	long group_id;
+
+	/// it is the MAC layer MAC id received through msg_link_up
+	tal_id_t tal_id;
 
 	/// State of the satellite link
 	enum
@@ -78,23 +74,11 @@ class BlocEncap: public mgl_bloc
 		link_up
 	} state;
 
-	/// it is the MAC layer group id received through msg_link_up
-	long group_id;
-
-	/// it is the MAC layer MAC id received through msg_link_up
-	long tal_id;
-
-	/// the component name type
-	component_t host;
-
-	/// the plugins elements
-	PluginUtils utils;
-
 	/// the emission contexts list from lower to upper context
-	std::vector <EncapPlugin::EncapContext *> emission_ctx;
+	std::vector<EncapPlugin::EncapContext *> emission_ctx;
 
 	/// the reception contexts list from upper to lower context
-	std::vector <EncapPlugin::EncapContext *> reception_ctx;
+	std::vector<EncapPlugin::EncapContext *> reception_ctx;
 
 	/// the IP packet handler for plugins
 	IpPacketHandler *ip_handler;
@@ -102,47 +86,36 @@ class BlocEncap: public mgl_bloc
  public:
 
 	/**
-	 * Build an encapsulation bloc
+	 * Build an encapsulation block
 	 *
-	 * @param blocmgr The bloc manager
-	 * @param fatherid The father of the bloc
-	 * @param name The name of the bloc
-     * @param host_name The name og the host
-     * @param utils The plugins elements
+	 * @param name  The name of the blocl
+	 * @param host  The type of host
 	 */
-	BlocEncap(mgl_blocmgr *blocmgr, mgl_id fatherid,
-	          const char *name, component_t host,
-	          PluginUtils utils);
+	BlockEncap(const string &name, component_t host);
 
 	/**
 	 * Destroy the encapsulation bloc
 	 */
-	~BlocEncap();
+	~BlockEncap();
 
-	/**
-	 * Handle the events
-	 *
-	 * @param event The event to handle
-	 * @return Whether the event was successfully handled or not
-	 */
-	mgl_status onEvent(mgl_event *event);
+ protected:
+
+	// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
+
+	// initialization method
+	bool onInit();
 
  private:
 
 	/**
-	 * Initialize the encapsulation block
-	 *
-	 * @return  Whether the init was successful or not
-	 */
-	mgl_status onInit();
-
-	/**
 	 * Handle the timer event
 	 *
-	 * @param timer  The Margouilla timer to handle
-	 * @return       Whether the timer event was successfully handled or not
+	 * @param timer_id  The id of the timer to handle
+	 * @return          Whether the timer event was successfully handled or not
 	 */
-	mgl_status onTimer(mgl_timer timer);
+	bool onTimer(event_id_t timer_id);
 
 	/**
 	 * Handle an IP packet received from the upper-layer block
@@ -150,7 +123,7 @@ class BlocEncap: public mgl_bloc
 	 * @param packet  The IP packet received from the upper-layer block
 	 * @return        Whether the IP packet was successful handled or not
 	 */
-	mgl_status onRcvIpFromUp(NetPacket *packet);
+	bool onRcvIpFromUp(NetPacket *packet);
 
 	/**
 	 * Handle a burst of encapsulation packets received from the lower-layer
@@ -159,10 +132,30 @@ class BlocEncap: public mgl_bloc
 	 * @param burst  The burst received from the lower-layer block
 	 * @return       Whether the burst was successful handled or not
 	 */
-	mgl_status onRcvBurstFromDown(NetBurst *burst);
+	bool onRcvBurstFromDown(NetBurst *burst);
 
 	/// output events
 	static Event *error_init;
+};
+
+
+class BlockEncapTal: public BlockEncap
+{
+ public:
+
+	BlockEncapTal(const string &name):
+		BlockEncap(name, terminal)
+	{};
+};
+
+
+class BlockEncapGw: public BlockEncap
+{
+ public:
+
+	BlockEncapGw(const string &name):
+		BlockEncap(name, terminal)
+	{};
 };
 
 #endif

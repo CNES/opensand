@@ -27,23 +27,13 @@
  */
 
 /**
- * @file bloc_dvb_rcs_sat.cpp
+ * @file BlockDvbSat.cpp
  * @brief This bloc implements a DVB-S/RCS stack for a Satellite.
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#include "bloc_dvb_rcs_sat.h"
-
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <ios>
+#include "BlockDvbSat.h"
 
 #include "sat_emulator_err.h"
 #include "DvbRcsStd.h"
@@ -52,30 +42,30 @@
 
 // Logging configuration
 #define DBG_PACKAGE PKG_DVB_RCS_SAT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
+#include <opensand_rt/Rt.h>
 
-// BlocDVBRcsSat ctor
-BlocDVBRcsSat::BlocDVBRcsSat(mgl_blocmgr *blocmgr,
-                             mgl_id fatherid,
-                             const char *name,
-                             PluginUtils utils):
-	BlocDvb(blocmgr, fatherid, name, utils),
-	spots()
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <ios>
+
+
+BlockDvbSat::BlockDvbSat(const string &name):
+	BlockDvb(name),
+	spots(),
+	frame_timer(-1),
+	scenario_timer(-1)
 {
-	this->initOk = false;
-
-	// superframes and frames
-	this->m_frameTimer = -1;
-
-	// DVB-RCS/S2 emulation
-	this->emissionStd = NULL;
-	this->receptionStd = NULL;
-	this->scenario_timer = -1;
 }
 
 
-// BlocDVBRcsSat dtor
-BlocDVBRcsSat::~BlocDVBRcsSat()
+// BlockDvbSat dtor
+BlockDvbSat::~BlockDvbSat()
 {
 	SpotMap::iterator i_spot;
 
@@ -97,79 +87,56 @@ BlocDVBRcsSat::~BlocDVBRcsSat()
 }
 
 
-/**
- * @brief The event handler
- *
- * @param event  the received event to handle
- * @return       mgl_ok if the event was correctly handled, mgl_ko otherwise
- */
-mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
+bool BlockDvbSat::onUpwardEvent(const RtEvent *const event)
 {
-	mgl_status status = mgl_ko;
-	SpotMap::iterator i_spot;
-
-	if(MGL_EVENT_IS_INIT(event))
+	switch(event->getType())
 	{
-		// initialization event
-		if(this->initOk)
-		{
-			UTI_ERROR("bloc already initialized, ignore init event\n");
-		}
-		else if(this->onInit() < 0)
-		{
-			UTI_ERROR("bloc initialization failed\n");
-			Output::sendEvent(error_init, "Bloc initialization failed\n");
-		}
-		else
-		{
-			this->initOk = true;
-			status = mgl_ok;
-		}
-	}
-	else if(!this->initOk)
-	{
-		UTI_ERROR("DVB-RCS SAT bloc not initialized, "
-		          "ignore non-init event\n");
-	}
-	else if(MGL_EVENT_IS_MSG(event))
-	{
-		// message received from another bloc
-		status = mgl_ok;
-
-		if(MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getLowerLayer() &&
-		   MGL_EVENT_MSG_IS_TYPE(event, msg_dvb))
-		{
+		case evt_message:
 			// message from lower layer: dvb frame
 			T_DVB_META *dvb_meta;
 			long carrier_id;
 			unsigned char *frame;
 			int len;
 
-			dvb_meta = (T_DVB_META *) MGL_EVENT_MSG_GET_BODY(event);
+			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
 			carrier_id = dvb_meta->carrier_id;
 			frame = (unsigned char *) dvb_meta->hdr;
-			len = MGL_EVENT_MSG_GET_BODYLEN(event);
+			len = ((MessageEvent *)event)->getLength();
 
-			status = this->onRcvDVBFrame(frame, len, carrier_id);
-			if(status != mgl_ok)
+			if(!this->onRcvDvbFrame(frame, len, carrier_id))
 			{
 				UTI_ERROR("failed to handle received DVB frame "
 				          "(len %d)\n", len);
+				return false;
 			}
 
-			// TODO: release frame ?
-			g_memory_pool_dvb_rcs.release((char *) dvb_meta);
-		}
-		else if(this->satellite_type == REGENERATIVE_SATELLITE &&
-		        MGL_EVENT_MSG_GET_SRCBLOC(event) == this->getUpperLayer() &&
-		        MGL_EVENT_MSG_IS_TYPE(event, msg_encap_burst))
+			free(dvb_meta);
+			break;
+
+		default:
+			UTI_ERROR("unknown event: %s", event->getName().c_str());
+			return false;
+	}
+	return true;
+}
+
+bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
+{
+	switch(event->getType())
+	{
+		case evt_message:
 		{
-			// message from upper layer: burst of encapsulation packets
 			NetBurst *burst;
 			uint8_t spot_id;
 			NetBurst::iterator pkt_it;
 
-			burst = (NetBurst *) MGL_EVENT_MSG_GET_BODY(event);
+			if(this->satellite_type != REGENERATIVE_SATELLITE)
+			{
+				UTI_ERROR("message event while satellite is transparent");
+				return false;
+			}
+			// message from upper layer: burst of encapsulation packets
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 			UTI_DEBUG("encapsulation burst received (%d packet(s))\n",
 			          burst->length());
@@ -186,7 +153,6 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 				{
 					UTI_ERROR("cannot find spot with ID %u in spot list\n",
 					          spot_id);
-					status = mgl_ko;
 					break;
 				}
 				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
@@ -198,7 +164,6 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 					// carry on simulation
 					UTI_ERROR("unable to store packet: see log file\n");
 				}
-				(*pkt_it)->addTrace(HERE());
 			}
 
 			// avoid deteleting packets when deleting burst
@@ -206,127 +171,112 @@ mgl_status BlocDVBRcsSat::onEvent(mgl_event *event)
 
 			delete burst;
 		}
-		else
-		{
-			UTI_ERROR("unknown message event received\n");
-		}
-	}
-	else if(MGL_EVENT_IS_TIMER(event))
-	{
-		// receive a timer event
-		if(MGL_EVENT_TIMER_IS_TIMER(event, this->m_frameTimer))
-		{
-			UTI_DEBUG_L3("frame timer expired, send DVB frames\n");
-			status = mgl_ok;
+		break;
 
-			// restart the timer
-			setTimer(this->m_frameTimer, this->frame_duration);
-
-			// send frame for every satellite spot
-			for(i_spot = this->spots.begin();
-			    i_spot != this->spots.end(); i_spot++)
+		case evt_timer:
+			if(*event == this->frame_timer)
 			{
-				SatSpot *current_spot;
+				UTI_DEBUG_L3("frame timer expired, send DVB frames\n");
 
-				current_spot = i_spot->second;
-
-				UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
-				             i_spot->first);
-				this->sendSigFrames(&current_spot->m_logonFifo);
-
-				UTI_DEBUG_L3("send control frames on satellite spot %u\n",
-				             i_spot->first);
-				this->sendSigFrames(&current_spot->m_ctrlFifo);
-
-				if(this->satellite_type == TRANSPARENT_SATELLITE)
+				// send frame for every satellite spot
+				for(SpotMap::iterator i_spot = this->spots.begin();
+				    i_spot != this->spots.end(); i_spot++)
 				{
-					// note: be careful that the reception standard
-					// is also used to send frames because the reception
-					// standard toward ST is the emission standard
-					// toward GW (this should be reworked)
+					SatSpot *current_spot;
 
-					UTI_DEBUG_L3("send data frames on satellite spot %u\n",
+					current_spot = i_spot->second;
+
+					UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
 					             i_spot->first);
-					if(this->onSendFrames(&current_spot->m_dataOutGwFifo,
-					                      this->getCurrentTime()) != 0)
-					{
-						status = mgl_ko;
-					}
-					if(this->onSendFrames(&current_spot->m_dataOutStFifo,
-					                      this->getCurrentTime()) != 0)
-					{
-						status = mgl_ko;
-					}
-				}
-				else // REGENERATIVE_SATELLITE
-				{
-					if(this->emissionStd->scheduleEncapPackets(
-					   &current_spot->m_dataOutStFifo,
-					   this->getCurrentTime(),
-					   &current_spot->complete_dvb_frames) != 0)
-					{
-						UTI_ERROR("failed to schedule packets "
-						          "for satellite spot %u "
-						          "on regenerative satellite\n",
-						          i_spot->first);
-						status = mgl_ko;
-					}
+					this->sendSigFrames(&current_spot->m_logonFifo);
 
-					if(status != mgl_ko)
+					UTI_DEBUG_L3("send control frames on satellite spot %u\n",
+					             i_spot->first);
+					this->sendSigFrames(&current_spot->m_ctrlFifo);
+
+					if(this->satellite_type == TRANSPARENT_SATELLITE)
 					{
-						if(this->sendBursts(&current_spot->complete_dvb_frames,
-						                    current_spot->m_dataOutStFifo.getId()) != 0)
+						bool status = true;
+						// note: be careful that the reception standard
+						// is also used to send frames because the reception
+						// standard toward ST is the emission standard
+						// toward GW (this should be reworked)
+
+						UTI_DEBUG_L3("send data frames on satellite spot %u\n",
+						             i_spot->first);
+						if(!this->onSendFrames(&current_spot->m_dataOutGwFifo,
+						                       this->getCurrentTime()))
+						{
+							status = false;
+						}
+						if(!this->onSendFrames(&current_spot->m_dataOutStFifo,
+						                       this->getCurrentTime()))
+						{
+							status = false;
+						}
+						if(!status)
+						{
+							return false;
+						}
+					}
+					else // REGENERATIVE_SATELLITE
+					{
+						if(this->emissionStd->scheduleEncapPackets(
+						   &current_spot->m_dataOutStFifo,
+						   this->getCurrentTime(),
+						   &current_spot->complete_dvb_frames) != 0)
+						{
+							UTI_ERROR("failed to schedule packets "
+							          "for satellite spot %u "
+							          "on regenerative satellite\n",
+							          i_spot->first);
+							return false;
+						}
+
+						if(!this->sendBursts(&current_spot->complete_dvb_frames,
+						                     current_spot->m_dataOutStFifo.getId()))
 						{
 							UTI_ERROR("failed to build and send "
 							          "DVB/BB frames "
 							          "for satellite spot %u "
 							          "on regenerative satellite\n",
 							          i_spot->first);
-							status = mgl_ko;
+							return false;
 						}
 					}
 				}
 			}
-		}
-		else if(MGL_EVENT_TIMER_IS_TIMER(event, this->scenario_timer))
-		{
-			status = mgl_ok;
-
-			UTI_DEBUG_L3("MODCOD/DRA scenario timer expired\n");
-
-			setTimer(this->scenario_timer, this->dvb_scenario_refresh);
-
-			if(this->satellite_type == REGENERATIVE_SATELLITE &&
-			   this->emissionStd->type() == "DVB-S2")
+			else if(*event == this->scenario_timer)
 			{
-				UTI_DEBUG_L3("update modcod table\n");
-				if(!this->emissionStd->goNextStScenarioStep())
+				UTI_DEBUG_L3("MODCOD/DRA scenario timer expired\n");
+
+				if(this->satellite_type == REGENERATIVE_SATELLITE &&
+				   this->emissionStd->type() == "DVB-S2")
 				{
-					UTI_ERROR("failed to update MODCOD IDs\n");
-					status = mgl_ko;
+					UTI_DEBUG_L3("update modcod table\n");
+					if(!this->emissionStd->goNextStScenarioStep())
+					{
+						UTI_ERROR("failed to update MODCOD IDs\n");
+						return false;
+					}
 				}
 			}
-		}
-		else
-		{
-			UTI_ERROR("unknown timer event received\n");
-		}
-	}
-	else
-	{
-		UTI_ERROR("unknown event received\n");
+			else
+			{
+				UTI_ERROR("unknown timer event received %s\n",
+				          event->getName().c_str());
+			}
+			break;
+
+		default:
+			UTI_ERROR("unknown event: %s", event->getName().c_str());
 	}
 
-	return status;
+	return true;
 }
 
 
-/**
- * @brief Initialize the transmission mode
- *
- * @return  0 in case of success, 0 otherwise
- */
-int BlocDVBRcsSat::initMode()
+bool BlockDvbSat::initMode()
 {
 	int val;
 
@@ -378,21 +328,16 @@ int BlocDVBRcsSat::initMode()
 		}
 	}
 
-	return 0;
+	return true;
 
 release_emission:
 	delete this->emissionStd;
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Initialize the error generator
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsSat::initErrorGenerator()
+bool BlockDvbSat::initErrorGenerator()
 {
 	string err_generator;
 
@@ -475,39 +420,32 @@ int BlocDVBRcsSat::initErrorGenerator()
 		this->m_useErrorGenerator = 1;
 	}
 
-	return 0;
+	return true;
 }
 
 
-/**
- * Read configuration for the different timers
- *
- * @return  0 on success, -1 otherwise
- */
-int BlocDVBRcsSat::initTimers()
+// TODO call in Downward::onInit()
+bool BlockDvbSat::initDownwardTimers()
 {
 	// set frame duration in emission standard
 	this->emissionStd->setFrameDuration(this->frame_duration);
 
 	// launch frame timer
-	this->setTimer(this->m_frameTimer, this->frame_duration);
+	this->frame_timer = this->downward->addTimerEvent("dvb_frame_timer",
+	                                                  this->frame_duration);
 
 	if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
 		// launch the timer in order to retrieve the modcods
-		this->setTimer(this->scenario_timer, this->dvb_scenario_refresh);
+		this->scenario_timer = this->downward->addTimerEvent("dvb_scenario_timer",
+		                                                     this->dvb_scenario_refresh);
 	}
 
-	return 0;
+	return true;
 }
 
 
-/**
- * Retrieves switching table entries
- *
- * @return  0 on success, -1 otherwise
- */
-int BlocDVBRcsSat::initSwitchTable()
+bool BlockDvbSat::initSwitchTable()
 {
 	ConfigurationList switch_list;
 	ConfigurationList::iterator iter;
@@ -517,7 +455,7 @@ int BlocDVBRcsSat::initSwitchTable()
 	// no need for switch in non-regenerative mode
 	if(this->satellite_type != REGENERATIVE_SATELLITE)
 	{
-		return 0;
+		return true;
 	}
 
 	// Retrieving switching table entries
@@ -570,21 +508,16 @@ int BlocDVBRcsSat::initSwitchTable()
    }
 
 
-	return 0;
+	return true;
 
 release_switch:
 	delete generic_switch;
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Retrieve the spots description from configuration
- *
- * @return  0 on success, -1 otherwise
- */
-int BlocDVBRcsSat::initSpots()
+bool BlockDvbSat::initSpots()
 {
 	int i = 0;
 	ConfigurationList spot_list;
@@ -679,19 +612,14 @@ int BlocDVBRcsSat::initSpots()
 		this->spots[spot_id] = new_spot;
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
-/**
- * @brief Read configuration for the list of STs
- *
- * @return  0 in case of success, -1 otherwise
- */
-int BlocDVBRcsSat::initStList()
+bool BlockDvbSat::initStList()
 {
 	int i = 0;
 	ConfigurationList column_list;
@@ -740,22 +668,15 @@ int BlocDVBRcsSat::initStList()
 		}
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
-
-/**
- * Read configuration when receive the init event
- *
- * @return 0 on success, -1 otherwise
- */
-int BlocDVBRcsSat::onInit()
+bool  BlockDvbSat::onInit()
 {
 	int val;
-	int ret;
 
 	// get the common parameters
 	if(!this->initCommon())
@@ -764,8 +685,7 @@ int BlocDVBRcsSat::onInit()
 		goto error;
 	}
 
-	ret = this->initMode();
-	if(ret != 0)
+	if(!this->initMode())
 	{
 		UTI_ERROR("failed to complete the mode part of the "
 		          "initialisation");
@@ -773,8 +693,7 @@ int BlocDVBRcsSat::onInit()
 	}
 
 	// get the parameters of the error generator
-	ret = this->initErrorGenerator();
-	if(ret != 0)
+	if(!this->initErrorGenerator())
 	{
 		UTI_ERROR("failed to complete the error generator part of the "
 		          "initialisation");
@@ -784,7 +703,7 @@ int BlocDVBRcsSat::onInit()
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE_SATELLITE)
 	{
-		if(this->initModcodFiles() != 0)
+		if(!this->initModcodFiles())
 		{
 			UTI_ERROR("failed to complete the modcod part of the "
  			          "initialisation");
@@ -797,7 +716,7 @@ int BlocDVBRcsSat::onInit()
 			goto error;
 		}
 
-		if(this->initStList() != 0)
+		if(!this->initStList())
 		{
 			UTI_ERROR("failed to complete the ST part of the"
  			          "initialisation");
@@ -805,7 +724,7 @@ int BlocDVBRcsSat::onInit()
 		}
 
 		// initialize the satellite internal switch
-		if(this->initSwitchTable() != 0)
+		if(!this->initSwitchTable())
 		{
 			UTI_ERROR("failed to complete the switch part of the "
 			          "initialisation");
@@ -816,8 +735,7 @@ int BlocDVBRcsSat::onInit()
 
 	// read the frame duration, the super frame duration
 	// and the second duration
-	ret = this->initTimers();
-	if(ret != 0)
+	if(!this->initDownwardTimers())
 	{
 		UTI_ERROR("failed to complete the timers part of the "
 		          "initialisation");
@@ -835,17 +753,17 @@ int BlocDVBRcsSat::onInit()
 	UTI_INFO("random seed is %d", val);
 
 	// initialize the satellite spots
-	if(this->initSpots() != 0)
+	if(!this->initSpots())
 	{
 		UTI_ERROR("failed to complete the spots part of the "
 		          "initialisation");
 		goto error;
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
@@ -853,24 +771,17 @@ error:
  * Get the satellite type
  * @return the satellite type
  */
-string BlocDVBRcsSat::getSatelliteType()
+string BlockDvbSat::getSatelliteType()
 {
 	return this->satellite_type;
 }
 
 
-/**
- * Called upon reception event it is another layer (below on event) of demultiplexing
- * Do the appropriate treatment according to the type of the DVB message
- *
- * @param frame      the DVB or BB frame to forward
- * @param length     the length (in bytes) of the frame
- * @param carrier_id the carrier id of the frame
- * @return           mgl_ok on success, mgl_ko otherwise
- */
-mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int length, long carrier_id)
+bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
+                                unsigned int length, 
+                                long carrier_id)
 {
-	mgl_status status = mgl_ok;
+	bool status = true;
 	SpotMap::iterator spot;
 	T_DVB_HDR *hdr;
 
@@ -900,7 +811,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			{
 				UTI_ERROR("Bad packet type (0x%.4x) in DVB burst (expecting 0x%.4x)\n",
 				          dvb_burst->pkt_type, this->up_return_pkt_hdl->getEtherType());
-				status = mgl_ko;
+				status = false;
 			}
 			UTI_DEBUG("%ld %s packets received\n", dvb_burst->qty_element,
 			          this->up_return_pkt_hdl->getName().c_str());
@@ -928,7 +839,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 					   this->getCurrentTime(),
 					   this->m_delay) != 0)
 					{
-						status = mgl_ko;
+						status = false;
 					}
 
 					// satellite spot found, abort the search
@@ -955,12 +866,12 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			{
 				UTI_ERROR("failed to handle received DVB frame "
 				          "(regenerative satellite)\n");
-				status = mgl_ko;
+				status = false;
 			}
 			if(this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
-				status = mgl_ko;
+				status = false;
 			}
 		}
 	}
@@ -980,7 +891,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 		{
 			UTI_ERROR("Bad packet type (0x%.4x) in BBFrame (expecting 0x%.4x)\n",
 			          bbframe->pkt_type, this->down_forward_pkt_hdl->getEtherType());
-			status = mgl_ko;
+			status = false;
 		}
 
 		UTI_DEBUG("%d packets received\n", bbframe->dataLength);
@@ -1032,23 +943,23 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			char *frame_copy;
 
 			// create a copy of the frame
-			frame_copy = g_memory_pool_dvb_rcs.get(HERE());
+			frame_copy = (char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
 			if(frame_copy == NULL)
 			{
-				UTI_ERROR("[1] dvb_rcs memory pool error, aborting on spot %u\n",
+				UTI_ERROR("[1] cannot allocate frame, aborting on spot %u\n",
 				          spot->first);
 				continue;
 			}
 			memcpy(frame_copy, frame, length);
 
 			// forward the frame copy
-			if(this->forwardDVBFrame(&spot->second->m_ctrlFifo,
-			                         frame_copy, length) == mgl_ko)
+			if(!this->forwardDvbFrame(&spot->second->m_ctrlFifo,
+			                          frame_copy, length))
 			{
-				status = mgl_ko;
+				status = false;
 			}
 		}
-		g_memory_pool_dvb_rcs.release((char *) frame);
+		free(frame);
 	}
 	break;
 
@@ -1063,35 +974,35 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
 			char *frame_copy;
 
 			// create a copy of the frame
-			frame_copy = g_memory_pool_dvb_rcs.get(HERE());
+			frame_copy = (char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
 			if(frame_copy == NULL)
 			{
-				UTI_ERROR("[2] dvb_rcs memory pool error, aborting on spot %u\n",
+				UTI_ERROR("[2] cannot allocate frame, aborting on spot %u\n",
 				          spot->first);
 				continue;
 			}
 			memcpy(frame_copy, frame, length);
 
 			// forward the frame copy
-			if(this->forwardDVBFrame(&spot->second->m_logonFifo,
-			                         frame_copy, length) == mgl_ko)
+			if(this->forwardDvbFrame(&spot->second->m_logonFifo,
+			                         frame_copy, length) == false)
 			{
-				status = mgl_ko;
+				status = false;
 			}
 		}
-		g_memory_pool_dvb_rcs.release((char *) frame);
+		free(frame);
 	}
 	break;
 
 	case MSG_TYPE_CORRUPTED:
 		UTI_INFO("the message was corrupted by physical layer, drop it");
-		g_memory_pool_dvb_rcs.release((char *) frame);
+		free(frame);
 		break;
 
 	default:
 	{
 		UTI_ERROR("unknown type (%ld) of DVB frame\n", hdr->msg_type);
-		g_memory_pool_dvb_rcs.release((char *) frame);
+		free(frame);
 	}
 	break;
 	}
@@ -1106,7 +1017,7 @@ mgl_status BlocDVBRcsSat::onRcvDVBFrame(unsigned char *frame, unsigned int lengt
  * @param sigFifo    a pointer to the associated fifo being flushed
  * @return 0 on succes , -1 on failure
  */
-int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
+int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 {
 	const char *FUNCNAME = "[sendSigFrames]";
 	long max_cells;
@@ -1144,7 +1055,6 @@ int BlocDVBRcsSat::sendSigFrames(DvbFifo * sigFifo)
 		}
 		elem = sigFifo->pop();
 		assert(elem != NULL);
-		elem->addTrace(HERE());
 
 		if(elem->getType() != 0)
 		{
@@ -1184,9 +1094,9 @@ release_fifo_elem:
  * @param fifo         The fifo where was the packets
  * @param m_stat_fifo  TODO
  */
-void BlocDVBRcsSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo)
+void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo)
 {
-	const char *FUNCNAME = "[BlocDVBRcsSat::getProbe]";
+	const char *FUNCNAME = "[BlockDvbSat::getProbe]";
 	clock_t this_tick;          // stats
 	long double rate;           // stats
 
@@ -1208,60 +1118,7 @@ void BlocDVBRcsSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_f
 }
 
 
-// TODO
-#if 0
-/**
- * @brief Introduce error on packet
- *
- * @param encap_packet   The packet
- */
-void BlocDVBRcsSat::errorGenerator(NetPacket * encap_packet)
-{
-	const char *FUNCNAME = "[BlocDVBRcsSat::errorGenerator]";
-	unsigned char *buf;
-	unsigned int len;
-	len = encap_packet->totalLength();
-	buf = (unsigned char *) calloc(len, sizeof(unsigned char));
-
-	if(buf == NULL)
-	{
-		UTI_ERROR("%s cannot allocate memory for introducing errors\n",
-		          FUNCNAME);
-	}
-	else
-	{
-		memcpy(buf, encap_packet->data().c_str(), len);
-		if(SE_errors_buf((char *) buf, len))
-		{
-			// error introduced => replace the encapsulation packet
-			if(encap_packet->name() == "MPEG")
-			{
-				delete encap_packet;
-				encap_packet = new MpegPacket(buf, len);
-			}
-			else if(encap_packet->name() == "ATM")
-			{
-				delete encap_packet;
-				encap_packet = new AtmCell(buf, len);
-			}
-			else if(encap_packet->name() == "GSE")
-			{
-				delete encap_packet;
-				encap_packet = new GsePacket(buf, len);
-			}
-			else
-			{
-				delete encap_packet;
-				encap_packet = NULL;
-			}
-		}
-		free(buf);
-	}
-}
-#endif
-
-
-mgl_status BlocDVBRcsSat::forwardDVBFrame(DvbFifo *sigFifo, char *ip_buf, int i_len)
+bool BlockDvbSat::forwardDvbFrame(DvbFifo *sigFifo, char *ip_buf, int i_len)
 {
 	MacFifoElement *elem;
 	long l_current;
@@ -1275,7 +1132,7 @@ mgl_status BlocDVBRcsSat::forwardDVBFrame(DvbFifo *sigFifo, char *ip_buf, int i_
 	{
 		UTI_ERROR("failed to create a MAC FIFO element, "
 		          "drop the signalling frame\n");
-		g_memory_pool_dvb_rcs.release(ip_buf);
+		free(ip_buf);
 		goto error;
 	}
 
@@ -1284,28 +1141,21 @@ mgl_status BlocDVBRcsSat::forwardDVBFrame(DvbFifo *sigFifo, char *ip_buf, int i_
 	{
 		UTI_ERROR("signalling FIFO full, drop signalling frame\n");
 		delete elem;
-		g_memory_pool_dvb_rcs.release(ip_buf);
+		free(ip_buf);
 		goto error;
 	}
 
 	UTI_DEBUG_L3("signalling frame stored (tick_in = %ld, tick_out = %ld)",
 	             elem->getTickIn(), elem->getTickOut());
 
-	return mgl_ok;
+	return true;
 
 error:
-	return mgl_ko;
+	return false;
 }
 
-/**
- * Send the DVB frames stored in the given MAC FIFO by
- * \ref PhysicStd::onForwardFrame
- *
- * @param fifo          the MAC fifo which contains the DVB frames to send
- * @param current_time  the current time
- * @return              0 if successful, -1 otherwise
- */
-int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
+
+bool BlockDvbSat::onSendFrames(DvbFifo *fifo, long current_time)
 {
 	MacFifoElement *elem;
 
@@ -1335,11 +1185,11 @@ int BlocDVBRcsSat::onSendFrames(DvbFifo *fifo, long current_time)
 		delete elem;
 	}
 
-	return 0;
+	return true;
 
 release_frame:
-	g_memory_pool_dvb_rcs.release((char *)elem->getData());
+	free(elem->getData());
 error:
 	delete elem;
-	return -1;
+	return false;
 }

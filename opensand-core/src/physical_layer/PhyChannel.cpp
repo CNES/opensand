@@ -26,38 +26,35 @@
  */
 
 /**
- * @file Channel.cpp
- * @brief Channel
+ * @file PhyChannel.cpp
+ * @brief PhyChannel
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
  */
 
-#include  "Channel.h"
+#include  "PhyChannel.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
 #include <math.h>
 
-Channel::Channel(string link,
-                 AttenuationModelPlugin *attenuation_model,
-                 NominalConditionPlugin *nominal_condition,
-                 MinimalConditionPlugin *minimal_condition,
-                 ErrorInsertionPlugin *error_insertion):
+PhyChannel::PhyChannel():
 	status(true),
-	attenuation_model(attenuation_model),
-	nominal_condition(nominal_condition),
-	minimal_condition(minimal_condition),
-	error_insertion(error_insertion)
+	attenuation_model(NULL),
+	nominal_condition(NULL),
+	minimal_condition(NULL),
+	error_insertion(NULL),
+	granularity(0)
 {
 }
 
-Channel::~Channel()
+PhyChannel::~PhyChannel()
 {
 }
 
-bool Channel::updateChannel()
+bool PhyChannel::update()
 {
-	const char *FUNCNAME = "[Channel::updateChannel]";
+	const char *FUNCNAME = "[Channel::update]";
 
 	if(!this->status)
 	{
@@ -83,7 +80,7 @@ error:
 	return this->status;
 }
 
-void Channel::addSegmentCN(T_DVB_PHY *phy_frame)
+void PhyChannel::addSegmentCN(T_DVB_PHY *phy_frame)
 {
 
 	const char *FUNCNAME = "[Channel::addSegmentCN]";
@@ -100,7 +97,7 @@ void Channel::addSegmentCN(T_DVB_PHY *phy_frame)
 }
 
 
-void Channel::modifySegmentCN(T_DVB_PHY *phy_frame)
+void PhyChannel::modifySegmentCN(T_DVB_PHY *phy_frame)
 {
 	const char *FUNCNAME = "[Channel::modifySegmentCN]";
 	double cn_segment, cn_previous, cn_total; 
@@ -131,7 +128,7 @@ void Channel::modifySegmentCN(T_DVB_PHY *phy_frame)
 	phy_frame->cn_previous = cn_total;
 }
 
-bool Channel::isToBeModifiedPacket(double cn_uplink)
+bool PhyChannel::isToBeModifiedPacket(double cn_uplink)
 {
 	return error_insertion->isToBeModifiedPacket(cn_uplink,
 	                                             this->nominal_condition->getNominalCN(),
@@ -139,12 +136,12 @@ bool Channel::isToBeModifiedPacket(double cn_uplink)
 	                                             this->minimal_condition->getMinimalCN());
 }
 
-void Channel::modifyPacket(T_DVB_META *frame, long length)
+void PhyChannel::modifyPacket(T_DVB_META *frame, long length)
 {
 	error_insertion->modifyPacket(frame, length);
 }
 
-bool Channel::updateMinimalCondition(T_DVB_HDR *hdr)
+bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 {
 	UTI_DEBUG_L3("Trace update minimal condition\n");
 
