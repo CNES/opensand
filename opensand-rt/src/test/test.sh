@@ -21,10 +21,9 @@ fi
 
 # check for heaps and restart with logs if an error occurs
 echo "Check block"
-env HEAPCHECK=strict > /dev/null ${TEST} 2>&1 1>/dev/null ||env HEAPCHECK=strict ${TEST} || exit $?
+env HEAPCHECK=strict > /dev/null ${TEST} 2>&1 1>/dev/null || env HEAPCHECK=strict ${TEST} || exit $?
 if [ "$?" -ne "0" ]; then
     exit 1
 fi
 echo "Check multi blocks"
-env HEAPCHECK=strict > /dev/null ${TEST} 2>&1 1>/dev/null ||env HEAPCHECK=strict ${TEST} || exit $?
-env HEAPCHECK=strict > /dev/null ${TEST_MULTI} 2>&1 1>/dev/null ||env HEAPCHECK=strict ${TEST_MULTI} || exit $?
+env HEAPCHECK=strict > /dev/null ${TEST_MULTI} 2>&1 1>/dev/null || env HEAPCHECK=strict ${TEST_MULTI} || exit $?

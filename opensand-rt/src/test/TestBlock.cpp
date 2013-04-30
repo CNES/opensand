@@ -72,6 +72,7 @@
 #include <gperftools/heap-checker.h>
 #endif
 
+unsigned char dbgLevel_default = 4;
 
 
 TestBlock::TestBlock(const string &name):
@@ -131,7 +132,7 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 			if(this->nbr_timeouts > 10)
 			{
 				// that is 2 seconds, should be enough to read the file, so stop the application
-				std::cout << "Stop test after 10 loops" << std::endl;
+				std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
 				kill(getpid(), SIGTERM);
 			}
 			break;
@@ -197,7 +198,7 @@ HeapLeakChecker heap_checker("test_block");
 	                        TestBlock::Downward>("test");
 
 	std::cout << "Start loop, please wait..." << std::endl;
-	if(!Rt::run())
+	if(!Rt::run(true))
 	{
 		ret = 1;
 		std::cerr << "Unable to run" << std::endl;

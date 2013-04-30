@@ -59,7 +59,7 @@
  *  | |     |    Bottom     |     | |
  *  | |     |     |   |     |     | |
  *  | +-----+-----+   +-----+-----+ |
- *  |       +---------------+       |   
+ *  |       +---------------+       |
  *  +-------------------------------+
  */
 
@@ -83,9 +83,9 @@
 #include <gperftools/heap-checker.h>
 #endif
 
+unsigned char dbgLevel_default = 4;
 
 using std::ostringstream;
-
 
 static char *read_msg(const MessageEvent *const event, string name, string from)
 {
@@ -95,7 +95,7 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
 		case evt_message:
 			data = (char *)event->getData();
 			data[event->getLength()] = '\0';
-			std::cout << "Block " << name << ": " << strlen(data) 
+			std::cout << "Block " << name << ": " << strlen(data)
 			          << " bytes of data received from "
 			          << from << " block" << std::endl;
 			fflush(stdout);
@@ -147,6 +147,8 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 			if(size == 0)
 			{
 				// EOF stop process
+				sleep(1);
+				std::cout << "EOF: kill process" << std::endl;
 				kill(getpid(), SIGTERM);
 				break;
 			}
@@ -155,20 +157,21 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
-			if(strlen(data) > MAX_SOCK_SIZE)
+			size = strlen(data);
+			if(size > MAX_SOCK_SIZE)
 			{
 				Rt::reportError(this->name, pthread_self(), true,
 		                        "too many data received");
 			}
 			// keep data in order to compare on the opposite block
-			strncpy(this->last_written, data, std::max((int)strlen(data), MAX_SOCK_SIZE) + 1);
+			strncpy(this->last_written, data, std::max((int)size, MAX_SOCK_SIZE) + 1);
 			// wait in order to receive data on the opposite block and compare it
 			// this also allow testing multithreading as this thread is paused
 			// while other should handle the data
 
-			          
+
 			// transmit to lower layer
-			if(!this->sendDown((void **)&data), strlen(data))
+			if(!this->sendDown((void **)&data, size))
 			{
 				Rt::reportError(this->name, pthread_self(), true,
 				                "cannot send data to lower block");
@@ -235,7 +238,7 @@ bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
 	}
 
 	// transmit to upper layer
-	if(!this->sendUp((void **)&data), strlen(data))
+	if(!this->sendUp((void **)&data, strlen(data)))
 	{
 		Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 	}
@@ -326,9 +329,9 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
-			          
+
 			// transmit to upper layer
-			if(!this->sendUp((void **)&data), strlen(data))
+			if(!this->sendUp((void **)&data, strlen(data)))
 			{
 				Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
 			}
@@ -374,7 +377,7 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	                         BottomBlock::Downward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
-	if(!Rt::run())
+	if(!Rt::run(true))
 	{
 		ret = 1;
 		std::cerr << "Unable to run" << std::endl;
@@ -383,10 +386,10 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	{
 		std::cout << "Successfull" << std::endl;
 	}
-	
+
 #if ENABLE_TCMALLOC
 }
-if(!heap_checker.NoLeaks()) assert(NULL == "heap memory leak");	
+if(!heap_checker.NoLeaks()) assert(NULL == "heap memory leak");
 #endif
 
 	return ret;

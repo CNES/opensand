@@ -93,13 +93,21 @@ class Rt
 	                          T specific);
 
 	/**
+	 * @brief Initialize the blocks
+	 *
+	 * @return true on success, false otherwise
+	 */
+	static bool init(void);
+
+	/**
 	 * @brief Start the blocks and checks if threads
 	 *        and application are alive
 	 *        Exits when application goes stopped
 	 *
+	 * @param init  whether the run do the initialization or not
 	 * @return true on success, false otherwise
 	 */
-	static bool run(void);
+	static bool run(bool init=false);
 
 	/**
 	 * @param Internal error report

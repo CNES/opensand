@@ -44,9 +44,14 @@ BlockManager Rt::manager;
 
 using std::max;
 
-bool Rt::run(void)
+bool Rt::init(void)
 {
-	if(!manager.init())
+	return manager.init();
+}
+
+bool Rt::run(bool init)
+{
+	if(init && !manager.init())
 	{
 		return false;
 	}

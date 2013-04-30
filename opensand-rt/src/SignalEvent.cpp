@@ -42,7 +42,9 @@
 #include <errno.h>
 
 
-SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority):
+SignalEvent::SignalEvent(const string &name,
+                         sigset_t signal_mask,
+                         uint8_t priority):
 	RtEvent(evt_signal, name, -1, priority),
 	mask(signal_mask)
 {
@@ -54,7 +56,7 @@ SignalEvent::SignalEvent(const string &name, sigset_t signal_mask, uint8_t prior
 	if(ret != 0)
 	{
 		Rt::reportError("signal constructor", pthread_self(),
-		                true, "Cannot block signal [%u: %s]", ret, strerror(ret));
+						true, "Cannot block signal [%u: %s]", ret, strerror(ret));
 	}
 }
 
@@ -63,6 +65,15 @@ SignalEvent::~SignalEvent(void)
 }
 
 bool SignalEvent::handle(void)
+{
+	// be careful, if you read signal here, it won't be accessible by
+	// any other thread catching it
+	// By default we do not read because we use it for stopping signals,
+	// the manager is in charge of reading it
+	return true;
+}
+
+bool SignalEvent::readHandler(void)
 {
 	int rlen;
 

@@ -41,6 +41,8 @@
 #include "MessageEvent.h"
 #include "RtFifo.h"
 
+#include <opensand_output/Output.h>
+
 #include <list>
 #include <string>
 
@@ -149,6 +151,9 @@ class BlockManager
 
 	/// whether a critical error was raised
 	bool status;
+
+	/// event for critical errors
+	static Event *critical_evt;
 
 };
 

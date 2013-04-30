@@ -58,7 +58,9 @@ class SignalEvent: public RtEvent
 	 * @param signal_mask  Sigset_t containing signal(s) triggering this event
 	 * @param priority     The priority of the event
 	 */
-	SignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 1);
+	SignalEvent(const string &name,
+	            sigset_t signal_mask,
+	            uint8_t priority = 1);
 	~SignalEvent(void);
 
 	/*
@@ -68,7 +70,25 @@ class SignalEvent: public RtEvent
 	 */
 	signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
 
+	/**
+	 * @brief Handle a signal event
+	 * @warning be careful, if you read signal here, it won't be accessible by
+	 *          any other thread catching it
+	 *          If only a thread catch this signal, it may read data on the
+	 *          signalfd in order to empty it
+	 *
+	 * @return true on success, false otherwise
+	 */
 	virtual bool handle(void);
+
+	/**
+	 * @brief Read a signal event
+	 *        This function should be used in handle if you want to read
+	 *        the signal information (see \ref handle for warning)
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool readHandler(void);
 
   protected:
 

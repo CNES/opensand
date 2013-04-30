@@ -44,6 +44,8 @@
 #include "NetSocketEvent.h"
 #include "SignalEvent.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <errno.h>
 #include <cstring>
 #include <fcntl.h>
@@ -52,7 +54,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
-#include <iostream>
 #include <stdarg.h>
 
 #define SIG_STRUCT_SIZE 128
@@ -109,13 +110,7 @@ bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
 
-	std::cout << "Channel " << this->chan << ": init" << std::endl;
-	if(!this->onInit())
-	{
-		this->reportError(true,
-		                  "custom channel initialization failed");
-		return false;
-	}
+	UTI_DEBUG("Channel %u init", this->chan);
 
 	// create the signal mask for stop (highest priority)
 	sigemptyset(&signal_mask);
@@ -136,14 +131,21 @@ bool RtChannel::init(void)
 		this->addMessageEvent();
 	}
 
+	if(!this->onInit())
+	{
+		this->reportError(true,
+		                  "custom channel initialization failed");
+		return false;
+	}
+
 	return true;
 }
 
 int32_t RtChannel::addTimerEvent(const string &name,
-                               uint32_t duration_ms,
-                               bool auto_rearm,
-                               bool start,
-                               uint8_t priority)
+                                 uint32_t duration_ms,
+                                 bool auto_rearm,
+                                 bool start,
+                                 uint8_t priority)
 {
 	TimerEvent *event = new TimerEvent(name, duration_ms,
 	                                   auto_rearm, start,
@@ -151,6 +153,7 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	if(!event)
 	{
 		this->reportError(true, "cannot create timer event");
+		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
@@ -161,8 +164,8 @@ int32_t RtChannel::addTimerEvent(const string &name,
 }
 
 int32_t RtChannel::addNetSocketEvent(const string &name,
-                                   int32_t fd,
-                                   uint8_t priority)
+                                     int32_t fd,
+                                     uint8_t priority)
 {
 	NetSocketEvent *event = new NetSocketEvent(name,
 	                                           fd, priority);
@@ -180,8 +183,8 @@ int32_t RtChannel::addNetSocketEvent(const string &name,
 }
 
 int32_t RtChannel::addSignalEvent(const string &name,
-                                sigset_t signal_mask,
-                                uint8_t priority)
+                                  sigset_t signal_mask,
+                                  uint8_t priority)
 {
 	SignalEvent *event = new SignalEvent(name, signal_mask, priority);
 	if(!event)
@@ -211,6 +214,7 @@ void RtChannel::addMessageEvent(uint8_t priority)
 	if(!event)
 	{
 		this->reportError(true, "cannot create message event");
+		return;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
@@ -220,7 +224,9 @@ void RtChannel::addMessageEvent(uint8_t priority)
 
 bool RtChannel::addEvent(RtEvent *event)
 {
-	if(this->events[event->getFd()])
+	map<event_id_t, RtEvent *>::iterator it;
+	it = this->events.find(event->getFd());
+	if(it != this->events.end())
 	{
 		this->reportError(true, "duplicated fd");
 		return false;
@@ -267,6 +273,7 @@ bool RtChannel::startTimer(event_id_t id)
 	it = this->events.find(id);
 	if(it == this->events.end())
 	{
+		UTI_DEBUG("event not found, search in new events");
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -274,6 +281,7 @@ bool RtChannel::startTimer(event_id_t id)
 		{
 			if(*(*iter) == id)
 			{
+				UTI_DEBUG("event found in new events");
 				found = true;
 				event = *iter;
 				break;
@@ -287,7 +295,13 @@ bool RtChannel::startTimer(event_id_t id)
 	}
 	else
 	{
+		UTI_DEBUG("Timer found");
 		event = (*it).second;
+	}
+	if(!event)
+	{
+		this->reportError(false, "cannot find timer: should not happend here");
+		return false;
 	}
 	
 	if(event->getType() != evt_timer)
@@ -323,8 +337,8 @@ void *RtChannel::startThread(void *pthis)
 
 bool RtChannel::processEvent(const RtEvent *const event)
 {
-	std::cout << "Channel " << this->chan << ": event received: "
-	          << event->getName() << std::endl;
+	UTI_DEBUG("Channel %u: event received (%s)",
+	          this->chan, event->getName().c_str());
 	return this->block.processEvent(event, this->chan);
 };
 
@@ -389,10 +403,8 @@ void RtChannel::executeThread(void)
 			if(*event == this->stop_fd)
 			{
 				// we have to stop
-				std::cout << "Channel " << this->chan
-				          << ": stop signal received: "
-				          << ((SignalEvent *)event)->getTriggerInfo().ssi_signo
-				          << std::endl;
+				UTI_DEBUG("Channel %u: stop signal received",
+				          this->chan);
 				pthread_exit(NULL);
 			}
 		}

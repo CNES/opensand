@@ -38,6 +38,8 @@
 #include "RtChannel.h"
 #include "Rt.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <errno.h>
 #include <cstring>
 #include <fcntl.h>
@@ -45,7 +47,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <iostream>
 #include <pthread.h>
 #include <signal.h>
 
@@ -63,7 +64,7 @@ Block::Block(const string &name, void *specific):
 		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
 	}
 #endif
-	std::cout << "Block " << this->name << ": created" << std::endl;
+	UTI_DEBUG("Block %s: created\n", this->name.c_str());
 }
 
 
@@ -137,7 +138,7 @@ bool Block::start(void)
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-	std::cout << "Block " << this->name << ": start upward channel" << std::endl;
+	UTI_DEBUG("Block %s: start upward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->up_thread_id), &attr,
 	                     &Upward::startThread, this->upward);
@@ -147,10 +148,10 @@ bool Block::start(void)
 		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
-	std::cout << "Block " << this->name << ": upward channel thread id: "
-	          <<this->up_thread_id << std::endl;
+	UTI_DEBUG("Block %s: upward channel thread id %ld\n",
+	          this->name.c_str(), this->up_thread_id);
 
-	std::cout << "Block " << this->name << ": start downward channel" << std::endl;
+	UTI_DEBUG("Block %s: start downward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->down_thread_id), &attr,
 	                     &Downward::startThread, this->downward);
@@ -160,8 +161,8 @@ bool Block::start(void)
 		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
-	std::cout << "Block " << this->name << ": downward channel thread id: "
-	          <<this->up_thread_id << std::endl;
+	UTI_DEBUG("Block %s: downward channel thread id: %ld\n",
+	          this->name.c_str(), this->up_thread_id);
 	return true;
 }
 
@@ -170,32 +171,36 @@ bool Block::stop(int signal)
 	bool status = true;
 	int ret;
 
-	std::cout << "Block " << this->name << ": stop channels" << std::endl;
+	UTI_DEBUG("Block %s: stop channels\n", this->name.c_str());
+	// the process may be already killed as the may have catch the stop signal first
+	// So, do not report an error
 	ret = pthread_kill(this->up_thread_id, signal);
-	if(ret != 0)
+	if(ret != 0 && ret != ESRCH)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
 		                "cannot kill upward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
+
 	ret = pthread_kill(this->down_thread_id, signal);
-	if(ret != 0)
+	if(ret != 0 && ret != ESRCH)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
 		                "cannot kill downward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
 
-	std::cout << "Block " << this->name << ": join channels" << std::endl;
+	UTI_DEBUG("Block %s: join channels\n", this->name.c_str());
 	ret = pthread_join(this->up_thread_id, NULL);
-	if(ret != 0)
+	if(ret != 0 && ret != ESRCH)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
 		                "cannot join upward thread [%u: %s]", ret, strerror(ret));
 		status = false;
 	}
+
 	ret = pthread_join(this->down_thread_id, NULL);
-	if(ret != 0)
+	if(ret != 0 && ret != ESRCH)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
 		                "cannot join downward thread [%u: %s]", ret, strerror(ret));

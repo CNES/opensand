@@ -34,6 +34,8 @@
 
 #include "RtFifo.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
@@ -42,6 +44,7 @@
 
 
 RtFifo::RtFifo():
+	fifo(),
 	max_size(DEFAULT_FIFO_SIZE)
 {
 }
@@ -64,6 +67,7 @@ RtFifo::~RtFifo()
 bool RtFifo::init()
 {
 	int32_t pipefd[2];
+	UTI_DEBUG("Initialize fifo\n");
 
 	if(pthread_mutex_init(&(this->fifo_mutex), NULL) != 0 ||
 	   pthread_mutex_init(&(this->full_mutex), NULL) != 0)
@@ -88,10 +92,13 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	fd_set wset;
 	bool status = false;
 	rt_msg_t msg;
+	
+	UTI_DEBUG("push message in fifo\n");
 
-	if(this->fifo.size() > this->max_size)
+	if(this->fifo.size() >= this->max_size)
 	{
 		// fifo is full, take mutex that will block until fifo has space
+		// TODO check that this works
 		if(pthread_mutex_lock(&(this->full_mutex)) != 0)
 		{
 			return false;
@@ -143,7 +150,7 @@ bool RtFifo::pop(rt_msg_t &elem)
 	// check if fifo will be emptied
 	// do not use > because if the fifo was resized we
 	// may have more than max_size elements
-	if(this->fifo.size() == this->max_size)
+	if(this->fifo.size() >= this->max_size)
 	{
 		full = true;
 	}

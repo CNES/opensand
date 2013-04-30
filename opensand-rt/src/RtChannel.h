@@ -91,6 +91,9 @@ class RtChannel
 	/**
 	 * @brief Initialize the channel
 	 *        Can be use to initialize elements specific to a channel
+	 *
+	 * @warning: called at the end of initialization, if you have to do some
+	 *           processing, you can do them here
 	 * 
 	 * @return true on success, false otherwise
 	 */
@@ -130,7 +133,9 @@ class RtChannel
 	 * @param priority     The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addSignalEvent(const string &name, sigset_t signal_mask, uint8_t priority = 1);
+	int32_t addSignalEvent(const string &name,
+	                       sigset_t signal_mask,
+	                       uint8_t priority = 1);
 
 	/**
 	 * @brief Internal error report
@@ -198,21 +203,6 @@ class RtChannel
 	 * @param fifo  The fifo of the next channel
 	 */
 	void setNextFifo(RtFifo *fifo);
-
-	/*
-	 * @brief Start the channel thread
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool start(void);
-
-	/*
-	 * @brief stop the channel thread
-	 *
-	 * @param signal  The received signal
-	 * @return true on success, false otherwise
-	 */
-	bool stop(int signal);
 
 	/**
 	 * @brief Start the channel thread

@@ -83,6 +83,9 @@ class Block
 	/**
 	 * @brief Initialize the block
 	 *
+	 * @warning Do not do anything else than basic initialization here,
+	 *          as it is realized before channel initialization
+	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool onInit(void) = 0;

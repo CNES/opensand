@@ -37,22 +37,20 @@
 #include "RtFifo.h"
 #include "Rt.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <signal.h>
-#include <iostream>
 #include <cstdio>
 #include <cstring>
 #include <sys/signalfd.h>
 
+Event *BlockManager::critical_evt = NULL;
 
 BlockManager::BlockManager():
 	stopped(false),
 	status(true)
 {
-	//block all signals
-	sigset_t blocked_signals;
-
-	sigfillset(&blocked_signals);
-	pthread_sigmask(SIG_SETMASK, &blocked_signals, NULL);
+	BlockManager::critical_evt = Output::registerEvent("critical", LEVEL_ERROR);
 }
 
 
@@ -69,7 +67,7 @@ void BlockManager::stop(int signal)
 {
 	if(this->stopped)
 	{
-		std::cout << "already tried to stop process" << std::endl;
+		UTI_DEBUG("already tried to stop process\n");
 		return;
 	}
 	for(list<Block *>::iterator iter = this->block_list.begin();
@@ -105,12 +103,11 @@ bool BlockManager::init(void)
 
 void BlockManager::reportError(const char *msg, bool critical)
 {
-
-	// TODO syslog
-	fprintf(stderr, "%s", msg);
+	UTI_ERROR("%s", msg);
 
 	if(critical == true)
 	{
+		Output::sendEvent(BlockManager::critical_evt, "CRITICAL: %s", msg);
 		std::cerr << "FATAL: stop process" << std::endl;
 		// stop process to signal something goes wrong
 		this->status = false;
@@ -147,6 +144,18 @@ void BlockManager::wait(void)
 	int fd = -1; 
 	int ret;
 
+	sigset_t blocked_signals;
+
+	//block all signals
+	sigfillset(&blocked_signals);
+	ret = pthread_sigmask(SIG_SETMASK, &blocked_signals, NULL);
+	if(ret == -1)
+	{
+		Rt::reportError("manager", pthread_self(),
+		                true, "error setting signal mask");
+		this->status = false;
+	}
+
 	sigemptyset(&signal_mask);
 	sigaddset(&signal_mask, SIGINT);
 	sigaddset(&signal_mask, SIGQUIT);
@@ -174,7 +183,7 @@ void BlockManager::wait(void)
 			                true, "cannot read signal");
 			this->status = false;
 		}
-		std::cout << "signal received: " << fdsi.ssi_signo << std::endl;
+		UTI_DEBUG("signal received: %d\n", fdsi.ssi_signo);
 		this->stop(fdsi.ssi_signo);
 	}
 }
