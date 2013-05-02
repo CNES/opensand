@@ -118,12 +118,28 @@ class RtChannel
 	/**
 	 * @brief Add a net socket event to the channel
 	 *
-	 * @param name         The name of the eventr
-	 * @param fd       The file descriptor to monitor
-	 * @param priority The priority of the event (small for high priority)
+	 * @param name	    The name of the event
+	 * @param fd        The file descriptor to monitor
+	 * @param max_size  The maximum data size
+	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addNetSocketEvent(const string &name, int32_t fd, uint8_t priority = 3);
+	int32_t addNetSocketEvent(const string &name,
+	                          int32_t fd,
+	                          size_t max_size = MAX_SOCK_SIZE,
+	                          uint8_t priority = 3);
+
+	/**
+	 * @brief Add a file event to the channel
+	 *
+	 * @param name      The name of the event
+	 * @param fd        The file descriptor to monitor
+	 * @param priority  The priority of the event (small for high priority)
+	 * @return the event id on success, -1 otherwise
+	 */
+	int32_t addFileEvent(const string &name,
+	                     int32_t fd,
+	                     uint8_t priority = 4);
 
 	/**
 	 * @brief Add a signal event to the channel

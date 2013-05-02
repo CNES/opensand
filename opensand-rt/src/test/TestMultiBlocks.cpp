@@ -132,7 +132,7 @@ bool TopBlock::onInit()
 		                "cannot open input file");
 	}
 	// high priority to be sure to read it before another timer
-	this->downward->addNetSocketEvent("top_downward", this->input_fd);
+	this->downward->addFileEvent("top_downward", this->input_fd);
 	return true;
 }
 
@@ -142,7 +142,7 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 	size_t size;
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case evt_file:
 			size = ((NetSocketEvent *)event)->getSize();
 			if(size == 0)
 			{
@@ -152,19 +152,18 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 				kill(getpid(), SIGTERM);
 				break;
 			}
-			data = (char *)calloc(sizeof(char), size + 1);
-			memcpy(data, ((NetSocketEvent *)event)->getData(), size);
+			data =  (char *)((NetSocketEvent *)event)->getData();
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
 			size = strlen(data);
-			if(size > MAX_SOCK_SIZE)
+			if(size > MAX_READ_SIZE)
 			{
 				Rt::reportError(this->name, pthread_self(), true,
 		                        "too many data received");
 			}
 			// keep data in order to compare on the opposite block
-			strncpy(this->last_written, data, std::max((int)size, MAX_SOCK_SIZE) + 1);
+			strncpy(this->last_written, data, std::max((int)size, MAX_READ_SIZE) + 1);
 			// wait in order to receive data on the opposite block and compare it
 			// this also allow testing multithreading as this thread is paused
 			// while other should handle the data
@@ -324,8 +323,7 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 	{
 		case evt_net_socket:
 			size = ((NetSocketEvent *)event)->getSize();
-			data = (char *)calloc(sizeof(char), size + 1);
-			memcpy(data, ((NetSocketEvent *)event)->getData(), size);
+			data = (char *)((NetSocketEvent *)event)->getData();;
 			std::cout << "Block " << this->name << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);

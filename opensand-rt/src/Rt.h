@@ -42,6 +42,11 @@
 #include "RtChannel.h"
 #include "RtEvent.h"
 #include "Types.h"
+#include "NetSocketEvent.h"
+#include "MessageEvent.h"
+#include "TimerEvent.h"
+#include "FileEvent.h"
+#include "SignalEvent.h"
 
 
 /**

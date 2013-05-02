@@ -26,48 +26,35 @@
  */
 
 /**
- * @file NetSocketEvent.cpp
+ * @file FileEvent.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
+ * @brief  The event for message read on fd-like object
  *
  */
 
-#include "NetSocketEvent.h"
+#include "FileEvent.h"
 #include "Rt.h"
-
-#include <opensand_conf/uti_debug.h>
 
 #include <cstring>
 #include <unistd.h>
 #include <errno.h>
 
 
-// TODO add send functions
-NetSocketEvent::NetSocketEvent(const string &name,
-                               int32_t fd,
-                               size_t max_size,
-                               uint8_t priority):
-	RtEvent(evt_net_socket, name, fd, priority),
-	max_size(max_size),
-	data(NULL),
+FileEvent::FileEvent(const string &name, int32_t fd, uint8_t priority):
+	RtEvent(evt_file, name, fd, priority),
 	size(0)
 {
 }
 
-NetSocketEvent::~NetSocketEvent()
+FileEvent::~FileEvent()
 {
-	if(data)
-	{
-		free(data);
-	}
 }
 
-bool NetSocketEvent::handle(void)
+bool FileEvent::handle(void)
 {
 	int ret;
-	socklen_t addrlen;
+	
 	if(this->data)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
@@ -76,31 +63,20 @@ bool NetSocketEvent::handle(void)
 		free(this->data);
 	}
 	/// on more byte so we can use it as char*
-	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
+	this->data = (unsigned char *)calloc(MAX_READ_SIZE + 1, sizeof(unsigned char));
 
-	addrlen = sizeof(struct sockaddr_in);
-	ret = recvfrom(this->fd, this->data, this->max_size, 0,
-	               (struct sockaddr *) &(this->src_addr), &addrlen);
+	ret = read(this->fd, this->data, MAX_READ_SIZE);
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
-		                "event %s: unable to read on socket [%u: %s]",
-		                this->name.c_str(), errno, strerror(errno));
-		goto error;
-	}
-	else if((size_t)ret > this->max_size)
-	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "event %s: too many data received (%zu > %zu)\n",
-		                this->name.c_str(), this->size, this->max_size);
+		                "unable to read on socket [%u: %s]", errno, strerror(errno));
 		goto error;
 	}
 	else if(ret == 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                 "event %s: distant host disconnected\n",
-		                 this->name.c_str());
-		goto error;
+		// EOF
+		free(this->data);
+		this->data = NULL;
 	}
 	this->size = (size_t)ret;
 
@@ -111,8 +87,7 @@ error:
 	return false;
 }
 
-
-unsigned char *NetSocketEvent::getData(void)
+unsigned char *FileEvent::getData(void)
 {
 	unsigned char *buf = this->data;
 	this->data = NULL;

@@ -98,7 +98,7 @@ bool TestBlock::onInit()
 	this->upward->addTimerEvent("test_timer", 100, true);
 
 	// high priority to be sure to read it before another timer
-	this->downward->addNetSocketEvent("downward", this->input_fd, 2);
+	this->downward->addFileEvent("downward", this->input_fd, 2);
 	return true;
 }
 
@@ -147,14 +147,13 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 
 bool TestBlock::onDownwardEvent(const RtEvent *const event)
 {
-	char data[64];
+	char *data;
 	size_t size;
 	switch(event->getType())
 	{
-		case evt_net_socket:
-			bzero(data, 64);
-			size = ((NetSocketEvent *)event)->getSize();
-			memcpy(data, ((NetSocketEvent *)event)->getData(), size);
+		case evt_file:
+			size = ((FileEvent *)event)->getSize();
+			data = (char *)((FileEvent *)event)->getData();
 			std::cout << "Data received on socket in block: " << this->name
 			          << "; data: " << data << std::endl;
 			fflush(stdout);

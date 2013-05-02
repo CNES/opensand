@@ -36,13 +36,6 @@
 #include "RtChannel.h"
 
 #include "Rt.h"
-#include "Block.h"
-#include "RtFifo.h"
-#include "RtEvent.h"
-#include "MessageEvent.h"
-#include "TimerEvent.h"
-#include "NetSocketEvent.h"
-#include "SignalEvent.h"
 
 #include <opensand_conf/uti_debug.h>
 
@@ -163,12 +156,35 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	return event->getFd();
 }
 
+int32_t RtChannel::addFileEvent(const string &name,
+                                int32_t fd,
+                                uint8_t priority)
+{
+	FileEvent *event = new FileEvent(name,
+	                                 fd,
+	                                 priority);
+	if(!event)
+	{
+		this->reportError(true, "cannot create file event");
+		return -1;
+	}
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return -1;
+	}
+
+	return event->getFd();
+}
+
 int32_t RtChannel::addNetSocketEvent(const string &name,
                                      int32_t fd,
+                                     size_t max_size,
                                      uint8_t priority)
 {
 	NetSocketEvent *event = new NetSocketEvent(name,
-	                                           fd, priority);
+	                                           fd,
+	                                           max_size,
+	                                           priority);
 	if(!event)
 	{
 		this->reportError(true, "cannot create net socket event");

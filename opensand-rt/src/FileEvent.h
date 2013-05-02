@@ -26,7 +26,7 @@
  */
 
 /**
- * @file NetSocketEvent.h
+ * @file FileEvent.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The event for message read on network socket, can also be used
@@ -35,68 +35,57 @@
  */
 
 
-#ifndef NET_SOCKET_EVENT_H
-#define NET_SOCKET_EVENT_H
+#ifndef FILE_EVENT_H
+#define FILE_EVENT_H
 
 #include "RtEvent.h"
 #include "Types.h"
 
 #include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+
+#define MAX_READ_SIZE 1500
+
 
 /**
-  * @class NetSocketEvent
+  * @class FileEvent
   * @brief Events describing data received on a nework socket
   *
   */
-class NetSocketEvent: public RtEvent
+class FileEvent: public RtEvent
 {
 
   public:
 
 	/**
-	 * @brief NetSocketEvent constructor
+	 * @brief FileEvent constructor
 	 *
 	 * @param name      The name of the event
 	 * @param fd        The file descriptor to monitor for the event
-	 * @param max_size  The maximum data size
 	 * @param priority  The priority of the event
 	 */
-	NetSocketEvent(const string &name,
-	               int32_t fd = -1,
-	               size_t max_size = MAX_SOCK_SIZE,
-	               uint8_t priority = 4);
-	~NetSocketEvent();
+	FileEvent(const string &name,
+	          int32_t fd = -1,
+	          uint8_t priority = 5);
+	~FileEvent();
+
 
 	/**
 	 * @brief Get the message content
 	 *
-	 * @return the data contained in the message, it can be casted as a char*
+	 * @return the data contained in the message
 	 */
-	unsigned char *getData(void);
+	 unsigned char *getData(void);
 
-	/**
+	/*
 	 * @brief Get the size of data in the message
 	 *
 	 * @return the size of data in the message
 	 */
 	size_t getSize(void) const {return this->size;};
-	
-	/**
-	 * @brief Get the message source address
-	 * 
-	 * @return the message source address
-	 */
-	struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
+
+	virtual bool handle(void);
 
   protected:
-  
-	bool handle(void);
-
-	/// The maximum size of received data
-	size_t max_size;
 
 	/// data pointer
 	unsigned char *data;
@@ -104,9 +93,7 @@ class NetSocketEvent: public RtEvent
 	/// data size
 	size_t size;
 
-	/// The source address of the message;
-	struct sockaddr_in src_addr;
-	
+
 };
 
 #endif

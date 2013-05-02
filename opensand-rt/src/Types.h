@@ -42,6 +42,8 @@
 #include <cstring>
 
 
+#define MAX_SOCK_SIZE 9000
+
 /// opensand-rt event types
 typedef enum
 {
@@ -49,6 +51,7 @@ typedef enum
 	evt_timer,       ///< Event of type Timer
 	evt_message,     ///< Event of type Message
 	evt_signal,      ///< Event of type Signal
+	evt_file,        ///< Event of type File
 } event_type_t;
 
 
