@@ -103,7 +103,8 @@ bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
 
-	UTI_DEBUG("Channel %u init", this->chan);
+	UTI_DEBUG("[%s]Channel %u: init",
+	          this->block.getName().c_str(), this->chan);
 
 	// create the signal mask for stop (highest priority)
 	sigemptyset(&signal_mask);
@@ -122,13 +123,6 @@ bool RtChannel::init(void)
 			return false;
 		}
 		this->addMessageEvent();
-	}
-
-	if(!this->onInit())
-	{
-		this->reportError(true,
-		                  "custom channel initialization failed");
-		return false;
 	}
 
 	return true;
@@ -353,8 +347,8 @@ void *RtChannel::startThread(void *pthis)
 
 bool RtChannel::processEvent(const RtEvent *const event)
 {
-	UTI_DEBUG("Channel %u: event received (%s)",
-	          this->chan, event->getName().c_str());
+	UTI_DEBUG("[%s]Channel %u: event received (%s)",
+	          this->block.getName().c_str(), this->chan, event->getName().c_str());
 	return this->block.processEvent(event, this->chan);
 };
 
@@ -419,8 +413,8 @@ void RtChannel::executeThread(void)
 			if(*event == this->stop_fd)
 			{
 				// we have to stop
-				UTI_DEBUG("Channel %u: stop signal received",
-				          this->chan);
+				UTI_DEBUG("[%s]Channel %u: stop signal received",
+				          this->block.getName().c_str(), this->chan);
 				pthread_exit(NULL);
 			}
 		}

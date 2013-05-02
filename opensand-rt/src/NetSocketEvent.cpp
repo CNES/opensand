@@ -102,7 +102,9 @@ bool NetSocketEvent::handle(void)
 		                 this->name.c_str());
 		goto error;
 	}
-	this->size = (size_t)ret;
+	this->size = ret;
+	UTI_DEBUG_L3("event %s: received %zu bytes\n",
+	             this->name.c_str(), this->size);
 
 	return true;
 error:

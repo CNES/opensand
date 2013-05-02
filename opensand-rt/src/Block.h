@@ -187,12 +187,19 @@ class Block
 	bool isInitialized(void);
 
 	/**
-	 * @brief Initernal block initialization, will call onInit on
-	 *        block and channels
+	 * @brief Internal block initialization
 	 *
 	 * @return true on success, false otherwise
 	 */
 	bool init(void);
+
+	/**
+	 * @brief Specific block and channels initialization
+	 *        Call onInit methods
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool initSpecific(void);
 
 	/**
 	 * @brief start the channel threads

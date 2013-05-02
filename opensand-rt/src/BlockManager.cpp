@@ -97,6 +97,17 @@ bool BlockManager::init(void)
 			return false;
 		}
 	}
+	for(list<Block*>::iterator iter = this->block_list.begin();
+	    iter != this->block_list.end(); iter++)
+	{
+		if(!(*iter)->initSpecific())
+		{
+			// only return false, the block initSpecific function should call
+			// report error with critical to true
+			return false;
+		}
+	}
+
 	return true;
 }
 

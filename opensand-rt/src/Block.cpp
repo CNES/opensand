@@ -104,12 +104,6 @@ bool Block::sendDown(void **data, size_t size, uint8_t type)
 
 bool Block::init(void)
 {
-	// specific block initialization
-	if(!this->onInit())
-	{
-		return false;
-	}
-
 	// initialize channels
 	if(!this->upward->init())
 	{
@@ -117,6 +111,33 @@ bool Block::init(void)
 	}
 	if(!this->downward->init())
 	{
+		return false;
+	}
+
+	return true;
+}
+
+bool Block::initSpecific(void)
+{
+	// specific block initialization
+	if(!this->onInit())
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Block onInit failed");
+		return false;
+	}
+
+	// initialize channels
+	if(!this->upward->onInit())
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Upward onInit failed");
+		return false;
+	}
+	if(!this->downward->onInit())
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "Downward onInit failed");
 		return false;
 	}
 	this->initialized = true;
