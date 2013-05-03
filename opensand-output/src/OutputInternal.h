@@ -39,6 +39,8 @@
 #include "Probe.h"
 #include "Event.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <assert.h>
 #include <sys/un.h>
 #include <vector>
@@ -157,12 +159,14 @@ template<typename T>
 Probe<T>* OutputInternal::registerProbe(const char *name, const char *unit,
                                         bool enabled, sample_type_t type)
 {
+	if(!this->initializing)
+	{
+		UTI_ERROR("cannot register probe %s outside initialization, exit\n",
+		          name);
+	}
 	assert(this->initializing);
 
-	// FIXME: uti_debug.h cannot be included in this file because it
-	//        does not properly support double inclusion
-	//        (because of the DBG_PACKAGE constant which may get redefined).
-	//UTI_DEBUG("Registering probe %s with type %d\n", name, type);
+	UTI_DEBUG("Registering probe %s with type %d\n", name, type);
 
 	uint8_t new_id = this->probes.size();
 	Probe<T> *probe = new Probe<T>(new_id, name, unit, enabled, type);

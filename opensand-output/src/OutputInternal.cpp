@@ -136,6 +136,11 @@ Event *OutputInternal::registerEvent(const char *identifier, event_level_t level
 		return 0;
 	}
 
+	if(!this->initializing)
+	{
+		UTI_ERROR("cannot register event %s outside initialization, exit\n",
+		          identifier);
+	}
 	assert(this->initializing);
 
 	uint8_t new_id = this->events.size();
@@ -155,7 +160,10 @@ bool OutputInternal::finishInit()
 		return true;
 	}
 
-	assert(this->initializing);
+	if(!this->initializing)
+	{
+		UTI_ERROR("initialization already done\n");
+	}
 
 	UTI_PRINT(LOG_INFO, "Opening output communication socket\n");
 
