@@ -53,31 +53,25 @@
 
 Block::Block(const string &name, void *specific):
 	name(name),
-	initialized(false)
+	initialized(false),
+	chan_mutex(false)
 {
-#ifdef DEBUG_BLOCK_MUTEX
-	int ret;
-	ret = pthread_mutex_init(&(this->block_mutex), NULL);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
-	}
-#endif
 	UTI_DEBUG("Block %s: created\n", this->name.c_str());
 }
 
 
 Block::~Block()
 {
-#ifdef DEBUG_BLOCK_MUTEX
-	ret = pthread_mutex_destroy(&(this->block_mutex), NULL);
-	if(ret != 0)
+	if(this->chan_mutex)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex destroy failure [%u: %s]", ret, strerror(ret));
+		int ret;
+		ret = pthread_mutex_destroy(&(this->block_mutex));
+		if(ret != 0)
+		{
+			Rt::reportError(this->name, pthread_self(), false,
+			                "Mutex destroy failure [%u: %s]", ret, strerror(ret));
+		}
 	}
-#endif
 
 	if(this->downward != NULL)
 	{
@@ -233,17 +227,17 @@ bool Block::stop(int signal)
 bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 {
 	bool ret = false;
-	// TODO option instead of #ifdef
-#ifdef DEBUG_BLOCK_MUTEX
-	int err;
-	err = pthread_mutex_lock(&(this->block_mutex));
-	if(err != 0)
+	if(this->chan_mutex)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex lock failure [%u: %s]", err, strerror(err));
-		return false;
+		int err;
+		err = pthread_mutex_lock(&(this->block_mutex));
+		if(err != 0)
+		{
+			Rt::reportError(this->name, pthread_self(), false,
+			                "Mutex lock failure [%u: %s]", err, strerror(err));
+			return false;
+		}
 	}
-#endif
 	if(chan == upward_chan)
 	{
 		ret = this->onUpwardEvent(event);
@@ -252,15 +246,17 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	{
 		ret = this->onDownwardEvent(event);
 	}
-#ifdef DEBUG_BLOCK_MUTEX
-	err = pthread_mutex_unlock(&(this->block_mutex));
-	if(err != 0)
+	if(this->chan_mutex)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex unlock failure [%u: %s]", err, strerror(err));
-		return false;
+		int err;
+		err = pthread_mutex_unlock(&(this->block_mutex));
+		if(err != 0)
+		{
+			Rt::reportError(this->name, pthread_self(), false,
+			                "Mutex unlock failure [%u: %s]", err, strerror(err));
+			return false;
+		}
 	}
-#endif
 	return ret;
 }
 
@@ -281,3 +277,14 @@ RtChannel *Block::getDownwardChannel(void) const
 	return this->downward;
 }
 
+void Block::enableChannelMutex(void)
+{
+	int ret;
+	ret = pthread_mutex_init(&(this->block_mutex), NULL);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
+	}
+	this->chan_mutex = true;
+}

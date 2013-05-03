@@ -69,7 +69,7 @@ class BlockManager
 	 * @brief Creates and adds a block to the application
 	 *        The block should be created from upper to lower
 	 *
-	 * @tparam Bl       The block class
+	 * @tparam Bl         The block class
 	 * @tparam Up       The upward channel class
 	 * @tparam Down     The downward channel class
 	 * @param name      The block name

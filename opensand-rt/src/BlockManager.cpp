@@ -129,7 +129,7 @@ void BlockManager::reportError(const char *msg, bool critical)
 		std::cerr << "FATAL: stop process" << std::endl;
 		// stop process to signal something goes wrong
 		this->status = false;
-		this->stop(SIGTERM);
+		kill(getpid(), SIGTERM);
 	}
 }
 

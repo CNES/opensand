@@ -284,7 +284,7 @@ bool BottomBlock::onInit()
 	this->output_fd = pipefd[1];
 
 	// high priority to be sure to read it before another timer
-	this->upward->addNetSocketEvent("bottom_upward", this->input_fd, 2);
+	this->upward->addFileEvent("bottom_upward", this->input_fd, 1000, 2);
 	return true;
 }
 
@@ -317,7 +317,7 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 	size_t size;
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case evt_file:
 			size = ((NetSocketEvent *)event)->getSize();
 			data = (char *)((NetSocketEvent *)event)->getData();;
 			std::cout << "Block " << this->name << ": " << strlen(data)

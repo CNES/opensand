@@ -13,10 +13,11 @@ SCRIPT="$0"
 if [ "x$MAKELEVEL" != "x" ] ; then
 	BASEDIR="${srcdir}"
 	TEST="./test_block"
-	TEST_MULTI="./test_block"
+	TEST_MULTI="./test_multi_blocks"
 else
 	BASEDIR=$( dirname "${SCRIPT}" )
-	TEST_MULTI="${BASEDIR}/test_block"
+	TEST="${BASEDIR}/test_block"
+	TEST_MULTI="${BASEDIR}/test_multi_blocks"
 fi
 
 # check for heaps and restart with logs if an error occurs

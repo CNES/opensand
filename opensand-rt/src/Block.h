@@ -46,7 +46,6 @@
 #include <vector>
 #include <sys/select.h>
 
-
 class RtEvent;
 
 using std::string;
@@ -247,6 +246,11 @@ class Block
 	 */
 	RtChannel *getDownwardChannel(void) const;
 
+	/**
+	 * @brief Enable mutex to protect channels
+	 */
+	void enableChannelMutex(void);
+
 	/// The upward channel
 	RtChannel *upward;
 	/// The downward channel
@@ -263,10 +267,11 @@ class Block
 	/// Whether the block is initialized
 	bool initialized;
 
-  private:
-#ifdef DEBUG_BLOCK_MUTEX
-	pthread_mutex_t *block_mutex; /// mutex to separate channel processing
-#endif
+	/// Whether the channel processing are protected with a mutex
+	bool chan_mutex;
+  
+	/// mutex to separate channel processing
+	pthread_mutex_t block_mutex;
 };
 
 // TODO malloc/new hook !!
