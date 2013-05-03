@@ -45,16 +45,6 @@
 
 
 // TODO add send functions
-NetSocketEvent::NetSocketEvent(const string &name,
-                               int32_t fd,
-                               size_t max_size,
-                               uint8_t priority):
-	RtEvent(evt_net_socket, name, fd, priority),
-	max_size(max_size),
-	data(NULL),
-	size(0)
-{
-}
 
 NetSocketEvent::~NetSocketEvent()
 {

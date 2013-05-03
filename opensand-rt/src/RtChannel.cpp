@@ -152,10 +152,12 @@ int32_t RtChannel::addTimerEvent(const string &name,
 
 int32_t RtChannel::addFileEvent(const string &name,
                                 int32_t fd,
+                                size_t max_size,
                                 uint8_t priority)
 {
 	FileEvent *event = new FileEvent(name,
 	                                 fd,
+	                                 max_size,
 	                                 priority);
 	if(!event)
 	{
@@ -268,11 +270,33 @@ void RtChannel::updateEvents(void)
 		it = this->events.find(*iter);
 		if(it != this->events.end())
 		{
+			// remove fd from set
+			FD_CLR((*it).first, &(this->input_fd_set));
+			if((*it).first == this->max_input_fd)
+			{
+				this->updateMaxFd();
+			}
+			// remove fd from map
 			delete (*it).second;
 			this->events.erase(it);
 		}
 	}
 	this->removed_events.clear();
+}
+
+void RtChannel::updateMaxFd(void)
+{
+	this->max_input_fd = 0;
+	// update the greater fd
+	for(map<event_id_t, RtEvent *>::iterator iter = this->events.begin();
+		iter != this->events.end(); ++iter)
+	{
+		if((*iter).first > this->max_input_fd)
+		{
+			this->max_input_fd = (*iter).first;
+		}
+	}
+
 }
 
 bool RtChannel::startTimer(event_id_t id)

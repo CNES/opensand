@@ -38,7 +38,7 @@
 #ifndef NET_SOCKET_EVENT_H
 #define NET_SOCKET_EVENT_H
 
-#include "RtEvent.h"
+#include "FileEvent.h"
 #include "Types.h"
 
 #include <sys/time.h>
@@ -51,7 +51,7 @@
   * @brief Events describing data received on a nework socket
   *
   */
-class NetSocketEvent: public RtEvent
+class NetSocketEvent: public FileEvent
 {
 
   public:
@@ -67,7 +67,10 @@ class NetSocketEvent: public RtEvent
 	NetSocketEvent(const string &name,
 	               int32_t fd = -1,
 	               size_t max_size = MAX_SOCK_SIZE,
-	               uint8_t priority = 4);
+	               uint8_t priority = 4):
+		FileEvent(name, fd, max_size, priority, evt_net_socket)
+	{};
+
 	~NetSocketEvent();
 
 	/**
@@ -78,31 +81,15 @@ class NetSocketEvent: public RtEvent
 	unsigned char *getData(void);
 
 	/**
-	 * @brief Get the size of data in the message
-	 *
-	 * @return the size of data in the message
-	 */
-	size_t getSize(void) const {return this->size;};
-	
-	/**
 	 * @brief Get the message source address
 	 * 
 	 * @return the message source address
 	 */
 	struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
 
+	virtual bool handle(void);
+
   protected:
-  
-	bool handle(void);
-
-	/// The maximum size of received data
-	size_t max_size;
-
-	/// data pointer
-	unsigned char *data;
-
-	/// data size
-	size_t size;
 
 	/// The source address of the message;
 	struct sockaddr_in src_addr;

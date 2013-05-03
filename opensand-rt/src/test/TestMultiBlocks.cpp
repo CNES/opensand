@@ -132,7 +132,7 @@ bool TopBlock::onInit()
 		                "cannot open input file");
 	}
 	// high priority to be sure to read it before another timer
-	this->downward->addFileEvent("top_downward", this->input_fd);
+	this->downward->addFileEvent("top_downward", this->input_fd, 1000);
 	return true;
 }
 
@@ -157,13 +157,8 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
 			size = strlen(data);
-			if(size > MAX_READ_SIZE)
-			{
-				Rt::reportError(this->name, pthread_self(), true,
-		                        "too many data received");
-			}
 			// keep data in order to compare on the opposite block
-			strncpy(this->last_written, data, std::max((int)size, MAX_READ_SIZE) + 1);
+			strncpy(this->last_written, data, size + 1);
 			// wait in order to receive data on the opposite block and compare it
 			// this also allow testing multithreading as this thread is paused
 			// while other should handle the data
@@ -309,6 +304,7 @@ bool BottomBlock::onDownwardEvent(const RtEvent *const event)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot write on pipe");
+		free(data);
 		return false;
 	}
 	free(data);

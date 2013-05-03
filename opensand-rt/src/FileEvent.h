@@ -43,8 +43,6 @@
 
 #include <sys/time.h>
 
-#define MAX_READ_SIZE 1500
-
 
 /**
   * @class FileEvent
@@ -65,7 +63,9 @@ class FileEvent: public RtEvent
 	 */
 	FileEvent(const string &name,
 	          int32_t fd = -1,
-	          uint8_t priority = 5);
+	          size_t max_size = MAX_SOCK_SIZE,
+	          uint8_t priority = 5,
+	          event_type_t type = evt_file);
 	~FileEvent();
 
 
@@ -74,7 +74,7 @@ class FileEvent: public RtEvent
 	 *
 	 * @return the data contained in the message
 	 */
-	 unsigned char *getData(void);
+	 virtual unsigned char *getData(void);
 
 	/*
 	 * @brief Get the size of data in the message
@@ -86,6 +86,9 @@ class FileEvent: public RtEvent
 	virtual bool handle(void);
 
   protected:
+
+	/// The maximum size of received data
+	size_t max_size;
 
 	/// data pointer
 	unsigned char *data;

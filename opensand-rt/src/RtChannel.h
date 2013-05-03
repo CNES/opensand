@@ -134,11 +134,13 @@ class RtChannel
 	 *
 	 * @param name      The name of the event
 	 * @param fd        The file descriptor to monitor
+	 * @param max_size  The maximum data size
 	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
 	int32_t addFileEvent(const string &name,
 	                     int32_t fd,
+	                     size_t max_size = MAX_SOCK_SIZE,
 	                     uint8_t priority = 4);
 
 	/**
@@ -285,6 +287,12 @@ class RtChannel
 	 *
 	 */
 	void updateEvents(void);
+
+	/**
+	 * @brief Update the maximum input fd after event removal
+	 *
+	 */
+	void updateMaxFd(void);
 
 	/**
 	 * @brief Add a fd to input_fd_set

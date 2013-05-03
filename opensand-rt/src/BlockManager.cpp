@@ -44,6 +44,13 @@
 #include <cstring>
 #include <sys/signalfd.h>
 
+
+static void crash_handler(int sig)
+{
+	UTI_ERROR("Crash with signal %d: %s\n", sig, sys_siglist[sig]);
+	exit(-1);
+}
+
 Event *BlockManager::critical_evt = NULL;
 
 BlockManager::BlockManager():
@@ -156,6 +163,8 @@ void BlockManager::wait(void)
 	int ret;
 
 	sigset_t blocked_signals;
+	
+	signal(SIGSEGV, crash_handler);
 
 	//block all signals
 	sigfillset(&blocked_signals);
@@ -167,6 +176,7 @@ void BlockManager::wait(void)
 		this->status = false;
 	}
 
+// TODO handle SIGSTOP in threads because it breaks select
 	sigemptyset(&signal_mask);
 	sigaddset(&signal_mask, SIGINT);
 	sigaddset(&signal_mask, SIGQUIT);

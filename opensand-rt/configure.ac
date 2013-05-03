@@ -70,7 +70,7 @@ if test "x$tcmalloc" != "xno"; then
 fi
 
 AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
-AC_SUBST(AM_LDFLAGS, "$AM_LDFLAGS $TCMALLOC -lpthread -lrt")
+AC_SUBST(AM_LDFLAGS, "$AM_LDFLAGS ${TCMALLOC} -lpthread -lrt")
 
 AM_DEP_TRACK
 

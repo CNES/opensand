@@ -32,6 +32,7 @@
  *         intra-block messages
  */
 
+#include "Rt.h"
 #include "RtFifo.h"
 
 #include <opensand_conf/uti_debug.h>
@@ -39,6 +40,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <errno.h>
 
 #define DEFAULT_FIFO_SIZE 3
 
@@ -101,6 +103,8 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		// TODO check that this works
 		if(pthread_mutex_lock(&(this->full_mutex)) != 0)
 		{
+			Rt::reportError("fifo", pthread_self(), false,
+			                "Failed to lock mutex for FIFO full\n");
 			return false;
 		}
 	}
@@ -108,6 +112,8 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	// lock mutex on fifo
 	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
 	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to lock mutex on FIFO\n");
 		return false;
 	}
 
@@ -119,10 +125,15 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	FD_SET(this->w_sig_pipe, &wset);
 	if(select(this->w_sig_pipe + 1, NULL, &wset, NULL, NULL) < 0)
 	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Select failed on pipe [%d: %s]\n",
+		                errno, strerror(errno));
 		goto error;
 	}
 	if(write(this->w_sig_pipe, MAGIC_WORD, strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
 	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to write on pipe\n");
 		goto error;
 	}
 	status = true;
@@ -131,7 +142,9 @@ error:
 	// unlock mutex on fifo
 	if(pthread_mutex_unlock(&(this->fifo_mutex)) != 0)
 	{
-		return false;
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to unlock mutex on FIFO\n");
+		status = false;
 	}
 	return status;
 
@@ -144,6 +157,8 @@ bool RtFifo::pop(rt_msg_t &elem)
 	// lock mutex on fifo
 	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
 	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to lock mutex on FIFO\n");
 		return false;
 	}
 
@@ -164,6 +179,8 @@ bool RtFifo::pop(rt_msg_t &elem)
 	// unlock mutex on fifo
 	if(pthread_mutex_unlock(&(this->fifo_mutex)) != 0)
 	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to unlock mutex on FIFO\n");
 		return false;
 	}
 	if(full)
@@ -171,6 +188,8 @@ bool RtFifo::pop(rt_msg_t &elem)
 		// fifo has empty space, we can unlock it
 		if(pthread_mutex_unlock(&(this->full_mutex)) != 0)
 		{
+			Rt::reportError("fifo", pthread_self(), false,
+			                "Failed to unlock mutex for FIFO full\n");
 			return false;
 		}
 	}

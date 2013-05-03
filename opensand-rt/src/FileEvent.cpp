@@ -41,14 +41,24 @@
 #include <errno.h>
 
 
-FileEvent::FileEvent(const string &name, int32_t fd, uint8_t priority):
-	RtEvent(evt_file, name, fd, priority),
+FileEvent::FileEvent(const string &name,
+                     int32_t fd,
+                     size_t max_size,
+                     uint8_t priority,
+                     event_type_t type):
+	RtEvent(type, name, fd, priority),
+	max_size(max_size),
+	data(NULL),
 	size(0)
 {
 }
 
 FileEvent::~FileEvent()
 {
+	if(this->data)
+	{
+		free(this->data);
+	}
 }
 
 bool FileEvent::handle(void)
@@ -63,13 +73,20 @@ bool FileEvent::handle(void)
 		free(this->data);
 	}
 	/// on more byte so we can use it as char*
-	this->data = (unsigned char *)calloc(MAX_READ_SIZE + 1, sizeof(unsigned char));
+	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
 
-	ret = read(this->fd, this->data, MAX_READ_SIZE);
+	ret = read(this->fd, this->data, this->max_size);
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
 		                "unable to read on socket [%u: %s]", errno, strerror(errno));
+		goto error;
+	}
+	else if((size_t)ret > this->max_size)
+	{
+		Rt::reportError(this->name, pthread_self(), false,
+		                "event %s: too many data received (%zu > %zu)\n",
+		                this->name.c_str(), this->size, this->max_size);
 		goto error;
 	}
 	else if(ret == 0)

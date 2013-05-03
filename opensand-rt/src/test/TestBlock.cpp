@@ -98,7 +98,7 @@ bool TestBlock::onInit()
 	this->upward->addTimerEvent("test_timer", 100, true);
 
 	// high priority to be sure to read it before another timer
-	this->downward->addFileEvent("downward", this->input_fd, 2);
+	this->downward->addFileEvent("downward", this->input_fd, 64, 2);
 	return true;
 }
 
@@ -165,6 +165,7 @@ bool TestBlock::onDownwardEvent(const RtEvent *const event)
 				                data, this->last_written);
 			}
 			bzero(this->last_written, 64);
+			free(data);
 			break;
 
 		default:
