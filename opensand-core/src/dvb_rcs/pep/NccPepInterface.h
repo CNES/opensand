@@ -38,7 +38,8 @@
 #include "PepRequest.h"
 #include <vector>
 
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
 
 /**
  * @class NccPepInterface
@@ -98,8 +99,15 @@ class NccPepInterface
 	/* accept a new incoming connection from a PEP component */
 	int acceptPepConnection();
 
-	/* read a set of commands sent by the connected PEP component */
-	bool readPepMessage();
+	/**
+	 * @brief Read a set of commands sent by the connected PEP component
+	 *
+	 * @param event  The NetSocketEvent for PEP fd
+	 * @return  The status of the action:
+	 *            \li true if command is read and parsed successfully
+	 *            \li false if a problem is encountered
+	 */
+	bool readPepMessage(NetSocketEvent *const event);
 
  private:
  

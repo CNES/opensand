@@ -31,6 +31,11 @@
  * @author   Santiago PENA <santiago.penaluque@cnes.fr>
  */
 
+// FIXME we need to include uti_debug.h before...
+#define DBG_PREFIX
+#define DBG_PACKAGE PKG_PHY_LAYER
+#include <opensand_conf/uti_debug.h>
+
 #include "BlockPhysicalLayer.h"
 
 #include "Plugin.h"
@@ -40,12 +45,6 @@
 
 #include <opensand_conf/conf.h>
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
-
-
-// TODO set plugin utils static !
 
 // output events
 Event *BlockPhysicalLayer::error_init = NULL;

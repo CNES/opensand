@@ -220,6 +220,26 @@ class BlockDvbTal: public BlockDvb
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	virtual ~BlockDvbTal();
 
+	class DvbTalUpward: public Upward
+	{
+	  public:
+		DvbTalUpward(Block &bl):
+			Upward(bl)
+		{};
+
+		bool onInit(void);
+	};
+
+	class DvbTalDownward: public Downward
+	{
+	  public:
+		DvbTalDownward(Block &bl):
+			Downward(bl)
+		{};
+
+		bool onInit(void);
+	};
+
   protected:
 
 	bool onDownwardEvent(const RtEvent *const event);

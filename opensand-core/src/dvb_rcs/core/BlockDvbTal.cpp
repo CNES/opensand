@@ -34,15 +34,18 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_DVB_RCS_TAL
+#include <opensand_conf/uti_debug.h>
+#define DVB_DBG_PREFIX "[Tal]"
+
+
 #include "BlockDvbTal.h"
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 
-// logs configuration
-#define DBG_PACKAGE PKG_DVB_RCS_TAL
-#include <opensand_conf/uti_debug.h>
-#define DVB_DBG_PREFIX "[Tal]"
 #include <opensand_rt/Rt.h>
 
 
@@ -76,6 +79,7 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	super_frame_counter(-1),
 	frame_counter(-1),
 	default_fifo_id(-1),
+	nbr_pvc(0),
 	qos_server_host(),
 	m_obrPeriod(-1),
 	m_obrSlotFrame(-1),
@@ -924,16 +928,6 @@ bool BlockDvbTal::onInit()
 		goto error;
 	}
 
-	// after all of things have been initialized successfully,
-	// send a logon request
-	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n", this->mac_id);
-	this->_state = state_wait_logon_resp;
-	if(!this->sendLogonReq())
-	{
-		UTI_ERROR("failed to send the logon request to the NCC");
-		goto error;
-	}
-
 	return true;
 
 error:
@@ -1112,6 +1106,7 @@ bool BlockDvbTal::sendLogonReq()
 	l_size = sizeof(T_DVB_LOGON_REQ);
 	lp_logon_req->hdr.msg_length = l_size;
 	lp_logon_req->hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
+	lp_logon_req->capa = 0; // TODO
 	lp_logon_req->mac = this->mac_id;
 	lp_logon_req->nb_row = m_nbRow;
 	lp_logon_req->rt_bandwidth = m_fixedBandwidth;	/* in kbits/s */
@@ -1133,7 +1128,7 @@ bool BlockDvbTal::sendLogonReq()
 
 	// send the corresponding event
 	Output::sendEvent(event_login_sent, "%s Login sent to %d", FUNCNAME,
-	                     this->mac_id);
+	                  this->mac_id);
 
 	return true;
 
@@ -1432,12 +1427,9 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		if(this->processOnFrameTick() < 0)
 		{
 			// exit because the bloc is unable to continue
-			UTI_ERROR("%s treatments at sf %ld, frame %ld failed: "
-			          "see log file\n", FUNCNAME, this->super_frame_counter,
+			UTI_ERROR("%s treatments at sf %ld, frame %ld failed\n",
+			          FUNCNAME, this->super_frame_counter,
 			          this->frame_counter);
-			fprintf(stderr, "\n%s treatments at sf %ld, frame %ld failed: "
-			        "see log file \n\n", FUNCNAME, this->super_frame_counter,
-			        this->frame_counter);
 			goto error;
 		}
 	}
@@ -1511,8 +1503,7 @@ int BlockDvbTal::processOnFrameTick()
 
 	// send on the emulated DVB network the DVB frames that contain
 	// the encapsulation packets scheduled by the DAMA agent algorithm
-	ret = this->sendBursts(&this->complete_dvb_frames, this->m_carrierIdData);
-	if(ret != 0)
+	if(!this->sendBursts(&this->complete_dvb_frames, this->m_carrierIdData))
 	{
 		UTI_ERROR("failed to send bursts in DVB frames\n");
 		goto error;
@@ -1765,4 +1756,29 @@ void BlockDvbTal::deletePackets()
 	{
 		(*it).second->flush();
 	}
+}
+
+// TODO move all upward initialization here
+bool BlockDvbTal::DvbTalUpward::onInit()
+{
+	return true;
+}
+
+// TODO move all downward initialization here, move attributes and methods also
+bool BlockDvbTal::DvbTalDownward::onInit()
+{
+	// here everyhing is initialized so we can do some processing
+
+	// after all of things have been initialized successfully,
+	// send a logon request
+	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n",
+	          ((BlockDvbTal *)&this->block)->mac_id);
+	((BlockDvbTal *)&this->block)->_state = state_wait_logon_resp;
+	if(!((BlockDvbTal *)&this->block)->sendLogonReq())
+	{
+		UTI_ERROR("failed to send the logon request to the NCC");
+		return false;
+	}
+
+	return true;
 }

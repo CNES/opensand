@@ -33,17 +33,19 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+
+// FIXME we need to include uti_debug.h before...
+#define DBG_PREFIX
+#define DBG_PACKAGE PKG_DVB_RCS
+#include <opensand_conf/uti_debug.h>
+
 #include "BlockDvb.h"
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
 #include <opensand_conf/conf.h>
-
 
 #include <string.h>
 #include <errno.h>
@@ -71,6 +73,8 @@ BlockDvb::BlockDvb(const string &name):
 	emissionStd(NULL),
 	receptionStd(NULL)
 {
+	// TODO we need a mutex here because some parameters are used in upward and downward
+//	this->enableChannelMutex();
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);
@@ -419,7 +423,8 @@ bool BlockDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 	dvb_meta->hdr = dvb_frame;
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)(&dvb_meta)))
+	// do not count carrier_id in len, this is the dvb_meta->hdr length
+	if(!this->sendDown((void **)(&dvb_meta), l_len))
 	{
 		UTI_ERROR("failed to send DVB frame to lower layer\n");
 		return false;

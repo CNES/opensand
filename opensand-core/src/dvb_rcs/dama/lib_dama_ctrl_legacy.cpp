@@ -31,19 +31,21 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include <math.h>
-#include <string>
-using namespace std;
+
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+#define DC_DBG_PREFIX "[Legacy]"
 
 #include "lib_dvb_rcs.h"
 #include "lib_dama_ctrl_legacy.h"
 
-// output
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
 
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
-#define DC_DBG_PREFIX "[Legacy]"
+#include <math.h>
+#include <string>
+
+
 
 // output probes
 Probe<int>* DvbRcsDamaCtrlLegacy::probe_gw_fca_alloc = NULL;
@@ -399,13 +401,13 @@ int DvbRcsDamaCtrlLegacy::runDamaVbdc(int Tac)
 				if(Step == 0)
 				{
 					// The VBDC min part is treated first
-					Request = MIN(Request, m_min_vbdc);
+					Request = std::min(Request, m_min_vbdc);
 				}
 				else
 				{
 					// The rest of the request is treated
 					// Note that there is no need to decrease the VBDC min as long as it has already been allocated
-					Request = MAX(Request, 0);
+					Request = std::max(Request, 0);
 				}
 
 				UTI_DEBUG_L3("%s step %d ST start %d initial %d tac %d request %d (on %d)\n",

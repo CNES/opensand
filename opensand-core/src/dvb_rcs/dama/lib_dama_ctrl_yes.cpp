@@ -31,15 +31,17 @@
  * @author Viveris Technologies
  */
 
+// FIXME we need to include uti_debug.h before...
+#undef DBG_PACKAGE
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+#define DC_DBG_PREFIX "[yes]"
+
+
 #include "lib_dvb_rcs.h"
 #include "lib_dama_ctrl_yes.h"
 
-// output
-#include "opensand_output/Output.h"
-
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
-#define DC_DBG_PREFIX "[yes]"
+#include <opensand_output/Output.h>
 
 
 /**

@@ -31,17 +31,17 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "lib_dama_ctrl.h"
 
-#include "CapacityRequest.h"
-
-// environment plane
-//#include <opensand_env_plane/EnvironmentAgent_e.h>
-//extern T_ENV_AGENT EnvAgent;
-
+// FIXME we need to include uti_debug.h before...
 #define DC_DBG_PREFIX "[Generic]"
+#undef DBG_PACKAGE
 #define DBG_PACKAGE PKG_DAMA_DC
 #include <opensand_conf/uti_debug.h>
+#include <opensand_conf/conf.h>
+
+#include "lib_dama_ctrl.h"
+#include "CapacityRequest.h"
+
 
 
 #include <math.h>

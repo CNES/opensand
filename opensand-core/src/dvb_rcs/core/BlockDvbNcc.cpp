@@ -33,6 +33,12 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+// FIXME we need to include uti_debug.h before...
+#define DBG_PREFIX
+#define DBG_PACKAGE PKG_DVB_RCS_NCC
+#include <opensand_conf/uti_debug.h>
+
+
 #include <string.h>
 #include <errno.h>
 #include <math.h>
@@ -57,13 +63,7 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 
-// output
 #include <opensand_output/Output.h>
-
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS_NCC
-#include <opensand_conf/uti_debug.h>
-#include <opensand_rt/Rt.h>
 
 
 /**
@@ -152,10 +152,10 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG("SF#%ld: store one encapsulation "
 				          "packet\n", this->super_frame_counter);
 
-				if(!this->emissionStd->onRcvEncapPacket(*pkt_it,
+				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
 				                                        &this->data_dvb_fifo,
 				                                        this->getCurrentTime(),
-				                                        0))
+				                                        0) != 0)
 				{
 					// a problem occured => trace it but
 					// carry on simulation
@@ -283,7 +283,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					UTI_INFO("NCC is now connected to PEP\n");
 					// add a fd to handle events on the client socket
 					this->downward->addNetSocketEvent("pep_client",
-					                                  this->getPepClientSocket());
+					                                  this->getPepClientSocket(),
+					                                  200);
 				}
 				else if(ret == -1)
 				{
@@ -309,7 +310,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 				// read the message sent by PEP or delete socket
 				// if connection is dead
-				if(this->readPepMessage() == true)
+				if(this->readPepMessage((NetSocketEvent *)event) == true)
 				{
 					// we have received a set of commands from the
 					// PEP component, let's apply the resources
@@ -562,7 +563,7 @@ bool BlockDvbNcc::onInit()
 		UTI_ERROR("failed to listen for PEP connections\n");
 		goto release_dama;
 	}
-	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket());
+	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
 	// everything went fine
 	return true;
@@ -1136,7 +1137,7 @@ void BlockDvbNcc::sendSOF()
 
 
 	// Get a dvb frame
-	lp_ptr = new T_DVB_HDR;
+	lp_ptr = (T_DVB_HDR *)malloc(MSG_DVB_RCS_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
 	if(!lp_ptr)
 	{
 		UTI_ERROR("[sendSOF] Failed to get memory from pool dvb_rcs\n");

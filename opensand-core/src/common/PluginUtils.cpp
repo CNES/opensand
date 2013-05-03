@@ -133,12 +133,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load encapsulation plugin %s\n",
 							         plugin->name);
 							this->encapsulation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -161,12 +161,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load attenuation model plugin %s\n",
 							         plugin->name);
 							this->attenuation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -188,12 +188,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load nominal conditions plugin %s\n",
 							         plugin->name);
 							this->nominal[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -215,12 +215,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load minimal conditions plugin %s\n",
 							         plugin->name);
 							this->minimal[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -242,12 +242,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load error insertions plugin %s\n",
 							         plugin->name);
 							this->error[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -255,6 +255,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						UTI_ERROR("Wrong plugin type %d for %s",
 						          plugin->type, filename.c_str());
 				}
+				// FIXME mismatch free here ???
 				delete plugin;
 			}
 		}

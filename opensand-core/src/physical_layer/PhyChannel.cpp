@@ -31,11 +31,13 @@
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
  */
 
-#include  "PhyChannel.h"
-
+// FIXME we need to include uti_debug.h before...
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
+
+#include  "PhyChannel.h"
+
 #include <math.h>
 
 PhyChannel::PhyChannel():

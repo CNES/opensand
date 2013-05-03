@@ -112,7 +112,7 @@ class BlocIPQoS: public Block
 
 	// if up
 	int tun_alloc();
-	int onMsgIpFromUp(int fd);  // treatments on reception of pk from upper layer
+	int onMsgIpFromUp(NetSocketEvent *const event);  // treatments on reception of pk from upper layer
 	int onMsgIp(IpPacket *packet);  // treatments on reception of pk from upper layer
 
 	SarpTable sarpTable; ///< SARP table

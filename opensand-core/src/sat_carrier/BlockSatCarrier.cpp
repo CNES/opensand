@@ -31,11 +31,13 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_SAT_CARRIER
+#include <opensand_conf/uti_debug.h>
+
 #include "BlockSatCarrier.h"
 
-// logs configuration
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include "opensand_conf/uti_debug.h"
 #include "msg_dvb_rcs.h"
 #include "lib_dvb_rcs.h"
 #include "OpenSandCore.h"
@@ -70,17 +72,17 @@ bool BlockSatCarrier::onDownwardEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			T_DVB_META *lp_ptr;
-			long l_len;
+			size_t l_len;
 			long l_ret;
-
-			UTI_DEBUG_L3("message event received: %s\n", event->getName().c_str());
 
 			lp_ptr = (T_DVB_META *)((MessageEvent *)event)->getData();
 			l_len = ((MessageEvent *)event)->getLength();
 
+			UTI_DEBUG_L3("%zu-bytes %s message event received\n",
+			              l_len, event->getName().c_str());
+
 			l_ret = m_channelSet.send(lp_ptr->carrier_id,
 			                          (unsigned char *) (lp_ptr->hdr), l_len);
-			free(lp_ptr->hdr);
 			free(lp_ptr);
 		}
 		break;
@@ -102,22 +104,21 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 		case evt_net_socket:
 		{
 			// Data to read in Sat_Carrier socket buffer
-			unsigned int l_lg;
-			// TODO #define !
-			static unsigned char l_buf[9000];
+			size_t l_lg;
+			unsigned char *l_buf = NULL;
 
 			unsigned int carrier_id;
 			int ret;
 
 			UTI_DEBUG_L3("FD event received\n");
 
+			// for UDP we need to retrieve potentially desynchronized
+			// datagrams => loop on receive function
 			do
 			{
-				ret = this->m_channelSet.receive(event->getFd(),
-				                                 &carrier_id, l_buf, &l_lg,
-				                                 sizeof(l_buf), 1000);
-				UTI_DEBUG_L3("%d bytes of data received on carrier ID %u\n",
-				             l_lg, carrier_id);
+				ret = this->m_channelSet.receive((NetSocketEvent *)event,
+				                                 carrier_id,
+				                                 &l_buf, l_lg);
 				if(ret < 0)
 				{
 					UTI_ERROR("failed to receive data on any "
@@ -126,7 +127,10 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 				}
 				else
 				{
-					if(l_lg != 0)
+					UTI_DEBUG_L3("%d bytes of data received on carrier ID %u\n",
+					             l_lg, carrier_id);
+
+					if(l_lg > 0)
 					{
 						this->onReceivePktFromCarrier(carrier_id, l_buf, l_lg);
 					}
@@ -176,7 +180,8 @@ bool BlockSatCarrier::onInit()
 			         channel->getChannelFd(), channel->getChannelID());
 			name << "Channel_" << channel->getChannelFd();
 			this->upward->addNetSocketEvent(name.str(),
-			                                channel->getChannelFd());
+			                                channel->getChannelFd(),
+			                                MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
 		}
 	}
 
@@ -194,35 +199,8 @@ void BlockSatCarrier::onReceivePktFromCarrier(unsigned int i_carrier,
                                               unsigned int i_len)
 {
 	const char FUNCNAME[] = "[onReceivePktFromCarrier]";
-	unsigned char *lp_ptr;
 	T_DVB_META *lp_meta;
 
-	if(!ip_buf)
-	{
-		UTI_ERROR("%s ip_buf == 0, frame drop.", FUNCNAME);
-		return;
-	}
-
-	if(i_len <= 0)
-	{
-		UTI_ERROR("%s i_len==%d <= 0, frame drop.", FUNCNAME, i_len);
-		return;
-	}
-
-	if(i_len > MSG_BBFRAME_SIZE_MAX)
-	{
-		UTI_ERROR("%s i_len==%d > max==%ld, frame drop.", FUNCNAME,
-		          i_len, MSG_BBFRAME_SIZE_MAX);
-		return;
-	}
-
-	lp_ptr = (unsigned char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
-	if(!lp_ptr)
-	{
-		UTI_ERROR("%s Unable to get a packet from dvb pool, frame drop.",
-		          FUNCNAME);
-		return;
-	}
 	lp_meta = new T_DVB_META;
 	if(!lp_meta)
 	{
@@ -231,12 +209,10 @@ void BlockSatCarrier::onReceivePktFromCarrier(unsigned int i_carrier,
 		goto release_data;
 	}
 
-	// TODO: remove memcpy here ?
-	memcpy(lp_ptr, ip_buf, i_len);	// Copy data
 	// Configure meta
 	lp_meta->carrier_id = i_carrier;
-	lp_meta->hdr = (T_DVB_HDR *) lp_ptr;
-	if(!this->sendUp((void **)(&lp_meta)))
+	lp_meta->hdr = (T_DVB_HDR *) ip_buf;
+	if(!this->sendUp((void **)(&lp_meta), i_len))
 	{
 		UTI_ERROR("failed to send frame to upper layer\n");
 		goto release_meta;
@@ -249,5 +225,5 @@ void BlockSatCarrier::onReceivePktFromCarrier(unsigned int i_carrier,
 release_meta:
 	delete lp_meta;
 release_data:
-	delete lp_ptr;
+	delete ip_buf;
 }

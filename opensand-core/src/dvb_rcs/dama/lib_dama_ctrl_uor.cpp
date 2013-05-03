@@ -31,18 +31,20 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+
+
+#include "lib_dvb_rcs.h"
+#include "lib_dama_ctrl_uor.h"
 
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <limits.h>
 #include <stdio.h>
-#include "lib_dvb_rcs.h"
-#include "lib_dama_ctrl_uor.h"
 
-
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
 
 #define DC_DBG_PREFIX "[UOR]"
 #define ATM_CELL 53.0

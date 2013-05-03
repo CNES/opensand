@@ -154,7 +154,7 @@ class BlockEncapGw: public BlockEncap
  public:
 
 	BlockEncapGw(const string &name):
-		BlockEncap(name, terminal)
+		BlockEncap(name, gateway)
 	{};
 };
 

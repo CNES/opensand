@@ -36,7 +36,6 @@
 
 #include "sat_carrier_channel.h"
 
-//#include <net/ethernet.h> // TODO remove
 #include <sys/types.h>
 #include <netinet/in.h>
 
@@ -61,12 +60,10 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	int getChannelFd();
 
-	//unsigned char *getRemoteIPAddress();
-
 	int send(unsigned char *buf, unsigned int len);
 
-	int receive(unsigned char *buf, unsigned int *data_len,
-	            unsigned int max_len, long timeout);
+	int receive(NetSocketEvent *const event,
+	            unsigned char **buf, size_t &data_len);
 
  protected:
 
@@ -96,19 +93,16 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	/// Counter for sending packets
 	uint8_t counter;
 
-	/// buffer to receive udp datagramms
-	unsigned char recv_buffer[9000];
-
 	/// internal buffer to build and send udp datagramms
-	unsigned char send_buffer[9000];
+	unsigned char send_buffer[MAX_SOCK_SIZE];
 
 	/// sometimes an UDP datagram containing unfragmented IP packet overtake one
 	/// containing fragmented IP packets during its reassembly
 	/// Thus, we use the following stack to keep the UDP datagram arrived too early
-	unsigned char stack[9000];
+	unsigned char *stack;
 
 	/// the length of the data in the stack
-	unsigned int stack_len;
+	size_t stack_len;
 
 	/// the sequence number of the packet in the stack
 	uint8_t stack_sequ;

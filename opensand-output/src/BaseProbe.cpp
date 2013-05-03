@@ -51,4 +51,5 @@ BaseProbe::BaseProbe(uint8_t id, const char* name, const char* unit,
 BaseProbe::~BaseProbe()
 {
 	free(this->name);
+	free(this->unit);
 }

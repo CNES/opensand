@@ -35,11 +35,6 @@
 #ifndef LIB_DAMA_CTRL_H
 #define LIB_DAMA_CTRL_H
 
-#include <stdio.h>
-#include <math.h>
-
-#include <map>
-#include <vector>
 
 #include "lib_dvb_rcs.h"
 #include "DamaUtils.h"
@@ -47,8 +42,13 @@
 #include "PepRequest.h"
 #include "DraSchemeDefinitionTable.h"
 
-#include "opensand_conf/conf.h"
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
+
+#include <stdio.h>
+#include <math.h>
+#include <map>
+#include <vector>
+
 
 /**
  * Describe a station identificator

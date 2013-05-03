@@ -260,7 +260,24 @@ int main(int argc, char **argv)
 	}
 
 	// make the SAT alive
-	Rt::run();
+	if(!Rt::init())
+	{
+		goto release_plugins;
+    }
+	failure = Output::registerEvent("failure", LEVEL_ERROR);
+	status = Output::registerEvent("status", LEVEL_INFO);
+	if(!Output::finishInit())
+	{
+		UTI_PRINT(LOG_INFO,
+		          "%s: failed to init the output => disable it\n",
+		         progname);
+	}
+
+	Output::sendEvent(status, "Blocks initialized");
+	if(!Rt::run())
+	{
+		goto release_plugins;
+    }
 
 	Output::sendEvent(status, "Simulation stopped");
 

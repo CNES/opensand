@@ -38,13 +38,14 @@
 #undef DBG_PACKAGE
 #define DBG_PACKAGE PKG_ENCAP
 
-#include "opensand_conf/uti_debug.h"
-
-#include <cassert>
 #include "EncapPlugin.h"
 #include "IpPacket.h"
 #include "Ipv4Packet.h"
 #include "Ipv6Packet.h"
+
+#include <opensand_conf/uti_debug.h>
+
+#include <cassert>
 
 
 /**

@@ -33,6 +33,10 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_DVB_RCS_SAT
+#include <opensand_conf/uti_debug.h>
+
 #include "BlockDvbSat.h"
 
 #include "sat_emulator_err.h"
@@ -40,9 +44,6 @@
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
 
-// Logging configuration
-#define DBG_PACKAGE PKG_DVB_RCS_SAT
-#include <opensand_conf/uti_debug.h>
 #include <opensand_rt/Rt.h>
 
 #include <math.h>
@@ -162,7 +163,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 				{
 					// a problem occured => trace it but
 					// carry on simulation
-					UTI_ERROR("unable to store packet: see log file\n");
+					UTI_ERROR("unable to store packet\n");
 				}
 			}
 

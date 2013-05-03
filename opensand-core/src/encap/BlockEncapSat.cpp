@@ -245,6 +245,7 @@ bool BlockEncapSat::onTimer(event_id_t timer_id)
 	          FUNCNAME, id);
 
 	// remove emission timer from the list
+	this->downward->removeEvent((*it).first);
 	this->timers.erase(it);
 
 	// flush the last encapsulation context

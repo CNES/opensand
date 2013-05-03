@@ -32,11 +32,11 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "bloc_ip_qos.h"
-
-// debug
+// FIXME we need to include uti_debug.h before...
 #define DBG_PACKAGE PKG_QOS_DATA
 #include "opensand_conf/uti_debug.h"
+
+#include "bloc_ip_qos.h"
 
 #include <cstdio>
 
@@ -71,8 +71,8 @@ BlocIPQoS::BlocIPQoS(const string &name, component_t host):
  */
 BlocIPQoS::~BlocIPQoS()
 {
-	// close TUN file descriptor
-	close(this->_tun_fd);
+	// close TUN file descriptor TODO this should be done in event
+//	close(this->_tun_fd);
 
 	// free some ressources of IPQoS block
 	this->terminate();
@@ -98,7 +98,7 @@ bool BlocIPQoS::onInit()
 	}
 
 	// add file descriptor for TUN interface
-	this->downward->addNetSocketEvent("tun", this->_tun_fd);
+	this->downward->addFileEvent("tun", this->_tun_fd, TUNTAP_BUFSIZE + 4);
 
 	UTI_INFO("%s TUN handle with fd %d initialized\n",
 			 FUNCNAME, this->_tun_fd);
@@ -110,9 +110,9 @@ bool BlocIPQoS::onDownwardEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case evt_file:
 			// input data available on TUN handle
-			this->onMsgIpFromUp(event->getFd());
+			this->onMsgIpFromUp((NetSocketEvent *)event);
 			break;
 
 		default:
@@ -296,47 +296,26 @@ quit:
 
 /**
  * Manage an IP packet received from upper layer:
- *  - read data from TUN interface
+ *  - get data from event
  *  - create an IP packet with data
  *
- * @param fd  file descriptor for the TUN device
+ * @param event  The event on TUN interface
  * @return    0 ok, -1 failed, -2 if packet dropped
  */
-int BlocIPQoS::onMsgIpFromUp(int fd)
+int BlocIPQoS::onMsgIpFromUp(NetSocketEvent *const event)
 {
 	const char *FUNCNAME = IPQOS_DBG_PREFIX "[onMsgIpFromUp]";
 	int status = 0;
 
-	unsigned char buf[TUNTAP_BUFSIZE + 4];
-	unsigned char *data;
+	unsigned char data[TUNTAP_BUFSIZE];
 	unsigned int length;
 
 	IpPacket *ip_packet;
 
 	// read IP data received on tun interface
-	length = read(fd, buf, TUNTAP_BUFSIZE);
-	data = buf + 4;
-	length -= 4;
-
-	if(length > TUNTAP_BUFSIZE)
-	{
-		UTI_ERROR("%s Received length from tun: %d greater than %d", FUNCNAME,
-		          length, TUNTAP_BUFSIZE);
-		status = -1;
-		goto drop;
-	}
-	else if(length == 0)
-	{
-		UTI_ERROR("%s 0 size packet", FUNCNAME);
-		status = -1;
-		goto drop;
-	}
-	else if(length < 0)
-	{
-		UTI_ERROR("%s Error in receiving data from TUN", FUNCNAME);
-		status = -1;
-		goto drop;
-	}
+	// we need to memcpy as start pointer is not the same
+	length = event->getSize() - 4;
+	memcpy(data, event->getData() + 4, length);
 
 	if(this->_state != link_up)
 	{

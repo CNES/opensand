@@ -414,6 +414,7 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	          FUNCNAME, id);
 
 	// remove emission timer from the list
+	this->downward->removeEvent((*it).first);
 	this->timers.erase(it);
 
 	// flush the last encapsulation contexts
@@ -612,7 +613,7 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 		}
 
 		// send the message to the upper layer
-		if(this-sendUp((void **)&(*ip_pkt_it)))
+		if(!this->sendUp((void **)&(*ip_pkt_it)))
 		{
 			UTI_ERROR("failed to send message to upper layer\n");
 			delete *ip_pkt_it;

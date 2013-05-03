@@ -51,66 +51,19 @@ class MacFifoElement
 
 	/// 0 if the element contains a DVB frame,
 	/// 1 if the element contains a NetPacket 
-	long _type;
+	long type;
 
 	/// The data to store in the FIFO (if type = 0)
-	unsigned char *_data;
+	unsigned char *data;
 	/// The length of data
-	unsigned int _length;
+	unsigned int length;
 	/// The data to store in the FIFO (if type = 1)
-	NetPacket *_packet;
+	NetPacket *packet;
 
 	/// The arrival time of packet in FIFO (in ms)
-	long _tick_in;
+	long tick_in;
 	/// The minimal time the packet will output the FIFO (in ms)
-	long _tick_out;
-
- public:
-
-// TODO
-#if 0
-#if MEMORY_POOL
-	inline void *operator new(size_t size) throw()
-	{
-		if((int) size > MacFifoElement::mempool._memBlocSize)
-		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
-			       "while only %ld is available", size,
-			       MacFifoElement::mempool._memBlocSize);
-			return NULL;
-		}
-		else
-		{
-			return MacFifoElement::mempool.get("MacFifoElement::new", size);
-		}
-	}
-
-	inline void *operator new[](size_t size) throw()
-	{
-		if((int) size > MacFifoElement::mempool._memBlocSize)
-		{
-			syslog(LOG_ERR, "too much memory asked: %u bytes "
-			       "while only %ld is available", size,
-			       MacFifoElement::mempool._memBlocSize);
-			return NULL;
-		}
-		else
-		{
-			return MacFifoElement::mempool.get("MacFifoElement::new[]", size);
-		}
-	}
-
-	inline void operator delete(void *p) throw()
-	{
-		mempool.release((char *) p);
-	}
-
-	inline void operator delete[](void *p) throw()
-	{
-		mempool.release((char *) p);
-	}
-#endif
-#endif
+	long tick_out;
 
 
  public:
