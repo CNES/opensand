@@ -33,9 +33,12 @@
  *
  */
 
-#include <cstdlib>
 
 #include "RtEvent.h"
+
+#include <opensand_conf/uti_debug.h>
+
+#include <cstdlib>
 
 RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t priority):
 	type(type),
@@ -43,6 +46,7 @@ RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t prio
 	fd(fd),
 	priority(priority)
 {
+	UTI_DEBUG("Create new event \"%s\" of type %d\n", name.c_str(), type);
 	this->setCreationTime();
 }
 

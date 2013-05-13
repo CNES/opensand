@@ -258,6 +258,11 @@ class RtChannel
 	/// fd o the stop signal event
 	int32_t stop_fd;
 
+	/// fd used to write on a pipe that  breaks select when an event is created
+	int32_t w_sel_break;
+	/// fd used in select to break when an event is created
+	int32_t r_sel_break;
+
 	/**
 	 * @brief Add a message  event to the channel
 	 *

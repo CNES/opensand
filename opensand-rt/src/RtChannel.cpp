@@ -60,7 +60,9 @@ RtChannel::RtChannel(Block &bl, chan_type_t chan):
 	chan(chan),
 	fifo(NULL),
 	max_input_fd(-1),
-	stop_fd(-1)
+	stop_fd(-1),
+	w_sel_break(-1),
+	r_sel_break(-1)
 {
 	FD_ZERO(&(this->input_fd_set));
 }
@@ -83,6 +85,8 @@ RtChannel::~RtChannel()
 	{
 		delete this->fifo;
 	}
+	close(this->w_sel_break);
+	close(this->r_sel_break);
 }
 
 bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
@@ -102,9 +106,21 @@ bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
 bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
+	int32_t pipefd[2];
 
 	UTI_DEBUG("[%s]Channel %u: init",
 	          this->block.getName().c_str(), this->chan);
+
+	// pipe used to break select when a new event is received
+	if(pipe(pipefd) != 0)
+	{
+		this->reportError(true,
+		                  "cannot initialize pipe");
+		return false;
+	}
+	this->r_sel_break = pipefd[0];
+	this->w_sel_break = pipefd[1];
+	this->addInputFd(this->r_sel_break);
 
 	// create the signal mask for stop (highest priority)
 	sigemptyset(&signal_mask);
@@ -112,7 +128,7 @@ bool RtChannel::init(void)
 	sigaddset(&signal_mask, SIGQUIT);
 	sigaddset(&signal_mask, SIGTERM);
 	this->stop_fd = this->addSignalEvent("stop", signal_mask, 0);
-
+	
 	// initialize fifo and create associated message
 	if(this->fifo)
 	{
@@ -246,6 +262,14 @@ bool RtChannel::addEvent(RtEvent *event)
 	this->new_events.push_back(event);
 
 	this->addInputFd(event->getFd());
+	// break the select loop
+	if(write(this->w_sel_break,
+	         MAGIC_WORD,
+	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
+	{
+		UTI_ERROR("[%s]Channel %u: failed to break select upon a new "
+		          "event reception\n", this->block.getName().c_str(), this->chan);
+	}
 	
 	return true;
 }
@@ -257,6 +281,8 @@ void RtChannel::updateEvents(void)
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
 	{
+		UTI_DEBUG("[%s]Channel %u: Add new event \"%s\" in list\n",
+		          this->block.getName().c_str(), this->chan, (*iter)->getName().c_str());
 		this->events[(*iter)->getFd()] = *iter;
 	}
 	this->new_events.clear();
@@ -270,6 +296,9 @@ void RtChannel::updateEvents(void)
 		it = this->events.find(*iter);
 		if(it != this->events.end())
 		{
+			UTI_DEBUG("[%s]Channel %u: remove event \"%s\" from list\n",
+			          this->block.getName().c_str(), this->chan,
+			          (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
 			if((*it).first == this->max_input_fd)
@@ -307,7 +336,8 @@ bool RtChannel::startTimer(event_id_t id)
 	it = this->events.find(id);
 	if(it == this->events.end())
 	{
-		UTI_DEBUG("event not found, search in new events");
+		UTI_DEBUG_L3("[%s]Channel %u: event not found, search in new events\n",
+		             this->block.getName().c_str(), this->chan);
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -315,7 +345,8 @@ bool RtChannel::startTimer(event_id_t id)
 		{
 			if(*(*iter) == id)
 			{
-				UTI_DEBUG("event found in new events");
+				UTI_DEBUG_L3("[%s]Channel %u: event found in new events\n",
+				             this->block.getName().c_str(), this->chan);
 				found = true;
 				event = *iter;
 				break;
@@ -329,7 +360,8 @@ bool RtChannel::startTimer(event_id_t id)
 	}
 	else
 	{
-		UTI_DEBUG("Timer found");
+		UTI_DEBUG_L3("[%s]Channel %u: Timer found\n",
+		             this->block.getName().c_str(), this->chan);
 		event = (*it).second;
 	}
 	if(!event)
@@ -371,8 +403,8 @@ void *RtChannel::startThread(void *pthis)
 
 bool RtChannel::processEvent(const RtEvent *const event)
 {
-	UTI_DEBUG("[%s]Channel %u: event received (%s)",
-	          this->block.getName().c_str(), this->chan, event->getName().c_str());
+	UTI_DEBUG_L3("[%s]Channel %u: event received (%s)",
+	             this->block.getName().c_str(), this->chan, event->getName().c_str());
 	return this->block.processEvent(event, this->chan);
 };
 
@@ -394,6 +426,7 @@ void RtChannel::executeThread(void)
 		nfds = this->max_input_fd ;
 
 		// wait for any event
+		// we need a timeout in order to refresh event list
 		number_fd = select(nfds + 1, &current_input_fd_set, NULL, NULL, NULL);
 		if(number_fd < 0)
 		{
@@ -401,8 +434,20 @@ void RtChannel::executeThread(void)
 		}
 		// unfortunately, FD_ISSET is the only usable thing
 		priority_sorted_events.clear();
+		
+		// check for select break
+		if(FD_ISSET(this->r_sel_break, &current_input_fd_set))
+		{
+			unsigned char data[strlen(MAGIC_WORD)];
+			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
+			{
+				UTI_ERROR("[%s]Channel %u: failed to read in pipe",
+				          this->block.getName().c_str(), this->chan);
+			}
+			continue;
+		}
 
-		// for each event, stop
+		// handle each event
 		for(map<event_id_t, RtEvent *>::iterator iter = this->events.begin();
 			iter != this->events.end(); ++iter)
 		{
@@ -451,7 +496,12 @@ void RtChannel::executeThread(void)
 			iter != priority_sorted_events.end(); ++iter)
 		{
 			(*iter)->setCreationTime();
-			this->processEvent(*iter);
+			if(!this->processEvent(*iter))
+			{
+				UTI_ERROR("[%s]Channel %u: failed to process event %s",
+				          this->block.getName().c_str(), this->chan,
+				          (*iter)->getName().c_str());
+			}
 		}
 	}
 }

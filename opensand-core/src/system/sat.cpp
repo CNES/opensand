@@ -179,6 +179,9 @@ int main(int argc, char **argv)
 		goto unload_config;
 	}
 
+	// read all packages debug levels
+	UTI_readDebugLevels();
+
 	// retrieve the type of satellite from configuration
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          satellite_type))

@@ -224,7 +224,7 @@ error:
 bool BlockEncapSat::onTimer(event_id_t timer_id)
 {
 	const char *FUNCNAME = "[BlockEncapSat::onTimer]";
-	std::map <event_id_t, int>::iterator it;
+	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
 
@@ -345,6 +345,7 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 	NetBurst *packets;
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
+	bool status = false;
 
 	// check burst validity
 	if(burst == NULL)
@@ -384,7 +385,9 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 			ostringstream name;
 
 			name << "context_" << (*time_iter).second;
-			timer = this->downward->addTimerEvent(name.str(), (*time_iter).first);
+			timer = this->downward->addTimerEvent(name.str(),
+			                                      (*time_iter).first,
+			                                      false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
 			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
@@ -400,6 +403,7 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 	// create and send message only if at least one packet was created
 	if(packets->size() <= 0)
 	{
+		status = true;
 		goto clean;
 	}
 
@@ -419,5 +423,5 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 clean:
 	delete packets;
 error:
-	return false;
+	return status;
 }

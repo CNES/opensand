@@ -35,6 +35,8 @@
 
 #include "TimerEvent.h"
 
+#include <opensand_conf/uti_debug.h>
+
 #include <sys/timerfd.h>
 #include <unistd.h>
 
@@ -52,6 +54,9 @@ TimerEvent::TimerEvent(const string &name,
 
 	if(this->enabled)
 	{
+		UTI_DEBUG("Timer \"%s\" enabled, start it for the first time "
+		          "(duration = %u ms)\n",
+		          name.c_str(), timer_duration_ms);
 		this->start();
 	}
 }

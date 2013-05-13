@@ -89,6 +89,7 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		case evt_timer:
 		{
 			// timer event, flush corresponding encapsulation context
+			UTI_DEBUG("Timer received %s\n", event->getName().c_str());
 			return this->onTimer(event->getFd());
 		}
 		break;
@@ -396,6 +397,7 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
+	bool status = false;
 
 	UTI_DEBUG("%s emission timer received, flush corresponding emission "
 	          "context\n", FUNCNAME);
@@ -428,7 +430,10 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	UTI_DEBUG("%s %d encapsulation packets flushed\n", FUNCNAME, burst->size());
 
 	if(burst->size() <= 0)
+	{
+		status = true;
 		goto clean;
+	}
 
 	// send the message to the lower layer
 	if(!this->sendDown((void **)&burst, sizeof(burst)))
@@ -444,7 +449,7 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 clean:
 	delete burst;
 error:
-	return false;
+	return status;
 }
 
 bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
@@ -454,6 +459,7 @@ bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
 	string name = packet->getName();
+	bool status = false;
 
 	// check packet validity
 	if(packet == NULL)
@@ -509,7 +515,9 @@ bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 			ostringstream name;
 
 			name << "context_" << (*time_iter).second;
-			timer = this->downward->addTimerEvent(name.str(), (*time_iter).first);
+			timer = this->downward->addTimerEvent(name.str(),
+			                                      (*time_iter).first,
+			                                      false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
 			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
@@ -540,7 +548,10 @@ bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 
 	// if no encapsulation packet was created, avoid sending a message
 	if(burst->size() <= 0)
+	{
+		status = true;
 		goto clean;
+	}
 
 
 	// send the message to the lower layer
@@ -558,7 +569,7 @@ bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 clean:
 	delete burst;
 error:
-	return false;
+	return status;
 }
 
 bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)

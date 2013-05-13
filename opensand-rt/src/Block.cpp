@@ -163,7 +163,7 @@ bool Block::start(void)
 		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
-	UTI_DEBUG("Block %s: upward channel thread id %ld\n",
+	UTI_DEBUG("Block %s: upward channel thread id %lu\n",
 	          this->name.c_str(), this->up_thread_id);
 
 	UTI_DEBUG("Block %s: start downward channel\n", this->name.c_str());
@@ -176,7 +176,7 @@ bool Block::start(void)
 		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
 		return false;
 	}
-	UTI_DEBUG("Block %s: downward channel thread id: %ld\n",
+	UTI_DEBUG("Block %s: downward channel thread id: %lu\n",
 	          this->name.c_str(), this->up_thread_id);
 	return true;
 }

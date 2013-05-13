@@ -79,7 +79,6 @@ bool RtFifo::init()
 
 	if(pipe(pipefd) != 0)
 	{
-		// TODO report error in channel
 		return false;
 	}
 	this->r_sig_pipe = pipefd[0];
@@ -95,7 +94,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	bool status = false;
 	rt_msg_t msg;
 	
-	UTI_DEBUG("push message in fifo\n");
+	UTI_DEBUG_L3("push message in fifo\n");
 
 	if(this->fifo.size() >= this->max_size)
 	{
