@@ -63,7 +63,7 @@ RtFifo::~RtFifo()
 	delete msg.data*/
 
 	pthread_mutex_destroy(&(this->fifo_mutex));
-	pthread_mutex_destroy(&(this->full_mutex));
+	sem_destroy(&(this->full_mutex));
 }
 
 bool RtFifo::init()
@@ -72,7 +72,7 @@ bool RtFifo::init()
 	UTI_DEBUG("Initialize fifo\n");
 
 	if(pthread_mutex_init(&(this->fifo_mutex), NULL) != 0 ||
-	   pthread_mutex_init(&(this->full_mutex), NULL) != 0)
+	   sem_init(&(this->full_mutex), 0, 1) != 0)
 	{
 		return false;
 	}
@@ -100,7 +100,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	{
 		// fifo is full, take mutex that will block until fifo has space
 		// TODO check that this works
-		if(pthread_mutex_lock(&(this->full_mutex)) != 0)
+		if(sem_wait(&(this->full_mutex)) != 0)
 		{
 			Rt::reportError("fifo", pthread_self(), false,
 			                "Failed to lock mutex for FIFO full\n");
@@ -185,7 +185,7 @@ bool RtFifo::pop(rt_msg_t &elem)
 	if(full)
 	{
 		// fifo has empty space, we can unlock it
-		if(pthread_mutex_unlock(&(this->full_mutex)) != 0)
+		if(sem_post(&(this->full_mutex)) != 0)
 		{
 			Rt::reportError("fifo", pthread_self(), false,
 			                "Failed to unlock mutex for FIFO full\n");

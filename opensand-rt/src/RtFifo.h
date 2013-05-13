@@ -41,6 +41,7 @@
 #include <queue>
 #include <stdint.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #define MAGIC_WORD "GO"
 
@@ -116,8 +117,9 @@ class RtFifo
 	/// The mutex on fifo access
 	pthread_mutex_t fifo_mutex;
 	
-	/// The mutex for fifo full
-	pthread_mutex_t full_mutex;
+	/// The mutex for fifo full (we need a semaphore here because it is
+	//  lock and unlocked by different threads
+	sem_t full_mutex;
 
 };
 
