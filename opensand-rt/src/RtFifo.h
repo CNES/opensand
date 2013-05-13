@@ -93,13 +93,6 @@ class RtFifo
 	 */
 	int32_t getSigFd(void) const {return this->r_sig_pipe;};
 
-	/**
-	 * @brief Modify the FIFO size
-	 *
-	 * @param size  The new fifo size
-	 */
-	void resize(size_t size) {this->max_size = size;};
-	
   private:
 
 	/// the queue
@@ -119,7 +112,8 @@ class RtFifo
 	
 	/// The mutex for fifo full (we need a semaphore here because it is
 	//  lock and unlocked by different threads
-	sem_t full_mutex;
+	//  This semaphore is intialized with the fifo size
+	sem_t fifo_size_sem;
 
 };
 

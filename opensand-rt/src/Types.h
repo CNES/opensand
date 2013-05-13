@@ -56,7 +56,7 @@ typedef enum
 
 
 /// the channel direction
-// TODO won't be necessary anymore once everythin will be done in channel
+// TODO won't be necessary anymore once everything will be done in channel
 typedef enum
 {
 	upward_chan,   ///< upward channel

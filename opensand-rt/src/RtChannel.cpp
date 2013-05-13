@@ -525,11 +525,6 @@ void RtChannel::setFifo(RtFifo *fifo)
 	this->fifo = fifo;
 };
 
-void RtChannel::setFifoSize(uint8_t size)
-{
-	this->fifo->resize(size);
-};
-
 void RtChannel::setNextFifo(RtFifo *fifo)
 {
 	this->next_fifo = fifo;

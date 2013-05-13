@@ -209,13 +209,6 @@ class RtChannel
 	void setFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Update the fifo size
-	 *
-	 * @param fifo_size  The new fifo size
-	 */
-	void setFifoSize(uint8_t size);
-
-	/**
 	 * @brief Set the fifo for next channl
 	 *
 	 * @param fifo  The fifo of the next channel
