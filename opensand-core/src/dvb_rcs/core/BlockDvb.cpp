@@ -74,7 +74,7 @@ BlockDvb::BlockDvb(const string &name):
 	receptionStd(NULL)
 {
 	// TODO we need a mutex here because some parameters are used in upward and downward
-//	this->enableChannelMutex();
+	this->enableChannelMutex();
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);

@@ -55,6 +55,8 @@ BlockSatCarrier::BlockSatCarrier(const string &name,
 	ip_addr(specific.ip_addr),
 	interface_name(specific.iface_name)
 {
+	// TODO we need a mutex here because some parameters may be used in upward and downward
+	this->enableChannelMutex();
 }
 
 /**

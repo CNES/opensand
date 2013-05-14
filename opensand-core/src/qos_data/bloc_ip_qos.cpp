@@ -58,7 +58,8 @@ BlocIPQoS::BlocIPQoS(const string &name, component_t host):
 	_satellite_type(),
 	_state(link_down)
 {
-
+	// TODO we need a mutex here because some parameters may be used in upward and downward
+	this->enableChannelMutex();
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_ip_qos:init", LEVEL_ERROR);

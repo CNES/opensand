@@ -67,6 +67,8 @@ BlockEncap::BlockEncap(const string &name, component_t host):
 	tal_id(-1),
 	state(link_down)
 {
+	// TODO we need a mutex here because some parameters may be used in upward and downward
+	this->enableChannelMutex();
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 	
 	if(error_init == NULL)

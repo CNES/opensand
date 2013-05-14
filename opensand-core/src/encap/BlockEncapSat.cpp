@@ -48,6 +48,8 @@ Event *BlockEncapSat::error_init = NULL;
 BlockEncapSat::BlockEncapSat(const string &name):
 	Block(name)
 {
+	// TODO we need a mutex here because some parameters may be used in upward and downward
+	this->enableChannelMutex();
 	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 	
 	if(error_init == NULL)

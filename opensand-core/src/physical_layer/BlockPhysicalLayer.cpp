@@ -56,6 +56,8 @@ BlockPhysicalLayer::BlockPhysicalLayer(const string &name,
 	component_type(component_type)
 {   
 	UTI_DEBUG("Basic DVB physical layer created\n");
+	// TODO we need a mutex here because some parameters may be used in upward and downward
+	this->enableChannelMutex();
 
 	error_init = Output::registerEvent("BlockPhysicalLayer::init", LEVEL_ERROR);
 	init_done = Output::registerEvent("BlockPhysicalLayer::init_done", LEVEL_INFO);
