@@ -280,6 +280,7 @@ RtChannel *Block::getDownwardChannel(void) const
 void Block::enableChannelMutex(void)
 {
 	int ret;
+	
 	ret = pthread_mutex_init(&(this->block_mutex), NULL);
 	if(ret != 0)
 	{

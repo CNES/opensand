@@ -68,9 +68,15 @@ RtFifo::~RtFifo()
 bool RtFifo::init()
 {
 	int32_t pipefd[2];
+	pthread_mutexattr_t mutex_attr;
+
 	UTI_DEBUG("Initialize fifo\n");
 
-	if(pthread_mutex_init(&(this->fifo_mutex), NULL) != 0 ||
+	// use PTHREAD_MUTEX_ERRORCHECK for library validation
+	// TODO replace by fast mutex
+	if(pthread_mutexattr_init(&mutex_attr) != 0 ||
+       pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0 ||
+	   pthread_mutex_init(&(this->fifo_mutex), &mutex_attr) != 0 ||
 	   sem_init(&(this->fifo_size_sem), 0, this->max_size) != 0)
 	{
 		return false;
@@ -101,8 +107,14 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		                "Failed to lock mutex for FIFO full\n");
 		return false;
 	}
-	assert(this->fifo.size() < this->max_size);
-
+	//assert(this->fifo.size() < this->max_size);
+	if(this->fifo.size() >= this->max_size)
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Size is greater than maximum size (%u > %u), "
+		                "this should not happend\n",
+		                this->fifo.size(), this->max_size);
+	}
 
 	// lock mutex on fifo
 	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
@@ -147,6 +159,8 @@ error:
 
 bool RtFifo::pop(rt_msg_t &elem)
 {
+	bool status = true;
+	
 	// lock mutex on fifo
 	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
 	{
@@ -155,18 +169,28 @@ bool RtFifo::pop(rt_msg_t &elem)
 		return false;
 	}
 
-	// get element in queue
-	elem = this->fifo.front();
+	// assert(!this->fifo.empty());
+	if(this->fifo.empty())
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Fifo is already empty, this should not happend\n");
+		status = false;
+	}
+	else
+	{
+		// get element in queue
+		elem = this->fifo.front();
 
-	// remove element from queue
-	this->fifo.pop();
+		// remove element from queue
+		this->fifo.pop();
+	}
 
 	// unlock mutex on fifo
 	if(pthread_mutex_unlock(&(this->fifo_mutex)) != 0)
 	{
 		Rt::reportError("fifo", pthread_self(), false,
 		                "Failed to unlock mutex on FIFO\n");
-		return false;
+		status = false;
 	}
 
 	// fifo has empty space, we can unlock it
@@ -174,9 +198,9 @@ bool RtFifo::pop(rt_msg_t &elem)
 	{
 		Rt::reportError("fifo", pthread_self(), false,
 		                "Failed to unlock mutex for FIFO full\n");
-		return false;
+		status = false;
 	}
-	return true;
+	return status;
 }
 
 
