@@ -47,14 +47,16 @@ class TopBlock: public Block
 
 	TopBlock(const string &name);
 	~TopBlock();
+
+
+  protected:
+
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
-	
-  protected:
 
-    int32_t input_fd;
-    char last_written[MAX_SOCK_SIZE + 1];
+	int32_t input_fd;
+	char last_written[MAX_SOCK_SIZE + 1];
 
 };
 
@@ -65,11 +67,14 @@ class MiddleBlock: public Block
 
 	MiddleBlock(const string &name);
 	~MiddleBlock();
+
+
+  protected:
+
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
-	
-  protected:
+
 
 };
 
@@ -80,13 +85,16 @@ class BottomBlock: public Block
 
 	BottomBlock(const string &name);
 	~BottomBlock();
+
+
+  protected:
+
+
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
-	
-  protected:
 
-    int32_t input_fd;
-    int32_t output_fd;
+	int32_t input_fd;
+	int32_t output_fd;
 
 };

@@ -42,12 +42,16 @@ class TestBlock: public Block
 	TestBlock(const string &name);
 
 	~TestBlock();
+
+
+  protected:
+
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
-  protected:
 
+  private:
 	// for upward
 	uint32_t nbr_timeouts;
 	int32_t output_fd;

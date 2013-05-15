@@ -53,8 +53,13 @@ using std::queue;
  */
 class RtFifo
 {
-  public:
-  
+  protected:
+
+	friend class RtChannel;
+	friend class MessageEvent;
+	friend class BlockManager;
+
+
 	/**
 	 * @brief Fifo constructor
 	 *

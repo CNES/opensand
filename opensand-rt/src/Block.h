@@ -67,7 +67,6 @@ class Block
 
   public:
 
-
 	/**
 	 * @brief Block constructor
 	 *
@@ -78,6 +77,38 @@ class Block
 
 	virtual ~Block();
 
+	/**
+	 * @class Upward channel
+	 *        With this class we are able to define Upward channel
+	 *        functions in Block
+	 */
+	class Upward: public RtChannel
+	{
+	  public:
+		Upward(Block &bl):
+			RtChannel(bl, upward_chan)
+		{};
+
+		virtual ~Upward() {};
+	};
+
+	/**
+	 * @class Downward channel
+	 *        With this class we are able to define Upward channel
+	 *        functions in Block
+	 */
+	class Downward: public RtChannel
+	{
+	  public:
+		Downward(Block &bl):
+			RtChannel(bl, downward_chan)
+		{};
+
+		virtual ~Downward() {};
+	};
+
+
+  protected:
 
 	/**
 	 * @brief Initialize the block
@@ -88,7 +119,6 @@ class Block
 	 * @return true on success, false otherwise
 	 */
 	virtual bool onInit(void) = 0;
-
 
 	// TODO remove following functions once channels will be correctly
 	//      separated
@@ -146,39 +176,6 @@ class Block
 	string getName(void) const {return this->name;};
 
 	/**
-	 * @class Upward channel
-	 *        With this class we are able to define Upward channel
-	 *        functions in Block
-	 */
-	class Upward: public RtChannel
-	{
-	  public:
-		Upward(Block &bl):
-			RtChannel(bl, upward_chan)
-		{};
-
-		virtual ~Upward() {};
-	};
-
-	/**
-	 * @class Downward channel
-	 *        With this class we are able to define Upward channel
-	 *        functions in Block
-	 */
-	class Downward: public RtChannel
-	{
-	  public:
-		Downward(Block &bl):
-			RtChannel(bl, downward_chan)
-		{};
-
-		virtual ~Downward() {};
-	};
-
-
-  protected:
-
-	/**
 	 * @brief Check whether the block is initialized
 	 *
 	 * @return true if the block is initialized, false otherwise
@@ -205,7 +202,7 @@ class Block
 	 *
 	 * @return true on success, false otherwise
 	 */
-    bool start(void);
+	bool start(void);
 
 	/*
 	 * @brief Stop the channel threads and call block destructor
@@ -223,7 +220,7 @@ class Block
 	 * @return true on success, false otherwise
 	 */
 	// TODO remove once onEvent will be in channel
-	 bool processEvent(const RtEvent *const event, chan_type_t chan);
+	bool processEvent(const RtEvent *const event, chan_type_t chan);
 
 	/**
 	 * @brief Get the current timeval
@@ -256,13 +253,15 @@ class Block
 	/// The downward channel
 	RtChannel *downward;
 
+	/// The name of the block
+	const string name;
+
+  private:
+
 	/// The upward channel thread
 	pthread_t up_thread_id;
 	/// The downward channel thread
 	pthread_t down_thread_id;
-
-	/// The name of the block
-	const string name;
 
 	/// Whether the block is initialized
 	bool initialized;

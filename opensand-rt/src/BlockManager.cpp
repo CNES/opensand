@@ -97,6 +97,12 @@ bool BlockManager::init(void)
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{
+		if((*iter)->isInitialized())
+		{
+			UTI_INFO("Block %s already initialized...",
+			         (*iter)->getName().c_str());
+			continue;
+		}
 		if(!(*iter)->init())
 		{
 			// only return false, the block init function should call
@@ -107,6 +113,11 @@ bool BlockManager::init(void)
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{
+		if((*iter)->isInitialized())
+		{
+			UTI_INFO("Block %s already initialized...",
+			         (*iter)->getName().c_str());
+		}
 		if(!(*iter)->initSpecific())
 		{
 			// only return false, the block initSpecific function should call

@@ -83,9 +83,6 @@ class RtChannel
 	 */
 	RtChannel(Block &bl, chan_type_t chan);
 
-
-  public:
-
 	virtual ~RtChannel();
 
 	/**
@@ -98,6 +95,9 @@ class RtChannel
 	 * @return true on success, false otherwise
 	 */
 	virtual bool onInit(void) {return true;};
+
+
+  public:
 
 	/**
 	 * @brief Add a timer event to the channel
@@ -178,8 +178,6 @@ class RtChannel
 	 */
 	bool startTimer(event_id_t id);
 
-  protected:
-
 	/**
 	 * @brief Add a message in the next channel queue
 	 * @warning The message shall not be reused in the channel after this call
@@ -192,6 +190,10 @@ class RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool enqueueMessage(void **data, size_t size, uint8_t type = 0);
+
+
+
+  protected:
 
 	/**
 	 * @brief Internal channel initialization
