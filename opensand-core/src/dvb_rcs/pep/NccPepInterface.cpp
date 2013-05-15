@@ -50,9 +50,6 @@
 #include <sstream>
 
 
-/** The size of the receive buffer */
-#define RCVBUFSIZE 200
-
 
 /* static */
 Event* NccPepInterface::error_sock_open = NULL;
@@ -288,7 +285,7 @@ int NccPepInterface::acceptPepConnection()
 
 	// wait for a client to connect (this should not block because the
 	// function is called only when there is an event on the listen socket)
-        this->socket_client = accept(this->socket_listen,
+	this->socket_client = accept(this->socket_listen,
 	                             (struct sockaddr *) &pep_addr,
 	                             &addr_length);
 	if(this->socket_client < 0)
@@ -323,16 +320,9 @@ error:
 }
 
 
-/**
- * @brief Read a set of commands sent by the connected PEP component
- *
- * @return              the status of the action:
- *                      \li true if command is read and parsed successfully
- *                      \li false if a problem is encountered
- */
-bool NccPepInterface::readPepMessage()
+bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 {
-	char recv_buffer[RCVBUFSIZE];
+	char *recv_buffer;
 	int recv_msg_size;
 
 	// a PEP must be connected to read a message from it!
@@ -343,33 +333,8 @@ bool NccPepInterface::readPepMessage()
 		goto error;
 	}
 
-	// receive message from the connected PEP
-	recv_msg_size = recv(this->socket_client, recv_buffer,
-	                     RCVBUFSIZE - 1, 0);
-	if(recv_msg_size < 0)
-	{
-		// read failure
-		UTI_ERROR("failed to receive data on PEP socket: "
-		          "%s (%d)\n", strerror(errno), errno);
-		goto close;
-	}
-	else if(recv_msg_size == 0)
-	{
-		// empty message
-		UTI_ERROR("no data received from PEP, is the PEP "
-		          "in trouble ?\n");
-		goto close;
-	}
-	else if(recv_msg_size >= RCVBUFSIZE)
-	{
-		// message too large
-		UTI_ERROR("too much data received on PEP socket (%d bytes)\n",
-		          recv_msg_size);
-		goto close;
-	}
-
-	// terminate the string before parsing it
-	recv_buffer[recv_msg_size] = '\0';
+	recv_buffer = (char *)(event->getData());
+	recv_msg_size = event->getSize();
 
 	// parse message received from PEP
 	if(this->parsePepMessage(recv_buffer) != true)
@@ -384,7 +349,8 @@ bool NccPepInterface::readPepMessage()
 close:
 	UTI_ERROR("close PEP client socket because of previous errors\n");
 	this->is_connected = false;
-	close(this->socket_client);
+	// TODO this should be done when removing event
+//	close(this->socket_client);
 error:
 	return false;
 }

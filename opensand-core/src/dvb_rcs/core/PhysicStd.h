@@ -41,7 +41,7 @@
 #include <fstream>
 #include <queue>
 
-#include "dvb_fifo.h"
+#include "DvbFifo.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
 #include "EncapPlugin.h"
@@ -126,7 +126,7 @@ class PhysicStd
 	 * @return              0 if succeed -1 otherwise
 	 */
 	virtual int onRcvEncapPacket(NetPacket *packet,
-	                             dvb_fifo *fifo,
+	                             DvbFifo *fifo,
 	                             long current_time,
 	                             int fifo_delay);
 
@@ -158,7 +158,7 @@ class PhysicStd
 	 * @param complete_dvb_frames       the list of completed DVB frames
 	 * @return                          0 if successful, -1 otherwise
 	 */
-	virtual int scheduleEncapPackets(dvb_fifo *fifo,
+	virtual int scheduleEncapPackets(DvbFifo *fifo,
 	                                 long current_time,
 	                                 std::list<DvbFrame *> *complete_dvb_frames) = 0;
 
@@ -178,7 +178,7 @@ class PhysicStd
 	 *                      the MAC FIFO (used on SAT to emulate delay)
 	 * @return              0 if successful, -1 otherwise
 	 */
-	virtual int onForwardFrame(dvb_fifo *data_fifo,
+	virtual int onForwardFrame(DvbFifo *data_fifo,
 	                           unsigned char *frame,
 	                           unsigned int length,
 	                           long current_time,

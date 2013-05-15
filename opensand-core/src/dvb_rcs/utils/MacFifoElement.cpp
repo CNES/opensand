@@ -37,29 +37,27 @@
 #define DBG_PACKAGE PKG_DEFAULT
 #include "opensand_conf/uti_debug.h"
 
-// Be careful, the maximum FIFO size sum should be smaller than the number of elements
-// in the memory pool (it is the worst case)
-// TODO configuration parameter for that or compute it with FIFO sizes
-mgl_memory_pool MacFifoElement::mempool(sizeof(MacFifoElement), 100000,  "fifo_element");
-
 
 MacFifoElement::MacFifoElement(unsigned char *data, unsigned int length,
-                               long tick_in, long tick_out)
+                               long tick_in, long tick_out):
+	type(0),
+	data(data),
+	length(length),
+	packet(NULL),
+	tick_in(tick_in),
+	tick_out(tick_out)
 {
-	this->_type = 0;
-	this->_data = data;
-	this->_length = length;
-	this->_tick_in = tick_in;
-	this->_tick_out = tick_out;
 }
 
 MacFifoElement::MacFifoElement(NetPacket *packet,
-                               long tick_in, long tick_out)
+                               long tick_in, long tick_out):
+	type(1),
+	data(NULL),
+	length(0),
+	packet(packet),
+	tick_in(tick_in),
+	tick_out(tick_out)
 {
-	this->_type = 1;
-	this->_packet = packet;
-	this->_tick_in = tick_in;
-	this->_tick_out = tick_out;
 }
 
 
@@ -67,43 +65,37 @@ MacFifoElement::~MacFifoElement()
 {
 }
 
-void MacFifoElement::addTrace(std::string name_function)
-{
-	mempool.add_function(name_function, (char *) this);
-}
-
-
 unsigned char *MacFifoElement::getData()
 {
-	return this->_data;
+	return this->data;
 }
 
 unsigned int MacFifoElement::getDataLength()
 {
-	return this->_length;
+	return this->length;
 }
 
 void MacFifoElement::setPacket(NetPacket *packet)
 {
-	this->_packet = packet;
+	this->packet = packet;
 }
 
 NetPacket *MacFifoElement::getPacket()
 {
-	return this->_packet;
+	return this->packet;
 }
 
 long MacFifoElement::getType()
 {
-	return this->_type;
+	return this->type;
 }
 
 long MacFifoElement::getTickIn()
 {
-	return this->_tick_in;
+	return this->tick_in;
 }
 
 long MacFifoElement::getTickOut()
 {
-	return this->_tick_out;
+	return this->tick_out;
 }

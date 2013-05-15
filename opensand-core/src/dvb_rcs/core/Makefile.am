@@ -10,10 +10,10 @@ libopensand_dvb_core_la_cpp = \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
 	DvbS2Std.cpp \
-	bloc_dvb.cpp \
-	bloc_dvb_rcs_sat.cpp \
-	bloc_dvb_rcs_ncc.cpp \
-	bloc_dvb_rcs_tal.cpp
+	BlockDvb.cpp \
+	BlockDvbSat.cpp \
+	BlockDvbNcc.cpp \
+	BlockDvbTal.cpp
 
 libopensand_dvb_core_la_h = \
 	DvbFrame.h \
@@ -25,10 +25,10 @@ libopensand_dvb_core_la_h = \
 	PhysicStd.h \
 	DvbRcsStd.h \
 	DvbS2Std.h \
-	bloc_dvb.h \
-	bloc_dvb_rcs_sat.h \
-	bloc_dvb_rcs_ncc.h \
-	bloc_dvb_rcs_tal.h
+	BlockDvb.h \
+	BlockDvbSat.h \
+	BlockDvbNcc.h \
+	BlockDvbTal.h
 
 libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \

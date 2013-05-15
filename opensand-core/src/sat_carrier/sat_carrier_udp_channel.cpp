@@ -31,12 +31,17 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include <stdlib.h>
-
+// FIXME we need to include uti_debug.h before...
 #define DBG_PACKAGE PKG_SAT_CARRIER
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
 #include "sat_carrier_udp_channel.h"
+
+#include <stdlib.h>
+#include <strings.h>
+#include <cstring>
+#include <arpa/inet.h>
+#include <errno.h>
 
 
 /**
@@ -156,7 +161,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		{
 			if(inet_aton(ip_addr.c_str(), &this->m_socketAddr.sin_addr) < 0)
 			{
-				perror("inet_aton");
+				UTI_ERROR("error with inet_aton: %s", strerror(errno));
 				goto error;
 			}
 
@@ -231,40 +236,36 @@ int sat_carrier_udp_channel::getChannelFd()
 }
 
 /**
- * Blocking receive function.
+ * @brief Get the message in NetSocketEvent
+ *
+ * @param event    The NetSocketEvent on fd
  * @param buf      pointer to a char buffer
  * @param data_len length of the received data
- * @param max_len  length of the buffer
- * @param timeout  maximum amount of time to wait for data (in ms)
  * @return         0 on success, 1 if the function should be
  *                 called another time, -1 on error
  */
-int sat_carrier_udp_channel::receive(unsigned char *buf, unsigned int *data_len,
-                                     unsigned int max_len, long timeout)
+int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
+                                     unsigned char **buf, size_t &data_len)
 {
-	const char FUNCNAME[] = "[sat_carrier_udp_channel::receive]";
-	int read_len;
 	struct sockaddr_in remote_addr;
-	socklen_t remote_addr_len = sizeof(struct sockaddr_in);
 	ip_to_counter_map::iterator it;
 	std::string ip_address;
 	uint8_t nb_sequencing;
 	uint8_t current_sequencing;
-
-	*data_len = 0;
+	unsigned char *data;
 
 	if(this->send_stack && this->stack_len > 0)
 	{
 		UTI_DEBUG("transmit the content of stack\n");
-		memcpy(buf, this->stack, this->stack_len);
-		*data_len = this->stack_len;
+		*buf = this->stack;
+		data_len = this->stack_len;
 		this->stack_len = 0;
 		this->send_stack = false;
 		goto ignore;
 	}
 
-	UTI_DEBUG("%s try to receive a packet from satellite channel %d\n",
-	          FUNCNAME, this->getChannelID());
+	UTI_DEBUG("try to receive a packet from satellite channel %d\n",
+	          this->getChannelID());
 
 	// the channel file descriptor must be valid
 	if(this->getChannelFd() < 0)
@@ -281,27 +282,19 @@ int sat_carrier_udp_channel::receive(unsigned char *buf, unsigned int *data_len,
 		goto ignore;
 	}
 
-	// retrieve UDP datagramm
-	read_len = recvfrom(this->sock_channel, this->recv_buffer,
-	                    sizeof(this->recv_buffer), 0,
-	                    (struct sockaddr *) &remote_addr, &remote_addr_len);
-	if(read_len == -1)
-	{
-		UTI_ERROR("failed to receive UDP data: %s (%d)\n",
-		          strerror(errno), errno);
-		goto error;
-	}
-	else if(read_len <= 1)
-	{
-		UTI_ERROR("too few data received (%d bytes) on UDP channel\n", read_len);
-		goto error;
-	}
+	// we need to memcpy as the start pointer cannot be reused
+	data_len = event->getSize() - 1;
+	*buf = (unsigned char *)malloc(data_len * sizeof(unsigned char));
+	data = event->getData();
+	memcpy(*buf, data + 1, data_len);
+	remote_addr = event->getSrcAddr();
 
 	// get the IP address of the sender
 	ip_address = inet_ntoa(remote_addr.sin_addr);
 
 	// check the sequencing of the datagramm
-	nb_sequencing = this->recv_buffer[0];
+	nb_sequencing = data[0];
+	free(data);
 	it = this->counterMap.find(ip_address);
 	if(it == this->counterMap.end())
 	{
@@ -335,10 +328,12 @@ int sat_carrier_udp_channel::receive(unsigned char *buf, unsigned int *data_len,
 				          "keep the current datagram in buffer "
 				          "(counter is %u)\n", this->getChannelID(),
 				          it->second);
-				memcpy(this->stack, this->recv_buffer + 1, read_len - 1);
-				this->stack_len = read_len - 1;
+				this->stack = *buf;
+				this->stack_len = data_len;
 				this->stack_sequ = nb_sequencing;
 				--(it->second) % 256;
+				*buf = NULL;
+				data_len = 0;
 				goto ignore;
 			}
 			else
@@ -356,15 +351,6 @@ int sat_carrier_udp_channel::receive(unsigned char *buf, unsigned int *data_len,
 	}
 
 	ip_address.clear();
-	*data_len = read_len - 1;
-	if(*data_len > max_len)
-	{
-		UTI_ERROR("received packet (%d bytes) too large for buffer "
-		          "(%d bytes)\n", *data_len, max_len);
-		goto error;
-	}
-	memcpy(buf, this->recv_buffer + 1, *data_len);
-
 	if(this->stack_len > 0 && (it->second + 1) % 256 == this->stack_sequ)
 	{
 		++(it->second) % 256;

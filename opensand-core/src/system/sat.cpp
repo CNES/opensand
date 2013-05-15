@@ -30,6 +30,7 @@
  * @file sat.cpp
  * @brief satellite emulator process
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  *
  * SE uses the following stack of mgl blocs installed over 1 NIC:
  *
@@ -39,7 +40,7 @@
  *                |   |
  *            Encap/Desencap
  *                |   |
- *             Dvb Rcs Sat
+ *               Dvb Sat
  *                |   |
  *           Sat Carrier Eth
  *                |   |
@@ -50,35 +51,23 @@
  *
  */
 
-// System includes
+
+#include "BlockEncapSat.h"
+#include "BlockDvbSat.h"
+#include "BlockSatCarrier.h"
+#include "BlockPhysicalLayer.h"
+#include "Plugin.h"
+
+#include <opensand_conf/conf.h>
+#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
-
-// Scheduling policy
 #include <sched.h>
 
-// Margouilla includes
-#include "opensand_margouilla/mgl_eventmgr.h"
-#include "opensand_margouilla/mgl_bloc.h"
-#include "opensand_margouilla/mgl_blocmgr.h"
-
-// Project includes
-#include "opensand_conf/conf.h"
-#include "opensand_conf/uti_debug.h"
-
-#include "bloc_encap_sat.h"
-#include "bloc_dvb_rcs_sat.h"
-#include "bloc_sat_carrier.h"
-#include "BlocPhysicalLayer.h"
-#include "PluginUtils.h"
-
-// output include
-#include "opensand_output/Output.h"
-
-
-/// global variable saying whether the satellite component is alive or not
-bool alive = true;
 
 
 /**
@@ -145,42 +134,28 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 }
 
 
-void sigendHandler(int sig)
-{
-	UTI_PRINT(LOG_INFO, "Signal %d received, terminate the process\n", sig);
-	alive = false;
-}
-
-
 int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
 	struct sched_param param;
-	bool is_init = false;
 	bool with_phy_layer = false;
 	string ip_addr;
 	string iface_name;
-
-	mgl_eventmgr *eventmgr;
-	mgl_blocmgr *blocmgr;
+	struct sc_specific specific;
 
 	std::string satellite_type;
 
-	BlocDVBRcsSat *blocDVBRcsSat;
-	BlocEncapSat *blocEncapSat;
-    BlocPhysicalLayer *blocPhysicalLayer;
-	BlocSatCarrier *blocSatCarrier;
-	PluginUtils utils;
+	Block *block_encap;
+	Block *block_dvb;
+	Block *block_phy_layer;
+	Block *up_sat_carrier;
+	Block *block_sat_carrier;
 	vector<string> conf_files;
 
 	int is_failure = 1;
 
 	Event *status = NULL;
 	Event *failure = NULL;
-
-	// catch TERM and INT signals
-	signal(SIGTERM, sigendHandler);
-	signal(SIGINT, sigendHandler);
 
 	// retrieve arguments on command line
 	if(init_process(argc, argv, ip_addr, iface_name) == false)
@@ -228,109 +203,84 @@ int main(int argc, char **argv)
 	UTI_PRINT(LOG_INFO, "%s: physical layer is %s\n",
 	          progname, with_phy_layer ? "enabled" : "disabled");
 
-	// instantiate event manager
-	eventmgr = new mgl_eventmgr(realTime);
-	if(eventmgr == NULL)
+	// load the plugins
+	if(!Plugin::loadPlugins(with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot create the event manager\n", progname);
+		UTI_ERROR("%s: cannot load the plugins\n", progname);
 		goto unload_config;
 	}
 
-	// instantiate bloc manager
-	blocmgr = new mgl_blocmgr();
-	if(blocmgr == NULL)
-	{
-		UTI_ERROR("%s: cannot create the bloc manager\n", progname);
-		goto destroy_eventmgr;
-	}
-
-	MGL_TRACE_SET_LEVEL(0); // set mgl runtime debug level
-	blocmgr->setEventMgr(eventmgr);
-
-	// load the plugins
-	if(!utils.loadPlugins(with_phy_layer))
-	{
-		UTI_ERROR("%s: cannot load the plugins\n", progname);
-		goto destroy_blocmgr;
-	}
-
+	block_encap = NULL;
 	// instantiate all blocs
-
-	blocDVBRcsSat = new BlocDVBRcsSat(blocmgr, 0, "DVBRcsSat",
-	                                  utils);
-	if(blocDVBRcsSat == NULL)
+	if(satellite_type == REGENERATIVE_SATELLITE)
 	{
-		UTI_ERROR("%s: cannot create the DVBRcsSat bloc\n", progname);
+		block_encap = Rt::createBlock<BlockEncapSat,
+		                              BlockEncapSat::Upward,
+		                              BlockEncapSat::Downward>("Encap");
+		if(!block_encap)
+		{
+			UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
+			goto release_plugins;
+		}
+	}
+
+	block_dvb = Rt::createBlock<BlockDvbSat,
+	                            BlockDvbSat::Upward,
+	                            BlockDvbSat::Downward>("DvbSat", block_encap);
+	if(!block_dvb)
+	{
+		UTI_ERROR("%s: cannot create the DvbSat bloc\n", progname);
 		goto release_plugins;
 	}
 
-	if(satellite_type == REGENERATIVE_SATELLITE)
+	up_sat_carrier = block_dvb;
+	if(with_phy_layer)
 	{
-		blocEncapSat = new BlocEncapSat(blocmgr, 0, "EncapSat",
-		                                utils);
-		if(blocEncapSat == NULL)
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayerSat,
+		                                  BlockPhysicalLayerSat::PhyUpward,
+		                                  BlockPhysicalLayerSat::PhyDownward>("PhysicalLayer",
+		                                                                      block_dvb);
+		if(block_phy_layer == NULL)
 		{
-			UTI_ERROR("%s: cannot create the EncapSat bloc\n", progname);
+			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
 			goto release_plugins;
 		}
-
-		blocEncapSat->setLowerLayer(blocDVBRcsSat->getId());
-		blocDVBRcsSat->setUpperLayer(blocEncapSat->getId());
+		up_sat_carrier = block_phy_layer;
 	}
 
-	blocSatCarrier = new BlocSatCarrier(blocmgr, 0, "SatCarrier",
-	                                    satellite, ip_addr, iface_name);
-	if(blocSatCarrier == NULL)
+	specific.ip_addr = ip_addr;
+	specific.iface_name = iface_name;
+	block_sat_carrier = Rt::createBlock<BlockSatCarrierSat,
+	                                    BlockSatCarrierSat::Upward,
+	                                    BlockSatCarrierSat::Downward,
+	                                    struct sc_specific>("SatCarrier",
+	                                                        up_sat_carrier,
+	                                                        specific);
+	if(!block_sat_carrier)
 	{
 		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
 		goto release_plugins;
 	}
 
-	if(with_phy_layer)
-	{
-		blocPhysicalLayer = new BlocPhysicalLayer(blocmgr, 0,
-		                                          "PhysicalLayer",
-		                                          satellite,
-		                                          utils);
-		if(blocPhysicalLayer == NULL)
-		{
-			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
-			goto release_plugins;
-		}
-
-		blocDVBRcsSat->setLowerLayer(blocPhysicalLayer->getId());
-		blocPhysicalLayer->setUpperLayer(blocDVBRcsSat->getId());
-
-		blocPhysicalLayer->setLowerLayer(blocSatCarrier->getId());
-		blocSatCarrier->setUpperLayer(blocPhysicalLayer->getId());
-	}
-	else
-	{
-		blocDVBRcsSat->setLowerLayer(blocSatCarrier->getId());
-		blocSatCarrier->setUpperLayer(blocDVBRcsSat->getId());
-	}
-
 	// make the SAT alive
-	while(alive)
+	if(!Rt::init())
 	{
-		blocmgr->process_step();
-		if(!is_init && blocmgr->isRunning())
-		{
-			// finish output init, sent the initial event
-			failure = Output::registerEvent("failure", LEVEL_ERROR);
-			status = Output::registerEvent("status", LEVEL_INFO);
-			if(!Output::finishInit())
-			{
-				UTI_PRINT(LOG_INFO,
-				          "%s: failed to init the output => disable it\n",
-				         progname);
-			}
-
-			Output::sendEvent(status, "Simulation started");
-			is_init = true;
-		}
-
+		goto release_plugins;
+    }
+	failure = Output::registerEvent("failure", LEVEL_ERROR);
+	status = Output::registerEvent("status", LEVEL_INFO);
+	if(!Output::finishInit())
+	{
+		UTI_PRINT(LOG_INFO,
+		          "%s: failed to init the output => disable it\n",
+		         progname);
 	}
+
+	Output::sendEvent(status, "Blocks initialized");
+	if(!Rt::run())
+	{
+		goto release_plugins;
+    }
 
 	Output::sendEvent(status, "Simulation stopped");
 
@@ -339,11 +289,7 @@ int main(int argc, char **argv)
 
 	// cleanup when SAT stops
 release_plugins:
-	utils.releasePlugins();
-destroy_blocmgr:
-	delete blocmgr; /* destroy the bloc manager and all the blocs */
-destroy_eventmgr:
-	delete eventmgr;
+	Plugin::releasePlugins();
 unload_config:
 	if(is_failure)
 	{

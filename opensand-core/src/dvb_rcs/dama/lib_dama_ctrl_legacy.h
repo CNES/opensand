@@ -38,7 +38,7 @@
 #define LIB_DAMA_CTRL_Legacy_H
 
 #include "lib_dama_ctrl.h"
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 
 
 /**

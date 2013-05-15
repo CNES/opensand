@@ -35,20 +35,20 @@
 #ifndef LIB_DAMA_CTRL_H
 #define LIB_DAMA_CTRL_H
 
-#include <stdio.h>
-#include <math.h>
-
-#include <map>
-#include <vector>
 
 #include "lib_dvb_rcs.h"
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 #include "lib_dama_ctrl_st.h"
 #include "PepRequest.h"
 #include "DraSchemeDefinitionTable.h"
 
-#include "opensand_conf/conf.h"
-#include "opensand_output/Output.h"
+#include <opensand_output/Output.h>
+
+#include <stdio.h>
+#include <math.h>
+#include <map>
+#include <vector>
+
 
 /**
  * Describe a station identificator
@@ -145,7 +145,7 @@ class DvbRcsDamaCtrl
 	// Process DVB frames
 	virtual int hereIsLogonReq(unsigned char *ip_buf, long i_len, int dra_id);
 	virtual int hereIsLogoff(unsigned char *ip_buf, long i_len);
-	virtual int hereIsCR(unsigned char *ip_buf, long i_len, int dra_id);
+	virtual bool hereIsCR(const CapacityRequest *capacity);
 	virtual int hereIsSACT(unsigned char *ip_buf, long i_len);
 	virtual int runOnSuperFrameChange(long i_frame);
 

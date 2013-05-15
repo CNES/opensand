@@ -37,7 +37,6 @@
 
 #include <list>
 
-#include "opensand_margouilla/mgl_memorypool.h"
 
 #include <IpAddress.h>
 
@@ -60,7 +59,6 @@ class SarpTable: public std::list< sarpEntry * >
 {
  private:
 
-	mgl_memory_pool memory_pool; ///< memory pool for table entries
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
 
  public:

@@ -1,13 +1,13 @@
 noinst_LTLIBRARIES = libopensand_satcarrier.la
 
 libopensand_satcarrier_la_cpp = \
-	bloc_sat_carrier.cpp \
+	BlockSatCarrier.cpp \
 	sat_carrier_channel.cpp \
 	sat_carrier_channel_set.cpp \
 	sat_carrier_udp_channel.cpp
 
 libopensand_satcarrier_la_h = \
-	bloc_sat_carrier.h \
+	BlockSatCarrier.h \
 	sat_carrier_channel.h \
 	sat_carrier_channel_set.h \
 	sat_carrier_udp_channel.h

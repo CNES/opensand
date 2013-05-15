@@ -63,7 +63,7 @@ std::string PhysicStd::type()
 
 
 int PhysicStd::onRcvEncapPacket(NetPacket *packet,
-                                dvb_fifo *fifo,
+                                DvbFifo *fifo,
                                 long current_time,
                                 int fifo_delay)
 {
@@ -79,7 +79,7 @@ int PhysicStd::onRcvEncapPacket(NetPacket *packet,
 
 	// append the new satellite cell in the ST FIFO of the appropriate
 	// satellite spot
-	if(fifo->append(elem) < 0)
+	if(!fifo->push(elem))
 	{
 		UTI_ERROR("FIFO is full: drop packet\n");
 		goto release_elem;
@@ -99,7 +99,7 @@ error:
 	return -1;
 }
 
-int PhysicStd::onForwardFrame(dvb_fifo *data_fifo,
+int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
                               unsigned char *frame,
                               unsigned int length,
                               long current_time,
@@ -124,7 +124,7 @@ int PhysicStd::onForwardFrame(dvb_fifo *data_fifo,
 	}
 
 	// fill the delayed queue
-	if(data_fifo->append(elem) < 0)
+	if(!data_fifo->push(elem))
 	{
 		UTI_ERROR("fifo full, drop the DVB frame\n");
 		goto release_elem;
@@ -139,7 +139,7 @@ int PhysicStd::onForwardFrame(dvb_fifo *data_fifo,
 release_elem:
 	delete elem;
 error:
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return -1;
 }
 

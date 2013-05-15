@@ -1,13 +1,15 @@
 noinst_LTLIBRARIES = libopensand_dvb_utils.la
 
 libopensand_dvb_utils_la_cpp = \
-	dvb_fifo.cpp \
+	CapacityRequest.cpp \
+	DvbFifo.cpp \
 	MacFifoElement.cpp \
 	sat_emulator_err.cpp \
 	lib_dvb_rcs.cpp
      
 libopensand_dvb_utils_la_h = \
-	dvb_fifo.h \
+	CapacityRequest.h \
+	DvbFifo.h \
 	ModulationType.h \
 	MacFifoElement.h \
 	sat_emulator_err.h \

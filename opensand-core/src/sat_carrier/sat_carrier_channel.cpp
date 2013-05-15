@@ -31,10 +31,15 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+// FIXME we need to include uti_debug.h before...
 #define DBG_PACKAGE PKG_SAT_CARRIER
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
 #include "sat_carrier_channel.h"
+
+#include <netinet/in.h>
+#include <cstring>
+
 
 /**
  * Constructor

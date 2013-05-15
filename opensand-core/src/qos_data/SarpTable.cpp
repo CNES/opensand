@@ -42,9 +42,6 @@
 SarpTable::SarpTable(unsigned int max_entries): std::list < sarpEntry * >()
 {
 	this->setMaxEntries(max_entries);
-
-	this->memory_pool.allocate(sizeof(sarpEntry), this->max_entries);
-	this->memory_pool.setName("sarp_entry");
 }
 
 SarpTable::~SarpTable()
@@ -55,7 +52,7 @@ SarpTable::~SarpTable()
 	{
 		if((*it)->ip != NULL)
 			delete (*it)->ip;
-		this->memory_pool.release((char *) (*it));
+		delete *it;
 	}
 }
 
@@ -82,7 +79,7 @@ bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
 	}
 
 	// get memory for a new entry
-	entry = (sarpEntry *) this->memory_pool.get();
+	entry = new sarpEntry();
 	if(!entry)
 	{
 		// no more memory in the pool

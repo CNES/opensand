@@ -31,18 +31,20 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+// FIXME we need to include uti_debug.h before...
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+
+
+#include "lib_dvb_rcs.h"
+#include "lib_dama_ctrl_uor.h"
 
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <limits.h>
 #include <stdio.h>
-#include "lib_dvb_rcs.h"
-#include "lib_dama_ctrl_uor.h"
 
-
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
 
 #define DC_DBG_PREFIX "[UOR]"
 #define ATM_CELL 53.0
@@ -258,7 +260,7 @@ bool DvbRcsDamaCtrlUoR::InitTBTP()
  * @brief Init the map of the number of TS to be allocated bases on type param
  *
  * @param tsAll   the remaining capacity in slot per frame to be alloccated
- * @param type    DVB_CR_TYPE_RBDC, DVB_CR_TYPE_VBDC or DVB_CR_TYPE_FCA
+ * @param type    cr_rbdc, cr_vbdc or DVB_CR_TYPE_FCA
  */
 void DvbRcsDamaCtrlUoR::InitTsAll(map_tsAllocation& tsAll,int type)
 {
@@ -273,18 +275,18 @@ void DvbRcsDamaCtrlUoR::InitTsAll(map_tsAllocation& tsAll,int type)
 
 		switch(type)
 		{
-			case DVB_CR_TYPE_RBDC :
+			case cr_rbdc :
 				stationID[i] = st->first;
 				i++;
 				tsAll[st->first] = ThisSt->GetRbdc();
 				//UTI_DEBUG("ST:=%d - RbdcReq:=%d - DraReq:=%d",st->first,ThisSt->GetRbdc(),ThisSt->GetDRASchemeID());
 				break;
 
-			case DVB_CR_TYPE_VBDC:
+			case cr_vbdc:
 				tsAll[st->first] = ThisSt->GetVbdc();
 				break;
 
-			case DVB_CR_TYPE_FCA:
+			case cr_fca:
 				tsAll[st->first] = m_fca;
 				break;
 
@@ -533,7 +535,7 @@ int DvbRcsDamaCtrlUoR::runDamaRbdc(map_tsAllocation& tsAll)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDamaRbdc]";
 
-	InitTsAll(tsAll,DVB_CR_TYPE_RBDC);
+	InitTsAll(tsAll,cr_rbdc);
 	DC_Context::iterator st = m_context.begin();
 
 	if(maxTSAll(tsAll) > 0)
@@ -544,7 +546,7 @@ int DvbRcsDamaCtrlUoR::runDamaRbdc(map_tsAllocation& tsAll)
 		{
 			if(tsAll[st->first] > 0)
 			{
-				tsAllocation(tsAll,st,DVB_CR_TYPE_RBDC);
+				tsAllocation(tsAll,st,cr_rbdc);
 			}
 			st++;
 
@@ -567,7 +569,7 @@ int DvbRcsDamaCtrlUoR::runDamaVbdc(map_tsAllocation& tsAll)
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDamaVbdc]";
 
-	InitTsAll(tsAll,DVB_CR_TYPE_VBDC);
+	InitTsAll(tsAll,cr_vbdc);
 	DC_Context::iterator st = m_context.begin();
 
 	if(maxTSAll(tsAll) > 0)
@@ -578,7 +580,7 @@ int DvbRcsDamaCtrlUoR::runDamaVbdc(map_tsAllocation& tsAll)
 		{
 			if(tsAll[st->first] > 0)
 			{
-				tsAllocation(tsAll,st,DVB_CR_TYPE_RBDC);
+				tsAllocation(tsAll,st,cr_rbdc);
 			}
 			st++;
 
@@ -605,14 +607,14 @@ int DvbRcsDamaCtrlUoR::runDamaFca(map_tsAllocation& tsAll)
 	if(m_fca >0)
 	{
 		UTI_INFO("%s: Perform UoR Fca Allocation...\n", FUNCNAME);
-		InitTsAll(tsAll,DVB_CR_TYPE_FCA);
+		InitTsAll(tsAll, cr_fca);
 		DC_Context::iterator st = m_context.begin();
 
 		while(maxTSAll(tsAll) > -1)
 		{
 			if(tsAll[st->first] > -1)
 			{
-				tsAllocation(tsAll,st,DVB_CR_TYPE_FCA);
+				tsAllocation(tsAll,st, cr_fca);
 			}
 			st++;
 

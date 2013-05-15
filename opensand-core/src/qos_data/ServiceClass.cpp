@@ -39,7 +39,6 @@
 
 // Project includes
 #define DBG_PACKAGE PKG_QOS_DATA
-#include "opensand_margouilla/mgl_time.h"
 #include "opensand_conf/uti_debug.h"
 #include "TrafficCategory.h"
 #include "ServiceClass.h"

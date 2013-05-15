@@ -33,5 +33,4 @@
 
 #include "msg_dvb_rcs.h"
 
-mgl_memory_pool g_memory_pool_dvb_rcs(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
-                                      10000, (const char *)"gmp_dvb_rcs");
+// TODO remove this file

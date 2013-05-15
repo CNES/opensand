@@ -41,7 +41,9 @@
 
 /**
  * @class DvbRcsFrame
- * @brief DVB-RCS frame
+ * @brief The DVB-RCS Frame is only used for emulation purpose, it should
+ *        be choosen with a relevant size in order to be totally included
+ *        in one sat_carrier paquets (ie. < MTU for UDP)
  */
 class DvbRcsFrame: public DvbFrame
 {

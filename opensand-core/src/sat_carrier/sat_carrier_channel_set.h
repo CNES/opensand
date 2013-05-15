@@ -35,18 +35,21 @@
 #ifndef SAT_CARRIER_CHANNEL_SET_H
 #define SAT_CARRIER_CHANNEL_SET_H
 
-#include <vector>
-#include <net/if.h>
 
 #include "sat_carrier_channel.h"
 #include "sat_carrier_udp_channel.h"
-#include "opensand_conf/conf.h"
 #include "OpenSandCore.h"
+
+#include <opensand_conf/conf.h>
+
+#include <vector>
+#include <net/if.h>
 
 /**
  * @class sat_carrier_channel_set
  * @brief This implements a set of satellite carrier channels
  */
+// TODO why not a map<fd, carrier>?
 class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 {
  public:
@@ -61,8 +64,22 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	int send(unsigned int i_carrier, unsigned char *ip_buf,
 	         unsigned int i_len);
 
-	int receive(int fd, unsigned int *op_carrier, unsigned char *op_buf,
-	            unsigned int *op_len, unsigned int op_max_len, long timeout_ms);
+	/**
+	* @brief Receive data on a channel set
+	*
+	* The function works in blocking mode, so call it only when you are sure
+	* some data is ready to be received.
+	*
+	* @param event         The event on channel fd
+	* @param op_carrier    Satellite Carrier id
+	* @param op_buf        pointer to a char buffer
+	* @param op_len        the received data length
+	* @return  0 on success, 1 if the function should be
+	 *         called another time, -1 on error
+	*/
+	int receive(NetSocketEvent *const event,
+	            unsigned int &op_carrier,
+	            unsigned char **op_buf, size_t &op_len);
 
 	int getChannelFdByChannelId(unsigned int i_channelID);
 

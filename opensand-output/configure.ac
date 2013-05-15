@@ -45,8 +45,8 @@ if test "x$fail_on_warning" != "xno"; then
 	WERROR="-Werror"
 fi
 
-AC_SUBST(AM_CFLAGS, "-g -Wall -W ${WERROR} -DUTI_DEBUG_ON -D_ASP_TRACE -D_ASP_PROBE_CHECK  -D_ASP_TRACE_ERROR")
-#AC_SUBST(AM_CFLAGS, "-g -Wall -W -Werror -Wstrict-prototypes")
+AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
+AC_SUBST(AM_LDFLAGS, "$AM_LDFLAGS -lpthread -lrt")
 
 AM_DEP_TRACK
 

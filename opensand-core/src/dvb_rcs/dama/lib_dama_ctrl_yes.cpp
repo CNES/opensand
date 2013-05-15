@@ -31,15 +31,17 @@
  * @author Viveris Technologies
  */
 
+// FIXME we need to include uti_debug.h before...
+#undef DBG_PACKAGE
+#define DBG_PACKAGE PKG_DAMA_DC
+#include <opensand_conf/uti_debug.h>
+#define DC_DBG_PREFIX "[yes]"
+
+
 #include "lib_dvb_rcs.h"
 #include "lib_dama_ctrl_yes.h"
 
-// output
-#include "opensand_output/Output.h"
-
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
-#define DC_DBG_PREFIX "[yes]"
+#include <opensand_output/Output.h>
 
 
 /**
@@ -95,7 +97,7 @@ int DvbRcsDamaCtrlYes::runDama()
 			rbdc_request_number++;
 			rbdc_request_sum += Request;
 
-			Alloc = ThisSt->SetAllocation(Request, DVB_CR_TYPE_VBDC);
+			Alloc = ThisSt->SetAllocation(Request, cr_rbdc);
 
 			UTI_DEBUG("ST#%d has been fully served for RBDC "
 			          "(%d timeslots)", st_id, Alloc);
@@ -108,7 +110,7 @@ int DvbRcsDamaCtrlYes::runDama()
 			vbdc_request_number++;
 			vbdc_request_sum += Request;
 
-			Alloc = ThisSt->SetAllocation(Request, DVB_CR_TYPE_VBDC);
+			Alloc = ThisSt->SetAllocation(Request, cr_vbdc);
 
 			UTI_DEBUG("ST#%d has been fully served for VBDC "
 			          "(%d timeslots)", st_id, Alloc);

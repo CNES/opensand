@@ -99,12 +99,12 @@ class Atm: public EncapPlugin
 
 		NetPacket *build(unsigned char *data, size_t data_length,
 		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
-		size_t getFixedLength() {return 53;};
-		size_t getLength(const unsigned char *UNUSED(data))
+		size_t getFixedLength() const {return 53;};
+		size_t getLength(const unsigned char *UNUSED(data)) const
 		{
 			return this->getFixedLength();
 		};
-		size_t getMinLength()
+		size_t getMinLength() const
 		{
 			return this->getFixedLength();
 		};

@@ -201,7 +201,6 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 		goto drop;
 	}
 
-	packet->addTrace(HERE());
 	UTI_DEBUG_L3("%s talID of packet to encapsulate: %u \n", FUNCNAME,
 	             packet->getDstTalId());
 
@@ -247,7 +246,6 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 			          FUNCNAME);
 			continue;
 		}
-		atm->addTrace(HERE());
 
 		UTI_DEBUG("%s one ATM cell created with QoS %d\n",
 		          FUNCNAME, atm->getQos());
@@ -285,8 +283,6 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	// keep the QoS
 	uint8_t qos = packet->getQos();
 
-	packet->addTrace(HERE());
-
 	UTI_DEBUG_L3("%s talID of received packet: %u \n",
 	             FUNCNAME, packet->getDstTalId());
 
@@ -297,7 +293,6 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		UTI_ERROR("%s cannot create AtmCell from NetPacket\n", FUNCNAME);
 		goto error;
 	}
-	atm_cell->addTrace(HERE());
 
 	// get the VPI and VCI numbers for the ATM cell to desencapsulate
 	vpi = atm_cell->getVpi();
@@ -376,7 +371,6 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 			          "ATM cells in the desencapsulation context\n", FUNCNAME);
 			goto clear;
 		}
-		aal5_packet->addTrace(HERE());
 		// check AAL5 packet validity
 		if(!aal5_packet->isValid())
 		{

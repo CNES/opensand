@@ -31,10 +31,11 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "sat_carrier_channel_set.h"
-
+// FIXME we need to include uti_debug.h before...
 #define DBG_PACKAGE PKG_SAT_CARRIER
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
+
+#include "sat_carrier_channel_set.h"
 
 
 /**
@@ -245,63 +246,39 @@ int sat_carrier_channel_set::send(unsigned int channel,
 }
 
 
-/**
- * @brief Receive data on a channel set
- *
- * The function works in blocking mode, so call it only when you are sure
- * some data is ready to be received.
- *
- * @param fd            the file descriptor on which the event has been catched
- * @param op_carrier    Satellite Carrier id
- * @param op_buf        pointer to a char buffer
- * @param op_len        the received data length
- * @param op_max_len    length of the buffer
- * @param timeout_ms    the time out for the select function
- * @return
- */
-int sat_carrier_channel_set::receive(int fd,
-                                     unsigned int *op_carrier,
-                                     unsigned char *op_buf,
-                                     unsigned int *op_len,
-                                     unsigned int op_max_len,
-                                     long timeout_ms)
+int sat_carrier_channel_set::receive(NetSocketEvent *const event,
+                                     unsigned int &op_carrier,
+                                     unsigned char **op_buf,
+                                     size_t &op_len)
 {
 	int ret = -1;
 	std::vector < sat_carrier_channel * >::iterator it;
 
+	op_len = 0;
+
 	UTI_DEBUG_L3("try to receive a packet from satellite channel "
-	             "associated with the file descriptor %d\n", fd);
+	             "associated with the file descriptor %d\n", event->getFd());
 
 	for(it = this->begin(); it != this->end(); it++)
 	{
 		// does the channel accept input and does the channel file descriptor
 		// match with the given file descriptor?
-		if((*it)->isInputOk() && fd == (*it)->getChannelFd())
+		if((*it)->isInputOk() && *event == (*it)->getChannelFd())
 		{
 			// the file descriptors match, try to receive data for the channel
-			ret = (*it)->receive(op_buf, op_len, op_max_len, timeout_ms);
-
-			// received data must not be too large
-			if(ret == 0 && *op_len > op_max_len)
-			{
-				UTI_ERROR("too much data received: %u bytes "
-				          "received while only %u desired\n",
-				          *op_len, op_max_len);
-				ret = -1;
-			}
+			ret = (*it)->receive(event, op_buf, op_len);
 
 			// Stop the task on data or error
-			if(*op_len != 0 || ret < 0)
+			if(op_len != 0 || ret < 0)
 			{
 				UTI_DEBUG_L3("data/error received, set op_carrier to %i\n",
 				             (*it)->getChannelID());
-				*op_carrier = (*it)->getChannelID();
+				op_carrier = (*it)->getChannelID();
 				break;
 			}
 		}
 	}
-
-	UTI_DEBUG_L3("Receive packet: size %i, carrier %i\n", *op_len, *op_carrier);
+	UTI_DEBUG_L3("Receive packet: size %u, carrier %i\n", op_len, op_carrier);
 
 	if(it == this->end())
 		ret = 0;

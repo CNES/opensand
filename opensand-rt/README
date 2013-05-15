@@ -1,0 +1,26 @@
+Introduction
+------------
+
+This piece of software is the RT library for the satellite emulation
+testbed OpenSAND
+
+License
+-------
+
+see COPYING.LESSER
+
+
+Library
+-------
+
+The sources are in the src subdirectory. The sources a library
+that allows penSAND block communications and events management.
+See the INSTALL file to learn how to buildv the library.
+To compile an application using the OpenSAND RT library use the
+following expression:
+gcc `pkg-config opensand_rt --cflags` `pkg-config opensand_rt --libs` -o myappli myappli.c
+
+
+References
+----------
+

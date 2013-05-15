@@ -36,15 +36,15 @@
 #ifndef SATCAR_CHANNEL_H
 #define SATCAR_CHANNEL_H
 
+#include <opensand_conf/conf.h>
+#include <opensand_rt/Rt.h>
+
 #include <vector>
 #include <linux/if_packet.h>
 #include <net/if.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include "opensand_conf/conf.h"
 
-// margouilla includes
-#include "opensand_margouilla/mgl_socket.h"
 
 /**
  * @class sat_carrier_channel
@@ -69,8 +69,8 @@ class sat_carrier_channel
 	bool isOutputOk();
 
 	virtual int send(unsigned char *buf, unsigned int len) = 0;
-	virtual int receive(unsigned char *buf, unsigned int *data_len,
-	                    unsigned int max_len, long timeout) = 0;
+	virtual int receive(NetSocketEvent *const event,
+	                    unsigned char **buf, size_t &data_len) = 0;
 
 	static int getIfIndex(const char *name);
 

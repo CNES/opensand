@@ -38,15 +38,16 @@
 #ifndef SAT_SPOT_H
 #define SAT_SPOT_H
 
+#include "DvbFifo.h"
+#include "DvbFrame.h"
 
 #include <sys/times.h>
 #include <map>
+#include <list>
 
-using namespace std;
 
-#include "dvb_fifo.h"
-#include "DvbFrame.h"
-
+using std::list;
+using std::map;
 
 typedef struct sat_statBloc
 {
@@ -71,10 +72,10 @@ class SatSpot
 
 	long m_dataInId;          ///< the input carrier ID for the spot
 
-	dvb_fifo m_ctrlFifo;      ///<  Fifo associated with Control carrier
-	dvb_fifo m_logonFifo;     ///<  Fifo associated with Logons
-	dvb_fifo m_dataOutGwFifo; ///<  Fifo associated with Data for the GW
-	dvb_fifo m_dataOutStFifo; ///<  Fifo associated with Data for the ST
+	DvbFifo m_ctrlFifo;      ///<  Fifo associated with Control carrier
+	DvbFifo m_logonFifo;     ///<  Fifo associated with Logons
+	DvbFifo m_dataOutGwFifo; ///<  Fifo associated with Data for the GW
+	DvbFifo m_dataOutStFifo; ///<  Fifo associated with Data for the ST
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	list<DvbFrame *> complete_dvb_frames;

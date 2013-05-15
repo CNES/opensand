@@ -44,12 +44,15 @@
 #define PLUGIN_DIRECTORY "/opensand/plugins/"
 
 
+PluginUtils::PluginUtils()
+{
+}
 
 bool PluginUtils::loadPlugins(bool enable_phy_layer)
 {
 	DIR *plugin_dir;
 	char *lib_path;
-	std::vector<std::string> path;
+	vector<string> path;
 
 	lib_path = getenv("LD_LIBRARY_PATH");
 	if(lib_path)
@@ -60,11 +63,11 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 	path.push_back("/usr/lib/");
 	path.push_back("/lib");
 
-	for(std::vector<std::string>::iterator iter = path.begin();
+	for(vector<string>::iterator iter = path.begin();
 	    iter != path.end(); ++iter)
 	{
 		struct dirent *ent;
-		std::string dir = *iter + PLUGIN_DIRECTORY;
+		string dir = *iter + PLUGIN_DIRECTORY;
 		plugin_dir = opendir(dir.c_str());
 		if(!plugin_dir)
 		{
@@ -75,8 +78,8 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 
 		while((ent = readdir(plugin_dir)) != NULL)
 		{
-			std::string filename = ent->d_name;
-			std::string libend = ".so.0";
+			string filename = ent->d_name;
+			string libend = ".so.0";
 			if(filename.length() <= libend.length())
 			{
 				continue;
@@ -88,7 +91,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				void *sym;
 				fn_init *init;
 				opensand_plugin_t *plugin;
-				std::string plugin_name = dir + filename;
+				string plugin_name = dir + filename;
 
 				UTI_DEBUG("find plugin library %s\n", filename.c_str());
 				handle = dlopen(plugin_name.c_str(), RTLD_LAZY);
@@ -130,12 +133,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load encapsulation plugin %s\n",
 							         plugin->name);
 							this->encapsulation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -158,12 +161,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load attenuation model plugin %s\n",
 							         plugin->name);
 							this->attenuation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -185,12 +188,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load nominal conditions plugin %s\n",
 							         plugin->name);
 							this->nominal[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -212,12 +215,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load minimal conditions plugin %s\n",
 							         plugin->name);
 							this->minimal[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -239,12 +242,12 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							UTI_INFO("load error insertions plugin %s\n",
 							         plugin->name);
 							this->error[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
 						}
 						else
 						{
 							dlclose(handle);
 						}
-						this->handlers.push_back(handle);
 					}
 					break;
 
@@ -252,38 +255,39 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						UTI_ERROR("Wrong plugin type %d for %s",
 						          plugin->type, filename.c_str());
 				}
+				// FIXME mismatch free here ???
 				delete plugin;
 			}
 		}
 		closedir(plugin_dir);
 	}
 
-	return mgl_ok;
+	return true;
 close:
 	if(plugin_dir)
 	{
 		closedir(plugin_dir);
 	}
-	return mgl_ko;
+	return false;
 }
 
 
 void PluginUtils::releasePlugins()
 {
-	for(std::vector<OpenSandPlugin *>::iterator iter = this->plugins.begin();
+	for(vector<OpenSandPlugin *>::iterator iter = this->plugins.begin();
 	    iter != this->plugins.end(); ++iter)
 	{
 		delete *iter;
 	}
 
-	for(std::vector<void *>::iterator iter = this->handlers.begin();
+	for(vector<void *>::iterator iter = this->handlers.begin();
 	    iter != this->handlers.end(); ++iter)
 	{
 		dlclose(*iter);
 	}
 }
 
-bool PluginUtils::getEncapsulationPlugins(std::string name,
+bool PluginUtils::getEncapsulationPlugins(string name,
 	                                      EncapPlugin **encapsulation)
 {
 	fn_create create;
@@ -303,14 +307,14 @@ bool PluginUtils::getEncapsulationPlugins(std::string name,
 	return true;
 };
 
-bool PluginUtils::getPhysicalLayerPlugins(std::string att_pl_name,
-										  std::string nom_pl_name,
-										  std::string min_pl_name,
-										  std::string err_pl_name,
-										  AttenuationModelPlugin **attenuation,
-										  NominalConditionPlugin **nominal,
-										  MinimalConditionPlugin **minimal,
-										  ErrorInsertionPlugin **error)
+bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
+                                          string nom_pl_name,
+                                          string min_pl_name,
+                                          string err_pl_name,
+                                          AttenuationModelPlugin **attenuation,
+                                          NominalConditionPlugin **nominal,
+                                          MinimalConditionPlugin **minimal,
+                                          ErrorInsertionPlugin **error)
 {
 	fn_create create;
 
@@ -380,16 +384,16 @@ bool PluginUtils::getPhysicalLayerPlugins(std::string att_pl_name,
 	return true;
 };
 
-void PluginUtils::tokenize(const std::string &str,
-                           std::vector<std::string> &tokens,
-                           const std::string& delimiters)
+void PluginUtils::tokenize(const string &str,
+                           vector<string> &tokens,
+                           const string& delimiters)
 {
 	// Skip delimiters at beginning.
-	std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+	string::size_type lastPos = str.find_first_not_of(delimiters, 0);
 	// Find first "non-delimiter".
-	std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+	string::size_type pos = str.find_first_of(delimiters, lastPos);
 
-	while(std::string::npos != pos || std::string::npos != lastPos)
+	while(string::npos != pos || string::npos != lastPos)
 	{
 		// Found a token, add it to the vector.
 		tokens.push_back(str.substr(lastPos, pos - lastPos));

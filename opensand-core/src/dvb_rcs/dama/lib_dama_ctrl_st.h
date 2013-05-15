@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <map>
 #include "lib_dvb_rcs.h"
-#include "lib_dama_utils.h"
+#include "DamaUtils.h"
 
 
 /**

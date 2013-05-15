@@ -90,7 +90,7 @@ int DC_RbdcRequest::SetRequest(double Cr)
 	const char *FUNCNAME = DC_DBG_PREFIX "[RBDCSetRequest]";
 
 	// limit the requets to Max RBDC
-	Cr = MIN(Cr, (double) MaxRbdc);
+	Cr = std::min(Cr, (double) MaxRbdc);
 
 	// save the request
 	if(Cr >= 0.0)
@@ -417,7 +417,7 @@ int DC_St::GetVbdc()
 	Request = (int) ceil(VbdcCr->GetRequest() / AllocationCycle);
 
 	// limit the request to the maximum capacity available for this ST
-	Request = MIN(Request, this->GetMaxAllocation());
+	Request = std::min(Request, this->GetMaxAllocation());
 
 	return (Request);
 }
@@ -447,7 +447,7 @@ int DC_St::GetRbdc()
 {
 	int Request;
 
-	Request = MIN(RbdcCr->GetRequest(), this->GetMaxAllocation());
+	Request = std::min(RbdcCr->GetRequest(), this->GetMaxAllocation());
 
 	return (Request);
 }
@@ -504,7 +504,7 @@ double DC_St::GetCredit()
 int DC_St::SetAllocation(int Allocation, int Type)
 {
 	// modify the request
-	if(Type == DVB_CR_TYPE_VBDC)
+	if(Type == cr_rbdc)
 	{
 		VbdcCr->Decrease(Allocation * AllocationCycle);
 	}

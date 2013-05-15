@@ -220,9 +220,6 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 
 	time = 0;
 
-	packet->addTrace(HERE());
-
-
 	if((packet->getSrcTalId() & 0x1F) != packet->getSrcTalId())
 	{
 		UTI_ERROR("Be careful, you have set a TAL ID greater than 0x1F"
@@ -353,7 +350,6 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 
 		if(mpeg_packet != NULL)
 		{
-			mpeg_packet->addTrace(HERE());
 			UTI_DEBUG("%s one MPEG packet created\n", FUNCNAME);
 			// set the destination spot ID
 			mpeg_packet->setDstSpot(dest_spot);
@@ -404,8 +400,6 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	packet->addTrace(HERE());
-
 	// packet must be a MPEG packet
 	if(packet->getType() != NET_PROTO_MPEG)
 	{
@@ -422,7 +416,6 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 		          FUNCNAME);
 		goto error;
 	}
-	mpeg_packet->addTrace(HERE());
 
 	// get the PID number for the MPEG packet to desencapsulate
 	pid = mpeg_packet->getPid();
@@ -673,8 +666,6 @@ restart:
 			}
 			else
 			{
-				net_packet->addTrace(HERE());
-
 				// set the destination spot ID
 				net_packet->setDstSpot(dest_spot);
 				// add the network packet to the list

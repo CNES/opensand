@@ -41,7 +41,6 @@
 #define DBG_PACKAGE PKG_QOS_DATA
 #include "opensand_conf/uti_debug.h"
 #include "opensand_conf/ConfigurationFile.h"
-#include "opensand_margouilla/msg_ip.h"
 
 #include "bloc_ip_qos.h"
 #include "ServiceClass.h"

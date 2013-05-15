@@ -59,18 +59,17 @@ DvbRcsStd::~DvbRcsStd()
 	}
 }
 
-int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
+int DvbRcsStd::scheduleEncapPackets(DvbFifo *fifo,
                                     long current_time,
                                     std::list<DvbFrame *> *complete_dvb_frames)
 {
 	unsigned int cpt_frame;
 	unsigned int sent_packets;
-	MacFifoElement *elem;
 	long max_to_send;
 	DvbRcsFrame *incomplete_dvb_frame;
 
 	// retrieve the number of packets waiting for transmission
-	max_to_send = fifo->getCount();
+	max_to_send = fifo->getCurrentSize();
 	if(max_to_send <= 0)
 	{
 		// if there is nothing to send, return with success
@@ -89,19 +88,13 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 	// build DVB-RCS frames with packets extracted from the MAC FIFO
 	cpt_frame = 0;
 	sent_packets = 0;
-	while((elem = (MacFifoElement *) fifo->get()) != NULL)
+	while(fifo->getCurrentSize() > 0)
 	{
+		MacFifoElement *elem;
 		NetPacket *encap_packet;
 
-		// TODO remove ?
-		// first examine the packet to be sent without removing it from the queue
-		if(elem->getType() != 1)
-		{
-			UTI_ERROR("MAC FIFO element does not contain NetPacket\n");
-			goto error;
-		}
 		// simulate the satellite delay
-		if(elem->getTickOut() > current_time)
+		if(fifo->getTickOut() > current_time)
 		{
 			UTI_DEBUG("packet is not scheduled for the moment, "
 			          "break\n");
@@ -110,11 +103,16 @@ int DvbRcsStd::scheduleEncapPackets(dvb_fifo *fifo,
 			break;
 		}
 
-		// retrieve the encapsulation packet
-		encap_packet = elem->getPacket();
+		elem = fifo->pop();
+		// examine the packet to be sent
+		if(elem->getType() != 1)
+		{
+			UTI_ERROR("MAC FIFO element does not contain NetPacket\n");
+			goto error;
+		}
 
-		// remove the cell from the MAC FIFO and destroy it
-		fifo->remove();
+		// retrieve the encapsulation packet and delete element
+		encap_packet = elem->getPacket();
 		delete elem;
 
 		// check the validity of the encapsulation packet
@@ -342,13 +340,13 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 
 skip:
 	// release buffer (data is now saved in NetPacket objects)
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return 0;
 
 release_burst:
 	delete burst;
 error:
-	g_memory_pool_dvb_rcs.release((char *) frame);
+	free(frame);
 	return -1;
 }
 

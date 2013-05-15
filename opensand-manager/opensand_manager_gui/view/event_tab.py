@@ -141,7 +141,7 @@ class EventTab(object):
         self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 
         if self._notebook.get_current_page() != self._page_num:
-            if self._icon_level < severity:
+            if severity is not None and self._icon_level < severity:
                 self._icon_level = severity
                 self._act_image.set_from_stock(image, gtk.ICON_SIZE_MENU)
 
@@ -156,3 +156,5 @@ class EventTab(object):
         if page_num == self._page_num:
             self._act_image.hide()
             self._icon_level = -1
+            self._act_image.hide()
+

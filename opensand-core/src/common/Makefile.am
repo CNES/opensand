@@ -11,7 +11,8 @@ libopensand_common_la_cpp = \
 	IpAddress.cpp \
 	Ipv4Address.cpp \
 	Ipv6Address.cpp \
-	PluginUtils.cpp
+	PluginUtils.cpp \
+	Plugin.cpp
 
 libopensand_common_la_h = \
 	msg_dvb_rcs.h \
@@ -22,7 +23,8 @@ libopensand_common_la_h = \
 	Ipv4Address.h \
 	Ipv6Address.h \
 	IpPacketHandler.h \
-	PluginUtils.h
+	PluginUtils.h \
+	Plugin.h
 
 libopensand_plugin_la_cpp = \
 	Data.cpp \
@@ -55,4 +57,5 @@ libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
 libopensand_plugin_include_HEADERS = \
 	$(libopensand_plugin_la_h) \
-	$(top_srcdir)/src/dvb_rcs/utils/lib_dvb_rcs.h
+	$(top_srcdir)/src/dvb_rcs/utils/lib_dvb_rcs.h \
+	$(top_srcdir)/src/dvb_rcs/utils/CapacityRequest.h

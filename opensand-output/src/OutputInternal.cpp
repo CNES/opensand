@@ -137,6 +137,11 @@ Event *OutputInternal::registerEvent(const std::string &identifier,
 		return 0;
 	}
 
+	if(!this->initializing)
+	{
+		UTI_ERROR("cannot register event %s outside initialization, exit\n",
+		          identifier.c_str());
+	}
 	assert(this->initializing);
 
 	uint8_t new_id = this->events.size();
@@ -157,7 +162,10 @@ bool OutputInternal::finishInit()
 		return true;
 	}
 
-	assert(this->initializing);
+	if(!this->initializing)
+	{
+		UTI_ERROR("initialization already done\n");
+	}
 
 	UTI_PRINT(LOG_INFO, "Opening output communication socket\n");
 
@@ -326,6 +334,8 @@ void OutputInternal::sendEvent(Event *event,
 		return;
 	}
 
+	// TODO use a list of message and if finishInit was not called
+	//      stock events. Send stocked events when calling finishInit
 	std::string message;
 	msgHeaderSendEvent(message, event->id);
 	message.append(message_text);

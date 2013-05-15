@@ -226,7 +226,7 @@ class StatsHandler(threading.Thread):
 
             if not process:
                 LOGGER.error("PID %d tried to register but is unknown, sending "
-                             "NACK.")
+                             "NACK", pid)
                 sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
                                                          MSG_CMD_NACK), addr)
                 return

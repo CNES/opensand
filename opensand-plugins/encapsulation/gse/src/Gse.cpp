@@ -1073,7 +1073,7 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data, size_t data_length,
 	                     qos, src_tal_id, dst_tal_id, header_length);
 }
 
-size_t Gse::PacketHandler::getLength(const unsigned char *data)
+size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 {
 	const char *FUNCNAME = "[Gse::PacketHandler::getLength]";
 	uint16_t length;
@@ -1258,21 +1258,22 @@ bool Gse::setLabel(GseEncapCtx *context, uint8_t label[])
 	return true;
 }
 
-uint8_t Gse::getSrcTalIdFromLabel(uint8_t label[])
+uint8_t Gse::getSrcTalIdFromLabel(const uint8_t label[])
 {
 	return label[0] & 0x1F;
 }
 
-uint8_t Gse::getDstTalIdFromLabel(uint8_t label[])
+uint8_t Gse::getDstTalIdFromLabel(const uint8_t label[])
 {
 	return label[1] & 0x1F;
 }
 
-uint8_t Gse::getQosFromLabel(uint8_t label[])
+uint8_t Gse::getQosFromLabel(const uint8_t label[])
 {
 	return label[2] & 0x07;
 }
 
+// TODO add const here once NetPacket getter will be const
 uint8_t Gse::getFragId(NetPacket *packet)
 {
 	uint8_t src_tal_id = packet->getSrcTalId();
@@ -1289,19 +1290,19 @@ uint8_t Gse::getFragId(GseEncapCtx *context)
 	return ((src_tal_id & 0x1F) << 3 | ((qos & 0x07)));
 }
 
-uint8_t Gse::getSrcTalIdFromFragId(uint8_t frag_id)
+uint8_t Gse::getSrcTalIdFromFragId(const uint8_t frag_id)
 {
 
 	return (frag_id >> 3) & 0x1F;
 }
 
-uint8_t Gse::getDstTalIdFromFragId(uint8_t UNUSED(frag_id))
+uint8_t Gse::getDstTalIdFromFragId(const uint8_t UNUSED(frag_id))
 {
 	// Not encoded in frag_id
 	return 0x1F;
 }
 
-uint8_t Gse::getQosFromFragId(uint8_t frag_id)
+uint8_t Gse::getQosFromFragId(const uint8_t frag_id)
 {
 	return frag_id & 0x07;
 }
