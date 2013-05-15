@@ -69,27 +69,59 @@ bool RtFifo::init()
 {
 	int32_t pipefd[2];
 	pthread_mutexattr_t mutex_attr;
+	int ret;
 
 	UTI_DEBUG("Initialize fifo\n");
 
+	ret = pthread_mutexattr_init(&mutex_attr);
+	if(ret != 0)
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to initialize mutex attributes [%d: %s]\n",
+		                ret, strerror(ret));
+		return false;
+	}
 	// use PTHREAD_MUTEX_ERRORCHECK for library validation
 	// TODO replace by fast mutex
-	if(pthread_mutexattr_init(&mutex_attr) != 0 ||
-       pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0 ||
-	   pthread_mutex_init(&(this->fifo_mutex), &mutex_attr) != 0 ||
-	   sem_init(&(this->fifo_size_sem), 0, this->max_size) != 0)
+	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+	if(ret != 0)
 	{
-		return false;
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to set mutex attributes [%d: %s]\n",
+		                ret, strerror(ret));
+		goto error;
+	}
+	
+	ret = pthread_mutex_init(&(this->fifo_mutex), &mutex_attr);
+	if(ret != 0)
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to initialize mutex on FIFO[%d: %s]\n",
+		                ret, strerror(ret));
+		goto error;
+	}
+	ret = sem_init(&(this->fifo_size_sem), 0, this->max_size);
+	if(ret != 0)
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Failed to initialize semaphore on FIFO [%d: %s]\n",
+		                ret, strerror(ret));
+		goto error;
 	}
 
 	if(pipe(pipefd) != 0)
 	{
-		return false;
+		goto error;
 	}
 	this->r_sig_pipe = pipefd[0];
 	this->w_sig_pipe = pipefd[1];
 
+	pthread_mutexattr_destroy(&mutex_attr);
 	return true;
+
+error:
+	pthread_mutexattr_destroy(&mutex_attr);
+	return false;
 }
 
 
@@ -98,13 +130,16 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	fd_set wset;
 	bool status = false;
 	rt_msg_t msg;
+	int ret;
 	
 	UTI_DEBUG_L3("push message in fifo\n");
 
-	if(sem_wait(&(this->fifo_size_sem)) != 0)
+	ret = sem_wait(&(this->fifo_size_sem));
+	if(ret != 0)
 	{
 		Rt::reportError("fifo", pthread_self(), false,
-		                "Failed to lock mutex for FIFO full\n");
+		                "Failed to lock mutex for FIFO full [%d: %s]\n",
+		                ret, strerror(ret));
 		return false;
 	}
 	//assert(this->fifo.size() < this->max_size);
@@ -117,10 +152,12 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	}
 
 	// lock mutex on fifo
-	if(pthread_mutex_lock(&(this->fifo_mutex)) != 0)
+	ret = pthread_mutex_lock(&(this->fifo_mutex));
+	if(ret != 0)
 	{
 		Rt::reportError("fifo", pthread_self(), false,
-		                "Failed to lock mutex on FIFO\n");
+		                "Failed to lock mutex on FIFO [%d: %s]\n",
+		                ret, strerror(ret));
 		return false;
 	}
 

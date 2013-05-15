@@ -255,8 +255,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						UTI_ERROR("Wrong plugin type %d for %s",
 						          plugin->type, filename.c_str());
 				}
-				// FIXME mismatch free here ???
-				delete plugin;
+				free(plugin);
 			}
 		}
 		closedir(plugin_dir);

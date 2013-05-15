@@ -72,9 +72,6 @@ BlocIPQoS::BlocIPQoS(const string &name, component_t host):
  */
 BlocIPQoS::~BlocIPQoS()
 {
-	// close TUN file descriptor TODO this should be done in event
-//	close(this->_tun_fd);
-
 	// free some ressources of IPQoS block
 	this->terminate();
 }
@@ -308,7 +305,8 @@ int BlocIPQoS::onMsgIpFromUp(NetSocketEvent *const event)
 	const char *FUNCNAME = IPQOS_DBG_PREFIX "[onMsgIpFromUp]";
 	int status = 0;
 
-	unsigned char data[TUNTAP_BUFSIZE];
+	unsigned char *read_data;
+	unsigned char *data;
 	unsigned int length;
 
 	IpPacket *ip_packet;
@@ -316,12 +314,14 @@ int BlocIPQoS::onMsgIpFromUp(NetSocketEvent *const event)
 	// read IP data received on tun interface
 	// we need to memcpy as start pointer is not the same
 	length = event->getSize() - 4;
-	memcpy(data, event->getData() + 4, length);
+	read_data = event->getData();
+	data = read_data + 4;
 
 	if(this->_state != link_up)
 	{
 		UTI_INFO("%s IP packets received from tun, but link is down "
 		         "=> drop packets\n", FUNCNAME);
+		free(read_data);
 		goto drop;
 	}
 
@@ -337,6 +337,7 @@ int BlocIPQoS::onMsgIpFromUp(NetSocketEvent *const event)
 		default:
 			ip_packet = NULL;
 	}
+	free(read_data);
 
 	if(ip_packet == NULL || !ip_packet->isValid())
 	{

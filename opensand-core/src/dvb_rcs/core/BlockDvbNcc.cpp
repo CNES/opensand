@@ -377,7 +377,7 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 				free(dvb_meta);
 				return false;
 			}
-			free(dvb_meta);
+			delete dvb_meta;
 		}
 		break;
 
@@ -1269,7 +1269,7 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// Get a dvb frame
-	lp_logon_resp = new T_DVB_LOGON_RESP;
+	lp_logon_resp = (T_DVB_LOGON_RESP *)malloc(sizeof(T_DVB_LOGON_RESP));
 	if(!lp_logon_resp)
 	{
 		UTI_ERROR("[onRcvLogonReq] Failed to get memory"

@@ -149,6 +149,7 @@ BlockDvbTal::~BlockDvbTal()
 	}
 	
 	// release the output arrays (no need to delete the probes)
+	delete[] this->probe_st_terminal_queue_size;
 	delete[] this->probe_st_real_in_thr;
 	delete[] this->probe_st_real_out_thr;
 
@@ -1090,7 +1091,7 @@ bool BlockDvbTal::sendLogonReq()
 	long l_size;
 
 	// create a new DVB frame
-	lp_logon_req = new T_DVB_LOGON_REQ;
+	lp_logon_req = (T_DVB_LOGON_REQ *)malloc(sizeof(T_DVB_LOGON_REQ));
 	if(!lp_logon_req)
 	{
 		UTI_ERROR("SF#%ld: failed to allocate memory for LOGON "

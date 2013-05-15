@@ -111,7 +111,7 @@ bool BlockDvbSat::onUpwardEvent(const RtEvent *const event)
 				return false;
 			}
 
-			free(dvb_meta);
+			delete dvb_meta;
 			break;
 
 		default:

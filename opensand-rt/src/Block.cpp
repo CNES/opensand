@@ -150,8 +150,22 @@ bool Block::start(void)
 	pthread_attr_t attr; // thread attribute
 
 	// set thread detach state attribute to JOINABLE
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	ret = pthread_attr_init(&attr);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot initialize thread attribute [%u: %s]",
+		                ret, strerror(ret));
+		return false;;
+	}
+	ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "cannot set thread attribute [%u: %s]",
+		                ret, strerror(ret));
+		goto error;	
+	}
 
 	UTI_DEBUG("Block %s: start upward channel\n", this->name.c_str());
 	//create upward thread
@@ -161,7 +175,7 @@ bool Block::start(void)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
-		return false;
+		goto error;
 	}
 	UTI_DEBUG("Block %s: upward channel thread id %lu\n",
 	          this->name.c_str(), this->up_thread_id);
@@ -174,11 +188,17 @@ bool Block::start(void)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
-		return false;
+		goto error;
 	}
 	UTI_DEBUG("Block %s: downward channel thread id: %lu\n",
 	          this->name.c_str(), this->up_thread_id);
+	
+	pthread_attr_destroy(&attr);
 	return true;
+	
+error:
+	pthread_attr_destroy(&attr);
+	return false;
 }
 
 bool Block::stop(int signal)

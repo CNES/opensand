@@ -82,7 +82,8 @@ bool BlockSatCarrier::onDownwardEvent(const RtEvent *const event)
 
 			l_ret = m_channelSet.send(lp_ptr->carrier_id,
 			                          (unsigned char *) (lp_ptr->hdr), l_len);
-			free(lp_ptr);
+			free(lp_ptr->hdr);
+			delete lp_ptr;
 		}
 		break;
 
@@ -224,5 +225,5 @@ void BlockSatCarrier::onReceivePktFromCarrier(unsigned int i_carrier,
 release_meta:
 	delete lp_meta;
 release_data:
-	delete ip_buf;
+	free(ip_buf);
 }
