@@ -164,7 +164,7 @@ bool Block::start(void)
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot set thread attribute [%u: %s]",
 		                ret, strerror(ret));
-		goto error;	
+		goto error;
 	}
 
 	UTI_DEBUG("Block %s: start upward channel\n", this->name.c_str());
@@ -192,10 +192,10 @@ bool Block::start(void)
 	}
 	UTI_DEBUG("Block %s: downward channel thread id: %lu\n",
 	          this->name.c_str(), this->up_thread_id);
-	
+
 	pthread_attr_destroy(&attr);
 	return true;
-	
+
 error:
 	pthread_attr_destroy(&attr);
 	return false;
@@ -291,7 +291,7 @@ RtChannel *Block::getUpwardChannel(void) const
 {
 	return this->upward;
 }
-	
+
 RtChannel *Block::getDownwardChannel(void) const
 {
 	return this->downward;
@@ -300,12 +300,32 @@ RtChannel *Block::getDownwardChannel(void) const
 void Block::enableChannelMutex(void)
 {
 	int ret;
-	
-	ret = pthread_mutex_init(&(this->block_mutex), NULL);
+
+	pthread_mutexattr_t mutex_attr;
+
+	ret = pthread_mutexattr_init(&mutex_attr);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "Failed to initialize mutex attributes [%d: %s]\n",
+		                ret, strerror(ret));
+	}
+	// use PTHREAD_MUTEX_ERRORCHECK for library validation
+	// TODO replace by fast mutex
+	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+	if(ret != 0)
+	{
+		Rt::reportError(this->name, pthread_self(), true,
+		                "Failed to set mutex attributes [%d: %s]\n",
+		                ret, strerror(ret));
+	}
+
+	ret = pthread_mutex_init(&(this->block_mutex), &mutex_attr);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
 		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
 	}
 	this->chan_mutex = true;
+	pthread_mutexattr_destroy(&mutex_attr);
 }

@@ -91,15 +91,53 @@ RtChannel::~RtChannel()
 
 bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
 {
+	int success = true;
+
+	// check that block is initialized (i.e. we are in event processing)
+	if(!this->block.initialized)
+	{
+		UTI_DEBUG("Be careful, some message are sent while process are not "
+		          "started. If too many messages are sent we may block because "
+		          "fifo is full");
+		// FIXME we could separate onInit into a static initialization and an
+		//       initialization when threads are started
+	}
+
+	// release lock in block because we can create interblocking here
+	// as we can block on semaphore
+	if(this->block.chan_mutex && this->block.initialized)
+	{
+		int err;
+		err = pthread_mutex_unlock(&(this->block.block_mutex));
+		if(err != 0)
+		{
+			this->reportError(false, "Mutex unlock failure [%u: %s]",
+			                  err, strerror(err));
+			return false;
+		}
+	}
 	if(!this->next_fifo->push(*data, size, type))
 	{
 		this->reportError(false,
 		                  "cannot push data in fifo for next block");
-		return false;
+		success = false;
 	}
+	// take the lock again
+	if(this->block.chan_mutex && this->block.initialized)
+	{
+		int err;
+		err = pthread_mutex_lock(&(this->block.block_mutex));
+		if(err != 0)
+		{
+			this->reportError(false, "Mutex lock failure [%u: %s]",
+			                  err, strerror(err));
+			success = false;
+		}
+	}
+
 	// be sure that the pointer won't be used anymore
 	*data = NULL;
-	return true;
+	return success;
 }
 
 
@@ -261,7 +299,6 @@ bool RtChannel::addEvent(RtEvent *event)
 	}
 	this->new_events.push_back(event);
 
-	this->addInputFd(event->getFd());
 	// break the select loop
 	if(write(this->w_sel_break,
 	         MAGIC_WORD,
@@ -283,6 +320,7 @@ void RtChannel::updateEvents(void)
 	{
 		UTI_DEBUG("[%s]Channel %u: Add new event \"%s\" in list\n",
 		          this->block.getName().c_str(), this->chan, (*iter)->getName().c_str());
+		this->addInputFd((*iter)->getFd());
 		this->events[(*iter)->getFd()] = *iter;
 	}
 	this->new_events.clear();
@@ -404,30 +442,31 @@ void *RtChannel::startThread(void *pthis)
 bool RtChannel::processEvent(const RtEvent *const event)
 {
 	UTI_DEBUG_L3("[%s]Channel %u: event received (%s)",
-	             this->block.getName().c_str(), this->chan, event->getName().c_str());
+	             this->block.getName().c_str(), this->chan,
+	             event->getName().c_str());
 	return this->block.processEvent(event, this->chan);
 };
 
 
 void RtChannel::executeThread(void)
 {
+	int32_t number_fd;
+	int32_t handled;
+	fd_set readfds;
+
+	list<RtEvent *> priority_sorted_events;
+
 	while(true)
 	{
-		int32_t nfds = 0;
-		fd_set current_input_fd_set;
-		int32_t number_fd = 0;
-		int32_t handled = 0;
-
-		list<RtEvent *> priority_sorted_events;
+		handled = 0;
 		
 		// get the new events for the next loop
 		this->updateEvents();
-		current_input_fd_set = this->input_fd_set;
-		nfds = this->max_input_fd ;
+		readfds = this->input_fd_set;
 
 		// wait for any event
 		// we need a timeout in order to refresh event list
-		number_fd = select(nfds + 1, &current_input_fd_set, NULL, NULL, NULL);
+		number_fd = select(this->max_input_fd + 1, &readfds, NULL, NULL, NULL);
 		if(number_fd < 0)
 		{
 			this->reportError(true, "select failed: [%u: %s]", errno, strerror(errno));
@@ -436,7 +475,7 @@ void RtChannel::executeThread(void)
 		priority_sorted_events.clear();
 		
 		// check for select break
-		if(FD_ISSET(this->r_sel_break, &current_input_fd_set))
+		if(FD_ISSET(this->r_sel_break, &readfds))
 		{
 			unsigned char data[strlen(MAGIC_WORD)];
 			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
@@ -444,7 +483,7 @@ void RtChannel::executeThread(void)
 				UTI_ERROR("[%s]Channel %u: failed to read in pipe",
 				          this->block.getName().c_str(), this->chan);
 			}
-			continue;
+			handled++;
 		}
 
 		// handle each event
@@ -458,7 +497,7 @@ void RtChannel::executeThread(void)
 				break;
 			}
 			// if this event FD has raised
-			if(!FD_ISSET(event->getFd(), &current_input_fd_set))
+			if(!FD_ISSET(event->getFd(), &readfds))
 			{
 				continue;
 			}
@@ -488,7 +527,7 @@ void RtChannel::executeThread(void)
 			}
 		}
 		// sort the list according to priority
-		// TODO check that
+		// FIXME: this does not appear to work ! Why ?!
 		priority_sorted_events.sort();
 
 		// call processEvent on each event
