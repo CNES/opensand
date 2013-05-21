@@ -189,25 +189,25 @@ void DvbFifo::init(unsigned int id, vol_pkt_t max_size_pkt)
 bool DvbFifo::push(MacFifoElement *elem)
 {
 	// insert in top of fifo
-	if(this->queue.size() < this->max_size_pkt)
+	if(this->queue.size() >= this->max_size_pkt)
 	{
-		this->queue.push_back(elem);
-		// update counter
-		this->new_size_pkt++;
-		this->stat_context.current_pkt_nbr = this->queue.size();
-		this->stat_context.in_pkt_nbr++;
-		if(elem->getType() == 1)
-		{
-			// TODO accessor in MacFifoElem directly
-			vol_kb_t length = elem->getPacket()->getTotalLength();
-			this->new_length_kb += length;
-			this->stat_context.current_length_kb += length;
-			this->stat_context.in_length_kb += length;
-		}
-		return true;
+		return false;
 	}
 
-	return false;
+	this->queue.push_back(elem);
+	// update counter
+	this->new_size_pkt++;
+	this->stat_context.current_pkt_nbr = this->queue.size();
+	this->stat_context.in_pkt_nbr++;
+	if(elem->getType() == 1)
+	{
+		// TODO accessor in MacFifoElem directly
+		vol_kb_t length = elem->getPacket()->getTotalLength();
+		this->new_length_kb += length;
+		this->stat_context.current_length_kb += length;
+		this->stat_context.in_length_kb += length;
+	}
+	return true;
 }
 
 bool DvbFifo::pushFront(MacFifoElement *elem)

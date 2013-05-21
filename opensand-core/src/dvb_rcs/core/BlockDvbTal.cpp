@@ -201,12 +201,17 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				   this->getCurrentTime(),
 				   0) < 0)
 				{
-					// A problem occured. Trace it but carry on simulation
+					// a problem occured, we got memory allocation error
+					// or fifo full and we won't empty fifo until next
+					// call to onDownwardEvent => return
 					UTI_ERROR("SF#%ld: frame %ld: unable to "
 					          "store received encapsulation "
 					          "packet (see previous errors)\n",
 					          this->super_frame_counter,
 					          this->frame_counter);
+					burst->clear();
+					delete burst;
+					return false;
 				}
 
 				// update incoming counter (if packet is stored or sent)
@@ -255,7 +260,26 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 		break;
 
 		case evt_timer:
-			if(*event == this->logon_timer)
+			if(*event == this->frame_timer)
+			{
+				// beginning of a new frame
+				if(this->_state == state_running)
+				{
+					UTI_DEBUG("SF#%ld: send encap bursts on timer basis\n",
+					          this->super_frame_counter);
+
+					if(this->processOnFrameTick() < 0)
+					{
+						// exit because the bloc is unable to continue
+						UTI_ERROR("SF#%ld: treatments failed at frame %ld",
+						          this->super_frame_counter, this->frame_counter);
+						// Fatal error
+						this->upward->reportError(true, "superframe treatment failed");
+						return false;
+					}
+				}
+			}
+			else if(*event == this->logon_timer)
 			{
 				if(this->_state == state_wait_logon_resp)
 				{
@@ -277,25 +301,6 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 					{
 						UTI_DEBUG("failed to connect with QoS Server, cannot "
 						          "send cross layer information");
-					}
-				}
-			}
-			else if(*event == this->frame_timer)
-			{
-				// beginning of a new frame
-				if(this->_state == state_running)
-				{
-					UTI_DEBUG("SF#%ld: send encap bursts on timer basis\n",
-					          this->super_frame_counter);
-
-					if(this->processOnFrameTick() < 0)
-					{
-						// exit because the bloc is unable to continue
-						UTI_ERROR("SF#%ld: treatments failed at frame %ld",
-						          this->super_frame_counter, this->frame_counter);
-						// Fatal error
-						this->upward->reportError(true, "superframe treatment failed");
-						return false;
 					}
 				}
 			}

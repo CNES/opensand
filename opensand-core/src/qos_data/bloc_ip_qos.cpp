@@ -282,6 +282,8 @@ int BlocIPQoS::onMsgIpFromDn(IpPacket *packet)
 	{
 		UTI_DEBUG("%s: Packet should be forwarded (multicast/broadcast or"
 		          " unicast not for GW)", FUNCNAME);
+		// FIXME We may wait on downward RtFifo 
+		// while reading on upward RtFifo and create interblocking ?
 		status = this->onMsgIp(packet);
 		goto quit;
 	}

@@ -157,12 +157,16 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				                                        this->getCurrentTime(),
 				                                        0) != 0)
 				{
-					// a problem occured => trace it but
-					// carry on simulation
+					// a problem occured, we got memory allocation error
+					// or fifo full and we won't empty fifo until next
+					// call to onDownwardEvent => return
 					UTI_ERROR("SF#%ld: unable to store received "
 					          "encapsulation packet "
 					          "(see previous errors)\n",
 					          this->super_frame_counter);
+					burst->clear();
+					delete burst;
+					return false;
 				}
 
 				UTI_DEBUG("SF#%ld: encapsulation packet is "

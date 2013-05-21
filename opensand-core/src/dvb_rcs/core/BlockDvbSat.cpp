@@ -161,9 +161,13 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 				   this->getCurrentTime(),
 				   this->m_delay) != 0)
 				{
-					// a problem occured => trace it but
-					// carry on simulation
+					// a problem occured, we got memory allocation error
+					// or fifo full and we won't empty fifo until next
+					// call to onDownwardEvent => return/
 					UTI_ERROR("unable to store packet\n");
+					burst->clear();
+					delete burst;
+					return false;
 				}
 			}
 
