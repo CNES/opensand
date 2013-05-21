@@ -302,6 +302,11 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		UTI_ERROR("%s cannot create UlePacket from NetPacket\n", FUNCNAME);
 		goto error;
 	}
+	if(!ule_packet->isValid(this->enable_crc))
+	{
+		UTI_ERROR("ULE packet is invalid\n");
+		goto discard;
+	}
 
 	// decode ULE extension if present
 	ptype = ule_packet->getPayloadType();
