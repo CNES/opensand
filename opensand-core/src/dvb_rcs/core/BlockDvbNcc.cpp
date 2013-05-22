@@ -127,6 +127,7 @@ BlockDvbNcc::~BlockDvbNcc()
 	{
 		fclose(this->simu_file);
 	}
+	this->data_dvb_fifo.flush();
 }
 
 

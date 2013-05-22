@@ -65,18 +65,10 @@ SatSpot::~SatSpot()
 	this->complete_dvb_frames.clear();
 
 	// clear logon fifo
-	while((elem = this->m_logonFifo.pop()) != NULL)
-	{
-		free(elem->getData());
-		delete elem;
-	}
+	this->m_logonFifo.flush();
 
 	// clear control fifo
-	while((elem = this->m_ctrlFifo.pop()) != NULL)
-	{
-		free(elem->getData());
-		delete elem;
-	}
+	this->m_ctrlFifo.flush();
 
 	// clear data OUT ST fifo
 	this->m_dataOutStFifo.flush();

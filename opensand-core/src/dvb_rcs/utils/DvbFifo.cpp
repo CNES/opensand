@@ -39,6 +39,7 @@
 
 #include <assert.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 
 /**
@@ -265,7 +266,7 @@ void DvbFifo::flush()
 	for(std::vector<MacFifoElement *>::iterator it = this->queue.begin();
 	    it != this->queue.end(); ++it)
 	{
-		delete (*it)->getPacket();
+		// TODO destroy element content ?
 		delete (*it);
 	}
 	this->queue.clear();
