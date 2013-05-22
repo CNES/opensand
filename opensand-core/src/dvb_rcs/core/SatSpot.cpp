@@ -60,8 +60,6 @@ SatSpot::SatSpot():
 
 SatSpot::~SatSpot()
 {
-	MacFifoElement *elem;
-
 	this->complete_dvb_frames.clear();
 
 	// clear logon fifo
