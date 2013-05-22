@@ -53,14 +53,6 @@ opensand-daemon/dist
 opensand-manager/debian/files
 opensand-manager/debian/opensand-manager-gui
 opensand-manager/debian/opensand-manager-core
-opensand-margouilla/test_runtime/test_bloc_delayed_msg
-opensand-margouilla/test_runtime/test_bloc_msg
-opensand-margouilla/test_runtime/test_config_file
-opensand-margouilla/test_runtime/test_thread
-opensand-margouilla/debian/libopensand-margouilla
-opensand-margouilla/debian/libopensand-margouilla-dbg
-opensand-margouilla/debian/libopensand-margouilla-dev
-opensand-margouilla/debian/files
 opensand-core/doc/doxygen
 opensand-core/src/system/gw
 opensand-core/src/system/sat
