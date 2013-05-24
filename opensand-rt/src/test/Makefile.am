@@ -21,5 +21,7 @@ test_multi_blocks_SOURCES = \
 	TestMultiBlocks.cpp
 test_multi_blocks_LDADD = $(LIBS_COMMON)
 
+# we need .h here beacause it is opened in test
 EXTRA_DIST = \
+	TestMultiBlocks.h \
 	test.sh

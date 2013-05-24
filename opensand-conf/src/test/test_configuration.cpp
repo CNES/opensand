@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     vector<string> input_files;
     string result_filename;
 
-		/* parse program arguments, print the help message in case of failure */
+	/* parse program arguments, print the help message in case of failure */
 	if(argc <= 1)
 	{
 		usage();

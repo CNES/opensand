@@ -45,7 +45,7 @@ class TopBlock: public Block
 
   public:
 
-	TopBlock(const string &name);
+	TopBlock(const string &name, string input_file);
 	~TopBlock();
 
 
@@ -55,6 +55,7 @@ class TopBlock: public Block
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 
+	string input_file;
 	int32_t input_fd;
 	char last_written[MAX_SOCK_SIZE + 1];
 

@@ -74,6 +74,7 @@
 #include <algorithm>
 #include <signal.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -86,6 +87,16 @@
 unsigned char dbgLevel_default = 4;
 
 using std::ostringstream;
+
+/**
+ * @brief Print usage of the test application
+ */
+static void usage(void)
+{
+	std::cerr << "Test multi blocks: test the opensand rt library" << std::endl
+	          << "usage: test_multi_blocks -i input_file" << std::endl;
+}
+
 
 static char *read_msg(const MessageEvent *const event, string name, string from)
 {
@@ -117,19 +128,21 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
  *  - upward: read message from lower block (MessageEvent) and compare to file
  */
 
-TopBlock::TopBlock(const string &name):
-	Block(name)
+TopBlock::TopBlock(const string &name, string input_file):
+	Block(name),
+	input_file(input_file)
 {
 }
 
 bool TopBlock::onInit()
 {
-	this->input_fd = open("TestMultiBlocks.h", O_RDONLY);
+	this->input_fd = open(this->input_file.c_str(), O_RDONLY);
 	if(this->input_fd < 0)
 	{
 		//abort test
 		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot open input file");
+		                "cannot open input file %s: %s",
+		                input_file.c_str(), strerror(errno));
 	}
 	// high priority to be sure to read it before another timer
 	this->downward->addFileEvent("top_downward", this->input_fd, 1000);
@@ -358,11 +371,43 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	Block *middle;
 	Block *bottom;
 	string error;
+	string input_file;
+	int args_used;
+
+	/* parse program arguments, print the help message in case of failure */
+	if(argc <= 1 || argc > 3)
+	{
+		usage();
+		return 1;
+	}
+
+	for(argc--, argv++; argc > 0; argc -= args_used, argv += args_used)
+	{
+		args_used = 1;
+
+		if(!strcmp(*argv, "-h") || !strcmp(*argv, "--help"))
+		{
+			/* print help */
+			usage();
+			return 1;
+		}
+		else if(!strcmp(*argv, "-i"))
+		{
+			/* get the name of the file where the configuration is stored */
+			input_file = argv[1];
+			args_used++;
+		}
+		else
+		{
+			usage();
+			return 1;
+		}
+	}
 
 	std::cout << "Launch test" << std::endl;
 
 	top = Rt::createBlock<TopBlock, TopBlock::Upward,
-	                      TopBlock::Downward>("top");
+	                      TopBlock::Downward, string>("top", NULL, input_file);
 
 	middle = Rt::createBlock<MiddleBlock, MiddleBlock::Upward,
 	                         MiddleBlock::Downward>("middle", top);
