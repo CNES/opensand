@@ -137,6 +137,7 @@ void BlockManager::reportError(const char *msg, bool critical)
 	if(critical == true)
 	{
 		Output::sendEvent(BlockManager::critical_evt, "CRITICAL: %s", msg);
+		std::cerr << msg << std::endl;
 		std::cerr << "FATAL: stop process" << std::endl;
 		// stop process to signal something goes wrong
 		this->status = false;

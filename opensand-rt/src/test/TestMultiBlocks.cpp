@@ -143,6 +143,7 @@ bool TopBlock::onInit()
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot open input file %s: %s",
 		                input_file.c_str(), strerror(errno));
+		return false;
 	}
 	// high priority to be sure to read it before another timer
 	this->downward->addFileEvent("top_downward", this->input_fd, 1000);
@@ -289,8 +290,9 @@ bool BottomBlock::onInit()
 
 	if(pipe(pipefd) != 0)
 	{
-		std::cerr << "error when opening pipe between upward and "
-		          << "downward channels" << std::endl;
+		Rt::reportError(this->name, pthread_self(), true,
+		                "error when opening pipe between upward and"
+		                "downward channels");
 		return false;
 	}
 	this->input_fd = pipefd[0];
