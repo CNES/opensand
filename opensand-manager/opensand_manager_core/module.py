@@ -179,6 +179,7 @@ class EncapModule(OpenSandModule):
                        'transparent':(),
                        'regenerative':()
                       }
+        self._handle_upper_bloc = False
 
         self._condition = {
                             # down encap scheme is mandatory
@@ -187,8 +188,6 @@ class EncapModule(OpenSandModule):
                             'dvb-rcs': True,
                             # DVB-S2 is supported as lower layer
                             'dvb-s2': True,
-                            # is the module an IP option
-                            'ip_option': False,
                           }
 
         self._targets = ['global']
@@ -204,6 +203,49 @@ class EncapModule(OpenSandModule):
         else:
             return self._condition[condition]
 
+    def handle_upper_bloc(self):
+        """ check if the module can handle a packet from upper bloc """
+        return self._handle_upper_bloc
+
+### Lan Adaptation ###
+
+class LanAdaptationModule(OpenSandModule):
+    """ the lan adaptation module for OpenSAND Manager """
+    _name = None
+    _type = 'lan_adaptation'
+
+    def __init__(self):
+        OpenSandModule.__init__(self)
+        self._upper = []
+        self._handle_upper_bloc = False
+        self._iface_type = None
+
+        self._condition = {
+                            # is the module a header suppression or compression
+                            # tool
+                            'header_modif': False,
+                          }
+
+        self._targets = ['st', 'gw']
+
+    def get_available_upper_protocols(self, unused=None):
+        """ get the protocols it can encapsulate """
+        return self._upper
+
+    def get_condition(self, condition):
+        """ get a specific condition """
+        if not condition in self._condition:
+            return None
+        else:
+            return self._condition[condition]
+
+    def handle_upper_bloc(self):
+        """ check if the module can handle a packet from upper bloc """
+        return self._handle_upper_bloc
+
+    def get_interface_type(self):
+        """ get the interface type """
+        return self._iface_type
 
 ### Physical Layer ###
 

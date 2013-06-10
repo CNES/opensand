@@ -45,7 +45,7 @@ import logging
 import time
 import ConfigParser
 import pwd
-import prctl
+#import prctl
 from optparse import OptionParser
 
 from opensand_daemon.tcp_server import Plop
@@ -55,7 +55,7 @@ from opensand_daemon.stats_handler import StatsHandler
 from opensand_daemon.service import OpenSandService
 from opensand_daemon.syslog_handler import SysLogHandler, syslog
 from opensand_daemon.process_list import ProcessList
-from opensand_daemon.nl_utils import NlAddress, NlError, NlExists
+from opensand_daemon.interfaces import OpenSandInterfaces
 
 #==============================================================================
 # MAIN
@@ -71,7 +71,7 @@ DEFAULT_CACHE='/var/cache/sand-daemon'
 def sig_handler(signum, frame):
     """ signal handler """
     LOGGER.debug("Signal %s received" % str(signum))
-        
+
     if SERVICE_THREAD.is_alive():
         LOGGER.debug("stop service thread")
         stop_service()
@@ -105,8 +105,7 @@ def sig_handler(signum, frame):
             sys.exit(0)
         else:
             sys.exit(1)
-
-
+            
 def publish_service(stats_handler):
     """ publish the OpenSAND service """
     global SERVICE
@@ -117,11 +116,6 @@ def publish_service(stats_handler):
     port = ''
     instance = ''
     tools = ''
-    emu_iface = ''
-    emu_ipv4 = ''
-    lan_iface = ''
-    lan_ipv4 = ''
-    lan_ipv6 = ''
 
     try:
         name = CONF_PARSER.get('service', 'name')
@@ -140,97 +134,18 @@ def publish_service(stats_handler):
         if name != 'sat':
             instance = CONF_PARSER.get('service', 'instance')
             descr['id'] = instance
-        config_type = CONF_PARSER.get('network', 'config_level')
-        if name != 'ws':
-            emu_iface = CONF_PARSER.get('network', 'emu_iface')
-            emu_ipv4 = CONF_PARSER.get('network', 'emu_ipv4')
-            descr['emu_iface'] = emu_iface
-            descr['emu_ipv4'] = emu_ipv4
-
-        if name != 'sat':
-            lan_iface = CONF_PARSER.get('network', 'lan_iface')
-            lan_ipv4 = CONF_PARSER.get('network', 'lan_ipv4')
-            lan_ipv6 = CONF_PARSER.get('network', 'lan_ipv6')
-            descr['lan_iface'] = lan_iface
-            descr['lan_ipv4'] = lan_ipv4
-            descr['lan_ipv6'] = lan_ipv6
     except ConfigParser.Error, error:
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
 
-    if config_type == 'advanced':
-        nladd = {}
-        address = NlAddress()
-        try:
-            # if interface exists this is not an error, do not keep it in nladd
-            # to avoid removing it at exit
-            if name != 'sat':
-                try:
-                    address.add(lan_ipv4, lan_iface)
-                except NlExists:
-                    LOGGER.info("address %s already exists on %s" %
-                                (lan_ipv4, lan_iface))
-                finally:
-                    nladd[lan_ipv4] = lan_iface
-                try:
-                    address.add(lan_ipv6, lan_iface)
-                except NlExists:
-                    LOGGER.info("address %s already exists on %s" %
-                                (lan_ipv6, lan_iface))
-                finally:
-                    nladd[lan_ipv6] = lan_iface
-            if name != 'ws':
-                try:
-                    address.add(emu_ipv4, emu_iface)
-                except NlExists:
-                    LOGGER.info("address %s already exists on %s" %
-                                (emu_ipv4, emu_iface))
-                finally:
-                    nladd[emu_ipv4] = emu_iface
-
-        except NlError, msg:
-            LOGGER.error("unable to set addresses: %s" % msg)
-            # delete the address that were already set
-            for add in nladd:
-                try:
-                    address.delete(add, nladd[add])
-                except:
-                    continue
-            thread.exit()
-    # in automatic mode the addresses should have already been configured
-    elif config_type != 'automatic':
-        LOGGER.error("wrong configuration level: %s\n" % config_type)
+    try:
+        interfaces = OpenSandInterfaces(CONF_PARSER, name)
+    except BaseException, msg:
+        LOGGER.error("cannot initialize OpenSAND interfaces: %s" % msg)
         thread.exit()
 
-    # check sysctrl values and log if the value may lead to errors
-    if name != 'ws':
-        if name != 'sat':
-            for iface in [emu_iface, lan_iface]:
-                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface, 'ro') \
-                     as sysctrl:
-                    if sysctrl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv4 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
-            for iface in [lan_iface]:
-                with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
-                     as sysctrl:
-                    if sysctrl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv6 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
-            with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctrl:
-                if sysctrl.read().rstrip('\n') != "1":
-                    LOGGER.warning("IPv4 ip_forward is disabled, you should enable "
-                                   "it")
-        for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
-            with open("/proc/sys/net/core/%s" % val, 'ro') as sysctrl:
-                if int(sysctrl.read().rstrip('\n')) < 1048580:
-                    LOGGER.warning("%s should be set to a value greater than "
-                                   "1048580 in order to support high bitrates "
-                                   "through OpenSAND" % val)
+    # get the interfaces data
+    descr.update(interfaces.get_descr())
 
     # do not raise an error for the following fields because they are not
     # used on each host
@@ -277,14 +192,7 @@ def publish_service(stats_handler):
     finally:
         if STATE and STATE.RequestHandlerClass._running:
             return
-        if config_type == 'advanced':
-            # remove addresses only if OpenSAND is not running
-            for add in nladd:
-                try:
-                    address.delete(add, nladd[add])
-                except:
-                    continue
-
+        interfaces.release()
 
 def stop_service():
     """ stop the OpenSAND service """
@@ -381,13 +289,13 @@ def start_daemon():
     try:
         pw = pwd.getpwnam("opensand")
         uid = pw.pw_uid
-        prctl.cap_inheritable.net_admin = True
-        prctl.set_keepcaps(True)
-        os.setuid(uid)
-        prctl.cap_inheritable.limit('CAP_NET_ADMIN')
-        prctl.cap_effective.limit('CAP_NET_ADMIN')
-        prctl.cap_permitted.limit('CAP_NET_ADMIN')
-        prctl.cap_effective.net_admin = True
+#        prctl.cap_inheritable.net_admin = True
+#        prctl.set_keepcaps(True)
+#        os.setuid(uid)
+#        prctl.cap_inheritable.limit('CAP_NET_ADMIN')
+#        prctl.cap_effective.limit('CAP_NET_ADMIN')
+#        prctl.cap_permitted.limit('CAP_NET_ADMIN')
+#        prctl.cap_effective.net_admin = True
     except KeyError:
         LOGGER.ERROR("cannot find opensand user")
         try:
@@ -475,7 +383,7 @@ if __name__ == "__main__":
     PID_FILE = options.pid
     CONF_FILE = options.conf
     CACHE_DIR = os.path.abspath(options.cache)
-        
+
     process_list = ProcessList()
     process_list.set_cache_dir(CACHE_DIR)
 

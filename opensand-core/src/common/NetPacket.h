@@ -37,6 +37,8 @@
 
 #include <Data.h>
 
+#include <linux/if_ether.h>
+
 #include <string>
 #include <stdint.h>
 #include <syslog.h>
@@ -49,30 +51,59 @@
 // unused EtherTypes values
 
 /// Network protocol ID that indicates an error
-#define NET_PROTO_ERROR 0x0000
+#define NET_PROTO_ERROR   0x0000
 /// Network protocol ID for ATM
-#define NET_PROTO_ATM   0x0601
+#define NET_PROTO_ATM     0x0601
 /// Network protocol ID for AAL5
-#define NET_PROTO_AAL5  0x0602
+#define NET_PROTO_AAL5    0x0602
 /// Network protocol ID for MPEG-2 TS
 // TODO when GSE library supports extensions,
 // use the MPEG-2 TS-Concat Extension value
 // as defined in RFC 5163 (§ 3.1)
-#define NET_PROTO_MPEG  0x0603
+#define NET_PROTO_MPEG    0x0603
 /// Network protocol ID for ULE
-#define NET_PROTO_ULE   0x0604
+#define NET_PROTO_ULE     0x0604
 /// Network protocol ID for ROHC
-#define NET_PROTO_ROHC  0x0605
+#define NET_PROTO_ROHC    0x0605
 /// Network protocol ID for DVB frame
 #define NET_PROTO_DVB_FRAME  0x0606
 /// Network protocol ID for GSE
-#define NET_PROTO_GSE   0x0607
+#define NET_PROTO_GSE     0x0607
+/// Network protocol ID for both IP v4 or v6
+#define NET_PROTO_IP      0x0608
+/// Network protocol ID for Ethernet
+#define NET_PROTO_ETH     0x0609
+/// Network protocol ID for PHS
+#define NET_PROTO_PHS     0x060A
 /// Network protocol ID for IPv4
-#define NET_PROTO_IPV4  0x0800
+#define NET_PROTO_IPV4    ETH_P_IP
 /// Network protocol ID for IPv6
-#define NET_PROTO_IPV6  0x86dd
+#define NET_PROTO_IPV6    ETH_P_IPV6
+/// Network protocol ID for 802.1Q (VLAN)
+#define NET_PROTO_802_1Q  ETH_P_8021Q
+/// Network protocol ID for 802.1ad (Q in Q)
+#define NET_PROTO_802_1AD 0x9100
+// ARP ethertype
+#define NET_PROTO_ARP     ETH_P_ARP
 
 
+
+// Size of a IEEE 802.3 Ethernet frame
+// dmac(6) + smac(6) + etype(2) + max_payload(1500) = 1514 bytes
+#define ETHERNET_2_SIZE			ETH_FRAME_LEN
+#define ETHERNET_2_HEADSIZE		ETH_HLEN
+// Size of a IEEE 802.1q Ethernet frame
+// dmac(6) + smac(6) + 8100(2) + vlan/Qos(2) + 
+// etype(2) + max_payload(1500) = 1518 bytes
+#define ETHERNET_802_1Q_SIZE 1518
+#define ETHERNET_802_1Q_HEADSIZE 18
+// Size of a IEEE 802.1ad Ethernet frame
+// dmac(6) + smac(6) + 9100(2) + outer vlan/Qos(2) + 8100(2) +
+// inner vlan/Qos(2) + etype(2) + max_payload(1500) = 1522 bytes
+#define ETHERNET_802_1AD_SIZE 1522
+#define ETHERNET_802_1AD_HEADSIZE 22
+
+#define MAX_ETHERNET_SIZE ETHERNET_802_1AD_SIZE
 /**
  * @class NetPacket
  * @brief Network-layer packet
@@ -220,10 +251,16 @@ class NetPacket
 	/**
 	 * Get the destination spot ID
 	 *
-	 * @return the destinatioj spot ID
+	 * @return the destination spot ID
 	 */
 	uint8_t getDstSpot();
 
+	/**
+	 * Get the packet header length
+	 *
+	 * @return the header length
+	 */
+	size_t getHeaderLength();
 };
 
 #endif

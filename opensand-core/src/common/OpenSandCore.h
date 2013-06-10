@@ -50,7 +50,8 @@
 
 using std::string;
 
-/// The different types of DVB components
+
+/** The different types of DVB components */
 typedef enum
 {
 	satellite,
@@ -83,8 +84,31 @@ inline string getComponentName(component_t host)
 };
 
 
-// Broadcast tal id is maximal tal_id value authorized (5 bits).
+typedef enum
+{
+	REGENERATIVE,
+	TRANSPARENT,
+} sat_type_t;
+
+/**
+ * @brief get the satellite type according to its name
+ * 
+ * @param type the satellite type name
+ * 
+ * @return the satellite type enum
+ */
+inline sat_type_t strToSatType(string sat_type)
+{
+	if(sat_type == "regenerative")
+		return REGENERATIVE;
+	else
+		return TRANSPARENT;
+}
+
+/// Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
+/// Terminal ID for Gateway
+#define GW_TAL_ID (0L)
 
 // The types used in OpenSAND
 

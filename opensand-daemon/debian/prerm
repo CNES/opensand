@@ -16,13 +16,9 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-remove_cache(){
-    rm -f /var/cache/sand-daemon/* || true
-}
-
 case "$1" in
     remove)
-        remove_cache
+    # TODO force daemon to stop all opensand process and stop daemon
     ;;
 
     upgrade|deconfigure)

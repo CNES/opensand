@@ -328,9 +328,7 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         self.send_cmd(-1, -1, -1, -1, -1, -1, 0, 0, "x")
         self.send_cmd(42, 42, 42, 42, 42, 42, 0, 0, "s")
 
-        toto = self.get_line()
-        print toto
-        assert toto == "send\n"
+        assert self.get_line() == "send\n"
 
         msg = self.get_message()
         assert isinstance(msg, MessageSendProbes)
@@ -428,9 +426,9 @@ class EnvironmentPlaneDisabledTester(EnvironmentPlaneBaseTester):
     def check_all_probes(self):
         print "Test: All probes"
 
-        self.send_cmd(100, 100, 100, 100, 100, 100, 3.1415, 2.7182, "x")
-        self.send_cmd(-1, -1, -1, -1, -1, -1, 0, 0, "x")
-        self.send_cmd(42, 42, 42, 42, 42, 42, 0, 0, "s")
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "x")
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "x")
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "s")
 
         assert self.get_line() == "send\n"
 

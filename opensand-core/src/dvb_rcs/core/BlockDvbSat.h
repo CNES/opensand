@@ -101,9 +101,6 @@ class BlockDvbSat: public BlockDvb
 	BlockDvbSat(const string &name);
 	~BlockDvbSat();
 
-	/// Get the satellite type
-	string getSatelliteType();
-
 	/// get the bandwidth
 	int getBandwidth();
 

@@ -86,7 +86,8 @@ bool Chan::initChan(const string &link)
 	ostringstream name;
 
 	// Intermediate variables for Config file reading
-	string attenuation_type; 
+	string sat_type;
+	string attenuation_type;
 	string nominal_type;
 	string minimal_type = "";
 	string error_type = "";
@@ -97,14 +98,14 @@ bool Chan::initChan(const string &link)
 	ErrorInsertionPlugin *error = NULL;
 
 	// satellite type: regenerative or transparent ?
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          this->satellite_type))
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_INFO("satellite type = %s\n", this->satellite_type.c_str());
+	UTI_INFO("satellite type = %s\n", sat_type.c_str());
+	this->satellite_type = strToSatType(sat_type);
 
 	// get granularity
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
@@ -314,7 +315,7 @@ bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	                        // keeps the inital length
 	T_DVB_PHY *physical_parameters;
 
-	if(this->satellite_type != REGENERATIVE_SATELLITE)
+	if(this->satellite_type != REGENERATIVE)
 	{
 		return true;
 	}
@@ -374,7 +375,7 @@ bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	                        // keeps the inital length
 
 	//CASE 1: TERMINAL(ST or GW) 
-	if(this->component_type != satellite or this->satellite_type == REGENERATIVE_SATELLITE)
+	if(this->component_type != satellite or this->satellite_type == REGENERATIVE)
 	{
 		//Location of T_DVB_PHY at the end of the frame (Note:(char *)
 		//         used to point/address individual bytes) 
@@ -394,7 +395,7 @@ bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
 		             dvb_meta->hdr->msg_length);
 	}
 	//CASE 2: SATELLITE
-	else if(this->satellite_type == TRANSPARENT_SATELLITE)
+	else if(this->satellite_type == TRANSPARENT)
 	{
 		//Location of T_DVB_PHY at the end of the frame (Note:(char *)
 		//         used to point/address individual bytes) 

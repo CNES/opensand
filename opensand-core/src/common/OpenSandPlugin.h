@@ -39,12 +39,13 @@
 #include <cstdlib>
 #include <cstring>
 
-#define PLUGIN_MAX_LEN 256
+using std::string;
 
 typedef enum
 {
 	unknown,
 	encapsulation_plugin,
+	lan_adaptation_plugin,
 	attenuation_plugin,
 	nominal_plugin,
 	minimal_plugin,
@@ -59,7 +60,7 @@ typedef struct
 {
 	fn_create create;
 	plugin_type_t type;
-	char name[PLUGIN_MAX_LEN];
+	string name;
 } opensand_plugin_t;
 
 typedef opensand_plugin_t *fn_init();
@@ -89,7 +90,7 @@ class OpenSandPlugin
 	 * @return the plugin
 	 */
 	template<class Plugin>
-	static OpenSandPlugin *create(std::string name)
+	static OpenSandPlugin *create(const string name)
 	{
 		Plugin *plugin = new Plugin();
 		plugin->name = name;
@@ -103,9 +104,16 @@ class OpenSandPlugin
 	 */
 	static opensand_plugin_t *init;
 
+	/**
+	 * @brief Get the plugin name
+	 *
+	 * @return the plugin name
+	 */
+	string getName() const {return this->name;};
+
   protected:
 
-	std::string name;
+	string name;
 
 };
 
@@ -114,11 +122,10 @@ class OpenSandPlugin
 	extern "C" OpenSandPlugin *create_ptr(){return CLASS::create<CLASS>(pl_name);}; \
 	extern "C" opensand_plugin_t *init() \
 	{\
-		opensand_plugin_t *pl = (opensand_plugin_t *)calloc(1, sizeof(opensand_plugin_t)); \
+		opensand_plugin_t *pl = new opensand_plugin_t; \
 		pl->create = create_ptr; \
 		pl->type = pl_type; \
-		strncpy(pl->name, pl_name, PLUGIN_MAX_LEN - 1); \
-		pl->name[PLUGIN_MAX_LEN - 1] = '\0'; \
+		pl->name = pl_name; \
 		return pl; \
 	};
 #endif

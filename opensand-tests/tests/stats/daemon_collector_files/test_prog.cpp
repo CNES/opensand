@@ -1,9 +1,9 @@
-#include "Output.h"
+#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <stdio.h>
 #include <unistd.h>
 
-#include <opensand_conf/uti_debug.h>
 
 unsigned char dbgLevel_default = 4;
 

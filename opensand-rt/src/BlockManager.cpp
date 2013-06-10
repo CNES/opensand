@@ -57,7 +57,6 @@ BlockManager::BlockManager():
 	stopped(false),
 	status(true)
 {
-	BlockManager::critical_evt = Output::registerEvent("rt:critical", LEVEL_ERROR);
 }
 
 
@@ -94,6 +93,7 @@ void BlockManager::stop(int signal)
 
 bool BlockManager::init(void)
 {
+	BlockManager::critical_evt = Output::registerEvent("rt:critical", LEVEL_ERROR);
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{

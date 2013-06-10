@@ -41,7 +41,7 @@ import shutil
 import socket
 import ConfigParser
 
-from opensand_manager_core.my_exceptions import CommandException
+from opensand_manager_core.my_exceptions import CommandException, ModelException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
@@ -326,8 +326,8 @@ class Controller(threading.Thread):
         try:
             for host in self._hosts:
                 self._log.info("Starting " + host.get_name().upper())
-                host.start_stop('START')
-        except CommandException:
+                host.start_stop('START %s' % host.get_interface_type())
+        except (ModelException, CommandException), err:
             msg = "OpenSAND platform failed to start"
             if self._model.get_dev_mode():
                 msg += ", deploy OpenSAND before starting it"

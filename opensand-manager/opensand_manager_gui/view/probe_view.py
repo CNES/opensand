@@ -64,6 +64,7 @@ class ProbeView(WindowView):
 
         self._status_label = self._ui.get_widget("label_displayed")
         self._load_run_button = self._ui.get_widget("load_run_button")
+        self._clean_sel_button = self._ui.get_widget("clear_probes")
         self._conf_coll_button = self._ui.get_widget("conf_collection_button")
         self._save_fig_button = self._ui.get_widget("save_figure_button")
 
@@ -118,6 +119,12 @@ class ProbeView(WindowView):
     def displayed_probes_changed(self, displayed_probes):
         """ a probe was selected/unselected for display """
         self._probe_display.update(displayed_probes)
+        if len(displayed_probes) > 0:
+            self._clean_sel_button.set_sensitive(True)
+            self._save_fig_button.set_sensitive(True)
+        else:
+            self._clean_sel_button.set_sensitive(False)
+            self._save_fig_button.set_sensitive(False)
 
     def scenario_changed(self):
         """ the scenario was changed """
@@ -144,6 +151,8 @@ class ProbeView(WindowView):
         self._load_run_button.set_sensitive(enable_loading)
         self._load_run_button.show()
         self._conf_coll_button.hide()
+        self._clean_sel_button.hide()
+        self._clean_sel_button.set_sensitive(False)
         self._save_fig_button.set_sensitive(False)
 
     def _set_state_simulating(self):
@@ -151,6 +160,8 @@ class ProbeView(WindowView):
         self._status_label.set_markup("<b>Displayed:</b> Current simulation")
         self._load_run_button.hide()
         self._conf_coll_button.show()
+        self._clean_sel_button.show()
+        self._clean_sel_button.set_sensitive(False)
         self._save_fig_button.set_sensitive(False)
 
     def _set_state_run_loaded(self, run=None):
@@ -161,13 +172,14 @@ class ProbeView(WindowView):
         self._load_run_button.set_sensitive(True)
         self._load_run_button.show()
         self._conf_coll_button.hide()
+        self._clean_sel_button.show()
+        self._clean_sel_button.set_sensitive(False)
         self._save_fig_button.set_sensitive(True)
 
         self._probe_sel_controller.update_data(self._saved_data.get_programs())
 
     def _start_graph_update(self):
         """ enables the timer to refresh the graphs periodically """
-
         self._update_graph_tag = gobject.timeout_add(500,
             self._probe_display.graph_update,
             priority=gobject.PRIORITY_HIGH_IDLE)

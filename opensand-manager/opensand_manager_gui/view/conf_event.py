@@ -58,12 +58,24 @@ class ConfEvent(ConfView) :
 
     def close(self):
         """ close the configuration tab """
+        if self._timeout_id != None :
+            gobject.source_remove(self._timeout_id)
+            self._timeout_id = None
         self._log.debug("Conf Event: close")
         self._log.debug("Conf Event: description refresh joined")
         self._log.debug("Conf Event: closed")
 
     def activate(self, val):
         """ 'activate' signal handler """
+        if val == False and self._timeout_id != None :
+            gobject.source_remove(self._timeout_id)
+            self._timeout_id = None
+        elif val and self._timeout_id is None:
+            # refresh immediatly then periodically
+            self.update_lan_adaptation()
+            self._timeout_id = gobject.timeout_add(1000,
+                                                   self.update_lan_adaptation)
+
         if val == False:
             self._modif = False
         else:
@@ -385,17 +397,46 @@ class ConfEvent(ConfView) :
             if len(set(self._out_stack.get_stack().items()) - \
                    set(self._in_stack.get_stack().items())) != 0:
                 error_popup("In regenerative mode, the downlink stack should "
-                            " be at least the same as the uplink one")
+                            "be at least the same as the uplink one")
                 # TODO we could update the down stack with the up stack in
                 # protocol_stack.py to avoid this error
                 return
 
-        # IP options
-        options = []
-        for option in [opt for opt in self._ip_options
-                           if self._ip_options[opt].get_active()]:
-            options.append(option)
-        config.set_ip_options(options)
+        # lan adaptation schemes
+        # check that the last module in the stack is the same for all hosts
+        previous = None
+        last = None
+        gw_stack = None
+        other_stacks = []
+        for host in self._lan_stacks:
+            stack = self._lan_stacks[host].get_stack()
+            if host.get_name() == 'gw':
+                gw_stack = stack
+            else:
+                other_stacks.append(stack)
+            # get the last module of the stack that is not a header modification
+            # module
+            for pos in range(len(stack)):
+                mod = stack[str(len(stack) - 1 - pos)]
+                # header modification plugins are generally in global plugins
+                host_modules = host.get_lan_adapt_modules()
+                if mod in  host_modules and  \
+                   not host_modules[mod].get_condition("header_modif"):
+                    last = mod
+                    break
+            if previous is not None and last != previous:
+                error_popup("The last module of the LAN stack should be the "
+                            "same for each host (except for header modifications)")
+                return
+            previous = last
+        # check that the GW stack is at least the same as other
+        for stack in other_stacks:
+            if len(set(gw_stack.values()) - set(stack.values())) != 0:
+                error_popup("The hosts stack should be at least the same as "
+                            "for GW")
+                return
+        for host in self._lan_stacks:
+            host.set_lan_adaptation(self._lan_stacks[host].get_stack())
 
         # output encapsulation scheme
         config.set_up_return_encap(self._out_stack.get_stack())
@@ -404,7 +445,7 @@ class ConfEvent(ConfView) :
         config.set_down_forward_encap(self._in_stack.get_stack())
 
         # fame duration
-        widget = self._ui.get_widget('FrameDuration')
+        widget = self._ui.get_widget('frame_duration')
         frame_duration = widget.get_text()
         config.set_frame_duration(frame_duration)
 

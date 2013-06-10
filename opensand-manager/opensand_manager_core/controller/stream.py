@@ -133,9 +133,9 @@ class Stream:
         # open the file
         try:
             new_file = open(src_filename, "rb")
-        except IOError, (_, strerror):
+        except IOError, error:
             self._log.warning("error when opening '%s': %s. Send empty data"
-                              % (src_filename, strerror))
+                              % (src_filename, error))
             raise
         except Exception:
             self._log.error("exception when opening '%s'" % src_filename)

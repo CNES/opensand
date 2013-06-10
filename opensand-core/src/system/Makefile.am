@@ -8,7 +8,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/modcod \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
 	-I$(top_srcdir)/src/dvb_rcs/core \
-	-I$(top_srcdir)/src/qos_data \
+	-I$(top_srcdir)/src/lan_adaptation \
 	-I$(top_srcdir)/src/sat_carrier \
 	-I$(top_srcdir)/src/encap \
 	-I$(top_srcdir)/src/physical_layer \
@@ -16,7 +16,7 @@ INCLUDES = \
 
 PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/encap/libopensand_encap.la \
-	$(top_builddir)/src/qos_data/libopensand_qosdata.la \
+	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
 	$(top_builddir)/src/dvb_rcs/libopensand_dvb.la \
 	$(top_builddir)/src/dvb_rcs/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb_rcs/pep/libopensand_dvb_pep.la \
@@ -24,7 +24,7 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \
 	$(top_builddir)/src/common/libopensand_plugin.la \
-	$(top_builddir)/src/common/libopensand_common.la
+	$(top_builddir)/src/common/libopensand_plugin_utils.la
 
 allexec_LDADD = \
 	-lpthread \

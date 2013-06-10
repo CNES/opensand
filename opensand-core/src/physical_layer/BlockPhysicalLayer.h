@@ -62,7 +62,7 @@ class Chan: public RtChannel, PhyChannel
 	event_id_t att_timer;
 
 	/// Satellite in Regenerative or Transparent mode
-	string satellite_type;
+	sat_type_t satellite_type;
 
 	/// type of host: ST, SAT or GW
 	component_t component_type;

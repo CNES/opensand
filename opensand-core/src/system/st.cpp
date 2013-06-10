@@ -39,7 +39,7 @@
  *
  *                     eth nic 1
  *                         |
- *                      IP QoS  --------------
+ *                   Lan Adaptation  ---------
  *                         |                  |
  *                   Encap/Desencap      IpMacQoSInteraction
  *                         |                  |
@@ -55,8 +55,7 @@
  */
 
 
-// Project includes
-#include "bloc_ip_qos.h"
+#include "BlockLanAdaptation.h"
 #include "BlockEncap.h"
 #include "BlockDvbTal.h"
 #include "BlockSatCarrier.h"
@@ -80,7 +79,8 @@
  */
 bool init_process(int argc, char **argv,
                   string &ip_addr,
-                  string &iface_name,
+                  string &emu_iface,
+                  string &lan_iface,
                   tal_id_t &instance_id)
 {
 	int opt;
@@ -88,7 +88,7 @@ bool init_process(int argc, char **argv,
 	event_level_t output_event_level = LEVEL_INFO;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqdi:a:n:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:a:n:l:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -109,18 +109,23 @@ bool init_process(int argc, char **argv,
 			break;
 		case 'n':
 			// get local interface name
-			iface_name = optarg;
+			emu_iface = optarg;
+			break;
+		case 'l':
+			// get local interface name
+			lan_iface = optarg;
 			break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
-				"-n interface_name]\n",
+				"-n emu_iface -l lan_iface\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
 			fprintf(stderr, "\t-q                   disable output\n");
 			fprintf(stderr, "\t-d                   enable output debug events\n");
-			fprintf(stderr, "\t-a <ip_address>      set the IP address\n");
-			fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
+			fprintf(stderr, "\t-a <ip_address>      set the IP address for emulation\n");
+			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
+			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
 
 			UTI_ERROR("usage printed on stderr\n");
@@ -139,9 +144,15 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
-	if(iface_name.size() == 0)
+	if(emu_iface.size() == 0)
 	{
-		UTI_ERROR("missing mandatory interface name option");
+		UTI_ERROR("missing mandatory emulation interface name option");
+		return false;
+	}
+
+	if(lan_iface.size() == 0)
+	{
+		UTI_ERROR("missing mandatory lan interface name option");
 		return false;
 	}
 	return true;
@@ -154,16 +165,18 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool with_phy_layer = false;
 	string ip_addr;
-	string iface_name;
+	string emu_iface;
+	string lan_iface;
 	tal_id_t mac_id;
 	struct sc_specific specific;
 
-	Block *block_ip_qos;
+	Block *block_lan_adaptation;
 	Block *block_encap;
 	Block *block_dvb;
 	Block *block_phy_layer;
 	Block *up_sat_carrier;
 	Block *block_sat_carrier;
+
 	vector<string> conf_files;
 
 	Event *status = NULL;
@@ -172,11 +185,14 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr, iface_name, mac_id) == false)
+	if(init_process(argc, argv, ip_addr, emu_iface, lan_iface, mac_id) == false)
 	{
 		UTI_ERROR("%s: failed to init the process\n", progname);
 		goto quit;
 	}
+
+	failure = Output::registerEvent("failure", LEVEL_ERROR);
+	status = Output::registerEvent("status", LEVEL_INFO);
 
 	// increase the realtime responsiveness of the process
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -215,21 +231,22 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
-	block_ip_qos = Rt::createBlock<BlocIPQoSTal,
-	                               BlocIPQoSTal::Upward,
-	                               BlocIPQoSTal::Downward>("IP-QoS");
-	if(!block_ip_qos)
+	block_lan_adaptation = Rt::createBlock<BlockLanAdaptationTal,
+	                                       BlockLanAdaptationTal::Upward,
+	                                       BlockLanAdaptationTal::Downward,
+	                                       string>("LanAdaptation", NULL, lan_iface);
+	if(!block_lan_adaptation)
 	{
-		UTI_ERROR("%s: cannot create the IP-QoS bloc\n", progname);
+		UTI_ERROR("%s: cannot create the LanAdaptationS block\n", progname);
 		goto release_plugins;
 	}
 
 	block_encap = Rt::createBlock<BlockEncapTal,
 	                              BlockEncapTal::Upward,
-	                              BlockEncapTal::Downward>("Encap", block_ip_qos);
+	                              BlockEncapTal::Downward>("Encap", block_lan_adaptation);
 	if(!block_encap)
 	{
-		UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
+		UTI_ERROR("%s: cannot create the Encap block\n", progname);
 		goto release_plugins;
 	}
 
@@ -239,7 +256,7 @@ int main(int argc, char **argv)
 	                            tal_id_t>("DvbTal", block_encap, mac_id);
 	if(!block_dvb)
 	{
-		UTI_ERROR("%s: cannot create the DvbTal bloc\n", progname);
+		UTI_ERROR("%s: cannot create the DvbTal block\n", progname);
 		goto release_plugins;
 	}
 
@@ -252,14 +269,14 @@ int main(int argc, char **argv)
 		                                                                      block_dvb);
 		if(block_phy_layer == NULL)
 		{
-			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
+			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);
 			goto release_plugins;
 		}
 		up_sat_carrier = block_phy_layer;
 	}
 
 	specific.ip_addr = ip_addr;
-	specific.iface_name = iface_name;
+	specific.emu_iface = emu_iface;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrierTal,
 	                                    BlockSatCarrierTal::Upward,
 	                                    BlockSatCarrierTal::Downward,
@@ -268,7 +285,7 @@ int main(int argc, char **argv)
 	                                                        specific);
 	if(!block_sat_carrier)
 	{
-		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
+		UTI_ERROR("%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
 
@@ -278,19 +295,17 @@ int main(int argc, char **argv)
 	{
 		goto release_plugins;
     }
-	failure = Output::registerEvent("failure", LEVEL_ERROR);
-	status = Output::registerEvent("status", LEVEL_INFO);
-	if(!Output::finishInit())
+/*	if(!Output::finishInit())
 	{
 		UTI_PRINT(LOG_INFO,
 		          "%s: failed to init the output => disable it\n",
 		         progname);
-	}
+	}*/
 
 	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())
 	{
-		goto release_plugins;
+		Output::sendEvent(failure, "cannot run process loop\n");
     }	
 
 	Output::sendEvent(status, "Simulation stopped");
@@ -304,6 +319,7 @@ release_plugins:
 unload_config:
 	if(is_failure)
 	{
+		Output::finishInit();
 		Output::sendEvent(failure, "Failure while launching component\n");
 	}
 	globalConfig.unloadConfig();

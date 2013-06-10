@@ -48,16 +48,14 @@
 
 #define GLOBAL_SECTION            "global"
 
-#define IP_OPTION_LIST            "ip_options"
-#define OPTION_NAME               "name"
+#define LAN_ADAPTATION_SCHEME_LIST "lan_adaptation_schemes"
 #define UP_RETURN_ENCAP_SCHEME_LIST "up_return_encap_schemes"
 #define DOWN_FORWARD_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
 #define POSITION                  "pos"
+#define PROTO                     "proto"
 #define ENCAP_NAME                "encap"
 
 #define SATELLITE_TYPE            "satellite_type"
-#define TRANSPARENT_SATELLITE     "transparent"
-#define REGENERATIVE_SATELLITE    "regenerative"
 
 #define SAT_DELAY                 "delay"
 
@@ -137,7 +135,6 @@
 // bloc_dvb_rcs_ncc //
 //////////////////////
 
-#define DVB_GW_MAC_ID           (0L)
 #define DVB_MAC_SECTION         "mac_layer"
 #define DVB_FPF                 "frames_per_superframe"
 
@@ -193,8 +190,6 @@
 // QOS //
 //////////
 
-#define TUNTAP_BUFSIZE 1514 // ethernet header + mtu, crc not included
-
 #define SECTION_QOS_AGENT    "qos_agent"
 #define ST_NAME              "st_name"
 #define QOS_SERVER_HOST      "st_address"
@@ -216,16 +211,17 @@
 #define CATEGORY_SERVICE    "class"
 #define KEY_DEF_CATEGORY    "default_category"
 
-
 //////////////////
-// IP dedicated //
+//     SARP     //
 //////////////////
 
-#define IPD_SECTION_V4    "ip_dedicated_v4"
-#define IPD_SECTION_V6    "ip_dedicated_v6"
-#define TERMINAL_LIST     "terminals"
+#define SARP_SECTION      "sarp"
+#define IPV4_LIST         "ipv4"
+#define IPV6_LIST         "ipv6"
+#define ETH_LIST          "ethernet"
 #define TERMINAL_ADDR     "addr"
 #define TERMINAL_IP_MASK  "mask"
+#define MAC_ADDR          "mac"
 
 ////////////////////
 // Physical Layer //

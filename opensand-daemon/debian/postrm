@@ -33,19 +33,32 @@ remove_opensand_conf(){
     CONF="/etc/opensand"
     DAEMON_CONF="/etc/opensand/daemon.conf"
     CORE_CONF="/etc/opensand/core.conf"
+    DHCP_CONF="/etc/dnsmasq.d/lan_st.conf"
     # TODO check for plugins and other deployed files to remove
 
-    ${EXE_RM} -f ${DAEMON_CONF} ${CORE_CONF} || true
+    ${EXE_RM} -f ${DAEMON_CONF} ${CORE_CONF} ${DHCP_CONF} || true
     ${EXE_RMDIR} --ignore-fail-on-non-empty ${CONF} || true
+}
+
+remove_cache(){
+    rm -f /var/cache/sand-daemon/* || true
+}
+
+delete_interfaces(){
+	/usr/bin/opensand_interfaces -d 1>/dev/null 2>&1 || true
 }
 
 case "$1" in
     purge)
         remove_syslog_conf
         remove_opensand_conf
+        remove_cache
+        delete_interfaces
     ;;    
         
     remove)
+        remove_cache
+        delete_interfaces
     ;;
 
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

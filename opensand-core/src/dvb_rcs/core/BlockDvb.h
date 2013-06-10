@@ -118,7 +118,7 @@ class BlockDvb: public Block
 	bool sendDvbFrame(DvbFrame *frame, long carrier_id);
 
 	/// the satellite type (regenerative o transparent)
-	string satellite_type;
+	sat_type_t satellite_type;
 
 	/// the DAMA algorithpm
 	string dama_algo;

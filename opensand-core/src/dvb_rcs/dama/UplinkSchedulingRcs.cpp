@@ -74,7 +74,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		}
 	}
 
-	return true;;
+	return true;
 }
 
 

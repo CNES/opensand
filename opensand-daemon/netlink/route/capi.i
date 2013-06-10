@@ -183,9 +183,10 @@ extern uint32_t	rtnl_route_get_table(struct rtnl_route *);
 extern void	rtnl_route_set_scope(struct rtnl_route *, uint8_t);
 extern uint8_t	rtnl_route_get_scope(struct rtnl_route *);
 extern void	rtnl_route_set_tos(struct rtnl_route *, uint8_t);
-extern uint8_t	rtnl_route_get_tos(struct rtnl_route *);
+extern uint8_t	rtnl_route_get_tos(struct rtnl_route *);*/
 extern void	rtnl_route_set_protocol(struct rtnl_route *, uint8_t);
 extern uint8_t	rtnl_route_get_protocol(struct rtnl_route *);
+/*
 extern void	rtnl_route_set_priority(struct rtnl_route *, uint32_t);
 extern uint32_t	rtnl_route_get_priority(struct rtnl_route *);
 extern int	rtnl_route_set_family(struct rtnl_route *, uint8_t);

@@ -121,4 +121,50 @@ class AdvancedHostModel:
         """ disable host """
         self._enabled = False
 
+    def get_stack(self, name, key):
+        """ get a lan adaptation stack """
+        table = self.get_table(name)
+        if table is None:
+            raise ModelException("cannot parse stack %s" % name)
+        stack = {}
+        for elt in table:
+            try:
+                stack[elt['pos']] = elt[key]
+            except KeyError, msg:
+                raise ModelException("cannot get scheme for %s: %s" % (name,
+                                                                       msg))
+        return stack
 
+    def get_table(self, name):
+        """ get a list of dictionnary containing the lines content
+            of the table """
+        content = []
+        table = self._configuration.get("//" + name)
+        if table is None or not self._configuration.is_table(table):
+            return None
+        lines = self._configuration.get_table_elements(table)
+        for line in lines:
+            elt = self._configuration.get_element_content(line)
+            content.append(elt)     
+        return content
+
+    def set_stack(self, table_path, stack, key):
+        """ set the encapsulation scheme table """
+        table = self._configuration.get("//" + table_path)
+        if(len(stack) < 1):
+            raise ModelException("empty stack received for %s" % table_path)
+        while len(table) < len(stack):
+            self._configuration.add_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+        while len(table) > len(stack):
+            self._configuration.remove_line(self._configuration.get_path(table))
+            table = self._configuration.get("//" + table_path)
+
+        lines = self._configuration.get_table_elements(table)
+        idx = 0
+        for pos in sorted(stack):
+            path = self._configuration.get_path(lines[idx])
+            self._configuration.set_value(pos, path, 'pos')
+            self._configuration.set_value(stack[pos], path, key)
+            idx += 1
+        self._configuration.write()

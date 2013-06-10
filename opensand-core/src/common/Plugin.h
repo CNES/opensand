@@ -10,18 +10,18 @@
  * This file is part of the OpenSAND testbed.
  *
  *
- * OpenSAND is free software : you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * OpenSAND is free software : you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see http://www.gnu.org/licenses/.
  *
  */
 
@@ -45,9 +45,6 @@
  */
 class Plugin
 {
-	friend class PluginChannel;
-	friend class SignalEvent;
-
   public:
 
 	Plugin();
@@ -73,8 +70,18 @@ class Plugin
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getEncapsulationPlugins(std::string name,
-	                                    EncapPlugin **encapsulation);
+	static bool getEncapsulationPlugin(std::string name,
+	                                   EncapPlugin **encapsulation);
+
+	/**
+	 * @brief get a lan adaptation plugin
+	 *
+	 * @param name           The name of the lan_adaptation plugin
+	 * @param lan_adaptation  The lan adaptation plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getLanAdaptationPlugin(string name,
+	                                   LanAdaptationPlugin **lan_adaptation);
 
 	/**
 	 * @brief get physical layer plugins
@@ -106,6 +113,14 @@ class Plugin
 	 * @return true on success, false otherwise
 	 */
 	static void getAllEncapsulationPlugins(pl_list_t &encapsulation);
+
+	/**
+	 * @brief get the lan adaptation plugins list
+	 *
+	 * @param encapsulation  The lan adaptation plugins
+	 * @return true on success, false otherwise
+	 */
+	static void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation);
 
 
    private:

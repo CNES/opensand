@@ -598,7 +598,7 @@ bool SatelliteTerminalList::setList(std::ifstream &simu_file, vector<string> &li
 	{
 		// reset the error flags
 		simu_file.clear();
-		UTI_INFO("end of simulation file reached, restart at beginning...\n");
+		UTI_DEBUG("end of simulation file reached, restart at beginning...\n");
 		simu_file.seekg(0, ios::beg);
 		if(simu_file.fail())
 		{   

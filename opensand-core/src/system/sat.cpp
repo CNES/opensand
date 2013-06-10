@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool with_phy_layer = false;
 	string ip_addr;
-	string iface_name;
+	string emu_iface;
 	struct sc_specific specific;
 
 	std::string satellite_type;
@@ -158,11 +158,14 @@ int main(int argc, char **argv)
 	Event *failure = NULL;
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr, iface_name) == false)
+	if(init_process(argc, argv, ip_addr, emu_iface) == false)
 	{
 		UTI_ERROR("%s: failed to init the process\n", progname);
 		goto quit;
 	}
+
+	failure = Output::registerEvent("failure", LEVEL_ERROR);
+	status = Output::registerEvent("status", LEVEL_INFO);
 
 	// increase the realtime responsiveness of the process
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -212,14 +215,14 @@ int main(int argc, char **argv)
 
 	block_encap = NULL;
 	// instantiate all blocs
-	if(satellite_type == REGENERATIVE_SATELLITE)
+	if(strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_encap = Rt::createBlock<BlockEncapSat,
 		                              BlockEncapSat::Upward,
 		                              BlockEncapSat::Downward>("Encap");
 		if(!block_encap)
 		{
-			UTI_ERROR("%s: cannot create the Encap bloc\n", progname);
+			UTI_ERROR("%s: cannot create the Encap block\n", progname);
 			goto release_plugins;
 		}
 	}
@@ -229,7 +232,7 @@ int main(int argc, char **argv)
 	                            BlockDvbSat::Downward>("DvbSat", block_encap);
 	if(!block_dvb)
 	{
-		UTI_ERROR("%s: cannot create the DvbSat bloc\n", progname);
+		UTI_ERROR("%s: cannot create the DvbSat block\n", progname);
 		goto release_plugins;
 	}
 
@@ -242,14 +245,14 @@ int main(int argc, char **argv)
 		                                                                      block_dvb);
 		if(block_phy_layer == NULL)
 		{
-			UTI_ERROR("%s: cannot create the PhysicalLayer bloc\n", progname);
+			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);
 			goto release_plugins;
 		}
 		up_sat_carrier = block_phy_layer;
 	}
 
 	specific.ip_addr = ip_addr;
-	specific.iface_name = iface_name;
+	specific.emu_iface = emu_iface;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrierSat,
 	                                    BlockSatCarrierSat::Upward,
 	                                    BlockSatCarrierSat::Downward,
@@ -258,7 +261,7 @@ int main(int argc, char **argv)
 	                                                        specific);
 	if(!block_sat_carrier)
 	{
-		UTI_ERROR("%s: cannot create the SatCarrier bloc\n", progname);
+		UTI_ERROR("%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
 
@@ -267,8 +270,6 @@ int main(int argc, char **argv)
 	{
 		goto release_plugins;
     }
-	failure = Output::registerEvent("failure", LEVEL_ERROR);
-	status = Output::registerEvent("status", LEVEL_INFO);
 	if(!Output::finishInit())
 	{
 		UTI_PRINT(LOG_INFO,
@@ -279,7 +280,7 @@ int main(int argc, char **argv)
 	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())
 	{
-		goto release_plugins;
+		Output::sendEvent(failure, "cannot run process loop\n");
     }
 
 	Output::sendEvent(status, "Simulation stopped");
@@ -293,6 +294,7 @@ release_plugins:
 unload_config:
 	if(is_failure)
 	{
+		Output::finishInit();
 		Output::sendEvent(failure, "Failure while launching component\n");
 	}
 	globalConfig.unloadConfig();

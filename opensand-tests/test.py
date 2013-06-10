@@ -355,6 +355,8 @@ help="specify the root folder for tests configurations\n"
                 self._error = []
                 # start the platform
                 self.start_opensand()
+                # wait to be sure the plateform is started
+                time.sleep(2)
                 # get order_host folders
                 orders = glob.glob(test_name + '/*')
                 if os.path.join(test_name, 'files') in orders:
@@ -628,7 +630,7 @@ help="specify the root folder for tests configurations\n"
         """ create controllers for WS because the manager
             controller does not handle it """
         for ws_model in self._model.get_workstations_list():
-            new_ws = HostController(ws_model, self._log)
+            new_ws = HostController(ws_model, self._log, None)
             self._ws_ctrl.append(new_ws)
 
 

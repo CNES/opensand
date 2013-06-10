@@ -41,8 +41,8 @@
 
 struct sc_specific
 {
-	string ip_addr;           ///< the IP address for emulation
-	string iface_name;    ///< the name of the emulation interface
+	string ip_addr;      ///< the IP address for emulation
+	string emu_iface;    ///< the name of the emulation interface
 };
 
 /**

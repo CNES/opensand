@@ -48,6 +48,7 @@ class ProbeEvent(ProbeView):
         ProbeView.__init__(self, parent, model, manager_log)
 
         self._updating = False
+        # TODO remove the following attributes ?
         self._selected_file_list = []
 
         self._selected = {'component' : [], 'stat' : [], 'index' : []}
@@ -58,46 +59,45 @@ class ProbeEvent(ProbeView):
 
         if self._simu_running and self._update_graph_tag is not None:
             self._stop_graph_update()
-        
+
         self._log.debug("Probe Event: closed")
 
     def activate(self, val):
         """ 'activate' signal handler """
         if not self._simu_running:
             return
-        
+
         if val and self._update_graph_tag is None:
             self._start_graph_update()
-        
+
         elif not val and self._update_graph_tag is not None:
             self._stop_graph_update()
 
     def on_load_run_button_clicked(self, _):
         """ The load run button was clicked """
-    
         dlg = RunDialog(self._model.get_scenario(), self._model.get_run())
         run = dlg.go()
-            
+
         self._saved_data = self._model.get_saved_probes(run)
         if not self._saved_data:
             return
-        
+
         self._probe_display.set_probe_data(self._saved_data.get_data())
         self._set_state_run_loaded(run)
 
     def on_conf_collection_button_clicked(self, _):
         """ The Configure Collection button was clicked """
         self._conf_coll_dialog.show()
-    
+
     def on_save_figure_button_clicked(self, _):
         """ The Save Figure button was clicked """
-        
         dlg = gtk.FileChooserDialog("Save Figure", None,
                                     gtk.FILE_CHOOSER_ACTION_SAVE,
                                     (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                     gtk.STOCK_APPLY, gtk.RESPONSE_APPLY))
         dlg.set_current_name("probe.svg")
-        dlg.set_current_folder(self._model.get_scenario())
+        dlg.set_current_folder(os.path.join(self._model.get_scenario(),
+                                            self._model.get_run()))
         dlg.set_do_overwrite_confirmation(True)
         imgfilter = gtk.FileFilter()
         imgfilter.add_pixbuf_formats()
@@ -118,3 +118,7 @@ class ProbeEvent(ProbeView):
             self.save_figure(filename)
 
         dlg.destroy()
+
+    def on_clear_probes_clicked(self, _):
+        """ The clear probe selection button was clicked """
+        self._probe_sel_controller.clear_selection()

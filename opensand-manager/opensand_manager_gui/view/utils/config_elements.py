@@ -53,16 +53,16 @@ class ProbeSelectionController(object):
         self._program_list = {}
         self._current_program = None
         self._update_needed = False
-        
+
         self._program_store = gtk.ListStore(str, int)
         self._program_store.set_sort_column_id(0, gtk.SORT_ASCENDING)
         program_listview.set_model(self._program_store)
-        
+
         column = gtk.TreeViewColumn("Program", gtk.CellRendererText(), text=0)
         column.set_sort_column_id(0)
         program_listview.append_column(column)
         program_listview.connect('cursor-changed', self._prog_curs_changed)
-        
+
         # The probe tree store uses four columns:
         # 0) bool: is the probe displayed ? (False if the row is not a probe)
         # 1) str: the probe name, or section name
@@ -71,79 +71,94 @@ class ProbeSelectionController(object):
         #         keeping the alignment)
         # The tree view itself uses one column, with two renderers (checkbox
         # and text)
+        # TODO use macros for columns ID as in following class
         self._probe_store = gtk.TreeStore(bool, str, int, int)
+
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
         probe_listview.set_model(self._probe_store)
         probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         probe_listview.set_enable_tree_lines(True)
         
+
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(1) # Sort on the probe/section name
         probe_listview.append_column(column)
-        
+
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
         column.add_attribute(cell_renderer, "active", 0)
         column.add_attribute(cell_renderer, "indicator-size", 3)
         cell_renderer.connect("toggled", self._probe_toggled)
-        
+
         cell_renderer = gtk.CellRendererText()
         column.pack_start(cell_renderer, True)
         column.add_attribute(cell_renderer, "text", 1)
+
+    def clear_selection(self):
+        """ clear selection """
+        for program in self._program_list.itervalues():
+            for probe in program.get_probes():
+                probe.displayed = False
+        self._probe_store.foreach(self.unselect)
+        self._notify_probe_display_changed()
     
+    def unselect(self, model, path, iter):
+        """ unselect a statistic """
+        self._probe_store.set_value(iter, 0, False)
+
     def register_collection_dialog(self, collection_dialog):
         """ register a collection dialog """
         self._collection_dialog = collection_dialog
         if collection_dialog:
             collection_dialog.update_list(self._program_list)
-    
+
     def update_data(self, program_list):
         """ called when the probe list changes """
         self._program_list = program_list
         self._update_needed = True
-        
+
         gobject.idle_add(self._update_data)
-    
+
     def _update_data(self):
         """ update the current program list """
         if not self._update_needed:
             return
-        
+
         self._update_needed = False
-    
+
         self._program_store.clear()
-        
+
         for program in self._program_list.itervalues():
             self._program_store.append([program.name,
                                         program.ident])
-        
+
         selection = self._program_listview.get_cursor()
         if selection[0] is None:
             self._program_listview.set_cursor(0)
-        
+
         self._update_probe_list()
         self._notify_probe_display_changed()
-        
+
         if self._collection_dialog:
             self._collection_dialog.update_list(self._program_list)
-    
+
     def _prog_curs_changed(self, _):
         """ called when the user selects a program in the list """
-        
+
         self._update_probe_list()
-    
+
     def _update_probe_list(self):
         """ called when the displayed probe list need to be updated """
-        
+
         selection = self._program_listview.get_cursor()
         self._probe_store.clear()
         if selection[0] is None:
             self._current_program = None
             return
-        
+
         it = self._program_store.get_iter(selection[0])
         prog_ident = self._program_store.get_value(it, 1)
-        
+
         self._current_program = self._program_list[prog_ident]
 
         groups = {}
@@ -151,14 +166,14 @@ class ProbeSelectionController(object):
         # For instance, probe a.b.c.d will create three recursive tree paths,
         # stored respectively at groups['a'][''], groups['a']['b'][''],
         # and groups['a']['b']['c']
-        
+
         for probe in self._current_program.get_probes():
             if probe.enabled:
                 probe_parent = None
                 cur_group = groups
                 probe_path = probe.name.split(".")
                 probe_name = probe_path.pop()
-                
+
                 while probe_path:
                     group_name = probe_path.pop(0)
                     try:
@@ -166,54 +181,54 @@ class ProbeSelectionController(object):
                     except KeyError:
                         # The needed tree path does not exist -- create it and
                         # continue
-                    
+
                         cur_group[group_name] = {
                             '': self._probe_store.append(probe_parent,
                                                          [False, group_name, 0,
                                                           0])
                         }
-                        
+
                         cur_group = cur_group[group_name]
-                    
+
                     probe_parent = cur_group['']
-            
+
                 self._probe_store.append(probe_parent, [probe.displayed,
                                                         probe_name, probe.ident,
                                                         12])
     
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
-    
+
         it = self._probe_store.get_iter(path)
         probe_ident = self._probe_store.get_value(it, 2)
         new_value = not self._probe_store.get_value(it, 0)
-        
+
         self._current_program.get_probe(probe_ident).displayed = new_value
         self._probe_store.set(it, 0, new_value)
 
         self._notify_probe_display_changed()
-    
+
     def probe_enabled_changed(self, probe, was_hidden):
         """ called when the enabled status of a probe is changed """
-        
+
         if probe.program == self._current_program:
             self._update_probe_list()
-        
+
         if was_hidden:
             self._notify_probe_display_changed()
-    
+
     def _notify_probe_display_changed(self):
         """ notifies the main view of the currently displayed probes """
         displayed_probes = []
-        
+
         for program in self._program_list.itervalues():
             for probe in program.get_probes():
                 if probe.displayed:
                     displayed_probes.append(probe)
-        
+
         self._probe_view.displayed_probes_changed(displayed_probes)
-        
-        
+
+
 
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
@@ -740,7 +755,7 @@ class ConfigurationNotebook(gtk.Notebook):
             if self._table_length[name] >= self._config.get_maxoccurs(key_name):
                 button.set_sensitive(False)
 
-        
+
 
 
 class ConfEntry(object):
@@ -1005,7 +1020,7 @@ def xpath_to_name(xpath):
         key = path[1]
         if '@' in xpath:
             return "%s/%s" % (key, att)
-        else: 
+        else:
             return key
     except:
         return xpath

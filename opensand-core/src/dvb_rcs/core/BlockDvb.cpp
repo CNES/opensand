@@ -61,7 +61,7 @@ Event *BlockDvb::event_login_response = NULL;
  */
 BlockDvb::BlockDvb(const string &name):
 	Block(name),
-	satellite_type(""),
+	satellite_type(),
 	dama_algo(""),
 	frame_duration(-1),
 	frames_per_superframe(-1),
@@ -75,6 +75,7 @@ BlockDvb::BlockDvb(const string &name):
 {
 	// TODO we need a mutex here because some parameters are used in upward and downward
 	this->enableChannelMutex();
+
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);
@@ -101,16 +102,18 @@ bool BlockDvb::initCommon()
 	string encap_name;
 	int encap_nbr;
 	EncapPlugin *plugin;
+	string sat_type;
 
 	// satellite type
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          this->satellite_type))
+	                          sat_type))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_INFO("satellite type = %s\n", this->satellite_type.c_str());
+	UTI_INFO("satellite type = %s\n", sat_type.c_str());
+	this->satellite_type = strToSatType(sat_type);
 
 	// get the packet types
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
@@ -132,7 +135,7 @@ bool BlockDvb::initCommon()
 		goto error;
 	}
 
-	if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
+	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 	{
 		UTI_ERROR("%s cannot get plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());
@@ -166,7 +169,7 @@ bool BlockDvb::initCommon()
 		goto error;
 	}
 
-	if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
+	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 	{
 		UTI_ERROR("%s missing plugin for %s encapsulation",
 		          FUNCNAME, encap_name.c_str());

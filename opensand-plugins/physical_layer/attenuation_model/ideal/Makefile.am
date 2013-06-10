@@ -1,7 +1,7 @@
 ################################################################################
 #	Name       : Makefile
 #	Author     : Julien BERNARD <jbernard@toulouse.viveris.com>
-#	Description: create the OpenSAND ATM/AAL5 plugin library
+#	Description: create the OpenSAND Ideal plugin library
 ################################################################################
 
 SUBDIRS = \

@@ -32,33 +32,19 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+#define DBG_PREFIX
+#define DBG_PACKAGE PKG_ENCAP
+#include <opensand_conf/uti_debug.h>
+
+
 #include "BlockEncap.h"
 #include "Plugin.h"
 
 #include <algorithm>
 #include <stdint.h>
 
-// debug
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_ENCAP
-#include <opensand_conf/uti_debug.h>
-
 Event* BlockEncap::error_init = NULL;
 
-/**
- * @brief get the satellite type according to its name
- * 
- * @param type the satellite type name
- * 
- * @return the satellite type enum
- */
-sat_type_t strToSatType(std::string sat_type)
-{
-	if(sat_type == "regenerative")
-		return REGENERATIVE;
-	else
-		return TRANSPARENT;
-}
 
 BlockEncap::BlockEncap(const string &name, component_t host):
 	Block(name),
@@ -69,8 +55,7 @@ BlockEncap::BlockEncap(const string &name, component_t host):
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
-	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
-	
+
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("BlockEncap:init", LEVEL_ERROR);
@@ -79,9 +64,7 @@ BlockEncap::BlockEncap(const string &name, component_t host):
 
 BlockEncap::~BlockEncap()
 {
-	delete this->ip_handler;
 }
-
 
 
 bool BlockEncap::onDownwardEvent(const RtEvent *const event)
@@ -100,9 +83,9 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		{
 			// message received from another bloc
 			UTI_DEBUG("message received from the upper-layer bloc\n");
-			NetPacket *packet;
-			packet = (NetPacket *)((MessageEvent *)event)->getData();
-			return this->onRcvIpFromUp(packet);
+			NetBurst *burst;
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			return this->onRcvBurstFromUp(burst);
 		}
 		break;
 
@@ -137,7 +120,7 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 				{
 					UTI_INFO("duplicate link up msg\n");
 					delete link_up_msg;
-					return false;;
+					return false;
 				}
 
 				// save group id and TAL id sent by MAC layer
@@ -185,15 +168,17 @@ bool BlockEncap::onInit()
 {
 	string up_return_encap_proto;
 	string downlink_encap_proto;
+	string lan_name;
 	string satellite_type;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
-	int i;
+	int i = 0;
+	int lan_nbr;
 	int encap_nbr;
+	LanAdaptationPlugin *lan_plugin = NULL;
+	StackPlugin *upper_encap = NULL;
 	EncapPlugin *plugin;
-	EncapPlugin *upper_option = NULL;
-	EncapPlugin *upper_encap = NULL;
 
 	// satellite type: regenerative or transparent ?
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
@@ -205,66 +190,30 @@ bool BlockEncap::onInit()
 	}
 	UTI_DEBUG("satellite type = %s\n", satellite_type.c_str());
 
-	// Retrive ip_options
-	if(!globalConfig.getListItems(GLOBAL_SECTION, IP_OPTION_LIST, option_list))
+	// Retrieve last packet handler in lan adaptation layer
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                                lan_nbr))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n", GLOBAL_SECTION,
-		          IP_OPTION_LIST);
+		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
+		          LAN_ADAPTATION_SCHEME_LIST);
 		goto error;
 	}
-
-	upper_option = NULL;
-	// get all the IP options
-	for(ConfigurationList::iterator iter = option_list.begin();
-	    iter != option_list.end(); ++iter)
+	if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                                POSITION, toString(lan_nbr - 1),
+	                                PROTO, lan_name))
 	{
-		string option_name;
-		EncapPlugin::EncapContext *context;
-
-		if(!globalConfig.getAttributeValue(iter, OPTION_NAME, option_name))
-		{
-			UTI_ERROR("Section %s, invalid value for parameter '%s'\n",
-			          GLOBAL_SECTION, OPTION_NAME);
-			goto error;
-		}
-		if(option_name == "NONE")
-		{
-			continue;
-		}
-
-		if(!Plugin::getEncapsulationPlugins(option_name, &plugin))
-		{
-			UTI_ERROR("missing plugin for %s encapsulation",
-			          option_name.c_str());
-			goto error;
-		}
-
-		context = plugin->getContext();
-		up_return_ctx.push_back(context);
-		down_forward_ctx.push_back(context);
-		if(upper_option == NULL)
-		{
-			if(!context->setUpperPacketHandler(this->ip_handler,
-			                                   strToSatType(satellite_type)))
-			{
-				goto error;
-			}
-		}
-		else if(!context->setUpperPacketHandler(
-					upper_option->getPacketHandler(),
-					strToSatType(satellite_type)))
-		{
-			UTI_ERROR("%s is not supported for %s IP option",
-			          upper_option->getName().c_str(),
-			          context->getName().c_str());
-			goto error;
-		}
-		upper_option = plugin;
-		UTI_INFO("add IP option: %s\n",
-		         upper_option->getName().c_str());
+		UTI_ERROR("Section %s, invalid value %d for parameter '%s' in %s\n",
+				  GLOBAL_SECTION, i, POSITION, LAN_ADAPTATION_SCHEME_LIST);
+		goto error;
 	}
+	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
+	{
+		UTI_ERROR("cannot get plugin for %s lan adaptation",
+		          lan_name.c_str());
+		goto error;
+	}
+	UTI_INFO("lan adaptation upper layer is %s\n", lan_name.c_str());
 
-	upper_encap = upper_option;
 	// get the number of encapsulation context to use for up/return link
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
@@ -274,12 +223,13 @@ bool BlockEncap::onInit()
 		goto error;
 	}
 
+	upper_encap = lan_plugin;
 	for(i = 0; i < encap_nbr; i++)
 	{
 		string encap_name;
 		EncapPlugin::EncapContext *context;
 
-		// get all the encapsulation to use from lower to upper
+		// get all the encapsulation to use from upper to lower
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
@@ -288,7 +238,7 @@ bool BlockEncap::onInit()
 			goto error;
 		}
 
-		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			UTI_ERROR("cannot get plugin for %s encapsulation",
 			          encap_name.c_str());
@@ -297,15 +247,7 @@ bool BlockEncap::onInit()
 
 		context = plugin->getContext();
 		up_return_ctx.push_back(context);
-		if(upper_encap == NULL)
-		{
-			if(!context->setUpperPacketHandler(this->ip_handler,
-			                                   strToSatType(satellite_type)))
-			{
-				goto error;
-			}
-		}
-		else if(!context->setUpperPacketHandler(
+		if(!context->setUpperPacketHandler(
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
@@ -328,13 +270,13 @@ bool BlockEncap::onInit()
 		goto error;
 	}
 
-	upper_encap = upper_option;
+	upper_encap = lan_plugin;
 	for(i = 0; i < encap_nbr; i++)
 	{
 		string encap_name;
 		EncapPlugin::EncapContext *context;
 
-		// get all the encapsulation to use from lower to upper
+		// get all the encapsulation to use from upper to lower
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
@@ -343,7 +285,7 @@ bool BlockEncap::onInit()
 			goto error;
 		}
 
-		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			UTI_ERROR("cannot get plugin for %s encapsulation",
 			          encap_name.c_str());
@@ -352,15 +294,7 @@ bool BlockEncap::onInit()
 
 		context = plugin->getContext();
 		down_forward_ctx.push_back(context);
-		if(upper_encap == NULL)
-		{
-			if(!context->setUpperPacketHandler(this->ip_handler,
-			                                   strToSatType(satellite_type)))
-			{
-				goto error;
-			}
-		}
-		else if(!context->setUpperPacketHandler(
+		if(!context->setUpperPacketHandler(
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
@@ -454,38 +388,27 @@ error:
 	return status;
 }
 
-bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
+bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlockEncap::onRcvIpFromUp]";
-	NetBurst *burst;
+	const char *FUNCNAME = "[BlocEncap::onRcvBurstFromUp]";
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
-	string name = packet->getName();
+	string name;
+	size_t size;
 	bool status = false;
 
 	// check packet validity
-	if(packet == NULL)
+	if(burst == NULL)
 	{
-		UTI_ERROR("%s packet is not valid\n", FUNCNAME);
+		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
 		goto error;
 	}
 
-	// check packet type
-	if(packet->getType() != NET_PROTO_IPV4 && packet->getType() != NET_PROTO_IPV6)
-	{
-		UTI_ERROR("%s packet (type 0x%04x) is not an IP packet\n",
-		          FUNCNAME, packet->getType());
-		delete packet;
-		goto error;
-	}
+	name = burst->name();
+	size = burst->size();
+	UTI_DEBUG("%s encapsulate %d %s packet(s)\n",
+	          FUNCNAME, size, name.c_str());
 
-	UTI_DEBUG("%s encapsulate one %s packet (%d bytes, "
-	          "Src TAL Id = %u, Dst TAL Id = %u, QoS = %u)\n",
-	          FUNCNAME, packet->getName().c_str(), packet->getTotalLength(),
-	          packet->getSrcTalId(), packet->getDstTalId(), packet->getQos());
-
-	burst = new NetBurst();
-	burst->add(packet);
 	// encapsulate packet
 	for(iter = this->emission_ctx.begin(); iter != this->emission_ctx.end();
 	    iter++)
@@ -545,8 +468,8 @@ bool BlockEncap::onRcvIpFromUp(NetPacket *packet)
 		          burst->front()->getName().c_str(), burst->front()->getQos());
 	}
 
-	UTI_DEBUG("1 %s packet => %zu encapsulation packet(s)\n",
-	          name.c_str(), burst->size());
+	UTI_DEBUG("%d %s packet => %zu encapsulation packet(s)\n",
+	          size, name.c_str(), burst->size());
 
 	// if no encapsulation packet was created, avoid sending a message
 	if(burst->size() <= 0)
@@ -576,9 +499,7 @@ error:
 
 bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlockEncap::onRcvBurstFromDown]";
-	NetBurst *ip_packets;
-	NetBurst::iterator ip_pkt_it;
+	const char *FUNCNAME = "[BlocEncap::onRcvBurstFromDown]";
 	vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
 
@@ -595,12 +516,11 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	          FUNCNAME, nb_bursts, burst->name().c_str());
 
 	// iterate on all the deencapsulation contexts to get the ip packets
-	ip_packets = burst;
 	for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
 	    ++iter)
 	{
-		ip_packets = (*iter)->deencapsulate(ip_packets);
-		if(ip_packets == NULL)
+		burst = (*iter)->deencapsulate(burst);
+		if(burst == NULL)
 		{
 			UTI_ERROR("%s deencapsulation failed in %s context\n",
 			          FUNCNAME, (*iter)->getName().c_str());
@@ -608,39 +528,23 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 		}
 	}
 
-	UTI_DEBUG("%s %d %s packet => %zu IP packet(s)\n", FUNCNAME,
+	UTI_DEBUG("%s %d %s packet => %zu %s packet(s)\n", FUNCNAME,
 	          nb_bursts, this->reception_ctx[0]->getName().c_str(),
-	          ip_packets->size());
-
-	// for every desencapsulated IP packet...
-	for(ip_pkt_it = ip_packets->begin();
-		ip_pkt_it != ip_packets->end(); ip_pkt_it++)
+	          burst->size(), burst->name().c_str());
+	if(burst->size() == 0)
 	{
-		if((*ip_pkt_it)->getType() != NET_PROTO_IPV4 &&
-		   (*ip_pkt_it)->getType() != NET_PROTO_IPV6)
-		{
-			UTI_ERROR("%s cannot send non-IP packet (0x%04x) to the "
-			          "upper-layer block\n", FUNCNAME, (*ip_pkt_it)->getType());
-			delete *ip_pkt_it;
-			continue;
-		}
-
-		// send the message to the upper layer
-		if(!this->sendUp((void **)&(*ip_pkt_it)))
-		{
-			UTI_ERROR("failed to send message to upper layer\n");
-			delete *ip_pkt_it;
-			continue;
-		}
-
-		UTI_DEBUG("%s IP packet sent to the upper layer\n", FUNCNAME);
+		return true;
 	}
 
-	// clear the burst of IP packets without deleting the IpPacket
-	// objects it contains then delete the burst
-	ip_packets->clear();
-	delete ip_packets;
+	// send the burst to the upper layer
+	if(!this->sendUp((void **)&burst))
+	{
+		UTI_ERROR("failed to send burst to upper layer\n");
+		delete burst;
+	}
 
+	UTI_DEBUG("%s burst of deencapsulated packets sent to the upper layer\n",
+	          FUNCNAME);
 
 	// everthing is fine
 	return true;

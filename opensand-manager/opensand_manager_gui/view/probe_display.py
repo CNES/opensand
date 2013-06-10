@@ -111,8 +111,16 @@ class ProbeGraph(object):
         Plots the current values
         """
         self._axes.cla()
-        x = self._times
-        y = self._values
+        x = list(self._times)
+        y = list(self._values)
+        if not self._dirty:
+            try:
+                x.insert(0, x[0] - 1)
+                x.insert(0, 0)
+                y.insert(0, 0)
+                y.insert(0, 0)
+            except (ValueError, IndexError):
+                pass
 
         try:
             xmin, xmax = min(x), max(x)

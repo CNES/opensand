@@ -38,6 +38,7 @@
 #define DBG_PACKAGE PKG_ENCAP
 #include <opensand_conf/uti_debug.h>
 #include <opensand_conf/ConfigurationFile.h>
+#include <NetPacket.h>
 #include <vector>
 #include <map>
 
@@ -51,8 +52,10 @@ Gse::Gse():
 	EncapPlugin(NET_PROTO_GSE)
 {
 	this->upper[TRANSPARENT].push_back("ROHC");
+	this->upper[TRANSPARENT].push_back("PHS");
 	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[REGENERATIVE].push_back("ATM/AAL5");
+	this->upper[TRANSPARENT].push_back("Ethernet");
+	this->upper[REGENERATIVE].push_back("AAL5/ATM");
 	this->upper[REGENERATIVE].push_back("MPEG2-TS");
 }
 
@@ -200,20 +203,8 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 			          FUNCNAME);
 			continue;
 		}
-
-		if((*packet)->getType() != this->current_upper->getEtherType())
-		{
-			// check if this is an IP packet (current_upper do not know the type)
-			if(((*packet)->getType() == NET_PROTO_IPV4 ||
-			    (*packet)->getType() == NET_PROTO_IPV6) &&
-			   this->current_upper->getName() != "IP")
-			{
-				UTI_ERROR("%s wrong packet type (%u instead of %u)\n", FUNCNAME,
-				          (*packet)->getType(),
-				          this->current_upper->getEtherType());
-				continue;
-			}
-		}
+		
+		UTI_DEBUG("received a packet with type 0x%.4x\n", (*packet)->getType());
 
 		// if packet size is fixed, more than one packet can be encapsulated in
 		// one GSE packet, we need to handle the context
@@ -483,7 +474,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	while(status != GSE_STATUS_FIFO_EMPTY && !gse_packets->isFull());
 	UTI_DEBUG("%s %d-byte %s packet/frame => %u GSE packets\n",
 	          FUNCNAME, packet->getTotalLength(), packet->getName().c_str(),
-	          counter);
+	          counter - 1);
 
 	return true;
 
@@ -618,19 +609,7 @@ bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
 			break;
 
 		case GSE_STATUS_PDU_RECEIVED:
-			if(protocol != this->current_upper->getEtherType())
-			{
-				// check if this is an IP packet (current_upper do not know the type)
-				if((protocol == NET_PROTO_IPV4 ||
-				    protocol == NET_PROTO_IPV6) &&
-				   this->current_upper->getName() != "IP")
-				{
-					UTI_ERROR("%s wrong packet type received (%u instead of %u)\n",
-					          FUNCNAME, protocol, this->current_upper->getEtherType());
-					gse_free_vfrag(&vfrag_pdu);
-					return false;
-				}
-			}
+			UTI_DEBUG("received a packet with type 0x%.4x\n", protocol);
 			if(this->current_upper->getFixedLength() > 0)
 			{
 				UTI_DEBUG("%s Inner packet has a fixed length (%zu)\n",
@@ -952,7 +931,7 @@ NetBurst *Gse::Context::flush(int context_id)
 	while(status != GSE_STATUS_FIFO_EMPTY && !gse_packets->isFull());
 	UTI_DEBUG("%s %zu-byte %s packet/frame => %u GSE packets\n",
 	          FUNCNAME, ctx_length, packet_name.c_str(),
-	          counter);
+	          counter - 1);
 
 	return gse_packets;
 
@@ -1218,9 +1197,9 @@ Gse::PacketHandler::PacketHandler(EncapPlugin &plugin):
 
 bool Gse::setLabel(NetPacket *packet, uint8_t label[])
 {
-	uint8_t src_tal_id = packet->getSrcTalId();
-	uint8_t dst_tal_id = packet->getDstTalId();
-	uint8_t qos = packet->getQos();
+	tal_id_t src_tal_id = packet->getSrcTalId();
+	tal_id_t dst_tal_id = packet->getDstTalId();
+	qos_t qos = packet->getQos();
 
 	if(((src_tal_id & 0x1F) != src_tal_id)
 	   || ((dst_tal_id & 0x1F) != dst_tal_id)
@@ -1233,7 +1212,10 @@ bool Gse::setLabel(NetPacket *packet, uint8_t label[])
 	label[0] = src_tal_id & 0x1F;
 	label[1] = dst_tal_id & 0x1F;
 	label[2] = qos & 0x07;
-
+	label[3] = 0;
+	label[4] = 0;
+	label[5] = 0;
+	
 	return true;
 }
 
@@ -1254,7 +1236,10 @@ bool Gse::setLabel(GseEncapCtx *context, uint8_t label[])
 	label[0] = src_tal_id & 0x1F;
 	label[1] = dst_tal_id & 0x1F;
 	label[2] = qos & 0x07;
-
+	label[3] = 0;
+	label[4] = 0;
+	label[5] = 0;
+	
 	return true;
 }
 

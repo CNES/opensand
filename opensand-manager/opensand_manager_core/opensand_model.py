@@ -214,6 +214,8 @@ class Model:
     def add_topology(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
         try:
+            if name.startswith('ws') and '_' in instance:
+                instance = instance.split('_')[0]
             if name == 'sat':
                 att_path = '/configuration/sat_carrier/carriers/carrier' \
                            '[@up="true" and @ip_multicast="false"]'
@@ -226,6 +228,7 @@ class Model:
                                           att_path, 'ip_address')
 
             if name != "sat":
+                # IPv4 SARP
                 addr = net_config['lan_ipv4'].split('/')
                 ip = addr[0]
                 net = ip[0:ip.rfind('.') + 1] + "0"
@@ -234,8 +237,9 @@ class Model:
                         'mask': mask,
                         'tal_id': instance,
                        }
-                xpath = '/configuration/ip_dedicated_v4/terminals'
+                xpath = '/configuration/sarp/ipv4'
                 self._topology.create_line(line, 'terminal_v4', xpath)
+                # IPv6 SARP
                 addr = net_config['lan_ipv6'].split('/')
                 ip = addr[0]
                 net = ip[0:ip.rfind(':') + 1] + "0"
@@ -244,8 +248,18 @@ class Model:
                         'mask': mask,
                         'tal_id': instance,
                        }
-                xpath = '/configuration/ip_dedicated_v6/terminals'
+                xpath = '/configuration/sarp/ipv6'
                 self._topology.create_line(line, 'terminal_v6', xpath)
+                # Ethernet SARP
+                mac = net_config['mac']
+                # we can have several MAC addresses separated by space
+                macs = mac.split(' ')
+                for mac in macs:
+                    line = {'mac': mac,
+                            'tal_id': instance,
+                           }
+                    xpath = '/configuration/sarp/ethernet'
+                    self._topology.create_line(line, 'terminal_eth', xpath)
 
             self._topology.write()
         except XmlException, msg:
@@ -261,10 +275,13 @@ class Model:
     def remove_topology(self, instance):
         """ remove a host from topology configuration file """
         try:
-            xpath = "/configuration/ip_dedicated_v4/terminals/terminal_v4" \
+            xpath = "/configuration/sarp/ipv4/terminal_v4" \
                     "[@tal_id='%s']" % instance
             self._topology.del_element(xpath)
-            xpath = "/configuration/ip_dedicated_v6/terminals/terminal_v6" \
+            xpath = "/configuration/sarp/ipv6/terminal_v6" \
+                    "[@tal_id='%s']" % instance
+            self._topology.del_element(xpath)
+            xpath = "/configuration/sarp/ethernet/terminal_eth" \
                     "[@tal_id='%s']" % instance
             self._topology.del_element(xpath)
             self._topology.write()
@@ -387,8 +404,7 @@ class Model:
         else:
             self._ws.append(host)
 
-        if component != "ws":
-            self.add_topology(name, instance, network_config)
+        self.add_topology(name, instance, network_config)
 
         if not checked:
             raise ModelException
@@ -519,6 +535,13 @@ class Model:
     def get_encap_modules(self):
         """ get the encapsulation modules """
         return self._modules['encap']
+
+    def get_global_lan_adaptation_modules(self):
+        """ get the global lan adaptation modules
+            (i.e. header modification modules) """
+        if 'lan_adaptation' in self._modules:
+            return self._modules['lan_adaptation']
+        return {}
 
     def get_missing(self):
         """ get the missing module list """

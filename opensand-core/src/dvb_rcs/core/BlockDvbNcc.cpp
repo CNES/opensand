@@ -58,6 +58,7 @@
 #include "lib_dama_ctrl_yes.h"
 #include "lib_dama_ctrl_legacy.h"
 #include "lib_dama_ctrl_uor.h"
+#include "OpenSandCore.h"
 
 #include "msg_dvb_rcs.h"
 #include "DvbRcsStd.h"
@@ -79,7 +80,7 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	super_frame_counter(-1),
 	frame_counter(0),
 	frame_timer(-1),
-	macId(DVB_GW_MAC_ID),
+	macId(GW_TAL_ID),
 	complete_dvb_frames(),
 	scenario_timer(-1),
 	pep_cmd_apply_timer(-1),
@@ -93,6 +94,10 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	simu_cr(-1),
 	simu_interval(-1)
 {
+	this->incoming_size = 0;
+	this->probe_incoming_throughput = NULL;
+	Output::registerProbe<int>("Physical incoming throughput",
+	                           "Kbits/s", true, SAMPLE_AVG);
 }
 
 
@@ -173,6 +178,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG("SF#%ld: encapsulation packet is "
 				          "successfully stored\n",
 				          this->super_frame_counter);
+				this->incoming_size += (*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -223,6 +229,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					UTI_ERROR("failed to build and send DVB/BB frames\n");
 					return false;
 				}
+
+				this->updateStatsOnFrame();
 			}
 			else if(*event == this->scenario_timer)
 			{
@@ -492,6 +500,11 @@ bool BlockDvbNcc::onInit()
 		          "initialisation");
 		goto release_dama;
 	}
+	
+	// initilize probes
+	this->probe_incoming_throughput =
+		Output::registerProbe<float>("Physical incoming throughput",
+		                             "Kbits/s", true, SAMPLE_AVG);
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
@@ -504,7 +517,7 @@ bool BlockDvbNcc::onInit()
 
 	// get the column number for GW in MODCOD/DRA simulation files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
-	                                TAL_ID, toString(DVB_GW_MAC_ID),
+	                                TAL_ID, toString(GW_TAL_ID),
                                     COLUMN_NBR, simu_column_num))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
@@ -520,11 +533,11 @@ bool BlockDvbNcc::onInit()
 	}
 
 	// declare the GW as one ST for the MODCOD/DRA scenarios
-	if(!this->emissionStd->addSatelliteTerminal(DVB_GW_MAC_ID,
+	if(!this->emissionStd->addSatelliteTerminal(GW_TAL_ID,
 	                                            simu_column_num))
 	{
 		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
-		          DVB_GW_MAC_ID);
+		          GW_TAL_ID);
 		goto release_dama;
 	}
 
@@ -550,7 +563,7 @@ bool BlockDvbNcc::onInit()
 		goto release_dama;
 	}
 	link_is_up->group_id = 0;
-	link_is_up->tal_id = DVB_GW_MAC_ID;
+	link_is_up->tal_id = GW_TAL_ID;
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
@@ -767,21 +780,19 @@ bool BlockDvbNcc::initMode()
 {
 	// initialize the emission and reception standards depending
 	// on the satellite type
-	if(this->satellite_type == TRANSPARENT_SATELLITE)
+	if(this->satellite_type == TRANSPARENT)
 	{
 		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 	}
-	else if(this->satellite_type == REGENERATIVE_SATELLITE)
+	else if(this->satellite_type == REGENERATIVE)
 	{
 		this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 	}
 	else
 	{
-		UTI_ERROR("section '%s': unknown value '%s' for parameter "
-		          "'%s'\n", GLOBAL_SECTION, this->satellite_type.c_str(),
-		          SATELLITE_TYPE);
+		UTI_ERROR("unknown value '%u' for satellite type ", this->satellite_type);
 		goto error;
 
 	}
@@ -1535,4 +1546,10 @@ void BlockDvbNcc::simulateRandom()
 		this->m_pDamaCtrl->hereIsCR(capacity_request);
 		delete capacity_request;
 	}
+}
+
+void BlockDvbNcc::updateStatsOnFrame()
+{
+	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration);
+	this->incoming_size = 0;
 }

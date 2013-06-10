@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PYTHON2=$(shell pyversions -vr)
+
+%:
+	dh  $@
+
+override_dh_strip:
+	dh_strip --dbg-package=libopensand-ethernet-lan-adapt-plugin-dbg
+	
+override_dh_install:
+	dh_install
+	mkdir -p  $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules
+	install -m 0644 conf/ethernet.conf $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/share/opensand/gw/plugins/ethernet.conf
+	install -m 0644 conf/ethernet.xsd $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/share/opensand/gw/plugins/ethernet.xsd
+	install -m 0644 conf/ethernet.conf $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/share/opensand/st/plugins/ethernet.conf
+	install -m 0644 conf/ethernet.xsd $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/share/opensand/st/plugins/ethernet.xsd
+	install -m 0644 src/ethernet.py $(CURDIR)/debian/libopensand-ethernet-lan-adapt-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/ethernet.py
+
+override_dh_pysupport:

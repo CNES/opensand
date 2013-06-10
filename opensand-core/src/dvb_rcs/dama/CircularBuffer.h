@@ -48,7 +48,7 @@ class CircularBuffer
  private:
 
 	/// if size = 0 --> flag = true --> only last value is saved, sum = 0
-	bool save_only_last_value;;
+	bool save_only_last_value;
 
 	size_t size;              ///< circular buffer max size
 	size_t index;       ///< current index

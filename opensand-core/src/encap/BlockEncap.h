@@ -40,9 +40,10 @@
 #include "msg_dvb_rcs.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
+#include "StackPlugin.h"
 #include "EncapPlugin.h"
-#include "IpPacketHandler.h"
 #include "OpenSandCore.h"
+
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
@@ -80,9 +81,6 @@ class BlockEncap: public Block
 	/// the reception contexts list from upper to lower context
 	std::vector<EncapPlugin::EncapContext *> reception_ctx;
 
-	/// the IP packet handler for plugins
-	IpPacketHandler *ip_handler;
-
  public:
 
 	/**
@@ -118,12 +116,12 @@ class BlockEncap: public Block
 	bool onTimer(event_id_t timer_id);
 
 	/**
-	 * Handle an IP packet received from the upper-layer block
+	 * Handle a burst received from the upper-layer block
 	 *
-	 * @param packet  The IP packet received from the upper-layer block
+	 * @param burst  The burst received from the upper-layer block
 	 * @return        Whether the IP packet was successful handled or not
 	 */
-	bool onRcvIpFromUp(NetPacket *packet);
+	bool onRcvBurstFromUp(NetBurst *burst);
 
 	/**
 	 * Handle a burst of encapsulation packets received from the lower-layer

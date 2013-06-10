@@ -146,6 +146,10 @@ class HostModel:
         """get the modules """
         return self._modules
 
+    def get_lan_adapt_modules(self):
+        """ get the lan adaptation modules """
+        return self._modules['lan_adaptation']
+
     def get_missing_modules(self):
         """ get the missing modules """
         return self._missing_modules
@@ -153,6 +157,10 @@ class HostModel:
     def get_advanced_conf(self):
         """ get the advanced configuration """
         return self._advanced
+
+    def get_lan_adaptation(self):
+        """ get the lan adaptation_schemes values """
+        return self._advanced.get_stack("lan_adaptation_schemes", 'proto')
 
     def get_component(self):
         """ return the component type """
@@ -250,6 +258,15 @@ class HostModel:
                             "mandatory for component starting")
             return ""
 
+    def get_lan_interface(self):
+        """ get the host LAN interface """
+        try:
+            return self._ifaces["lan_iface"].split('/')[0]
+        except KeyError:
+            self._log.error("cannot retrieve IPv4 LAN interface name, "
+                            "mandatory for component starting")
+            return ""
+
     def get_state_port(self):
         """ get the state server port """
         return int(self._state_port)
@@ -286,3 +303,23 @@ class HostModel:
     def set_collector_functional(self, status):
         """ the collector responds to manager registration """
         self._collector_functional = status
+
+    def set_lan_adaptation(self, stack):
+        """ set the lan_adaptation_schemes values """
+        lan_adapt = stack
+        self._advanced.set_stack('lan_adaptation_schemes',
+                                 lan_adapt, 'proto')
+
+    def get_interface_type(self):
+        """ get the type of interface according to the stack """
+        if self._component not in ['sat', 'ws']:
+            lan_adapt = self._advanced.get_stack('lan_adaptation_schemes',
+                                                 'proto')
+            try:
+                name = lan_adapt['0']
+                module = self.get_lan_adapt_modules()[name]
+            except KeyError:
+                raise ModelException("cannot find first Lan Adaptation scheme")
+            return module.get_interface_type()
+        return ''
+

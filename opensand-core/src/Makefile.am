@@ -1,9 +1,10 @@
 SUBDIRS= \
 	common \
 	dvb_rcs \
-	qos_data \
+	lan_adaptation \
 	sat_carrier \
 	encap \
 	physical_layer \
 	system \
-    tun_interface
+	mandatory_plugins \
+	interfaces

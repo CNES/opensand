@@ -77,7 +77,7 @@
 <xsd:element name="switchs">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="switch" minOccurs="1" maxOccurs="6"/>
+            <xsd:element ref="switch" minOccurs="1" maxOccurs="31"/>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

@@ -129,20 +129,20 @@ void OutputInternal::init(bool enabled, event_level_t min_level,
 	          this->daemon_sock_addr.sun_path, this->self_sock_addr.sun_path);
 }
 
-Event *OutputInternal::registerEvent(const std::string &identifier,
+Event *OutputInternal::registerEvent(const string &identifier,
                                      event_level_t level)
 {
 	if(!this->enabled)
 	{
-		return 0;
+		return NULL;
 	}
 
 	if(!this->initializing)
 	{
 		UTI_ERROR("cannot register event %s outside initialization, exit\n",
 		          identifier.c_str());
+		return NULL;
 	}
-	assert(this->initializing);
 
 	uint8_t new_id = this->events.size();
 	Event *event = new Event(new_id, identifier, level);
@@ -173,7 +173,7 @@ bool OutputInternal::finishInit()
 
 	char buffer[32];
 	const char *path;
-	std::string message;
+	string message;
 	sockaddr_un address;
 	CommandThread *command_thread;
 	uint8_t command_id;
@@ -209,8 +209,8 @@ bool OutputInternal::finishInit()
 
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
 	{
-		const std::string name = this->probes[i]->getName();
-		const std::string unit = this->probes[i]->getUnit();
+		const string name = this->probes[i]->getName();
+		const string unit = this->probes[i]->getUnit();
 
 		message.append(1, (((int)this->probes[i]->isEnabled()) << 7) |
 		                   this->probes[i]->storageTypeId());
@@ -222,7 +222,7 @@ bool OutputInternal::finishInit()
 
 	for(size_t i = 0 ; i < this->events.size() ; i++)
 	{
-		const std::string identifier = this->events[i]->identifier;
+		const string identifier = this->events[i]->identifier;
 
 		message.append(1, this->events[i]->level);
 		message.append(1, identifier.size());
@@ -298,7 +298,7 @@ void OutputInternal::sendProbes()
 
 	bool needs_sending = false;
 
-	std::string message;
+	string message;
 	uint32_t timestamp = getMilis() - this->started_time;
 	msgHeaderSendProbes(message, timestamp);
 
@@ -327,7 +327,7 @@ void OutputInternal::sendProbes()
 }
 
 void OutputInternal::sendEvent(Event *event,
-                               const std::string &message_text)
+                               const string &message_text)
 {
 	if(!this->enabled || event->level < this->min_level)
 	{
@@ -336,7 +336,7 @@ void OutputInternal::sendEvent(Event *event,
 
 	// TODO use a list of message and if finishInit was not called
 	//      stock events. Send stocked events when calling finishInit
-	std::string message;
+	string message;
 	msgHeaderSendEvent(message, event->id);
 	message.append(message_text);
 

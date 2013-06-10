@@ -199,6 +199,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 * @return  true on success, false otherwise
 	 */
 	bool initFifo();
+	void updateStatsOnFrame();
 
 	/// DVB frame from lower layer
 	bool onRcvDvbFrame(unsigned char *ip_buf, int l_len);
@@ -223,6 +224,11 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 * Simulate event based on random generation
 	 */
 	void simulateRandom();
+
+	// throughput from upper layer and associated probe
+	unsigned int incoming_size;
+	Probe<float> *probe_incoming_throughput;
+
 };
 
 #endif

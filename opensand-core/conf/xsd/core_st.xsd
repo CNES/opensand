@@ -10,6 +10,51 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<!-- types for global section -->
+<xsd:simpleType name="LanProto">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="IP" />
+        <xsd:enumeration value="Ethernet" />
+        <xsd:enumeration value="ROHC" />
+        <xsd:enumeration value="PHS" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="PosScheme">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="4" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the lan adaptation schemes tables -->
+<xsd:element name="lan_adaptation_schemes">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="lan_scheme" minOccurs="1" maxOccurs="5" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="lan_scheme">
+    <xsd:complexType>
+        <xsd:attribute name="pos" type="PosScheme">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The lan adaptation scheme position from upper to lower
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="proto" type="LanProto">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of lan adapation
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 <!-- types for service_class section -->
 <xsd:simpleType name="schedulerType">
     <xsd:restriction base="xsd:string">
@@ -230,6 +275,7 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element ref="global" />
             <xsd:element ref="service_class" />
             <xsd:element ref="traffic_category" />
             <xsd:element ref="dvb_rcs_tal" />
@@ -238,6 +284,26 @@
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- global section description -->
+<xsd:element name="global">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The global configuration for all components
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="lan_adaptation_schemes">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The lan adaptation schemes
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 

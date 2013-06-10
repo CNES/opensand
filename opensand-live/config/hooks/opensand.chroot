@@ -10,7 +10,7 @@ db_set opensand-daemon/service/type "_opensand_live._tcp"
 db_set opensand-daemon/service/name "SAT"
 db_set opensand-daemon/network/config_level "ADVANCED"
 db_set opensand-daemon/network/emu_iface "br_opensand"
-db_set opensand-daemon/service/modules "ATM/AAL5 MPEG2-TS ROHC ULE GSE"
+db_set opensand-daemon/service/modules "AAL5/ATM MPEG2-TS ROHC ULE GSE"
 
 # Write config
 

@@ -67,13 +67,14 @@ class IpAddress
 	 * @param mask the mask length to use for comparison
 	 * @return true if IP addresses match, false otherwise
 	 */
-	virtual bool matchAddressWithMask(IpAddress *addr, unsigned int mask) = 0;
+	virtual bool matchAddressWithMask(const IpAddress *addr,
+	                                  unsigned int mask) const = 0;
 
 	/**
 	 * Get the IP address version, that is 4 or 6
 	 * @return version of the IP address
 	 */
-	virtual int version() = 0;
+	virtual int version() const = 0;
 };
 
 #endif

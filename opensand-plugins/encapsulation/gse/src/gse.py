@@ -42,9 +42,8 @@ class GseModule(EncapModule):
     
     def __init__(self):
         EncapModule.__init__(self)
-        self._upper['transparent'] = ("IP",
-                                      "ROHC",)
-        self._upper['regenerative'] = ("ATM/AAL5",
+        self._handle_upper_bloc = True
+        self._upper['regenerative'] = ("AAL5/ATM",
                                        "MPEG2-TS",)
         self._xml = 'gse.conf'
         self._xsd  = 'gse.xsd'

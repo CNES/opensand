@@ -162,12 +162,17 @@ Probe<T>* OutputInternal::registerProbe(const std::string &name,
                                         const std::string &unit,
                                         bool enabled, sample_type_t type)
 {
+	if(!this->enabled)
+	{
+		return NULL;
+	}
+
 	if(!this->initializing)
 	{
 		UTI_ERROR("cannot register probe %s outside initialization, exit\n",
 		          name.c_str());
+		return NULL;
 	}
-	assert(this->initializing);
 
 	UTI_DEBUG("Registering probe %s with type %d\n", name.c_str(), type);
 

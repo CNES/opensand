@@ -9,6 +9,9 @@ Standards-Version: 3.8.3
 Package: opensand-core-all
 Architecture: any
 Depends: opensand-core-bin (= ${binary:Version})
+Provides: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager
+Conflicts: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager
+Replaces: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager
 Description: The OpenSAND emulation testbed core with all the configuration files
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
@@ -31,10 +34,10 @@ Description: The OpenSAND emulation testbed core
 Package: libopensand-plugin
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Provides: libopensand-encap-plugin
-Conflicts: libopensand-encap-plugin
-Replaces: libopensand-encap-plugin
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Provides: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
+Conflicts: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
+Replaces: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
 Description: The library for OpenSAND plugins
 
 Package: libopensand-plugin-dev
@@ -50,9 +53,9 @@ Package: libopensand-plugin-dbg
 Section: debug
 Architecture: any
 Depends: libopensand-plugin (= ${binary:Version})
-Provides: libopensand-encap-plugin-dbg
-Conflicts: libopensand-encap-plugin-dbg
-Replaces: libopensand-encap-plugin-dbg
+Provides: libopensand-encap-plugin-dbg, libopensand-atm-aal5-encap-plugin-dbg, libopensand-mpeg-encap-plugin-dbg, libopensand-ule-encap-plugin-dbg
+Conflicts: libopensand-encap-plugin-dbg, libopensand-atm-aal5-encap-plugin-dbg, libopensand-mpeg-encap-plugin-dbg, libopensand-ule-encap-plugin-dbg
+Replaces: libopensand-encap-plugin-dbg, libopensand-atm-aal5-encap-plugin-dbg, libopensand-mpeg-encap-plugin-dbg, libopensand-ule-encap-plugin-dbg
 Description: Debugging symbols for OpenSAND plugins' library
 
 

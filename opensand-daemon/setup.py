@@ -77,10 +77,9 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 # List of files
-script_files = ['scripts/sat_netinit', 'scripts/st_netinit',
-                'scripts/ws_netinit', 'scripts/write_initialize_config',
-                'scripts/remove_config', 'scripts/module_support.py',
-                'scripts/tool_support.py']
+script_files = ['scripts/host_init',
+                'scripts/write_initialize_config',
+                'scripts/module_support.py', 'scripts/tool_support.py']
 bin_files = ['sand-daemon']
 
 # libnl files

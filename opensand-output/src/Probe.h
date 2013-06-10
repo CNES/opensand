@@ -49,6 +49,8 @@
 #include <stdint.h>
 #include <cstdio>
 
+using std::string;
+
 /**
  * @class the probe respresentation
  */
@@ -66,14 +68,14 @@ public:
 	void put(T value);
 
 private:
-	Probe(uint8_t id, const std::string &name,
-	      const std::string &unit,
+	Probe(uint8_t id, const string &name,
+	      const string &unit,
 	      bool enabled, sample_type_t type);
 	virtual ~Probe();
 	
 	virtual uint8_t storageTypeId();
 
-	virtual void appendValueAndReset(std::string& str);
+	virtual void appendValueAndReset(string& str);
 
 	/// the concatenation of all values
 	T accumulator;
@@ -83,8 +85,8 @@ private:
 };
 
 template<typename T>
-Probe<T>::Probe(uint8_t id, const std::string &name,
-                const std::string &unit,
+Probe<T>::Probe(uint8_t id, const string &name,
+                const string &unit,
                 bool enabled, sample_type_t type):
 	BaseProbe(id, name, unit, enabled, type)
 {

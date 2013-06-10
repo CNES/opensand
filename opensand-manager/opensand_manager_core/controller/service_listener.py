@@ -154,6 +154,8 @@ class OpenSandServiceListener():
                 network_config['lan_ipv4'] = val
             elif key == 'lan_ipv6':
                 network_config['lan_ipv6'] = val
+            elif key == 'mac':
+                network_config['mac'] = val
             elif key == 'cache':
                 cache = val
         try:

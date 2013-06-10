@@ -425,7 +425,7 @@ bool BlockDvbTal::initCarrierId()
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
-		goto error;;
+		goto error;
 	}
 	this->m_carrierIdDvbCtrl = val;
 
@@ -433,7 +433,7 @@ bool BlockDvbTal::initCarrierId()
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
-		goto error;;
+		goto error;
 	}
 	this->m_carrierIdLogon = val;
 
@@ -441,7 +441,7 @@ bool BlockDvbTal::initCarrierId()
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
-		goto error;;
+		goto error;
 	}
 	this->m_carrierIdData = val;
 
@@ -1031,24 +1031,24 @@ bool BlockDvbTal::connectToQoSServer()
 		retptr = inet_ntop(address->ai_family, sin_addr, straddr, sizeof(straddr));
 		if(retptr != NULL)
 		{
-			UTI_INFO("%s try IPv%d address %s\n", FUNCNAME, is_ipv4 ? 4 : 6, straddr);
+			UTI_DEBUG("%s try IPv%d address %s\n", FUNCNAME, is_ipv4 ? 4 : 6, straddr);
 		}
 		else
 		{
-			UTI_INFO("%s try an IPv%d address\n", FUNCNAME, is_ipv4 ? 4 : 6);
+			UTI_DEBUG("%s try an IPv%d address\n", FUNCNAME, is_ipv4 ? 4 : 6);
 		}
 
 		BlockDvbTal::qos_server_sock = socket(address->ai_family, address->ai_socktype,
 		                               address->ai_protocol);
 		if(BlockDvbTal::qos_server_sock == -1)
 		{
-			UTI_NOTICE("%s cannot create socket (%s) with address %s\n",
+			UTI_DEBUG("%s cannot create socket (%s) with address %s\n",
 			           FUNCNAME, strerror(errno), straddr);
 			address = address->ai_next;
 			continue;
 		}
 
-		UTI_INFO("%s socket created for address %s\n", FUNCNAME, straddr);
+		UTI_DEBUG("%s socket created for address %s\n", FUNCNAME, straddr);
 	}
 
 	if(BlockDvbTal::qos_server_sock == -1)
@@ -1058,15 +1058,15 @@ bool BlockDvbTal::connectToQoSServer()
 		goto free_dns;
 	}
 
-	UTI_INFO("%s try to connect with QoS Server at %s[%s]:%d\n", FUNCNAME,
+	UTI_DEBUG("%s try to connect with QoS Server at %s[%s]:%d\n", FUNCNAME,
 	this->qos_server_host.c_str(), straddr, this->qos_server_port);
 
 	// try to connect with the socket
 	ret = connect(BlockDvbTal::qos_server_sock, address->ai_addr, address->ai_addrlen);
 	if(ret == -1)
 	{
-		UTI_NOTICE("%s connect() failed: %s (%d)\n", FUNCNAME, strerror(errno), errno);
-		UTI_NOTICE("%s will retry to connect later\n", FUNCNAME);
+		UTI_DEBUG("%s connect() failed: %s (%d)\n", FUNCNAME, strerror(errno), errno);
+		UTI_DEBUG("%s will retry to connect later\n", FUNCNAME);
 		goto close_socket;
 	}
 

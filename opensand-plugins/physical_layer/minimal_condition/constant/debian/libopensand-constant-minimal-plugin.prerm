@@ -19,7 +19,7 @@ set -e
 
 remove_module()
 {
-    name="constant"
+    name="Constant"
     /usr/libexec/opensand/module_support.py remove $name || true
 }
 

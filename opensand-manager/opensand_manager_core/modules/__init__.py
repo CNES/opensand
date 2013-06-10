@@ -32,5 +32,5 @@ for lib in os.listdir(os.path.dirname(__file__)):
         continue
     if os.path.basename(lib) == os.path.basename(__file__):
         continue
-    __import__(os.path.basename(lib).rstrip('.py'),
+    __import__(os.path.basename(lib).rsplit('.', 1)[0],
                globals(), locals(), [''], -1)

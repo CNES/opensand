@@ -132,6 +132,9 @@ class EditDeployDialog(WindowView):
                               "in '%s': %s, default deploy file will "
                               "be used"
                               % (DEFAULT_INI_FILE, self._path, msg))
+        # first clean the buffer
+        start, end = self._buff.get_bounds()
+        self._buff.delete(start, end)
         self.copy_file_in_buffer()
 
 

@@ -13,8 +13,7 @@ override_dh_auto_install:
 	python setup.py install --root=$(CURDIR)/debian/opensand-daemon --install-layout=deb
 
 override_dh_installinit:
-	dh_installinit --name=opensand-network --error-handler=ignore
-	dh_installinit --name=opensand-daemon --error-handler=ignore
+	dh_installinit --error-handler=ignore
 
 override_dh_install:
 	dh_install

@@ -131,7 +131,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 			uint8_t spot_id;
 			NetBurst::iterator pkt_it;
 
-			if(this->satellite_type != REGENERATIVE_SATELLITE)
+			if(this->satellite_type != REGENERATIVE)
 			{
 				UTI_ERROR("message event while satellite is transparent");
 				return false;
@@ -199,7 +199,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 					             i_spot->first);
 					this->sendSigFrames(&current_spot->m_ctrlFifo);
 
-					if(this->satellite_type == TRANSPARENT_SATELLITE)
+					if(this->satellite_type == TRANSPARENT)
 					{
 						bool status = true;
 						// note: be careful that the reception standard
@@ -224,7 +224,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 							return false;
 						}
 					}
-					else // REGENERATIVE_SATELLITE
+					else // REGENERATIVE
 					{
 						if(this->emissionStd->scheduleEncapPackets(
 						   &current_spot->m_dataOutStFifo,
@@ -255,7 +255,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 			{
 				UTI_DEBUG_L3("MODCOD/DRA scenario timer expired\n");
 
-				if(this->satellite_type == REGENERATIVE_SATELLITE &&
+				if(this->satellite_type == REGENERATIVE &&
 				   this->emissionStd->type() == "DVB-S2")
 				{
 					UTI_DEBUG_L3("update modcod table\n");
@@ -295,7 +295,7 @@ bool BlockDvbSat::initMode()
 	this->m_delay = val;
 	UTI_INFO("m_delay = %d", this->m_delay);
 
-	if(this->satellite_type == REGENERATIVE_SATELLITE)
+	if(this->satellite_type == REGENERATIVE)
 	{
 		// create the emission standard
 		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
@@ -439,7 +439,7 @@ bool BlockDvbSat::initDownwardTimers()
 	this->frame_timer = this->downward->addTimerEvent("dvb_frame_timer",
 	                                                  this->frame_duration);
 
-	if(this->satellite_type == REGENERATIVE_SATELLITE)
+	if(this->satellite_type == REGENERATIVE)
 	{
 		// launch the timer in order to retrieve the modcods
 		this->scenario_timer = this->downward->addTimerEvent("dvb_scenario_timer",
@@ -458,7 +458,7 @@ bool BlockDvbSat::initSwitchTable()
 	unsigned int i;
 
 	// no need for switch in non-regenerative mode
-	if(this->satellite_type != REGENERATIVE_SATELLITE)
+	if(this->satellite_type != REGENERATIVE)
 	{
 		return true;
 	}
@@ -706,7 +706,7 @@ bool  BlockDvbSat::onInit()
 	}
 
 	// load the modcod files (regenerative satellite only)
-	if(this->satellite_type == REGENERATIVE_SATELLITE)
+	if(this->satellite_type == REGENERATIVE)
 	{
 		if(!this->initModcodFiles())
 		{
@@ -772,16 +772,6 @@ error:
 }
 
 
-/**
- * Get the satellite type
- * @return the satellite type
- */
-string BlockDvbSat::getSatelliteType()
-{
-	return this->satellite_type;
-}
-
-
 bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
                                 unsigned int length, 
                                 long carrier_id)
@@ -806,7 +796,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		 *  - if the satellite is a transparent one, forward DVB burst as the
 		 *    other DVB frames.
 		 */
-		if(this->satellite_type == TRANSPARENT_SATELLITE)
+		if(this->satellite_type == TRANSPARENT)
 		{
 			T_DVB_ENCAP_BURST *dvb_burst; // DVB burst received from lower layer
 
@@ -852,7 +842,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				}
 			}
 		}
-		else // else satellite_type == REGENERATIVE_SATELLITE
+		else // else satellite_type == REGENERATIVE
 		{
 			/* The satellite is a regenerative one and the DVB frame contains
 			 * a burst:
@@ -888,7 +878,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		T_DVB_BBFRAME *bbframe;
 
 		/* we should not receive BB frame in regenerative mode */
-		assert(this->satellite_type == TRANSPARENT_SATELLITE);
+		assert(this->satellite_type == TRANSPARENT);
 
 		bbframe = (T_DVB_BBFRAME *) frame;
 

@@ -33,14 +33,15 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#include "BlockEncapSat.h"
 
-#include "Plugin.h"
-
-// debug
 #undef DBG_PACKAGE
 #define DBG_PACKAGE PKG_ENCAP
 #include "opensand_conf/uti_debug.h"
+
+
+#include "BlockEncapSat.h"
+
+#include "Plugin.h"
 
 
 Event *BlockEncapSat::error_init = NULL;
@@ -50,7 +51,6 @@ BlockEncapSat::BlockEncapSat(const string &name):
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
-	this->ip_handler = new IpPacketHandler(*((EncapPlugin *)NULL));
 	
 	if(error_init == NULL)
 	{
@@ -60,7 +60,6 @@ BlockEncapSat::BlockEncapSat(const string &name):
 
 BlockEncapSat::~BlockEncapSat()
 {
-	delete this->ip_handler;
 }
 
 bool BlockEncapSat::onDownwardEvent(const RtEvent *const event)
@@ -170,7 +169,7 @@ bool BlockEncapSat::onInit()
 			goto error;
 		}
 
-		if(!Plugin::getEncapsulationPlugins(encap_name, &plugin))
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			UTI_ERROR("%s cannot get plugin for %s encapsulation",
 			          FUNCNAME, encap_name.c_str());
@@ -195,15 +194,8 @@ bool BlockEncapSat::onInit()
 		}
 
 		this->downlink_ctx.push_back(context);
-		if(upper_encap == NULL)
-		{
-			if(!context->setUpperPacketHandler(this->ip_handler,
-			                                   REGENERATIVE))
-			{
-				goto error;
-			}
-		}
-		else if(!context->setUpperPacketHandler(
+		if(upper_encap != NULL &&
+		   !context->setUpperPacketHandler(
 					upper_encap->getPacketHandler(),
 					REGENERATIVE))
 		{

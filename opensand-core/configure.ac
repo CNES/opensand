@@ -112,11 +112,18 @@ AC_CONFIG_FILES([ \
 	src/dvb_rcs/switch/Makefile \
 	src/dvb_rcs/core/Makefile \
 	src/encap/Makefile \
-	src/qos_data/Makefile \
+	src/lan_adaptation/Makefile \
+	src/lan_adaptation/tests/Makefile \
 	src/sat_carrier/Makefile \
 	src/physical_layer/Makefile \
 	src/system/Makefile \
-	src/tun_interface/Makefile \
+	src/mandatory_plugins/Makefile \
+	src/mandatory_plugins/aal5_atm/Makefile \
+	src/mandatory_plugins/ip/Makefile \
+	src/mandatory_plugins/mpeg/Makefile \
+	src/mandatory_plugins/ule/Makefile \
+	src/interfaces/Makefile \
+	src/interfaces/tests/Makefile \
 	conf/Makefile \
 	opensand_plugin.pc \
 	doc/doxygen \

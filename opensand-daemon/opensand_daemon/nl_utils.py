@@ -53,13 +53,14 @@ class NlRoute(object):
 
     def __init__(self, iface_name):
         self._link = link.resolve(iface_name)
+        self._sock = netlink.Socket()
+        self._sock.connect(netlink.NETLINK_ROUTE)
+
 
     def add(self, dst, gw=None):
         """ add a new route """
         nh = capi.rtnl_route_nh_alloc()
         route = capi.rtnl_route_alloc()
-        sock = netlink.Socket()
-        sock.connect(netlink.NETLINK_ROUTE)
 
         addr_dst = netlink.AbstractAddress(dst)
         ifidx = self._link.ifindex
@@ -70,19 +71,17 @@ class NlRoute(object):
             addr_gw = netlink.AbstractAddress(gw)
             capi.rtnl_route_nh_set_gateway(nh, addr_gw._nl_addr)
         capi.rtnl_route_add_nexthop(route, nh)
-        ret = capi.rtnl_route_add(sock._sock, route, 0)
+        ret = capi.rtnl_route_add(self._sock._sock, route, 0)
         if ret == -6:
             raise NlExists(ret)
         if ret < 0:
             raise NlError(ret)
         
 
-    def delete(self, dst, gw=None):
+    def delete(self, dst, gw=None, proto_kernel=False):
         """ delete a route """
         nh = capi.rtnl_route_nh_alloc()
         route = capi.rtnl_route_alloc()
-        sock = netlink.Socket()
-        sock.connect(netlink.NETLINK_ROUTE)
 
         addr_dst = netlink.AbstractAddress(dst)
         ifidx = self._link.ifindex
@@ -93,78 +92,104 @@ class NlRoute(object):
             addr_gw = netlink.AbstractAddress(gw)
             capi.rtnl_route_nh_set_gateway(nh, addr_gw._nl_addr)
         capi.rtnl_route_add_nexthop(route, nh)
-        ret = capi.rtnl_route_delete(sock._sock, route, 0)
+        if proto_kernel:
+            capi.rtnl_route_set_protocol(route, 2) # RTPROT_KERNEL = 2
+        ret = capi.rtnl_route_delete(self._sock._sock, route, 0)
         if ret == -6:
             raise NlExists(ret)
         if ret < 0:
             raise NlError(ret)
 
 
-class NlAddress(object):
-    """Address object"""
+class NlInterfaces(object):
+    """Interface handling object"""
 
     def __init__(self):
-        pass
+        self._sock = netlink.Socket()
+        self._sock.connect(netlink.NETLINK_ROUTE)
+        self._cache = link.LinkCache()
+        self._cache.refill(self._sock)
 
-    def add(self, addr, iface):
+    def add_address(self, addr, iface):
         """ add a new address """
-        ifidx = link.resolve(iface).ifindex
+        ifidx = self._cache[iface].ifindex
         ad = address.Address()
-        sock = netlink.Socket()
-        sock.connect(netlink.NETLINK_ROUTE)
         ad.local = addr
         ad.ifindex = ifidx
-        ret = capi.rtnl_addr_add(sock._sock, ad._rtnl_addr, 0)
+        ret = capi.rtnl_addr_add(self._sock._sock, ad._rtnl_addr, 0)
         if ret == -6:
             raise NlExists(ret)
         if ret < 0:
             raise NlError(ret)
 
-    def delete(self, addr, iface):
+    def del_address(self, addr, iface):
         """ delete an address """
-        ifidx = link.resolve(iface).ifindex
+        ifidx = self._cache[iface].ifindex
         ad = address.Address()
-        sock = netlink.Socket()
-        sock.connect(netlink.NETLINK_ROUTE)
         ad.local = addr
         ad.ifindex = ifidx
-        ret = capi.rtnl_addr_delete(sock._sock, ad._rtnl_addr, 0)
+        ret = capi.rtnl_addr_delete(self._sock._sock, ad._rtnl_addr, 0)
         if ret == -6:
             raise NlExists(ret)
         if ret < 0:
             raise NlError(ret)
+
+    def up(self, iface):
+        """ set a link up """
+        link = self._cache[iface]
+
+        if 'up' in link.flags:
+            raise NlExists(-6)
+        else:
+            link.flags = ['up']
+        link.change()
+
+    def down(self, iface):
+        """ set a link up """
+        link = self._cache[iface]
+
+        link.flags = ['-up']
+        link.change()
 
 
 if __name__ == '__main__':
     ### ADDRESSES ###
-    ADDR = NlAddress()
+    IFACES = NlInterfaces()
     try:
-        ADDR.add('192.168.18.5/24','eth0')
+        IFACES.add_address('192.168.18.5/24','eth0')
     except NlError, msg:
         print "cannot add address:", msg
     else:
         print "Address added"
 
     try:
-        ADDR.delete('192.168.18.5/24','eth0')
+        IFACES.del_address('192.168.18.5/24','eth0')
     except NlError, msg:
         print "cannot remove address:", msg
     else:
         print "Address removed"
 
     try:
-        ADDR.add('2001:660:6602:101::5/64','eth0')
+        IFACES.add_address('2001:660:6602:101::5/64','eth0')
     except NlError, msg:
         print "cannot add address:", msg
     else:
         print "Address added"
 
     try:
-        ADDR.delete('2001:660:6602:101::5/64','eth0')
+        IFACES.del_address('2001:660:6602:101::5/64','eth0')
     except NlError, msg:
         print "cannot remove address:", msg
     else:
         print "Address removed"
+        
+    try:
+        IFACES.down('eth0')
+        IFACES.up('eth0')
+    except NlError, msg:
+        print "cannot set iface up/down:", msg
+    else:
+        print "Address iface setted up and down"
 
     ### ROUTES ###
     ROUTE = NlRoute("eth0")

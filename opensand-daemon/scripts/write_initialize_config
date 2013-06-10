@@ -32,10 +32,8 @@
 
 
 DAEMON_CONF="/etc/opensand/daemon.conf"
-SAT_INIT="/usr/libexec/opensand/sat_netinit"
-ST_INIT="/usr/libexec/opensand/st_netinit"
-WS_INIT="/usr/libexec/opensand/ws_netinit"
-TUN_INIT="/usr/bin/opensand_tun"
+HOST_INIT="/usr/libexec/opensand/host_init"
+TUN_TAP_INIT="/usr/bin/opensand_interfaces"
 
 SERVICE_NAME='sat'
 SERVICE_TYPE='_opensand._tcp'
@@ -140,47 +138,48 @@ write_conf(){
             echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
             echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
         fi
-    # for automatic mode the file will be completed by the netinit script
+    # for automatic mode the interfaces addresses will be handled by the daemon
+    else
+    	if [ "${SERVICE_NAME}" != "ws" ]; then
+    		echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+    	fi
+    	if [ ${SERVICE_NAME} != 'sat' ]; then
+    		echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+    	fi
     fi
 }
 
 # initialize OpenSAND network
 initialize(){
-    if [ "${SERVICE_NAME}" = 'ws' ]; then
-        # configure WS interface
-        ${WS_INIT} CONF > /dev/null
-        RET=$?
-    elif [ "${SERVICE_NAME}" = 'sat' ]; then
-        # configure network
-        ${SAT_INIT} CONF > /dev/null
-        RET=$?
-    else
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' ]; then
         # create the OpenSAND tun interface
-        ${TUN_INIT} > /dev/null
+        ${TUN_TAP_INIT} > /dev/null
         if [ $? -ne 0 ] ; then
             echo "Error when creating the tun interface" >&2
             exit 1
         fi
-        # configure network
-        ${ST_INIT} CONF > /dev/null
-        RET=$?
+    else
+    	# remove interfaces in case it it was another type of host
+        ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
+    # configure host
+    ${HOST_INIT} > /dev/null
 
-    if [ ${RET} -ne 0 ] ; then
+    if [ $? -ne 0 ] ; then
         echo "Error when configurating the OpenSAND daemon" >&2
-        echo "ERROR: failed to initialize network" >&2
         exit 1
     fi
 }
 
-
-echo "Configure OpenSAND Daemon:"
-/bin/echo -e "\tGet user configuration"
+# TODO currently debconf force printing to stderr => comment this debug messages
+#echo "Configure OpenSAND Daemon:"
+#/bin/echo -e "\tGet user configuration"
 read_conf
-/bin/echo -e "\tWrite configuration file"
+#/bin/echo -e "\tWrite configuration file"
 write_conf
-/bin/echo -e "\tInitialize OpenSAND Network"
+#/bin/echo -e "\tInitialize OpenSAND Network"
 initialize
+
 
 db_stop
 exit 0

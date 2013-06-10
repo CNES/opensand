@@ -43,28 +43,27 @@
 
 NetPacket::NetPacket(Data data):
 	data(data),
-	name("unknown")
+	name("unknown"),
+	type(NET_PROTO_ERROR),
+	header_length(0)
 {
-	this->type = NET_PROTO_ERROR;
-	this->header_length = 0;
 }
 
 NetPacket::NetPacket(unsigned char *data, size_t length):
 	data(),
-	name("unknown")
+	name("unknown"),
+	type(NET_PROTO_ERROR),
+	header_length(0)
 {
 	this->data.append(data, length);
-
-	this->type = NET_PROTO_ERROR;
-	this->header_length = 0;
 }
 
 NetPacket::NetPacket():
 	data(),
-	name("unknown")
+	name("unknown"),
+	type(NET_PROTO_ERROR),
+	header_length(0)
 {
-	this->type = NET_PROTO_ERROR;
-	this->header_length = 0;
 }
 
 NetPacket::NetPacket(unsigned char *data,
@@ -76,13 +75,14 @@ NetPacket::NetPacket(unsigned char *data,
                      uint8_t dst_tal_id,
                      size_t header_length):
 	data(),
-	name(name)
+	name(name),
+	type(type),
+	qos(qos),
+	src_tal_id(src_tal_id),
+	dst_tal_id(dst_tal_id),
+	header_length(header_length)
 {
 	this->data.append(data, length);
-	this->type = type;
-	this->qos = qos;
-	this->src_tal_id = src_tal_id;
-	this->dst_tal_id = dst_tal_id;
 }
 
 
@@ -203,4 +203,9 @@ void NetPacket::setDstSpot(uint8_t spot_id)
 uint8_t NetPacket::getDstSpot()
 {
 	return this->dst_spot;
+}
+
+size_t NetPacket::getHeaderLength()
+{
+	return this->header_length;
 }

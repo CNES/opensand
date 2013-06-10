@@ -220,7 +220,7 @@ class Link(netlink.Object):
                         i = capi.rtnl_link_str2flags(flag[1:])
                         capi.rtnl_link_unset_flags(self._rtnl_link, i)
                 else:
-                        i = capi.rtnl_link_str2flags(flag[1:])
+                        i = capi.rtnl_link_str2flags(flag[0:])
                         capi.rtnl_link_set_flags(self._rtnl_link, i)
 
 	@flags.setter

@@ -37,8 +37,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-BaseProbe::BaseProbe(uint8_t id, const std::string &name,
-                     const std::string &unit,
+BaseProbe::BaseProbe(uint8_t id, const string &name,
+                     const string &unit,
                      bool enabled, sample_type_t type):
 	id(id),
 	name(name),

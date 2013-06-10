@@ -48,6 +48,7 @@ from opensand_daemon.process_list import ProcessList
 from opensand_daemon.my_exceptions import Timeout, InstructionError, XmlError
 from opensand_daemon.stream import DirectoryHandler
 from opensand_daemon.routes import OpenSandRoutes
+from opensand_daemon.interfaces import TUN_NAME, BR_NAME
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -106,15 +107,21 @@ class CommandHandler(MyTcpHandler):
                 self.handle_data_request()
             elif self._data == 'CONFIGURE':
                 self.handle_data_request()
-            elif self._data == 'START':
-                self.handle_start()
+            elif self._data.startswith('START'):
+                iface = None
+                try:
+                    (cmd, iface) = self._data.split(' ', 1)
+                except ValueError:
+                    # no iface
+                    pass
+                self.handle_start(iface)
             elif self._data == 'STOP':
                 self.handle_stop()
             elif self._data == 'TEST':
                 self.handle_test()
             else:
                 LOGGER.error("unknown command '" + self._data + "'\n")
-                self.wfile.write("ERROR unknown command '%s'\n", self._data)
+                self.wfile.write("ERROR unknown command '%s'\n" % self._data)
         except Exception, msg:
             LOGGER.error("exception while handling manager request: " +
                          str(msg))
@@ -144,10 +151,18 @@ class CommandHandler(MyTcpHandler):
             self.wfile.write("ERROR %s\n" % msg)
             raise
 
-    def handle_start(self):
+    def handle_start(self, iface):
         """ handle a START request """
         try:
-            self._routes.setup_routes()
+            if self._process_list.is_running():
+                LOGGER.error("some process are already started")
+                raise InstructionError("some process are already started")
+
+            if iface == "TUN":
+                iface = TUN_NAME
+            if iface == "TAP":
+                iface = BR_NAME
+            self._routes.setup_routes(iface)
             self.start_binaries()
         except InstructionError as error:
             self.wfile.write("ERROR %s\n" % error.value)
@@ -171,10 +186,6 @@ class CommandHandler(MyTcpHandler):
 
     def start_binaries(self):
         """ start the binaries specified in the binary configuration file """
-        if self._process_list.is_running():
-            LOGGER.error("some process are already started")
-            raise InstructionError("some process are already started")
-
         try:
             self._process_list.start()
         except Exception:

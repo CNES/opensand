@@ -169,7 +169,7 @@ class HostController:
                                             os.path.basename(conf)))
             for conf in conf_modules:
                 # send the module configuration
-                plugin_path = os.path.join(CONF_DESTINATION_PATH,'plugins')
+                plugin_path = os.path.join(CONF_DESTINATION_PATH, 'plugins')
                 self.send_file(sock, conf,
                                os.path.join(plugin_path,
                                             os.path.basename(conf))),
@@ -233,11 +233,14 @@ class HostController:
         instance_param = ''
         if component.startswith('st'):
             instance_param = '-i ' + self._host_model.get_instance()
-        command_line = '%s -a %s -n %s %s' % \
+        lan_iface = ''
+        if component != 'sat':
+            lan_iface = '-l ' + self._host_model.get_lan_interface()
+        command_line = '%s -a %s -n %s %s %s' % \
                        (bin_file,
                         self._host_model.get_emulation_address(),
                         self._host_model.get_emulation_interface(),
-                        instance_param)
+                        lan_iface, instance_param)
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',
@@ -398,9 +401,9 @@ class HostController:
                             (self.get_name(), error))
             raise CommandException("%s: error when sending stream: %s" %
                                    (self.get_name(), error))
-        except Exception:
-            self._log.error("%s: error when sending file '%s'" %
-                            (self.get_name(), src_file))
+        except BaseException, error:
+            self._log.error("%s: error when sending file '%s': %s" %
+                            (self.get_name(), src_file, error))
             sock.close()
             raise
 
@@ -553,7 +556,7 @@ class HostController:
 
     def start_stop(self, command):
         """ send the start or stop command to host server """
-        if command != 'START' and command != 'STOP':
+        if not command.startswith('START') and not command.startswith('STOP'):
             self._log.error("%s: wrong command %s" % (self.get_name(), command))
 
         try:
@@ -626,3 +629,7 @@ class HostController:
     def disable(self):
         """ disable the host """
         self._host_model.enable(False)
+
+    def get_interface_type(self):
+        """ get the type of interface according to the stack """
+        return self._host_model.get_interface_type()

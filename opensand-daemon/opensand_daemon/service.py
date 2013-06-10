@@ -42,10 +42,10 @@ import sys
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from dbus.exceptions import DBusException
 from opensand_daemon.routes import OpenSandRoutes
+from opensand_daemon.interfaces import TUN_NAME
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
-TUN_IFACE = "opensand"
 
 class OpenSandService(object):
     """ Avahi service for OpenSAND Daemon """
@@ -66,7 +66,7 @@ class OpenSandService(object):
         OpenSandService._routes = OpenSandRoutes()
         if name.lower() != "sat":
             if name.lower() != "ws":
-                OpenSandService._routes.load(cache_dir, TUN_IFACE)
+                OpenSandService._routes.load(cache_dir, TUN_NAME)
             else:
                 OpenSandService._routes.load(cache_dir, descr['lan_iface'],
                                              True)
@@ -209,10 +209,10 @@ class OpenSandService(object):
                     # add the route toward other network that was not added yet
                     for route in self._new_routes:
                         OpenSandService._routes.add_distant_host(route[0],
-                                                                route[1],
-                                                                route[2],
-                                                                self._router_v4,
-                                                                self._router_v6)
+                                                                 route[1],
+                                                                 route[2],
+                                                                 self._router_v4,
+                                                                 self._router_v6)
                 elif self._router_v4 is not None or self._router_v6 is not None:
                     # add the distant network route
                     OpenSandService._routes.add_distant_host(name, v4, v6,

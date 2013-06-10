@@ -112,9 +112,11 @@ class ToolEvent(ToolView):
                 self._desc_txt.set_markup("%sDeploy to see available %s "
                                           "modules%s" % (start, name, end))
                 return
-            parent = tree.get_value(tree.iter_parent(iterator), TEXT)
+            parent_iter = tree.iter_parent(iterator)
+            parent = tree.get_value(parent_iter, TEXT)
             # global module name
-            if parent in self._modules:
+            if parent in self._modules and \
+               tree.get_value(tree.iter_parent(parent_iter), TEXT) == 'Plugins':
                 self.on_module_select(iterator)
             # tool
             elif parent.upper() in map(lambda x: x.get_name().upper(),

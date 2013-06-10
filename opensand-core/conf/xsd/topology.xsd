@@ -8,7 +8,7 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for ip_dedicated_v4 section -->
+<!-- types for sarp section -->
 <xsd:simpleType name="ipv4Address">
     <xsd:restriction base="xsd:string">
         <xsd:pattern value="((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])" />
@@ -29,21 +29,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="carrierId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1" />
-        <xsd:maxInclusive value="7" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="port">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1500" />
-        <xsd:maxInclusive value="65535" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- types for ip_dedicated_v6 section -->
 <xsd:simpleType name="ipv6Address">
     <xsd:restriction base="xsd:string">
         <xsd:pattern value="([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4}|
@@ -60,7 +45,27 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="macAddress">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="(([0-9a-fA-F*][0-9a-fA-F*]:){5}([0-9a-fA-F*][0-9a-fA-F*]))" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- types for sat_carrier section -->
+<xsd:simpleType name="carrierId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="7" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="port">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1500" />
+        <xsd:maxInclusive value="65535" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="disabledCompo">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="none" />
@@ -69,12 +74,19 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- the terminals for ip_dedicated sections -->
-<xsd:element name="terminals">
+<!-- the terminals for sarp sections -->
+<xsd:element name="ipv4">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="terminal_v4" minOccurs="0" maxOccurs="6" />
-            <xsd:element ref="terminal_v6" minOccurs="0" maxOccurs="6" />
+            <xsd:element ref="terminal_v4" minOccurs="0" maxOccurs="255" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="ipv6">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="terminal_v6" minOccurs="0" maxOccurs="255" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>
@@ -131,6 +143,33 @@
     </xsd:complexType>
 </xsd:element>
 
+<xsd:element name="ethernet">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="terminal_eth" minOccurs="0" maxOccurs="255" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="terminal_eth">
+    <xsd:complexType>
+        <xsd:attribute name="mac" type="macAddress">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal (or WS) MAC address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tal_id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the terminal
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 <!-- the carrier for sat_carrier section -->
 <xsd:element name="carriers">
     <xsd:complexType>
@@ -149,8 +188,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <!-- TODO ipv4Address -->
-        <xsd:attribute name="ip_address" type="xsd:string">
+        <xsd:attribute name="ip_address" type="ipv4Address">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     depending on the case the IP address contains:
@@ -204,8 +242,7 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="ip_dedicated_v4" />
-            <xsd:element ref="ip_dedicated_v6" />
+            <xsd:element ref="sarp" />
             <xsd:element ref="sat_carrier" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -213,29 +250,17 @@
 </xsd:element>
 
 <!-- ip_dedicated_v4 section description -->
-<xsd:element name="ip_dedicated_v4">
+<xsd:element name="sarp">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The IP description of terminals and their spot for IPv4 addresses
+            The SARP tables for satellite terminals
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="terminals" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- ip_dedicated_v6 section description -->
-<xsd:element name="ip_dedicated_v6">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The IP description of terminals and their spot for IPv4 addresses
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="terminals" />
+            <xsd:element ref="ipv4" />
+            <xsd:element ref="ipv6" />
+            <xsd:element ref="ethernet" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

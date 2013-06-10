@@ -28,6 +28,10 @@ else
 	APP="${BASEDIR}/test_plugins"
 fi
 
+if [ "${BASEDIR}" = "" ] ; then
+	BASEDIR="."
+fi
+
 # Extract the directory containing the source captures
 INPUT_DIR=$( echo "${SCRIPT}" | \
              sed -e 's#^.*/test_plugins_\(.\+\)\.sh#\1#' )

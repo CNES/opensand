@@ -36,17 +36,9 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="IpOptionName">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ROHC" />
-        <xsd:enumeration value="NONE" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-
 <xsd:simpleType name="EncapScheme">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ATM/AAL5" />
+        <xsd:enumeration value="AAL5/ATM" />
         <xsd:enumeration value="MPEG2-TS" />
         <xsd:enumeration value="ULE" />
         <xsd:enumeration value="GSE" />
@@ -61,18 +53,10 @@
 </xsd:simpleType>
 
 <!-- the encap schemes tables -->
-<xsd:element name="ip_options">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="option" minOccurs="1" maxOccurs="5" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
 <xsd:element name="up_return_encap_schemes">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="scheme" minOccurs="1" maxOccurs="5" />
+            <xsd:element ref="encap_scheme" minOccurs="1" maxOccurs="5" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>
@@ -80,30 +64,17 @@
 <xsd:element name="down_forward_encap_schemes">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="scheme" minOccurs="1" maxOccurs="5" />
+            <xsd:element ref="encap_scheme" minOccurs="1" maxOccurs="5" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>
 
-<xsd:element name="option">
-    <xsd:complexType>
-        <xsd:attribute name="name" type="IpOptionName">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The name of the IP "option"
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-
-<xsd:element name="scheme">
+<xsd:element name="encap_scheme">
     <xsd:complexType>
         <xsd:attribute name="pos" type="PosScheme">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The encapsulation scheme position from lower to upper
+                    The encapsulation scheme position from upper to lower
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -263,13 +234,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Bandwidth (MHz)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="ip_options">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        A list of IP "options"
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -139,7 +139,7 @@ uint16_t NetBurst::type()
 		// no packet in the burst, impossible to get the packet type
 		UTI_ERROR("failed to determine the burst type: "
 		          "burst is empty\n");
-		return 0;
+		return NET_PROTO_ERROR;
 	}
 	else
 	{

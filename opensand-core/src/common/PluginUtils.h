@@ -36,6 +36,7 @@
 #define PLUGIN_UTILS_HEADER_H
 
 #include "EncapPlugin.h"
+#include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
 
 #include <map>
@@ -48,7 +49,7 @@ using std::vector;
 using std::string;
 
 typedef map<string, fn_create> pl_list_t;
-typedef map<string, fn_create>::iterator pl_list_it_t;
+typedef map<string, fn_create>::const_iterator pl_list_it_t;
 
 
 /**
@@ -60,6 +61,7 @@ class PluginUtils
   protected:
 
 	pl_list_t encapsulation;
+	pl_list_t lan_adaptation;
 	pl_list_t attenuation;
 	pl_list_t nominal;
 	pl_list_t minimal;
@@ -85,14 +87,24 @@ class PluginUtils
 	void releasePlugins();
 
 	/**
-	 * @brief get a encapsulation plugins
+	 * @brief get an encapsulation plugin
 	 *
 	 * @param name           The name of the encapsulation plugin
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getEncapsulationPlugins(string name,
-	                             EncapPlugin **encapsulation);
+	bool getEncapsulationPlugin(string name,
+	                            EncapPlugin **encapsulation);
+
+	/**
+	 * @brief get a lan adaptation plugin
+	 *
+	 * @param name           The name of the lan_adaptation plugin
+	 * @param lan_adaptation  The lan adaptation plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getLanAdaptationPlugin(string name,
+	                            LanAdaptationPlugin **lan_adaptation);
 
 	/**
 	 * @brief get physical layer plugins
@@ -119,13 +131,23 @@ class PluginUtils
 	/**
 	 * @brief get the encapsulation plugins list
 	 *
-	 * @param name           The name of the encapsulation plugin
-	 * @param encapsulation  The encapsulation plugin
+	 * @param encapsulation  The encapsulation plugins
 	 * @return true on success, false otherwise
 	 */
 	void getAllEncapsulationPlugins(pl_list_t &encapsulation)
 	{
 		encapsulation = this->encapsulation;
+	}
+
+	/**
+	 * @brief get the lan adaptation plugins list
+	 *
+	 * @param encapsulation  The lan adaptation plugins
+	 * @return true on success, false otherwise
+	 */
+	void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
+	{
+		lan_adaptation = this->lan_adaptation;
 	}
 
 

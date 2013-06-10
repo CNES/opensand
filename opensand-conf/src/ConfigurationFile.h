@@ -407,6 +407,21 @@ inline bool ConfigurationFile::getAttributeValue<uint8_t>(ConfigurationList::ite
 	return true;
 }
 
+template <>
+inline bool ConfigurationFile::getAttributeValue<stringstream>(ConfigurationList::iterator iter,
+                                                               const char *attribute,
+                                                               stringstream &value)
+{
+	string tmp_val;
+
+	if(!this->getAttributeValue(iter, attribute, tmp_val))
+		return false;
+
+	value << tmp_val;
+
+	return true;
+}
+
 /* only write this specialization because it will be called by the other one
  * and we should not surccharge a specialization */
 template <>

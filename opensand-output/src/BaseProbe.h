@@ -39,6 +39,8 @@
 
 #include <string>
 
+using std::string;
+
 class OutputInternal;
 
 /**
@@ -74,18 +76,18 @@ public:
 	 *
 	 * @return the name of the probe
 	 **/
-	inline const std::string getName() const { return this->name; };
+	inline const string getName() const { return this->name; };
 
 	/**
 	 * @brief Get the unit of the probe
 	 *
 	 * @return the unit of the probe
 	 **/
-	inline const std::string getUnit() const { return this->unit; };
+	inline const string getUnit() const { return this->unit; };
 
 protected:
-	BaseProbe(uint8_t id, const std::string &name,
-	          const std::string &unit,
+	BaseProbe(uint8_t id, const string &name,
+	          const string &unit,
 	          bool enabled, sample_type_t type);
 	virtual ~BaseProbe();
 
@@ -101,14 +103,14 @@ protected:
 	 *
 	 * @para str the value
 	 */
-	virtual void appendValueAndReset(std::string &str) = 0;
+	virtual void appendValueAndReset(string &str) = 0;
 
 	/// the probe ID
 	uint8_t id;
 	/// the probe name
-	std::string name;
+	string name;
 	/// the probe unit
-	std::string unit;
+	string unit;
 	/// whether the probe is enabled
 	bool enabled;
 	/// the probe sample type

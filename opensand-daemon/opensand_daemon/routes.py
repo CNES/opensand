@@ -120,7 +120,7 @@ class OpenSandRoutes(object):
         OpenSandRoutes._unused = False
 
         OpenSandRoutes._routes_lock.release()
-
+        
     def set_unused(self):
         """ for satellite we do not need routes but we don't want initialization
             errors """
@@ -197,11 +197,20 @@ class OpenSandRoutes(object):
                 pass
         OpenSandRoutes._routes_lock.release()
 
-    def setup_routes(self):
+    def setup_routes(self, iface):
         """ apply the routes when started """
         if OpenSandRoutes._unused:
             return
+
         OpenSandRoutes._routes_lock.acquire()
+        # update the routes gateway
+        if iface is not None:
+            try:
+                OpenSandRoutes._iface = iface
+                OpenSandRoutes._route_hdl = NlRoute(iface)
+            except KeyError:
+                LOGGER.error("unable to find interface %s" % iface)
+
         OpenSandRoutes._started = True
         LOGGER.info("set route before starting platform")
         self.serialize()

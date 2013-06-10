@@ -39,7 +39,6 @@
 #include "msg_dvb_rcs.h"
 #include "NetBurst.h"
 #include "EncapPlugin.h"
-#include "IpPacketHandler.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
@@ -59,9 +58,6 @@ class BlockEncapSat: public Block
 
 	/// Expiration timers for encapsulation contexts
 	std::map<event_id_t, int> timers;
-
-	/// the IP packet handler for plugins
-	IpPacketHandler *ip_handler;
 
  public:
 

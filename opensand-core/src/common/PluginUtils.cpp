@@ -131,7 +131,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						if(plug == this->encapsulation.end())
 						{
 							UTI_INFO("load encapsulation plugin %s\n",
-							         plugin->name);
+							         plugin->name.c_str());
 							this->encapsulation[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -142,6 +142,26 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 					}
 					break;
 
+					case lan_adaptation_plugin:
+					{
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->lan_adaptation.find(plugin->name);
+						if(plug == this->lan_adaptation.end())
+						{
+							UTI_INFO("load lan adaptation plugin %s\n",
+							         plugin->name.c_str());
+							this->lan_adaptation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
+						}
+						else
+						{
+							dlclose(handle);
+						}
+					}
+					break;
 
 					case attenuation_plugin:
 					{
@@ -159,7 +179,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						if(plug == this->attenuation.end())
 						{
 							UTI_INFO("load attenuation model plugin %s\n",
-							         plugin->name);
+							         plugin->name.c_str());
 							this->attenuation[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -186,7 +206,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						if(plug == this->nominal.end())
 						{
 							UTI_INFO("load nominal conditions plugin %s\n",
-							         plugin->name);
+							         plugin->name.c_str());
 							this->nominal[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -213,7 +233,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						if(plug == this->minimal.end())
 						{
 							UTI_INFO("load minimal conditions plugin %s\n",
-							         plugin->name);
+							         plugin->name.c_str());
 							this->minimal[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -240,7 +260,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						if(plug == this->error.end())
 						{
 							UTI_INFO("load error insertions plugin %s\n",
-							         plugin->name);
+							         plugin->name.c_str());
 							this->error[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -255,7 +275,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						UTI_ERROR("Wrong plugin type %d for %s",
 						          plugin->type, filename.c_str());
 				}
-				free(plugin);
+				delete plugin;
 			}
 		}
 		closedir(plugin_dir);
@@ -276,7 +296,7 @@ void PluginUtils::releasePlugins()
 	for(vector<OpenSandPlugin *>::iterator iter = this->plugins.begin();
 	    iter != this->plugins.end(); ++iter)
 	{
-		delete *iter;
+		delete (*iter);
 	}
 
 	for(vector<void *>::iterator iter = this->handlers.begin();
@@ -286,8 +306,8 @@ void PluginUtils::releasePlugins()
 	}
 }
 
-bool PluginUtils::getEncapsulationPlugins(string name,
-	                                      EncapPlugin **encapsulation)
+bool PluginUtils::getEncapsulationPlugin(string name,
+	                                     EncapPlugin **encapsulation)
 {
 	fn_create create;
 
@@ -301,7 +321,37 @@ bool PluginUtils::getEncapsulationPlugins(string name,
 	{
 		return false;
 	}
-	plugins.push_back(*encapsulation);
+	this->plugins.push_back(*encapsulation);
+
+	return true;
+};
+
+bool PluginUtils::getLanAdaptationPlugin(string name,
+	                                     LanAdaptationPlugin **lan_adaptation)
+{
+	for(std::vector<OpenSandPlugin *>::iterator it = this->plugins.begin();
+	    it != this->plugins.end(); ++it)
+	{
+		if((*it)->getName() == name)
+		{
+			*lan_adaptation = (LanAdaptationPlugin *)*it;
+			return true;
+		}
+	}
+
+	fn_create create;
+
+	create = this->lan_adaptation[name];
+	if(!create)
+	{
+		return false;
+	}
+	*lan_adaptation = dynamic_cast<LanAdaptationPlugin *>(create());
+	if(*lan_adaptation == NULL)
+	{
+		return false;
+	}
+	this->plugins.push_back(*lan_adaptation);
 
 	return true;
 };
@@ -329,7 +379,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		UTI_ERROR("cannot create attenuation model plugin: %s", att_pl_name.c_str());
 		return false;
 	}
-	plugins.push_back(*attenuation);
+	this->plugins.push_back(*attenuation);
 
 	create = this->nominal[nom_pl_name];
 	if(!create)
@@ -343,7 +393,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		UTI_ERROR("cannot create nominal condition plugin: %s", nom_pl_name.c_str());
 		return false;
 	}
-	plugins.push_back(*nominal);
+	this->plugins.push_back(*nominal);
 
 	if(min_pl_name.size() > 0)
 	{
@@ -359,7 +409,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			UTI_ERROR("cannot create minimal condition plugin: %s", min_pl_name.c_str());
 			return false;
 		}
-		plugins.push_back(*minimal);
+		this->plugins.push_back(*minimal);
 	}
 
 
@@ -377,7 +427,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			UTI_ERROR("cannot error insertion model plugin: %s", err_pl_name.c_str());
 			return false;
 		}
-		plugins.push_back(*error);
+		this->plugins.push_back(*error);
 	}
 
 	return true;

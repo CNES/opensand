@@ -2,4 +2,4 @@
 
 cd `dirname $0`
 
-gcc -I /usr/include/opensand_output -lopensand_output -pthread -o test_prog test_prog.cpp
+g++ -lopensand_output -lpthread -o test_prog test_prog.cpp

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="eth" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="proto">
+	<xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Ethernet" />
+        <xsd:enumeration value="802.1Q" />
+        <xsd:enumeration value="802.1ad" />
+	</xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="evcId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="macAddress">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value="(([0-9a-fA-F*][0-9a-fA-F*]:){5}([0-9a-fA-F*][0-9a-fA-F*]))" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="protocolType">
+    <xsd:restriction base="xsd:hexBinary">
+        <xsd:length value="2" /> 
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="virtual_connections">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="connection" minOccurs="0" maxOccurs="255" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="connection">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="evcId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    An unique identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mac_src" type="macAddress">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    A source MAC address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mac_dst" type="macAddress">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    A destination MAC address
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tag_802_1q" type="xsd:nonNegativeInteger">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    A 802.1Q tag (VLAN ID)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="tag_802_1ad" type="xsd:nonNegativeInteger">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    An optionnal 802.1ad tag (Q in Q)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="protocol" type="protocolType">
+            <xsd:annotation>
+                <!-- TODO for hexBinary add 0x before box in manager -->
+                <xsd:documentation xml:lang="en">
+                    The inner payload type (hexadecimal value)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+                <xsd:element ref="ethernet" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- global section description -->
+<xsd:element name="ethernet">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Configuration for Ethernet plugin
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="lan_frame_type" type="proto">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                            The type of 802.1 Ethernet extension transmitted to network
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="sat_frame_type" type="proto">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                            The type of 802.1 Ethernet extension carried on satellite
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="virtual_connections" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>
