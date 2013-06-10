@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2012 TAS
+# Copyright © 2013 TAS
 #
 #
 # This file is part of the OpenSAND testbed.

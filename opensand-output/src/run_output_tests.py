@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf8 -*-
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
 #
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2012 TAS
+# Copyright © 2013 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
