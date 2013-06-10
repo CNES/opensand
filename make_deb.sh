@@ -160,6 +160,72 @@ function err()
     cd ../../..
 }
 
+function clean()
+{
+    move 1>/dev/null 2>&1
+    rm -rf packages
+    for dir in opensand-conf opensand-output opensand-rt opensand-collector opensand-core opensand-daemon opensand-manager; do
+        cd $dir
+        dh_clean 1>/dev/null
+        if [ $dir == "opensand-daemon" ]; then
+            rm -rf build
+        fi
+        if [ $dir == "opensand-manager" ]; then
+            rm -rf build
+        fi
+        cd ..
+        rm *.dsc *.tar.gz *.changes  1>/dev/null 2>&1
+    done
+    cd opensand-plugins/lan_adaptation
+    for dir in ethernet rohc ; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../..
+    cd opensand-plugins/encapsulation
+    for dir in gse; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../..
+    cd opensand-plugins/physical_layer/attenuation_model
+    for dir in ideal on_off triangular; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../../..
+    cd opensand-plugins/physical_layer/nominal_condition/
+    for dir in default; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../../..
+    cd opensand-plugins/physical_layer/minimal_condition/
+    for dir in modcod constant; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../../..
+    cd opensand-plugins/physical_layer/error_insertion
+    for dir in gate; do
+        cd $dir
+        dh_clean 1>/dev/null
+        cd ..
+        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
+    done
+    cd ../../..
+}
+
 
 function phy()
 {
@@ -169,7 +235,7 @@ function phy()
     err
 }
 
-move()
+function move()
 {
 	echo "copy packages for daemon"
 	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-bin_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb packages/daemon
@@ -220,7 +286,7 @@ case $1 in
         ;;
         
     "clean")
-        rm -rf packages/*/*.deb
+        clean
         ;;
         
     "move")
