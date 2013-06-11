@@ -34,7 +34,8 @@ Description: The OpenSAND emulation testbed core
 Package: libopensand-plugin
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: opensand-daemon
 Provides: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
 Conflicts: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
 Replaces: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin
