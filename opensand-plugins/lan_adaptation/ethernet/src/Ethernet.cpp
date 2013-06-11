@@ -371,6 +371,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			// tree coming from miscellaneous host
 			if(!this->sarp_table->getTalByMac(src_mac, src))
 			{
+				// do not use default here, default is for destination !
 				UTI_INFO("cannot find source MAC address %s in sarp table\n",
 				         src_mac.str().c_str());
 				continue;
@@ -384,9 +385,19 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 			else if(!this->sarp_table->getTalByMac(dst_mac, dst))
 			{
-				UTI_INFO("cannot find destination MAC address %s in sarp table\n",
-				          dst_mac.str().c_str());
-				continue;
+				// check default tal_id
+				if(dst > BROADCAST_TAL_ID)
+				{
+					UTI_INFO("cannot find destination MAC address %s in sarp table\n",
+					          dst_mac.str().c_str());
+					continue;
+				}
+				else
+				{
+					// TODO use info or notice once it will not be printed by default
+					UTI_DEBUG("cannot find destination tal ID, use default (%u)\n",
+					          dst);
+				}
 			}
 			UTI_DEBUG("build Ethernet frame with source MAC %s corresponding to terminal ID %d "
 			          "and destination MAC %s corresponding to terminal ID %d\n",
@@ -586,10 +597,20 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 			// the information should be in sarp table
 			if(!this->sarp_table->getTalByMac(dst_mac, dst))
 			{
-				UTI_ERROR("cannot find destination MAC address %s in sarp table\n",
-				          dst_mac.str().c_str());
-				delete deenc_packet;
-				continue;
+				// check default tal_id
+				if(dst > BROADCAST_TAL_ID)
+				{
+					UTI_ERROR("cannot find destination MAC address %s in sarp table\n",
+					          dst_mac.str().c_str());
+					delete deenc_packet;
+					continue;
+				}
+				else
+				{
+					// TODO use info or notice once it will not be printed by default
+					UTI_DEBUG("cannot find destination tal ID, use default (%u)\n",
+					          dst);
+				}
 			}
 
 			if(frame_type != this->lan_frame_type)

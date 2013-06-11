@@ -249,7 +249,7 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- ip_dedicated_v4 section description -->
+<!-- sarp section description -->
 <xsd:element name="sarp">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
@@ -261,6 +261,13 @@
             <xsd:element ref="ipv4" />
             <xsd:element ref="ipv6" />
             <xsd:element ref="ethernet" />
+            <xsd:element name="default" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default terminal ID if no one is found, -1 for none
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

@@ -73,7 +73,8 @@ class SarpTable
 	// TODO we have only one of these two list that is used each time so we
 	//      need only one of these
 	list<sarpIpEntry *> ip_sarp;   ///< The IP entries in SARP table
-	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table;
+	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
+	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
  public:
 
@@ -117,6 +118,7 @@ class SarpTable
 	 *
 	 * @param ip the IP address to search for
 	 * @param tal_id  the tal ID associated with the IP address if found
+	 *                the default tal_id otherwise (false will be returned)
 	 * @return true on success, false otherwise
 	 */
 	bool getTalByIp(IpAddress *ip, tal_id_t &tal_id) const;
@@ -126,6 +128,7 @@ class SarpTable
 	 *
 	 * @param mac     the MAC address to search for
 	 * @param tal_id  the tal ID associated with the MAC address if found
+	 *                the default tal_id otherwise (false will be returned)
 	 * @return true on success, false otherwise
 	 */
 	bool getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const;
@@ -138,6 +141,13 @@ class SarpTable
 	 * @return true on success, false otherwise
 	 */
 	bool getMacByTal(tal_id_t tal_id, vector<MacAddress> &mac_address) const;
+
+	/**
+	 * @brief Set the default destination terminal if no entry is found
+	 *
+	 * @param dlft  the default terminal ID
+	 */
+	void setDefaultTal(tal_id_t dflt);
 
 };
 

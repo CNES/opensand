@@ -150,7 +150,7 @@ bool SarpTable::getTalByIp(IpAddress *ip, tal_id_t &tal_id) const
 	unsigned int max_mask_len;
 
 	max_mask_len = 0;
-	tal_id = 255; // value that will lead to an error if it is used
+	tal_id = this->default_dest; // if no set (-1) this will lead to an error
 
 	// search IP matching with longer mask
 	list <sarpIpEntry *>::const_iterator it;
@@ -176,7 +176,7 @@ bool SarpTable::getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const
 {
 	sarpEthEntry *entry;
 
-	tal_id = 255; // value that will lead to an error if it is used
+	tal_id = this->default_dest; // if no set (-1) this will lead to an error
 
 	list <sarpEthEntry *>::const_iterator it;
 	for(it = this->eth_sarp.begin(); it != this->eth_sarp.end(); it++)
@@ -212,4 +212,10 @@ bool SarpTable::getMacByTal(tal_id_t tal_id, vector<MacAddress> &mac_address) co
 
 	return false;
 }
+
+void SarpTable::setDefaultTal(tal_id_t dflt)
+{
+	this->default_dest = dflt;
+}
+
 

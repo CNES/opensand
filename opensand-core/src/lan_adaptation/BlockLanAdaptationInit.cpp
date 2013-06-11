@@ -63,6 +63,7 @@
 bool BlockLanAdaptation::getConfig()
 {
 	string sat_type;
+	int dflt = -1;
 
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
 	{
@@ -80,6 +81,13 @@ bool BlockLanAdaptation::getConfig()
 	{
 		return false;
 	}
+	if(!globalConfig.getValue(SARP_SECTION, DEFAULT, dflt))
+	{
+		UTI_ERROR("cannot get default destination terminal, "
+		          "this is not fatal\n");
+		// do not return, this is not fatal
+	}
+	this->sarp_table.setDefaultTal(dflt);
 	if(!this->initSarpTables())
 	{
 		return false;

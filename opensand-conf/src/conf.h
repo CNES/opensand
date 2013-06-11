@@ -222,6 +222,7 @@
 #define TERMINAL_ADDR     "addr"
 #define TERMINAL_IP_MASK  "mask"
 #define MAC_ADDR          "mac"
+#define DEFAULT           "default"
 
 ////////////////////
 // Physical Layer //

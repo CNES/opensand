@@ -163,9 +163,19 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 		ip_addr = ip_packet->dstAddr();
 		if(!this->sarp_table->getTalByIp(ip_addr, pkt_tal_id))
 		{
-			UTI_ERROR("cannot get destination tal ID in SARP table\n");
-			delete ip_packet;
-			continue;
+			// check default tal_id
+			if(pkt_tal_id > BROADCAST_TAL_ID)
+			{
+				UTI_ERROR("cannot get destination tal ID in SARP table\n");
+				delete ip_packet;
+				continue;
+			}
+			else
+			{
+				// TODO use info or notice once it will not be printed by default
+				UTI_DEBUG("cannot find destination tal ID, use default (%u)\n",
+				          pkt_tal_id);
+			}
 		}
 		ip_packet->setDstTalId(pkt_tal_id);
 		
@@ -235,9 +245,20 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 
 		if(!this->sarp_table->getTalByIp(ip_addr, pkt_tal_id))
 		{
-			// tal id not found
-			UTI_ERROR("IP dest addr not found in SARP table\n");
-			return false;
+			// check default tal_id
+			if(pkt_tal_id > BROADCAST_TAL_ID)
+			{
+				// tal id not found
+				UTI_ERROR("IP dest addr not found in SARP table\n");
+				return false;
+
+			}
+			else
+			{
+				// TODO use info or notice once it will not be printed by default
+				UTI_DEBUG("cannot find destination tal ID, use default (%u)\n",
+				          pkt_tal_id);
+			}
 		}
 
 		UTI_DEBUG_L3("talID in SARP Table: %d \n", pkt_tal_id);
