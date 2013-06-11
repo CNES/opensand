@@ -96,7 +96,6 @@ class Evc
 	/**
 	 * @brief Get the 802.1Q tag
 	 *
-	 * @param frame_type  The type of Ethernet frames
 	 * @return the Q tag
 	 */
 	uint32_t getQTag() const;
@@ -112,7 +111,6 @@ class Evc
 	 * @brief Get the EtherType value
 	 *        The value will depend on the type of ethernet frame
 	 *
-	 * @param frame_type  The type of Ethernet frames
 	 * @return the appropriate EtherType value
 	 */
 	uint16_t getEtherType() const;

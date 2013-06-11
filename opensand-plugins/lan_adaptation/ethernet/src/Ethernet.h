@@ -103,7 +103,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @brief create an Ethernet frame from IP data
 		 *
 		 * @param packet     The upper or network packet
-		 * @apram evc_id     The id of the EVC if found
+		 * @param evc_id     The id of the EVC if found
 		 * @return the Ethernet frame
 		 */
 		NetPacket *createEthFrameData(NetPacket *packet, uint8_t &evc_id);
@@ -114,8 +114,8 @@ class Ethernet: public LanAdaptationPlugin
 		 *
 		 * @param data               The upper or network packet data
 		 * @param length             The upper or network packet data length
-		 * @param src_mac            The source MAC address
-		 * @param dst_mac            The destination MAC address
+		 * @param mac_src            The source MAC address
+		 * @param mac_dst            The destination MAC address
 		 * @param ether_type         The payload EtherType
 		 * @param q_tag              The Q-tag
 		 * @param ad_tag             The AD-tag
@@ -139,7 +139,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param src_mac    The source MAC address
 		 * @param dst_mac    The destination MAC address
 		 * @param ether_type The EtherType
-		 * @apram evc_id     The id of the EVC if found
+		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
 		Evc *getEvc(const MacAddress src_mac,
@@ -154,7 +154,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param dst_mac    The destination MAC address
 		 * @param q_tag      The Q-tag
 		 * @param ether_type The EtherType
-		 * @apram evc_id     The id of the EVC if found
+		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
 		Evc *getEvc(const MacAddress src_mac,
@@ -171,7 +171,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param q_tag      The Q-tag
 		 * @param ad_tag     The ad-tag
 		 * @param ether_type The EtherType
-		 * @apram evc_id     The id of the EVC if found
+		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
 		Evc *getEvc(const MacAddress src_mac,

@@ -15,6 +15,7 @@ aclocal.m4
 depcomp
 install-sh
 missing
+html
 !opensand-tools/openimscore
 *.pc
 .deps
