@@ -153,3 +153,10 @@ opensand-output/debian/libopensand-output-dev/
 packages
 opensand-rt/src/test/test_block
 opensand-rt/src/test/test_multi_blocks
+opensand-meta/debian/files
+opensand-meta/debian/opensand
+opensand-meta/debian/opensand-encap-plugins
+opensand-meta/debian/opensand-manager
+opensand-meta/debian/opensand-manager-encap-plugins
+opensand-meta/debian/opensand-manager-physical-layer-plugins
+opensand-meta/debian/opensand-physical-layer-plugins

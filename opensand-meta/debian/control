@@ -1,0 +1,54 @@
+Source: opensand-meta
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper (>= 7.0.50)
+Standards-Version: 3.8.3
+Homepage: http://www.opensand.org
+
+Package: opensand
+Architecture: any
+Depends: libopensand-conf, libopensand-output, libopensand-rt, opensand-core-bin, libopensand-plugin, opensand-daemon
+Description: Packages for OpenSAND, a satellite emulation platform.
+ This metapackage is to ease the installation of OpenSAND daemon environnment.
+
+#Package: opensand-encap-plugins
+#Architecture: any
+#Depends: opensand, libopensand-gse-encap-plugin, libgse
+#Description: Packages containing encapsulation plugins for OpenSAND, a satellite emulation platform.
+# This metapackage is to ease the installation of OpenSAND encapsulation plugins.
+
+#Package: opensand-lan-adapt-plugins
+#Architecture: any
+#Depends: opensand, libopensand-ethernet-lan-adapt-plugin, libopensand-rohc-lan-adapt-plugin, librohc
+#Description: Packages containing lan adaptation plugins for OpenSAND, a satellite emulation platform.
+# This metapackage is to ease the installation of OpenSAND encapsulation plugins.
+ 
+#Package: opensand-physical-layer-plugins
+#Architecture: any
+#Depends: opensand, libopensand-constant-minimal-plugin, libopensand-default-nominal-plugin, libopensand-gate-error-plugin, libopensand-ideal-attenuation-plugin, libopensand-modcod-minimal-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin
+#Description: Packages containing physical layer plugins for OpenSAND, a satellite emulation platform.
+# This metapackage is to ease the installation of OpenSAND physical layer plugins.
+
+Package: opensand-manager
+Architecture: any
+Depends: opensand, opensand-core-any, opensand-manager-core, opensand-manager-gui
+Description: Packages for OpenSAND manager.
+ This metapackage is to ease the installation of OpenSAND manager environment.
+ 
+#Package: opensand-manager-encap-plugins
+#Architecture: any
+#Depends: opensand-manager, opensand-encap-plugins, libopensand-gse-encap-plugin-manager
+#Description: Packages containing encapsulation plugins for the OpenSAND manager.
+# This metapackage is to ease the installation of OpenSAND encapsulation plugins on manager.
+
+#Package: opensand-manager-encap-plugins
+#Architecture: any
+#Depends: opensand-manager, opensand-lan-adapt-plugins, libopensand-ethernet-lan-adapt-plugin-manager, libopensand-rohc-lan-adapt-plugin-manager
+#Description: Packages containing encapsulation plugins for the OpenSAND manager.
+# This metapackage is to ease the installation of OpenSAND lan adaptation plugins on manager.
+ 
+#Package: opensand-manager-physical-layer-plugins
+#Architecture: any
+#Depends: opensand-manager, opensand-physical-layer-plugins, libopensand-constant-minimal-plugin-manager, libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager, libopensand-ideal-attenuation-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager
+#Description: Packages containing physical layer plugins for the OpenSAND manager.
+# This metapackage is to ease the installation of OpenSAND physical layer plugins on manager.

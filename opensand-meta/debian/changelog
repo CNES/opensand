@@ -1,0 +1,5 @@
+opensand-meta (1.0.0) lucid; urgency=low
+
+  * OpenSAND Meta packages initial release
+
+ -- Emmanuel Dubois <emmanuel.dubois@cnes.fr>  Tue, 26 Jun 2012 19:35:59 +0200
