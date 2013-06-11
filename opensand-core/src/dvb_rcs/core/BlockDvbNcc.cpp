@@ -375,12 +375,12 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 		{
 			// messages from lower layer: dvb frames
 			T_DVB_META *dvb_meta;
-			long carrier_id;
+			//long carrier_id;
 			unsigned char *frame;
 			int l_len;
 
 			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
-			carrier_id = dvb_meta->carrier_id;
+			//carrier_id = dvb_meta->carrier_id;
 			frame = (unsigned char *) dvb_meta->hdr;
 			l_len = ((MessageEvent *)event)->getLength();
 
@@ -1073,12 +1073,12 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		{
 			CapacityRequest *cr = new CapacityRequest(data, len);
 			// TODO dra_id is not used ?
-			unsigned int dra_id;
+			//unsigned int dra_id;
 
 			UTI_DEBUG_L3("handle received Capacity Request (CR)\n");
 
 			// retrieve the current DRA scheme for the ST
-			dra_id = this->emissionStd->getStCurrentDraSchemeId(cr->getTerminalId());
+			//dra_id = this->emissionStd->getStCurrentDraSchemeId(cr->getTerminalId());
 			if(!this->m_pDamaCtrl->hereIsCR(cr))
 			{
 				UTI_ERROR("failed to handle Capacity Request "

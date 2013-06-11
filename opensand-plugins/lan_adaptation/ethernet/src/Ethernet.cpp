@@ -483,7 +483,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 		this->evc_data_size[evc_id] += eth_frame->getTotalLength();
 		eth_frames->add(eth_frame);
 	}
-	UTI_DEBUG("encapsulate %d Ethernet frames\n", eth_frames->size());
+	UTI_DEBUG("encapsulate %zu Ethernet frames\n", eth_frames->size());
 
 	// delete the burst and all frames in it
 	delete burst;
@@ -647,7 +647,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 		net_packets->add(deenc_packet);
 	}
-	UTI_DEBUG("deencapsulate %d ethernet frames\n", net_packets->size());
+	UTI_DEBUG("deencapsulate %zu ethernet frames\n", net_packets->size());
 
 	// delete the burst and all frames in it
 	delete burst;

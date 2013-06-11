@@ -82,6 +82,10 @@ bool BlockSatCarrier::onDownwardEvent(const RtEvent *const event)
 
 			l_ret = m_channelSet.send(lp_ptr->carrier_id,
 			                          (unsigned char *) (lp_ptr->hdr), l_len);
+			if(l_ret < 0)
+			{
+				UTI_ERROR("error when sending data\n");
+			}
 			free(lp_ptr->hdr);
 			delete lp_ptr;
 		}
@@ -122,12 +126,12 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 				if(ret < 0)
 				{
 					UTI_ERROR("failed to receive data on any "
-					          "input channel (code = %d)\n", l_lg);
+					          "input channel (code = %zu)\n", l_lg);
 					status = false;
 				}
 				else
 				{
-					UTI_DEBUG_L3("%d bytes of data received on carrier ID %u\n",
+					UTI_DEBUG_L3("%zu bytes of data received on carrier ID %u\n",
 					             l_lg, carrier_id);
 
 					if(l_lg > 0)
@@ -148,7 +152,7 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 			return false;
 	}
 
-	return true;
+	return status;
 }
 
 

@@ -1046,18 +1046,6 @@ int DvbRcsDamaCtrl::bufferCheck(unsigned char **buffer,
 int DvbRcsDamaCtrl::runDama()
 {
 	const char *FUNCNAME = DC_DBG_PREFIX "[runDama]";
-	DC_Context::iterator st;
-	DC_stId st_id; // Id of the ST being under examination
-	DC_St *ThisSt;
-
-	for(st = m_context.begin(); st != m_context.end(); st++)
-	{
-		st_id = st->first;
-		ThisSt = st->second;
-
-		/*    st_context->btp_entry->assignment_count = 0;
-		   st_context->btp_entry                   = NULL; */
-	}
 
 	UTI_ERROR("%s ---------------------------------", FUNCNAME);
 	UTI_ERROR("%s void dama algorithm don't use it ", FUNCNAME);

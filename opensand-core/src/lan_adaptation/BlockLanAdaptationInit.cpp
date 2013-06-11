@@ -291,7 +291,7 @@ bool BlockLanAdaptation::initTrafficCategories()
 
 		// display the Service Class parameters and categories
 		UTI_DEBUG("class %s (%d): schedPrio %d, macQueueId %d, "
-		          "nb categories %d\n", service_class.name.c_str(),
+		          "nb categories %zu\n", service_class.name.c_str(),
 		          service_class.id, service_class.schedPrio, service_class.macQueueId,
 		          service_class.categoryList.size());
 		for(cat_iter = service_class.categoryList.begin();
@@ -301,7 +301,7 @@ bool BlockLanAdaptation::initTrafficCategories()
 			          (*cat_iter)->name.c_str(), (*cat_iter)->id);
 		}
 	}
-	UTI_INFO("lan adapation bloc activated with %d service classes\n",
+	UTI_INFO("lan adapation bloc activated with %zu service classes\n",
 	         this->class_list.size());
 
 

@@ -323,7 +323,6 @@ error:
 bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 {
 	char *recv_buffer;
-	int recv_msg_size;
 
 	// a PEP must be connected to read a message from it!
 	if(!this->is_connected)
@@ -334,7 +333,6 @@ bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 	}
 
 	recv_buffer = (char *)(event->getData());
-	recv_msg_size = event->getSize();
 
 	// parse message received from PEP
 	if(this->parsePepMessage(recv_buffer) != true)

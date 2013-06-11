@@ -55,7 +55,7 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 	{
 		this->save_only_last_value = true;
 		this->size = 1;
-		UTI_INFO("Circular buffer size was %u --> set to %u, with only "
+		UTI_INFO("Circular buffer size was %zu --> set to %zu, with only "
 		         "saving last value option (sum = 0)\n",
 		         buffer_size, this->size);
 	}
@@ -222,7 +222,7 @@ rate_kbps_t CircularBuffer::GetSum()
 void CircularBuffer::Debug()
 {
 	size_t i;
-	fprintf(stderr, "CB : size %u index %u nbr_alues %u min_value %u sum %u\n",
+	fprintf(stderr, "CB : size %zu index %zu nbr_alues %zu min_value %u sum %u\n",
 	        this->size, this->index, this->nbr_values, this->min_value, this->sum);
 	fprintf(stderr, "CB : ");
 	if(this->values != NULL)

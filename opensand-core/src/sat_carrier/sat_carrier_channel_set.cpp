@@ -271,14 +271,14 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 			// Stop the task on data or error
 			if(op_len != 0 || ret < 0)
 			{
-				UTI_DEBUG_L3("data/error received, set op_carrier to %i\n",
+				UTI_DEBUG_L3("data/error received, set op_carrier to %d\n",
 				             (*it)->getChannelID());
 				op_carrier = (*it)->getChannelID();
 				break;
 			}
 		}
 	}
-	UTI_DEBUG_L3("Receive packet: size %u, carrier %i\n", op_len, op_carrier);
+	UTI_DEBUG_L3("Receive packet: size %zu, carrier %d\n", op_len, op_carrier);
 
 	if(it == this->end())
 		ret = 0;

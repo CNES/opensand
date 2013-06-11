@@ -29,7 +29,7 @@ libopensand_output_la_SOURCES = \
 	$(libopensand_output_la_cpp) \
 	$(libopensand_output_la_h)
 
-libopensand_output_la_LDFLAGS = -lpthread
+libopensand_output_la_LDFLAGS = -lpthread -lrt
 
 test_output_SOURCES = test_output.cpp
 test_output_LDADD = libopensand_output.la

@@ -406,7 +406,7 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 
 	name = burst->name();
 	size = burst->size();
-	UTI_DEBUG("%s encapsulate %d %s packet(s)\n",
+	UTI_DEBUG("%s encapsulate %zu %s packet(s)\n",
 	          FUNCNAME, size, name.c_str());
 
 	// encapsulate packet
@@ -468,7 +468,7 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 		          burst->front()->getName().c_str(), burst->front()->getQos());
 	}
 
-	UTI_DEBUG("%d %s packet => %zu encapsulation packet(s)\n",
+	UTI_DEBUG("%zu %s packet => %zu encapsulation packet(s)\n",
 	          size, name.c_str(), burst->size());
 
 	// if no encapsulation packet was created, avoid sending a message
