@@ -1,21 +1,39 @@
 #!/bin/bash
 
+RED="\\033[1;31m"
+GREEN="\\033[1;32m"
+NORMAL="\\033[0;39m"
+
 mkdir -p packages/sources
+
+function make_distcheck()
+{
+    dir=$1
+    /bin/echo -e "**************************************"
+    /bin/echo -e "Build sources for $dir"
+    /bin/echo -e "**************************************"
+    cd $dir
+    if [ -f ./autogen.sh ]; then
+        ./autogen.sh 1>/dev/null
+    fi
+    make distcheck 1>/dev/null  && /bin/echo -e " * ${GREEN}SUCCESS${NORMAL}" || `/bin/echo -e " * ${RED}FAILURE${NORMAL}" && exit 1`
+    cd ..
+    /bin/echo -e
+}
 function opensand()
 {
     for dir in opensand-conf opensand-rt opensand-output opensand-collector opensand-core opensand-daemon opensand-manager; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-            make distcheck 1>/dev/null
-        elif [ -f ./setup.py ]; then
-            python setup.py sdist --formats=gztar 1>/dev/null
+        if [ -f $dir/autogen.sh ]; then
+            make_distcheck $dir
+        elif [ -f $dir/setup.py ]; then
+            cd $dir
+            /bin/echo -e "**************************************"
+            /bin/echo -e "Build sources for $dir"
+            /bin/echo -e "**************************************"
+            python setup.py sdist --formats=gztar 1>/dev/null && /bin/echo -e " * ${GREEN}SUCCESS${NORMAL}" || `/bin/echo -e " * ${RED}FAILURE${NORMAL}" && exit 1`
+            cd ..
+            /bin/echo -e
         fi
-        cd ..
-        echo
     done
 }
 
@@ -23,16 +41,7 @@ function encap()
 {
     cd opensand-plugins/encapsulation
     for dir in gse; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../..
 }
@@ -42,16 +51,7 @@ function lan()
 {
     cd opensand-plugins/lan_adaptation
     for dir in rohc ethernet; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../..
 }
@@ -60,16 +60,7 @@ function att()
 {
     cd opensand-plugins/physical_layer/attenuation_model
     for dir in ideal on_off triangular; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../../..
 }
@@ -78,16 +69,7 @@ function nom()
 {
     cd opensand-plugins/physical_layer/nominal_condition/
     for dir in default; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../../..
 }
@@ -96,16 +78,7 @@ function min()
 {
     cd opensand-plugins/physical_layer/minimal_condition/
     for dir in modcod constant; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../../..
 }
@@ -115,16 +88,7 @@ function err()
 {
     cd opensand-plugins/physical_layer/error_insertion
     for dir in gate; do
-        echo "**************************************"
-        echo "Create package for $dir"
-        echo "**************************************"
-        cd $dir
-        if [ -f ./autogen.sh ]; then
-            ./autogen.sh 1>/dev/null
-        fi
-        make distcheck 1>/dev/null
-        cd ..
-        echo
+        make_distcheck $dir
     done
     cd ../../..
 }
@@ -189,6 +153,6 @@ case $1 in
         ;;
 
     *)
-        echo "wrong command (all, opensand, encap, lan, phy {att, nom, min, err})"
+        /bin/echo -e "wrong command (all, opensand, encap, lan, phy {att, nom, min, err})"
         ;;
 esac
