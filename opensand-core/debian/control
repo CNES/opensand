@@ -5,9 +5,11 @@ Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
  libopensand-conf-dev (>= 1.0.0), libopensand-output-dev (>= 1.0.0), libopensand-rt-dev (>= 1.0.0),
  python-lxml, libpcap-dev
 Standards-Version: 3.8.3
+Section: misc
 
 Package: opensand-core-all
 Architecture: any
+Section: misc
 Depends: opensand-core-bin (= ${binary:Version})
 Provides: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager
 Conflicts: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager
@@ -26,6 +28,7 @@ Description: Debugging symbols for OpenSAND Core binaries
 
 Package: opensand-core-bin
 Architecture: any
+Section: misc
 Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate
 Description: The OpenSAND emulation testbed core
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a

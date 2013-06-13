@@ -4,9 +4,11 @@ Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), python (>= 2.6), python-support, python-setuptools
 XS-Python-Version: >= 2.6
 Standards-Version: 3.8.3
+Section: misc
 
 Package: opensand-manager-core
 Architecture: any
+Section: misc
 Depends: ${misc:Depends}, python (>= 2.6),
  python-avahi, avahi-daemon,
  python-dbus, python-lxml,
@@ -15,6 +17,7 @@ Description: Non graphical part of Manager for OpenSAND emulation testbed
 
 Package: opensand-manager-gui
 Architecture: any
+Section: misc
 Depends: ${misc:Depends}, opensand-manager-core (= ${binary:Version}),
  python-matplotlib, python-gtk2 (>=2.16), rsyslog, logrotate
 Description: GUI of Manager for OpenSAND emulation testbed
