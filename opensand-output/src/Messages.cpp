@@ -151,7 +151,7 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 
 	if(got > (signed)max_length)
 	{
-		UTI_ERROR("Message length overflow (%lu > %zu), please increase "
+		UTI_ERROR("Message length overflow (%zd > %zu), please increase "
 		          "the message buffer size.", got, max_length);
 		return 0;
 	}

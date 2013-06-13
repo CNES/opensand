@@ -13,6 +13,7 @@ libopensand_dvb_utils_la_h = \
 	ModulationType.h \
 	MacFifoElement.h \
 	sat_emulator_err.h \
+	msg_dvb_rcs.h \
 	lib_dvb_rcs.h
 
 libopensand_dvb_utils_la_SOURCES = \

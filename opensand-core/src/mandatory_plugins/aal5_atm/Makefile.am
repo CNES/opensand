@@ -29,6 +29,3 @@ pluginsdir = $(libdir)/opensand/plugins
 INCLUDES = \
 	-I$(top_srcdir)/src/common
 
-EXTRA_DIST = \
-	aal5_atm.py
-
