@@ -1,3 +1,9 @@
+opensand-collector (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:16:41 +0200
+
 opensand-collector (1.0.0) lucid; urgency=low
 
   * Initial version of the collector for the new environment plane

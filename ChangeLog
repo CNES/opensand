@@ -1,3 +1,22 @@
+
+2013-06-13 opensand-1.0.0
+
+   * Release 2.0.0
+   * Add meta package
+   * Add Ethernet support
+   * Replace margouilla with a new rt library
+   * Fix bug #1015153
+   * Fix bug #1040632
+   * Fix bug #1040647
+   * Fix bug #1042641
+   * Fix bug #1042661
+   * Fix bug #1051711
+   * Fix bug #1098193
+   * Fix bug #1098194
+   * Fix bug #1098590
+   * Fix bug #1102064
+
+
 2012-12-12 opensand-1.0.0
 
    * Release 1.0.0

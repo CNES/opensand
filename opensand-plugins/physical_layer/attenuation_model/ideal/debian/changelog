@@ -1,3 +1,9 @@
+opensand-ideal-attenuation-plugin (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:53:31 +0200
+
 opensand-ideal-attenuation-plugin (1.0.0) lucid; urgency=low
 
   * Initial version of physical layer plugins

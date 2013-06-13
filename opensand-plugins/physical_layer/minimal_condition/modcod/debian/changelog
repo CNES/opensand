@@ -1,3 +1,9 @@
+opensand-modcod-minimal-plugin (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:56:43 +0200
+
 opensand-modcod-minimal-plugin (1.0.0) lucid; urgency=low
 
   * Initial version of physical layer plugins

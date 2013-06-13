@@ -1,3 +1,9 @@
+opensand-on-off-attenuation-plugin (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:53:48 +0200
+
 opensand-on-off-attenuation-plugin (1.0.0) lucid; urgency=low
 
   * Initial version of physical layer plugins

@@ -1,3 +1,15 @@
+opensand-core (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+  * Replace margouilla with the new opensand-rt library
+  * Add Ethernet support
+  * Replace IP QoS block with Lan Adaptation Block and handle plugins
+  * Add mandatory plugin in code
+  * Rwrite DAMA Agent code to be cleaner
+  * Various bugfixes
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:41:45 +0200
+
 opensand-core (1.0.0) lucid; urgency=low
 
   * Release 1.0.0

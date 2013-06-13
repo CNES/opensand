@@ -1,3 +1,9 @@
+opensand-output (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:51:37 +0200
+
 opensand-output (1.0.0) lucid; urgency=low
 
   * Initial version of the new library for the environment plane

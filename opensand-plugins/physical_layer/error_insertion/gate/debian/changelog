@@ -1,3 +1,9 @@
+opensand-gate-error-plugin (2.0.0) lucid; urgency=low
+
+  * Release 2.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Thu, 13 Jun 2013 16:54:35 +0200
+
 opensand-gate-error-plugin (1.0.0) lucid; urgency=low
 
   * Initial version of physical layer plugins

@@ -2,8 +2,8 @@ Source: opensand-rt
 Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
- libopensand-conf-dev (>= 1.0.0),
- libopensand-output-dev (>= 1.0.0),
+ libopensand-conf-dev (>= 2.0.0),
+ libopensand-output-dev (>= 2.0.0),
  libgperftools-dev
 Standards-Version: 3.8.3
 Section: libs

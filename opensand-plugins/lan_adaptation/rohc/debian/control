@@ -3,8 +3,8 @@ Priority: optional
 Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
  librohc-dev (>= 1.3.1),
- libopensand-conf-dev (>= 1.0.0),
- libopensand-plugin-dev (>= 1.0.0)
+ libopensand-conf-dev (>= 2.0.0),
+ libopensand-plugin-dev (>= 2.0.0)
 XS-Python-Version: >= 2.6
 Standards-Version: 3.8.3
 Section: libs
