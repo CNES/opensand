@@ -37,7 +37,7 @@ Description: Packages for OpenSAND, a satellite emulation platform.
 Package: opensand-manager
 Architecture: any
 Section: metapackages
-Depends: opensand, opensand-core-any, opensand-manager-core, opensand-manager-gui
+Depends: opensand, opensand-core-all, opensand-manager-core, opensand-manager-gui
 Description: Packages for OpenSAND manager.
  This metapackage is to ease the installation of OpenSAND manager environment.
  
