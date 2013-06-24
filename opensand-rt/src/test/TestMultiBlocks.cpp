@@ -81,7 +81,7 @@
 #endif
 
 #if ENABLE_TCMALLOC
-#include <gperftools/heap-checker.h>
+#include <heap-checker.h>
 #endif
 
 unsigned char dbgLevel_default = 4;

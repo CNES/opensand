@@ -5,6 +5,7 @@ AC_INIT(opensand-rt, trunk, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
+AC_LANG_PUSH([C++])
 
 # Disable static libraries by default
 AC_DISABLE_STATIC
@@ -46,6 +47,7 @@ PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = trunk])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 
+
 # check if -Werror must be appended to CFLAGS
 WERROR=""
 AC_ARG_ENABLE(fail_on_warning,
@@ -59,6 +61,7 @@ fi
 
 AC_DEFINE(ENABLE_TCMALLOC, [0], [use fast and multi-threaded malloc])
 TCMALLOC=""
+GPERFTOOLS_INC=""
 AC_ARG_ENABLE(tcmalloc,
               AS_HELP_STRING([--enable-tcmalloc],
                              [use fast and multi-threaded malloc [[default=yes]]]),
@@ -67,9 +70,12 @@ AC_ARG_ENABLE(tcmalloc,
 if test "x$tcmalloc" != "xno"; then
 	TCMALLOC="-ltcmalloc"
 	AC_DEFINE(ENABLE_TCMALLOC, [1], [use fast and multi-threaded malloc])
+	# debian installs gperftools header in google subfolder while this should be in gperftools...
+	AC_CHECK_HEADER([gperftools/heap-checker.h], [GPERFTOOLS_INC="/usr/include/gperftools"], [\
+	AC_CHECK_HEADER([google/heap-checker.h], [GPERFTOOLS_INC="/usr/include/google"], [AC_MSG_ERROR("Could not find google perftools headers")])])
 fi
 
-AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
+AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON -I${GPERFTOOLS_INC}")
 AC_SUBST(AM_LDFLAGS, "$AM_LDFLAGS ${TCMALLOC} -lpthread -lrt")
 
 AM_DEP_TRACK

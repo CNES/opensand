@@ -20,6 +20,11 @@ else
 	TEST_MULTI="${BASEDIR}/test_multi_blocks -i ${BASEDIR}/TestMultiBlocks.h"
 fi
 
+if [ -e "/usr/bin/google-pprof" ]; then
+	# we need that because debian rename pprof in packages...
+	export PPROF_PATH="/usr/bin/google-pprof"
+fi
+
 # check for heaps and restart with logs if an error occurs
 echo "Check block"
 env HEAPCHECK=strict > /dev/null ${TEST} 2>&1 1>/dev/null || env HEAPCHECK=strict ${TEST} || exit $?
