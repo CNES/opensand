@@ -31,7 +31,7 @@ restart_daemon()
 case "$1" in
     remove|deconfigure)
         remove_module
-	restart_daemon
+        restart_daemon
     ;;
 
     upgrade)

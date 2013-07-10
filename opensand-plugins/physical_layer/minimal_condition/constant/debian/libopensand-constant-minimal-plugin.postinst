@@ -22,8 +22,7 @@ add_module()
 {
     name="Constant"
     /usr/libexec/opensand/module_support.py add $name || true
-    service opensand-daemon stop || true
-    service opensand-daemon start || true
+    service opensand-daemon restart || true
 }
 
 case "$1" in
