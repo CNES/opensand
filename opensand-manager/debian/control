@@ -12,6 +12,7 @@ Section: misc
 Depends: ${misc:Depends}, python (>= 2.6),
  python-avahi, avahi-daemon,
  python-dbus, python-lxml,
+ python-gobject,
  opensand-core-all
 Description: Non graphical part of Manager for OpenSAND emulation testbed
 

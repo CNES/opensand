@@ -16,7 +16,7 @@ Package: opensand-daemon
 Architecture: any
 Section: misc
 Depends: ${misc:Depends}, python (>= 2.6),
- python-dbus,
+ python-dbus, python-gobject,
  python-avahi, avahi-daemon,
  python-ipaddr, python-netifaces,
  python-prctl,
