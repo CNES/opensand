@@ -194,18 +194,32 @@ class OpenSandInterfaces(object):
                 self._lan_ipv4 = IPNetwork("%s/%s" % (lan_ipv4[0]['addr'],
                                                       lan_ipv4[0]['netmask']))
                 lan_ipv6 = addresses[netifaces.AF_INET6]
-                # remove IPv6 link addresses
-                copy = list(lan_ipv6)
-                for ip in copy:
-                    addr = ip['addr']
-                    if addr.endswith('%' + self._lan_iface):
-                        del lan_ipv6[ip]
+                # remove IPv6 link addresses if there is another address
+                # else use it
+                # TODO check if it works with link local address
+                if len(lan_ipv6) > 1:
+                    copy = list(lan_ipv6)
+                    for ip in copy:
+                        addr = ip['addr']
+                        if addr.endswith('%' + self._lan_iface):
+                            lan_ipv6.remove(ip)
                 if len(lan_ipv6) > 1:
                     LOGGER.warning("more than one IPv6 addresses for lan "
                                    "interface (%s), pick the first one: %s" %
                                    (self._lan_iface, lan_ipv6[0]['addr']))
-                self._lan_ipv6 = IPNetwork("%s/%s" % (lan_ipv6[0]['addr'],
-                                                      lan_ipv6[0]['netmask']))
+                # remove the interface name after '%' for link local addresses
+                addr_v6 = lan_ipv6[0]['addr'].rsplit('%', 1)[0]
+                # IPNetwork does not convert IPv6 mask from address to number
+                mask = lan_ipv6[0]['netmask']
+                mask = mask.split(':')
+                masklen = 0
+                for b in [m for m in mask if len(m) > 0]:
+                    count = bin(int(b, 16))
+                    count = count.strip('0')
+                    count = count.lstrip('b')
+                    masklen += len(count)
+                    
+                self._lan_ipv6 = IPNetwork("%s/%s" % (addr_v6, masklen))
             except ValueError, msg:
                 LOGGER.error("cannot get emulation interfaces addresses: %s" % msg)
                 raise
