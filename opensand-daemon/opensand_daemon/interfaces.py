@@ -263,10 +263,10 @@ class OpenSandInterfaces(object):
         # tun is 2 more than interface
         # bridge is 3 more than interface
         # for add we add 1 after modulo to avoid 0
-        tun_ipv6 = IPNetwork("%s:%s/%s" % (net,
-                                           str(((int(add) + 1) % modulo) + 1), mask))
-        br_ipv6 = IPNetwork("%s:%s/%s" % (net,
-                                          str(((int(add) + 2) % modulo) + 1), mask))
+        tun_ipv6 = IPNetwork("%s:%x/%s" % (net,
+                                           ((int(add, 16) + 1) % modulo) + 1, mask))
+        br_ipv6 = IPNetwork("%s:%x/%s" % (net,
+                                          ((int(add, 16) + 2) % modulo) + 1, mask))
 
         # the interfaces are used by opensand so we don't care if address is
         # already set or not
