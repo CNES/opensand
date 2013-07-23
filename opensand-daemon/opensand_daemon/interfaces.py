@@ -138,9 +138,7 @@ class OpenSandInterfaces(object):
                 raise
             except KeyError, val:
                 LOGGER.error("an address with family %s is not set for emulation "
-                             "interface" % val)
-# TODO for later versions
-#                             "interface" % netifaces.address_families[val])
+                             "interface" % netifaces.address_families[val])
                 raise
 
     def init_lan(self, conf):
@@ -213,9 +211,7 @@ class OpenSandInterfaces(object):
                 raise
             except KeyError, val:
                 LOGGER.error("an address with family %s is not set for emulation "
-                             "interface" % val)
-# TODO for later versions
-#                             "interface" % netifaces.address_families[val])
+                             "interface" % netifaces.address_families[val])
                 raise
 
     def init_tun_tap(self):
