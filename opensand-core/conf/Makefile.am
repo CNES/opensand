@@ -30,6 +30,9 @@ MODCOD_DRA = \
 	modcod_dra/clear_sky/cst_modcods.txt \
 	modcod_dra/clear_sky/def_dra_scheme.txt \
 	modcod_dra/clear_sky/def_modcods.txt
+	
+MANDATORY_PLUGINS = \
+	mandatory_plugins/
 
 EXTRA_DIST = \
 	test_conf.sh \
@@ -37,6 +40,7 @@ EXTRA_DIST = \
 	$(HOSTS_CONF) \
 	$(HOSTS_XSD) \
 	$(MODCOD_DRA) \
+	$(MANDATORY_PLUGINS) \
 	simulation_files.ini \
 	deploy.ini \
 	dama.input
