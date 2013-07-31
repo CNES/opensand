@@ -187,10 +187,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
 						                                          this->satellite_type,
-						                                          &this->sarp_table,
-						                                          &this->category_map,
-						                                          this->default_category,
-						                                          &this->class_list))
+						                                          &this->sarp_table))
 						{
 							UTI_ERROR("cannot initialize %s context\n",
 									  (*ctx_iter)->getName().c_str());

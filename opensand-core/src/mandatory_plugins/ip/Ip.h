@@ -41,7 +41,7 @@
 #include "IpPacket.h"
 #include "Ipv4Packet.h"
 #include "Ipv6Packet.h"
-
+#include <opensand_conf/conf.h>
 
 #include <cassert>
 #include <vector>
@@ -76,6 +76,7 @@ class Ip: public LanAdaptationPlugin
 		NetBurst *deencapsulate(NetBurst *burst);
 		char getLanHeader(unsigned int pos, NetPacket *packet);
 		bool handleTap() {return false;};
+		bool initTrafficCategories(ConfigurationFile &config);
 
 	  protected:
 
@@ -86,7 +87,10 @@ class Ip: public LanAdaptationPlugin
 		 * @return true on success, false otherwise
 		 */
 		bool onMsgIp(IpPacket *ip_packet);
-
+	  private:
+		//TrafficCategory *> *category_map;
+		std::map < qos_t, TrafficCategory * > category_map;
+		std::map < qos_t, TrafficCategory * >::const_iterator found_category;
 	};
 
 	/**
@@ -116,13 +120,12 @@ class Ip: public LanAdaptationPlugin
 		                 uint8_t src_tal_id,
 		                 uint8_t dst_tal_id);
 	};
-
+	
 	/// Constructor
 	Ip();
 };
 
 CREATE(Ip, Ip::Context, Ip::PacketHandler, "IP");
-
 
 #endif
 

@@ -67,6 +67,7 @@ int PhysicStd::onRcvEncapPacket(NetPacket *packet,
                                 long current_time,
                                 int fifo_delay)
 {
+
 	MacFifoElement *elem;
 
 	// create a new satellite cell to store the packet
@@ -111,7 +112,7 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 	if(frame == NULL || length <= 0)
 	{
 		UTI_ERROR("invalid DVB burst to forward to carrier ID %d\n",
-		          data_fifo->getId());
+		          data_fifo->getCarrierId());
 		goto error;
 	}
 
@@ -131,7 +132,7 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 	}
 
 	UTI_DEBUG("DVB/BB frame stored in FIFO for carrier ID %d "
-	          "(tick_in = %ld, tick_out = %ld)\n", data_fifo->getId(),
+	          "(tick_in = %ld, tick_out = %ld)\n", data_fifo->getCarrierId(),
 	          elem->getTickIn(), elem->getTickOut());
 
 	return 0;

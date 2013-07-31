@@ -92,10 +92,7 @@ class Ethernet: public LanAdaptationPlugin
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			sat_type_t satellite_type,
-			const SarpTable *sarp_table,
-			const map<qos_t, TrafficCategory *> *category_map,
-			qos_t default_category,
-			const vector<ServiceClass> *class_list);
+			const SarpTable *sarp_table);
 
 	  protected:
 

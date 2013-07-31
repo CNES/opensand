@@ -47,52 +47,29 @@
  */
 DvbFifo::DvbFifo():
 	queue(),
-	new_size_pkt(0)
+	fifo_priority(0),
+	fifo_name("default"),
+	pvc(0),
+	new_size_pkt(0),
+	carrier_id(0)
 {
-	this->stat_context.current_pkt_nbr = 0;
-	this->stat_context.in_pkt_nbr = 0;
-	this->stat_context.out_pkt_nbr = 0;
+	this->resetStats();
 }
 
 
-/**
- * Constructor
- * @param id           fifo identifier
- * @param mac_priority the MAC priority of fifo
- */
-DvbFifo::DvbFifo(unsigned int id, string mac_prio_name,
+DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
                  string cr_type_name, unsigned int pvc,
-                 vol_pkt_t size):
+                 vol_pkt_t max_size_pkt):
 	queue(),
+	fifo_priority(fifo_priority),
+	fifo_name(fifo_name),
 	pvc(pvc),
-	new_size_pkt(0)
+	new_size_pkt(0),
+	max_size_pkt(max_size_pkt),
+	carrier_id(0)
 {
-	if(mac_prio_name == "NM")
-	{
-		this->mac_priority = fifo_nm;
-	}
-	else if(mac_prio_name == "EF")
-	{
-		this->mac_priority = fifo_ef;
-	}
-	else if(mac_prio_name == "SIG")
-	{
-		this->mac_priority = fifo_sig;
-	}
-	else if(mac_prio_name == "AF")
-	{
-		this->mac_priority = fifo_af;
-	}
-	else if(mac_prio_name == "BE")
-	{
-		this->mac_priority = fifo_be;
-	}
-	else
-	{
-		UTI_ERROR("unknown kind of fifo: %s\n",
-				  mac_prio_name.c_str());
-	}
-
+	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file 
+	// of FIFO queues (dvb_rcs_tal section)
 	if(cr_type_name == "RBDC")
 	{
 		this->cr_type = cr_rbdc;
@@ -110,8 +87,7 @@ DvbFifo::DvbFifo(unsigned int id, string mac_prio_name,
 		UTI_ERROR("unknown CR type of FIFO: %s\n",
 		          cr_type_name.c_str());
 	}
-
-	this->init(id, size);
+	this->resetStats();
 }
 
 /**
@@ -121,11 +97,9 @@ DvbFifo::~DvbFifo()
 {
 }
 
-//TODO remove ID and use mac_prio only ?
-
-mac_prio_t DvbFifo::getMacPriority() const
+string DvbFifo::getName() const
 {
-	return this->mac_priority;
+	return this->fifo_name;
 }
 
 unsigned int DvbFifo::getPvc() const
@@ -138,9 +112,17 @@ cr_type_t DvbFifo::getCrType() const
 	return this->cr_type;
 }
 
-unsigned int DvbFifo::getId() const
+// FIFO priority for ST
+unsigned int DvbFifo::getPriority() const
 {
-	return this->id;
+	return this->fifo_priority;
+
+}
+
+// FIFO Carrier ID for SAT and GW
+unsigned int DvbFifo::getCarrierId() const
+{
+	return this->carrier_id;
 }
 
 vol_pkt_t DvbFifo::getNewSize() const
@@ -180,16 +162,11 @@ clock_t DvbFifo::getTickOut() const
 	return 0;
 }
 
-void DvbFifo::init(unsigned int id, vol_pkt_t max_size_pkt)
-{
-	this->id = id;
-	this->max_size_pkt = max_size_pkt;
-	this->resetStats();
-}
 
 bool DvbFifo::push(MacFifoElement *elem)
 {
 	// insert in top of fifo
+	
 	if(this->queue.size() >= this->max_size_pkt)
 	{
 		return false;
@@ -298,5 +275,13 @@ void DvbFifo::resetStats()
 	this->stat_context.in_length_kb = 0;
 	this->stat_context.out_length_kb = 0;
 }
+
+void DvbFifo::init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name)
+{
+	this->carrier_id = carrier_id;
+	this->max_size_pkt = max_size;
+	this->fifo_name = fifo_name;
+}
+
 
 

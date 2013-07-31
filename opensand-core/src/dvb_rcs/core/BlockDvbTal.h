@@ -320,7 +320,7 @@ class BlockDvbTal: public BlockDvb
 	int processOnFrameTick();
 
 	// UL treatments
-	int onRcvEncapPacket(int fifo_id, NetPacket *packet);
+//	int onRcvEncapPacket(int fifo_priority, NetPacket *packet);
 
 	// DVB frame from lower layer
 

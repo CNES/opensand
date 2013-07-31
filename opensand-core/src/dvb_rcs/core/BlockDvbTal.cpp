@@ -40,7 +40,6 @@
 #include <opensand_conf/uti_debug.h>
 #define DVB_DBG_PREFIX "[Tal]"
 
-
 #include "BlockDvbTal.h"
 
 #include "DvbRcsStd.h"
@@ -78,7 +77,7 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	frame_timer(-1),
 	super_frame_counter(-1),
 	frame_counter(-1),
-	default_fifo_id(-1),
+	default_fifo_id(0),
 	nbr_pvc(0),
 	qos_server_host(),
 	m_obrPeriod(-1),
@@ -166,7 +165,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 			// messages from upper layer: burst of encapsulation packets
 			NetBurst *burst;
 			NetBurst::iterator pkt_it;
-			unsigned int fifo_id;
+			unsigned int fifo_priority;
 			std::string message;
 			std::ostringstream oss;
 			int ret;
@@ -177,27 +176,29 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 			          this->super_frame_counter, burst->length());
 
 			// set each packet of the burst in MAC FIFO
+			
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
 				UTI_DEBUG_L3("SF#%ld: encapsulation packet has QoS value %d\n",
 				             this->super_frame_counter, (*pkt_it)->getQos());
 
-				fifo_id = (*pkt_it)->getQos();
+				fifo_priority = (*pkt_it)->getQos();
 				// find the FIFO associated to the IP QoS (= MAC FIFO id)
 				// else use the default id
-				if(!this->dvb_fifos[fifo_id])
-				{
-					fifo_id = this->default_fifo_id;
-				}
 
+				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+				{
+					fifo_priority = this->default_fifo_id;
+				}
+				
 				UTI_DEBUG("SF#%ld: store one encapsulation packet (QoS = %d)\n",
-				          this->super_frame_counter, fifo_id);
+				          this->super_frame_counter, fifo_priority);
 
 
 				// store the encapsulation packet in the FIFO
 				if(this->emissionStd->onRcvEncapPacket(
 				   *pkt_it,
-				   this->dvb_fifos[fifo_id],
+				   this->dvb_fifos[fifo_priority],
 				   this->getCurrentTime(),
 				   0) < 0)
 				{
@@ -215,7 +216,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				}
 
 				// update incoming counter (if packet is stored or sent)
-				m_statCounters.ulIncomingCells[this->dvb_fifos[fifo_id]->getId()]++;
+				m_statCounters.ulIncomingCells[this->dvb_fifos[fifo_priority]->getPriority()]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -473,18 +474,18 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
-		unsigned int fifo_id;
+		unsigned int fifo_priority;
 		unsigned int pvc;
 		vol_pkt_t fifo_size = 0;
 		string fifo_mac_prio;
 		string fifo_cr_type;
 		DvbFifo *fifo;
 
-		// get fifo_id
-		if(!globalConfig.getAttributeValue(iter, FIFO_ID, fifo_id))
+		// get fifo_id --> fifo_priority
+		if(!globalConfig.getAttributeValue(iter, FIFO_PRIO, fifo_priority))
 		{
 			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_ID, DVB_TAL_SECTION, FIFO_LIST);
+			          FUNCNAME, FIFO_PRIO, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_mac_prio
@@ -516,25 +517,28 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 			goto err_fifo_release;
 		}
 
-		fifo = new DvbFifo(fifo_id, fifo_mac_prio,
+		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
 		                   fifo_cr_type, pvc, fifo_size);
 
-		UTI_INFO("%s: Fifo = id %u, MAC priority %d, size %u, pvc %u, "
-		         "CR type %d\n", FUNCNAME,
-		         fifo->getId(),
-		         fifo->getMacPriority(),
-		         fifo->getMaxSize(),
-		         fifo->getPvc(),
-		         fifo->getCrType());
-
+		UTI_INFO("%s: Fifo priority = %u, FIFO name %s, size %u, pvc %u, "
+			"CR type %d/n", FUNCNAME,
+		        fifo->getPriority(),
+			fifo->getName().c_str(),
+		        fifo->getMaxSize(),
+		        fifo->getPvc(),
+		        fifo->getCrType());
+		
 		// update the number of PVC = the maximum PVC
 		this->nbr_pvc = std::max(this->nbr_pvc, pvc);
 
 		// the default FIFO is the last one = the one with the smallest priority
-		// TODO read in conf ?
-		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getId());
+		// actually, the IP plugin should add packets in the default FIFO if
+		// the DSCP field is not recognize, default_fifo_id should not be used
+		// this is only used if traffic categories configuration and fifo configuration
+		// are not coherent.
+		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
-		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getMacPriority(), fifo));
+		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
 		fifo_types.push_back(fifo_mac_prio);
 	} // end for(queues are now instanciated and initialized)
 

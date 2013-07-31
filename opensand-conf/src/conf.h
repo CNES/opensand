@@ -83,7 +83,8 @@
 #define DVB_TAL_SECTION           "dvb_rcs_tal"
 
 #define FIFO_LIST                 "fifos"
-#define FIFO_ID                   "id"
+#define FIFO_PRIO                 "priority"
+
 #define FIFO_TYPE                 "type"
 #define FIFO_SIZE                 "size_max"
 #define FIFO_PVC                  "pvc"
@@ -195,21 +196,6 @@
 #define QOS_SERVER_HOST      "st_address"
 #define QOS_SERVER_PORT      "qos_server_port"
 
-#define SECTION_IPQOS   "ip_qos"
-
-#define SECTION_CLASS    "service_class"
-#define CLASS_LIST       "classes"
-#define CLASS_ID         "id"
-#define CLASS_NAME       "name"
-#define CLASS_SCHED_PRIO "scheduler_priority"
-#define CLASS_MAC_ID     "mac_queue_id"
-
-#define SECTION_CATEGORY    "traffic_category"
-#define CATEGORY_LIST       "categories"
-#define CATEGORY_ID         "id"
-#define CATEGORY_NAME       "name"
-#define CATEGORY_SERVICE    "class"
-#define KEY_DEF_CATEGORY    "default_category"
 
 //////////////////
 //     SARP     //

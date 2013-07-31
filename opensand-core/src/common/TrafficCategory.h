@@ -38,7 +38,6 @@
 #define TRAFFICCATEGORY_H
 
 #include <string>
-#include "ServiceClass.h"
 
 
 /**
@@ -58,8 +57,6 @@ class TrafficCategory
 	/// Traffic category name
 	std::string name;
 
-	/// The Service Class associated with the Traffic Category
-	ServiceClass *svcClass;
 };
 
 #endif // TRAFFICCATEGORY_H

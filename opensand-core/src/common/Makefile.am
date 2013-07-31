@@ -19,7 +19,6 @@ libopensand_plugin_la_cpp = \
 	NetBurst.cpp \
 	IpAddress.cpp \
 	MacAddress.cpp \
-	ServiceClass.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp
 
@@ -35,7 +34,6 @@ libopensand_plugin_la_h = \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
-	ServiceClass.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
 	

@@ -28,7 +28,8 @@ libopensand_dvb_core_la_h = \
 	BlockDvb.h \
 	BlockDvbSat.h \
 	BlockDvbNcc.h \
-	BlockDvbTal.h
+	BlockDvbTal.h \
+	Ip.h
 
 libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \
@@ -36,6 +37,7 @@ libopensand_dvb_core_la_SOURCES = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
+	-I$(top_srcdir)/src/dvb_rcs/utils/ip \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
 	-I$(top_srcdir)/src/dvb_rcs/modcod \
 	-I$(top_srcdir)/src/dvb_rcs/dra \

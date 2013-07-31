@@ -43,7 +43,6 @@
 #include "StackPlugin.h"
 #include "SarpTable.h"
 #include "TrafficCategory.h"
-#include "ServiceClass.h"
 
 #include <cassert>
 
@@ -116,17 +115,11 @@ class LanAdaptationPlugin: public StackPlugin
 		virtual bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			sat_type_t satellite_type,
-			const SarpTable *sarp_table,
-			const std::map<qos_t, TrafficCategory *> *category_map,
-			qos_t default_category,
-			const std::vector<ServiceClass> *class_list)
+			const SarpTable *sarp_table)
 		{
 			this->tal_id = tal_id;
 			this->satellite_type = satellite_type;
 			this->sarp_table = sarp_table;
-			this->category_map = category_map;
-			this->default_category = default_category;
-			this->class_list = class_list;
 			return true;
 		};
 
@@ -178,8 +171,6 @@ class LanAdaptationPlugin: public StackPlugin
 		/// The default traffic category
 		qos_t default_category;
 
-		/// The service classes
-		const std::vector<ServiceClass> *class_list;
 	};
 
 	LanAdaptationPlugin(uint16_t ether_type): StackPlugin(ether_type) {};

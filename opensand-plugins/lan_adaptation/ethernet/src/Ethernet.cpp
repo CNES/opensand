@@ -294,14 +294,11 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 bool Ethernet::Context::initLanAdaptationContext(
 	tal_id_t tal_id,
 	sat_type_t satellite_type,
-	const SarpTable *sarp_table,
-	const map<qos_t, TrafficCategory *> *category_map,
-	qos_t default_category,
-	const vector<ServiceClass> *class_list)
+	const SarpTable *sarp_table)
+	//TODO category_map and default_category are now provided in the IP plugin
 {
 	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(
-		tal_id, satellite_type, sarp_table,
-		category_map, default_category, class_list))
+		tal_id, satellite_type, sarp_table))
 	{
 		return false;
 	}
@@ -433,7 +430,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				UTI_ERROR("Unable to find default category for QoS");
 				continue;
 			}
-			qos = default_category->second->svcClass->macQueueId;
+			qos = default_category->second->id;
 
 			if(frame_type != this->sat_frame_type)
 			{
@@ -451,7 +448,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 						if(found_category == this->category_map->end())
 							continue;
 					}
-					qos = found_category->second->svcClass->macQueueId;
+					qos = found_category->second->id;
 					UTI_DEBUG("Use the ad-tag to get the QoS value (%u) for DVB layer\n",
 					          qos);
 				}
@@ -677,7 +674,7 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	for(map<qos_t, TrafficCategory *>::const_iterator it = this->category_map->begin();
 	    it != this->category_map->end(); ++it)
 	{
-		if((*it).second->svcClass->macQueueId == qos)
+		if((*it).second->id == qos)
 		{
 			ad_tag = (*it).first;
 		}

@@ -252,12 +252,6 @@ static bool test_lan_adapt(string src_filename,
 		unsigned int found;
 
 		// LanAdaptationContext initialisation
-		ServiceClass service_class;
-		service_class.id = 1;
-		service_class.schedPrio = 1;
-		service_class.macQueueId = 1;
-		service_class.name = "NONE";
-		vector<ServiceClass> class_list(1, service_class);
 		TrafficCategory *category;
 		map<qos_t, TrafficCategory *> category_map;
 		SarpTable sarp_table;
@@ -338,7 +332,6 @@ static bool test_lan_adapt(string src_filename,
  		category = new TrafficCategory();
 		category->id = 1;
 		category->name = "NONE";
-		category->svcClass = &service_class;
 		category_map[1] = category;
 		// both IPAddress will be deleted with SarpTable
 		ip_addr = new Ipv4Address("0.0.0.0");
@@ -361,8 +354,7 @@ static bool test_lan_adapt(string src_filename,
 		    ctx != contexts.end(); ++ctx)
 	    {
 			(*ctx)->initLanAdaptationContext(1, TRANSPARENT,
-			                                 &sarp_table, &category_map,
-			                                 1, &class_list);
+			                                 &sarp_table);
 		}
 
 		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename,

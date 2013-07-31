@@ -1015,7 +1015,7 @@ bool BlockDvbNcc::initFifo()
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);
 		goto error;
 	}
-	this->data_dvb_fifo.init(m_carrierIdData, val);
+	this->data_dvb_fifo.init(m_carrierIdData, val, "GW_Fifo");
 
 	return true;
 
