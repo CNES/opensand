@@ -46,7 +46,10 @@ class IpModule(LanAdaptationModule):
         self._upper = []
         self._handle_upper_bloc = True
         self._iface_type = "TUN"
+        self._xml = 'ip.conf'
+        self._xsd  = 'ip.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"
         end = "</b></span>"
         self._description = "%sIP Lan Adaptation plugin for OpenSAND%s" % \
                             (start, end)
+        #self._targets = ['st']

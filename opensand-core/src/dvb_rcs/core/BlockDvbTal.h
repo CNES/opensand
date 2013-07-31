@@ -320,7 +320,7 @@ class BlockDvbTal: public BlockDvb
 	int processOnFrameTick();
 
 	// UL treatments
-	int onRcvEncapPacket(int fifo_id, NetPacket *packet);
+//	int onRcvEncapPacket(int fifo_priority, NetPacket *packet);
 
 	// DVB frame from lower layer
 
@@ -331,7 +331,7 @@ class BlockDvbTal: public BlockDvb
 	 * @param i_len the length of the buffer
 	 * @return true on success, false otherwise
 	 */
-	bool  onRcvDvbFrame(unsigned char *ip_buf, long l_len);
+	bool onRcvDvbFrame(unsigned char *ip_buf, long l_len);
 	int onRcvLogonResp(unsigned char *ip_buf, long l_len);
 
 	// UL DVB frames emission

@@ -37,13 +37,10 @@
 #define LAN_ADAPTATION_CONTEXT_H
 
 
-#include "NetPacket.h"
 #include "NetBurst.h"
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
 #include "SarpTable.h"
-#include "TrafficCategory.h"
-#include "ServiceClass.h"
 
 #include <cassert>
 
@@ -108,25 +105,17 @@ class LanAdaptationPlugin: public StackPlugin
 		 *
 		 * @param tal_id           The terminal ID
 		 * @param satellite_type   The satellite type
-		 * @param category_map     A map of traffic categories
-		 * @param default_category The default traffic category
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
 		virtual bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			sat_type_t satellite_type,
-			const SarpTable *sarp_table,
-			const std::map<qos_t, TrafficCategory *> *category_map,
-			qos_t default_category,
-			const std::vector<ServiceClass> *class_list)
+			const SarpTable *sarp_table)
 		{
 			this->tal_id = tal_id;
 			this->satellite_type = satellite_type;
 			this->sarp_table = sarp_table;
-			this->category_map = category_map;
-			this->default_category = default_category;
-			this->class_list = class_list;
 			return true;
 		};
 
@@ -172,14 +161,6 @@ class LanAdaptationPlugin: public StackPlugin
 		/// The SARP table
 		const SarpTable *sarp_table;
 
-		/// The traffic categories
-		const std::map<qos_t, TrafficCategory *> *category_map;
-
-		/// The default traffic category
-		qos_t default_category;
-
-		/// The service classes
-		const std::vector<ServiceClass> *class_list;
 	};
 
 	LanAdaptationPlugin(uint16_t ether_type): StackPlugin(ether_type) {};

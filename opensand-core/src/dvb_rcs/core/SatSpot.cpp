@@ -83,11 +83,11 @@ int SatSpot::init(long spotId, long logId, long ctrlId,
 
 	// initialize MAC FIFOs
 #define FIFO_SIZE 5000
-	m_logonFifo.init(logId, FIFO_SIZE);
-	m_ctrlFifo.init(ctrlId, FIFO_SIZE);
+	m_logonFifo.init(logId, FIFO_SIZE, "logon_Fifo");
+	m_ctrlFifo.init(ctrlId, FIFO_SIZE, "control_Fifo");
 	m_dataInId = dataInId;
-	m_dataOutStFifo.init(dataOutStId, FIFO_SIZE);
-	m_dataOutGwFifo.init(dataOutGwId, FIFO_SIZE);
+	m_dataOutStFifo.init(dataOutStId, FIFO_SIZE, "dataOutSt_Fifo");
+	m_dataOutGwFifo.init(dataOutGwId, FIFO_SIZE, "dataOutGw_Fifo");
 
 	return 0;
 }

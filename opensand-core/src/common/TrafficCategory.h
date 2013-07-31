@@ -37,9 +37,11 @@
 #ifndef TRAFFICCATEGORY_H
 #define TRAFFICCATEGORY_H
 
-#include <string>
-#include "ServiceClass.h"
+#include "OpenSandCore.h"
 
+#include <string>
+
+using std::string;
 
 /**
  * @class TrafficCategory
@@ -52,14 +54,42 @@ class TrafficCategory
 	TrafficCategory();
 	~TrafficCategory();
 
+	/**
+	 * @brief Set the traffic caegory ID
+	 *
+	 * @param id  the traffic category id
+	 */
+	void setId(qos_t id) {this->id = id;};
+
+	/**
+	 * @brief Set the traffic category name
+	 *
+	 * @param name  the traffic category name
+	 */
+	void setName(string name) {this->name = name;};
+
+	/**
+	 * @brief Get the traffic caegory ID
+	 *
+	 * @return the traffic category id
+	 */
+	qos_t getId(void) const {return this->id;};
+
+	/**
+	 * @brief Get the traffic category name
+	 *
+	 * @return the traffic category name
+	 */
+	string getName(void) const {return this->name;};
+
+ private:
+
 	/// Traffic category identifier
-	unsigned short id;
+	qos_t id;
 
 	/// Traffic category name
-	std::string name;
+	string name;
 
-	/// The Service Class associated with the Traffic Category
-	ServiceClass *svcClass;
 };
 
-#endif // TRAFFICCATEGORY_H
+#endif

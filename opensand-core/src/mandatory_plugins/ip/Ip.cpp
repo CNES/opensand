@@ -35,13 +35,25 @@
 #include "Ip.h"
 #include "SarpTable.h"
 #include "TrafficCategory.h"
-#include "ServiceClass.h"
+
 
 #undef DBG_PACKAGE
 #define DBG_PACKAGE PKG_QOS_DATA
 #include <opensand_conf/uti_debug.h>
+#include <opensand_conf/ConfigurationFile.h>
+
 #include <vector>
 #include <map>
+
+
+#define SECTION_MAPPING		"ip_qos"
+#define MAPPING_LIST		"categories"
+#define MAPPING_IP_DSCP		"dscp"
+#define MAPPING_MAC_PRIO	"mac_prio"
+#define MAPPING_MAC_NAME	"mac_name"
+#define KEY_DEF_CATEGORY	"default_dscp"
+#define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
+
 
 Ip::Ip():
 	LanAdaptationPlugin(NET_PROTO_IP)
@@ -51,7 +63,21 @@ Ip::Ip():
 Ip::Context::Context(LanAdaptationPlugin &plugin):
 	LanAdaptationContext(plugin)
 {
+	ConfigurationFile config;
+
+	if(config.loadConfig(CONF_IP_FILE) < 0)
+	{
+		UTI_ERROR("failed to load config file '%s'", CONF_IP_FILE);
+		return;
+	}
+
 	this->handle_net_packet = true;
+	if(!this->initTrafficCategories(config))
+	{
+		UTI_ERROR("cannot Initialize traffic categories\n");
+	}
+
+	config.unloadConfig();
 }
 
 Ip::Context::~Context()
@@ -134,7 +160,7 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 		IpPacket *ip_packet;
 		IpAddress *ip_addr;
 		tal_id_t pkt_tal_id;
-		
+
 		// create IP packet from data
 		switch(IpPacket::version((*packet)->getData()))
 		{
@@ -178,7 +204,7 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 			}
 		}
 		ip_packet->setDstTalId(pkt_tal_id);
-		
+
 		net_packets->add(ip_packet);
 	}
 
@@ -198,29 +224,30 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 
 	// set QoS:
 	//  - retrieve the QoS set by TC using DSCP
-	//  - if unknown category, put packet in the default category
-	//  - assign QoS to the IP packet
+	//  - if unknown category/priority, put packet in the default category/priority
+	//  - assign QoS/priority to the IP packet
 	traffic_category = (int) ip_packet->diffServCodePoint();
 
-	found_category = this->category_map->find(traffic_category);
-	if(found_category == this->category_map->end())
+	found_category = this->category_map.find(traffic_category);
+	if(found_category == this->category_map.end())
 	{
-		UTI_DEBUG("category %d unknown; IP packet goes to default "
-		          "category %d\n", traffic_category, this->default_category);
+		UTI_DEBUG("DSCP %d unknown; IP packet goes to default "
+		          "MAC category %d\n", traffic_category, this->default_category);
 
-		found_category = this->category_map->find(this->default_category);
-		if(found_category == this->category_map->end())
+		found_category = this->category_map.find(this->default_category);
+		if(found_category == this->category_map.end())
 		{
-			UTI_ERROR("default category not defined\n");
+			UTI_ERROR("default MAC category not defined\n");
 			return false;
 		}
 	}
 	else
 	{
-		UTI_DEBUG("IP packet goes to category %u\n", traffic_category);
+		UTI_DEBUG("IP packet with DSCP %d goes to MAC category %s with id %u\n", 
+		          traffic_category, found_category->second->getName().c_str(),
+		          found_category->second->getId());
 	}
-
-	ip_packet->setQos(found_category->second->svcClass->macQueueId);
+	ip_packet->setQos(found_category->second->getId());
 
 	if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
 	{
@@ -329,4 +356,80 @@ NetPacket *Ip::PacketHandler::build(unsigned char *data, size_t data_length,
 	}
 }
 
+bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
+{
+	int i = 0;
+	TrafficCategory *category;
+	vector<TrafficCategory *>::iterator cat_iter;
+	ConfigurationList category_list;
+	ConfigurationList::iterator iter;
+
+	// Traffic flow categories
+	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	                        category_list))
+	{
+		UTI_ERROR("missing or empty section [%s, %s]\n",
+		          SECTION_MAPPING, MAPPING_LIST);
+		return false;
+	}
+
+	for(iter = category_list.begin(); iter != category_list.end(); iter++)
+	{
+		long int dscp_value;
+		long int mac_queue_prio;
+		string mac_queue_name;
+
+		i++;
+		// get category id
+		if(!config.getAttributeValue(iter, MAPPING_IP_DSCP, dscp_value))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_IP_DSCP, i);
+			return false;
+		}
+		// get category name
+		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_MAC_NAME, i);
+			return false;
+		}
+		// get service class
+		if(!config.getAttributeValue(iter, MAPPING_MAC_PRIO,
+		                             mac_queue_prio))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_MAC_PRIO, i);
+			return false;
+		}
+
+		if(this->category_map.count(dscp_value))
+		{
+			UTI_ERROR("Traffic category %ld - [%s] rejected: identifier "
+			          "already exists for [%s]\n", dscp_value,
+			           mac_queue_name.c_str(),
+			           this->category_map[dscp_value]->getName().c_str());
+			return false;
+		}
+
+		category = new TrafficCategory();
+
+		category->setId(mac_queue_prio);
+		category->setName(mac_queue_name);
+		this->category_map[dscp_value] = category;
+	}
+	// Get default category
+	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	                    this->default_category))
+	{
+		this->default_category = (this->category_map.begin())->first;
+		UTI_ERROR("cannot find default MAC traffic category\n");
+		return false;
+	}
+
+	return true;
+}
 

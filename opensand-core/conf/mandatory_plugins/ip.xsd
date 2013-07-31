@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ip_qos" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+
+<!-- types for traffic_category section -->
+<xsd:simpleType name="categoryId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="categoryName">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF_1"/>
+        <xsd:enumeration value="AF_2"/>
+        <xsd:enumeration value="AF_3"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="classId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="31" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="categories">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="category" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="category">
+    <xsd:complexType>
+        <xsd:attribute name="dscp" type="categoryId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The Differentiated Services Code Point of IP paquets, default values observe the
+                    RFC2474 (DiffServ)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mac_prio" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The id/priority of the MAC queue
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="mac_name" type="categoryName">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The service class name of MAC queues (mainly used for statistics)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+                <xsd:element ref="ip_qos" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+<!-- IP QoS section description -->
+<xsd:element name="ip_qos">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The Mapping of IP QoS and MAC QoS
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="default_dscp" type="categoryId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default DSCP
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="categories" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+
+
+</xsd:schema>

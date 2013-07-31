@@ -52,6 +52,7 @@
 #include <MacAddress.h>
 #include <NetPacket.h>
 #include <LanAdaptationPlugin.h>
+#include <TrafficCategory.h>
 #include <opensand_output/Output.h>
 #include <opensand_conf/ConfigurationFile.h>
 
@@ -92,10 +93,7 @@ class Ethernet: public LanAdaptationPlugin
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			sat_type_t satellite_type,
-			const SarpTable *sarp_table,
-			const map<qos_t, TrafficCategory *> *category_map,
-			qos_t default_category,
-			const vector<ServiceClass> *class_list);
+			const SarpTable *sarp_table);
 
 	  protected:
 
@@ -189,9 +187,20 @@ class Ethernet: public LanAdaptationPlugin
 		/**
 		 * @brief Initialize the EVC from configuration
 		 *
+		 * @param config  The configuration elements
 		 * @return true on success, false otherwise
 		 */
 		bool initEvc(ConfigurationFile &config);
+
+		/**
+		 * @brief Initialize the traffic categories from IP configuration
+		 *
+		 * @todo remove this
+		 *
+		 * @param config  The configuration elements
+		 * @return true on success, false otherwise
+		 */
+		bool initTrafficCategories(ConfigurationFile &config);
 
 		/// The Ethernet Virtual Connections
 		map<uint8_t, Evc *> evc_map;
@@ -204,6 +213,12 @@ class Ethernet: public LanAdaptationPlugin
 
 		uint16_t lan_frame_type; //< The type of Ethernet frame forwarded on LAN
 		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite
+
+        /// The traffic categories
+        std::map<qos_t, TrafficCategory *> category_map;
+
+        /// The default traffic category
+        qos_t default_category;
 
 	};
 

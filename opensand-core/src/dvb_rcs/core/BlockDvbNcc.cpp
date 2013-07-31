@@ -448,12 +448,12 @@ bool BlockDvbNcc::onInit()
 		goto error;
 	}
 
-    if(!this->initRequestSimulation())
-    {
+	if(!this->initRequestSimulation())
+	{
 		UTI_ERROR("failed to complete the request simulation part of the "
 		          "initialisation");
 		goto error;
-    }
+	}
 
 	// initialize the timers
 	if(!this->initDownwardTimers())
@@ -713,7 +713,7 @@ bool BlockDvbNcc::initRequestSimulation()
 		{
 			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
 			          FUNCNAME, DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-            goto error;
+			goto error;
 		}
 		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld", &this->simu_st,
 		             &this->simu_rt, &this->simu_cr, &this->simu_interval);
@@ -1015,7 +1015,7 @@ bool BlockDvbNcc::initFifo()
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);
 		goto error;
 	}
-	this->data_dvb_fifo.init(m_carrierIdData, val);
+	this->data_dvb_fifo.init(m_carrierIdData, val, "GW_Fifo");
 
 	return true;
 

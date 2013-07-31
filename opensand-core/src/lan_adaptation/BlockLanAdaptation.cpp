@@ -187,10 +187,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
 						                                          this->satellite_type,
-						                                          &this->sarp_table,
-						                                          &this->category_map,
-						                                          this->default_category,
-						                                          &this->class_list))
+						                                          &this->sarp_table))
 						{
 							UTI_ERROR("cannot initialize %s context\n",
 									  (*ctx_iter)->getName().c_str());
@@ -278,7 +275,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 			unsigned char *lan_packet;
 
 			UTI_DEBUG("%s packet received from lower layer & should be read\n", 
-					  (*iter)->getName().c_str());
+			          (*iter)->getName().c_str());
 			
 			// allocate memory for data
 			length = (*iter)->getTotalLength();
@@ -306,7 +303,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 			if(write(this->fd, lan_packet, length + TUNTAP_FLAGS_LEN) < 0)
 			{
 				UTI_ERROR("Unable to write data on tun or tap interface: %s\n",
-						  strerror(errno));
+				          strerror(errno));
 				free(lan_packet);
 				success = false;
 				continue;
@@ -354,8 +351,8 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 			}
 		}
 
-		UTI_DEBUG("%d packet should be forwarded (multicast/broadcast or"
-				  " unicast not for GW)\n", forward_burst->length());
+		UTI_DEBUG("%d packet should be forwarded (multicast/broadcast or "
+		          "unicast not for GW)\n", forward_burst->length());
 
 		// FIXME we call a function from the opposite channel, this could create
 		//       interblocking

@@ -465,7 +465,7 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
 
 	if(new_eth_size > MAX_ETHERNET_SIZE)
 	{
-		UTI_ERROR("ethernet frame length (%zu) exceeds maximum length (%zu)\n",
+		UTI_ERROR("ethernet frame length (%zu) exceeds maximum length (%d)\n",
 		          new_eth_size, MAX_ETHERNET_SIZE);
 		return false;
 	}

@@ -46,16 +46,6 @@
 
 ///> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
 ///>  to Diffserv IP QoS
-//TODO use the Diffserv values as in configuration ?
-typedef enum
-{
-	fifo_nm = 0, /* Network Management */
-	fifo_ef = 1, /* Expedited Forwarding */
-	fifo_sig = 2, /* Signalisation */
-	fifo_af = 3, /* Assured Forwarding */
-	fifo_be = 4, /* Best Effort */
-} mac_prio_t;
-
 
 /// DVB fifo statistics context
 typedef struct
@@ -84,23 +74,23 @@ class DvbFifo
 	/**
 	 * @brief Create the DvbFifo
 	 *
-	 * @param id            the fifo id
-	 * @param mac_prio_name the MAC priority name for this fifo
+	 * @param fifo_priority the fifo priority
+	 * @param fifo_name the name of the fifo queue (NM, EF, ...) or SAT
 	 * @param cr_type_name  the CR type name for this fifo
 	 * @param pvc           the PVC associated to this fifo
 	 * @param max_size_pkt  the fifo maximum size
 	 */
-	DvbFifo(unsigned int id, string mac_prio_name,
+	DvbFifo(unsigned int fifo_priority, string mac_fifo_name,
 	        string cr_type_name, unsigned int pvc,
 	        vol_pkt_t max_size_pkt);
 	virtual ~DvbFifo();
 
 	/**
-	 * @brief Get the mac_priority of the fifo
+	 * @brief Get the fifo_name of the fifo
 	 *
-	 * @return the mac_priority of the fifo
+	 * @return the fifo_name of the fifo
 	 */
-	mac_prio_t getMacPriority() const;
+	string getName() const;
 
 	/**
 	 * @brief Get the PVC associated to the fifo
@@ -117,11 +107,18 @@ class DvbFifo
 	cr_type_t getCrType() const;
 
 	/**
-	 * @brief Get the id of the fifo
+	 * @brief Get the fifo_priority of the fifo (value from ST FIFO configuration)
 	 *
-	 * @return the id of the fifo
+	 * @return the fifo_priority of the fifo
 	 */
-	unsigned int getId() const;
+	unsigned int getPriority() const;
+	
+	/**
+	 * @brief Get the carrier_id of the fifo (for SAT and GW configuration)
+	 *
+	 * @return the carrier_id of the fifo
+     */
+	unsigned int getCarrierId() const;
 
 	/**
 	 * @brief Get the fifo current size
@@ -165,15 +162,16 @@ class DvbFifo
 	 * @param cr_type is the CR type for which reset must be done
 	 */
 	void resetNew(const cr_type_t cr_type);
-
+	
 	/**
-	 * @brief Initialize the FIFO
-	 *
-	 * @param id            the fifo id
-	 * @param max_size_pkt  the fifo maximum size
+	 *  @brief Initialize the FIFO with carrier id and maximum size
+	 *  
+	 *  @param carrier_id		the carrier id for the fifo
+	 *	@param max_size_pkt		the fifo maximul size
+	 *	@param fifo_name		the name of the fifo
 	 */
-	void init(unsigned int id, vol_pkt_t max_size_pkt);
-
+	void init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name);
+	
 	/**
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
@@ -224,8 +222,8 @@ class DvbFifo
 
 	std::vector<MacFifoElement *> queue; ///< the FIFO itself
 
-	unsigned int id;     ///< the fifo ID
-	mac_prio_t mac_priority;  ///< the QoS MAC priority of the fifo: EF, AF, BE, ...
+	unsigned int fifo_priority;   // the MAC priority of the fifo
+	string fifo_name;  ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
 	unsigned int pvc;    ///< the MAC PVC (Pemanent Virtual Channel)
 	                     ///< associated to the FIFO
 	                     ///< No used in starred or mono-spot
@@ -239,6 +237,7 @@ class DvbFifo
 	                         ///< since previous check
 	vol_pkt_t max_size_pkt;  ///< the maximum size for that FIFO
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
+	unsigned int carrier_id; ///< the carrier id of the fifo (for SAT and GW purposes)
 };
 
 #endif

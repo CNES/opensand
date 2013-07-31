@@ -60,6 +60,15 @@
 #define AD_TAG           "tag_802_1ad"
 #define PROTOCOL_TYPE    "protocol"
 
+// TODO remove following elements
+#define SECTION_MAPPING		"ip_qos"
+#define MAPPING_LIST		"categories"
+#define MAPPING_IP_DSCP		"dscp"
+#define MAPPING_MAC_PRIO	"mac_prio"
+#define MAPPING_MAC_NAME	"mac_name"
+#define KEY_DEF_CATEGORY	"default_dscp"
+#define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
+
 Ethernet::Ethernet():
 	LanAdaptationPlugin(NET_PROTO_ETH)
 {
@@ -83,7 +92,7 @@ Ethernet::Ethernet():
 		UTI_ERROR("missing %s parameter\n", CONF_SAT_FRAME_TYPE);
 	}
 
-    config.unloadConfig();
+	config.unloadConfig();
 
 	if(sat_eth == "Ethernet")
 	{
@@ -131,8 +140,8 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 	if(!this->initEvc(config))
 	{
 		UTI_ERROR("failed to Initialize EVC\n");
-    }
-    config.unloadConfig();
+	}
+	config.unloadConfig();
 
 	if(lan_eth == "Ethernet")
 	{
@@ -175,6 +184,20 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 		UTI_ERROR("unknown type of Ethernet layer on satellite\n");
 		this->sat_frame_type = NET_PROTO_ERROR;
 	}
+
+	// TODO remove, use something else
+	if(config.loadConfig(CONF_IP_FILE) < 0)
+	{
+		UTI_ERROR("failed to load config file '%s'", CONF_IP_FILE);
+		return;
+	}
+
+	if(!this->initTrafficCategories(config))
+	{
+		UTI_ERROR("cannot Initialize traffic categories\n");
+	}
+
+	config.unloadConfig();
 }
 
 Ethernet::Context::~Context()
@@ -290,18 +313,91 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 	return true;
 }
 
+bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
+{
+	int i = 0;
+	TrafficCategory *category;
+	vector<TrafficCategory *>::iterator cat_iter;
+	ConfigurationList category_list;
+	ConfigurationList::iterator iter;
+
+	// Traffic flow categories
+	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	                        category_list))
+	{
+		UTI_ERROR("missing or empty section [%s, %s]\n",
+		          SECTION_MAPPING, MAPPING_LIST);
+		return false;
+	}
+
+	for(iter = category_list.begin(); iter != category_list.end(); iter++)
+	{
+		long int dscp_value;
+		long int mac_queue_prio;
+		string mac_queue_name;
+
+		i++;
+		// get category id
+		if(!config.getAttributeValue(iter, MAPPING_IP_DSCP, dscp_value))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_IP_DSCP, i);
+			return false;
+		}
+		// get category name
+		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_MAC_NAME, i);
+			return false;
+		}
+		// get service class
+		if(!config.getAttributeValue(iter, MAPPING_MAC_PRIO,
+		                             mac_queue_prio))
+		{
+			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
+			          "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			          MAPPING_MAC_PRIO, i);
+			return false;
+		}
+
+		if(this->category_map.count(dscp_value))
+		{
+			UTI_ERROR("Traffic category %ld - [%s] rejected: identifier "
+			          "already exists for [%s]\n", dscp_value,
+			           mac_queue_name.c_str(),
+			           this->category_map[dscp_value]->getName().c_str());
+			return false;
+		}
+
+		category = new TrafficCategory();
+
+		category->setId(mac_queue_prio);
+		category->setName(mac_queue_name);
+		this->category_map[dscp_value] = category;
+	}
+	// Get default category
+	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	                    this->default_category))
+	{
+		this->default_category = (this->category_map.begin())->first;
+		UTI_ERROR("cannot find default MAC traffic category\n");
+		return false;
+	}
+
+	return true;
+}
+
 
 bool Ethernet::Context::initLanAdaptationContext(
 	tal_id_t tal_id,
 	sat_type_t satellite_type,
-	const SarpTable *sarp_table,
-	const map<qos_t, TrafficCategory *> *category_map,
-	qos_t default_category,
-	const vector<ServiceClass> *class_list)
+	const SarpTable *sarp_table)
 {
 	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(
-		tal_id, satellite_type, sarp_table,
-		category_map, default_category, class_list))
+										tal_id, satellite_type, sarp_table))
 	{
 		return false;
 	}
@@ -427,13 +523,13 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 
 			// get default QoS value
-			default_category = this->category_map->find(this->default_category);
-			if(default_category == this->category_map->end())
+			default_category = this->category_map.find(this->default_category);
+			if(default_category == this->category_map.end())
 			{
 				UTI_ERROR("Unable to find default category for QoS");
 				continue;
 			}
-			qos = default_category->second->svcClass->macQueueId;
+			qos = default_category->second->getId();
 
 			if(frame_type != this->sat_frame_type)
 			{
@@ -444,14 +540,14 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					ad_tag = (evc->getAdTag() & 0xff);
 					// here we use the ad_tag to set QoS at DVB layer
 					// TODO add other parameters
-					found_category = this->category_map->find(ad_tag);
-					if(found_category == this->category_map->end())
+					found_category = this->category_map.find(ad_tag);
+					if(found_category == this->category_map.end())
 					{
-						found_category = this->category_map->find(this->default_category);
-						if(found_category == this->category_map->end())
+						found_category = this->category_map.find(this->default_category);
+						if(found_category == this->category_map.end())
 							continue;
 					}
-					qos = found_category->second->svcClass->macQueueId;
+					qos = found_category->second->getId();
 					UTI_DEBUG("Use the ad-tag to get the QoS value (%u) for DVB layer\n",
 					          qos);
 				}
@@ -674,10 +770,10 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 
 	// search traffic category associated with QoS value
 	// TODO we should filter on IP addresses instead of QoS
-	for(map<qos_t, TrafficCategory *>::const_iterator it = this->category_map->begin();
-	    it != this->category_map->end(); ++it)
+	for(map<qos_t, TrafficCategory *>::const_iterator it = this->category_map.begin();
+	    it != this->category_map.end(); ++it)
 	{
-		if((*it).second->svcClass->macQueueId == qos)
+		if((*it).second->getId() == qos)
 		{
 			ad_tag = (*it).first;
 		}
@@ -722,8 +818,8 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 		src_mac = src_macs.front();
 		dst_mac = dst_macs.front();
 		// get default QoS value
-		default_category = this->category_map->find(this->default_category);
-		if(default_category != this->category_map->end())
+		default_category = this->category_map.find(this->default_category);
+		if(default_category != this->category_map.end())
 		{
 			ad_tag = default_category->first;
 		}

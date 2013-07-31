@@ -63,6 +63,10 @@ override_dh_install:
 	install -m 0644 conf/mandatory_plugins/mpeg.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/plugins/mpeg.conf
 	install -m 0644 conf/mandatory_plugins/mpeg.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/plugins/mpeg.xsd
 
+	install -m 0644 conf/mandatory_plugins/ip.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/plugins/ip.conf
+	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/plugins/ip.xsd
+	install -m 0644 conf/mandatory_plugins/ip.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.conf
+	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.xsd
 
 %:
 	dh  $@

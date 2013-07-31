@@ -18,11 +18,12 @@ libopensand_ip_lan_adapt_plugin_la_h = \
 	IpPacket.h \
 	Ipv4Packet.h \
 	Ipv6Packet.h \
+	TrafficCategory.h \
 	Ip.h
 
 libopensand_ip_lan_adapt_plugin_la_SOURCES = \
-    $(libopensand_ip_lan_adapt_plugin_la_cpp) \
-    $(libopensand_ip_lan_adapt_plugin_la_h)
+	$(libopensand_ip_lan_adapt_plugin_la_cpp) \
+	$(libopensand_ip_lan_adapt_plugin_la_h)
 
 libopensand_ip_lan_adapt_plugin_la_LIBADD = \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la

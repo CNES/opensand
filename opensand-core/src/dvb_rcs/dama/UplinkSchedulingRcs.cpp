@@ -118,7 +118,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
 			             "with ID %d: PVC is %d not %d\n",
 			             current_superframe_sf, current_frame,
-			             fifo->getId(),
+			             fifo->getPriority(),
 			             fifo->getPvc(),
 			             pvc);
 			// pass to next fifo
@@ -131,7 +131,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			             "with ID %d: correct PVC %d but no data "
 			             "(left) to schedule\n",
 			             current_superframe_sf, current_frame,
-			             fifo->getId(),
+			             fifo->getPriority(),
 			             fifo->getPvc());
 			// pass to next fifo
 			++fifo_it;
@@ -144,7 +144,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			             "%u awaiting packets (remaining "
 			             "allocation = %d)\n",
 			             current_superframe_sf, current_frame,
-			             fifo->getId(),
+			             fifo->getPriority(),
 			             fifo->getPvc(),
 			             fifo->getCurrentSize(),
 			             remaining_allocation_pktpsf);

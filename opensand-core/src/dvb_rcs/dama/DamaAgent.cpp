@@ -102,8 +102,8 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			case cr_none:
 				break;
 			default:
-				UTI_ERROR("Unknown CR type for FIFO #%d: %d\n",
-				          (*it).second->getId(), cr_type);
+				UTI_ERROR("Unknown CR type for FIFO %s: %d\n",
+				          (*it).second->getName().c_str(), cr_type);
 			goto error;
 		}
 	}

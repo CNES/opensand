@@ -245,29 +245,21 @@ static bool test_lan_adapt(string src_filename,
 		string name = plugit->first;
 		string name_low = name;
 		transform(name.begin(), name.end(),
-		               name_low.begin(), ::tolower);
+		          name_low.begin(), ::tolower);
 		LanAdaptationPlugin *plugin;
 		LanAdaptationPlugin::LanAdaptationContext *context;
 		LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl;
-		unsigned int found;
-
+		int found;
+		
 		// LanAdaptationContext initialisation
-		ServiceClass service_class;
-		service_class.id = 1;
-		service_class.schedPrio = 1;
-		service_class.macQueueId = 1;
-		service_class.name = "NONE";
-		vector<ServiceClass> class_list(1, service_class);
-		TrafficCategory *category;
-		map<qos_t, TrafficCategory *> category_map;
 		SarpTable sarp_table;
 		IpAddress *ip_addr;
 		IpAddress *ip6_addr;
 		MacAddress *src_mac;
 		MacAddress *dst_mac;
-
+		
 		found = name_low.find("/");
-		while(found != string::npos)
+		while(found != (signed)string::npos)
 		{
 			name_low.replace(found, 1, "_");
 			found = name_low.find("/", found);
@@ -335,11 +327,6 @@ static bool test_lan_adapt(string src_filename,
 		
 		contexts.push_back(context);
 		// init contexts
- 		category = new TrafficCategory();
-		category->id = 1;
-		category->name = "NONE";
-		category->svcClass = &service_class;
-		category_map[1] = category;
 		// both IPAddress will be deleted with SarpTable
 		ip_addr = new Ipv4Address("0.0.0.0");
 		ip6_addr = new Ipv6Address("0");
@@ -361,14 +348,12 @@ static bool test_lan_adapt(string src_filename,
 		    ctx != contexts.end(); ++ctx)
 	    {
 			(*ctx)->initLanAdaptationContext(1, TRANSPARENT,
-			                                 &sarp_table, &category_map,
-			                                 1, &class_list);
+			                                 &sarp_table);
 		}
 
 		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename,
 		                     folder, compare);
 		nbr_tests += 1;
-	  	delete category;
 	}
 	Plugin::releasePlugins();
 	if(nbr_tests == 0)
@@ -433,7 +418,7 @@ static void test_encap_and_decap(
 		string name_low;
 		EncapPlugin *plugin = NULL;
 		EncapPlugin::EncapContext *context;
-		unsigned int found;
+		int found;
 
 		if(!Plugin::getEncapsulationPlugin(name, &plugin))
 		{
@@ -543,12 +528,11 @@ static void test_encap_and_decap(
 			stack += (*ctxit)->getName();
 		}
 
-
 		name_low = stack;
 		transform(stack.begin(), stack.end(),
-		               name_low.begin(), ::tolower);
+		          name_low.begin(), ::tolower);
 		found = name_low.find("/");
-		while(found != string::npos)
+		while(found != (signed)string::npos)
 		{
 			name_low.replace(found, 1, "_");
 			found = name_low.find("/", found);
@@ -560,10 +544,10 @@ static void test_encap_and_decap(
 			ERROR("FAILURE %s\n\n", stack.c_str());
 			failure.push_back(stack);
 			continue;
-	  	}
-	  	else
-  		{
-  			INFO("SUCCESS %s\n\n", stack.c_str());
+		}
+		else
+		{
+			INFO("SUCCESS %s\n\n", stack.c_str());
 		}
 	}
 }
@@ -619,8 +603,6 @@ static bool test_iter(string src_filename, string encap_filename,
 	unsigned int header_init = 0;
 	static unsigned char output_packet[65600];
 	struct ether_header *eth_header;
-	
-	unsigned int out_lan_packet_nbr = 0;
 	
 	// open the source dump file
 	INFO("Open source file '%s'\n", src_filename.c_str());
@@ -874,7 +856,6 @@ static bool test_iter(string src_filename, string encap_filename,
 			DEBUG("[packet #%d] %d %s packets => %d %s packets\n",
 			      counter_src, len, name.c_str(), packets->length(),
 			      packets->name().c_str());
-			out_lan_packet_nbr = packets->length();
 
 			counter_comp = 0;
 			// compare LAN packets

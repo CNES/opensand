@@ -40,7 +40,6 @@
 
 #include "SarpTable.h"
 #include "TrafficCategory.h"
-#include "ServiceClass.h"
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
@@ -106,18 +105,6 @@ class BlockLanAdaptation: public Block
 	 * 
 	 * @return true on success, false otherwise
 	 */
-	bool initTrafficClasses();
-	/**
-	 * @brief Instantiate the traffic categories
-	 * 
-	 * @return true on success, false otherwise
-	 */
-	bool initTrafficCategories();
-	/**
-	 * @brief Instantiate IPv4, IPv6 and Ethernet SARP tables
-	 * 
-	 * @return true on success, false otherwise
-	 */
 	bool initSarpTables();
 	/**
 	 * @brief Load the Lan Adaptation plugins according to stack
@@ -152,9 +139,6 @@ class BlockLanAdaptation: public Block
 	bool delFromBridge();
 
 	bool onMsgFromUp(NetSocketEvent *const event);
-
-	/// List of service classes ordered by scheduler priority
-	vector<ServiceClass> class_list;
 
 	/// Whether the bloc has been initialized or not
 	component_t host;

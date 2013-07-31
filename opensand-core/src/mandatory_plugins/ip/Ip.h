@@ -41,7 +41,9 @@
 #include "IpPacket.h"
 #include "Ipv4Packet.h"
 #include "Ipv6Packet.h"
+#include "TrafficCategory.h"
 
+#include <opensand_conf/conf.h>
 
 #include <cassert>
 #include <vector>
@@ -78,7 +80,6 @@ class Ip: public LanAdaptationPlugin
 		bool handleTap() {return false;};
 
 	  protected:
-
 		/**
 		 * @brief handle an IP message
 		 *
@@ -87,6 +88,21 @@ class Ip: public LanAdaptationPlugin
 		 */
 		bool onMsgIp(IpPacket *ip_packet);
 
+	  private:
+
+		/**
+		 * @brief Initialize the traffic categories from IP configuration
+		 *
+		 * @param config  The configuration elements
+		 * @return true on success, false otherwise
+		 */
+		bool initTrafficCategories(ConfigurationFile &config);
+
+        /// The traffic categories
+        std::map<qos_t, TrafficCategory *> category_map;
+
+        /// The default traffic category
+        qos_t default_category;
 	};
 
 	/**
@@ -116,13 +132,12 @@ class Ip: public LanAdaptationPlugin
 		                 uint8_t src_tal_id,
 		                 uint8_t dst_tal_id);
 	};
-
+	
 	/// Constructor
 	Ip();
 };
 
 CREATE(Ip, Ip::Context, Ip::PacketHandler, "IP");
-
 
 #endif
 

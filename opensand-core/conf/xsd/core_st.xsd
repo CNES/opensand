@@ -79,12 +79,8 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="classId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="31" />
-    </xsd:restriction>
-</xsd:simpleType>
+<!-- types for dvb_rcs_tal section -->
+<!-- see class section for some types -->
 
 <xsd:simpleType name="className">
     <xsd:restriction base="xsd:string">
@@ -96,117 +92,13 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="schedulerPrio">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1" />
-        <xsd:maxInclusive value="32" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="macQueueId">
+<xsd:simpleType name="classId">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="31" />
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:element name="classes">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="class" minOccurs="1" maxOccurs="32"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="class">
-    <xsd:complexType>
-        <xsd:attribute name="id" type="classId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID for the service class
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="name" type="className">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The service class name
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="scheduler_priority" type="schedulerPrio">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The scheduler priority
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="mac_queue_id" type="macQueueId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the associated FIFO at MAC layer
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- types for traffic_category section -->
-<xsd:simpleType name="categoryId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="255" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="categoryName">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="NM" />
-        <xsd:enumeration value="EF"/>
-        <xsd:enumeration value="SIG"/>
-        <xsd:enumeration value="AF_1"/>
-        <xsd:enumeration value="AF_2"/>
-        <xsd:enumeration value="AF_3"/>
-        <xsd:enumeration value="BE"/>
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:element name="categories">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="category" minOccurs="1" maxOccurs="32"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="category">
-    <xsd:complexType>
-        <xsd:attribute name="id" type="categoryId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The traffic category identifier
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="name" type="categoryName">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The traffic category name
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="class" type="classId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The service class identifier related to the category
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- types for dvb_rcs_tal section -->
-<!-- see class section for some types -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -232,11 +124,11 @@
 
 <xsd:element name="fifo">
     <xsd:complexType>
-        <xsd:attribute name="id" type="classId">
+        <xsd:attribute name="priority" type="classId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The ID og the class related to the FIFO
-                </xsd:documentation>
+                The ID and the scheduler priority of the class related to the FIFO
+		</xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="type" type="className">
@@ -276,8 +168,6 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element ref="service_class" />
-            <xsd:element ref="traffic_category" />
             <xsd:element ref="dvb_rcs_tal" />
             <xsd:element ref="physical_layer" />
             <xsd:element ref="qos_agent" />
@@ -303,42 +193,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- service_class section description -->
-<xsd:element name="service_class">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The service classes for QoS relation between IP and MAC layers
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="classes" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- traffic_category section description -->
-<xsd:element name="traffic_category">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The traffic categories for QoS at IP layer, default values observe
-            the RFC2474 (DiffServ) 
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="default_category" type="categoryId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default traffic category
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="categories" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

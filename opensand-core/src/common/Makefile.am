@@ -19,7 +19,6 @@ libopensand_plugin_la_cpp = \
 	NetBurst.cpp \
 	IpAddress.cpp \
 	MacAddress.cpp \
-	ServiceClass.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp
 
@@ -35,7 +34,6 @@ libopensand_plugin_la_h = \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
-	ServiceClass.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
 	
@@ -59,3 +57,6 @@ libopensand_plugin_include_HEADERS = \
 	$(top_srcdir)/src/dvb_rcs/utils/lib_dvb_rcs.h \
 	$(top_srcdir)/src/dvb_rcs/utils/CapacityRequest.h
 # TODO remove the 2 upper included files
+ 
+
+# TODO traffic_category hould be in ip once remove from Ethernet !

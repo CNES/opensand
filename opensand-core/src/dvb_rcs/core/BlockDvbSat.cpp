@@ -239,7 +239,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 						}
 
 						if(!this->sendBursts(&current_spot->complete_dvb_frames,
-						                     current_spot->m_dataOutStFifo.getId()))
+						                     current_spot->m_dataOutStFifo.getCarrierId()))
 						{
 							UTI_ERROR("failed to build and send "
 							          "DVB/BB frames "
@@ -507,10 +507,10 @@ bool BlockDvbSat::initSwitchTable()
 		         "Spot ID = %u)\n", tal_id, spot_id);
 	}
 
-   if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(generic_switch)))
-   {
-		   goto error;
-   }
+	if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(generic_switch)))
+	{
+		goto error;
+	}
 
 
 	return true;
@@ -825,7 +825,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 					          current_spot->getSpotId(),
 					          current_spot->m_dataInId,
 					          current_spot->getSpotId(),
-					          current_spot->m_dataOutGwFifo.getId());
+					          current_spot->m_dataOutGwFifo.getCarrierId());
 
 					if(this->receptionStd->onForwardFrame(
 					   &current_spot->m_dataOutGwFifo,
@@ -905,7 +905,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				          current_spot->getSpotId(),
 				          current_spot->m_dataInId,
 				          current_spot->getSpotId(),
-				          current_spot->m_dataOutStFifo.getId());
+				          current_spot->m_dataOutStFifo.getCarrierId());
 
 				this->emissionStd->onForwardFrame(
 				          &current_spot->m_dataOutStFifo,
@@ -1023,7 +1023,7 @@ int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 	long carrier_id;
 
 
-	carrier_id = sigFifo->getId();
+	carrier_id = sigFifo->getCarrierId();
 
 	// Get the maximum frames to send
 	max_cells = sigFifo->getCurrentSize();
@@ -1071,7 +1071,7 @@ int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 		delete elem;
 
 		UTI_DEBUG_L3("sig msg sent (i = %d), fifo_id = %d, "
-		             "carrier_id = %ld\n", i, sigFifo->getId(), carrier_id);
+		             "carrier_id = %ld\n", i, sigFifo->getCarrierId(), carrier_id);
 	}
 
 	return 0;
@@ -1107,7 +1107,7 @@ void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fif
 		m_stat_fifo.sum_data = 0;
 		m_stat_fifo.previous_tick = this_tick;
 		UTI_NOTICE("%s carrier#%d  %Lf Kb/sec.\n", FUNCNAME,
-		           fifo.getId(), rate);
+		           fifo.getCarrierId(), rate);
 	}
 
 }
@@ -1168,7 +1168,7 @@ bool BlockDvbSat::onSendFrames(DvbFifo *fifo, long current_time)
 		}
 
 		// create a message for the DVB frame
-		if(!this->sendDvbFrame((T_DVB_HDR *) elem->getData(), fifo->getId(),
+		if(!this->sendDvbFrame((T_DVB_HDR *) elem->getData(), fifo->getCarrierId(),
 		                        elem->getDataLength()))
 		{
 			UTI_ERROR("failed to send message, drop the DVB or BB frame\n");
