@@ -53,6 +53,7 @@ class ProbeSelectionController(object):
         self._program_list = {}
         self._current_program = None
         self._update_needed = False
+        self._toggled = {}
 
         self._program_store = gtk.ListStore(str, int)
         self._program_store.set_sort_column_id(0, gtk.SORT_ASCENDING)
@@ -78,7 +79,7 @@ class ProbeSelectionController(object):
         probe_listview.set_model(self._probe_store)
         probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
         probe_listview.set_enable_tree_lines(True)
-        
+
 
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(1) # Sort on the probe/section name
@@ -97,11 +98,12 @@ class ProbeSelectionController(object):
     def clear_selection(self):
         """ clear selection """
         for program in self._program_list.itervalues():
+            self._toggled[program.name] = []
             for probe in program.get_probes():
                 probe.displayed = False
         self._probe_store.foreach(self.unselect)
         self._notify_probe_display_changed()
-    
+
     def unselect(self, model, path, iter):
         """ unselect a statistic """
         self._probe_store.set_value(iter, 0, False)
@@ -116,6 +118,15 @@ class ProbeSelectionController(object):
         """ called when the probe list changes """
         self._program_list = program_list
         self._update_needed = True
+
+        # set the previous toggled probes
+        for program in self._program_list.itervalues():
+            # first update toggle dict  if necessary
+            if not program.name in self._toggled:
+                self._toggled[program.name] = []
+            for probe in program.get_probes():
+                if probe.name in self._toggled[program.name]:
+                    probe.displayed = True
 
         gobject.idle_add(self._update_data)
 
@@ -182,8 +193,8 @@ class ProbeSelectionController(object):
 
                         cur_group[group_name] = {
                             '': self._probe_store.append(probe_parent,
-                                                         [False, group_name, 0,
-                                                          0])
+                                                         [False, group_name,
+                                                          0, 0])
                         }
 
                         cur_group = cur_group[group_name]
@@ -191,9 +202,10 @@ class ProbeSelectionController(object):
                     probe_parent = cur_group['']
 
                 self._probe_store.append(probe_parent, [probe.displayed,
-                                                        probe_name, probe.ident,
+                                                        probe_name,
+                                                        probe.ident,
                                                         12])
-    
+
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
         it = self._probe_store.get_iter(path)
@@ -207,14 +219,22 @@ class ProbeSelectionController(object):
                 self._probe_listview.expand_row(path, False)
             return
 
-        self._current_program.get_probe(probe_ident).displayed = new_value
+        # if the probe is selected keep it to reselect it when the list will
+        # be refreshed on restart
+        probe = self._current_program.get_probe(probe_ident)
+        if new_value:
+            if not probe.name in self._toggled[self._current_program.name]:
+                self._toggled[self._current_program.name].append(probe.name)
+        elif probe.name in self._toggled[self._current_program.name]:
+            self._toggled[self._current_program.name].remove(probe.name)
+
+        probe.displayed = new_value
         self._probe_store.set(it, 0, new_value)
 
         self._notify_probe_display_changed()
 
     def probe_enabled_changed(self, probe, was_hidden):
         """ called when the enabled status of a probe is changed """
-
         if probe.program == self._current_program:
             self._update_probe_list()
 
