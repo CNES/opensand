@@ -144,12 +144,10 @@ class ProbeSelectionController(object):
 
     def _prog_curs_changed(self, _):
         """ called when the user selects a program in the list """
-
         self._update_probe_list()
 
     def _update_probe_list(self):
         """ called when the displayed probe list need to be updated """
-
         selection = self._program_listview.get_cursor()
         self._probe_store.clear()
         if selection[0] is None:
@@ -198,10 +196,16 @@ class ProbeSelectionController(object):
     
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
-
         it = self._probe_store.get_iter(path)
         probe_ident = self._probe_store.get_value(it, 2)
         new_value = not self._probe_store.get_value(it, 0)
+        # this is a parent, expand or collapse it
+        if self._probe_store.iter_has_child(it):
+            if self._probe_listview.row_expanded(path):
+                self._probe_listview.collapse_row(path)
+            else:
+                self._probe_listview.expand_row(path, False)
+            return
 
         self._current_program.get_probe(probe_ident).displayed = new_value
         self._probe_store.set(it, 0, new_value)
