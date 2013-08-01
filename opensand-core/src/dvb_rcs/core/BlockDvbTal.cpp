@@ -44,6 +44,8 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
+#include "Ttp.h"
+#include "DamaAgentRcsLegacy.h"
 
 #include <opensand_rt/Rt.h>
 
@@ -61,11 +63,13 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	BlockDvb(name),
 	_state(state_initializing),
 	mac_id(mac_id),
-	m_pDamaAgent(NULL),
+	dama_agent(NULL),
 	m_carrierIdDvbCtrl(-1),
 	m_carrierIdLogon(-1),
 	m_carrierIdData(-1),
 	complete_dvb_frames(),
+	capacity_request(mac_id),
+	ttp(),
 	m_bbframe_dropped_rate(0),
 	m_bbframe_dropped(0),
 	m_bbframe_received(0),
@@ -108,9 +112,9 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
  */
 BlockDvbTal::~BlockDvbTal()
 {
-	if(this->m_pDamaAgent != NULL)
+	if(this->dama_agent != NULL)
 	{
-		delete this->m_pDamaAgent;
+		delete this->dama_agent;
 	}
 
 	deletePackets();
@@ -146,7 +150,7 @@ BlockDvbTal::~BlockDvbTal()
 	{
 		delete this->receptionStd;
 	}
-	
+
 	// release the output arrays (no need to delete the probes)
 	delete[] this->probe_st_terminal_queue_size;
 	delete[] this->probe_st_real_in_thr;
@@ -223,6 +227,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 
 			// Cross layer information: if connected to QoS Server, build XML
 			// message and send it
+			// TODO move in a dedicated class
 			if(BlockDvbTal::qos_server_sock == -1)
 			{
 				break;
@@ -242,7 +247,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				int nbFreeFrames = (*it).second->getMaxSize() -
 				                   (*it).second->getCurrentSize();
 				int nbFreeBits = nbFreeFrames * this->out_encap_packet_length * 8; // bits
-				float macRate = nbFreeBits / this->frame_duration ; // bits/ms or kbits/s
+				float macRate = nbFreeBits / this->frame_duration_ms ; // bits/ms or kbits/s
 				oss << "File=\"" << (int) macRate << "\" ";
 				message.append(oss.str());
 				oss.str("");
@@ -372,7 +377,9 @@ bool BlockDvbTal::initMode()
 		goto error;
 	}
 
-	this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+	// no need to set fmt_simu, frame_duration and bandwidth for reception
+	this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl,
+	                                  NULL, 0, 0);
 	if(this->receptionStd == NULL)
 	{
 		UTI_ERROR("failed to create the reception standard\n");
@@ -559,7 +566,7 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 	if(this->m_statCounters.ulOutgoingCells == NULL)
 		goto err_incoming_cells_release;
 
-	resetStatsCxt();
+	this->resetStatsCxt();
 
 	return true;
 
@@ -611,6 +618,7 @@ bool BlockDvbTal::initDama()
 	time_sf_t rbdc_timeout_sf = 0;
 	vol_pkt_t max_vbdc_pkt;
 	time_sf_t msl_sf = 0;
+	string dama_algo;
 	bool cr_output_only;
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
@@ -662,51 +670,46 @@ bool BlockDvbTal::initDama()
 	         rbdc_timeout_sf, max_vbdc_pkt, msl_sf,
 	         cr_output_only);
 
-	if(this->dama_algo == "Legacy")
+	// dama algorithm
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DAMA_ALGO,
+	                          dama_algo))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DVB_TAL_SECTION, DAMA_ALGO);
+		goto error;
+	}
+
+	if(dama_algo == "Legacy")
 	{
 		UTI_INFO("%s SF#%ld: create Legacy DAMA agent\n", FUNCNAME,
 		         this->super_frame_counter);
-		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl,
-		                                      this->dvb_fifos);
-	}
-	else if(this->dama_algo == "UoR")
-	{
-		UTI_INFO("%s SF#%ld: create UoR DAMA agent\n", FUNCNAME,
-		         this->super_frame_counter);
-		m_pDamaAgent = new DamaAgentRcsUor(this->up_return_pkt_hdl,
-		                                   this->dvb_fifos);
-	}
-	// TODO remove here because DamaAgent and DAMACtrl choice will be separated
-	else if(this->dama_algo == "Yes")
-	{
-		UTI_INFO("%s SF#%ld: no %s DAMA agent thus Legacy dama is used by default\n",
-		         FUNCNAME, this->super_frame_counter, this->dama_algo.c_str());
-		m_pDamaAgent = new DamaAgentRcsLegacy(this->up_return_pkt_hdl,
-		                                      this->dvb_fifos);
-		goto error;
+
+		this->dama_agent = new DamaAgentRcsLegacy();
 	}
 	else
 	{
 		UTI_ERROR("cannot create DAMA agent: algo named '%s' is not "
-		          "managed by current MAC layer\n", this->dama_algo.c_str());
+		          "managed by current MAC layer\n", dama_algo.c_str());
 		goto error;
 	}
 
-	if(this->m_pDamaAgent == NULL)
+	if(this->dama_agent == NULL)
 	{
 		UTI_ERROR("failed to create DAMA agent\n");
 		goto error;
 	}
 
 	// Initialize the DamaAgent parent class
-	if(!this->m_pDamaAgent->initParent(this->frame_duration,
-	                                   this->m_fixedBandwidth,
-	                                   max_rbdc_kbps,
-	                                   rbdc_timeout_sf,
-	                                   max_vbdc_pkt,
-	                                   msl_sf,
-	                                   this->m_obrPeriod,
-	                                   cr_output_only))
+	if(!this->dama_agent->initParent(this->frame_duration_ms,
+	                                 this->m_fixedBandwidth,
+	                                 max_rbdc_kbps,
+	                                 rbdc_timeout_sf,
+	                                 max_vbdc_pkt,
+	                                 msl_sf,
+	                                 this->m_obrPeriod,
+	                                 cr_output_only,
+	                                 this->up_return_pkt_hdl,
+	                                 this->dvb_fifos))
 	{
 
 		UTI_ERROR("%s SF#%ld Dama Agent Initialization failed.\n", FUNCNAME,
@@ -715,7 +718,7 @@ bool BlockDvbTal::initDama()
 	}
 
 	// Initialize the DamaAgentRcsXXX class
-	if(!m_pDamaAgent->init())
+	if(!this->dama_agent->init())
 	{
 		UTI_ERROR("%s Dama Agent initialization failed.\n", FUNCNAME);
 		goto err_agent_release;
@@ -724,7 +727,7 @@ bool BlockDvbTal::initDama()
 	return true;
 
 err_agent_release:
-	delete m_pDamaAgent;
+	delete this->dama_agent;
 error:
 	return false;
 }
@@ -805,11 +808,11 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
-	
+
 	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos.size()];
 	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos.size()];
 	this->probe_st_real_out_thr = new Probe<int>*[this->dvb_fifos.size()];
-	
+
 	if(this->probe_st_terminal_queue_size == NULL ||
 	   this->probe_st_real_in_thr == NULL ||
 	   this->probe_st_real_out_thr == NULL)
@@ -817,24 +820,24 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 		UTI_ERROR("Failed to allocate memory for probe arrays");
 		return false;
 	}
-	
+
 	for(unsigned int i = 0 ; i < this->dvb_fifos.size() ; i++)
 	{
-		const char *fifo_type = fifo_types[i].c_str();
+		const char* fifo_type = fifo_types[i].c_str();
 		char probe_name[32];
-		
+
 		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s",
 		         fifo_type);
 		this->probe_st_terminal_queue_size[i] =
-			Output::registerProbe<int>(probe_name, "cells", true, SAMPLE_AVG);
-		
+			Output::registerProbe<int>(probe_name, "cells", true, SAMPLE_LAST);
+
 		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s",
 		         fifo_type);
 		this->probe_st_real_in_thr[i] = Output::registerProbe<int>(probe_name,
 		                                                           "Kbits/s",
 		                                                           true,
 		                                                           SAMPLE_AVG);
-		
+
 		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s",
 		         fifo_type);
 		this->probe_st_real_out_thr[i] = Output::registerProbe<int>(probe_name,
@@ -842,7 +845,7 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 		                                                            true,
 		                                                            SAMPLE_AVG);
 	}
-	
+
 	return true;
 }
 
@@ -854,7 +857,8 @@ bool BlockDvbTal::initDownwardTimers()
 	                                                  false // do not start
 	                                                  );
 	this->frame_timer = this->downward->addTimerEvent("frame",
-	                                                  DVB_TIMER_ADJUST(this->frame_duration),
+	                                                  DVB_TIMER_ADJUST(
+	                                                    this->frame_duration_ms),
 	                                                  false,
 	                                                  false);
 	return true;
@@ -920,7 +924,7 @@ bool BlockDvbTal::onInit()
 		          "initialisation");
 		goto error;
 	}
-	
+
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput(fifo_types))
 	{
@@ -1004,8 +1008,8 @@ bool BlockDvbTal::connectToQoSServer()
 	serv = getservbyport(htons(this->qos_server_port), "tcp");
 	if(serv == NULL)
 	{
-		UTI_NOTICE("%s service on TCP/%d is not available\n", FUNCNAME,
-		           this->qos_server_port);
+		UTI_DEBUG("%s service on TCP/%d is not available\n", FUNCNAME,
+		          this->qos_server_port);
 		goto error;
 	}
 
@@ -1032,7 +1036,10 @@ bool BlockDvbTal::connectToQoSServer()
 		else // ipv6
 			sin_addr = &((struct sockaddr_in6 *) address->ai_addr)->sin6_addr;
 
-		retptr = inet_ntop(address->ai_family, sin_addr, straddr, sizeof(straddr));
+		retptr = inet_ntop(address->ai_family,
+		                   sin_addr,
+		                   straddr,
+		                   sizeof(straddr));
 		if(retptr != NULL)
 		{
 			UTI_DEBUG("%s try IPv%d address %s\n", FUNCNAME, is_ipv4 ? 4 : 6, straddr);
@@ -1042,8 +1049,9 @@ bool BlockDvbTal::connectToQoSServer()
 			UTI_DEBUG("%s try an IPv%d address\n", FUNCNAME, is_ipv4 ? 4 : 6);
 		}
 
-		BlockDvbTal::qos_server_sock = socket(address->ai_family, address->ai_socktype,
-		                               address->ai_protocol);
+		BlockDvbTal::qos_server_sock = socket(address->ai_family,
+		                                      address->ai_socktype,
+		                                      address->ai_protocol);
 		if(BlockDvbTal::qos_server_sock == -1)
 		{
 			UTI_DEBUG("%s cannot create socket (%s) with address %s\n",
@@ -1066,7 +1074,8 @@ bool BlockDvbTal::connectToQoSServer()
 	this->qos_server_host.c_str(), straddr, this->qos_server_port);
 
 	// try to connect with the socket
-	ret = connect(BlockDvbTal::qos_server_sock, address->ai_addr, address->ai_addrlen);
+	ret = connect(BlockDvbTal::qos_server_sock,
+	              address->ai_addr, address->ai_addrlen);
 	if(ret == -1)
 	{
 		UTI_DEBUG("%s connect() failed: %s (%d)\n", FUNCNAME, strerror(errno), errno);
@@ -1100,7 +1109,8 @@ bool BlockDvbTal::sendLogonReq()
 	long l_size;
 
 	// create a new DVB frame
-	lp_logon_req = (T_DVB_LOGON_REQ *)malloc(sizeof(T_DVB_LOGON_REQ));
+	lp_logon_req = (T_DVB_LOGON_REQ *)calloc(sizeof(T_DVB_LOGON_REQ),
+	                                         sizeof(unsigned char));
 	if(!lp_logon_req)
 	{
 		UTI_ERROR("SF#%ld: failed to allocate memory for LOGON "
@@ -1114,6 +1124,7 @@ bool BlockDvbTal::sendLogonReq()
 	lp_logon_req->hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
 	lp_logon_req->capa = 0; // TODO
 	lp_logon_req->mac = this->mac_id;
+	// TODO is it really useful, either GW load it or we move this in terminal config ???
 	lp_logon_req->nb_row = m_nbRow;
 	lp_logon_req->rt_bandwidth = m_fixedBandwidth;	/* in kbits/s */
 
@@ -1157,7 +1168,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 		case MSG_TYPE_BBFRAME:
 		{
 			// keep statistics because data will be released before storing them
-			unsigned int data_len = ((T_DVB_BBFRAME *) ip_buf)->dataLength;
+			unsigned int data_len = ((T_DVB_BBFRAME *) ip_buf)->data_length;
 			NetBurst *burst;
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
@@ -1167,7 +1178,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 				          "BB frame (length = %ld)\n", i_len);
 				goto error;
 			}
-			if(this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
@@ -1203,7 +1214,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 				          "DVB frame (length = %ld)\n", i_len);
 				goto error;
 			}
-			if(this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
@@ -1232,8 +1243,9 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 
 			if(this->_state == state_running)
 			{
-				if(this->onStartOfFrame(ip_buf, i_len) < 0)
+				if(!this->onStartOfFrame(ip_buf, i_len))
 				{
+					UTI_ERROR("Cannot handle SoF");
 					goto error;
 				}
 			}
@@ -1243,16 +1255,17 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			}
 			break;
 
-		// TBTP:
+		// TTP:
 		// treat only if state is running --> otherwise just ignore (other
 		// STs can be logged)
-		case MSG_TYPE_TBTP:
+		case MSG_TYPE_TTP:
 			if(this->_state == state_running)
 			{
-				if(!this->m_pDamaAgent->hereIsTTP(ip_buf, i_len))
+				this->ttp.parse(ip_buf, i_len);
+				if(!this->dama_agent->hereIsTTP(this->ttp))
 				{
 					free(ip_buf);
-					goto error_on_TBTP;
+					goto error_on_TTP;
 				}
 			}
 			free(ip_buf);
@@ -1278,16 +1291,16 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			break;
 
 		default:
-			UTI_DEBUG_L3("SF#%ld: unknown type of DVB frame (%ld), ignore\n",
-			             this->super_frame_counter, hdr->msg_type);
+			UTI_ERROR("SF#%ld: unknown type of DVB frame (%u), ignore\n",
+			          this->super_frame_counter, hdr->msg_type);
 			free(ip_buf);
 			goto error;
 	}
 
 	return true;
 
-error_on_TBTP:
-	UTI_ERROR("TBTP Treatments failed at SF# %ld, frame %ld",
+error_on_TTP:
+	UTI_ERROR("TTP Treatments failed at SF# %ld, frame %ld",
 	          this->super_frame_counter, this->frame_counter);
 	return false;
 
@@ -1299,34 +1312,22 @@ error:
 
 /**
  * Send a capacity request for NRT data
- * @return -1 if failled, 0 if succeed
+ * @return true on success, false otherwise
  */
-int BlockDvbTal::sendCR()
+bool BlockDvbTal::sendCR()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[sendCR]";
 	unsigned char *dvb_frame;
 	size_t length;
 	bool empty;
-	CapacityRequest *capacity_request;
-
-	// Get a dvb frame
-	dvb_frame = (unsigned char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
-	if(dvb_frame == 0)
-	{
-		UTI_ERROR("%s SF#%ld frame %ld: cannot get memory from dvb_rcs "
-		          "memory pool\n", FUNCNAME, this->super_frame_counter,
-		          this->frame_counter);
-		goto error;
-	}
 
 	// Set CR body
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
-	if(!this->m_pDamaAgent->buildCR(cr_none,
-	                                &capacity_request,
-	                                empty))
+	if(!this->dama_agent->buildCR(cr_none,
+	                              this->capacity_request,
+	                              empty))
 	{
-		free(dvb_frame);
 		UTI_ERROR("%s SF#%ld frame %ld: DAMA cannot build CR\n", FUNCNAME,
 		          this->super_frame_counter, this->frame_counter);
 		goto error;
@@ -1334,31 +1335,39 @@ int BlockDvbTal::sendCR()
 
 	if(empty)
 	{
-		free(dvb_frame);
 		UTI_DEBUG_L3("SF#%ld frame %ld: Empty CR\n",
 		             this->super_frame_counter, this->frame_counter);
-		return 0;
+		return true;
 	}
 
-	capacity_request->build(dvb_frame, length);
-	delete capacity_request;
+	// Get a dvb frame
+	dvb_frame = (unsigned char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+	                                    sizeof(unsigned char));
+	if(dvb_frame == 0)
+	{
+		UTI_ERROR("SF#%ld frame %ld: cannot get memory for CR\n",
+		          this->super_frame_counter, this->frame_counter);
+		goto error;
+	}
+
+	this->capacity_request.build(dvb_frame, length);
 
 	// Send message
 	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
 	{
 		UTI_ERROR("%s SF#%ld frame %ld: failed to allocate mgl msg\n",
-				  FUNCNAME, this->super_frame_counter, this->frame_counter);
+		          FUNCNAME, this->super_frame_counter, this->frame_counter);
 		free(dvb_frame);
 		goto error;
 	}
 
 	UTI_DEBUG("%s SF#%ld frame %ld: CR sent\n", FUNCNAME,
-			  this->super_frame_counter, this->frame_counter);
+	          this->super_frame_counter, this->frame_counter);
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
 
@@ -1368,9 +1377,9 @@ error:
  * - reset timers
  * @param ip_buf points to the dvb_rcs buffer containing SoF
  * @param i_len is the length of *ip_buf
- * @return 0 on success, -1 on failure
+ * @return true eon success, false otherwise
  */
-int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
+bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onStartOfFrame]";
 	long sfn; // the superframe number piggybacked by SOF packet
@@ -1391,7 +1400,7 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		          this->super_frame_counter);
 
 		deletePackets();
-		if(!sendLogonReq())
+		if(!this->sendLogonReq())
 		{
 			goto error;
 		}
@@ -1403,21 +1412,20 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	}
 
 	// as long as the frame is changing, send all probes and event
-	// FIXME: Still useful ? Events are sent automatically now
 	Output::sendProbes();
 
 	// update the frame numerotation
 	this->super_frame_counter = sfn;
 
 	// Inform dama agent
-	if(!m_pDamaAgent->hereIsSOF(ip_buf, i_len))
+	if(!this->dama_agent->hereIsSOF(ip_buf, i_len))
 		goto error;
 
 	// There is a risk of unprecise timing so the following hack
 
 	// ---- if we have consumed all frames of previous sf ----
 	// ---- (or if it is the first frame)                 ----
-	if(this->frame_counter == this->frames_per_superframe ||
+	if(this->frame_counter == (int)this->frames_per_superframe ||
 	   this->frame_counter == -1)
 	{
 		UTI_DEBUG("%s SF#%ld frame %ld: all frames from previous SF are "
@@ -1429,7 +1437,7 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		this->frame_counter = 0;
 
 		// we have consumed all of our frames, we start a new one immediately
- 		// this is the first frame of the new superframe
+		// this is the first frame of the new superframe
 		if(this->processOnFrameTick() < 0)
 		{
 			// exit because the bloc is unable to continue
@@ -1441,7 +1449,6 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	}
 	else
 	{
-		// ----  if we have not consumed all our frames (it is the risk) ----
 		// else : frame_counter < frames_per_superframe
 		// if we have not consumed all our frames (it is the risk)
 		// Then there is, by design, a timer active, we have to leave it
@@ -1452,11 +1459,11 @@ int BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	}
 
 	free(ip_buf);
-	return 0;
+	return true;
 
 error:
 	free(ip_buf);
-	return -1;
+	return false;
 }
 
 
@@ -1478,7 +1485,7 @@ int BlockDvbTal::processOnFrameTick()
 	// ------------ arm timer for next frame -----------
 	// this is done at the beginning in order not to increase next frame
 	// by current frame treatments delay
-	if(this->frame_counter < this->frames_per_superframe)
+	if(this->frame_counter < (int)this->frames_per_superframe)
 	{
 		if(!this->downward->startTimer(this->frame_timer))
 		{
@@ -1490,7 +1497,7 @@ int BlockDvbTal::processOnFrameTick()
 	// ---------- tell the DAMA agent that a new frame begins ----------
 	// Inform dama agent, and update total Available Allocation
 	// for current frame
-	if(!this->m_pDamaAgent->processOnFrameTick())
+	if(!this->dama_agent->processOnFrameTick())
 	{
 		UTI_ERROR("SF#%ld: frame %ld: failed to process frame tick\n",
 	          this->super_frame_counter, this->frame_counter);
@@ -1500,7 +1507,7 @@ int BlockDvbTal::processOnFrameTick()
 	// ---------- schedule and send data frames ---------
 	// schedule packets extracted from DVB FIFOs according to
 	// the algorithm defined in DAMA agent
-	if(!this->m_pDamaAgent->uplinkSchedule(&this->complete_dvb_frames))
+	if(!this->dama_agent->uplinkSchedule(&this->complete_dvb_frames))
 	{
 		UTI_ERROR("SF#%ld: frame %ld: failed to schedule packets from DVB FIFOs\n",
 		          this->super_frame_counter, this->frame_counter);
@@ -1523,7 +1530,7 @@ int BlockDvbTal::processOnFrameTick()
 		+ this->frame_counter;
 	if((globalFrameNumber % m_obrPeriod) == m_obrSlotFrame)
 	{
-		if(this->sendCR() < 0)
+		if(!this->sendCR())
 		{
 			UTI_ERROR("failed to send Capacity Request\n");
 			goto error;
@@ -1568,7 +1575,7 @@ int BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	m_talId = lp_logon_resp->logon_id;
 
 	// Inform Dama agent
-	m_pDamaAgent->hereIsLogonResp(ip_buf, l_len);
+	this->dama_agent->hereIsLogonResp(ip_buf, l_len);
 
 	// Send a link is up message to upper layer
 	// link_is_up
@@ -1599,8 +1606,8 @@ int BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 
 	// send the corresponding event
 
-	Output::sendEvent(event_login_complete, "%s Login complete with MAC %d",
-	                     FUNCNAME, this->mac_id);
+	Output::sendEvent(event_login_complete, "Login complete with MAC %d",
+	                  this->mac_id);
 
  ok:
 	free(ip_buf);
@@ -1626,7 +1633,7 @@ void BlockDvbTal::updateStatsOnFrame()
 	int ulOutgoingCells = 0;
 
 	// DAMA agent stat
-	//dama_stat = m_pDamaAgent->getStatsCxt();
+	//dama_stat = this->dama_agent->getStatsCxt();
 
 	// MAC fifos stats
 	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
@@ -1640,7 +1647,7 @@ void BlockDvbTal::updateStatsOnFrame()
 		// compute UL incoming Throughput - in kbits/s
 		m_statContext.ulIncomingThroughput[(*it).first] =
 			(m_statCounters.ulIncomingCells[(*it).first]
-			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
+			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration_ms;
 
 		// compute UL outgoing Throughput
 		// NB: outgoingCells = cells directly sent from IP packets + cells
@@ -1648,24 +1655,27 @@ void BlockDvbTal::updateStatsOnFrame()
 		ulOutgoingCells = m_statCounters.ulOutgoingCells[(*it).first] +
 		                  fifo_stat.out_pkt_nbr;
 		m_statContext.ulOutgoingThroughput[(*it).first] = (ulOutgoingCells
-			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration;
+			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration_ms;
 
 		// write in statitics file
 		probe_st_real_in_thr[(*it).first]->put(m_statContext.ulIncomingThroughput[(*it).first]);
 		probe_st_real_out_thr[(*it).first]->put(m_statContext.ulOutgoingThroughput[(*it).first]);
+
+		probe_st_terminal_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
 	}
 
 	// outgoing DL throughput
 	m_statContext.dlOutgoingThroughput =
 		(m_statCounters.dlOutgoingCells *
 		 this->down_forward_pkt_hdl->getFixedLength() * 8) /
-		this->frame_duration;
+		this->frame_duration_ms;
 
 	// write in statitics file
 	probe_st_phys_out_thr->put(m_statContext.dlOutgoingThroughput);
 
 	// reset stat context for next frame
-	resetStatsCxt();
+	this->resetStatsCxt();
+
 }
 
 /**
@@ -1683,9 +1693,10 @@ void BlockDvbTal::updateStatsOnFrame()
  * and an UL encapsulation packet
  *
  */
+// TODO call it when receving encap packet ?
 void BlockDvbTal::updateStatsOnFrameAndEncap()
 {
-	mac_fifo_stat_context_t fifo_stat;
+/*	mac_fifo_stat_context_t fifo_stat;
 	if(m_bbframe_dropped != 0 ||  m_bbframe_received !=0)
 	{
 		m_bbframe_dropped_rate = ((float) m_bbframe_dropped) /
@@ -1693,20 +1704,9 @@ void BlockDvbTal::updateStatsOnFrameAndEncap()
 		UTI_DEBUG("m_bbframe_dropped_rate : %f \n", m_bbframe_dropped_rate);
 	}
 
-	// DAMA agent stat
-	const da_stat_context_t &dama_stat = m_pDamaAgent->getStatsCxt();
+	// TODO DAMA agent stat
+	const da_stat_context_t &dama_stat = this->dama_agent->getStatsCxt();
 
-	// write in statitics file
-	// COMMENTED by fab for merge from trunk (to opensand_trunk_dama)
-	/*probe_st_rbdc_req_size->put(damaStat->rbdcRequest);
-	probe_st_vbdc_req_size->put(damaStat->vbdcRequest);
-	probe_st_cra->put(damaStat->craAlloc);
-	probe_st_alloc_size->put(damaStat->globalAlloc);
-	probe_st_unused_capacity->put(damaStat->unusedAlloc);
-	probe_st_bbframe_drop_rate->put(m_bbframe_dropped_rate);
-	probe_st_real_modcod->put(this->receptionStd->getRealModcod());
-	probe_st_used_modcod->put(this->receptionStd->getReceivedModcod());*/
-	
 	probe_st_rbdc_req_size->put(dama_stat.rbdc_request_kbps);
 	probe_st_vbdc_req_size->put(dama_stat.vbdc_request_pkt);
 	probe_st_cra->put(dama_stat.cra_alloc_kbps);
@@ -1715,7 +1715,7 @@ void BlockDvbTal::updateStatsOnFrameAndEncap()
 	probe_st_bbframe_drop_rate->put(m_bbframe_dropped_rate);
 	probe_st_real_modcod->put(this->receptionStd->getRealModcod());
 	probe_st_used_modcod->put(this->receptionStd->getReceivedModcod());
-	
+
 	// MAC fifos stats
 	for(map<unsigned int, DvbFifo *>::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1725,11 +1725,11 @@ void BlockDvbTal::updateStatsOnFrameAndEncap()
 		// write in statitics file : mac queue size
 
 		//probe_st_terminal_queue_size[fifoIndex]->put(macQStat.currentPkNb);
-		probe_st_terminal_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
-	}
+		probe_st_terminal_queue_size[(*it).first + 1]->put(fifo_stat.current_pkt_nbr);
+	}*/
 
 	// Reset stats for next frame
-	this->m_pDamaAgent->resetStatsCxt();
+//	this->dama_agent->resetStatsCxt();
 }
 
 

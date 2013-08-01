@@ -334,8 +334,8 @@ bool BottomBlock::onUpwardEvent(const RtEvent *const event)
 	{
 		case evt_file:
 			size = ((NetSocketEvent *)event)->getSize();
-			data = (char *)((NetSocketEvent *)event)->getData();;
-			std::cout << "Block " << this->name << ": " << strlen(data)
+			data = (char *)((NetSocketEvent *)event)->getData();
+			std::cout << "Block " << this->name << ": " << size
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
 
@@ -371,7 +371,6 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 #endif
 	Block *top;
 	Block *middle;
-	Block *bottom;
 	string error;
 	string input_file;
 	int args_used;
@@ -414,8 +413,8 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	middle = Rt::createBlock<MiddleBlock, MiddleBlock::Upward,
 	                         MiddleBlock::Downward>("middle", top);
 
-	bottom = Rt::createBlock<BottomBlock, BottomBlock::Upward,
-	                         BottomBlock::Downward>("bottom", middle);
+	Rt::createBlock<BottomBlock, BottomBlock::Upward,
+	                BottomBlock::Downward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	if(!Rt::run(true))

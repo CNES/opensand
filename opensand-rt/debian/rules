@@ -13,8 +13,8 @@
 	dh  $@
 
 
-#override_dh_auto_configure:
-#	dh_auto_configure -- --disable-tcmalloc
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-tcmalloc=no
 
 override_dh_strip:
 	dh_strip --dbg-package=libopensand-rt-dbg

@@ -329,7 +329,7 @@ char Ip::Context::getLanHeader(unsigned int pos, NetPacket *packet)
 NetPacket *Ip::PacketHandler::build(unsigned char *data, size_t data_length,
                                     uint8_t qos,
                                     uint8_t src_tal_id,
-                                    uint8_t dst_tal_id)
+                                    uint8_t dst_tal_id) const
 {
 	if(IpPacket::version(data, data_length) == 4)
 	{

@@ -193,7 +193,7 @@ extern unsigned char dbgLevel(DBG_PACKAGE);
 /** Dump data area for debug purpose */
 #define UTI_DUMP(label, data, len) \
 { \
-	if(dbgLevel(DBG_PACKAGE)>=2) \
+	if(dbgLevel(DBG_PACKAGE)>=0) \
 	{ \
 		std::string str=label; char x[4]; int i; \
 		for(i=0;i<len;i++) \

@@ -56,7 +56,7 @@
 class Mpeg: public EncapPlugin
 {
   public:
-	  
+
 	/**
 	 * @class Context
 	 * @brief MPEG encapsulation / desencapsulation context
@@ -106,7 +106,7 @@ class Mpeg: public EncapPlugin
 
 	  private:
 		bool encapMpeg(NetPacket *packet, NetBurst *mpeg_packets,
-					   int &context_id, long &time);
+		               int &context_id, long &time);
 		bool deencapMpeg(NetPacket *packet, NetBurst *net_packets);
 
 	};
@@ -122,7 +122,7 @@ class Mpeg: public EncapPlugin
 		PacketHandler(EncapPlugin &plugin);
 
 		NetPacket *build(unsigned char *data, size_t data_length,
-		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
+		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id) const;
 		size_t getFixedLength() const {return TS_PACKETSIZE;};
 		size_t getLength(const unsigned char *UNUSED(data)) const
 		{
@@ -133,7 +133,7 @@ class Mpeg: public EncapPlugin
 			return this->getFixedLength();
 		};
 		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data);
+		              NetPacket **data, NetPacket **remaining_data) const;
 	};
 
 	/// Constructor

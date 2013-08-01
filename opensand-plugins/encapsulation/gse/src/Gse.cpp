@@ -203,7 +203,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 			          FUNCNAME);
 			continue;
 		}
-		
+
 		UTI_DEBUG("received a packet with type 0x%.4x\n", (*packet)->getType());
 
 		// if packet size is fixed, more than one packet can be encapsulated in
@@ -958,9 +958,11 @@ NetBurst *Gse::Context::flushAll()
 	return NULL;
 }
 
-NetPacket *Gse::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Gse::PacketHandler::build(unsigned char *data,
+                                     size_t data_length,
                                      uint8_t UNUSED(_qos),
-                                     uint8_t UNUSED(_src_tal_id), uint8_t _dst_tal_id)
+                                     uint8_t UNUSED(_src_tal_id),
+                                     uint8_t _dst_tal_id) const
 {
 	const char *FUNCNAME = "[Gse::PacketHandler::build]";
 	gse_status_t status;
@@ -1071,7 +1073,7 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 }
 
 bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
-                                  NetPacket **data, NetPacket **remaining_data)
+                                  NetPacket **data, NetPacket **remaining_data) const
 {
 	const char *FUNCNAME = "[Gse::PacketHandler::getChunk]";
 	gse_vfrag_t *first_frag;
@@ -1215,7 +1217,7 @@ bool Gse::setLabel(NetPacket *packet, uint8_t label[])
 	label[3] = 0;
 	label[4] = 0;
 	label[5] = 0;
-	
+
 	return true;
 }
 
@@ -1239,7 +1241,7 @@ bool Gse::setLabel(GseEncapCtx *context, uint8_t label[])
 	label[3] = 0;
 	label[4] = 0;
 	label[5] = 0;
-	
+
 	return true;
 }
 

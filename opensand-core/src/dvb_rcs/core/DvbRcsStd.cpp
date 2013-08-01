@@ -41,10 +41,11 @@
 
 
 
-DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
+DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler * pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl)
 {
 	/* these values are not used here */
+	// TODO why not only in DvbS2Std ?
 	this->realModcod = 0;
 	this->receivedModcod = this->realModcod;
 	this->generic_switch = NULL;
@@ -121,15 +122,6 @@ int DvbRcsStd::scheduleEncapPackets(DvbFifo *fifo,
 			UTI_ERROR("invalid packet #%u\n", sent_packets + 1);
 			goto error;
 		}
-
-		// introduce error now only for satellite !!!!!
-		// and do not use component_bloc
-#if 0 /* TODO: enable the error generator again */
-		if(((BlocDVBRcsSat *) this->component_bloc)->m_useErrorGenerator)
-		{
-			((BlocDVBRcsSat *) this->component_bloc)->errorGenerator(encap_packet);
-		}
-#endif
 
 		// is there enough free space in the current DVB-RCS frame
 		// for the encapsulation packet ?
@@ -233,6 +225,9 @@ int DvbRcsStd::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
 
 	// set the max size of the DVB-RCS frame, also set the type
 	// of encapsulation packets the DVB-RCS frame will contain
+	// we do not need to handle DRA here because the size to send is
+	// managed by the allocation, the DVB frame is only an abstract
+	// object to transport data
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	(*incomplete_dvb_frame)->setEncapPacketEtherType(
 								this->packet_handler->getEtherType());
@@ -266,11 +261,11 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		UTI_ERROR("packet handler is NULL\n");
 		goto error;
 	}
-	if(packet_handler->getFixedLength() == 0)
+	if(this->packet_handler->getFixedLength() == 0)
 	{
 		UTI_ERROR("encapsulated packets length is not fixed on "
 		          "a DVB-RCS emission link (packet type is %s)\n",
-		          packet_handler->getName().c_str());
+		          this->packet_handler->getName().c_str());
 		return false;
 	}
 
@@ -279,7 +274,7 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		UTI_ERROR("the message received is not a DVB burst\n");
 		goto error;
 	}
-	UTI_DEBUG("%s burst received (%ld packet(s))\n",
+	UTI_DEBUG("%s burst received (%u packet(s))\n",
 	          this->packet_handler->getName().c_str(), dvb_burst->qty_element);
 
 	// create an empty burst of encapsulation packets
@@ -302,7 +297,8 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		// Use default values for QoS, source/destination tal_id
 		encap_packet = this->packet_handler->build(frame + offset + previous_length,
 		                                           current_length,
-		                                           0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+		                                           0x00, BROADCAST_TAL_ID,
+		                                           BROADCAST_TAL_ID);
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{

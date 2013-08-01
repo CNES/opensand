@@ -40,7 +40,8 @@
 #include "ConfigurationFile.h"
 
 // configure defines
-#include "config.h"
+// TODO remove if not necessary
+//#include "config.h"
 
 ////////////////////
 // section global //
@@ -67,8 +68,6 @@
 #define DRA_SIMU                  "dra_simulation_file"
 
 #define DVB_SCENARIO_REFRESH      "dvb_scenario_refresh"
-
-#define BANDWIDTH                 "bandwidth"
 
 /////////////////////////
 //   section dvb_rcs   //
@@ -98,7 +97,7 @@
 #define DVB_CAR_ID_LOGON          "carrier_id_logon"
 #define DVB_CAR_ID_DATA           "carrier_id_data"
 #define DVB_OBR_PERIOD_DATA       "obr_period"
-#define DVB_DAMA_ALGO             "dama_algorithm"
+#define DAMA_ALGO                 "dama_algorithm"
 
 
 /////////////////////////
@@ -151,6 +150,32 @@
 #define DVB_SIMU_MODE           "simulation"
 #define DVB_SIMU_RANDOM         "simu_random"
 
+
+//////////////////////////
+//  Band configuration  //
+//////////////////////////
+
+#define UP_RETURN_BAND        "up_return_band"
+#define DOWN_FORWARD_BAND     "down_forward_band"
+
+#define BANDWIDTH             "bandwidth"
+#define ROLL_OFF              "roll_off"
+
+#define CARRIERS_DISTRI_LIST  "carriers_distribution"
+#define CATEGORY              "category"
+#define RATIO                 "ratio"
+#define SYMBOL_RATE           "symbol_rate"
+#define FMT_GROUP             "fmt_group"
+#define ACCESS_TYPE           "access_type"
+
+#define TAL_AFF_LIST          "tal_affectations"
+#define DEFAULT_AFF           "tal_default_affectation"
+
+#define FMT_GROUP_LIST        "fmt_groups"
+#define GROUP_ID              "id"
+#define FMT_ID                "fmt_id"
+
+
 //////////////////////
 //    PEP section   //
 //////////////////////
@@ -170,15 +195,12 @@
 #define DC_MAX_RBDC                 "max_rbdc"
 #define DC_MIN_VBDC                 "min_vbdc"
 #define DC_SECTION_MAC_LAYER        "mac_layer"
-#define DC_CARRIER_TRANS_RATE       "carrier_transmission_rate"
-#define DC_CARRIER_NUMBER           "carrier_number"
 
 //////////
 // DAMA //
 //////////
 
 #define DA_MAC_LAYER_SECTION    "mac_layer"
-#define DA_CARRIER_TRANS_RATE   "carrier_transmission_rate"
 
 #define DA_TAL_SECTION          "dvb_rcs_tal"
 #define DA_MAX_RBDC_DATA        "max_rbdc"

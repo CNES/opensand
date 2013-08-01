@@ -117,12 +117,14 @@ class Ule: public EncapPlugin
 
 		NetPacket *build(unsigned char *data, size_t data_length,
 		                 uint8_t qos,
-		                 uint8_t src_tal_id, uint8_t dst_tal_id);
+		                 uint8_t src_tal_id, uint8_t dst_tal_id) const;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 2;};
 		size_t getLength(const unsigned char *data) const;
-		bool getChunk(NetPacket *UNUSED(packet), size_t UNUSED(remaining_length),
-		              NetPacket **UNUSED(data), NetPacket **UNUSED(remaining_data))
+		bool getChunk(NetPacket *UNUSED(packet),
+		              size_t UNUSED(remaining_length),
+		              NetPacket **UNUSED(data),
+		              NetPacket **UNUSED(remaining_data)) const
 		{
 			assert(0);
 		};

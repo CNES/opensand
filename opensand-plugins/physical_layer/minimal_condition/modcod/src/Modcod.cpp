@@ -62,7 +62,7 @@ bool Modcod::init()
 	string filename;
 
 	if(config.loadConfig(CONF_MODCOD_FILE) < 0)
-	{   
+	{
 		UTI_ERROR("failed to load config file '%s'",
 		          CONF_MODCOD_FILE);
 		goto error;
@@ -107,10 +107,10 @@ bool Modcod::updateThreshold(T_DVB_HDR *hdr)
 	if(hdr->msg_type == MSG_TYPE_BBFRAME)
 	{
 		bbheader = (T_DVB_BBFRAME *) hdr;
-		threshold = (double)(this->modcod_table.getRequiredEsN0(bbheader->usedModcod));
+		threshold = (double)(this->modcod_table.getRequiredEsN0(bbheader->used_modcod));
 		UTI_DEBUG("BBFrame: Required Es/N0 for Modcod %d --> %f \n",
-		          bbheader->usedModcod,
-		          this->modcod_table.getRequiredEsN0(bbheader->usedModcod));
+		          bbheader->used_modcod,
+		          this->modcod_table.getRequiredEsN0(bbheader->used_modcod));
 	}
 
 	this->minimal_cn = threshold;;

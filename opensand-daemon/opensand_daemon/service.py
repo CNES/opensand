@@ -47,11 +47,30 @@ from opensand_daemon.interfaces import TUN_NAME
 #macros
 LOGGER = logging.getLogger('sand-daemon')
 
+def on_error(self, *args):
+    """ error handler """
+    if len(args) == 0:
+        return
+    LOGGER.error('service error handler: ' + str(args[0]))
+    stop_serv()
+
+def stop_serv():
+    """ stop the OpenSAND service """
+    OpenSandService._main_loop.quit()
+    if OpenSandService._publisher._group is not None:
+        OpenSandService._publisher._group.Free()
+    if OpenSandService._routes is not None:
+        OpenSandService._routes.delete()
+
 class OpenSandService(object):
     """ Avahi service for OpenSAND Daemon """
 
     _bus = None
     _routes = None
+
+    _main_loop = None
+    _listener = None
+    _publisher = None
 
     def __init__(self, cache_dir, iface, service_type, name,
                  instance, port, descr=None, stats_handler=None):
@@ -60,7 +79,7 @@ class OpenSandService(object):
         gobject.threads_init()
         threads_init()
 
-        self._main_loop = gobject.MainLoop()
+        OpenSandService._main_loop = gobject.MainLoop()
         OpenSandService._bus = dbus.SystemBus(mainloop=loop)
 
         OpenSandService._routes = OpenSandRoutes()
@@ -74,30 +93,23 @@ class OpenSandService(object):
             # no route to handle on satellite
             OpenSandService._routes.set_unused()
 
-        self._listener = self.Listener(iface, service_type, name, instance,
-                                       stats_handler)
-        self._publisher = self.Publisher(iface, service_type, name, port, descr)
+        OpenSandService._listener = self.Listener(iface, service_type,
+                                                  name, instance, stats_handler)
+        OpenSandService._publisher = self.Publisher(iface, service_type,
+                                                    name, port, descr)
 
     def run(self):
         """ run the dbus loop """
-        self._main_loop.run()
+        OpenSandService._main_loop.run()
 
     def stop(self):
-        """ stop the OpenSAND service """
-        self._main_loop.quit()
-        if self._publisher._group is not None:
-            self._publisher._group.Free()
-        if OpenSandService._routes is not None:
-            OpenSandService._routes.delete()
-
-    def on_error(self, *args):
-        """ error handler """
-        LOGGER.error('service error handler: ' + str(args[0]))
-        self.stop()
+        """ stop the OpenSandService """
+        stop_serv()
 
     class Listener(object):
         """ listen for OpenSAND service with avahi """
-        def __init__(self, iface, service_type, compo, instance, stats_handler):
+        def __init__(self, iface, service_type, compo, instance,
+                     stats_handler=None):
             self._interface = iface
             self._compo = compo.lower()
             # for WS get only the number, not the name of the instance
@@ -147,7 +159,8 @@ class OpenSandService(object):
                     LOGGER.debug("Ignoring collector IPv6 address")
                     return
                 LOGGER.debug("found collector at %s:%d", address, port)
-                self._stats_handler.set_collector_addr(address, port)
+                if self._stats_handler is not None:
+                    self._stats_handler.set_collector_addr(address, port)
                 return
             elif self._compo == 'sat':
                 # nothing to do for other hosts no sat
@@ -236,14 +249,15 @@ class OpenSandService(object):
             self._listener_server.ResolveService(interface, protocol, name, stype,
                                         domain, avahi.PROTO_INET, dbus.UInt32(0),
                                         reply_handler=self.service_resolved,
-                                        error_handler=OpenSandService.on_error)
+                                        error_handler=on_error)
 
         def handler_remove(self, interface, protocol, name, stype, domain, flags):
             """ handle a removed service """
 
             if name == 'collector':
                 LOGGER.debug("Collector service disconnected")
-                self._stats_handler.unset_collector_addr()
+                if self._stats_handler is not None:
+                    self._stats_handler.unset_collector_addr()
                 return
             elif self._compo == 'sat':
                 # nothing to do for other hosts no sat
@@ -257,7 +271,6 @@ class OpenSandService(object):
             LOGGER.info("the component %s was disconnected" % name)
             self._names.remove(name)
             OpenSandService._routes.remove_distant_host(name)
-
 
     class Publisher(object):
         """ publish avahi service for OpenSAND """
@@ -320,7 +333,7 @@ class OpenSandService(object):
                     dbus.UInt16(self._port),
                     avahi.dict_to_txt_array(self._text),
                     reply_handler=self.commit_group,
-                    error_handler=OpenSandService.on_error)
+                    error_handler=on_error)
 
         def commit_group(self, *args):
             """ reply handler for AddService """
@@ -347,11 +360,10 @@ class OpenSandService(object):
                 LOGGER.debug("service established")
             elif state == avahi.ENTRY_GROUP_COLLISION:
                 LOGGER.error("service name collision")
-                self.stop()
+                stop_serv()
             elif state == avahi.ENTRY_GROUP_FAILURE:
                 LOGGER.error("error in group state changed" +  error)
-                self.stop()
-
+                stop_serv()
 
 ##### TEST #####
 
@@ -371,9 +383,9 @@ if __name__ == '__main__':
                 'command' : 4444,
              }
 
-    SERVICE = OpenSandService("_opensand._tcp", "st", 1234, descr)
+    SERVICE = OpenSandService("/tmp", "", "_opensand._tcp", "st", "1", 1234, descr)
 
     try:
         SERVICE.run()
     except KeyboardInterrupt:
-        SERVICE.stop()
+        SERVICE.stop_serv()

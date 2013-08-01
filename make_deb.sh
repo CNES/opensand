@@ -9,6 +9,16 @@ mkdir -p packages/all
 mkdir -p packages/manager
 mkdir -p packages/daemon
 
+function success()
+{
+    /bin/echo -e " * ${GREEN}SUCCESS${NORMAL}"
+}
+
+function error()
+{
+    /bin/echo -e " * ${RED}FAILURE${NORMAL}" && exit 1
+}
+
 function build_pkg()
 {
     dir=$1
@@ -17,9 +27,9 @@ function build_pkg()
     /bin/echo -e "**************************************"
     cd $dir
     if [ -f ./autogen.sh ]; then
-        ./autogen.sh 1>/dev/null
+        ./autogen.sh 1>/dev/null || error
     fi
-    dpkg-buildpackage -us -uc >/dev/null && /bin/echo -e " * ${GREEN}SUCCESS${NORMAL}" || `/bin/echo -e " * ${RED}FAILURE${NORMAL}" && exit 1`
+    dpkg-buildpackage -us -uc >/dev/null && success || error
     dh_clean 1>/dev/null
     cd ..
     /bin/echo -e
@@ -193,11 +203,11 @@ function phy()
 function move()
 {
 	/bin/echo -e "copy packages for daemon"
-	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-bin_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb packages/daemon
+	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-bin_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb packages/daemon 2>&1 1>/dev/null
 	/bin/echo -e "copy packages for manager"
-	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-*_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-manager*.deb opensand-plugins/*/libopensand-*plugin-manager*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin-manager*.deb opensand-collector_*.deb packages/manager
+	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-*_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-manager*.deb opensand-plugins/*/libopensand-*plugin-manager*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin-manager*.deb opensand-collector_*.deb packages/manager 2>&1 1>/dev/null
 	/bin/echo -e "copy packages for all"
-	mv *.deb `find opensand-plugins -name \*.deb` packages/all
+	mv *.deb `find opensand-plugins -name \*.deb` packages/all 2>&1 1>/dev/null
 }
 
 case $1 in
@@ -208,7 +218,7 @@ case $1 in
         phy
         move
         ;;
-    "opensand")
+    "core")
         opensand
         ;;
 
@@ -249,6 +259,6 @@ case $1 in
         ;;
 
     *)
-        /bin/echo -e "wrong command (all, opensand, encap, lan, phy {att, nom, min, err}, clean, move)"
+        /bin/echo -e "wrong command (all, core, encap, lan, phy {att, nom, min, err}, clean, move)"
         ;;
 esac

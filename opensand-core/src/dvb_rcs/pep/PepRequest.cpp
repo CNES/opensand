@@ -37,14 +37,15 @@
 /**
  * @brief Build a new release request from PEP
  */
-PepRequest::PepRequest(pep_request_type_t type, unsigned int st_id,
-                       unsigned int cra, unsigned int rbdc, unsigned int rbdc_max)
+PepRequest::PepRequest(pep_request_type_t type, tal_id_t st_id,
+                       rate_kbps_t cra_kbps, rate_kbps_t rbdc_kbps,
+                       rate_kbps_t rbdc_max_kbps)
 {
 	this->type = type;
 	this->st_id = st_id;
-	this->cra = cra;
-	this->rbdc = rbdc;
-	this->rbdc_max = rbdc_max;
+	this->cra_kbps = cra_kbps;
+	this->rbdc_kbps = rbdc_kbps;
+	this->rbdc_max_kbps = rbdc_max_kbps;
 }
 
 /**
@@ -61,7 +62,7 @@ PepRequest::~PepRequest()
  *
  * @return  the type of PEP request
  */
-pep_request_type_t PepRequest::getType()
+pep_request_type_t PepRequest::getType() const
 {
 	return this->type;
 }
@@ -72,7 +73,7 @@ pep_request_type_t PepRequest::getType()
  *
  * @return  the ID of the ST the PEP request is for
  */
-unsigned int PepRequest::getStId()
+tal_id_t PepRequest::getStId() const
 {
 	return this->st_id;
 }
@@ -83,9 +84,9 @@ unsigned int PepRequest::getStId()
  *
  * @return  the CRA of PEP request
  */
-unsigned int PepRequest::getCra()
+rate_kbps_t PepRequest::getCra() const
 {
-	return this->cra;
+	return this->cra_kbps;
 }
 
 
@@ -94,9 +95,9 @@ unsigned int PepRequest::getCra()
  *
  * @return  the RBDC of PEP request
  */
-unsigned int PepRequest::getRbdc()
+rate_kbps_t PepRequest::getRbdc() const
 {
-	return this->rbdc;
+	return this->rbdc_kbps;
 }
 
 
@@ -105,7 +106,7 @@ unsigned int PepRequest::getRbdc()
  *
  * @return  the RBDCmax of PEP request
  */
-unsigned int PepRequest::getRbdcMax()
+rate_kbps_t PepRequest::getRbdcMax() const
 {
-	return this->rbdc_max;
+	return this->rbdc_max_kbps;
 }

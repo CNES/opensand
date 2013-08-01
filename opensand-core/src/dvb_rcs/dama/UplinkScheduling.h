@@ -40,6 +40,13 @@
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 
+using std::list;
+
+/**
+ * Uplink Scheduling is done each frame (not each superframe),
+ * so allocation should be done in slot per frame (packet per frame)
+ */
+
 /**
  * @class UplinkScheduling
  * @brief Scheduling functions for MAC FIFOs at uplink
@@ -49,7 +56,7 @@ class UplinkScheduling
   public:
 
 	UplinkScheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
-	                 const std::map<unsigned int, DvbFifo *> &fifos):
+	                 const map<unsigned int, DvbFifo *> &fifos):
 		packet_handler(packet_handler),
 		dvb_fifos(fifos)
 	{};
@@ -62,12 +69,12 @@ class UplinkScheduling
 	 * @param current_frame         the current frame
 	 * @param remaining_allocation  the remaining allocation after scheduling
 	 *                              on the current superframe
-	 * 
+	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      const time_frame_t current_frame,
-	                      std::list<DvbFrame *> *complete_dvb_frames,
+	                      list<DvbFrame *> *complete_dvb_frames,
 	                      uint16_t &remaining_allocation) = 0;
 
   protected:
@@ -75,7 +82,7 @@ class UplinkScheduling
     /** The packet representation */
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
-    const std::map<unsigned int, DvbFifo *> dvb_fifos;
+    const map<unsigned int, DvbFifo *> dvb_fifos;
 
 };
 

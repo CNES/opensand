@@ -49,42 +49,11 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
 static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
 static uint16_t getDecodedCrValue(const emu_cr_t &cr);
 
-CapacityRequest::CapacityRequest(tal_id_t tal_id,
-                                 std::vector<cr_info_t> requests):
+
+CapacityRequest::CapacityRequest(tal_id_t tal_id):
 	tal_id(tal_id),
-	requests(requests)
-{}
-
-CapacityRequest::CapacityRequest(const unsigned char *data, size_t length)
+	requests()
 {
-	emu_sac_t *sac;
-
-	/* check that data contains DVB header, tal_id and cr_number */
-	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t))
-	{
-		return;
-	}
-	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t);
-
-	sac = (emu_sac_t *)(data + sizeof(T_DVB_HDR));
-	this->tal_id = sac->tal_id;
-
-	/* check that we can read enough cr */
-	if(length < sac->cr_number * sizeof(emu_cr_t))
-	{
-		return;
-	}
-
-	for(unsigned int i = 0; i < sac->cr_number; i++)
-	{
-		cr_info_t req;
-
-		req.prio = sac->cr[i].prio;
-		req.type = sac->cr[i].type;
-		req.value = getDecodedCrValue(sac->cr[i]);
-
-		this->requests.push_back(req);
-	}
 }
 
 CapacityRequest::~CapacityRequest()
@@ -92,34 +61,79 @@ CapacityRequest::~CapacityRequest()
 	this->requests.clear();
 }
 
+void CapacityRequest::addRequest(uint8_t prio, uint8_t type, uint32_t value)
+{
+	cr_info_t info;
+	info.prio = 0;
+	info.type = cr_rbdc;
+	info.value = value;
+	this->requests.push_back(info);
+
+}
+
+bool CapacityRequest::parse(const unsigned char *data, size_t length)
+{
+	// remove all requests
+	this->requests.clear();
+	/* check that data contains DVB header, tal_id and cr_number */
+	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t))
+	{
+		return false;
+	}
+	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t);
+
+	this->sac = *((emu_sac_t *)(data + sizeof(T_DVB_HDR)));
+	this->tal_id = this->sac.tal_id;
+
+	/* check that we can read enough cr */
+	if(length < this->sac.cr_number * sizeof(emu_cr_t))
+	{
+		return false;
+	}
+
+	for(unsigned int i = 0; i < this->sac.cr_number; i++)
+	{
+		cr_info_t req;
+
+		req.prio = this->sac.cr[i].prio;
+		req.type = this->sac.cr[i].type;
+		req.value = getDecodedCrValue(this->sac.cr[i]);
+
+		this->requests.push_back(req);
+	}
+	return true;
+}
+
 void CapacityRequest::build(unsigned char *frame, size_t &length)
 {
 	T_DVB_SAC_CR dvb_sac;
-	emu_sac_t sac;
 
 	// fill T_DVB_SAC fields
 	dvb_sac.hdr.msg_length = sizeof(T_DVB_HDR);
-    dvb_sac.hdr.msg_type = MSG_TYPE_CR;
+	dvb_sac.hdr.msg_type = MSG_TYPE_CR;
 
 	// fill emu_sac_t fields
-	sac.tal_id = this->tal_id;
-	sac.cr_number = 0;
+	this->sac.tal_id = this->tal_id;
+	this->sac.cr_number = 0;
 	for(unsigned int i = 0; i < this->requests.size() && i < NBR_MAX_CR; i++)
 	{
 		uint8_t scale;
 		uint8_t value;
-		sac.cr[i].type = this->requests[i].type;
-		sac.cr[i].prio = this->requests[i].prio;
+		this->sac.cr[i].type = this->requests[i].type;
+		this->sac.cr[i].prio = this->requests[i].prio;
 		getScaleAndValue(this->requests[i],
 		                 scale, value);
-		sac.cr[i].scale = scale;
-		sac.cr[i].value = value;
+		this->sac.cr[i].scale = scale;
+		this->sac.cr[i].value = value;
 		dvb_sac.hdr.msg_length += sizeof(emu_sac_t);
-		sac.cr_number++;
+		this->sac.cr_number++;
 	}
-	dvb_sac.sac = sac;
+	dvb_sac.sac = this->sac;
 	length = dvb_sac.hdr.msg_length;
 	memcpy(frame, &dvb_sac, length);
+	memset(&this->sac, '\0', sizeof(emu_sac_t));
+	// remove all requests
+	this->requests.clear();
 }
 
 /**

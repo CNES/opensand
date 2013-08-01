@@ -34,8 +34,6 @@
 
 #include "NetPacket.h"
 
-#include "config.h"
-
 // debug
 #define DBG_PACKAGE PKG_DEFAULT
 #include "opensand_conf/uti_debug.h"
@@ -89,64 +87,6 @@ NetPacket::NetPacket(unsigned char *data,
 NetPacket::~NetPacket()
 {
 }
-
-#if 0
-void *NetPacket::operator new(size_t size) throw()
-{
-#if MEMORY_POOL
-	if((int) size > NetPacket::mempool._memBlocSize)
-	{
-		syslog(LOG_ERR, "too much memory asked: %zu bytes "
-			   "while only %ld is available", size,
-			   NetPacket::mempool._memBlocSize);
-		return NULL;
-	}
-	else
-	{
-		return NetPacket::mempool.get("NetPacket::new", size);
-	}
-#else
-	return (NetPacket *) ::operator new(size);
-#endif
-}
-
-void *NetPacket::operator new[](size_t size) throw()
-{
-#if MEMORY_POOL
-	if((int) size > NetPacket::mempool._memBlocSize)
-	{
-		syslog(LOG_ERR, "too much memory asked: %zu bytes "
-			   "while only %ld is available", size,
-			   NetPacket::mempool._memBlocSize);
-		return NULL;
-	}
-	else
-	{
-		return NetPacket::mempool.get("NetPacket::new[]", size);
-	}
-#else
-	return (NetPacket *) ::operator new[](size);
-#endif
-}
-
-void NetPacket::operator delete(void *p) throw()
-{
-#if MEMORY_POOL
-	mempool.release((char *) p);
-#else
-	::operator delete(p);
-#endif
-}
-
-void NetPacket::operator delete[](void *p) throw()
-{
-#if MEMORY_POOL
-	mempool.release((char *) p);
-#else
-	::operator delete[](p);
-#endif
-}
-#endif
 
 
 std::string NetPacket::getName()

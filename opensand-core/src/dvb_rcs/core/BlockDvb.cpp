@@ -62,13 +62,9 @@ Event *BlockDvb::event_login_response = NULL;
 BlockDvb::BlockDvb(const string &name):
 	Block(name),
 	satellite_type(),
-	dama_algo(""),
-	frame_duration(-1),
+	frame_duration_ms(),
 	frames_per_superframe(-1),
-	modcod_def(""),
-	modcod_simu(""),
-	dra_def(""),
-	dra_simu(""),
+	fmt_simu(),
 	dvb_scenario_refresh(-1),
 	emissionStd(NULL),
 	receptionStd(NULL)
@@ -185,24 +181,15 @@ bool BlockDvb::initCommon()
 	UTI_INFO("down/forward encapsulation scheme = %s\n",
 	         this->down_forward_pkt_hdl->getName().c_str());
 
-	// dama algorithm
-	if(!globalConfig.getValue(DVB_GLOBAL_SECTION, DVB_NCC_DAMA_ALGO,
-	                          this->dama_algo))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
-	}
-
 	// frame duration
 	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_F_DURATION,
-	                          this->frame_duration))
+	                          this->frame_duration_ms))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          GLOBAL_SECTION, DVB_F_DURATION);
 		goto error;
 	}
-	UTI_INFO("frameDuration set to %d\n", this->frame_duration);
+	UTI_INFO("frameDuration set to %d\n", this->frame_duration_ms);
 
 	// number of frame per superframe
 	if(!globalConfig.getValue(DVB_MAC_SECTION, DVB_FPF,
@@ -214,43 +201,6 @@ bool BlockDvb::initCommon()
 	}
 	UTI_INFO("frames_per_superframe set to %d\n",
 	         this->frames_per_superframe);
-
-	// MODCOD/DRA simulations and definitions
-	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_SIMU,
-	                          this->modcod_simu))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, MODCOD_SIMU);
-		goto error;
-	}
-	UTI_INFO("MODCOD simulation path set to %s\n", this->modcod_simu.c_str());
-
-	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_DEF,
-	                          this->modcod_def))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, MODCOD_DEF);
-		goto error;
-	}
-	UTI_INFO("MODCOD definition path set to %s\n", this->modcod_def.c_str());
-
-	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_SIMU,
-	                          this->dra_simu))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		           GLOBAL_SECTION, DRA_SIMU);
-		goto error;
-	}
-	UTI_INFO("DRA simulation path set to %s\n", this->dra_simu.c_str());
-
-	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_DEF,
-	                          this->dra_def))
-	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		           GLOBAL_SECTION, DRA_DEF);
-		goto error;
-	}
-	UTI_INFO("DRA definition path set to %s\n", this->dra_def.c_str());
 
 	// scenario refresh interval
 	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
@@ -267,55 +217,112 @@ error:
 	return false;
 }
 
-
-
 bool BlockDvb::initModcodFiles()
 {
-	int bandwidth;
+	string modcod_simu_file;
+	string modcod_def_file;
 
-	if(access(this->modcod_def.c_str(), R_OK) < 0)
+	// MODCOD/DRA simulations and definitions
+	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_SIMU,
+	                          modcod_simu_file))
 	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           this->modcod_def.c_str(), strerror(errno));
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		          GLOBAL_SECTION, MODCOD_SIMU);
 		goto error;
 	}
-	UTI_INFO("modcod definition file = '%s'\n", this->modcod_def.c_str());
+	UTI_INFO("MODCOD simulation path set to %s\n", modcod_simu_file.c_str());
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_DEF,
+	                          modcod_def_file))
+	{
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		          GLOBAL_SECTION, MODCOD_DEF);
+		goto error;
+	}
+	UTI_INFO("MODCOD definition path set to %s\n", modcod_def_file.c_str());
+
+
+	if(access(modcod_def_file.c_str(), R_OK) < 0)
+	{
+		UTI_ERROR("cannot access '%s' file (%s)\n",
+		           modcod_def_file.c_str(), strerror(errno));
+		goto error;
+	}
+	UTI_INFO("modcod definition file = '%s'\n", modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!dynamic_cast<DvbS2Std *>
-			(this->emissionStd)->loadModcodDefinitionFile(this->modcod_def))
+	if(!this->fmt_simu.setModcodDefFile(modcod_def_file))
 	{
 		goto error;
 	}
 
-	if(access(this->modcod_simu.c_str(), R_OK) < 0)
+	if(access(modcod_simu_file.c_str(), R_OK) < 0)
 	{
 		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           this->modcod_simu.c_str(), strerror(errno));
+		           modcod_simu_file.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("modcod simulation file = '%s'\n", this->modcod_simu.c_str());
+	UTI_INFO("modcod simulation file = '%s'\n", modcod_simu_file.c_str());
 
-	// associate the simulation file with the list of STs
-	if(!dynamic_cast<DvbS2Std *>
-			(this->emissionStd)->loadModcodSimulationFile(this->modcod_simu))
+	// set the MODCOD simulation file
+	if(!this->fmt_simu.setModcodSimuFile(modcod_simu_file))
 	{
 		goto error;
 	}
 
-	// Get the value of the bandwidth
-	if(!globalConfig.getValue(GLOBAL_SECTION, BANDWIDTH,
-	                          bandwidth))
+	return true;
+
+error:
+	return false;
+}
+
+// TODO one function for both modcod init
+bool BlockDvb::initDraFiles()
+{
+	string dra_simu_file;
+	string dra_def_file;
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_SIMU,
+	                          dra_simu_file))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, BANDWIDTH);
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		           GLOBAL_SECTION, DRA_SIMU);
+		goto error;
+	}
+	UTI_INFO("DRA simulation path set to %s\n", dra_simu_file.c_str());
+
+	if(access(dra_simu_file.c_str(), R_OK) < 0)
+	{
+		UTI_ERROR("cannot access '%s' file (%s)\n",
+		          dra_simu_file.c_str(), strerror(errno));
 		goto error;
 	}
 
-	// Set the bandwidth value for DVB-S2 emission standard
-	if(this->emissionStd->type() == "DVB-S2")
+	// set the DRA simulation file
+	if(!this->fmt_simu.setDraSchemeSimuFile(dra_simu_file))
 	{
-		this->emissionStd->setBandwidth(bandwidth);
+		goto error;
+	}
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_DEF,
+	                          dra_def_file))
+	{
+		UTI_ERROR("section '%s', missing parameter '%s'\n",
+		           GLOBAL_SECTION, DRA_DEF);
+		goto error;
+	}
+	UTI_INFO("DRA definition path set to %s\n", dra_def_file.c_str());
+
+	if(access(dra_def_file.c_str(), R_OK) < 0)
+	{
+		UTI_ERROR("cannot access '%s' file (%s)\n",
+		          dra_def_file.c_str(), strerror(errno));
+		goto error;
+	}
+	// load all the DRA definitions from file
+	if(!this->fmt_simu.setDraSchemeDefFile(dra_def_file))
+	{
+		goto error;
 	}
 
 	return true;
@@ -328,28 +335,32 @@ error:
 bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
                           long carrier_id)
 {
-	std::list<DvbFrame *>::iterator frame;
+	std::list<DvbFrame *>::iterator frame_it;
 	bool status = true;
 
 	// send all complete DVB-RCS frames
 	UTI_DEBUG_L3("send all %zu complete DVB-RCS frames...\n",
 	             complete_frames->size());
-	for(frame = complete_frames->begin();
-	    frame != complete_frames->end();
-	    frame = complete_frames->erase(frame))
+	for(frame_it = complete_frames->begin();
+	    frame_it != complete_frames->end();
+	    ++frame_it)
 	{
+		DvbFrame *frame = dynamic_cast<DvbFrame *>(*frame_it);
+
 		// Send DVB frames to lower layer
-		if(!this->sendDvbFrame(dynamic_cast<DvbFrame *>(*frame), carrier_id))
+		if(!this->sendDvbFrame(frame, carrier_id))
 		{
 			status = false;
+			delete frame;
 			continue;
 		}
 
 		// DVB frame is now sent, so delete its content
-		// and remove it from the list (done in the for() statement)
-		delete (*frame);
+		delete frame;
 		UTI_DEBUG("complete DVB frame sent to carrier %ld\n", carrier_id);
 	}
+	// clear complete DVB frames
+	complete_frames->clear();
 
 	return status;
 }
@@ -397,7 +408,7 @@ bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 		goto release_dvb_frame;
 	}
 
-	UTI_DEBUG("end of message sending\n");
+	UTI_DEBUG_L3("end of message sending on carrier %li\n", carrier_id);
 
 	return true;
 

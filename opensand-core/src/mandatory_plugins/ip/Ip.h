@@ -57,7 +57,7 @@
 class Ip: public LanAdaptationPlugin
 {
   public:
-	  
+
 	/**
 	 * @class Context
 	 * @brief IP context
@@ -111,7 +111,7 @@ class Ip: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-			
+
 	  public:
 
 		PacketHandler(LanAdaptationPlugin &plugin):
@@ -130,7 +130,7 @@ class Ip: public LanAdaptationPlugin
 		NetPacket *build(unsigned char *data, size_t data_length,
 		                 uint8_t qos,
 		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id);
+		                 uint8_t dst_tal_id) const;
 	};
 	
 	/// Constructor

@@ -164,7 +164,13 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="spots"  />
+            <xsd:element ref="spots">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The spot description table for emulation
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -178,7 +184,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="switchs" />
+            <xsd:element ref="switchs">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The witching table for satellite
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

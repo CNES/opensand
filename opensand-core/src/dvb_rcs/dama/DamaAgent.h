@@ -39,22 +39,25 @@
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 #include "OpenSandCore.h"
-
 #include "EncapPlugin.h"
 
-#include <vector>
+#include <map>
 #include <list>
 
+using std::map;
+using std::list;
 
+//TODO remove
 /// DAMA agent statistics context
 typedef struct
 {
 	rate_kbps_t rbdc_request_kbps; ///< RBDC request sent at this frame (in kbits/s)
-	vol_pkt_t vbdc_request_pkt;        ///< VBDC request sent at this frame (in cell nb)
+	vol_pkt_t vbdc_request_kb;     ///< VBDC request sent at this frame (in kbits)
 	rate_kbps_t cra_alloc_kbps;    ///< fixed bandwith allocated in kbits/s
 	rate_kbps_t global_alloc_kbps; ///< global bandwith allocated in kbits/s
-	rate_kbps_t unused_alloc_kbps;  ///< unused bandwith in kbits/s
+	rate_kbps_t unused_alloc_kbps; ///< unused bandwith in kbits/s
 } da_stat_context_t;
+// TODO we should not display and record  statistics for which nothing was received
 
 
 /**
@@ -71,11 +74,8 @@ class DamaAgent
 	/**
 	 * Build a Dama agent.
 	 *
-	 * @param packet_handler the packet handler
-	 * @param dvb_fifos                The MAC FIFOs
 	 */
-	DamaAgent(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	          const std::map<unsigned int, DvbFifo *> &dvb_fifos);
+	DamaAgent();
 
 	/**
 	 * Destroy the Dama Agent.
@@ -85,29 +85,33 @@ class DamaAgent
 	/**
 	 * @brief  Initalize the DAMA Agent common parameters
 	 *
-	 * @param superframe_duration_ms   The superframe duration (in ms)
-	 * @param cra_kbps                 The CRA value (in kbits/s)
-	 * @param max_rbdc_kbps            The maximum RBDC value (in kbits/s)
-	 * @param rbdc_timeout_sf          The RBDC timeout (in superframe number)
-	 * @param max_vbdc_pkt             The maximum VBDC value (in number of packets/cells)
-	 * @param msl_sf                   The MSL (Minimum Scheduling Latency) value
-	 *                                 (time between CR emission and TTP reception
-	 *                                  in superframe number)
-	 * @param obr_period_sf            The OBR (OutBand request) period
-	 *                                 (used to determine when a request should
-	 *                                  be sent in superframe number)
-	 * @param cr_output_only           Whether only output FIFO size is computed
-	 *                                 for CR generation
+	 * @param frame_duration_ms      The frame duration (in ms)
+	 * @param cra_kbps               The CRA value (in kbits/s)
+	 * @param max_rbdc_kbps          The maximum RBDC value (in kbits/s)
+	 * @param rbdc_timeout_sf        The RBDC timeout (in superframe number)
+	 * @param max_vbdc_pkt           The maximum VBDC value (in number of packets)
+	 * @param msl_sf                 The MSL (Minimum Scheduling Latency) value
+	 *                               (time between CR emission and TTP reception
+	 *                                in superframe number)
+	 * @param obr_period_sf          The OBR (OutBand request) period
+	 *                               (used to determine when a request should
+	 *                                be sent in superframe number)
+	 * @param cr_output_only         Whether only output FIFO size is computed
+	 *                               for CR generation
+	 * @param packet_handler         The packet handler
+	 * @param dvb_fifos              The MAC FIFOs
 	 * @return true on success, false otherwise
 	 */
-    bool initParent(time_ms_t superframe_duration_ms,
-                    rate_kbps_t cra,
-                    rate_kbps_t max_rbdc_kb,
-                    time_sf_t rbdc_timeout_sf,
-                    vol_pkt_t max_vbdc_pkt,
-                    time_sf_t msl_sf,
-                    time_sf_t obr_period_sf,
-                    bool cr_output_only);
+	bool initParent(time_ms_t frame_duration_ms,
+	                rate_kbps_t cra_kbps,
+	                rate_kbps_t max_rbdc_kbps,
+	                time_sf_t rbdc_timeout_sf,
+	                vol_pkt_t max_vbdc_pkt,
+	                time_sf_t msl_sf,
+	                time_sf_t obr_period_sf,
+	                bool cr_output_only,
+	                const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                const map<unsigned int, DvbFifo *> &dvb_fifos);
 
 	/**
 	 * @brief Initialize the instatiated Dama Agent
@@ -146,7 +150,7 @@ class DamaAgent
 	 * @param ttp received TTP.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsTTP(const Ttp &ttp) = 0;
+	virtual bool hereIsTTP(Ttp &ttp) = 0;
 
 	/**
 	 * @brief Build Capacity Requests.
@@ -157,7 +161,7 @@ class DamaAgent
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool buildCR(cr_type_t cr_type,
-	                     CapacityRequest **capacity_request,
+	                     CapacityRequest &capacity_request,
 	                     bool &empty) = 0;
 
 	/**
@@ -166,7 +170,7 @@ class DamaAgent
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool uplinkSchedule(list<DvbFrame *> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -176,33 +180,25 @@ class DamaAgent
 	virtual bool processOnFrameTick();
 
 	/**
-	 * @brief  Get the statistics context.
-	 *
-	 * @return Statistics context.
+	 * @brief  Update the DAMA statistics
+	 *         Called each frame
 	 */
-	da_stat_context_t getStatsCxt() const;
-
-	/**
-	 * @brief Reset the statistics context.
-	 */
-	void resetStatsCxt();
+	virtual void updateStatistics() = 0;
 
 	/*** Wrappers TODO remove !! ***/
 	virtual bool hereIsSOF(unsigned char *buf, size_t len);
 	virtual bool hereIsLogonResp(unsigned char *buf, size_t len);
-
-	virtual bool hereIsTTP(unsigned char *buf, size_t len) = 0;
 
 
 protected:
 	/** Flag if initialisation of base class has been done */
 	bool is_parent_init;
 
-    /** The packet representation */
+	/** The packet representation */
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 
 	/** The MAC FIFOs */
-    const std::map<unsigned int, DvbFifo *> dvb_fifos;
+	map<unsigned int, DvbFifo *> dvb_fifos;
 
 	/** Terminal ID of the ST */
 	tal_id_t tal_id;
@@ -238,5 +234,6 @@ protected:
 	bool cr_output_only;
 
 };
+
 #endif
 

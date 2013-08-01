@@ -134,7 +134,7 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 	{
 		NetBurst *aal5_packets;
 		uint8_t dst_tal_id;
-		
+
 		// packet must be valid
 		if(*packet == NULL)
 		{
@@ -160,7 +160,7 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 			UTI_DEBUG("%s encapsulation packet is for ST#%u. Drop\n",
 			          FUNCNAME, dst_tal_id);
 			continue;
-		}		
+		}
 
 		aal5_packets = this->deencapAtm(*packet);
 		if(aal5_packets == NULL)
@@ -471,7 +471,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		uint16_t dest_spot;
 		uint8_t src_tal_id, dst_tal_id;
 		uint8_t qos;
-		
+
 		// cast from a generic packet to an AAL5 packet
 		aal5_packet = dynamic_cast<Aal5Packet *>(*it);
 		if(aal5_packet == NULL)
@@ -488,9 +488,10 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		dst_tal_id = aal5_packet->getDstTalId();
 		qos = aal5_packet->getQos();
 
-		packet = this->current_upper->build((unsigned char *)(aal5_packet->getPayload().c_str()),
-		                                    aal5_packet->getPayloadLength(),
-		                                    qos, src_tal_id, dst_tal_id);
+		packet = this->current_upper->build(
+				(unsigned char *)(aal5_packet->getPayload().c_str()),
+				aal5_packet->getPayloadLength(),
+				qos, src_tal_id, dst_tal_id);
 		if(packet == NULL)
 		{
 			UTI_ERROR("%s cannot build a %s packet, drop the AAL5 packet\n",
@@ -503,7 +504,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 
 		// add the IP packet to the list
 		net_packets->add(packet);
-	
+
 		UTI_DEBUG("%s %s packet added to the burst (proto %u)\n", FUNCNAME,
 		          packet->getName().c_str(), packet->getType());
 
@@ -518,7 +519,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 NetPacket *Atm::PacketHandler::build(unsigned char *data, size_t data_length,
                                      uint8_t UNUSED(_qos),
                                      uint8_t UNUSED(_src_tal_id),
-                                     uint8_t UNUSED(_dst_tal_id))
+                                     uint8_t UNUSED(_dst_tal_id)) const
 {
 	const char *FUNCNAME = "[Atm::PacketHandler::build]";
 	uint8_t qos;
@@ -542,7 +543,7 @@ NetPacket *Atm::PacketHandler::build(unsigned char *data, size_t data_length,
 }
 
 bool Atm::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
-                                  NetPacket **data, NetPacket **remaining_data)
+                                  NetPacket **data, NetPacket **remaining_data) const
 {
 	*data = NULL;
 	*remaining_data = NULL;
@@ -554,7 +555,7 @@ bool Atm::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	{
 		*data = packet;
 	}
-		
+
 	return true;
 }
 

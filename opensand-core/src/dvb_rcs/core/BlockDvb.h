@@ -103,6 +103,14 @@ class BlockDvb: public Block
 	bool initModcodFiles();
 
 	/**
+	 * @brief Read configuration for the DRA scheme definition/simulation files
+	 *        Call @initDraDef function
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initDraFiles();
+
+	/**
 	 * Send the complete DVB frames created
 	 * by ef DvbRcsStd::scheduleEncapPackets or
 	 * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
@@ -120,23 +128,14 @@ class BlockDvb: public Block
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
-	/// the DAMA algorithpm
-	string dama_algo;
-
 	/// the frame duration
-	int frame_duration;
+	time_ms_t frame_duration_ms;
 
 	/// the number of frame per superframe
-	int frames_per_superframe;
+	unsigned int frames_per_superframe;
 
-	/// the MODCOD definition file
-	string modcod_def;
-	/// the MODCOD simulation file
-	string modcod_simu;
-	/// the DRA definition file
-	string dra_def;
-	/// the DRA simulation file
-	string dra_simu;
+	/// The MODCOD and DRA simulation elements
+	FmtSimulation fmt_simu;
 
 	/// the scenario refresh interval
 	int dvb_scenario_refresh;
@@ -146,7 +145,7 @@ class BlockDvb: public Block
 
 	/// The down/forward link encapsulation packet
 	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
-	
+
 	/// output events
 	static Event *error_init;
 	static Event *event_login_received;

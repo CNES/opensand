@@ -33,19 +33,22 @@
  */
 
 
+#define DBG_PACKAGE PKG_DAMA_DA
+#include <opensand_conf/uti_debug.h>
+
 #include "UplinkSchedulingRcs.h"
 #include "MacFifoElement.h"
 #include "msg_dvb_rcs.h"
 
-#include <opensand_conf/uti_debug.h>
 
-UplinkSchedulingRcs::UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
-                                         const std::map<unsigned int, DvbFifo *> &fifos):
+UplinkSchedulingRcs::UplinkSchedulingRcs(
+			const EncapPlugin::EncapPacketHandler *packet_handler,
+			const map<unsigned int, DvbFifo *> &fifos):
 	UplinkScheduling(packet_handler, fifos)
 {
 	// set the number of PVC = the maximum PVC is (first PVC id is 1)
 	this->max_pvc = 0;
-	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		this->max_pvc = std::max((*it).second->getPvc(), this->max_pvc);
@@ -55,7 +58,7 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *
 
 bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
                                    const time_frame_t current_frame,
-                                   std::list<DvbFrame *> *complete_dvb_frames,
+                                   list<DvbFrame *> *complete_dvb_frames,
                                    uint16_t &remaining_allocation)
 {
 	// for each PVC, schedule MAC Fifos
@@ -81,19 +84,19 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
                                       const time_sf_t current_superframe_sf,
                                       const time_frame_t current_frame,
-                                      std::list<DvbFrame *> *complete_dvb_frames,
-                                      rate_pktpsf_t &remaining_allocation_pktpsf)
+                                      list<DvbFrame *> *complete_dvb_frames,
+                                      rate_pktpf_t &remaining_allocation_pktpf)
 {
 	unsigned int complete_frames_count;
 	DvbRcsFrame *incomplete_dvb_frame = NULL;
 	bool ret = true;
-	rate_pktpsf_t init_alloc = remaining_allocation_pktpsf;
-	std::map<unsigned int, DvbFifo *>::const_iterator fifo_it;
+	rate_pktpf_t init_alloc_pktpf = remaining_allocation_pktpf;
+	map<unsigned int, DvbFifo *>::const_iterator fifo_it;
 
 	UTI_DEBUG("SF#%u: frame %u: attempt to extract encap packets from "
 	          "MAC FIFOs for PVC %d (remaining allocation = %d packets)\n",
 	          current_superframe_sf, current_frame,
-	          pvc, remaining_allocation_pktpsf);
+	          pvc, remaining_allocation_pktpf);
 
 	// create an incomplete DVB-RCS frame
 	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -103,10 +106,11 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 
 	// extract encap packets from MAC FIFOs while some UL capacity is available
 	// (MAC fifos priorities are in MAC IDs order)
+	// TODO check that fifo are correctly classified
 	complete_frames_count = 0;
 	fifo_it = this->dvb_fifos.begin();
 	while(fifo_it != this->dvb_fifos.end() &&
-	      remaining_allocation_pktpsf > 0)
+	      remaining_allocation_pktpf > 0)
 	{
 		NetPacket *encap_packet;
 		MacFifoElement *elem;
@@ -147,7 +151,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			             fifo->getPriority(),
 			             fifo->getPvc(),
 			             fifo->getCurrentSize(),
-			             remaining_allocation_pktpsf);
+			             remaining_allocation_pktpf);
 
 			// extract next encap packet context from MAC fifo
 			elem = fifo->pop();
@@ -192,7 +196,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			if(!incomplete_dvb_frame->addPacket(encap_packet))
 			{
 				UTI_ERROR("SF#%u: frame %u: cannot add "
-				          "extracted MAC cell in "
+				          "extracted MAC packet in "
 				          "DVB frame #%u\n",
 				          current_superframe_sf, current_frame,
 				          complete_frames_count + 1);
@@ -208,7 +212,7 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 			delete encap_packet;
 
 			// update allocation
-			remaining_allocation_pktpsf--;
+			remaining_allocation_pktpf--;
 		}
 	}
 
@@ -234,9 +238,9 @@ bool UplinkSchedulingRcs::macSchedule(const unsigned int pvc,
 	          "for PVC %d, %u DVB frame(s) were built (remaining allocation "
 	          "= %d packets)\n",
 	          current_superframe_sf, current_frame,
-	          init_alloc - remaining_allocation_pktpsf,
+	          init_alloc_pktpf - remaining_allocation_pktpf,
 	          pvc, complete_frames_count,
-	          remaining_allocation_pktpsf);
+	          remaining_allocation_pktpf);
 
 	return ret;
 error:
@@ -256,7 +260,8 @@ bool UplinkSchedulingRcs::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame
 	// set the max size of the DVB-RCS frame, also set the type
 	// of encapsulation packets the DVB-RCS frame will contain
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketEtherType(this->packet_handler->getEtherType());
+	(*incomplete_dvb_frame)->setEncapPacketEtherType(
+						this->packet_handler->getEtherType());
 
 	return true;
 

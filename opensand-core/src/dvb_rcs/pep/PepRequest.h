@@ -35,6 +35,7 @@
 #ifndef PEP_REQUEST_H
 #define PEP_REQUEST_H
 
+#include "OpenSandCore.h"
 
 /**
  * @brief The different type of requests the PEP may send
@@ -60,27 +61,28 @@ class PepRequest
 	/** The type of PEP request */
 	pep_request_type_t type;
 	/** The ST the PEP request is for */
-	unsigned int st_id;
+	tal_id_t st_id;
 	/** The CRA of the PEP request */
-	unsigned int cra;
+	rate_kbps_t cra_kbps;
 	/** The RBDC of the PEP request */
-	unsigned int rbdc;
+	rate_kbps_t rbdc_kbps;
 	/** The RBDCmax of the PEP request */
-	unsigned int rbdc_max;
+	rate_kbps_t rbdc_max_kbps;
 
 
  public:
 
-	PepRequest(pep_request_type_t type, unsigned int st_id,
-	           unsigned int cra, unsigned int rbdc, unsigned int rbdc_max);
+	PepRequest(pep_request_type_t type, tal_id_t st_id,
+	           rate_kbps_t cra_kbps, rate_kbps_t rbdc_kbps,
+	           rate_kbps_t rbdc_max_kbps);
 
 	~PepRequest();
 
-	pep_request_type_t getType();
-	unsigned int getStId();
-	unsigned int getCra();
-	unsigned int getRbdc();
-	unsigned int getRbdcMax();
+	pep_request_type_t getType() const;
+	tal_id_t getStId() const;
+	rate_kbps_t getCra() const;
+	rate_kbps_t getRbdc() const;
+	rate_kbps_t getRbdcMax() const;
 };
 
 #endif

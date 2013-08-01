@@ -39,6 +39,16 @@
 #include <opensand_conf/uti_debug.h>
 
 
+#include "BlockDvbNcc.h"
+
+#include "DamaCtrlRcsLegacy.h"
+
+#include "msg_dvb_rcs.h"
+#include "DvbRcsStd.h"
+#include "DvbS2Std.h"
+
+#include <opensand_output/Output.h>
+
 #include <string.h>
 #include <errno.h>
 #include <math.h>
@@ -53,19 +63,6 @@
 #include <sstream>
 #include <ios>
 
-#include "BlockDvbNcc.h"
-
-#include "lib_dama_ctrl_yes.h"
-#include "lib_dama_ctrl_legacy.h"
-#include "lib_dama_ctrl_uor.h"
-#include "OpenSandCore.h"
-
-#include "msg_dvb_rcs.h"
-#include "DvbRcsStd.h"
-#include "DvbS2Std.h"
-
-#include <opensand_output/Output.h>
-
 
 /**
  * Constructor
@@ -73,7 +70,7 @@
 BlockDvbNcc::BlockDvbNcc(const string &name):
 	BlockDvb(name),
 	NccPepInterface(),
-	m_pDamaCtrl(NULL),
+	dama_ctrl(NULL),
 	m_carrierIdDvbCtrl(-1),
 	m_carrierIdSOF(-1),
 	m_carrierIdData(-1),
@@ -83,6 +80,7 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	macId(GW_TAL_ID),
 	complete_dvb_frames(),
 	scenario_timer(-1),
+	fmt_groups(),
 	pep_cmd_apply_timer(-1),
 	pepAllocDelay(-1),
 	event_file(NULL),
@@ -92,7 +90,9 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	simu_st(-1),
 	simu_rt(-1),
 	simu_cr(-1),
-	simu_interval(-1)
+	simu_interval(-1),
+	event_logon_req(NULL),
+	event_logon_resp(NULL)
 {
 	this->incoming_size = 0;
 	this->probe_incoming_throughput = NULL;
@@ -106,8 +106,8 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
  */
 BlockDvbNcc::~BlockDvbNcc()
 {
-	if(this->m_pDamaCtrl != NULL)
-		delete this->m_pDamaCtrl;
+	if(this->dama_ctrl != NULL)
+		delete this->dama_ctrl;
 	if(this->emissionStd != NULL)
 		delete this->emissionStd;
 	if(this->receptionStd != NULL)
@@ -133,6 +133,12 @@ BlockDvbNcc::~BlockDvbNcc()
 		fclose(this->simu_file);
 	}
 	this->data_dvb_fifo.flush();
+	// delete FMT groups here because they may be present in many carriers
+	for(fmt_groups_t::iterator it = this->fmt_groups.begin();
+	    it != this->fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
 }
 
 
@@ -207,10 +213,10 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					this->sendSOF();
 
 					// run the allocation algorithms (DAMA)
-					this->m_pDamaCtrl->runOnSuperFrameChange(this->super_frame_counter);
+					this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
-					// send TBTP computed by DAMA
-					this->sendTBTP();
+					// send TTP computed by DAMA
+					this->sendTTP();
 				}
 
 				// schedule encapsulation packets
@@ -237,7 +243,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				// it's time to update MODCOD and DRA scheme IDs
 				UTI_DEBUG_L3("MODCOD/DRA scenario timer received\n");
 
-				if(!this->emissionStd->goNextStScenarioStep())
+				if(!this->fmt_simu.goNextScenarioStep())
 				{
 					UTI_ERROR("SF#%ld: failed to update MODCOD "
 							  "or DRA scheme IDs\n",
@@ -249,6 +255,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 								 "successfully updated\n",
 								 this->super_frame_counter);
 				}
+				// for each terminal in DamaCtrl update DRA min
+				this->dama_ctrl->updateFmt();
 			}
 			else if(*event == this->pep_cmd_apply_timer)
 			{
@@ -260,7 +268,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				UTI_INFO("apply PEP requests now\n");
 				while((pep_request = this->getNextPepRequest()) != NULL)
 				{
-					if(m_pDamaCtrl->applyPepCommand(pep_request))
+					if(this->dama_ctrl->applyPepCommand(pep_request))
 					{
 						UTI_INFO("PEP request successfully "
 						         "applied in DAMA\n");
@@ -455,14 +463,6 @@ bool BlockDvbNcc::onInit()
 		goto error;
 	}
 
-	// initialize the timers
-	if(!this->initDownwardTimers())
-	{
-		UTI_ERROR("failed to complete the timers part of the "
-		          "initialisation");
-		goto error;
-	}
-
 	if(!this->initMode())
 	{
 		UTI_ERROR("failed to complete the mode part of the "
@@ -500,20 +500,20 @@ bool BlockDvbNcc::onInit()
 		          "initialisation");
 		goto release_dama;
 	}
-	
-	// initilize probes
-	this->probe_incoming_throughput =
-		Output::registerProbe<float>("Physical incoming throughput",
-		                             "Kbits/s", true, SAMPLE_AVG);
 
-	// Set #sf and launch frame timer
-	this->super_frame_counter = 0;
-	this->frame_timer = this->downward->addTimerEvent("frame",
-	                                                  this->frame_duration);
+	if(!this->initOutput())
+	{
+		UTI_ERROR("failed to complete the initialization of statistics\n");
+		goto release_dama;
+	}
 
-	// Launch the timer in order to retrieve the modcods
-	this->scenario_timer = this->downward->addTimerEvent("scenario",
-	                                                     this->dvb_scenario_refresh);
+	// initialize the timers
+	if(!this->initDownwardTimers())
+	{
+		UTI_ERROR("failed to complete the timers part of the "
+		          "initialisation");
+		goto release_dama;
+	}
 
 	// get the column number for GW in MODCOD/DRA simulation files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
@@ -533,8 +533,8 @@ bool BlockDvbNcc::onInit()
 	}
 
 	// declare the GW as one ST for the MODCOD/DRA scenarios
-	if(!this->emissionStd->addSatelliteTerminal(GW_TAL_ID,
-	                                            simu_column_num))
+	if(!this->fmt_simu.addTerminal(GW_TAL_ID,
+	                               simu_column_num))
 	{
 		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
 		          GW_TAL_ID);
@@ -542,8 +542,8 @@ bool BlockDvbNcc::onInit()
 	}
 
 	// allocate memory for the BB frame if DVB-S2 standard is used
-	if(this->emissionStd->type() == "DVB-S2" ||
-	   this->receptionStd->type() == "DVB-S2")
+	if(this->emissionStd->getType() == "DVB-S2" ||
+	   this->receptionStd->getType() == "DVB-S2")
 	{
 		this->m_bbframe = new std::map<int, T_DVB_BBFRAME *>;
 		if(this->m_bbframe == NULL)
@@ -560,7 +560,7 @@ bool BlockDvbNcc::onInit()
 	{
 		UTI_ERROR("SF#%ld: failed to allocate memory for link_is_up "
 		          "message\n", this->super_frame_counter);
-		goto release_dama;
+		goto release_frames;
 	}
 	link_is_up->group_id = 0;
 	link_is_up->tal_id = GW_TAL_ID;
@@ -570,7 +570,7 @@ bool BlockDvbNcc::onInit()
 		UTI_ERROR("SF#%ld: failed to send link up message to upper layer",
 		          this->super_frame_counter);
 		delete link_is_up;
-		goto release_dama;
+		goto release_frames;
 	}
 	UTI_DEBUG_L3("SF#%ld Link is up msg sent to upper layer\n",
 	             this->super_frame_counter);
@@ -579,17 +579,20 @@ bool BlockDvbNcc::onInit()
 	if(!this->listenForPepConnections())
 	{
 		UTI_ERROR("failed to listen for PEP connections\n");
-		goto release_dama;
+		goto release_frames;
 	}
 	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
 	// everything went fine
 	return true;
 
+release_frames:
+	delete this->m_bbframe;
 release_dama:
-	delete m_pDamaCtrl;
+	delete this->dama_ctrl;
 error_mode:
-	// TODO: release the emission and reception standards here
+	delete this->emissionStd;
+	delete this->receptionStd;
 error:
 	return false;
 }
@@ -597,14 +600,13 @@ error:
 
 bool BlockDvbNcc::initRequestSimulation()
 {
-	const char *FUNCNAME = DBG_PREFIX "[initRequestSimulation]";
 	string str_config;
 
 	// Get and open the event file
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
 	{
-		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-		        FUNCNAME, DVB_EVENT_FILE, DVB_NCC_SECTION);
+		UTI_ERROR("cannot load parameter %s from section %s\n",
+		        DVB_EVENT_FILE, DVB_NCC_SECTION);
 		goto error;
 	}
 	if(str_config ==  "stdout")
@@ -620,24 +622,24 @@ bool BlockDvbNcc::initRequestSimulation()
 		this->event_file = fopen(str_config.c_str(), "a");
 		if(this->event_file == NULL)
 		{
-			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
+			UTI_ERROR("%s\n", strerror(errno));
 		}
 	}
 	if(this->event_file == NULL && str_config != "none")
 	{
-		UTI_ERROR("%s no record file will be used for event\n", FUNCNAME);
+		UTI_ERROR("no record file will be used for event\n");
 	}
 	else if(this->event_file != NULL)
 	{
-		UTI_INFO("%s events recorded in %s.\n", FUNCNAME, str_config.c_str());
+		UTI_INFO("events recorded in %s.\n", str_config.c_str());
 	}
 
 	// Get and open the stat file
 	this->stat_file = NULL;
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_STAT_FILE, str_config))
 	{
-		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-		          FUNCNAME, DVB_STAT_FILE, DVB_NCC_SECTION);
+		UTI_ERROR("cannot load parameter %s from section %s\n",
+		          DVB_STAT_FILE, DVB_NCC_SECTION);
 		goto error;
 	}
 	if(str_config == "stdout")
@@ -653,16 +655,16 @@ bool BlockDvbNcc::initRequestSimulation()
 		this->stat_file = fopen(str_config.c_str(), "a");
 		if(this->stat_file == NULL)
 		{
-			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
+			UTI_ERROR("%s\n", strerror(errno));
 		}
 	}
 	if(this->stat_file == NULL && str_config != "none")
 	{
-		UTI_ERROR("%s no record file will be used for statistics\n", FUNCNAME);
+		UTI_ERROR("no record file will be used for statistics\n");
 	}
 	else if(this->stat_file != NULL)
 	{
-		UTI_INFO("%s statistics recorded in %s.\n", FUNCNAME, str_config.c_str());
+		UTI_INFO("statistics recorded in %s.\n", str_config.c_str());
 	}
 
 	// Get and set simulation parameter
@@ -670,8 +672,8 @@ bool BlockDvbNcc::initRequestSimulation()
 	this->simulate = none_simu;
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_MODE, str_config))
 	{
-		UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-		          FUNCNAME, DVB_SIMU_MODE, DVB_NCC_SECTION);
+		UTI_ERROR("cannot load parameter %s from section %s\n",
+		          DVB_SIMU_MODE, DVB_NCC_SECTION);
 		goto error;
 	}
 
@@ -679,8 +681,8 @@ bool BlockDvbNcc::initRequestSimulation()
 	{
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
 		{
-			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-			          FUNCNAME, DVB_SIMU_FILE, DVB_NCC_SECTION);
+			UTI_ERROR("cannot load parameter %s from section %s\n",
+			          DVB_SIMU_FILE, DVB_NCC_SECTION);
 			goto error;
 		}
 		if(str_config == "stdin")
@@ -693,16 +695,16 @@ bool BlockDvbNcc::initRequestSimulation()
 		}
 		if(this->simu_file == NULL && str_config != "none")
 		{
-			UTI_ERROR("%s %s\n", FUNCNAME, strerror(errno));
-			UTI_ERROR("%s no simulation file will be used.\n", FUNCNAME);
+			UTI_ERROR("%s\n", strerror(errno));
+			UTI_ERROR("no simulation file will be used.\n");
 		}
 		else
 		{
-			UTI_INFO("%s events simulated from %s.\n", FUNCNAME,
+			UTI_INFO("events simulated from %s.\n",
 			         str_config.c_str());
 			this->simulate = file_simu;
 			this->simu_timer = this->upward->addTimerEvent("simu_file",
-			                                               this->frame_duration);
+			                                               this->frame_duration_ms);
 		}
 	}
 	else if(str_config == "random")
@@ -711,33 +713,33 @@ bool BlockDvbNcc::initRequestSimulation()
 
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_RANDOM, str_config))
 		{
-			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-			          FUNCNAME, DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-			goto error;
+			UTI_ERROR("cannot load parameter %s from section %s\n",
+			          DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+            goto error;
 		}
 		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld", &this->simu_st,
 		             &this->simu_rt, &this->simu_cr, &this->simu_interval);
 		if(val < 4)
 		{
-			UTI_ERROR("%s: cannot load parameter %s from section %s\n",
-			          FUNCNAME, DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+			UTI_ERROR("cannot load parameter %s from section %s\n",
+			          DVB_SIMU_RANDOM, DVB_NCC_SECTION);
 			goto error;
 		}
 		else
 		{
-			UTI_INFO("%s random events simulated for %ld terminals with "
+			UTI_INFO("random events simulated for %ld terminals with "
 			         "%ld kb/s bandwidth, a mean request of %ld kb/s and "
-			         "a request amplitude of %ld kb/s)" , FUNCNAME,
+			         "a request amplitude of %ld kb/s)" ,
 			         this->simu_st, this->simu_rt, this->simu_cr, this->simu_interval);
 		}
 		this->simulate = random_simu;
 		this->simu_timer = this->upward->addTimerEvent("simu_random",
-		                                               this->frame_duration);
+		                                               this->frame_duration_ms);
 		srandom(times(NULL));
 	}
 	else
 	{
-		UTI_INFO("%s no event simulation\n", FUNCNAME);
+		UTI_INFO("no event simulation\n");
 	}
 
     return true;
@@ -749,7 +751,6 @@ error:
 
 bool BlockDvbNcc::initDownwardTimers()
 {
-	// TODO move all timer creation here !
 	// TODO move in BlockDvbNcc::Downward::onInit
 	int val;
 
@@ -769,6 +770,15 @@ bool BlockDvbNcc::initDownwardTimers()
 	                                                          false // do not start
 	                                                          );
 
+	// Set #sf and launch frame timer
+	this->super_frame_counter = 0;
+	this->frame_timer = this->downward->addTimerEvent("frame",
+	                                                  this->frame_duration_ms);
+
+	// Launch the timer in order to retrieve the modcods
+	this->scenario_timer = this->downward->addTimerEvent("scenario",
+	                                                     this->dvb_scenario_refresh);
+
 	return true;
 
 error:
@@ -778,17 +788,44 @@ error:
 
 bool BlockDvbNcc::initMode()
 {
+	freq_mhz_t bandwidth_mhz;
+	double roll_off;
+
+	// Get the value of the bandwidth
+	if(!globalConfig.getValue(DOWN_FORWARD_BAND, BANDWIDTH,
+	                          bandwidth_mhz))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DOWN_FORWARD_BAND, BANDWIDTH);
+		goto error;
+	}
+
+	// Get the value of the roll off
+	if(!globalConfig.getValue(DOWN_FORWARD_BAND, ROLL_OFF,
+	                          roll_off))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DOWN_FORWARD_BAND, ROLL_OFF);
+		goto error;
+	}
+
 	// initialize the emission and reception standards depending
 	// on the satellite type
+	// TODO new Scheduling !
 	if(this->satellite_type == TRANSPARENT)
 	{
-		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl,
+		                                 &this->fmt_simu,
+		                                 this->frame_duration_ms,
+		                                 bandwidth_mhz * 1000);
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
 		this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
-		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		// no need to set fmt_simu, frame duration and bandwidth for reception
+		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl,
+		                                  NULL, 0, 0);
 	}
 	else
 	{
@@ -806,9 +843,6 @@ bool BlockDvbNcc::initMode()
 		UTI_ERROR("failed to create the reception standard\n");
 		goto release_standards;
 	}
-
-	// set frame duration in emission standard
-	this->emissionStd->setFrameDuration(this->frame_duration);
 
 	return true;
 
@@ -865,7 +899,11 @@ error:
 
 bool BlockDvbNcc::initFiles()
 {
-	if(this->emissionStd->type() == "DVB-S2")
+	// we need DRA simulation in these cases
+	if((this->satellite_type == TRANSPARENT &&
+	    this->receptionStd->getType() == "DVB-RCS") ||
+	   (this->satellite_type == REGENERATIVE &&
+	    this->emissionStd->getType() == "DVB-RCS"))
 	{
 		if(!this->initDraFiles())
 		{
@@ -874,7 +912,9 @@ bool BlockDvbNcc::initFiles()
 		}
 	}
 
-	if(this->emissionStd->type() == "DVB-S2")
+	// we need MODCOD emulation in this cases
+	if((this->satellite_type == TRANSPARENT &&
+	    this->emissionStd->getType() == "DVB-S2"))
 	{
 		if(!this->initModcodFiles())
 		{
@@ -884,9 +924,9 @@ bool BlockDvbNcc::initFiles()
 	}
 
 	// initialize the MODCOD and DRA scheme IDs
-	if(!this->emissionStd->goNextStScenarioStep())
+	if(!this->fmt_simu.goNextScenarioStep())
 	{
-		UTI_ERROR("failed to initialize MODCOD or DRA scheme IDs\n");
+		UTI_ERROR("failed to initialize MODCOD scheme IDs\n");
 		goto error;
 	}
 
@@ -895,67 +935,310 @@ bool BlockDvbNcc::initFiles()
 error:
 	return false;
 }
-
-bool  BlockDvbNcc::initDraFiles()
-{
-	if(access(this->dra_def.c_str(), R_OK) < 0)
-	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          this->dra_def.c_str(), strerror(errno));
-		goto error;
-	}
-	UTI_INFO("DRA scheme definition file = '%s'\n", this->dra_def.c_str());
-
-	// load all the DRA scheme definitions from file
-	if(!dynamic_cast<DvbS2Std *>
-            (this->emissionStd)->loadDraSchemeDefinitionFile(this->dra_def))
-	{
-		goto error;
-	}
-
-	if(access(this->dra_simu.c_str(), R_OK) < 0)
-	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          this->dra_simu.c_str(), strerror(errno));
-		goto error;
-	}
-	UTI_INFO("DRA scheme simulation file = '%s'\n", this->dra_simu.c_str());
-
-	// associate the simulation file with the list of STs
-	if(!dynamic_cast<DvbS2Std *>
-            (this->emissionStd)->loadDraSchemeSimulationFile(this->dra_simu))
-	{
-		goto error;
-	}
-
-	return true;
-
-error:
-	return false;
-}
-
 
 bool BlockDvbNcc::initDama()
 {
 	string up_return_encap_proto;
-	int ret;
+	bool cra_decrease;
+	rate_kbps_t max_rbdc_kbps;
+	time_sf_t rbdc_timeout_sf;
+	vol_pkt_t min_vbdc_pkt;
+	rate_kbps_t fca_kbps;
+	string dama_algo;
+
+	double roll_off;
+	freq_mhz_t bandwidth_mhz = 0;
+	TerminalCategories categories;
+	TerminalCategories::const_iterator cat_iter;
+	TerminalMapping terminal_affectation;
+	ConfigurationList conf_list;
+	ConfigurationList aff_list;
+	unsigned int carrier_id = 0;
+	int i;
+	string default_category_name;
+	TerminalCategory *default_category;
+
+	// Retrieving the cra decrease parameter
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
+	{
+		UTI_ERROR("missing %s parameter", DC_CRA_DECREASE);
+		goto error;
+	}
+	UTI_INFO("cra_decrease = %s\n", cra_decrease == true ? "true" : "false");
+
+	// Retrieving the free capacity assignement parameter
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_FREE_CAP, fca_kbps))
+	{
+		UTI_ERROR("missing %s parameter", DC_FREE_CAP);
+		goto error;
+	}
+	UTI_INFO("fca = %d kb/s\n", fca_kbps);
+
+	// Retrieving the max RBDC parameter
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_MAX_RBDC, max_rbdc_kbps))
+	{
+		UTI_INFO("Missing %s parameter\n", DC_MAX_RBDC);
+		return false;
+	}
+	UTI_INFO("RBDC max(kb/s): %d\n", max_rbdc_kbps);
+
+	// Retrieving the rbdc timeout parameter
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
+	{
+		UTI_ERROR("missing %s parameter", DC_RBDC_TIMEOUT);
+		goto error;
+	}
+	UTI_INFO("rbdc_timeout = %d superframes\n", rbdc_timeout_sf);
+
+	// Retrieving the min VBDC parameter
+	if(!globalConfig.getValue(DC_SECTION_NCC, DC_MIN_VBDC, min_vbdc_pkt))
+	{
+		UTI_ERROR("missing %s parameter", DC_MIN_VBDC);
+		goto error;
+	}
+	UTI_INFO("min_vbdc = %d packets\n", min_vbdc_pkt);
+
+	// Get the value of the bandwidth for return link
+	if(!globalConfig.getValue(UP_RETURN_BAND, BANDWIDTH,
+	                          bandwidth_mhz))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          UP_RETURN_BAND, BANDWIDTH);
+		goto error;
+	}
+
+	// Get the value of the roll off
+	if(!globalConfig.getValue(UP_RETURN_BAND, ROLL_OFF,
+	                          roll_off))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          UP_RETURN_BAND, ROLL_OFF);
+		goto error;
+	}
+
+	// get the FMT groups
+	if(!globalConfig.getListItems(UP_RETURN_BAND,
+	                              FMT_GROUP_LIST,
+	                              conf_list))
+	{
+		UTI_ERROR("Section %s, %s missing\n",
+		          UP_RETURN_BAND, FMT_GROUP_LIST);
+		goto error;
+	}
+
+	// create group list
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		unsigned int group_id;
+		string fmt_id;
+		FmtGroup *group;
+
+		// Get group id name
+		if(!globalConfig.getAttributeValue(iter, GROUP_ID, group_id))
+		{
+			UTI_ERROR("Problem retrieving %s in FMT groups\n",
+			          GROUP_ID);
+			goto error;
+		}
+
+		// Get FMT IDs
+		if(!globalConfig.getAttributeValue(iter, FMT_ID, fmt_id))
+		{
+			UTI_ERROR("Problem retrieving %s in FMT groups\n", FMT_ID);
+			goto error;
+		}
+
+		if(this->fmt_groups.find(group_id) != this->fmt_groups.end())
+		{
+			UTI_ERROR("Duplicated FMT group %u\n", group_id);
+			goto error;
+		}
+		group = new FmtGroup(group_id, fmt_id);
+		this->fmt_groups[group_id] = group;
+	}
+
+	conf_list.clear();
+	// get the carriers distribution
+	if(!globalConfig.getListItems(UP_RETURN_BAND, CARRIERS_DISTRI_LIST, conf_list))
+	{
+		UTI_ERROR("Section %s, %s missing\n",
+		          UP_RETURN_BAND,
+		          CARRIERS_DISTRI_LIST);
+		goto error;
+	}
+
+	i = 0;
+	carrier_id = 0;
+	// create terminal categories according to channel distribution
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		string name;
+		double ratio;
+		rate_symps_t symbol_rate_symps;
+		unsigned int group_id;
+		string access_type;
+		TerminalCategory *category;
+		fmt_groups_t::const_iterator group_it;
+
+		i++;
+
+		// Get carriers' name
+		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		{
+			UTI_ERROR("Problem retrieving %s in carriers distribution table "
+			          "entry %u\n", CATEGORY, i);
+			goto error;
+		}
+
+		// Get carriers' ratio
+		if(!globalConfig.getAttributeValue(iter, RATIO, ratio))
+		{
+			UTI_ERROR("Problem retrieving %s in carriers distribution table "
+			          "entry %u\n", RATIO, i);
+			goto error;
+		}
+
+		// Get carriers' symbol ratge
+		if(!globalConfig.getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
+		{
+			UTI_ERROR("Problem retrieving %s in carriers distribution table "
+			          "entry %u\n", SYMBOL_RATE, i);
+			goto error;
+		}
+
+		// Get carriers' FMT id
+		if(!globalConfig.getAttributeValue(iter, FMT_GROUP, group_id))
+		{
+			UTI_ERROR("Problem retrieving %s in carriers distribution table "
+			          "entry %u\n", FMT_GROUP, i);
+			goto error;
+		}
+
+		// Get carriers' access type
+		if(!globalConfig.getAttributeValue(iter, ACCESS_TYPE, access_type))
+		{
+			UTI_ERROR("Problem retrieving %s in carriers distribution table "
+			          "entry %u\n", ACCESS_TYPE, i);
+			goto error;
+		}
+
+		UTI_INFO("New carriers: category=%s, Rs=%G, FMT group=%u, "
+		         "ratio=%G, access type=%s\n", name.c_str(),
+		         symbol_rate_symps, group_id, ratio, access_type.c_str());
+		if(access_type != "DAMA")
+		{
+			UTI_ERROR("%s access type is not supported\n", access_type.c_str());
+			goto error;
+		}
+
+		group_it = this->fmt_groups.find(group_id);
+		if(group_it == this->fmt_groups.end())
+		{
+			UTI_ERROR("No entry for FMT group with ID %u\n", group_id);
+			goto error;
+		}
+
+		// create the category if it does not exist
+		cat_iter = categories.find(name);
+		category = (*cat_iter).second;
+		if(cat_iter == categories.end())
+		{
+			category = new TerminalCategory(name);
+			categories[name] = category;
+		}
+		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
+		                           symbol_rate_symps);
+		carrier_id++;
+	}
+
+	// get the default terminal category
+	if(!globalConfig.getValue(UP_RETURN_BAND, DEFAULT_AFF,
+	                          default_category_name))
+	{
+		UTI_ERROR("Missing %s parameter\n", DEFAULT_AFF);
+		goto error;
+	}
+
+	// Look for associated category
+	default_category = NULL;
+	cat_iter = categories.find(default_category_name);
+	if(cat_iter != categories.end())
+	{
+		default_category = (*cat_iter).second;
+	}
+	if(default_category == NULL)
+	{
+		UTI_ERROR("Could not find categorie %s\n",
+		          default_category_name.c_str());
+		goto error;
+	}
+	UTI_INFO("ST default category: %s\n",
+	         default_category->getLabel().c_str());
+
+	// get the terminal affectations
+	if(!globalConfig.getListItems(UP_RETURN_BAND, TAL_AFF_LIST, aff_list))
+	{
+		UTI_INFO("Missing %s parameter\n", TAL_AFF_LIST);
+		goto error;
+	}
+
+	i = 0;
+	for(ConfigurationList::iterator iter = aff_list.begin();
+	    iter != aff_list.end(); ++iter)
+	{
+		// To prevent compilator to issue warning about non initialised variable
+		tal_id_t tal_id = -1;
+		string name;
+		TerminalCategory *category;
+
+		i++;
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		{
+			UTI_ERROR("Problem retrieving %s in terminal affection table"
+			          "entry %u\n", TAL_ID, i);
+			goto error;
+		}
+		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		{
+			UTI_ERROR("Problem retrieving %s in terminal affection table"
+			          "entry %u\n", CATEGORY, i);
+			goto error;
+		}
+
+		// Look for the category
+		category = NULL;
+		cat_iter = categories.find(name);
+		if(cat_iter != categories.end())
+		{
+			category = (*cat_iter).second;
+		}
+		if(category == NULL)
+		{
+			UTI_ERROR("Could not find category %s", name.c_str());
+			goto error;
+		}
+
+		terminal_affectation[tal_id] = category;
+	}
+
+	// dama algorithm
+	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO,
+	                          dama_algo))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		goto error;
+	}
 
 	/* select the specified DAMA algorithm */
-	if(this->dama_algo == "Legacy")
+	// TODO create one DAMA per spot and add spot_id as param ?
+	if(dama_algo == "Legacy")
 	{
 		UTI_INFO("creating Legacy DAMA controller\n");
-		this->m_pDamaCtrl = new DvbRcsDamaCtrlLegacy();
+		this->dama_ctrl = new DamaCtrlRcsLegacy();
 
-	}
-	else if(this->dama_algo == "UoR")
-	{
-		UTI_INFO("creating UoR DAMA controller\n");
-		this->m_pDamaCtrl = new DvbRcsDamaCtrlUoR();
-	}
-	else if(this->dama_algo == "Yes")
-	{
-		UTI_INFO("creating Yes DAMA controller\n");
-		this->m_pDamaCtrl = new DvbRcsDamaCtrlYes();
 	}
 	else
 	{
@@ -964,41 +1247,43 @@ bool BlockDvbNcc::initDama()
 		goto error;
 	}
 
-	if(this->m_pDamaCtrl == NULL)
+	if(this->dama_ctrl == NULL)
 	{
 		UTI_ERROR("failed to create the DAMA controller\n");
 		goto error;
 	}
 
-	// initialize the DAMA controller
-	if(this->emissionStd->type() == "DVB-S2")
+	// Initialize the DamaCtrl parent class
+	if(!this->dama_ctrl->initParent(this->frame_duration_ms,
+	                                this->frames_per_superframe,
+	                                this->up_return_pkt_hdl->getFixedLength(),
+	                                cra_decrease,
+	                                max_rbdc_kbps,
+	                                rbdc_timeout_sf,
+	                                min_vbdc_pkt,
+	                                fca_kbps,
+	                                bandwidth_mhz * 1000,
+	                                roll_off,
+	                                categories,
+	                                terminal_affectation,
+	                                default_category,
+	                                &this->fmt_simu))
 	{
-		ret = this->m_pDamaCtrl->init(
-				m_carrierIdDvbCtrl,
-				this->frame_duration,
-				this->frames_per_superframe,
-				this->up_return_pkt_hdl->getFixedLength(),
-				dynamic_cast<DvbS2Std *>(this->emissionStd)->getDraSchemeDefinitions());
+		UTI_ERROR("Dama Controller Initialization failed.\n");
+		goto release_dama;
 	}
-	else
-	{
-		ret = this->m_pDamaCtrl->init(m_carrierIdDvbCtrl,
-		                              this->frame_duration,
-		                              this->frames_per_superframe,
-		                              this->up_return_pkt_hdl->getFixedLength(),
-		                              0);
-	}
-	if(ret != 0)
+
+	if(!this->dama_ctrl->init())
 	{
 		UTI_ERROR("failed to initialize the DAMA controller\n");
 		goto release_dama;
 	}
-	this->m_pDamaCtrl->setRecordFile(this->event_file, this->stat_file);
+	this->dama_ctrl->setRecordFile(this->event_file);
 
 	return true;
 
 release_dama:
-	delete this->m_pDamaCtrl;
+	delete this->dama_ctrl;
 error:
 	return false;
 }
@@ -1023,6 +1308,19 @@ error:
 	return false;
 }
 
+bool BlockDvbNcc::initOutput(void)
+{
+	this->event_logon_req = Output::registerEvent("BlockDvbNCC:logon_request",
+	                                              LEVEL_INFO);
+	this->event_logon_resp = Output::registerEvent("BlockDvbNCC:logon_response",
+	                                               LEVEL_INFO);
+	// initialize probes
+	this->probe_incoming_throughput =
+		Output::registerProbe<float>("Physical incoming throughput",
+		                             "Kbits/s", true, SAMPLE_AVG);
+
+	return true;
+}
 
 
 /******************* EVENT MANAGEMENT *********************/
@@ -1048,7 +1346,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 
 			NetBurst *burst;
 
-			if(this->receptionStd->type() == "DVB-RCS" &&
+			if(this->receptionStd->getType() == "DVB-RCS" &&
 			   dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
 			{
 				UTI_DEBUG("ignore received BB frame in transparent scenario\n");
@@ -1057,11 +1355,10 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			if(this->receptionStd->onRcvFrame(data, len, dvb_hdr->msg_type,
 			                                  this->macId, &burst) < 0)
 			{
-				UTI_ERROR("failed to handle DVB frame "
-				          "or BB frame\n");
+				UTI_ERROR("failed to handle DVB frame or BB frame\n");
 				goto error;
 			}
-			if(this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
@@ -1071,29 +1368,23 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 
 		case MSG_TYPE_CR:
 		{
-			CapacityRequest *cr = new CapacityRequest(data, len);
-			// TODO dra_id is not used ?
-			//unsigned int dra_id;
+			this->capacity_request.parse(data, len);
 
 			UTI_DEBUG_L3("handle received Capacity Request (CR)\n");
 
-			// retrieve the current DRA scheme for the ST
-			//dra_id = this->emissionStd->getStCurrentDraSchemeId(cr->getTerminalId());
-			if(!this->m_pDamaCtrl->hereIsCR(cr))
+			if(!this->dama_ctrl->hereIsCR(this->capacity_request))
 			{
 				UTI_ERROR("failed to handle Capacity Request "
 				          "(CR) frame\n");
-				delete cr;
 				goto error;
 			}
-			delete cr;
 			free(data);
 		}
 		break;
 
 		case MSG_TYPE_SACT:
 			UTI_DEBUG_L3("%s SACT\n", FUNCNAME);
-			m_pDamaCtrl->hereIsSACT(data, len);
+			this->dama_ctrl->hereIsSACT(data, len);
 			free(data);
 			break;
 
@@ -1107,12 +1398,12 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			onRcvLogoffReq(data, len);
 			break;
 
-		case MSG_TYPE_TBTP:
+		case MSG_TYPE_TTP:
 		case MSG_TYPE_SESSION_LOGON_RESP:
 		case MSG_TYPE_SOF:
 			// nothing to do in this case
-			UTI_DEBUG_L3("ignore TBTP, logon response or SOF frame "
-			             "(type = %ld)\n", dvb_hdr->msg_type);
+			UTI_DEBUG_L3("ignore TTP, logon response or SOF frame "
+			             "(type = %d)\n", dvb_hdr->msg_type);
 			free(data);
 			break;
 
@@ -1122,7 +1413,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			break;
 
 		default:
-			UTI_ERROR("unknown type (%ld) of DVB frame\n",
+			UTI_ERROR("unknown type (%d) of DVB frame\n",
 			          dvb_hdr->msg_type);
 			free(data);
 			break;
@@ -1153,10 +1444,11 @@ void BlockDvbNcc::sendSOF()
 
 
 	// Get a dvb frame
-	lp_ptr = (T_DVB_HDR *)malloc(MSG_DVB_RCS_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
+	lp_ptr = (T_DVB_HDR *)calloc(MSG_DVB_RCS_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+	                             sizeof(unsigned char));
 	if(!lp_ptr)
 	{
-		UTI_ERROR("[sendSOF] Failed to get memory from pool dvb_rcs\n");
+		UTI_ERROR("[sendSOF] Failed to allocate memory for SoF\n");
 		return;
 	}
 
@@ -1182,56 +1474,15 @@ void BlockDvbNcc::sendSOF()
 }
 
 
-void BlockDvbNcc::sendTBTP()
-{
-	unsigned char *lp_ptr;
-	long carrier_id;
-	long l_size;
-	int ret;
-
-	// Get a dvb frame
-	lp_ptr = (unsigned char *)malloc(MSG_DVB_RCS_SIZE_MAX);
-	if(!lp_ptr)
-	{
-		UTI_ERROR("[sendTBTP] Failed to get memory from pool dvb_rcs\n");
-		return;
-	}
-
-	l_size = MSG_DVB_RCS_SIZE_MAX;	// maximum size is the buffer size
-	// Set DVB body
-	ret = m_pDamaCtrl->buildTBTP(lp_ptr, l_size);
-	if(ret < 0)
-	{
-		UTI_DEBUG_L3("[sendTBTP] Dama didn't build TBTP,"
-		             "releasing buffer.\n");
-		free(lp_ptr);
-		return;
-	};
-
-	// Send it
-	carrier_id = m_pDamaCtrl->getCarrierId();
-	l_size = ((T_DVB_TBTP *) lp_ptr)->hdr.msg_length;    // real size now
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_ptr, carrier_id, l_size))
-	{
-		UTI_ERROR("[sendTBTP] Failed to send TBTP\n");
-		free(lp_ptr);
-		return;
-	}
-
-	UTI_DEBUG_L3("SF%ld: TBTP sent\n", this->super_frame_counter);
-}
-
-
 void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 {
 	T_DVB_LOGON_REQ *lp_logon_req;
 	T_DVB_LOGON_RESP *lp_logon_resp;
 	int l_size;
-	unsigned int dra_id;
 	std::list<long>::iterator list_it;
 
 	lp_logon_req = (T_DVB_LOGON_REQ *) ip_buf;
-	UTI_DEBUG("[onRcvLogonReq] Logon request from %d\n", lp_logon_req->mac);
+	UTI_DEBUG("Logon request from %d\n", lp_logon_req->mac);
 
 	// get context for this mac address
 	// (could receive multiple logon request for same mac due to delay)
@@ -1239,15 +1490,16 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	// Sanity check of the buffer
 	if(lp_logon_req->hdr.msg_type != MSG_TYPE_SESSION_LOGON_REQ)
 	{
-		UTI_ERROR("wrong packet data type (%ld)\n",
+		UTI_ERROR("wrong packet data type (%d)\n",
 		          lp_logon_req->hdr.msg_type);
 		goto release;
 	}
 
 	// Sanity check of the length of the buffer
-	if(lp_logon_req->hdr.msg_length > l_len)
+	// TODO use size_t
+	if(lp_logon_req->hdr.msg_length > (unsigned)l_len)
 	{
-		UTI_ERROR("buffer len (%d) < msg_length (%ld)\n",
+		UTI_ERROR("buffer len (%d) < msg_length (%d)\n",
 		          l_len, lp_logon_req->hdr.msg_length);
 		goto release;
 	}
@@ -1261,11 +1513,11 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(event_login_received, "[onRcvLogonReq] Logon "
-	                     "request from %d\n", lp_logon_req->mac);
+	Output::sendEvent(event_logon_req, "Logon request received from %d",
+	                  lp_logon_req->mac);
 
 	// register the new ST
-	if(this->emissionStd->doSatelliteTerminalExist(lp_logon_req->mac))
+	if(this->fmt_simu.doTerminalExist(lp_logon_req->mac))
 	{
 		// ST already registered once
 		UTI_ERROR("request to register ST with ID %d that is already "
@@ -1276,8 +1528,8 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	{
 		// ST was not registered yet
 		UTI_INFO("register ST with MAC ID %d\n", lp_logon_req->mac);
-		if(!this->emissionStd->addSatelliteTerminal(lp_logon_req->mac,
-		                                            lp_logon_req->nb_row))
+		if(!this->fmt_simu.addTerminal(lp_logon_req->mac,
+		                                lp_logon_req->nb_row))
 		{
 			UTI_ERROR("failed to register ST with MAC ID %d\n",
 			          lp_logon_req->mac);
@@ -1285,17 +1537,16 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// Get a dvb frame
-	lp_logon_resp = (T_DVB_LOGON_RESP *)malloc(sizeof(T_DVB_LOGON_RESP));
+	lp_logon_resp = (T_DVB_LOGON_RESP *)calloc(sizeof(T_DVB_LOGON_RESP),
+	                                           sizeof(unsigned char));
 	if(!lp_logon_resp)
 	{
-		UTI_ERROR("[onRcvLogonReq] Failed to get memory"
-		          "from pool dvb_rcs\n");
+		UTI_ERROR("Failed to allocate memory for logon response\n");
 		goto release;
 	}
 
 	// Inform the Dama controler (for its own context)
-	dra_id = this->emissionStd->getStCurrentDraSchemeId(lp_logon_req->mac);
-	if(m_pDamaCtrl->hereIsLogonReq((unsigned char*)lp_logon_req, l_len, dra_id) == 0)
+	if(this->dama_ctrl->hereIsLogon(*lp_logon_req))
 	{
 		// Set DVB header
 		l_size = sizeof(T_DVB_LOGON_RESP);
@@ -1312,7 +1563,7 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 		// Send it
 		if(!sendDvbFrame((T_DVB_HDR *) lp_logon_resp, m_carrierIdDvbCtrl, l_size))
 		{
-			UTI_ERROR("[onRcvLogonReq] Failed send message\n");
+			UTI_ERROR("Failed send message\n");
 			goto release;
 		}
 
@@ -1322,8 +1573,9 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 
 
 		// send the corresponding event
-		Output::sendEvent(event_login_response, "[onRcvLogonReq] Login "
-		                     "response from %d\n", lp_logon_req->mac);
+		Output::sendEvent(event_logon_resp, "Logon response send to %d",
+		                  lp_logon_req->mac);
+
 	}
 
 release:
@@ -1340,28 +1592,29 @@ void BlockDvbNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 	// Packet type sanity check
 	if(lp_logoff->hdr.msg_type != MSG_TYPE_SESSION_LOGOFF)
 	{
-		UTI_ERROR("wrong dvb packet type (%ld)\n",
+		UTI_ERROR("wrong dvb packet type (%d)\n",
 		          lp_logoff->hdr.msg_type);
 		goto release;
 	}
 
 	// Length sanity check
-	if(lp_logoff->hdr.msg_length > l_len)
+	// TODO use size_t
+	if(lp_logoff->hdr.msg_length > (unsigned)l_len)
 	{
-		UTI_ERROR("pkt length (%ld) > buffer len (%d)\n",
+		UTI_ERROR("pkt length (%d) > buffer len (%d)\n",
 		          lp_logoff->hdr.msg_length, l_len);
 		goto release;
 	}
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->emissionStd->deleteSatelliteTerminal(lp_logoff->mac))
+	if(!this->fmt_simu.delTerminal(lp_logoff->mac))
 	{
 		UTI_ERROR("failed to delete the ST with ID %d\n",
 		          lp_logoff->mac);
 		goto release;
 	}
 
-	m_pDamaCtrl->hereIsLogoff(ip_buf, l_len);
+	this->dama_ctrl->hereIsLogoff(*lp_logoff);
 	UTI_DEBUG_L3("SF%ld: logoff request from %d\n",
 	             this->super_frame_counter, lp_logoff->mac);
 
@@ -1369,15 +1622,46 @@ release:
 	free(ip_buf);
 }
 
+void BlockDvbNcc::sendTTP()
+{
+	unsigned char *frame;
+	size_t length;
 
-/**
- * Simulate event based on an input file
- * @return true on success, false otherwise
- */
+	// Build TTP
+	if(!this->dama_ctrl->buildTTP(this->ttp))
+	{
+		UTI_DEBUG_L3("Dama didn't build TTP\bn");
+		return;
+	};
+
+	// Get a dvb frame
+	frame = (unsigned char *)calloc(MSG_DVB_RCS_SIZE_MAX,
+	                                sizeof(unsigned char));
+	if(!frame)
+	{
+		UTI_ERROR("failed to allocate DVB frame\n");
+		return;
+	}
+
+	// Set DVB frame data
+	if(!this->ttp.build(this->super_frame_counter, frame, length))
+	{
+		free(frame);
+		UTI_ERROR("Failed to set TTP data\n");
+		return;
+	}
+	if(!this->sendDvbFrame((T_DVB_HDR *) frame, m_carrierIdDvbCtrl, length))
+	{
+		free(frame);
+		UTI_ERROR("Failed to send TTP\n");
+		return;
+	}
+
+	UTI_DEBUG_L3("SF%ld: TTP sent\n", this->super_frame_counter);
+}
+
 bool BlockDvbNcc::simulateFile()
 {
-	const char *FUNCNAME = DBG_PREFIX "[simulateEvents]";
-
 	static bool simu_eof = false;
 	static char buffer[255] = "";
 	static T_DVB_LOGON_REQ sim_logon_req;
@@ -1394,7 +1678,7 @@ bool BlockDvbNcc::simulateFile()
 
 	if(simu_eof)
 	{
-		UTI_DEBUG_L3("%s End of file.\n", FUNCNAME);
+		UTI_DEBUG_L3("End of file.\n");
 		goto error;
 	}
 
@@ -1421,7 +1705,7 @@ bool BlockDvbNcc::simulateFile()
 			event_selected = none;
 		}
 		// TODO fix to avoid sending probe for the simulated ST
-		//      remove once output will be modified
+		//      remove once environment plane will be modified
 		if(st_id <= 100)
 		{
 			st_id += 100;
@@ -1436,20 +1720,16 @@ bool BlockDvbNcc::simulateFile()
 		{
 		case cr:
 		{
-			CapacityRequest *capacity_request;
-			cr_info_t cr_info;
-			vector<cr_info_t> requests;
+			CapacityRequest *cr;
 
-			cr_info.prio = 0;
-			cr_info.type = cr_type;
-			cr_info.value = st_request;
-			requests.push_back(cr_info);
-			capacity_request = new CapacityRequest(st_id, requests);
+			cr = new CapacityRequest(st_id);
+
+			cr->addRequest(0, cr_type, st_request);
 			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
 			          "for ST %d\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			this->m_pDamaCtrl->hereIsCR(capacity_request);
-			delete capacity_request;
+			this->dama_ctrl->hereIsCR(*cr);
+			delete cr;
 			break;
 		}
 		case logon:
@@ -1459,8 +1739,7 @@ bool BlockDvbNcc::simulateFile()
 			sim_logon_req.rt_bandwidth = st_rt;
 			UTI_DEBUG("SF%ld: send a simulated logon for ST %d\n",
 			          this->super_frame_counter, st_id);
-			this->m_pDamaCtrl->hereIsLogonReq((unsigned char *) &sim_logon_req,
-			                                  (long) sizeof(T_DVB_LOGON_REQ), 0);
+			this->dama_ctrl->hereIsLogon(sim_logon_req);
 			break;
 		case logoff:
 			sim_logoff.hdr.msg_type = MSG_TYPE_SESSION_LOGOFF;
@@ -1468,8 +1747,7 @@ bool BlockDvbNcc::simulateFile()
 			sim_logoff.mac = st_id;
 			UTI_DEBUG("SF%ld: send a simulated logoff for ST %d\n",
 			          this->super_frame_counter, st_id);
-			m_pDamaCtrl->hereIsLogoff((unsigned char *) &sim_logoff,
-			                          (long) sizeof(T_DVB_LOGOFF));
+			this->dama_ctrl->hereIsLogoff(sim_logoff);
 			break;
 		default:
 			break;
@@ -1495,7 +1773,7 @@ bool BlockDvbNcc::simulateFile()
 			if(resul == -1)
 			{
 				simu_eof = true;
-				UTI_DEBUG_L3("%s End of file.\n", FUNCNAME);
+				UTI_DEBUG_L3("End of file.\n");
 				goto error;
 			}
 		}
@@ -1524,32 +1802,77 @@ void BlockDvbNcc::simulateRandom()
 			// BROADCAST_TAL_ID is maximum tal_id
 			sim_logon_req.mac = BROADCAST_TAL_ID + i + 1;
 			sim_logon_req.rt_bandwidth = this->simu_rt;
-			this->m_pDamaCtrl->hereIsLogonReq((unsigned char *) &sim_logon_req,
-			                                  (long) sizeof(T_DVB_LOGON_REQ), 0);
+			this->dama_ctrl->hereIsLogon(sim_logon_req);
 		}
 		initialized = true;
 	}
 
 	for(i = 0; i < this->simu_st; i++)
 	{
-		CapacityRequest *capacity_request;
-		cr_info_t cr_info;
-		vector<cr_info_t> requests;
+		CapacityRequest *cr;
+		uint32_t val;
 
-		cr_info.prio = 0;
-		cr_info.type = cr_rbdc;
-		cr_info.value = this->simu_cr - this->simu_interval / 2 +
-		                random() % this->simu_interval;
-		requests.push_back(cr_info);
-		capacity_request = new CapacityRequest(BROADCAST_TAL_ID + i + 1,
-		                                       requests);
-		this->m_pDamaCtrl->hereIsCR(capacity_request);
-		delete capacity_request;
+		cr = new CapacityRequest(BROADCAST_TAL_ID + i + 1);
+
+		val = this->simu_cr - this->simu_interval / 2 +
+		      random() % this->simu_interval;
+		cr->addRequest(0, cr_rbdc, val);
+
+		this->dama_ctrl->hereIsCR(*cr);
+		delete cr;
 	}
 }
 
 void BlockDvbNcc::updateStatsOnFrame()
 {
-	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration);
+	// TODO remove stats context
+//	const dc_stat_context_t &dama_stat = this->dama_ctrl->getStatsContext()
+//	DamaTerminalList::iterator it;
+
+	// update custom DAMA statistics
+	// TODO add this function or a reset function for stats in DAMA
+//	this->dama_ctrl->updateStatisticsOnFrame();
+	// update common DAMA statistics
+/*	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration_ms);
 	this->incoming_size = 0;
+	this->probe_gw_rdbc_req_num->put(dama_stat.rbdc_requests_number);
+	this->probe_gw_rdbc_req_capacity->put(dama_stat.rbdc_requests_sum_kbps);
+	this->probe_gw_uplink_fair_share->put(dama_stat.fair_share);
+	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
+	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
+	               (int) Converter->
+	               ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
+	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
+	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
+	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
+	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
+	DC_RECORD_STAT("ALLOC FCA %d kbits/s",
+	               (int) Converter->
+	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
+	               		                                remaining_capacity));
+
+
+	// TODO
+	terminal_number
+	rbdc_requests_number
+	vbdc_requests_number
+	total_capacity
+	total_cra_kbps
+	rbdc_requests_sum_kbps
+	vbdc_requests_sum_kb
+	rbdc_allocation_kbps
+	vbdc_allocation_kb
+	max_rbdc_total_kbps
+	fair_share
+	//TODO + stats per ST
+	// as long as the frame is changing, send all probes and event
+	// sync environment plane
+	Output::sendProbes();
+	// TODO stat on real frame duration*/
 }

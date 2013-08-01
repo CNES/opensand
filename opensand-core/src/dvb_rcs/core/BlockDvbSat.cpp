@@ -39,12 +39,13 @@
 
 #include "BlockDvbSat.h"
 
-#include "sat_emulator_err.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
+#include "sat_emulator_err.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_conf/conf.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -256,10 +257,10 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG_L3("MODCOD/DRA scenario timer expired\n");
 
 				if(this->satellite_type == REGENERATIVE &&
-				   this->emissionStd->type() == "DVB-S2")
+				   this->emissionStd->getType() == "DVB-S2")
 				{
 					UTI_DEBUG_L3("update modcod table\n");
-					if(!this->emissionStd->goNextStScenarioStep())
+					if(!this->fmt_simu.goNextScenarioStep())
 					{
 						UTI_ERROR("failed to update MODCOD IDs\n");
 						return false;
@@ -284,6 +285,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 bool BlockDvbSat::initMode()
 {
 	int val;
+	freq_khz_t bandwidth_mhz;
 
 	// Delay to apply to the medium
 	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, val))
@@ -295,10 +297,23 @@ bool BlockDvbSat::initMode()
 	this->m_delay = val;
 	UTI_INFO("m_delay = %d", this->m_delay);
 
+	// Get the value of the bandwidth
+	if(!globalConfig.getValue(DOWN_FORWARD_BAND, BANDWIDTH,
+	                          bandwidth_mhz))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          DOWN_FORWARD_BAND, BANDWIDTH);
+		goto error;
+	}
+
+
 	if(this->satellite_type == REGENERATIVE)
 	{
 		// create the emission standard
-		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl,
+		                                 &this->fmt_simu,
+		                                 this->frame_duration_ms,
+		                                 bandwidth_mhz * 1000);
 		if(this->emissionStd == NULL)
 		{
 			UTI_ERROR("failed to create the emission standard\n");
@@ -315,9 +330,12 @@ bool BlockDvbSat::initMode()
 	}
 	else
 	{
-		// the packet_handler will depend on the case so we cannot fix it here
 		// create the emission standard
-		this->emissionStd = new DvbS2Std();
+		// the packet_handler will depend on the case so we cannot get it there
+		this->emissionStd = new DvbS2Std(NULL,
+		                                 &this->fmt_simu,
+		                                 this->frame_duration_ms,
+		                                 bandwidth_mhz * 1000);
 		if(this->emissionStd == NULL)
 		{
 			UTI_ERROR("failed to create the emission standard\n");
@@ -432,12 +450,9 @@ bool BlockDvbSat::initErrorGenerator()
 // TODO call in Downward::onInit()
 bool BlockDvbSat::initDownwardTimers()
 {
-	// set frame duration in emission standard
-	this->emissionStd->setFrameDuration(this->frame_duration);
-
 	// launch frame timer
 	this->frame_timer = this->downward->addTimerEvent("dvb_frame_timer",
-	                                                  this->frame_duration);
+	                                                  this->frame_duration_ms);
 
 	if(this->satellite_type == REGENERATIVE)
 	{
@@ -511,7 +526,6 @@ bool BlockDvbSat::initSwitchTable()
 	{
 		goto error;
 	}
-
 
 	return true;
 
@@ -662,9 +676,9 @@ bool BlockDvbSat::initStList()
 
 		// register a ST only if it did not exist yet
 		// (duplicate because STs are 'defined' in spot table)
-		if(!this->emissionStd->doSatelliteTerminalExist(tal_id))
+		if(!this->fmt_simu.doTerminalExist(tal_id))
 		{
-			if(!this->emissionStd->addSatelliteTerminal(tal_id, column_nbr))
+			if(!this->fmt_simu.addTerminal(tal_id, column_nbr))
 			{
 				UTI_ERROR("failed to register ST "
 				          "with Tal ID %ld\n", tal_id);
@@ -715,7 +729,7 @@ bool  BlockDvbSat::onInit()
 			goto error;
 		}
 		// initialize the MODCOD scheme ID
-		if(!this->emissionStd->goNextStScenarioStep())
+		if(!this->fmt_simu.goNextScenarioStep())
 		{
 			UTI_ERROR("failed to initialize MODCOD scheme IDs\n");
 			goto error;
@@ -773,7 +787,7 @@ error:
 
 
 bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
-                                unsigned int length, 
+                                unsigned int length,
                                 long carrier_id)
 {
 	bool status = true;
@@ -784,7 +798,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	hdr = (T_DVB_HDR *) frame;
 
 	UTI_DEBUG_L3("DVB frame received from lower layer "
-	             "(type = %ld, len %d)\n", hdr->msg_type, length);
+	             "(type = %d, len %d)\n", hdr->msg_type, length);
 
 	switch(hdr->msg_type)
 	{
@@ -808,7 +822,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				          dvb_burst->pkt_type, this->up_return_pkt_hdl->getEtherType());
 				status = false;
 			}
-			UTI_DEBUG("%ld %s packets received\n", dvb_burst->qty_element,
+			UTI_DEBUG("%u %s packets received\n", dvb_burst->qty_element,
 			          this->up_return_pkt_hdl->getName().c_str());
 
 			// get the satellite spot from which the DVB frame comes from
@@ -827,12 +841,12 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 					          current_spot->getSpotId(),
 					          current_spot->m_dataOutGwFifo.getCarrierId());
 
-					if(this->receptionStd->onForwardFrame(
-					   &current_spot->m_dataOutGwFifo,
-					   frame,
-					   length,
-					   this->getCurrentTime(),
-					   this->m_delay) != 0)
+					if(!this->receptionStd->onForwardFrame(
+					          &current_spot->m_dataOutGwFifo,
+					          frame,
+					          length,
+					          this->getCurrentTime(),
+					          this->m_delay))
 					{
 						status = false;
 					}
@@ -863,7 +877,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				          "(regenerative satellite)\n");
 				status = false;
 			}
-			if(this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				status = false;
@@ -889,7 +903,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			status = false;
 		}
 
-		UTI_DEBUG("%d packets received\n", bbframe->dataLength);
+		UTI_DEBUG("%d packets received\n", bbframe->data_length);
 
 		// get the satellite spot from which the DVB frame comes from
 		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
@@ -907,13 +921,16 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				          current_spot->getSpotId(),
 				          current_spot->m_dataOutStFifo.getCarrierId());
 
-				this->emissionStd->onForwardFrame(
+				if(!this->emissionStd->onForwardFrame(
 				          &current_spot->m_dataOutStFifo,
 				          frame,
 				          length,
 				          this->getCurrentTime(),
-				          this->m_delay);
-				// TODO: check return code !
+				          this->m_delay))
+				{
+					UTI_ERROR("cannot forward burst\n");
+					status = false;
+				}
 
 				// satellite spot found, abort the search
 				break;
@@ -925,11 +942,11 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	// Generic control frames (CR, TBTP, etc)
 	case MSG_TYPE_CR:
 	case MSG_TYPE_SOF:
-	case MSG_TYPE_TBTP:
+	case MSG_TYPE_TTP:
 	case MSG_TYPE_SYNC:
 	case MSG_TYPE_SESSION_LOGON_RESP:
 	{
-		UTI_DEBUG_L3("control frame (type = %ld) received, "
+		UTI_DEBUG_L3("control frame (type = %u) received, "
 		             "forward it on all satellite spots\n",
 		             hdr->msg_type);
 
@@ -938,7 +955,8 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			char *frame_copy;
 
 			// create a copy of the frame
-			frame_copy = (char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
+			frame_copy = (char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+			                            sizeof(unsigned char));
 			if(frame_copy == NULL)
 			{
 				UTI_ERROR("[1] cannot allocate frame, aborting on spot %u\n",
@@ -969,7 +987,8 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			char *frame_copy;
 
 			// create a copy of the frame
-			frame_copy = (char *)malloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
+			frame_copy = (char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+			                            sizeof(unsigned char));
 			if(frame_copy == NULL)
 			{
 				UTI_ERROR("[2] cannot allocate frame, aborting on spot %u\n",
@@ -996,7 +1015,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 
 	default:
 	{
-		UTI_ERROR("unknown type (%ld) of DVB frame\n", hdr->msg_type);
+		UTI_ERROR("unknown type (%u) of DVB frame\n", hdr->msg_type);
 		free(frame);
 	}
 	break;
@@ -1089,6 +1108,7 @@ release_fifo_elem:
  * @param fifo         The fifo where was the packets
  * @param m_stat_fifo  TODO
  */
+// TODO we may add probes with that ??
 void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo)
 {
 	const char *FUNCNAME = "[BlockDvbSat::getProbe]";
@@ -1175,7 +1195,7 @@ bool BlockDvbSat::onSendFrames(DvbFifo *fifo, long current_time)
 			goto error;
 		}
 
-		UTI_DEBUG("burst sent with a size of %d\n", elem->getDataLength());
+		UTI_DEBUG("burst sent with a size of %zu\n", elem->getDataLength());
 
 		delete elem;
 	}

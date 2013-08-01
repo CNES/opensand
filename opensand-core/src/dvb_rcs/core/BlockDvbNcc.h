@@ -58,7 +58,7 @@
 #define BLOCk_DVB_NCC_H
 
 #include "BlockDvb.h"
-#include "lib_dama_ctrl.h"
+#include "DamaCtrlRcs.h"
 #include "NccPepInterface.h"
 
 
@@ -68,7 +68,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
  private:
 
 	/// The DAMA controller
-	DvbRcsDamaCtrl *m_pDamaCtrl;
+	DamaCtrlRcs *dama_ctrl;
 
 	/// carrier ids
 	long m_carrierIdDvbCtrl;
@@ -78,7 +78,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// the current super frame number
 	long super_frame_counter;
 	/// the current frame number inside the current super frame
-	int frame_counter;
+	unsigned int frame_counter;
 
 	/// frame timer, used to awake the block every frame period
 	event_id_t frame_timer;
@@ -89,12 +89,21 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
 
+	/// The TTP
+	Ttp ttp;
+
+	/// The capacity requests
+	CapacityRequest capacity_request;
+
 	/// timer used to awake the block every second in order to retrieve
 	/// the current MODCODs and DRA schemes
 	event_id_t scenario_timer;
 
 	/// a fifo to keep the received packet from encap bloc
 	DvbFifo data_dvb_fifo;
+
+	/// FMT groups
+	fmt_groups_t fmt_groups;
 
 	/**** NGN network / Policy Enforcement Point (PEP) ****/
 
@@ -120,6 +129,13 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	long simu_interval;
 	event_id_t simu_timer;
 
+	//events
+
+	/// logon request reveived
+	Event *event_logon_req;
+	/// logon response sent
+	Event *event_logon_resp;
+
  public:
 
 	/// Class constructor
@@ -139,9 +155,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 
 
 	/* Methods */
-
-	/// Get frame duration
-	int getFrameDuration();
 
  private:
 
@@ -180,13 +193,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	bool initFiles();
 
 	/**
-	 * @brief Read configuration for the DRA scheme definition/simulation files
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initDraFiles();
-
-	/**
 	 * Read configuration for the DAMA algorithm
 	 *
 	 * @return  true on success, false otherwise
@@ -199,7 +205,13 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 * @return  true on success, false otherwise
 	 */
 	bool initFifo();
-	void updateStatsOnFrame();
+
+	/**
+	 * @brief Initialize the statistics
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initOutput(void);
 
 	/// DVB frame from lower layer
 	bool onRcvDvbFrame(unsigned char *ip_buf, int l_len);
@@ -207,7 +219,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	void onRcvLogoffReq(unsigned char *ip_buf, int l_len);
 
 	// NCC functions
-	void sendTBTP();
+	void sendTTP();
 	void sendSOF();
 
 	bool getBBFRAMEDuration(unsigned int modcod_id, float *duration);
@@ -229,6 +241,8 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	unsigned int incoming_size;
 	Probe<float> *probe_incoming_throughput;
 
+	// statistics update
+	void updateStatsOnFrame();
 };
 
 #endif

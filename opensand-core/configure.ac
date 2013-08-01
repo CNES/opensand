@@ -60,20 +60,6 @@ PKG_CHECK_MODULES([OPENSAND_RT], [opensand_rt = trunk])
 LIBS="$OPENSAND_RT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_RT_CFLAGS $AM_CPPFLAGS")
 
-
-# check if memory pool is enabled
-AC_ARG_ENABLE(memory_pool,
-              AS_HELP_STRING([--enable-memory-pool],
-                             [enable MEMORY POOL [[default=yes]]]),
-              enable_memory_pool=$enableval,
-              enable_memory_pool=yes)
-if test "$enable_memory_pool" = "yes"; then
-   memory_pool=1
-else
-   memory_pool=0
-fi
-AC_DEFINE_UNQUOTED([MEMORY_POOL], [$memory_pool], [Whether memory pool is enabled or not.])
-
 # check if -Werror must be appended to CFLAGS
 WERROR=""
 AC_ARG_ENABLE(fail_on_warning,
@@ -106,8 +92,7 @@ AC_CONFIG_FILES([ \
 	src/dvb_rcs/Makefile \
 	src/dvb_rcs/utils/Makefile \
 	src/dvb_rcs/pep/Makefile \
-	src/dvb_rcs/dra/Makefile \
-	src/dvb_rcs/modcod/Makefile \
+	src/dvb_rcs/fmt/Makefile \
 	src/dvb_rcs/dama/Makefile \
 	src/dvb_rcs/switch/Makefile \
 	src/dvb_rcs/core/Makefile \

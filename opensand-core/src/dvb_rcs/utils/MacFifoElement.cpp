@@ -38,8 +38,8 @@
 #include "opensand_conf/uti_debug.h"
 
 
-MacFifoElement::MacFifoElement(unsigned char *data, unsigned int length,
-                               long tick_in, long tick_out):
+MacFifoElement::MacFifoElement(unsigned char *data, size_t length,
+                               time_t tick_in, time_t tick_out):
 	type(0),
 	data(data),
 	length(length),
@@ -50,7 +50,7 @@ MacFifoElement::MacFifoElement(unsigned char *data, unsigned int length,
 }
 
 MacFifoElement::MacFifoElement(NetPacket *packet,
-                               long tick_in, long tick_out):
+                               time_t tick_in, time_t tick_out):
 	type(1),
 	data(NULL),
 	length(0),
@@ -70,7 +70,7 @@ unsigned char *MacFifoElement::getData()
 	return this->data;
 }
 
-unsigned int MacFifoElement::getDataLength()
+size_t MacFifoElement::getDataLength()
 {
 	return this->length;
 }
@@ -85,17 +85,17 @@ NetPacket *MacFifoElement::getPacket()
 	return this->packet;
 }
 
-long MacFifoElement::getType()
+int MacFifoElement::getType()
 {
 	return this->type;
 }
 
-long MacFifoElement::getTickIn()
+time_t MacFifoElement::getTickIn()
 {
 	return this->tick_in;
 }
 
-long MacFifoElement::getTickOut()
+time_t MacFifoElement::getTickOut()
 {
 	return this->tick_out;
 }

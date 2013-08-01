@@ -46,7 +46,7 @@
  *  | |    |     |   |     |     | |
  *  | |    |     |   |     |     | |
  *  | +----+-----+   +-----+-----+ |
- *  |      +---------------+       |   
+ *  |      +---------------+       |
  *  +------------------------------+
  *
  */
@@ -157,7 +157,7 @@ bool TestBlock::onDownwardEvent(const RtEvent *const event)
 			std::cout << "Data received on socket in block: " << this->name
 			          << "; data: " << data << std::endl;
 			fflush(stdout);
-			          
+
 			if(strncmp(this->last_written, (char*)data, size))
 			{
 				Rt::reportError(this->name, pthread_self(), true,
@@ -189,13 +189,12 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
-	Block *block;
 	string error;
 
 	std::cout << "Launch test" << std::endl;
 
-	block = Rt::createBlock<TestBlock, TestBlock::Upward,
-	                        TestBlock::Downward>("test");
+	Rt::createBlock<TestBlock, TestBlock::Upward,
+	                TestBlock::Downward>("test");
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	if(!Rt::run(true))
@@ -207,10 +206,10 @@ HeapLeakChecker heap_checker("test_block");
 	{
 		std::cout << "Successfull" << std::endl;
 	}
-	
+
 #if ENABLE_TCMALLOC
 }
-if(!heap_checker.NoLeaks()) assert(NULL == "heap memory leak");	
+if(!heap_checker.NoLeaks()) assert(NULL == "heap memory leak");
 #endif
 
 	return ret;

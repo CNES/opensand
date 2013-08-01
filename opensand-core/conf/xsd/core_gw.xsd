@@ -27,7 +27,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-
 <!-- the lan adaptation schemes tables -->
 <xsd:element name="lan_adaptation_schemes">
     <xsd:complexType>
@@ -61,7 +60,7 @@
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="50000" />
+        <xsd:maxInclusive value="100000" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -133,6 +132,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="dama_algorithm" type="damaAlgorithm">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The DAMA algorithm for controller
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="fca" type="xsd:integer">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -269,7 +275,6 @@
     </xsd:complexType>
 </xsd:element>
 
-
 <!-- debug section description -->
 <xsd:element name="debug">
     <xsd:annotation>
@@ -292,3 +297,4 @@
 </xsd:element>
 
 </xsd:schema>
+

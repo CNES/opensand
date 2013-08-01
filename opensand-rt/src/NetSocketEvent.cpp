@@ -29,8 +29,7 @@
  * @file NetSocketEvent.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
+ * @brief  The event for message read on network socket
  *
  */
 
@@ -65,7 +64,7 @@ bool NetSocketEvent::handle(void)
 		                this->name.c_str());
 		free(this->data);
 	}
-	/// on more byte so we can use it as char*
+	// one more byte so we can use it as char*
 	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
 
 	addrlen = sizeof(struct sockaddr_in);

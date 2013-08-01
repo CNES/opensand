@@ -4,8 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
 	-I$(top_srcdir)/src/dvb_rcs/switch \
 	-I$(top_srcdir)/src/dvb_rcs/pep \
-	-I$(top_srcdir)/src/dvb_rcs/dra \
-	-I$(top_srcdir)/src/dvb_rcs/modcod \
+	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
 	-I$(top_srcdir)/src/dvb_rcs/core \
 	-I$(top_srcdir)/src/lan_adaptation \
@@ -33,12 +32,12 @@ allexec_LDADD = \
 st_SOURCES = st.cpp
 st_LDADD = \
 	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD) 
+	$(allexec_LDADD)
 
 gw_SOURCES = gw.cpp
 gw_LDADD = \
 	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD) 
+	$(allexec_LDADD)
 
 sat_SOURCES = sat.cpp
 sat_LDADD = \

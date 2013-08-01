@@ -4,8 +4,6 @@ libopensand_dvb_core_la_cpp = \
 	DvbFrame.cpp \
 	DvbRcsFrame.cpp \
 	BBFrame.cpp \
-	SatelliteTerminal.cpp \
-	SatelliteTerminalList.cpp \
 	SatSpot.cpp \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
@@ -19,8 +17,6 @@ libopensand_dvb_core_la_h = \
 	DvbFrame.h \
 	DvbRcsFrame.h \
 	BBFrame.h \
-	SatelliteTerminal.h \
-	SatelliteTerminalList.h \
 	SatSpot.h \
 	PhysicStd.h \
 	DvbRcsStd.h \
@@ -39,8 +35,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
 	-I$(top_srcdir)/src/dvb_rcs/utils/ip \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
-	-I$(top_srcdir)/src/dvb_rcs/modcod \
-	-I$(top_srcdir)/src/dvb_rcs/dra \
+	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/switch \
 	-I$(top_srcdir)/src/dvb_rcs/pep \
 	-I$(top_srcdir)/src/qos_data \

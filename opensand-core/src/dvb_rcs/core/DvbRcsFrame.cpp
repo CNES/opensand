@@ -117,30 +117,22 @@ bool DvbRcsFrame::addPacket(NetPacket *packet)
 
 void DvbRcsFrame::empty(void)
 {
-	T_DVB_ENCAP_BURST dvb_header;
+	T_DVB_ENCAP_BURST *dvb_header = (T_DVB_ENCAP_BURST *)this->data.c_str();
 
 	// remove the payload
 	this->data.erase(sizeof(T_DVB_ENCAP_BURST));
 	this->num_packets = 0;
 
 	// update the DVB-RCS frame header
-	memcpy(&dvb_header, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
-	dvb_header.hdr.msg_length = sizeof(T_DVB_ENCAP_BURST);
-	dvb_header.qty_element = 0; // no encapsulation packet at the beginning
-	this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
-	                    (unsigned char *) &dvb_header,
-	                    sizeof(T_DVB_ENCAP_BURST));
+	dvb_header->hdr.msg_length = sizeof(T_DVB_ENCAP_BURST);
+	dvb_header->qty_element = 0; // no encapsulation packet at the beginning
 }
 
 void DvbRcsFrame::setEncapPacketEtherType(uint16_t type)
 {
-	T_DVB_ENCAP_BURST dvb_burst;
+	T_DVB_ENCAP_BURST *dvb_burst = (T_DVB_ENCAP_BURST *)this->data.c_str();
 
-	memcpy(&dvb_burst, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
-	dvb_burst.pkt_type = type;
-	this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
-	                    (unsigned char *) &dvb_burst,
-	                    sizeof(T_DVB_ENCAP_BURST));
+	dvb_burst->pkt_type = type;
 }
 
 

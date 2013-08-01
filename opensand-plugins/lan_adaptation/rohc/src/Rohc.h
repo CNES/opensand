@@ -62,7 +62,7 @@ extern "C"
 class Rohc: public LanAdaptationPlugin
 {
   public:
-	  
+
 	/**
 	 * @class Context
 	 * @brief ROHC compression / decompression context
@@ -147,8 +147,11 @@ class Rohc: public LanAdaptationPlugin
 
 		PacketHandler(LanAdaptationPlugin &plugin);
 
-		NetPacket *build(unsigned char *data, size_t data_length,
-		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
+		NetPacket *build(unsigned char *data,
+		                 size_t data_length,
+		                 uint8_t qos,
+		                 uint8_t src_tal_id,
+		                 uint8_t dst_tal_id) const;
 
 		size_t getLength(const unsigned char *UNUSED(data)) const {return 0;};
 		size_t getFixedLength() const {return 0;};

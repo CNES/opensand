@@ -63,7 +63,7 @@ extern "C"
 class Gse: public EncapPlugin
 {
   public:
-	  
+
 	/**
 	 * @class Context
 	 * @brief GSE encapsulation / desencapsulation context
@@ -127,20 +127,23 @@ class Gse: public EncapPlugin
 
 		PacketHandler(EncapPlugin &plugin);
 
-		NetPacket *build(unsigned char *data, size_t data_length,
-		                 uint8_t qos, uint8_t src_tal_id, uint8_t dst_tal_id);
+		NetPacket *build(unsigned char *data,
+		                 size_t data_length,
+		                 uint8_t qos,
+		                 uint8_t src_tal_id,
+		                 uint8_t dst_tal_id) const;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
 		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data);
+		              NetPacket **data, NetPacket **remaining_data) const;
 	};
 
 	/// Constructor
 	Gse();
 
 	// Static methods: getter/setter for label/fragId
-	
+
 	/**
 	 * @brief  Set the GSE packet label
 	 *

@@ -76,6 +76,7 @@ SatSpot::~SatSpot()
 }
 
 
+// TODO add spot fifos in configuration
 int SatSpot::init(long spotId, long logId, long ctrlId,
                   long dataInId, long dataOutStId, long dataOutGwId)
 {

@@ -40,23 +40,60 @@
 #include <opensand_conf/uti_debug.h>
 #include <algorithm>
 
-DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
-	PhysicStd("DVB-S2", pkt_hdl),
-	modcod_definitions()
+using std::list;
+
+static unsigned int getPayloadSize(string coding_rate)
 {
-	/* TODO read this value from file 
+	int payload;
+
+	// see ESTI EN 302 307 v1.2.1 Table 5a
+	if(!coding_rate.compare("1/4"))
+		payload = 2001;
+	else if(!coding_rate.compare("1/3"))
+		payload = 2676;
+	else if(!coding_rate.compare("2/5"))
+		payload = 3216;
+	else if(!coding_rate.compare("1/2"))
+		payload = 4026;
+	else if(!coding_rate.compare("3/5"))
+		payload = 4836;
+	else if(!coding_rate.compare("2/3"))
+		payload = 5380;
+	else if(!coding_rate.compare("3/4"))
+		payload = 6051;
+	else if(!coding_rate.compare("4/5"))
+		payload = 6456;
+	else if(!coding_rate.compare("5/6"))
+		payload = 6730;
+	else if(!coding_rate.compare("8/9"))
+		payload = 7274;
+	else if(!coding_rate.compare("9/10"))
+		payload = 7184;
+	else
+		payload = 8100; //size of a normal FECFRAME
+
+	return payload;
+}
+
+
+DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl,
+                   const FmtSimulation *const fmt_simu,
+                   time_ms_t frame_duration_ms,
+                   freq_khz_t bandwidth_khz):
+	PhysicStd("DVB-S2", pkt_hdl, fmt_simu, frame_duration_ms, bandwidth_khz)
+{
+	/* TODO read this value from file
 	 * for example get the higher MODCOD value on init
 	 * thus every MODCOD will be decoded */
-	this->realModcod = 11;
+	// TODO handle elsewhere ?
+	this->realModcod = 28;
 	this->receivedModcod = this->realModcod;
-	this->dra_scheme_definitions = new DraSchemeDefinitionTable;
 	this->pending_bbframe = NULL;
 }
 
 DvbS2Std::~DvbS2Std()
 {
-	delete dra_scheme_definitions;
-	for(std::list<BBFrame *>::iterator it = incomplete_bb_frames_ordered.begin();
+	for(list<BBFrame *>::iterator it = incomplete_bb_frames_ordered.begin();
 	    it != incomplete_bb_frames_ordered.end(); ++it)
 	{
 		delete *it;
@@ -64,33 +101,7 @@ DvbS2Std::~DvbS2Std()
 }
 
 
-// beware: this fonction is static
-// TODO: rewrite this function to avoid coding rate as string and check the returned sizes
-unsigned int DvbS2Std::getPayload(std::string coding_rate)
-{
-	int payload;
-
-	if(!coding_rate.compare("1/3"))
-		payload = 2676;
-	else if(!coding_rate.compare("1/2"))
-		payload = 4026;
-	else if(!coding_rate.compare("2/3"))
-		payload = 5380;
-	else if(!coding_rate.compare("3/4"))
-		payload = 6051;
-	else if(!coding_rate.compare("5/6"))
-		payload = 6730;
-	else if(!coding_rate.compare("8/9"))
-		payload = 7274;
-	else
-		payload = 8100;
-
-	return payload;
-}
-
-
-#if 0 /* TODO: manage options and do not use component_bloc,
-               some functions may have changed... */
+#if 0
 bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
                                   unsigned int modcod, long spot_id)
 {
@@ -99,8 +110,8 @@ bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
 				     // in the BBframe payload
 	int max_packets;
 	int bbframe_size;
-	std::map<unsigned int, T_DVB_BBFRAME *> *bbframe_table;
-	std::map<unsigned int, T_DVB_BBFRAME *>::iterator it;
+	map<unsigned int, T_DVB_BBFRAME *> *bbframe_table;
+	map<unsigned int, T_DVB_BBFRAME *>::iterator it;
 	NetBurst *burst_table;
 	bool do_advertise_modcod;
 	int max_per_burst;
@@ -112,13 +123,13 @@ bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
 		case satellite:
 			bbframe_table = ((BlocDVBRcsSat*)component_bloc)->spots[id]->m_bbframe;
 			burst_table = ((BlocDVBRcsSat*)component_bloc)->spots[id]->m_encapBurstMPEGUnderBuild;
-			do_advertise_modcod = !((BlocDVBRcsSat*)component_bloc)->satellite_terminals.isCurrentModcodAdvertised(tal_id);
+			do_advertise_modcod = !((BlocDVBRcsSat*)component_bloc)->fmt_simu.isCurrentModcodAdvertised(tal_id);
 			first_id = ((BlocDVBRcsSat*)component_bloc)->getFirstModcodID();
 			break;
 		case gateway:
 			bbframe_table = ((BlocDVBRcsNcc*) component_bloc)->m_bbframe;
 			burst_table = ((BlocDVBRcsNcc*)component_bloc)->m_encapBurstMPEGUnderBuild;
-			do_advertise_modcod = !((BlocDVBRcsNcc*)component_bloc)->satellite_terminals.isCurrentModcodAdvertised(tal_id);
+			do_advertise_modcod = !((BlocDVBRcsNcc*)component_bloc)->fmt_simu.isCurrentModcodAdvertised(tal_id);
 			first_id = ((BlocDVBRcsNcc*)component_bloc)->getFirstModcodID();
 			break;
 		default:
@@ -140,13 +151,13 @@ bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
 	{
 		UTI_DEBUG_L3("option in construction\n");
 		dvb_payload = (unsigned char *)it->second + sizeof(T_DVB_BBFRAME)+
-			      it->second->list_realModcod_size*sizeof(T_DVB_REAL_MODCOD);
-		it->second->list_realModcod_size ++;
-		g_memory_pool_dvb_rcs.add_function(std::string(__FUNCTION__), (char *) it->second);
+			      it->second->real_modcod_nbr*sizeof(T_DVB_REAL_MODCOD);
+		it->second->real_modcod_nbr ++;
+		g_memory_pool_dvb_rcs.add_function(string(__FUNCTION__), (char *) it->second);
 
 		//Updates the size of the data
 		max_per_burst = (MSG_BBFRAME_SIZE_MAX- sizeof(T_DVB_BBFRAME)
-			      - (it->second->list_realModcod_size * sizeof(T_DVB_REAL_MODCOD)))
+			      - (it->second->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD)))
 			      / ul_encap_packet_length;
 		if(comp == satellite)
 		{
@@ -162,7 +173,7 @@ bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
 		{
 			assert(0);
 		}
-		max_packets = (bbframe_size - sizeof(T_DVB_BBFRAME)-(it->second->list_realModcod_size
+		max_packets = (bbframe_size - sizeof(T_DVB_BBFRAME)-(it->second->real_modcod_nbr
 			      *sizeof(T_DVB_REAL_MODCOD)))/ ul_encap_packet_length;
 		UTI_DEBUG("%s max packets : %d \n", FUNCNAME, max_packets);
 		burst_table[modcod - first_id].setMaxPackets(max_packets);
@@ -205,13 +216,13 @@ error:
 
 int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
                                    long current_time,
-                                   std::list<DvbFrame *> *complete_dvb_frames)
+                                   list<DvbFrame *> *complete_dvb_frames)
 {
 	int ret;
 	unsigned int sent_packets = 0;
 	MacFifoElement *elem;
 	long max_to_send;
-	float duration_credit;
+	time_ms_t duration_credit_ms;
 
 	// the current BBFrame
 	BBFrame *current_bbframe;
@@ -221,8 +232,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	if(max_to_send <= 0)
 	{
 		// if there is nothing to send, return with success
-		// erase remaining credit as FIFO is empty (TODO is it ok ??)
-		this->remainingCredit = 0;
+		this->remaining_credit_ms = 0;
 		goto skip;
 	}
 
@@ -236,17 +246,17 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	UTI_DEBUG("send at most %ld encapsulation packets\n", max_to_send);
 
 	// how much time do we have to send as many BB frames as possible ?
-	// TODO remove test once frameDuration will be initialized in constructor
-	if(this->frameDuration != 0)
+	if(this->frame_duration_ms != 0)
 	{
-		duration_credit = ((float) this->frameDuration) + this->remainingCredit;
-		UTI_DEBUG("duration credit is %.2f ms (%.2f ms were remaining)\n",
-		          duration_credit, this->remainingCredit);
-		this->remainingCredit = 0;
+		duration_credit_ms = ((float) this->frame_duration_ms) + \
+		                      this->remaining_credit_ms;
+		UTI_DEBUG("duration credit is %u ms (%u ms were remaining)\n",
+		          duration_credit_ms, this->remaining_credit_ms);
+		this->remaining_credit_ms = 0;
 	}
 	else
 	{
-		UTI_ERROR("frame duration not initialized\n");
+		UTI_ERROR("frame duration is 0\n");
 		goto error;
 	}
 
@@ -255,18 +265,19 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	{
 		if(this->addCompleteBBFrame(complete_dvb_frames,
 		                            this->pending_bbframe,
-		                            duration_credit) < 0)
+		                            duration_credit_ms) < 0)
 		{
-			UTI_ERROR("cannot add pending BBFrame in the list of complete BBFrames\n");
+			UTI_ERROR("cannot add pending BBFrame in the list "
+			          "of complete BBFrames\n");
 		}
 	}
 	this->pending_bbframe = NULL;
-	
+
 	// now build BB frames with packets extracted from the MAC FIFO
 	while(fifo->getCurrentSize() > 0)
 	{
 		NetPacket *encap_packet;
-		long tal_id;
+		tal_id_t tal_id;
 		NetPacket *data;
 		NetPacket *remaining_data;
 
@@ -299,22 +310,22 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 
 		// retrieve the ST ID associated to the packet
 		tal_id = encap_packet->getDstTalId();
-	    if(tal_id == BROADCAST_TAL_ID)
-			// This is a broadcast/multicast destination
+		// This is a broadcast/multicast destination
+		if(tal_id == BROADCAST_TAL_ID)
 		{
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
-			tal_id = 
-				this->satellite_terminals.getTalIdCorrespondingToLowerModcod();
-			if (tal_id < 0)
+			tal_id =
+				this->fmt_simu->getTalIdCorrespondingToLowerModcod();
+			if(tal_id < 0)
 			{
 				UTI_ERROR("The forwarding of a multicast frame failed.\n");
 				UTI_ERROR("The Tal_Id corresponding to the terminal using the "
-						"lower modcod can not be retrieved\n");
+				          "lower modcod can not be retrieved\n");
 				goto error;
 			}
-			UTI_DEBUG("TAL_ID corresponding to lower MODCOD = %li\n", tal_id);
-		}	
+			UTI_DEBUG("TAL_ID corresponding to lower MODCOD = %u\n", tal_id);
+		}
 
 		if(!this->getIncompleteBBFrame(tal_id, &current_bbframe))
 		{
@@ -418,7 +429,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			ret = this->addCompleteBBFrame(complete_dvb_frames,
 			                               current_bbframe,
-			                               duration_credit);
+			                               duration_credit_ms);
 			if(ret == -1)
 			{
 				goto error;
@@ -439,17 +450,17 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	}
 
 	// try to fill the BBFrames list with the remaining incomplete BBFrames
-	for(std::list<BBFrame *>::iterator it = this->incomplete_bb_frames_ordered.begin();
+	for(list<BBFrame *>::iterator it = this->incomplete_bb_frames_ordered.begin();
 	    it != this->incomplete_bb_frames_ordered.end();
 	    it = this->incomplete_bb_frames_ordered.erase(it))
 	{
-		if(duration_credit <= 0)
+		if(duration_credit_ms <= 0)
 		{
 			break;
 		}
 
 		ret = this->addCompleteBBFrame(complete_dvb_frames, *it,
-		                               duration_credit);
+		                               duration_credit_ms);
 		if(ret == -1)
 		{
 			goto error;
@@ -463,7 +474,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 	}
 
 	// keep the remaining credit
-	this->remainingCredit = duration_credit;
+	this->remaining_credit_ms = duration_credit_ms;
 
 	if(sent_packets != 0)
 	{
@@ -483,73 +494,14 @@ error:
 }
 
 
-int DvbS2Std::loadModcodDefinitionFile(std::string filename)
-{
-	// load all the MODCOD definitions from file
-	if(!this->modcod_definitions.load(filename))
-	{
-		UTI_ERROR("failed to load all the MODCOD definitions "
-		          "from file '%s'\n", filename.c_str());
-		return 0;
-	}
-
-	return 1;
-}
-
-int DvbS2Std::loadModcodSimulationFile(std::string filename)
-{
-	// associate the simulation file with the list of STs
-	if(!this->satellite_terminals.setModcodSimuFile(filename))
-	{
-		UTI_ERROR("failed to associate MODCOD simulation file %s"
-		          "with the list of STs\n", filename.c_str());
-		this->modcod_definitions.clear();
-		return 0;
-	}
-
-	return 1;
-}
-
-
-int DvbS2Std::loadDraSchemeDefinitionFile(std::string filename)
-{
-	// load all the DRA definitions from file
-	if(!this->dra_scheme_definitions->load(filename))
-	{
-		UTI_ERROR("failed to load all the DRA scheme definitions "
-		          "from file '%s'\n", filename.c_str());
-		return 0;
-	}
-
-	return 1;
-}
-
-int DvbS2Std::loadDraSchemeSimulationFile(std::string filename)
-{
-	// associate the simulation file with the list of STs
-	if(!this->satellite_terminals.setDraSchemeSimuFile(filename))
-	{
-		UTI_ERROR("failed to associate DRA scheme simulation file %s"
-		          "with the list of STs\n", filename.c_str());
-		this->dra_scheme_definitions->clear();
-		return 0;
-	}
-
-	return 1;
-}
-
-DraSchemeDefinitionTable *DvbS2Std::getDraSchemeDefinitions()
-{
-	return this->dra_scheme_definitions;
-}
-
-
 bool DvbS2Std::createIncompleteBBFrame(BBFrame **bbframe,
                                        unsigned int modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
-	std::string rate;
-	unsigned int bbframe_size;
+	size_t bbframe_size;
+	string coding_rate;
+	const FmtDefinitionTable *modcod_definitions;
+	modcod_definitions = this->fmt_simu->getModcodDefinitions();
 
 	*bbframe = new BBFrame();
 	if(bbframe == NULL)
@@ -570,10 +522,12 @@ bool DvbS2Std::createIncompleteBBFrame(BBFrame **bbframe,
 	// set the type of encapsulation packets the BB frame will contain
 	(*bbframe)->setEncapPacketEtherType(this->packet_handler->getEtherType());
 
-	// get the coding rate of the MODCOD and the corresponding BB frame size
-	rate = this->modcod_definitions.getCodingRate(modcod_id);
-	bbframe_size = this->getPayload(rate);
-	UTI_DEBUG_L3("size of the BBFRAME for MODCOD %d = %d\n",
+	// get the payload size
+	// to simulate the modcod applied to transmitted data, we limit the
+	// size of the BBframe to be the payload size
+	coding_rate = modcod_definitions->getCodingRate(modcod_id);
+	bbframe_size = getPayloadSize(coding_rate);
+	UTI_DEBUG_L3("size of the BBFRAME for MODCOD %u = %zu\n",
 	             modcod_id, bbframe_size);
 
 	// set the size of the BB frame
@@ -593,31 +547,30 @@ bool DvbS2Std::retrieveCurrentModcod(long tal_id,
 
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
-	if(!this->satellite_terminals.do_exist(tal_id))
+	if(!this->fmt_simu->doTerminalExist(tal_id))
 	{
 		UTI_ERROR("encapsulation packet is for ST with ID %ld "
 		          "that is not registered\n", tal_id);
 		goto error;
 	}
-	do_advertise_modcod = !this->satellite_terminals.isCurrentModcodAdvertised(tal_id);
+	do_advertise_modcod = !this->fmt_simu->isCurrentModcodAdvertised(tal_id);
 	if(!do_advertise_modcod)
 	{
-		modcod_id = this->satellite_terminals.getCurrentModcodId(tal_id);
+		modcod_id = this->fmt_simu->getCurrentModcodId(tal_id);
 	}
 	else
 	{
-		modcod_id = this->satellite_terminals.getPreviousModcodId(tal_id);
+		modcod_id = this->fmt_simu->getPreviousModcodId(tal_id);
 	}
 	UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
 	             tal_id, modcod_id,
 	             do_advertise_modcod ? "yes" : "no");
 
-#if 0 /* TODO: manage options */
-		if(do_advertise_modcod)
+/*	if(do_advertise_modcod)
+	{
+		if(!this->createOptionModcod(comp, nb_row, *modcod_id, id))
 		{
-			this->createOptionModcod(comp, nb_row, *modcod_id, id);
-		}
-#endif
+	}*/
 
 	return true;
 
@@ -626,34 +579,27 @@ error:
 }
 
 bool DvbS2Std::getBBFrameDuration(unsigned int modcod_id,
-                                  float &bbframe_duration)
+                                  time_ms_t &bbframe_duration_ms)
 {
 	float spectral_efficiency;
+	const FmtDefinitionTable *modcod_definitions;
+	modcod_definitions = this->fmt_simu->getModcodDefinitions();
 
-	if(!this->modcod_definitions.do_exist(modcod_id))
+	if(!modcod_definitions->doFmtIdExist(modcod_id))
 	{
 		UTI_ERROR("failed to found the definition of MODCOD ID %u\n",
 		          modcod_id);
 		goto error;
 	}
 
-	spectral_efficiency = this->modcod_definitions.getSpectralEfficiency(modcod_id);
+	spectral_efficiency = modcod_definitions->getSpectralEfficiency(modcod_id);
 
-	// duration is calculated in ms not in s
-	// TODO remove test once bandwidth will be initialized in constructor
-	if(this->bandwidth != 0)
-	{
-		bbframe_duration = (MSG_BBFRAME_SIZE_MAX * 8) /
-		                   (spectral_efficiency * this->bandwidth * 1000);
-	}
-	else
-	{
-		UTI_ERROR("bandwidth not initialized\n");
-		goto error;
-	}
+	// duration is calculated over the complete BBFrame size, the BBFrame data
+	// size represents the payload without coding
+	bbframe_duration_ms = (MSG_BBFRAME_SIZE_MAX * 8) /
+	                      (spectral_efficiency * this->bandwidth_khz);
 
-
-	UTI_DEBUG("duration of the BBFRAME = %f ms\n", bbframe_duration);
+	UTI_DEBUG("duration of the BBFRAME = %u ms\n", bbframe_duration_ms);
 
 	return true;
 
@@ -674,6 +620,8 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	// Offset from beginning of frame to beginning of data
 	size_t offset;
 	size_t previous_length = 0;
+
+	*burst = NULL;
 
 	// sanity check
 	if(frame == NULL)
@@ -699,11 +647,13 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	if(bbframe_burst->pkt_type != this->packet_handler->getEtherType())
 	{
 		UTI_ERROR("Bad packet type (%d) in BB frame burst (expecting %d)\n",
-		          bbframe_burst->pkt_type, this->packet_handler->getEtherType());
+		          bbframe_burst->pkt_type,
+		          this->packet_handler->getEtherType());
 		goto error;
 	}
 	UTI_DEBUG("BB frame received (%d %s packet(s)\n",
-	           bbframe_burst->dataLength, this->packet_handler->getName().c_str());
+	           bbframe_burst->data_length,
+	           this->packet_handler->getName().c_str());
 
 	// retrieve the current real MODCOD of the receiver
 	// (do this before any MODCOD update occurs)
@@ -711,7 +661,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// check if there is an update of the real MODCOD among all the real
 	// MODCOD options located just after the header of the BB frame
-	for(i = 0; i < bbframe_burst->list_realModcod_size; i++)
+	for(i = 0; i < bbframe_burst->real_modcod_nbr; i++)
 	{
 		T_DVB_REAL_MODCOD *real_modcod_option;
 
@@ -724,28 +674,27 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		{
 			UTI_DEBUG("update real MODCOD to %d\n",
 			          real_modcod_option->real_modcod);
-#if 0 // TODO: enable this once real MODCOD options are managed
 			// check if the value is not outside the values of the file
-			this->realModcod = real_modcod_option->real_modcod);
-#endif
+			this->realModcod = real_modcod_option->real_modcod;
 		}
 	}
 
 	// used for terminal statistics
-	this->receivedModcod = bbframe_burst->usedModcod;
+	// TODO add the stat
+	this->receivedModcod = bbframe_burst->used_modcod;
 
 	// is the ST able to decode the received BB frame ?
-	if(bbframe_burst->usedModcod > real_mod)
+	if(this->receivedModcod > real_mod)
 	{
 		// the BB frame is not robust enough to be decoded, drop it
 		UTI_ERROR("received BB frame is encoded with MODCOD %d and "
 		          "the real MODCOD of the BB frame (%d) is not "
 		          "robust enough, so emulate a lost BB frame\n",
-		          bbframe_burst->usedModcod, real_mod);
+		          this->receivedModcod, real_mod);
 		goto drop;
 	}
 
-	if(bbframe_burst->dataLength <= 0)
+	if(bbframe_burst->data_length <= 0)
 	{
 		UTI_DEBUG("skip BB frame with no encapsulation packet\n");
 		goto skip;
@@ -764,8 +713,8 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	// add packets received from lower layer
 	// to the newly created burst
 	offset = sizeof(T_DVB_BBFRAME) +
-	         bbframe_burst->list_realModcod_size * sizeof(T_DVB_REAL_MODCOD);
-	for(i = 0; i < bbframe_burst->dataLength; i++)
+	         bbframe_burst->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
+	for(i = 0; i < bbframe_burst->data_length; i++)
 	{
 		NetPacket *encap_packet;
 		size_t current_length;
@@ -775,7 +724,8 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		// Use default values for QoS, source/destination tal_id
 		encap_packet = this->packet_handler->build(frame + offset + previous_length,
 		                                           current_length,
-		                                           0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+		                                           0x00, BROADCAST_TAL_ID,
+		                                           BROADCAST_TAL_ID);
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{
@@ -807,7 +757,7 @@ error:
 bool DvbS2Std::getIncompleteBBFrame(unsigned int tal_id,
                                     BBFrame **bbframe)
 {
-	std::map<unsigned int, BBFrame *>::iterator iter;
+	map<unsigned int, BBFrame *>::iterator iter;
 	unsigned int modcod_id;
 
 	*bbframe = NULL;
@@ -847,26 +797,26 @@ error:
 }
 
 
-int DvbS2Std::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
+int DvbS2Std::addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
                                  BBFrame *bbframe,
-                                 float &duration_credit)
+                                 time_ms_t &duration_credit_ms)
 {
 	unsigned int modcod_id = bbframe->getModcodId();
-	float bbframe_duration;
+	time_ms_t bbframe_duration_ms;
 
 	// how much time do we need to send the BB frame ?
-	if(!this->getBBFrameDuration(modcod_id, bbframe_duration))
-	{   
+	if(!this->getBBFrameDuration(modcod_id, bbframe_duration_ms))
+	{
 		UTI_ERROR("failed to get BB frame duration "
 		          "(MODCOD ID = %u)\n", modcod_id);
 		return -1;
-	}   
-   
+	}
+
 	// not enough space for this BBFrame
-	if(duration_credit < bbframe_duration)
+	if(duration_credit_ms < bbframe_duration_ms)
 	{
-		UTI_DEBUG("not enough duration credit (%f) for the BBFrame of "
-		          "duration %f\n", duration_credit, bbframe_duration);
+		UTI_DEBUG("not enough duration credit (%u) for the BBFrame of "
+		          "duration %u\n", duration_credit_ms, bbframe_duration_ms);
 		return -2;
 	}
 
@@ -874,7 +824,7 @@ int DvbS2Std::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
 	complete_bb_frames->push_back(bbframe);
 
 	// reduce the time credit by the time of the BB frame
-	duration_credit -= bbframe_duration;
+	duration_credit_ms -= bbframe_duration_ms;
 
 	return 0;
 }

@@ -31,14 +31,16 @@
  * @author Viveris Technologies
  */
 
+#define DBG_PACKAGE PKG_DAMA_DA
+#include <opensand_conf/uti_debug.h>
+
+#include "CircularBuffer.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
-#include "CircularBuffer.h"
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include "opensand_conf/uti_debug.h"
 
 
 /**

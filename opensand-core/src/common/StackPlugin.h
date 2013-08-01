@@ -98,7 +98,7 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual NetPacket *build(unsigned char *data, size_t data_length,
 		                         uint8_t qos,
-		                         uint8_t src_tal_id, uint8_t dst_tal_id) = 0;
+		                         uint8_t src_tal_id, uint8_t dst_tal_id) const = 0;
 
 		/**
 		 * @brief Get a packet length
@@ -135,13 +135,13 @@ class StackPlugin: public OpenSandPlugin
 
 		/**
 		 * @brief get a NetPacket that can be encapsulated in the frame
-		 * 
+		 *
 		 *   There is 4 use case:
 		 *    1. the whole packet can be encapsulated
 		 *    2. the packet should be fragmented to be encapsulated
 		 *    3. the packet cannot be encapsulated, even fragmented
 		 *    4. an error occured
-		 * 
+		 *
 		 * @param packet            IN: The initial NetPacket, it should be
 		 *                              deleted in this function
 		 * @param remaining_length  The maximum length that can be encapsulated
@@ -156,7 +156,7 @@ class StackPlugin: public OpenSandPlugin
 		 * @return true on success (case 1, 2, 3), false otherwise (case 4)
 		 */
 		virtual bool getChunk(NetPacket *packet, size_t remaining_length,
-		                      NetPacket **data, NetPacket **remaining_data) = 0;
+		                      NetPacket **data, NetPacket **remaining_data) const = 0;
 
 
 	  private:
@@ -260,7 +260,7 @@ class StackPlugin: public OpenSandPlugin
 				this->current_upper = NULL;
 				return false;
 			}
-			
+
 			vector<string>::iterator iter;
 
 			iter = find((plugin.upper[sat_type]).begin(),
@@ -289,7 +289,7 @@ class StackPlugin: public OpenSandPlugin
 
 		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
-		 * 
+		 *
 		 * @param data        The packet data
 		 * @param data_length The length of the packet
 		 * @param qos         The QoS value to associate with the packet
@@ -318,7 +318,7 @@ class StackPlugin: public OpenSandPlugin
 		StackPlugin &plugin;
 
 	};
-	
+
 	/**
 	 * @brief StackPlugin constructor
 	 */

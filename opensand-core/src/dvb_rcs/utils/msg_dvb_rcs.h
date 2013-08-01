@@ -34,6 +34,7 @@
 #ifndef MSG_DVB_RCS_H
 #define MSG_DVB_RCS_H
 
+// TODO move in lib_dvb_rcs... and rename lib_dvb_rcs into OpenSandFrames ?
 enum
 {
 	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
@@ -45,7 +46,7 @@ enum
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
 const unsigned long MSG_DVB_RCS_SIZE_MAX = 1200;
-const unsigned long MSG_BBFRAME_SIZE_MAX = 8100; //7154;
+const unsigned long MSG_BBFRAME_SIZE_MAX = 8100;
 const unsigned long MSG_PHYFRAME_SIZE_MAX = 8;
 
 /// This message is used by dvb rcs layer to advertise the upper layer

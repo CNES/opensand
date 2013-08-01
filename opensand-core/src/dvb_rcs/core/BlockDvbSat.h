@@ -91,7 +91,7 @@ class BlockDvbSat: public BlockDvb
 
 	/* misc */
 	/// Flag set 1 to activate error generator
-	// TODO remove
+	// TODO remove?
 	int m_useErrorGenerator;
 
 
@@ -100,9 +100,6 @@ class BlockDvbSat: public BlockDvb
 
 	BlockDvbSat(const string &name);
 	~BlockDvbSat();
-
-	/// get the bandwidth
-	int getBandwidth();
 
   protected:
 
@@ -173,7 +170,7 @@ class BlockDvbSat: public BlockDvb
 
 	/**
 	 * Send the DVB frames stored in the given MAC FIFO by
-	 * \ref PhysicStd::onForwardFrame
+	 * @ref PhysicStd::onForwardFrame
 	 *
 	 * @param fifo          the MAC fifo which contains the DVB frames to send
 	 * @param current_time  the current time
@@ -188,9 +185,6 @@ class BlockDvbSat: public BlockDvb
 	{
 		return this->m_delay;
 	}
-
-	/// generate some error
-	void errorGenerator(NetPacket * encap_packet);
 
 	/// update the probes
 	void getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo);

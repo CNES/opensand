@@ -144,7 +144,7 @@ class XmlParser:
         elts = self.get_all(xpath)
         if len(elts) < 1:
             raise XmlException("Cannot find %s path" % xpath)
-        
+
         for elem in elts:
             att_list = self.get_element_content(elem)
             if not attribute in att_list:
@@ -214,7 +214,7 @@ class XmlParser:
         """ write the new configuration in file """
         if not self._schema.validate(self._tree):
             error = self._schema.error_log.last_error.message
-            self.__init__(self._filename, self._xsd) 
+            self.__init__(self._filename, self._xsd)
             raise XmlException("the new values are incorrect: %s" %
                                error)
 
@@ -261,8 +261,9 @@ class XmlParser:
                              "xsd:nonNegativeInteger",
                              "xsd:nonPositiveInteger",
                              "xsd:PositiveInteger",
-                             "xsd:NegativeInteger",
-                             "xsd:decimal"]:
+                             "xsd:NegativeInteger"]:
+#                             "xsd:decimal"]:
+    #TODO add step so we could add decimal
                 return {"type": "numeric"}
             else:
                 return {"type": elem_type.replace("xsd:", "", 4)}
@@ -284,8 +285,9 @@ class XmlParser:
                             "xsd:nonNegativeInteger",
                             "xsd:nonPositiveInteger",
                             "xsd:positiveInteger",
-                            "xsd:negativeInteger",
-                            "xsd:decimal"]:
+                            "xsd:negativeInteger"]:
+#                            "xsd:decimal"]:
+    #TODO add step so we could add decimal
                 return {"type": "numeric"}
             else:
                 return {"type": att_type.replace("xsd:", "", 4)}
@@ -443,7 +445,7 @@ class XmlParser:
                       "type": "numeric",
                       "min": min_val,
                       "max": max_val,
-                      "step": step, 
+                      "step": step,
                    }
         elif base == "xsd:string":
             enum = restriction.xpath("xsd:enumeration",

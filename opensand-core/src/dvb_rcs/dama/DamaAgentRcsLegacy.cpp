@@ -29,11 +29,13 @@
  * @file    DamaAgentRcsLegacy.cpp
  * @brief   Implementation of the DAMA agent for DVB-S2 emission standard.
  * @author  Audric Schiltknecht / Viveris Technologies
+ * @author  Julien Bernard / Viveris Technologies
  *
- * TODO: I think the VBDC computation algorithm is messed-up and should be
- * re-validated.
  */
 
+
+#define DBG_PACKAGE PKG_DAMA_DA
+#include <opensand_conf/uti_debug.h>
 
 #include "DamaAgentRcsLegacy.h"
 
@@ -42,28 +44,27 @@
 #include <algorithm>
 #include <cmath>
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include "opensand_conf/uti_debug.h"
-
 // constants
 const rate_kbps_t C_MAX_RBDC_IN_SAC = 8160.0; // 8160 kbits/s, limitation due
                                               // to CR value size in to SAC field
 const vol_pkt_t C_MAX_VBDC_IN_SAC = 4080;     // 4080 packets/ceils, limitation
                                               // due to CR value size in to SAC field
 
+using std::max;
+using std::min;
 
-DamaAgentRcsLegacy::DamaAgentRcsLegacy(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                                       const std::map<unsigned int, DvbFifo *> &dvb_fifos):
-	DamaAgentRcs(pkt_hdl, dvb_fifos),
+DamaAgentRcsLegacy::DamaAgentRcsLegacy():
+	DamaAgentRcs(),
 	cra_in_cr(false),
 	rbdc_timer_sf(0),
-	vbdc_credit_pkt(0),
-	up_schedule(pkt_hdl, dvb_fifos)
+	vbdc_credit_pkt(0)
 {
 }
 
 DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 {
+	delete this->up_schedule;
+
 	if(this->rbdc_request_buffer != NULL)
 	{
 		delete this->rbdc_request_buffer;
@@ -74,7 +75,10 @@ DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 
 bool DamaAgentRcsLegacy::init()
 {
-	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	this->up_schedule = new UplinkSchedulingRcs(this->packet_handler,
+	                                            this->dvb_fifos);
+
+	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_none)
@@ -100,8 +104,8 @@ bool DamaAgentRcsLegacy::init()
 	}
 
 	// Initializes unit converter
-	this->converter = new DU_Converter(this->frame_duration_ms,
-	                                   this->packet_handler->getFixedLength());
+	this->converter = new UnitConverter(this->packet_handler->getFixedLength(),
+	                                    this->frame_duration_ms);
 
 	return true;
 
@@ -121,12 +125,54 @@ bool DamaAgentRcsLegacy::hereIsSOF(time_sf_t superframe_number_sf)
 
 	this->rbdc_timer_sf++;
 	// update dynamic allocation for next SF with allocation received
-	// through TBTP during last SF 
+	// through TBTP during last SF
 	this->dynamic_allocation_pkt = this->allocated_pkt;
 	this->allocated_pkt = 0;
-	
+
 	return true;
 }
+
+// a TTP reading function that handles DRA but not priority
+bool DamaAgentRcsLegacy::hereIsTTP(Ttp &ttp)
+{
+	map<uint8_t, emu_tp_t> tp;
+
+	/*
+	if(this->group_id != ttp->group_id)
+	{
+		UTI_DEBUG_L3("SF#%u: TTP with different group_id (%d).\n",
+		             this->current_superframe_sf, ttp->group_id);
+		goto end;
+	}*/
+
+	if(!ttp.getTp(this->tal_id, tp))
+	{
+		return true;
+	}
+
+	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
+	    it != tp.end(); ++it)
+	{
+		time_pkt_t assign_pkt;
+
+		assign_pkt = (*it).second.assignment_count;
+		this->allocated_pkt += assign_pkt;
+		UTI_DEBUG_L3("SF#%u: frame#%u: "
+		             "offset:%u, assignment_count:%u, "
+		             "fmt_id:%u priority:%u\n",
+		             ttp.getSuperframeCount(),
+		             (*it).first,
+		             (*it).second.offset,
+		             assign_pkt,
+		             (*it).second.fmt_id,
+		             (*it).second.priority);
+	}
+
+	UTI_DEBUG("SF#%u: allocated TS=%u\n",
+	          ttp.getSuperframeCount(), this->allocated_pkt);
+	return true;
+}
+
 
 bool DamaAgentRcsLegacy::processOnFrameTick()
 {
@@ -138,21 +184,22 @@ bool DamaAgentRcsLegacy::processOnFrameTick()
 		return false;
 	}
 
-	this->stat_context.global_alloc_kbps = 
-	   this->converter->ConvertFromCellsPerFrameToKbits(this->remaining_allocation_pktpsf);
+	// TODO do we convert from pkt per sf or from pkt per frame ?????
+	// TODO remove stat context and use probe directly
+	this->stat_context.global_alloc_kbps =
+		this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
 
 	return true;
 }
 
 
 bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
-                                 CapacityRequest **capacity_request,
+                                 CapacityRequest &capacity_request,
                                  bool &empty)
 {
-	std::vector<cr_info_t> requests;
 	bool send_rbdc_request = false;
 	bool send_vbdc_request = false;
-	rate_kbps_t rbdc_request_kbps = 0; 
+	rate_kbps_t rbdc_request_kbps = 0;
 	vol_pkt_t vbdc_request_pkt = 0;
 	empty = false;
 
@@ -170,7 +217,7 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 #ifdef OPTIMIZE
 			if(rbdc_request_kbps != this->rbdc_request_buffer->GetPreviousValue()
 			   || this->rbdc_timer_sf > (this->rbdc_timeout_sf / 2))
-			
+
 #endif
 				send_rbdc_request = true;
 #ifdef OPTIMIZE
@@ -203,7 +250,8 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 	if(!send_rbdc_request && !send_vbdc_request)
 	{
 		UTI_DEBUG_L3("SF#%u: RBDC CR = %d, VBDC CR = %d, no CR built.\n",
-		             this->current_superframe_sf, rbdc_request_kbps, vbdc_request_pkt);
+		             this->current_superframe_sf, rbdc_request_kbps,
+		             vbdc_request_pkt);
 		empty = true;
 		goto end;
 	}
@@ -211,19 +259,14 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 	// set RBDC request (if any) in SAC
 	if(send_rbdc_request)
 	{
-		cr_info_t tmp_info;
-
-		tmp_info.prio = 0;
-		tmp_info.type = cr_rbdc;
-		tmp_info.value = rbdc_request_kbps;
-		requests.push_back(tmp_info);
+		capacity_request.addRequest(0, cr_rbdc, rbdc_request_kbps);
 
 		// update variables used for next RBDC CR computation
 		this->rbdc_timer_sf = 0;
 		this->rbdc_request_buffer->Update(rbdc_request_kbps);
 
-		// reset counter of arrival packets/cells in MAC FIFOs related to RBDC
-		for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+		// reset counter of arrival packets in MAC FIFOs related to RBDC
+		for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
 			(*it).second->resetNew(cr_rbdc);
@@ -233,44 +276,34 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		cr_info_t tmp_info;
-
-		tmp_info.prio = 0;
-		tmp_info.type = cr_vbdc;
-		tmp_info.value = vbdc_request_pkt;
-		requests.push_back(tmp_info);
+		capacity_request.addRequest(0, cr_vbdc, vbdc_request_pkt);
 	}
 
-	*capacity_request = new CapacityRequest(this->tal_id, requests);
-
-	stat_context.rbdc_request_kbps = rbdc_request_kbps;
-	stat_context.vbdc_request_pkt = vbdc_request_pkt;
-	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets/cells in VBDC",
+	this->stat_context.rbdc_request_kbps = rbdc_request_kbps;
+	this->stat_context.vbdc_request_kb = this->converter->pktToKbits(vbdc_request_pkt);
+	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets in VBDC",
 	          this->current_superframe_sf, rbdc_request_kbps, vbdc_request_pkt);
 
  end:
 	return true;
 }
 
-bool DamaAgentRcsLegacy::hereIsTTP(const Ttp &ttp)
+bool DamaAgentRcsLegacy::uplinkSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
-	UTI_ERROR("SF#%u: You should not be here!\n", this->current_superframe_sf);
-	return false;
-}
+	rate_kbps_t remaining_alloc_kbps;
 
-bool DamaAgentRcsLegacy::uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames)
-{
-	if(!this->up_schedule.schedule(this->current_superframe_sf,
-	                               this->current_frame,
-	                               complete_dvb_frames,
-	                               this->remaining_allocation_pktpsf))
+	if(!this->up_schedule->schedule(this->current_superframe_sf,
+	                                this->current_frame,
+	                                complete_dvb_frames,
+	                                this->remaining_allocation_pktpf))
 	{
 		UTI_ERROR("SF#%u: frame %u: Uplink Scheduling failed",
 		          this->current_superframe_sf, this->current_frame);
 		return false;
 	}
-	this->stat_context.unused_alloc_kbps =  // unused bandwith in kbits/s
-	        this->converter->ConvertFromCellsPerFrameToKbits(this->remaining_allocation_pktpsf);
+
+	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
+	this->stat_context.unused_alloc_kbps = remaining_alloc_kbps;
 
 	return true;
 }
@@ -282,16 +315,17 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	vol_b_t rbdc_length_b;
 	vol_b_t rbdc_pkt_arrival_b;
 	rate_kbps_t rbdc_req_in_previous_msl_kbps;
+	double req_kbps = 0.0;
 
-	/* get number of outstanding packets/cells in RBDC related MAC FIFOs */
+	/* get number of outstanding packets in RBDC related MAC FIFOs */
 	rbdc_length_b =
 		this->converter->pktToBits(this->getMacBufferLength(cr_rbdc));
 
-	// Get number of packets/cells arrived in RBDC related IP FIFOs since
+	// Get number of packets arrived in RBDC related IP FIFOs since
 	// last RBDC request sent
 	// NB: arrivals in MAC FIFOs must NOT be taken into account because these
-	// packets/cells represent only packets/cells buffered because there is no
-	// more available allocation, but its arrival has been taken into account
+	// packets represent only packets buffered because there is no
+	// more available allocation, but their arrival has been taken into account
 	// in IP fifos
 	rbdc_pkt_arrival_b =
 		this->converter->pktToBits(this->getMacBufferArrivals(cr_rbdc));
@@ -299,34 +333,34 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	// get the sum of RBDC request during last MSL
 	rbdc_req_in_previous_msl_kbps = this->rbdc_request_buffer->GetSum();
 
-	/* compute rate need: estimation of the need of bandwith for traffic - in cells/sec */
-	if(this->rbdc_timer_sf != 0.0)
+	// TODO original algo was rbdc_length - rbdc_arrivale but 
+	//      this does not work for first packet and I do'nt understand comment !
+	//req_kbps = (int)((rbdc_length_b - rbdc_pkt_arrival_b) -
+	req_kbps = (int)(rbdc_length_b -
+	                 (this->rbdc_timer_sf * this->frame_duration_ms *
+	                  rbdc_req_in_previous_msl_kbps)) /
+	           (int)(this->frame_duration_ms * this->msl_sf);
+	req_kbps = ceil(req_kbps);
+	/* compute rate need: estimation of the need of bandwith for traffic  */
+	if(this->rbdc_timer_sf != 0)
 	{
 		/* kbps = bpms */
-		rbdc_request_kbps =
-		    rbdc_pkt_arrival_b / (this->rbdc_timer_sf * this->frame_duration_ms) +
-		    std::max((unsigned int ) 0,
-		             (rbdc_length_b - rbdc_pkt_arrival_b -
-		             (this->rbdc_timer_sf * this->frame_duration_ms *
-		              rbdc_req_in_previous_msl_kbps)) /
-		             (this->frame_duration_ms * this->msl_sf));
+		rbdc_request_kbps = (int)ceil(rbdc_pkt_arrival_b /
+		                    (this->rbdc_timer_sf * this->frame_duration_ms)) +
+		                    max(0, (int)req_kbps);
 	}
 	else
 	{
-		rbdc_request_kbps =
-		   std::max((unsigned int) 0,
-		            (rbdc_length_b - rbdc_pkt_arrival_b) -
-		            (this->rbdc_timer_sf * this->frame_duration_ms *
-		             rbdc_req_in_previous_msl_kbps) /
-		            (this->frame_duration_ms * this->msl_sf));
+		rbdc_request_kbps = max(0, (int)req_kbps);
 	}
 
 	UTI_DEBUG_L3("SF#%u: frame %u: RBDC Timer = %u, RBDC Length = %u bytes, "
-	             "RBDC cell arrival = %u, previous RBDC request in MSL = %u kb/s, "
-	             "rate need = %u kb/s\n",
+	             "RBDC packet arrival = %u, previous RBDC request in "
+	             "MSL = %u kb/s, rate need = %u kb/s\n",
 	             this->current_superframe_sf, this->current_frame,
 	             this->rbdc_timer_sf, rbdc_length_b,
-	             rbdc_pkt_arrival_b, rbdc_request_kbps, rbdc_request_kbps);
+	             rbdc_pkt_arrival_b, rbdc_req_in_previous_msl_kbps,
+	             rbdc_request_kbps);
 
 	UTI_DEBUG("SF#%u: frame %u: theoretical RBDC request = %u kbits/s",
 	          this->current_superframe_sf, this->current_frame,
@@ -341,12 +375,13 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	{
 		rbdc_limit_kbps = this->max_rbdc_kbps;
 	}
-	rbdc_request_kbps = std::min(rbdc_request_kbps, rbdc_limit_kbps);
+	rbdc_request_kbps = min(rbdc_request_kbps, rbdc_limit_kbps);
 	UTI_DEBUG_L3("updated RBDC request = %u kbits/s "
 	             "(in fonction of max RBDC and CRA)\n", rbdc_request_kbps);
 
 	/* reduce the request value to the maximum theorical value if required */
-	rbdc_request_kbps = std::min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
+	// TODO limits
+	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
 
 	UTI_DEBUG_L3("SF#%u: frame %u: updated RBDC request = %u kbits/s in SAC\n",
 	             this->current_superframe_sf, this->current_frame,
@@ -360,31 +395,31 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 	vol_pkt_t vbdc_need_pkt;
 	vol_pkt_t vbdc_request_pkt;
 
-	/* get number of outstanding packets/cells in VBDC related MAC
-	 * and IP FIFOs (in packets/cells number) */
+	/* get number of outstanding packets in VBDC related MAC
+	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
 	UTI_DEBUG_L3("SF#%u: frame %u: MAC buffer length = %d, VBDC credit = %u\n",
 	             this->current_superframe_sf, this->current_frame,
 	             vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
-	vbdc_request_pkt = std::max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
-	UTI_DEBUG_L3("SF#%u: frame %u: theoretical VBDC request = %u packets/cells",
+	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
+	UTI_DEBUG_L3("SF#%u: frame %u: theoretical VBDC request = %u packets",
 	             this->current_superframe_sf, this->current_frame,
 	             vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */
-	vbdc_request_pkt = std::min(vbdc_request_pkt, this->max_vbdc_pkt);
+	vbdc_request_pkt = min(vbdc_request_pkt, this->max_vbdc_pkt);
 
 	// Ensure VBDC request value is not greater than SAC field
-	vbdc_request_pkt = std::min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
-	UTI_DEBUG_L3("updated VBDC request = %d packets/cells in fonction of "
+	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
+	UTI_DEBUG_L3("updated VBDC request = %d packets in fonction of "
 	             "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
 	this->vbdc_credit_pkt += vbdc_request_pkt;
-	UTI_DEBUG_L3("updated VBDC request = %d packets/cells in SAC, VBDC credit = %u\n",
+	UTI_DEBUG_L3("updated VBDC request = %d packets in SAC, VBDC credit = %u\n",
 	             vbdc_request_pkt, this->vbdc_credit_pkt);
 
 	return vbdc_request_pkt;
@@ -392,10 +427,10 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 
 vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 {
-	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets/cells in fifo
+	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets in fifo
 
 	nb_pkt_in_fifo = 0;
-	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)
@@ -410,10 +445,10 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 
 vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 {
-	vol_pkt_t nb_pkt_input; // packets/cells that filled the queue since last RBDC request
+	vol_pkt_t nb_pkt_input; // packets that filled the queue since last RBDC request
 
 	nb_pkt_input = 0;
-	for(std::map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)
@@ -423,4 +458,9 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 	}
 
 	return nb_pkt_input;
+}
+
+void DamaAgentRcsLegacy::updateStatistics()
+{
+	//TODO
 }

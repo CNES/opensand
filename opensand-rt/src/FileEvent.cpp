@@ -64,7 +64,7 @@ FileEvent::~FileEvent()
 bool FileEvent::handle(void)
 {
 	int ret;
-	
+
 	if(this->data)
 	{
 		Rt::reportError(this->name, pthread_self(), false,
@@ -72,7 +72,7 @@ bool FileEvent::handle(void)
 		                this->name.c_str());
 		free(this->data);
 	}
-	/// on more byte so we can use it as char*
+	// one more byte so we can use it as char*
 	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
 
 	ret = read(this->fd, this->data, this->max_size);

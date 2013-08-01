@@ -51,7 +51,7 @@ class GlobalConfig(AdvancedHostModel):
         AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
         self._emission_std = ''
-        self._dama = ''
+#        self._dama = ''
         self._down_forward = {}
         self._up_return = {}
         self._frame_duration = ''
@@ -102,7 +102,7 @@ class GlobalConfig(AdvancedHostModel):
         try:
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
-            self._configuration.set_value(self._dama, "//dama_algorithm")
+#            self._configuration.set_value(self._dama, "//dama_algorithm")
             self.set_stack('down_forward_encap_schemes',
                            self._down_forward, 'encap')
             self.set_stack('up_return_encap_schemes',
@@ -129,18 +129,19 @@ class GlobalConfig(AdvancedHostModel):
 
     def get_emission_std(self):
         """ get the payload_type value """
-        if self.get_dama() != 'MF2-TDMA':
-            return "DVB-RCS"
-        else:
-            return "DVB-S2"
+#        if self.get_dama() != 'MF2-TDMA':
+#           return "DVB-RCS"
+#       else:
+#           return "DVB-S2"
+        return "DVB-RCS"
 
-    def set_dama(self, val):
-        """ set the dama value """
-        self._dama = val
-
-    def get_dama(self):
-        """ get the dama value """
-        return self.get_param("dama_algorithm")
+#    def set_dama(self, val):
+#        """ set the dama value """
+#        self._dama = val
+#
+#    def get_dama(self):
+#        """ get the dama value """
+#        return self.get_param("dama_algorithm")
 
     def set_up_return_encap(self, stack):
         """ set the up_return_encap_schemes values """

@@ -207,7 +207,7 @@ class Probe(object):
     @property
     def displayed(self):
         """
-        Indicates if the probe is enabled
+        Indicates if the probe is displayed
         """
         return self._displayed
 

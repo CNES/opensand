@@ -568,7 +568,7 @@ class Model:
                 else:
                     continue
             for xpath in self._deploy_simu.options(name):
-                src = self._deploy_simu.get(compo, xpath)
+                src = self._deploy_simu.get(name, xpath)
                 dst = config.get(xpath)
                 if dst is None:
                     # try to find dst in the modules

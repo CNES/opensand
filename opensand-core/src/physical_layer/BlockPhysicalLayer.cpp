@@ -54,7 +54,7 @@ BlockPhysicalLayer::BlockPhysicalLayer(const string &name,
                                        component_t component_type):
 	Block(name),
 	component_type(component_type)
-{   
+{
 	UTI_DEBUG("Basic DVB physical layer created\n");
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
@@ -79,7 +79,7 @@ bool BlockPhysicalLayer::onInit(void)
 }
 
 bool Chan::initChan(const string &link)
-{   
+{
 	// Initialization of physical layer objects for up and downlink
 	ConfigurationList model_list;
 
@@ -126,7 +126,7 @@ bool Chan::initChan(const string &link)
 		goto error;
 	}
 
-	// Initiate Attenuation model 
+	// Initiate Attenuation model
 	if(!globalConfig.getValueInList(model_list,
 	                                LINK,
 	                                link, ATTENUATION_MODEL_TYPE,
@@ -137,7 +137,7 @@ bool Chan::initChan(const string &link)
 		          PHYSICAL_LAYER_SECTION, MODEL_LIST);
 		goto error;
 	}
-	// Initiate Nominal conditions 
+	// Initiate Nominal conditions
 	if(!globalConfig.getValueInList(model_list,
 	                                LINK,
 	                                link, NOMINAL_CONDITION_TYPE,
@@ -148,7 +148,7 @@ bool Chan::initChan(const string &link)
 		          PHYSICAL_LAYER_SECTION, MODEL_LIST);
 		goto error;
 	}
-	
+
 	if(link == "down")
 	{
 		// Initiate Minimal conditions only for downlink
@@ -215,7 +215,7 @@ bool Chan::initChan(const string &link)
 			          minimal_type.c_str());
 			goto error;
 		}
-		
+
 		if(!error->init())
 		{
 			UTI_ERROR("cannot initialize error insertion plugin %s",
@@ -324,7 +324,7 @@ bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	if(this->component_type != satellite)
 	{
 		// Update of the Threshold CN if Minimal Condition
-		// Mde is Modcod dependent 
+		// Mde is Modcod dependent
 		if(!this->updateMinimalCondition(dvb_meta->hdr))
 		{
 			// debug because it will be very verbose
@@ -333,26 +333,26 @@ bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
 		}
 	}
 
-	//Location of T_DVB_PHY at the end of the frame 
+	//Location of T_DVB_PHY at the end of the frame
 	physical_parameters = (T_DVB_PHY *)((char *)dvb_meta->hdr
 	                                         + dvb_meta->hdr->msg_length);
 
-	// Length of the new msg including the PHY trailer 
+	// Length of the new msg including the PHY trailer
 	len_modif= l_len - sizeof(T_DVB_PHY);
 
-	UTI_DEBUG_L3("RECEIVE: Previous C/N  = %f dB - CarrierId = %ld " 
-	             "PktLength = %ld MsgLength = %ld \n",
+	UTI_DEBUG_L3("RECEIVE: Previous C/N  = %f dB - CarrierId = %u "
+	             "PktLength = %ld MsgLength = %u\n",
 	             physical_parameters->cn_previous,
-	             dvb_meta->carrier_id,len_modif,
+	             dvb_meta->carrier_id, len_modif,
 	             dvb_meta->hdr->msg_length);
 
-	// Checking if the received frame must be affected by errors 
+	// Checking if the received frame must be affected by errors
 	if(this->isToBeModifiedPacket(physical_parameters->cn_previous))
 	{
-		// Insertion of errors if necessary                
-		this->modifyPacket(dvb_meta,len_modif); 
+		// Insertion of errors if necessary
+		this->modifyPacket(dvb_meta,len_modif);
 	}
-    
+
 	// message successfully created, send the message to upper block
 	if(!this->enqueueMessage((void **)&dvb_meta, len_modif))
 	{
@@ -374,22 +374,22 @@ bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	                        // If physical layer is OFF: frame length
 	                        // keeps the inital length
 
-	//CASE 1: TERMINAL(ST or GW) 
+	//CASE 1: TERMINAL(ST or GW)
 	if(this->component_type != satellite or this->satellite_type == REGENERATIVE)
 	{
 		//Location of T_DVB_PHY at the end of the frame (Note:(char *)
-		//         used to point/address individual bytes) 
+		//         used to point/address individual bytes)
 		T_DVB_PHY *physical_parameters = (T_DVB_PHY *)((char *)dvb_meta->hdr
 		                                  + dvb_meta->hdr->msg_length);
 
-		// Case of outgoing msg: Mark the msg with the C/N of Channel 
+		// Case of outgoing msg: Mark the msg with the C/N of Channel
 		this->addSegmentCN(physical_parameters);
 
-		// Length of the resulting msg including the PHY trailer 
+		// Length of the resulting msg including the PHY trailer
 		len_modif = l_len + sizeof(T_DVB_PHY);
 
-		UTI_DEBUG_L3("SEND: Insert Uplink C/N = %f dB, CarrierId = %ld, " 
-		             "PktLength = %ld, MsgLength = %ld \n",
+		UTI_DEBUG_L3("SEND: Insert Uplink C/N = %f dB, CarrierId = %u, "
+		             "PktLength = %ld, MsgLength = %u\n",
 		             physical_parameters->cn_previous,
 		             dvb_meta->carrier_id,len_modif,
 		             dvb_meta->hdr->msg_length);
@@ -398,20 +398,20 @@ bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	else if(this->satellite_type == TRANSPARENT)
 	{
 		//Location of T_DVB_PHY at the end of the frame (Note:(char *)
-		//         used to point/address individual bytes) 
+		//         used to point/address individual bytes)
 		T_DVB_PHY * physical_parameters = (T_DVB_PHY *)((char *)dvb_meta->hdr
 		                                         + dvb_meta->hdr->msg_length);
 
 		UTI_DEBUG_L3("Satellite Transparent: Insert Uplink C/N = %f dB, "
-		             "CarrierId = %ld PktLength = %ld, MsgLength = %ld\n",
+		             "CarrierId = %u PktLength = %ld, MsgLength = %u\n",
 		             physical_parameters->cn_previous,
 		             dvb_meta->carrier_id, len_modif,
 		             dvb_meta->hdr->msg_length);
 
-		// Modify the C/N value of the message due to satellite segment influence 
+		// Modify the C/N value of the message due to satellite segment influence
 		this->modifySegmentCN(physical_parameters);
 	}
-    
+
 	// message successfully created, send the message to lower block
 	if(!this->enqueueMessage((void **)&dvb_meta, len_modif))
 	{

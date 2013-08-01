@@ -48,11 +48,11 @@ class UplinkSchedulingRcs: public UplinkScheduling
   public:
 
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const std::map<unsigned int, DvbFifo *> &fifos);
+	                    const map<unsigned int, DvbFifo *> &fifos);
 
 	bool schedule(const time_sf_t current_superframe_sf,
 	              const time_frame_t current_frame,
-	              std::list<DvbFrame *> *complete_dvb_frames,
+	              list<DvbFrame *> *complete_dvb_frames,
 	              uint16_t &remaining_allocation);
 
   private:
@@ -64,7 +64,7 @@ class UplinkSchedulingRcs: public UplinkScheduling
 	 * @param current_superframe_sf        the current superframe (for logging)
 	 * @param current_frame                the current frame (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
-	 * @param remaining_allocation_pktpsf  the remaining allocated packets after
+	 * @param remaining_allocation_pktpf  the remaining allocated packets after
 	 *                                     scheduling on the current superframe
 	 *
 	 * @return true on success, false otherwise
@@ -72,8 +72,8 @@ class UplinkSchedulingRcs: public UplinkScheduling
 	bool macSchedule(const unsigned int pvc,
 	                 const time_sf_t current_superframe_sf,
 	                 const time_frame_t current_frame,
-	                 std::list<DvbFrame *> *complete_dvb_frames,
-	                 rate_pktpsf_t &remaining_allocation_pktpsf);
+	                 list<DvbFrame *> *complete_dvb_frames,
+	                 rate_pktpf_t &remaining_allocation_pktpf);
 
 	/**
 	 * @brief Allocate a new DVB frame

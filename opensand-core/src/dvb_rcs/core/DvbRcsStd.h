@@ -55,7 +55,7 @@ class DvbRcsStd: public PhysicStd
 	 *
 	 * @param packet_handler The packet handler
 	 */
-	DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
+	DvbRcsStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
 
 	/**
 	 * Destroy the DVB-RCS Transmission Standard

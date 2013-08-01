@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	for(argc--, argv++; argc > 0; argc -= args_used, argv += args_used)
 	{
 		args_used = 1;
-	
+
 		if(!strcmp(*argv, "-v"))
 		{
 			// print version
@@ -226,7 +226,7 @@ static bool test_lan_adapt(string src_filename,
 	vector<string> failure;
 	unsigned int nbr_tests = 0;
 	bool success = false;
-	
+
 	Output::init(false, LEVEL_ERROR);
 
 	// load the plugins
@@ -250,21 +250,21 @@ static bool test_lan_adapt(string src_filename,
 		LanAdaptationPlugin::LanAdaptationContext *context;
 		LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl;
 		int found;
-		
+
 		// LanAdaptationContext initialisation
 		SarpTable sarp_table;
 		IpAddress *ip_addr;
 		IpAddress *ip6_addr;
 		MacAddress *src_mac;
 		MacAddress *dst_mac;
-		
+
 		found = name_low.find("/");
 		while(found != (signed)string::npos)
 		{
 			name_low.replace(found, 1, "_");
 			found = name_low.find("/", found);
 		}
-		
+
 		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
 		{
 			ERROR("failed to initialize plugin %s\n", name.c_str());
@@ -324,7 +324,7 @@ static bool test_lan_adapt(string src_filename,
 				continue;
 			}
 		}
-		
+
 		contexts.push_back(context);
 		// init contexts
 		// both IPAddress will be deleted with SarpTable
@@ -397,7 +397,7 @@ static void test_encap_and_decap(
 	pl_list_t encap_plug;
 	pl_list_it_t plugit;
 	string stack = "";
-	
+
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
         ctxit != lan_contexts.rend(); ++ctxit)
 	{
@@ -556,14 +556,14 @@ static void test_encap_and_decap(
 
 /**
  * @brief Run the encapsulation and decapsulation test for a plugin
- * 
+ *
  * @param src_filename   The LAN source file in PCAP format
  * @param encap_filename The encapsualted packet PCAP file for dump or comparison
  * @param compare        Whether we dump or compare the encapsualted packets
  * @param name           The name of the tested encapsulation plugin
  * @param contexts       The stack of encapsulated contexts
  * @param failure        The list of plugin for which test failed
- * 
+ *
  * @return true on success, false otherwise
  */
 static bool test_iter(string src_filename, string encap_filename,
@@ -603,7 +603,7 @@ static bool test_iter(string src_filename, string encap_filename,
 	unsigned int header_init = 0;
 	static unsigned char output_packet[65600];
 	struct ether_header *eth_header;
-	
+
 	// open the source dump file
 	INFO("Open source file '%s'\n", src_filename.c_str());
 	if(!open_pcap(src_filename, &src_handle, src_link_len))
@@ -747,7 +747,7 @@ static bool test_iter(string src_filename, string encap_filename,
 				{
 					memcpy(output_packet, output_header, src_link_len);
 				}
-				memcpy(output_packet + src_link_len, (*it)->getData().c_str(), 
+				memcpy(output_packet + src_link_len, (*it)->getData().c_str(),
 				       (*it)->getTotalLength());
 				if(src_link_len == ETHER_HDR_LEN) /* Ethernet only */
 				{
@@ -774,7 +774,7 @@ static bool test_iter(string src_filename, string encap_filename,
 			{
 				unsigned char *cmp_packet;
   				struct pcap_pkthdr cmp_header;
-				
+
 				cmp_packet = (unsigned char *) pcap_next(encap_handle, &cmp_header);
 				if(cmp_packet == NULL)
 				{
@@ -902,7 +902,7 @@ static bool test_iter(string src_filename, string encap_filename,
 	}
 
 	DEBUG("\n");
-	
+
 	INFO("End of %s test\n", name.c_str());
 
 	// clean memory

@@ -254,13 +254,32 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             The SARP tables for satellite terminals
+            Associate address and terminal ID
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="ipv4" />
-            <xsd:element ref="ipv6" />
-            <xsd:element ref="ethernet" />
+            <xsd:element ref="ipv4">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The IPv4 SARP table
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="ipv6">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The IPv6 SARP table
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="ethernet">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The Ethernet SARP table
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="default" type="xsd:integer">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -281,7 +300,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="carriers" />
+            <xsd:element ref="carriers">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The carriers description for emulation purpose
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

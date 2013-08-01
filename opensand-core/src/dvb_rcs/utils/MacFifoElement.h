@@ -39,7 +39,6 @@
 #include <syslog.h>
 
 #include "NetPacket.h"
-#include "config.h"
 
 /**
  * @class MacFifoElement
@@ -50,20 +49,20 @@ class MacFifoElement
  protected:
 
 	/// 0 if the element contains a DVB frame,
-	/// 1 if the element contains a NetPacket 
-	long type;
+	/// 1 if the element contains a NetPacket
+	int type;
 
 	/// The data to store in the FIFO (if type = 0)
 	unsigned char *data;
 	/// The length of data
-	unsigned int length;
+	size_t length;
 	/// The data to store in the FIFO (if type = 1)
 	NetPacket *packet;
 
 	/// The arrival time of packet in FIFO (in ms)
-	long tick_in;
+	time_t tick_in;
 	/// The minimal time the packet will output the FIFO (in ms)
-	long tick_out;
+	time_t tick_out;
 
 
  public:
@@ -75,8 +74,8 @@ class MacFifoElement
 	 * @param tick_in  The arrival time of packet in FIFO (in ms)
 	 * @param tick_out The minimal time the packet will output the FIFO (in ms)
 	 */
-	MacFifoElement(unsigned char *data, unsigned int length,
-	               long tick_in, long tick_out);
+	MacFifoElement(unsigned char *data, size_t length,
+	               time_t tick_in, time_t tick_out);
 
 	/**
 	 * Build a fifo element
@@ -85,17 +84,12 @@ class MacFifoElement
 	 * @param tick_out The minimal time the packet will output the FIFO (in ms)
 	 */
 	MacFifoElement(NetPacket *packet,
-	               long tick_in, long tick_out);
+	               time_t tick_in, time_t tick_out);
 
 	/**
 	 * Destroy the fifo element
 	 */
 	~MacFifoElement();
-
-	/**
-	 * Add trace in memory pool in order to debug memory allocation
-	 */
-	void addTrace(std::string name_function);
 
 	/**
 	 * Get the data
@@ -108,7 +102,7 @@ class MacFifoElement
 	 * Get the length of data
 	 * @return The length of data
 	 */
-	unsigned int getDataLength();
+	size_t getDataLength();
 
 
 	/**
@@ -130,19 +124,19 @@ class MacFifoElement
 	 * Get the type of data in FIFO element
 	 * @return The type of data in FIFO element
 	 */
-	long getType();
+	int getType();
 
 	/**
 	 * Get the arrival time of packet in FIFO (in ms)
 	 * @return The arrival time of packet in FIFO
 	 */
-	long getTickIn();
+	time_t getTickIn();
 
 	/**
 	 * Get the minimal time the packet will output the FIFO (in ms)
 	 * @return The minimal time the packet will output the FIFO
 	 */
-	long getTickOut();
+	time_t getTickOut();
 
 };
 

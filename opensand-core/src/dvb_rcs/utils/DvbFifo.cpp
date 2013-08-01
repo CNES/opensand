@@ -28,7 +28,7 @@
 /*
  * @file DvbFifo.cpp
  * @brief  FIFO queue containing MAC packets
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Julien Bernard / Viveris Technologies
  */
 
 
@@ -213,7 +213,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 MacFifoElement *DvbFifo::pop()
 {
 	MacFifoElement *elem;
-	
+
 	if(this->queue.size() <= 0)
 	{
 		return NULL;
@@ -243,7 +243,6 @@ void DvbFifo::flush()
 	for(std::vector<MacFifoElement *>::iterator it = this->queue.begin();
 	    it != this->queue.end(); ++it)
 	{
-		// TODO destroy element content ?
 		delete (*it);
 	}
 	this->queue.clear();
@@ -268,12 +267,11 @@ void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 
 void DvbFifo::resetStats()
 {
-	this->stat_context.current_pkt_nbr = 0;
-	this->stat_context.current_length_kb = 0;
 	this->stat_context.in_pkt_nbr = 0;
 	this->stat_context.out_pkt_nbr = 0;
 	this->stat_context.in_length_kb = 0;
 	this->stat_context.out_length_kb = 0;
+	// Add nbr packet dropped
 }
 
 void DvbFifo::init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name)

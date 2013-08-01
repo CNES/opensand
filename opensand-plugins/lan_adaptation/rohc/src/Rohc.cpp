@@ -180,7 +180,7 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 			{
 				continue;
 			}
-			
+
 		}
 		else
 		{
@@ -479,9 +479,11 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
 	return true;
 }
 
-NetPacket *Rohc::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Rohc::PacketHandler::build(unsigned char *data,
+                                      size_t data_length,
                                       uint8_t qos,
-                                      uint8_t src_tal_id, uint8_t dst_tal_id)
+                                      uint8_t src_tal_id,
+                                      uint8_t dst_tal_id) const
 {
 	size_t header_length = 0;
 	return new NetPacket(data, data_length,

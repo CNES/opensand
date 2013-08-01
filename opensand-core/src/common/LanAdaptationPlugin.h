@@ -76,7 +76,7 @@ class LanAdaptationPlugin: public StackPlugin
 		bool getChunk(NetPacket *UNUSED(packet),
 		              size_t UNUSED(remaining_length),
 		              NetPacket **UNUSED(data),
-		              NetPacket **UNUSED(remaining_data))
+		              NetPacket **UNUSED(remaining_data)) const
 		{
 			assert(0);
 		};
@@ -100,7 +100,7 @@ class LanAdaptationPlugin: public StackPlugin
 		{
 		};
 
-		/** 
+		/**
 		 * @brief Initialize the plugin with some bloc configuration
 		 *
 		 * @param tal_id           The terminal ID
@@ -149,7 +149,7 @@ class LanAdaptationPlugin: public StackPlugin
 
 	  protected:
 
-		/// Can we handle packet read from TUNor TAP interface
+		/// Can we handle packet read from TUN or TAP interface
 		bool handle_net_packet;
 
 		/// The terminal ID

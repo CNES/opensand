@@ -44,12 +44,11 @@
 
 
 /**
- * Constructor, use mgl_bloc default constructor
- * @see mgl_bloc::mgl_bloc(mgl_blocmgr *ip_blocmgr, mgl_id i_fatherid, char *ip_name)
+ * Constructor
  */
 BlockSatCarrier::BlockSatCarrier(const string &name,
                                  component_t host,
-                                 struct sc_specific specific): 
+                                 struct sc_specific specific):
 	Block(name),
 	host(host),
 	ip_addr(specific.ip_addr),
@@ -208,7 +207,7 @@ void BlockSatCarrier::onReceivePktFromCarrier(unsigned int i_carrier,
 	lp_meta = new T_DVB_META;
 	if(!lp_meta)
 	{
-		UTI_ERROR("%s Unable to get a packet from dvb pool, frame drop.",
+		UTI_ERROR("%s Unable to get allocate frame, frame drop.",
 		          FUNCNAME);
 		goto release_data;
 	}

@@ -29,8 +29,7 @@
  * @file NetSocketEvent.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  The event for message read on network socket, can also be used
- *         by any fd-like oject such as file
+ * @brief  The event for message read on network socket
  *
  */
 
@@ -82,7 +81,7 @@ class NetSocketEvent: public FileEvent
 
 	/**
 	 * @brief Get the message source address
-	 * 
+	 *
 	 * @return the message source address
 	 */
 	struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
@@ -93,7 +92,7 @@ class NetSocketEvent: public FileEvent
 
 	/// The source address of the message;
 	struct sockaddr_in src_addr;
-	
+
 };
 
 #endif

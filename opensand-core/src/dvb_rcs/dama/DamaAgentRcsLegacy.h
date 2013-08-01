@@ -36,32 +36,32 @@
 
 #include "DamaAgentRcs.h"
 
+#include "UnitConverter.h"
 #include "CircularBuffer.h"
 #include "UplinkSchedulingRcs.h"
-
 #include "msg_dvb_rcs.h"
 #include "NetBurst.h"
 #include "DvbRcsFrame.h"
 
-class DamaAgentRcsLegacy : public DamaAgentRcs
+class DamaAgentRcsLegacy: public DamaAgentRcs
 {
  public:
 
-	DamaAgentRcsLegacy(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                   const std::map<unsigned int, DvbFifo *> &dvb_fifos);
+	DamaAgentRcsLegacy();
 	virtual ~DamaAgentRcsLegacy();
 
 	// Init method
 	bool init();
-	
+
 	// Inherited methods
-	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
-	virtual bool hereIsTTP(const Ttp &ttp);
-	virtual bool processOnFrameTick();
-	virtual bool uplinkSchedule(std::list<DvbFrame *> *complete_dvb_frames);
-	virtual bool buildCR(cr_type_t cr_type,
-	                     CapacityRequest **capacity_request,
-	                     bool &emtpy);
+	bool hereIsSOF(time_sf_t superframe_number_sf);
+	bool hereIsTTP(Ttp &ttp);
+	bool processOnFrameTick();
+	bool uplinkSchedule(list<DvbFrame *> *complete_dvb_frames);
+	bool buildCR(cr_type_t cr_type,
+	             CapacityRequest &capacity_request,
+	             bool &emtpy);
+	void updateStatistics();
 
  protected:
 
@@ -75,13 +75,13 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	time_pkt_t vbdc_credit_pkt;
 
 	/** Unit converter */
-	DU_Converter* converter;
+	UnitConverter* converter;
 
 	/** Circular buffer to store previous RBDC requests */
 	CircularBuffer *rbdc_request_buffer;
 
 	/** Uplink Scheduling functions */
-	UplinkSchedulingRcs up_schedule;
+	UplinkSchedulingRcs *up_schedule;
 
  private:
 
@@ -91,17 +91,17 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	 *
 	 * @param cr_type           the type of capacity request
 	 *
-	 * @return                  total buffers size in packes/cells number
+	 * @return                  total buffers size in packes number
 	 */
 	vol_pkt_t getMacBufferLength(cr_type_t cr_type);
 	/**
-	 * @brief Utility function to get total number of "last arrived" packets/cells
+	 * @brief Utility function to get total number of "last arrived" packets
 	 *        (since last CR) of all MAC fifos associated to the concerned CR type
 	 *
 	 * @param crType            the type of capacity request
 	 *
-	 * @return                  total number of "last arrived" cells
-	 *                          in packets/cells number
+	 * @return                  total number of "last arrived" packets"
+	 *                          in packets number
 	 */
 	vol_pkt_t getMacBufferArrivals(cr_type_t cr_type);
 
@@ -115,7 +115,7 @@ class DamaAgentRcsLegacy : public DamaAgentRcs
 	/**
 	 * @brief Compute VBDC request
 	 *
-	 * @return                  the VBDC Request in number of packets/cells
+	 * @return                  the VBDC Request in number of packets
 	 *                          ready to be set in SAC field
 	 */
 	vol_pkt_t computeVbdcRequest();

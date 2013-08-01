@@ -35,8 +35,7 @@
 #ifndef _CIRCULAR_BUFFER_H
 #define _CIRCULAR_BUFFER_H
 
-#include "DamaUtils.h"
-
+#include "OpenSandCore.h"
 
 /**
  * @class CircularBuffer

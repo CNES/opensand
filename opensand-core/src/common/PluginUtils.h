@@ -150,17 +150,6 @@ class PluginUtils
 		lan_adaptation = this->lan_adaptation;
 	}
 
-
-	/**
-	 * @brief  Tokenize a string
-	 *
-	 * @param  str        The string to tokenize.
-	 * @param  tokens     The list to add tokens into.
-	 * @param  delimiter  The tokens' delimiter.
-	 */
-	static void tokenize(const string &str,
-	                     vector<string> &tokens,
-	                     const string &delimiter=":");
 };
 
 

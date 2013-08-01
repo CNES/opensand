@@ -284,7 +284,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 
 	// we need to memcpy as the start pointer cannot be reused
 	data_len = event->getSize() - 1;
-	*buf = (unsigned char *)malloc(data_len * sizeof(unsigned char));
+	*buf = (unsigned char *)calloc(data_len, sizeof(unsigned char));
 	data = event->getData();
 	memcpy(*buf, data + 1, data_len);
 	remote_addr = event->getSrcAddr();

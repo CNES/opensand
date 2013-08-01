@@ -42,10 +42,8 @@
 
 #include "BlockDvb.h"
 
-#include "DamaAgentRcs.h"
-#include "DamaAgentRcsLegacy.h"
-#include "DamaAgentRcsUor.h"
-#include "DamaUtils.h"
+#include "DamaAgent.h"
+#include "UnitConverter.h"
 #include "msg_dvb_rcs.h"
 #include "OpenSandCore.h"
 
@@ -132,17 +130,17 @@ class BlockDvbTal: public BlockDvb
 
 	// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
-	/// the group ID sent by NCC (only valid in state \ref state_running)
+	/// the group ID sent by NCC (only valid in state ef state_running)
 	long m_groupId;
-	/// the logon ID sent by NCC (only valid in state \ref state_running,
-	/// should be the same as \ref mac_d)
+	/// the logon ID sent by NCC (only valid in state ef state_running,
+	/// should be the same as ef mac_d)
 	long m_talId;
 	/// the column associated to the ST in the MODCOD and DRA scheme
 	/// simulation files
 	int m_nbRow;
 
 	/// the DAMA agent
-	DamaAgentRcs *m_pDamaAgent;
+	DamaAgent *dama_agent;
 
 
 	/* carrier IDs */
@@ -155,6 +153,11 @@ class BlockDvbTal: public BlockDvb
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
+
+	/// The capacity request
+	CapacityRequest capacity_request;
+	/// The received TTP
+	Ttp ttp;
 
 	float m_bbframe_dropped_rate;
 	int m_bbframe_dropped;
@@ -174,8 +177,7 @@ class BlockDvbTal: public BlockDvb
 	/* Timers and their values */
 
 	event_id_t logon_timer;  ///< Upon each m_logonTimer event retry logon
-	// TODO frame_timer in BlockDvb ?
-	event_id_t frame_timer;   ///< Upon each m_frameTimer event is a frame
+	event_id_t frame_timer;  ///< Upon each m_frameTimer event is a frame
 	/// The sf counter
 	long super_frame_counter;
 	/// the frame number WITHIN the current superframe
@@ -316,7 +318,7 @@ class BlockDvbTal: public BlockDvb
 	 */
 	bool initOutput(const std::vector<std::string>&);
 
-	int onStartOfFrame(unsigned char *ip_buf, long l_len);
+	bool onStartOfFrame(unsigned char *ip_buf, long l_len);
 	int processOnFrameTick();
 
 	// UL treatments
@@ -341,7 +343,7 @@ class BlockDvbTal: public BlockDvb
 	 * @return true on success, false otherwise
 	 */
 	bool sendLogonReq();
-	int sendCR();
+	bool sendCR();
 
 	void deletePackets();
 
@@ -353,11 +355,11 @@ class BlockDvbTal: public BlockDvb
 	// communication with QoS Server:
 	bool connectToQoSServer();
 	static void closeQosSocket(int sig);
-	
+
 	// output probes and events
 	Event *event_login_sent;
 	Event *event_login_complete;
-	
+
 	Probe<int> **probe_st_terminal_queue_size;
 	Probe<int> **probe_st_real_in_thr;
 	Probe<int> **probe_st_real_out_thr;
@@ -370,7 +372,7 @@ class BlockDvbTal: public BlockDvb
 	Probe<float> *probe_st_bbframe_drop_rate;
 	Probe<int> *probe_st_real_modcod;
 	Probe<int> *probe_st_used_modcod;
-	
+
 };
 
 #endif

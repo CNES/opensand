@@ -39,15 +39,18 @@
 #include "opensand_conf/uti_debug.h"
 
 
-PhysicStd::PhysicStd(std::string type,
-                     EncapPlugin::EncapPacketHandler *pkt_hdl):
-	_type(type),
-	satellite_terminals(),
-	packet_handler(pkt_hdl)
+PhysicStd::PhysicStd(string type,
+                     const EncapPlugin::EncapPacketHandler *const pkt_hdl,
+                     const FmtSimulation *const fmt_simu,
+                     time_ms_t frame_duration_ms,
+                     freq_khz_t bandwidth_khz):
+	type(type),
+	packet_handler(pkt_hdl),
+	fmt_simu(fmt_simu),
+	frame_duration_ms(frame_duration_ms),
+	bandwidth_khz(0),
+	remaining_credit_ms(0)
 {
-	this->frameDuration = 0;
-	this->remainingCredit = 0;
-	this->bandwidth = 0;
 }
 
 
@@ -56,9 +59,9 @@ PhysicStd::~PhysicStd()
 }
 
 
-std::string PhysicStd::type()
+string PhysicStd::getType()
 {
-	return this->_type;
+	return this->type;
 }
 
 
@@ -74,7 +77,7 @@ int PhysicStd::onRcvEncapPacket(NetPacket *packet,
 	elem = new MacFifoElement(packet, current_time, current_time + fifo_delay);
 	if(elem == NULL)
 	{
-		UTI_ERROR("memory pool FIFO element error, drop packet\n");
+		UTI_ERROR("cannot allocate FIFO element, drop packet\n");
 		goto error;
 	}
 
@@ -100,7 +103,7 @@ error:
 	return -1;
 }
 
-int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
+bool PhysicStd::onForwardFrame(DvbFifo *data_fifo,
                               unsigned char *frame,
                               unsigned int length,
                               long current_time,
@@ -117,10 +120,11 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 	}
 
 	// get a room with timestamp in fifo
-	elem = new MacFifoElement(frame, length, current_time, current_time + fifo_delay);
+	elem = new MacFifoElement(frame, length,
+	                          current_time, current_time + fifo_delay);
 	if(elem == NULL)
 	{
-		UTI_ERROR("memory pool FIFO element error, drop packet\n");
+		UTI_ERROR("cannot allocate FIFO element, drop packet\n");
 		goto error;
 	}
 
@@ -135,50 +139,13 @@ int PhysicStd::onForwardFrame(DvbFifo *data_fifo,
 	          "(tick_in = %ld, tick_out = %ld)\n", data_fifo->getCarrierId(),
 	          elem->getTickIn(), elem->getTickOut());
 
-	return 0;
+	return true;
 
 release_elem:
 	delete elem;
 error:
 	free(frame);
-	return -1;
-}
-
-// TODO set in constructor ?
-void PhysicStd::setFrameDuration(int frame_duration)
-{
-	this->frameDuration = frame_duration;
-}
-
-void PhysicStd::setBandwidth(int bandwidth)
-{
-	this->bandwidth = bandwidth;
-}
-
-bool PhysicStd::doSatelliteTerminalExist(long id)
-{
-	return this->satellite_terminals.do_exist(id);
-}
-
-bool PhysicStd::deleteSatelliteTerminal(long id)
-{
-	return this->satellite_terminals.del(id);
-}
-
-bool PhysicStd::addSatelliteTerminal(long id,
-                unsigned long simu_column_num)
-{
-	return this->satellite_terminals.add(id, simu_column_num);
-}
-
-bool PhysicStd::goNextStScenarioStep()
-{
-	return this->satellite_terminals.goNextScenarioStep();
-}
-
-unsigned int PhysicStd::getStCurrentDraSchemeId(long id)
-{
-	return this->satellite_terminals.getCurrentDraSchemeId(id);
+	return false;
 }
 
 int PhysicStd::getRealModcod()

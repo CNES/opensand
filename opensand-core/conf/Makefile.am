@@ -18,18 +18,12 @@ HOSTS_XSD = \
 	xsd/common.xsd
 	
 MODCOD_DRA = \
-	modcod_dra/collective/sim_dra_scheme.txt \
 	modcod_dra/collective/sim_modcods.txt \
-	modcod_dra/collective/def_dra_scheme.txt \
-	modcod_dra/collective/def_modcods.txt \
-	modcod_dra/individual/sim_dra_scheme.txt \
 	modcod_dra/individual/sim_modcods.txt \
-	modcod_dra/individual/def_dra_scheme.txt \
-	modcod_dra/individual/def_modcods.txt \
-	modcod_dra/clear_sky/cst_dra_scheme.txt \
 	modcod_dra/clear_sky/cst_modcods.txt \
-	modcod_dra/clear_sky/def_dra_scheme.txt \
-	modcod_dra/clear_sky/def_modcods.txt
+	modcod_dra/def_dra_scheme_MPEG.txt \
+	modcod_dra/def_dra_scheme_ATM.txt \
+	modcod_dra/def_modcods.txt
 	
 MANDATORY_PLUGINS = \
 	mandatory_plugins/

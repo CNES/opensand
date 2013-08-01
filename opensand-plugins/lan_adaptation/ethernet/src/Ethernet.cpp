@@ -141,6 +141,8 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 	{
 		UTI_ERROR("failed to Initialize EVC\n");
 	}
+	// TODO move initStats here ?
+	// this will help removingfinishInit from block to main
 	config.unloadConfig();
 
 	if(lan_eth == "Ethernet")
@@ -495,8 +497,9 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					          dst);
 				}
 			}
-			UTI_DEBUG("build Ethernet frame with source MAC %s corresponding to terminal ID %d "
-			          "and destination MAC %s corresponding to terminal ID %d\n",
+			UTI_DEBUG("build Ethernet frame with source MAC %s corresponding "
+			          " to terminal ID %d and destination MAC %s corresponding "
+			          "to terminal ID %d\n",
 			          src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
 
 			switch(frame_type)
@@ -976,10 +979,11 @@ void Ethernet::Context::updateStats(unsigned int period)
 	}
 }
 
-NetPacket *Ethernet::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Ethernet::PacketHandler::build(unsigned char *data,
+                                          size_t data_length,
                                           uint8_t qos,
                                           uint8_t src_tal_id,
-                                          uint8_t dst_tal_id)
+                                          uint8_t dst_tal_id) const
 {
 	NetPacket *frame = NULL;
 	size_t head_length = 0;

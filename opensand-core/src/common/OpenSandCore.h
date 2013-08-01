@@ -36,7 +36,14 @@
 
 
 #include <string>
+#include <cfloat>
+#include <algorithm>
+#include <cmath>
 #include <stdint.h>
+#include <vector>
+
+using std::string;
+using std::vector;
 
 /** unused macro to avoid compilation warning with unused parameters. */
 #ifdef __GNUC__
@@ -47,9 +54,10 @@
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
-
-using std::string;
-
+/// Broadcast tal id is maximal tal_id value authorized (5 bits).
+#define BROADCAST_TAL_ID 0x1F
+/// Terminal ID for Gateway
+#define GW_TAL_ID (0L)
 
 /** The different types of DVB components */
 typedef enum
@@ -83,7 +91,6 @@ inline string getComponentName(component_t host)
 	}
 };
 
-
 typedef enum
 {
 	REGENERATIVE,
@@ -92,9 +99,9 @@ typedef enum
 
 /**
  * @brief get the satellite type according to its name
- * 
+ *
  * @param type the satellite type name
- * 
+ *
  * @return the satellite type enum
  */
 inline sat_type_t strToSatType(string sat_type)
@@ -105,10 +112,39 @@ inline sat_type_t strToSatType(string sat_type)
 		return TRANSPARENT;
 }
 
-/// Broadcast tal id is maximal tal_id value authorized (5 bits).
-#define BROADCAST_TAL_ID 0x1F
-/// Terminal ID for Gateway
-#define GW_TAL_ID (0L)
+/** Compare two floats */
+inline bool equals(double val1, double val2)
+{
+	return std::abs(val1 - val2) < DBL_EPSILON;
+};
+
+
+/**
+ * @brief  Tokenize a string
+ *
+ * @param  str        The string to tokenize.
+ * @param  tokens     The list to add tokens into.
+ * @param  delimiter  The tokens' delimiter.
+ */
+inline void tokenize(const string &str,
+                     vector<string> &tokens,
+                     const string& delimiters=":")
+{
+	// Skip delimiters at beginning.
+	string::size_type last_pos = str.find_first_not_of(delimiters, 0);
+	// Find first "non-delimiter".
+	string::size_type pos = str.find_first_of(delimiters, last_pos);
+
+	while(string::npos != pos || string::npos != last_pos)
+	{
+		// Found a token, add it to the vector.
+		tokens.push_back(str.substr(last_pos, pos - last_pos));
+		// Skip delimiters.  Note the "not_of"
+		last_pos = str.find_first_not_of(delimiters, pos);
+		// Find next "non-delimiter"
+		pos = str.find_first_of(delimiters, last_pos);
+	}
+}
 
 // The types used in OpenSAND
 
@@ -121,10 +157,11 @@ typedef uint8_t group_id_t; ///< Groupe ID (no used but in the standard)
 // TODO check types according to max value
 // data
 typedef uint16_t rate_kbps_t; ///< Bitrate in kb/s (suffix kbps)
-typedef uint16_t rate_pktpsf_t; ///< Rate in packets/cells per superframe (suffix pktpsf)
+typedef uint16_t rate_pktpf_t; ///< Rate in packets per frame (suffix pktpf)
+typedef double rate_symps_t;    ///< Rate in symbols per second (bauds) (suffix symps)
 
 // time
-typedef uint8_t time_sf_t; ///< time in number of superframes (suffix sf)
+typedef uint16_t time_sf_t; ///< time in number of superframes (suffix sf)
 typedef uint8_t time_frame_t; ///< time in number of frames (5 bits) (suffix frame)
 typedef uint32_t time_ms_t; ///< time in ms (suffix ms)
 typedef uint16_t time_pkt_t; ///< time in number of packets, cells, ... (suffix pkt)
@@ -133,7 +170,12 @@ typedef uint16_t time_pkt_t; ///< time in number of packets, cells, ... (suffix 
 typedef uint16_t vol_pkt_t; ///< volume in number of packets/cells (suffix pkt)
 typedef uint16_t vol_kb_t; ///< volume in kbits (suffix kb)
 typedef uint32_t vol_b_t; ///< volume in bits (suffix b)
+typedef uint32_t vol_bytes_t; ///< volume in Bytes (suffix bytes)
+typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
 
+// frequency
+typedef uint8_t freq_mhz_t; ///< frequency (MHz)
+typedef uint16_t freq_khz_t; ///< frequency (kHz)
 
 /**
  * @brief Generic Superframe description

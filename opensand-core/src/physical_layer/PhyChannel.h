@@ -35,7 +35,7 @@
 #define PHY_CHANNEL_H
 
 #include "PhysicalLayerPlugin.h"
-#include "ModcodDefinitionTable.h"
+#include "FmtDefinitionTable.h"
 
 #include <opensand_rt/Rt.h>
 

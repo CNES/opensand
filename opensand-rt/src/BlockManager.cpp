@@ -43,11 +43,15 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/signalfd.h>
+#include <sys/resource.h>
 
 
 static void crash_handler(int sig)
 {
 	UTI_ERROR("Crash with signal %d: %s\n", sig, sys_siglist[sig]);
+	signal(sig, SIG_DFL);
+	// raise signal to get a core dump
+	kill(getpid(), sig);
 	exit(-1);
 }
 
@@ -93,6 +97,12 @@ void BlockManager::stop(int signal)
 
 bool BlockManager::init(void)
 {
+	// TODO use that in debug mode only => option in configure.ac
+	// core dumps may be disallowed by parent of this process; change that
+	//struct rlimit core_limits;
+	//core_limits.rlim_cur = core_limits.rlim_max = RLIM_INFINITY;
+	//setrlimit(RLIMIT_CORE, &core_limits);
+
 	BlockManager::critical_evt = Output::registerEvent("rt:critical", LEVEL_ERROR);
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)

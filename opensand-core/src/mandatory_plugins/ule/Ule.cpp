@@ -73,32 +73,32 @@ Ule::Context::Context(EncapPlugin &plugin):
 		// create Test SNDU ULE extension
 		ext = new UleExtTest();
 		if(ext == NULL)
-		{   
+		{
 			UTI_ERROR("%s failed to create Test SNDU ULE extension\n", FUNCNAME);
-		}   
+		}
 		else
 		{
 			// add Test SNDU ULE extension but do not enable it
 			if(!this->addExt(ext, false))
-			{   
+			{
 				UTI_ERROR("%s failed to add Test SNDU ULE extension\n", FUNCNAME);
 				delete ext;
-			}   
+			}
 		}
 		// create Security ULE extension
 		ext = new UleExtSecurity();
 		if(ext == NULL)
-		{   
+		{
 			UTI_ERROR("%s failed to create Padding ULE extension\n", FUNCNAME);
-		}   
+		}
 		else
 		{
 			// add Security ULE extension and enable it
 			if(!this->addExt(ext, true))
-			{   
+			{
 				UTI_ERROR("%s failed to add Padding ULE extension\n", FUNCNAME);
 				delete ext;
-			}   
+			}
 		}
 	}
 #endif
@@ -462,7 +462,7 @@ bad:
 
 NetPacket *Ule::PacketHandler::build(unsigned char *data, size_t data_length,
                                      uint8_t qos,
-                                     uint8_t src_tal_id, uint8_t dst_tal_id)
+                                     uint8_t src_tal_id, uint8_t dst_tal_id) const
 {
 	return new NetPacket(data, data_length,
 	                     this->getName(), this->getEtherType(),

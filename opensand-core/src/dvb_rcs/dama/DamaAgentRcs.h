@@ -29,6 +29,7 @@
  * @file DamaAgentRcs.h
  * @brief Implementation of the DAMA agent for DVB-RCS emission standard.
  * @author Audric Schiltknecht / Viveris Technologies
+ * @author Julien Bernard / Viveris Technologies
  */
 
 #ifndef _DAMA_AGENT_RCS_H_
@@ -39,23 +40,23 @@
 class DamaAgentRcs : public DamaAgent
 {
  public:
-	DamaAgentRcs(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	             const std::map<unsigned int, DvbFifo *> &dvb_fifos);
+	DamaAgentRcs();
 
 	// Inherited methods
 	virtual bool processOnFrameTick();
-	virtual bool hereIsTTP(unsigned char *buf, size_t len);
+	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
 
  protected:
 	/** Current frame 0 <= current_frame < frames_per_superframes */
 	time_frame_t current_frame;
-	/** Number of allocated timeslots */
+
+	/** Number of allocated timeslots  */
 	time_pkt_t allocated_pkt;
 
-	/** Dynamic allocation in packets/cells number */
+	/** Dynamic allocation in packets number */
 	time_pkt_t dynamic_allocation_pkt;
 	/** Remaining allocation for frames between two SF */
-	rate_pktpsf_t remaining_allocation_pktpsf;
+	rate_pktpf_t remaining_allocation_pktpf;
 };
 
 #endif

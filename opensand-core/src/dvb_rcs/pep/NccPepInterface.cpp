@@ -62,7 +62,7 @@ NccPepInterface::NccPepInterface(): requests_list()
 	this->socket_listen = -1;
 	this->socket_client = -1;
 	this->is_connected = false;
-	
+
 	if(error_sock_open == NULL)
 	{
 		error_sock_open = Output::registerEvent("ncc_pep_interface",
@@ -347,8 +347,6 @@ bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 close:
 	UTI_ERROR("close PEP client socket because of previous errors\n");
 	this->is_connected = false;
-	// TODO this should be done when removing event
-//	close(this->socket_client);
 error:
 	return false;
 }

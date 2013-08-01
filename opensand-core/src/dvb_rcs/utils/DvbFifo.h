@@ -29,7 +29,7 @@
 /**
  * @file DvbFifo.h
  * @brief FIFO queue containing MAC packets
- * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
+ * @author Julien Bernard / Viveris Technologies
  */
 
 #ifndef DVD_FIFO_H
@@ -135,10 +135,10 @@ class DvbFifo
 	vol_pkt_t getMaxSize() const;
 
 	/**
-	 * @brief Get the number of packets or cells that fed the queue since
+	 * @brief Get the number of packets that fed the queue since
 	 *        last reset
 	 *
-	 * @return the number of packets/cells that fed the queue since last call
+	 * @return the number of packets that fed the queue since last call
 	 */
 	vol_pkt_t getNewSize() const;
 
@@ -231,7 +231,7 @@ class DvbFifo
 	                     ///< spot and allocation would depend of it as it depends
 	                     ///< of spot
 	cr_type_t cr_type;   ///< the associated Capacity Request
-	vol_pkt_t new_size_pkt;  ///< the number of cells or packets that filled the fifo
+	vol_pkt_t new_size_pkt;  ///< the number of packets that filled the fifo
 	                         ///< since previous check
 	vol_pkt_t new_length_kb; ///< the size of data that filled the fifo
 	                         ///< since previous check

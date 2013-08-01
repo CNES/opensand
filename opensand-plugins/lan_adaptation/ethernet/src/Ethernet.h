@@ -30,7 +30,7 @@
  * @file Ethernet.h
  * @brief Ethernet LAN adaptation plugin implementation
  * @author Remy PIENNE <rpienne@toulouse.viveris.com>
- * This LAN adaptation plugin can be used in two configurations: 
+ * This LAN adaptation plugin can be used in two configurations:
  * - The host uses a TAP interface, Ethernet is first on the stack, this plugin
  * reads and writes Ethernet frames.
  * - The host uses a TUN interface, IP is first on the stack, this plugin reads
@@ -228,7 +228,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-			
+
 	  public:
 
 		PacketHandler(LanAdaptationPlugin &plugin):
@@ -241,7 +241,7 @@ class Ethernet: public LanAdaptationPlugin
 		{
 			size_t length = 0;
 			if(data == NULL)
-			{ 
+			{
 				//error
 				return 0;
 			}
@@ -250,10 +250,11 @@ class Ethernet: public LanAdaptationPlugin
 
 		string getName() const {return "Ethernet";}
 
-		NetPacket *build(unsigned char *data, size_t data_length,
+		NetPacket *build(unsigned char *data,
+		                 size_t data_length,
 		                 uint8_t qos,
 		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id);
+		                 uint8_t dst_tal_id) const;
 
 	};
 

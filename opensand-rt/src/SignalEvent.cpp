@@ -56,7 +56,7 @@ SignalEvent::SignalEvent(const string &name,
 	if(ret != 0)
 	{
 		Rt::reportError("signal constructor", pthread_self(),
-						true, "Cannot block signal [%u: %s]", ret, strerror(ret));
+		                true, "Cannot block signal [%u: %s]", ret, strerror(ret));
 	}
 }
 

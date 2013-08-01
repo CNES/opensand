@@ -105,7 +105,7 @@ def sig_handler(signum, frame):
             sys.exit(0)
         else:
             sys.exit(1)
-            
+
 def publish_service(stats_handler):
     """ publish the OpenSAND service """
     global SERVICE
@@ -286,9 +286,9 @@ def write_pid(pid):
 def start_daemon():
     """ start the daemon """
     # set user id to opensand and only keep CAP_NET_ADMIN capabilities
-    try:
-        pw = pwd.getpwnam("opensand")
-        uid = pw.pw_uid
+#    try:
+#        pw = pwd.getpwnam("opensand")
+#        uid = pw.pw_uid
 #        prctl.cap_inheritable.net_admin = True
 #        prctl.set_keepcaps(True)
 #        os.setuid(uid)
@@ -296,14 +296,14 @@ def start_daemon():
 #        prctl.cap_effective.limit('CAP_NET_ADMIN')
 #        prctl.cap_permitted.limit('CAP_NET_ADMIN')
 #        prctl.cap_effective.net_admin = True
-    except KeyError:
-        LOGGER.ERROR("cannot find opensand user")
-        try:
-            os.remove(PID_FILE)
-        except OSError, (errno, strerror):
-            LOGGER.error("cannot remove PID file (%d: %s)" %
-                         (errno, strerror))
-        sys.exit(1)
+#    except KeyError:
+#        LOGGER.ERROR("cannot find opensand user")
+#        try:
+#            os.remove(PID_FILE)
+#        except OSError, (errno, strerror):
+#            LOGGER.error("cannot remove PID file (%d: %s)" %
+#                         (errno, strerror))
+#        sys.exit(1)
 
 
     # start the threads

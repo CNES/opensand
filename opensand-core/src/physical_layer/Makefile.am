@@ -6,7 +6,7 @@ libopensand_physical_layer_la_cpp = \
 	NominalCondition.cpp \
 	MinimalCondition.cpp \
     ErrorInsertion.cpp \
-	PhyChannel.cpp 
+	PhyChannel.cpp
 
 libopensand_physical_layer_la_h = \
 	BlockPhysicalLayer.h \
@@ -14,7 +14,7 @@ libopensand_physical_layer_la_h = \
 	NominalCondition.h \
 	MinimalCondition.h \
 	ErrorInsertion.h \
-	PhyChannel.h 
+	PhyChannel.h
 
 libopensand_physical_layer_la_SOURCES = \
 	$(libopensand_physical_layer_la_cpp) \
@@ -27,7 +27,7 @@ libopensand_physical_layer_la_DEPENDENCIES = \
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
-	-I$(top_srcdir)/src/dvb_rcs/modcod
+	-I$(top_srcdir)/src/dvb_rcs/fmt
 
 
 

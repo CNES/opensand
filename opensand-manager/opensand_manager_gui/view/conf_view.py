@@ -46,7 +46,7 @@ IMG_PATH = "/usr/share/opensand/manager/images/"
 class ConfView(WindowView):
     """ Element for the configuration tab """
 
-    _dama_rcs = ["Legacy", "UoR", "Stub", "Yes"]
+    _dama_rcs = ["Legacy"]
     _dama_s2 = ["MF2-TDMA"]
 
     def __init__(self, parent, model, manager_log):
@@ -93,14 +93,16 @@ class ConfView(WindowView):
         widget = self._ui.get_widget(config.get_emission_std())
         widget.set_active(True)
         widget.clicked()
-        # dama
-        widget = self._ui.get_widget('dama_box')
-        if config.get_emission_std() == "DVB-S2":
-            widget.set_active(self._dama_s2.index(config.get_dama()))
-        else:
-            widget.set_active(self._dama_rcs.index(config.get_dama()))
-        for host in self._lan_stacks:
-            self._lan_stacks[host].load(host.get_lan_adaptation())
+        # dama TODO support up/down DAMA ?
+        widget = self._ui.get_widget("frame_dama")
+        widget.hide() # TODO remove
+#        widget = self._ui.get_widget('dama_box')
+#        if config.get_emission_std() == "DVB-S2":
+#            widget.set_active(self._dama_s2.index(config.get_dama()))
+#        else:
+#            widget.set_active(self._dama_rcs.index(config.get_dama()))
+#        for host in self._lan_stacks:
+#            self._lan_stacks[host].load(host.get_lan_adaptation())
         # up_return_encap
         self._out_stack.load(config.get_up_return_encap(),
                              config.get_payload_type(),
@@ -166,12 +168,12 @@ class ConfView(WindowView):
             widget = self._ui.get_widget(config.get_emission_std())
             if not widget.get_active():
                 return True
-            # dama
-            widget = self._ui.get_widget('dama_box')
-            model = widget.get_model()
-            active = widget.get_active_iter()
-            if model.get_value(active, 0) != config.get_dama():
-                return True
+            # dama TODO
+#            widget = self._ui.get_widget('dama_box')
+#            model = widget.get_model()
+#            active = widget.get_active_iter()
+#            if model.get_value(active, 0) != config.get_dama():
+#                return True
 
             # lan adaptation
             for host in self._lan_stacks:
@@ -214,9 +216,9 @@ class ConfView(WindowView):
                                                 join_style=gtk.gdk.JOIN_MITER)
         # ST -> SAT
         widget = self._ui.get_widget("repr_stack_st")
-        xsrc = widget.allocation.x 
+        xsrc = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_sat")
-        xdst = widget.allocation.x 
+        xdst = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_out_st")
         diff = 25 + widget.allocation.x - xsrc
         self._drawing_area.window.draw_lines(self._context_graph,
@@ -234,9 +236,9 @@ class ConfView(WindowView):
         orig = xdst - xsrc + diff + 10
         # GW <-> SAT
         widget = self._ui.get_widget("repr_stack_sat")
-        xsrc = widget.allocation.x 
+        xsrc = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_gw")
-        xdst = widget.allocation.x 
+        xdst = widget.allocation.x
         self._drawing_area.window.draw_lines(self._context_graph,
                                              [(orig, yorig), (orig, ydst),
                                               (xdst - xsrc + orig - 5, ydst),
@@ -264,9 +266,9 @@ class ConfView(WindowView):
 
         # SAT -> ST
         widget = self._ui.get_widget("repr_stack_st")
-        xsrc = widget.allocation.x 
+        xsrc = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_sat")
-        xdst = widget.allocation.x 
+        xdst = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_out_st")
         diff = 85 + widget.allocation.x - xsrc
         self._drawing_area.window.draw_lines(self._context_graph,
@@ -282,9 +284,9 @@ class ConfView(WindowView):
         orig = xdst - xsrc + diff + 10
         # GW <-> SAT
         widget = self._ui.get_widget("repr_stack_sat")
-        xsrc = widget.allocation.x 
+        xsrc = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_gw")
-        xdst = widget.allocation.x 
+        xdst = widget.allocation.x
         self._drawing_area.window.draw_lines(self._context_graph,
                                              [(orig, yorig), (orig, ydst),
                                               (xdst - xsrc + orig - 5, ydst),

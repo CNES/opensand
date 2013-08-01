@@ -38,10 +38,8 @@
 
 #include "PhysicStd.h"
 #include "BBFrame.h"
-#include "ModcodDefinitionTable.h"
+#include "FmtDefinitionTable.h"
 
-/** The minimum duration required for a BB frame */
-#define BBFRAME_MIN 1.8
 
 
 /**
@@ -52,11 +50,6 @@ class DvbS2Std: public PhysicStd
 {
 
  private:
-	/** The table of MODCOD definitions */
-	ModcodDefinitionTable modcod_definitions;
-
-	/** The table of DRA scheme definitions */
-	DraSchemeDefinitionTable *dra_scheme_definitions;
 
 	// the BBFrame being built identified by their modcod
 	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
@@ -73,21 +66,20 @@ class DvbS2Std: public PhysicStd
 	 * Build a DVB-S2 Transmission Standard
 	 *
 	 * @param packet_handler the packet handler
+	 * @param fmt_simu       the simulated FMT information
+	 * @param frame_duration the frame duration
+	 * @param bandwidth      the bandwidth
+
 	 */
-	DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
+	DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl,
+	         const FmtSimulation *const fmt_simu,
+			 time_ms_t frame_duration_ms,
+			 freq_khz_t bandwidth_khz);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
 	 */
 	~DvbS2Std();
-
-	/**
-	 * @brief Get the payload size of a BBFRAME with the corresponding coding rate
-	 *
-	 * @param coding_rate  the corresponding coding rate
-	 * @return             the payload in bytes
-	 */
-	static unsigned int getPayload(std::string coding_rate);
 
 	int scheduleEncapPackets(DvbFifo *fifo,
 	                         long current_time,
@@ -101,14 +93,14 @@ class DvbS2Std: public PhysicStd
 	               NetBurst **burst);
 
 	/**** MODCOD definition and scenario ****/
-
+#if 0
 	/**
 	 * @brief Load the modcod definition file
 	 *
 	 * @param filename the name of the modcod definition file
 	 * return 1 on success, 0 on error
 	 */
-	int loadModcodDefinitionFile(std::string filename);
+	int loadModcodDefinitionFile(string filename);
 
 	/**
 	 * @brief Load the modcod simulation file
@@ -116,7 +108,7 @@ class DvbS2Std: public PhysicStd
 	 * @param filename the name of the modcod definition file
 	 * return 1 on success, 0 on error
 	 */
-	int loadModcodSimulationFile(std::string filename);
+	int loadModcodSimulationFile(string filename);
 
 	/**
 	 * @brief Load the dra scheme definition file
@@ -124,7 +116,7 @@ class DvbS2Std: public PhysicStd
 	 * @param filename the name of the dra scheme definition file
 	 * return 1 on success, 0 on error
 	 */
-	int loadDraSchemeDefinitionFile(std::string filename);
+	int loadDraSchemeDefinitionFile(string filename);
 
 	/**
 	 * @brief Load the dra scheme simulation file
@@ -132,7 +124,7 @@ class DvbS2Std: public PhysicStd
 	 * @param filename the name of the dra scheme definition file
 	 * return 1 on success, 0 on error
 	 */
-	int loadDraSchemeSimulationFile(std::string filename);
+	int loadDraSchemeSimulationFile(string filename);
 
 	/**
 	 * @brief Get the dra scheme definitions
@@ -140,6 +132,7 @@ class DvbS2Std: public PhysicStd
 	 * @return the DRA scheme definitions
 	 */
 	DraSchemeDefinitionTable *getDraSchemeDefinitions();
+#endif
 
 
 #if 0 /* TODO: manage options */
@@ -186,7 +179,7 @@ class DvbS2Std: public PhysicStd
  	 *                         false otherwise
 	 */
 	bool getBBFrameDuration(unsigned int modcod_id,
-	                        float &bbframe_duration);
+	                        time_ms_t &bbframe_duration);
 
 	/**
 	 * @brief Get the incomplete BBFrame for the current destination terminal
@@ -209,7 +202,7 @@ class DvbS2Std: public PhysicStd
 	 */
 	int addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
 	                       BBFrame *bbframe,
-	                       float &duration_credit);
+	                       time_ms_t &duration_credit);
 };
 
 #endif

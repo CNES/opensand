@@ -48,9 +48,9 @@
 #include "DvbFrame.h"
 #include "msg_dvb_rcs.h"
 #include "MacFifoElement.h"
-#include "SatelliteTerminalList.h"
-#include "DraSchemeDefinitionTable.h"
+#include "FmtSimulation.h"
 
+using std::string;
 
 /**
  * @class PhysicStd
@@ -62,12 +62,9 @@ class PhysicStd
  private:
 
 	/** The type of the DVB standard ("DVB-RCS" or "DVB-S2") */
-	std::string _type;
+	string type;
 
  protected:
-
-	/** The list of satellite terminals that are logged */
-	SatelliteTerminalList satellite_terminals;
 
 	/** The real MODCOD of the ST */
 	int realModcod;
@@ -75,30 +72,40 @@ class PhysicStd
 	/** The received MODCOD */
 	int receivedModcod;
 
- protected:
-
     /** The packet representation */
-	EncapPlugin::EncapPacketHandler *packet_handler;
+	const EncapPlugin::EncapPacketHandler *packet_handler;
+
+	/** The FMT simulated data */
+	const FmtSimulation *fmt_simu;
 
 	/** The frame duration */
-	unsigned int frameDuration;
-
-	/** The remaining credit if all the frame duration was not consumed */
-	float remainingCredit;
+	time_ms_t frame_duration_ms;
 
 	/** The bandwidth */
-	int bandwidth;
+	freq_khz_t bandwidth_khz;
 
- public: 
+	/** The remaining credit if all the frame duration was not consumed */
+	time_ms_t remaining_credit_ms;
+
+ public:
 
 	/**
 	 * Build a Physical Transmission Standard
 	 *
 	 * @param type           the type of the DVB standard
 	 * @param packet_handler the packet handler
+	 * @param fmt_simu       The simulated FMT data (only used for DVB-S2
+	 *                                               output encapsulation scheme)
+	 * @param frame_duration the frame duration (only used for DVB-S2
+	 *                                           output encapsulation scheme)
+	 * @param bandwidth      the bandwidth (only used for DVB-S2 output
+	 *                                      encapsulation scheme)
 	 */
-	PhysicStd(std::string type,
-			  EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
+	PhysicStd(string type,
+	          const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL,
+	          const FmtSimulation *const fmt_simu = NULL,
+	          time_ms_t frame_duration_ms = 0,
+	          freq_khz_t bandwidth_khz = 0);
 
 	/**
 	 * Destroy the Physical Transmission Standard
@@ -110,7 +117,7 @@ class PhysicStd
 	 *
 	 * @return the type of Physical Transmission Standard
 	 */
-	std::string type();
+	string getType();
 
 
 	/***** functions for ST, GW and regenerative satellite *****/
@@ -149,9 +156,9 @@ class PhysicStd
 
 	/**
 	 * Schedule encapsulation packets and create DVB frames which will be
-	 * sent by \ref  BlocDvb::sendBursts
+	 * sent by ef  BlocDvb::sendBursts
 	 * @warning do not use this function on satellite terminal, use the dama
-	 *          function \ref DvbRcsDamaAgent::globalSchedule instead
+	 *          function ef DvbRcsDamaAgent::globalSchedule instead
 	 *
 	 * @param fifo                      the MAC fifo to get the packets from
 	 * @param current_time              the current time
@@ -168,7 +175,7 @@ class PhysicStd
 
 	/**
 	 * Forward a frame received by a transparent satellite to the
-	 * given MAC FIFO (\ref BlocDVBRcsSat::onSendFrames will extract it later)
+	 * given MAC FIFO (ef BlocDVBRcsSat::onSendFrames will extract it later)
 	 *
 	 * @param data_fifo     the MAC fifo to put the DVB frame in
 	 * @param frame         the DVB frame to forward
@@ -176,89 +183,32 @@ class PhysicStd
 	 * @param current_time  the current time
 	 * @param fifo_delay    the minimum delay the DVB frame must stay in
 	 *                      the MAC FIFO (used on SAT to emulate delay)
-	 * @return              0 if successful, -1 otherwise
+	 * @return              true on success, false otherwise
 	 */
-	virtual int onForwardFrame(DvbFifo *data_fifo,
-	                           unsigned char *frame,
-	                           unsigned int length,
-	                           long current_time,
-	                           int fifo_delay);
+	virtual bool onForwardFrame(DvbFifo *data_fifo,
+	                            unsigned char *frame,
+	                            unsigned int length,
+	                            long current_time,
+	                            int fifo_delay);
 
 	/**
 	 * @brief Set the frame duration for DVB layer
-	 *        (only used for DVB-S2 output encapsulation scheme)
-	 *
-	 * @param frame_duration the frame duration
 	 */
 	void setFrameDuration(int frame_duration);
 
 	/**
-	 * @brief Set the bandwidth for DVB layer
-	 *        (only used for DVB-S2 output encapsulation scheme)
-	 *
-	 * @param bandwidth the bandwidth
-	 */
-	void setBandwidth(int bandwidth);
-
-	/**
-	 * @brief Does a ST with the given ID exist ?
-	 *
-	 * @param id  the ID we want to check for
-	 * @return    true if a ST, false is it does not exist
-	 */
-	bool doSatelliteTerminalExist(long id);
-
-	/**
-	 * @brief Delete a Satellite Terminal (ST) from the list
-	 *
-	 * @param id  the ID of the ST (called TAL ID or MAC ID elsewhere in the code)
-	 * @return    true if the deletion is successful, false otherwise
-	 */
-	bool deleteSatelliteTerminal(long id);
-
-	/**
-	 * @brief Add a new Satellite Terminal (ST) in the list
-	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @param simu_column_num  the column # associated to the ST for DRA/MODCOD
-	 *                         simulation files
-	 * @return                 true if the addition is successful, false otherwise
-	 */
-	bool addSatelliteTerminal(long id, unsigned long simu_column_num);
-
-	/**
-	 * @brief Go to next step in adaptive physical layer scenario
-	 *
-	 * Update current MODCOD and DRA scheme IDs of all STs in the list.
-	 *
-	 * @return true on success, false on failure
-	 */
-	bool goNextStScenarioStep();
-
-	/**
 	 * @brief Get the real MODCOD of the terminal
-	 * 
+	 *
 	 * @return the real MODCOD
 	 */
 	int getRealModcod();
 
 	/**
 	 * @brief Get the received MODCOD of the terminal
-	 * 
+	 *
 	 * @return the received MODCOD
 	 */
 	int getReceivedModcod();
-
-	/**
-	 * @brief Get the current DRA scheme ID of the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the DRA scheme definition we want information for
-	 * @return    the current DRA scheme ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	unsigned int getStCurrentDraSchemeId(long id);
 
 };
 

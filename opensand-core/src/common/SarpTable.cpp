@@ -86,9 +86,7 @@ bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
 	entry = new sarpIpEntry;
 	if(!entry)
 	{
-		// no more memory in the pool
-		UTI_ERROR("cannot get memory from the SARP memory pool, "
-		          "cannot add entry\n");
+		UTI_ERROR("cannot get memory for SARP entry\n");
 		success = false;
 		goto quit;
 	}

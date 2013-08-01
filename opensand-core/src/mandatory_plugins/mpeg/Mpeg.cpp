@@ -62,18 +62,18 @@ Mpeg::Context::Context(EncapPlugin &plugin):
 	ConfigurationFile config;
 
 	if(config.loadConfig(CONF_MPEG_FILE) < 0)
-	{   
+	{
 		UTI_ERROR("%s failed to load config file '%s'",
 		          FUNCNAME, CONF_MPEG_FILE);
 		goto error;
-	}   
+	}
 	// Retrieving the packing threshold
 	if(!config.getValue(MPEG_SECTION,
 	                    PACKING_THRESHOLD, this->packing_threshold))
-	{   
+	{
 		UTI_ERROR("%s missing %s parameter\n", FUNCNAME, PACKING_THRESHOLD);
 		goto unload;
-	}   
+	}
 	UTI_DEBUG("%s packing thershold: %lu\n", FUNCNAME, this->packing_threshold);
 
 
@@ -239,7 +239,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		          " packets!!!\n");
 	}
 
-	pid = MpegPacket::getPidFromPacket(packet); 
+	pid = MpegPacket::getPidFromPacket(packet);
 
 	// find the encapsulation context for the network packet
 	UTI_DEBUG("%s network packet belongs to the encapsulation context "
@@ -303,7 +303,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 				UTI_DEBUG("%s one MPEG packet created\n", FUNCNAME);
 				// set the destination spot ID
 				mpeg_packet->setDstSpot(dest_spot);
-	
+
 				mpeg_packets->add(mpeg_packet);
 			}
 			else
@@ -641,7 +641,8 @@ restart:
 		max_len = MIN(TS_DATASIZE - sndu_offset, context->sndu_len() - context->length());
 		UTI_DEBUG("%s add %u bytes of data to SNDU (SNDU needs %u bytes, "
 		          "MPEG frame owns %u bytes)\n", FUNCNAME, max_len,
-		          context->sndu_len() - context->length(), TS_DATASIZE - sndu_offset);
+		          context->sndu_len() - context->length(),
+		          TS_DATASIZE - sndu_offset);
 
 		// add SNDU fragment to context
 		context->add((unsigned char *)mpeg_packet->getPayload().c_str() +
@@ -656,10 +657,11 @@ restart:
 
 			UTI_DEBUG("%s SNDU completed (%u bytes)\n", FUNCNAME, context->length());
 
-			net_packet = this->current_upper->build((unsigned char *)(context->data().c_str()),
-			                                        context->length(),
-			                                        packet->getQos(),
-			                                        packet->getSrcTalId(), packet->getDstTalId());
+			net_packet = this->current_upper->build(
+					(unsigned char *)(context->data().c_str()),
+					context->length(),
+					packet->getQos(),
+					packet->getSrcTalId(), packet->getDstTalId());
 			if(net_packet == NULL)
 			{
 				UTI_ERROR("%s cannot create a new SNDU, drop it\n", FUNCNAME);
@@ -956,18 +958,19 @@ error:
 
 NetPacket *Mpeg::PacketHandler::build(unsigned char *data, size_t data_length,
                                       uint8_t UNUSED(_qos),
-                                      uint8_t UNUSED(_src_tal_id), uint8_t UNUSED(_dst_tal_id))
+                                      uint8_t UNUSED(_src_tal_id),
+                                      uint8_t UNUSED(_dst_tal_id)) const
 {
 	const char *FUNCNAME = "[Mpeg::PacketHandler::build]";
 	uint8_t qos;
 	uint8_t src_tal_id, dst_tal_id;
 
 	if(data_length != this->getFixedLength())
-	{   
-		UTI_ERROR("%s bad data length (%zu) for ATM cell\n",
+	{
+		UTI_ERROR("%s bad data length (%zu) for MPEG packet\n",
 		          FUNCNAME, data_length);
 		return NULL;
-	}   
+	}
 
 	MpegPacket packet(data, data_length);
 
@@ -980,8 +983,10 @@ NetPacket *Mpeg::PacketHandler::build(unsigned char *data, size_t data_length,
 	                     qos, src_tal_id, dst_tal_id, TS_HEADERSIZE);
 }
 
-bool Mpeg::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
-                                   NetPacket **data, NetPacket **remaining_data)
+bool Mpeg::PacketHandler::getChunk(NetPacket *packet,
+                                   size_t remaining_length,
+                                   NetPacket **data,
+                                   NetPacket **remaining_data) const
 {
 	*data = NULL;
 	*remaining_data = NULL;
@@ -993,7 +998,7 @@ bool Mpeg::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	{
 		*data = packet;
 	}
-		
+
 	return true;
 }
 

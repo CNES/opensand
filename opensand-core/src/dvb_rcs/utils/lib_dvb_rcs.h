@@ -36,6 +36,7 @@
 #define LIB_DVB_RCS_H
 
 #include "CapacityRequest.h"
+#include "Ttp.h"
 
 #include <string>
 #include <stdint.h>
@@ -96,7 +97,7 @@
 /**
  * Allocation Table, NCC -> ST
  */
-#define MSG_TYPE_TBTP 21
+#define MSG_TYPE_TTP 21
 
 /**
  * Synchronization message (unused), NCC->ST
@@ -123,9 +124,9 @@
  */
 typedef struct
 {
-	long msg_length; ///< Total length of the message (including _this_ header)
-	long msg_type;   ///< Type of the message (see \#defines above)
-} T_DVB_HDR;
+	uint16_t msg_length; ///< Total length of the message (including _this_ header)
+	uint8_t msg_type;   ///< Type of the message (see \#defines above)
+} __attribute__((__packed__)) T_DVB_HDR;
 
 
 /**
@@ -134,9 +135,9 @@ typedef struct
  */
 typedef struct
 {
-	long carrier_id; ///< Identifier of the carrier
+	uint8_t carrier_id; ///< Identifier of the carrier
 	T_DVB_HDR *hdr;  ///< Pointer to the DVB Header
-} __attribute__((__packed__)) T_DVB_META;
+} T_DVB_META; // internal, no need to pack
 
 /**
  * Internal structure between DVB and Carrier blocks.
@@ -145,7 +146,7 @@ typedef struct
 typedef struct
 {
     double cn_previous;
-} T_DVB_PHY;
+} T_DVB_PHY; // internal, no need to pack
 
 /**
  * This message type is a trick.
@@ -160,8 +161,8 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr; ///< Basic DVB Header, used only to be caught by the dvb layer
-	long frame_nr; ///< SuperFrame Number
-} T_DVB_SOF;
+	uint16_t frame_nr; ///< SuperFrame Number
+} __attribute__((__packed__)) T_DVB_SOF;
 
 
 /**
@@ -169,12 +170,12 @@ typedef struct
  */
 typedef struct
 {
-	T_DVB_HDR hdr;     ///< Basic DVB Header
-	int capa;          ///< Capability of the ST, to be set to 0
-	int mac;           ///< ST MAC address
-	long rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
-	int nb_row;        ///< the number of the row in modcod and dra files
-} T_DVB_LOGON_REQ;
+	T_DVB_HDR hdr;         ///< Basic DVB Header
+	uint8_t capa;          ///< Capability of the ST, to be set to 0
+	uint16_t mac;          ///< ST MAC address
+	uint16_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
+	uint16_t nb_row;       ///< the number of the row in modcod and dra files
+} __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
 
 /**
@@ -182,15 +183,17 @@ typedef struct
  */
 typedef struct
 {
-	T_DVB_HDR hdr;                    ///< Basic DVB Header
-	int mac;                          ///< Terminal MAC address
-	int nb_row;                       ///< Terminal row number
-	unsigned char group_id;           ///< Assigned Group Id
-	unsigned short logon_id;          ///< Assigned Logon Id
-	unsigned char traffic_burst_type; ///< Type of traffic, set to 0
-	unsigned short return_vpi;        ///< VPI used for Signalling on Return Link
-	unsigned short return_vci;        ///< VCI used for Signalling on Return Link
-} T_DVB_LOGON_RESP;
+	T_DVB_HDR hdr;              ///< Basic DVB Header
+	uint16_t mac;               ///< Terminal MAC address
+	// TODO remove and load in GW ???
+	uint16_t nb_row;            ///< Terminal row number
+	uint8_t group_id;           ///< Assigned Group Id
+	uint16_t logon_id;          ///< Assigned Logon Id
+	uint8_t traffic_burst_type; ///< Type of traffic, set to 0
+	// TODO used ???
+	uint8_t return_vpi;         ///< VPI used for Signalling on Return Link
+	uint8_t return_vci;         ///< VCI used for Signalling on Return Link
+} __attribute__((__packed__)) T_DVB_LOGON_RESP;
 
 
 /**
@@ -199,8 +202,8 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr; ///< Basic DVB Header
-	int mac;       ///< Satellite MAC ST address
-} T_DVB_LOGOFF;
+	uint16_t mac;  ///< Satellite MAC ST address
+} __attribute__((__packed__)) T_DVB_LOGOFF;
 
 /**
  * BB frame header
@@ -209,10 +212,10 @@ typedef struct
 {
 	T_DVB_HDR hdr;
 	uint16_t pkt_type;   ///< EtherType of the packets contained in the BBFrame
-	int dataLength;
-	int usedModcod;
-	int list_realModcod_size;
-} T_DVB_BBFRAME;
+	uint16_t data_length;
+	uint8_t used_modcod;
+	uint8_t real_modcod_nbr;
+} __attribute__((__packed__)) T_DVB_BBFRAME;
 
 
 /**
@@ -220,25 +223,26 @@ typedef struct
  */
 typedef struct
 {
-	long terminal_id;
-	int real_modcod;
-} T_DVB_REAL_MODCOD;
+	uint16_t terminal_id;
+	uint8_t real_modcod;
+} __attribute__((__packed__)) T_DVB_REAL_MODCOD;
 
 
 /**
  * Capacity demand information structure
  */
+// TODO check with CR for sizes
 typedef struct
 {
-	int route_id;            ///< Set to 0. used for on board routing
-	int scaling_factor;      ///< tbc
-	int type;                ///< Type of CR
-	int channel_id;          ///< Set to 0
-	long xbdc;               ///< Number of slot requested
-	unsigned char group_id;  ///< Terminal Group Id
-	unsigned short logon_id; ///< Terminal Logon Id
-	unsigned short M_and_C;  ///< Set to 0
-} T_DVB_SAC_CR_INFO;
+	uint8_t route_id;        ///< Set to 0. used for on board routing
+	uint8_t scaling_factor;  ///< The scale of the request
+	uint8_t type;            ///< Type of CR
+	uint8_t channel_id;      ///< Set to 0
+	uint8_t xbdc;            ///< Number of slot requested
+	uint16_t group_id;       ///< Terminal Group Id
+	uint16_t logon_id;       ///< Terminal Logon Id
+	uint8_t M_and_C;         ///< Set to 0
+} __attribute__((__packed__)) T_DVB_SAC_CR_INFO;
 
 
 /**
@@ -257,10 +261,10 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr;         ///< Basic DVB Header
-	long qty_element;      ///< Number of requests (followed by qty_element
+	uint16_t qty_element;  ///< Number of requests (followed by qty_element
 	                       ///< T_DVB_SAC_CR_INFO)
 	T_DVB_SAC_CR_INFO sac; ///< 1st element of the array (should be demoted)
-} T_DVB_SACT;
+} __attribute__((__packed__)) T_DVB_SACT;
 
 
 
@@ -293,97 +297,15 @@ typedef struct
  */
 #define next_sac_ptr(buff) ((T_DVB_SAC_CR_INFO *)buff + 1)
 
-
-/**
- * Burst Time Plan
- */
-typedef struct
-{
-	unsigned short logon_id;     ///< Terminal Logon Id as in Logon Res
-	short multiple_channel_flag; ///< tbc
-	short assignment_type;       ///< set to 0 (One time assignement)
-	long assignment_count;       ///< number of cells to allocate for the
-	                             ///< channel id
-	short start_slot;            ///< tbc
-	short channel_id;            ///< channel id for the allocation (set to 0)
-} T_DVB_BTP;
-
-#define DVB_BTP_ONE_TIME_ASSIGNMENT  0
-#define DVB_BTP_REPEATING_ASSIGNMENT 1
-
-
-/**
- * Descriptor of an array of BTP
- */
-typedef struct
-{
-	int frame_number;   ///< Frame identifier
-	int btp_loop_count; ///< Number of following T_DVB_BTP cells
-} T_DVB_FRAME;
-
-
-/**
- * @brief return the first T_DVB_BTP pointer associated with a buffer pointing
- * to a T_DVB_FRAME struct
- * @param buff the pointer to the T_DVB_FRAME struct
- */
-#define first_btp_ptr(buff) \
-	((T_DVB_BTP *)((unsigned char *)(buff) + sizeof(T_DVB_FRAME)))
-
-/**
- * @brief return the ith T_DVB_BTP pointer associated with a buffer pointing
- * to a T_DVB_FRAME struct (counting from 0)
- * @param i the index
- * @param buff the pointer to the T_DVB_FRAME struct
- */
-#define ith_btp_ptr(i,buff)      \
-	((T_DVB_BTP *)(               \
-		(unsigned char *)(buff) +  \
-		sizeof(T_DVB_FRAME) +      \
-		(i) * sizeof(T_DVB_BTP)    \
-	))
-
-/**
- * @brief return the next T_DVB_BTP pointer after the current
- * @param buff the pointer to the T_DVB_BTP struct
- */
-#define next_btp_ptr(buff) \
-	((T_DVB_BTP *)((unsigned char *)(buff) + sizeof(T_DVB_BTP)))
-
-
 /**
  * Time Burst Time plan, essentially A basic DVB Header
  * followed by an array descriptor of T_DVB_FRAME structures
  */
 typedef struct
 {
-	T_DVB_HDR hdr;          ///< Basic DVB_RCS Header
-	unsigned char group_id; ///< As defined in T_DVB_LOGON_RESP
-	int superframe_count;   ///< Identifier of superframe
-	int frame_loop_count;   ///< frame cardinality, number of following
-	                        ///< T_DVB_FRAME cells
-} __attribute__((packed)) T_DVB_TBTP;
-
-extern T_DVB_FRAME *ith_frame_ptr(int i, unsigned char *buff);
-
-/**
- * @brief return the first T_DVB_FRAME pointer associated with a T_DVB_TBTP
- * pointer
- * @param buff the pointer to the T_DVB_FRAME struct
- */
-#define first_frame_ptr(buff) \
-	((T_DVB_FRAME *)((unsigned char *)(buff) + sizeof(T_DVB_TBTP)))
-
-/**
- * @brief return the next T_DVB_FRAME pointer after the current one
- * @param buff the pointer to the T_DVB_FRAME struct
- */
-#define next_frame_ptr(buff)     \
-	((T_DVB_FRAME *)(             \
-		(unsigned char *)(buff) +  \
-		sizeof(T_DVB_FRAME) +      \
-		((T_DVB_FRAME *)(buff))->btp_loop_count * sizeof(T_DVB_BTP)  \
-	))
+	T_DVB_HDR hdr;  ///< Basic DVB_RCS Header
+	emu_ttp_t ttp;  ///< The emulated TTP
+} __attribute__((packed)) T_DVB_TTP;
 
 
 /**
@@ -394,11 +316,11 @@ typedef struct
 {
 	T_DVB_HDR hdr;         ///< Basic DVB_RCS Header
 	uint16_t pkt_type;     ///< EtherType of the packets contained in the BBFrame
-	long qty_element;      ///< Number of following encapsulation packets
-} T_DVB_ENCAP_BURST;
+	uint16_t qty_element;  ///< Number of following encapsulation packets
+} __attribute__((__packed__)) T_DVB_ENCAP_BURST;
 
 
-/** TODO: Create classes with accessors and "toRaw" function that
+/** TODO: Create classes with accessors and "build" function that
  * handles endianess and packing */
 typedef T_DVB_SACT SACT;
 typedef T_DVB_LOGON_REQ LogonRequest;
