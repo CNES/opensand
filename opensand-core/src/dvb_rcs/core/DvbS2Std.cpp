@@ -316,7 +316,7 @@ int DvbS2Std::scheduleEncapPackets(DvbFifo *fifo,
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
 			tal_id =
-				this->fmt_simu->getTalIdCorrespondingToLowerModcod();
+				this->fmt_simu->getTalIdWithLowerFwdModcod();
 			if(tal_id < 0)
 			{
 				UTI_ERROR("The forwarding of a multicast frame failed.\n");
@@ -501,7 +501,7 @@ bool DvbS2Std::createIncompleteBBFrame(BBFrame **bbframe,
 	size_t bbframe_size;
 	string coding_rate;
 	const FmtDefinitionTable *modcod_definitions;
-	modcod_definitions = this->fmt_simu->getModcodDefinitions();
+	modcod_definitions = this->fmt_simu->getFwdModcodDefinitions();
 
 	*bbframe = new BBFrame();
 	if(bbframe == NULL)
@@ -553,14 +553,14 @@ bool DvbS2Std::retrieveCurrentModcod(long tal_id,
 		          "that is not registered\n", tal_id);
 		goto error;
 	}
-	do_advertise_modcod = !this->fmt_simu->isCurrentModcodAdvertised(tal_id);
+	do_advertise_modcod = !this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
 	if(!do_advertise_modcod)
 	{
-		modcod_id = this->fmt_simu->getCurrentModcodId(tal_id);
+		modcod_id = this->fmt_simu->getCurrentFwdModcodId(tal_id);
 	}
 	else
 	{
-		modcod_id = this->fmt_simu->getPreviousModcodId(tal_id);
+		modcod_id = this->fmt_simu->getPreviousFwdModcodId(tal_id);
 	}
 	UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
 	             tal_id, modcod_id,
@@ -583,7 +583,7 @@ bool DvbS2Std::getBBFrameDuration(unsigned int modcod_id,
 {
 	float spectral_efficiency;
 	const FmtDefinitionTable *modcod_definitions;
-	modcod_definitions = this->fmt_simu->getModcodDefinitions();
+	modcod_definitions = this->fmt_simu->getFwdModcodDefinitions();
 
 	if(!modcod_definitions->doFmtIdExist(modcod_id))
 	{

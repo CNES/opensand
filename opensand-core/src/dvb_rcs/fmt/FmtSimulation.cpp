@@ -41,19 +41,34 @@
 
 #include <sstream>
 #include <cstdlib>
-
+#include <errno.h>
+#include <string.h>
 
 /**
- * @brief Create a list of Satellite Terminals (ST)
+ * @brief Check if a file exists
+ *
+ * @return true if the file is found, false otherwise
  */
+inline bool fileExists(const string &filename)
+{
+	if(access(filename.c_str(), R_OK) < 0)
+	{
+		UTI_ERROR("cannot access '%s' file (%s)\n",
+		           filename.c_str(), strerror(errno));
+		return false;
+	}
+	return true;
+}
+
+
 FmtSimulation::FmtSimulation():
 	sts(),
-	modcod_definitions(),
-	modcod_simu_file(),
-	dra_scheme_definitions(),
-	dra_scheme_simu_file(),
-	is_modcod_simu_file_defined(false),
-	is_dra_scheme_simu_file_defined(false)
+	fwd_modcod_def(),
+	fwd_modcod_simu(),
+	ret_modcod_def(),
+	ret_modcod_simu(),
+	is_fwd_modcod_simu_defined(false),
+	is_ret_modcod_simu_defined(false)
 {
 }
 
@@ -65,25 +80,16 @@ FmtSimulation::~FmtSimulation()
 {
 	this->clear();
 
-	if(this->modcod_simu_file.is_open())
+	if(this->fwd_modcod_simu.is_open())
 	{
-		this->modcod_simu_file.close();
+		this->fwd_modcod_simu.close();
 	}
-	if(this->dra_scheme_simu_file.is_open())
+	if(this->ret_modcod_simu.is_open())
 	{
-		this->dra_scheme_simu_file.close();
+		this->ret_modcod_simu.close();
 	}
 }
 
-/**
- * @brief Add a new Satellite Terminal (ST) in the list
- *
- * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
- *                         in the code)
- * @param simu_column_num  the column # associated to the ST for DRA/MODCOD
- *                         simulation files
- * @return                 true if the addition is successful, false otherwise
- */
 bool FmtSimulation::addTerminal(tal_id_t id,
                                 unsigned long simu_column_num)
 {
@@ -98,25 +104,25 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 	}
 
 	// create the new ST
-	if(this->is_modcod_simu_file_defined &&
-	   this->modcod_list.size() < simu_column_num)
+	if(this->is_fwd_modcod_simu_defined &&
+	   this->fwd_modcod_list.size() < simu_column_num)
 	{
-		UTI_ERROR("cannot access modcod column %lu for ST%u\n",
+		UTI_ERROR("cannot access down/forward modcod column %lu for ST%u\n",
 		          simu_column_num, id);
 		return false;
 	}
-	if(this->is_dra_scheme_simu_file_defined &&
-	   this->dra_list.size() < simu_column_num)
+	if(this->is_ret_modcod_simu_defined &&
+	   this->ret_modcod_list.size() < simu_column_num)
 	{
-		UTI_ERROR("cannot access dra column %lu for ST%u\n",
+		UTI_ERROR("cannot access up/return modcod  column %lu for ST%u\n",
 		          simu_column_num, id);
 		return false;
 	}
 	new_st = new StFmtSimu(id, simu_column_num,
-		this->is_modcod_simu_file_defined ?
-			atoi(this->modcod_list[simu_column_num].c_str()) : 0,
-		this->is_dra_scheme_simu_file_defined ?
-			atoi(this->dra_list[simu_column_num].c_str()) : 0);
+		this->is_fwd_modcod_simu_defined ?
+			atoi(this->fwd_modcod_list[simu_column_num].c_str()) : 0,
+		this->is_ret_modcod_simu_defined ?
+			atoi(this->ret_modcod_list[simu_column_num].c_str()) : 0);
 	if(new_st == NULL)
 	{
 		UTI_ERROR("failed to create a new ST\n");
@@ -129,12 +135,6 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 }
 
 
-/**
- * @brief Delete a Satellite Terminal (ST) from the list
- *
- * @param id  the ID of the ST (called TAL ID or MAC ID elsewhere in the code)
- * @return    true if the deletion is successful, false otherwise
- */
 bool FmtSimulation::delTerminal(tal_id_t id)
 {
 	map<tal_id_t, StFmtSimu *>::iterator it;
@@ -155,21 +155,12 @@ bool FmtSimulation::delTerminal(tal_id_t id)
 }
 
 
-/**
- * @brief Does a ST with the given ID exist ?
- *
- * @param id  the ID we want to check for
- * @return    true if a ST, false is it does not exist
- */
 bool FmtSimulation::doTerminalExist(tal_id_t id) const
 {
 	return (this->sts.find(id) != this->sts.end());
 }
 
 
-/**
- * @brief Clear the list of STs
- */
 void FmtSimulation::clear()
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
@@ -185,36 +176,31 @@ void FmtSimulation::clear()
 }
 
 
-/**
- * @brief Go to next step in adaptive physical layer scenario
- *
- * Update current MODCOD and DRA scheme IDs of all STs in the list.
- */
 bool FmtSimulation::goNextScenarioStep()
 {
-	// update MODCOD IDs of all STs ?
-	if(this->is_modcod_simu_file_defined)
+	// update down/forward MODCOD IDs of all STs ?
+	if(this->is_fwd_modcod_simu_defined)
 	{
-		if(!this->goNextScenarioStepModcod())
+		if(!this->goNextScenarioStepFwdModcod())
 		{
 			UTI_ERROR("failed to go to the next step "
-			          "for MODCOD scenario\n");
+			          "for down/foward link MODCOD scenario\n");
 			goto error;
 		}
 	}
 
-	// update DRA scheme IDs of all STs ?
-	if(this->is_dra_scheme_simu_file_defined)
+	// update up/return MODCOD scheme IDs of all STs ?
+	if(this->is_ret_modcod_simu_defined)
 	{
-		if(!this->goNextScenarioStepDraScheme())
+		if(!this->goNextScenarioStepRetModcod())
 		{
 			UTI_ERROR("failed to go to the next step "
-			          "for DRA scheme scenario\n");
+			          "for up/return link MODCOD scenario\n");
 			goto error;
 		}
 	}
 
-	UTI_DEBUG("next MODCOD/DRA scenario step successfully reached\n");
+	UTI_DEBUG("next MODCODscenario step successfully reached\n");
 
 	return true;
 
@@ -223,14 +209,7 @@ error:
 }
 
 
-/**
- * @brief Was the current MODCOD IDs of all the STs advertised
- *        over the emulated network ?
- *
- * @return  true if the current MODCOD IDs of all the STs are already
- *          advertised, false if they were not yet
- */
-bool FmtSimulation::areCurrentModcodsAdvertised()
+bool FmtSimulation::areCurrentFwdModcodsAdvertised()
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 	bool all_advertised = true;
@@ -238,53 +217,58 @@ bool FmtSimulation::areCurrentModcodsAdvertised()
 	// check if the MODCOD ID of each ST is advertised or not
 	for(it = this->sts.begin(); it != this->sts.end(); ++it)
 	{
-		all_advertised &= it->second->isCurrentModcodAdvertised();
+		all_advertised &= it->second->isCurrentFwdModcodAdvertised();
 	}
 
 	return all_advertised;
 }
 
 
-bool FmtSimulation::setModcodDefFile(string filename)
+bool FmtSimulation::setForwardModcodDef(const string &filename)
 {
-	// load all the MODCOD definitions from file
-	if(!this->modcod_definitions.load(filename))
+	if(!fileExists(filename.c_str()))
 	{
-		UTI_ERROR("failed to load all the MODCOD definitions "
-		          "from file '%s'\n", filename.c_str());
+		return false;;
+	}
+
+	// load all the MODCOD definitions from file
+	if(!this->fwd_modcod_def.load(filename))
+	{
+		UTI_ERROR("failed to load the down/forward link MODCOD "
+		          "definitions from file '%s'\n", filename.c_str());
 		return false;
 	}
 	return true;
 }
 
 
-/**
- * @brief Set simulation file for MODCOD
- *
- * @param filename  the name of the file in which MODCOD scenario is described
- * @return          true if the file exist and is valid, false otherwise
- */
-bool FmtSimulation::setModcodSimuFile(string filename)
+bool FmtSimulation::setForwardModcodSimu(const string &filename)
 {
 	// we can not redefine the simulation file
-	if(this->is_modcod_simu_file_defined)
+	if(this->is_fwd_modcod_simu_defined)
 	{
-		UTI_ERROR("cannot redefine the MODCOD simulation file\n");
+		UTI_ERROR("cannot redefine the down/forward link MODCOD "
+		          "simulation file\n");
+		goto error;
+	}
+
+	if(!fileExists(filename.c_str()))
+	{
 		goto error;
 	}
 
 	// open the simulation file
-	this->modcod_simu_file.open(filename.c_str());
-	if(!this->modcod_simu_file.is_open())
+	this->fwd_modcod_simu.open(filename.c_str());
+	if(!this->fwd_modcod_simu.is_open())
 	{
-		UTI_ERROR("failed to open MODCOD simulation file '%s'\n",
-		          filename.c_str());
+		UTI_ERROR("failed to open down/forward link MODCOD "
+		          "simulation file '%s'\n", filename.c_str());
 		goto error;
 	}
 
 	// TODO: check values in the file here
 
-	this->is_modcod_simu_file_defined = true;
+	this->is_fwd_modcod_simu_defined = true;
 
 	return true;
 
@@ -292,46 +276,51 @@ error:
 	return false;
 }
 
-bool FmtSimulation::setDraSchemeDefFile(string filename)
+bool FmtSimulation::setReturnModcodDef(const string &filename)
 {
-	// load all the MODCOD definitions from file
-	if(!this->dra_scheme_definitions.load(filename))
+	if(!fileExists(filename.c_str()))
 	{
-		UTI_ERROR("failed to load all the DRA definitions "
-		          "from file '%s'\n", filename.c_str());
+		return false;
+	}
+
+	// load all the MODCOD definitions from file
+	if(!this->ret_modcod_def.load(filename))
+	{
+		UTI_ERROR("failed to load the up/return link MODCOD "
+		          "definitiosn from file '%s'\n", filename.c_str());
 		return false;
 	}
 	return true;
 }
 
 
-/**
- * @brief Set simulation file for DRA scheme
- *
- * @param filename  the name of the file in which DRA scheme scenario is described
- * @return          true if the file exist and is valid, false otherwise
- */
-bool FmtSimulation::setDraSchemeSimuFile(string filename)
+bool FmtSimulation::setReturnModcodSimu(const string &filename)
 {
 	// we can not redefine the simulation file
-	if(this->is_dra_scheme_simu_file_defined)
+	if(this->is_ret_modcod_simu_defined)
 	{
-		UTI_ERROR("cannot redefine the DRA scheme simulation file\n");
+		UTI_ERROR("cannot redefine the up/return link MODCOD "
+		          "simulation file\n");
+		goto error;
+	}
+
+	if(!fileExists(filename.c_str()))
+	{
 		goto error;
 	}
 
 	// open the simulation file
-	this->dra_scheme_simu_file.open(filename.c_str());
-	if(!this->dra_scheme_simu_file.is_open())
+	this->ret_modcod_simu.open(filename.c_str());
+	if(!this->ret_modcod_simu.is_open())
 	{
-		UTI_ERROR("failed to open DRA scheme simulation file '%s'\n",
-		          filename.c_str());
+		UTI_ERROR("failed to open up/return link MODCOD "
+		          "simulation file '%s'\n", filename.c_str());
 		goto error;
 	}
 
 	// TODO: check values in the file here
 
-	this->is_dra_scheme_simu_file_defined = true;
+	this->is_ret_modcod_simu_defined = true;
 
 	return true;
 
@@ -339,12 +328,8 @@ error:
 	return false;
 }
 
-/**
- * @brief Get the terminal ID for wich the used ModCod is the lower
- *
- * @return terminal ID (should be positive, return -1 if an error occurs)
- */
-tal_id_t FmtSimulation::getTalIdCorrespondingToLowerModcod() const
+
+tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 {
 	map<tal_id_t, StFmtSimu*>::const_iterator st_iterator;
 	unsigned int modcod_id;
@@ -352,8 +337,6 @@ tal_id_t FmtSimulation::getTalIdCorrespondingToLowerModcod() const
 	tal_id_t tal_id;
 	tal_id_t lower_tal_id = -1;
 	bool do_advertise_modcod;
-
-	UTI_DEBUG_L3("In getTalIdCorrespondingToLowerModcod()\n");
 
 	for(st_iterator = this->sts.begin(); st_iterator != this->sts.end();
 	    ++st_iterator)
@@ -373,14 +356,14 @@ tal_id_t FmtSimulation::getTalIdCorrespondingToLowerModcod() const
 			goto error;
 		}
 		do_advertise_modcod =
-			!this->isCurrentModcodAdvertised(tal_id);
+			!this->isCurrentFwdModcodAdvertised(tal_id);
 		if(!do_advertise_modcod)
 		{
-			modcod_id = this->getCurrentModcodId(tal_id);
+			modcod_id = this->getCurrentFwdModcodId(tal_id);
 		}
 		else
 		{
-			modcod_id = this->getPreviousModcodId(tal_id);
+			modcod_id = this->getPreviousFwdModcodId(tal_id);
 		}
 		UTI_DEBUG_L3("MODCOD for ST ID %u = %u (changed = %s)\n",
 	             tal_id, modcod_id,
@@ -408,14 +391,7 @@ error:
 	return -1;
 }
 
-/**
- * @brief Get the column # associated to the ST whose ID is given as input
- *
- * @param id  the ID of the DRA scheme definition we want information for
- * @return    the column # associated to the ST
- *
- * @warning Be sure sure that the ID is valid before calling the function
- */
+
 unsigned int FmtSimulation::getSimuColumnNum(tal_id_t id) const
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
@@ -428,103 +404,75 @@ unsigned int FmtSimulation::getSimuColumnNum(tal_id_t id) const
 }
 
 
-/**
- * @brief Get the current MODCOD ID of the ST whose ID is given as input
- *
- * @param id  the ID of the DRA scheme definition we want information for
- * @return    the current MODCOD ID of the ST
- *
- * @warning Be sure sure that the ID is valid before calling the function
- */
-unsigned int FmtSimulation::getCurrentModcodId(tal_id_t id) const
+unsigned int FmtSimulation::getCurrentFwdModcodId(tal_id_t id) const
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{
-		return (*st_iter).second->getCurrentModcodId();
+		return (*st_iter).second->getCurrentFwdModcodId();
 	}
 	return 0;
 }
 
 
-/**
- * @brief Get the previous MODCOD ID of the ST whose ID is given as input
- *
- * @param id  the ID of the DRA scheme definition we want information for
- * @return    the previous MODCOD ID of the ST
- *
- * @warning Be sure sure that the ID is valid before calling the function
- */
-unsigned int FmtSimulation::getPreviousModcodId(tal_id_t id) const
+unsigned int FmtSimulation::getPreviousFwdModcodId(tal_id_t id) const
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{
-		return (*st_iter).second->getPreviousModcodId();
+		return (*st_iter).second->getPreviousFwdModcodId();
 	}
 	return 0;
 
 }
 
 
-/**
- * @brief Was the current MODCOD ID of the ST whose ID is given as input
- *        advertised over the emulated network ?
- *
- * @return  true if the MODCOD ID was already advertised,
- *          false if it was not advertised yet
- *
- * @warning Be sure sure that the ID is valid before calling the function
- */
-bool FmtSimulation::isCurrentModcodAdvertised(tal_id_t id) const
+bool FmtSimulation::isCurrentFwdModcodAdvertised(tal_id_t id) const
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{
-		return (*st_iter).second->isCurrentModcodAdvertised();
+		return (*st_iter).second->isCurrentFwdModcodAdvertised();
 	}
 	return 0;
 
 }
 
 
-/**
- * @brief Get the current DRA scheme ID of the ST whose ID is given as input
- *
- * @param id  the ID of the DRA scheme definition we want information for
- * @return    the current DRA scheme ID of the ST
- *
- * @warning Be sure sure that the ID is valid before calling the function
- */
-unsigned int FmtSimulation::getCurrentDraSchemeId(tal_id_t id) const
+unsigned int FmtSimulation::getCurrentRetModcodId(tal_id_t id) const
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{
-		return (*st_iter).second->getCurrentDraSchemeId();
+		return (*st_iter).second->getCurrentRetModcodId();
 	}
 	return 0;
 }
 
 
+const FmtDefinitionTable *FmtSimulation::getFwdModcodDefinitions() const
+{
+	return &(this->fwd_modcod_def);
+}
+
+
+const FmtDefinitionTable *FmtSimulation::getRetModcodDefinitions() const
+{
+	return &(this->ret_modcod_def);
+}
 
 /**** private methods ****/
 
 
-/**
- * @brief Update the current MODCOD IDs of all STs from MODCOD simulation file
- *
- * @return true on success, false on failure
- */
-bool FmtSimulation::goNextScenarioStepModcod()
+bool FmtSimulation::goNextScenarioStepFwdModcod()
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 
-	if(!this->is_modcod_simu_file_defined)
+	if(!this->is_fwd_modcod_simu_defined)
 	{
 		UTI_ERROR("failed to update MODCOD IDs: "
 		          "MODCOD simulation file not defined yet\n");
@@ -532,7 +480,7 @@ bool FmtSimulation::goNextScenarioStepModcod()
 	}
 
 	// read next line of the modcod simulation file
-	if(!this->setList(this->modcod_simu_file, this->modcod_list))
+	if(!this->setList(this->fwd_modcod_simu, this->fwd_modcod_list))
 	{
 		UTI_ERROR("failed to get the next line in the MODCOD scheme simulation file\n");
 		goto error;
@@ -552,17 +500,17 @@ bool FmtSimulation::goNextScenarioStepModcod()
 		UTI_DEBUG_L3("ST with ID %u uses MODCOD ID at column %lu\n",
 		             st_id, column);
 
-		if(this->modcod_list.size() < column)
+		if(this->fwd_modcod_list.size() < column)
 		{
 			UTI_ERROR("cannot access modcod column %lu for ST%u\n",
 			          column, st_id);
 			goto error;
 		}
 		// replace the current MODCOD ID by the new one
-		st->updateModcodId(atoi(this->modcod_list[column].c_str()));
+		st->updateFwdModcodId(atoi(this->fwd_modcod_list[column].c_str()));
 
 		UTI_DEBUG_L3("new MODCOD ID of ST with ID %u = %u\n", st_id,
-		             atoi(this->modcod_list[column].c_str()));
+		             atoi(this->fwd_modcod_list[column].c_str()));
 	}
 
 	return true;
@@ -571,26 +519,23 @@ error:
 	return false;
 }
 
-/**
- * @brief Update the current DRA scheme IDs of all STs from DRA simulation file
- *
- * @return true on success, false on failure
- */
-bool FmtSimulation::goNextScenarioStepDraScheme()
+
+bool FmtSimulation::goNextScenarioStepRetModcod()
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 
-	if(!this->is_dra_scheme_simu_file_defined)
+	if(!this->is_ret_modcod_simu_defined)
 	{
-		UTI_ERROR("failed to update DRA scheme IDs: "
-		          "DRA scheme simulation file not defined yet\n");
+		UTI_ERROR("failed to update up/return MODCOD IDs: "
+		          "up/return MODCOD simulation file not defined yet\n");
 		goto error;
 	}
 
-	// read next line of the dra simulation file
-	if(!this->setList(this->dra_scheme_simu_file, this->dra_list))
+	// read next line of the modcod simulation file
+	if(!this->setList(this->ret_modcod_simu, this->ret_modcod_list))
 	{
-		UTI_ERROR("failed to get the next line in the DRA scheme simulation file\n");
+		UTI_ERROR("failed to get the next line in the up/return MODCOD "
+		          "simulation file\n");
 		goto error;
 	}
 
@@ -605,20 +550,20 @@ bool FmtSimulation::goNextScenarioStepDraScheme()
 		st_id = st->getId();
 		column = st->getSimuColumnNum();
 
-		UTI_DEBUG("ST with ID %u uses DRA scheme ID at column %lu\n",
+		UTI_DEBUG("ST with ID %u uses up/return MODCOD ID at column %lu\n",
 		          st_id, column);
 
-		if(this->dra_list.size() < column)
+		if(this->ret_modcod_list.size() < column)
 		{
-			UTI_ERROR("cannot access dra column %lu for ST%u\n",
+			UTI_ERROR("cannot access up/return MODCOD column %lu for ST%u\n",
 			          column, st_id);
 			goto error;
 		}
 		// replace the current MODCOD ID by the new one
-		st->updateDraSchemeId(atoi(this->dra_list[column].c_str()));
+		st->updateRetModcodId(atoi(this->ret_modcod_list[column].c_str()));
 
-		UTI_DEBUG("new DRA scheme ID of ST with ID %u = %u\n", st_id,
-		          atoi(this->dra_list[column].c_str()));
+		UTI_DEBUG("new up/return MODCOD ID of ST with ID %u = %u\n", st_id,
+		          atoi(this->ret_modcod_list[column].c_str()));
 	}
 
 	return true;
@@ -627,25 +572,7 @@ error:
 	return false;
 }
 
-const FmtDefinitionTable *FmtSimulation::getModcodDefinitions() const
-{
-	return &(this->modcod_definitions);
-}
 
-const FmtDefinitionTable *FmtSimulation::getDraSchemeDefinitions() const
-{
-	return &(this->dra_scheme_definitions);
-}
-
-/**
- * @brief Read a line of a simulation file and fill the MODCOD/DRA list
- *
- * @param   simu_file the simulation file (modcod_simu_file or dra_scheme_simu_file)
- * @param   list      The MODCOD/DRA list
- * @return            true on success, false on failure
- *
- * @todo better parsing
- */
 bool FmtSimulation::setList(ifstream &simu_file, vector<string> &list)
 {
 	std::stringbuf buf;

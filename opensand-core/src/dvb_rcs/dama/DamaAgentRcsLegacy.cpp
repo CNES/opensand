@@ -132,7 +132,7 @@ bool DamaAgentRcsLegacy::hereIsSOF(time_sf_t superframe_number_sf)
 	return true;
 }
 
-// a TTP reading function that handles DRA but not priority
+// a TTP reading function that handles MODCOD but not priority
 bool DamaAgentRcsLegacy::hereIsTTP(Ttp &ttp)
 {
 	map<uint8_t, emu_tp_t> tp;

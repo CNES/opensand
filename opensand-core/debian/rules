@@ -43,18 +43,16 @@ override_dh_install:
 	install -m 0644 conf/deploy.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/deploy.ini
 	install -m 0644 conf/simulation_files.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/simulation_files.ini
 
-	# MODCOD and DRA simulation files
-	install -D -m 0644 conf/modcod_dra/collective/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/collective
-	install -D -m 0644 conf/modcod_dra/individual/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/individual
-	install -D -m 0644 conf/modcod_dra/clear_sky/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/clear_sky
-	install -D -m 0644 conf/modcod_dra/clear_sky/cst_modcods.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/modcod_simu.txt
-	install -D -m 0644 conf/modcod_dra/clear_sky/cst_dra_scheme.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/dra_simu.txt
-	# MODCOD and DRA definitions
-	install -D -m 0644 conf/modcod_dra/def_modcods.txt $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/modcod_def.txt
-	install -D -m 0644 conf/modcod_dra/def_dra_scheme_ATM.txt $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/dra_def_ATM.txt
-	install -D -m 0644 conf/modcod_dra/def_dra_scheme_MPEG.txt $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod_dra/dra_def_MPEG.txt
-	install -D -m 0644 conf/modcod_dra/def_modcods.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/modcod_def.txt
-	install -D -m 0644 conf/modcod_dra/def_dra_scheme_ATM.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod_dra/dra_def.txt
+	# MODCOD files for manager
+	install -D -m 0644 conf/modcod/collective/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/collective
+	install -D -m 0644 conf/modcod/individual/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/individual
+	install -D -m 0644 conf/modcod/return/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/return
+	install -D -m 0644 conf/modcod/forward/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/forward
+	# MODCOD files for daemons
+	install -D -m 0644 conf/modcod/forward/definition.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_def.txt
+	install -D -m 0644 conf/modcod/forward/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_simu.txt
+	install -D -m 0644 conf/modcod/return/definition_MPEG.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_def.txt
+	install -D -m 0644 conf/modcod/return/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_simu.txt
 	# DAMA request simulation file
 	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-all/usr/share/opensand/request_simu/dama.input
 	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-bin/etc/opensand/simulation/dama.input

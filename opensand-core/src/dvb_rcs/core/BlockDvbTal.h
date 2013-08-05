@@ -135,8 +135,7 @@ class BlockDvbTal: public BlockDvb
 	/// the logon ID sent by NCC (only valid in state ef state_running,
 	/// should be the same as ef mac_d)
 	long m_talId;
-	/// the column associated to the ST in the MODCOD and DRA scheme
-	/// simulation files
+	/// the column associated to the ST in the MODCOD simulation files
 	int m_nbRow;
 
 	/// the DAMA agent

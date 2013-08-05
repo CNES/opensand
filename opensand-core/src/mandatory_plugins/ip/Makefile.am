@@ -18,7 +18,6 @@ libopensand_ip_lan_adapt_plugin_la_h = \
 	IpPacket.h \
 	Ipv4Packet.h \
 	Ipv6Packet.h \
-	TrafficCategory.h \
 	Ip.h
 
 libopensand_ip_lan_adapt_plugin_la_SOURCES = \

@@ -28,7 +28,7 @@
 
 /**
  * @file ModulationType.h
- * @brief The different types of modulation for MODCOD or DRA schemes
+ * @brief The different types of modulation for MODCOD
  * @author Didier Barvaux / Viveris Technologies
  */
 
@@ -37,7 +37,7 @@
 
 
 /**
- * @brief The different types of modulations accepted for MODCOD or DRA schemes
+ * @brief The different types of modulations accepted for MODCOD
  */
 typedef enum
 {

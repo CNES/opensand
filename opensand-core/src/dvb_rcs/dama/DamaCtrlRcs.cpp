@@ -483,7 +483,7 @@ void DamaCtrlRcs::updateFmt()
 			continue;
 		}
 		category = (*category_it).second;
-		simulated_fmt = this->fmt_simu->getCurrentDraSchemeId(id);
+		simulated_fmt = this->fmt_simu->getCurrentRetModcodId(id);
 		// get an available MODCOD id for this terminal among carriers
 		carriers = category->getCarriersGroups();
 		for(vector<CarriersGroup *>::const_iterator it = carriers.begin();

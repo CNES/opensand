@@ -405,7 +405,7 @@ bool BlockDvbTal::initParameters()
 	}
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
 
-	// Get the number of the row in modcod and dra files
+	// Get the number of the row in modcod files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
 	                                toString(this->mac_id), COLUMN_NBR,
 	                                this->m_nbRow))

@@ -96,7 +96,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	CapacityRequest capacity_request;
 
 	/// timer used to awake the block every second in order to retrieve
-	/// the current MODCODs and DRA schemes
+	/// the current MODCODs
 	event_id_t scenario_timer;
 
 	/// a fifo to keep the received packet from encap bloc

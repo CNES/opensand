@@ -17,13 +17,11 @@ HOSTS_XSD = \
 	xsd/topology.xsd \
 	xsd/common.xsd
 	
-MODCOD_DRA = \
-	modcod_dra/collective/sim_modcods.txt \
-	modcod_dra/individual/sim_modcods.txt \
-	modcod_dra/clear_sky/cst_modcods.txt \
-	modcod_dra/def_dra_scheme_MPEG.txt \
-	modcod_dra/def_dra_scheme_ATM.txt \
-	modcod_dra/def_modcods.txt
+MODCOD = \
+	modcod/collective/ \
+	modcod/individual/ \
+	modcod/forward/ \
+	modcod/return/
 	
 MANDATORY_PLUGINS = \
 	mandatory_plugins/
@@ -33,7 +31,7 @@ EXTRA_DIST = \
 	check_xml.py \
 	$(HOSTS_CONF) \
 	$(HOSTS_XSD) \
-	$(MODCOD_DRA) \
+	$(MODCOD) \
 	$(MANDATORY_PLUGINS) \
 	simulation_files.ini \
 	deploy.ini \

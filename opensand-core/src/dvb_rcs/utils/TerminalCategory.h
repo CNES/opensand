@@ -114,7 +114,7 @@ class TerminalCategory
 	/**
 	 * @brief  Add a carriers group to the category
 	 *
-	 * @param  carriers_id  The ID of the carriers group (DRA id dor DVB-RCS)
+	 * @param  carriers_id  The ID of the carriers group
 	 * @param  fmt_group    The FMT group associated to the carrier
 	 * @param  ratio        The estimated occupation ratio
 	 * @param  rate_symps   The group symbol rate (symbol/s)

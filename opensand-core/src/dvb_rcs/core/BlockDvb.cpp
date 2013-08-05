@@ -47,9 +47,6 @@
 
 #include <opensand_conf/conf.h>
 
-#include <string.h>
-#include <errno.h>
-
 
 // output events
 Event *BlockDvb::error_init = NULL;
@@ -217,55 +214,40 @@ error:
 	return false;
 }
 
-bool BlockDvb::initModcodFiles()
+bool BlockDvb::initForwardModcodFiles()
 {
 	string modcod_simu_file;
 	string modcod_def_file;
 
-	// MODCOD/DRA simulations and definitions
-	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_SIMU,
+	// MODCOD simulations and definitions for down/forward link
+	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_MODCOD_SIMU,
 	                          modcod_simu_file))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, MODCOD_SIMU);
+		          GLOBAL_SECTION, DOWN_FORWARD_MODCOD_SIMU);
 		goto error;
 	}
-	UTI_INFO("MODCOD simulation path set to %s\n", modcod_simu_file.c_str());
+	UTI_INFO("down/forward link MODCOD simulation path set to %s\n",
+	         modcod_simu_file.c_str());
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, MODCOD_DEF,
+	if(!globalConfig.getValue(GLOBAL_SECTION, DOWN_FORWARD_MODCOD_DEF,
 	                          modcod_def_file))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, MODCOD_DEF);
+		          GLOBAL_SECTION, DOWN_FORWARD_MODCOD_DEF);
 		goto error;
 	}
-	UTI_INFO("MODCOD definition path set to %s\n", modcod_def_file.c_str());
-
-
-	if(access(modcod_def_file.c_str(), R_OK) < 0)
-	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           modcod_def_file.c_str(), strerror(errno));
-		goto error;
-	}
-	UTI_INFO("modcod definition file = '%s'\n", modcod_def_file.c_str());
+	UTI_INFO("up/return link MODCOD definition path set to %s\n",
+	         modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!this->fmt_simu.setModcodDefFile(modcod_def_file))
+	if(!this->fmt_simu.setForwardModcodDef(modcod_def_file))
 	{
 		goto error;
 	}
-
-	if(access(modcod_simu_file.c_str(), R_OK) < 0)
-	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           modcod_simu_file.c_str(), strerror(errno));
-		goto error;
-	}
-	UTI_INFO("modcod simulation file = '%s'\n", modcod_simu_file.c_str());
 
 	// set the MODCOD simulation file
-	if(!this->fmt_simu.setModcodSimuFile(modcod_simu_file))
+	if(!this->fmt_simu.setForwardModcodSimu(modcod_simu_file))
 	{
 		goto error;
 	}
@@ -276,51 +258,41 @@ error:
 	return false;
 }
 
-// TODO one function for both modcod init
-bool BlockDvb::initDraFiles()
+
+bool BlockDvb::initReturnModcodFiles()
 {
-	string dra_simu_file;
-	string dra_def_file;
+	string modcod_simu_file;
+	string modcod_def_file;
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_SIMU,
-	                          dra_simu_file))
+	// MODCOD simulations and definitions for up/return link
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_MODCOD_SIMU,
+	                          modcod_simu_file))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		           GLOBAL_SECTION, DRA_SIMU);
+		          GLOBAL_SECTION, UP_RETURN_MODCOD_SIMU);
 		goto error;
 	}
-	UTI_INFO("DRA simulation path set to %s\n", dra_simu_file.c_str());
+	UTI_INFO("up/return link MODCOD simulation path set to %s\n",
+	         modcod_simu_file.c_str());
 
-	if(access(dra_simu_file.c_str(), R_OK) < 0)
-	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          dra_simu_file.c_str(), strerror(errno));
-		goto error;
-	}
-
-	// set the DRA simulation file
-	if(!this->fmt_simu.setDraSchemeSimuFile(dra_simu_file))
-	{
-		goto error;
-	}
-
-	if(!globalConfig.getValue(GLOBAL_SECTION, DRA_DEF,
-	                          dra_def_file))
+	if(!globalConfig.getValue(GLOBAL_SECTION, UP_RETURN_MODCOD_DEF,
+	                          modcod_def_file))
 	{
 		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		           GLOBAL_SECTION, DRA_DEF);
+		          GLOBAL_SECTION, UP_RETURN_MODCOD_DEF);
 		goto error;
 	}
-	UTI_INFO("DRA definition path set to %s\n", dra_def_file.c_str());
+	UTI_INFO("up/return link MODCOD definition path set to %s\n",
+	          modcod_def_file.c_str());
 
-	if(access(dra_def_file.c_str(), R_OK) < 0)
+	// load all the MODCOD definitions from file
+	if(!this->fmt_simu.setReturnModcodDef(modcod_def_file))
 	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          dra_def_file.c_str(), strerror(errno));
 		goto error;
 	}
-	// load all the DRA definitions from file
-	if(!this->fmt_simu.setDraSchemeDefFile(dra_def_file))
+
+	// set the MODCOD simulation file
+	if(!this->fmt_simu.setReturnModcodSimu(modcod_simu_file))
 	{
 		goto error;
 	}
@@ -330,7 +302,6 @@ bool BlockDvb::initDraFiles()
 error:
 	return false;
 }
-
 
 bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
                           long carrier_id)

@@ -48,33 +48,42 @@ class StFmtSimu
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
 	long id;
 
-	/** The column # associated to the ST for DRA/MODCOD simulation files */
+	/** The column # associated to the ST for down/forward MODCOD simulation files */
 	unsigned long simu_column_num;
 
-	/** The current MODCOD ID of the ST */
-	unsigned int current_modcod_id;
+	/** The current down/forward MODCOD ID of the ST */
+	unsigned int current_fwd_modcod_id;
 
-	/** The previous MODCOD ID of the ST */
-	unsigned int previous_modcod_id;
+	/** The previous down/forward MODCOD ID of the ST */
+	unsigned int previous_fwd_modcod_id;
 
 	/**
-	 * Whether the current MODCOD ID was advertised to the ST
+	 * Whether the current down/forward MODCOD ID was advertised to the ST
 	 * over the emulated satellite network
 	 */
 	bool is_current_modcod_advertised;
 
-	/** The current DRA scheme ID of the ST */
-	unsigned int current_dra_scheme_id;
+	/** The current up/return MODCOD ID of the ST */
+	unsigned int current_ret_modcod_id;
 
  public:
 
 	/**** constructor/destructor ****/
 
-	/* create an internal representation of a Satellite Terminal (ST) */
+	/**
+	 * @brief Create
+	 *
+	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
+	 *                         in the code)
+	 * @param simu_column_num  the column # associated to the ST for MODCOD
+	 *                         simulation files
+	 * @param fwd_modcod_id    the initial down/forward MODCOD ID of the ST
+	 * @param ret_modcod_id    the initial up/return MODCOD ID of the ST
+	 */
 	StFmtSimu(long id,
 	          unsigned long simu_column_num,
-	          unsigned int modcod_id,
-	          unsigned int dra_scheme_id);
+	          unsigned int fwd_modcod_id,
+	          unsigned int ret_modcod_id);
 
 	/* destroy an internal representation of a Satellite Terminal (ST) */
 	~StFmtSimu();
@@ -82,29 +91,64 @@ class StFmtSimu
 
 	/**** accessors ****/
 
-	/* get the ID of the ST */
+	/**
+	 * @brief Get the ID of the ST
+	 *
+	 * The ID of the ST is often called TAL ID or MAC ID elsewhere in the code
+	 *
+	 * @return  the ID of the ST
+	 */
 	long getId() const;
 
-	/* get the column # associated to the ST for DRA/MODCOD simulation files */
+	/**
+	 * @brief Get the column # associated to the ST for MODCOD simulation files
+	 *
+	 * @return  the column number for MODCOD simulation files
+	 */
 	unsigned long getSimuColumnNum() const;
 
-	/* get the current MODCOD ID of the ST */
-	unsigned int getCurrentModcodId() const;
+	/**
+	 * @brief Get the current down/forward MODCOD ID of the ST
+	 *
+	 * @return  the current down/forward MODCOD ID of the ST
+	 */
+	unsigned int getCurrentFwdModcodId() const;
 
-	/* update the MODCOD ID of the ST */
-	void updateModcodId(unsigned int new_id);
+	/**
+	 * @brief Update the down/forward MODCOD ID of the ST
+	 *
+	 * @param new_id  the new down/forward MODCOD ID of the ST
+	 */
+	void updateFwdModcodId(unsigned int new_id);
 
-	/* get the previous MODCOD ID of the ST */
-	unsigned int getPreviousModcodId() const;
+	/**
+	 * @brief Get the previous down/forward MODCOD ID of the ST
+	 *
+	 * @return  the previous down/forward MODCOD ID of the ST
+	 */
+	unsigned int getPreviousFwdModcodId() const;
 
-	/* Was the current MODCOD ID advertised to the ST ? */
-	bool isCurrentModcodAdvertised() const;
+	/**
+	 * @brief Was the current down/forward MODCOD ID advertised to the ST ?
+	 *
+	 * @return  true if the current down/forward MODCOD ID was already advertised to the ST,
+	 *          false if it was not advertised yet
+	 */
+	bool isCurrentFwdModcodAdvertised() const;
 
-	/* get the current DRA scheme ID of the ST */
-	unsigned int getCurrentDraSchemeId() const;
+	/**
+	 * @brief Get the current up/return MODCOD ID of the ST
+	 *
+	 * @return  the current up/return MODCOD ID of the ST
+	 */
+	unsigned int getCurrentRetModcodId() const;
 
-	/* update the DRA scheme ID of the ST */
-	void updateDraSchemeId(unsigned int new_id);
+	/**
+	 * @brief Update the up/return MODCOD ID of the ST
+	 *
+	 * @param new_id  the new up/return MODCOD ID of the ST
+	 */
+	void updateRetModcodId(unsigned int new_id);
 
 };
 

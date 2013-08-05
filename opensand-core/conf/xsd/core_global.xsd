@@ -309,31 +309,31 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="modcod_definition_file" type="file">
+            <xsd:element name="down_forward_modcod_def" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The MODCOD definition file
+                        The MODCOD definition file for down/forward link
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="modcod_simulation_file" type="file">
+            <xsd:element name="down_forward_modcod_simu" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The MODCOD simulation file
+                        The MODCOD simulation file for down/forward link
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dra_definition_file" type="file">
+            <xsd:element name="up_return_modcod_def" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The DRA definition file
+                        The MODCOD definition file for up/return link
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dra_simulation_file" type="file">
+            <xsd:element name="up_return_modcod_simu" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The DRA simulation file
+                        The MODCOD simulation file for up/return link
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

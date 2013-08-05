@@ -92,23 +92,21 @@ class BlockDvb: public Block
 	// Common function for parameters reading
 	bool initCommon();
 
-	// Common functions for satellite and NCC
 	/**
-	 * @brief Read configuration for the MODCOD definition/simulation files
-	 *
-	 * @warning Always run this function after initEncap !
+	 * @brief Read configuration for the down/forward link MODCOD
+	 *        definition/simulation files
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodFiles();
+	bool initForwardModcodFiles();
 
 	/**
-	 * @brief Read configuration for the DRA scheme definition/simulation files
-	 *        Call @initDraDef function
+	 * @brief Read configuration for the up/return link MODCOD
+	 *        definition/simulation files
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initDraFiles();
+	bool initReturnModcodFiles();
 
 	/**
 	 * Send the complete DVB frames created
@@ -134,7 +132,7 @@ class BlockDvb: public Block
 	/// the number of frame per superframe
 	unsigned int frames_per_superframe;
 
-	/// The MODCOD and DRA simulation elements
+	/// The MODCOD simulation elements
 	FmtSimulation fmt_simu;
 
 	/// the scenario refresh interval

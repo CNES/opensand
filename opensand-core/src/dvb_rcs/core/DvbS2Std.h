@@ -92,48 +92,6 @@ class DvbS2Std: public PhysicStd
 	               int mac_id,
 	               NetBurst **burst);
 
-	/**** MODCOD definition and scenario ****/
-#if 0
-	/**
-	 * @brief Load the modcod definition file
-	 *
-	 * @param filename the name of the modcod definition file
-	 * return 1 on success, 0 on error
-	 */
-	int loadModcodDefinitionFile(string filename);
-
-	/**
-	 * @brief Load the modcod simulation file
-	 *
-	 * @param filename the name of the modcod definition file
-	 * return 1 on success, 0 on error
-	 */
-	int loadModcodSimulationFile(string filename);
-
-	/**
-	 * @brief Load the dra scheme definition file
-	 *
-	 * @param filename the name of the dra scheme definition file
-	 * return 1 on success, 0 on error
-	 */
-	int loadDraSchemeDefinitionFile(string filename);
-
-	/**
-	 * @brief Load the dra scheme simulation file
-	 *
-	 * @param filename the name of the dra scheme definition file
-	 * return 1 on success, 0 on error
-	 */
-	int loadDraSchemeSimulationFile(string filename);
-
-	/**
-	 * @brief Get the dra scheme definitions
-	 *
-	 * @return the DRA scheme definitions
-	 */
-	DraSchemeDefinitionTable *getDraSchemeDefinitions();
-#endif
-
 
 #if 0 /* TODO: manage options */
 	/**

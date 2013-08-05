@@ -240,22 +240,21 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			}
 			else if(*event == this->scenario_timer)
 			{
-				// it's time to update MODCOD and DRA scheme IDs
-				UTI_DEBUG_L3("MODCOD/DRA scenario timer received\n");
+				// it's time to update MODCOD IDs
+				UTI_DEBUG_L3("MODCOD scenario timer received\n");
 
 				if(!this->fmt_simu.goNextScenarioStep())
 				{
-					UTI_ERROR("SF#%ld: failed to update MODCOD "
-							  "or DRA scheme IDs\n",
+					UTI_ERROR("SF#%ld: failed to update MODCOD IDs\n",
 							  this->super_frame_counter);
 				}
 				else
 				{
-					UTI_DEBUG_L3("SF#%ld: MODCOD and DRA scheme IDs "
+					UTI_DEBUG_L3("SF#%ld: MODCOD IDs "
 								 "successfully updated\n",
 								 this->super_frame_counter);
 				}
-				// for each terminal in DamaCtrl update DRA min
+				// for each terminal in DamaCtrl update FMT
 				this->dama_ctrl->updateFmt();
 			}
 			else if(*event == this->pep_cmd_apply_timer)
@@ -515,7 +514,7 @@ bool BlockDvbNcc::onInit()
 		goto release_dama;
 	}
 
-	// get the column number for GW in MODCOD/DRA simulation files
+	// get the column number for GW in MODCOD simulation files
 	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
 	                                TAL_ID, toString(GW_TAL_ID),
                                     COLUMN_NBR, simu_column_num))
@@ -532,7 +531,7 @@ bool BlockDvbNcc::onInit()
 		goto release_dama;
 	}
 
-	// declare the GW as one ST for the MODCOD/DRA scenarios
+	// declare the GW as one ST for the MODCOD scenarios
 	if(!this->fmt_simu.addTerminal(GW_TAL_ID,
 	                               simu_column_num))
 	{
@@ -899,31 +898,31 @@ error:
 
 bool BlockDvbNcc::initFiles()
 {
-	// we need DRA simulation in these cases
+	// we need up/return MODCOD simulation in these cases
 	if((this->satellite_type == TRANSPARENT &&
 	    this->receptionStd->getType() == "DVB-RCS") ||
 	   (this->satellite_type == REGENERATIVE &&
 	    this->emissionStd->getType() == "DVB-RCS"))
 	{
-		if(!this->initDraFiles())
+		if(!this->initReturnModcodFiles())
 		{
-			UTI_ERROR("failed to initialize the DRA scheme files\n");
+			UTI_ERROR("failed to initialize the up/return MODCOD files\n");
 			goto error;
 		}
 	}
 
-	// we need MODCOD emulation in this cases
+	// we need forward MODCOD emulation in this cases
 	if((this->satellite_type == TRANSPARENT &&
 	    this->emissionStd->getType() == "DVB-S2"))
 	{
-		if(!this->initModcodFiles())
+		if(!this->initForwardModcodFiles())
 		{
-			UTI_ERROR("failed to initialize the MODCOD files\n");
+			UTI_ERROR("failed to initialize the forward MODCOD files\n");
 			goto error;
 		}
 	}
 
-	// initialize the MODCOD and DRA scheme IDs
+	// initialize the MODCOD IDs
 	if(!this->fmt_simu.goNextScenarioStep())
 	{
 		UTI_ERROR("failed to initialize MODCOD scheme IDs\n");

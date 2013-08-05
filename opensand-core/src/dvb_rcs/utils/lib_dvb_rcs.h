@@ -174,7 +174,7 @@ typedef struct
 	uint8_t capa;          ///< Capability of the ST, to be set to 0
 	uint16_t mac;          ///< ST MAC address
 	uint16_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
-	uint16_t nb_row;       ///< the number of the row in modcod and dra files
+	uint16_t nb_row;       ///< the number of the row in modcod files
 } __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
 

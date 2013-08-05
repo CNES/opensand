@@ -78,7 +78,7 @@ typedef struct
 	// TODO uint8_t in standard and we should build more thant one TTP per ST
 	uint16_t assignment_count; ///> one less than the number of timeslots assigned
 	                           //   in the block (for RCS)
-	uint8_t fmt_id;    ///> The ID for FMT (DRA for RCS, MODCOD for S2)
+	uint8_t fmt_id;    ///> The ID for FMT (MODCOD ID)
 	uint8_t priority;  ///> The traffic priority (no used in RCS)
 } __attribute__((packed)) emu_tp_t;
 

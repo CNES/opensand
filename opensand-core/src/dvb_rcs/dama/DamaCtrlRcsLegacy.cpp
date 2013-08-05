@@ -211,7 +211,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 			rate_pktpf_t remaining_capacity_pktpf;
 			const FmtDefinitionTable *dra_scheme_def;
 
-			dra_scheme_def = this->fmt_simu->getDraSchemeDefinitions();
+			dra_scheme_def = this->fmt_simu->getRetModcodDefinitions();
 			// we have only one MODCOD for each carrier so we can convert
 			// directly from bauds to kbits
 			remaining_capacity_kb =
@@ -259,6 +259,7 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
     debug = buf.str();
 
 	remaining_capacity_pktpf = carriers->getRemainingCapacity();
+	UTI_ERROR("BEFORE: %u\n", remaining_capacity_pktpf);
 
 	if(remaining_capacity_pktpf == 0)
 	{
@@ -372,6 +373,7 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 			}
 		}
 	}
+	UTI_ERROR("AFTER: %u\n", remaining_capacity_pktpf);
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
 }
 

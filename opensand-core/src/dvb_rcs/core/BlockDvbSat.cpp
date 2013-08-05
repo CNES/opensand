@@ -254,7 +254,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 			}
 			else if(*event == this->scenario_timer)
 			{
-				UTI_DEBUG_L3("MODCOD/DRA scenario timer expired\n");
+				UTI_DEBUG_L3("MODCOD scenario timer expired\n");
 
 				if(this->satellite_type == REGENERATIVE &&
 				   this->emissionStd->getType() == "DVB-S2")
@@ -722,7 +722,7 @@ bool  BlockDvbSat::onInit()
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE)
 	{
-		if(!this->initModcodFiles())
+		if(!this->initForwardModcodFiles())
 		{
 			UTI_ERROR("failed to complete the modcod part of the "
  			          "initialisation");
@@ -731,7 +731,7 @@ bool  BlockDvbSat::onInit()
 		// initialize the MODCOD scheme ID
 		if(!this->fmt_simu.goNextScenarioStep())
 		{
-			UTI_ERROR("failed to initialize MODCOD scheme IDs\n");
+			UTI_ERROR("failed to initialize downlink MODCOD IDs\n");
 			goto error;
 		}
 

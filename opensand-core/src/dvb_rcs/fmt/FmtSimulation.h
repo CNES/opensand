@@ -47,17 +47,16 @@ using std::map;
 using std::vector;
 using std::ifstream;
 
-// TODO rename MODCOD and DRA forward/return ?
-
 // Be careful:
-//  - MODCOD and DRA definitions are used on DAMA controller to get the
+//  - both MODCODs definitions are used on DAMA controller to get the
 //    needed information (Rs, SNR, ...) for allocation computation
-//  - MODCOD definitions are also used on appropriate PhysicStd to get
-//    the Frames  size
-//  - DRA simulation ID is used on DVB-RCS up/return link, we need the minimum
-//    supported DRA in order to choose the allocated carrier in DAMA (needed by DamaCtrlRcs)
-//  - MODCOD is used on DVB-S2 forward link on GW to get the minimum supported MODCOD
-//    used in BBFrames (needed by DvbS2Std)
+//  - down/forward MODCOD definitions are also used on appropriate PhysicStd to get
+//    the Frames size
+//  - up/return MODCOD simulation ID is used on DVB-RCS up/return link,
+//    we need the minimum supported MODCOD in order to choose the allocated
+//    carrier in DAMA (needed by DamaCtrlRcs)
+//  - down/forward MODCOD is used on DVB-S2 forward link on GW to get the minimum
+//    supported MODCOD used in BBFrames (needed by DvbS2Std)
 // Thus we instanciate this everywhere but only the GW and SAT instance may handle terminals
 
 /**
@@ -71,29 +70,29 @@ class FmtSimulation
 	/** The internal map that stores all the STs */
 	map<tal_id_t, StFmtSimu *> sts;
 
-	/** The table of MODCOD definitions */
-	FmtDefinitionTable modcod_definitions;
+	/** The table of down/forward MODCOD definitions */
+	FmtDefinitionTable fwd_modcod_def;
 
-	/** The file stream for the MODCOD simulation file */
-	ifstream modcod_simu_file;
+	/** The file stream for the down/forward MODCOD simulation file */
+	ifstream fwd_modcod_simu;
 
-	/** The table of DRA definitions */
-	FmtDefinitionTable dra_scheme_definitions;
+	/** The table of up/return MODCOD definitions */
+	FmtDefinitionTable ret_modcod_def;
 
-	/** The file stream for the DRA scheme simulation file */
-	ifstream dra_scheme_simu_file;
+	/** The file stream for the up/return MODCOD simulation file */
+	ifstream ret_modcod_simu;
 
 	/** Whether the MODCOD simulation file is defined or not */
-	bool is_modcod_simu_file_defined;
+	bool is_fwd_modcod_simu_defined;
 
-	/** Whether the DRA scheme simulation file is defined or not */
-	bool is_dra_scheme_simu_file_defined;
+	/** Whether the up/return MODCOD simulation file is defined or not */
+	bool is_ret_modcod_simu_defined;
 
-	/** A list of the current MODCOD */
-	vector<string> modcod_list;
+	/** A list of the current down/forward MODCOD */
+	vector<string> fwd_modcod_list;
 
-	/** A list of the current DRA */
-	vector<string> dra_list;
+	/** A list of the current up/return MODCOD */
+	vector<string> ret_modcod_list;
 
  public:
 
@@ -106,95 +105,187 @@ class FmtSimulation
 	~FmtSimulation();
 
 
-	/* add a new Satellite Terminal (ST) in the list */
+	/**
+	 * @brief Add a new Satellite Terminal (ST) in the list
+	 *
+	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
+	 *                         in the code)
+	 * @param simu_column_num  the column # associated to the ST for MODCOD
+	 *                         simulation files
+	 * @return                 true if the addition is successful, false otherwise
+	 */
 	bool addTerminal(tal_id_t id,
 	                 unsigned long simu_column_num);
 
-	/* delete a Satellite Terminal (ST) from the list */
+	/**
+	 * @brief Delete a Satellite Terminal (ST) from the list
+	 *
+	 * @param id  the ID of the ST (called TAL ID or MAC ID elsewhere in the code)
+	 * @return    true if the deletion is successful, false otherwise
+	 */
 	bool delTerminal(tal_id_t id);
 
-	/* does a ST with the given ID exist ? */
+	/**
+	 * @brief Does a ST with the given ID exist ?
+	 *
+	 * @param id  the ID we want to check for
+	 * @return    true if a ST, false is it does not exist
+	 */
 	bool doTerminalExist(tal_id_t id) const;
 
-	/* clear the list of STs */
+	/**
+	 * @brief Clear the list of STs
+	 */
 	void clear();
 
-	/* go to next step in adaptive physical layer scenario */
+	/**
+	 * @brief Go to next step in adaptive physical layer scenario
+	 *
+	 * Update current MODCODs IDs of all STs in the list.
+	 */
 	bool goNextScenarioStep();
 
-	/* was the current MODCOD IDs of all the STs
-	   advertised over the emulated network ? */
-	bool areCurrentModcodsAdvertised();
+	/**
+	 * @brief Was the current down/forward MODCOD IDs of all the STs advertised
+	 *        over the emulated network ?
+	 *
+	 * @return  true if the current MODCOD IDs of all the STs are already
+	 *          advertised, false if they were not yet
+	 */
+	bool areCurrentFwdModcodsAdvertised();
 
 	/**
-	 * @brief Set definition file for MODCOD
+	 * @brief Set definition file for down/forward MODCOD
 	 *
 	 * @param filename The MODCOD definition file
 	 * @return true on success, false otherwise
 	 */
-	bool setModcodDefFile(string filename);
-
-	/* set simulation file for MODCOD */
-	bool setModcodSimuFile(string filename);
+	bool setForwardModcodDef(const string &filename);
 
 	/**
-	 * @brief Set definition file for DRA
+	 * @brief Set simulation file for down/forward link MODCOD
 	 *
-	 * @param filename The DRA definition file
+	 * @param filename  the name of the file in which MODCOD scenario is described
+	 * @return          true if the file exist and is valid, false otherwise
+	 */
+	bool setForwardModcodSimu(const string &filename);
+
+	/**
+	 * @brief Set definition file for up/return MODCOD
+	 *
+	 * @param filename The MODCOD definition file
 	 * @return true on success, false otherwise
 	 */
-	bool setDraSchemeDefFile(string filename);
-
-	/* set simulation file for DRA scheme */
-	bool setDraSchemeSimuFile(string filename);
-
-	/* get the column # associated to the ST
-	   whose ID is given as input */
-	unsigned int getSimuColumnNum(tal_id_t id) const;
-
-	/* get the current MODCOD ID of the ST
-	   whose ID is given as input */
-	unsigned int getCurrentModcodId(tal_id_t id) const;
-
-	/* get the previous MODCOD ID of the ST
-	   whose ID is given as input */
-	unsigned int getPreviousModcodId(tal_id_t id) const;
-
-	/* was the current MODCOD ID of the ST whose ID is given as input
-	   advertised over the emulated network ? */
-	bool isCurrentModcodAdvertised(tal_id_t id) const;
-
-	/* get the current DRA scheme ID of the ST
-	   whose ID is given as input */
-	unsigned int getCurrentDraSchemeId(tal_id_t id) const;
-
-	/*  get the terminal ID corresponding to the lower modcod */
-	tal_id_t getTalIdCorrespondingToLowerModcod() const;
+	bool setReturnModcodDef(const string &filename);
 
 	/**
-	 * @brief Get the MODCOD definitions
+	 * @brief Set simulation file for up/return link MODCOD
+	 *
+	 * @param filename  the name of the file in which MODCOD scenario is described
+	 * @return          true if the file exist and is valid, false otherwise
+	 */
+	bool setReturnModcodSimu(const string &filename);
+
+	/**
+	 * @brief Get the column # associated to the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the MODCOD definition we want information for
+	 * @return    the column # associated to the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	unsigned int getSimuColumnNum(tal_id_t id) const;
+
+	/**
+	 * @brief Get the current down/forward MODCOD ID of the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the down/forward MODCOD definition we want information for
+	 * @return    the current MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	unsigned int getCurrentFwdModcodId(tal_id_t id) const;
+
+	/**
+	 * @brief Get the previous MODCOD ID of the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the down/forwardn MODCOD definition we want information for
+	 * @return    the previous MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	unsigned int getPreviousFwdModcodId(tal_id_t id) const;
+
+	/**
+	 * @brief Was the current down/forward MODCOD ID of the ST whose ID
+	 *        is given as input  advertised over the emulated network ?
+	 *
+	 * @return  true if the MODCOD ID was already advertised,
+	 *          false if it was not advertised yet
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	bool isCurrentFwdModcodAdvertised(tal_id_t id) const;
+
+	/**
+	 * @brief Get the current up/return MODCOD ID of the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the up/return MODCOD definition we want information for
+	 * @return    the current up/return MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	unsigned int getCurrentRetModcodId(tal_id_t id) const;
+
+	/**
+	 * @brief Get the terminal ID for wich the used down/forward
+	 *        MODCOD is the lower
+	 *
+	 * @return terminal ID (should be positive, return -1 (255) if an error occurs)
+	 */
+	tal_id_t getTalIdWithLowerFwdModcod() const;
+
+	/**
+	 * @brief Get the MODCOD definitions for down/forward link
 	 *
 	 * @return the MODCOD definitions
 	 */
-	const FmtDefinitionTable *getModcodDefinitions() const;
+	const FmtDefinitionTable *getFwdModcodDefinitions() const;
 
 	/**
-	 * @brief Get the DRA definitions
+	 * @brief Get the MODCOD definitions for up/return link
 	 *
-	 * @return the DAR definitions
+	 * @return the MODCOD definitions
 	 */
-	const FmtDefinitionTable *getDraSchemeDefinitions() const;
+	const FmtDefinitionTable *getRetModcodDefinitions() const;
 
  private:
 
-	/* update the current MODCOD IDs of all STs from MODCOD simulation file */
-	bool goNextScenarioStepModcod();
+	/**
+	 * @brief Update the current down/forwardMODCOD IDs of all STs
+	 *        from MODCOD simulation file
+	 *
+	 * @return true on success, false on failure
+	 */
+	bool goNextScenarioStepFwdModcod();
 
-	/* update the current DRA scheme IDs of all STs from DRA simulation file */
-	bool goNextScenarioStepDraScheme();
+	/**
+	 * @brief Update the current up/return MODCOD IDs of all STs
+	 *        from MODCOD simulation file
+	 *
+	 * @return true on success, false on failure
+	 */
+	bool goNextScenarioStepRetModcod();
 
-	/* read the next line of the simulation file
-	 * and store it in the appropriate list */
+	/**
+	 * @brief Read a line of a simulation file and fill the MODCOD list
+	 *
+	 * @param   simu_file the simulation file (fwd_modcod_simu or ret_modcod_simu)
+	 * @param   list      The MODCOD list
+	 * @return            true on success, false on failure
+	 *
+	 * @todo better parsing
+	 */
 	bool setList(ifstream &simu_file,
 	             vector<string> &list);
 

@@ -24,8 +24,7 @@ libopensand_dvb_core_la_h = \
 	BlockDvb.h \
 	BlockDvbSat.h \
 	BlockDvbNcc.h \
-	BlockDvbTal.h \
-	Ip.h
+	BlockDvbTal.h
 
 libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \

@@ -113,7 +113,7 @@ class DamaCtrlRcs: public DamaCtrl
 	// Reset dama
 	virtual bool resetDama() = 0;
 
-	// Update DRA for each terminal
+	// Update MODCOD for each terminal
 	virtual void updateFmt();
 
 };

@@ -62,10 +62,11 @@
 
 #define DVB_F_DURATION            "frame_duration"
 
-#define MODCOD_DEF                "modcod_definition_file"
-#define MODCOD_SIMU               "modcod_simulation_file"
-#define DRA_DEF                   "dra_definition_file"
-#define DRA_SIMU                  "dra_simulation_file"
+
+#define DOWN_FORWARD_MODCOD_DEF   "down_forward_modcod_def"
+#define DOWN_FORWARD_MODCOD_SIMU  "down_forward_modcod_simu"
+#define UP_RETURN_MODCOD_DEF      "up_return_modcod_def"
+#define UP_RETURN_MODCOD_SIMU     "up_return_modcod_simu"
 
 #define DVB_SCENARIO_REFRESH      "dvb_scenario_refresh"
 

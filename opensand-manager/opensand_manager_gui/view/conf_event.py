@@ -299,25 +299,25 @@ class ConfEvent(ConfView) :
     def on_dvb_rcs_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-RCS is selected """
         self.enable_conf_buttons()
-        self.populate_dama(self._dama_rcs)
+#        self.populate_dama(self._dama_rcs)
 
     def on_dvb_s2_button_clicked(self, source=None, event=None):
         """ actions performed when DVB-S2 is selected """
         self.enable_conf_buttons()
-        self.populate_dama(self._dama_s2)
+#        self.populate_dama(self._dama_s2)
 
-    def populate_dama(self, dama_list):
-        """ populate the DAMA combobox """
-        combo = self._ui.get_widget('dama_box')
-        combo.clear()
-        store = gtk.ListStore(gobject.TYPE_STRING)
-        for name in dama_list:
-            store.append([name])
-        combo.set_model(store)
-        cell = gtk.CellRendererText()
-        combo.pack_start(cell, True)
-        combo.add_attribute(cell, 'text', 0)
-        combo.set_active(0)
+#    def populate_dama(self, dama_list):
+#        """ populate the DAMA combobox """
+#        combo = self._ui.get_widget('dama_box')
+#        combo.clear()
+#        store = gtk.ListStore(gobject.TYPE_STRING)
+#        for name in dama_list:
+#            store.append([name])
+#        combo.set_model(store)
+#        cell = gtk.CellRendererText()
+#        combo.pack_start(cell, True)
+#        combo.add_attribute(cell, 'text', 0)
+#        combo.set_active(0)
         
     def on_button_clicked(self, source=None, event=None):
         """ 'clicked' event on teminal type buttons """
@@ -359,10 +359,10 @@ class ConfEvent(ConfView) :
         config.set_emission_std(emission_std)
 
         # dama
-        widget = self._ui.get_widget('dama_box')
-        model = widget.get_model()
-        active = widget.get_active_iter()
-        config.set_dama(model.get_value(active, 0))
+#        widget = self._ui.get_widget('dama_box')
+#        model = widget.get_model()
+#        active = widget.get_active_iter()
+#        config.set_dama(model.get_value(active, 0))
 
         # check stacks with modules conditions
         modules = self._model.get_encap_modules()
@@ -469,9 +469,9 @@ class ConfEvent(ConfView) :
         """ 'change-value' event callback on frame duration button """
         self.enable_conf_buttons()
 
-    def on_dama_box_changed(self, source=None, event=None):
-        """ 'change' event callback on dama box """
-        self.enable_conf_buttons()
+#    def on_dama_box_changed(self, source=None, event=None):
+#        """ 'change' event callback on dama box """
+#        self.enable_conf_buttons()
 
     def on_advanced_conf_clicked(self, source=None, event=None):
         """ display the advanced window """

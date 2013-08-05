@@ -46,8 +46,8 @@ IMG_PATH = "/usr/share/opensand/manager/images/"
 class ConfView(WindowView):
     """ Element for the configuration tab """
 
-    _dama_rcs = ["Legacy"]
-    _dama_s2 = ["MF2-TDMA"]
+#    _dama_rcs = ["Legacy"]
+#    _dama_s2 = ["MF2-TDMA"]
 
     def __init__(self, parent, model, manager_log):
         WindowView.__init__(self, parent)
