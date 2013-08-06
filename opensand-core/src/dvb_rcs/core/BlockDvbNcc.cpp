@@ -614,6 +614,8 @@ bool BlockDvbNcc::initRequestSimulation()
 	}
 
 	// Get and open the stat file
+	// TODO it would be better to register probes for simulated ST and
+	//      use probes
 	this->stat_file = NULL;
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_STAT_FILE, str_config))
 	{
@@ -656,6 +658,9 @@ bool BlockDvbNcc::initRequestSimulation()
 		goto error;
 	}
 
+	// TODO is we use probes we need to register here so we need to known the number
+	//      of terminals (easy in random mode, need parsing in file mode,
+	//      may need a ST number parameter for stdin)
 	if(str_config == "file")
 	{
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
@@ -1317,7 +1322,7 @@ bool BlockDvbNcc::initDama()
 		UTI_ERROR("failed to initialize the DAMA controller\n");
 		goto release_dama;
 	}
-	this->dama_ctrl->setRecordFile(this->event_file);
+	this->dama_ctrl->setRecordFile(this->event_file, this->stat_file);
 
 	return true;
 
@@ -1659,11 +1664,12 @@ bool BlockDvbNcc::simulateFile()
 		{
 			event_selected = none;
 		}
-		// TODO fix to avoid sending probe for the simulated ST
-		//      remove once environment plane will be modified
-		if(st_id <= 100)
+		if(st_id <= BROADCAST_TAL_ID)
 		{
-			st_id += 100;
+			UTI_ERROR("Simulated ST%u ignored, IDs smaller than %u "
+			          "reserved for emulated terminals\n",
+			          st_id, BROADCAST_TAL_ID);
+	          goto loop_step;
 		}
 		if(event_selected == none)
 			goto loop_step;
@@ -1681,15 +1687,40 @@ bool BlockDvbNcc::simulateFile()
 			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
 			          "for ST %d\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			this->dama_ctrl->hereIsCR(cr);
+			if(!this->dama_ctrl->hereIsCR(cr))
+			{
+				goto error;
+			}
 			break;
 		}
 		case logon:
 		{
 			LogonRequest sim_logon_req(st_id, st_rt);
+			bool ret = false;
+
 			UTI_DEBUG("SF%ld: send a simulated logon for ST %d\n",
 			          this->super_frame_counter, st_id);
-			this->dama_ctrl->hereIsLogon(sim_logon_req);
+			// check for column in FMT simulation list
+			if(this->column_list.find(st_id) == this->column_list.end())
+			{
+				UTI_INFO("no column ID for simulated terminal, use the terminal ID\n");
+				ret = this->fmt_simu.addTerminal(st_id, st_id);
+			}
+			else
+			{
+				ret = this->fmt_simu.addTerminal(st_id, this->column_list[st_id]);
+			}
+			if(!ret)
+			{
+				UTI_ERROR("failed to register simulated ST with MAC ID %u\n",
+				          st_id);
+				goto error;
+			}
+
+			if(!this->dama_ctrl->hereIsLogon(sim_logon_req))
+			{
+				goto error;
+			}
 		}
 		break;
 		case logoff:
@@ -1697,7 +1728,10 @@ bool BlockDvbNcc::simulateFile()
 			Logoff sim_logoff(st_id);
 			UTI_DEBUG("SF%ld: send a simulated logoff for ST %d\n",
 			          this->super_frame_counter, st_id);
-			this->dama_ctrl->hereIsLogoff(sim_logoff);
+			if(!this->dama_ctrl->hereIsLogoff(sim_logoff))
+			{
+				goto error;
+			}
 		}
 		break;
 		default:
@@ -1742,14 +1776,35 @@ void BlockDvbNcc::simulateRandom()
 	static bool initialized = false;
 
 	int i;
-	uint16_t sim_tal_id = BROADCAST_TAL_ID + 1;
+	// BROADCAST_TAL_ID is maximum tal_id for emulated terminals
+	tal_id_t sim_tal_id = BROADCAST_TAL_ID + 1;
 
 	if(!initialized)
 	{
 		for(i = 0; i < this->simu_st; i++)
 		{
-			// BROADCAST_TAL_ID is maximum tal_id
-			LogonRequest sim_logon_req(sim_tal_id + 1, this->simu_rt);
+			tal_id_t tal_id = sim_tal_id + i;
+			LogonRequest sim_logon_req(tal_id, this->simu_rt);
+			bool ret = false;
+
+			// check for column in FMT simulation list
+			if(this->column_list.find(tal_id) == this->column_list.end())
+			{
+				UTI_INFO("no column ID for simulated terminal, use the terminal ID\n");
+				ret = this->fmt_simu.addTerminal(tal_id, tal_id);
+			}
+			else
+			{
+				ret = this->fmt_simu.addTerminal(tal_id,
+				                                 this->column_list[tal_id]);
+			}
+			if(!ret)
+			{
+				UTI_ERROR("failed to register simulated ST with MAC ID %u\n",
+				          tal_id);
+				return;
+			}
+
 			this->dama_ctrl->hereIsLogon(sim_logon_req);
 		}
 		initialized = true;

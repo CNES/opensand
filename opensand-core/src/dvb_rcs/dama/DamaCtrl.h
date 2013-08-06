@@ -185,8 +185,9 @@ class DamaCtrl
 	 * @brief Set the file for simulation statistic and events record
 	 *
 	 * @param event_stream  The events file
+	 * @param stat_stream  The stats file
 	 */
-	virtual void setRecordFile(FILE * event_stream);
+	virtual void setRecordFile(FILE * event_stream, FILE *stat_stream);
 
  protected:
 
@@ -325,20 +326,27 @@ class DamaCtrl
 	 */
 	bool computeBandplan();
 
+	/// if set to other than NULL, the fd where recording events
+	FILE *event_file;
 
-	// TODO ofstream
-	FILE *event_file;  ///< if set to other than NULL, the fd where recording
-	                   ///< event
+	/// if set to other than NULL, the fd where recording stats
+	FILE *stat_file;
 };
 
-// TODO replace !!!
-/**
- * used to record event only valid if event_file != NULL
- */
-#define DC_RECORD_EVENT(fmt,args...){                                 \
-	if (this->event_file != NULL) {                                         \
-		fprintf(this->event_file, "SF%u "fmt"\n", this->current_superframe_sf, ##args); \
-	}                                                                   \
+#define DC_RECORD_EVENT(fmt,args...) \
+{ \
+	if (this->event_file != NULL) \
+	{ \
+		fprintf(this->event_file, "SF%u "fmt"\n", \
+		        this->current_superframe_sf, ##args); \
+	} \
 }
 
-
+#define DC_RECORD_STAT(fmt,args...) \
+{ \
+	if (this->stat_file != NULL) \
+	{ \
+		fprintf(this->stat_file, "SF%u "fmt"\n", \
+		        this->current_superframe_sf, ##args); \
+	} \
+}

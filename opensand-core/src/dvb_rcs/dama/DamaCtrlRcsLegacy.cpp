@@ -579,4 +579,6 @@ void DamaCtrlRcsLegacy::updateStatistics()
 {
 	//TODO
 	//probe->add
+// TODO DC_RECORD_STAT for
+// CRA, NB ST, RBDC/VBDC REQ NBR, RBDC/VBDC REQ SUM, RBDC/VBDC/FCA ALLOC, FAIR SHARE
 }

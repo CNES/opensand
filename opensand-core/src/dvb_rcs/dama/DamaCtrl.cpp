@@ -407,15 +407,11 @@ error:
 	return false;
 }
 
-/**
- * Set the file descriptor for storing events
- * @param event_stream  the file descriptor of an append only
- *                      opened stream used for event record
- */
-// TODO ofstream
-void DamaCtrl::setRecordFile(FILE * event_stream)
+void DamaCtrl::setRecordFile(FILE *event_stream, FILE *stat_stream)
 {
 	this->event_file = event_stream;
 	DC_RECORD_EVENT("%s", "# --------------------------------------\n");
+	this->stat_file = stat_stream;
+	DC_RECORD_STAT("%s", "# --------------------------------------\n");
 }
 

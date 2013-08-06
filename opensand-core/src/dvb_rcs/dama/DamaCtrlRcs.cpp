@@ -167,9 +167,9 @@ bool DamaCtrlRcs::hereIsCR(const CapacityRequest &capacity_request)
 	st = this->terminals.find(tal_id);
 	if(st == this->terminals.end())
 	{
-		UTI_ERROR("SF#%u: CR for a unknown st (logon_id=%d). Discarded.\n" ,
+		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%d). Discarded.\n" ,
 		          this->current_superframe_sf, tal_id);
-		Output::sendEvent(error_ncc_req, "CR for a unknown st (logon_id=%d)."
+		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
 		                  "Discarded.\n",tal_id);
 		goto error;
 	}
