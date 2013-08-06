@@ -47,7 +47,6 @@
 #include <string>
 
 
-
 // output probes
 Probe<int>* DamaCtrlRcsLegacy::probe_gw_fca_alloc = NULL;
 Probe<float>* DamaCtrlRcsLegacy::probe_gw_uplink_fair_share = NULL;
@@ -218,9 +217,12 @@ bool DamaCtrlRcsLegacy::resetDama()
 				dra_scheme_def->symToKbits((*carrier_it)->getFmtIds().front(),
 				                           (*carrier_it)->getTotalCapacity());
 			// as this function is called each superframe we can directly
-			// convert vol_pkt_t to rate_pktpf_t
+			// convert number of packet to rate in packet per superframe
+			// and dividing by the frame number per superframes we have
+			// the rate in packet per frame
 			remaining_capacity_pktpf =
-				this->converter->kbitsToPkt(remaining_capacity_kb);
+				this->converter->kbitsToPkt(remaining_capacity_kb) /
+				this->frames_per_superframe;
 
 			// initialize remaining capacity with total capacity in
 			// packet per superframe as it is the unit used in DAMA computations
