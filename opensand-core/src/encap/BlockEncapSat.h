@@ -36,7 +36,7 @@
 #ifndef BLOC_ENCAP_SAT_H
 #define BLOC_ENCAP_SAT_H
 
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "NetBurst.h"
 #include "EncapPlugin.h"
 

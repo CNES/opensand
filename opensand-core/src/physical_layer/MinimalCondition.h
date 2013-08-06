@@ -34,7 +34,7 @@
 #ifndef MINIMAL_CONDITION_H
 #define MINIMAL_CONDITION_H
 
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 #include <string>
 #include <map>

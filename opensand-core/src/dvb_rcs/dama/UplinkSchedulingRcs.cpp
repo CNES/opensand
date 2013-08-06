@@ -38,7 +38,7 @@
 
 #include "UplinkSchedulingRcs.h"
 #include "MacFifoElement.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 
 UplinkSchedulingRcs::UplinkSchedulingRcs(

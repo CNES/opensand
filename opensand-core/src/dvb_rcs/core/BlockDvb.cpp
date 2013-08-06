@@ -348,6 +348,12 @@ bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	unsigned char *dvb_frame;
 	unsigned int dvb_length;
 
+	if(!frame)
+	{
+		UTI_ERROR("frame is %p\n", frame);
+		goto error;
+	}
+
 	if(frame->getTotalLength() <= 0)
 	{
 		UTI_ERROR("empty frame, header and payload are not present\n");
@@ -396,12 +402,18 @@ error:
  *
  * @param dvb_frame     the DVB frame
  * @param carrier_id    the DVB carrier Id
- * @param l_len         XXX
+ * @param l_len         the DVB frame length
  * @return              true on success, false otherwise
  */
 bool BlockDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 {
 	T_DVB_META *dvb_meta; // encapsulates the DVB Frame in a structure
+
+	if(!dvb_frame)
+	{
+		UTI_ERROR("frame is %p\n", dvb_frame);
+		return false;
+	}
 
 	dvb_meta = new T_DVB_META;
 	dvb_meta->carrier_id = carrier_id;

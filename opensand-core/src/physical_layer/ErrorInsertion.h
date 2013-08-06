@@ -33,7 +33,7 @@
 #ifndef ERROR_INSERTION_H
 #define ERROR_INSERTION_H
 
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 /**
  * @class ErrorInsertion

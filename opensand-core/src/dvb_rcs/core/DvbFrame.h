@@ -36,9 +36,11 @@
 #ifndef DVB_FRAME_H
 #define DVB_FRAME_H
 
-#include <NetPacket.h>
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
+#include <NetPacket.h>
+
+// TODO inherit from OpenSandFrame ?
 
 /**
  * @class DvbFrame

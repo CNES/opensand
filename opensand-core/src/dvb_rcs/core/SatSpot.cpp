@@ -32,13 +32,12 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-
-#include "SatSpot.h"
-#include "msg_dvb_rcs.h"
-#include "MacFifoElement.h"
-
 #define DBG_PACKAGE PKG_DVB_RCS_SAT
 #include <opensand_conf/uti_debug.h>
+
+#include "SatSpot.h"
+#include "OpenSandFrames.h"
+#include "MacFifoElement.h"
 
 #include <stdlib.h>
 

@@ -36,7 +36,7 @@
 #define PHYSICAL_LAYER_PLUGIN_H
 
 #include "OpenSandPlugin.h"
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 #include <string>
 #include <map>

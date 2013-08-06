@@ -186,6 +186,7 @@ bool DamaAgentRcsLegacy::processOnFrameTick()
 
 	// TODO do we convert from pkt per sf or from pkt per frame ?????
 	// TODO remove stat context and use probe directly
+	// TODO move stats in updateStats
 	this->stat_context.global_alloc_kbps =
 		this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
 

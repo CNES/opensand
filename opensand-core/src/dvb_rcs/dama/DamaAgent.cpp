@@ -38,7 +38,7 @@
 
 #include "DamaAgent.h"
 
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 DamaAgent::DamaAgent():
 	is_parent_init(false),
@@ -116,8 +116,8 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 bool DamaAgent::hereIsLogonResp(const LogonResponse &response)
 {
-	this->group_id = response.group_id;
-	this->tal_id = response.logon_id;
+	this->group_id = response.getGroupId();
+	this->tal_id = response.getLogonId();
 	return true;
 }
 
@@ -129,53 +129,9 @@ bool DamaAgent::hereIsSOF(time_sf_t superframe_number_sf)
 
 bool DamaAgent::processOnFrameTick()
 {
+	// TODO move stats in updateStats function
 	this->stat_context.cra_alloc_kbps = this->cra_kbps;
 	return true;
 }
 
 
-/************************** Wrappers *****************************************/
-//TODO remove all wrappers !!!
-bool DamaAgent::hereIsSOF(unsigned char *buf, size_t len)
-{
-	T_DVB_SOF *sof;
-	sof = (T_DVB_SOF *) buf;
-	if(sof->hdr.msg_type != MSG_TYPE_SOF)
-	{
-		UTI_ERROR("Non SOF msg type (%d)\n",
-		           sof->hdr.msg_type);
-		goto error;
-	}
-
-	if(!this->hereIsSOF(sof->frame_nr))
-	{
-		goto error;
-	}
-
-	return true;
-
- error:
-	return false;
-}
-
-bool DamaAgent::hereIsLogonResp(unsigned char *buf, size_t len)
-{
-	T_DVB_LOGON_RESP *resp;
-	resp = (T_DVB_LOGON_RESP *) buf;
-	if(resp->hdr.msg_type != MSG_TYPE_SESSION_LOGON_RESP)
-	{
-		UTI_ERROR("Non logon resp msg type (%d)\n",
-		          resp->hdr.msg_type);
-		goto error;
-	}
-
-	if(!this->hereIsLogonResp(*resp))
-	{
-		goto error;
-	}
-
-	return true;
-
- error:
-	return false;
-}

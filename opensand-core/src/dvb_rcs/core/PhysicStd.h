@@ -46,7 +46,7 @@
 #include "NetPacket.h"
 #include "EncapPlugin.h"
 #include "DvbFrame.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "MacFifoElement.h"
 #include "FmtSimulation.h"
 

@@ -41,10 +41,6 @@
 #include <vector>
 #include <stdint.h>
 
-/** Here is supposed that it exists a single global allocation for the
- *  whole Superframe. Hence only one frame is considered in the TTP */
-//#define NBR_MAX_FRAME 1
-
 using std::vector;
 using std::map;
 

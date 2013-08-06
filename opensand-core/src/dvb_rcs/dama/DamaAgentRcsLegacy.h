@@ -39,7 +39,7 @@
 #include "UnitConverter.h"
 #include "CircularBuffer.h"
 #include "UplinkSchedulingRcs.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "NetBurst.h"
 #include "DvbRcsFrame.h"
 

@@ -38,8 +38,7 @@
 
 #include "BlockSatCarrier.h"
 
-#include "msg_dvb_rcs.h"
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 
 

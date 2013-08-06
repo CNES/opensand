@@ -35,7 +35,7 @@
 
 #include "Ttp.h"
 
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 #include <cstring>
 #include <arpa/inet.h>

@@ -32,13 +32,13 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "DvbRcsStd.h"
-#include "assert.h"
-
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
+#include "DvbRcsStd.h"
+
+#include <cassert>
 
 
 DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler * pkt_hdl):

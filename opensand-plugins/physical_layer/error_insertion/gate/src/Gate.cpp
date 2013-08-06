@@ -35,11 +35,12 @@
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
  */
 
-#include "Gate.h"
 
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
+
+#include "Gate.h"
 
 #include <math.h>
 #include <strings.h>

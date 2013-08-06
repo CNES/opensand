@@ -40,6 +40,7 @@
 #include "DvbFrame.h"
 #include "OpenSandCore.h"
 #include "EncapPlugin.h"
+#include "Logon.h"
 
 #include <map>
 #include <list>
@@ -184,10 +185,6 @@ class DamaAgent
 	 *         Called each frame
 	 */
 	virtual void updateStatistics() = 0;
-
-	/*** Wrappers TODO remove !! ***/
-	virtual bool hereIsSOF(unsigned char *buf, size_t len);
-	virtual bool hereIsLogonResp(unsigned char *buf, size_t len);
 
 
 protected:

@@ -31,12 +31,12 @@
  * @author Julien BERNARD <julien.bernard@toulouse.viveris.com>
  */
 
-#include "MacFifoElement.h"
 
 // debug
 #define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_conf/uti_debug.h>
 
+#include "MacFifoElement.h"
 
 MacFifoElement::MacFifoElement(unsigned char *data, size_t length,
                                time_t tick_in, time_t tick_out):

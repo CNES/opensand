@@ -37,7 +37,7 @@
 #define BLOCK_ENCAP_H
 
 
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "StackPlugin.h"

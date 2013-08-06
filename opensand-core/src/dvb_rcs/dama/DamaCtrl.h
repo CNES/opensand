@@ -43,8 +43,9 @@
 #include "FmtSimulation.h"
 #include "PepRequest.h"
 #include "UnitConverter.h"
-// TODO remove once we do not use wrappers anymore
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
+#include "Logon.h"
+#include "Logoff.h"
 
 #include <cstdio>
 #include <map>
@@ -136,7 +137,7 @@ class DamaCtrl
 	 * @param   logoff  logoff request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogoff(const LogoffRequest &logoff);
+	virtual bool hereIsLogoff(const Logoff &logoff);
 
 	/**
 	 * @brief  Process a Capacity Request frame.
@@ -294,7 +295,7 @@ class DamaCtrl
 
 	/**
 	 * @brief run the Dama, it allocates exactly what have been asked
-	 *        using internal SACT, TBTP and context.
+	 *        using internal requests, TBTP and contexts.
 	 * After DAMA computation, TBTP is completed and context is reinitialized
 	 *
 	 * @return true on success, false otherwise

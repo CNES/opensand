@@ -4,6 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
+ * Copyright © 2013 TAS
  * Copyright © 2013 CNES
  *
  *
@@ -26,33 +27,40 @@
  */
 
 /**
- * @file MinimalCondition.cpp
- * @brief MinimalCondition
- * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
+ * @file    Logoff.cpp
+ * @brief   Represent a Logoff
+ * @author  Audric Schiltknecht / Viveris Technologies
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
 
-#include "MinimalCondition.h"
+#include "Logoff.h"
 
-MinimalCondition::MinimalCondition(string minimal_condition_mode)
+
+Logoff::Logoff(uint16_t mac):
+	OpenSandFrame<T_DVB_LOGOFF>(sizeof(T_DVB_LOGOFF))
 {
-	this->minimal_condition_mode = minimal_condition_mode;
+	this->setMessageType(MSG_TYPE_SESSION_LOGOFF);
+	this->setLength(sizeof(T_DVB_LOGOFF));
+	this->frame->mac = htons(mac);
 }
 
-MinimalCondition::~MinimalCondition()
+Logoff::Logoff(unsigned char *frame, size_t length):
+	OpenSandFrame<T_DVB_LOGOFF>(frame, length)
+{
+	if(this->getMessageType() != MSG_TYPE_SESSION_LOGOFF)
+	{
+		UTI_ERROR("Frame is not a logoff\n");
+	}
+}
+
+Logoff::~Logoff()
 {
 }
 
-string MinimalCondition::getMinimalConditionMode()
+uint16_t Logoff::getMac(void) const
 {
-	return this->minimal_condition_mode;
+	return ntohs(this->frame->mac);
 }
 
-void MinimalCondition::setMinimalConditionMode(string minimal_condition_mode)
-{
-	this->minimal_condition_mode = minimal_condition_mode;
-}
 

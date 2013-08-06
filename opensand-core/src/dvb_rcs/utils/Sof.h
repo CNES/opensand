@@ -4,6 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
+ * Copyright © 2013 TAS
  * Copyright © 2013 CNES
  *
  *
@@ -26,33 +27,54 @@
  */
 
 /**
- * @file MinimalCondition.cpp
- * @brief MinimalCondition
- * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
+ * @file    Sof.h
+ * @brief   Represent a SOF
+ * @author  Julien Bernard / Viveris Technologies
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
+#ifndef _SOF_H_
+#define _SOF_H_
 
-#include "MinimalCondition.h"
 
-MinimalCondition::MinimalCondition(string minimal_condition_mode)
+#include "OpenSandCore.h"
+#include "OpenSandFrames.h"
+
+
+/**
+ * @class Sof
+ * @brief Represent a SOF
+ */
+class Sof: public OpenSandFrame<T_DVB_SOF>
 {
-	this->minimal_condition_mode = minimal_condition_mode;
-}
+ public:
 
-MinimalCondition::~MinimalCondition()
-{
-}
+	/**
+	 * @brief SOF constructor for NCC (sender)
+	 *
+	 * @param mac  The superframe number
+	 */
+	Sof(uint16_t sf_nbr);
 
-string MinimalCondition::getMinimalConditionMode()
-{
-	return this->minimal_condition_mode;
-}
+	/**
+	 * @brief SOF constructor for terminal (receiver)
+	 *
+	 * @param frame   The DVB frame containing the SOF
+	 * @ aram length  The DVB frame length
+	 */
+	Sof(unsigned char *frame, size_t length);
 
-void MinimalCondition::setMinimalConditionMode(string minimal_condition_mode)
-{
-	this->minimal_condition_mode = minimal_condition_mode;
-}
+	~Sof();
+
+	/**
+	 * @brief Get the mac field
+	 *
+	 * @return the mac field
+	 */
+	uint16_t getSuperFrameNumber(void) const;
+
+};
+
+
+
+#endif
 

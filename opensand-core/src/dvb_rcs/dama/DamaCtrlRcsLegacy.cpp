@@ -37,7 +37,7 @@
 #include <opensand_conf/uti_debug.h>
 #define DC_DBG_PREFIX "[Legacy]"
 
-#include "lib_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "DamaCtrlRcsLegacy.h"
 #include "UnitConverter.h"
 
@@ -259,7 +259,6 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
     debug = buf.str();
 
 	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-	UTI_ERROR("BEFORE: %u\n", remaining_capacity_pktpf);
 
 	if(remaining_capacity_pktpf == 0)
 	{
@@ -373,7 +372,6 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 			}
 		}
 	}
-	UTI_ERROR("AFTER: %u\n", remaining_capacity_pktpf);
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
 }
 

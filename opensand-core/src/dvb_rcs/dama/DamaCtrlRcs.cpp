@@ -48,55 +48,6 @@
 
 using namespace std;
 
-// Note on the whole algorithm
-// ---------------------------
-//
-// Invariant 1:
-//    By construction, the following property is true
-//      for all st_id,
-//         (no CR has been received from st_id during current superframe)
-//        <=>
-//         (
-//            m_context[st_id]->own_cr == NULL pointer
-//          AND
-//            m_context[st_id]->btp_entry == NULL pointer
-//         )
-//
-// We must maintain these invariants in all method, so:
-//    for all st_id that have been examinated (CR received)
-//    particularly, the following property (Invariant 1) must hold _after_ runDama()
-//       m_context[st_id]->own_cr               reseted to  NULL pointer
-//       m_context[st_id]->timeslots_allocated  reseted to  NULL pointer
-//    please insure it when implementing runDama() (it can be a loop as in the method)
-
-// Note on the building of TBTP and on the exploitation of SACT data
-// -----------------------------------------------------------------
-//
-// Before running DAMA, we should have scanned the SACT table in order to:
-//  - cleanup it from loggued off stations,
-//  - update the context to compute allocation
-//
-// We do that work upon receiption of CR but it was mainly implemented to catch
-// duplicate CR.
-// In the case of SACT, we do the work in asingle loop upon reception.
-//
-// However there is still an unavoidable race condition in the case of SACT.
-// Logoff can be emitted while we allocate a bandwidth...
-//
-
-// Final Note on Implementation
-// ----------------------------
-//
-// The method runDama() is missing.
-// It must be implemented in inherited class.
-// Those inherited class have sufficient material to do the computation:
-//    - a complete SACT
-//    - a prefilled TBTP
-//    - a context updated with information from SACT and built TBTP
-// So normally there is only to loop on the context to do the computation
-// See Dama_crtl_yes.cpp for an example.
-//
-
 
 // Static output events and probes
 Event* DamaCtrlRcs::error_alloc = NULL;
@@ -270,6 +221,8 @@ error:
 	return false;
 }
 
+#if 0
+TODO remove is not used anymore
 /**
  * When receiving a SACT, memcpy into the internal SACT table and build TBTP
  * @param buf the pointer to SACT buff to be copied
@@ -349,6 +302,7 @@ int DamaCtrlRcs::hereIsSACT(unsigned char *buf, long len)
 error:
 	return (-1);
 }
+#endif
 
 bool DamaCtrlRcs::buildTTP(Ttp &ttp)
 {

@@ -39,7 +39,7 @@
 #include "BlockPhysicalLayer.h"
 
 #include "Plugin.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "PhyChannel.h"
 
 

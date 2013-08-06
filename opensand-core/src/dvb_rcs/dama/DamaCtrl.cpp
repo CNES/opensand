@@ -157,8 +157,8 @@ error:
 
 bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 {
-	tal_id_t tal_id = logon.mac;
-	rate_kbps_t cra_kbps = logon.rt_bandwidth;
+	tal_id_t tal_id = logon.getMac();
+	rate_kbps_t cra_kbps = logon.getRtBandwidth();
 
 	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
@@ -205,24 +205,24 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		terminal->setCurrentCategory(category->getLabel());
 		UTI_INFO("Add terminal %u in category %s\n",
 		         tal_id, category->getLabel().c_str());
-		DC_RECORD_EVENT("LOGON st%d rt = %d", logon.mac,
-		                logon.rt_bandwidth);
+		DC_RECORD_EVENT("LOGON st%d rt = %u", logon.getMac(),
+		                logon.getRtBandwidth());
 	}
 	else
 	{
-		UTI_INFO("Duplicate logon received for ST #%d\n", tal_id);
+		UTI_INFO("Duplicate logon received for ST #%u\n", tal_id);
 	}
 
 	return true;
 }
 
-bool DamaCtrl::hereIsLogoff(const LogoffRequest &logoff)
+bool DamaCtrl::hereIsLogoff(const Logoff &logoff)
 {
 	DamaTerminalList::iterator it;
 	TerminalContext *terminal;
 	TerminalCategories::const_iterator category_it;
 	TerminalCategory *category;
-	tal_id_t tal_id = logoff.mac;
+	tal_id_t tal_id = logoff.getMac();
 
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())

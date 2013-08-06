@@ -4,6 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
+ * Copyright © 2013 TAS
  * Copyright © 2013 CNES
  *
  *
@@ -26,33 +27,40 @@
  */
 
 /**
- * @file MinimalCondition.cpp
- * @brief MinimalCondition
- * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
+ * @file    Sof.cpp
+ * @brief   Represent a SOF
+ * @author  Audric Schiltknecht / Viveris Technologies
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
 
-#include "MinimalCondition.h"
+#include "Sof.h"
 
-MinimalCondition::MinimalCondition(string minimal_condition_mode)
+
+Sof::Sof(uint16_t sf_nbr):
+	OpenSandFrame<T_DVB_SOF>(sizeof(T_DVB_SOF))
 {
-	this->minimal_condition_mode = minimal_condition_mode;
+	this->setMessageType(MSG_TYPE_SOF);
+	this->setLength(sizeof(T_DVB_SOF));
+	this->frame->sf_nbr = htons(sf_nbr);
 }
 
-MinimalCondition::~MinimalCondition()
+Sof::Sof(unsigned char *frame, size_t length):
+	OpenSandFrame<T_DVB_SOF>(frame, length)
+{
+	if(this->getMessageType() != MSG_TYPE_SOF)
+	{
+		UTI_ERROR("Frame is not a sof\n");
+	}
+}
+
+Sof::~Sof()
 {
 }
 
-string MinimalCondition::getMinimalConditionMode()
+uint16_t Sof::getSuperFrameNumber(void) const
 {
-	return this->minimal_condition_mode;
+	return ntohs(this->frame->sf_nbr);
 }
 
-void MinimalCondition::setMinimalConditionMode(string minimal_condition_mode)
-{
-	this->minimal_condition_mode = minimal_condition_mode;
-}
 

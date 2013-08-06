@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2013 TAS
+ * Copyright © 2013 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -26,36 +27,53 @@
  */
 
 /**
- * @file msg_dvb_rcs.h
- * @brief This file defines message type for DVB-S/RCS related packets
- * @author ASP - IUSO, DTP (P. SIMONNET-BORRY)
-*/
+ * @file    Logoff.h
+ * @brief   Represent a Logoff
+ * @author  Julien Bernard / Viveris Technologies
+ */
 
-#ifndef MSG_DVB_RCS_H
-#define MSG_DVB_RCS_H
+#ifndef _LOGOFF_H_
+#define _LOGOFF_H_
 
-// TODO move in lib_dvb_rcs... and rename lib_dvb_rcs into OpenSandFrames ?
-enum
+
+#include "OpenSandFrames.h"
+
+
+/**
+ * @class Logoff
+ * @brief Represent a Logoff request
+ */
+class Logoff: public OpenSandFrame<T_DVB_LOGOFF>
 {
-	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
-	               //   default value of sendUp/Down function
-	msg_link_up,   ///< link up message
+ public:
+
+	/**
+	 * @brief Logoff request constructor for terminal (sender)
+	 *
+	 * @param mac           The terminal MAC id
+	 */
+	Logoff(uint16_t mac);
+
+	/**
+	 * @brief Logoff request constructor for NCC (receiver)
+	 *
+	 * @param frame   The DVB frame containing the logoff request
+	 * @ aram length  The DVB frame length
+	 */
+	Logoff(unsigned char *frame, size_t length);
+
+	~Logoff();
+
+	/**
+	 * @brief Get the mac field
+	 *
+	 * @return the mac field
+	 */
+	uint16_t getMac(void) const;
+
 };
 
 
-/// The maximum size of a DVB-RCS frame is choosen to be totally
-/// included in one sat_carrier packet
-const unsigned long MSG_DVB_RCS_SIZE_MAX = 1200;
-const unsigned long MSG_BBFRAME_SIZE_MAX = 8100;
-const unsigned long MSG_PHYFRAME_SIZE_MAX = 8;
-
-/// This message is used by dvb rcs layer to advertise the upper layer
-/// that the link is up
-typedef struct
-{
-	long group_id;  /// The id of the station
-	long tal_id;
-} T_LINK_UP;
-
 
 #endif
+

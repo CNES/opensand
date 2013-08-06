@@ -54,9 +54,10 @@ libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
 libopensand_plugin_include_HEADERS = \
 	$(libopensand_plugin_la_h) \
-	$(top_srcdir)/src/dvb_rcs/utils/lib_dvb_rcs.h \
+	$(top_srcdir)/src/dvb_rcs/utils/OpenSandFrames.h \
 	$(top_srcdir)/src/dvb_rcs/utils/CapacityRequest.h \
 	$(top_srcdir)/src/dvb_rcs/utils/Ttp.h
 # TODO remove the 3 upper included files
+# OpenSandFrames used by PhyLayPlugins; CR and TTP included in OpenSandFrames
  
 # TODO traffic_category hould be in ip once removed from Ethernet !

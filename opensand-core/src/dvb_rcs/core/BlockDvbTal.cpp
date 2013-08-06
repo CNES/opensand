@@ -42,10 +42,12 @@
 
 #include "BlockDvbTal.h"
 
+#include "DamaAgentRcsLegacy.h"
+
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Ttp.h"
-#include "DamaAgentRcsLegacy.h"
+#include "Sof.h"
 
 #include <opensand_rt/Rt.h>
 
@@ -404,17 +406,6 @@ bool BlockDvbTal::initParameters()
 		goto error;
 	}
 	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
-
-	// Get the number of the row in modcod files
-	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST, TAL_ID,
-	                                toString(this->mac_id), COLUMN_NBR,
-	                                this->m_nbRow))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_SIMU_COL, COLUMN_LIST);
-		goto error;
-	}
-	UTI_INFO("nb row = %d\n", this->m_nbRow);
 
 	return true;
 
@@ -1104,53 +1095,31 @@ error:
 
 bool BlockDvbTal::sendLogonReq()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[sendLogonReq]";
-	T_DVB_LOGON_REQ *lp_logon_req;
-	long l_size;
-
-	// create a new DVB frame
-	lp_logon_req = (T_DVB_LOGON_REQ *)calloc(sizeof(T_DVB_LOGON_REQ),
-	                                         sizeof(unsigned char));
-	if(!lp_logon_req)
-	{
-		UTI_ERROR("SF#%ld: failed to allocate memory for LOGON "
-		          "request\n", this->super_frame_counter);
-		goto error;
-	}
-
-	// build the DVB header
-	l_size = sizeof(T_DVB_LOGON_REQ);
-	lp_logon_req->hdr.msg_length = l_size;
-	lp_logon_req->hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
-	lp_logon_req->capa = 0; // TODO
-	lp_logon_req->mac = this->mac_id;
-	// TODO is it really useful, either GW load it or we move this in terminal config ???
-	lp_logon_req->nb_row = m_nbRow;
-	lp_logon_req->rt_bandwidth = m_fixedBandwidth;	/* in kbits/s */
+	LogonRequest logon_req(this->mac_id, m_fixedBandwidth);
 
 	// send the message to the lower layer
-	if(!this->sendDvbFrame((T_DVB_HDR *) lp_logon_req, m_carrierIdLogon, l_size))
+	if(!this->sendDvbFrame(logon_req.getFrame(),
+		                   m_carrierIdLogon,
+		                   logon_req.getLength()))
 	{
-		UTI_ERROR("%s Failed to send Logon Request\n", FUNCNAME);
-		goto free_logon_req;
+		UTI_ERROR("Failed to send Logon Request\n");
+		goto error;
 	}
-	UTI_DEBUG_L3("%s SF#%ld Logon Req. sent to lower layer\n", FUNCNAME,
+	UTI_DEBUG_L3("SF#%ld Logon Req. sent to lower layer\n",
 	             this->super_frame_counter);
 
 	if(!this->downward->startTimer(this->logon_timer))
 	{
 		UTI_ERROR("cannot start logon timer");
-		goto free_logon_req;
+		goto error;
 	}
 
 	// send the corresponding event
-	Output::sendEvent(event_login_sent, "%s Login sent to %d", FUNCNAME,
+	Output::sendEvent(event_login_sent, "Login sent to %d",
 	                  this->mac_id);
 
 	return true;
 
-free_logon_req:
-	delete lp_logon_req;
 error:
 	return false;
 }
@@ -1272,7 +1241,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			break;
 
 		case MSG_TYPE_SESSION_LOGON_RESP:
-			if(this->onRcvLogonResp(ip_buf, i_len) < 0)
+			if(!this->onRcvLogonResp(ip_buf, i_len))
 			{
 				goto error;
 			}
@@ -1381,16 +1350,15 @@ error:
  */
 bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[onStartOfFrame]";
-	long sfn; // the superframe number piggybacked by SOF packet
+	uint16_t sfn; // the superframe number piggybacked by SOF packet
+	Sof sof(ip_buf, i_len);
 
-	// store the superframe number;
-	sfn = ((T_DVB_SOF *) ip_buf)->frame_nr;
+	sfn = sof.getSuperFrameNumber();
 
-	UTI_DEBUG_L3("%s sof reception SFN #%ld super frame nb %ld frame "
-	             "counter %ld\n", FUNCNAME, sfn, this->super_frame_counter,
+	UTI_DEBUG_L3("SOF reception SFN #%u super frame nb %ld frame "
+	             "counter %ld\n", sfn, this->super_frame_counter,
 	             this->frame_counter);
-	UTI_DEBUG("%s superframe number: %ld", FUNCNAME, sfn);
+	UTI_DEBUG("superframe number: %u", sfn);
 
 	// if the NCC crashed, we must reinitiate a logon
 	if(sfn < this->super_frame_counter)
@@ -1399,7 +1367,7 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		          "resend a logon request\n",
 		          this->super_frame_counter);
 
-		deletePackets();
+		this->deletePackets();
 		if(!this->sendLogonReq())
 		{
 			goto error;
@@ -1418,8 +1386,10 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	this->super_frame_counter = sfn;
 
 	// Inform dama agent
-	if(!this->dama_agent->hereIsSOF(ip_buf, i_len))
+	if(!this->dama_agent->hereIsSOF(sfn))
+	{
 		goto error;
+	}
 
 	// There is a risk of unprecise timing so the following hack
 
@@ -1428,8 +1398,8 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	if(this->frame_counter == (int)this->frames_per_superframe ||
 	   this->frame_counter == -1)
 	{
-		UTI_DEBUG("%s SF#%ld frame %ld: all frames from previous SF are "
-		          "consumed or it is the first frame\n", FUNCNAME,
+		UTI_DEBUG("SF#%ld frame %ld: all frames from previous SF are "
+		          "consumed or it is the first frame\n",
 		          this->super_frame_counter, this->frame_counter);
 
 		// reset frame counter: it will be init to 1 (1st frame number)
@@ -1441,9 +1411,8 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		if(this->processOnFrameTick() < 0)
 		{
 			// exit because the bloc is unable to continue
-			UTI_ERROR("%s treatments at sf %ld, frame %ld failed\n",
-			          FUNCNAME, this->super_frame_counter,
-			          this->frame_counter);
+			UTI_ERROR("treatments at sf %ld, frame %ld failed\n",
+			          this->super_frame_counter, this->frame_counter);
 			goto error;
 		}
 	}
@@ -1548,46 +1517,38 @@ error:
 	return -1;
 }
 
-/**
- * Manage logon response: inform dama and upper layer that the link is now up and running
- * @param ip_buf the pointer to the longon response message
- * @param l_len the lenght of the message
- * @return 0 on success, -1 on failure
- */
-int BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
+
+bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[onRcvLogonResp]";
 	T_LINK_UP *link_is_up;
-	T_DVB_LOGON_RESP *lp_logon_resp;
-	std::string name = __FUNCTION__;
+	LogonResponse logon_resp(ip_buf, l_len);
 
 	// Retrieve the Logon Response frame
-	lp_logon_resp = (T_DVB_LOGON_RESP *) ip_buf;
-	if(lp_logon_resp->mac != this->mac_id)
+	if(logon_resp.getMac() != this->mac_id)
 	{
-		UTI_DEBUG("%s SF#%ld Loggon_resp for mac=%d, not %d\n", FUNCNAME,
-		          this->super_frame_counter, lp_logon_resp->mac, this->mac_id);
+		UTI_DEBUG("SF#%ld Loggon_resp for mac=%d, not %d\n",
+		          this->super_frame_counter, logon_resp.getMac(), this->mac_id);
 		goto ok;
 	}
 
 	// Remember the id
-	m_groupId = lp_logon_resp->group_id;
-	m_talId = lp_logon_resp->logon_id;
+	this->m_groupId = logon_resp.getGroupId();
+	this->m_talId = logon_resp.getLogonId();
 
 	// Inform Dama agent
-	this->dama_agent->hereIsLogonResp(ip_buf, l_len);
+	this->dama_agent->hereIsLogonResp(logon_resp);
 
 	// Send a link is up message to upper layer
 	// link_is_up
 	link_is_up = new T_LINK_UP;
 	if(link_is_up == 0)
 	{
-		UTI_ERROR("%s SF#%ld Memory allocation error on link_is_up.\n",
-		          FUNCNAME, this->super_frame_counter);
+		UTI_ERROR("SF#%ld Memory allocation error on link_is_up\n",
+		          this->super_frame_counter);
 		goto error;
 	}
-	link_is_up->group_id = m_groupId;
-	link_is_up->tal_id = m_talId;
+	link_is_up->group_id = this->m_groupId;
+	link_is_up->tal_id = this->m_talId;
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
@@ -1596,7 +1557,7 @@ int BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 		delete link_is_up;
 		goto error;
 	}
-	UTI_DEBUG_L3("%s SF#%ld Link is up msg sent to upper layer\n", FUNCNAME,
+	UTI_DEBUG_L3("SF#%ld Link is up msg sent to upper layer\n",
 	             this->super_frame_counter);
 
 	// Set the state to "running"
@@ -1611,10 +1572,10 @@ int BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 
  ok:
 	free(ip_buf);
-	return 0;
+	return true;
  error:
 	free(ip_buf);
-	return -1;
+	return false;
 }
 
 

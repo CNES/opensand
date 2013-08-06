@@ -39,7 +39,7 @@
 #include "BlockLanAdaptation.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 
 extern "C"
 {
@@ -169,7 +169,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 				// 'link is up' message advertised
 
 				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
-				UTI_DEBUG("link up message received (group = %ld, tal = %ld)\n",
+				UTI_DEBUG("link up message received (group = %u, tal = %u)\n",
 				          link_up_msg->group_id, link_up_msg->tal_id);
 
 				if(this->state == link_up)

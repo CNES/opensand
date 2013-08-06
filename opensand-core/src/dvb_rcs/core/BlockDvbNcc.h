@@ -136,6 +136,8 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// logon response sent
 	Event *event_logon_resp;
 
+	map<uint16_t, uint16_t> column_list;
+
  public:
 
 	/// Class constructor
@@ -170,6 +172,13 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 * @return  true on success, false otherwise
 	 */
 	bool initDownwardTimers();
+
+	/**
+	 * Read configuration for simulated FMT columns ID
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initColumns();
 
 	/**
 	 * @brief Initialize the transmission mode

@@ -107,14 +107,13 @@ class DamaCtrlRcs: public DamaCtrl
 	// Build allocation table
 	virtual bool buildTTP(Ttp &ttp);
 
-	// TODO remove wrappers
-	virtual int hereIsSACT(unsigned char *ip_buf, long i_len);
-
 	// Reset dama
 	virtual bool resetDama() = 0;
 
 	// Update MODCOD for each terminal
 	virtual void updateFmt();
+
+//	virtual int hereIsSACT(unsigned char *ip_buf, long i_len);
 
 };
 

@@ -43,9 +43,9 @@
 
 #include "DamaCtrlRcsLegacy.h"
 
-#include "msg_dvb_rcs.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
+#include "Sof.h"
 
 #include <opensand_output/Output.h>
 
@@ -445,7 +445,6 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 
 bool BlockDvbNcc::onInit()
 {
-	long simu_column_num;
 	T_LINK_UP *link_is_up;
 
 	// get the common parameters
@@ -514,29 +513,10 @@ bool BlockDvbNcc::onInit()
 		goto release_dama;
 	}
 
-	// get the column number for GW in MODCOD simulation files
-	if(!globalConfig.getValueInList(DVB_SIMU_COL, COLUMN_LIST,
-	                                TAL_ID, toString(GW_TAL_ID),
-                                    COLUMN_NBR, simu_column_num))
+	// initialize the column ID for FMT simulation
+	if(!this->initColumns())
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_SIMU_COL, COLUMN_LIST);
-		goto release_dama;
-	}
-	if(simu_column_num <= 0)
-	{
-		UTI_ERROR("section '%s': invalid value %ld for parameter "
-		          "'%s'\n", DVB_SIMU_COL, simu_column_num,
-		          COLUMN_NBR);
-		goto release_dama;
-	}
-
-	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->fmt_simu.addTerminal(GW_TAL_ID,
-	                               simu_column_num))
-	{
-		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
-		          GW_TAL_ID);
+		UTI_ERROR("failed to initialize the columns ID for FMT simulation\n");
 		goto release_dama;
 	}
 
@@ -777,6 +757,66 @@ bool BlockDvbNcc::initDownwardTimers()
 	// Launch the timer in order to retrieve the modcods
 	this->scenario_timer = this->downward->addTimerEvent("scenario",
 	                                                     this->dvb_scenario_refresh);
+
+	return true;
+
+error:
+	return false;
+}
+
+bool BlockDvbNcc::initColumns()
+{
+	int i = 0;
+	ConfigurationList columns;
+	ConfigurationList::iterator iter;
+
+	// Get the list of STs
+	if(!globalConfig.getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
+	                              columns))
+	{
+		UTI_ERROR("section '%s, %s': problem retrieving simulation column "
+		          "list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
+		goto error;
+	}
+
+	for(iter = columns.begin(); iter != columns.end(); iter++)
+	{
+		i++;
+		uint16_t tal_id;
+		uint16_t column_nbr;
+
+		// Get the Tal ID
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		{
+			UTI_ERROR("problem retrieving %s in simulation column "
+			          "entry %d\n", TAL_ID, i);
+			goto error;
+		}
+		// Get the column nbr
+		if(!globalConfig.getAttributeValue(iter, COLUMN_NBR, column_nbr))
+		{
+			UTI_ERROR("problem retrieving %s in simulation column "
+			          "entry %d\n", COLUMN_NBR, i);
+			goto error;
+		}
+
+		this->column_list[tal_id] = column_nbr;
+	}
+
+	if(this->column_list.find(GW_TAL_ID) == this->column_list.end())
+	{
+		UTI_ERROR("GW is not declared in column IDs\n");
+		goto error;
+	}
+
+	// declare the GW as one ST for the MODCOD scenarios
+	if(!this->fmt_simu.addTerminal(GW_TAL_ID,
+	                               this->column_list[GW_TAL_ID]))
+	{
+		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
+		          GW_TAL_ID);
+		goto error;
+	}
 
 	return true;
 
@@ -1327,7 +1367,6 @@ bool BlockDvbNcc::initOutput(void)
 
 bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 {
-	const char *FUNCNAME = DBG_PREFIX "[onRcvDVBFrame]";
 	T_DVB_HDR *dvb_hdr;
 
 	// get DVB header
@@ -1381,20 +1420,21 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		}
 		break;
 
+/* TODO remove if not used anymore
 		case MSG_TYPE_SACT:
 			UTI_DEBUG_L3("%s SACT\n", FUNCNAME);
 			this->dama_ctrl->hereIsSACT(data, len);
 			free(data);
-			break;
+			break;*/
 
 		case MSG_TYPE_SESSION_LOGON_REQ:
-			UTI_DEBUG("%s Logon Req\n", FUNCNAME);
-			onRcvLogonReq(data, len);
+			UTI_DEBUG("Logon Req\n");
+			this->onRcvLogonReq(data, len);
 			break;
 
 		case MSG_TYPE_SESSION_LOGOFF:
-			UTI_DEBUG_L3("%s Logoff Req\n", FUNCNAME);
-			onRcvLogoffReq(data, len);
+			UTI_DEBUG_L3("Logoff Req\n");
+			this->onRcvLogoffReq(data, len);
 			break;
 
 		case MSG_TYPE_TTP:
@@ -1436,36 +1476,12 @@ error:
  */
 void BlockDvbNcc::sendSOF()
 {
-	T_DVB_HDR *lp_ptr;
-	long l_size;
-	T_DVB_HDR *lp_hdr;
-	T_DVB_SOF *lp_sof;
-
-
-	// Get a dvb frame
-	lp_ptr = (T_DVB_HDR *)calloc(MSG_DVB_RCS_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
-	                             sizeof(unsigned char));
-	if(!lp_ptr)
-	{
-		UTI_ERROR("[sendSOF] Failed to allocate memory for SoF\n");
-		return;
-	}
-
-	// Set DVB header
-	l_size = sizeof(T_DVB_SOF);
-	lp_hdr = (T_DVB_HDR *) lp_ptr;
-	lp_hdr->msg_length = l_size;
-	lp_hdr->msg_type = MSG_TYPE_SOF;
-
-	// Set frame number
-	lp_sof = (T_DVB_SOF *) lp_ptr;
-	lp_sof->frame_nr = this->super_frame_counter;
+	Sof sof(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame(lp_ptr, m_carrierIdSOF, l_size))
+	if(!this->sendDvbFrame(sof.getFrame(), m_carrierIdSOF, sof.getLength()))
 	{
-		UTI_ERROR("[sendSOF] Failed to call sendDvbFrame()\n");
-		delete lp_ptr;
+		UTI_ERROR("Failed to call sendDvbFrame() for SOF\n");
 		return;
 	}
 
@@ -1475,105 +1491,66 @@ void BlockDvbNcc::sendSOF()
 
 void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 {
-	T_DVB_LOGON_REQ *lp_logon_req;
-	T_DVB_LOGON_RESP *lp_logon_resp;
-	int l_size;
+	LogonRequest logon_req(ip_buf, l_len);
+	uint16_t mac = logon_req.getMac();
 	std::list<long>::iterator list_it;
 
-	lp_logon_req = (T_DVB_LOGON_REQ *) ip_buf;
-	UTI_DEBUG("Logon request from %d\n", lp_logon_req->mac);
-
-	// get context for this mac address
-	// (could receive multiple logon request for same mac due to delay)
-
-	// Sanity check of the buffer
-	if(lp_logon_req->hdr.msg_type != MSG_TYPE_SESSION_LOGON_REQ)
-	{
-		UTI_ERROR("wrong packet data type (%d)\n",
-		          lp_logon_req->hdr.msg_type);
-		goto release;
-	}
-
-	// Sanity check of the length of the buffer
-	// TODO use size_t
-	if(lp_logon_req->hdr.msg_length > (unsigned)l_len)
-	{
-		UTI_ERROR("buffer len (%d) < msg_length (%d)\n",
-		          l_len, lp_logon_req->hdr.msg_length);
-		goto release;
-	}
+	UTI_DEBUG("Logon request from %u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
-	if(lp_logon_req->mac == this->macId)
+	if(mac == this->macId)
 	{
 		UTI_ERROR("a ST wants to register with the MAC ID of the NCC "
-		          "(%d), reject its request!\n", lp_logon_req->mac);
+		          "(%d), reject its request!\n", mac);
 		goto release;
 	}
 
 	// send the corresponding event
-	Output::sendEvent(event_logon_req, "Logon request received from %d",
-	                  lp_logon_req->mac);
+	Output::sendEvent(event_logon_req, "Logon request received from %u",
+	                  mac);
 
 	// register the new ST
-	if(this->fmt_simu.doTerminalExist(lp_logon_req->mac))
+	if(this->fmt_simu.doTerminalExist(mac))
 	{
 		// ST already registered once
-		UTI_ERROR("request to register ST with ID %d that is already "
+		UTI_ERROR("request to register ST with ID %u that is already "
 		          "registered, resend logon response\n",
-		          lp_logon_req->mac);
+		          mac);
 	}
 	else
 	{
 		// ST was not registered yet
-		UTI_INFO("register ST with MAC ID %d\n", lp_logon_req->mac);
-		if(!this->fmt_simu.addTerminal(lp_logon_req->mac,
-		                                lp_logon_req->nb_row))
+		UTI_INFO("register ST with MAC ID %u\n", mac);
+		if(this->column_list.find(mac) == this->column_list.end() ||
+		   !this->fmt_simu.addTerminal(mac, this->column_list[mac]))
 		{
-			UTI_ERROR("failed to register ST with MAC ID %d\n",
-			          lp_logon_req->mac);
+			UTI_ERROR("failed to register ST with MAC ID %u\n",
+			          mac);
+			goto release;
 		}
 	}
 
-	// Get a dvb frame
-	lp_logon_resp = (T_DVB_LOGON_RESP *)calloc(sizeof(T_DVB_LOGON_RESP),
-	                                           sizeof(unsigned char));
-	if(!lp_logon_resp)
-	{
-		UTI_ERROR("Failed to allocate memory for logon response\n");
-		goto release;
-	}
-
 	// Inform the Dama controler (for its own context)
-	if(this->dama_ctrl->hereIsLogon(*lp_logon_req))
+	if(this->dama_ctrl->hereIsLogon(logon_req))
 	{
-		// Set DVB header
-		l_size = sizeof(T_DVB_LOGON_RESP);
-		lp_logon_resp->hdr.msg_length = l_size;
-		lp_logon_resp->hdr.msg_type = MSG_TYPE_SESSION_LOGON_RESP;
-		lp_logon_resp->mac = lp_logon_req->mac;
-		lp_logon_resp->nb_row = lp_logon_req->nb_row;
-		lp_logon_resp->group_id = 0;
-		lp_logon_resp->logon_id = lp_logon_req->mac;
-		lp_logon_resp->return_vci = 0;
-		lp_logon_resp->return_vpi = 0;
-		lp_logon_resp->traffic_burst_type = 0;
+		LogonResponse logon_resp(mac, 0, mac);
 
 		// Send it
-		if(!sendDvbFrame((T_DVB_HDR *) lp_logon_resp, m_carrierIdDvbCtrl, l_size))
+		if(!sendDvbFrame(logon_resp.getFrame(),
+		                 m_carrierIdDvbCtrl,
+		                 logon_resp.getLength()))
 		{
 			UTI_ERROR("Failed send message\n");
 			goto release;
 		}
-
 
 		UTI_DEBUG_L3("SF%ld: logon response sent to lower layer\n",
 		             this->super_frame_counter);
 
 
 		// send the corresponding event
-		Output::sendEvent(event_logon_resp, "Logon response send to %d",
-		                  lp_logon_req->mac);
+		Output::sendEvent(event_logon_resp, "Logon response send to %u",
+		                  mac);
 
 	}
 
@@ -1583,39 +1560,20 @@ release:
 
 void BlockDvbNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 {
-	T_DVB_LOGOFF *lp_logoff;
 	std::list<long>::iterator list_it;
-
-	lp_logoff = (T_DVB_LOGOFF *) ip_buf;
-
-	// Packet type sanity check
-	if(lp_logoff->hdr.msg_type != MSG_TYPE_SESSION_LOGOFF)
-	{
-		UTI_ERROR("wrong dvb packet type (%d)\n",
-		          lp_logoff->hdr.msg_type);
-		goto release;
-	}
-
-	// Length sanity check
-	// TODO use size_t
-	if(lp_logoff->hdr.msg_length > (unsigned)l_len)
-	{
-		UTI_ERROR("pkt length (%d) > buffer len (%d)\n",
-		          lp_logoff->hdr.msg_length, l_len);
-		goto release;
-	}
+	Logoff logoff(ip_buf, l_len);
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->fmt_simu.delTerminal(lp_logoff->mac))
+	if(!this->fmt_simu.delTerminal(logoff.getMac()))
 	{
 		UTI_ERROR("failed to delete the ST with ID %d\n",
-		          lp_logoff->mac);
+		          logoff.getMac());
 		goto release;
 	}
 
-	this->dama_ctrl->hereIsLogoff(*lp_logoff);
+	this->dama_ctrl->hereIsLogoff(logoff);
 	UTI_DEBUG_L3("SF%ld: logoff request from %d\n",
-	             this->super_frame_counter, lp_logoff->mac);
+	             this->super_frame_counter, logoff.getMac());
 
 release:
 	free(ip_buf);
@@ -1663,8 +1621,6 @@ bool BlockDvbNcc::simulateFile()
 {
 	static bool simu_eof = false;
 	static char buffer[255] = "";
-	static T_DVB_LOGON_REQ sim_logon_req;
-	static T_DVB_LOGOFF sim_logoff;
 	enum
 	{ none, cr, logon, logoff } event_selected;
 
@@ -1719,35 +1675,31 @@ bool BlockDvbNcc::simulateFile()
 		{
 		case cr:
 		{
-			CapacityRequest *cr;
+			CapacityRequest cr(st_id);
 
-			cr = new CapacityRequest(st_id);
-
-			cr->addRequest(0, cr_type, st_request);
+			cr.addRequest(0, cr_type, st_request);
 			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
 			          "for ST %d\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			this->dama_ctrl->hereIsCR(*cr);
-			delete cr;
+			this->dama_ctrl->hereIsCR(cr);
 			break;
 		}
 		case logon:
-			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
-			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
-			sim_logon_req.mac = st_id;
-			sim_logon_req.rt_bandwidth = st_rt;
+		{
+			LogonRequest sim_logon_req(st_id, st_rt);
 			UTI_DEBUG("SF%ld: send a simulated logon for ST %d\n",
 			          this->super_frame_counter, st_id);
 			this->dama_ctrl->hereIsLogon(sim_logon_req);
-			break;
+		}
+		break;
 		case logoff:
-			sim_logoff.hdr.msg_type = MSG_TYPE_SESSION_LOGOFF;
-			sim_logoff.hdr.msg_length = sizeof(T_DVB_LOGOFF);
-			sim_logoff.mac = st_id;
+		{
+			Logoff sim_logoff(st_id);
 			UTI_DEBUG("SF%ld: send a simulated logoff for ST %d\n",
 			          this->super_frame_counter, st_id);
 			this->dama_ctrl->hereIsLogoff(sim_logoff);
-			break;
+		}
+		break;
 		default:
 			break;
 		}
@@ -1788,19 +1740,16 @@ bool BlockDvbNcc::simulateFile()
 void BlockDvbNcc::simulateRandom()
 {
 	static bool initialized = false;
-	static T_DVB_LOGON_REQ sim_logon_req;
 
 	int i;
+	uint16_t sim_tal_id = BROADCAST_TAL_ID + 1;
 
 	if(!initialized)
 	{
 		for(i = 0; i < this->simu_st; i++)
 		{
-			sim_logon_req.hdr.msg_length = sizeof(T_DVB_LOGON_REQ);
-			sim_logon_req.hdr.msg_type = MSG_TYPE_SESSION_LOGON_REQ;
 			// BROADCAST_TAL_ID is maximum tal_id
-			sim_logon_req.mac = BROADCAST_TAL_ID + i + 1;
-			sim_logon_req.rt_bandwidth = this->simu_rt;
+			LogonRequest sim_logon_req(sim_tal_id + 1, this->simu_rt);
 			this->dama_ctrl->hereIsLogon(sim_logon_req);
 		}
 		initialized = true;
@@ -1808,17 +1757,14 @@ void BlockDvbNcc::simulateRandom()
 
 	for(i = 0; i < this->simu_st; i++)
 	{
-		CapacityRequest *cr;
 		uint32_t val;
-
-		cr = new CapacityRequest(BROADCAST_TAL_ID + i + 1);
+		CapacityRequest cr(sim_tal_id + i);
 
 		val = this->simu_cr - this->simu_interval / 2 +
 		      random() % this->simu_interval;
-		cr->addRequest(0, cr_rbdc, val);
+		cr.addRequest(0, cr_rbdc, val);
 
-		this->dama_ctrl->hereIsCR(*cr);
-		delete cr;
+		this->dama_ctrl->hereIsCR(cr);
 	}
 }
 

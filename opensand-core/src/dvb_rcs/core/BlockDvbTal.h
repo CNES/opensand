@@ -44,7 +44,7 @@
 
 #include "DamaAgent.h"
 #include "UnitConverter.h"
-#include "msg_dvb_rcs.h"
+#include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 
 #include <opensand_conf/conf.h>
@@ -135,8 +135,6 @@ class BlockDvbTal: public BlockDvb
 	/// the logon ID sent by NCC (only valid in state ef state_running,
 	/// should be the same as ef mac_d)
 	long m_talId;
-	/// the column associated to the ST in the MODCOD simulation files
-	int m_nbRow;
 
 	/// the DAMA agent
 	DamaAgent *dama_agent;
@@ -320,9 +318,6 @@ class BlockDvbTal: public BlockDvb
 	bool onStartOfFrame(unsigned char *ip_buf, long l_len);
 	int processOnFrameTick();
 
-	// UL treatments
-//	int onRcvEncapPacket(int fifo_priority, NetPacket *packet);
-
 	// DVB frame from lower layer
 
 	/**
@@ -333,7 +328,14 @@ class BlockDvbTal: public BlockDvb
 	 * @return true on success, false otherwise
 	 */
 	bool onRcvDvbFrame(unsigned char *ip_buf, long l_len);
-	int onRcvLogonResp(unsigned char *ip_buf, long l_len);
+
+	/**
+	 * Manage logon response: inform dama and upper layer that the link is now up and running
+	 * @param ip_buf the pointer to the longon response message
+	 * @param l_len the lenght of the message
+	 * @return true on success, false otherwise
+	 */
+	bool onRcvLogonResp(unsigned char *ip_buf, long l_len);
 
 	// UL DVB frames emission
 	/**

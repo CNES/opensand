@@ -32,12 +32,14 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "DvbS2Std.h"
 
-#include <cassert>
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_DVB_RCS
 #include <opensand_conf/uti_debug.h>
+
+#include "DvbS2Std.h"
+
+#include <cassert>
 #include <algorithm>
 
 using std::list;

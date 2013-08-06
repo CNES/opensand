@@ -31,14 +31,14 @@
  * @author Santiago PENA <santiago.penaluque@cnes.fr>
  */
 
-
-#include "Ideal.h"
-
 #define DBG_PREFIX
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include "opensand_conf/uti_debug.h"
+
+#include "Ideal.h"
+
 #include <opensand_conf/ConfigurationFile.h>
-#include "opensand_conf/conf.h"
+#include <opensand_conf/conf.h>
 
 #include <sstream>
 
