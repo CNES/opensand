@@ -37,7 +37,7 @@
 #include "Sof.h"
 
 
-Sof::Sof(uint16_t sf_nbr):
+Sof::Sof(time_sf_t sf_nbr):
 	OpenSandFrame<T_DVB_SOF>(sizeof(T_DVB_SOF))
 {
 	this->setMessageType(MSG_TYPE_SOF);
@@ -58,7 +58,7 @@ Sof::~Sof()
 {
 }
 
-uint16_t Sof::getSuperFrameNumber(void) const
+time_sf_t Sof::getSuperFrameNumber(void) const
 {
 	return ntohs(this->frame->sf_nbr);
 }

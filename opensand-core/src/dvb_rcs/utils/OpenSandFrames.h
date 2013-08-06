@@ -184,10 +184,10 @@ typedef struct
  */
 typedef struct
 {
-	T_DVB_HDR hdr;         ///< Basic DVB Header
-//	uint8_t capa;          ///< Capability of the ST, to be set to 0
-	uint16_t mac;          ///< ST MAC address
-	uint16_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
+	T_DVB_HDR hdr;            ///< Basic DVB Header
+//	uint8_t capa;             ///< Capability of the ST, to be set to 0
+	tal_id_t mac;             ///< ST MAC address
+	rate_kbps_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
 	// TODO add max RBDC, min VBDC ?
 } __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
@@ -197,10 +197,10 @@ typedef struct
  */
 typedef struct
 {
-	T_DVB_HDR hdr;      ///< Basic DVB Header
-	uint16_t mac;       ///< Terminal MAC address
-	uint8_t group_id;   ///< Assigned Group Id
-	uint16_t logon_id;  ///< Assigned Logon Id
+	T_DVB_HDR hdr;       ///< Basic DVB Header
+	tal_id_t mac;        ///< Terminal MAC address
+	group_id_t group_id; ///< Assigned Group Id
+	tal_id_t  logon_id;  ///< Assigned Logon Id
 //	uint8_t traffic_burst_type; ///< Type of traffic, set to 0
 	// TODO used ???
 //	uint8_t return_vpi; ///< VPI used for Signalling on Return Link
@@ -214,7 +214,7 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr; ///< Basic DVB Header
-	uint16_t mac;  ///< Satellite MAC ST address
+	tal_id_t mac;  ///< Satellite MAC ST address
 } __attribute__((__packed__)) T_DVB_LOGOFF;
 
 /**
@@ -346,22 +346,22 @@ enum
 /// that the link is up
 typedef struct
 {
-	uint8_t group_id;  /// The id of the station
-	uint16_t  tal_id;
+	group_id_t group_id;  /// The id of the station
+	tal_id_t tal_id;      /// The terminal ID
 } T_LINK_UP;
 
 
 
 /**
  * @class OpenSandFrame
- * @brief The DVB header common part
+ * @brief Common part for frames
  */
 template<class T>
 class OpenSandFrame
 {
  protected:
 	/**
-	 * @brief Set a DVB header from a DVB frame coming from network
+	 * @brief Set a frame from data coming from network
 	 * 
 	 * @param frame   The DVB frame
 	 * @param length  The DVB frame length
@@ -379,7 +379,7 @@ class OpenSandFrame
 	};
 	
 	/**
-	 * @brief Create a new DVB header
+	 * @brief Create a new frame
 	 * 
 	 * @param length  The length allocated for the DVB frame
 	 */
@@ -448,18 +448,6 @@ class OpenSandFrame
 		return (T_DVB_HDR *)this->frame;
 	};
 
-	/**
-	 * @brief Build the frame
-	 *
-	 * @param frame   the DVB frame
-	 * @param length  the frame length
-	 */
-	virtual void build(unsigned char *frame, size_t &length)
-	{
-		frame = (unsigned char *)this->frame;
-		length = this->getLength();
-	};
-	
 };
 
 

@@ -39,7 +39,7 @@
 
 /* REQUEST */
 
-LogonRequest::LogonRequest(uint16_t mac, uint16_t rt_bandwidth):
+LogonRequest::LogonRequest(tal_id_t mac, rate_kbps_t rt_bandwidth):
 	OpenSandFrame<T_DVB_LOGON_REQ>(sizeof(T_DVB_LOGON_REQ))
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
@@ -61,19 +61,19 @@ LogonRequest::~LogonRequest()
 {
 }
 
-uint16_t LogonRequest::getMac(void) const
+tal_id_t LogonRequest::getMac(void) const
 {
 	return ntohs(this->frame->mac);
 }
 
-uint16_t LogonRequest::getRtBandwidth(void) const
+rate_kbps_t LogonRequest::getRtBandwidth(void) const
 {
 	return ntohs(this->frame->rt_bandwidth);
 }
 
 /* RESPONSE */
 
-LogonResponse::LogonResponse(uint16_t mac, uint8_t group_id, uint16_t logon_id):
+LogonResponse::LogonResponse(tal_id_t mac, uint8_t group_id, tal_id_t logon_id):
 	OpenSandFrame<T_DVB_LOGON_RESP>(sizeof(T_DVB_LOGON_RESP))
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_RESP);
@@ -96,7 +96,7 @@ LogonResponse::~LogonResponse()
 {
 }
 
-uint16_t LogonResponse::getMac(void) const
+tal_id_t LogonResponse::getMac(void) const
 {
 	return ntohs(this->frame->mac);
 }
@@ -106,7 +106,7 @@ uint8_t LogonResponse::getGroupId(void) const
 	return this->frame->group_id;
 }
 
-uint16_t LogonResponse::getLogonId(void) const
+tal_id_t LogonResponse::getLogonId(void) const
 {
 	return ntohs(this->frame->logon_id);
 }

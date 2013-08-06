@@ -55,7 +55,7 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
 	 * @param rt_bandwidth  The terminal fixed bandwidth for RT applications
 	 *                      (used for CRA)
 	 */
-	LogonRequest(uint16_t mac, uint16_t rt_bandwidth);
+	LogonRequest(tal_id_t mac, rate_kbps_t rt_bandwidth);
 
 	/**
 	 * @brief Logon request constructor for NCC (receiver)
@@ -72,14 +72,14 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
 	 *
 	 * @return the mac field
 	 */
-	uint16_t getMac(void) const;
+	tal_id_t getMac(void) const;
 
 	/**
 	 * @brief Get the rt_bandwidth field
 	 *
 	 * @return the RT bandwidth field
 	 */
-	uint16_t getRtBandwidth(void) const;
+	rate_kbps_t getRtBandwidth(void) const;
 
 };
 
@@ -99,7 +99,7 @@ class LogonResponse: public OpenSandFrame<T_DVB_LOGON_RESP>
 	 * @param group_id  The terminal group ID
 	 * @param logon_id  The terminal logon ID
 	 */
-	LogonResponse(uint16_t mac, uint8_t group_id, uint16_t logon_id);
+	LogonResponse(tal_id_t mac, group_id_t group_id, tal_id_t logon_id);
 
 	/**
 	 * @brief Logon response constructor for Terminal (receiver)
@@ -116,21 +116,21 @@ class LogonResponse: public OpenSandFrame<T_DVB_LOGON_RESP>
 	 *
 	 * @return the mac field
 	 */
-	uint16_t getMac(void) const;
+	tal_id_t getMac(void) const;
 
 	/**
 	 * @brief Get group_id field
 	 *
 	 * @return the group ID field
 	 */
-	uint8_t getGroupId(void) const;
+	group_id_t getGroupId(void) const;
 
 	/**
 	 * @brief Get the logon_id field
 	 *
 	 * @return the logon ID field
 	 */
-	uint16_t getLogonId(void) const;
+	tal_id_t getLogonId(void) const;
 };
 
 

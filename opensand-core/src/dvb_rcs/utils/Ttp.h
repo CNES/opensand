@@ -68,7 +68,7 @@ typedef struct
 typedef struct
 {
 	tal_id_t tal_id;   ///> The terminal ID
-	                   //   size 5 for physical ST, 5->8 for simulated ST requests
+	                   //   size 5 for physical ST, 5->max for simulated ST requests
 	int32_t offset;    ///> The offset in the superframe (start_slot for RCS)
 	// TODO we don't do one less
 	// TODO uint8_t in standard and we should build more thant one TTP per ST

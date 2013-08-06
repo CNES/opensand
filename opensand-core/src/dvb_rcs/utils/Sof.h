@@ -53,7 +53,7 @@ class Sof: public OpenSandFrame<T_DVB_SOF>
 	 *
 	 * @param mac  The superframe number
 	 */
-	Sof(uint16_t sf_nbr);
+	Sof(time_sf_t sf_nbr);
 
 	/**
 	 * @brief SOF constructor for terminal (receiver)
@@ -70,7 +70,7 @@ class Sof: public OpenSandFrame<T_DVB_SOF>
 	 *
 	 * @return the mac field
 	 */
-	uint16_t getSuperFrameNumber(void) const;
+	time_sf_t getSuperFrameNumber(void) const;
 
 };
 

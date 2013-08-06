@@ -52,7 +52,7 @@ class Logoff: public OpenSandFrame<T_DVB_LOGOFF>
 	 *
 	 * @param mac           The terminal MAC id
 	 */
-	Logoff(uint16_t mac);
+	Logoff(tal_id_t  mac);
 
 	/**
 	 * @brief Logoff request constructor for NCC (receiver)
@@ -69,7 +69,7 @@ class Logoff: public OpenSandFrame<T_DVB_LOGOFF>
 	 *
 	 * @return the mac field
 	 */
-	uint16_t getMac(void) const;
+	tal_id_t getMac(void) const;
 
 };
 

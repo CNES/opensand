@@ -37,7 +37,7 @@
 #include "Logoff.h"
 
 
-Logoff::Logoff(uint16_t mac):
+Logoff::Logoff(tal_id_t mac):
 	OpenSandFrame<T_DVB_LOGOFF>(sizeof(T_DVB_LOGOFF))
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGOFF);
@@ -58,7 +58,7 @@ Logoff::~Logoff()
 {
 }
 
-uint16_t Logoff::getMac(void) const
+tal_id_t Logoff::getMac(void) const
 {
 	return ntohs(this->frame->mac);
 }

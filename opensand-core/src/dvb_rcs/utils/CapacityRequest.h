@@ -103,8 +103,8 @@ typedef struct
  */
 typedef struct
 {
-	uint8_t tal_id; ///> The temirnal ID
-	                //   size 5 for physical ST, 5->8 for simulated ST requests
+	tal_id_t tal_id; ///> The temirnal ID
+	                 //   size 5 for physical ST, 5->max for simulated ST requests
 	uint8_t cr_number;
 	emu_cr_t cr[NBR_MAX_CR]; ///> The emulated CR field
 	                         //   when in frame, the length should be correctly set
