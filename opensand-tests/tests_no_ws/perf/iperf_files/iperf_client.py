@@ -87,7 +87,7 @@ class IperfClient():
 
     def iperf(self, address, v6=False):
         """ launch an iperf """
-        cmd = "%s %s -c %s %s -ub 1M" % \
+        cmd = "%s %s -c %s %s -ub 900k" % \
               (COMMAND, TIME, address, ('-V' if v6 else ''))
         command = shlex.split(cmd)
         iperf = subprocess.Popen(command, stdout=subprocess.PIPE,
@@ -104,7 +104,7 @@ class IperfClient():
         if bw is None or bw == '':
             return
         bandwidth = float(bw)
-        if bandwidth < 900000:
+        if bandwidth < 800000:
             self.print_error("not enough throughput: %s" % bandwidth)
             self.returncode = 1
         else:
