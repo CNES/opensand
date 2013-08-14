@@ -51,14 +51,11 @@ class DvbS2Std: public PhysicStd
 
  private:
 
-	// the BBFrame being built identified by their modcod
-	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
+	/** The real MODCOD of the ST */
+	int real_modcod;
 
-	// the BBframe being built in their created order
-	std::list<BBFrame *> incomplete_bb_frames_ordered;
-
-	// the pending BBFrame if there was not enough space in previous iteration
-	BBFrame *pending_bbframe;
+	/** The received MODCOD */
+	int received_modcod;
 
  public:
 
@@ -66,24 +63,16 @@ class DvbS2Std: public PhysicStd
 	 * Build a DVB-S2 Transmission Standard
 	 *
 	 * @param packet_handler the packet handler
-	 * @param fmt_simu       the simulated FMT information
 	 * @param frame_duration the frame duration
 	 * @param bandwidth      the bandwidth
 
 	 */
-	DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl,
-	         const FmtSimulation *const fmt_simu,
-			 time_ms_t frame_duration_ms,
-			 freq_khz_t bandwidth_khz);
+	DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
 	 */
 	~DvbS2Std();
-
-	int scheduleEncapPackets(DvbFifo *fifo,
-	                         long current_time,
-	                         std::list<DvbFrame *> *complete_dvb_frames);
 
 	/* only for NCC and Terminals */
 	int onRcvFrame(unsigned char *frame,
@@ -110,57 +99,20 @@ class DvbS2Std: public PhysicStd
  private:
 
 	/**
-	 * @brief Get the current modcod of a terminal
+	 * @brief Get the real MODCOD of the terminal
 	 *
-	 * @param tal_id    the terminal id
-	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
-	 * @return          true on succes, false otherwise
+	 * @return the real MODCOD
 	 */
-	bool retrieveCurrentModcod(long tal_id, unsigned int &modcod_id);
+	int getRealModcod();
 
 	/**
-	 * @brief Create an incomplete BB frame
+	 * @brief Get the received MODCOD of the terminal
 	 *
-	 * @param bbframe   the BBFrame that will be created
-	 * @param modcod_id the BBFrame modcod
-	 * @return          true on succes, false otherwise
+	 * @return the received MODCOD
 	 */
-	bool createIncompleteBBFrame(BBFrame **bbframe,
-	                             unsigned int modcod_id);
+	int getReceivedModcod();
 
-	/**
-	 * @brief Compute the duration of a BB frame encoded with the given MODCOD
-	 *
-	 * @param modcod_id        the modcod of the BBFrame
-	 * @param bbframe_duration OUT: the BBFrame duration retrived from modcod ID
-	 * @return                 true if the MODCOD definition is found,
- 	 *                         false otherwise
-	 */
-	bool getBBFrameDuration(unsigned int modcod_id,
-	                        time_ms_t &bbframe_duration);
 
-	/**
-	 * @brief Get the incomplete BBFrame for the current destination terminal
-	 *
-	 * @param tal_id  the terminal ID we want to send the frame
-	 * @param bbframe OUT: the BBframe for this packet
-	 * @return        true on success, false otherwise
-	 */
-	bool getIncompleteBBFrame(unsigned int tal_id, BBFrame **bbframe);
-
-	/**
-	 * @brief Add a BBframe to the list of
-	 *        complete BB frames
-	 *
-	 * @param complete_bb_frames the list of complete BB frames
-	 * @param bbframe            the BBFrame to add in the list
-	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @return                   0 on success, -1 on error and -2 if there is
-	 *                           not enough credit
-	 */
-	int addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-	                       BBFrame *bbframe,
-	                       time_ms_t &duration_credit);
 };
 
 #endif

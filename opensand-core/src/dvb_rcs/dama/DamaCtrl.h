@@ -97,8 +97,6 @@ class DamaCtrl
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   min_vbdc_pkt            VBDC minimal value (in packets/cells number).
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
-	 * @param   available_bandplan_khz  available bandplan (in MHz).
-	 * @param   roll_off                roll-off factor
 	 * @param   categories              pointer to category list.
 	 * @param   terminal_affectation    mapping of terminal Id <-> category
 	 * @param   default_category        default category for non-affected
@@ -114,12 +112,10 @@ class DamaCtrl
 	                        time_sf_t rbdc_timeout_sf,
 	                        vol_pkt_t min_vbdc_pkt,
 	                        rate_kbps_t fca_kbps,
-	                        freq_khz_t available_bandplan_khz,
-	                        double roll_off,
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
 	                        TerminalCategory *default_category,
-	                        const FmtSimulation *fmt_simu);
+	                        const FmtSimulation *const fmt_simu);
 
 	// Protocol frames processing
 
@@ -315,16 +311,6 @@ class DamaCtrl
 	 *
 	 */
 	virtual void updateFmt() = 0;
-
-	/**
-	 * @brief  Compute the bandplan.
-	 *
-	 * Compute available carrier frequency for each carriers group in each
-	 * category, according to the current number of users in these groups.
-	 *
-	 * @return  true on success, false otherwise.
-	 */
-	bool computeBandplan();
 
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;

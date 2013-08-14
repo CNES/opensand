@@ -61,7 +61,7 @@ DamaCtrl::DamaCtrl():
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	fmt_simu(NULL),
+	fmt_simu(),
 	roll_off(0.0),
 	stat_context()
 {
@@ -99,12 +99,10 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           time_sf_t rbdc_timeout_sf,
                           vol_pkt_t min_vbdc_pkt,
                           rate_kbps_t fca_kbps,
-                          freq_khz_t available_bandplan_khz,
-                          double roll_off,
                           TerminalCategories categories,
                           TerminalMapping affectation,
                           TerminalCategory *default_category,
-                          const FmtSimulation *fmt_simu)
+                          const FmtSimulation *const fmt_simu)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->frames_per_superframe = frames_per_superframe;
@@ -112,7 +110,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->min_vbdc_pkt = min_vbdc_pkt;
-	this->available_bandplan_khz = available_bandplan_khz;
 	this->fmt_simu = fmt_simu;
 
 	this->converter = new UnitConverter(packet_length_bytes,
@@ -138,15 +135,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 		return false;
 	}
 	this->default_category = default_category;
-
-	this->roll_off = roll_off;
-
-	// Compute bandplan
-	if(!this->computeBandplan())
-	{
-		UTI_ERROR("Cannot compute band plan\n");
-		return false;
-	}
 
 	this->is_parent_init = true;
 
@@ -354,57 +342,6 @@ bool DamaCtrl::runDama()
 		return false;
 	}
 	return true;
-}
-
-bool DamaCtrl::computeBandplan()
-{
-	TerminalCategories::const_iterator category_it;
-
-	double weighted_sum_ksymps = 0.0;
-
-	// compute weighted sum
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
-	{
-		TerminalCategory *category = (*category_it).second;
-
-		// Compute weighted sum in ks/s since available bandplan is in kHz.
-		weighted_sum_ksymps += category->getWeightedSum();
-	}
-
-	UTI_DEBUG_L3("Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
-
-	if(equals(weighted_sum_ksymps, 0.0))
-	{
-		UTI_ERROR("Weighted ratio sum is 0\n");
-		goto error;
-	}
-
-	// compute carrier number per category
-	for(category_it = this->categories.begin();
-	    category_it !=this->categories.end();
-		category_it++)
-	{
-		unsigned int carriers_number = 0;
-		TerminalCategory *category = (*category_it).second;
-		unsigned int ratio = category->getRatio();
-
-		carriers_number = ceil(
-		    (ratio / weighted_sum_ksymps) *
-		    (this->available_bandplan_khz / (1 + this->roll_off)));
-		UTI_DEBUG("Number of carriers for category %s: %d\n",
-		          category->getLabel().c_str(), carriers_number);
-
-		// set eh carrier numbers and capacity in carrier groups
-		category->updateCarriersGroups(carriers_number,
-		                               this->frame_duration_ms *
-		                               this->frames_per_superframe);
-	}
-
-	return true;
-error:
-	return false;
 }
 
 void DamaCtrl::setRecordFile(FILE *event_stream, FILE *stat_stream)

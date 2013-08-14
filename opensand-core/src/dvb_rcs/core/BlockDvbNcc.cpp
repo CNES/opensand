@@ -46,6 +46,8 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "ForwardSchedulingS2.h"
+#include "UplinkSchedulingRcs.h"
 
 #include <opensand_output/Output.h>
 
@@ -64,6 +66,8 @@
 #include <ios>
 
 
+// TODO band in kHz in configuration, see bugs
+
 /**
  * Constructor
  */
@@ -71,16 +75,18 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	BlockDvb(name),
 	NccPepInterface(),
 	dama_ctrl(NULL),
+	scheduling(NULL),
 	m_carrierIdDvbCtrl(-1),
 	m_carrierIdSOF(-1),
 	m_carrierIdData(-1),
-	super_frame_counter(-1),
-	frame_counter(0),
 	frame_timer(-1),
 	macId(GW_TAL_ID),
 	complete_dvb_frames(),
 	scenario_timer(-1),
-	fmt_groups(),
+	categories(),
+	terminal_affectation(),
+	fwd_fmt_groups(),
+	ret_fmt_groups(),
 	pep_cmd_apply_timer(-1),
 	pepAllocDelay(-1),
 	event_file(NULL),
@@ -96,8 +102,6 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 {
 	this->incoming_size = 0;
 	this->probe_incoming_throughput = NULL;
-	Output::registerProbe<int>("Physical incoming throughput",
-	                           "Kbits/s", true, SAMPLE_AVG);
 }
 
 
@@ -106,39 +110,52 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
  */
 BlockDvbNcc::~BlockDvbNcc()
 {
-	if(this->dama_ctrl != NULL)
+	if(this->dama_ctrl)
 		delete this->dama_ctrl;
-	if(this->emissionStd != NULL)
-		delete this->emissionStd;
-	if(this->receptionStd != NULL)
+	if(this->receptionStd)
 		delete this->receptionStd;
+	if(this->scheduling)
+		delete this->scheduling;
 
 	this->complete_dvb_frames.clear();
 
-	if(this->m_bbframe != NULL)
-		delete this->m_bbframe;
-
-	if(this->event_file != NULL)
+	if(this->event_file)
 	{
 		fflush(this->event_file);
 		fclose(this->event_file);
 	}
-	if(this->stat_file != NULL)
+	if(this->stat_file)
 	{
 		fflush(this->stat_file);
 		fclose(this->stat_file);
 	}
-	if(this->simu_file != NULL)
+	if(this->simu_file)
 	{
 		fclose(this->simu_file);
 	}
 	this->data_dvb_fifo.flush();
 	// delete FMT groups here because they may be present in many carriers
-	for(fmt_groups_t::iterator it = this->fmt_groups.begin();
-	    it != this->fmt_groups.end(); ++it)
+	// TODO do something to avoid groups here
+	for(fmt_groups_t::iterator it = this->fwd_fmt_groups.begin();
+	    it != this->fwd_fmt_groups.end(); ++it)
 	{
 		delete (*it).second;
 	}
+	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
+	    it != this->ret_fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
+
+	for(TerminalCategories::iterator it = this->categories.begin();
+	    it != this->categories.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->categories.clear();
+
+	this->terminal_affectation.clear();
+
 }
 
 
@@ -153,7 +170,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
-			UTI_DEBUG("SF#%ld: encapsulation burst received "
+			UTI_DEBUG("SF#%u: encapsulation burst received "
 			          "(%d packet(s))\n", this->super_frame_counter,
 			          burst->length());
 
@@ -161,18 +178,17 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			for(pkt_it = burst->begin(); pkt_it != burst->end();
 				pkt_it++)
 			{
-				UTI_DEBUG("SF#%ld: store one encapsulation "
+				UTI_DEBUG("SF#%u: store one encapsulation "
 				          "packet\n", this->super_frame_counter);
 
-				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
-				                                        &this->data_dvb_fifo,
-				                                        this->getCurrentTime(),
-				                                        0) != 0)
+				if(!this->onRcvEncapPacket(*pkt_it,
+				                           &this->data_dvb_fifo,
+				                           0))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
 					// call to onDownwardEvent => return
-					UTI_ERROR("SF#%ld: unable to store received "
+					UTI_ERROR("SF#%u: unable to store received "
 					          "encapsulation packet "
 					          "(see previous errors)\n",
 					          this->super_frame_counter);
@@ -181,7 +197,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					return false;
 				}
 
-				UTI_DEBUG("SF#%ld: encapsulation packet is "
+				UTI_DEBUG("SF#%u: encapsulation packet is "
 				          "successfully stored\n",
 				          this->super_frame_counter);
 				this->incoming_size += (*pkt_it)->getTotalLength();
@@ -196,6 +212,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			UTI_DEBUG_L3("timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
+				uint32_t remaining_alloc_sym = 0;
+
 				// increment counter of frames per superframe
 				this->frame_counter++;
 
@@ -220,14 +238,20 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				}
 
 				// schedule encapsulation packets
-				if(this->emissionStd->scheduleEncapPackets(&this->data_dvb_fifo,
-				                                           this->getCurrentTime(),
-				                                           &this->complete_dvb_frames) != 0)
+				// TODO loop on categories (see todo in initMode)
+				if(!this->scheduling->schedule(this->super_frame_counter,
+				                              this->frame_counter,
+				                              this->getCurrentTime(),
+				                              &this->complete_dvb_frames,
+				                              remaining_alloc_sym))
 				{
 					UTI_ERROR("failed to schedule encapsulation "
-							  "packets stored in DVB FIFO\n");
+					          "packets stored in DVB FIFO\n");
 					return false;
 				}
+				UTI_DEBUG("SF#%u: frame %u: %u symbols remaining after scheduling\n",
+				          this->super_frame_counter, this->frame_counter,
+				          remaining_alloc_sym);
 
 				if(!this->sendBursts(&this->complete_dvb_frames,
 				                     this->m_carrierIdData))
@@ -245,14 +269,13 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 				if(!this->fmt_simu.goNextScenarioStep())
 				{
-					UTI_ERROR("SF#%ld: failed to update MODCOD IDs\n",
-							  this->super_frame_counter);
+					UTI_ERROR("SF#%u: failed to update MODCOD IDs\n",
+					          this->super_frame_counter);
 				}
 				else
 				{
-					UTI_DEBUG_L3("SF#%ld: MODCOD IDs "
-								 "successfully updated\n",
-								 this->super_frame_counter);
+					UTI_DEBUG_L3("SF#%u: MODCOD IDs successfully updated\n",
+					             this->super_frame_counter);
 				}
 				// for each terminal in DamaCtrl update FMT
 				this->dama_ctrl->updateFmt();
@@ -520,57 +543,41 @@ bool BlockDvbNcc::onInit()
 		goto release_dama;
 	}
 
-	// allocate memory for the BB frame if DVB-S2 standard is used
-	if(this->emissionStd->getType() == "DVB-S2" ||
-	   this->receptionStd->getType() == "DVB-S2")
-	{
-		this->m_bbframe = new std::map<int, T_DVB_BBFRAME *>;
-		if(this->m_bbframe == NULL)
-		{
-			UTI_ERROR("SF#%ld: failed to allocate memory for the BB "
-			          "frame\n", this->super_frame_counter);
-			goto release_dama;
-		}
-	}
-
 	// create and send a "link is up" message to upper layer
 	link_is_up = new T_LINK_UP;
 	if(link_is_up == NULL)
 	{
-		UTI_ERROR("SF#%ld: failed to allocate memory for link_is_up "
+		UTI_ERROR("SF#%u: failed to allocate memory for link_is_up "
 		          "message\n", this->super_frame_counter);
-		goto release_frames;
+		goto release_dama;
 	}
 	link_is_up->group_id = 0;
 	link_is_up->tal_id = GW_TAL_ID;
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
-		UTI_ERROR("SF#%ld: failed to send link up message to upper layer",
+		UTI_ERROR("SF#%u: failed to send link up message to upper layer",
 		          this->super_frame_counter);
 		delete link_is_up;
-		goto release_frames;
+		goto release_dama;
 	}
-	UTI_DEBUG_L3("SF#%ld Link is up msg sent to upper layer\n",
+	UTI_DEBUG_L3("SF#%u Link is up msg sent to upper layer\n",
 	             this->super_frame_counter);
 
 	// listen for connections from external PEP components
 	if(!this->listenForPepConnections())
 	{
 		UTI_ERROR("failed to listen for PEP connections\n");
-		goto release_frames;
+		goto release_dama;
 	}
 	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
 	// everything went fine
 	return true;
 
-release_frames:
-	delete this->m_bbframe;
 release_dama:
 	delete this->dama_ctrl;
 error_mode:
-	delete this->emissionStd;
 	delete this->receptionStd;
 error:
 	return false;
@@ -832,44 +839,71 @@ error:
 
 bool BlockDvbNcc::initMode()
 {
-	freq_mhz_t bandwidth_mhz;
-	double roll_off;
+	// TODO remove that once data fifo will be a map
+	fifos_t fifos;
+	fifos[this->data_dvb_fifo.getCarrierId()] = &this->data_dvb_fifo;
 
-	// Get the value of the bandwidth
-	if(!globalConfig.getValue(DOWN_FORWARD_BAND, BANDWIDTH,
-	                          bandwidth_mhz))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWN_FORWARD_BAND, BANDWIDTH);
-		goto error;
-	}
-
-	// Get the value of the roll off
-	if(!globalConfig.getValue(DOWN_FORWARD_BAND, ROLL_OFF,
-	                          roll_off))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWN_FORWARD_BAND, ROLL_OFF);
-		goto error;
-	}
-
-	// initialize the emission and reception standards depending
-	// on the satellite type
-	// TODO new Scheduling !
+	// initialize the emission and reception standards and scheduling
+	// depending on the satellite type
 	if(this->satellite_type == TRANSPARENT)
 	{
-		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl,
-		                                 &this->fmt_simu,
-		                                 this->frame_duration_ms,
-		                                 bandwidth_mhz * 1000);
+		if(!this->initBand(DOWN_FORWARD_BAND,
+		                   this->categories,
+		                   this->terminal_affectation,
+		                   &this->default_category,
+		                   this->fwd_fmt_groups))
+		{
+			return false;
+		}
+
+		if(this->categories.size() != 1)
+		{
+			// TODO at the moment we use only one category
+			// To implement more than one category we will need to create one (a group of)
+			// fifo(s) per category and schedule per (group of) fifo(s).
+			// The packets would the pushed in the correct (group of) fifo(s) according to
+			// the category the destination terminal ID belongs
+			// this is why we have categories, terminal_affectation and default_category
+			// as attributes
+			UTI_ERROR("cannot support more than one category for down/forward band\n");
+			return false;
+		}
+
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
+		this->scheduling = new ForwardSchedulingS2(this->down_forward_pkt_hdl,
+		                                           fifos,
+		                                           this->frames_per_superframe,
+		                                           &this->fmt_simu,
+		                                           this->categories.begin()->second);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
-		this->emissionStd = new DvbRcsStd(this->up_return_pkt_hdl);
-		// no need to set fmt_simu, frame duration and bandwidth for reception
-		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl,
-		                                  NULL, 0, 0);
+		TerminalCategory *cat;
+
+		if(!this->initBand(UP_RETURN_BAND,
+		                   this->categories,
+		                   this->terminal_affectation,
+		                   &this->default_category,
+		                   this->fwd_fmt_groups))
+		{
+			return false;
+		}
+
+		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		// here we need the category to which the GW belongs
+		if(this->terminal_affectation.find(GW_TAL_ID) != this->terminal_affectation.end())
+		{
+			cat = this->terminal_affectation[GW_TAL_ID];
+		}
+		else
+		{
+			cat = this->default_category;
+		}
+		this->scheduling = new UplinkSchedulingRcs(this->up_return_pkt_hdl,
+		                                           fifos,
+		                                           this->frames_per_superframe,
+		                                           &this->fmt_simu,
+		                                           cat);
 	}
 	else
 	{
@@ -877,23 +911,23 @@ bool BlockDvbNcc::initMode()
 		goto error;
 
 	}
-	if(this->emissionStd == NULL)
-	{
-		UTI_ERROR("failed to create the emission standard\n");
-		goto release_standards;
-	}
-	if(this->receptionStd == NULL)
+	if(!this->receptionStd)
 	{
 		UTI_ERROR("failed to create the reception standard\n");
+		goto release_standards;
+	}
+	if(!this->scheduling)
+	{
+		UTI_ERROR("failed to create the scheduling\n");
 		goto release_standards;
 	}
 
 	return true;
 
 release_standards:
-	if(this->emissionStd != NULL)
-	  delete this->emissionStd;
-	if(this->receptionStd != NULL)
+	if(this->scheduling)
+		delete this->scheduling;
+	if(this->receptionStd)
 	  delete this->receptionStd;
 error:
 	return false;
@@ -943,11 +977,12 @@ error:
 
 bool BlockDvbNcc::initFiles()
 {
+	// TODO check if init cases are ok
+
 	// we need up/return MODCOD simulation in these cases
 	if((this->satellite_type == TRANSPARENT &&
 	    this->receptionStd->getType() == "DVB-RCS") ||
-	   (this->satellite_type == REGENERATIVE &&
-	    this->emissionStd->getType() == "DVB-RCS"))
+	   (this->satellite_type == REGENERATIVE)) // DVB-RCS emission in regenerative mode
 	{
 		if(!this->initReturnModcodFiles())
 		{
@@ -957,8 +992,7 @@ bool BlockDvbNcc::initFiles()
 	}
 
 	// we need forward MODCOD emulation in this cases
-	if((this->satellite_type == TRANSPARENT &&
-	    this->emissionStd->getType() == "DVB-S2"))
+	if(this->satellite_type == TRANSPARENT)
 	{
 		if(!this->initForwardModcodFiles())
 		{
@@ -980,6 +1014,9 @@ error:
 	return false;
 }
 
+
+// TODO this function is NCC part but other functions are related to GW,
+//      we could maybe create two classes inside the block to keep them separated
 bool BlockDvbNcc::initDama()
 {
 	string up_return_encap_proto;
@@ -990,17 +1027,10 @@ bool BlockDvbNcc::initDama()
 	rate_kbps_t fca_kbps;
 	string dama_algo;
 
-	double roll_off;
-	freq_mhz_t bandwidth_mhz = 0;
-	TerminalCategories categories;
+	TerminalCategories dc_categories;
 	TerminalCategories::const_iterator cat_iter;
-	TerminalMapping terminal_affectation;
-	ConfigurationList conf_list;
-	ConfigurationList aff_list;
-	unsigned int carrier_id = 0;
-	int i;
-	string default_category_name;
-	TerminalCategory *default_category;
+	TerminalMapping dc_terminal_affectation;
+	TerminalCategory *dc_default_category;
 
 	// Retrieving the cra decrease parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
@@ -1042,229 +1072,23 @@ bool BlockDvbNcc::initDama()
 	}
 	UTI_INFO("min_vbdc = %d packets\n", min_vbdc_pkt);
 
-	// Get the value of the bandwidth for return link
-	if(!globalConfig.getValue(UP_RETURN_BAND, BANDWIDTH,
-	                          bandwidth_mhz))
+	if(this->satellite_type == TRANSPARENT)
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          UP_RETURN_BAND, BANDWIDTH);
-		goto error;
+		if(!this->initBand(UP_RETURN_BAND,
+		                   dc_categories,
+		                   dc_terminal_affectation,
+		                   &dc_default_category,
+		                   this->ret_fmt_groups))
+		{
+			return false;
+		}
 	}
-
-	// Get the value of the roll off
-	if(!globalConfig.getValue(UP_RETURN_BAND, ROLL_OFF,
-	                          roll_off))
+	else
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          UP_RETURN_BAND, ROLL_OFF);
-		goto error;
-	}
-
-	// get the FMT groups
-	if(!globalConfig.getListItems(UP_RETURN_BAND,
-	                              FMT_GROUP_LIST,
-	                              conf_list))
-	{
-		UTI_ERROR("Section %s, %s missing\n",
-		          UP_RETURN_BAND, FMT_GROUP_LIST);
-		goto error;
-	}
-
-	// create group list
-	for(ConfigurationList::iterator iter = conf_list.begin();
-	    iter != conf_list.end(); ++iter)
-	{
-		unsigned int group_id;
-		string fmt_id;
-		FmtGroup *group;
-
-		// Get group id name
-		if(!globalConfig.getAttributeValue(iter, GROUP_ID, group_id))
-		{
-			UTI_ERROR("Problem retrieving %s in FMT groups\n",
-			          GROUP_ID);
-			goto error;
-		}
-
-		// Get FMT IDs
-		if(!globalConfig.getAttributeValue(iter, FMT_ID, fmt_id))
-		{
-			UTI_ERROR("Problem retrieving %s in FMT groups\n", FMT_ID);
-			goto error;
-		}
-
-		if(this->fmt_groups.find(group_id) != this->fmt_groups.end())
-		{
-			UTI_ERROR("Duplicated FMT group %u\n", group_id);
-			goto error;
-		}
-		group = new FmtGroup(group_id, fmt_id);
-		this->fmt_groups[group_id] = group;
-	}
-
-	conf_list.clear();
-	// get the carriers distribution
-	if(!globalConfig.getListItems(UP_RETURN_BAND, CARRIERS_DISTRI_LIST, conf_list))
-	{
-		UTI_ERROR("Section %s, %s missing\n",
-		          UP_RETURN_BAND,
-		          CARRIERS_DISTRI_LIST);
-		goto error;
-	}
-
-	i = 0;
-	carrier_id = 0;
-	// create terminal categories according to channel distribution
-	for(ConfigurationList::iterator iter = conf_list.begin();
-	    iter != conf_list.end(); ++iter)
-	{
-		string name;
-		double ratio;
-		rate_symps_t symbol_rate_symps;
-		unsigned int group_id;
-		string access_type;
-		TerminalCategory *category;
-		fmt_groups_t::const_iterator group_it;
-
-		i++;
-
-		// Get carriers' name
-		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
-		{
-			UTI_ERROR("Problem retrieving %s in carriers distribution table "
-			          "entry %u\n", CATEGORY, i);
-			goto error;
-		}
-
-		// Get carriers' ratio
-		if(!globalConfig.getAttributeValue(iter, RATIO, ratio))
-		{
-			UTI_ERROR("Problem retrieving %s in carriers distribution table "
-			          "entry %u\n", RATIO, i);
-			goto error;
-		}
-
-		// Get carriers' symbol ratge
-		if(!globalConfig.getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
-		{
-			UTI_ERROR("Problem retrieving %s in carriers distribution table "
-			          "entry %u\n", SYMBOL_RATE, i);
-			goto error;
-		}
-
-		// Get carriers' FMT id
-		if(!globalConfig.getAttributeValue(iter, FMT_GROUP, group_id))
-		{
-			UTI_ERROR("Problem retrieving %s in carriers distribution table "
-			          "entry %u\n", FMT_GROUP, i);
-			goto error;
-		}
-
-		// Get carriers' access type
-		if(!globalConfig.getAttributeValue(iter, ACCESS_TYPE, access_type))
-		{
-			UTI_ERROR("Problem retrieving %s in carriers distribution table "
-			          "entry %u\n", ACCESS_TYPE, i);
-			goto error;
-		}
-
-		UTI_INFO("New carriers: category=%s, Rs=%G, FMT group=%u, "
-		         "ratio=%G, access type=%s\n", name.c_str(),
-		         symbol_rate_symps, group_id, ratio, access_type.c_str());
-		if(access_type != "DAMA")
-		{
-			UTI_ERROR("%s access type is not supported\n", access_type.c_str());
-			goto error;
-		}
-
-		group_it = this->fmt_groups.find(group_id);
-		if(group_it == this->fmt_groups.end())
-		{
-			UTI_ERROR("No entry for FMT group with ID %u\n", group_id);
-			goto error;
-		}
-
-		// create the category if it does not exist
-		cat_iter = categories.find(name);
-		category = (*cat_iter).second;
-		if(cat_iter == categories.end())
-		{
-			category = new TerminalCategory(name);
-			categories[name] = category;
-		}
-		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
-		                           symbol_rate_symps);
-		carrier_id++;
-	}
-
-	// get the default terminal category
-	if(!globalConfig.getValue(UP_RETURN_BAND, DEFAULT_AFF,
-	                          default_category_name))
-	{
-		UTI_ERROR("Missing %s parameter\n", DEFAULT_AFF);
-		goto error;
-	}
-
-	// Look for associated category
-	default_category = NULL;
-	cat_iter = categories.find(default_category_name);
-	if(cat_iter != categories.end())
-	{
-		default_category = (*cat_iter).second;
-	}
-	if(default_category == NULL)
-	{
-		UTI_ERROR("Could not find categorie %s\n",
-		          default_category_name.c_str());
-		goto error;
-	}
-	UTI_INFO("ST default category: %s\n",
-	         default_category->getLabel().c_str());
-
-	// get the terminal affectations
-	if(!globalConfig.getListItems(UP_RETURN_BAND, TAL_AFF_LIST, aff_list))
-	{
-		UTI_INFO("Missing %s parameter\n", TAL_AFF_LIST);
-		goto error;
-	}
-
-	i = 0;
-	for(ConfigurationList::iterator iter = aff_list.begin();
-	    iter != aff_list.end(); ++iter)
-	{
-		// To prevent compilator to issue warning about non initialised variable
-		tal_id_t tal_id = -1;
-		string name;
-		TerminalCategory *category;
-
-		i++;
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			UTI_ERROR("Problem retrieving %s in terminal affection table"
-			          "entry %u\n", TAL_ID, i);
-			goto error;
-		}
-		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
-		{
-			UTI_ERROR("Problem retrieving %s in terminal affection table"
-			          "entry %u\n", CATEGORY, i);
-			goto error;
-		}
-
-		// Look for the category
-		category = NULL;
-		cat_iter = categories.find(name);
-		if(cat_iter != categories.end())
-		{
-			category = (*cat_iter).second;
-		}
-		if(category == NULL)
-		{
-			UTI_ERROR("Could not find category %s", name.c_str());
-			goto error;
-		}
-
-		terminal_affectation[tal_id] = category;
+		// band already initialized in initMode
+		dc_categories = this->categories;
+		dc_terminal_affectation = this->terminal_affectation;
+		dc_default_category = this->default_category;
 	}
 
 	// dama algorithm
@@ -1306,11 +1130,9 @@ bool BlockDvbNcc::initDama()
 	                                rbdc_timeout_sf,
 	                                min_vbdc_pkt,
 	                                fca_kbps,
-	                                bandwidth_mhz * 1000,
-	                                roll_off,
-	                                categories,
-	                                terminal_affectation,
-	                                default_category,
+	                                dc_categories,
+	                                dc_terminal_affectation,
+	                                dc_default_category,
 	                                &this->fmt_simu))
 	{
 		UTI_ERROR("Dama Controller Initialization failed.\n");
@@ -1470,7 +1292,7 @@ drop:
 	return true;
 
 error:
-	UTI_ERROR("Treatments failed at SF# %ld\n",
+	UTI_ERROR("Treatments failed at SF#%u\n",
 	          this->super_frame_counter);
 	return false;
 }
@@ -1490,7 +1312,7 @@ void BlockDvbNcc::sendSOF()
 		return;
 	}
 
-	UTI_DEBUG_L3("SF%ld: SOF sent\n", this->super_frame_counter);
+	UTI_DEBUG_L3("SF#%u: SOF sent\n", this->super_frame_counter);
 }
 
 
@@ -1549,7 +1371,7 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 			goto release;
 		}
 
-		UTI_DEBUG_L3("SF%ld: logon response sent to lower layer\n",
+		UTI_DEBUG_L3("SF#%u: logon response sent to lower layer\n",
 		             this->super_frame_counter);
 
 
@@ -1577,7 +1399,7 @@ void BlockDvbNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
 	}
 
 	this->dama_ctrl->hereIsLogoff(logoff);
-	UTI_DEBUG_L3("SF%ld: logoff request from %d\n",
+	UTI_DEBUG_L3("SF#%u: logoff request from %d\n",
 	             this->super_frame_counter, logoff.getMac());
 
 release:
@@ -1619,7 +1441,7 @@ void BlockDvbNcc::sendTTP()
 		return;
 	}
 
-	UTI_DEBUG_L3("SF%ld: TTP sent\n", this->super_frame_counter);
+	UTI_DEBUG_L3("SF#%u: TTP sent\n", this->super_frame_counter);
 }
 
 bool BlockDvbNcc::simulateFile()
@@ -1630,10 +1452,10 @@ bool BlockDvbNcc::simulateFile()
 	{ none, cr, logon, logoff } event_selected;
 
 	int resul;
-	long sf_nr;
-	int st_id;
-	long st_request;
-	long st_rt;
+	time_sf_t sf_nr;
+	tal_id_t st_id;
+	uint32_t st_request;
+	rate_kbps_t st_rt;
 	int cr_type;
 
 	if(simu_eof)
@@ -1646,17 +1468,17 @@ bool BlockDvbNcc::simulateFile()
 	while(sf_nr <= this->super_frame_counter)
 	{
 		if(4 ==
-		   sscanf(buffer, "SF%ld CR st%d cr=%ld type=%d", &sf_nr, &st_id,
+		   sscanf(buffer, "SF#%hu CR st%hu cr=%u type=%d", &sf_nr, &st_id,
 		   &st_request, &cr_type))
 		{
 			event_selected = cr;
 		}
 		else if(3 ==
-		        sscanf(buffer, "SF%ld LOGON st%d rt=%ld", &sf_nr, &st_id, &st_rt))
+		        sscanf(buffer, "SF#%hu LOGON st%hu rt=%hu", &sf_nr, &st_id, &st_rt))
 		{
 			event_selected = logon;
 		}
-		else if(2 == sscanf(buffer, "SF%ld LOGOFF st%d", &sf_nr, &st_id))
+		else if(2 == sscanf(buffer, "SF#%hu LOGOFF st%hu", &sf_nr, &st_id))
 		{
 			event_selected = logoff;
 		}
@@ -1684,8 +1506,8 @@ bool BlockDvbNcc::simulateFile()
 			CapacityRequest cr(st_id);
 
 			cr.addRequest(0, cr_type, st_request);
-			UTI_DEBUG("SF%ld: send a simulated CR of type %u with value = %ld "
-			          "for ST %d\n", this->super_frame_counter,
+			UTI_DEBUG("SF#%u: send a simulated CR of type %u with value = %u "
+			          "for ST %hu\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
 			if(!this->dama_ctrl->hereIsCR(cr))
 			{
@@ -1698,7 +1520,7 @@ bool BlockDvbNcc::simulateFile()
 			LogonRequest sim_logon_req(st_id, st_rt);
 			bool ret = false;
 
-			UTI_DEBUG("SF%ld: send a simulated logon for ST %d\n",
+			UTI_DEBUG("SF#%u: send a simulated logon for ST %d\n",
 			          this->super_frame_counter, st_id);
 			// check for column in FMT simulation list
 			if(this->column_list.find(st_id) == this->column_list.end())
@@ -1726,7 +1548,7 @@ bool BlockDvbNcc::simulateFile()
 		case logoff:
 		{
 			Logoff sim_logoff(st_id);
-			UTI_DEBUG("SF%ld: send a simulated logoff for ST %d\n",
+			UTI_DEBUG("SF#%u: send a simulated logoff for ST %d\n",
 			          this->super_frame_counter, st_id);
 			if(!this->dama_ctrl->hereIsLogoff(sim_logoff))
 			{
@@ -1754,7 +1576,7 @@ bool BlockDvbNcc::simulateFile()
 			}
 			UTI_DEBUG_L3("fscanf resul=%d: %s", resul, buffer);
 			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
-			UTI_DEBUG_L3("frame %ld\n", this->super_frame_counter);
+			UTI_DEBUG_L3("frame %u\n", this->super_frame_counter);
 			if(resul == -1)
 			{
 				simu_eof = true;
@@ -1833,9 +1655,9 @@ void BlockDvbNcc::updateStatsOnFrame()
 	// TODO add this function or a reset function for stats in DAMA
 //	this->dama_ctrl->updateStatisticsOnFrame();
 	// update common DAMA statistics
-/*	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration_ms);
+	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration_ms);
 	this->incoming_size = 0;
-	this->probe_gw_rdbc_req_num->put(dama_stat.rbdc_requests_number);
+/*	this->probe_gw_rdbc_req_num->put(dama_stat.rbdc_requests_number);
 	this->probe_gw_rdbc_req_capacity->put(dama_stat.rbdc_requests_sum_kbps);
 	this->probe_gw_uplink_fair_share->put(dama_stat.fair_share);
 	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
@@ -1873,6 +1695,13 @@ void BlockDvbNcc::updateStatsOnFrame()
 	//TODO + stats per ST
 	// as long as the frame is changing, send all probes and event
 	// sync environment plane
-	Output::sendProbes();
 	// TODO stat on real frame duration*/
+	Output::sendProbes();
 }
+
+
+
+
+
+
+

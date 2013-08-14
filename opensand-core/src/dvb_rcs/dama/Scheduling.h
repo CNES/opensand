@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2013 TAS
+ * Copyright © 2013 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,14 +28,14 @@
 
 
 /**
- * @file UplinkScheduling.h
+ * @file Scheduling.h
  * @brief Scheduling for MAC FIFOs
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  *
  */
 
-#ifndef _UPLINK_SCHEDULING_H_
-#define _UPLINK_SCHEDULING_H_
+#ifndef _SCHEDULING_H_
+#define _SCHEDULING_H_
 
 #include "EncapPlugin.h"
 #include "DvbFifo.h"
@@ -43,30 +44,31 @@
 using std::list;
 
 /**
- * Uplink Scheduling is done each frame (not each superframe),
+ * Scheduling is done each frame (not each superframe),
  * so allocation should be done in slot per frame (packet per frame)
  */
 
 /**
- * @class UplinkScheduling
- * @brief Scheduling functions for MAC FIFOs at uplink
+ * @class Scheduling
+ * @brief Scheduling functions for MAC FIFOs
  */
-class UplinkScheduling
+class Scheduling
 {
   public:
 
-	UplinkScheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
-	                 const map<unsigned int, DvbFifo *> &fifos):
+	Scheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
+	           const fifos_t &fifos):
 		packet_handler(packet_handler),
 		dvb_fifos(fifos)
 	{};
 
 	/**
-	 * @brief Schedule uplink packets emission.
+	 * @brief Schedule packets emission.
 	 *
 	 * @param complete_dvb_frames   created DVB frames.
 	 * @param current_superframe_sf the current superframe (for logging)
 	 * @param current_frame         the current frame
+	 * @param current_time          the current time
 	 * @param remaining_allocation  the remaining allocation after scheduling
 	 *                              on the current superframe
 	 *
@@ -74,15 +76,16 @@ class UplinkScheduling
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      const time_frame_t current_frame,
+	                      clock_t current_time,
 	                      list<DvbFrame *> *complete_dvb_frames,
-	                      uint16_t &remaining_allocation) = 0;
+	                      uint32_t &remaining_allocation) = 0;
 
   protected:
 
     /** The packet representation */
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
-    const map<unsigned int, DvbFifo *> dvb_fifos;
+    const fifos_t dvb_fifos;
 
 };
 

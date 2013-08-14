@@ -112,7 +112,7 @@ class DamaAgent
 	                time_sf_t obr_period_sf,
 	                bool cr_output_only,
 	                const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                const map<unsigned int, DvbFifo *> &dvb_fifos);
+	                const fifos_t &dvb_fifos);
 
 	/**
 	 * @brief Initialize the instatiated Dama Agent
@@ -171,7 +171,7 @@ class DamaAgent
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool uplinkSchedule(list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -195,7 +195,7 @@ protected:
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 
 	/** The MAC FIFOs */
-	map<unsigned int, DvbFifo *> dvb_fifos;
+	fifos_t dvb_fifos;
 
 	/** Terminal ID of the ST */
 	tal_id_t tal_id;

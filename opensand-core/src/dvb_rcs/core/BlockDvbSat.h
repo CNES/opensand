@@ -94,7 +94,18 @@ class BlockDvbSat: public BlockDvb
 	// TODO remove?
 	int m_useErrorGenerator;
 
+	/// The terminal categories for forward band
+	TerminalCategories categories;
 
+	/// The terminal affectation for forward band
+	TerminalMapping terminal_affectation;
+
+	/// The default terminal category for forward band
+	TerminalCategory *default_category;
+
+	// TODO remove FMT groups from attributes
+	/// FMT groups
+	fmt_groups_t fmt_groups;
 
  public:
 
@@ -179,6 +190,25 @@ class BlockDvbSat: public BlockDvb
 	bool onSendFrames(DvbFifo *fifo, long current_time);
 
 	/**
+	 * Forward a frame received by a transparent satellite to the
+	 * given MAC FIFO (ef BlocDVBRcsSat::onSendFrames will extract it later)
+	 *
+	 * @param data_fifo     the MAC fifo to put the DVB frame in
+	 * @param frame         the DVB frame to forward
+	 * @param length        the length (in bytes) of the DVB frame to forward
+	 * @param current_time  the current time
+	 * @param fifo_delay    the minimum delay the DVB frame must stay in
+	 *                      the MAC FIFO (used on SAT to emulate delay)
+	 * @return              true on success, false otherwise
+	 */
+	virtual bool onForwardFrame(DvbFifo *data_fifo,
+	                            unsigned char *frame,
+	                            unsigned int length,
+	                            long current_time,
+	                            int fifo_delay);
+
+
+	/**
 	 * Get next random delay provided the two preceeding members
 	 */
 	inline int getNextDelay()
@@ -187,7 +217,7 @@ class BlockDvbSat: public BlockDvb
 	}
 
 	/// update the probes
-	void getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo);
+	void getProbe(NetBurst burst, DvbFifo fifo, spot_stats_t stat_fifo);
 };
 
 #endif

@@ -38,7 +38,7 @@
 
 #include "UnitConverter.h"
 #include "CircularBuffer.h"
-#include "UplinkSchedulingRcs.h"
+#include "ReturnSchedulingRcs.h"
 #include "OpenSandFrames.h"
 #include "NetBurst.h"
 #include "DvbRcsFrame.h"
@@ -57,7 +57,7 @@ class DamaAgentRcsLegacy: public DamaAgentRcs
 	bool hereIsSOF(time_sf_t superframe_number_sf);
 	bool hereIsTTP(Ttp &ttp);
 	bool processOnFrameTick();
-	bool uplinkSchedule(list<DvbFrame *> *complete_dvb_frames);
+	bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
 	bool buildCR(cr_type_t cr_type,
 	             CapacityRequest &capacity_request,
 	             bool &emtpy);
@@ -81,7 +81,7 @@ class DamaAgentRcsLegacy: public DamaAgentRcs
 	CircularBuffer *rbdc_request_buffer;
 
 	/** Uplink Scheduling functions */
-	UplinkSchedulingRcs *up_schedule;
+	ReturnSchedulingRcs *ret_schedule;
 
  private:
 

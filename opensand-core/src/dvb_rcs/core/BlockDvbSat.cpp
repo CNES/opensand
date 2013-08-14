@@ -61,7 +61,10 @@ BlockDvbSat::BlockDvbSat(const string &name):
 	BlockDvb(name),
 	spots(),
 	frame_timer(-1),
-	scenario_timer(-1)
+	scenario_timer(-1),
+	categories(),
+	terminal_affectation(),
+	fmt_groups()
 {
 }
 
@@ -77,15 +80,27 @@ BlockDvbSat::~BlockDvbSat()
 		delete i_spot->second;
 	}
 
-	// release the emission and reception DVB standards
-	if(this->emissionStd != NULL)
-	{
-		delete this->emissionStd;
-	}
+	// release the reception DVB standards
 	if(this->receptionStd != NULL)
 	{
 		delete this->receptionStd;
 	}
+	// delete FMT groups here because they may be present in many carriers
+	for(fmt_groups_t::iterator it = this->fmt_groups.begin();
+	    it != this->fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
+
+	for(TerminalCategories::iterator it = this->categories.begin();
+	    it != this->categories.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->categories.clear();
+
+	this->terminal_affectation.clear();
+
 }
 
 
@@ -157,10 +172,9 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 					          spot_id);
 					break;
 				}
-				if(this->emissionStd->onRcvEncapPacket(*pkt_it,
-				   &this->spots[spot_id]->m_dataOutStFifo,
-				   this->getCurrentTime(),
-				   this->m_delay) != 0)
+				if(!this->onRcvEncapPacket(*pkt_it,
+					                       &this->spots[spot_id]->data_out_st_fifo,
+					                       this->m_delay))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -182,6 +196,19 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 		case evt_timer:
 			if(*event == this->frame_timer)
 			{
+				// increment counter of frames per superframe
+				this->frame_counter++;
+
+				// if we reached the end of a superframe and the
+				// beginning of a new one, send SOF and run allocation
+				// algorithms (DAMA)
+				if(this->frame_counter == this->frames_per_superframe)
+				{
+					// increase the superframe number and reset
+					// counter of frames per superframe
+					this->super_frame_counter++;
+					this->frame_counter = 0;
+				}
 				UTI_DEBUG_L3("frame timer expired, send DVB frames\n");
 
 				// send frame for every satellite spot
@@ -194,11 +221,11 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 
 					UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
 					             i_spot->first);
-					this->sendSigFrames(&current_spot->m_logonFifo);
+					this->sendSigFrames(&current_spot->logon_fifo);
 
 					UTI_DEBUG_L3("send control frames on satellite spot %u\n",
 					             i_spot->first);
-					this->sendSigFrames(&current_spot->m_ctrlFifo);
+					this->sendSigFrames(&current_spot->control_fifo);
 
 					if(this->satellite_type == TRANSPARENT)
 					{
@@ -210,12 +237,12 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 
 						UTI_DEBUG_L3("send data frames on satellite spot %u\n",
 						             i_spot->first);
-						if(!this->onSendFrames(&current_spot->m_dataOutGwFifo,
+						if(!this->onSendFrames(&current_spot->data_out_gw_fifo,
 						                       this->getCurrentTime()))
 						{
 							status = false;
 						}
-						if(!this->onSendFrames(&current_spot->m_dataOutStFifo,
+						if(!this->onSendFrames(&current_spot->data_out_st_fifo,
 						                       this->getCurrentTime()))
 						{
 							status = false;
@@ -227,10 +254,9 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 					}
 					else // REGENERATIVE
 					{
-						if(this->emissionStd->scheduleEncapPackets(
-						   &current_spot->m_dataOutStFifo,
-						   this->getCurrentTime(),
-						   &current_spot->complete_dvb_frames) != 0)
+						if(!current_spot->schedule(this->super_frame_counter,
+						                           this->frame_counter,
+						                           this->getCurrentTime()))
 						{
 							UTI_ERROR("failed to schedule packets "
 							          "for satellite spot %u "
@@ -240,7 +266,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 						}
 
 						if(!this->sendBursts(&current_spot->complete_dvb_frames,
-						                     current_spot->m_dataOutStFifo.getCarrierId()))
+						                     current_spot->data_out_st_fifo.getCarrierId()))
 						{
 							UTI_ERROR("failed to build and send "
 							          "DVB/BB frames "
@@ -256,8 +282,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 			{
 				UTI_DEBUG_L3("MODCOD scenario timer expired\n");
 
-				if(this->satellite_type == REGENERATIVE &&
-				   this->emissionStd->getType() == "DVB-S2")
+				if(this->satellite_type == REGENERATIVE)
 				{
 					UTI_DEBUG_L3("update modcod table\n");
 					if(!this->fmt_simu.goNextScenarioStep())
@@ -285,7 +310,6 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 bool BlockDvbSat::initMode()
 {
 	int val;
-	freq_khz_t bandwidth_mhz;
 
 	// Delay to apply to the medium
 	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, val))
@@ -297,64 +321,41 @@ bool BlockDvbSat::initMode()
 	this->m_delay = val;
 	UTI_INFO("m_delay = %d", this->m_delay);
 
-	// Get the value of the bandwidth
-	if(!globalConfig.getValue(DOWN_FORWARD_BAND, BANDWIDTH,
-	                          bandwidth_mhz))
-	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWN_FORWARD_BAND, BANDWIDTH);
-		goto error;
-	}
-
-
 	if(this->satellite_type == REGENERATIVE)
 	{
-		// create the emission standard
-		this->emissionStd = new DvbS2Std(this->down_forward_pkt_hdl,
-		                                 &this->fmt_simu,
-		                                 this->frame_duration_ms,
-		                                 bandwidth_mhz * 1000);
-		if(this->emissionStd == NULL)
+		if(!this->initBand(DOWN_FORWARD_BAND,
+		                   this->categories,
+		                   this->terminal_affectation,
+		                   &this->default_category,
+		                   this->fmt_groups))
 		{
-			UTI_ERROR("failed to create the emission standard\n");
-			goto error;
+			return false;
 		}
 
-		// create the reception standard
-		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
-		if(this->receptionStd == NULL)
+		if(this->categories.size() != 1)
 		{
-			UTI_ERROR("failed to create the reception standard\n");
-			goto release_emission;
+			// TODO see NCC for that, we may handle categories in
+			//      spots here.
+			UTI_ERROR("cannot support more than one category for down/forward band\n");
+			goto error;;
 		}
+
+		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
+		// scheduling will be initialized in spots
 	}
 	else
 	{
-		// create the emission standard
-		// the packet_handler will depend on the case so we cannot get it there
-		this->emissionStd = new DvbS2Std(NULL,
-		                                 &this->fmt_simu,
-		                                 this->frame_duration_ms,
-		                                 bandwidth_mhz * 1000);
-		if(this->emissionStd == NULL)
-		{
-			UTI_ERROR("failed to create the emission standard\n");
-			goto error;
-		}
-
 		// create the reception standard
 		this->receptionStd = new DvbRcsStd();
 		if(this->receptionStd == NULL)
 		{
 			UTI_ERROR("failed to create the reception standard\n");
-			goto release_emission;
+			goto error;
 		}
 	}
 
 	return true;
 
-release_emission:
-	delete this->emissionStd;
 error:
 	return false;
 }
@@ -558,7 +559,6 @@ bool BlockDvbSat::initSpots()
 		long data_out_gw_id;
 		long data_out_st_id;
 		long log_id;
-		int ret;
 		SatSpot *new_spot;
 
 		i++;
@@ -618,11 +618,20 @@ bool BlockDvbSat::initSpots()
 		UTI_INFO("satellite spot %u: logon = %ld, control = %ld, "
 		         "data out ST = %ld, data out GW = %ld\n",
 		         spot_id, log_id, ctrl_id, data_out_st_id, data_out_gw_id);
-		ret = new_spot->init(spot_id, log_id, ctrl_id,
-		                     data_in_id, data_out_st_id, data_out_gw_id);
-		if(ret != 0)
+		if(!new_spot->initFifos(spot_id, log_id, ctrl_id, data_in_id,
+		                        data_out_st_id, data_out_gw_id))
 		{
 			UTI_ERROR("failed to init the new satellite spot\n");
+			delete new_spot;
+			goto error;
+		}
+		if(this->satellite_type == REGENERATIVE &&
+		   !new_spot->initScheduling(this->down_forward_pkt_hdl,
+		                             &this->fmt_simu,
+		                             this->categories.begin()->second,
+		                             this->frames_per_superframe))
+		{
+			UTI_ERROR("failed to init the spot scheduling\n");
 			delete new_spot;
 			goto error;
 		}
@@ -830,23 +839,22 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			{
 				SatSpot *current_spot = spot->second;
 
-				if(current_spot->m_dataInId == carrier_id)
+				if(current_spot->data_in_id == carrier_id)
 				{
 					// satellite spot found, forward DVB frame on the same spot
 					// TODO: forward according to a table
-					UTI_DEBUG("DVB burst comes from spot %ld (carrier %ld) => "
-					          "forward it to spot %ld (carrier %d)\n",
+					UTI_DEBUG("DVB burst comes from spot %u (carrier %u) => "
+					          "forward it to spot %u (carrier %u)\n",
 					          current_spot->getSpotId(),
-					          current_spot->m_dataInId,
+					          current_spot->data_in_id,
 					          current_spot->getSpotId(),
-					          current_spot->m_dataOutGwFifo.getCarrierId());
+					          current_spot->data_out_gw_fifo.getCarrierId());
 
-					if(!this->receptionStd->onForwardFrame(
-					          &current_spot->m_dataOutGwFifo,
-					          frame,
-					          length,
-					          this->getCurrentTime(),
-					          this->m_delay))
+					if(!this->onForwardFrame(&current_spot->data_out_gw_fifo,
+					                         frame,
+					                         length,
+					                         this->getCurrentTime(),
+					                         this->m_delay))
 					{
 						status = false;
 					}
@@ -910,19 +918,19 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		{
 			SatSpot *current_spot = spot->second;
 
-			if(current_spot->m_dataInId == carrier_id)
+			if(current_spot->data_in_id == carrier_id)
 			{
 				// satellite spot found, forward BBframe on the same spot
 				// TODO: forward according to a table
-				UTI_DEBUG("BBFRAME burst comes from spot %ld (carrier %ld) => "
-				          "forward it to spot %ld (carrier %d)\n",
+				UTI_DEBUG("BBFRAME burst comes from spot %u (carrier %u) => "
+				          "forward it to spot %u (carrier %u)\n",
 				          current_spot->getSpotId(),
-				          current_spot->m_dataInId,
+				          current_spot->data_in_id,
 				          current_spot->getSpotId(),
-				          current_spot->m_dataOutStFifo.getCarrierId());
+				          current_spot->data_out_st_fifo.getCarrierId());
 
-				if(!this->emissionStd->onForwardFrame(
-				          &current_spot->m_dataOutStFifo,
+				if(!this->onForwardFrame(
+				          &current_spot->data_out_st_fifo,
 				          frame,
 				          length,
 				          this->getCurrentTime(),
@@ -966,7 +974,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			memcpy(frame_copy, frame, length);
 
 			// forward the frame copy
-			if(!this->forwardDvbFrame(&spot->second->m_ctrlFifo,
+			if(!this->forwardDvbFrame(&spot->second->control_fifo,
 			                          frame_copy, length))
 			{
 				status = false;
@@ -998,7 +1006,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			memcpy(frame_copy, frame, length);
 
 			// forward the frame copy
-			if(this->forwardDvbFrame(&spot->second->m_logonFifo,
+			if(this->forwardDvbFrame(&spot->second->logon_fifo,
 			                         frame_copy, length) == false)
 			{
 				status = false;
@@ -1106,10 +1114,10 @@ release_fifo_elem:
  *
  * @param burst        The burst to send
  * @param fifo         The fifo where was the packets
- * @param m_stat_fifo  TODO
+ * @param stat_fifo    The fifo statistiques
  */
-// TODO we may add probes with that ??
-void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fifo)
+// TODO we should add probes here !!
+void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, spot_stats_t stat_fifo)
 {
 	const char *FUNCNAME = "[BlockDvbSat::getProbe]";
 	clock_t this_tick;          // stats
@@ -1118,14 +1126,14 @@ void BlockDvbSat::getProbe(NetBurst burst, DvbFifo fifo, sat_StatBloc m_stat_fif
 #define TICKS_INTERVAL  (1*sysconf(_SC_CLK_TCK))
 #define NOTICE_INTERVAL (60*sysconf(_SC_CLK_TCK))
 
-	m_stat_fifo.sum_data += burst.bytes();
+	stat_fifo.sum_data += burst.bytes();
 	this_tick = times(NULL);
-	if(this_tick - m_stat_fifo.previous_tick > NOTICE_INTERVAL)
+	if(this_tick - stat_fifo.previous_tick > NOTICE_INTERVAL)
 	{
-		rate = (m_stat_fifo.sum_data * TICKS_INTERVAL)
-		       / (1024 * (this_tick - m_stat_fifo.previous_tick));
-		m_stat_fifo.sum_data = 0;
-		m_stat_fifo.previous_tick = this_tick;
+		rate = (stat_fifo.sum_data * TICKS_INTERVAL)
+		       / (1024 * (this_tick - stat_fifo.previous_tick));
+		stat_fifo.sum_data = 0;
+		stat_fifo.previous_tick = this_tick;
 		UTI_NOTICE("%s carrier#%d  %Lf Kb/sec.\n", FUNCNAME,
 		           fifo.getCarrierId(), rate);
 	}
@@ -1208,3 +1216,50 @@ error:
 	delete elem;
 	return false;
 }
+
+bool BlockDvbSat::onForwardFrame(DvbFifo *data_fifo,
+                                 unsigned char *frame,
+                                 unsigned int length,
+                                 long current_time,
+                                 int fifo_delay)
+{
+	MacFifoElement *elem;
+
+	// sanity check
+	if(frame == NULL || length <= 0)
+	{
+		UTI_ERROR("invalid DVB burst to forward to carrier ID %d\n",
+		          data_fifo->getCarrierId());
+		goto error;
+	}
+
+	// get a room with timestamp in fifo
+	elem = new MacFifoElement(frame, length,
+	                          current_time, current_time + fifo_delay);
+	if(elem == NULL)
+	{
+		UTI_ERROR("cannot allocate FIFO element, drop packet\n");
+		goto error;
+	}
+
+	// fill the delayed queue
+	if(!data_fifo->push(elem))
+	{
+		UTI_ERROR("fifo full, drop the DVB frame\n");
+		goto release_elem;
+	}
+
+	UTI_DEBUG("DVB/BB frame stored in FIFO for carrier ID %d "
+	          "(tick_in = %ld, tick_out = %ld)\n", data_fifo->getCarrierId(),
+	          elem->getTickIn(), elem->getTickOut());
+
+	return true;
+
+release_elem:
+	delete elem;
+error:
+	free(frame);
+	return false;
+}
+
+

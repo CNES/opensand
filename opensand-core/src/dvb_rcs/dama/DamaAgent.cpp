@@ -71,7 +71,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            time_sf_t obr_period_sf,
                            bool cr_output_only,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const map<unsigned int, DvbFifo *> &dvb_fifos)
+                           const fifos_t &dvb_fifos)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->cra_kbps = cra_kbps;
@@ -85,7 +85,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		cr_type_t cr_type = (*it).second->getCrType();

@@ -58,8 +58,10 @@
 #define BLOCk_DVB_NCC_H
 
 #include "BlockDvb.h"
+
 #include "DamaCtrlRcs.h"
 #include "NccPepInterface.h"
+#include "Scheduling.h"
 
 
 class BlockDvbNcc: public BlockDvb, NccPepInterface
@@ -70,15 +72,13 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
 
+	/// The uplink of forward scheduling depending on satellite
+	Scheduling *scheduling;
+
 	/// carrier ids
 	long m_carrierIdDvbCtrl;
 	long m_carrierIdSOF;
 	long m_carrierIdData;
-
-	/// the current super frame number
-	long super_frame_counter;
-	/// the current frame number inside the current super frame
-	unsigned int frame_counter;
 
 	/// frame timer, used to awake the block every frame period
 	event_id_t frame_timer;
@@ -102,8 +102,21 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// a fifo to keep the received packet from encap bloc
 	DvbFifo data_dvb_fifo;
 
-	/// FMT groups
-	fmt_groups_t fmt_groups;
+	/// The terminal categories for forward band
+	TerminalCategories categories;
+
+	/// The terminal affectation for forward band
+	TerminalMapping terminal_affectation;
+
+	/// The default terminal category for forward band
+	TerminalCategory *default_category;
+
+	// TODO remove FMT groups from attributes
+	/// FMT groups for down/forward
+	fmt_groups_t fwd_fmt_groups;
+
+	/// FMT groups for up/return
+	fmt_groups_t ret_fmt_groups;
 
 	/**** NGN network / Policy Enforcement Point (PEP) ****/
 
@@ -150,8 +163,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
 
-	/// a map of bbframes to manage different bbframes
-	std::map<int, T_DVB_BBFRAME *> *m_bbframe;
 	/// number of the next BBFrame
 	int nb_sequencing;
 
@@ -230,8 +241,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	// NCC functions
 	void sendTTP();
 	void sendSOF();
-
-	bool getBBFRAMEDuration(unsigned int modcod_id, float *duration);
 
 	// event simulation
 

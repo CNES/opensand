@@ -61,9 +61,10 @@ BlockDvb::BlockDvb(const string &name):
 	satellite_type(),
 	frame_duration_ms(),
 	frames_per_superframe(-1),
+	super_frame_counter(0),
+	frame_counter(0),
 	fmt_simu(),
 	dvb_scenario_refresh(-1),
-	emissionStd(NULL),
 	receptionStd(NULL)
 {
 	// TODO we need a mutex here because some parameters are used in upward and downward
@@ -186,7 +187,7 @@ bool BlockDvb::initCommon()
 		          GLOBAL_SECTION, DVB_F_DURATION);
 		goto error;
 	}
-	UTI_INFO("frameDuration set to %d\n", this->frame_duration_ms);
+	UTI_INFO("frame duration set to %d\n", this->frame_duration_ms);
 
 	// number of frame per superframe
 	if(!globalConfig.getValue(DVB_MAC_SECTION, DVB_FPF,
@@ -432,6 +433,45 @@ bool BlockDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
 }
 
 
+bool BlockDvb::onRcvEncapPacket(NetPacket *packet,
+                                DvbFifo *fifo,
+                                int fifo_delay)
+{
+
+	MacFifoElement *elem;
+	long current_time = this->getCurrentTime();
+
+	// create a new satellite cell to store the packet
+	elem = new MacFifoElement(packet, current_time, current_time + fifo_delay);
+	if(elem == NULL)
+	{
+		UTI_ERROR("cannot allocate FIFO element, drop packet\n");
+		goto error;
+	}
+
+	// append the new satellite cell in the ST FIFO of the appropriate
+	// satellite spot
+	if(!fifo->push(elem))
+	{
+		UTI_ERROR("FIFO is full: drop packet\n");
+		goto release_elem;
+	}
+
+	UTI_DEBUG("encapsulation packet %s stored in FIFO "
+	          "(tick_in = %ld, tick_out = %ld)\n",
+	          packet->getName().c_str(),
+	          elem->getTickIn(), elem->getTickOut());
+
+	return true;
+
+release_elem:
+	delete elem;
+error:
+	delete packet;
+	return false;
+}
+
+
 bool BlockDvb::SendNewMsgToUpperLayer(NetBurst *burst)
 {
 	// send the message to the upper layer
@@ -448,3 +488,313 @@ release_burst:
 	delete burst;
 	return false;
 }
+
+bool BlockDvb::initBand(const char *band,
+                        TerminalCategories &categories,
+                        TerminalMapping &terminal_affectation,
+                        TerminalCategory **default_category,
+                        fmt_groups_t &fmt_groups)
+{
+	freq_khz_t bandwidth_khz;
+	double roll_off;
+	freq_mhz_t bandwidth_mhz = 0;
+	ConfigurationList conf_list;
+	ConfigurationList aff_list;
+	TerminalCategories::iterator cat_iter;
+	unsigned int carrier_id = 0;
+	int i;
+	string default_category_name;
+
+	// Get the value of the bandwidth for return link
+	if(!globalConfig.getValue(band, BANDWIDTH,
+	                          bandwidth_mhz))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          band, BANDWIDTH);
+		goto error;
+	}
+	bandwidth_khz = bandwidth_mhz * 1000;
+
+	// Get the value of the roll off
+	if(!globalConfig.getValue(band, ROLL_OFF,
+	                          roll_off))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          band, ROLL_OFF);
+		goto error;
+	}
+
+	// get the FMT groups
+	if(!globalConfig.getListItems(band,
+	                              FMT_GROUP_LIST,
+	                              conf_list))
+	{
+		UTI_ERROR("Section %s, %s missing\n",
+		          band, FMT_GROUP_LIST);
+		goto error;
+	}
+
+	// create group list
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		unsigned int group_id;
+		string fmt_id;
+		FmtGroup *group;
+
+		// Get group id name
+		if(!globalConfig.getAttributeValue(iter, GROUP_ID, group_id))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in FMT groups\n",
+			          band, GROUP_ID);
+			goto error;
+		}
+
+		// Get FMT IDs
+		if(!globalConfig.getAttributeValue(iter, FMT_ID, fmt_id))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in FMT groups\n",
+			          band, FMT_ID);
+			goto error;
+		}
+
+		if(fmt_groups.find(group_id) != fmt_groups.end())
+		{
+			UTI_ERROR("Section %s, duplicated FMT group %u\n", band, group_id);
+			goto error;
+		}
+		group = new FmtGroup(group_id, fmt_id);
+		fmt_groups[group_id] = group;
+	}
+
+	conf_list.clear();
+	// get the carriers distribution
+	if(!globalConfig.getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
+	{
+		UTI_ERROR("Section %s, %s missing\n", band, CARRIERS_DISTRI_LIST);
+		goto error;
+	}
+
+	i = 0;
+	carrier_id = 0;
+	// create terminal categories according to channel distribution
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		string name;
+		double ratio;
+		rate_symps_t symbol_rate_symps;
+		unsigned int group_id;
+		string access_type;
+		TerminalCategory *category;
+		fmt_groups_t::const_iterator group_it;
+
+		i++;
+
+		// Get carriers' name
+		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in carriers distribution table "
+			          "entry %u\n", band, CATEGORY, i);
+			goto error;
+		}
+
+		// Get carriers' ratio
+		if(!globalConfig.getAttributeValue(iter, RATIO, ratio))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in carriers distribution table "
+			          "entry %u\n", band, RATIO, i);
+			goto error;
+		}
+
+		// Get carriers' symbol ratge
+		if(!globalConfig.getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in carriers distribution table "
+			          "entry %u\n", band, SYMBOL_RATE, i);
+			goto error;
+		}
+
+		// Get carriers' FMT id
+		if(!globalConfig.getAttributeValue(iter, FMT_GROUP, group_id))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in carriers distribution table "
+			          "entry %u\n", band, FMT_GROUP, i);
+			goto error;
+		}
+
+		// Get carriers' access type
+		if(!globalConfig.getAttributeValue(iter, ACCESS_TYPE, access_type))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in carriers distribution table "
+			          "entry %u\n", band, ACCESS_TYPE, i);
+			goto error;
+		}
+
+		UTI_INFO("%s: new carriers: category=%s, Rs=%G, FMT group=%u, "
+		         "ratio=%G, access type=%s\n", band, name.c_str(),
+		         symbol_rate_symps, group_id, ratio, access_type.c_str());
+		if((!strcmp(band, UP_RETURN_BAND) && access_type != "DAMA") ||
+		   (!strcmp(band, DOWN_FORWARD_BAND) && access_type != "TDM"))
+		{
+			UTI_ERROR("%s access type is not supported\n", access_type.c_str());
+			goto error;
+		}
+
+		group_it = fmt_groups.find(group_id);
+		if(group_it == fmt_groups.end())
+		{
+			UTI_ERROR("Section %s, nentry for FMT group with ID %u\n", band, group_id);
+			goto error;
+		}
+
+		// create the category if it does not exist
+		cat_iter = categories.find(name);
+		category = (*cat_iter).second;
+		if(cat_iter == categories.end())
+		{
+			category = new TerminalCategory(name);
+			categories[name] = category;
+		}
+		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
+		                           symbol_rate_symps);
+		carrier_id++;
+	}
+
+	// get the default terminal category
+	if(!globalConfig.getValue(band, DEFAULT_AFF,
+	                          default_category_name))
+	{
+		UTI_ERROR("Section %s, missing %s parameter\n", band, DEFAULT_AFF);
+		goto error;
+	}
+
+	// Look for associated category
+	*default_category = NULL;
+	cat_iter = categories.find(default_category_name);
+	if(cat_iter != categories.end())
+	{
+		*default_category = (*cat_iter).second;
+	}
+	if(*default_category == NULL)
+	{
+		UTI_ERROR("Section %s, could not find categorie %s\n",
+		          band, default_category_name.c_str());
+		goto error;
+	}
+	UTI_INFO("ST default category: %s in %s\n",
+	         (*default_category)->getLabel().c_str(), band);
+
+	// get the terminal affectations
+	if(!globalConfig.getListItems(band, TAL_AFF_LIST, aff_list))
+	{
+		UTI_INFO("Section %s, missing %s parameter\n", band, TAL_AFF_LIST);
+		goto error;
+	}
+
+	i = 0;
+	for(ConfigurationList::iterator iter = aff_list.begin();
+	    iter != aff_list.end(); ++iter)
+	{
+		// To prevent compilator to issue warning about non initialised variable
+		tal_id_t tal_id = -1;
+		string name;
+		TerminalCategory *category;
+
+		i++;
+		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in terminal affection table"
+			          "entry %u\n", band, TAL_ID, i);
+			goto error;
+		}
+		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		{
+			UTI_ERROR("Section %s, problem retrieving %s in terminal affection table"
+			          "entry %u\n", band, CATEGORY, i);
+			goto error;
+		}
+
+		// Look for the category
+		category = NULL;
+		cat_iter = categories.find(name);
+		if(cat_iter != categories.end())
+		{
+			category = (*cat_iter).second;
+		}
+		if(category == NULL)
+		{
+			UTI_ERROR("Section %s, could not find category %s", band, name.c_str());
+			goto error;
+		}
+
+		terminal_affectation[tal_id] = category;
+	}
+
+	// Compute bandplan
+	if(!this->computeBandplan(bandwidth_khz, roll_off, categories))
+	{
+		UTI_ERROR("Cannot compute band plan for %s\n", band);
+		goto error;
+	}
+
+	return true;
+
+error:
+	return false;
+}
+
+bool BlockDvb::computeBandplan(freq_khz_t available_bandplan_khz,
+                               double roll_off,
+                               TerminalCategories &categories)
+{
+	TerminalCategories::const_iterator category_it;
+
+	double weighted_sum_ksymps = 0.0;
+
+	// compute weighted sum
+	for(category_it = categories.begin();
+	    category_it != categories.end();
+	    ++category_it)
+	{
+		TerminalCategory *category = (*category_it).second;
+
+		// Compute weighted sum in ks/s since available bandplan is in kHz.
+		weighted_sum_ksymps += category->getWeightedSum();
+	}
+
+	UTI_DEBUG_L3("Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
+
+	if(equals(weighted_sum_ksymps, 0.0))
+	{
+		UTI_ERROR("Weighted ratio sum is 0\n");
+		goto error;
+	}
+
+	// compute carrier number per category
+	for(category_it = categories.begin();
+	    category_it != categories.end();
+		category_it++)
+	{
+		unsigned int carriers_number = 0;
+		TerminalCategory *category = (*category_it).second;
+		unsigned int ratio = category->getRatio();
+
+		carriers_number = ceil(
+		    (ratio / weighted_sum_ksymps) *
+		    (available_bandplan_khz / (1 + roll_off)));
+		UTI_DEBUG("Number of carriers for category %s: %d\n",
+		          category->getLabel().c_str(), carriers_number);
+
+		// set the carrier numbers and capacity in carrier groups
+		category->updateCarriersGroups(carriers_number,
+		                               this->frame_duration_ms *
+		                               this->frames_per_superframe);
+	}
+
+	return true;
+error:
+	return false;
+}
+
+

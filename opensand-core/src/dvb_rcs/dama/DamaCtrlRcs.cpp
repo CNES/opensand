@@ -438,6 +438,8 @@ void DamaCtrlRcs::updateFmt()
 		}
 		category = (*category_it).second;
 		simulated_fmt = this->fmt_simu->getCurrentRetModcodId(id);
+		UTI_DEBUG_L3("SF#%u: ST%u simulated FMT ID before affectation: %u\n",
+		             this->current_superframe_sf, id, simulated_fmt);
 		// get an available MODCOD id for this terminal among carriers
 		carriers = category->getCarriersGroups();
 		for(vector<CarriersGroup *>::const_iterator it = carriers.begin();
@@ -468,8 +470,8 @@ void DamaCtrlRcs::updateFmt()
 
 		if(available_fmt == 0)
 		{
-			UTI_INFO("SF#%u: cannot serve terminal %u with simulated MODCOD %u\n",
-			         this->current_superframe_sf, id, simulated_fmt);
+			UTI_INFO("SF#%u: cannot serve terminal %u with simulated MODCOD %u "
+			         "after affectation\n", this->current_superframe_sf, id, simulated_fmt);
 		}
 		else
 		{

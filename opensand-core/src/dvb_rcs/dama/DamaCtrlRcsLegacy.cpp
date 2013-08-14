@@ -208,14 +208,14 @@ bool DamaCtrlRcsLegacy::resetDama()
 		{
 			vol_kb_t remaining_capacity_kb;
 			rate_pktpf_t remaining_capacity_pktpf;
-			const FmtDefinitionTable *dra_scheme_def;
+			const FmtDefinitionTable *modcod_def;
 
-			dra_scheme_def = this->fmt_simu->getRetModcodDefinitions();
+			modcod_def = this->fmt_simu->getRetModcodDefinitions();
 			// we have only one MODCOD for each carrier so we can convert
 			// directly from bauds to kbits
 			remaining_capacity_kb =
-				dra_scheme_def->symToKbits((*carrier_it)->getFmtIds().front(),
-				                           (*carrier_it)->getTotalCapacity());
+				modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+				                       (*carrier_it)->getTotalCapacity());
 			// as this function is called each superframe we can directly
 			// convert number of packet to rate in packet per superframe
 			// and dividing by the frame number per superframes we have
@@ -228,13 +228,11 @@ bool DamaCtrlRcsLegacy::resetDama()
 			// packet per superframe as it is the unit used in DAMA computations
 			(*carrier_it)->setRemainingCapacity(remaining_capacity_pktpf);
 			UTI_DEBUG("SF#%u: Capacity before DAMA computation for carrier %u: "
-			          "%u packet (per superframe) (%u kb). "
-			          "Total capacity was %u symbols\n",
+			          "%u packet (per frame) (%u kb)",
 			          this->current_superframe_sf,
 			          (*carrier_it)->getCarriersId(),
 			          remaining_capacity_pktpf,
-			          remaining_capacity_kb,
-			          (*carrier_it)->getTotalCapacity());
+			          remaining_capacity_kb / this->frames_per_superframe);
 		}
 	}
 

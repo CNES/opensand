@@ -48,6 +48,7 @@ from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.env_plane_dispatcher import EnvPlaneDispatcher
 
 # TODO add option load plugin from another directory if it is possible ?
+# TODO replace optparser by argparse if 2.6 support is abandonned
 class OpenSandManager:
     """ the OpenSAND Manager initialization class """
     def __init__(self, print_debug = False, enable_std = True,

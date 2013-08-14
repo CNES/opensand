@@ -3,6 +3,8 @@ lib_LTLIBRARIES = libopensand_dama.la
 libopensand_dama_la_cpp = \
 	CircularBuffer.cpp \
 	UplinkSchedulingRcs.cpp \
+	ReturnSchedulingRcs.cpp \
+	ForwardSchedulingS2.cpp \
 	DamaAgent.cpp \
 	DamaAgentRcs.cpp \
 	DamaAgentRcsLegacy.cpp \
@@ -13,8 +15,10 @@ libopensand_dama_la_cpp = \
 
 libopensand_dama_la_h = \
 	CircularBuffer.h \
-	UplinkScheduling.h \
+	Scheduling.h \
 	UplinkSchedulingRcs.h \
+	ReturnSchedulingRcs.h \
+	ForwardSchedulingS2.h \
 	DamaAgent.h \
 	DamaAgentRcs.h \
 	DamaAgentRcsLegacy.h \

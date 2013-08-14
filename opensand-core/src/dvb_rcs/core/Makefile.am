@@ -1,9 +1,6 @@
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
-	DvbFrame.cpp \
-	DvbRcsFrame.cpp \
-	BBFrame.cpp \
 	SatSpot.cpp \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
@@ -14,9 +11,6 @@ libopensand_dvb_core_la_cpp = \
 	BlockDvbTal.cpp
 
 libopensand_dvb_core_la_h = \
-	DvbFrame.h \
-	DvbRcsFrame.h \
-	BBFrame.h \
 	SatSpot.h \
 	PhysicStd.h \
 	DvbRcsStd.h \

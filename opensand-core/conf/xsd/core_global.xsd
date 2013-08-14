@@ -372,7 +372,7 @@
 <!-- band section description -->
 <xsd:complexType name="bandConfiguration">
     <xsd:sequence>
-         <xsd:element name="bandwidth" type="xsd:integer">
+         <xsd:element name="bandwidth" type="xsd:decimal">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     Bandwidth (MHz)

@@ -38,23 +38,24 @@
 #include "SatSpot.h"
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
+#include "ForwardSchedulingS2.h"
 
 #include <stdlib.h>
 
 // Declaring SatSpot necessary ctor and dtor
 SatSpot::SatSpot():
-	m_ctrlFifo(),
-	m_logonFifo(),
-	m_dataOutGwFifo(),
-	m_dataOutStFifo(),
-	complete_dvb_frames()
+	spot_id(-1),
+	data_in_id(-1),
+	control_fifo(),
+	logon_fifo(),
+	data_out_gw_fifo(),
+	data_out_st_fifo(),
+	complete_dvb_frames(),
+	scheduling(NULL)
 {
-	this->m_spotId = -1;
-	this->m_dataInId = -1;
-
 	// for statistics purpose
-	m_dataStat.previous_tick = times(NULL);
-	m_dataStat.sum_data = 0;
+	this->data_stat.previous_tick = times(NULL);
+	this->data_stat.sum_data = 0;
 }
 
 SatSpot::~SatSpot()
@@ -62,37 +63,85 @@ SatSpot::~SatSpot()
 	this->complete_dvb_frames.clear();
 
 	// clear logon fifo
-	this->m_logonFifo.flush();
+	this->logon_fifo.flush();
 
 	// clear control fifo
-	this->m_ctrlFifo.flush();
+	this->control_fifo.flush();
 
 	// clear data OUT ST fifo
-	this->m_dataOutStFifo.flush();
+	this->data_out_st_fifo.flush();
 
 	// clear data OUT GW fifo
-	this->m_dataOutGwFifo.flush();
+	this->data_out_gw_fifo.flush();
+
+	// remove scheduling (only for regenerative satellite)
+	if(scheduling)
+		delete this->scheduling;
 }
 
 
 // TODO add spot fifos in configuration
-int SatSpot::init(long spotId, long logId, long ctrlId,
-                  long dataInId, long dataOutStId, long dataOutGwId)
+bool SatSpot::initFifos(uint8_t spot_id, unsigned int log_id, unsigned int ctrl_id,
+                        unsigned int data_in_id, unsigned int data_out_st_id,
+                        unsigned int data_out_gw_id)
 {
-	m_spotId = spotId;
+	this->spot_id = spot_id;
 
 	// initialize MAC FIFOs
+	// TODO param in conf
 #define FIFO_SIZE 5000
-	m_logonFifo.init(logId, FIFO_SIZE, "logon_Fifo");
-	m_ctrlFifo.init(ctrlId, FIFO_SIZE, "control_Fifo");
-	m_dataInId = dataInId;
-	m_dataOutStFifo.init(dataOutStId, FIFO_SIZE, "dataOutSt_Fifo");
-	m_dataOutGwFifo.init(dataOutGwId, FIFO_SIZE, "dataOutGw_Fifo");
+	this->logon_fifo.init(log_id, FIFO_SIZE, "logon_fifo");
+	this->control_fifo.init(ctrl_id, FIFO_SIZE, "control_fifo");
+	this->data_in_id = data_in_id;
+	this->data_out_st_fifo.init(data_out_st_id, FIFO_SIZE, "data_out_st");
+	this->data_out_gw_fifo.init(data_out_gw_id, FIFO_SIZE, "data_out_gw");
 
-	return 0;
+	return true;
 }
 
-long SatSpot::getSpotId()
+bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                             const FmtSimulation *const fmt_simu,
+                             const TerminalCategory *const category,
+                             unsigned int frames_per_superframe)
 {
-	return this->m_spotId;
+	// TODO if this is not usefull anymore, inherit from scheduling
+	fifos_t fifos;
+	fifos[this->data_out_st_fifo.getCarrierId()] = &this->data_out_st_fifo;
+	this->scheduling = new ForwardSchedulingS2(pkt_hdl,
+	                                           fifos,
+	                                           frames_per_superframe,
+	                                           fmt_simu,
+	                                           category);
+	if(!this->scheduling)
+	{
+		UTI_ERROR("cannot create down scheduling for spot %u\n", this->spot_id);
+		return false;
+	}
+	return true;
 }
+
+uint8_t SatSpot::getSpotId()
+{
+	return this->spot_id;
+}
+
+
+bool SatSpot::schedule(const time_sf_t current_superframe_sf,
+                       const time_frame_t current_frame,
+                       clock_t current_time)
+{
+	// not used by scheduling here
+	uint32_t remaining_allocation = 0;
+
+	if(!scheduling)
+	{
+		return false;
+	}
+
+	return this->scheduling->schedule(current_superframe_sf,
+	                                  current_frame,
+	                                  current_time,
+	                                  &this->complete_dvb_frames,
+	                                  remaining_allocation);
+}
+

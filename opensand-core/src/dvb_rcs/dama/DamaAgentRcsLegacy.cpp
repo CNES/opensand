@@ -34,9 +34,6 @@
  */
 
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
-
 #include "DamaAgentRcsLegacy.h"
 
 #include "MacFifoElement.h"
@@ -63,7 +60,7 @@ DamaAgentRcsLegacy::DamaAgentRcsLegacy():
 
 DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 {
-	delete this->up_schedule;
+	delete this->ret_schedule;
 
 	if(this->rbdc_request_buffer != NULL)
 	{
@@ -75,10 +72,10 @@ DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 
 bool DamaAgentRcsLegacy::init()
 {
-	this->up_schedule = new UplinkSchedulingRcs(this->packet_handler,
-	                                            this->dvb_fifos);
+	this->ret_schedule = new ReturnSchedulingRcs(this->packet_handler,
+	                                             this->dvb_fifos);
 
-	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_none)
@@ -267,7 +264,7 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		this->rbdc_request_buffer->Update(rbdc_request_kbps);
 
 		// reset counter of arrival packets in MAC FIFOs related to RBDC
-		for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+		for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
 			(*it).second->resetNew(cr_rbdc);
@@ -289,14 +286,15 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 	return true;
 }
 
-bool DamaAgentRcsLegacy::uplinkSchedule(list<DvbFrame *> *complete_dvb_frames)
+bool DamaAgentRcsLegacy::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
 	rate_kbps_t remaining_alloc_kbps;
 
-	if(!this->up_schedule->schedule(this->current_superframe_sf,
-	                                this->current_frame,
-	                                complete_dvb_frames,
-	                                this->remaining_allocation_pktpf))
+	if(!this->ret_schedule->schedule(this->current_superframe_sf,
+	                                 this->current_frame,
+	                                 0,
+	                                 complete_dvb_frames,
+	                                 (uint32_t &)this->remaining_allocation_pktpf))
 	{
 		UTI_ERROR("SF#%u: frame %u: Uplink Scheduling failed",
 		          this->current_superframe_sf, this->current_frame);
@@ -431,7 +429,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferLength(cr_type_t cr_type)
 	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets in fifo
 
 	nb_pkt_in_fifo = 0;
-	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)
@@ -449,7 +447,7 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 	vol_pkt_t nb_pkt_input; // packets that filled the queue since last RBDC request
 
 	nb_pkt_input = 0;
-	for(map<unsigned int, DvbFifo *>::const_iterator it = this->dvb_fifos.begin();
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_type)

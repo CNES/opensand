@@ -64,9 +64,9 @@ inline bool fileExists(const string &filename)
 FmtSimulation::FmtSimulation():
 	sts(),
 	fwd_modcod_def(),
-	fwd_modcod_simu(),
+	fwd_modcod_simu(NULL),
 	ret_modcod_def(),
-	ret_modcod_simu(),
+	ret_modcod_simu(NULL),
 	is_fwd_modcod_simu_defined(false),
 	is_ret_modcod_simu_defined(false)
 {
@@ -80,13 +80,15 @@ FmtSimulation::~FmtSimulation()
 {
 	this->clear();
 
-	if(this->fwd_modcod_simu.is_open())
+	if(this->fwd_modcod_simu)
 	{
-		this->fwd_modcod_simu.close();
+		// destructor closes the file
+		delete this->fwd_modcod_simu;
 	}
-	if(this->ret_modcod_simu.is_open())
+	if(this->ret_modcod_simu)
 	{
-		this->ret_modcod_simu.close();
+		// destructor closes the file
+		delete this->ret_modcod_simu;
 	}
 }
 
@@ -200,7 +202,7 @@ bool FmtSimulation::goNextScenarioStep()
 		}
 	}
 
-	UTI_DEBUG("next MODCODscenario step successfully reached\n");
+	UTI_DEBUG("next MODCOD scenario step successfully reached\n");
 
 	return true;
 
@@ -258,8 +260,8 @@ bool FmtSimulation::setForwardModcodSimu(const string &filename)
 	}
 
 	// open the simulation file
-	this->fwd_modcod_simu.open(filename.c_str());
-	if(!this->fwd_modcod_simu.is_open())
+	this->fwd_modcod_simu = new ifstream(filename.c_str());
+	if(!this->fwd_modcod_simu->is_open())
 	{
 		UTI_ERROR("failed to open down/forward link MODCOD "
 		          "simulation file '%s'\n", filename.c_str());
@@ -310,8 +312,8 @@ bool FmtSimulation::setReturnModcodSimu(const string &filename)
 	}
 
 	// open the simulation file
-	this->ret_modcod_simu.open(filename.c_str());
-	if(!this->ret_modcod_simu.is_open())
+	this->ret_modcod_simu = new ifstream(filename.c_str());
+	if(!this->ret_modcod_simu->is_open())
 	{
 		UTI_ERROR("failed to open up/return link MODCOD "
 		          "simulation file '%s'\n", filename.c_str());
@@ -376,7 +378,7 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 		}
 #endif
 
-		if((st_iterator==this->sts.begin()) || (modcod_id < lower_modcod_id))
+		if((st_iterator == this->sts.begin()) || (modcod_id < lower_modcod_id))
 		{
 			lower_modcod_id = modcod_id;
 			lower_tal_id = tal_id;
@@ -439,6 +441,12 @@ bool FmtSimulation::isCurrentFwdModcodAdvertised(tal_id_t id) const
 	}
 	return 0;
 
+}
+
+// TODO getMin ????
+unsigned int FmtSimulation::getMaxFwdModcod() const
+{
+	return this->fwd_modcod_def.getMaxId();
 }
 
 
@@ -573,14 +581,14 @@ error:
 }
 
 
-bool FmtSimulation::setList(ifstream &simu_file, vector<string> &list)
+bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 {
 	std::stringbuf buf;
 	std::stringstream line;
 	std::stringbuf token;
 
 	// get the next line in the file
-	simu_file.get(buf);
+	simu_file->get(buf);
 	if(buf.str() != "")
 	{
 		line.str(buf.str());
@@ -595,13 +603,13 @@ bool FmtSimulation::setList(ifstream &simu_file, vector<string> &list)
 	}
 
 	// restart from beginning of file when we reach the end of file
-	if(simu_file.eof())
+	if(simu_file->eof())
 	{
 		// reset the error flags
-		simu_file.clear();
+		simu_file->clear();
 		UTI_DEBUG("end of simulation file reached, restart at beginning...\n");
-		simu_file.seekg(0, std::ios::beg);
-		if(simu_file.fail())
+		simu_file->seekg(0, std::ios::beg);
+		if(simu_file->fail())
 		{
 			UTI_ERROR("Error when going to the begining of the simulation file\n");
 			goto error;
@@ -610,7 +618,7 @@ bool FmtSimulation::setList(ifstream &simu_file, vector<string> &list)
 		{
 			buf.str("");
 			// read the first line and get elements
-			simu_file.get(buf);
+			simu_file->get(buf);
 			if(buf.str() != "")
 			{
 				line.str(buf.str());
@@ -627,17 +635,17 @@ bool FmtSimulation::setList(ifstream &simu_file, vector<string> &list)
 	}
 
 	// check if getline returned an error
-	if(simu_file.fail())
+	if(simu_file->fail())
 	{
 		UTI_ERROR("Error when getting next line of the simulation file\n");
 		goto error;
 	}
 
 	// reset the error flags
-	simu_file.clear();
+	simu_file->clear();
 
 	// jump after the '\n' as get does not read it
-	simu_file.ignore();
+	simu_file->ignore();
 
 	return true;
 

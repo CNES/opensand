@@ -164,9 +164,12 @@ class FmtDefinitionTable
 	 */
 	float getRequiredEsN0(unsigned int id) const;
 
-	/* get the payload size of the FMT definition
-	   whose ID is given as input */
-	size_t getPayloadSize(unsigned int id) const;
+	/**
+	 * @brief  Get the highest definition ID
+	 *
+	 * @return the highest definition ID
+	 */
+	unsigned int getMaxId() const;
 
 	/**
 	 * @brief Convert a value in symbol for the FMT definition

@@ -62,10 +62,6 @@ class DvbRcsStd: public PhysicStd
 	 */
 	~DvbRcsStd();
 
-	int scheduleEncapPackets(DvbFifo *fifo,
-	                         long current_time,
-	                         std::list<DvbFrame *> *complete_dvb_frames);
-
 	int onRcvFrame(unsigned char *frame,
 	               long length,
 	               long type,
@@ -76,14 +72,6 @@ class DvbRcsStd: public PhysicStd
 	bool setSwitch(GenericSwitch *generic_switch);
 
  private:
-
-	/**
-	 * @brief Create an incomplete DVB-RCS frame
-	 *
-	 * @param incomplete_dvb_frame OUT: the DVB-RCS frame that will be created
-	 * return                      1 on success, 0 on error
-	 */
-	int createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
 
 	/// Switch which manages the different spots
 	/// (for regenerative satellite only)

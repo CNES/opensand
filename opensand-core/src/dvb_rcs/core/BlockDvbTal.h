@@ -175,17 +175,15 @@ class BlockDvbTal: public BlockDvb
 
 	event_id_t logon_timer;  ///< Upon each m_logonTimer event retry logon
 	event_id_t frame_timer;  ///< Upon each m_frameTimer event is a frame
-	/// The sf counter
-	long super_frame_counter;
-	/// the frame number WITHIN the current superframe
-	long frame_counter; // is now from 1 (1st frame)
-	                    // to m_frames_per_superframe (last frame)
+
+	/// whether this is the first frame
+	bool first;
 
 
 	/* Fifos */
 
 	/// map of FIFOs per MAX priority to manage different queues
-	std::map<unsigned int, DvbFifo *> dvb_fifos;
+	fifos_t dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
 	unsigned int default_fifo_id;
 	/// the number of PVCs

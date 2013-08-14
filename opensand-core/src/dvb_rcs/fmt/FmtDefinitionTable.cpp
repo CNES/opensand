@@ -389,6 +389,21 @@ FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
 	return def;
 }
 
+unsigned int FmtDefinitionTable::getMaxId() const
+{
+	unsigned int id = 0;
+	for(fmt_def_table_pos_t it = this->definitions.begin();
+	    it != this->definitions.end(); ++it)
+	{
+		if((*it).first > id)
+		{
+			id = (*it).first;
+		}
+	}
+	return id;
+}
+
+
 
 unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
                                             unsigned int val_sym) const

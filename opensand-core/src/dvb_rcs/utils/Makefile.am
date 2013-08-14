@@ -14,7 +14,11 @@ libopensand_dvb_utils_la_cpp = \
 	TerminalContextRcs.cpp \
 	FmtGroup.cpp \
 	CarriersGroup.cpp \
-	TerminalCategory.cpp
+	TerminalCategory.cpp \
+	DvbFrame.cpp \
+	DvbRcsFrame.cpp \
+	BBFrame.cpp
+
 
 libopensand_dvb_utils_la_h = \
 	UnitConverter.h \
@@ -31,7 +35,11 @@ libopensand_dvb_utils_la_h = \
 	TerminalCategory.h \
 	FmtGroup.h \
 	CarriersGroup.h \
-	OpenSandFrames.h
+	OpenSandFrames.h \
+	DvbFrame.h \
+	DvbRcsFrame.h \
+	BBFrame.h
+
 
 libopensand_dvb_utils_la_SOURCES = \
 	$(libopensand_dvb_utils_la_cpp) \

@@ -175,7 +175,7 @@ typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
 
 // frequency
 typedef uint8_t freq_mhz_t; ///< frequency (MHz)
-typedef uint16_t freq_khz_t; ///< frequency (kHz)
+typedef uint32_t freq_khz_t; ///< frequency (kHz)
 
 /**
  * @brief Generic Superframe description

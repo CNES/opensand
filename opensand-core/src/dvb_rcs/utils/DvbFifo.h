@@ -41,8 +41,11 @@
 
 //#include <linux/param.h>
 #include <vector>
+#include <map>
 #include <sys/times.h>
 
+using std::vector;
+using std::map;
 
 ///> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
 ///>  to Diffserv IP QoS
@@ -220,7 +223,7 @@ class DvbFifo
 	 */
 	void resetStats();
 
-	std::vector<MacFifoElement *> queue; ///< the FIFO itself
+	vector<MacFifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;   // the MAC priority of the fifo
 	string fifo_name;  ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
@@ -239,5 +242,7 @@ class DvbFifo
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 	unsigned int carrier_id; ///< the carrier id of the fifo (for SAT and GW purposes)
 };
+
+typedef map<unsigned int, DvbFifo *> fifos_t;
 
 #endif

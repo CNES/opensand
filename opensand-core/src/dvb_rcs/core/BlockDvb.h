@@ -59,6 +59,7 @@
 
 #include "PhysicStd.h"
 #include "NccPepInterface.h"
+#include "TerminalCategory.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
@@ -109,6 +110,40 @@ class BlockDvb: public Block
 	bool initReturnModcodFiles();
 
 	/**
+	 * @brief init the band according to configuration
+	 *
+	 * @param band                 The section in configuration file
+	 *                             (up/return or down/forward)
+	 * @param categories           OUT: The terminal categories
+	 * @param terminal_affectation OUT: The terminal affectation in categories
+	 * @param default_category     OUT: The default category if terminal is not
+	 *                                  in terminal affectation
+	 * @param fmt_groups           OUT: The groups of FMT ids
+	 * @return true on success, false otherwise
+	 */
+	bool initBand(const char *band,
+	              TerminalCategories &categories,
+	              TerminalMapping &terminal_affectation,      
+	              TerminalCategory **default_category,
+	              fmt_groups_t &fmt_groups);
+
+	/**
+	 * @brief  Compute the bandplan.
+	 *
+	 * Compute available carrier frequency for each carriers group in each
+	 * category, according to the current number of users in these groups.
+	 *
+	 * @param   available_bandplan_khz  available bandplan (in kHz).
+	 * @param   roll_off                roll-off factor
+	 * @param   categories              pointer to category list.
+	 *
+	 * @return  true on success, false otherwise.
+	 */
+	bool computeBandplan(freq_khz_t available_bandplan_khz,
+	                     double roll_off,
+	                     TerminalCategories &categories);
+
+	/**
 	 * Send the complete DVB frames created
 	 * by ef DvbRcsStd::scheduleEncapPackets or
 	 * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
@@ -123,6 +158,20 @@ class BlockDvb: public Block
 	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len);
 	bool sendDvbFrame(DvbFrame *frame, long carrier_id);
 
+	/**
+	 * Receive Packet from upper layer
+	 *
+	 * @param packet        The encapsulation packet received
+	 * @param fifo          The MAC FIFO to put the packet in
+	 * @param fifo_delay    The minimum delay the packet must stay in the
+	 *                      MAC FIFO (used on SAT to emulate delay)
+	 * @return              true on success, false otherwise
+	 */
+	bool onRcvEncapPacket(NetPacket *packet,
+	                      DvbFifo *fifo,
+	                      int fifo_delay);
+
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -131,6 +180,11 @@ class BlockDvb: public Block
 
 	/// the number of frame per superframe
 	unsigned int frames_per_superframe;
+
+	/// the current super frame number
+	time_sf_t super_frame_counter;
+	/// the current frame number inside the current super frame
+	time_frame_t frame_counter; // from 1 to frames_per_superframe
 
 	/// The MODCOD simulation elements
 	FmtSimulation fmt_simu;
@@ -149,8 +203,6 @@ class BlockDvb: public Block
 	static Event *event_login_received;
 	static Event *event_login_response;
 
-	/// emission standard (DVB-RCS or DVB-S2)
-	PhysicStd *emissionStd;
 	/// reception standard (DVB-RCS or DVB-S2)
 	PhysicStd *receptionStd;
 };

@@ -73,14 +73,16 @@ class FmtSimulation
 	/** The table of down/forward MODCOD definitions */
 	FmtDefinitionTable fwd_modcod_def;
 
-	/** The file stream for the down/forward MODCOD simulation file */
-	ifstream fwd_modcod_simu;
+	/** The file stream for the down/forward MODCOD simulation file
+	 *  Need pointer because ifstream is not copyable */
+	ifstream *fwd_modcod_simu;
 
 	/** The table of up/return MODCOD definitions */
 	FmtDefinitionTable ret_modcod_def;
 
-	/** The file stream for the up/return MODCOD simulation file */
-	ifstream ret_modcod_simu;
+	/** The file stream for the up/return MODCOD simulation file
+	 *  Need pointer because ifstream is not copyable */
+	ifstream *ret_modcod_simu;
 
 	/** Whether the MODCOD simulation file is defined or not */
 	bool is_fwd_modcod_simu_defined;
@@ -217,6 +219,13 @@ class FmtSimulation
 	unsigned int getPreviousFwdModcodId(tal_id_t id) const;
 
 	/**
+	 * @brief Get the higher forward MODCOD ID
+	 *
+	 * @return the highest forward MODCOD ID
+	 */
+	unsigned int getMaxFwdModcod() const;
+
+	/**
 	 * @brief Was the current down/forward MODCOD ID of the ST whose ID
 	 *        is given as input  advertised over the emulated network ?
 	 *
@@ -286,7 +295,7 @@ class FmtSimulation
 	 *
 	 * @todo better parsing
 	 */
-	bool setList(ifstream &simu_file,
+	bool setList(ifstream *simu_file,
 	             vector<string> &list);
 
 };
