@@ -49,7 +49,7 @@ def error_popup(error, text = ''):
     if not dialog.modal:
         dialog.set_modal(True)
     dialog.connect('response', dialog_response_cb)
-    dialog.run()
+    dialog.show()
 
 def dialog_response_cb(dialog, response_id):
     """ on click close the error popup """
@@ -64,6 +64,6 @@ def yes_no_popup(question, title, icon):
     dialog.set_keep_above(True)
     dialog.set_title(title)
     dialog.set_icon_name(icon)
-    ret = dialog.run()
+    ret = dialog.show()
     dialog.destroy()
     return ret

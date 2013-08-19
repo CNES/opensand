@@ -236,6 +236,9 @@ class AdvancedDialog(WindowView):
                 notebook.save()
             except XmlException, error:
                 error_popup("%s: %s" % (name, error), error.description)
+            except BaseException, error:
+                error_popup("Unknown exception when saving configuration: %s" %
+                            (error))
 
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
 

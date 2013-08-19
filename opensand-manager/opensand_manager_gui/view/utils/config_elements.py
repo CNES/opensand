@@ -598,9 +598,9 @@ class ConfigurationNotebook(gtk.Notebook):
         except:
             self._new.append(key_path)
             name = self._config.get_name(line)
-            nbr = len(self._config.get_all("//%s" % name))
-            hbox.set_name("//%s[%d]" % (name, nbr +
-                                        self._new.count(key_path)))
+            nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
+            hbox.set_name("/%s/%s[%d]" % (key_path, name,
+                                          nbr + self._new.count(key_path)))
         dic = self._config.get_element_content(line)
         # keep the model of a line for line addition
         if not key_path in self._table_models:
@@ -649,7 +649,7 @@ class ConfigurationNotebook(gtk.Notebook):
                 value = dic[att]
             except:
                 # this is a new line entry
-                path = '//%s[last()]--%s' % (name, att)
+                path = '/%s/%s[last()]--%s' % (key_path, name, att)
             entry = ConfEntry(elt_type, value, path, cb)
             if value == '':
                 # add new lines to changed list
