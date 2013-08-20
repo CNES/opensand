@@ -295,12 +295,12 @@ int main(int argc, char **argv)
 	{
 		goto release_plugins;
     }
-/*	if(!Output::finishInit())
+	if(!Output::finishInit())
 	{
 		UTI_PRINT(LOG_INFO,
 		          "%s: failed to init the output => disable it\n",
 		         progname);
-	}*/
+	}
 
 	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())

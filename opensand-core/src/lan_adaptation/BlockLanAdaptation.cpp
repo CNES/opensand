@@ -195,11 +195,6 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 						}
 					}
 					this->state = link_up;
-					// TODO remove from here and uncomment in main !!!
-					if(!Output::finishInit())
-					{
-						UTI_ERROR("failed to init the output => disable it\n");
-					}
 				}
 
 				delete link_up_msg;
@@ -395,6 +390,7 @@ bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 	{
 		UTI_INFO("packets received from TUN/TAP, but link is down "
 		         "=> drop packets\n");
+		free(read_data);
 		return false;
 	}
 

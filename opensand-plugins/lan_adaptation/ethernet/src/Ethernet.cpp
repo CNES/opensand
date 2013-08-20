@@ -311,6 +311,8 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		}
 		this->evc_map[id] = evc;
 	}
+	// initialize the statistics on EVC
+	this->initStats();
 
 	return true;
 }
@@ -403,8 +405,6 @@ bool Ethernet::Context::initLanAdaptationContext(
 	{
 		return false;
 	}
-
-	this->initStats();
 	return true;
 }
 

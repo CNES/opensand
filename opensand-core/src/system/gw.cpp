@@ -284,14 +284,15 @@ int main(int argc, char **argv)
 	{
 		goto release_plugins;
     }
-/*	if(!Output::finishInit())
+    // TODO for errors in init we may use a string that would report last error
+	if(!Output::finishInit())
 	{
 		UTI_PRINT(LOG_INFO,
 		          "%s: failed to init the output => disable it\n",
 		         progname);
 	}
 
-	Output::sendEvent(status, "Blocks initialized");*/
+	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())
 	{
 		Output::sendEvent(failure, "cannot run process loop\n");
