@@ -141,7 +141,15 @@ class ProbeGraph(object):
         self._xaxis.set_major_formatter(TIME_FORMATTER)
         self._yaxis.set_major_formatter(VALUE_FORMATTER)
 
-        self._axes.plot(x, y, '-', color=self._color)
+        try:
+            self._axes.plot(x, y, '-', color=self._color)
+        except ValueError:
+            # TODO find why this append
+            size = min(len(x), len(y))
+            while len(x) > size:
+                x.pop(0)
+            while len(y) > size:
+                y.pop(0)
 
         self._axes.axis([xmin, xmax, rymin, rymax])
 

@@ -137,6 +137,11 @@ class StFmtSimu
 	bool isCurrentFwdModcodAdvertised() const;
 
 	/**
+	 * @brief Set the down/forward MODCOD ID avertised for the ST
+	 */
+	void setFwdModcodAdvertised(void);
+
+	/**
 	 * @brief Get the current up/return MODCOD ID of the ST
 	 *
 	 * @return  the current up/return MODCOD ID of the ST

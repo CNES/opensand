@@ -289,17 +289,19 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 bool DamaAgentRcsLegacy::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
 	rate_kbps_t remaining_alloc_kbps;
+	uint32_t remaining_alloc_pktpf = this->remaining_allocation_pktpf;
 
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
 	                                 this->current_frame,
 	                                 0,
 	                                 complete_dvb_frames,
-	                                 (uint32_t &)this->remaining_allocation_pktpf))
+	                                 remaining_alloc_pktpf))
 	{
 		UTI_ERROR("SF#%u: frame %u: Uplink Scheduling failed",
 		          this->current_superframe_sf, this->current_frame);
 		return false;
 	}
+	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
 
 	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
 	this->stat_context.unused_alloc_kbps = remaining_alloc_kbps;

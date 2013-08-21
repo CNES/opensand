@@ -668,6 +668,7 @@ bool BlockDvbNcc::initRequestSimulation()
 	// TODO is we use probes we need to register here so we need to known the number
 	//      of terminals (easy in random mode, need parsing in file mode,
 	//      may need a ST number parameter for stdin)
+	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))

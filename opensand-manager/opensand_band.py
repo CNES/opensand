@@ -23,7 +23,7 @@ class OpenSandBand():
     """ The OpenSAND Bandwidth representation """
 
     def __init__(self):
-        self._bandwidth = 0
+        self._bandwidth = 0.0
         self._roll_off = 0.0
         self._categories = {}
         self._carriers_groups = {}
@@ -66,7 +66,7 @@ class OpenSandBand():
 
         # bandwidth
         xpath = "//%s_band/bandwidth" % link
-        self._bandwidth = int(config.get_value(config.get(xpath)))
+        self._bandwidth = float(config.get_value(config.get(xpath)))
         # roll-off
         xpath = "//%s_band/roll_off" % link
         self._roll_off = float(config.get_value(config.get(xpath)))
@@ -128,7 +128,7 @@ class OpenSandBand():
         for fmt_id in ids:
             if '-' in fmt_id:
                 (mini, maxi) = fmt_id.split('-')
-                id_list.append(range(int(mini), int(maxi)))
+                id_list.extend(range(int(mini), int(maxi) + 1))
             else:
                 id_list.append(int(fmt_id))
 
@@ -162,7 +162,14 @@ class OpenSandBand():
                 nbr = ceil((carriers.ratio / weighted_sum) *
                            (self._bandwidth / (1 + self._roll_off)))
                 carriers.number = nbr
-
+                
+    def _get_carrier_bitrate(self, carriers):
+        """ get the maximum bitrate per carriers group """
+        rs = carriers.symbol_rate * carriers.number
+        max_fmt = max(self._fmt_group[carriers.fmt_group])
+        fmt = self._fmt[max_fmt]
+        br = rs * fmt.modulation * fmt.coding_rate
+        return br
 
     def _get_max_bitrate(self, name):
         """ get the maximum bitrate for a given category """
@@ -184,14 +191,16 @@ class OpenSandBand():
 
     def __str__(self):
         """ print band representation """
-        output = "BAND: %dMhz roll-off=%s" % (self._bandwidth, self._roll_off)
+        output = "BAND: %sMhz roll-off=%s" % (self._bandwidth, self._roll_off)
         for name in self._categories:
             output += "\n\nCATEGORY %s" % (name)
             i = 0
             for carriers in self._categories[name]:
                 i += 1
-                output += "\nGroup %d: %s" % (i, carriers)
-            output += "\n    %d carriers" % (self._get_carriers_number(name))
+                output += "\nGroup %d: %s (%d kb/s)" % \
+                          (i, carriers,
+                           self._get_carrier_bitrate(carriers) / 1000)
+            output += "\n    %d carrier(s)" % (self._get_carriers_number(name))
             output += "\n    Bitrate %d kb/s" % \
                       (self._get_max_bitrate(name) / 1000)
         return output

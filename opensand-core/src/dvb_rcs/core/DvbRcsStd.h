@@ -65,7 +65,7 @@ class DvbRcsStd: public PhysicStd
 	int onRcvFrame(unsigned char *frame,
 	               long length,
 	               long type,
-	               int mac_id,
+	               tal_id_t tal_id,
 	               NetBurst **burst);
 
 	/* function for regenerative satellite */

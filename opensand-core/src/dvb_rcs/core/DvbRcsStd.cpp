@@ -60,7 +60,7 @@ DvbRcsStd::~DvbRcsStd()
 int DvbRcsStd::onRcvFrame(unsigned char *frame,
                           long length,
                           long type,
-                          int mac_id,
+                          tal_id_t tal_id,
                           NetBurst **burst)
 {
 	T_DVB_ENCAP_BURST *dvb_burst;  // DVB burst received from lower layer

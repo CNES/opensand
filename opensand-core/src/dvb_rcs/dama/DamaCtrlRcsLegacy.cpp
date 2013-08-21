@@ -262,7 +262,7 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 
 	if(remaining_capacity_pktpf == 0)
 	{
-		UTI_INFO("%s skipping RBDC dama computation: Not enough capacity\n",
+		UTI_DEBUG("%s skipping RBDC dama computation: Not enough capacity\n",
 		         debug.c_str());
 		return;
 	}

@@ -514,6 +514,7 @@ bool BlockDvb::initBand(const char *band,
 		goto error;
 	}
 	bandwidth_khz = bandwidth_mhz * 1000;
+	UTI_DEBUG("%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
 
 	// Get the value of the roll off
 	if(!globalConfig.getValue(band, ROLL_OFF,
@@ -729,6 +730,8 @@ bool BlockDvb::initBand(const char *band,
 		}
 
 		terminal_affectation[tal_id] = category;
+		UTI_DEBUG("%s: terminal %u will be affected to category %s\n",
+		          band, tal_id, name.c_str());
 	}
 
 	// Compute bandplan
@@ -783,8 +786,8 @@ bool BlockDvb::computeBandplan(freq_khz_t available_bandplan_khz,
 		carriers_number = ceil(
 		    (ratio / weighted_sum_ksymps) *
 		    (available_bandplan_khz / (1 + roll_off)));
-		UTI_DEBUG("Number of carriers for category %s: %d\n",
-		          category->getLabel().c_str(), carriers_number);
+		UTI_INFO("Number of carriers for category %s: %d\n",
+		         category->getLabel().c_str(), carriers_number);
 
 		// set the carrier numbers and capacity in carrier groups
 		category->updateCarriersGroups(carriers_number,

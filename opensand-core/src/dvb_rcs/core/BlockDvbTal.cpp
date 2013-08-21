@@ -1125,7 +1125,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			NetBurst *burst;
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->mac_id, &burst) < 0)
+			                                  this->m_talId, &burst) < 0)
 			{
 				UTI_ERROR("failed to handle the reception of "
 				          "BB frame (length = %ld)\n", i_len);
@@ -1161,7 +1161,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			}
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->mac_id, &burst) < 0)
+			                                  this->m_talId, &burst) < 0)
 			{
 				UTI_ERROR("failed to handle the reception of "
 				          "DVB frame (length = %ld)\n", i_len);
@@ -1345,6 +1345,7 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 	UTI_DEBUG("superframe number: %u", sfn);
 
 	// if the NCC crashed, we must reinitiate a logon
+	// TODO handle modulo on maximum
 	if(sfn < this->super_frame_counter)
 	{
 		UTI_ERROR("SF#%u: it seems NCC rebooted => flush buffer & "

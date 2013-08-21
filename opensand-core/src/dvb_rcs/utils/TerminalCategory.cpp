@@ -94,6 +94,13 @@ void TerminalCategory::updateCarriersGroups(unsigned int carriers_number,
                                             time_ms_t superframe_duration_ms)
 {
 	unsigned int total_ratio = this->getRatio();
+	if(carriers_number < this->carriers_groups.size())
+	{
+		UTI_INFO("Not enough carriers for category %s that contains %lu groups. "
+		         "Increase carriers number to the number of groups\n",
+		         this->label.c_str(), this->carriers_groups.size());
+		carriers_number = this->carriers_groups.size();
+	}
 	for(vector<CarriersGroup *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{

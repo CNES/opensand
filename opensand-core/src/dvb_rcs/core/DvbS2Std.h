@@ -51,11 +51,12 @@ class DvbS2Std: public PhysicStd
 
  private:
 
+	// TODO create a type for modcod_id
 	/** The real MODCOD of the ST */
-	int real_modcod;
+	uint8_t real_modcod;
 
 	/** The received MODCOD */
-	int received_modcod;
+	uint8_t received_modcod;
 
  public:
 
@@ -78,7 +79,7 @@ class DvbS2Std: public PhysicStd
 	int onRcvFrame(unsigned char *frame,
 	               long length,
 	               long type,
-	               int mac_id,
+	               tal_id_t tal_id,
 	               NetBurst **burst);
 
 

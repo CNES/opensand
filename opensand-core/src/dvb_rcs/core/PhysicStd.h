@@ -99,7 +99,7 @@ class PhysicStd
 	 * @param frame   the received DVB frame
 	 * @param length  the length of the received DVB frame
 	 * @param type    the type of the received DVB frame
-	 * @param mac_id  the unsique MAC id of the terminal
+	 * @param tal_id  the unsique terminal id
 	 *                (only used for DVB-S2)
 	 * @param burst   OUT: a burst of encapsulation packets
 	 * @return        0 if successful, -1 otherwise
@@ -107,7 +107,7 @@ class PhysicStd
 	virtual int onRcvFrame(unsigned char *frame,
 	                       long length,
 	                       long type,
-	                       int mac_id,
+	                       tal_id_t tal_id,
 	                       NetBurst **burst) = 0;
 
 

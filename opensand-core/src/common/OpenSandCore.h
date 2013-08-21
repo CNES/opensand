@@ -174,7 +174,7 @@ typedef uint32_t vol_bytes_t; ///< volume in Bytes (suffix bytes)
 typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
 
 // frequency
-typedef uint8_t freq_mhz_t; ///< frequency (MHz)
+typedef float freq_mhz_t;    ///< frequency (MHz)
 typedef uint32_t freq_khz_t; ///< frequency (kHz)
 
 /**

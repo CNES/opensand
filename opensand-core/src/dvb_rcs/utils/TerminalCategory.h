@@ -171,7 +171,7 @@ class TerminalCategory
 
 
 typedef map<string, TerminalCategory *> TerminalCategories;
-typedef map<unsigned int, TerminalCategory *> TerminalMapping;
+typedef map<tal_id_t, TerminalCategory *> TerminalMapping;
 
 template<class T>
 vector<T *> TerminalCategory::getTerminalsInCarriersGroup(

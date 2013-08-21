@@ -84,7 +84,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	event_id_t frame_timer;
 
 	/// ST unique mac id (configuration param)
-	int macId;
+	tal_id_t macId;
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;

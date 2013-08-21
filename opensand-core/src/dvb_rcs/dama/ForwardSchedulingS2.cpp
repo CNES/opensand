@@ -87,7 +87,7 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          const unsigned int frames_per_superframe,
-                                         const FmtSimulation *const fmt_simu,
+                                         FmtSimulation *const fmt_simu,
                                          const TerminalCategory *const category):
 	Scheduling(packet_handler, fifos),
 	frames_per_superframe(frames_per_superframe),
@@ -489,7 +489,7 @@ error:
 bool ForwardSchedulingS2::retrieveCurrentModcod(long tal_id,
                                                 unsigned int &modcod_id)
 {
-	bool do_advertise_modcod;
+	bool advertised_modcod;
 
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
@@ -499,8 +499,8 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(long tal_id,
 		          "that is not registered\n", tal_id);
 		goto error;
 	}
-	do_advertise_modcod = !this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
-	if(!do_advertise_modcod)
+	advertised_modcod = !this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
+	if(!advertised_modcod)
 	{
 		modcod_id = this->fmt_simu->getCurrentFwdModcodId(tal_id);
 	}
@@ -510,13 +510,7 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(long tal_id,
 	}
 	UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
 	             tal_id, modcod_id,
-	             do_advertise_modcod ? "yes" : "no");
-
-/*	if(do_advertise_modcod)
-	{
-		if(!this->createOptionModcod(comp, nb_row, *modcod_id, id))
-		{
-	}*/
+	             advertised_modcod ? "yes" : "no");
 
 	return true;
 
@@ -620,11 +614,30 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 		return status_full;
 	}
 
+	// check if some terminals need to be advertised
+	if(!this->fmt_simu->areCurrentFwdModcodsAdvertised())
+	{
+		// we can create up to MAX_MODCOD_OPTIONS, if we need more, they
+		// will be advertised in next BBFrame
+		for(unsigned int i = 0; i < MAX_MODCOD_OPTIONS; i++)
+		{
+			tal_id_t tal_id;
+			unsigned int modcod;
+			if(!this->fmt_simu->getNextFwdModcodToAdvertise(tal_id, modcod))
+			{
+				UTI_DEBUG("%u MODCOD advertised\n", i);
+				break;
+			}
+			bbframe->addModcodOption(tal_id, modcod);
+			UTI_DEBUG("Advertise MODCOD for terminal %u\n", tal_id);
+		}
+	}
+
 	// we can send the BBFrame
 	complete_bb_frames->push_back(bbframe);
 
 	// reduce the time carrier capacity by the BBFrame size
-	remaining_capacity_sym -= bbframe_size_sym;;
+	remaining_capacity_sym -= bbframe_size_sym;
 
 	return status_ok;
 }

@@ -65,7 +65,7 @@ class ForwardSchedulingS2: public Scheduling
 	ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    unsigned int frames_per_superframe,
-	                    const FmtSimulation *const fmt_simu,
+	                    FmtSimulation *const fmt_simu,
 	                    const TerminalCategory *const category);
 
 	~ForwardSchedulingS2();
@@ -91,7 +91,7 @@ class ForwardSchedulingS2: public Scheduling
 	list<BBFrame *> pending_bbframes;
 
 	/** The FMT simulated data */
-	const FmtSimulation *fmt_simu;
+	FmtSimulation *fmt_simu;
 
 	/** The terminal category */
 	const TerminalCategory *category;

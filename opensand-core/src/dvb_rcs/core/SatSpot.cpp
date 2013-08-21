@@ -100,7 +100,7 @@ bool SatSpot::initFifos(uint8_t spot_id, unsigned int log_id, unsigned int ctrl_
 }
 
 bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                             const FmtSimulation *const fmt_simu,
+                             FmtSimulation *const fmt_simu,
                              const TerminalCategory *const category,
                              unsigned int frames_per_superframe)
 {

@@ -100,7 +100,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           vol_pkt_t min_vbdc_pkt,
                           rate_kbps_t fca_kbps,
                           TerminalCategories categories,
-                          TerminalMapping affectation,
+                          TerminalMapping terminal_affectation,
                           TerminalCategory *default_category,
                           const FmtSimulation *const fmt_simu)
 {

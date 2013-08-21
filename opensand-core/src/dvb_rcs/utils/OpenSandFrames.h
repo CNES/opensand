@@ -46,11 +46,15 @@
 #include <cstring>
 
 
+// The maximum number of MODCOD options
+// used to avoid very long emulated frames
+#define MAX_MODCOD_OPTIONS 5
+
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
 #define MSG_DVB_RCS_SIZE_MAX 1200
 /// The maximum size of a BBFrame
-#define MSG_BBFRAME_SIZE_MAX 8100
+#define MSG_BBFRAME_SIZE_MAX 8100 + MAX_MODCOD_OPTIONS * sizeof(T_DVB_REAL_MODCOD)
 /// The maximum size of the pysical layer data
 #define MSG_PHYFRAME_SIZE_MAX 8
 

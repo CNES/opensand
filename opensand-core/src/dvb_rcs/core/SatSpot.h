@@ -106,7 +106,7 @@ class SatSpot
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    const FmtSimulation *const fmt_simu,
+	                    FmtSimulation *const fmt_simu,
 	                    const TerminalCategory *const category,
 	                    unsigned int frames_per_superframe);
 

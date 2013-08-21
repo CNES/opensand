@@ -40,11 +40,13 @@
 
 #include <vector>
 #include <map>
+#include <list>
 #include <fstream>
 
 using std::string;
 using std::map;
 using std::vector;
+using std::list;
 using std::ifstream;
 
 // Be careful:
@@ -58,6 +60,7 @@ using std::ifstream;
 //  - down/forward MODCOD is used on DVB-S2 forward link on GW to get the minimum
 //    supported MODCOD used in BBFrames (needed by DvbS2Std)
 // Thus we instanciate this everywhere but only the GW and SAT instance may handle terminals
+
 
 /**
  * @class FmtSimulation
@@ -95,6 +98,9 @@ class FmtSimulation
 
 	/** A list of the current up/return MODCOD */
 	vector<string> ret_modcod_list;
+
+	/** A list of terminal to advertise for down/forward MODCOD */
+	list<tal_id_t> need_advertise;
 
  public:
 
@@ -237,6 +243,15 @@ class FmtSimulation
 	bool isCurrentFwdModcodAdvertised(tal_id_t id) const;
 
 	/**
+	 * Get the next terminal to advertise
+	 *
+	 * @param tal_id     OUT: The ID of the terminal to advertise
+	 * @param modcod_id  OUT: The MODCOD ID for temrinal advertisement
+	 * @return true if there ise a terminal to advertise, false otherwise
+	 */
+	bool getNextFwdModcodToAdvertise(tal_id_t &id, unsigned int &modcod_id);
+
+	/**
 	 * @brief Get the current up/return MODCOD ID of the ST whose ID is given as input
 	 *
 	 * @param id  the ID of the up/return MODCOD definition we want information for
@@ -285,6 +300,13 @@ class FmtSimulation
 	 * @return true on success, false on failure
 	 */
 	bool goNextScenarioStepRetModcod();
+
+	/**
+	 * @brief Set the down/forward MODCOD advertised for terminal
+	 *
+	 * @param tal_id  The terminal ID
+	 */
+	void setFwdModcodAdvertised(tal_id_t tal_id);
 
 	/**
 	 * @brief Read a line of a simulation file and fill the MODCOD list

@@ -82,6 +82,12 @@ Ip::Context::Context(LanAdaptationPlugin &plugin):
 
 Ip::Context::~Context()
 {
+	map<qos_t, TrafficCategory *>::const_iterator cat_it;
+	for(cat_it = this->category_map.begin();
+	    cat_it != this->category_map.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
 }
 
 NetBurst *Ip::Context::encapsulate(NetBurst *burst,

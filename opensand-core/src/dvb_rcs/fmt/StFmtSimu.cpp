@@ -99,6 +99,12 @@ bool StFmtSimu::isCurrentFwdModcodAdvertised() const
 }
 
 
+void StFmtSimu::setFwdModcodAdvertised(void)
+{
+	this->is_current_modcod_advertised = true;
+}
+
+
 unsigned int StFmtSimu::getCurrentRetModcodId() const
 {
 	return this->current_ret_modcod_id;

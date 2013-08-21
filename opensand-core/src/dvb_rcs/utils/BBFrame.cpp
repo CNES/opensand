@@ -87,14 +87,12 @@ BBFrame::~BBFrame()
 
 uint16_t BBFrame::getPayloadLength()
 {
-	// TODO: substract the size of the MODCOD options here ?
-	return (this->getTotalLength() - sizeof(T_DVB_BBFRAME));
+	return (this->getTotalLength() - this->getOffsetForPayload());
 }
 
 Data BBFrame::getPayload()
 {
-	// TODO: handle the size of the MODCOD options here ?
-	return Data(this->data, sizeof(T_DVB_BBFRAME), this->getPayloadLength());
+	return Data(this->data, this->getOffsetForPayload(), this->getPayloadLength());
 }
 
 bool BBFrame::addPacket(NetPacket *packet)
@@ -104,14 +102,10 @@ bool BBFrame::addPacket(NetPacket *packet)
 	is_added = DvbFrame::addPacket(packet);
 	if(is_added)
 	{
-		T_DVB_BBFRAME bb_header;
+		T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
 
-		memcpy(&bb_header, this->data.c_str(), sizeof(T_DVB_BBFRAME));
-		bb_header.hdr.msg_length += packet->getTotalLength();
-		bb_header.data_length++;
-		this->data.replace(0, sizeof(T_DVB_BBFRAME),
-		                    (unsigned char *) &bb_header,
-		                    sizeof(T_DVB_BBFRAME));
+		bb_header->hdr.msg_length += packet->getTotalLength();
+		bb_header->data_length++;
 	}
 
 	return is_added;
@@ -131,13 +125,6 @@ void BBFrame::empty(void)
 	bb_header->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
-unsigned int BBFrame::getModcodId(void)
-{
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-
-	return bb_header->used_modcod;
-}
-
 void BBFrame::setModcodId(unsigned int modcod_id)
 {
 	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
@@ -152,3 +139,71 @@ void BBFrame::setEncapPacketEtherType(uint16_t type)
 	bbframe_burst->pkt_type = type;
 }
 
+// TODO endianess
+
+uint8_t BBFrame::getModcodId(void) const
+{
+	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
+
+	return bb_header->used_modcod;
+}
+
+
+uint16_t BBFrame::getEncapPacketEtherType(void) const
+{
+	T_DVB_BBFRAME *bbframe_burst = (T_DVB_BBFRAME *)this->data.c_str();
+
+	return bbframe_burst->pkt_type;
+}
+
+
+uint16_t BBFrame::getDataLength(void) const
+{
+	T_DVB_BBFRAME *bbframe_burst = (T_DVB_BBFRAME *)this->data.c_str();
+
+	return bbframe_burst->data_length;
+}
+
+void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
+{
+	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
+	T_DVB_REAL_MODCOD option;
+
+	option.terminal_id = htons(tal_id);
+	option.real_modcod = modcod_id;
+	this->data.insert(sizeof(T_DVB_BBFRAME), (unsigned char *)(&option),
+	                  sizeof(T_DVB_REAL_MODCOD));
+
+	bb_header->real_modcod_nbr += 1;
+}
+
+void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
+{
+	unsigned int i;
+	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
+	T_DVB_REAL_MODCOD *real_modcod_option;
+	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->data.c_str() + sizeof(T_DVB_BBFRAME));
+
+	for(i = 0; i < bb_header->real_modcod_nbr; i++)
+	{
+		// retrieve one real MODCOD option
+		real_modcod_option += 1;
+
+		// is the option for us ?
+		if(ntohs(real_modcod_option->terminal_id) == tal_id)
+		{
+			UTI_DEBUG("update real MODCOD to %d\n",
+			          real_modcod_option->real_modcod);
+			// check if the value is not outside the values of the file
+			modcod_id = real_modcod_option->real_modcod;
+			return;
+		}
+	}
+	// let modcod_id unchanged if there is no option
+}
+
+size_t BBFrame::getOffsetForPayload(void)
+{
+	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
+	return sizeof(T_DVB_BBFRAME) + bb_header->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
+}

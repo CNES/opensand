@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <string.h>
 
+
 /**
  * @brief Check if a file exists
  *
@@ -68,7 +69,8 @@ FmtSimulation::FmtSimulation():
 	ret_modcod_def(),
 	ret_modcod_simu(NULL),
 	is_fwd_modcod_simu_defined(false),
-	is_ret_modcod_simu_defined(false)
+	is_ret_modcod_simu_defined(false),
+	need_advertise()
 {
 }
 
@@ -107,14 +109,14 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 
 	// create the new ST
 	if(this->is_fwd_modcod_simu_defined &&
-	   this->fwd_modcod_list.size() < simu_column_num)
+	   this->fwd_modcod_list.size() <= simu_column_num)
 	{
 		UTI_ERROR("cannot access down/forward modcod column %lu for ST%u\n",
 		          simu_column_num, id);
 		return false;
 	}
 	if(this->is_ret_modcod_simu_defined &&
-	   this->ret_modcod_list.size() < simu_column_num)
+	   this->ret_modcod_list.size() <= simu_column_num)
 	{
 		UTI_ERROR("cannot access up/return modcod  column %lu for ST%u\n",
 		          simu_column_num, id);
@@ -221,7 +223,11 @@ bool FmtSimulation::areCurrentFwdModcodsAdvertised()
 	{
 		all_advertised &= it->second->isCurrentFwdModcodAdvertised();
 	}
-
+	if(all_advertised)
+	{
+		// clear in case this was not
+		this->need_advertise.clear();
+	}
 	return all_advertised;
 }
 
@@ -230,7 +236,7 @@ bool FmtSimulation::setForwardModcodDef(const string &filename)
 {
 	if(!fileExists(filename.c_str()))
 	{
-		return false;;
+		return false;
 	}
 
 	// load all the MODCOD definitions from file
@@ -338,7 +344,7 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 	unsigned int lower_modcod_id = 0;
 	tal_id_t tal_id;
 	tal_id_t lower_tal_id = -1;
-	bool do_advertise_modcod;
+	bool advertised_modcod;
 
 	for(st_iterator = this->sts.begin(); st_iterator != this->sts.end();
 	    ++st_iterator)
@@ -346,20 +352,11 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 		// Retrieve the lower modcod
 		tal_id = st_iterator->first;
 
-		UTI_DEBUG_L3("reading modcod of tal_id: %u\n", tal_id);
-
-
 		// retrieve the current MODCOD for the ST and whether
 		// it changed or not
-		if(!this->doTerminalExist(tal_id))
-		{
-			UTI_ERROR("encapsulation packet is for ST with ID %u "
-		          "that is not registered\n", tal_id);
-			goto error;
-		}
-		do_advertise_modcod =
+		advertised_modcod =
 			!this->isCurrentFwdModcodAdvertised(tal_id);
-		if(!do_advertise_modcod)
+		if(!advertised_modcod)
 		{
 			modcod_id = this->getCurrentFwdModcodId(tal_id);
 		}
@@ -368,15 +365,8 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 			modcod_id = this->getPreviousFwdModcodId(tal_id);
 		}
 		UTI_DEBUG_L3("MODCOD for ST ID %u = %u (changed = %s)\n",
-	             tal_id, modcod_id,
-	             do_advertise_modcod ? "yes" : "no");
-
-#if 0 /* TODO: manage options */
-		if(do_advertise_modcod)
-		{
-			this->createOptionModcod(comp, nb_row, *modcod_id, id);
-		}
-#endif
+	                 tal_id, modcod_id,
+	                 advertised_modcod ? "yes" : "no");
 
 		if((st_iterator == this->sts.begin()) || (modcod_id < lower_modcod_id))
 		{
@@ -388,9 +378,6 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 	UTI_DEBUG_L3("TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
 
 	return lower_tal_id;
-
-error:
-	return -1;
 }
 
 
@@ -439,11 +426,24 @@ bool FmtSimulation::isCurrentFwdModcodAdvertised(tal_id_t id) const
 	{
 		return (*st_iter).second->isCurrentFwdModcodAdvertised();
 	}
-	return 0;
-
+	return false;
 }
 
-// TODO getMin ????
+
+bool FmtSimulation::getNextFwdModcodToAdvertise(tal_id_t &tal_id, unsigned int &modcod_id)
+{
+	if(this->need_advertise.size() == 0)
+	{
+		return false;
+	}
+	tal_id = this->need_advertise.front();
+	this->need_advertise.pop_front();
+	modcod_id = this->getCurrentFwdModcodId(tal_id);
+	this->setFwdModcodAdvertised(tal_id);
+	return true;
+}
+
+
 unsigned int FmtSimulation::getMaxFwdModcod() const
 {
 	return this->fwd_modcod_def.getMaxId();
@@ -500,6 +500,7 @@ bool FmtSimulation::goNextScenarioStepFwdModcod()
 		StFmtSimu *st;
 		tal_id_t st_id;
 		unsigned long column;
+		list<tal_id_t>::iterator tal_it;
 
 		st = it->second;
 		st_id = st->getId();
@@ -508,7 +509,7 @@ bool FmtSimulation::goNextScenarioStepFwdModcod()
 		UTI_DEBUG_L3("ST with ID %u uses MODCOD ID at column %lu\n",
 		             st_id, column);
 
-		if(this->fwd_modcod_list.size() < column)
+		if(this->fwd_modcod_list.size() <= column)
 		{
 			UTI_ERROR("cannot access modcod column %lu for ST%u\n",
 			          column, st_id);
@@ -516,8 +517,15 @@ bool FmtSimulation::goNextScenarioStepFwdModcod()
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateFwdModcodId(atoi(this->fwd_modcod_list[column].c_str()));
+		tal_it = std::find(this->need_advertise.begin(), this->need_advertise.end(), st_id);
+		// add the terminal ID in le list of not advertised terminal if necessary
+		if(!st->isCurrentFwdModcodAdvertised() &&
+		   tal_it == this->need_advertise.end())
+		{
+			this->need_advertise.push_back(st_id);
+		}
 
-		UTI_DEBUG_L3("new MODCOD ID of ST with ID %u = %u\n", st_id,
+		UTI_DEBUG_L3("new down/forward MODCOD ID of ST with ID %u = %u\n", st_id,
 		             atoi(this->fwd_modcod_list[column].c_str()));
 	}
 
@@ -558,10 +566,10 @@ bool FmtSimulation::goNextScenarioStepRetModcod()
 		st_id = st->getId();
 		column = st->getSimuColumnNum();
 
-		UTI_DEBUG("ST with ID %u uses up/return MODCOD ID at column %lu\n",
-		          st_id, column);
+		UTI_DEBUG_L3("ST with ID %u uses up/return MODCOD ID at column %lu\n",
+		             st_id, column);
 
-		if(this->ret_modcod_list.size() < column)
+		if(this->ret_modcod_list.size() <= column)
 		{
 			UTI_ERROR("cannot access up/return MODCOD column %lu for ST%u\n",
 			          column, st_id);
@@ -570,8 +578,8 @@ bool FmtSimulation::goNextScenarioStepRetModcod()
 		// replace the current MODCOD ID by the new one
 		st->updateRetModcodId(atoi(this->ret_modcod_list[column].c_str()));
 
-		UTI_DEBUG("new up/return MODCOD ID of ST with ID %u = %u\n", st_id,
-		          atoi(this->ret_modcod_list[column].c_str()));
+		UTI_DEBUG_L3("new up/return MODCOD ID of ST with ID %u = %u\n", st_id,
+		             atoi(this->ret_modcod_list[column].c_str()));
 	}
 
 	return true;
@@ -586,6 +594,7 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 	std::stringbuf buf;
 	std::stringstream line;
 	std::stringbuf token;
+	list.clear();
 
 	// get the next line in the file
 	simu_file->get(buf);
@@ -652,3 +661,15 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 error:
 	return false;
 }
+
+
+void FmtSimulation::setFwdModcodAdvertised(tal_id_t tal_id)
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+	st_iter = this->sts.find(tal_id);
+	if(st_iter != this->sts.end())
+	{
+		(*st_iter).second->setFwdModcodAdvertised();
+	}
+}
+

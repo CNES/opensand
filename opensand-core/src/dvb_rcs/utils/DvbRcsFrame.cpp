@@ -102,14 +102,10 @@ bool DvbRcsFrame::addPacket(NetPacket *packet)
 	is_added = DvbFrame::addPacket(packet);
 	if(is_added)
 	{
-		T_DVB_ENCAP_BURST dvb_header;
+		T_DVB_ENCAP_BURST *dvb_header = (T_DVB_ENCAP_BURST *)this->data.c_str();
 
-		memcpy(&dvb_header, this->data.c_str(), sizeof(T_DVB_ENCAP_BURST));
-		dvb_header.hdr.msg_length += packet->getTotalLength();
-		dvb_header.qty_element++;
-		this->data.replace(0, sizeof(T_DVB_ENCAP_BURST),
-		                    (unsigned char *) &dvb_header,
-		                    sizeof(T_DVB_ENCAP_BURST));
+		dvb_header->hdr.msg_length += packet->getTotalLength();
+		dvb_header->qty_element += 1;
 	}
 
 	return is_added;

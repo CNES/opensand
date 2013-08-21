@@ -62,133 +62,19 @@ DvbS2Std::~DvbS2Std()
 }
 
 
-#if 0
-bool DvbS2Std::createOptionModcod(component_t comp, long tal_id,
-                                  unsigned int modcod, long spot_id)
-{
-	int ul_encap_packet_length = MpegPacket::length();
-	unsigned char *dvb_payload;  // pointer to room for encap packet
-				     // in the BBframe payload
-	int max_packets;
-	int bbframe_size;
-	map<unsigned int, T_DVB_BBFRAME *> *bbframe_table;
-	map<unsigned int, T_DVB_BBFRAME *>::iterator it;
-	NetBurst *burst_table;
-	bool do_advertise_modcod;
-	int max_per_burst;
-	int first_id;
-
-	// retrieve some variables
-	switch(comp)
-	{
-		case satellite:
-			bbframe_table = ((BlocDVBRcsSat*)component_bloc)->spots[id]->m_bbframe;
-			burst_table = ((BlocDVBRcsSat*)component_bloc)->spots[id]->m_encapBurstMPEGUnderBuild;
-			do_advertise_modcod = !((BlocDVBRcsSat*)component_bloc)->fmt_simu.isCurrentModcodAdvertised(tal_id);
-			first_id = ((BlocDVBRcsSat*)component_bloc)->getFirstModcodID();
-			break;
-		case gateway:
-			bbframe_table = ((BlocDVBRcsNcc*) component_bloc)->m_bbframe;
-			burst_table = ((BlocDVBRcsNcc*)component_bloc)->m_encapBurstMPEGUnderBuild;
-			do_advertise_modcod = !((BlocDVBRcsNcc*)component_bloc)->fmt_simu.isCurrentModcodAdvertised(tal_id);
-			first_id = ((BlocDVBRcsNcc*)component_bloc)->getFirstModcodID();
-			break;
-		default:
-			UTI_ERROR("the type of the component is not adapted here\n");
-			assert(0);
-			goto error;
-	}
-
-	// do not create MODCOD option if the MODCOD
-	if(!do_advertise_modcod)
-	{
-		UTI_DEBUG("MODCOD ID already advertised for ST %ld\n", tal_id);
-		goto skip;
-	}
-
-	// get the BB frame that corresponds to the MODCOD
-	it = bbframe_table->find(modcod);
-	if(update == true && it != bbframe_table->end())
-	{
-		UTI_DEBUG_L3("option in construction\n");
-		dvb_payload = (unsigned char *)it->second + sizeof(T_DVB_BBFRAME)+
-			      it->second->real_modcod_nbr*sizeof(T_DVB_REAL_MODCOD);
-		it->second->real_modcod_nbr ++;
-		g_memory_pool_dvb_rcs.add_function(string(__FUNCTION__), (char *) it->second);
-
-		//Updates the size of the data
-		max_per_burst = (MSG_BBFRAME_SIZE_MAX- sizeof(T_DVB_BBFRAME)
-			      - (it->second->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD)))
-			      / ul_encap_packet_length;
-		if(comp == satellite)
-		{
-			((BlocDVBRcsSat*)component_bloc)->setMaxPacketsBurst(max_per_burst);
-			bbframe_size = DvbS2Std::getPayload(((BlocDVBRcsSat*)component_bloc)->modcod_definitions.getCodingRate(modcod));
-		}
-		else if(comp == gateway)
-		{
-			((BlocDVBRcsNcc*)component_bloc)->setMaxPacketsBurst(max_per_burst);
-			bbframe_size = DvbS2Std::getPayload(((BlocDVBRcsNcc*)component_bloc)->modcod_definitions.getCodingRate(modcod));
-		}
-		else
-		{
-			assert(0);
-		}
-		max_packets = (bbframe_size - sizeof(T_DVB_BBFRAME)-(it->second->real_modcod_nbr
-			      *sizeof(T_DVB_REAL_MODCOD)))/ ul_encap_packet_length;
-		UTI_DEBUG("%s max packets : %d \n", FUNCNAME, max_packets);
-		burst_table[modcod - first_id].setMaxPackets(max_packets);
-
-		//Option to give the new real modcod to the specified ST (pid)
-		T_DVB_REAL_MODCOD *newRealModcod;
-		newRealModcod =(T_DVB_REAL_MODCOD*)malloc(sizeof(T_DVB_REAL_MODCOD));
-		if(newRealModcod != NULL)
-		{
-			newRealModcod->terminal_id = tal_id;
-			if(comp == satellite)
-			{
-				((BlocDVBRcsSat*)component_bloc)->setUpdateST(false, nb_row);
-				newRealModcod->real_modcod = ((BlocDVBRcsSat*)component_bloc)->getModcodID(nb_row);
-			}
-			else if(comp == gateway)
-			{
-				((BlocDVBRcsNcc*)component_bloc)->setUpdateST(false, nb_row);
-				newRealModcod->real_modcod = ((BlocDVBRcsNcc*)component_bloc)->getModcodID(tal_id);
-			}
-			// fills the BBframe payload with the new option
-			memcpy(dvb_payload, newRealModcod, sizeof(T_DVB_REAL_MODCOD));
-			free(newRealModcod);
-		}
-		else
-		{
-			UTI_ERROR("%s Failed to allocate the new option\n", FUNCNAME);
-		}
-	}
-
-skip:
-	UTI_DEBUG_L3("creation of MODCOD option for ST %ld finished\n", tal_id);
-	return true;
-
-error:
-	UTI_ERROR("failed to create MODCOD option for ST %ld\n", tal_id);
-	return false;
-}
-#endif
-
-
 // TODO factorize with DVB-RCS function ?
 int DvbS2Std::onRcvFrame(unsigned char *frame,
                          long length,
                          long type,
-                         int mac_id,
+                         tal_id_t tal_id,
                          NetBurst **burst)
 {
-	T_DVB_BBFRAME *bbframe_burst; // BBFrame burst received from lower layer
+	// TODO insted of cast in T_DVB_BBFRAME use this !
+	BBFrame bbframe_burst(frame, length);
 	long i;                       // counter for packets
 	int real_mod;                 // real modcod of the receiver
 
 	// Offset from beginning of frame to beginning of data
-	size_t offset;
 	size_t previous_length = 0;
 
 	*burst = NULL;
@@ -206,23 +92,21 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		goto error;
 	}
 
-	bbframe_burst = (T_DVB_BBFRAME *) frame;
-
 	// sanity check: this function only handle BB frames
 	if(type != MSG_TYPE_BBFRAME)
 	{
 		UTI_ERROR("the message received is not a BB frame\n");
 		goto error;
 	}
-	if(bbframe_burst->pkt_type != this->packet_handler->getEtherType())
+	if(bbframe_burst.getEncapPacketEtherType() != this->packet_handler->getEtherType())
 	{
 		UTI_ERROR("Bad packet type (%d) in BB frame burst (expecting %d)\n",
-		          bbframe_burst->pkt_type,
+		          bbframe_burst.getEncapPacketEtherType(),
 		          this->packet_handler->getEtherType());
 		goto error;
 	}
 	UTI_DEBUG("BB frame received (%d %s packet(s)\n",
-	           bbframe_burst->data_length,
+	           bbframe_burst.getDataLength(),
 	           this->packet_handler->getName().c_str());
 
 	// retrieve the current real MODCOD of the receiver
@@ -231,27 +115,11 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// check if there is an update of the real MODCOD among all the real
 	// MODCOD options located just after the header of the BB frame
-	for(i = 0; i < bbframe_burst->real_modcod_nbr; i++)
-	{
-		T_DVB_REAL_MODCOD *real_modcod_option;
-
-		// retrieve one real MODCOD option
-		real_modcod_option = (T_DVB_REAL_MODCOD *)
-			(frame + sizeof(T_DVB_BBFRAME) + i * sizeof(T_DVB_REAL_MODCOD));
-
-		// is the option for us ?
-		if(real_modcod_option->terminal_id == mac_id)
-		{
-			UTI_DEBUG("update real MODCOD to %d\n",
-			          real_modcod_option->real_modcod);
-			// check if the value is not outside the values of the file
-			this->real_modcod = real_modcod_option->real_modcod;
-		}
-	}
+	bbframe_burst.getRealModcod(tal_id, this->real_modcod);
 
 	// used for terminal statistics
 	// TODO add the stat
-	this->received_modcod = bbframe_burst->used_modcod;
+	this->received_modcod = bbframe_burst.getModcodId();
 
 	// is the ST able to decode the received BB frame ?
 	if(this->received_modcod > real_mod)
@@ -264,7 +132,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		goto drop;
 	}
 
-	if(bbframe_burst->data_length <= 0)
+	if(bbframe_burst.getDataLength() <= 0)
 	{
 		UTI_DEBUG("skip BB frame with no encapsulation packet\n");
 		goto skip;
@@ -282,20 +150,22 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// add packets received from lower layer
 	// to the newly created burst
-	offset = sizeof(T_DVB_BBFRAME) +
-	         bbframe_burst->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
-	for(i = 0; i < bbframe_burst->data_length; i++)
+	for(i = 0; i < bbframe_burst.getDataLength(); i++)
 	{
 		NetPacket *encap_packet;
 		size_t current_length;
 
-		current_length = this->packet_handler->getLength(frame + offset +
-		                                                 previous_length);
+		current_length = this->packet_handler->getLength(
+								bbframe_burst.getPayload().c_str() +
+								previous_length);
 		// Use default values for QoS, source/destination tal_id
-		encap_packet = this->packet_handler->build(frame + offset + previous_length,
-		                                           current_length,
-		                                           0x00, BROADCAST_TAL_ID,
-		                                           BROADCAST_TAL_ID);
+		encap_packet = this->packet_handler->build(
+								// TODO remove cat if build accepts const
+								(unsigned char *)bbframe_burst.getPayload().c_str() +
+								previous_length,
+								current_length,
+								0x00, BROADCAST_TAL_ID,
+								BROADCAST_TAL_ID);
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{
