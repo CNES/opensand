@@ -114,11 +114,14 @@ class ProbeGraph(object):
         x = list(self._times)
         y = list(self._values)
         if not self._dirty:
+            # add fake values for best print, taking absolute minimum value
+            # on ordinates allows getting correct scale in any case
+            # TODO if some values are computed on values, ignore these
             try:
                 x.insert(0, x[0] - 1)
                 x.insert(0, 0)
-                y.insert(0, 0)
-                y.insert(0, 0)
+                y.insert(0, min(y, key=abs))
+                y.insert(0, min(y, key=abs))
             except (ValueError, IndexError):
                 pass
 
