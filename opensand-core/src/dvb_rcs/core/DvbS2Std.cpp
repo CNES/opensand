@@ -160,7 +160,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 								previous_length);
 		// Use default values for QoS, source/destination tal_id
 		encap_packet = this->packet_handler->build(
-								// TODO remove cat if build accepts const
+								// TODO remove cast if build accepts const
 								(unsigned char *)bbframe_burst.getPayload().c_str() +
 								previous_length,
 								current_length,

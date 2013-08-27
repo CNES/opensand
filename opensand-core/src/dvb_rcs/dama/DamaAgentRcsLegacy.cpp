@@ -334,8 +334,8 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	// get the sum of RBDC request during last MSL
 	rbdc_req_in_previous_msl_kbps = this->rbdc_request_buffer->GetSum();
 
-	// TODO original algo was rbdc_length - rbdc_arrivale but 
-	//      this does not work for first packet and I do'nt understand comment !
+	// TODO original algo was rbdc_length - rbdc_arrivals but 
+	//      this does not work for first packet and I don't understand comment !
 	//req_kbps = (int)((rbdc_length_b - rbdc_pkt_arrival_b) -
 	req_kbps = (int)(rbdc_length_b -
 	                 (this->rbdc_timer_sf * this->frame_duration_ms *

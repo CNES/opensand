@@ -40,7 +40,7 @@
 
 #include <NetPacket.h>
 
-// TODO inherit from OpenSandFrame ?
+// TODO inherit from OpenSandFrame for endianess ?
 
 /**
  * @class DvbFrame

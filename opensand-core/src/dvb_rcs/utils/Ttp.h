@@ -56,11 +56,10 @@ typedef struct
 typedef struct
 {
 	uint8_t frame_number;            ///< The frame number within the superframe
-	uint8_t tp_loop_count;           ///< one less than the number of the frame
-	                                 //   TP entry loops that follow
-	                                 //   nbr max loop = nbr max of terminals
-	                                 //   so 5 bits here (while 16 in standard)
-	//TODO be careful with simulator we may need more than 5bits
+	// TODO we don't do one less
+	uint16_t tp_loop_count;           ///< one less than the number of the frame
+	                                   //   TP entry loops that follow
+	                                   //   nbr max loop = nbr max of terminals
 } __attribute__((packed)) frame_info_t;
 
 

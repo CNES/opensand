@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 
+<!-- TODO add types as in OpenSandCore.h -->
 <xsd:simpleType name="talId">
     <xsd:restriction base="xsd:nonNegativeInteger">
         <xsd:minInclusive value="0" />

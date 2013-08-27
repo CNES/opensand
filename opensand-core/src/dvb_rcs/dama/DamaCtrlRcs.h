@@ -113,8 +113,6 @@ class DamaCtrlRcs: public DamaCtrl
 	// Update MODCOD for each terminal
 	virtual void updateFmt();
 
-//	virtual int hereIsSACT(unsigned char *ip_buf, long i_len);
-
 };
 
 

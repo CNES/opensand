@@ -56,7 +56,7 @@
 </xsd:element>
 
 <!-- types for dvb_rcs_ncc section -->
-<!-- TODO: be more precise that bitrates, depending on parameter -->
+<!-- TODO: be more precise that bitrates, depending on parameter, see TODO in common.xsd -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />

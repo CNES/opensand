@@ -64,7 +64,7 @@ BlockLanAdaptation::BlockLanAdaptation(const string &name, component_t host,
 	lan_iface(lan_iface),
 	state(link_down),
 	is_tap(false),
-	// TODO add a parameter for that
+	// TODO add a parameter for that or use frame timer
 	stats_period(53)
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward

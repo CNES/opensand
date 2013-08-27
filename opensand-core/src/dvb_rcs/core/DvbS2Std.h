@@ -82,21 +82,6 @@ class DvbS2Std: public PhysicStd
 	               tal_id_t tal_id,
 	               NetBurst **burst);
 
-
-#if 0 /* TODO: manage options */
-	/**
-	 * @brief Create real modcods option which is done when there is an update
-	 *
-	 * @param comp     the bloc component
-	 * @param tal_id   the ID of the Satellite Terminal (ST)
-	 * @param modcod   the modcod ID of destination terminal
-	 * @param spot_id  the id of the spot of the destination terminal
-	 * @return         true in case of success, false otherwise
-	 */
-	bool createOptionModcod(component_t comp, long pid,
-	                        unsigned int modcod, long spot_id);
-#endif
-
  private:
 
 	/**

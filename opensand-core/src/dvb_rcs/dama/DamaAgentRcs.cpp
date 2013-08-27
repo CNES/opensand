@@ -74,6 +74,5 @@ bool DamaAgentRcs::hereIsSOF(time_sf_t superframe_number_sf)
 		return false;
 	}
 	// TODO check that in previous DAMA
-	this->current_frame = 0;
 	return true;
 }

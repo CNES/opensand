@@ -106,12 +106,6 @@
 #define MSG_TYPE_BBFRAME 13
 
 /**
- * Normally emmitted by the Satellite Emulator to  the NCC
- * Used Internally by the Geocast hence: NCC internal
- */
-//#define MSG_TYPE_SACT 20
-
-/**
  * Allocation Table, NCC -> ST
  */
 #define MSG_TYPE_TTP 21
@@ -253,67 +247,6 @@ typedef struct
 	emu_sac_t sac;
 } __attribute__((packed)) T_DVB_SAC_CR;
 
-
-#if 0
-// TODO remove if SACT no used anymore
-/**
- * Capacity demand information structure
- */
-// TODO check with CR for sizes
-typedef struct
-{
-	uint8_t route_id;        ///< Set to 0. used for on board routing
-	uint8_t scaling_factor;  ///< The scale of the request
-	uint8_t type;            ///< Type of CR
-	uint8_t channel_id;      ///< Set to 0
-	uint8_t xbdc;            ///< Number of slot requested
-	uint16_t group_id;       ///< Terminal Group Id
-	uint16_t logon_id;       ///< Terminal Logon Id
-	uint8_t M_and_C;         ///< Set to 0
-} __attribute__((__packed__)) T_DVB_SAC_CR_INFO;
-
-
-/**
- * SACT, emitted by SE, a compound of CR
- */
-typedef struct
-{
-	T_DVB_HDR hdr;         ///< Basic DVB Header
-	uint16_t qty_element;  ///< Number of requests (followed by qty_element
-	                       ///< T_DVB_SAC_CR_INFO)
-	T_DVB_SAC_CR_INFO sac; ///< 1st element of the array (should be demoted)
-} __attribute__((__packed__)) T_DVB_SACT;
-
-
-/**
- * @brief return the lenght of a sac packet according to weirds thing (sac)
- * above in T_DVB_SACT
- */
-#define len_sac_pkt(buff) \
-	(sizeof(T_DVB_SACT) + \
-	(((T_DVB_SACT *)(buff))->qty_element - 1) * sizeof(T_DVB_SAC_CR_INFO))
-
-/**
- * @brief return the first T_DVB_SAC_CR_INFO pointer associated with a buffer
- * pointing to a T_DVB_SACT struct (counting from 0)
- * @param buff the pointer to the T_DVB_SACT struct
- */
-#define first_sac_ptr(buff) (&(buff->sac))
-
-/**
- * @brief return the ith T_DVB_SAC_CR_INFO pointer associated with a buffer
- * pointing to a T_DVB_SACT struct
- * @param i the index (input)
- * @param buff the pointer to the T_DVB_SACT struct
- */
-#define ith_sac_ptr(i,buff) (&(buff->sac) + (i-1))
-
-/**
- * @brief return the next T_DVB_SAC_CR_INFO pointer after the current one
- * @param buff the pointer to the T_DVB_SAC_CR_INFO struct
- */
-#define next_sac_ptr(buff) ((T_DVB_SAC_CR_INFO *)buff + 1)
-#endif
 
 /**
  * Time Burst Time plan, essentially A basic DVB Header

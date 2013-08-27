@@ -1257,13 +1257,6 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		}
 		break;
 
-/* TODO remove if not used anymore
-		case MSG_TYPE_SACT:
-			UTI_DEBUG_L3("%s SACT\n", FUNCNAME);
-			this->dama_ctrl->hereIsSACT(data, len);
-			free(data);
-			break;*/
-
 		case MSG_TYPE_SESSION_LOGON_REQ:
 			UTI_DEBUG("Logon Req\n");
 			this->onRcvLogonReq(data, len);
