@@ -534,7 +534,7 @@ void RtChannel::executeThread(void)
 		for(list<RtEvent *>::iterator iter = priority_sorted_events.begin();
 			iter != priority_sorted_events.end(); ++iter)
 		{
-			(*iter)->setCreationTime();
+			(*iter)->setTriggerTime();
 			if(!this->processEvent(*iter))
 			{
 				UTI_ERROR("[%s]Channel %u: failed to process event %s",

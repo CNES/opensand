@@ -47,7 +47,8 @@ RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t prio
 	priority(priority)
 {
 	UTI_DEBUG("Create new event \"%s\" of type %d\n", name.c_str(), type);
-	this->setCreationTime();
+	this->setTriggerTime();
+	this->setCustomTime();
 }
 
 RtEvent::~RtEvent()
@@ -55,20 +56,40 @@ RtEvent::~RtEvent()
 	close(this->fd);
 }
 
-void RtEvent::setCreationTime(void)
+void RtEvent::setTriggerTime(void)
 {
-	gettimeofday(&this->creation_time, NULL);
+	gettimeofday(&this->trigger_time, NULL);
 }
 
-timeval RtEvent::getElapsedTime() const
+void RtEvent::setCustomTime(void) const
+{
+	gettimeofday(&this->custom_time, NULL);
+}
+
+timeval RtEvent::getTimeFromTrigger(void) const
 {
 	timeval res;
 	timeval current;
 	gettimeofday(&current, NULL);
 
-	res.tv_sec = abs(current.tv_sec - this->creation_time.tv_sec) ;
-	res.tv_usec = abs(current.tv_usec - this->creation_time.tv_usec);
+	res.tv_sec = abs(current.tv_sec - this->trigger_time.tv_sec) ;
+	res.tv_usec = abs(current.tv_usec - this->trigger_time.tv_usec);
 	return res;
 }
 
+timeval RtEvent::getTimeFromCustom(void) const
+{
+	timeval res;
+	timeval current;
+	gettimeofday(&current, NULL);
 
+	timersub(&current, &this->custom_time, &res);
+	return res;
+}
+
+timeval RtEvent::getAndSetCustomTime(void) const
+{
+	timeval res = this->getTimeFromCustom();
+	this->setCustomTime();
+	return res;
+}

@@ -213,6 +213,12 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			if(*event == this->frame_timer)
 			{
 				uint32_t remaining_alloc_sym = 0;
+				if(this->probe_frame_interval->isEnabled())
+				{
+					timeval time = event->getAndSetCustomTime();
+					float val = time.tv_sec * 1000000L + time.tv_usec;
+					this->probe_frame_interval->put(val);
+				}
 
 				// increment counter of frames per superframe
 				this->frame_counter++;
@@ -1185,6 +1191,9 @@ bool BlockDvbNcc::initOutput(void)
 	this->probe_incoming_throughput =
 		Output::registerProbe<float>("Physical incoming throughput",
 		                             "Kbits/s", true, SAMPLE_AVG);
+	this->probe_frame_interval = Output::registerProbe<float>("perf.Frames_interval",
+	                                                          "ms", true,
+	                                                          SAMPLE_LAST);
 
 	return true;
 }

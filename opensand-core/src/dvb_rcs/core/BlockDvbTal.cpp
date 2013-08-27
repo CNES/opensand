@@ -99,7 +99,8 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	probe_st_unused_capacity(NULL),
 	probe_st_bbframe_drop_rate(NULL),
 	probe_st_real_modcod(NULL),
-	probe_st_used_modcod(NULL)
+	probe_st_used_modcod(NULL),
+	probe_sof_interval(NULL)
 {
 	this->m_statCounters.ulOutgoingCells = NULL;
 	this->m_statCounters.ulIncomingCells = NULL;
@@ -335,6 +336,16 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
 			dvb_frame = (unsigned char *) dvb_meta->hdr;
 			len = ((MessageEvent *)event)->getLength();
+
+			// TODO get the time here and give it to onRcvDvbFrame that would add probe
+			if(this->probe_sof_interval->isEnabled() &&
+			   dvb_meta->hdr->msg_type == MSG_TYPE_SOF)
+			{
+				struct timeval time = event->getTimeFromCustom();
+				float val = time.tv_sec * 1000000L + time.tv_usec;
+				event->setCustomTime();
+				this->probe_sof_interval->put(val);
+			}
 
 			// message from lower layer: DL dvb frame
 			UTI_DEBUG_L3("SF#%u DVB frame received (len %ld)\n",
@@ -783,6 +794,9 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
+	this->probe_sof_interval = Output::registerProbe<float>("perf.SOF_interval",
+	                                                        "ms", false,
+	                                                        SAMPLE_LAST);
 
 	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos.size()];
 	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos.size()];

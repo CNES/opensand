@@ -75,11 +75,18 @@ class RtEvent
 	event_type_t getType(void) const {return this->type;};
 
 	/**
-	 * @brief Get the time since event creation
+	 * @brief Get the time since event trigger
 	 *
-	 * @return the time elapsed since event creation
+	 * @return the time elapsed since event trigger
 	 */
-	timeval getElapsedTime(void) const;
+	timeval getTimeFromTrigger(void) const;
+	
+	/**
+	 * @brief Get the time since event custom timer set
+	 *
+	 * @return the time elapsed since custom timer set
+	 */
+	timeval getTimeFromCustom(void) const;
 
 	/**
 	 * @brief Get the event priority
@@ -111,10 +118,23 @@ class RtEvent
 	virtual bool handle(void) = 0;
 
 	/**
-	 * @brief Update the creation time
+	 * @brief Update the trigger time
 	 *
 	 */
-	void setCreationTime(void);
+	void setTriggerTime(void);
+	
+	/**
+	 * @brief Update the custom time
+	 *
+	 */
+	void setCustomTime(void) const;
+
+	/**
+	 * @brief Get the custom time interval and update it
+	 *
+	 * @return tue custom time interval
+	 */
+	timeval getAndSetCustomTime(void) const;
 
 	/// operator < used by sort on events priority
 	bool operator<(const RtEvent *event) const
@@ -148,8 +168,11 @@ class RtEvent
 	/// Event priority
 	uint8_t priority;
 
-	/// date, used by default as event creation date
-	timeval creation_time;
+	/// date, used as event trigger date
+	timeval trigger_time;
+	
+	/// date, used as custom processing date
+	mutable timeval custom_time;
 };
 
 #endif

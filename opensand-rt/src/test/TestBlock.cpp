@@ -113,7 +113,7 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 		case evt_timer:
 			// timer only on upward channel
 			this->nbr_timeouts++;
-			elapsed_time = ((TimerEvent *)event)->getElapsedTime();
+			elapsed_time = ((TimerEvent *)event)->getTimeFromTrigger();
 			sprintf(this->last_written, "%ld.%06ld",
 					elapsed_time.tv_sec, elapsed_time.tv_usec);
 

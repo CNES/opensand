@@ -258,6 +258,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	// throughput from upper layer and associated probe
 	unsigned int incoming_size;
 	Probe<float> *probe_incoming_throughput;
+	Probe<float> *probe_frame_interval;
 
 	// statistics update
 	void updateStatsOnFrame();

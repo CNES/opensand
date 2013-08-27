@@ -371,7 +371,7 @@ class BlockDvbTal: public BlockDvb
 	Probe<float> *probe_st_bbframe_drop_rate;
 	Probe<int> *probe_st_real_modcod;
 	Probe<int> *probe_st_used_modcod;
-
+	Probe<float> *probe_sof_interval;
 };
 
 #endif
