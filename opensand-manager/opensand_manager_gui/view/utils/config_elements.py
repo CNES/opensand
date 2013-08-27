@@ -39,6 +39,7 @@ import gobject
 from copy import deepcopy
 
 from opensand_manager_core.my_exceptions import XmlException
+from opensand_manager_gui.view.popup.infos import error_popup
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -100,7 +101,10 @@ class ProbeSelectionController(object):
         for program in self._program_list.itervalues():
             self._toggled[program.name] = []
             for probe in program.get_probes():
-                probe.displayed = False
+                try:
+                    probe.displayed = False
+                except ValueError, msg:
+                    error_popup(str(msg))
         self._probe_store.foreach(self.unselect)
         self._notify_probe_display_changed()
 
@@ -126,7 +130,12 @@ class ProbeSelectionController(object):
                 self._toggled[program.name] = []
             for probe in program.get_probes():
                 if probe.name in self._toggled[program.name]:
-                    probe.displayed = True
+                    try:
+                        probe.displayed = True
+                    except ValueError:
+                        # the probe is not available for this scenario
+                        pass
+        self._notify_probe_display_changed()
 
         gobject.idle_add(self._update_data)
 
@@ -228,7 +237,11 @@ class ProbeSelectionController(object):
         elif probe.name in self._toggled[self._current_program.name]:
             self._toggled[self._current_program.name].remove(probe.name)
 
-        probe.displayed = new_value
+        try:
+            probe.displayed = new_value
+        except ValueError, msg:
+            error_popup(str(msg))
+
         self._probe_store.set(it, 0, new_value)
 
         self._notify_probe_display_changed()
