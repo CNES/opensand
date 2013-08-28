@@ -51,9 +51,7 @@ DamaCtrl::DamaCtrl():
 	frame_duration_ms(0),
 	frames_per_superframe(0),
 	cra_decrease(false),
-	max_rbdc_kbps(0),
 	rbdc_timeout_sf(0),
-	min_vbdc_pkt(0),
 	fca_kbps(0),
 	enable_rbdc(false),
 	enable_vbdc(false),
@@ -95,9 +93,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           unsigned int frames_per_superframe,
                           vol_bytes_t packet_length_bytes,
                           bool cra_decrease,
-                          rate_kbps_t max_rbdc_kbps,
                           time_sf_t rbdc_timeout_sf,
-                          vol_pkt_t min_vbdc_pkt,
                           rate_kbps_t fca_kbps,
                           TerminalCategories categories,
                           TerminalMapping terminal_affectation,
@@ -107,9 +103,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->frame_duration_ms = frame_duration_ms;
 	this->frames_per_superframe = frames_per_superframe;
 	this->cra_decrease = cra_decrease;
-	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
-	this->min_vbdc_pkt = min_vbdc_pkt;
 	this->fmt_simu = fmt_simu;
 
 	this->converter = new UnitConverter(packet_length_bytes,
@@ -147,6 +141,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 {
 	tal_id_t tal_id = logon.getMac();
 	rate_kbps_t cra_kbps = logon.getRtBandwidth();
+	rate_kbps_t max_rbdc_kbps = logon.getMaxRbdc();
+	vol_kb_t max_vbdc_kb = logon.getMaxVbdc();
 
 	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
@@ -163,9 +159,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		if(!this->createTerminal(&terminal,
 		                         tal_id,
 		                         cra_kbps,
-		                         this->max_rbdc_kbps,
+		                         max_rbdc_kbps,
 		                         this->rbdc_timeout_sf,
-		                         this->min_vbdc_pkt))
+		                         max_vbdc_kb))
 		{
 			UTI_ERROR("Cannot create terminal context for ST #%d\n",
 			          tal_id);

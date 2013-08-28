@@ -56,14 +56,6 @@
 </xsd:element>
 
 <!-- types for dvb_rcs_ncc section -->
-<!-- TODO: be more precise that bitrates, depending on parameter, see TODO in common.xsd -->
-<xsd:simpleType name="bitRate">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="100000" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- simulation type -->
 <xsd:simpleType name="simuType">
     <xsd:restriction base="xsd:string">
@@ -77,7 +69,7 @@
 <xsd:simpleType name="simuRandom">
     <xsd:restriction base="xsd:string">
         <!-- int>100:int:int:int -->
-        <xsd:pattern value="([0-9]*:){3}[0-9]*" />
+        <xsd:pattern value="([0-9]*:){5}[0-9]*" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -150,20 +142,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The RBDC Timeout (frame number)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="max_rbdc" type="bitRate">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The maximum RBDC value (kbits/s)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="min_vbdc" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The minimum VBDC value (cells or packets number)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

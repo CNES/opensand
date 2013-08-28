@@ -43,13 +43,13 @@ TerminalContext::TerminalContext(tal_id_t tal_id,
                                  rate_kbps_t cra_kbps,
                                  rate_kbps_t max_rbdc_kbps,
                                  time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t min_vbdc_kb):
+                                 vol_kb_t max_vbdc_kb):
 	tal_id(tal_id),
 	category(""),
 	cra_kbps(cra_kbps),
 	max_rbdc_kbps(max_rbdc_kbps),
 	rbdc_timeout_sf(rbdc_timeout_sf),
-	min_vbdc_kb(min_vbdc_kb),
+	max_vbdc_kb(max_vbdc_kb),
 	fmt_id(0),
 	carrier_id()
 {
@@ -84,9 +84,9 @@ rate_kbps_t TerminalContext::getMaxRbdc() const
 	return this->max_rbdc_kbps;
 }
 
-vol_kb_t TerminalContext::getMinVbdc() const
+vol_kb_t TerminalContext::getMaxVbdc() const
 {
-	return this->min_vbdc_kb;
+	return this->max_vbdc_kb;
 }
 
 unsigned int TerminalContext::getFmtId()

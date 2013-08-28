@@ -413,53 +413,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 		return;
 	}
 
-	// first step: try serve the minimum VBDC
-	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
-	{
-		terminal = (TerminalContextRcs *)(*tal_it);
-
-		vol_pkt_t request_pkt = terminal->getRequiredVbdc(this->frames_per_superframe);
-		request_pkt = std::min(request_pkt, terminal->getMinVbdc());
-
-		// TODO update statistics
-/*		this->stat_context.vbdc_request_number++;
-		this->stat_context.vbdc_request_sum_kbps +=
-				this->converter->pktToKb(request_pkt);*/
-
-		UTI_DEBUG_L3("%s: ST%u remaining capacity=%u minimum VBDC %u (on %u)\n",
-		             debug.c_str(),
-		             terminal->getTerminalId(),
-		             remaining_capacity_pktpf, request_pkt,
-		             terminal->getRequiredVbdc(this->frames_per_superframe));
-
-		if(request_pkt > 0)
-		{
-			if(request_pkt <= remaining_capacity_pktpf)
-			{
-				// enough capacity to allocate
-				remaining_capacity_pktpf -= request_pkt;
-				terminal->setVbdcAllocation(request_pkt, this->frames_per_superframe);
-				UTI_DEBUG_L3("%s ST%u allocate minimum VBDC: %u\n",
-				             debug.c_str(),
-				             terminal->getTerminalId(),
-				             request_pkt);
-			}
-			else
-			{
-				// not enough capacity to allocate the complete request
-				terminal->setVbdcAllocation(remaining_capacity_pktpf,
-				                            this->frames_per_superframe);
-				remaining_capacity_pktpf = 0;
-				UTI_DEBUG_L3("%s: ST%u allocate partial minimum VBDC: %u<%u\n",
-				             debug.c_str(),
-				             terminal->getTerminalId(),
-				             remaining_capacity_pktpf, request_pkt);
-				return;
-			}
-		}
-	}
-
-	// second step: try serve the required VBDC
+	// try to serve the required VBDC
 	// the setVbdcAllocation functions had updated the VBDC requests
 	// sort terminal according to their new VBDC requests
 	std::stable_sort(tal.begin(), tal.end(),

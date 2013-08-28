@@ -212,6 +212,9 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		// or if CR is different from previous one
 		if(rbdc_request_kbps > 0)
 		{
+// TODO do we keep that ? if not remove RBDC timeout from DAMA Agent ?
+//      RBDC timeout is useful for inband request so
+//      maybe we should keep it (but renaming it)
 #ifdef OPTIMIZE
 			if(rbdc_request_kbps != this->rbdc_request_buffer->GetPreviousValue()
 			   || this->rbdc_timer_sf > (this->rbdc_timeout_sf / 2))
@@ -291,6 +294,9 @@ bool DamaAgentRcsLegacy::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	rate_kbps_t remaining_alloc_kbps;
 	uint32_t remaining_alloc_pktpf = this->remaining_allocation_pktpf;
 
+	UTI_DEBUG_L3("SF#%u: frame %u: allocation before scheduling %u\n",
+	             this->current_superframe_sf, this->current_frame,
+	             remaining_alloc_pktpf);
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
 	                                 this->current_frame,
 	                                 0,
@@ -301,6 +307,9 @@ bool DamaAgentRcsLegacy::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 		          this->current_superframe_sf, this->current_frame);
 		return false;
 	}
+	UTI_DEBUG_L3("SF#%u: frame %u: remaining allocation after scheduling %u\n",
+	             this->current_superframe_sf, this->current_frame,
+	             remaining_alloc_pktpf);
 	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
 
 	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
@@ -395,32 +404,40 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 {
 	vol_pkt_t vbdc_need_pkt;
 	vol_pkt_t vbdc_request_pkt;
+	vol_pkt_t max_vbdc_pkt = this->converter->kbitsToPkt(this->max_vbdc_kb);
+	// TODO there is a problem with vbdc_credit ! it is not decreased !
+	//      At the moment, set 0
+	//      we may decrease it from allocated packets number
+	//      or from the number of packets removed in fifo with
+	//      getRemoved accessor and resetRemoved in FIFO
+	//      Whatever, the VBDC algorithm is very bad !
+	this->vbdc_credit_pkt = 0;
 
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
-	UTI_DEBUG_L3("SF#%u: frame %u: MAC buffer length = %d, VBDC credit = %u\n",
+	UTI_ERROR("SF#%u: frame %u: MAC buffer length = %d, VBDC credit = %u\n",
 	             this->current_superframe_sf, this->current_frame,
 	             vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
-	UTI_DEBUG_L3("SF#%u: frame %u: theoretical VBDC request = %u packets",
+	UTI_ERROR("SF#%u: frame %u: theoretical VBDC request = %u packets",
 	             this->current_superframe_sf, this->current_frame,
 	             vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */
-	vbdc_request_pkt = min(vbdc_request_pkt, this->max_vbdc_pkt);
+	vbdc_request_pkt = min(vbdc_request_pkt, max_vbdc_pkt);
 
 	// Ensure VBDC request value is not greater than SAC field
 	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
-	UTI_DEBUG_L3("updated VBDC request = %d packets in fonction of "
+	UTI_ERROR("updated VBDC request = %d packets in fonction of "
 	             "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
 	this->vbdc_credit_pkt += vbdc_request_pkt;
-	UTI_DEBUG_L3("updated VBDC request = %d packets in SAC, VBDC credit = %u\n",
+	UTI_ERROR("updated VBDC request = %d packets in SAC, VBDC credit = %u\n",
 	             vbdc_request_pkt, this->vbdc_credit_pkt);
 
 	return vbdc_request_pkt;

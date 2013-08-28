@@ -54,8 +54,13 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
 	 * @param mac           The terminal MAC id
 	 * @param rt_bandwidth  The terminal fixed bandwidth for RT applications
 	 *                      (used for CRA)
+	 * @param max_rbdc      The maximum RBDC value
+	 * @param max_vbdc      The maximum VBDC value
 	 */
-	LogonRequest(tal_id_t mac, rate_kbps_t rt_bandwidth);
+	LogonRequest(tal_id_t mac,
+	             rate_kbps_t rt_bandwidth,
+	             rate_kbps_t max_rbdc,
+	             rate_kbps_t max_vbdc);
 
 	/**
 	 * @brief Logon request constructor for NCC (receiver)
@@ -80,6 +85,20 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
 	 * @return the RT bandwidth field
 	 */
 	rate_kbps_t getRtBandwidth(void) const;
+
+	/**
+	 * @brief Get the max_rbdc field
+	 *
+	 * @return the maximum RBDC field
+	 */
+	rate_kbps_t getMaxRbdc(void) const;
+
+	/**
+	 * @brief Get the max_vbdc field
+	 *
+	 * @return the maximum VBDC field
+	 */
+	rate_kbps_t getMaxVbdc(void) const;
 
 };
 

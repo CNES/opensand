@@ -39,13 +39,18 @@
 
 /* REQUEST */
 
-LogonRequest::LogonRequest(tal_id_t mac, rate_kbps_t rt_bandwidth):
+LogonRequest::LogonRequest(tal_id_t mac,
+                           rate_kbps_t rt_bandwidth,
+                           rate_kbps_t max_rbdc,
+                           vol_kb_t max_vbdc):
 	OpenSandFrame<T_DVB_LOGON_REQ>(sizeof(T_DVB_LOGON_REQ))
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
 	this->setLength(sizeof(T_DVB_LOGON_REQ));
 	this->frame->mac = htons(mac);
 	this->frame->rt_bandwidth = htons(rt_bandwidth);
+	this->frame->max_rbdc = htons(max_rbdc);
+	this->frame->max_vbdc = htons(max_vbdc);
 }
 
 LogonRequest::LogonRequest(unsigned char *frame, size_t length):
@@ -69,6 +74,16 @@ tal_id_t LogonRequest::getMac(void) const
 rate_kbps_t LogonRequest::getRtBandwidth(void) const
 {
 	return ntohs(this->frame->rt_bandwidth);
+}
+
+rate_kbps_t LogonRequest::getMaxRbdc(void) const
+{
+	return ntohs(this->frame->max_rbdc);
+}
+
+rate_kbps_t LogonRequest::getMaxVbdc(void) const
+{
+	return ntohs(this->frame->max_vbdc);
 }
 
 /* RESPONSE */

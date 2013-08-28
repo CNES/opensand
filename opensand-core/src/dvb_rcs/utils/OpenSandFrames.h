@@ -183,10 +183,10 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr;            ///< Basic DVB Header
-//	uint8_t capa;             ///< Capability of the ST, to be set to 0
 	tal_id_t mac;             ///< ST MAC address
 	rate_kbps_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
-	// TODO add max RBDC, min VBDC ?
+	rate_kbps_t max_rbdc;     ///< the maximum RBDC value in kbits/s
+	vol_kb_t max_vbdc;        ///< the maximum VBDC value in kbits/s
 } __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
 
@@ -199,10 +199,6 @@ typedef struct
 	tal_id_t mac;        ///< Terminal MAC address
 	group_id_t group_id; ///< Assigned Group Id
 	tal_id_t  logon_id;  ///< Assigned Logon Id
-//	uint8_t traffic_burst_type; ///< Type of traffic, set to 0
-	// TODO used ???
-//	uint8_t return_vpi; ///< VPI used for Signalling on Return Link
-//	uint8_t return_vci; ///< VCI used for Signalling on Return Link
 } __attribute__((__packed__)) T_DVB_LOGON_RESP;
 
 

@@ -99,6 +99,7 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<!-- TODO: be more precise that bitrates, depending on parameter, see TODO in common.xsd -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -301,8 +302,7 @@
             <xsd:element name="max_vbdc" type="xsd:integer">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The maximum VBDC value for the terminal (cells or
-                        packets number)
+                        The maximum VBDC value for the terminal (kbits)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

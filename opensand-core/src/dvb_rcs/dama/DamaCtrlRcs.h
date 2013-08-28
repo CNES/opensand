@@ -96,7 +96,7 @@ class DamaCtrlRcs: public DamaCtrl
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_pkt_t min_vbdc_pkt);
+	                            vol_kb_t max_vbdc_kb);
 
 	virtual bool removeTerminal(TerminalContext *terminal);
 

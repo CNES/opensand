@@ -56,13 +56,13 @@ class TerminalContext
 	 * @param  cra_kbps        terminal CRA (kb/s).
 	 * @param  max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param  rbdc_timeout_sf RBDC timeout (in superframe number).
-	 * @param  min_vbdc_kb     minimal VBDC value (kb).
+	 * @param  max_vbdc_kb     maximum VBDC value (kb).
 	 */
 	TerminalContext(tal_id_t tal_id,
 	                rate_kbps_t cra_kbps,
 	                rate_kbps_t max_rbdc_kbps,
 	                time_sf_t rbdc_timeout_sf,
-	                vol_kb_t min_vbdc_kb);
+	                vol_kb_t max_vbdc_kb);
 	~TerminalContext();
 
 	/**
@@ -99,11 +99,11 @@ class TerminalContext
 	rate_kbps_t getMaxRbdc() const;
 
 	/**
-	 * @brief   Get the terminal min VBDC value.
+	 * @brief   Get the terminal max VBDC value.
 	 *
-	 * @return  min VBDC value of terminal of terminal (kb).
+	 * @return  max VBDC value of terminal of terminal (kb).
 	 */
-	vol_kb_t getMinVbdc() const;
+	vol_kb_t getMaxVbdc() const;
 
 	/**
 	 * @brief  Called on SoF emission.
@@ -170,8 +170,8 @@ class TerminalContext
 	/** RBDC request timeout */
 	time_sf_t rbdc_timeout_sf;
 
-	/*** The minimum VBDC value */
-	vol_kb_t min_vbdc_kb;
+	/*** The maximum VBDC value */
+	vol_kb_t max_vbdc_kb;
 
 	/** The FMT ID */
 	unsigned int fmt_id;

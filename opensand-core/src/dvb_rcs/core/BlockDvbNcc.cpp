@@ -95,6 +95,8 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	simulate(none_simu),
 	simu_st(-1),
 	simu_rt(-1),
+	simu_max_rbdc(-1),
+	simu_max_vbdc(-1),
 	simu_cr(-1),
 	simu_interval(-1),
 	event_logon_req(NULL),
@@ -715,8 +717,9 @@ bool BlockDvbNcc::initRequestSimulation()
 			          DVB_SIMU_RANDOM, DVB_NCC_SECTION);
             goto error;
 		}
-		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld", &this->simu_st,
-		             &this->simu_rt, &this->simu_cr, &this->simu_interval);
+		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld:%ld:%ld",
+		             &this->simu_st, &this->simu_rt, &this->simu_max_rbdc,
+		             &this->simu_max_vbdc, &this->simu_cr, &this->simu_interval);
 		if(val < 4)
 		{
 			UTI_ERROR("cannot load parameter %s from section %s\n",
@@ -726,9 +729,11 @@ bool BlockDvbNcc::initRequestSimulation()
 		else
 		{
 			UTI_INFO("random events simulated for %ld terminals with "
-			         "%ld kb/s bandwidth, a mean request of %ld kb/s and "
-			         "a request amplitude of %ld kb/s)" ,
-			         this->simu_st, this->simu_rt, this->simu_cr, this->simu_interval);
+			         "%ld kb/s bandwidth, %ld kb/s max RBDC, "
+			         "%ld kb max VBDC, a mean request of %ld kb/s "
+			         "and a request amplitude of %ld kb/s)",
+			         this->simu_st, this->simu_rt, this->simu_max_rbdc,
+			         this->simu_max_vbdc, this->simu_cr, this->simu_interval);
 		}
 		this->simulate = random_simu;
 		this->simu_timer = this->upward->addTimerEvent("simu_random",
@@ -1028,9 +1033,7 @@ bool BlockDvbNcc::initDama()
 {
 	string up_return_encap_proto;
 	bool cra_decrease;
-	rate_kbps_t max_rbdc_kbps;
 	time_sf_t rbdc_timeout_sf;
-	vol_pkt_t min_vbdc_pkt;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
 
@@ -1055,14 +1058,6 @@ bool BlockDvbNcc::initDama()
 	}
 	UTI_INFO("fca = %d kb/s\n", fca_kbps);
 
-	// Retrieving the max RBDC parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_MAX_RBDC, max_rbdc_kbps))
-	{
-		UTI_INFO("Missing %s parameter\n", DC_MAX_RBDC);
-		return false;
-	}
-	UTI_INFO("RBDC max(kb/s): %d\n", max_rbdc_kbps);
-
 	// Retrieving the rbdc timeout parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
 	{
@@ -1070,14 +1065,6 @@ bool BlockDvbNcc::initDama()
 		goto error;
 	}
 	UTI_INFO("rbdc_timeout = %d superframes\n", rbdc_timeout_sf);
-
-	// Retrieving the min VBDC parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_MIN_VBDC, min_vbdc_pkt))
-	{
-		UTI_ERROR("missing %s parameter", DC_MIN_VBDC);
-		goto error;
-	}
-	UTI_INFO("min_vbdc = %d packets\n", min_vbdc_pkt);
 
 	if(this->satellite_type == TRANSPARENT)
 	{
@@ -1133,9 +1120,7 @@ bool BlockDvbNcc::initDama()
 	                                this->frames_per_superframe,
 	                                this->up_return_pkt_hdl->getFixedLength(),
 	                                cra_decrease,
-	                                max_rbdc_kbps,
 	                                rbdc_timeout_sf,
-	                                min_vbdc_pkt,
 	                                fca_kbps,
 	                                dc_categories,
 	                                dc_terminal_affectation,
@@ -1459,6 +1444,8 @@ bool BlockDvbNcc::simulateFile()
 	tal_id_t st_id;
 	uint32_t st_request;
 	rate_kbps_t st_rt;
+	rate_kbps_t st_rbdc;
+	vol_kb_t st_vbdc;
 	int cr_type;
 
 	if(simu_eof)
@@ -1476,8 +1463,9 @@ bool BlockDvbNcc::simulateFile()
 		{
 			event_selected = cr;
 		}
-		else if(3 ==
-		        sscanf(buffer, "SF#%hu LOGON st%hu rt=%hu", &sf_nr, &st_id, &st_rt))
+		else if(5 ==
+		        sscanf(buffer, "SF#%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
+		               &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
 		{
 			event_selected = logon;
 		}
@@ -1520,7 +1508,7 @@ bool BlockDvbNcc::simulateFile()
 		}
 		case logon:
 		{
-			LogonRequest sim_logon_req(st_id, st_rt);
+			LogonRequest sim_logon_req(st_id, st_rt, st_rbdc, st_vbdc);
 			bool ret = false;
 
 			UTI_DEBUG("SF#%u: send a simulated logon for ST %d\n",
@@ -1609,7 +1597,9 @@ void BlockDvbNcc::simulateRandom()
 		for(i = 0; i < this->simu_st; i++)
 		{
 			tal_id_t tal_id = sim_tal_id + i;
-			LogonRequest sim_logon_req(tal_id, this->simu_rt);
+			LogonRequest sim_logon_req(tal_id, this->simu_rt,
+			                           this->simu_max_rbdc,
+			                           this->simu_max_vbdc);
 			bool ret = false;
 
 			// check for column in FMT simulation list

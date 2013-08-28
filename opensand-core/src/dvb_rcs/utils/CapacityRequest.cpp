@@ -65,7 +65,7 @@ void CapacityRequest::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 {
 	cr_info_t info;
 	info.prio = 0;
-	info.type = cr_rbdc;
+	info.type = type;
 	info.value = value;
 	this->requests.push_back(info);
 

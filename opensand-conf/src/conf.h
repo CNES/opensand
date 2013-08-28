@@ -193,8 +193,6 @@
 #define DC_CRA_DECREASE             "cra_decrease"
 #define DC_FREE_CAP                 "fca"
 #define DC_RBDC_TIMEOUT             "rbdc_timeout"
-#define DC_MAX_RBDC                 "max_rbdc"
-#define DC_MIN_VBDC                 "min_vbdc"
 #define DC_SECTION_MAC_LAYER        "mac_layer"
 
 //////////

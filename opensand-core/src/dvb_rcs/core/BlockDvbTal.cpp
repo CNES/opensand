@@ -78,7 +78,9 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	out_encap_packet_length(-1),
 	out_encap_packet_type(MSG_TYPE_ERROR),
 	in_encap_packet_length(-1),
-	m_fixedBandwidth(-1),
+	fixed_bandwidth(0),
+	max_rbdc_kbps(0),
+	max_vbdc_kb(0),
 	logon_timer(-1),
 	frame_timer(-1),
 	first(true),
@@ -395,12 +397,12 @@ error:
 bool BlockDvbTal::initParameters()
 {
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, this->m_fixedBandwidth))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, this->fixed_bandwidth))
 	{
 		UTI_ERROR("Missing %s", DVB_RT_BANDWIDTH);
 		goto error;
 	}
-	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->m_fixedBandwidth);
+	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->fixed_bandwidth);
 
 	return true;
 
@@ -514,7 +516,7 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 		                   fifo_cr_type, pvc, fifo_size);
 
 		UTI_INFO("%s: Fifo priority = %u, FIFO name %s, size %u, pvc %u, "
-		         "CR type %d/n", FUNCNAME,
+		         "CR type %d\n", FUNCNAME,
 		         fifo->getPriority(),
 		         fifo->getName().c_str(),
 		         fifo->getMaxSize(),
@@ -600,15 +602,14 @@ error:
 bool BlockDvbTal::initDama()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
-	rate_kbps_t max_rbdc_kbps;
 	time_sf_t rbdc_timeout_sf = 0;
-	vol_pkt_t max_vbdc_pkt;
 	time_sf_t msl_sf = 0;
 	string dama_algo;
 	bool cr_output_only;
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA, max_rbdc_kbps))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA,
+	                                          this->max_rbdc_kbps))
 	{
 		UTI_ERROR("%s Missing %s\n",
 		          FUNCNAME, DA_MAX_RBDC_DATA);
@@ -624,7 +625,8 @@ bool BlockDvbTal::initDama()
 	}
 
 	// Max VBDC
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA, max_vbdc_pkt))
+	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA,
+	                          this->max_vbdc_kb))
 	{
 		UTI_ERROR("%s Missing %s\n",
 		          FUNCNAME, DA_MAX_VBDC_DATA);
@@ -652,8 +654,8 @@ bool BlockDvbTal::initDama()
 	         "VBDC max %d kbits, mslDuration %d frames, "
 	         "getIpOutputFifoSizeOnly %d\n",
 	         FUNCNAME,
-	         this->m_fixedBandwidth, max_rbdc_kbps,
-	         rbdc_timeout_sf, max_vbdc_pkt, msl_sf,
+	         this->fixed_bandwidth, this->max_rbdc_kbps,
+	         rbdc_timeout_sf, this->max_vbdc_kb, msl_sf,
 	         cr_output_only);
 
 	// dama algorithm
@@ -687,10 +689,10 @@ bool BlockDvbTal::initDama()
 
 	// Initialize the DamaAgent parent class
 	if(!this->dama_agent->initParent(this->frame_duration_ms,
-	                                 this->m_fixedBandwidth,
-	                                 max_rbdc_kbps,
+	                                 this->fixed_bandwidth,
+	                                 this->max_rbdc_kbps,
 	                                 rbdc_timeout_sf,
-	                                 max_vbdc_pkt,
+	                                 this->max_vbdc_kb,
 	                                 msl_sf,
 	                                 this->m_obrPeriod,
 	                                 cr_output_only,
@@ -1093,7 +1095,8 @@ error:
 
 bool BlockDvbTal::sendLogonReq()
 {
-	LogonRequest logon_req(this->mac_id, m_fixedBandwidth);
+	LogonRequest logon_req(this->mac_id, this->fixed_bandwidth,
+	                       this->max_rbdc_kbps, this->max_vbdc_kb);
 
 	// send the message to the lower layer
 	if(!this->sendDvbFrame(logon_req.getFrame(),

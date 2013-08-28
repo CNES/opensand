@@ -138,6 +138,8 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	} simulate;
 	long simu_st;
 	long simu_rt;
+	long simu_max_rbdc;
+	long simu_max_vbdc;
 	long simu_cr;
 	long simu_interval;
 	event_id_t simu_timer;

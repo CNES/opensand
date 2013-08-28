@@ -53,9 +53,9 @@ TerminalContextRcs::TerminalContextRcs(tal_id_t tal_id,
                                        rate_kbps_t cra_kbps,
                                        rate_kbps_t max_rbdc_kbps,
                                        time_sf_t rbdc_timeout_sf,
-                                       vol_kb_t min_vbdc_kb,
+                                       vol_kb_t max_vbdc_kb,
                                        const UnitConverter *converter):
-	TerminalContext(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, min_vbdc_kb),
+	TerminalContext(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, max_vbdc_kb),
 	rbdc_credit_pktpf(0.0),
 	timer_sf(0),
 	rbdc_request_pktpf(0),
@@ -67,7 +67,7 @@ TerminalContextRcs::TerminalContextRcs(tal_id_t tal_id,
 {
 	this->setMaxRbdc(max_rbdc_kbps);
 	this->setCra(cra_kbps);
-	this->min_vbdc_pkt = this->converter->kbitsToPkt(min_vbdc_kb);
+	this->max_vbdc_pkt = this->converter->kbitsToPkt(max_vbdc_kb);
 }
 
 TerminalContextRcs::~TerminalContextRcs()
@@ -130,6 +130,7 @@ rate_pktpf_t TerminalContextRcs::getRbdcCredit()
 void TerminalContextRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
 {
 	this->vbdc_request_pkt += vbdc_request_pkt;
+	this->vbdc_request_pkt = std::min(this->vbdc_request_pkt, this->max_vbdc_pkt);
 	UTI_DEBUG_L3("new VBDC request %u for ST%u\n",
 	             vbdc_request_pkt, this->tal_id);
 }

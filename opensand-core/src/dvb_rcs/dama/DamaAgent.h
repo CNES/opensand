@@ -90,7 +90,7 @@ class DamaAgent
 	 * @param cra_kbps               The CRA value (in kbits/s)
 	 * @param max_rbdc_kbps          The maximum RBDC value (in kbits/s)
 	 * @param rbdc_timeout_sf        The RBDC timeout (in superframe number)
-	 * @param max_vbdc_pkt           The maximum VBDC value (in number of packets)
+	 * @param max_vbdc_kb            The maximum VBDC value (in kbits)
 	 * @param msl_sf                 The MSL (Minimum Scheduling Latency) value
 	 *                               (time between CR emission and TTP reception
 	 *                                in superframe number)
@@ -107,7 +107,7 @@ class DamaAgent
 	                rate_kbps_t cra_kbps,
 	                rate_kbps_t max_rbdc_kbps,
 	                time_sf_t rbdc_timeout_sf,
-	                vol_pkt_t max_vbdc_pkt,
+	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t obr_period_sf,
 	                bool cr_output_only,
@@ -222,7 +222,7 @@ protected:
 	/** RBDC timeout (in frame number) */
 	time_sf_t rbdc_timeout_sf;
 	/** VBDC maximal value (in kb) */
-	vol_pkt_t max_vbdc_pkt;
+	vol_kb_t max_vbdc_kb;
 	/** Minimum Scheduling Latency (in frame number) */
 	time_sf_t msl_sf;
 	/** OBR period: period between two CR (in frame number) */

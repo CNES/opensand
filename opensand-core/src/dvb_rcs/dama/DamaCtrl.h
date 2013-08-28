@@ -93,9 +93,7 @@ class DamaCtrl
 	 * @param   frame_duration_ms       duration of the frame (in ms).
 	 * @param   frames_per_superframe   The number of frames per superframe
 	 * @param   packet_length_bytes     The packet length in bytes, for constant length
-	 * @param   max_rbdc_kbps           RBDC maximal value (kb/s).
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
-	 * @param   min_vbdc_pkt            VBDC minimal value (in packets/cells number).
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
 	 * @param   terminal_affectation    mapping of terminal Id <-> category
@@ -108,9 +106,7 @@ class DamaCtrl
 	                        unsigned int frames_per_superframe,
 	                        vol_bytes_t packet_length_bytes,
 	                        bool cra_decrease,
-	                        rate_kbps_t max_rbdc_kbps,
 	                        time_sf_t rbdc_timeout_sf,
-	                        vol_pkt_t min_vbdc_pkt,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
@@ -195,7 +191,7 @@ class DamaCtrl
 	 * @param   cra_kbps        CRA of the terminal (kb/s).
 	 * @param   max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param   rbdc_timeout_sf RBDC timeout (in superframe number).
-	 * @param   min_vbdc_pkt    minimal VBDC value (in packets/cells number).
+	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
 	 * @return  true if success, false otherwise.
 	 */
 	virtual bool createTerminal(TerminalContext **terminal,
@@ -203,7 +199,7 @@ class DamaCtrl
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_pkt_t min_vbdc_pkt) = 0;
+	                            vol_pkt_t max_vbdc_kb) = 0;
 
 	/**
 	 * @brief Run the RBDC computation for DAMA
@@ -244,14 +240,8 @@ class DamaCtrl
 	/** Decrease request received from ST of CRA value ? */
 	bool cra_decrease;
 
-	/** Max RBDC request value (kb/s) */
-	rate_kbps_t max_rbdc_kbps;
-
 	/** RBDC request timeout (in superframe number) */
 	time_sf_t rbdc_timeout_sf;
-
-	/** Min VBDC request value (in packets/cells number) */
-	vol_pkt_t min_vbdc_pkt;
 
 	/** The maximum available FCA (kbits/s) */
 	rate_kbps_t fca_kbps;

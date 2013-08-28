@@ -215,11 +215,11 @@ class TerminalContextRcs : public TerminalContext
 	/** CRA for the terminal converted to used unit (paquets per superframe) */
 	rate_kbps_t cra_pktpf;
 
-	/** Maximual RBDC value converted to used unit (paquets per superframe) */
+	/** Maximum RBDC value converted to used unit (paquets per superframe) */
 	rate_kbps_t max_rbdc_pktpf;
 
-	/** The minimum VBDC value converted to used unit (paquets) */
-	vol_kb_t min_vbdc_pkt;
+	/** The maximum VBDC value converted to used unit (paquets) */
+	vol_pkt_t max_vbdc_pkt;
 
 	/** The unit converter */
 	const UnitConverter *converter;

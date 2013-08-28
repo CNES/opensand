@@ -133,13 +133,13 @@ bool DamaCtrlRcs::createTerminal(TerminalContext **terminal,
                                  rate_kbps_t cra_kbps,
                                  rate_kbps_t max_rbdc_kbps,
                                  time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t min_vbdc_kb)
+                                 vol_kb_t max_vbdc_kb)
 {
 	*terminal = new TerminalContextRcs(tal_id,
 	                                   cra_kbps,
 	                                   max_rbdc_kbps,
 	                                   rbdc_timeout_sf,
-	                                   min_vbdc_kb,
+	                                   max_vbdc_kb,
 	                                   this->converter);
 	if(!(*terminal))
 	{

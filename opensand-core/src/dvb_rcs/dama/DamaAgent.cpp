@@ -52,7 +52,7 @@ DamaAgent::DamaAgent():
 	cra_kbps(0.0),
 	max_rbdc_kbps(0.0),
 	rbdc_timeout_sf(0),
-	max_vbdc_pkt(0),
+	max_vbdc_kb(0),
 	msl_sf(0),
 	cr_output_only(false)
 {
@@ -66,7 +66,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            rate_kbps_t cra_kbps,
                            rate_kbps_t max_rbdc_kbps,
                            time_sf_t rbdc_timeout_sf,
-                           vol_pkt_t max_vbdc_pkt,
+                           vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t obr_period_sf,
                            bool cr_output_only,
@@ -77,7 +77,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->cra_kbps = cra_kbps;
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
-	this->max_vbdc_pkt = max_vbdc_pkt;
+	this->max_vbdc_kb = max_vbdc_kb;
 	this->msl_sf = msl_sf;
 	this->obr_period_sf = obr_period_sf;
 	this->cr_output_only = cr_output_only;

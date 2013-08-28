@@ -168,7 +168,9 @@ class BlockDvbTal: public BlockDvb
 	/// Length of an input encapsulation packet (in bytes)
 	int in_encap_packet_length;
 
-	int m_fixedBandwidth;   ///< fixed bandwidth (CRA) in kbits/s
+	rate_kbps_t fixed_bandwidth;   ///< fixed bandwidth (CRA) in kbits/s
+	rate_kbps_t max_rbdc_kbps;     ///< Maximum RBDC in kbits/s
+	vol_kb_t max_vbdc_kb;          ///< Maximum VBDC in kbits
 
 
 	/* Timers and their values */
