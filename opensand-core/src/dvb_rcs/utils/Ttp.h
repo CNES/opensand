@@ -47,7 +47,7 @@ using std::map;
 /** The information related to TTP */
 typedef struct
 {
-	// TODO group_id ?
+	group_id_t group_id;       ///< The group ID 
 	uint16_t superframe_count; ///< Superframe count to wich the TP applies
 	uint8_t frame_loop_count;  ///< One less than the number of superframe
 } __attribute__((packed)) ttp_info_t;
@@ -66,11 +66,11 @@ typedef struct
 /** The emulated Time Plan */
 typedef struct
 {
-	tal_id_t tal_id;   ///> The terminal ID
+	tal_id_t tal_id;   ///> The terminal ID (logon_id)
 	                   //   size 5 for physical ST, 5->max for simulated ST requests
 	int32_t offset;    ///> The offset in the superframe (start_slot for RCS)
 	// TODO we don't do one less
-	// TODO uint8_t in standard and we should build more thant one TTP per ST
+	// TODO uint8_t in standard and we should build more than one TTP per ST
 	uint16_t assignment_count; ///> one less than the number of timeslots assigned
 	                           //   in the block (for RCS)
 	uint8_t fmt_id;    ///> The ID for FMT (MODCOD ID)
@@ -100,6 +100,14 @@ class Ttp
 	 * @brief Terminal Time Plan contructor
 	 */
 	Ttp() {};
+
+	/**
+	 * @brief Terminal Time Plan contructor
+	 *
+	 * @param group_id  The group ID
+	 */
+	Ttp(group_id_t group_id);
+
 
 	~Ttp() {};
 
@@ -157,6 +165,21 @@ class Ttp
 	 */
 	bool getTp(tal_id_t tal_id, map<uint8_t, emu_tp_t> &tp);
 
+	/**
+	 * @brief  Get the group Id
+	 *
+	 * @return the group ID
+	 */
+	group_id_t getGroupId() const
+	{
+		return this->group_id;
+	};
+
+	/**
+	 * @brief  Get the superframe count to which the TP applies
+	 *
+	 * @return the superframe count
+	 */
 	time_sf_t getSuperframeCount() const
 	{
 		return this->superframe_count;
@@ -173,6 +196,8 @@ class Ttp
 	frames_t frames;
 	/// The Time Plans per frame ID for a terminal ID
 	map<tal_id_t, map<uint8_t, emu_tp_t> > tps;
+	/// The group ID
+	group_id_t group_id;
 	/// The superframe count
 	time_sf_t superframe_count;
 };

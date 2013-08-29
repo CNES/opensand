@@ -93,9 +93,9 @@ typedef struct
  */
 typedef struct
 {
-	uint8_t prio;    ///> Request priority
-	uint8_t type;    ///> Request type
-	uint32_t value;  ///> Request value
+	uint8_t prio;    ///< Request priority
+	uint8_t type;    ///< Request type
+	uint32_t value;  ///< Request value
 } cr_info_t;
 
 /**
@@ -103,10 +103,11 @@ typedef struct
  */
 typedef struct
 {
-	tal_id_t tal_id; ///> The temirnal ID
+	tal_id_t tal_id; ///< The terminal ID (logon_id)
 	                 //   size 5 for physical ST, 5->max for simulated ST requests
-	uint8_t cr_number;
-	emu_cr_t cr[NBR_MAX_CR]; ///> The emulated CR field
+	group_id_t group_id; ///< The group ID 
+	uint8_t cr_number;   ///< The number of CR in SAC
+	emu_cr_t cr[NBR_MAX_CR]; ///< The emulated CR field
 	                         //   when in frame, the length should be correctly set
 	                         //   in order to send only the CR which were filled
 } __attribute__((packed)) emu_sac_t;
@@ -125,8 +126,9 @@ class CapacityRequest
 	 * @brief Capacity Request constructor for agent
 	 *
 	 * @param tal_id   The terminal ID
+	 * @param group_id The group ID
 	 */
-	CapacityRequest(tal_id_t tal_id);
+	CapacityRequest(tal_id_t tal_id, group_id_t group_id = 0);
 
 	/**
 	 * @brief Capacity Request constructor for controller
@@ -166,6 +168,16 @@ class CapacityRequest
 	};
 
 	/**
+	 * @brief  Get the group Id
+	 *
+	 * @return the group ID
+	 */
+	group_id_t getGroupId() const
+	{
+		return this->group_id;
+	};
+
+	/**
 	 * @brief  Get the requests
 	 *
 	 * @return  the requets
@@ -189,6 +201,8 @@ class CapacityRequest
 
 	/// the terminal ID
 	tal_id_t tal_id;
+	/// the group ID
+	group_id_t group_id;
 	/// the requets
 	vector<cr_info_t> requests;
 	/// the SAC avoid allocating a complete SAC

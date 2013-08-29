@@ -134,13 +134,12 @@ bool DamaAgentRcsLegacy::hereIsTTP(Ttp &ttp)
 {
 	map<uint8_t, emu_tp_t> tp;
 
-	/*
-	if(this->group_id != ttp->group_id)
+	if(this->group_id != ttp.getGroupId())
 	{
 		UTI_DEBUG_L3("SF#%u: TTP with different group_id (%d).\n",
-		             this->current_superframe_sf, ttp->group_id);
-		goto end;
-	}*/
+		             this->current_superframe_sf, ttp.getGroupId());
+		return true;
+	}
 
 	if(!ttp.getTp(this->tal_id, tp))
 	{

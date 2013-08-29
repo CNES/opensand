@@ -50,8 +50,9 @@ static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
 static uint16_t getDecodedCrValue(const emu_cr_t &cr);
 
 
-CapacityRequest::CapacityRequest(tal_id_t tal_id):
+CapacityRequest::CapacityRequest(tal_id_t tal_id, group_id_t group_id):
 	tal_id(tal_id),
+	group_id(group_id),
 	requests()
 {
 }
@@ -83,7 +84,8 @@ bool CapacityRequest::parse(const unsigned char *data, size_t length)
 	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t);
 
 	this->sac = *((emu_sac_t *)(data + sizeof(T_DVB_HDR)));
-	this->tal_id = this->sac.tal_id;
+	this->tal_id = ntohs(this->sac.tal_id);
+	this->group_id = this->sac.group_id;
 
 	/* check that we can read enough cr */
 	if(length < this->sac.cr_number * sizeof(emu_cr_t))
@@ -113,7 +115,8 @@ void CapacityRequest::build(unsigned char *frame, size_t &length)
 	dvb_sac.hdr.msg_type = MSG_TYPE_CR;
 
 	// fill emu_sac_t fields
-	this->sac.tal_id = this->tal_id;
+	this->sac.group_id = this->group_id;
+	this->sac.tal_id = htons(this->tal_id);
 	this->sac.cr_number = 0;
 	for(unsigned int i = 0; i < this->requests.size() && i < NBR_MAX_CR; i++)
 	{

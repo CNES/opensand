@@ -40,6 +40,11 @@
 #include <cstring>
 #include <arpa/inet.h>
 
+
+Ttp::Ttp(group_id_t group_id):
+	group_id(group_id)
+{}
+
 bool Ttp::parse(const unsigned char *data, size_t length)
 {
 	emu_ttp_t *ttp;
@@ -60,6 +65,7 @@ bool Ttp::parse(const unsigned char *data, size_t length)
 	length -= sizeof(T_DVB_HDR);
 
 	ttp = &((T_DVB_TTP *)data)->ttp;
+	this->group_id = ntohs(ttp->ttp_info.group_id);
 	this->superframe_count = ntohs(ttp->ttp_info.superframe_count);
 	UTI_DEBUG_L3("SF#%u: ttp->frame_loop_count=%u\n",
 	             this->superframe_count, ttp->ttp_info.frame_loop_count);
@@ -88,7 +94,7 @@ bool Ttp::parse(const unsigned char *data, size_t length)
 		for(unsigned int j = 0; j < frame->frame_info.tp_loop_count; j++)
 		{
 			length -= sizeof(emu_tp_t);
-			tal_id_t tal_id = tp->tal_id;
+			tal_id_t tal_id = ntohs(tp->tal_id);
 			tp->offset = ntohl(tp->offset);
 			tp->assignment_count = ntohs(tp->assignment_count);
 			// create the entry for this terminal ID if it does not exist
@@ -133,7 +139,7 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 {
 	emu_tp_t tp;
 
-	tp.tal_id = tal_id;
+	tp.tal_id = htons(tal_id);
 	tp.offset = htonl(offset);
 	tp.assignment_count = htons(assignment_count);
 	tp.fmt_id = fmt_id;
@@ -184,6 +190,7 @@ bool Ttp::build(time_sf_t superframe_nbr_sf, unsigned char *frame, size_t &lengt
 
 	dvb_ttp->hdr.msg_type = MSG_TYPE_TTP;
 
+	dvb_ttp->ttp.ttp_info.group_id = htons(this->group_id);
 	dvb_ttp->ttp.ttp_info.superframe_count = htons(superframe_nbr_sf);
 	// we need the position for the frames beginning
 	ttp_length += sizeof(ttp_info_t);
