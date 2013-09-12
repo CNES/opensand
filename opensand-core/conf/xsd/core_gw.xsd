@@ -171,7 +171,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         If simulation = random:
-                        nb_station (numbered > 31):RT bandwidth(Kb/s):mean_requests (Kb/s):amplitude_request (Kb/s)
+                        nb_station (numbered > 31):RT bandwidth(Kb/s):max RBDC(kb/s):max VBDC(kb)mean requests(Kb/s):amplitude request(Kb/s)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
