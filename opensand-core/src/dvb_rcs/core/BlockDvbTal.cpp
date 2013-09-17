@@ -264,26 +264,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 		break;
 
 		case evt_timer:
-			if(*event == this->frame_timer)
-			{
-				// beginning of a new frame
-				if(this->_state == state_running)
-				{
-					UTI_DEBUG("SF#%u: send encap bursts on timer basis\n",
-					          this->super_frame_counter);
-
-					if(this->processOnFrameTick() < 0)
-					{
-						// exit because the bloc is unable to continue
-						UTI_ERROR("SF#%u: treatments failed at frame %u",
-						          this->super_frame_counter, this->frame_counter);
-						// Fatal error
-						this->upward->reportError(true, "superframe treatment failed");
-						return false;
-					}
-				}
-			}
-			else if(*event == this->logon_timer)
+			if(*event == this->logon_timer)
 			{
 				if(this->_state == state_wait_logon_resp)
 				{
@@ -353,7 +334,7 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			UTI_DEBUG_L3("SF#%u DVB frame received (len %ld)\n",
 				         this->super_frame_counter, len);
 
-			if(!onRcvDvbFrame(dvb_frame, len))
+			if(!this->onRcvDvbFrame(dvb_frame, len))
 			{
 				UTI_DEBUG_L3("SF#%u: failed to handle received DVB frame\n",
 				             this->super_frame_counter);
@@ -365,6 +346,28 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			delete dvb_meta;
 		}
 		break;
+
+		case evt_timer:
+			if(*event == this->frame_timer)
+			{
+				// beginning of a new frame
+				if(this->_state == state_running)
+				{
+					UTI_DEBUG("SF#%u: send encap bursts on timer basis\n",
+					          this->super_frame_counter);
+
+					if(this->processOnFrameTick() < 0)
+					{
+						// exit because the bloc is unable to continue
+						UTI_ERROR("SF#%u: treatments failed at frame %u",
+						          this->super_frame_counter, this->frame_counter);
+						// Fatal error
+						this->upward->reportError(true, "superframe treatment failed");
+						return false;
+					}
+				}
+			}
+			break;
 
 		default:
 			UTI_ERROR("SF#%u: unknown event received %s",
@@ -797,7 +800,7 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
 	this->probe_sof_interval = Output::registerProbe<float>("perf.SOF_interval",
-	                                                        "ms", false,
+	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
 	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos.size()];
@@ -841,17 +844,17 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 }
 
 
-bool BlockDvbTal::initDownwardTimers()
+bool BlockDvbTal::initTimers()
 {
 	this->logon_timer = this->downward->addTimerEvent("logon", 5000,
 	                                                  false, // do not rearm
 	                                                  false // do not start
 	                                                  );
-	this->frame_timer = this->downward->addTimerEvent("frame",
-	                                                  DVB_TIMER_ADJUST(
-	                                                    this->frame_duration_ms),
-	                                                  false,
-	                                                  false);
+	this->frame_timer = this->upward->addTimerEvent("frame",
+	                                                 DVB_TIMER_ADJUST(
+	                                                   this->frame_duration_ms),
+	                                                 false,
+	                                                 false);
 	return true;
 }
 
@@ -923,7 +926,7 @@ bool BlockDvbTal::onInit()
 		goto error;
 	}
 
-	if(!this->initDownwardTimers())
+	if(!this->initTimers())
 	{
 		UTI_ERROR("failed to complete the initialization of timers");
 		goto error;
@@ -1166,6 +1169,8 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			unsigned int nb_packets = 0;
 			NetBurst *burst;
 
+			// TODO we have the nbr of packets in qty_elts we do not need that.
+			//      we can factorize both cases DVB_BURST and BBFRAME
 			if(this->down_forward_pkt_hdl->getFixedLength() > 0)
 			{
 				nb_packets = (hdr->msg_length - sizeof(T_DVB_HDR)) /
@@ -1459,7 +1464,7 @@ int BlockDvbTal::processOnFrameTick()
 	// by current frame treatments delay
 	if(this->frame_counter < this->frames_per_superframe)
 	{
-		if(!this->downward->startTimer(this->frame_timer))
+		if(!this->upward->startTimer(this->frame_timer))
 		{
 			UTI_ERROR("cannot start frame timer");
 			goto error;

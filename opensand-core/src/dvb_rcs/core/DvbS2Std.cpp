@@ -50,11 +50,6 @@ DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
 	received_modcod(this->real_modcod)
 {
-	/* TODO read this value from file
-	 * for example get the higher MODCOD value on init
-	 * thus every MODCOD will be decoded */
-	// TODO handle elsewhere ?
-
 }
 
 DvbS2Std::~DvbS2Std()

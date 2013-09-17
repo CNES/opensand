@@ -96,7 +96,7 @@ void TerminalCategory::updateCarriersGroups(unsigned int carriers_number,
 	unsigned int total_ratio = this->getRatio();
 	if(carriers_number < this->carriers_groups.size())
 	{
-		UTI_INFO("Not enough carriers for category %s that contains %lu groups. "
+		UTI_INFO("Not enough carriers for category %s that contains %zu groups. "
 		         "Increase carriers number to the number of groups\n",
 		         this->label.c_str(), this->carriers_groups.size());
 		carriers_number = this->carriers_groups.size();

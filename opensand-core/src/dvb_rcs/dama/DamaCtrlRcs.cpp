@@ -233,7 +233,7 @@ bool DamaCtrlRcs::buildTTP(Ttp &ttp)
 		const std::vector<TerminalContext *> &terminals
 							  = (*category_it).second->getTerminals();
 
-		UTI_DEBUG_L3("SF#%u: Category %s has %lu terminals\n",
+		UTI_DEBUG_L3("SF#%u: Category %s has %zu terminals\n",
 		             this->current_superframe_sf,
 		             (*category_it).first.c_str(), terminals.size());
 		for(unsigned int terminal_index = 0;

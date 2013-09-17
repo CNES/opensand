@@ -839,7 +839,8 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			{
 				SatSpot *current_spot = spot->second;
 
-				if(current_spot->data_in_id == carrier_id)
+				// TODO remove signed
+				if((signed)current_spot->data_in_id == carrier_id)
 				{
 					// satellite spot found, forward DVB frame on the same spot
 					// TODO: forward according to a table
@@ -918,7 +919,8 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		{
 			SatSpot *current_spot = spot->second;
 
-			if(current_spot->data_in_id == carrier_id)
+			// TODO remove signed
+			if((signed)current_spot->data_in_id == carrier_id)
 			{
 				// satellite spot found, forward BBframe on the same spot
 				// TODO: forward according to a table

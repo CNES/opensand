@@ -306,7 +306,7 @@ class BlockDvbTal: public BlockDvb
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initDownwardTimers();
+	bool initTimers();
 
 	/**
 	 * @brief Initialize the output
