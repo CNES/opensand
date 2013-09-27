@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 #
 #
@@ -152,11 +152,14 @@ write_conf(){
 # initialize OpenSAND network
 initialize(){
     if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' ]; then
-        # create the OpenSAND tun interface
-        ${TUN_TAP_INIT} > /dev/null
-        if [ $? -ne 0 ] ; then
-            echo "Error when creating the tun interface" >&2
-            exit 1
+        # create the OpenSAND tun/tap interface if it does not exist
+        is_iface=`ip link show | grep opensand_tun`
+        if [ "${is_iface}" == "" ]; then
+            ${TUN_TAP_INIT} > /dev/null
+            if [ $? -ne 0 ] ; then
+                echo "Error when creating the tun interface" >&2
+                exit 1
+            fi
         fi
     else
     	# remove interfaces in case it it was another type of host
