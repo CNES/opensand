@@ -296,6 +296,13 @@ class Program(object):
         """
         self._event_log_file.write(text)
 
+    def add_probe(self, probe_list):
+        """
+        Add a new probe in the list
+        """
+        self._probes.extend([Probe(self, *args) for args in probe_list])
+
+
     def _setup_storage(self, mode='w'):
         """
         Creates the storage folder for the program, and the events log file.
@@ -370,8 +377,11 @@ class Host(object):
         programs running on the host.
         """
         if ident in self._programs:
-            LOGGER.error("Tried to add program with ID %d already on host %s",
-                         ident, self)
+            # this is a new probe
+            prog = self._programs[ident]
+            prog.add_probe(probe_list)
+            LOGGER.info("New probe added to program %s for host %s", name, self)
+            return prog
 
         prog = Program(self, ident, name, probe_list, event_list)
         self._programs[ident] = prog

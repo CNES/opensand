@@ -380,13 +380,20 @@ class EnvironmentPlaneController(object):
         splitted = prog_name.split('.', 1)
         if len(splitted) > 1:
             host_name = splitted[0]
+        else:
+            return False
+        
         host_model = self._model.get_host(host_name)
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
             host_model.set_init_status(InitStatus.SUCCESS)
-        program = Program(self, full_prog_id, prog_name, probe_list, event_list,
-                          host_model)
-        self._programs[full_prog_id] = program
+        if full_prog_id in self._programs:
+            self._log.debug("Update probes for program %s" % (prog_name))
+            self._programs[full_prog_id].add_probes(probe_list)
+        else:
+            program = Program(self, full_prog_id, prog_name, probe_list, event_list,
+                              host_model)
+            self._programs[full_prog_id] = program
 
         if self._observer:
             self._observer.program_list_changed()
@@ -467,6 +474,7 @@ class EnvironmentPlaneController(object):
         except IndexError:
             self._log.error("Incorrect event ID %d for program [%d:%d] "
                             "received" % (event_id, host_id, prog_id))
+            return False
 
         if self._observer:
             self._observer.new_event(program, name, level, message)

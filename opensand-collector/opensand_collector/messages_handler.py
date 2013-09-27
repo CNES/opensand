@@ -52,6 +52,7 @@ MSG_CMD_ENABLE_PROBE = 5
 MSG_CMD_DISABLE_PROBE = 6
 MSG_CMD_UNREGISTER = 7
 MSG_CMD_RELAY = 10
+MSG_CMD_REGISTER_LIVE = 12
 MSG_MGR_REGISTER = 21
 MSG_MGR_REGISTER_PROGRAM = 22
 MSG_MGR_UNREGISTER_PROGRAM = 23
@@ -146,9 +147,11 @@ class MessagesHandler(object):
         Handles a received message. Interprets the message, and calls the
         probes manager to perform the appropriate action.
         """
-        if cmd == MSG_CMD_REGISTER:
+        if cmd == MSG_CMD_REGISTER or cmd == MSG_CMD_REGISTER_LIVE:
             try:
-                success = self._handle_cmd_register(host, addr, data)
+                success = self._handle_cmd_register(host, addr, data,
+                                                    cmd ==
+                                                    MSG_CMD_REGISTER_LIVE)
             except struct.error:
                 success = False
 
@@ -179,7 +182,7 @@ class MessagesHandler(object):
             LOGGER.error("Unknown command id %d received from '%s'", cmd,
                          host)
 
-    def _handle_cmd_register(self, host, addr, data):
+    def _handle_cmd_register(self, host, addr, data, live=False):
         """
         Handles a registration command.
         """
@@ -230,7 +233,8 @@ class MessagesHandler(object):
 
         program = host.add_program(prog_id, prog_name, probe_list, event_list)
 
-        self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK), addr)
+        if not live:
+            self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK), addr)
 
         self._notify_manager_new_program(program)
 

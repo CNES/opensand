@@ -309,7 +309,6 @@ class ProcessList():
 
     def find_process(self, attr, value):
         """ find the process whose attribute attr equals value """
-
         with ProcessList._process_lock:
             for process in ProcessList._process_list.itervalues():
                 if getattr(process, attr, None) == value:

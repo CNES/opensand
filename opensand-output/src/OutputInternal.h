@@ -129,6 +129,15 @@ private:
 	 */
 	void enable();
 
+	/**
+	 * @brief  Send registration for a probe outside initialization
+	 *
+	 * @param probe  The new probe to register
+	 * @return true on success, false otherwise
+	 */
+	bool sendRegister(BaseProbe *probe);
+
+
 	/// whether the element is enabled
 	bool enabled;
 
@@ -167,18 +176,25 @@ Probe<T>* OutputInternal::registerProbe(const std::string &name,
 		return NULL;
 	}
 
-	if(!this->initializing)
+/*	if(!this->initializing)
 	{
 		UTI_ERROR("cannot register probe %s outside initialization, exit\n",
 		          name.c_str());
 		return NULL;
-	}
+	}*/
 
 	UTI_DEBUG("Registering probe %s with type %d\n", name.c_str(), type);
 
 	uint8_t new_id = this->probes.size();
 	Probe<T> *probe = new Probe<T>(new_id, name, unit, enabled, type);
 	this->probes.push_back(probe);
+	// single registration if process is already started
+	if(!this->initializing && !this->sendRegister(probe))
+	{
+		{
+			return NULL;
+		}
+	}
 
 	return probe;
 }

@@ -59,15 +59,13 @@ class Program(object):
     def __init__(self, controller, ident, name, probes, events, host_model=None):
         self._ident = ident
         host_name, prog_name = name.split(".", 1)
+        self._controller = controller
         if host_name.startswith(prog_name):
             name = host_name
 
         self._name = name
         self._probes = []
-        for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
-            probe = Probe(controller, self, i, p_name, unit, storage_type,
-                enabled, disp)
-            self._probes.append(probe)
+        self.add_probes(probes)
         self._events = events
         self._host_model = host_model
 
@@ -96,6 +94,16 @@ class Program(object):
         Returns the event identified by ident as a (name, level) tuple
         """
         return self._events[ident]
+
+    def add_probes(self, probes):
+        """
+        Add probes in the list
+        """
+        for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
+            if not p_name in map(lambda x: x.name, self._probes):
+                probe = Probe(self._controller, self, i, p_name, unit, storage_type,
+                              enabled, disp)
+                self._probes.append(probe)
 
     @property
     def name(self):

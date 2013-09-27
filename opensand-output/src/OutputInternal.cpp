@@ -156,7 +156,6 @@ Event *OutputInternal::registerEvent(const string &identifier,
 
 bool OutputInternal::finishInit()
 {
-
 	if(!this->enabled)
 	{
 		return true;
@@ -363,4 +362,44 @@ void OutputInternal::disable()
 void OutputInternal::enable()
 {
 	this->enabled = true;
+}
+
+// TODO factorize with finish init
+// TODO we could create a new function that would add new probes without sending
+//      and a function to send them
+// TODO do the same with events ?
+bool OutputInternal::sendRegister(BaseProbe *probe)
+{
+	string message;
+
+	const string name = probe->getName();
+	const string unit = probe->getUnit();
+
+	if(this->initializing)
+	{
+		UTI_ERROR("Cannot register a probe in initialization\n");
+		return false;
+	}
+
+	// Send the new probe
+	msgHeaderRegisterLive(message, getpid(), 1, 0);
+
+	message.append(1, (((int)probe->isEnabled()) << 7) |
+	                   probe->storageTypeId());
+	message.append(1, name.size());
+	message.append(1, unit.size());
+	message.append(name);
+	message.append(unit);
+
+	if(sendto(this->sock, message.data(), message.size(), 0,
+	          (const sockaddr*)&this->daemon_sock_addr,
+	          sizeof(this->daemon_sock_addr)) < (signed)message.size())
+	{
+		UTI_ERROR("Sending new probe failed: %s\n", strerror(errno));
+		return false;
+	}
+
+	UTI_PRINT(LOG_INFO, "New probe %s registration sent.\n", name.c_str());
+
+	return true;
 }

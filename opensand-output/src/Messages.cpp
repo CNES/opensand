@@ -95,6 +95,19 @@ void msgHeaderRegister(std::string& message, pid_t pid,
 	message.append((const char*)&header, sizeof(header));
 }
 
+void msgHeaderRegisterLive(std::string& message, pid_t pid,
+                           uint8_t num_probes, uint8_t num_events)
+{
+	msg_register_t header;
+	header.magic = htonl(MAGIC_NUMBER);
+	header.cmd_type = MSG_CMD_REGISTER_LIVE;
+	header.pid = htonl(pid);
+	header.num_probes = num_probes;
+	header.num_events = num_events;
+
+	message.append((const char*)&header, sizeof(header));
+}
+
 void msgHeaderSendProbes(std::string& message, uint32_t timestamp)
 {
 	msg_send_probes_t header;

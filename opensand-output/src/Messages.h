@@ -49,6 +49,7 @@
 #define MSG_CMD_DISABLE 8
 #define MSG_CMD_ENABLE 9
 #define MSG_CMD_NACK 11
+#define MSG_CMD_REGISTER_LIVE 12
 
 #define DAEMON_SOCK_NAME "sand-daemon.socket"
 #define SELF_SOCK_NAME "program-%d.socket"
@@ -64,6 +65,16 @@
 void msgHeaderRegister(std::string &message, pid_t pid, uint8_t num_probes,
                        uint8_t num_events);
 
+/**
+ * @brief Register a message while initialization is already done
+ *
+ * @param message    The message
+ * @param pid        The process ID
+ * @param num_probes The number of probes
+ * @param num_events The number of events
+ */
+void msgHeaderRegisterLive(std::string &message, pid_t pid, uint8_t num_probes,
+                           uint8_t num_events);
 
 /**
  * @brief send probes
