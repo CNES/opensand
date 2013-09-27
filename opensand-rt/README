@@ -18,7 +18,7 @@ that allows penSAND block communications and events management.
 See the INSTALL file to learn how to buildv the library.
 To compile an application using the OpenSAND RT library use the
 following expression:
-gcc `pkg-config opensand_rt --cflags` `pkg-config opensand_rt --libs` -o myappli myappli.c
+g++ `pkg-config opensand_rt --cflags` myappli.cpp `pkg-config opensand_rt --libs` -o myapplip
 
 
 References

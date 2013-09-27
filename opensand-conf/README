@@ -16,9 +16,9 @@ Library
 The sources are in the src subdirectory. The sources build a library
 that allow OpenSAND configuration files parsing. See the INSTALL file to
 learn how to build the libraries.
-To compile an application using the OpenSANDconfiguration library use the
+To compile an application using the OpenSAND configuration library use the
 following expression:
-gcc `pkg-config opensand_conf --cflags` `pkg-config opensand_conf --libs` -o myappli myappli.c
+g++ `pkg-config opensand_conf --cflags` myappli.cpp `pkg-config opensand_conf --libs` -o myappli
 
 
 References

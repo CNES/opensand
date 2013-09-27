@@ -18,7 +18,7 @@ that handle Error, Probes and Events. See the INSTALL file to learn how to build
 the libraries.
 To compile an application using the OpenSAND output library use the
 following expression:
-gcc `pkg-config opensand_output --cflags` `pkg-config opensand_output --libs` -o myappli myappli.c
+g++ `pkg-config opensand_output --cflags` myappli.cpp `pkg-config opensand_output --libs` -o myappli
 
 
 References
