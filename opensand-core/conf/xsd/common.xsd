@@ -2,6 +2,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 
 <!-- TODO add types as in OpenSandCore.h -->
+<!-- TODO for RBDC_max use 8M as we cannot send more in CR -->
 <xsd:simpleType name="talId">
     <xsd:restriction base="xsd:nonNegativeInteger">
         <xsd:minInclusive value="0" />
