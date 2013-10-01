@@ -39,6 +39,7 @@ import glob
 import socket
 import tempfile
 from base64 import encodestring
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from opensand_manager_core.my_exceptions import CommandException
 
@@ -130,17 +131,6 @@ class Stream:
 
         self._log.debug("send content of file '%s'" % src_filename)
 
-        # open the file
-        try:
-            new_file = open(src_filename, "rb")
-        except IOError, error:
-            self._log.warning("error when opening '%s': %s. Send empty data"
-                              % (src_filename, error))
-            raise
-        except Exception:
-            self._log.error("exception when opening '%s'" % src_filename)
-            raise
-
         name = os.path.basename(dst_filename)
         if mode is None:
             mode = os.stat(src_filename).st_mode
@@ -156,16 +146,31 @@ class Stream:
         # open CDATA tag
         buf = buf + '<![CDATA['
 
+        # compress the file
+        try:
+            temp_file = tempfile.TemporaryFile()
+            zip_file = ZipFile(temp_file, mode='w', compression=ZIP_DEFLATED)
+            zip_file.write(src_filename, name)
+            zip_file.close()
+        except (IOError, OSError, RuntimeError), error:
+            self._log.warning("error when opening %s for compression (%s)"
+                              % (src_filename, error))
+            raise
+        except Exception:
+            self._log.error("exception when handling '%s'" % src_filename)
+            raise
+        temp_file.seek(0)
+
         # write tags
         self._tmp_file.write(buf)
 
         # write raw data
-        buf = new_file.readline()
+        buf = temp_file.readline()
         # encode buffer to avoid XML parsing errors
         buf = encodestring(buf)
         while(buf != ''):
             self._tmp_file.write(buf)
-            buf = new_file.readline()
+            buf = temp_file.readline()
             buf = encodestring(buf)
 
         # close CDATA tag
@@ -179,7 +184,7 @@ class Stream:
 
         # write tags
         self._tmp_file.write(buf)
-        new_file.close()
+        temp_file.close()
 
         if prolog:
             self._tmp_file.seek(0)

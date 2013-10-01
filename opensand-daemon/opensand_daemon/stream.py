@@ -35,11 +35,11 @@ stream.py - transform files and directory into a stream
 """
 
 import os
-import shutil
 import select
 import logging
 import tempfile
 from base64 import decodestring
+from zipfile import ZipFile, BadZipfile
 from xml.sax import make_parser, handler, SAXException
 from opensand_daemon.my_exceptions import Timeout, InstructionError, XmlError
 
@@ -159,8 +159,7 @@ class XmlParser(handler.ContentHandler):
                 self._root_dir = name
                 self._curr_dir = name
             else:
-                self._curr_dir = self._curr_dir + "/" + name
-            self._curr_dir = self._curr_dir.replace("//", "/")
+                self._curr_dir = os.path.join(self._curr_dir, name)
             self._directory_tree.append(self._curr_dir)
             LOGGER.debug("enter directory '%s'" % self._curr_dir)
             if(os.path.exists(self._curr_dir) == False):
@@ -192,8 +191,7 @@ class XmlParser(handler.ContentHandler):
                     raise SAXException("the has mode attibute which is not "
                                        "interger: %s" % mode)
 
-            self._curr_filename = self._curr_dir + "/" + name
-            self._curr_filename = self._curr_filename.replace("//", "/")
+            self._curr_filename = os.path.join(self._curr_dir, name)
             self._directory_tree.append(self._curr_filename)
             LOGGER.debug("create temporary file")
             try:
@@ -211,18 +209,20 @@ class XmlParser(handler.ContentHandler):
         elif(name == "file" and self._is_file == True):
             try:
                 self._tmp_file.flush()
-                shutil.copyfile(self._tmp_file.name, self._curr_filename)
+                with ZipFile(self._tmp_file.name, "r") as zip_file:
+                    zip_file.extract(os.path.basename(self._curr_filename),
+                                     self._curr_dir)
                 if self._curr_mode != -1:
                     os.chmod(self._curr_filename, self._curr_mode)
-            except (IOError, OSError), (errno, strerror):
-                msg = ("error when copying '%s' to '%s' (%d: %s)" %
-                        (self._tmp_file.name, self._curr_filename,
-                        errno, strerror))
+            except BadZipfile, err:
+                msg = ("error when extracting '%s' to '%s' (%s)" %
+                       (self._tmp_file.name, self._curr_filename, err))
                 LOGGER.error(msg)
                 raise SAXException(msg)
-            except shutil.Error, (srcname, dstname, exception):
-                msg = ("error when copying '%s' to '%s' (%s)" %
-                       (srcname, dstname, exception))
+            except (IOError, OSError), (errno, strerror):
+                msg = ("error when extracting '%s' to '%s' (%d: %s)" %
+                       (self._tmp_file.name, self._curr_filename,
+                        errno, strerror))
                 LOGGER.error(msg)
                 raise SAXException(msg)
             finally:
