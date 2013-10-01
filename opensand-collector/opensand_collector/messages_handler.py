@@ -70,6 +70,7 @@ class MessagesHandler(object):
     def __init__(self, host_manager):
         self._host_manager = host_manager
         self._manager_addr = None
+        self._temp_manager = []
         self._sock = None
         self._tag = None
         self._time = 0
@@ -319,6 +320,12 @@ class MessagesHandler(object):
         performs the requested action.
         """
         if cmd == MSG_MGR_REGISTER:
+            if self._manager_addr is not None and \
+               addr != self._manager_addr:
+                self._temp_manager.append(addr)
+                LOGGER.debug("register from another manager, keep it in the "
+                             "temporary list")
+                return
             self._manager_addr = addr
             LOGGER.info("Manager registered from address %s:%d" % addr)
 
@@ -330,13 +337,21 @@ class MessagesHandler(object):
             return
 
         if cmd == MSG_MGR_UNREGISTER:
-            self._manager_addr = addr
+            if addr == self._manager_addr:
+                self._manager_addr = None
+                if len(self._temp_manager) > 0:
+                    # register the next manager
+                    self._handle_manager_command(MSG_MGR_REGISTER,
+                                                 self._temp_manager.pop(0),
+                                                 "")
+            elif addr in self._temp_manager:
+                self._temp_manager.remove(addr)
             LOGGER.info("Manager unregistered from address %s:%d" % addr)
             return
 
         if addr != self._manager_addr:
             LOGGER.error("Ignoring manager command %d from unregistered "
-                "address %s:%d", cmd, addr[0], addr[1])
+                         "address %s:%d", cmd, addr[0], addr[1])
             return
 
         if cmd == MSG_MGR_SET_PROBE_STATUS:
