@@ -38,14 +38,12 @@ opensand_controller.py - thread that configure, install, start, stop
 import threading
 import os
 import shutil
-import socket
 import ConfigParser
 
 from opensand_manager_core.my_exceptions import CommandException, ModelException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
-from opensand_manager_core.controller.stream import Stream
 
 DEFAUL_PATH = '/usr/share/opensand/'
 DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
@@ -158,19 +156,31 @@ class Controller(threading.Thread):
         if self._model.is_running():
             self._log.warning("Some components are still running")
 
-        self._log.info("Deploy OpenSAND platform")
+        self._log.info("Deploying OpenSAND platform...")
 
+        threads = []
+        errors = []
         try:
             self.update_deploy_config()
             for host in self._hosts + self._ws:
-                self._log.info("Deploying " + host.get_name().upper())
+                self._log.debug("Deploying " + host.get_name().upper())
                 if not host.get_name().lower() in self._deploy_config.sections():
                     self._log.warning("No information for %s deployment, "
                                       "host will be disabled" % host.get_name())
                     host.disable()
                     continue
-                host.deploy(self._deploy_config)
+                thread = threading.Thread(None, host.deploy, None,
+                                          (self._deploy_config, errors), {})
+                thread.start()
+                threads.append(thread)
         except CommandException:
+            self._log.error("OpenSAND platform failed to deploy")
+            return False
+        finally:
+            for thread in threads:
+                thread.join()
+
+        if len(errors) > 0:
             self._log.error("OpenSAND platform failed to deploy")
             return False
 
@@ -184,64 +194,35 @@ class Controller(threading.Thread):
         if self._model.is_running():
             self._log.warning("Some components are still running")
 
-        self._log.info("Install simulation files")
+        self._log.info("Install simulation files...")
 
-        for host in self._hosts:
-            name = host.get_name()
-            self._log.info("Installing  %s" % name)
-            files = self._model.get_files()
-            if not name.lower() in files and not 'global' in files:
-                self._log.debug("no section for %s in simulation deployment "
-                                "file" % name)
-                continue
-
-            try:
-                sock = host.connect_command('CONFIGURE')
-                if sock is None:
+        threads = []
+        errors = []
+        try:
+            for host in self._hosts:
+                name = host.get_name()
+                self._log.debug("Installing  %s" % name)
+                files = self._model.get_files()
+                if not name.lower() in files and not 'global' in files:
+                    self._log.debug("no section for %s in simulation deployment "
+                                    "file" % name)
                     continue
 
-                for elem in files[name.lower()]:
-                    src = elem[1]
-                    dst = elem[2]
-                    if src == '':
-                        self._log.warning("source for %s is empty, the file was"
-                                          " ignored" % elem[0])
-                        continue
-                    if dst == '':
-                        self._log.warning("destination for %s is empty, the "
-                                          "file was ignored" % elem[0])
-                        continue
-                    host.send_file(sock, src, dst)
-                if 'global' in files:
-                    for elem in files['global']:
-                        src = elem[1]
-                        dst = elem[2]
-                        if src == '':
-                            self._log.warning("source for %s is empty, the file"
-                                              " was ignored" % elem[0])
-                        elif dst == '':
-                            self._log.warning("destination for %s is empty, the"
-                                              " file was ignored" % elem[0])
-                        else:
-                            host.send_file(sock, src, dst)
+                thread = threading.Thread(None, host.install_simulation_files,
+                                          None, (files, errors), {})
+                threads.append(thread)
+                thread.start()
+        except CommandException, msg:
+            self._log.error("Simulation files installation failed")
+            return False
+        finally:
+            # join threads
+            for thread in threads:
+                thread.join()
 
-                # send 'STOP' tag
-                sock.send('STOP\n')
-                self._log.debug("%s: send 'STOP'" % name)
-            except IOError, msg:
-                self._log.error("Cannot install simulation files: %s" % msg)
-                return False
-            except socket.error, (_, strerror):
-                self._log.error("Cannot contact %s command server: %s" %
-                                (name, strerror))
-                return False
-            except CommandException, msg:
-                self._log.error("cannot install simulation files")
-                return False
-            finally:
-                if sock is not None:
-                    sock.close()
-
+        if len(errors) > 0:
+            self._log.error("Simulation files installation failed")
+            return False
 
         self._log.info("Simulation files installed")
         return True
@@ -264,15 +245,18 @@ class Controller(threading.Thread):
 
         # create the base directory for configuration files
         # the configuration is shared between all runs in a scenario
+        threads = []
+        errors = []
         try:
             self.update_deploy_config()
+            self._log.info("Configuring hosts...")
             for host in self._hosts:
                 name = host.get_name()
                 component = name.lower()
                 if component.startswith('st'):
                     component = 'st'
                 
-                self._log.info("Configuring " + host.get_name().upper())
+                self._log.debug("Configuring " + host.get_name().upper())
                 # create the host directory
                 host_path = os.path.join(self._model.get_scenario(),
                                          host.get_name().lower())
@@ -294,27 +278,38 @@ class Controller(threading.Thread):
                               os.path.join(scenario, 'topology.conf'),
                               conf_file]
                 # the list of modules configuration files to send
+                # first get host modules
                 modules_dir = os.path.join(host_path, 'plugins')
                 modules = []
                 if os.path.isdir(modules_dir):
-                    modules = map(lambda x: os.path.join(modules_dir, x),
-                                  os.listdir(modules_dir))
-                host.configure(conf_files,
-                               modules,
-                               self._deploy_config,
-                               self._model.get_dev_mode())
-                # configure global modules
-                self.configure_modules(host)
+                    modules = [modules_dir, # host specific modules
+                               os.path.join(scenario, 'plugins')] # global modules
+
+                thread = threading.Thread(None, host.configure, None,
+                                          (conf_files, modules,
+                                           self._deploy_config,
+                                           self._model.get_dev_mode(), errors),
+                                         {})
+                threads.append(thread)
+                thread.start()
 
             # configure tools on workstations
+            if len(self._ws) > 0:
+                self._log.info("Configuring ws...")
             for ws in self._ws:
-                self._log.info("Configuring " + ws.get_name().upper())
+                self._log.debug("Configuring " + ws.get_name().upper())
                 # create the WS directory
                 ws_path = os.path.join(self._model.get_scenario(),
                                        ws.get_name().lower())
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
-                ws.configure_ws(self._deploy_config, self._model.get_dev_mode())
+                thread = threading.Thread(None, ws.configure_ws, None,
+                                          (self._deploy_config,
+                                           self._model.get_dev_mode(), errors),
+                                         {})
+                threads.append(thread)
+                thread.start()
+
         except (OSError, IOError), error:
             self._log.error("Failed to handle configuration %s" %
                             (error))
@@ -322,6 +317,16 @@ class Controller(threading.Thread):
         except CommandException:
             self._log.error("OpenSAND platform failed to configure")
             return False
+        finally:
+            # join threads
+            for thread in threads:
+                thread.join()
+
+        if len(errors) > 0:
+            self._log.error("OpenSAND platform failed to configure")
+            return False
+
+        self._log.info("Platform configured")
 
         try:
             for host in self._hosts:
@@ -411,46 +416,11 @@ class Controller(threading.Thread):
         self._log.info("listening for command on port %d" % CMD_PORT)
         self._server.run()
 
-    def configure_modules(self, host):
-        """ send the module configuration on hosts """
-        # connect to command server and send the configure command
-        self._log.info("Deploy modules on %s" % host.get_name())
-        try:
-            sock = host.connect_command('CONFIGURE')
-            if sock is None:
-                return
 
-            # send 'DATA' tag
-            sock.send('DATA\n')
-            self._log.debug("%s: send 'DATA'" % host.get_name())
-
-            stream = Stream(sock, self._log)
-            # configure global modules
-            stream.send_dir(os.path.join(self._model.get_scenario(), 'plugins'),
-                            '/etc/opensand/plugins')
-
-            # send 'DATA_END' tag
-            sock.send(DATA_END)
-            self._log.debug("%s: send '%s'" %
-                            (host.get_name(), DATA_END.strip()))
-            host.receive_ok(sock)
-            # send 'STOP' tag
-            sock.send('STOP\n')
-            self._log.debug("%s: send 'STOP'" % host.get_name())
-
-        except socket.error, (_, strerror):
-            self._log.error("Cannot contact %s command server: %s" %
-                            (host.get_name(), strerror))
-        except CommandException:
-            self._log.error("cannot deploy plugins configuration")
-            raise
-        finally:
-            if sock is not None:
-                sock.close()
-    
     def get_env_plane_controller(self):
         """ return the environment plane controller """
         return self._env_plane
+
 
 ##### TEST #####
 # TODO thread to run the main loop in order to find hosts

@@ -150,13 +150,14 @@ class HostController:
             sock.close()
 
     def configure(self, conf_files, conf_modules,
-                  deploy_config, dev_mode=False):
+                  deploy_config, dev_mode=False, errors=[]):
         """ send the configure command to command server """
         # connect to command server and send the configure command
         try:
             sock = self.connect_command('CONFIGURE')
-        except CommandException:
-            raise
+        except CommandException, msg:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         if sock is None:
             return
@@ -167,15 +168,14 @@ class HostController:
                 self.send_file(sock, conf,
                                os.path.join(CONF_DESTINATION_PATH,
                                             os.path.basename(conf)))
-            for conf in conf_modules:
-                # send the module configuration
-                plugin_path = os.path.join(CONF_DESTINATION_PATH, 'plugins')
-                self.send_file(sock, conf,
-                               os.path.join(plugin_path,
-                                            os.path.basename(conf))),
-        except CommandException:
+
+            plugin_path = os.path.join(CONF_DESTINATION_PATH, 'plugins')
+            for module_dir in conf_modules:
+                self.send_dir(sock, module_dir, plugin_path)
+        except CommandException, msg:
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         # stop after configuration if disabled or if dev mode and no deploy
         # information
@@ -199,14 +199,15 @@ class HostController:
             except socket.error, strerror:
                 self._log.error("Cannot contact %s command server: %s" %
                                 (self.get_name(), strerror))
-                raise CommandException("Cannot contact %s command server: %s" %
-                                        (self.get_name(), strerror))
+                errors.append("%s: %s" % (self.get_name(), strerror))
+                return
 
             try:
                 self.receive_ok(sock)
-            except CommandException:
+            except CommandException, msg:
                 sock.close()
-                raise
+                errors.append("%s: %s" % (self.get_name(), msg))
+                return
 
             sock.close()
             return
@@ -259,10 +260,12 @@ class HostController:
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
-            raise CommandException("Cannot create start.ini file")
-        except CommandException:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
+        except CommandException, msg:
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         try:
             # send 'STOP' tag
@@ -271,24 +274,26 @@ class HostController:
         except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
-            raise CommandException("Cannot contact %s command server: %s" %
-                                    (self.get_name(), strerror))
+            errors.append("%s: %s" % (self.get_name(), strerror))
+            return
 
         try:
             self.receive_ok(sock)
-        except CommandException:
+        except CommandException, msg:
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         sock.close()
 
-    def configure_ws(self, deploy_config, dev_mode=False):
+    def configure_ws(self, deploy_config, dev_mode=False, errors=[]):
         """ send the configure command to command server on WS """
         # connect to command server and send the configure command
         try:
             sock = self.connect_command('CONFIGURE')
-        except CommandException:
-            raise
+        except CommandException, msg:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         if sock is None:
             return
@@ -305,10 +310,12 @@ class HostController:
         except ConfigParser.Error, msg:
             self._log.error("Cannot create start.ini file: " + msg)
             sock.close()
-            raise CommandException("Cannot create start.ini file")
-        except CommandException:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
+        except CommandException, msg:
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         try:
             # send 'STOP' tag
@@ -317,14 +324,15 @@ class HostController:
         except socket.error, (_, strerror):
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
-            raise CommandException("Cannot contact %s command server: %s" %
-                                    (self.get_name(), strerror))
+            errors.append("%s: %s" % (self.get_name(), strerror))
+            return
 
         try:
             self.receive_ok(sock)
-        except CommandException:
+        except CommandException, msg:
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         sock.close()
 
@@ -375,6 +383,60 @@ class HostController:
                                 (tool.get_name(), self.get_name()))
                 raise
 
+    def install_simulation_files(self, files, errors=[]):
+        """ send the simulation files """
+        try:
+            sock = self.connect_command('CONFIGURE')
+            if sock is None:
+                return
+
+            for elem in files[self.get_name().lower()]:
+                src = elem[1]
+                dst = elem[2]
+                if src == '':
+                    self._log.warning("source for %s is empty, the file was"
+                                      " ignored" % elem[0])
+                    continue
+                if dst == '':
+                    self._log.warning("destination for %s is empty, the "
+                                      "file was ignored" % elem[0])
+                    continue
+                self.send_file(sock, src, dst)
+            if 'global' in files:
+                for elem in files['global']:
+                    src = elem[1]
+                    dst = elem[2]
+                    if src == '':
+                        self._log.warning("source for %s is empty, the file"
+                                          " was ignored" % elem[0])
+                    elif dst == '':
+                        self._log.warning("destination for %s is empty, the"
+                                          " file was ignored" % elem[0])
+                    else:
+                        self.send_file(sock, src, dst)
+
+            # send 'STOP' tag
+            sock.send('STOP\n')
+            self._log.debug("%s: send 'STOP'" % self.get_name())
+        except IOError, msg:
+            self._log.error("Cannot install simulation files: %s" % msg)
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
+        except socket.error, (_, strerror):
+            self._log.error("Cannot contact %s command server: %s" %
+                            (self.get_name(), strerror))
+            errors.append("%s: %s" % (self.get_name(), strerror))
+            return
+        except CommandException, msg:
+            self._log.error("cannot install simulation files")
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
+        finally:
+            if sock is not None:
+                sock.close()
+
+        return True
+
     def send_file(self, sock, src_file, dst_file, mode=None):
         """ send a file """
         self._log.debug("Send file '%s' to dest '%s'" % (src_file, dst_file)) 
@@ -424,12 +486,62 @@ class HostController:
             sock.close()
             raise
 
-    def deploy(self, deploy_config):
+    def send_dir(self, sock, src_dir, dst_dir):
+        """ send a directory """
+        self._log.debug("Send directory '%s' to dest '%s'" % (src_dir, dst_dir)) 
+        try:
+            # send 'DATA' tag
+            sock.send('DATA\n')
+            self._log.debug("%s: send 'DATA'" % self.get_name())
+        except socket.error, strerror:
+            self._log.error("Cannot contact %s command server: %s" %
+                            (self.get_name(), strerror))
+            raise CommandException("Cannot contact %s command server: %s" %
+                                   (self.get_name(), strerror))
+
+        try:
+            # create the stream handler
+            stream_handler = Stream(sock, self._log)
+        except Exception:
+            raise CommandException
+
+        try:
+            stream_handler.send_dir(src_dir, dst_dir)
+        except CommandException as error:
+            self._log.error("%s: error when sending stream: %s" %
+                            (self.get_name(), error))
+            raise CommandException("%s: error when sending stream: %s" %
+                                   (self.get_name(), error))
+        except BaseException, error:
+            self._log.error("%s: error when sending directory '%s': %s" %
+                            (self.get_name(), src_dir, error))
+            sock.close()
+            raise
+
+        # send 'DATA_END' tag
+        try:
+            sock.send(DATA_END)
+            self._log.debug("%s: send '%s'" %
+                            (self.get_name(), DATA_END.strip()))
+        except socket.error, strerror:
+            self._log.error("Cannot contact %s command server: %s" %
+                            (self.get_name(), strerror))
+            raise CommandException("Cannot contact %s command server: %s" %
+                                    (self.get_name(), strerror))
+
+        try:
+            self.receive_ok(sock)
+        except CommandException:
+            sock.close()
+            raise
+
+    def deploy(self, deploy_config, errors=[]):
         """ send the deploy command to command server """
         try:
             sock = self.connect_command('DEPLOY')
-        except CommandException:
-            raise
+        except CommandException, msg:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         if sock is None:
             return
@@ -440,10 +552,11 @@ class HostController:
             for tool in self._host_model.get_tools():
                 self.deploy_files(tool.get_name(), sock, deploy_config,
                                   is_tool=True)
-        except CommandException:
+        except CommandException, msg:
             self._log.warning("unable to send files to %s" % self.get_name())
             sock.close()
-            raise
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         try:
             # send 'STOP' tag
@@ -452,13 +565,14 @@ class HostController:
         except socket.error, strerror:
             self._log.error("Cannot contact %s command server: %s" %
                             (self.get_name(), strerror))
-            raise CommandException("Cannot contact %s command server: %s" %
-                                   (self.get_name(), strerror))
+            errors.append("%s: %s" % (self.get_name(), strerror))
+            return
 
         try:
             self.receive_ok(sock)
-        except CommandException:
-            raise
+        except CommandException, msg:
+            errors.append("%s: %s" % (self.get_name(), msg))
+            return
 
         sock.close()
 
@@ -466,12 +580,6 @@ class HostController:
         """ send the host files for deployment """
 
         self._log.debug("Deploy files for component: %s" % component)
-
-        try:
-            # create the stream handler
-            stream_handler = Stream(sock, self._log)
-        except Exception:
-            raise CommandException
 
         src_prefix = '/'
         if config.has_option('prefix', 'source'):
@@ -510,41 +618,7 @@ class HostController:
 
         for (directory, dst_directory) in directories.iteritems():
             try:
-                # send 'DATA' tag
-                sock.send('DATA\n')
-                self._log.debug("%s: send 'DATA'" % self.get_name())
-            except socket.error, strerror:
-                self._log.error("Cannot contact %s command server: %s" %
-                                (self.get_name(), strerror))
-                raise CommandException("Cannot contact %s command server: %s" %
-                                        (self.get_name(), strerror))
-
-            try:
-                stream_handler.send_dir(directory, dst_directory)
-            except CommandException as error:
-                self._log.error("%s: error when sending stream: %s" %
-                                (self.get_name(), error))
-                raise CommandException("%s: error when sending stream: %s" %
-                                       (self.get_name(), error))
-            except Exception:
-                self._log.error("%s: error when sending directory '%s'" %
-                                (self.get_name(), directory))
-                raise CommandException("%s: error when sending directory '%s'" %
-                                       (self.get_name(), directory))
-
-            try:
-                # send 'DATA_END' tag
-                sock.send(DATA_END)
-                self._log.debug("%s: send '%s'" %
-                                (self.get_name(), DATA_END.strip()))
-            except socket.error, strerror:
-                self._log.error("Cannot contact %s command server: %s" %
-                                (self.get_name(), strerror))
-                raise CommandException("Cannot contact %s command server: %s" %
-                                        (self.get_name(), strerror))
-
-            try:
-                self.receive_ok(sock)
+                self.send_dir(sock, directory, dst_directory)
             except CommandException:
                 raise
 

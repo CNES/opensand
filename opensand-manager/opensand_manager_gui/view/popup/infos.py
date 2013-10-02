@@ -64,6 +64,6 @@ def yes_no_popup(question, title, icon):
     dialog.set_keep_above(True)
     dialog.set_title(title)
     dialog.set_icon_name(icon)
-    ret = dialog.show()
+    ret = dialog.run()
     dialog.destroy()
     return ret
