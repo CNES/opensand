@@ -171,6 +171,13 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="max_fifo" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The FIFOs size (same for all FIFO at the moment)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -187,7 +194,14 @@
             <xsd:element ref="switchs">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The witching table for satellite
+                        The switching table for satellite
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="default_spot" type="spotId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default spot if terminal is not found in switches
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

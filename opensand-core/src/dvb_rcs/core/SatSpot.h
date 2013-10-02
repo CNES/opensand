@@ -72,7 +72,7 @@ class SatSpot
 
  public:
 
-	unsigned int data_in_id;          ///< the input carrier ID for the spot
+	unsigned int data_in_carrier_id; ///< the input carrier ID for the spot
 
 	DvbFifo control_fifo;     ///<  Fifo associated with Control carrier
 	DvbFifo logon_fifo;       ///<  Fifo associated with Logons
@@ -92,9 +92,25 @@ class SatSpot
 	SatSpot();
 	~SatSpot();
 
-	bool initFifos(uint8_t spot_id, unsigned int log_id, unsigned int ctrl_id,
-	               unsigned int data_in_id, unsigned int data_out_st_id,
-	               unsigned int data_out_gw_id);
+	/**
+	 * @brief Initialize FIFOs for spot
+	 *
+	 * @param spot_id            The spot id
+	 * @param data_in_carrier_id The carrierid for incomming data
+	 * @param log_id             The FIFO for logon packets
+	 * @param ctrl_id            The FIFO for control frames
+	 * @param data_out_st_id     The FIFO for outgoing terminal data
+	 * @param data_out_gw_id     The FIFO for outgoing GW data
+	 * @param fifo_size          The size of data FIFOs
+	 * @return true on success, false otherwise
+	 */
+	bool initFifos(spot_id_t spot_id,
+	               unsigned int data_in_carrier_id,
+	               unsigned int log_id,
+	               unsigned int ctrl_id,
+	               unsigned int data_out_st_id,
+	               unsigned int data_out_gw_id,
+	               size_t fifo_size);
 
 	/**
 	 * initialize the scheduling attribute

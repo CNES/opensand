@@ -45,7 +45,7 @@
 // Declaring SatSpot necessary ctor and dtor
 SatSpot::SatSpot():
 	spot_id(-1),
-	data_in_id(-1),
+	data_in_carrier_id(-1),
 	control_fifo(),
 	logon_fifo(),
 	data_out_gw_fifo(),
@@ -81,20 +81,24 @@ SatSpot::~SatSpot()
 
 
 // TODO add spot fifos in configuration
-bool SatSpot::initFifos(uint8_t spot_id, unsigned int log_id, unsigned int ctrl_id,
-                        unsigned int data_in_id, unsigned int data_out_st_id,
-                        unsigned int data_out_gw_id)
+// TODO size per fifo ?
+bool SatSpot::initFifos(spot_id_t spot_id,
+                        unsigned int data_in_carrier_id,
+                        unsigned int log_id,
+                        unsigned int ctrl_id,
+                        unsigned int data_out_st_id,
+                        unsigned int data_out_gw_id,
+                        size_t fifo_size)
 {
 	this->spot_id = spot_id;
+	this->data_in_carrier_id = data_in_carrier_id;
 
 	// initialize MAC FIFOs
-	// TODO param in conf
-#define FIFO_SIZE 5000
-	this->logon_fifo.init(log_id, FIFO_SIZE, "logon_fifo");
-	this->control_fifo.init(ctrl_id, FIFO_SIZE, "control_fifo");
-	this->data_in_id = data_in_id;
-	this->data_out_st_fifo.init(data_out_st_id, FIFO_SIZE, "data_out_st");
-	this->data_out_gw_fifo.init(data_out_gw_id, FIFO_SIZE, "data_out_gw");
+#define SIG_FIFO_SIZE 50
+	this->logon_fifo.init(log_id, SIG_FIFO_SIZE, "logon_fifo");
+	this->control_fifo.init(ctrl_id, SIG_FIFO_SIZE, "control_fifo");
+	this->data_out_st_fifo.init(data_out_st_id, fifo_size, "data_out_st");
+	this->data_out_gw_fifo.init(data_out_gw_id, fifo_size, "data_out_gw");
 
 	return true;
 }

@@ -369,8 +369,8 @@ bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	}
 
 	// get memory for a DVB frame
-	dvb_frame = (unsigned char *)calloc(sizeof(unsigned char),
-	                                    MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX);
+	dvb_frame = (unsigned char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+	                                    sizeof(unsigned char));
 	if(dvb_frame == NULL)
 	{
 		UTI_ERROR("cannot get memory for DVB frame\n");
@@ -450,8 +450,7 @@ bool BlockDvb::onRcvEncapPacket(NetPacket *packet,
 		goto error;
 	}
 
-	// append the new satellite cell in the ST FIFO of the appropriate
-	// satellite spot
+	// append the new packet in the fifo
 	if(!fifo->push(elem))
 	{
 		UTI_ERROR("FIFO is full: drop packet\n");

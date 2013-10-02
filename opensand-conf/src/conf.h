@@ -76,6 +76,8 @@
 
 #define DVB_GLOBAL_SECTION        "dvb_rcs"
 
+#define DVB_SIZE_FIFO             "max_fifo"
+
 /////////////////////////
 // section dvb_rcs_tal //
 /////////////////////////
@@ -123,6 +125,7 @@
 #define COLUMN_NBR                "column_nbr"
 #define SAT_SWITCH_SECTION        "sat_switching_table"
 #define SWITCH_LIST               "switchs"
+#define DEFAULT_SPOT             "default_spot"
 
 #define SAT_ERR_GENERATOR         "error_generator"
 #define SAT_ERR_GENERATOR_NONE    "none"
@@ -144,7 +147,6 @@
 #define DVB_CTRL_CAR            "carrier_id_dvb_ctrl"
 #define DVB_SOF_CAR             "carrier_id_sof"
 #define DVB_DATA_CAR            "carrier_id_data"
-#define DVB_SIZE_FIFO           "max_fifo"
 #define DVB_EVENT_FILE          "event_file"
 #define DVB_STAT_FILE           "stat_file"
 #define DVB_SIMU_FILE           "simu_file"

@@ -178,7 +178,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
-					// call to onDownwardEvent => return/
+					// call to onDownwardEvent => return
 					UTI_ERROR("unable to store packet\n");
 					burst->clear();
 					delete burst;
@@ -471,6 +471,7 @@ bool BlockDvbSat::initSwitchTable()
 	ConfigurationList switch_list;
 	ConfigurationList::iterator iter;
 	GenericSwitch *generic_switch = new GenericSwitch();
+	spot_id_t spot_id;
 	unsigned int i;
 
 	// no need for switch in non-regenerative mode
@@ -491,8 +492,8 @@ bool BlockDvbSat::initSwitchTable()
 	i = 0;
 	for(iter = switch_list.begin(); iter != switch_list.end(); iter++)
 	{
-		uint8_t spot_id = 0;
-		uint8_t tal_id = 0;
+		tal_id_t tal_id = 0;
+		spot_id = 0;
 
 		i++;
 		// get the Tal ID attribute
@@ -523,6 +524,15 @@ bool BlockDvbSat::initSwitchTable()
 		         "Spot ID = %u)\n", tal_id, spot_id);
 	}
 
+	// get default spot id
+	if(!globalConfig.getValue(SAT_SWITCH_SECTION, DEFAULT_SPOT, spot_id))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          SAT_SWITCH_SECTION, DEFAULT_SPOT);
+		goto error;
+	}
+	generic_switch->setDefault(spot_id);
+
 	if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(generic_switch)))
 	{
 		goto error;
@@ -540,8 +550,17 @@ error:
 bool BlockDvbSat::initSpots()
 {
 	int i = 0;
+	size_t fifo_size;
 	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
+
+	// Retrive FIFO size
+	if(!globalConfig.getValue(SAT_DVB_SECTION, DVB_SIZE_FIFO, fifo_size))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          SAT_DVB_SECTION, DVB_SIZE_FIFO);
+		goto error;
+	}
 
 	// Retrieving the spots description
 	if(!globalConfig.getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
@@ -554,11 +573,11 @@ bool BlockDvbSat::initSpots()
 	for(iter = spot_list.begin(); iter != spot_list.end(); iter++)
 	{
 		uint8_t spot_id = 0;
-		long ctrl_id;
-		long data_in_id;
-		long data_out_gw_id;
-		long data_out_st_id;
-		long log_id;
+		unsigned int ctrl_id;
+		unsigned int data_in_carrier_id;
+		unsigned int data_out_gw_id;
+		unsigned int data_out_st_id;
+		unsigned int log_id;
 		SatSpot *new_spot;
 
 		i++;
@@ -576,8 +595,8 @@ bool BlockDvbSat::initSpots()
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, CTRL_ID, i);
 			goto error;
 		}
-		// get the data_in_id
-		if(!globalConfig.getAttributeValue(iter, DATA_IN_ID, data_in_id))
+		// get the data_in_carrier_id
+		if(!globalConfig.getAttributeValue(iter, DATA_IN_ID, data_in_carrier_id))
 		{
 			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
 			          "line %d\n", SAT_DVB_SECTION, SPOT_LIST, DATA_IN_ID, i);
@@ -615,11 +634,12 @@ bool BlockDvbSat::initSpots()
 
 		// initialize the new spot
 		// TODO: check the fact the spot we enter is not a double
-		UTI_INFO("satellite spot %u: logon = %ld, control = %ld, "
-		         "data out ST = %ld, data out GW = %ld\n",
+		UTI_INFO("satellite spot %u: logon = %u, control = %u, "
+		         "data out ST = %u, data out GW = %u\n",
 		         spot_id, log_id, ctrl_id, data_out_st_id, data_out_gw_id);
-		if(!new_spot->initFifos(spot_id, log_id, ctrl_id, data_in_id,
-		                        data_out_st_id, data_out_gw_id))
+		if(!new_spot->initFifos(spot_id, data_in_carrier_id,
+		                        log_id, ctrl_id, data_out_st_id,
+		                        data_out_gw_id, fifo_size))
 		{
 			UTI_ERROR("failed to init the new satellite spot\n");
 			delete new_spot;
@@ -840,14 +860,14 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				SatSpot *current_spot = spot->second;
 
 				// TODO remove signed
-				if((signed)current_spot->data_in_id == carrier_id)
+				if((signed)current_spot->data_in_carrier_id == carrier_id)
 				{
 					// satellite spot found, forward DVB frame on the same spot
 					// TODO: forward according to a table
 					UTI_DEBUG("DVB burst comes from spot %u (carrier %u) => "
 					          "forward it to spot %u (carrier %u)\n",
 					          current_spot->getSpotId(),
-					          current_spot->data_in_id,
+					          current_spot->data_in_carrier_id,
 					          current_spot->getSpotId(),
 					          current_spot->data_out_gw_fifo.getCarrierId());
 
@@ -920,14 +940,14 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			SatSpot *current_spot = spot->second;
 
 			// TODO remove signed
-			if((signed)current_spot->data_in_id == carrier_id)
+			if((signed)current_spot->data_in_carrier_id == carrier_id)
 			{
 				// satellite spot found, forward BBframe on the same spot
 				// TODO: forward according to a table
 				UTI_DEBUG("BBFRAME burst comes from spot %u (carrier %u) => "
 				          "forward it to spot %u (carrier %u)\n",
 				          current_spot->getSpotId(),
-				          current_spot->data_in_id,
+				          current_spot->data_in_carrier_id,
 				          current_spot->getSpotId(),
 				          current_spot->data_out_st_fifo.getCarrierId());
 

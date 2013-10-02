@@ -33,10 +33,13 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#ifndef GENERIC_SWITCH__H
-#define GENERIC_SWITCH__H
+#ifndef GENERIC_SWITCH_H
+#define GENERIC_SWITCH_H
 
 #include "NetPacket.h"
+
+#include "OpenSandCore.h"
+
 #include <map>
 
 /**
@@ -49,7 +52,10 @@ class GenericSwitch
 
 	/// The switch table: association between a terminal id and a
 	/// satellite spot ID
-	std::map <uint8_t, uint8_t> switch_table;
+	std::map<tal_id_t, spot_id_t> switch_table;
+
+	/// The default spot id
+	spot_id_t default_spot;
 
  public:
 
@@ -70,7 +76,14 @@ class GenericSwitch
 	 * @param spot_id the satellite spot associated with the terminal
 	 * @return true if entry was successfully added, false otherwise
 	 */
-	bool add(uint8_t tal_id, uint8_t spot_id);
+	bool add(tal_id_t tal_id, spot_id_t spot_id);
+
+	/**
+	 * Set the default spot id if tal id is not found
+	 *
+	 * @param spot_id  The default spot id
+	 */
+	void setDefault(spot_id_t spot_id);
 
 	/**
 	 * Find the satellite spot to send the packet to
@@ -78,7 +91,7 @@ class GenericSwitch
 	 * @param packet the encapsulation packet to send
 	 * @return the satellite spot ID to send the packet to
 	 */
-	uint8_t find(NetPacket *packet);
+	spot_id_t find(NetPacket *packet);
 };
 
 #endif

@@ -55,30 +55,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- types for service_class section -->
-<xsd:simpleType name="schedulerType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="HTB" />
-        <xsd:enumeration value="HDLB" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="qosTreeMode">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="DEFAULT" />
-        <xsd:enumeration value="DYN_EF_BRANCHES" />
-        <xsd:enumeration value="USERS" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="mappingSig">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="NONE" />
-        <xsd:enumeration value="NM" />
-        <xsd:enumeration value="SIG" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- types for dvb_rcs_tal section -->
 <!-- see class section for some types -->
 
