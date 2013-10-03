@@ -44,6 +44,8 @@
 #include <vector>
 #include <assert.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
@@ -95,6 +97,37 @@ public:
 	                               bool enabled, sample_type_t type);
 
 	/**
+	 * @brief Register a probe in the output library
+	 *        with variable arguments in name
+	 *
+	 * @param enabled   Whether the probe is enabled by default
+	 * @param type      The sample type
+	 * @param name      The probe name with variable arguments
+	 *
+	 * @return the probe object
+	 **/
+	template<typename T>
+	static Probe<T> *registerProbe(bool enabled,
+	                               sample_type_t type,
+	                               const char *msg_format, ...);
+
+	/**
+	 * @brief Register a probe in the output library
+	 *        with variable arguments in name
+	 *
+	 * @param unit     The probe unit
+	 * @param enabled  Whether the probe is enabled by default
+	 * @param type     The sample type
+	 * @param name     The probe name with variable arguments
+	 *
+	 * @return the probe object
+	 **/
+	template<typename T>
+	static Probe<T> *registerProbe(const std::string &unit,
+	                               bool enabled, sample_type_t type,
+	                               const char *name, ...);
+
+	/**
 	 * @brief Register an event in the output library
 	 *
 	 * @param identifier   The event name
@@ -104,6 +137,18 @@ public:
 	 **/
 	static Event *registerEvent(const std::string &identifier,
 	                            event_level_t level);
+
+	/**
+	 * @brief Register an event in the output library
+	 *        with variable arguments
+	 *
+	 * @param level        The event severity
+	 * @param identifier   The event name with variable arguments
+	 *
+	 * @return the event object
+	 **/
+	static Event *registerEvent(event_level_t level,
+	                            const char *identifier, ...);
 
 	/**
 	 * @brief Finish the output library initialization
@@ -204,6 +249,44 @@ Probe<T> *Output::registerProbe(const std::string &name,
 	Output::acquireLock();
 	probe = Output::instance.registerProbe<T>(name, unit, enabled, type);
 	Output::releaseLock();
+
+	return probe;
+}
+
+template<typename T>
+Probe<T> *Output::registerProbe(bool enabled,
+                                sample_type_t type,
+                                const char *name, ...)
+{
+	char buf[1024];
+	va_list args;
+	
+	va_start(args, name);
+
+	vsnprintf(buf, sizeof(buf), name, args);
+
+	va_end(args);
+
+	return Output::registerProbe<T>(buf, "", enabled, type);
+}
+
+template<typename T>
+Probe<T> *Output::registerProbe(const std::string &unit,
+                                bool enabled,
+                                sample_type_t type,
+                                const char *name, ...)
+{
+	Probe<T> *probe;
+	char buf[1024];
+	va_list args;
+	
+	va_start(args, name);
+
+	vsnprintf(buf, sizeof(buf), name, args);
+
+	va_end(args);
+
+	return Output::registerProbe<T>(buf, unit, enabled, type);
 
 	return probe;
 }

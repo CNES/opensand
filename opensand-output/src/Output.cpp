@@ -36,9 +36,6 @@
 
 #include <opensand_conf/uti_debug.h>
 
-#include <stdio.h>
-#include <stdarg.h>
-
 
 OutputInternal Output::instance;
 pthread_mutex_t Output::mutex;
@@ -51,7 +48,7 @@ void Output::init(bool enabled, event_level_t min_level,
 	Output::releaseLock();
 }
 
-Event* Output::registerEvent(const std::string &identifier,
+Event *Output::registerEvent(const std::string &identifier,
                              event_level_t level)
 {
 	Event *evt;
@@ -62,6 +59,25 @@ Event* Output::registerEvent(const std::string &identifier,
 
 	return evt;
 }
+
+Event *Output::registerEvent(event_level_t level,
+                             const char *identifier, ...)
+{
+	Event *evt;
+	char buf[1024];
+	va_list args;
+	
+	va_start(args, identifier);
+
+	vsnprintf(buf, sizeof(buf), identifier, args);
+
+	va_end(args);
+
+	evt = Output::registerEvent(buf, level);
+
+	return evt;
+}
+
 
 bool Output::finishInit()
 {
