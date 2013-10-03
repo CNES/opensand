@@ -277,6 +277,8 @@ class Program(object):
         Return the full path for a filename stored in the program’s storage
         folder.
         """
+        name = name.replace("/", "_")
+        name = name.replace(" ", "_")
         return join(self._host.get_storage_path(self._name), name)
 
     def attributes(self):
@@ -380,7 +382,7 @@ class Host(object):
             # this is a new probe
             prog = self._programs[ident]
             prog.add_probe(probe_list)
-            LOGGER.info("New probe added to program %s for host %s", name, self)
+            LOGGER.debug("New probe added to program %s for host %s", name, self)
             return prog
 
         prog = Program(self, ident, name, probe_list, event_list)
@@ -523,6 +525,8 @@ class HostManager(object):
         """
         Returns the full path for a filename stored in the storage folder.
         """
+        name = name.replace("/", "_")
+        name = name.replace(" ", "_")
         return join(self._storage_folder, name)
 
     def switch_storage(self):
