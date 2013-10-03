@@ -111,7 +111,7 @@ bool BlockDvbSat::onUpwardEvent(const RtEvent *const event)
 		case evt_message:
 			// message from lower layer: dvb frame
 			T_DVB_META *dvb_meta;
-			long carrier_id;
+			unsigned int carrier_id;
 			unsigned char *frame;
 			int len;
 
@@ -336,8 +336,8 @@ bool BlockDvbSat::initMode()
 		{
 			// TODO see NCC for that, we may handle categories in
 			//      spots here.
-			UTI_ERROR("cannot support more than one category for down/forward band\n");
-			goto error;;
+			UTI_ERROR("cannot support more than one category for downlink band\n");
+			goto error;
 		}
 
 		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
@@ -817,7 +817,7 @@ error:
 
 bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
                                 unsigned int length,
-                                long carrier_id)
+                                unsigned int carrier_id)
 {
 	bool status = true;
 	SpotMap::iterator spot;
@@ -859,8 +859,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			{
 				SatSpot *current_spot = spot->second;
 
-				// TODO remove signed
-				if((signed)current_spot->data_in_carrier_id == carrier_id)
+				if(current_spot->data_in_carrier_id == carrier_id)
 				{
 					// satellite spot found, forward DVB frame on the same spot
 					// TODO: forward according to a table
@@ -939,8 +938,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		{
 			SatSpot *current_spot = spot->second;
 
-			// TODO remove signed
-			if((signed)current_spot->data_in_carrier_id == carrier_id)
+			if(current_spot->data_in_carrier_id == carrier_id)
 			{
 				// satellite spot found, forward BBframe on the same spot
 				// TODO: forward according to a table
@@ -1069,8 +1067,7 @@ int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 	MacFifoElement *elem;
 	std::string name = "sendSigFrames";
 	int i;
-	long carrier_id;
-
+	unsigned int carrier_id;
 
 	carrier_id = sigFifo->getCarrierId();
 
@@ -1119,8 +1116,8 @@ int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 		// We succeeded in building and sending the frame we can release ressources
 		delete elem;
 
-		UTI_DEBUG_L3("sig msg sent (i = %d), fifo_id = %d, "
-		             "carrier_id = %ld\n", i, sigFifo->getCarrierId(), carrier_id);
+		UTI_DEBUG_L3("sig msg sent (i = %d), fifo_id = %u, "
+		             "carrier_id = %u", i, sigFifo->getCarrierId(), carrier_id);
 	}
 
 	return 0;

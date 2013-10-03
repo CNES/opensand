@@ -161,7 +161,7 @@ class Ttp
 	 * @param tal_id The terminal ID for which we want the TP
 	 * @param tp     The Time Plans per superframe id
 	 *
-	 * @return true on success, false otherwise
+	 * @return true if a TP is found, false otherwise
 	 */
 	bool getTp(tal_id_t tal_id, map<uint8_t, emu_tp_t> &tp);
 

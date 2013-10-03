@@ -29,7 +29,7 @@
 
 /**
  * @file     ForwardScheduling.cpp
- * @brief    The scheduling functions for MAC FIFOs with DVB-S2 forward
+ * @brief    The scheduling functions for MAC FIFOs with DVB-S2 forward or downlink
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
  */
 

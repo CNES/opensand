@@ -121,6 +121,13 @@ class MacFifoElement
 
 
 	/**
+	 * Get the packet length
+	 * @return The packet length
+	 */
+	size_t getTotalPacketLength();
+
+
+	/**
 	 * Get the type of data in FIFO element
 	 * @return The type of data in FIFO element
 	 */

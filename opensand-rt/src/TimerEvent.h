@@ -77,6 +77,13 @@ class TimerEvent: public RtEvent
 	void start(void);
 
 	/**
+	 * @brief Trigger a timer immediately
+	 *        In fact, we set the minimum time and start it
+	 *        because there is no way to trigger it manually
+	 */
+	void raise(void);
+
+	/**
 	 * @brief Disable the timer
 	 *
 	 */

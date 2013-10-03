@@ -175,8 +175,12 @@ class BlockDvbSat: public BlockDvb
 	* @param carrier_id the carrier id of the frame
 	* @return           true on success, false otherwise
 	*/
-	bool onRcvDvbFrame(unsigned char *frame, unsigned int length, long carrier_id);
+	bool onRcvDvbFrame(unsigned char *frame,
+	                   unsigned int length,
+	                   unsigned int carrier_id);
+
 	int sendSigFrames(DvbFifo * sigFifo);
+
 	bool forwardDvbFrame(DvbFifo * sigFifo, char *ip_buf, int i_len);
 
 	/**

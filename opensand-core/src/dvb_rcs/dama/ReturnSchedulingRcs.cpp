@@ -113,7 +113,7 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 
 	// extract encap packets from MAC FIFOs while some UL capacity is available
 	// (MAC fifos priorities are in MAC IDs order)
-	// TODO check that fifo are correctly classified
+	// fifo are classified by priority value (map are ordered)
 	complete_frames_count = 0;
 	fifo_it = this->dvb_fifos.begin();
 	while(fifo_it != this->dvb_fifos.end() &&

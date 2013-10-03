@@ -36,6 +36,9 @@
  */
 
 
+#ifndef TEST_MULTI_BLOCK_H
+#define TEST_MULTI_BLOCK_H
+
 
 #include "Block.h"
 #include "NetSocketEvent.h"
@@ -99,3 +102,5 @@ class BottomBlock: public Block
 	int32_t output_fd;
 
 };
+
+#endif

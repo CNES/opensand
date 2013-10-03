@@ -66,8 +66,6 @@
 #include <ios>
 
 
-// TODO band in kHz in configuration, see bugs
-
 /**
  * Constructor
  */
@@ -379,8 +377,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					}
 					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
 					{
-						// TODO find a way to raise timer directly (or update timer)
-						this->downward->startTimer(this->pep_cmd_apply_timer);
+						this->downward->raiseTimer(this->pep_cmd_apply_timer);
 						UTI_INFO("PEP Release request, no delay to apply\n");
 					}
 					else
@@ -989,8 +986,6 @@ error:
 
 bool BlockDvbNcc::initFiles()
 {
-	// TODO check if init cases are ok
-
 	// we need up/return MODCOD simulation in these cases
 	if((this->satellite_type == TRANSPARENT &&
 	    this->receptionStd->getType() == "DVB-RCS") ||
@@ -1004,6 +999,7 @@ bool BlockDvbNcc::initFiles()
 	}
 
 	// we need forward MODCOD emulation in this cases
+	// in regenerative the satellite handles downlink MODCOD emulation
 	if(this->satellite_type == TRANSPARENT)
 	{
 		if(!this->initForwardModcodFiles())
@@ -1321,7 +1317,7 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(event_logon_req, "Logon request received from %u",
+	Output::sendEvent(this->event_logon_req, "Logon request received from %u",
 	                  mac);
 
 	// register the new ST
@@ -1364,7 +1360,7 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 
 
 		// send the corresponding event
-		Output::sendEvent(event_logon_resp, "Logon response send to %u",
+		Output::sendEvent(this->event_logon_resp, "Logon response send to %u",
 		                  mac);
 
 	}

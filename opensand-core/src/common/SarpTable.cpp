@@ -192,9 +192,6 @@ bool SarpTable::getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const
 
 bool SarpTable::getMacByTal(tal_id_t tal_id, vector<MacAddress> &mac_address) const
 {
-	// TODO at the moment we got the first MAC with corresponding tal_id but
-	// it could be the MAC of a workstation, add something in table to know if
-	// it is the terminal
 	sarpEthEntry *entry;
 
 	list <sarpEthEntry *>::const_iterator it;

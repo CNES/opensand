@@ -32,6 +32,9 @@
  *        write on a socket that will be monitored by the opposite channel
  */
 
+#ifndef TEST_BLOCK_H
+#define TEST_BLOCK_H
+
 #include "Block.h"
 
 class TestBlock: public Block
@@ -63,4 +66,4 @@ class TestBlock: public Block
 };
 
 
-
+#endif

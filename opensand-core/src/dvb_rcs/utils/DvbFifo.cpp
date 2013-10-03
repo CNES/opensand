@@ -179,8 +179,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->stat_context.in_pkt_nbr++;
 	if(elem->getType() == 1)
 	{
-		// TODO accessor in MacFifoElem directly
-		vol_kb_t length = elem->getPacket()->getTotalLength();
+		vol_kb_t length = elem->getTotalPacketLength();
 		this->new_length_kb += length;
 		this->stat_context.current_length_kb += length;
 		this->stat_context.in_length_kb += length;
@@ -229,8 +228,7 @@ MacFifoElement *DvbFifo::pop()
 	this->stat_context.out_pkt_nbr++;
 	if(elem->getType() == 1)
 	{
-		// TODO accessor in MacFifoElem directly
-		vol_kb_t length = elem->getPacket()->getTotalLength();
+		vol_kb_t length = elem->getTotalPacketLength();;
 		this->stat_context.current_length_kb -= length;
 		this->stat_context.out_length_kb += length;
 	}

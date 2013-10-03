@@ -72,8 +72,7 @@ timeval RtEvent::getTimeFromTrigger(void) const
 	timeval current;
 	gettimeofday(&current, NULL);
 
-	res.tv_sec = abs(current.tv_sec - this->trigger_time.tv_sec) ;
-	res.tv_usec = abs(current.tv_usec - this->trigger_time.tv_usec);
+	timersub(&current, &this->trigger_time, &res);
 	return res;
 }
 

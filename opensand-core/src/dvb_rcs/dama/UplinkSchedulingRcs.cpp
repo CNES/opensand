@@ -69,7 +69,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	carriers = this->category->getCarriersGroups();
 
 	// TODO
-	// at beginning be set the carrier capa to the total capa + the previous
+	// at beginning we set the carrier capa to the total capa + the previous
 	// non allocated capa then for each fifo we use this capacity
 	// at the end the non allocated capa remain
 	// BUT should we keep complete remaining capacity in all cases ?

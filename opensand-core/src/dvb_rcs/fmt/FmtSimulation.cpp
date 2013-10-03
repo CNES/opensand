@@ -295,7 +295,7 @@ bool FmtSimulation::setReturnModcodDef(const string &filename)
 	if(!this->ret_modcod_def.load(filename))
 	{
 		UTI_ERROR("failed to load the up/return link MODCOD "
-		          "definitiosn from file '%s'\n", filename.c_str());
+		          "definitions from file '%s'\n", filename.c_str());
 		return false;
 	}
 	return true;

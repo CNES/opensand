@@ -85,6 +85,11 @@ NetPacket *MacFifoElement::getPacket()
 	return this->packet;
 }
 
+size_t MacFifoElement::getTotalPacketLength()
+{
+	return this->packet->getTotalLength();
+}
+
 int MacFifoElement::getType()
 {
 	return this->type;

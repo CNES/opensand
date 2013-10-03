@@ -47,8 +47,6 @@
 #define DC_DBG_PREFIX "[Generic]"
 
 
-// TODO check requests validity (especially VBDC)
-
 TerminalContextRcs::TerminalContextRcs(tal_id_t tal_id,
                                        rate_kbps_t cra_kbps,
                                        rate_kbps_t max_rbdc_kbps,

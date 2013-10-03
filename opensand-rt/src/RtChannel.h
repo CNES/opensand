@@ -37,6 +37,7 @@
 #define RT_CHANNEL_H
 
 #include "Types.h"
+#include "TimerEvent.h"
 
 #include <stdlib.h>
 #include <string>
@@ -179,6 +180,16 @@ class RtChannel
 	bool startTimer(event_id_t id);
 
 	/**
+	 * @brief Trigger a timer immediately
+	 *        In fact, we set the minimum time and start it
+	 *        because there is no way to trigger it manually
+	 *
+	 * @param id  The timer id
+	 * @return true on success, false otherwise
+	 */
+	bool raiseTimer(event_id_t id);
+
+	/**
 	 * @brief Add a message in the next channel queue
 	 * @warning The message shall not be reused in the channel after this call
 	 *          because will be used in other blocks
@@ -310,6 +321,15 @@ class RtChannel
 	 */
 	bool processEvent(const RtEvent *const event);
 	// TODO replace with onEvent
+
+	/**
+	 * @brief Get a timer
+	 *
+	 * @param id  The timer id
+	 * @return the timer  on success, NULL otherwise
+	 */
+	TimerEvent *getTimer(event_id_t id);
+
 
 };
 

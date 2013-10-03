@@ -366,7 +366,7 @@ void RtChannel::updateMaxFd(void)
 
 }
 
-bool RtChannel::startTimer(event_id_t id)
+TimerEvent *RtChannel::getTimer(event_id_t id)
 {
 	map<event_id_t, RtEvent *>::iterator it;
 	RtEvent *event = NULL;
@@ -393,7 +393,7 @@ bool RtChannel::startTimer(event_id_t id)
 		if(!found)
 		{
 			this->reportError(false, "cannot find timer");
-			return false;
+			return NULL;
 		}
 	}
 	else
@@ -402,18 +402,39 @@ bool RtChannel::startTimer(event_id_t id)
 		             this->block.getName().c_str(), this->chan);
 		event = (*it).second;
 	}
+	if(event && event->getType() != evt_timer)
+	{
+		this->reportError(false, "cannot start event that is not a timer");
+		return NULL;
+	}
+	
+	return (TimerEvent *)event;
+}
+
+bool RtChannel::startTimer(event_id_t id)
+{
+	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
 		this->reportError(false, "cannot find timer: should not happend here");
 		return false;
 	}
 	
-	if(event->getType() != evt_timer)
+	event->start();
+	
+	return true;
+}
+
+bool RtChannel::raiseTimer(event_id_t id)
+{
+	TimerEvent *event = this->getTimer(id);
+	if(!event)
 	{
-		this->reportError(false, "cannot start event that is not a timer");
+		this->reportError(false, "cannot find timer: should not happend here");
 		return false;
 	}
-	((TimerEvent *)event)->start();
+	
+	event->raise();
 	
 	return true;
 }

@@ -389,7 +389,6 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	             "(in fonction of max RBDC and CRA)\n", rbdc_request_kbps);
 
 	/* reduce the request value to the maximum theorical value if required */
-	// TODO limits
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
 
 	UTI_DEBUG_L3("SF#%u: frame %u: updated RBDC request = %u kbits/s in SAC\n",

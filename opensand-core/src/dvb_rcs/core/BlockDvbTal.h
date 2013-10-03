@@ -69,6 +69,8 @@
 // so as to consume all allocated bandwidth during a superframe
 // TODO find a way to detect if the linux kernel contain the RT patch
 //      to disable this macro consequently
+//      see https://rt.wiki.kernel.org/index.php/RT_PREEMPT_HOWTO#Runtime_detection_of_an_RT-PREEMPT_Kernel
+//      BUT do we really need that ? Do wee need to add it on the other timers ?
 #define DVB_TIMER_ADJUST(x)  ((long)x/10)*10
 
 

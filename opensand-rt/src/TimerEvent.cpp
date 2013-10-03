@@ -71,6 +71,8 @@ void TimerEvent::start(void)
 	this->enabled = true;
 
 	// non periodic, restart manually to avoid more than one timer expiration
+	// TODO this create a non precise timer better use the periodic part offered
+	// by the timerfd (do not forget to read fd)
 	timer_value.it_interval.tv_nsec = 0;
 	timer_value.it_interval.tv_sec = 0;
 
@@ -89,6 +91,19 @@ void TimerEvent::start(void)
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 
+void TimerEvent::raise(void)
+{
+	itimerspec timer_value;
+	this->enabled = true;
+
+	timer_value.it_interval.tv_sec = 0;
+
+	timer_value.it_value.tv_nsec = 1;
+
+	//start timer
+	timerfd_settime(this->fd, 0, &timer_value, NULL);
+	this->disable();
+}
 
 void TimerEvent::disable(void)
 {
@@ -114,7 +129,7 @@ bool TimerEvent::handle(void)
 	}
 	else
 	{
-		//no auto rearm: disable
+		// no auto rearm: disable
 		this->disable();
 	}
 	return true;

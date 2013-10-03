@@ -51,8 +51,7 @@ extern "C"
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 
-// TODO add it
-//Event* BlockLanAdaptation::error_init = NULL;
+//TODO add events for initialization failure in all blocks
 
 /**
  * constructor
@@ -69,11 +68,6 @@ BlockLanAdaptation::BlockLanAdaptation(const string &name, component_t host,
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
-
-/*	if(error_init == NULL)
-	{
-		error_init = Output::registerEvent("blocLanAdaptation:init", LEVEL_ERROR);
-	}*/
 }
 
 
