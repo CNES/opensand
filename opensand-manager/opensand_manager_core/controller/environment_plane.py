@@ -53,6 +53,7 @@ MSG_MGR_SEND_PROBES = 25
 MSG_MGR_SEND_EVENT = 26
 MSG_MGR_UNREGISTER = 27
 MSG_MGR_REGISTER_ACK = 28
+MSG_MGR_STATUS = 30
 
 
 class EnvironmentPlaneController(object):
@@ -266,6 +267,11 @@ class EnvironmentPlaneController(object):
 
         if cmd == MSG_MGR_REGISTER_ACK:
             self._model.set_collector_functional(True)
+            return True
+
+        if cmd == MSG_MGR_STATUS:
+            self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_STATUS),
+                              self._collector_addr)
             return True
 
         if cmd == MSG_MGR_REGISTER_PROGRAM:

@@ -40,6 +40,7 @@ import gobject
 import socket
 import struct
 import logging
+import threading
 
 LOGGER = logging.getLogger('sand-collector')
 
@@ -61,6 +62,7 @@ MSG_MGR_SEND_PROBES = 25
 MSG_MGR_SEND_EVENT = 26
 MSG_MGR_UNREGISTER = 27
 MSG_MGR_REGISTER_ACK = 28
+MSG_MGR_STATUS = 30
 
 class MessagesHandler(object):
     """
@@ -74,6 +76,9 @@ class MessagesHandler(object):
         self._sock = None
         self._tag = None
         self._time = 0
+        self._stop = threading.Event()
+        self._mgr_ok = threading.Event()
+        self._mgr_status = None
 
     def get_port(self):
         """
@@ -100,6 +105,8 @@ class MessagesHandler(object):
         Tear down the socket.
         """
         gobject.source_remove(self._tag)
+        self._stop.set()
+        self._mgr_status.join()
 
         try:
             self._sock.shutdown(socket.SHUT_RDWR)
@@ -333,7 +340,12 @@ class MessagesHandler(object):
 
             for program in self._host_manager.all_programs():
                 self._notify_manager_new_program(program)
-
+                
+            if self._mgr_status is None:             
+                self._mgr_status = threading.Thread(None,
+                                                    self._check_manager_status,
+                                                    None, (), {})
+                self._mgr_status.start()
             return
 
         if cmd == MSG_MGR_UNREGISTER:
@@ -347,6 +359,11 @@ class MessagesHandler(object):
             elif addr in self._temp_manager:
                 self._temp_manager.remove(addr)
             LOGGER.info("Manager unregistered from address %s:%d" % addr)
+            return
+        
+        if cmd == MSG_MGR_STATUS:
+            self._mgr_ok.set()
+            LOGGER.debug("Manager from address %s:%d is still running" % addr)
             return
 
         if addr != self._manager_addr:
@@ -468,4 +485,35 @@ class MessagesHandler(object):
             LOGGER.debug("Transmit event to manager")
             self._sock.sendto(message, self._manager_addr)
 
+    def _check_manager_status(self):
+        """
+        Check that the manager is still running else register with another one
+        """
+        while not self._stop.wait(1):
+            if self._manager_addr is None:
+                if len(self._temp_manager) > 0:
+                    # register the next manager
+                    self._handle_manager_command(MSG_MGR_REGISTER,
+                                                 self._temp_manager.pop(0),
+                                                 "")
+                continue
+            self._mgr_ok.clear()
+            message = struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_STATUS)
+            LOGGER.debug("Check whether manager is still running")
+            addr = self._manager_addr
+            self._sock.sendto(message, addr)
+            # wait some time
+            if not self._mgr_ok.wait(10):
+                # if the manager has changed, nothing to do
+                if addr != self._manager_addr:
+                    continue
+                # manager is not responding, register a new one
+                self._manager_addr = None
+                if len(self._temp_manager) > 0:
+                    # register the next manager
+                    self._handle_manager_command(MSG_MGR_REGISTER,
+                                                 self._temp_manager.pop(0),
+                                                 "")
+                LOGGER.info("Manager from address %s:%d detected as crashed or "
+                            "stopped" % addr)
 
