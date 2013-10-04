@@ -45,9 +45,15 @@
  */
 class MacAddress
 {
-public:
+ private:
+
+	/// The MAC address bytes
 	uint8_t mac[6];
 
+	/// The bytes that matches all occurences
+	bool generic_bytes[6];
+
+ public:
 	/**
 	 * Default constructor for MAC address
 	 */

@@ -79,8 +79,16 @@ MacAddress::MacAddress(std::string mac_address)
 		token.str("");
 		addr.get(token, ':');
 		ss << token.str();
-		ss >> std::hex >> tmp;
-		this->mac[index] = tmp;
+		if(ss.str() == "**")
+		{
+			this->generic_bytes[index] = true;
+		}
+		else
+		{
+			this->generic_bytes[index] = false;
+			ss >> std::hex >> tmp;
+			this->mac[index] = tmp;
+		}
 		addr.ignore();
 		index++;
 	}   
@@ -120,6 +128,10 @@ bool MacAddress::matches(const MacAddress *addr) const
 {
 	for(unsigned int i = 0; i < 6; i++)
 	{
+		if(this->generic_bytes[i])
+		{
+			continue;
+		}
 		if(this->mac[i] != addr->mac[i])
 		{
 			return false;
