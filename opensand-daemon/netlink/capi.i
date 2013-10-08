@@ -6,10 +6,16 @@
 #include <netlink/msg.h>
 #include <netlink/object.h>
 #include <netlink/cache.h>
+#include <netlink/attr.h>
+#include <net/if.h>
+
+#define DEBUG
+#include "utils.h"
 %}
 
 %include <stdint.i>
 %include <cstring.i>
+%include <cpointer.i>
 
 %inline %{
         struct nl_dump_params *alloc_dump_params(void)
@@ -113,6 +119,9 @@ struct nl_dump_params
 	unsigned int		dp_line;
 };
 
+/* <net/if.h> */
+extern unsigned int if_nametoindex(const char *ifname);
+
 /* <netlink/errno.h> */
 extern const char *nl_geterror(int);
 
@@ -159,11 +168,6 @@ extern void free_dump_params(struct nl_dump_params *);
 
 extern int nl_connect(struct nl_sock *, int);
 extern void nl_close(struct nl_sock *);
-extern int nl_pickup(struct nl_sock *, int (*parser)(struct nl_cache_ops *,
-                                                struct sockaddr_nl *,
-                                                struct nlmsghdr *,
-                                                struct nl_parser_param *),
-                                          struct nl_object **);
 
 /* <netlink/socket.h> */
 extern struct nl_sock *nl_socket_alloc(void);
@@ -180,6 +184,10 @@ extern uint32_t nl_socket_get_peer_groups(const struct nl_sock *sk);
 extern void  nl_socket_set_peer_groups(struct nl_sock *sk, uint32_t groups);
 
 extern int nl_socket_set_buffer_size(struct nl_sock *, int, int);
+extern void nl_socket_set_cb(struct nl_sock *, struct nl_cb *);
+
+extern int nl_send_auto_complete(struct nl_sock *, struct nl_msg *);
+extern int nl_recvmsgs(struct nl_sock *, struct nl_cb *);
 
 /* <netlink/msg.h> */
 extern int			nlmsg_size(int);
@@ -457,3 +465,495 @@ extern int nl_str2af(const char *);
 
 %cstring_output_maxsize(char *buf, size_t len)
 extern char *nl_addr2str(struct nl_addr *, char *buf, size_t len);
+
+/* Message Handlers <netlink/handlers.h> */
+/**
+ * Callback actions
+ * @ingroup cb
+ */
+enum nl_cb_action {
+	/** Proceed with wathever would come next */
+	NL_OK,
+	/** Skip this message */
+	NL_SKIP,
+	/** Stop parsing altogether and discard remaining messages */
+	NL_STOP,
+};
+
+/**
+ * Callback kinds
+ * @ingroup cb
+ */
+enum nl_cb_kind {
+	/** Default handlers (quiet) */
+	NL_CB_DEFAULT,
+	/** Verbose default handlers (error messages printed) */
+	NL_CB_VERBOSE,
+	/** Debug handlers for debugging */
+	NL_CB_DEBUG,
+	/** Customized handler specified by the user */
+	NL_CB_CUSTOM,
+	__NL_CB_KIND_MAX,
+};
+
+#define NL_CB_KIND_MAX (__NL_CB_KIND_MAX - 1)
+
+/**
+ * Callback types
+ * @ingroup cb
+ */
+enum nl_cb_type {
+	/** Message is valid */
+	NL_CB_VALID,
+	/** Last message in a series of multi part messages received */
+	NL_CB_FINISH,
+	/** Report received that data was lost */
+	NL_CB_OVERRUN,
+	/** Message wants to be skipped */
+	NL_CB_SKIPPED,
+	/** Message is an acknowledge */
+	NL_CB_ACK,
+	/** Called for every message received */
+	NL_CB_MSG_IN,
+	/** Called for every message sent out except for nl_sendto() */
+	NL_CB_MSG_OUT,
+	/** Message is malformed and invalid */
+	NL_CB_INVALID,
+	/** Called instead of internal sequence number checking */
+	NL_CB_SEQ_CHECK,
+	/** Sending of an acknowledge message has been requested */
+	NL_CB_SEND_ACK,
+	/** Flag NLM_F_DUMP_INTR is set in message */
+	NL_CB_DUMP_INTR,
+	__NL_CB_TYPE_MAX,
+};
+
+#define NL_CB_TYPE_MAX (__NL_CB_TYPE_MAX - 1)
+
+extern struct nl_cb *nl_cb_alloc(enum nl_cb_kind);
+extern struct nl_cb *nl_cb_clone(struct nl_cb *);
+
+struct nlmsgerr {
+	int error;
+};
+
+%{
+
+struct pynl_callback {
+	PyObject *cbf;
+	PyObject *cba;
+};
+
+struct pynl_cbinfo {
+	struct nl_cb *cb;
+	struct pynl_callback cbtype[NL_CB_TYPE_MAX+1];
+	struct pynl_callback cberr;
+	struct list_head list;
+};
+
+LIST_HEAD(callback_list);
+
+static struct pynl_cbinfo *pynl_find_cbinfo(struct nl_cb *cb, int unlink)
+{
+	struct list_head *pos, *prev;
+	struct pynl_cbinfo *info;
+
+	list_for_each_safe(pos, prev, &callback_list) {
+		info = container_of(pos, struct pynl_cbinfo, list);
+		if (info->cb == cb) {
+			if (unlink)
+				list_del(pos, prev);
+			pynl_dbg("cb=%p: found=%p\n", cb, info);
+			return info;
+		}
+	}
+	pynl_dbg("cb=%p: not found\n", cb);
+	return NULL;
+}
+
+static struct pynl_cbinfo *pynl_get_cbinfo(struct nl_cb *cb, int unlink)
+{
+	struct pynl_cbinfo *info;
+
+	info = pynl_find_cbinfo(cb, unlink);
+
+	if (info || unlink) {
+		/* found or no need to allocate a new one */
+		pynl_dbg("cb=%p: done\n", cb);
+		return info;
+	}
+
+	info = calloc(1, sizeof(*info));
+	info->cb = cb;
+	list_add(&info->list, &callback_list);
+	pynl_dbg("cb=%p: added %p\n", cb, info);
+	return info;
+}
+
+static int nl_recv_msg_handler(struct nl_msg *msg, void *arg)
+{
+	struct pynl_callback *cbd = arg;
+	PyObject *msgobj;
+	PyObject *cbparobj;
+	PyObject *resobj;
+	PyObject *funcobj;
+	int result;
+
+	if (!cbd)
+		return NL_STOP;
+	msgobj = SWIG_NewPointerObj(SWIG_as_voidptr(msg),
+				    SWIGTYPE_p_nl_msg, 0 |  0 );
+	/* add selfobj if callback is a method */
+	if (cbd->cbf && PyMethod_Check(cbd->cbf)) {
+		PyObject *selfobj = PyMethod_Self(cbd->cbf);
+		cbparobj = Py_BuildValue("(OOO)", selfobj ? selfobj : cbd->cba,
+					 msgobj, cbd->cba);
+		funcobj = PyMethod_Function(cbd->cbf);
+		pynl_dbg("callback %sbounded instance method %p\n",
+			 selfobj ? "" : "un", funcobj);
+	} else {
+		cbparobj = Py_BuildValue("(OO)", msgobj, cbd->cba);
+		funcobj = cbd->cbf;
+		pynl_dbg("callback function %p\n", funcobj);
+	}
+	resobj = PyObject_CallObject(funcobj, cbparobj);
+	Py_DECREF(cbparobj);
+	if (resobj == NULL)
+		return NL_STOP;
+	if (!PyArg_ParseTuple(resobj, "i:nl_recv_msg_handler", &result))
+		result = NL_STOP;
+	Py_DECREF(resobj);
+	return result;
+}
+
+static int nl_recv_err_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
+			       void *arg)
+{
+	struct pynl_callback *cbd = arg;
+	PyObject *errobj;
+	PyObject *cbparobj;
+	PyObject *resobj;
+	PyObject *funcobj;
+	int result;
+
+	if (!cbd)
+		return NL_STOP;
+	errobj = SWIG_NewPointerObj(SWIG_as_voidptr(err),
+				    SWIGTYPE_p_nlmsgerr, 0 |  0 );
+	/* add selfobj if callback is a method */
+	if (cbd->cbf && PyMethod_Check(cbd->cbf)) {
+		PyObject *selfobj = PyMethod_Self(cbd->cbf);
+		cbparobj = Py_BuildValue("(OOO)", selfobj ? selfobj : cbd->cba,
+					 errobj, cbd->cba);
+		funcobj = PyMethod_Function(cbd->cbf);
+	} else {
+		cbparobj = Py_BuildValue("(OO)", errobj, cbd->cba);
+		funcobj = cbd->cbf;
+	}
+	resobj = PyObject_CallObject(funcobj, cbparobj);
+	Py_DECREF(cbparobj);
+	if (resobj == NULL)
+		return NL_STOP;
+	result = (int)PyInt_AsLong(resobj);
+	Py_DECREF(resobj);
+	printf("error: err=%d ret=%d\n", err->error, result);
+	return result;
+}
+
+%}
+%inline %{
+struct nl_cb *py_nl_cb_clone(struct nl_cb *cb)
+{
+	struct pynl_cbinfo *info, *clone_info;
+	struct nl_cb *clone;
+	int i;
+
+	clone = nl_cb_clone(cb);
+	info = pynl_find_cbinfo(cb, 0);
+	if (info) {
+		clone_info = pynl_get_cbinfo(clone, 0);
+		/* increase refcnt to callback parameters and copy them */
+		for (i = 0; info && i <= NL_CB_TYPE_MAX; i++) {
+			Py_XINCREF(info->cbtype[i].cbf);
+			Py_XINCREF(info->cbtype[i].cba);
+			clone_info->cbtype[i].cbf = info->cbtype[i].cbf;
+			clone_info->cbtype[i].cba = info->cbtype[i].cba;
+		}
+		Py_XINCREF(info->cberr.cbf);
+		Py_XINCREF(info->cberr.cba);
+		clone_info->cberr.cbf = info->cberr.cbf;
+		clone_info->cberr.cba = info->cberr.cba;
+	}
+	return clone;
+}
+
+void py_nl_cb_put(struct nl_cb *cb)
+{
+	struct pynl_cbinfo *info;
+	int i;
+
+	/* obtain callback info (and unlink) */
+	info = pynl_get_cbinfo(cb, 1);
+	pynl_dbg("cb=%p, info=%p\n", cb, info);
+	/* decrease refcnt for callback type handlers */
+	for (i = 0; info && i <= NL_CB_TYPE_MAX; i++) {
+		Py_XDECREF(info->cbtype[i].cbf);
+		Py_XDECREF(info->cbtype[i].cba);
+	}
+	/* decrease refcnt for error handler and free callback info */
+	if (info) {
+		Py_XDECREF(info->cberr.cbf);
+		Py_XDECREF(info->cberr.cba);
+		free(info);
+	}
+	nl_cb_put(cb);
+}
+
+int py_nl_cb_set(struct nl_cb *cb, enum nl_cb_type t, enum nl_cb_kind k,
+		PyObject *func, PyObject *a)
+{
+	struct pynl_cbinfo *info;
+
+	/* obtain callback info */
+	info = pynl_get_cbinfo(cb, 0);
+
+	/* clear existing handlers (if any) */
+	Py_XDECREF(info->cbtype[t].cbf);
+	Py_XDECREF(info->cbtype[t].cba);
+	info->cbtype[t].cbf = NULL;
+	info->cbtype[t].cba = NULL;
+	pynl_dbg("cb=%p, info=%p, type=%d, kind=%d\n", cb, info, t, k);
+	/* handle custom callback */
+	if (k == NL_CB_CUSTOM) {
+		Py_XINCREF(func);
+		Py_XINCREF(a);
+		info->cbtype[t].cbf = func;
+		info->cbtype[t].cba = a;
+		return nl_cb_set(cb, t, k,
+				 nl_recv_msg_handler, &info->cbtype[t]);
+	}
+	return nl_cb_set(cb, t, k,  NULL, NULL);
+}
+
+int py_nl_cb_set_all(struct nl_cb *cb, enum nl_cb_kind k,
+		    PyObject *func , PyObject *a)
+{
+	struct pynl_cbinfo *info;
+	int t;
+
+	info = pynl_get_cbinfo(cb, 0);
+	pynl_dbg("cb=%p, info=%p, kind=%d\n", cb, info, k);
+	for (t = 0; t <= NL_CB_TYPE_MAX; t++) {
+		/* (possibly) free existing handler */
+		Py_XDECREF(info->cbtype[t].cbf);
+		Py_XDECREF(info->cbtype[t].cba);
+		info->cbtype[t].cbf = NULL;
+		info->cbtype[t].cba = NULL;
+		if (k == NL_CB_CUSTOM) {
+			Py_XINCREF(func);
+			Py_XINCREF(a);
+			info->cbtype[t].cbf = func;
+			info->cbtype[t].cba = a;
+		}
+	}
+	if (k == NL_CB_CUSTOM)
+		/* callback argument is same for all so using idx 0 here */
+		return nl_cb_set_all(cb, k, nl_recv_msg_handler,
+				     &info->cbtype[0]);
+	else
+		return nl_cb_set_all(cb, k, NULL, NULL);
+}
+
+int py_nl_cb_err(struct nl_cb *cb, enum nl_cb_kind k,
+		PyObject *func, PyObject *a)
+{
+	struct pynl_cbinfo *info;
+
+	/* obtain callback info */
+	info = pynl_get_cbinfo(cb, 0);
+	pynl_dbg("cb=%p, info=%p, kind=%d\n", cb, info, k);
+	/* clear existing handlers (if any) */
+	Py_XDECREF(info->cberr.cbf);
+	Py_XDECREF(info->cberr.cba);
+	info->cberr.cbf = NULL;
+	info->cberr.cba = NULL;
+
+	/* handle custom callback */
+	if (k == NL_CB_CUSTOM) {
+		Py_XINCREF(func);
+		Py_XINCREF(a);
+		info->cberr.cbf = func;
+		info->cberr.cba = a;
+		return nl_cb_err(cb, k,
+				 nl_recv_err_handler, &info->cberr);
+	}
+	return nl_cb_err(cb, k,  NULL, NULL);
+}
+%}
+
+/* Attributes <netlink/attr.h> */
+/*
+ * This typemap is a bit tricky as it uses arg1, which is knowledge about
+ * the SWIGged wrapper output.
+ */
+%typemap(out) void * {
+	$result = PyByteArray_FromStringAndSize($1, nla_len(arg1));
+}
+extern void *nla_data(struct nlattr *);
+%typemap(out) void *;
+extern int		nla_type(const struct nlattr *);
+
+/* Integer attribute */
+extern uint8_t		nla_get_u8(struct nlattr *);
+extern int		nla_put_u8(struct nl_msg *, int, uint8_t);
+extern uint16_t		nla_get_u16(struct nlattr *);
+extern int		nla_put_u16(struct nl_msg *, int, uint16_t);
+extern uint32_t		nla_get_u32(struct nlattr *);
+extern int		nla_put_u32(struct nl_msg *, int, uint32_t);
+extern uint64_t		nla_get_u64(struct nlattr *);
+extern int		nla_put_u64(struct nl_msg *, int, uint64_t);
+
+/* String attribute */
+extern char *		nla_get_string(struct nlattr *);
+extern char *		nla_strdup(struct nlattr *);
+extern int		nla_put_string(struct nl_msg *, int, const char *);
+
+/* Flag attribute */
+extern int		nla_get_flag(struct nlattr *);
+extern int		nla_put_flag(struct nl_msg *, int);
+
+/* Msec attribute */
+extern unsigned long	nla_get_msecs(struct nlattr *);
+extern int		nla_put_msecs(struct nl_msg *, int, unsigned long);
+
+/* Attribute nesting */
+extern int		nla_put_nested(struct nl_msg *, int, struct nl_msg *);
+extern struct nlattr *	nla_nest_start(struct nl_msg *, int);
+extern int		nla_nest_end(struct nl_msg *, struct nlattr *);
+%inline %{
+PyObject *py_nla_parse_nested(int max, struct nlattr *nest_attr, PyObject *p)
+{
+	struct nlattr *tb_msg[max + 1];
+	struct nla_policy *policy = NULL;
+	void *pol;
+	PyObject *attrs = Py_None;
+	PyObject *k;
+	PyObject *v;
+	PyObject *resobj;
+	int err;
+	int i;
+
+	if (p != Py_None) {
+		PyObject *pobj;
+
+		if (!PyList_Check(p)) {
+			fprintf(stderr, "expected list object\n");
+			err = -1;
+			goto fail;
+		}
+		pobj = PyList_GetItem(p, 0);
+		err = SWIG_ConvertPtr(pobj, &pol, SWIGTYPE_p_nla_policy, 0 |  0 );
+		if (!SWIG_IsOK(err))
+			goto fail;
+		policy = pol;
+	}
+	err = nla_parse_nested(tb_msg, max, nest_attr, policy);
+	if (err < 0) {
+		fprintf(stderr, "Failed to parse response message\n");
+	} else {
+		attrs = PyDict_New();
+		for (i = 0; i <= max; i++)
+			if (tb_msg[i]) {
+				k = PyInt_FromLong((long)i);
+				v = SWIG_NewPointerObj(SWIG_as_voidptr(tb_msg[i]), SWIGTYPE_p_nlattr, 0 |  0 );
+				PyDict_SetItem(attrs, k, v);
+			}
+	}
+fail:
+	if (attrs == Py_None)
+		Py_INCREF(attrs);
+	resobj = Py_BuildValue("(iO)", err, attrs);
+	return resobj;
+}
+
+/*
+ * nla_get_nested() - get list of nested attributes.
+ *
+ * nla_for_each_<nested|attr>() is a macro construct that needs another approach
+ * for Python. Create and return list of nested attributes.
+ */
+PyObject *nla_get_nested(struct nlattr *nest_attr)
+{
+	PyObject *listobj;
+	PyObject *nestattrobj;
+	struct nlattr *pos;
+	int rem;
+
+	listobj = PyList_New(0);
+	nla_for_each_nested(pos, nest_attr, rem) {
+		nestattrobj = SWIG_NewPointerObj(SWIG_as_voidptr(pos),
+						 SWIGTYPE_p_nlattr, 0 |  0 );
+		PyList_Append(listobj, nestattrobj);
+	}
+	return listobj;
+}
+%}
+
+ /**
+  * @ingroup attr
+  * Basic attribute data types
+  *
+  * See \ref attr_datatypes for more details.
+  */
+enum {
+	NLA_UNSPEC,	/**< Unspecified type, binary data chunk */
+	NLA_U8,		/**< 8 bit integer */
+	NLA_U16,	/**< 16 bit integer */
+	NLA_U32,	/**< 32 bit integer */
+	NLA_U64,	/**< 64 bit integer */
+	NLA_STRING,	/**< NUL terminated character string */
+	NLA_FLAG,	/**< Flag */
+	NLA_MSECS,	/**< Micro seconds (64bit) */
+	NLA_NESTED,	/**< Nested attributes */
+	__NLA_TYPE_MAX,
+};
+
+#define NLA_TYPE_MAX (__NLA_TYPE_MAX - 1)
+
+/** @} */
+
+/**
+ * @ingroup attr
+ * Attribute validation policy.
+ *
+ * See \ref attr_datatypes for more details.
+ */
+struct nla_policy {
+	/** Type of attribute or NLA_UNSPEC */
+	uint16_t	type;
+
+	/** Minimal length of payload required */
+	uint16_t	minlen;
+
+	/** Maximal length of payload allowed */
+	uint16_t	maxlen;
+};
+
+%inline %{
+PyObject *nla_policy_array(int n_items)
+{
+	struct nla_policy *policies;
+	PyObject *listobj;
+	PyObject *polobj;
+	int i;
+
+	policies = calloc(n_items, sizeof(*policies));
+	listobj = PyList_New(n_items);
+	for (i = 0; i < n_items; i++) {
+		polobj = SWIG_NewPointerObj(SWIG_as_voidptr(&policies[i]),
+					    SWIGTYPE_p_nla_policy, 0 |  0 );
+		PyList_SetItem(listobj, i, polobj);
+	}
+	return listobj;
+}
+%}
