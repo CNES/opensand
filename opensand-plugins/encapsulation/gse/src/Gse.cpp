@@ -173,7 +173,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 
 	for(packet = burst->begin(); packet != burst->end(); packet++)
 	{
-		int context_id;
+		uint32_t context_id;
 		long time = 0;
 
 		// packet must be valid
@@ -183,8 +183,8 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 			continue;
 		}
 
-		context_id = (((*packet)->getSrcTalId()	& 0x7f) << 6) |
-		             (((*packet)->getDstTalId() & 0x07) << 3) |
+		context_id = (((*packet)->getSrcTalId()	& 0x1f) << 8) |
+		             (((*packet)->getDstTalId() & 0x1f) << 3) |
 		             ((*packet)->getQos() & 0x07);
 
 		UTI_DEBUG("%s encapsulate a %d-byte packet of type 0x%04x "
@@ -798,8 +798,8 @@ NetBurst *Gse::Context::flush(int context_id)
 
 	UTI_DEBUG("%s search for encapsulation context (id = %d) to flush...\n",
 			  FUNCNAME, context_id);
-	identifier = new GseIdentifier((context_id >> 6) & 0x7f,
-	                               (context_id >> 3) & 0x07,
+	identifier = new GseIdentifier((context_id >> 8) & 0x1f,
+	                               (context_id >> 3) & 0x1f,
 	                               context_id & 0x07);
 	UTI_DEBUG("%s Associated identifier: Src TAL Id = %u, Dst TAL Id = %u, QoS = %u\n",
 	          FUNCNAME, identifier->getSrcTalId(), identifier->getDstTalId(),
