@@ -36,19 +36,23 @@ interfaces.py - The OpenSAND interfaces management
 
 import netifaces
 import logging
-
-from ConfigParser import Error
-from ipaddr import IPNetwork
 import socket
 import fcntl
 import struct
+import threading
+from ConfigParser import Error
+from ipaddr import IPNetwork
 
-from opensand_daemon.nl_utils import NlInterfaces, NlError, NlExists, NlRoute
+from opensand_daemon.my_exceptions import InstructionError
+from opensand_daemon.nl_utils import NlInterfaces, NlError, NlExists, \
+                                     NlMissing, NlRoute
+
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
 
 TUN_NAME = "opensand_tun"
+TAP_NAME = "opensand_tap"
 BR_NAME = "opensand_br"
 
 # TODO DHCP and sysctl instead of script ?
@@ -62,136 +66,177 @@ def get_mac_address(interface):
 
 
 
-class OpenSandInterfaces(object):
+class OpenSandIfaces(object):
     """ the OpenSAND interfaces object """
-    def __init__(self, conf, name):
-        self._name = name
-        self._type = conf.get('network', 'config_level').lower()
-        if self._type != 'advanced' and self._type != 'automatic':
+
+    # the OpenSandIfaces class attributes are shared between main and
+    # command threads (initialized/released in main, used in command)
+    # to check initialization in command thread as it is done in main before
+    # thread startup
+    _name = ''
+    _type = ''
+    _emu_iface = ''
+    _emu_ipv4 = None
+    _lan_iface = ''
+    _lan_ipv4 = None
+    _lan_ipv6 = None
+    _tun_ipv4 = None
+    _tun_ipv6 = None
+    _ifaces = NlInterfaces()
+    _nladd = {}
+    _ifdown = []
+    _lock = threading.Lock()
+
+    def __init__(self):
+        pass
+
+    def load(self, conf, name):
+        """ load the interfaces """
+        # no lock here because it is done before threads start
+        OpenSandIfaces._name = name
+        OpenSandIfaces._type = conf.get('network', 'config_level').lower()
+        if OpenSandIfaces._type != 'advanced' and \
+           OpenSandIfaces._type != 'automatic':
             raise Error("unknown network configuration type %s "
                         "(choose between advanced or automatic)" %
-                        self._type)
-        self._emu_iface = ''
-        self._emu_ipv4 = None
-        self._lan_iface = ''
-        self._lan_ipv4 = None
-        self._lan_ipv6 = None
-        self._ifaces = NlInterfaces()
-        self._nladd = {}
-        self._ifdown = []
+                        OpenSandIfaces._type)
+        OpenSandIfaces._ifaces = NlInterfaces()
         if name != 'ws':
-            self.init_emu(conf)
+            self._init_emu(conf)
         if name != 'sat':
-            self.init_lan(conf)
+            self._init_lan(conf)
 
         if name != 'ws' and name != 'sat':
-            self.init_tun_tap()
+            self._init_tun()
 
         if name != 'ws':
-            self.check_sysctl()
+            self._check_sysctl()
 
-    def init_emu(self, conf):
+    def _init_emu(self, conf):
         """ init the emulation interface """
-        self._emu_iface = conf.get('network', 'emu_iface')
-        if self._type == 'advanced':
-            self._emu_ipv4 = IPNetwork(conf.get('network', 'emu_ipv4'))
+        OpenSandIfaces._emu_iface = conf.get('network', 'emu_iface')
+        if OpenSandIfaces._type == 'advanced':
+            OpenSandIfaces._emu_ipv4 = IPNetwork(conf.get('network',
+                                                          'emu_ipv4'))
             try:
                 # if the address exists this is not an error, do not keep it in
-                # self._nladd to avoid removing it at exit
+                # _nladd to avoid removing it at exit
                 try:
-                    self._ifaces.add_address(str(self._emu_ipv4), self._emu_iface)
+                    OpenSandIfaces._ifaces.add_address(
+                                    str(OpenSandIfaces._emu_ipv4),
+                                    OpenSandIfaces._emu_iface)
                 except NlExists:
                     LOGGER.info("address %s already exists on %s" %
-                                (self._emu_ipv4, self._emu_iface))
-                finally:
-                    self._nladd[str(self._emu_ipv4)] = self._emu_iface
+                                (OpenSandIfaces._emu_ipv4,
+                                 OpenSandIfaces._emu_iface))
+                else:
+                    OpenSandIfaces._nladd[str(OpenSandIfaces._emu_ipv4)] = \
+                            OpenSandIfaces._emu_iface
                 # if interface is already up this is not an error, do not keep
-                # it in self._ifdown to avoid changing its state at exit
+                # it in _ifdown to avoid changing its state at exit
                 try:
-                    self._ifaces.up(self._emu_iface)
+                    OpenSandIfaces._ifaces.up(OpenSandIfaces._emu_iface)
                 except NlExists:
-                    LOGGER.debug("interface %s is already up" % self._emu_iface)
-                finally:
-                    self._ifdown.append(self._emu_iface)
+                    LOGGER.debug("interface %s is already up" %
+                                 OpenSandIfaces._emu_iface)
+                else:
+                    OpenSandIfaces._ifdown.append(OpenSandIfaces._emu_iface)
             except NlError, msg:
                 LOGGER.error("unable to set addresses: %s" % msg)
                 # delete the address that were already set and set adequate
                 # interface down
                 self.release()
-            except BaseException, msg:
+            except Exception, msg:
                 LOGGER.error("error when changing interface %s" %
-                             self._emu_iface)
+                             OpenSandIfaces._emu_iface)
         else:
             try:
                 # get the interface addresses
-                addresses = netifaces.ifaddresses(self._emu_iface)
+                addresses = netifaces.ifaddresses(OpenSandIfaces._emu_iface)
                 # retrieve IPv4 and IPv6 addresses
                 emu_ipv4 = addresses[netifaces.AF_INET]
                 if len(emu_ipv4) > 1:
                     LOGGER.warning("more than one IPv4 addresses for emulation "
                                    "interface (%s), pick the first one: %s" %
-                                   (self._emu_iface, emu_ipv4[0]['addr']))
-                self._emu_ipv4 = IPNetwork("%s/%s" % (emu_ipv4[0]['addr'],
+                                   (OpenSandIfaces._emu_iface,
+                                    emu_ipv4[0]['addr']))
+                OpenSandIfaces._emu_ipv4 = IPNetwork("%s/%s" %
+                                                     (emu_ipv4[0]['addr'],
                                                       emu_ipv4[0]['netmask']))
             except ValueError, msg:
-                LOGGER.error("cannot get emulation interfaces addresses: %s" % msg)
+                LOGGER.error("cannot get emulation interfaces addresses: %s" %
+                             msg)
                 raise
             except KeyError, val:
-                LOGGER.error("an address with family %s is not set for emulation "
-                             "interface" % netifaces.address_families[val])
+                LOGGER.error("an address with family %s is not set for "
+                             "emulation interface" %
+                             netifaces.address_families[val])
                 raise
 
-    def init_lan(self, conf):
+    def _init_lan(self, conf):
         """ init the lan interface """
-        self._lan_iface = conf.get('network', 'lan_iface')
-        if self._type == 'advanced':
-            self._lan_ipv4 = IPNetwork(conf.get('network', 'lan_ipv4'))
-            self._lan_ipv6 = IPNetwork(conf.get('network', 'lan_ipv6'))
+        OpenSandIfaces._lan_iface = conf.get('network', 'lan_iface')
+        if OpenSandIfaces._type == 'advanced':
+            OpenSandIfaces._lan_ipv4 = IPNetwork(conf.get('network',
+                                                          'lan_ipv4'))
+            OpenSandIfaces._lan_ipv6 = IPNetwork(conf.get('network',
+                                                          'lan_ipv6'))
             try:
-                # if the addressexists this is not an error, do not keep it in
-                # self._nladd to avoid removing it at exit
+                # if the address exists this is not an error, do not keep it in
+                # _nladd to avoid removing it at exit
                 try:
-                    self._ifaces.add_address(str(self._lan_ipv4), self._lan_iface)
+                    OpenSandIfaces._ifaces.add_address(
+                                str(OpenSandIfaces._lan_ipv4),
+                                OpenSandIfaces._lan_iface)
                 except NlExists:
                     LOGGER.info("address %s already exists on %s" %
-                                (self._lan_ipv4, self._lan_iface))
-                finally:
-                    self._nladd[str(self._lan_ipv4)] = self._lan_iface
+                                (OpenSandIfaces._lan_ipv4,
+                                 OpenSandIfaces._lan_iface))
+                else:
+                    OpenSandIfaces._nladd[str(OpenSandIfaces._lan_ipv4)] = \
+                                OpenSandIfaces._lan_iface
                 try:
-                    self._ifaces.add_address(str(self._lan_ipv6), self._lan_iface)
+                    OpenSandIfaces._ifaces.add_address(
+                                    str(OpenSandIfaces._lan_ipv6),
+                                    OpenSandIfaces._lan_iface)
                 except NlExists:
                     LOGGER.info("address %s already exists on %s" %
-                                (self._lan_ipv6, self._lan_iface))
-                finally:
-                    self._nladd[self._lan_ipv6] = self._lan_iface
+                                (OpenSandIfaces._lan_ipv6,
+                                 OpenSandIfaces._lan_iface))
+                else:
+                    OpenSandIfaces._nladd[OpenSandIfaces._lan_ipv6] = \
+                            OpenSandIfaces._lan_iface
                 # if interface is already up this is not an error, do not keep
-                # it in self._ifdown to avoid changing its state at exit
+                # it in _ifdown to avoid changing its state at exit
                 try:
-                    self._ifaces.up(self._lan_iface)
+                    OpenSandIfaces._ifaces.up(OpenSandIfaces._lan_iface)
                 except NlExists:
-                    LOGGER.debug("interface %s is already up" % self._lan_iface)
-                finally:
-                    self._ifdown.append(self._lan_iface)
+                    LOGGER.debug("interface %s is already up" %
+                                 OpenSandIfaces._lan_iface)
+                else:
+                    OpenSandIfaces._ifdown.append(OpenSandIfaces._lan_iface)
             except NlError, msg:
                 LOGGER.error("unable to set addresses: %s" % msg)
                 # delete the address that were already set
                 self.release()
                 raise NlError(msg)
-            except BaseException, msg:
+            except Exception, msg:
                 LOGGER.error("error when changing interface %s: %s" %
-                             (self._lan_iface, msg))
+                             (OpenSandIfaces._lan_iface, msg))
                 raise
         else:
             try:
                 # get the interface addresses
-                addresses = netifaces.ifaddresses(self._lan_iface)
+                addresses = netifaces.ifaddresses(OpenSandIfaces._lan_iface)
                 # retrieve IPv4 and IPv6 addresses
                 lan_ipv4 = addresses[netifaces.AF_INET]
                 if len(lan_ipv4) > 1:
                     LOGGER.warning("more than one IPv4 addresses for lan "
                                    "interface (%s), pick the first one: %s" %
-                                   (self._lan_iface, lan_ipv4[0]['addr']))
-                self._lan_ipv4 = IPNetwork("%s/%s" % (lan_ipv4[0]['addr'],
+                                   (OpenSandIfaces._lan_iface,
+                                    lan_ipv4[0]['addr']))
+                OpenSandIfaces._lan_ipv4 = IPNetwork("%s/%s" %
+                                                     (lan_ipv4[0]['addr'],
                                                       lan_ipv4[0]['netmask']))
                 lan_ipv6 = addresses[netifaces.AF_INET6]
                 # remove IPv6 link addresses if there is another address
@@ -201,12 +246,13 @@ class OpenSandInterfaces(object):
                     copy = list(lan_ipv6)
                     for ip in copy:
                         addr = ip['addr']
-                        if addr.endswith('%' + self._lan_iface):
+                        if addr.endswith('%' + OpenSandIfaces._lan_iface):
                             lan_ipv6.remove(ip)
                 if len(lan_ipv6) > 1:
                     LOGGER.warning("more than one IPv6 addresses for lan "
                                    "interface (%s), pick the first one: %s" %
-                                   (self._lan_iface, lan_ipv6[0]['addr']))
+                                   (OpenSandIfaces._lan_iface,
+                                    lan_ipv6[0]['addr']))
                 # remove the interface name after '%' for link local addresses
                 addr_v6 = lan_ipv6[0]['addr'].rsplit('%', 1)[0]
                 # IPNetwork does not convert IPv6 mask from address to number
@@ -219,21 +265,24 @@ class OpenSandInterfaces(object):
                     count = count.lstrip('b')
                     masklen += len(count)
                     
-                self._lan_ipv6 = IPNetwork("%s/%s" % (addr_v6, masklen))
+                OpenSandIfaces._lan_ipv6 = IPNetwork("%s/%s" % (addr_v6,
+                                                                masklen))
             except ValueError, msg:
-                LOGGER.error("cannot get emulation interfaces addresses: %s" % msg)
+                LOGGER.error("cannot get emulation interfaces addresses: %s" %
+                             msg)
                 raise
             except KeyError, val:
-                LOGGER.error("an address with family %s is not set for emulation "
-                             "interface" % netifaces.address_families[val])
+                LOGGER.error("an address with family %s is not set for "
+                             "emulation interface" %
+                             netifaces.address_families[val])
                 raise
 
-    def init_tun_tap(self):
-        """ init the TUN/TAP interfaces """
+    def _init_tun(self):
+        """ init the TUN interfaces """
         # only set the correct address on TUN and bridge, the core will
 
         # compute the TUN and bridge addresses
-        mask = self._lan_ipv4.prefixlen
+        mask = OpenSandIfaces._lan_ipv4.prefixlen
         # we do as if mask = 24 for smaller masks
         if mask < 24:
             modulo = 251
@@ -245,19 +294,16 @@ class OpenSandInterfaces(object):
             # - 5 to avoid 255 as add
             modulo = pow(2, 32 - mask) - 5
         # IPv4 address = net.add
-        net, add = str(self._lan_ipv4.ip).rsplit('.', 1)
+        net, add = str(OpenSandIfaces._lan_ipv4.ip).rsplit('.', 1)
         # tun is 2 more than interface
-        # bridge is 3 more than interface
-        # for add we add 1 after modulo to avoid 0
-        tun_ipv4 = IPNetwork("%s.%s/%s" % (net,
-                                           str(((int(add) + 1) % modulo) + 1),
-                                           mask))
-        br_ipv4 = IPNetwork("%s.%s/%s" % (net,
-                                          str(((int(add) + 2) % modulo) + 1),
-                                          mask))
+        # we add 1 after modulo to avoid 0
+        OpenSandIfaces._tun_ipv4 = IPNetwork("%s.%s/%s" % (net,
+                                                           str(((int(add) + 1) %
+                                                                modulo) + 1),
+                                                           mask))
 
          # compute the TUN and bridge addresses
-        mask = self._lan_ipv6.prefixlen
+        mask = OpenSandIfaces._lan_ipv6.prefixlen
         # we do as if mask = 24 for smaller masks
         if mask < 112:
             modulo = 0xFFFB
@@ -269,80 +315,74 @@ class OpenSandInterfaces(object):
             # - 5 to avoid 255 as add
             modulo = pow(2, 128 - mask) - 5
         # IPv6 address = net.add
-        net, add = str(self._lan_ipv6.ip).rsplit(':', 1)
+        net, add = str(OpenSandIfaces._lan_ipv6.ip).rsplit(':', 1)
         # tun is 2 more than interface
-        # bridge is 3 more than interface
-        # for add we add 1 after modulo to avoid 0
-        tun_ipv6 = IPNetwork("%s:%x/%s" % (net,
-                                           ((int(add, 16) + 1) % modulo) + 1, mask))
-        br_ipv6 = IPNetwork("%s:%x/%s" % (net,
-                                          ((int(add, 16) + 2) % modulo) + 1, mask))
+        # we add 1 after modulo to avoid 0
+        OpenSandIfaces._tun_ipv6 = IPNetwork("%s:%x/%s" % (net,
+                                                           ((int(add, 16) + 1) %
+                                                            modulo) + 1,
+                                                           mask))
 
         # the interfaces are used by opensand so we don't care if address is
         # already set or not
         try:
             try:
-                self._ifaces.add_address(str(tun_ipv4), TUN_NAME)
+                OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._tun_ipv4),
+                                                   TUN_NAME)
             except NlExists:
                 pass
             try:
-                self._ifaces.add_address(str(tun_ipv6), TUN_NAME)
-            except NlExists:
-                pass
-            try:
-                self._ifaces.add_address(str(br_ipv4), BR_NAME)
-            except NlExists:
-                pass
-            try:
-                self._ifaces.add_address(str(br_ipv6), BR_NAME)
+                OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._tun_ipv6),
+                                                   TUN_NAME)
             except NlExists:
                 pass
         except NlError:
             LOGGER.error("error when configuring TUN and Bridge")
 
-        # delete default routes on tun and bridge
+        self._remove_default_routes()
+
+
+    def _remove_default_routes(self):
+        """ delete default routes on tun interface """
+        # delete default routes on tun (for bridge this is ok at it remains the
+        # ain interface for both emulation network and terminal network)
         # (these are routes with kernel protocol)
         tun_route = NlRoute(TUN_NAME)
-        br_route = NlRoute(BR_NAME)
         try:
-            route = "%s/%s" % (tun_ipv4.network, tun_ipv4.prefixlen)
+            route = "%s/%s" % (OpenSandIfaces._tun_ipv4.network,
+                               OpenSandIfaces._tun_ipv4.prefixlen)
             tun_route.delete(route, None, True)
+        except NlMissing:
+            LOGGER.info("IPv4 default route %s for %s already deleted" %
+                        (route, TUN_NAME))
         except NlError, msg:
-            LOGGER.warning("unable to delete IPv4 default route %s for %s: %s" %
-                           (route, TUN_NAME, msg))
+            LOGGER.error("unable to delete IPv4 default route %s for %s: %s" %
+                        (route, TUN_NAME, msg))
         try:
-            route = "%s/%s" % (tun_ipv6.network, tun_ipv6.prefixlen)
+            route = "%s/%s" % (OpenSandIfaces._tun_ipv6.network,
+                               OpenSandIfaces._tun_ipv6.prefixlen)
             tun_route.delete(route, None, True)
+        except NlMissing:
+            LOGGER.info("IPv6 default route %s for %s already deleted" %
+                        (route, TUN_NAME))
         except NlError, msg:
-            LOGGER.warning("unable to delete IPv6 default route %s for %s: %s" %
-                           (route, TUN_NAME, msg))
-        try:
-            route = "%s/%s" % (br_ipv4.network, br_ipv4.prefixlen)
-            br_route.delete(route, None, True)
-        except NlError, msg:
-            LOGGER.warning("unable to delete IPv4 default route %s for %s: %s" %
-                           (route, BR_NAME, msg))
-        try:
-            route = "%s/%s" % (br_ipv6.network, br_ipv6.prefixlen)
-            br_route.delete(route, None, True)
-        except NlError, msg:
-            LOGGER.warning("unable to delete IPv6 default route %s for %s: %s" %
-                           (route, BR_NAME, msg))
+            LOGGER.error("unable to delete IPv6 default route %s for %s: %s" %
+                        (route, TUN_NAME, msg))
 
-    def check_sysctl(self):
+    def _check_sysctl(self):
         """ check sysctl values and log if the value may lead to errors """
-        if self._name != 'sat':
-            for iface in [self._emu_iface, self._lan_iface]:
-                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface, 'ro') \
-                     as sysctl:
+        if OpenSandIfaces._name != 'sat':
+            for iface in [OpenSandIfaces._emu_iface, OpenSandIfaces._lan_iface]:
+                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
+                          'ro') as sysctl:
                     if sysctl.read().rstrip('\n') != "1":
                         LOGGER.warning("IPv4 forwarding on interface %s is "
                                        "disabled, you won't be able to route "
                                        "packets toward WS behind this host" %
                                        iface)
-            for iface in [self._lan_iface]:
-                with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface, 'ro') \
-                     as sysctl:
+            for iface in [OpenSandIfaces._lan_iface]:
+                with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface,
+                          'ro') as sysctl:
                     if sysctl.read().rstrip('\n') != "1":
                         LOGGER.warning("IPv6 forwarding on interface %s is "
                                        "disabled, you won't be able to route "
@@ -350,8 +390,8 @@ class OpenSandInterfaces(object):
                                        iface)
             with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctl:
                 if sysctl.read().rstrip('\n') != "1":
-                    LOGGER.warning("IPv4 ip_forward is disabled, you should enable "
-                                   "it")
+                    LOGGER.warning("IPv4 ip_forward is disabled, you should "
+                                   "enable it")
         for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
             with open("/proc/sys/net/core/%s" % val, 'ro') as sysctl:
                 if int(sysctl.read().rstrip('\n')) < 1048580:
@@ -365,31 +405,188 @@ class OpenSandInterfaces(object):
         mac = ''
         # for ST and GW sometimes bridge takes address of lan interface
         # once it is added to it so we need to know both MAC addresses
-        if self._name != 'ws':
-            descr.update({'emu_iface': self._emu_iface,
-                          'emu_ipv4': str(self._emu_ipv4),
+        if OpenSandIfaces._name != 'ws':
+            descr.update({'emu_iface': OpenSandIfaces._emu_iface,
+                          'emu_ipv4': str(OpenSandIfaces._emu_ipv4),
                          })
-            if self._name != 'sat':
+            if OpenSandIfaces._name != 'sat':
                 mac = get_mac_address(BR_NAME)
-        if self._name != 'sat':
-            mac = mac + " " + get_mac_address(self._lan_iface)
-        if self._name != 'sat':
-            descr.update({'lan_iface': self._lan_iface,
-                          'lan_ipv4': self._lan_ipv4,
-                          'lan_ipv6': self._lan_ipv6,
+        if OpenSandIfaces._name != 'sat':
+            descr.update({'lan_iface': OpenSandIfaces._lan_iface,
+                          'lan_ipv4': OpenSandIfaces._lan_ipv4,
+                          'lan_ipv6': OpenSandIfaces._lan_ipv6,
                           'mac': mac,
                          })
         return descr
 
+    def setup_interfaces(self, is_l2):
+        """ set interfaces for emulation """
+        if OpenSandIfaces._name in ['sat', 'ws']:
+            return
+        OpenSandIfaces._lock.acquire()
+        try:
+            # for L3 we need to set the tun interface up and set the lan address on
+            # the lan interface
+            if not is_l2:
+                self._setup_l3()
+            # for L2 we need to remove the lan interface address and to set it on
+            # the bridge
+            elif is_l2:
+                self._setup_l2()
+            else:
+                raise InstructionError("cannot set interfaces for unknwow layer")
+        except Exception:
+            raise
+        finally:
+            OpenSandIfaces._lock.release()
+
+    def _setup_l3(self):
+        """ set interface in IP mode """
+        # add IPv4 address on lan interface (should be already done)
+        try:
+            OpenSandIfaces._ifaces.add_address(
+                        str(OpenSandIfaces._lan_ipv4),
+                        OpenSandIfaces._lan_iface)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv4,
+                         OpenSandIfaces._lan_iface))
+        # add IPv6 address on lan interface (should be already done)
+        try:
+            OpenSandIfaces._ifaces.add_address(
+                            str(OpenSandIfaces._lan_ipv6),
+                            OpenSandIfaces._lan_iface)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv6,
+                         OpenSandIfaces._lan_iface))
+        # set TUN interface up
+        try:
+            OpenSandIfaces._ifaces.up(TUN_NAME)
+        except NlExists:
+            LOGGER.debug("interface %s is already up" % TUN_NAME)
+
+        self._remove_default_routes()
+
+    def _setup_l2(self):
+        """ set interface in Ethernet mode """
+        # remove IPv4 address on lan interface
+        try:
+            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
+                                               OpenSandIfaces._lan_iface)
+        except NlMissing:
+            LOGGER.info("address %s already removed on %s" %
+                        (OpenSandIfaces._lan_ipv4,
+                         OpenSandIfaces._lan_iface))
+        # add IPv4 lan address on bridge
+        try:
+            OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._lan_ipv4),
+                                               BR_NAME)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv4, BR_NAME))
+        # remove IPv6 address on lan interface
+        try:
+            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
+                                               OpenSandIfaces._lan_iface)
+        except NlMissing:
+            LOGGER.info("address %s already removed on %s" %
+                        (OpenSandIfaces._lan_ipv6,
+                         OpenSandIfaces._lan_iface))
+        # add IPv6 lan address on bridge
+        try:
+            OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._lan_ipv6),
+                                               BR_NAME)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv6, BR_NAME))
+        # set TAP interface up
+        try:
+            OpenSandIfaces._ifaces.up(TAP_NAME)
+        except NlExists:
+            LOGGER.debug("interface %s is already up" % TAP_NAME)
+        # set bridge interface up
+        try:
+            OpenSandIfaces._ifaces.up(BR_NAME)
+        except NlExists:
+            LOGGER.debug("interface %s is already up" % BR_NAME)
+
     def release(self):
         """ remove interfaces """
-        for add in self._nladd:
+        for add in OpenSandIfaces._nladd:
             try:
-                self._ifaces.del_address(add, self._nladd[add])
+                OpenSandIfaces._ifaces.del_address(add,
+                                                   OpenSandIfaces._nladd[add])
             except:
                 continue
-        for iface in self._ifdown:
+        for iface in OpenSandIfaces._ifdown:
             try:
-                self._ifaces.down(iface)
+                OpenSandIfaces._ifaces.down(iface)
             except:
                 continue
+
+    def stanbye(self):
+        """ set interfaces for emulation """
+        if OpenSandIfaces._name in ['sat', 'ws']:
+            return
+        OpenSandIfaces._lock.acquire()
+        # set opensand interfaces down and in case of layer 2 scenario, move
+        # back address on lan interface
+        try:
+            self._stanbye()
+        except Exception:
+            raise
+        finally:
+            OpenSandIfaces._lock.release()
+
+    def _stanbye(self):
+        """ internal wrapper to simplify lock management """
+        # remove IPv4 address on bridge if it exists
+        try:
+            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
+                                               BR_NAME)
+        except NlMissing:
+            LOGGER.info("address %s already removed on %s" %
+                        (OpenSandIfaces._lan_ipv4, BR_NAME))
+        # set back IPv4 address on lan interface
+        try:
+            OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._lan_ipv4),
+                                               OpenSandIfaces._lan_iface)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface))
+
+        # remove IPv6 address on bridge if it exists
+        try:
+            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
+                                               BR_NAME)
+        except NlMissing:
+            LOGGER.info("address %s already removed on %s" %
+                        (OpenSandIfaces._lan_ipv6, BR_NAME))
+
+        # set back IPv6 address on lan interface
+        try:
+            OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._lan_ipv6),
+                                               OpenSandIfaces._lan_iface)
+        except NlExists:
+            LOGGER.info("address %s already exists on %s" %
+                        (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface))
+        # set all opensand interfaces down
+        try:
+            OpenSandIfaces._ifaces.down(TUN_NAME)
+        except NlMissing:
+            LOGGER.info("interface %s is already down" % TUN_NAME)
+        try:
+            OpenSandIfaces._ifaces.down(BR_NAME)
+        except NlMissing:
+            LOGGER.info("interface %s is already down" % BR_NAME)
+        try:
+            OpenSandIfaces._ifaces.down(TAP_NAME)
+        except NlMissing:
+            LOGGER.info("interface %s is already down" % TAP_NAME)
+        except Exception:
+            # TODO find a way to set TAP down
+            LOGGER.warning("cannot set TAP interface down, this always happend,"
+                           " we need to find a solution (waiting for feedback "
+                           "from the libnl mailing list)")
+            pass

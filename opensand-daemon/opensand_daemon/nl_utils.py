@@ -45,8 +45,14 @@ class NlError(netlink.NetlinkError):
 
 # dissociate the Object exists error
 class NlExists(netlink.NetlinkError):
+    # used for NLE_EXIST (6)
     pass
 
+
+class NlMissing(netlink.NetlinkError):
+    # used for NLE_OBJ_NOTFOUND (12)
+    # and NLE_NOADDR (16)
+    pass
 
 class NlRoute(object):
     """Route object"""
@@ -95,8 +101,8 @@ class NlRoute(object):
         if proto_kernel:
             capi.rtnl_route_set_protocol(route, 2) # RTPROT_KERNEL = 2
         ret = capi.rtnl_route_delete(self._sock._sock, route, 0)
-        if ret == -6:
-            raise NlExists(ret)
+        if ret == -12:
+            raise NlMissing(ret)
         if ret < 0:
             raise NlError(ret)
 
@@ -112,44 +118,71 @@ class NlInterfaces(object):
 
     def add_address(self, addr, iface):
         """ add a new address """
-        ifidx = self._cache[iface].ifindex
-        ad = address.Address()
-        ad.local = addr
-        ad.ifindex = ifidx
-        ret = capi.rtnl_addr_add(self._sock._sock, ad._rtnl_addr, 0)
-        if ret == -6:
-            raise NlExists(ret)
-        if ret < 0:
-            raise NlError(ret)
+        try:
+            ifidx = self._cache[iface].ifindex
+            ad = address.Address()
+            ad.local = addr
+            ad.ifindex = ifidx
+            ret = capi.rtnl_addr_add(self._sock._sock, ad._rtnl_addr, 0)
+            if ret == -6:
+                raise NlExists(ret)
+            if ret < 0:
+                raise NlError(ret)
+        except Exception:
+            raise
+        finally:
+            # refresh cache
+            self._cache.refill(self._sock)
 
     def del_address(self, addr, iface):
         """ delete an address """
-        ifidx = self._cache[iface].ifindex
-        ad = address.Address()
-        ad.local = addr
-        ad.ifindex = ifidx
-        ret = capi.rtnl_addr_delete(self._sock._sock, ad._rtnl_addr, 0)
-        if ret == -6:
-            raise NlExists(ret)
-        if ret < 0:
-            raise NlError(ret)
+        try:
+            ifidx = self._cache[iface].ifindex
+            ad = address.Address()
+            ad.local = addr
+            ad.ifindex = ifidx
+            ret = capi.rtnl_addr_delete(self._sock._sock, ad._rtnl_addr, 0)
+            if ret == -19: # 19 is for NLE_NOADDR
+                raise NlMissing(ret)
+            if ret < 0:
+                raise NlError(ret)
+        except Exception:
+            raise
+        finally:
+            # refresh cache
+            self._cache.refill(self._sock)
 
     def up(self, iface):
         """ set a link up """
-        link = self._cache[iface]
+        try:
+            link = self._cache[iface]
 
-        if 'up' in link.flags:
-            raise NlExists(-6)
-        else:
+            if 'up' in link.flags:
+                raise NlExists(-6)
+
             link.flags = ['up']
-        link.change()
+            link.change()
+        except Exception:
+            raise
+        finally:
+            # refresh cache
+            self._cache.refill(self._sock)
 
     def down(self, iface):
         """ set a link up """
-        link = self._cache[iface]
+        try:
+            link = self._cache[iface]
 
-        link.flags = ['-up']
-        link.change()
+            if not 'up' in link.flags:
+                raise NlMissing(-12)
+
+            link.flags = ['-up']
+            link.change()
+        except Exception:
+            raise
+        finally:
+            # refresh cache
+            self._cache.refill(self._sock)
 
 
 if __name__ == '__main__':

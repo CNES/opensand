@@ -85,6 +85,8 @@ class OpenSandService(object):
         OpenSandService._routes = OpenSandRoutes()
         if name.lower() != "sat":
             if name.lower() != "ws":
+                # by default we use TUN interface but this can be modified
+                # using setup routes when we are in Ethernet
                 OpenSandService._routes.load(cache_dir, TUN_NAME)
             else:
                 OpenSandService._routes.load(cache_dir, descr['lan_iface'],
@@ -300,7 +302,7 @@ class OpenSandService(object):
 
             self._publisher_server.connect_to_signal("StateChanged",
                                            self.server_state_changed)
-            self.server_state_changed(self._publisher_server.GetState())
+            self.server_state_changed(self._publisher_server.GetState(), None)
 
         def add_service(self):
             """ add a new service """
@@ -344,13 +346,16 @@ class OpenSandService(object):
             if not self._group is None:
                 self._group.Reset()
 
-        def server_state_changed(self, state):
+        def server_state_changed(self, state, error):
             """ signal received when server state change """
             if state == avahi.SERVER_COLLISION:
                 LOGGER.error("server name collision")
                 self.remove_service()
             elif state == avahi.SERVER_RUNNING:
                 self.add_service()
+            else:
+                LOGGER.error("Server state changed %s (error: %s)" % (state,
+                                                                      error))
 
         def entry_group_state_changed(self, state, error):
             """ signal received when group state change """

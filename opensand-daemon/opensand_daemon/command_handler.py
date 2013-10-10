@@ -48,7 +48,8 @@ from opensand_daemon.process_list import ProcessList
 from opensand_daemon.my_exceptions import Timeout, InstructionError, XmlError
 from opensand_daemon.stream import DirectoryHandler
 from opensand_daemon.routes import OpenSandRoutes
-from opensand_daemon.interfaces import TUN_NAME, BR_NAME
+from opensand_daemon.interfaces import OpenSandIfaces, TUN_NAME, BR_NAME
+from opensand_daemon.nl_utils import NlError
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -65,6 +66,7 @@ class CommandHandler(MyTcpHandler):
         MyTcpHandler.setup(self)
         self._process_list = ProcessList()
         self._routes = OpenSandRoutes()
+        self._interfaces = OpenSandIfaces()
         # wait a little bit that component list is initialized
         nbr = 0
         while self._process_list.is_initialized() == False and nbr < 5:
@@ -84,7 +86,7 @@ class CommandHandler(MyTcpHandler):
             LOGGER.error("process list won't initialize")
             self.wfile.write("ERROR process list is not initialized\n")
             return
-
+        
         # wait for 'DEPLOY', 'START' or 'STOP'
         try:
             self.read_data()
@@ -94,8 +96,8 @@ class CommandHandler(MyTcpHandler):
         except EOFError:
             LOGGER.error("EOFError exception on server!")
             return
-        except Exception, msg:
-            LOGGER.error("command server exception (%s)!" % msg)
+        except Exception:
+            LOGGER.exception("exception in command server: ")
             return
         else:
             LOGGER.debug("received: '" + self._data + "'")
@@ -123,8 +125,7 @@ class CommandHandler(MyTcpHandler):
                 LOGGER.error("unknown command '" + self._data + "'\n")
                 self.wfile.write("ERROR unknown command '%s'\n" % self._data)
         except Exception, msg:
-            LOGGER.error("exception while handling manager request: " +
-                         str(msg))
+            LOGGER.exception("exception while handling manager request: ")
 
 
     def handle_data_request(self):
@@ -158,10 +159,18 @@ class CommandHandler(MyTcpHandler):
                 LOGGER.error("some process are already started")
                 raise InstructionError("some process are already started")
 
+            is_l2 = False
             if iface == "TUN":
                 iface = TUN_NAME
             if iface == "TAP":
+                is_l2 = True
                 iface = BR_NAME
+            # set interfaces before routes
+            # TODO we can add interfaces in bridge here (see nl_link_enslave and
+            # release)
+            # and then remove the part that need interface name in cpp code
+            # and then remove interface name from avahi data
+            self._interfaces.setup_interfaces(is_l2)
             self._routes.setup_routes(iface)
             self.start_binaries()
         except InstructionError as error:
@@ -179,6 +188,9 @@ class CommandHandler(MyTcpHandler):
         except ConfigParser.Error:
             self.wfile.write("ERROR cannot read binaries configuration\n")
             raise
+        except NlError:
+            self.wfile.write("ERROR cannot set correct addresses on " \
+                             "interfaces\n")
         else:
             LOGGER.debug("send: 'OK'")
             self.wfile.write("OK\n")
@@ -195,6 +207,7 @@ class CommandHandler(MyTcpHandler):
         """ handle a STOP request """
         self._process_list.stop()
         self._routes.remove_routes()
+        self._interfaces.stanbye()
 
         LOGGER.debug("send: 'OK'")
         self.wfile.write("OK\n")

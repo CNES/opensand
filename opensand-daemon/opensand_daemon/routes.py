@@ -41,7 +41,7 @@ import logging
 import pickle
 import os
 from ipaddr import IPNetwork
-from opensand_daemon.nl_utils import NlRoute, NlError, NlExists
+from opensand_daemon.nl_utils import NlRoute, NlError, NlExists, NlMissing
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -262,7 +262,7 @@ class OpenSandRoutes(object):
                 pass
             try:
                 self.remove_route(host, v4, v6, gw_v4, gw_v6)
-            except NlError:
+            except NlMissing:
                 pass
         try:
             os.remove(os.path.join(OpenSandRoutes._cache_dir, ROUTE_FILE))
@@ -312,16 +312,20 @@ class OpenSandRoutes(object):
         try:
             if route_v4:
                 OpenSandRoutes._route_hdl.delete(route_v4, gw_v4)
+        except NlMissing:
+            LOGGER.info("route already deleted IPv4 for %s" % host)
         except NlError, msg:
-            LOGGER.error("fail to delete route for %s: %s" % (host, msg))
+            LOGGER.error("fail to delete IPv4 route for %s: %s" % (host, msg))
             raise
         finally:
             # try to remove the IPv6 route anyway
             try:
                 if route_v6:
                     OpenSandRoutes._route_hdl.delete(route_v6, gw_v6)
+            except NlMissing:
+                LOGGER.info("IPv6 route already deleted for %s" % host)
             except NlError, msg:
-                LOGGER.error("fail to delete route for %s: %s" % (host, msg))
+                LOGGER.error("fail to delete IPv6 route for %s: %s" % (host, msg))
                 raise
 
 

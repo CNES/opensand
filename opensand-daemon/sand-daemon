@@ -55,7 +55,7 @@ from opensand_daemon.stats_handler import StatsHandler
 from opensand_daemon.service import OpenSandService
 from opensand_daemon.syslog_handler import SysLogHandler, syslog
 from opensand_daemon.process_list import ProcessList
-from opensand_daemon.interfaces import OpenSandInterfaces
+from opensand_daemon.interfaces import OpenSandIfaces
 
 #==============================================================================
 # MAIN
@@ -65,6 +65,8 @@ from opensand_daemon.interfaces import OpenSandInterfaces
 SERVICE = None
 COMMAND = None
 STATE = None
+CONF_PARSER = None
+INTERFACES = None
 
 DEFAULT_CACHE='/var/cache/sand-daemon'
 
@@ -101,6 +103,8 @@ def sig_handler(signum, frame):
         LOGGER.error("cannot remove PID file (%d: %s)" % (errno, strerror))
     finally:
         LOGGER.debug("quit OpenSAND Daemon")
+        if INTERFACES is not None:
+            INTERFACES.release()
         if signum == signal.SIGTERM:
             sys.exit(0)
         else:
@@ -138,14 +142,8 @@ def publish_service(stats_handler):
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
 
-    try:
-        interfaces = OpenSandInterfaces(CONF_PARSER, name)
-    except BaseException, msg:
-        LOGGER.error("cannot initialize OpenSAND interfaces: %s" % msg)
-        thread.exit()
-
     # get the interfaces data
-    descr.update(interfaces.get_descr())
+    descr.update(INTERFACES.get_descr())
 
     # do not raise an error for the following fields because they are not
     # used on each host
@@ -189,10 +187,6 @@ def publish_service(stats_handler):
         LOGGER.error("exception when running service " + str(error))
         SERVICE = None
         thread.exit()
-    finally:
-        if STATE and STATE.RequestHandlerClass._running:
-            return
-        interfaces.release()
 
 def stop_service():
     """ stop the OpenSAND service """
@@ -343,6 +337,11 @@ def start_daemon():
         LOGGER.error("state thread is not started correctly: quit")
         sig_handler(signal.SIGUSR2, None)
 
+	# set opensand interfaces down if nothng is running
+    if StateHandler._running:
+        LOGGER.info("process are not running, standbye interfaces")
+        INTERFACES.stanbye()
+
 
 if __name__ == "__main__":
 
@@ -424,6 +423,17 @@ if __name__ == "__main__":
         uid = pw.pw_uid
     except KeyError:
         LOGGER.error("Cannot find opensand user")
+        sys.exit(1)
+
+    try:
+        name = CONF_PARSER.get('service', 'name')
+        INTERFACES = OpenSandIfaces()
+        INTERFACES.load(CONF_PARSER, name)
+    except StandardError, msg:
+        LOGGER.error("cannot initialize OpenSAND interfaces: %s" % msg)
+        sys.exit(1)
+    except ConfigParser.Error, error:
+        LOGGER.error("unable to parse configuration file: %s" % error)
         sys.exit(1)
 
     # create the stats handler

@@ -75,7 +75,7 @@ class StateHandler(MyTcpHandler):
             LOGGER.error("EOFError exception on server!")
             return
         except Exception, msg:
-            LOGGER.error("state server exception (%s)!" % msg)
+            LOGGER.exception("state server exception: ")
             return
         else:
             LOGGER.debug("received: '" + self._data + "'")
@@ -95,7 +95,7 @@ class StateHandler(MyTcpHandler):
             LOGGER.error("exception when starting the update thread: " + msg)
             return
         except Exception:
-            LOGGER.error("exception while handling manager request")
+            LOGGER.error("state server exception while handling manager request: ")
             return
 
         # wait that thread is correctly started
@@ -112,7 +112,7 @@ class StateHandler(MyTcpHandler):
             LOGGER.error("EOFError exception on server!")
             return
         except Exception, msg:
-            LOGGER.error("state server exception (%s)!" % msg)
+            LOGGER.exception("state server exception: ") 
             return
         else:
             LOGGER.debug("received: '%s'", self._data)

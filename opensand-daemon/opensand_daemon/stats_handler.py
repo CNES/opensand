@@ -186,8 +186,8 @@ class StatsHandler(threading.Thread):
         try:
             while self._running:
                 self._handle()
-        except StandardError:
-            LOGGER.exception("Exception in stats handler:")
+        except Exception, msg:
+            LOGGER.exception("exception in stats handler: ")
 
         LOGGER.debug("Stats handler exiting...")
         self.cleanup()
