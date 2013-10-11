@@ -38,6 +38,8 @@
 
 #include "MacFifoElement.h"
 
+#include <opensand_output/Output.h>
+
 #include <algorithm>
 #include <cmath>
 
@@ -143,6 +145,8 @@ bool DamaAgentRcsLegacy::hereIsTTP(Ttp &ttp)
 
 	if(!ttp.getTp(this->tal_id, tp))
 	{
+		// Update stats and probes
+		this->probe_st_total_allocation->put(0);
 		return true;
 	}
 
@@ -164,6 +168,10 @@ bool DamaAgentRcsLegacy::hereIsTTP(Ttp &ttp)
 		             (*it).second.priority);
 	}
 
+	// Update stats and probes
+	this->probe_st_total_allocation->put(
+		this->converter->pktpfToKbps(this->allocated_pkt));
+
 	UTI_DEBUG("SF#%u: allocated TS=%u\n",
 	          ttp.getSuperframeCount(), this->allocated_pkt);
 	return true;
@@ -179,12 +187,6 @@ bool DamaAgentRcsLegacy::processOnFrameTick()
 		          this->current_superframe_sf);
 		return false;
 	}
-
-	// TODO do we convert from pkt per sf or from pkt per frame ?????
-	// TODO remove stat context and use probe directly
-	// TODO move stats in updateStats
-	this->stat_context.global_alloc_kbps =
-		this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
 
 	return true;
 }
@@ -271,16 +273,23 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		{
 			(*it).second->resetNew(cr_rbdc);
 		}
+
+		// Update statistics
+		this->probe_st_rbdc_req_size->put(rbdc_request_kbps);
+
 	}
 
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
 		capacity_request.addRequest(0, cr_vbdc, vbdc_request_pkt);
+
+		// Update statistics
+		this->probe_st_vbdc_req_size->put(
+			this->converter->pktToKbits(vbdc_request_pkt));
+
 	}
 
-	this->stat_context.rbdc_request_kbps = rbdc_request_kbps;
-	this->stat_context.vbdc_request_kb = this->converter->pktToKbits(vbdc_request_pkt);
 	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets in VBDC",
 	          this->current_superframe_sf, rbdc_request_kbps, vbdc_request_pkt);
 
@@ -312,7 +321,9 @@ bool DamaAgentRcsLegacy::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
 
 	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
-	this->stat_context.unused_alloc_kbps = remaining_alloc_kbps;
+
+	// Update stats and probes
+	this->probe_st_remaining_allocation->put(remaining_alloc_kbps);
 
 	return true;
 }
@@ -342,7 +353,7 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	// get the sum of RBDC request during last MSL
 	rbdc_req_in_previous_msl_kbps = this->rbdc_request_buffer->GetSum();
 
-	// TODO original algo was rbdc_length - rbdc_arrivals but 
+	// TODO original algo was rbdc_length - rbdc_arrivals but
 	//      this does not work for first packet and I don't understand comment !
 	//req_kbps = (int)((rbdc_length_b - rbdc_pkt_arrival_b) -
 	req_kbps = (int)(rbdc_length_b -
@@ -478,5 +489,5 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 
 void DamaAgentRcsLegacy::updateStatistics()
 {
-	//TODO
+	Output::sendProbes();
 }

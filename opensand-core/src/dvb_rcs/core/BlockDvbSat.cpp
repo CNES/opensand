@@ -47,6 +47,8 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
 
+#include <opensand_output/Output.h>
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -64,7 +66,10 @@ BlockDvbSat::BlockDvbSat(const string &name):
 	scenario_timer(-1),
 	categories(),
 	terminal_affectation(),
-	fmt_groups()
+	fmt_groups(),
+	// TODO add a parameter for that or use frame timer
+	stats_period_ms(106),
+	probe_frame_interval(NULL)
 {
 }
 
@@ -196,6 +201,15 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 		case evt_timer:
 			if(*event == this->frame_timer)
 			{
+
+				// Update stats and probes
+				if(this->probe_frame_interval->isEnabled())
+				{
+					timeval time = event->getAndSetCustomTime();
+					float val = time.tv_sec * 1000000L + time.tv_usec;
+					this->probe_frame_interval->put(val / 1000);
+				}
+
 				// increment counter of frames per superframe
 				this->frame_counter++;
 
@@ -291,6 +305,10 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 						return false;
 					}
 				}
+			}
+			else if (*event == this->stats_timer)
+			{
+				this->updateStats();
 			}
 			else
 			{
@@ -808,12 +826,136 @@ bool  BlockDvbSat::onInit()
 		goto error;
 	}
 
+	// initialize output probe and stats
+	this->stats_timer = this->downward->addTimerEvent("BlockSatStats",
+			this->stats_period_ms);
+
+	if(!this->initOutput())
+	{
+		UTI_ERROR("failed to initialize Output probes ans stats");
+		goto error;
+	}
+
 	return true;
 
 error:
 	return false;
 }
 
+bool BlockDvbSat::initOutput()
+{
+	// Output probes and stats
+	SpotMap::iterator spot_it;
+	for (spot_it=this->spots.begin(); spot_it!=spots.end(); ++spot_it)
+	{
+		SatSpot* spot = spot_it->second;
+		unsigned int spot_id = spot->getSpotId();
+		Probe<int> *probe_output_gw;
+		Probe<int> *probe_output_gw_kb;
+		Probe<int> *probe_output_st;
+		Probe<int> *probe_output_st_kb;
+		Probe<int> *probe_phy_from_st;
+		Probe<int> *probe_l2_from_st;
+		Probe<int> *probe_l2_to_st;
+
+		probe_output_gw = Output::registerProbe<int>(
+			"Packets", true, SAMPLE_LAST,
+			"Spot %d.Queue size.Output_GW", spot_id);
+		this->probe_sat_output_gw_queue_size.insert(
+			std::pair<unsigned int, Probe<int> *> (spot_id, probe_output_gw));
+
+		probe_output_gw_kb = Output::registerProbe<int>(
+			"Kbits", true, SAMPLE_LAST,
+			"Spot %d.Queue size.Output_GW_kb", spot_id);
+		this->probe_sat_output_gw_queue_size_kb.insert(
+			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_gw_kb));
+
+		probe_output_st = Output::registerProbe<int>(
+			"Packets", true, SAMPLE_LAST,
+			"Spot %d.Queue size.Output_ST", spot_id);
+		this->probe_sat_output_st_queue_size.insert(
+			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_st));
+
+		probe_output_st_kb = Output::registerProbe<int>(
+			"Kbits", true, SAMPLE_LAST,
+			"Spot %d.Queue size.Output_ST_kb", spot_id);
+		this->probe_sat_output_st_queue_size_kb.insert(
+			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_st_kb));
+
+		probe_phy_from_st = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST,
+			"Spot %d.Throughputs.PHY_from_ST", spot_id);
+		this->probe_sat_phy_from_st.insert(
+			std::pair<unsigned int, Probe<int> *> (spot_id, probe_phy_from_st));
+		this->phy_from_st_bytes.insert(std::pair<unsigned int, int>(spot_id, 0));
+
+		probe_l2_from_st = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST,
+			"Spot %d.Throughputs.L2_from_ST", spot_id);
+		this->probe_sat_l2_from_st.insert(
+			std::pair<unsigned int, Probe<int> *> (spot_id, probe_l2_from_st));
+		this->l2_from_st_bytes.insert(std::pair<unsigned int, int>(spot_id, 0));
+
+		probe_l2_to_st = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST,
+			"Spot %d.Throughputs.L2_to_ST", spot_id);
+		this->probe_sat_l2_to_st.insert(
+			std::pair<unsigned int, Probe<int> *> (spot_id, probe_l2_to_st));
+		this->l2_to_st_bytes.insert(std::pair<unsigned int, int>(spot_id, 0));
+
+		if(this->satellite_type == TRANSPARENT)
+		{
+			Probe<int> *probe_phy_from_gw;
+			Probe<int> *probe_l2_from_gw;
+			Probe<int> *probe_l2_to_gw;
+
+			probe_phy_from_gw = Output::registerProbe<int>(
+				"Kbits/s", true, SAMPLE_LAST, "Spot %d.Throughputs.PHY_from_GW",
+				spot_id);
+			this->probe_sat_phy_from_gw.insert(
+				std::pair<unsigned int, Probe<int> *> (spot_id,
+				probe_phy_from_gw));
+			this->phy_from_gw_bytes.insert(std::pair<unsigned int, int>
+				(spot_id, 0));
+
+			probe_l2_from_gw = Output::registerProbe<int>(
+				"Kbits/s", true, SAMPLE_LAST, "Spot %d.Throughputs.L2_from_GW",
+				spot_id);
+			this->probe_sat_l2_from_gw.insert(
+				std::pair<unsigned int, Probe<int> *>
+				(spot_id, probe_l2_from_gw));
+			this->l2_from_gw_bytes.insert(
+				std::pair<unsigned int, int>(spot_id, 0));
+
+			probe_l2_to_gw = Output::registerProbe<int>(
+				"Kbits/s", true, SAMPLE_LAST, "Spot %d.Throughputs.L2_to_GW",
+				spot_id);
+			this->probe_sat_l2_to_gw.insert(
+				std::pair<unsigned int, Probe<int> *>(spot_id, probe_l2_to_gw));
+			this->l2_to_gw_bytes.insert(
+				std::pair<unsigned int, int>(spot_id, 0));
+		}
+	}
+
+	if(this->satellite_type == REGENERATIVE)
+	{
+		this->probe_sat_phy_output = Output::registerProbe<int>(
+			"Total PHY output rate", "Kbits/s", true, SAMPLE_LAST);
+	}
+	else // Transparent mode
+	{
+		//does not work in transparent mode
+		this->probe_sat_phy_output = Output::registerProbe<int>(
+			"Total PHY output rate", "Kbits/s", false, SAMPLE_LAST);
+	}
+
+	this->probe_frame_interval = Output::registerProbe<float>(
+		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
+
+	this->updateStats();
+
+	return true;
+}
 
 bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
                                 unsigned int length,
@@ -839,6 +981,8 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		 *  - if the satellite is a transparent one, forward DVB burst as the
 		 *    other DVB frames.
 		 */
+
+
 		if(this->satellite_type == TRANSPARENT)
 		{
 			T_DVB_ENCAP_BURST *dvb_burst; // DVB burst received from lower layer
@@ -862,6 +1006,14 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				if(current_spot->data_in_carrier_id == carrier_id)
 				{
 					// satellite spot found, forward DVB frame on the same spot
+
+					// Update probes and stats
+					this->l2_from_st_bytes[current_spot->getSpotId()] += length;
+					this->l2_from_st_bytes[current_spot->getSpotId()] -=
+						sizeof(T_DVB_HDR);
+					this->phy_from_st_bytes[current_spot->getSpotId()] +=
+						length;
+
 					// TODO: forward according to a table
 					UTI_DEBUG("DVB burst comes from spot %u (carrier %u) => "
 					          "forward it to spot %u (carrier %u)\n",
@@ -897,6 +1049,24 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 
 			NetBurst *burst;
 
+			// Update probes and stats
+			// get the satellite spot from which the DVB frame comes from
+			for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
+			{
+				// satellite spot found, forward DVB frame on the same spot
+				SatSpot *current_spot = spot->second;
+
+				if(current_spot->data_in_carrier_id == carrier_id)
+				{
+					this->l2_from_st_bytes[current_spot->getSpotId()] +=
+						length;
+					this->l2_from_st_bytes[current_spot->getSpotId()] -=
+						sizeof(T_DVB_HDR);
+					this->phy_from_st_bytes[current_spot->getSpotId()] +=
+						length;
+				}
+			}
+
 			if(this->receptionStd->onRcvFrame((unsigned char *) frame,
 			                                  length, hdr->msg_type,
 			                                  0 /* no used */, &burst) < 0)
@@ -917,6 +1087,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	/* forward the BB frame (and the burst that the frame contains) */
 	case MSG_TYPE_BBFRAME:
 	{
+
 		T_DVB_BBFRAME *bbframe;
 
 		/* we should not receive BB frame in regenerative mode */
@@ -941,6 +1112,13 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			if(current_spot->data_in_carrier_id == carrier_id)
 			{
 				// satellite spot found, forward BBframe on the same spot
+
+				// Update probes and stats
+				this->l2_from_gw_bytes[current_spot->getSpotId()] += length;
+				this->l2_from_gw_bytes[current_spot->getSpotId()] -=
+					sizeof(T_DVB_HDR);
+				this->phy_from_gw_bytes[current_spot->getSpotId()] += length;
+
 				// TODO: forward according to a table
 				UTI_DEBUG("BBFRAME burst comes from spot %u (carrier %u) => "
 				          "forward it to spot %u (carrier %u)\n",
@@ -1127,6 +1305,75 @@ release_fifo_elem:
 	return -1;
 }
 
+
+void BlockDvbSat::updateStats()
+{
+	// Update stats and probes
+
+	SpotMap::iterator spot_it;
+	for (spot_it=this->spots.begin(); spot_it!=spots.end(); ++spot_it)
+	{
+		SatSpot* spot = (*spot_it).second;
+		unsigned int spot_id = spot->getSpotId();
+		// Queue sizes
+		mac_fifo_stat_context_t output_gw_fifo_stat;
+		mac_fifo_stat_context_t output_st_fifo_stat;
+		spot->data_out_gw_fifo.getStatsCxt(output_gw_fifo_stat);
+		spot->data_out_st_fifo.getStatsCxt(output_st_fifo_stat);
+		this->probe_sat_output_gw_queue_size[spot_id]->put(
+			output_gw_fifo_stat.current_pkt_nbr);
+		this->probe_sat_output_gw_queue_size_kb[spot_id]->put(
+			((int) output_gw_fifo_stat.current_length_bytes * 8 / 1000));
+
+		this->probe_sat_output_st_queue_size[spot_id]->put(
+			output_st_fifo_stat.current_pkt_nbr);
+		this->probe_sat_output_st_queue_size_kb[spot_id]->put(
+			((int) output_st_fifo_stat.current_length_bytes * 8 / 1000));
+
+		// Throughputs
+		// PHY from ST
+		this->probe_sat_phy_from_st[spot_id]->put(
+			this->phy_from_st_bytes[spot_id] * 8 / this->stats_period_ms);
+		this->phy_from_st_bytes[spot_id] = 0;
+
+		// L2 from ST
+		this->probe_sat_l2_from_st[spot_id]->put(
+			this->l2_from_st_bytes[spot_id] * 8 / this->stats_period_ms);
+		this->l2_from_st_bytes[spot_id] = 0;
+
+		// L2 to ST
+		this->probe_sat_l2_to_st[spot_id]->put(
+			((int) output_st_fifo_stat.out_length_bytes * 8 /
+			this->stats_period_ms));
+
+		if(this->satellite_type == TRANSPARENT)
+		{
+			// PHY from GW
+			this->probe_sat_phy_from_gw[spot_id]->put(
+				this->phy_from_gw_bytes[spot_id] * 8 / this->stats_period_ms);
+			this->phy_from_gw_bytes[spot_id] = 0;
+
+			// L2 from GW
+			this->probe_sat_l2_from_gw[spot_id]->put(
+				this->l2_from_gw_bytes[spot_id] * 8 / this->stats_period_ms);
+			this->l2_from_gw_bytes[spot_id] = 0;
+
+			// L2 to GW
+			this->probe_sat_l2_to_gw[spot_id]->put(
+				((int) output_gw_fifo_stat.out_length_bytes * 8 /
+				this->stats_period_ms));
+		}
+
+	}
+
+	// PHY to ST
+	this->probe_sat_phy_output->put(
+		this->phy_to_sat_bytes * 8 / this->stats_period_ms);
+	this->phy_to_sat_bytes = 0;
+
+	// Send probes
+	Output::sendProbes();
+}
 
 /**
  * @brief Update the probes

@@ -169,7 +169,6 @@ class TerminalCategory
 
 };
 
-
 typedef map<string, TerminalCategory *> TerminalCategories;
 typedef map<tal_id_t, TerminalCategory *> TerminalMapping;
 

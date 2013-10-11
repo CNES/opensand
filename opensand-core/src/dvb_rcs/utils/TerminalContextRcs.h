@@ -65,12 +65,26 @@ class TerminalContextRcs : public TerminalContext
 	void setCra(rate_kbps_t cra_kbps);
 
 	/**
+	 * @brief  Get the CRA value.
+	 *
+	 * @return cra_kbps  The CRA value (kbits/s)
+	 */
+	rate_kbps_t getCra();
+
+	/**
 	 * @brief  Update the RBDC max value.
 	 *         (update the kbps and pktpf values)
 	 *
 	 * @param max_rbdc_kbps  The RBDC max value (kbits/s)
 	 */
 	void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
+
+	/**
+	 * @brief  Get the RBDC max value.
+	 *
+	 * @return max_rbdc_kbps  The RBDC max value (kbits/s)
+	 */
+	rate_kbps_t getMaxRbdc();
 
 	/**
 	 * @brief  Update the RBDC timeout value.
@@ -148,6 +162,13 @@ class TerminalContextRcs : public TerminalContext
 	 * @param fca_alloc_pktpf  The FCA allocation (packets per superframe).
 	 */
 	void setFcaAllocation(rate_pktpf_t fca_alloc_pktpf);
+
+	/**
+	 * @brief Get the FCA allocation after DAMA computation
+	 *
+	 * @return fca_alloc_pktpf  The FCA allocation (packets per superframe).
+	 */
+	rate_pktpf_t getFcaAllocation();
 
 	/**
 	 * @brief Get the total rate allocation

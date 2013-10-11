@@ -53,39 +53,11 @@ using namespace std;
 Event* DamaCtrlRcs::error_alloc = NULL;
 Event* DamaCtrlRcs::error_ncc_req = NULL;
 
-//TODO !!!
-Probe<int>* DamaCtrlRcs::probe_gw_rdbc_req_num = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_rdbc_req_capacity = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_vdbc_req_num = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_vdbc_req_capacity = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_cra_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_cra_st_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_rbdc_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_rbdc_st_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_rbdc_max_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_rbdc_max_st_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_vbdc_alloc = NULL;
-Probe<int>* DamaCtrlRcs::probe_gw_logger_st_num = NULL;
-
-
 /**
  * Constructor
  */
 DamaCtrlRcs::DamaCtrlRcs(): DamaCtrl()
 {
-		probe_gw_rdbc_req_num = Output::registerProbe<int>("RBDC_requests_number", "requests", true, SAMPLE_LAST);
-		probe_gw_rdbc_req_capacity = Output::registerProbe<int>("RBDC_requested_capacity", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_vdbc_req_num = Output::registerProbe<int>("VBDC_requests_number", "requests", true, SAMPLE_LAST);
-		probe_gw_vdbc_req_capacity = Output::registerProbe<int>("VBDC_requested_capacity", "time slots", true, SAMPLE_LAST);
-		probe_gw_cra_alloc = Output::registerProbe<int>("CRA_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_cra_st_alloc = Output::registerProbe<int>("CRA_st_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_rbdc_alloc = Output::registerProbe<int>("RBDC_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_rbdc_st_alloc = Output::registerProbe<int>("RBDC_st_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_rbdc_max_alloc = Output::registerProbe<int>("RBDC_MAX_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_rbdc_max_st_alloc = Output::registerProbe<int>("RBDC_MAX_st_allocation", "Kbits/s", true, SAMPLE_LAST);
-		probe_gw_vbdc_alloc = Output::registerProbe<int>("VBDC_allocation", "Kbits/s", true, SAMPLE_LAST);
-		// FIXME: Unit?
-		probe_gw_logger_st_num = Output::registerProbe<int>("Logged_ST_number", true, SAMPLE_LAST);
 }
 
 
@@ -105,22 +77,6 @@ bool DamaCtrlRcs::init()
 		UTI_ERROR("Parent 'init()' method must be called first.\n");
 		goto error;
 	}
-
-	// converting capacity into packets per frames
-	//FIXME: carrier_transmission_rate not defined (but exists in
-	//opensand-conf/src/conf.h"
-	//FIXME: carrier_number not defined (but exists in
-	//opensand-conf/src/conf.h"
-	/*carrier_capacity =
-		(int) converter->kbitsPerSecondToCellsPerFrame(carrier_transmission_rate);
-	this->stat_context.total_capacity_kbps = carrier_number * carrier_capacity;
-	UTI_INFO("Total_capacity = %d\n", this->stat_context.total_capacity_kbps);
-	UTI_INFO("Carrier_capacity = %d\n", carrier_capacity);
-	this->fca_kbps = (int) ceil(converter->kbitsPerSecondToCellsPerFrame(this->fca_kbps));*/
-
-
-	// Set the total cra allocated capacity for RT to zero (no one have loggued)
-	this->stat_context.total_cra_kbps = 0;
 
 	return true;
 
@@ -211,6 +167,7 @@ bool DamaCtrlRcs::hereIsCR(const CapacityRequest &capacity_request)
 				terminal->setRequiredRbdc(request);
 				DC_RECORD_EVENT("CR ST%u value=%u type=RBDC",
 				                tal_id, xbdc);
+
 				break;
 		}
 	}
@@ -290,21 +247,37 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 	cra_kbps = request->getCra();
 	if(cra_kbps != 0)
 	{
+		// Output probes and stats
+		this->gw_cra_alloc_kbps -= terminal->getCra();
 
 		terminal->setCra(cra_kbps);
 		UTI_INFO("SF#%u: ST%u: update the CRA value to %u kbits/s\n",
 		         this->current_superframe_sf,
 		         request->getStId(), request->getCra());
+
+		// Output probes and stats
+		this->gw_cra_alloc_kbps += cra_kbps;
+		this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
+		this->probes_st_cra_alloc[terminal->getTerminalId()]->put(cra_kbps);
+
 	}
 
 	// update RDBCmax threshold ?
 	max_rbdc_kbps = request->getRbdcMax();
 	if(max_rbdc_kbps != 0)
 	{
+		// Output probes and stats
+		this->gw_rbdc_max_kbps -= terminal->getMaxRbdc();
+
 		terminal->setMaxRbdc(max_rbdc_kbps);
 		UTI_INFO("SF#%u: ST%u: update RBDC std::max to %u kbits/s\n",
 		         this->current_superframe_sf,
 		         request->getStId(), request->getRbdcMax());
+
+		// Output probes and stats
+		this->gw_rbdc_max_kbps += max_rbdc_kbps;
+		this->probe_gw_rbdc_max->put(this->gw_rbdc_max_kbps);
+		this->probes_st_rbdc_max[terminal->getTerminalId()]->put(max_rbdc_kbps);
 	}
 
 	// inject one RDBC allocation ?

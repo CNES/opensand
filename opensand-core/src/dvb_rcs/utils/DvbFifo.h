@@ -54,11 +54,11 @@ using std::map;
 typedef struct
 {
 	vol_pkt_t current_pkt_nbr;  // current number of elements
-	vol_kb_t current_length_kb; // current length of data in fifo
+	vol_bytes_t current_length_bytes; // current length of data in fifo
 	vol_pkt_t in_pkt_nbr;       // number of elements inserted during period
 	vol_pkt_t out_pkt_nbr;      // number of elements extracted during period
-	vol_kb_t in_length_kb;      // current length of data inserted during period
-	vol_kb_t out_length_kb;     // current length of data extraction during period
+	vol_bytes_t in_length_bytes;      // current length of data inserted during period
+	vol_bytes_t out_length_bytes;     // current length of data extraction during period
 } mac_fifo_stat_context_t;
 
 
@@ -115,7 +115,7 @@ class DvbFifo
 	 * @return the fifo_priority of the fifo
 	 */
 	unsigned int getPriority() const;
-	
+
 	/**
 	 * @brief Get the carrier_id of the fifo (for SAT and GW configuration)
 	 *
@@ -150,7 +150,7 @@ class DvbFifo
 	 *
 	 * @return the size of data in the fifo (in kbits)
 	 */
-	vol_kb_t getNewDataLength() const;
+	vol_bytes_t getNewDataLength() const;
 
 	/**
 	 * @brief Get the head element tick out
@@ -165,16 +165,16 @@ class DvbFifo
 	 * @param cr_type is the CR type for which reset must be done
 	 */
 	void resetNew(const cr_type_t cr_type);
-	
+
 	/**
 	 *  @brief Initialize the FIFO with carrier id and maximum size
-	 *  
+	 *
 	 *  @param carrier_id		the carrier id for the fifo
 	 *	@param max_size_pkt		the fifo maximul size
 	 *	@param fifo_name		the name of the fifo
 	 */
 	void init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name);
-	
+
 	/**
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
@@ -186,7 +186,7 @@ class DvbFifo
 
 	/**
 	 * @brief Add an element at the head of the list
-	 *        (Decrements new_length_kb)
+	 *        (Decrements new_length_bytes)
 	 * @warning This function should be use only to replace a fragment of
 	 *          previously removed data in the fifo
 	 *
@@ -236,7 +236,7 @@ class DvbFifo
 	cr_type_t cr_type;   ///< the associated Capacity Request
 	vol_pkt_t new_size_pkt;  ///< the number of packets that filled the fifo
 	                         ///< since previous check
-	vol_pkt_t new_length_kb; ///< the size of data that filled the fifo
+	vol_bytes_t new_length_bytes; ///< the size of data that filled the fifo
 	                         ///< since previous check
 	vol_pkt_t max_size_pkt;  ///< the maximum size for that FIFO
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer

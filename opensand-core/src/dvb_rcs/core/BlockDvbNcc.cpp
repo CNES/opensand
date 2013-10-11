@@ -98,10 +98,16 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	simu_cr(-1),
 	simu_interval(-1),
 	event_logon_req(NULL),
-	event_logon_resp(NULL)
+	event_logon_resp(NULL),
+	// TODO add a parameter for that or use frame timer
+	//stats_period_ms(106),
+	probe_gw_l2_to_sat_before_sched(NULL),
+	probe_gw_l2_to_sat_after_sched(NULL),
+	probe_gw_l2_from_sat(NULL),
+	probe_frame_interval(NULL),
+	probe_gw_queue_size(NULL),
+	probe_gw_queue_size_kb(NULL)
 {
-	this->incoming_size = 0;
-	this->probe_incoming_throughput = NULL;
 }
 
 
@@ -200,7 +206,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG("SF#%u: encapsulation packet is "
 				          "successfully stored\n",
 				          this->super_frame_counter);
-				this->incoming_size += (*pkt_it)->getTotalLength();
+				this->l2_to_sat_bytes_before_sched += (*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -217,7 +223,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				{
 					timeval time = event->getAndSetCustomTime();
 					float val = time.tv_sec * 1000000L + time.tv_usec;
-					this->probe_frame_interval->put(val);
+					this->probe_frame_interval->put(val/1000);
 				}
 
 				// increment counter of frames per superframe
@@ -266,6 +272,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					return false;
 				}
 
+				//TODO: remove when the new stats timer will be OK
 				this->updateStatsOnFrame();
 			}
 			else if(*event == this->scenario_timer)
@@ -309,6 +316,11 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					}
 				}
 			}
+			/*TODO: specific timer for stats update
+			 * else if (*event == this->stats_timer)
+			{
+				this->updateStats();
+			}*/
 			else
 			{
 				UTI_ERROR("unknown timer event received %s\n",
@@ -526,6 +538,10 @@ bool BlockDvbNcc::onInit()
 		          "initialisation");
 		goto release_dama;
 	}
+
+	// initialize output probes and stats
+	//this->stats_timer = this->downward->addTimerEvent("BlockNccStats",
+		//this->stats_period_ms);
 
 	if(!this->initOutput())
 	{
@@ -1164,18 +1180,47 @@ error:
 
 bool BlockDvbNcc::initOutput(void)
 {
+	// Events
 	this->event_logon_req = Output::registerEvent("BlockDvbNCC:logon_request",
 	                                              LEVEL_INFO);
 	this->event_logon_resp = Output::registerEvent("BlockDvbNCC:logon_response",
 	                                               LEVEL_INFO);
-	// initialize probes
-	this->probe_incoming_throughput =
-		Output::registerProbe<float>("Physical incoming throughput",
-		                             "Kbits/s", true, SAMPLE_AVG);
-	this->probe_frame_interval = Output::registerProbe<float>("perf.Frames_interval",
+
+	// Output probes and stats
+	this->probe_gw_l2_to_sat_before_sched =
+		Output::registerProbe<int>("Throughputs.L2_to_SAT.before_sched",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->l2_to_sat_bytes_before_sched = 0;
+
+	this->probe_gw_l2_to_sat_after_sched =
+		Output::registerProbe<int>("Throughputs.L2_to_SAT.after_sched",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->l2_to_sat_bytes_after_sched = 0;
+
+	this->probe_gw_phy_to_sat =
+		Output::registerProbe<int>("Throughputs.PHY_to_SAT", "Kbits/s", true,
+		SAMPLE_AVG);
+	this->phy_to_sat_bytes = 0;
+
+	this->probe_gw_l2_from_sat=
+		Output::registerProbe<int>("Throughputs.L2_from_SAT",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->l2_from_sat_bytes = 0;
+
+	this->probe_gw_phy_from_sat =
+		Output::registerProbe<int>("Throughputs.PHY_from_SAT", "Kbits/s", true,
+		                           SAMPLE_AVG);
+	this->phy_from_sat_bytes = 0;
+
+	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
 	                                                          "ms", true,
 	                                                          SAMPLE_LAST);
-
+	this->probe_gw_queue_size = Output::registerProbe<int>("Queue size.packets",
+	                                                       "Packets", true,
+	                                                       SAMPLE_LAST);
+	this->probe_gw_queue_size_kb = Output::registerProbe<int>("Queue size.kbits",
+	                                                          "kbits", true,
+	                                                          SAMPLE_LAST);
 	return true;
 }
 
@@ -1200,6 +1245,12 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
 
+
+			// Update stats
+			this->l2_from_sat_bytes += dvb_hdr->msg_length;
+			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+			this->phy_from_sat_bytes += dvb_hdr->msg_length;
+
 			NetBurst *burst;
 
 			if(this->receptionStd->getType() == "DVB-RCS" &&
@@ -1219,6 +1270,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
 			}
+
 		}
 		break;
 
@@ -1636,56 +1688,42 @@ void BlockDvbNcc::simulateRandom()
 
 void BlockDvbNcc::updateStatsOnFrame()
 {
-	// TODO remove stats context
-//	const dc_stat_context_t &dama_stat = this->dama_ctrl->getStatsContext()
-//	DamaTerminalList::iterator it;
 
-	// update custom DAMA statistics
-	// TODO add this function or a reset function for stats in DAMA
-//	this->dama_ctrl->updateStatisticsOnFrame();
-	// update common DAMA statistics
-	this->probe_incoming_throughput->put(this->incoming_size * 8 / this->frame_duration_ms);
-	this->incoming_size = 0;
-/*	this->probe_gw_rdbc_req_num->put(dama_stat.rbdc_requests_number);
-	this->probe_gw_rdbc_req_capacity->put(dama_stat.rbdc_requests_sum_kbps);
-	this->probe_gw_uplink_fair_share->put(dama_stat.fair_share);
-	DC_RECORD_STAT("RBDC REQUEST NB %d", rbdc_request_number);
-	DC_RECORD_STAT("RBDC REQUEST SUM %d kbits/s",
-	               (int) Converter->
-	               ConvertFromCellsPerFrameToKbits((double) rbdc_request_sum));
-	DC_RECORD_STAT("VBDC REQUEST NB %d", vbdc_request_number);
-	DC_RECORD_STAT("VBDC REQUEST SUM %d slot(s)", vbdc_request_sum);
-	DC_RECORD_STAT("ALLOC RBDC %d kbits/s",
-	               (int) Converter->
-	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
-	               		                                remaining_capacity));
-	DC_RECORD_STAT("ALLOC VBDC %d kbits/s",
-	               (int) Converter->
-	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
-	               		                                remaining_capacity));
-	DC_RECORD_STAT("ALLOC FCA %d kbits/s",
-	               (int) Converter->
-	               		ConvertFromCellsPerFrameToKbits((double) total_capacity -
-	               		                                remaining_capacity));
+	// Update stats on the GW
+	this->dama_ctrl->updateStatistics();
 
+	// Update common DAMA statistics
+	mac_fifo_stat_context_t fifo_stat;
+	this->data_dvb_fifo.getStatsCxt(fifo_stat);
+	this->l2_to_sat_bytes_after_sched = fifo_stat.out_length_bytes;
 
-	// TODO
-	terminal_number
-	rbdc_requests_number
-	vbdc_requests_number
-	total_capacity
-	total_cra_kbps
-	rbdc_requests_sum_kbps
-	vbdc_requests_sum_kb
-	rbdc_allocation_kbps
-	vbdc_allocation_kb
-	max_rbdc_total_kbps
-	fair_share
-	//TODO + stats per ST
-	// as long as the frame is changing, send all probes and event
-	// sync environment plane
-	// TODO stat on real frame duration*/
+	this->probe_gw_l2_to_sat_before_sched->put(
+		this->l2_to_sat_bytes_before_sched * 8.0 / this->frame_duration_ms);
+	this->l2_to_sat_bytes_before_sched = 0;
+
+	this->probe_gw_l2_to_sat_after_sched->put(
+		this->l2_to_sat_bytes_after_sched * 8.0 / this->frame_duration_ms);
+	this->l2_to_sat_bytes_after_sched = 0;
+
+	this->probe_gw_phy_to_sat->put(
+		this->phy_to_sat_bytes * 8 / this->frame_duration_ms);
+	this->phy_to_sat_bytes = 0;
+
+	this->probe_gw_l2_from_sat->put(
+		this->l2_from_sat_bytes * 8.0 / this->frame_duration_ms);
+	this->l2_from_sat_bytes = 0;
+
+	this->probe_gw_phy_from_sat->put(
+		this->phy_from_sat_bytes * 8 / this->frame_duration_ms);
+	this->phy_from_sat_bytes = 0;
+
+	// Mac fifo stats
+	this->probe_gw_queue_size->put(fifo_stat.current_pkt_nbr);
+	this->probe_gw_queue_size_kb->put(fifo_stat.current_length_bytes * 8 / 1000); //TODO
+
+	// Send probes
 	Output::sendProbes();
+
 }
 
 

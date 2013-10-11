@@ -42,24 +42,13 @@
 #include "EncapPlugin.h"
 #include "Logon.h"
 
+#include <opensand_output/Output.h>
+
 #include <map>
 #include <list>
 
 using std::map;
 using std::list;
-
-//TODO remove
-/// DAMA agent statistics context
-typedef struct
-{
-	rate_kbps_t rbdc_request_kbps; ///< RBDC request sent at this frame (in kbits/s)
-	vol_pkt_t vbdc_request_kb;     ///< VBDC request sent at this frame (in kbits)
-	rate_kbps_t cra_alloc_kbps;    ///< fixed bandwith allocated in kbits/s
-	rate_kbps_t global_alloc_kbps; ///< global bandwith allocated in kbits/s
-	rate_kbps_t unused_alloc_kbps; ///< unused bandwith in kbits/s
-} da_stat_context_t;
-// TODO we should not display and record  statistics for which nothing was received
-
 
 /**
  * @class DamaAgent
@@ -188,6 +177,14 @@ class DamaAgent
 
 
 protected:
+
+	/**
+	 * @brief	Init the output probes and stats
+	 *
+	 * @return true if success, false otherwise.
+	 */
+	bool initOutput();
+
 	/** Flag if initialisation of base class has been done */
 	bool is_parent_init;
 
@@ -204,9 +201,6 @@ protected:
 
 	/** Current superframe number */
 	time_sf_t current_superframe_sf;
-
-	/** Stats context */
-	da_stat_context_t stat_context;
 
 	/** Flags if RBDC requests are enabled */
 	bool rbdc_enabled;
@@ -229,6 +223,19 @@ protected:
 	time_sf_t obr_period_sf;
 	/** If true, compute only output FIFO size for CR generation */
 	bool cr_output_only;
+
+
+	/** Output probes and stats */
+		// Requests sizes
+			// RBDC
+	Probe<int> *probe_st_rbdc_req_size;
+			// VBDC
+	Probe<int> *probe_st_vbdc_req_size;
+		// Allocation
+			// Total
+	Probe<int> *probe_st_total_allocation;
+			// Remaining
+	Probe<int> *probe_st_remaining_allocation;
 
 };
 

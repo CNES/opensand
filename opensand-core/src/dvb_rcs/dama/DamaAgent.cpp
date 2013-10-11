@@ -40,6 +40,8 @@
 
 #include "OpenSandFrames.h"
 
+#include <opensand_output/Output.h>
+
 DamaAgent::DamaAgent():
 	is_parent_init(false),
 	packet_handler(),
@@ -108,10 +110,34 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 	this->is_parent_init = true;
 
+	if (!this->initOutput())
+	{
+		UTI_ERROR("the output probes and stats initialization have failed\n");
+		return false;
+	}
+
 	return true;
 
  error:
 	return false;
+}
+
+bool DamaAgent::initOutput()
+{
+	// RBDC request size
+	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
+		"Request.RBDC", "Kbps", true, SAMPLE_LAST);
+	// VBDC request size
+	this->probe_st_vbdc_req_size = Output::registerProbe<int>(
+		"Request.VBDC", "Kbits", true, SAMPLE_LAST);
+	// Total allocation
+	this->probe_st_total_allocation = Output::registerProbe<int>(
+		"Allocation.Total", "Kbps", true, SAMPLE_LAST);
+	// Remaining allocation
+	this->probe_st_remaining_allocation = Output::registerProbe<int>(
+		"Allocation.Remaining", "Kbps", true, SAMPLE_LAST);
+
+	return true;
 }
 
 bool DamaAgent::hereIsLogonResp(const LogonResponse &response)
@@ -121,16 +147,14 @@ bool DamaAgent::hereIsLogonResp(const LogonResponse &response)
 	return true;
 }
 
-bool DamaAgent::hereIsSOF(time_sf_t superframe_number_sf)
+bool DamaAgent::processOnFrameTick()
 {
-	this->current_superframe_sf = superframe_number_sf;
 	return true;
 }
 
-bool DamaAgent::processOnFrameTick()
+bool DamaAgent::hereIsSOF(time_sf_t superframe_number_sf)
 {
-	// TODO move stats in updateStats function
-	this->stat_context.cra_alloc_kbps = this->cra_kbps;
+	this->current_superframe_sf = superframe_number_sf;
 	return true;
 }
 

@@ -381,6 +381,9 @@ bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
 	dvb_length = frame->getTotalLength();
 	memcpy(dvb_frame, frame->getData().c_str(), dvb_length);
 
+	// Update stats
+	this->phy_to_sat_bytes += dvb_length;
+
 	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id, (long)dvb_length))
 	{
 		UTI_ERROR("failed to send message\n");

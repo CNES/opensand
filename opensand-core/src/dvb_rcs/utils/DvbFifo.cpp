@@ -68,7 +68,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	max_size_pkt(max_size_pkt),
 	carrier_id(0)
 {
-	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file 
+
+	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
 	// of FIFO queues (dvb_rcs_tal section)
 	if(cr_type_name == "RBDC")
 	{
@@ -87,7 +88,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 		UTI_ERROR("unknown CR type of FIFO: %s\n",
 		          cr_type_name.c_str());
 	}
-	this->resetStats();
+
 }
 
 /**
@@ -130,9 +131,9 @@ vol_pkt_t DvbFifo::getNewSize() const
 	return this->new_size_pkt;
 }
 
-vol_kb_t DvbFifo::getNewDataLength() const
+vol_bytes_t DvbFifo::getNewDataLength() const
 {
-	return this->new_length_kb;
+	return this->new_length_bytes;
 }
 
 void DvbFifo::resetNew(cr_type_t cr_type)
@@ -166,7 +167,7 @@ clock_t DvbFifo::getTickOut() const
 bool DvbFifo::push(MacFifoElement *elem)
 {
 	// insert in top of fifo
-	
+
 	if(this->queue.size() >= this->max_size_pkt)
 	{
 		return false;
@@ -177,13 +178,19 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.in_pkt_nbr++;
+	vol_bytes_t length;
 	if(elem->getType() == 1)
 	{
-		vol_kb_t length = elem->getTotalPacketLength();
-		this->new_length_kb += length;
-		this->stat_context.current_length_kb += length;
-		this->stat_context.in_length_kb += length;
+		length = elem->getTotalPacketLength();
 	}
+	else   // elem->getType() == 0
+	{
+		length = elem->getDataLength();
+	}
+	this->new_length_bytes += length;
+	this->stat_context.current_length_bytes += length;
+	this->stat_context.in_length_bytes += length;
+
 	return true;
 }
 
@@ -194,14 +201,14 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
-		vol_kb_t length = elem->getPacket()->getTotalLength();
+		vol_bytes_t length = elem->getTotalPacketLength();
 
 		this->queue.insert(this->queue.begin(), elem);
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
-		this->stat_context.current_length_kb += length;
+		this->stat_context.current_length_bytes += length;
 		// remove the remainng part of element from out counter
-		this->stat_context.out_length_kb -= length;
+		this->stat_context.out_length_bytes -= length;
 		return true;
 	}
 
@@ -226,12 +233,17 @@ MacFifoElement *DvbFifo::pop()
 	// update counters
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.out_pkt_nbr++;
+	vol_bytes_t length;
 	if(elem->getType() == 1)
 	{
-		vol_kb_t length = elem->getTotalPacketLength();;
-		this->stat_context.current_length_kb -= length;
-		this->stat_context.out_length_kb += length;
+		length = elem->getTotalPacketLength();
 	}
+	else  // elem->getType() == 0
+	{
+		length = elem->getDataLength();
+	}
+	this->stat_context.current_length_bytes -= length;
+	this->stat_context.out_length_bytes += length;
 
 	return elem;
 }
@@ -245,7 +257,7 @@ void DvbFifo::flush()
 	}
 	this->queue.clear();
 	this->new_size_pkt = 0;
-	this->new_length_kb = 0;
+	this->new_length_bytes = 0;
 	this->resetStats();
 }
 
@@ -253,11 +265,11 @@ void DvbFifo::flush()
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
-	stat_info.current_length_kb = this->stat_context.current_length_kb;
+	stat_info.current_length_bytes = this->stat_context.current_length_bytes;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
 	stat_info.out_pkt_nbr = this->stat_context.out_pkt_nbr;
-	stat_info.in_length_kb = this->stat_context.in_length_kb;
-	stat_info.out_length_kb = this->stat_context.out_length_kb;
+	stat_info.in_length_bytes = this->stat_context.in_length_bytes;
+	stat_info.out_length_bytes = this->stat_context.out_length_bytes;
 
 	// reset counters
 	this->resetStats();
@@ -267,8 +279,8 @@ void DvbFifo::resetStats()
 {
 	this->stat_context.in_pkt_nbr = 0;
 	this->stat_context.out_pkt_nbr = 0;
-	this->stat_context.in_length_kb = 0;
-	this->stat_context.out_length_kb = 0;
+	this->stat_context.in_length_bytes = 0;
+	this->stat_context.out_length_bytes = 0;
 	// Add nbr packet dropped
 }
 
@@ -277,6 +289,11 @@ void DvbFifo::init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name
 	this->carrier_id = carrier_id;
 	this->max_size_pkt = max_size;
 	this->fifo_name = fifo_name;
+
+	// Initialize stats
+	this->stat_context.current_pkt_nbr = 0;
+	this->stat_context.current_length_bytes = 0;
+	this->resetStats();
 }
 
 

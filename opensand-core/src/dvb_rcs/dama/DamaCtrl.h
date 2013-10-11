@@ -47,29 +47,12 @@
 #include "Logon.h"
 #include "Logoff.h"
 
+#include <opensand_output/Output.h>
+
 #include <cstdio>
 #include <map>
 
 using std::map;
-
-
-/// DAMA controller statistics context
-//TODO remove
-typedef struct
-{
-	unsigned int terminal_number;         ///> The number of logged terminals
-	unsigned int rbdc_requests_number;    ///> The number of RBDC requests
-	unsigned int vbdc_requests_number;    ///> The number of VBDC requests
-	rate_kbps_t total_capacity_kbps;           ///> The total capacity (kbits/s)
-	rate_kbps_t total_cra_kbps;           ///> The total CRA (kbits/s)
-	rate_kbps_t total_max_rbdc_kbps;      ///> The total RBDC max value (kbits/s)
-	rate_kbps_t rbdc_requests_sum_kbps;   ///> The sum of RBDC requests (kbits/s)
-	vol_kb_t vbdc_requests_sum_kb;        ///> The sum of VBDC requests (kbits)
-	rate_kbps_t rbdc_allocation_kbps;     ///> The RBDC allocation (kbits/s)
-	vol_kb_t vbdc_allocation_kb;          ///> The VBDC allocation (kbits)
-	double fair_share;                    ///> The fair share ratio
-} dc_stat_context_t;
-
 
 /**
  * @class DamaCtrl
@@ -171,7 +154,7 @@ class DamaCtrl
 	 * @brief  Update the DAMA statistics
 	 *         Called each frame
 	 */
-	virtual void updateStatistics() = 0;
+	void updateStatistics();
 
 	/**
 	 * @brief Set the file for simulation statistic and events record
@@ -182,6 +165,13 @@ class DamaCtrl
 	virtual void setRecordFile(FILE * event_stream, FILE *stat_stream);
 
  protected:
+
+	/**
+	 * @brief 	Init the output probes and stats
+	 *
+	 * @return	true if success, false otherwise.
+	 */
+	bool initOutput();
 
 	/**
 	 * @brief  Create a terminal context.
@@ -277,9 +267,6 @@ class DamaCtrl
 	/** Roll-off factor */
 	double roll_off;
 
-	/** Stats context */
-	dc_stat_context_t stat_context;
-
 	/**
 	 * @brief run the Dama, it allocates exactly what have been asked
 	 *        using internal requests, TBTP and contexts.
@@ -307,6 +294,81 @@ class DamaCtrl
 
 	/// if set to other than NULL, the fd where recording stats
 	FILE *stat_file;
+
+
+	/// Output probe and stats
+
+	typedef map<tal_id_t, Probe<int> *> ProbeListPerTerminal;
+	typedef map<string, Probe<int> *> ProbeListPerCategory;
+	typedef map<string, int> IntListPerCategory;
+	typedef map<unsigned int, Probe<int> *> ProbeListPerCarrier;
+
+	/* RBDC request number */
+	Probe<int> *probe_gw_rbdc_req_num;
+	int gw_rbdc_req_num;
+
+	/* RBDC requested capacity */
+	Probe<int> *probe_gw_rbdc_req_size;
+	int gw_rbdc_req_size_pktpf;
+
+	/* VBDC request number */
+	Probe<int> *probe_gw_vbdc_req_num;
+	int gw_vbdc_req_num;
+
+	/* VBDC requested capacity */
+	Probe<int> *probe_gw_vbdc_req_size;
+	int gw_vbdc_req_size_pkt;
+
+	/* Allocated resources */
+		// CRA
+	Probe<int> *probe_gw_cra_alloc;
+	int gw_cra_alloc_kbps;
+		// CRA by ST
+	ProbeListPerTerminal probes_st_cra_alloc;
+		// RBDC total
+	Probe<int> *probe_gw_rbdc_alloc;
+	int gw_rbdc_alloc_pktpf;
+		// RBDC by ST
+	ProbeListPerTerminal probes_st_rbdc_alloc;
+		// RBDC max
+	Probe<int> *probe_gw_rbdc_max;
+	int gw_rbdc_max_kbps;
+		// RBDC max by ST
+	ProbeListPerTerminal probes_st_rbdc_max;
+		// VBDC	total
+	Probe<int> *probe_gw_vbdc_alloc;
+	int gw_vbdc_alloc_pkt;
+		// VBDC by ST
+	ProbeListPerTerminal probes_st_vbdc_alloc;
+		// FCA total
+	Probe<int> *probe_gw_fca_alloc;
+	int gw_fca_alloc_pktpf;
+		// FCA by ST
+	ProbeListPerTerminal probes_st_fca_alloc;
+
+	/* Logged ST number  */
+	Probe<int> *probe_gw_st_num;
+	int gw_st_num;
+
+		// Total and unused capacity
+	Probe<int> *probe_gw_return_total_capacity;
+	int gw_return_total_capacity_pktpf;
+	Probe<int> *probe_gw_return_remaining_capacity;
+	int gw_remaining_capacity_pktpf;
+		// Capacity per category
+	ProbeListPerCategory probes_category_return_capacity;
+	int category_return_capacity_pktpf;
+	ProbeListPerCategory probes_category_return_remaining_capacity;
+	map<string, int> category_return_remaining_capacity_pktpf;
+		// Capacity per carrier
+	ProbeListPerCarrier probes_carrier_return_capacity;
+	ProbeListPerCarrier probes_carrier_return_remaining_capacity;
+	map<unsigned int, int> carrier_return_remaining_capacity_pktpf;
+
+	// TODO
+	// Physical Layer stats
+
+
 };
 
 #define DC_RECORD_EVENT(fmt,args...) \

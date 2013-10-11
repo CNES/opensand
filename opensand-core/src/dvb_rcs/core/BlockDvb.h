@@ -123,7 +123,7 @@ class BlockDvb: public Block
 	 */
 	bool initBand(const char *band,
 	              TerminalCategories &categories,
-	              TerminalMapping &terminal_affectation,      
+	              TerminalMapping &terminal_affectation,
 	              TerminalCategory **default_category,
 	              fmt_groups_t &fmt_groups);
 
@@ -197,6 +197,9 @@ class BlockDvb: public Block
 
 	/// The down/forward link encapsulation packet
 	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
+
+	/// used for stats and probes
+	int phy_to_sat_bytes;
 
 	/// output events
 	static Event *error_init;

@@ -60,9 +60,20 @@ DamaCtrl::DamaCtrl():
 	terminal_affectation(),
 	default_category(NULL),
 	fmt_simu(),
-	roll_off(0.0),
-	stat_context()
+	roll_off(0.0)
 {
+	this->probe_gw_rbdc_req_num = NULL;
+	this->probe_gw_rbdc_req_size = NULL;
+	this->probe_gw_vbdc_req_num = NULL;
+	this->probe_gw_vbdc_req_size = NULL;
+	this->probe_gw_cra_alloc = NULL;
+	this->probe_gw_rbdc_alloc = NULL;
+	this->probe_gw_rbdc_max = NULL;
+	this->probe_gw_vbdc_alloc = NULL;
+	this->probe_gw_fca_alloc = NULL;
+	this->probe_gw_return_total_capacity = NULL;
+	this->probe_gw_return_remaining_capacity = NULL;
+	this->probe_gw_st_num = NULL;
 }
 
 DamaCtrl::~DamaCtrl()
@@ -104,6 +115,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->frames_per_superframe = frames_per_superframe;
 	this->cra_decrease = cra_decrease;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
+	this->fca_kbps = fca_kbps;
 	this->fmt_simu = fmt_simu;
 
 	this->converter = new UnitConverter(packet_length_bytes,
@@ -132,9 +144,79 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	this->is_parent_init = true;
 
+	if (!this->initOutput())
+	{
+		UTI_ERROR("the output probes and stats initialization have failed\n");
+		return false;
+	}
+
 	return true;
 error:
 	return false;
+}
+
+bool DamaCtrl::initOutput()
+{
+	// RBDC request number
+	this->probe_gw_rbdc_req_num = Output::registerProbe<int>(
+		"NCC.RBDC.RBDC request number", "", true, SAMPLE_LAST);
+	this->gw_rbdc_req_num = 0;
+
+	// RBDC requested capacity
+	this->probe_gw_rbdc_req_size = Output::registerProbe<int>(
+		"NCC.RBDC.RBDC requested capacity", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_rbdc_req_size_pktpf = 0;
+
+	// VBDC request number
+	this->probe_gw_vbdc_req_num = Output::registerProbe<int>(
+		"NCC.VBDC.VBDC request number", "", true, SAMPLE_LAST);
+	this->gw_vbdc_req_num = 0;
+
+	// VBDC Requested capacity
+	this->probe_gw_vbdc_req_size = Output::registerProbe<int>(
+		"NCC.VBDC.VBDC requested capacity", "Kbits", true, SAMPLE_LAST);
+	this->gw_vbdc_req_size_pkt = 0;
+
+	// Allocated ressources
+		// CRA allocation
+	this->probe_gw_cra_alloc = Output::registerProbe<int>(
+		"NCC.CRA allocated", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_cra_alloc_kbps = 0;
+
+		// RBDC max
+	this->probe_gw_rbdc_max = Output::registerProbe<int>(
+		"NCC.RBDC.RBDC max", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_rbdc_max_kbps = 0;
+
+		// RBDC allocation
+	this->probe_gw_rbdc_alloc = Output::registerProbe<int>(
+		"NCC.RBDC.RBDC allocated", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_rbdc_alloc_pktpf = 0;
+
+		// VBDC allocation
+	this->probe_gw_vbdc_alloc = Output::registerProbe<int>(
+		"NCC.VBDC.VBDC allocated", "Kbits", true, SAMPLE_LAST);
+	this->gw_vbdc_alloc_pkt = 0;
+
+		// FRA allocation
+	this->probe_gw_fca_alloc = Output::registerProbe<int>(
+		"NCC.FCA allocated", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_fca_alloc_pktpf = 0;
+
+		// Total  and remaining capacity
+	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
+		"Up/Return capacity.Total.Available", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_return_total_capacity_pktpf = 0;
+	this->probe_gw_return_remaining_capacity = Output::registerProbe<int>(
+		"Up/Return capacity.Total.Remaining", "Kbits/s", true, SAMPLE_LAST);
+	this->gw_remaining_capacity_pktpf = 0;
+
+		// Logged ST number
+	this->probe_gw_st_num = Output::registerProbe<int>(
+		"NCC.ST number", "", true, SAMPLE_LAST);
+	this->gw_st_num = 0;
+
+	return true;
 }
 
 bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
@@ -143,8 +225,38 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 	rate_kbps_t cra_kbps = logon.getRtBandwidth();
 	rate_kbps_t max_rbdc_kbps = logon.getMaxRbdc();
 	vol_kb_t max_vbdc_kb = logon.getMaxVbdc();
-
 	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
+
+	// Output probes and stats
+	Probe<int> *probe_cra;
+	Probe<int> *probe_rbdc_max;
+	Probe<int> *probe_rbdc;
+	Probe<int> *probe_vbdc;
+	Probe<int> *probe_fca;
+	probe_cra = Output::registerProbe<int>(
+		"Kbits/s", true, SAMPLE_LAST, "ST%u_allocation.CRA allocation", tal_id);
+	this->probes_st_cra_alloc.insert(
+		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_cra));
+	probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+	                                            "ST%u_allocation.RBDC max",
+	                                            tal_id);
+	this->probes_st_rbdc_max.insert(
+		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_rbdc_max));
+	probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+	                                        "ST%u_allocation.RBDC allocation",
+	                                        tal_id);
+	this->probes_st_rbdc_alloc.insert(
+		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_rbdc));
+	probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_LAST,
+	                                        "ST%u_allocation.VBDC allocation",
+	                                        tal_id);
+	this->probes_st_vbdc_alloc.insert(
+		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_vbdc));
+	probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+	                                       "ST%u_allocation.FCA allocation",
+	                                       tal_id);
+	this->probes_st_fca_alloc.insert(
+		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_fca));
 
 	DamaTerminalList::iterator it;
 	it = this->terminals.find(tal_id);
@@ -191,11 +303,20 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		         tal_id, category->getLabel().c_str());
 		DC_RECORD_EVENT("LOGON st%d rt = %u", logon.getMac(),
 		                logon.getRtBandwidth());
+
+		// Output probes and stats
+		this->gw_st_num += 1;
+		this->gw_cra_alloc_kbps += cra_kbps;
+		this->probe_gw_cra_alloc->put(gw_cra_alloc_kbps);
+		this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
+		this->gw_rbdc_max_kbps += max_rbdc_kbps;
+		this->probe_gw_rbdc_max->put(gw_cra_alloc_kbps);
 	}
 	else
 	{
 		UTI_INFO("Duplicate logon received for ST #%u\n", tal_id);
 	}
+
 
 	return true;
 }
@@ -214,7 +335,16 @@ bool DamaCtrl::hereIsLogoff(const Logoff &logoff)
 		UTI_DEBUG("No ST found for id %u\n", tal_id);
 		return false;
 	}
+
 	terminal = (*it).second;
+
+	// Output probes and stats
+	this->gw_st_num -= 1;
+	this->gw_cra_alloc_kbps -= terminal->getCra();
+	this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
+	this->gw_rbdc_max_kbps -= terminal->getMaxRbdc();
+	this->probe_gw_rbdc_max->put(this->gw_rbdc_max_kbps);
+
 	// remove terminal from the list
 	this->terminals.erase(terminal->getTerminalId());
 
@@ -253,61 +383,22 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
-	// Update statistics
-	this->stat_context.terminal_number = this->terminals.size();
-	// statistics
-
-	for(DamaTerminalList::iterator st = this->terminals.begin();
+//TODO
+	/*for(DamaTerminalList::iterator st = this->terminals.begin();
 	    st != this->terminals.end(); ++st)
 	{
 		tal_id_t tal_id = st->first;
 		TerminalContext *terminal = st->second;
 		//uint16_t request;
 
-		// ignore simulated ST in stats, there ID is > 100
-		// TODO limitation caused by environment plane,
-		//      remove if environment plane is rewritten
+		// ignore simulated ST in stats, there ID is > 31
 		// TODO create a stat that sum all simulated tal
 		if(tal_id > BROADCAST_TAL_ID)
 		{
 			continue;
 		}
 
-		// TODO move in DamaCtrlRcs ?
-		//request = terminal->getRequiredRbdc();
-/*		request = terminal->getTotalRbdcRequestValue();
-		if(request != 0)
-		{
-//			this->stat_context.rbdc_requests_number += terminal->getRbdcRequests().size();
-			this->stat_context.rbdc_requests_sum_kbps += request;
-		}
-
-		//request = terminal->getRequiredVbdc();
-		request = terminal->getVbdcRequest();
-		if(request != 0)
-		{
-//			this->stat_context.vbdc_requests_number += terminal->getVbdcRequests().size();
-			this->stat_context.vbdc_requests_sum_kb += request;
-		}
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_CRA_ST_ALLOCATION,
-		                       it->first,
-		                       terminal->getCra());
-		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_RBDC_MAX_ST_ALLOCATION,
-		                       it->first,
-		                       terminal->getMaxRbdc());*/
-		this->stat_context.total_max_rbdc_kbps += terminal->getMaxRbdc();
-
-		this->stat_context.total_cra_kbps += terminal->getCra();
-/*		ENV_AGENT_Probe_PutInt(&EnvAgent,
-		                       C_PROBE_GW_RBDC_ST_ALLOCATION,
-		                       St_id,
-		                       (int) this->converter->
-		                       ConvertFromCellsPerFrameToKbits((double) ThisSt->GetRbdc()));*/
-// TODO
-//		terminal->updateStatistics();
-	}
+	}*/
 
 	return 0;
 }
@@ -324,17 +415,20 @@ bool DamaCtrl::runDama()
 
 	if(this->enable_rbdc && !this->runDamaRbdc())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n", this->current_superframe_sf);
+		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
+		          this->current_superframe_sf);
 		return false;
 	}
 	if(this->enable_vbdc && !this->runDamaVbdc())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n", this->current_superframe_sf);
+		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
+		          this->current_superframe_sf);
 		return false;
 	}
 	if(!this->runDamaFca())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n", this->current_superframe_sf);
+		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
+		          this->current_superframe_sf);
 		return false;
 	}
 	return true;
@@ -344,7 +438,52 @@ void DamaCtrl::setRecordFile(FILE *event_stream, FILE *stat_stream)
 {
 	this->event_file = event_stream;
 	DC_RECORD_EVENT("%s", "# --------------------------------------\n");
+	// TODO remove stat
 	this->stat_file = stat_stream;
 	DC_RECORD_STAT("%s", "# --------------------------------------\n");
 }
 
+void DamaCtrl::updateStatistics()
+{
+	// Update probes and stats
+	this->probe_gw_st_num->put(this->gw_st_num);
+	this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
+	this->probe_gw_rbdc_max->put(this->gw_rbdc_max_kbps);
+	for(DamaTerminalList::iterator it = this->terminals.begin();
+	    it != this->terminals.end(); ++it)
+	{
+		TerminalContext* terminal;
+		terminal = it->second;
+		this->probes_st_cra_alloc[terminal->getTerminalId()]->put(
+			terminal->getCra());
+		this->probes_st_rbdc_max[terminal->getTerminalId()]->put(
+			terminal->getMaxRbdc());
+
+	}
+	this->probe_gw_return_remaining_capacity->put(
+		this->converter->pktpfToKbps(this->gw_remaining_capacity_pktpf));
+	for(TerminalCategories::iterator it = this->categories.begin();
+	    it != categories.end(); ++it)
+	{
+		TerminalCategory* category = it->second;
+		vector<CarriersGroup *> carriers;
+		vector<CarriersGroup *>::const_iterator carrier_it;
+		string label = category->getLabel();
+		this->probes_category_return_remaining_capacity[label]->put(
+			this->converter->pktpfToKbps(
+				this->category_return_remaining_capacity_pktpf[label]));
+		carriers = category->getCarriersGroups();
+		for(carrier_it = carriers.begin();
+			carrier_it != carriers.end(); ++carrier_it)
+		{
+			unsigned int carrier_id = (*carrier_it)->getCarriersId();
+			this->probes_carrier_return_remaining_capacity[carrier_id]->put(
+				this->converter->pktpfToKbps(
+					this->carrier_return_remaining_capacity_pktpf[carrier_id]));
+		}
+	}
+
+
+	// Send probes
+	Output::sendProbes();
+}

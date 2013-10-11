@@ -153,6 +153,15 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 
 	map<uint16_t, uint16_t> column_list;
 
+	// TODO: a specific timer for statistics update
+	/*
+	/// The statistics period
+	unsigned int stats_period_ms;
+
+	/// Statistics timer
+	event_id_t stats_timer;
+	*/
+
  public:
 
 	/// Class constructor
@@ -257,10 +266,35 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 */
 	void simulateRandom();
 
-	// throughput from upper layer and associated probe
-	unsigned int incoming_size;
-	Probe<float> *probe_incoming_throughput;
+	// Output probes and stats
+
+		// Rates
+
+			// Layer 2 to SAT
+	Probe<int> *probe_gw_l2_to_sat_before_sched;
+	int l2_to_sat_bytes_before_sched;
+	Probe<int> *probe_gw_l2_to_sat_after_sched;
+	int l2_to_sat_bytes_after_sched;
+			// PHY to SAT
+	Probe<int> *probe_gw_phy_to_sat;
+			// Layer 2 from SAT
+	Probe<int> *probe_gw_l2_from_sat;
+	int l2_from_sat_bytes;
+			// PHY from SAT
+	Probe<int> *probe_gw_phy_from_sat;
+	int phy_from_sat_bytes;
+
+		// Frame interval
 	Probe<float> *probe_frame_interval;
+
+		// Queue sizes
+	Probe<int> *probe_gw_queue_size;
+	Probe<int> *probe_gw_queue_size_kb;
+
+
+	/// TODO following
+
+
 
 	// statistics update
 	void updateStatsOnFrame();

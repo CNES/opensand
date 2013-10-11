@@ -48,8 +48,8 @@
  *
  */
 
-#ifndef BLOC_DVB_RCS_SAT_H
-#define BLOC_DVB_RCS_SAT_H
+#ifndef BLOC_DVB_RCS_sat_H
+#define BLOC_DVB_RCS_sat_H
 
 #include <linux/param.h>
 
@@ -107,6 +107,12 @@ class BlockDvbSat: public BlockDvb
 	/// FMT groups
 	fmt_groups_t fmt_groups;
 
+	/// The statistics period
+	unsigned int stats_period_ms;
+
+	/// statistic timer
+	event_id_t stats_timer;
+
  public:
 
 	BlockDvbSat(const string &name);
@@ -117,6 +123,33 @@ class BlockDvbSat: public BlockDvb
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
+	bool initOutput();
+
+	// Output probes and stats
+
+	typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
+
+		// Queue sizes
+	ProbeListPerSpot probe_sat_output_gw_queue_size;
+	ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
+	ProbeListPerSpot probe_sat_output_st_queue_size;
+	ProbeListPerSpot probe_sat_output_st_queue_size_kb;
+		// Rates
+	ProbeListPerSpot probe_sat_phy_from_st;
+	map<unsigned int, int> phy_from_st_bytes;
+	Probe<int> * probe_sat_phy_output;
+	ProbeListPerSpot probe_sat_l2_from_st;
+	map<unsigned int, int> l2_from_st_bytes;
+	ProbeListPerSpot probe_sat_l2_to_st;
+	map<unsigned int, int> l2_to_st_bytes;
+	ProbeListPerSpot probe_sat_phy_from_gw;
+	map<unsigned int, int> phy_from_gw_bytes;
+	ProbeListPerSpot probe_sat_l2_from_gw;
+	map<unsigned int, int> l2_from_gw_bytes;
+	ProbeListPerSpot probe_sat_l2_to_gw;
+	map<unsigned int, int> l2_to_gw_bytes;
+		// Frame interval
+	Probe<float> *probe_frame_interval;
 
  private:
 
@@ -220,8 +253,13 @@ class BlockDvbSat: public BlockDvb
 		return this->m_delay;
 	}
 
+	/*
+	 * Update the stats on the Sat
+	 */
+	void updateStats();
+
 	/// update the probes
 	void getProbe(NetBurst burst, DvbFifo fifo, spot_stats_t stat_fifo);
-};
 
+};
 #endif

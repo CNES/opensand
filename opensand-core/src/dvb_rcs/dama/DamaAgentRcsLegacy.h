@@ -43,6 +43,8 @@
 #include "NetBurst.h"
 #include "DvbRcsFrame.h"
 
+#include <opensand_output/Output.h>
+
 class DamaAgentRcsLegacy: public DamaAgentRcs
 {
  public:
@@ -61,6 +63,7 @@ class DamaAgentRcsLegacy: public DamaAgentRcs
 	bool buildCR(cr_type_t cr_type,
 	             CapacityRequest &capacity_request,
 	             bool &emtpy);
+	//void updateStatistics();
 	void updateStatistics();
 
  protected:
@@ -82,6 +85,7 @@ class DamaAgentRcsLegacy: public DamaAgentRcs
 
 	/** Uplink Scheduling functions */
 	ReturnSchedulingRcs *ret_schedule;
+
 
  private:
 

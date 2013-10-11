@@ -72,9 +72,6 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	complete_dvb_frames(),
 	capacity_request(mac_id),
 	ttp(),
-	m_bbframe_dropped_rate(0),
-	m_bbframe_dropped(0),
-	m_bbframe_received(0),
 	out_encap_packet_length(-1),
 	out_encap_packet_type(MSG_TYPE_ERROR),
 	in_encap_packet_length(-1),
@@ -91,23 +88,20 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	m_obrSlotFrame(-1),
 	event_login_sent(NULL),
 	event_login_complete(NULL),
-	probe_st_terminal_queue_size(NULL),
-	probe_st_real_in_thr(NULL),
-	probe_st_real_out_thr(NULL),
-	probe_st_phys_out_thr(NULL),
-	probe_st_rbdc_req_size(NULL),
-	probe_st_cra(NULL),
-	probe_st_alloc_size(NULL),
-	probe_st_unused_capacity(NULL),
-	probe_st_bbframe_drop_rate(NULL),
+	probe_st_queue_size(NULL),
+	probe_st_queue_size_kb(NULL),
+	probe_st_l2_to_sat_before_sched(NULL),
+	probe_st_l2_to_sat_after_sched(NULL),
+	probe_st_l2_to_sat_total(NULL),
+	probe_st_phy_to_sat(NULL),
+	probe_st_l2_from_sat(NULL),
+	probe_st_phy_from_sat(NULL),
 	probe_st_real_modcod(NULL),
 	probe_st_used_modcod(NULL),
 	probe_sof_interval(NULL)
 {
-	this->m_statCounters.ulOutgoingCells = NULL;
-	this->m_statCounters.ulIncomingCells = NULL;
-	this->m_statContext.ulOutgoingThroughput = NULL;
-	this->m_statContext.ulIncomingThroughput = NULL;
+	this->l2_to_sat_cells_before_sched = NULL;
+	this->l2_to_sat_cells_after_sched = NULL;
 }
 
 
@@ -130,14 +124,14 @@ BlockDvbTal::~BlockDvbTal()
 	}
 	this->dvb_fifos.clear();
 
-	if(this->m_statCounters.ulOutgoingCells != NULL)
-		delete[] this->m_statCounters.ulOutgoingCells;
-	if(this->m_statCounters.ulIncomingCells != NULL)
-		delete[] this->m_statCounters.ulIncomingCells;
-	if(this->m_statContext.ulOutgoingThroughput != NULL)
-		delete[] this->m_statContext.ulOutgoingThroughput;
-	if(this->m_statContext.ulIncomingThroughput != NULL)
-		delete[] this->m_statContext.ulIncomingThroughput;
+	if(this->l2_to_sat_cells_before_sched != NULL)
+	{
+		delete[] this->l2_to_sat_cells_before_sched;
+	}
+	if(this->l2_to_sat_cells_after_sched != NULL)
+	{
+		delete[] this->l2_to_sat_cells_after_sched;
+	}
 
 	// close QoS Server socket if it was opened
 	if(BlockDvbTal::qos_server_sock != -1)
@@ -152,9 +146,10 @@ BlockDvbTal::~BlockDvbTal()
 	}
 
 	// release the output arrays (no need to delete the probes)
-	delete[] this->probe_st_terminal_queue_size;
-	delete[] this->probe_st_real_in_thr;
-	delete[] this->probe_st_real_out_thr;
+	delete[] this->probe_st_queue_size;
+	delete[] this->probe_st_queue_size_kb;
+	delete[] this->probe_st_l2_to_sat_before_sched;
+	delete[] this->probe_st_l2_to_sat_after_sched;
 
 	this->complete_dvb_frames.clear();
 }
@@ -180,7 +175,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 			          this->super_frame_counter, burst->length());
 
 			// set each packet of the burst in MAC FIFO
-			
+
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
 				UTI_DEBUG_L3("SF#%u: encapsulation packet has QoS value %d\n",
@@ -194,7 +189,7 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				{
 					fifo_priority = this->default_fifo_id;
 				}
-				
+
 				UTI_DEBUG("SF#%u: store one encapsulation packet (QoS = %d)\n",
 				          this->super_frame_counter, fifo_priority);
 
@@ -217,8 +212,8 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 					return false;
 				}
 
-				// update incoming counter (if packet is stored or sent)
-				m_statCounters.ulIncomingCells[this->dvb_fifos[fifo_priority]->getPriority()]++;
+				this->l2_to_sat_cells_before_sched[
+					this->dvb_fifos[fifo_priority]->getPriority()]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -320,14 +315,13 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			dvb_frame = (unsigned char *) dvb_meta->hdr;
 			len = ((MessageEvent *)event)->getLength();
 
-			// TODO get the time here and give it to onRcvDvbFrame that would add probe
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_meta->hdr->msg_type == MSG_TYPE_SOF)
 			{
 				struct timeval time = event->getTimeFromCustom();
 				float val = time.tv_sec * 1000000L + time.tv_usec;
 				event->setCustomTime();
-				this->probe_sof_interval->put(val);
+				this->probe_sof_interval->put(val/1000);
 			}
 
 			// message from lower layer: DL dvb frame
@@ -379,7 +373,7 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 }
 
 
-// TODO remove receptionStd as functions are merge but contains part 
+// TODO remove receptionStd as functions are merged but contains part
 //      dedicated to each host ?
 bool BlockDvbTal::initMode()
 {
@@ -400,7 +394,8 @@ error:
 bool BlockDvbTal::initParameters()
 {
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH, this->fixed_bandwidth))
+	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
+	                          this->fixed_bandwidth))
 	{
 		UTI_ERROR("Missing %s", DVB_RT_BANDWIDTH);
 		goto error;
@@ -525,7 +520,7 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 		         fifo->getMaxSize(),
 		         fifo->getPvc(),
 		         fifo->getCrType());
-		
+
 		// update the number of PVC = the maximum PVC
 		this->nbr_pvc = std::max(this->nbr_pvc, pvc);
 
@@ -541,32 +536,26 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 	} // end for(queues are now instanciated and initialized)
 
 	// init stats context per QoS
-	m_statContext.ulIncomingThroughput = new int[this->dvb_fifos.size()];
-	if(this->m_statContext.ulIncomingThroughput == NULL)
-		goto err_fifo_release;
+	this->l2_to_sat_cells_before_sched = new int[this->dvb_fifos.size()];
+	if(this->l2_to_sat_cells_before_sched == NULL)
+	{
+		goto err_before_release;
+	}
 
-	m_statContext.ulOutgoingThroughput = new int[this->dvb_fifos.size()];
-	if(this->m_statContext.ulOutgoingThroughput == NULL)
-		goto err_incoming_throughput_release;
-
-	m_statCounters.ulIncomingCells = new int[this->dvb_fifos.size()];
-	if(this->m_statCounters.ulIncomingCells == NULL)
-		goto err_outgoing_throughput_release;
-
-	m_statCounters.ulOutgoingCells = new int[this->dvb_fifos.size()];
-	if(this->m_statCounters.ulOutgoingCells == NULL)
-		goto err_incoming_cells_release;
+	this->l2_to_sat_cells_after_sched = new int[this->dvb_fifos.size()];
+	if(this->l2_to_sat_cells_after_sched == NULL)
+	{
+		goto err_after_release;
+	}
 
 	this->resetStatsCxt();
 
 	return true;
 
-err_incoming_cells_release:
-	delete[] this->m_statCounters.ulIncomingCells;
-err_outgoing_throughput_release:
-	delete[] this->m_statContext.ulOutgoingThroughput;
-err_incoming_throughput_release:
-	delete[] this->m_statContext.ulIncomingThroughput;
+err_before_release:
+	delete[] this->l2_to_sat_cells_after_sched;
+err_after_release:
+	delete[] this->l2_to_sat_cells_before_sched;
 err_fifo_release:
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -776,23 +765,6 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	                                               LEVEL_INFO);
 	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete",
 	                                                   LEVEL_INFO);
-	this->probe_st_phys_out_thr =
-		Output::registerProbe<int>("Physical_outgoing_throughput",
-		                           "Kbits/s", true, SAMPLE_AVG);
-	this->probe_st_rbdc_req_size =
-		Output::registerProbe<int>("RBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
-	this->probe_st_vbdc_req_size =
-		Output::registerProbe<int>("VBDC_request_size", "Kbits/s", true, SAMPLE_LAST);
-	this->probe_st_cra = Output::registerProbe<int>("CRA", "Kbits/s",
-	                                                true, SAMPLE_LAST);
-	this->probe_st_alloc_size = Output::registerProbe<int>("Allocation",
-	                                                       "Kbits/s", true,
-	                                                       SAMPLE_LAST);
-	this->probe_st_unused_capacity =
-		Output::registerProbe<int>("Unused_capacity", "time slots", true, SAMPLE_LAST);
-	// FIXME: Unit?
-	this->probe_st_bbframe_drop_rate =
-		Output::registerProbe<float>("BBFrames_dropped_rate", true, SAMPLE_LAST);
 	this->probe_st_real_modcod = Output::registerProbe<int>("Real_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
@@ -803,13 +775,15 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
-	this->probe_st_terminal_queue_size = new Probe<int>*[this->dvb_fifos.size()];
-	this->probe_st_real_in_thr = new Probe<int>*[this->dvb_fifos.size()];
-	this->probe_st_real_out_thr = new Probe<int>*[this->dvb_fifos.size()];
+	this->probe_st_queue_size = new Probe<int>*[this->dvb_fifos.size()];
+	this->probe_st_queue_size_kb = new Probe<int>*[this->dvb_fifos.size()];
+	this->probe_st_l2_to_sat_before_sched = new Probe<int>*[this->dvb_fifos.size()];
+	this->probe_st_l2_to_sat_after_sched = new Probe<int>*[this->dvb_fifos.size()];
 
-	if(this->probe_st_terminal_queue_size == NULL ||
-	   this->probe_st_real_in_thr == NULL ||
-	   this->probe_st_real_out_thr == NULL)
+	if(this->probe_st_queue_size == NULL ||
+	   this->probe_st_queue_size_kb == NULL ||
+	   this->probe_st_l2_to_sat_before_sched == NULL ||
+	   this->probe_st_l2_to_sat_after_sched == NULL)
 	{
 		UTI_ERROR("Failed to allocate memory for probe arrays");
 		return false;
@@ -818,27 +792,35 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	for(unsigned int i = 0 ; i < this->dvb_fifos.size() ; i++)
 	{
 		const char* fifo_type = fifo_types[i].c_str();
-		char probe_name[32];
 
-		snprintf(probe_name, sizeof(probe_name), "Terminal_queue_size.%s",
-		         fifo_type);
-		this->probe_st_terminal_queue_size[i] =
-			Output::registerProbe<int>(probe_name, "cells", true, SAMPLE_LAST);
+		this->probe_st_queue_size[i] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
+			                           "Queue size.%s", fifo_type);
+		this->probe_st_queue_size_kb[i] =
+			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
+			                           "Queue size.%s_kb", fifo_type);
 
-		snprintf(probe_name, sizeof(probe_name), "Real_incoming_throughput.%s",
-		         fifo_type);
-		this->probe_st_real_in_thr[i] = Output::registerProbe<int>(probe_name,
-		                                                           "Kbits/s",
-		                                                           true,
-		                                                           SAMPLE_AVG);
-
-		snprintf(probe_name, sizeof(probe_name), "Real_outgoing_throughput.%s",
-		         fifo_type);
-		this->probe_st_real_out_thr[i] = Output::registerProbe<int>(probe_name,
-		                                                            "Kbits/s",
-		                                                            true,
-		                                                            SAMPLE_AVG);
+		this->probe_st_l2_to_sat_before_sched[i] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+			                           "Throughputs.L2_to_SAT_before_sched.%s",
+			                           fifo_type);
+		this->probe_st_l2_to_sat_after_sched[i] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+			                           "Throughputs.L2_to_SAT_after_sched.%s",
+			                           fifo_type);
 	}
+	this->probe_st_l2_to_sat_total =
+		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_l2_from_sat =
+		Output::registerProbe<int>("Throughputs.L2_from_SAT",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_phy_from_sat =
+		Output::registerProbe<int>("Throughputs.PHY_from_SAT",
+		                           "Kbits/s", true, SAMPLE_AVG);
+	this->probe_st_phy_to_sat =
+		Output::registerProbe<int>("Throughputs.PHY_to_SAT",
+		                           "Kbits/s", true, SAMPLE_AVG);
 
 	return true;
 }
@@ -1140,8 +1122,11 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 	{
 		case MSG_TYPE_BBFRAME:
 		{
-			// keep statistics because data will be released before storing them
-			unsigned int data_len = ((T_DVB_BBFRAME *) ip_buf)->data_length;
+			// Update stats
+			this->l2_from_sat_bytes += hdr->msg_length;
+			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+			this->phy_from_sat_bytes += hdr->msg_length;
+
 			NetBurst *burst;
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
@@ -1157,48 +1142,8 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 				goto error;
 			}
 
-			// update statistics
-			this->m_statCounters.dlOutgoingCells += data_len;
-
 			break;
 		}
-
-		case MSG_TYPE_DVB_BURST:
-		{
-			// keep statistics because data will be released before storing them
-			unsigned int nb_packets = 0;
-			NetBurst *burst;
-
-			// TODO we have the nbr of packets in qty_elts we do not need that.
-			//      we can factorize both cases DVB_BURST and BBFRAME
-			if(this->down_forward_pkt_hdl->getFixedLength() > 0)
-			{
-				nb_packets = (hdr->msg_length - sizeof(T_DVB_HDR)) /
-				             this->down_forward_pkt_hdl->getFixedLength();
-			}
-			else
-			{
-				UTI_ERROR("packet size is not fixed\n");
-				goto error;
-			}
-
-			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->m_talId, &burst) < 0)
-			{
-				UTI_ERROR("failed to handle the reception of "
-				          "DVB frame (length = %ld)\n", i_len);
-				goto error;
-			}
-			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
-			{
-				UTI_ERROR("failed to send burst to upper layer\n");
-				goto error;
-			}
-
-			// update statistics
-			this->m_statCounters.dlOutgoingCells += nb_packets;
-		}
-		break;
 
 		// Start of frame (SOF):
 		// treat only if state is running --> otherwise just ignore (other
@@ -1517,7 +1462,6 @@ int BlockDvbTal::processOnFrameTick()
 	// ---------- Statistics ---------
 	// trace statistics for current frame
 	this->updateStatsOnFrame();
-	this->updateStatsOnFrameAndEncap();
 
 	return ret;
 
@@ -1589,21 +1533,15 @@ bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 
 /**
  * Update statistics :
- *  - UL Incoming Throughput
- *  - UL Outgoing Throughput
- *  - DL Outgoing Throughput
  * These statistics will be updated when the DVB bloc receive a frame tick
  * because they depend on frame duration
  */
 void BlockDvbTal::updateStatsOnFrame()
 {
+
+	this->dama_agent->updateStatistics();
+
 	mac_fifo_stat_context_t fifo_stat;
-	//da_stat_context_t dama_stat;
-	int ulOutgoingCells = 0;
-
-	// DAMA agent stat
-	//dama_stat = this->dama_agent->getStatsCxt();
-
 	// MAC fifos stats
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1613,34 +1551,35 @@ void BlockDvbTal::updateStatsOnFrame()
 		// NB: mac queueing delay = fifo_stat.lastPkQueuingDelay
 		// is writing at each UL cell emission by MAC layer and DA
 
-		// compute UL incoming Throughput - in kbits/s
-		m_statContext.ulIncomingThroughput[(*it).first] =
-			(m_statCounters.ulIncomingCells[(*it).first]
-			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration_ms;
-
-		// compute UL outgoing Throughput
 		// NB: outgoingCells = cells directly sent from IP packets + cells
 		//     stored before extraction next frame
-		ulOutgoingCells = m_statCounters.ulOutgoingCells[(*it).first] +
-		                  fifo_stat.out_pkt_nbr;
-		m_statContext.ulOutgoingThroughput[(*it).first] = (ulOutgoingCells
-			* this->up_return_pkt_hdl->getFixedLength() * 8) / this->frame_duration_ms;
+		this->l2_to_sat_cells_after_sched[(*it).first] += fifo_stat.out_pkt_nbr;
+		this->l2_to_sat_total_cells += fifo_stat.out_pkt_nbr;
 
 		// write in statitics file
-		probe_st_real_in_thr[(*it).first]->put(m_statContext.ulIncomingThroughput[(*it).first]);
-		probe_st_real_out_thr[(*it).first]->put(m_statContext.ulOutgoingThroughput[(*it).first]);
+		this->probe_st_l2_to_sat_before_sched[(*it).first]->put(
+			this->l2_to_sat_cells_before_sched[(*it).first] *
+			this->up_return_pkt_hdl->getFixedLength() * 8 /
+			this->frame_duration_ms);
+		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
+			this->l2_to_sat_cells_after_sched[(*it).first] *
+			this->up_return_pkt_hdl->getFixedLength() * 8 /
+			this->frame_duration_ms);
 
-		probe_st_terminal_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
+		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
+		this->probe_st_queue_size_kb[(*it).first]->put(
+			((int) fifo_stat.current_length_bytes * 8 / 1000));
 	}
-
-	// outgoing DL throughput
-	m_statContext.dlOutgoingThroughput =
-		(m_statCounters.dlOutgoingCells *
-		 this->down_forward_pkt_hdl->getFixedLength() * 8) /
-		this->frame_duration_ms;
-
-	// write in statitics file
-	probe_st_phys_out_thr->put(m_statContext.dlOutgoingThroughput);
+	this->probe_st_l2_to_sat_total->put(
+		this->l2_to_sat_total_cells *
+		this->up_return_pkt_hdl->getFixedLength() * 8 /
+		this->frame_duration_ms);
+	this->probe_st_l2_from_sat->put(
+		this->l2_from_sat_bytes * 8 / this->frame_duration_ms);
+	this->probe_st_phy_from_sat->put(
+		this->phy_from_sat_bytes * 8 / this->frame_duration_ms);
+	this->probe_st_phy_to_sat->put(
+		this->phy_to_sat_bytes * 8 / this->frame_duration_ms);
 
 	// reset stat context for next frame
 	this->resetStatsCxt();
@@ -1648,76 +1587,20 @@ void BlockDvbTal::updateStatsOnFrame()
 }
 
 /**
- * Update statistics :
- *  - RBDC Request
- *  - VBDC Request
- *  - CRA Allocation
- *  - Allocation Size
- *  - Unused Capacity
- *  - BBFrame Drop Rate
- *  - Real Modcod
- *  - Used Modcod
- *  - Terminal queue size
- * These statistics will be updated when the DVB bloc receive a frame tick
- * and an UL encapsulation packet
- *
- */
-// TODO call it when receving encap packet ?
-void BlockDvbTal::updateStatsOnFrameAndEncap()
-{
-/*	mac_fifo_stat_context_t fifo_stat;
-	if(m_bbframe_dropped != 0 ||  m_bbframe_received !=0)
-	{
-		m_bbframe_dropped_rate = ((float) m_bbframe_dropped) /
-		                         ((float) (m_bbframe_dropped + m_bbframe_received));
-		UTI_DEBUG("m_bbframe_dropped_rate : %f \n", m_bbframe_dropped_rate);
-	}
-
-	// TODO DAMA agent stat
-	const da_stat_context_t &dama_stat = this->dama_agent->getStatsCxt();
-
-	probe_st_rbdc_req_size->put(dama_stat.rbdc_request_kbps);
-	probe_st_vbdc_req_size->put(dama_stat.vbdc_request_pkt);
-	probe_st_cra->put(dama_stat.cra_alloc_kbps);
-	probe_st_alloc_size->put(dama_stat.global_alloc_kbps);
-	probe_st_unused_capacity->put(dama_stat.unused_alloc_kbps);
-	probe_st_bbframe_drop_rate->put(m_bbframe_dropped_rate);
-	probe_st_real_modcod->put(this->receptionStd->getRealModcod());
-	probe_st_used_modcod->put(this->receptionStd->getReceivedModcod());
-
-	// MAC fifos stats
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		(*it).second->getStatsCxt(fifo_stat);
-
-		// write in statitics file : mac queue size
-
-		//probe_st_terminal_queue_size[fifoIndex]->put(macQStat.currentPkNb);
-		probe_st_terminal_queue_size[(*it).first + 1]->put(fifo_stat.current_pkt_nbr);
-	}*/
-
-	// Reset stats for next frame
-//	this->dama_agent->resetStatsCxt();
-}
-
-
-/**
  * Reset statistics context
  * @return: none
  */
 void BlockDvbTal::resetStatsCxt()
 {
-	unsigned int i;
-	m_statCounters.dlOutgoingCells = 0;
-	m_statContext.dlOutgoingThroughput = 0;
-	for(i = 0; i < this->dvb_fifos.size(); i++)
+	for(unsigned int i = 0; i < this->dvb_fifos.size(); i++)
 	{
-		m_statContext.ulIncomingThroughput[i] = 0;
-		m_statContext.ulOutgoingThroughput[i] = 0;
-		m_statCounters.ulIncomingCells[i] = 0;
-		m_statCounters.ulOutgoingCells[i] = 0;
+		this->l2_to_sat_cells_before_sched[i] = 0;
+		this->l2_to_sat_cells_after_sched[i] = 0;
 	}
+	this->l2_to_sat_total_cells = 0;
+	this->l2_from_sat_bytes = 0;
+	this->phy_from_sat_bytes = 0;
+	this->phy_to_sat_bytes = 0;
 }
 
 

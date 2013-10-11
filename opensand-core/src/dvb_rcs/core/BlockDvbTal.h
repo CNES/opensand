@@ -74,24 +74,6 @@
 #define DVB_TIMER_ADJUST(x)  ((long)x/10)*10
 
 
-/// ST MAC layer UL/DL throughput statistics context - updated each frame
-typedef struct _TalStatContext
-{
-	int dlOutgoingThroughput;    ///< DL throughput received on the AIR IF by the ST (kbits/s)
-	int *ulIncomingThroughput;   ///< UL throughput received on the terrestrial interface by the ST (kbits/s)
-	int *ulOutgoingThroughput;   ///< UL throughput sent on the AIR IF by the ST (kbits/s)
-} TalStatContext;
-
-/// ST MAC layer statistics context counters
-typedef struct _TalStatCounter
-{
-	int dlOutgoingCells;  ///< DL throughput received on the AIR IF by the ST (kbits/s)
-	int *ulIncomingCells; ///< UL throughput received on the terrestrial interface by the ST (kbits/s)
-	int *ulOutgoingCells; ///< UL throughput sent on the AIR IF by the ST (kbits/s)
-} TalStatCounter;
-
-
-
 /**
  * @class BlockDvbTal
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal,
@@ -158,11 +140,6 @@ class BlockDvbTal: public BlockDvb
 	/// The received TTP
 	Ttp ttp;
 
-	float m_bbframe_dropped_rate;
-	int m_bbframe_dropped;
-	int m_bbframe_received;
-
-
 	/// Length of an output encapsulation packet (in bytes)
 	int out_encap_packet_length;
 	/// Type of output encapsulation packet
@@ -208,13 +185,6 @@ class BlockDvbTal: public BlockDvb
 	/// position within the multi-frame,
 	int m_obrPeriod;
 	int m_obrSlotFrame;
-
-
-	/* Probes */
-
-	TalStatContext m_statContext;
-	TalStatCounter m_statCounters;  ///< counter for UL/DL throughput stats
-
 
  public:
 
@@ -351,7 +321,6 @@ class BlockDvbTal: public BlockDvb
 	void deletePackets();
 
 	// statistics management
-	void updateStatsOnFrameAndEncap();
 	void updateStatsOnFrame();
 	void resetStatsCxt();
 
@@ -359,23 +328,37 @@ class BlockDvbTal: public BlockDvb
 	bool connectToQoSServer();
 	static void closeQosSocket(int sig);
 
-	// output probes and events
+	// Output events
 	Event *event_login_sent;
 	Event *event_login_complete;
 
-	Probe<int> **probe_st_terminal_queue_size;
-	Probe<int> **probe_st_real_in_thr;
-	Probe<int> **probe_st_real_out_thr;
-	Probe<int> *probe_st_phys_out_thr;
-	Probe<int> *probe_st_rbdc_req_size;
-	Probe<int> *probe_st_vbdc_req_size;
-	Probe<int> *probe_st_cra;
-	Probe<int> *probe_st_alloc_size;
-	Probe<int> *probe_st_unused_capacity;
-	Probe<float> *probe_st_bbframe_drop_rate;
+	// Output probes and stats
+
+		// Queue sizes
+	Probe<int> **probe_st_queue_size;
+	Probe<int> **probe_st_queue_size_kb;
+		// Rates
+				// Layer 2 to SAT
+	Probe<int> **probe_st_l2_to_sat_before_sched;
+	int *l2_to_sat_cells_before_sched;
+	Probe<int> **probe_st_l2_to_sat_after_sched;
+	int *l2_to_sat_cells_after_sched;
+	Probe<int> *probe_st_l2_to_sat_total;
+	int l2_to_sat_total_cells;
+				// PHY to SAT
+	Probe<int> *probe_st_phy_to_sat;
+				// Layer 2 from SAT
+	Probe<int> *probe_st_l2_from_sat;
+	int l2_from_sat_bytes;
+				// PHY from SAT
+	Probe<int> *probe_st_phy_from_sat;
+	int phy_from_sat_bytes;
+		// Physical layer information
 	Probe<int> *probe_st_real_modcod;
 	Probe<int> *probe_st_used_modcod;
+		// Stability
 	Probe<float> *probe_sof_interval;
 };
 
 #endif
+

@@ -42,7 +42,6 @@
 #include "OpenSandCore.h"
 #include "CarriersGroup.h"
 
-
 /**
  *  @class DamaCtrlRcsLegacy
  *  @brief This library defines the legacy DAMA controller.
@@ -56,11 +55,6 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	virtual ~DamaCtrlRcsLegacy();
 
 
- protected:
-	/// output probes
-	static Probe<int> *probe_gw_fca_alloc;
-	static Probe<float> *probe_gw_uplink_fair_share;
-
  private:
 	///RBDC allocation
 	bool runDamaRbdc();
@@ -70,10 +64,9 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	bool runDamaFca();
 	/// reset DAMA
 	bool resetDama();
-	/// update statistics
-	void updateStatistics();
 
 	virtual bool init();
+
 
 	/**
 	 * @brief Compute RBDC per carriers group

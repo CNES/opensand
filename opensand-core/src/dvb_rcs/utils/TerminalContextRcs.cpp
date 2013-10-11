@@ -78,12 +78,22 @@ void TerminalContextRcs::setCra(rate_kbps_t cra_kbps)
 	this->cra_pktpf = this->converter->kbpsToPktpf(cra_kbps);
 }
 
+rate_kbps_t TerminalContextRcs::getCra()
+{
+	return this->cra_kbps;
+}
+
 void TerminalContextRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
 {
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->max_rbdc_pktpf = this->converter->kbpsToPktpf(max_rbdc_kbps);
 	UTI_DEBUG("max RBDC is %u kbits/s (%u packet per superframe for ST%u)\n",
 	          this->max_rbdc_kbps, this->max_rbdc_pktpf, this->tal_id);
+}
+
+rate_kbps_t TerminalContextRcs::getMaxRbdc()
+{
+	return this->max_rbdc_kbps;
 }
 
 void TerminalContextRcs::setRbdcTimeout(time_sf_t rbdc_timeout_sf)
@@ -153,7 +163,7 @@ void TerminalContextRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
 vol_pkt_t TerminalContextRcs::getRequiredVbdc(unsigned int allocation_cycle) const
 {
 	// the allocation is used for each frame per supertrame so it should
-	// be devided by the number of frames per superframes
+	// be divided by the number of frames per superframes
 	return ceil(this->vbdc_request_pkt / allocation_cycle);
 }
 
@@ -161,6 +171,12 @@ void TerminalContextRcs::setFcaAllocation(rate_pktpf_t fca_alloc_pktpf)
 {
 	this->fca_alloc_pktpf = fca_alloc_pktpf;
 }
+
+rate_pktpf_t TerminalContextRcs::getFcaAllocation()
+{
+	return this->fca_alloc_pktpf;
+}
+
 
 rate_pktpf_t TerminalContextRcs::getTotalRateAllocation()
 {

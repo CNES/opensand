@@ -47,23 +47,11 @@
 #include <string>
 
 
-// output probes
-Probe<int>* DamaCtrlRcsLegacy::probe_gw_fca_alloc = NULL;
-Probe<float>* DamaCtrlRcsLegacy::probe_gw_uplink_fair_share = NULL;
-
 /**
  * Constructor
  */
 DamaCtrlRcsLegacy::DamaCtrlRcsLegacy(): DamaCtrlRcs()
 {
-	if(probe_gw_fca_alloc == NULL)
-	{
-		probe_gw_fca_alloc = Output::registerProbe<int>("FCA_allocation",
-		                                                "Kbits/s", true,
-		                                                SAMPLE_LAST);
-		probe_gw_uplink_fair_share =
-			Output::registerProbe<float>("Uplink_fair_share", true, SAMPLE_LAST);
-	}
 }
 
 
@@ -91,6 +79,7 @@ bool DamaCtrlRcsLegacy::init()
 	{
 		TerminalCategory *category = (*category_it).second;
 		vector<CarriersGroup *> carriers;
+		string label = category->getLabel();
 
 		carriers = category->getCarriersGroups();
 		for(carrier_it = carriers.begin();
@@ -103,11 +92,52 @@ bool DamaCtrlRcsLegacy::init()
 				          "group for Legacy DAMA\n");
 				return false;
 			}
+			// Output probes and stats
+			Probe<int> *probe_carrier_capacity;
+			Probe<int> *probe_carrier_remaining_capacity;
+			unsigned int carrier_id = (*carrier_it)->getCarriersId();
+			probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
+				true, SAMPLE_LAST, "Up/Return capacity.Category %s.Carrier%u.Available",
+				label.c_str(), carrier_id);
+
+			probe_carrier_remaining_capacity = Output::registerProbe<int>("Kbits/s",
+				true, SAMPLE_LAST, "Up/Return capacity.Category %s.Carrier%u.Remaining",
+				label.c_str(), carrier_id);
+
+			this->probes_carrier_return_capacity.insert(
+				std::pair<unsigned int,Probe<int> *>(carrier_id,
+				                                     probe_carrier_capacity));
+
+			this->probes_carrier_return_remaining_capacity.insert(
+				std::pair<unsigned int, Probe<int> *>(carrier_id,
+				                                      probe_carrier_remaining_capacity));
+
+			this->carrier_return_remaining_capacity_pktpf.insert(
+				std::pair<unsigned int, int>(carrier_id, 0));
 		}
+		// Output probes and stats
+		Probe<int> *probe_category_capacity;
+		Probe<int> *probe_category_remaining_capacity;
+
+		probe_category_capacity = Output::registerProbe<int>("Kbits/s", true,
+			SAMPLE_LAST, "Up/Return capacity.Category %s.Total.Available",
+			label.c_str());
+		this->probes_category_return_capacity.insert(
+			std::pair<string,Probe<int> *>(label, probe_category_capacity));
+
+		probe_category_remaining_capacity = Output::registerProbe<int>(
+			"Kbits/s", true,  SAMPLE_LAST,
+			"Up/Return capacity.Category %s.Total.Remaining",
+			label.c_str());
+		this->probes_category_return_remaining_capacity.insert(
+			std::pair<string,Probe<int> *>(label, probe_category_remaining_capacity));
+
+		this->category_return_remaining_capacity_pktpf.insert(
+			std::pair<string, int>(label, 0));
 	}
+
 	return true;
 }
-
 
 bool DamaCtrlRcsLegacy::runDamaRbdc()
 {
@@ -130,6 +160,16 @@ bool DamaCtrlRcsLegacy::runDamaRbdc()
 			                            category);
 		}
 	}
+	// Output stats and probes
+	this->probe_gw_rbdc_req_num->put(gw_rbdc_req_num);
+	this->gw_rbdc_req_num = 0;
+	this->probe_gw_rbdc_req_size->put(
+		this->converter->pktpfToKbps(this->gw_rbdc_req_size_pktpf));
+	this->gw_rbdc_req_size_pktpf = 0;
+	this->probe_gw_rbdc_alloc->put(
+		this->converter->pktpfToKbps(this->gw_rbdc_alloc_pktpf));
+	this->gw_rbdc_alloc_pktpf = 0;
+
 	return true;
 }
 
@@ -155,6 +195,17 @@ bool DamaCtrlRcsLegacy::runDamaVbdc()
 			                            category);
 		}
 	}
+
+	// Output stats and probes
+	this->probe_gw_vbdc_req_num->put(this->gw_vbdc_req_num);
+	this->gw_vbdc_req_num = 0;
+	this->probe_gw_vbdc_req_size->put(
+		this->converter->pktToKbits(this->gw_vbdc_req_size_pkt));
+	this->gw_vbdc_req_size_pkt = 0;
+	this->probe_gw_vbdc_alloc->put(
+		this->converter->pktToKbits(this->gw_vbdc_alloc_pkt));
+	this->gw_vbdc_alloc_pkt = 0;
+
 	return true;
 }
 
@@ -180,18 +231,20 @@ bool DamaCtrlRcsLegacy::runDamaFca()
 			                            category);
 		}
 	}
+
+	// Output probes and stats
+	this->probe_gw_fca_alloc->put(
+		this->converter->pktpfToKbps(this->gw_fca_alloc_pktpf));
+	this->gw_fca_alloc_pktpf = 0;
+
 	return true;
 }
 
 
-// TODO remove stats contexts and use local Dama stats
 bool DamaCtrlRcsLegacy::resetDama()
 {
 	TerminalCategories::const_iterator category_it;
 	vector<CarriersGroup *>::const_iterator carrier_it;
-
-	// reset request statistics
-	memset(&this->stat_context, 0, sizeof(dc_stat_context_t));
 
 	// Initialize the capacity of carriers
 	for(category_it = this->categories.begin();
@@ -224,6 +277,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 				this->converter->kbitsToPkt(remaining_capacity_kb) /
 				this->frames_per_superframe;
 
+
 			// initialize remaining capacity with total capacity in
 			// packet per superframe as it is the unit used in DAMA computations
 			(*carrier_it)->setRemainingCapacity(remaining_capacity_pktpf);
@@ -233,8 +287,31 @@ bool DamaCtrlRcsLegacy::resetDama()
 			          (*carrier_it)->getCarriersId(),
 			          remaining_capacity_pktpf,
 			          remaining_capacity_kb / this->frames_per_superframe);
+
+			// Output probes and stats
+			this->probes_carrier_return_capacity[(*carrier_it)->
+				getCarriersId()]->put(this->converter->pktpfToKbps(
+				remaining_capacity_pktpf));
+			this->gw_return_total_capacity_pktpf += remaining_capacity_pktpf;
+			this->category_return_capacity_pktpf += remaining_capacity_pktpf;
+			this->carrier_return_remaining_capacity_pktpf[
+				(*carrier_it)->getCarriersId()] =
+				remaining_capacity_pktpf;
 		}
+
+		// Output probes and stats
+		this->probes_category_return_capacity[category->getLabel()]->put(
+			this->converter->pktpfToKbps(category_return_capacity_pktpf));
+		this->category_return_remaining_capacity_pktpf[category->getLabel()] =
+			category_return_capacity_pktpf;
+		this->category_return_capacity_pktpf = 0;
 	}
+
+	//Output probes and stats
+	this->probe_gw_return_total_capacity->put(
+		this->converter->pktpfToKbps(gw_return_total_capacity_pktpf));
+	this->gw_remaining_capacity_pktpf = gw_return_total_capacity_pktpf;
+	this->gw_return_total_capacity_pktpf = 0;
 
 	return true;
 }
@@ -282,32 +359,45 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 
 		request_pktpf = terminal->getRequiredRbdc();
 		total_request_pktpf += request_pktpf;
-		// TODO stats
-/*		this->stat_context.rbdc_request_number++;
-		this->stat_context.rbdc_request_sum_kbps +=
-				this->converter->pktpfToKbps(request_pktpf);*/
+
+		// Output stats and probes
+		if (request_pktpf > 0)
+			this->gw_rbdc_req_num++;
 	}
+	// Output stats and probes
+	gw_rbdc_req_size_pktpf += total_request_pktpf;
 
 	if(total_request_pktpf == 0)
 	{
 		UTI_DEBUG("%s no RBDC request for this frame.\n",
 		          debug.c_str());
+
+		// Output stats and probes
+		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+		{
+			terminal = (TerminalContextRcs *)(*tal_it);
+			this->probes_st_rbdc_alloc[terminal->getTerminalId()]->put(0);
+		}
+
 		return;
 	}
 
 	// Fair share calculation
 	fair_share = (double) total_request_pktpf / remaining_capacity_pktpf;
 
-	// TODO stats context
-//	this->stat_context.fair_share = fair_share;
-	// Record stat
-//	DC_RECORD_STAT("FAIR SHARE %f", fair_share);
-
 	// if there is no congestion,
 	// force the ratio to 1.0 in order to avoid requests limitation
 	if(fair_share < 1.0)
 	{
 		fair_share = 1.0;
+
+		// Output probes and stats
+		this->gw_rbdc_alloc_pktpf += total_request_pktpf;
+	}
+	else
+	{
+		// Output probes and stats
+		this->gw_rbdc_alloc_pktpf += remaining_capacity_pktpf;
 	}
 
 	UTI_DEBUG("%s: sum of all RBDC requests = %u packets per superframe "
@@ -330,6 +420,14 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 
 		// decrease the total capacity
 		remaining_capacity_pktpf -= rbdc_alloc_pktpf;
+
+		// Output probes and stats
+		this->probes_st_rbdc_alloc[terminal->getTerminalId()]->put(
+			this->converter->pktpfToKbps(rbdc_alloc_pktpf));
+		this->carrier_return_remaining_capacity_pktpf[carrier_id] -= rbdc_alloc_pktpf;
+		this->category_return_remaining_capacity_pktpf[category->getLabel()]
+			-= rbdc_alloc_pktpf;
+		this->gw_remaining_capacity_pktpf -= rbdc_alloc_pktpf;
 
 		if(fair_share > 1.0)
 		{
@@ -368,6 +466,11 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 					remaining_capacity_pktpf--;
 					UTI_DEBUG_L3("%s step 2 allocating 1 cell to ST%u\n",
 					             debug.c_str(), terminal->getTerminalId());
+					// Update probes and stats
+					this->carrier_return_remaining_capacity_pktpf[carrier_id]--;
+					this->category_return_remaining_capacity_pktpf
+						[category->getLabel()]--;
+					this->gw_remaining_capacity_pktpf--;
 				}
 			}
 		}
@@ -396,6 +499,14 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 	{
 		UTI_INFO("%s skipping VBDC dama computation: Not enough capacity\n",
 				 debug.c_str());
+
+		// Output stats and probes
+		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+		{
+			terminal = (TerminalContextRcs *)(*tal_it);
+			this->probes_st_vbdc_alloc[terminal->getTerminalId()]->put(0);
+		}
+
 		return;
 	}
 
@@ -431,6 +542,15 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 
 		if(request_pkt > 0)
 		{
+
+			// Output stats and probes
+			if(this->probe_gw_vbdc_req_size->isEnabled() ||
+			this->probe_gw_vbdc_req_num->isEnabled())
+			{
+				this->gw_vbdc_req_num++;
+				this->gw_vbdc_req_size_pkt += request_pkt;
+			}
+
 			if(request_pkt <= remaining_capacity_pktpf)
 			{
 				// enough capacity to allocate
@@ -440,21 +560,60 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 				             debug.c_str(),
 				             terminal->getTerminalId(),
 				             request_pkt);
+
+				// Output probes and stats
+				this->probes_st_vbdc_alloc[terminal->getTerminalId()]->put(
+					this->converter->pktToKbits(request_pkt));
+				this->gw_vbdc_alloc_pkt += request_pkt;
+				this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+					request_pkt;
+				this->category_return_remaining_capacity_pktpf[category->getLabel()]
+					-= request_pkt;
+				this->gw_remaining_capacity_pktpf -= request_pkt;
 			}
 			else
 			{
 				// not enough capacity to allocate the complete request
 				terminal->setVbdcAllocation(remaining_capacity_pktpf,
 				                            this->frames_per_superframe);
-				remaining_capacity_pktpf = 0;
+
+				// Output stats and probes
+				this->probes_st_vbdc_alloc[terminal->getTerminalId()]->put(
+					this->converter->pktToKbits(remaining_capacity_pktpf));
+				if(this->probe_gw_vbdc_req_size->isEnabled() ||
+					this->probe_gw_vbdc_req_num->isEnabled() ||
+					this->probe_gw_vbdc_alloc->isEnabled())
+				{
+					this->gw_vbdc_alloc_pkt += remaining_capacity_pktpf;
+					do
+					{
+						terminal = (TerminalContextRcs *)(*tal_it);
+						request_pkt = terminal->getRequiredVbdc(
+							this->frames_per_superframe);
+						gw_vbdc_req_size_pkt += request_pkt;
+						if(request_pkt > 0)
+							this->gw_vbdc_req_num++;
+						tal_it++;
+					}
+					while(tal_it != tal.end());
+				}
+				this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+					remaining_capacity_pktpf;
+				this->category_return_remaining_capacity_pktpf[category->getLabel()]
+					-= remaining_capacity_pktpf;
+				this->gw_remaining_capacity_pktpf -= remaining_capacity_pktpf;
+
 				UTI_DEBUG_L3("%s: ST%u allocate partial remaining VBDC: %u<%u\n",
 				             debug.c_str(),
 				             terminal->getTerminalId(),
 				             remaining_capacity_pktpf, request_pkt);
+				remaining_capacity_pktpf = 0;
+
 				return;
 			}
 		}
 	}
+
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
 }
 
@@ -483,19 +642,7 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 		UTI_DEBUG("SF#%u: no fca, skip\n", this->current_superframe_sf);
 		return;
 	}
-	fca_pktpf = this->converter->kbpsToPktpf(fca_kbps);
-
-	remaining_capacity_pktpf = carriers->getRemainingCapacity();
-
-	if(remaining_capacity_pktpf < fca_pktpf)
-	{
-		UTI_INFO("%s skipping FCA dama computaiton. Not enough capacity\n",
-		         debug.c_str());
-		return;
-	}
-
-	UTI_DEBUG("%s remaining capacity = %u packets before FCA computation\n",
-	          debug.c_str(), remaining_capacity_pktpf);
+	fca_pktpf = this->converter->kbpsToPktpf(this->fca_kbps);
 
 	tal = category->getTerminalsInCarriersGroup<TerminalContextRcs>(carrier_id);
 	tal_it = tal.begin();
@@ -504,33 +651,84 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 		// no ST
 		return;
 	}
+
+	remaining_capacity_pktpf = carriers->getRemainingCapacity();
+
+	if(remaining_capacity_pktpf <= 0)
+	{
+		// Output probes and stats
+		while(tal_it != tal.end())
+		{
+			terminal = (TerminalContextRcs *)(*tal_it);
+			this->probes_st_fca_alloc[terminal->getTerminalId()]->put(0);
+			tal_it++;
+		}
+
+		UTI_INFO("%s skipping FCA dama computaiton. Not enough capacity\n",
+		         debug.c_str());
+		return;
+	}
+
+	UTI_DEBUG("%s remaining capacity = %u packets before FCA computation\n",
+	          debug.c_str(), remaining_capacity_pktpf);
+
 	// sort terminal according to their remaining credit
 	// this is a random but logical choice
 	std::stable_sort(tal.begin(), tal.end(),
 	                 TerminalContextRcs::sortByRemainingCredit);
-	while(remaining_capacity_pktpf >= fca_pktpf &&
-	      tal_it != tal.end())
+
+	while(tal_it != tal.end())
 	{
 		terminal = (TerminalContextRcs *)(*tal_it);
 
-		remaining_capacity_pktpf -= fca_pktpf;
-		UTI_DEBUG_L3("%s ST%u FCA allocation %u)\n",
+		if (remaining_capacity_pktpf > fca_pktpf)
+		{
+			remaining_capacity_pktpf -= fca_pktpf;
+			UTI_DEBUG_L3("%s ST%u FCA allocation %u)\n",
 		             debug.c_str(),
 		             terminal->getTerminalId(),
 		             fca_pktpf);
-		terminal->setFcaAllocation(this->fca_kbps);
-		//TODO stats
-		//this->stat_context->fca_kbp += this->converter->pktpfToKbps(fca_pktpf);
+			terminal->setFcaAllocation(fca_pktpf);
+
+			// Output probes and stats
+			if(this->probe_gw_fca_alloc->isEnabled())
+			{
+				this->probes_st_fca_alloc[terminal->getTerminalId()]->put(
+					this->converter->pktpfToKbps(fca_pktpf));
+			}
+			this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+				fca_pktpf;
+			this->category_return_remaining_capacity_pktpf[category->getLabel()]
+				-= fca_pktpf;
+			this->gw_remaining_capacity_pktpf -= fca_pktpf;
+		}
+		else
+		{
+			UTI_DEBUG_L3("%s ST%u FCA allocation %u)\n",
+		             debug.c_str(),
+		             terminal->getTerminalId(),
+		             remaining_capacity_pktpf);
+			terminal->setFcaAllocation(remaining_capacity_pktpf);
+
+			// Output probes and stats
+			this->probes_st_fca_alloc[terminal->getTerminalId()]->put(
+				this->converter->pktpfToKbps(remaining_capacity_pktpf));
+				this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+					remaining_capacity_pktpf;
+				this->category_return_remaining_capacity_pktpf[category->getLabel()]
+					-= remaining_capacity_pktpf;
+				this->gw_remaining_capacity_pktpf -= remaining_capacity_pktpf;
+
+			remaining_capacity_pktpf = 0;
+		}
+
+		// Output probes and stats
+		this->gw_fca_alloc_pktpf += terminal->getFcaAllocation();
+
+		tal_it++;
 	}
 
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
 }
 
 
-void DamaCtrlRcsLegacy::updateStatistics()
-{
-	//TODO
-	//probe->add
-// TODO DC_RECORD_STAT for
-// CRA, NB ST, RBDC/VBDC REQ NBR, RBDC/VBDC REQ SUM, RBDC/VBDC/FCA ALLOC, FAIR SHARE
-}
