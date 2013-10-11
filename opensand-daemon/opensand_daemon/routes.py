@@ -283,10 +283,8 @@ class OpenSandRoutes(object):
                 OpenSandRoutes._route_hdl.add(route_v4, gw_v4)
         except NlExists:
             LOGGER.info("route already exists on %s" % host)
-            del OpenSandRoutes._routes_v4[host]
         except NlError, msg:
             LOGGER.error("fail to add IPv4 route for %s: %s" % (host, msg))
-            # remove host from routes to avoid deleting it on stop
             del OpenSandRoutes._routes_v4[host]
             raise
         try:
@@ -294,10 +292,8 @@ class OpenSandRoutes(object):
                 OpenSandRoutes._route_hdl.add(route_v6, gw_v6)
         except NlExists:
             LOGGER.info("route already exists on %s" % host)
-            del OpenSandRoutes._routes_v6[host]
         except NlError, msg:
             LOGGER.error("fail to add IPv6 route for %s: %s" % (host, msg))
-            # remove host from routes to avoid deleting it on stop
             del OpenSandRoutes._routes_v6[host]
             raise
 

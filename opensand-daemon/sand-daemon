@@ -338,7 +338,7 @@ def start_daemon():
         sig_handler(signal.SIGUSR2, None)
 
 	# set opensand interfaces down if nothng is running
-    if StateHandler._running:
+    if not StateHandler._running:
         LOGGER.info("process are not running, standbye interfaces")
         INTERFACES.stanbye()
 
