@@ -74,9 +74,9 @@ static size_t getPayloadSize(string coding_rate)
 	else if(!coding_rate.compare("5/6"))
 		payload = 6730;
 	else if(!coding_rate.compare("8/9"))
-		payload = 7274;
-	else if(!coding_rate.compare("9/10"))
 		payload = 7184;
+	else if(!coding_rate.compare("9/10"))
+		payload = 7274;
 	else
 		payload = 8100; //size of a normal FECFRAME
 
@@ -264,7 +264,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			          current_superframe_sf, current_frame, tal_id);
 		}
 
-		if(!this->getIncompleteBBFrame(tal_id, &current_bbframe))
+		if(!this->getIncompleteBBFrame(tal_id, carriers, &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
 			delete encap_packet;
@@ -549,6 +549,7 @@ error:
 
 
 bool ForwardSchedulingS2::getIncompleteBBFrame(unsigned int tal_id,
+                                               CarriersGroup *carriers,
                                                BBFrame **bbframe)
 {
 	map<unsigned int, BBFrame *>::iterator iter;
@@ -562,6 +563,9 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(unsigned int tal_id,
 		// cannot get modcod for the ST skip this element
 		goto skip;
 	}
+
+	// get best modcod ID according to carrier
+	modcod_id = carriers->getNearestFmtId(modcod_id);
 
 	// find if the BBFrame exists
 	iter = this->incomplete_bb_frames.find(modcod_id);

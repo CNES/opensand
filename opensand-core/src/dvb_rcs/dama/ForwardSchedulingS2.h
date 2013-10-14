@@ -136,11 +136,14 @@ class ForwardSchedulingS2: public Scheduling
 	/**
 	 * @brief Get the incomplete BBFrame for the current destination terminal
 	 *
-	 * @param tal_id  the terminal ID we want to send the frame
-	 * @param bbframe OUT: the BBframe for this packet
-	 * @return        true on success, false otherwise
+	 * @param tal_id    the terminal ID we want to send the frame
+	 * @paarm carriers  the carriers group to which the terminal belongs
+	 * @param bbframe   OUT: the BBframe for this packet
+	 * @return          true on success, false otherwise
 	 */
-	bool getIncompleteBBFrame(unsigned int tal_id, BBFrame **bbframe);
+	bool getIncompleteBBFrame(unsigned int tal_id,
+	                          CarriersGroup *carriers,
+	                          BBFrame **bbframe);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames
