@@ -29,7 +29,7 @@
 /**
  * @file BlockDvbTal.cpp
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal, compatible
- *        with Legacy Dama agent
+ *        with Legacy and RrmQosDama agent
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
@@ -43,6 +43,7 @@
 #include "BlockDvbTal.h"
 
 #include "DamaAgentRcsLegacy.h"
+#include "DamaAgentRcsRrmQos.h"
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
@@ -665,6 +666,13 @@ bool BlockDvbTal::initDama()
 		         this->super_frame_counter);
 
 		this->dama_agent = new DamaAgentRcsLegacy();
+	}
+	else if(dama_algo == "RrmQos")
+	{
+		UTI_INFO("%s SF#%u: create RrmQos DAMA agent\n", FUNCNAME,
+		         this->super_frame_counter);
+
+		this->dama_agent = new DamaAgentRcsRrmQos();
 	}
 	else
 	{

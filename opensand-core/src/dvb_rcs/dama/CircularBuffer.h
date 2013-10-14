@@ -1,5 +1,6 @@
 /*
  *
+ *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
@@ -10,18 +11,18 @@
  * This file is part of the OpenSAND testbed.
  *
  *
- * OpenSAND is free software : you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * OpenSAND is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
 
@@ -35,6 +36,7 @@
 #define _CIRCULAR_BUFFER_H
 
 #include "OpenSandCore.h"
+
 
 /**
  * @class CircularBuffer
@@ -66,6 +68,8 @@ class CircularBuffer
 	rate_kbps_t GetMean();
 	rate_kbps_t GetMin();
 	rate_kbps_t GetSum();
+	rate_kbps_t GetPartialSumFromPrevious(int value_number);
+	rate_kbps_t GetValueIndex(int i);
 	void Debug();
 };
 

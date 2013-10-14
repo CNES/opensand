@@ -69,12 +69,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="damaAlgorithm">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="Legacy" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 
 <!-- physical_layer section description -->
 <xsd:element name="physical_layer">

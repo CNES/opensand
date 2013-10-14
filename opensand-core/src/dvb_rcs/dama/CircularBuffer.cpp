@@ -10,18 +10,18 @@
  * This file is part of the OpenSAND testbed.
  *
  *
- * OpenSAND is free software : you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * OpenSAND is free software : you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  *
  */
 
@@ -31,16 +31,14 @@
  * @author Viveris Technologies
  */
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
-
-#include "CircularBuffer.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
+#include "CircularBuffer.h"
 
+#define DBG_PACKAGE PKG_DAMA_DA
+#include <opensand_conf/uti_debug.h>
 
 
 /**
@@ -216,6 +214,48 @@ rate_kbps_t CircularBuffer::GetSum()
 		return 0;
 	else
 		return this->sum;
+}
+
+/**
+ * Get the sum of a part of the value stored in the circular buffer starting
+ * from the newest value (return 0 if the buffer is empty)
+ *
+ * @return the partial sum
+ */
+rate_kbps_t CircularBuffer::GetPartialSumFromPrevious(int value_number)
+{
+	rate_kbps_t partial_sum_kbps = 0;
+	if (this->values == NULL)
+		UTI_ERROR("[CircularBuffer::GetPreviousValue] circular buffer not "
+			"initialized\n");
+	else
+	{   
+		for(int i = 0; i < value_number; i++) 
+			partial_sum_kbps += (this->GetValueIndex(-i));
+	}   
+	return partial_sum_kbps;
+}
+
+/**
+ * Get the value at index (return 0 if the buffer is empty)
+ *
+ * @return value at index
+ */
+rate_kbps_t CircularBuffer::GetValueIndex(int i)
+{
+	double value;
+	if(this->values == NULL)
+	{
+		UTI_ERROR("[CircularBuffer::GetPreviousValue] circular buffer not "
+		          "initialized\n");
+		value = 0;
+	}     
+	else
+	{
+		i = (i + this->index) % this->size;
+		value = this->values[i];
+	}
+	return value;
 }
 
 /**

@@ -8,9 +8,11 @@ libopensand_dama_la_cpp = \
 	DamaAgent.cpp \
 	DamaAgentRcs.cpp \
 	DamaAgentRcsLegacy.cpp \
+	DamaAgentRcsRrmQos.cpp \
 	DamaCtrl.cpp \
 	DamaCtrlRcs.cpp \
-	DamaCtrlRcsLegacy.cpp
+	DamaCtrlRcsLegacy.cpp \
+	DamaCtrlRcsRrmQos.cpp
 
 libopensand_dama_la_h = \
 	CircularBuffer.h \
@@ -21,9 +23,11 @@ libopensand_dama_la_h = \
 	DamaAgent.h \
 	DamaAgentRcs.h \
 	DamaAgentRcsLegacy.h \
+	DamaAgentRcsRrmQos.h
 	DamaCtrl.h \
 	DamaCtrlRcs.h \
-	DamaCtrlRcsLegacy.h
+	DamaCtrlRcsLegacy.h \
+	DamaCtrlRcsRrmQos.h 
 
 libopensand_dama_la_SOURCES = \
 	$(libopensand_dama_la_cpp) \

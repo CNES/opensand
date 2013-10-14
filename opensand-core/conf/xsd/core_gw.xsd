@@ -27,6 +27,12 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="damaAlgorithm">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Legacy" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- the lan adaptation schemes tables -->
 <xsd:element name="lan_adaptation_schemes">
     <xsd:complexType>
