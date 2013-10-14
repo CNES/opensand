@@ -803,10 +803,10 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 
 		this->probe_st_queue_size[i] =
 			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-			                           "Queue size.%s", fifo_type);
+			                           "Queue size.packets.%s", fifo_type);
 		this->probe_st_queue_size_kb[i] =
 			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-			                           "Queue size.%s_kb", fifo_type);
+			                           "Queue size.%s", fifo_type);
 
 		this->probe_st_l2_to_sat_before_sched[i] =
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
@@ -1588,6 +1588,9 @@ void BlockDvbTal::updateStatsOnFrame()
 		this->phy_from_sat_bytes * 8 / this->frame_duration_ms);
 	this->probe_st_phy_to_sat->put(
 		this->phy_to_sat_bytes * 8 / this->frame_duration_ms);
+
+	// send all probes
+	Output::sendProbes();
 
 	// reset stat context for next frame
 	this->resetStatsCxt();

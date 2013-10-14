@@ -42,6 +42,7 @@
 
 #include <algorithm>
 
+using std::pair;
 
 DamaCtrl::DamaCtrl():
 	is_parent_init(false),
@@ -227,37 +228,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 	vol_kb_t max_vbdc_kb = logon.getMaxVbdc();
 	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
-	// Output probes and stats
-	Probe<int> *probe_cra;
-	Probe<int> *probe_rbdc_max;
-	Probe<int> *probe_rbdc;
-	Probe<int> *probe_vbdc;
-	Probe<int> *probe_fca;
-	probe_cra = Output::registerProbe<int>(
-		"Kbits/s", true, SAMPLE_LAST, "ST%u_allocation.CRA allocation", tal_id);
-	this->probes_st_cra_alloc.insert(
-		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_cra));
-	probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
-	                                            "ST%u_allocation.RBDC max",
-	                                            tal_id);
-	this->probes_st_rbdc_max.insert(
-		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_rbdc_max));
-	probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
-	                                        "ST%u_allocation.RBDC allocation",
-	                                        tal_id);
-	this->probes_st_rbdc_alloc.insert(
-		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_rbdc));
-	probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_LAST,
-	                                        "ST%u_allocation.VBDC allocation",
-	                                        tal_id);
-	this->probes_st_vbdc_alloc.insert(
-		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_vbdc));
-	probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
-	                                       "ST%u_allocation.FCA allocation",
-	                                       tal_id);
-	this->probes_st_fca_alloc.insert(
-		std::pair<tal_id_t,Probe<int> *>(tal_id, probe_fca));
-
 	DamaTerminalList::iterator it;
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
@@ -266,6 +236,12 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		TerminalMapping::const_iterator it;
 		TerminalCategories::const_iterator category_it;
 		TerminalCategory *category;
+
+		Probe<int> *probe_cra;
+		Probe<int> *probe_rbdc_max;
+		Probe<int> *probe_rbdc;
+		Probe<int> *probe_vbdc;
+		Probe<int> *probe_fca;
 
 		// create the terminal
 		if(!this->createTerminal(&terminal,
@@ -280,9 +256,36 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 			return false;
 		}
 
+		// Output probes and stats
+		probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		                                       "ST%u_allocation.CRA allocation",
+		                                       tal_id);
+		this->probes_st_cra_alloc.insert(
+			pair<tal_id_t, Probe<int> *>(tal_id, probe_cra));
+		probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		                                            "ST%u_allocation.RBDC max",
+		                                            tal_id);
+		this->probes_st_rbdc_max.insert(
+			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc_max));
+		probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		                                        "ST%u_allocation.RBDC allocation",
+		                                        tal_id);
+		this->probes_st_rbdc_alloc.insert(
+			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc));
+		probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_LAST,
+		                                        "ST%u_allocation.VBDC allocation",
+		                                        tal_id);
+		this->probes_st_vbdc_alloc.insert(
+			pair<tal_id_t, Probe<int> *>(tal_id, probe_vbdc));
+		probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		                                       "ST%u_allocation.FCA allocation",
+		                                       tal_id);
+		this->probes_st_fca_alloc.insert(
+			pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
+
 		// Add the new terminal to the list
 		this->terminals.insert(
-			std::pair<unsigned int, TerminalContext *>(tal_id, terminal));
+			pair<unsigned int, TerminalContext *>(tal_id, terminal));
 
 		// Find the associated category
 		it = this->terminal_affectation.find(tal_id);
@@ -308,9 +311,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		this->gw_st_num += 1;
 		this->gw_cra_alloc_kbps += cra_kbps;
 		this->probe_gw_cra_alloc->put(gw_cra_alloc_kbps);
-		this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
 		this->gw_rbdc_max_kbps += max_rbdc_kbps;
-		this->probe_gw_rbdc_max->put(gw_cra_alloc_kbps);
+		this->probe_gw_rbdc_max->put(gw_rbdc_max_kbps);
 	}
 	else
 	{
@@ -443,6 +445,8 @@ void DamaCtrl::setRecordFile(FILE *event_stream, FILE *stat_stream)
 	DC_RECORD_STAT("%s", "# --------------------------------------\n");
 }
 
+
+// TODO disable timers on probes if output is disabled
 void DamaCtrl::updateStatistics()
 {
 	// Update probes and stats

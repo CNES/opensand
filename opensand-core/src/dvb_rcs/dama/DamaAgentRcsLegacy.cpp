@@ -255,6 +255,8 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		             this->current_superframe_sf, rbdc_request_kbps,
 		             vbdc_request_pkt);
 		empty = true;
+		this->probe_st_rbdc_req_size->put(0);
+		this->probe_st_vbdc_req_size->put(0);
 		goto end;
 	}
 
@@ -278,6 +280,10 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		this->probe_st_rbdc_req_size->put(rbdc_request_kbps);
 
 	}
+	else
+	{
+		this->probe_st_rbdc_req_size->put(0);
+	}
 
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
@@ -288,6 +294,10 @@ bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
 		this->probe_st_vbdc_req_size->put(
 			this->converter->pktToKbits(vbdc_request_pkt));
 
+	}
+	else
+	{
+		this->probe_st_vbdc_req_size->put(0);
 	}
 
 	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets in VBDC",
@@ -489,5 +499,4 @@ vol_pkt_t DamaAgentRcsLegacy::getMacBufferArrivals(cr_type_t cr_type)
 
 void DamaAgentRcsLegacy::updateStatistics()
 {
-	Output::sendProbes();
 }

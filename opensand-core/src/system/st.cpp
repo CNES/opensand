@@ -231,6 +231,7 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
+	// TODO remove lan iface once daemon handles bridging part
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptationTal,
 	                                       BlockLanAdaptationTal::Upward,
 	                                       BlockLanAdaptationTal::Downward,

@@ -97,6 +97,7 @@ class EncapPlugin: public StackPlugin
 		 * @param context_id  the context to flush
 		 * @return            a list of encapsulation packets
 		 */
+		// TODO replace int by uintXX_t
 		virtual NetBurst *flush(int context_id) = 0;
 		
 		/**

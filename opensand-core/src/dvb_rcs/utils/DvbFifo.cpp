@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <cstring>
 
 
 /**
@@ -68,6 +69,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	max_size_pkt(max_size_pkt),
 	carrier_id(0)
 {
+	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
 	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
 	// of FIFO queues (dvb_rcs_tal section)
@@ -284,6 +286,7 @@ void DvbFifo::resetStats()
 	// Add nbr packet dropped
 }
 
+// for sat spots
 void DvbFifo::init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name)
 {
 	this->carrier_id = carrier_id;
