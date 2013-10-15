@@ -106,7 +106,7 @@ class ProbeSelectionController(object):
                 except ValueError, msg:
                     error_popup(str(msg))
         self._probe_store.foreach(self.unselect)
-        self._notify_probe_display_changed()
+        self.probe_displayed_change()
 
     def unselect(self, model, path, iter):
         """ unselect a statistic """
@@ -135,7 +135,6 @@ class ProbeSelectionController(object):
                     except ValueError:
                         # the probe is not available for this scenario
                         pass
-        self._notify_probe_display_changed()
 
         gobject.idle_add(self._update_data)
 
@@ -157,7 +156,7 @@ class ProbeSelectionController(object):
             self._program_listview.set_cursor(0)
 
         self._update_probe_list()
-        self._notify_probe_display_changed()
+        self.probe_displayed_change()
 
         if self._collection_dialog:
             self._collection_dialog.update_list(self._program_list)
@@ -244,7 +243,7 @@ class ProbeSelectionController(object):
 
         self._probe_store.set(it, 0, new_value)
 
-        self._notify_probe_display_changed()
+        self.probe_displayed_change()
 
     def probe_enabled_changed(self, probe, was_hidden):
         """ called when the enabled status of a probe is changed """
@@ -252,9 +251,9 @@ class ProbeSelectionController(object):
             self._update_probe_list()
 
         if was_hidden:
-            self._notify_probe_display_changed()
+            self.probe_displayed_change()
 
-    def _notify_probe_display_changed(self):
+    def probe_displayed_change(self):
         """ notifies the main view of the currently displayed probes """
         displayed_probes = []
 

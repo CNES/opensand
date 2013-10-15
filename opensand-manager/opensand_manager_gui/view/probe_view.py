@@ -72,6 +72,7 @@ class ProbeView(WindowView):
         self._saved_data = None
         self._update_graph_tag = None
 
+        # TODO we should not use self as first argument
         self._probe_sel_controller = ProbeSelectionController(self,
             self._ui.get_widget("probe_sel_progs"),
             self._ui.get_widget("probe_sel_probes"))
@@ -178,8 +179,14 @@ class ProbeView(WindowView):
 
         self._probe_sel_controller.update_data(self._saved_data.get_programs())
 
-    def _start_graph_update(self):
+    def _start_graph_update(self, new_state=True):
         """ enables the timer to refresh the graphs periodically """
+        if new_state:
+            self._probe_display.reset()
+            # need to call this function to be sure that graphics are reloaded
+            # with the reset flag to True
+            self._probe_sel_controller.probe_displayed_change()
+
         self._update_graph_tag = gobject.timeout_add(500,
             self._probe_display.graph_update,
             priority=gobject.PRIORITY_HIGH_IDLE)

@@ -68,7 +68,7 @@ class ProbeEvent(ProbeView):
             return
 
         if val and self._update_graph_tag is None:
-            self._start_graph_update()
+            self._start_graph_update(False)
 
         elif not val and self._update_graph_tag is not None:
             self._stop_graph_update()

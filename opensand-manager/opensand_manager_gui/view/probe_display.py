@@ -116,7 +116,7 @@ class ProbeGraph(object):
         if not self._dirty:
             # add fake values for best print, taking absolute minimum value
             # on ordinates allows getting correct scale in any case
-            # TODO if some values are computed on values, ignore these
+            # TODO if some values are computed on stats, ignore these
             try:
                 x.insert(0, x[0] - 1)
                 x.insert(0, 0)
@@ -186,6 +186,7 @@ class ProbeDisplay(object):
         parent_box.pack_start(self._canvas, True, True)
         self._canvas.show()
         self._probe_data = {}
+        self._reset = False
 
     def save_figure(self, filename):
         """
@@ -202,6 +203,12 @@ class ProbeDisplay(object):
         else:
             self._probe_data = probe_data
 
+    def reset(self):
+        """
+        Reset a probe that was kept among runs
+        """
+        self._reset = True
+
     def update(self, displayed_probes):
         """
         Called when the probe display need to be updated (e.g. the list of
@@ -217,9 +224,11 @@ class ProbeDisplay(object):
         max_index = len(self._displayed_probes) + 1
 
         for probe in displayed_probes:
-            graph = self._displayed_probes.get(probe.global_ident)
-
-            probe_data = self._probe_data.get(probe.full_name)
+            probe_data = None
+            graph = None
+            if not self._reset:
+                graph = self._displayed_probes.get(probe.global_ident)
+                probe_data = self._probe_data.get(probe.full_name)
 
             if not graph:
                 graph = ProbeGraph(self, probe.program.name, probe.name,
@@ -227,6 +236,7 @@ class ProbeDisplay(object):
                 graph.index = max_index # Temporary, to put it at the end
 
             new_probes.append((probe.global_ident, graph, probe_data))
+        self._reset = False
 
         new_probes.sort(key=lambda item: item[1].index)
 
