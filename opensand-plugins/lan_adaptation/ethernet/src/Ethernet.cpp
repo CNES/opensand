@@ -522,7 +522,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 			if(!evc)
 			{
-				UTI_INFO("cannot find EVC for this flow, use the default values\n");
+				UTI_DEBUG("cannot find EVC for this flow, use the default values\n");
 			}
 
 			// get default QoS value

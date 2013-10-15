@@ -199,8 +199,14 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 
 			// rebuild ethernet frame
 			NetPacket *rohc_packet = comp_packet;
-			buildEthFromPacket(comp_packet, head_length,
-			                   (unsigned char *)head_buffer, &comp_packet);
+			if(!buildEthFromPacket(comp_packet, head_length,
+			                       (unsigned char *)head_buffer,
+			                       &comp_packet))
+			{
+				UTI_ERROR("cannot create Ethernet frame");
+				delete rohc_packet;
+				continue;
+			}
 			delete rohc_packet;
 			if(comp_packet == NULL)
 			{
@@ -288,12 +294,18 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 		{
 			// rebuild ethernet frame
 			NetPacket *rohc_packet = dec_packet;
-			buildEthFromPacket(dec_packet, head_length,
-			                   (unsigned char *)head_buffer, &dec_packet);
+			if(!buildEthFromPacket(dec_packet, head_length,
+			                       (unsigned char *)head_buffer,
+			                       &dec_packet))
+			{
+				UTI_ERROR("cannot create Ethernet frame");
+				delete rohc_packet;
+				continue;
+			}
 			delete rohc_packet;
 			if(dec_packet == NULL)
 			{
-				UTI_ERROR("cannot create ETHERNET frame");
+				UTI_ERROR("cannot create Ethernet frame");
 				continue;
 			}
 		}
@@ -461,14 +473,15 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
 {
 	size_t new_eth_size;
 
+	*eth_frame = NULL;
 	new_eth_size = head_length + packet->getTotalLength();
 
-	if(new_eth_size > MAX_ETHERNET_SIZE)
+/*	if(new_eth_size > MAX_ETHERNET_SIZE)
 	{
 		UTI_ERROR("ethernet frame length (%zu) exceeds maximum length (%d)\n",
 		          new_eth_size, MAX_ETHERNET_SIZE);
 		return false;
-	}
+	}*/
 	// ethernet frame << eth header << rohc packet data
 	memcpy(head_buffer + head_length, packet->getData().c_str(),
 	       packet->getTotalLength());
