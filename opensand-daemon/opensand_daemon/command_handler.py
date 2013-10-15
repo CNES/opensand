@@ -245,15 +245,24 @@ class CommandHandler(MyTcpHandler):
             ProcessList._process_lock.acquire()
             ProcessList._process_list[name] = process
             ProcessList._process_lock.release()
-            
+
+        timeout = 0
+        # we use timeout because if _stop is not set
+        # we won't be able to force kill in test
         while not MyTcpHandler._stop.is_set() and \
-              process.returncode is None:
+              process.returncode is None\
+              and timeout < 130:
             process.poll()
+            timeout += 1
             MyTcpHandler._stop.wait(1)
 
         if process.returncode is None:
             LOGGER.error("kill test because it was not stopped")
-            process.kill()
+            process.terminate()
+            MyTcpHandler._stop.wait(1)
+            process.poll()
+            if process.returncode is None:
+                process.kill()
 
         process.wait()
         

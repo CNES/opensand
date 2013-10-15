@@ -347,7 +347,7 @@ class Controller(threading.Thread):
         """ stop OpenSAND platform """
         # check that at least one component is running
         if not self._model.is_running():
-            self._log.warning("OpenSAND platform is already stopped")
+            self._log.info("OpenSAND platform is already stopped")
 
         self._log.info("Stop OpenSAND platform")
 

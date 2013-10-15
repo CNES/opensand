@@ -155,8 +155,14 @@ class Test:
                               dest="debug", default=False,
                               help="print all the debug information (more "
                               "output than -v)")
+        opt_parser.add_option("-w", "--enable_ws", action="store_true",
+                              dest="ws", default=False,
+                              help="enable verbose mode (print OpenSAND status)")
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
+        opt_parser.add_option("-l", "--test", dest="test", default=None,
+                              help="launch one test in particular (use test "
+                              "name in its folder and set the --type option)")
         opt_parser.add_option("-s", "--service", dest="service",
                               default=SERVICE,
                               help="listen for OpenSAND entities "\
@@ -190,9 +196,13 @@ help="specify the root folder for tests configurations\n"
 "the test directory")
         (options, args) = opt_parser.parse_args()
 
+        self._test = options.test
         self._type = options.type
+        if self._test is not None and self._type is None:
+            raise TestError("Initialization", "--type option needed by --test")
         self._folder = options.folder
         self._service = options.service
+        self._ws_enabled = options.ws
 
         # the threads to join when test is finished
         self._threads = []
@@ -208,7 +218,7 @@ help="specify the root folder for tests configurations\n"
         self._quiet = True
 
         # Create the Log View that will only log in standard output
-        lvl = 'error'
+        lvl = 'warning'
         if options.debug:
             lvl = 'debug'
             self._quiet = False
@@ -269,7 +279,8 @@ help="specify the root folder for tests configurations\n"
         self._log.info(" * Wait for Model and Controller initialization")
         time.sleep(5)
         self._log.info(" * Consider Model and Controller as initialized")
-        self.create_ws_controllers()
+        if self._ws_enabled:
+            self.create_ws_controllers()
 
     def close(self):
         """ stop the service listener """
@@ -336,10 +347,29 @@ help="specify the root folder for tests configurations\n"
                 continue
 
             self._log.info(" * Enter %s tests" % os.path.basename(test_type))
+            if self._quiet:
+                print "Enter \033[1;34m%s\033[0m tests" % os.path.basename(test_type)
+                sys.stdout.flush()
             # get test_name folders
             test_names = glob.glob(test_type + '/*')
+            # get test in only one test should be run
+            if self._test is not None:
+                found = False
+                for test in test_names:
+                    if os.path.basename(test) == self._test:
+                        test_names = [test]
+                        found = True
+                        break
+                if not found:
+                    raise TestError("Initialization", "test '%s' is not "
+                                    "available, found %s" % (self._test, test_names))
+
+            # iter on tests 
             for test_name in test_names:
-                self.stop_opensand()
+                try:
+                    self.stop_opensand()
+                except:
+                    pass
                 if not os.path.exists(os.path.join(test_name, 'scenario')):
                     # skip folders that does not contain a scenario directory
                     self._log.debug("skip folder %s as it does not contain a "
@@ -382,7 +412,11 @@ help="specify the root folder for tests configurations\n"
                     # wait for pending tests to stop
                     self._log.info("waiting for a test thread to stop")
                     thread.join(120)
-                    self._log.info("thread stopped")
+                    if thread.is_alive():
+                        self._log.error("cannot stop a thread, we may have "
+                                        "errors")
+                    else:
+                        self._log.info("thread stopped")
                     self._threads.remove(thread)
                 if len(self._error) > 0:
                     #TODO get the test output
@@ -426,10 +460,16 @@ help="specify the root folder for tests configurations\n"
         except:
             pass
 
+        # check if this is a local test
         if host_name != "TEST":
             # get the host controller
             host_ctrl = None
             found = False
+            if not self._ws_ctrl and host_name.startswith("WS"):
+                # use STinstead => remove WS name and replace name
+                host_name = host_name.split("_", 1)[0]
+                host_name = host_name.replace("WS", "ST")
+                
             if host_name.startswith("WS"):
                 for ctrl in self._ws_ctrl:
                     if ctrl.get_name() == host_name:

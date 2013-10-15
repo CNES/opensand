@@ -232,8 +232,9 @@ class HostModel:
                     self._init_status = InitStatus.PENDING
                 self._state = True
             else:
-                self._log.warning(self._name + ": component '" +
-                                  key + "' does not belong to model")
+                # TODO notice
+                self._log.info(self._name + ": component '" +
+                               key + "' does not belong to model")
         self._lock.release()
 
     def get_ip_address(self):

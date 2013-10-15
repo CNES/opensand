@@ -2,4 +2,4 @@
 
 cd `dirname $0`
 
-g++ -lopensand_output -lpthread -o test_prog test_prog.cpp
+g++ `pkg-config opensand_output --cflags` test_prog.cpp `pkg-config opensand_output --libs` -lpthread -o test_prog

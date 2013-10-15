@@ -1,3 +1,0 @@
-This test consists to launch an iperf command from  WS1 (behind ST1) and GW to
-ST3 and to check that the bandwidth is correct
-For this test WS1 and WS3 shall have the identifier 'test'.

@@ -279,9 +279,9 @@ class OpenSandIfaces(object):
 
     def _init_tun(self):
         """ init the TUN interfaces """
-        # only set the correct address on TUN and bridge, the core will
+        # only set the correct address on TUN
 
-        # compute the TUN and bridge addresses
+        # compute the TUN address
         mask = OpenSandIfaces._lan_ipv4.prefixlen
         # we do as if mask = 24 for smaller masks
         if mask < 24:
@@ -302,7 +302,7 @@ class OpenSandIfaces(object):
                                                                 modulo) + 1),
                                                            mask))
 
-         # compute the TUN and bridge addresses
+         # compute the TUN and addresse
         mask = OpenSandIfaces._lan_ipv6.prefixlen
         # we do as if mask = 24 for smaller masks
         if mask < 112:
