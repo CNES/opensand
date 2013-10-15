@@ -45,6 +45,7 @@
 #include <sys/un.h>
 #include <vector>
 
+using std::vector;
 
 /**
  * @class hold internal output library variables and methods
@@ -78,8 +79,8 @@ private:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	Probe<T> *registerProbe(const std::string &name,
-	                        const std::string &unit,
+	Probe<T> *registerProbe(const string &name,
+	                        const string &unit,
 	                        bool enabled, sample_type_t type);
 
 	/**
@@ -90,7 +91,7 @@ private:
 	 *
 	 * @return the event object
 	 **/
-	Event *registerEvent(const std::string &identifier,
+	Event *registerEvent(const string &identifier,
 	                     event_level_t level);
 
 	/**
@@ -109,7 +110,7 @@ private:
 	 * @param event       The event
 	 * @param msg_format  The message format
 	 **/
-	void sendEvent(Event *event, const std::string &message);
+	void sendEvent(Event *event, const string &message);
 
 	/**
 	 * @brief Set the probe state
@@ -148,10 +149,10 @@ private:
 	event_level_t min_level;
 
 	/// the probes
-	std::vector<BaseProbe*> probes;
+	vector<BaseProbe*> probes;
 
 	/// the events
-	std::vector<Event*> events;
+	vector<Event*> events;
 
 	/// the socket for communication with daemon
 	int sock;
@@ -166,15 +167,17 @@ private:
 	sockaddr_un self_sock_addr;
 };
 
+
+// TODO never return NULL because in core we never check before using put
 template<typename T>
-Probe<T>* OutputInternal::registerProbe(const std::string &name,
-                                        const std::string &unit,
+Probe<T>* OutputInternal::registerProbe(const string &name,
+                                        const string &unit,
                                         bool enabled, sample_type_t type)
 {
-	if(!this->enabled)
+/*	if(!this->enabled)
 	{
 		return NULL;
-	}
+	}*/
 
 /*	if(!this->initializing)
 	{
@@ -191,9 +194,7 @@ Probe<T>* OutputInternal::registerProbe(const std::string &name,
 	// single registration if process is already started
 	if(!this->initializing && !this->sendRegister(probe))
 	{
-		{
-			return NULL;
-		}
+		UTI_ERROR("Failed to register new probe %s\n", name.c_str());
 	}
 
 	return probe;
