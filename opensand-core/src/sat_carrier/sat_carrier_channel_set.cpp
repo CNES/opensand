@@ -280,8 +280,8 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 	}
 	UTI_DEBUG_L3("Receive packet: size %zu, carrier %d\n", op_len, op_carrier);
 
-	if(it == this->end())
-		ret = 0;
+/*	if(it == this->end())
+		ret = 0;*/
 
 	return ret;
 }

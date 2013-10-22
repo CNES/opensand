@@ -95,7 +95,7 @@ bool SatSpot::initFifos(spot_id_t spot_id,
 	this->data_in_carrier_id = data_in_carrier_id;
 
 	// initialize MAC FIFOs
-#define SIG_FIFO_SIZE 50
+#define SIG_FIFO_SIZE 1000
 	this->logon_fifo.init(log_id, SIG_FIFO_SIZE, "logon_fifo");
 	this->control_fifo.init(ctrl_id, SIG_FIFO_SIZE, "control_fifo");
 	this->data_out_st_fifo.init(data_out_st_id, fifo_size, "data_out_st");

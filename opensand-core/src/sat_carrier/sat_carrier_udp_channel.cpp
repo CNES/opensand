@@ -37,12 +37,14 @@
 
 #include "sat_carrier_udp_channel.h"
 
+#include <cstring>
 #include <stdlib.h>
 #include <strings.h>
-#include <cstring>
 #include <arpa/inet.h>
 #include <errno.h>
 
+
+#define MAX_STACK 5
 
 /**
  * Constructor
@@ -68,7 +70,8 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  bool multicast,
                                                  const string local_ip_addr,
                                                  const string ip_addr):
-	sat_carrier_channel(channelID, input, output)
+	sat_carrier_channel(channelID, input, output),
+	stacked_ip("")
 {
 	int ifIndex;
 	struct ip_mreq imr;
@@ -78,8 +81,6 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	socklen_t size = 4;
 
 	this->m_multicast = multicast;
-	this->stack_len = 0;
-	this->send_stack = false;
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
@@ -223,7 +224,13 @@ error:
 sat_carrier_udp_channel::~sat_carrier_udp_channel()
 {
 	close(this->sock_channel);
-	this->counterMap.clear();
+	this->udp_counters.clear();
+	for(map<string, UdpStack *>::iterator it = this->stacks.begin();
+	    it != this->stacks.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->stacks.clear();
 }
 
 /**
@@ -248,20 +255,28 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
                                      unsigned char **buf, size_t &data_len)
 {
 	struct sockaddr_in remote_addr;
-	ip_to_counter_map::iterator it;
+	map<string , uint8_t>::iterator ip_count_it;
 	std::string ip_address;
 	uint8_t nb_sequencing;
 	uint8_t current_sequencing;
 	unsigned char *data;
+	size_t recv_len;
+	unsigned char *recv_data;
 
-	if(this->send_stack && this->stack_len > 0)
+	if(!this->stacked_ip.empty())
 	{
-		UTI_DEBUG("transmit the content of stack\n");
-		*buf = this->stack;
-		data_len = this->stack_len;
-		this->stack_len = 0;
-		this->send_stack = false;
-		goto ignore;
+		UTI_INFO("Send content of stack for address %s\n",
+		         this->stacked_ip.c_str());
+		if(!this->handleStack(buf, data_len))
+		{
+			goto error;
+		}
+		if(!this->stacked_ip.empty())
+		{
+			// we still have packets to send
+			goto stacked;
+		}
+		goto end;
 	}
 
 	UTI_DEBUG("try to receive a packet from satellite channel %d\n",
@@ -270,23 +285,23 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	// the channel file descriptor must be valid
 	if(this->getChannelFd() < 0)
 	{
-		UTI_ERROR("socket not open !\n");
+		UTI_ERROR("socket not opened !\n");
 		goto error;
 	}
 
-	// ignore if channel doesn't accept incoming data
+	// error if channel doesn't accept incoming data
 	if(!this->isInputOk())
 	{
 		UTI_ERROR("channel %d does not accept data\n",
 		          this->getChannelID());
-		goto ignore;
+		goto error;
 	}
 
 	// we need to memcpy as the start pointer cannot be reused
-	data_len = event->getSize() - 1;
-	*buf = (unsigned char *)calloc(data_len, sizeof(unsigned char));
+	recv_len = event->getSize() - 1;
+	recv_data = (unsigned char *)calloc(recv_len, sizeof(unsigned char));
 	data = event->getData();
-	memcpy(*buf, data + 1, data_len);
+	memcpy(recv_data, data + 1, recv_len);
 	remote_addr = event->getSrcAddr();
 
 	// get the IP address of the sender
@@ -295,10 +310,10 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	// check the sequencing of the datagramm
 	nb_sequencing = data[0];
 	free(data);
-	it = this->counterMap.find(ip_address);
-	if(it == this->counterMap.end())
+	ip_count_it = this->udp_counters.find(ip_address);
+	if(ip_count_it == this->udp_counters.end())
 	{
-		this->counterMap[ip_address] = nb_sequencing;
+		this->udp_counters[ip_address] = nb_sequencing;
 		if(nb_sequencing != 0)
 		{
 			UTI_NOTICE("force synchronisation on UDP channel %d "
@@ -307,58 +322,55 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 			           this->getChannelID(), ip_address.c_str(),
 			           nb_sequencing);
 		}
+		this->stacks[ip_address] = new UdpStack();
+		current_sequencing = nb_sequencing;
 	}
 	else
 	{
-		if(it->second == 255)
-			it->second = 0;
-		else
-			it->second++;
-		current_sequencing = it->second;
-
-		if(nb_sequencing != current_sequencing)
-		{
-			// authorize the overtaking of 3 packets
-			if((current_sequencing > 252 && (nb_sequencing > current_sequencing)) ||
-               (nb_sequencing < 4 && nb_sequencing <= (current_sequencing + 3) % 256) ||
-			   (nb_sequencing <= (current_sequencing + 3)))
-			{
-				UTI_DEBUG("sequence desynchronisation on UDP channel %d "
-				          "due to IP reassembly on attended datagram, "
-				          "keep the current datagram in buffer "
-				          "(counter is %u)\n", this->getChannelID(),
-				          it->second);
-				this->stack = *buf;
-				this->stack_len = data_len;
-				this->stack_sequ = nb_sequencing;
-				--(it->second) % 256;
-				*buf = NULL;
-				data_len = 0;
-				goto ignore;
-			}
-			else
-			{
-				UTI_ERROR("sequence desynchronisation on UDP channel %d "
-				          "from %s: received counter is %d while it "
-				          "should have been %d\n", this->getChannelID(),
-				          ip_address.c_str(), nb_sequencing,
-				          current_sequencing);
-				it->second = nb_sequencing;
-				goto error;
-
-			}
-		}
+		current_sequencing = ip_count_it->second;
+		(++current_sequencing) % 255;
+		UTI_DEBUG_L3("Current UDP sequencing for address %s: %u\n",
+		             ip_address.c_str(), current_sequencing);
 	}
-
-	ip_address.clear();
-	if(this->stack_len > 0 && (it->second + 1) % 256 == this->stack_sequ)
+	// add the new packet in stack
+	this->stacks[ip_address]->add(nb_sequencing, recv_data, recv_len);
+	// send the current packet
+	if(this->stacks[ip_address]->hasNext(current_sequencing))
 	{
-		++(it->second) % 256;
-		this->send_stack = true;
+		UTI_DEBUG_L3("Next UDP packet is in stack\n");
+		this->handleStack(buf, data_len, current_sequencing, this->stacks[ip_address]);
+		if(!this->stacked_ip.empty())
+		{
+			// we still have packets to send
+			goto stacked;
+		}
+		ip_count_it->second = current_sequencing;
+	}
+	else
+	{
+		UTI_INFO("No UDP packet for current sequencing (%u) at IP %s "
+		         "wait for next packets (last received %u)\n",
+		         current_sequencing, ip_address.c_str(), nb_sequencing);
+	}
+	// check that we do not have to much packets in stack
+	if(this->stacks[ip_address]->getCounter() > MAX_STACK)
+	{
+		// suppose we lost the packet
+		UTI_ERROR("we may have lost UDP packets, check /etc/default/opensand-daemon "
+		          "and adjust UDP buffers");
+		// send the next packets from stack
+		current_sequencing++;
+		while(!this->stacks[ip_address]->hasNext(current_sequencing))
+		{
+			(++current_sequencing) % 255;
+		}
+		// we should be able to return a packet here
+		ip_count_it->second = current_sequencing;
+		this->stacked_ip = ip_address;
 		goto stacked;
 	}
 
-ignore:
+end:
 	return 0;
 
 stacked:
@@ -366,6 +378,52 @@ stacked:
 
 error:
 	return -1;
+}
+
+
+bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
+{
+	map<string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
+	map<string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
+	uint8_t counter;
+	
+	if(count_it == this->udp_counters.end())
+	{
+		UTI_ERROR("cannot find UDP counter for IP %s\n", this->stacked_ip.c_str());
+		return false;
+	}
+	if(stack_it == this->stacks.end())
+	{
+		UTI_ERROR("cannot find UDP stack for IP %s\n", this->stacked_ip.c_str());
+		return false;
+	}
+
+	counter = (*count_it).second;
+	this->handleStack(buf, data_len,
+	                  counter,
+	                  (*stack_it).second);
+	if(!this->stacked_ip.empty())
+	{
+		// update counter for next stacked packet
+		(++counter) % 255;
+		(*count_it).second = counter;
+	}
+	return true;
+}
+	
+	
+void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
+                                          uint8_t counter, UdpStack *stack)
+{
+	UTI_DEBUG("transmit UDP packet for source IP %s at counter %d\n",
+	          this->stacked_ip.c_str(), counter);
+	stack->remove(counter, buf, data_len);
+	(++counter) % 255;
+	// if we don't have following packets in FIFO reset stacked_ip
+	if(!stack->hasNext(counter))
+	{
+		this->stacked_ip = "";
+	}
 }
 
 

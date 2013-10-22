@@ -40,6 +40,8 @@
 #include <netinet/in.h>
 
 
+class UdpStack;
+
 /*
  * @class sat_carrier_udp_channel
  * @brief UDP satellite carrier channel
@@ -65,6 +67,26 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);
 
+	/**
+	 * @brief Get the next stacked packet
+	 *
+	 * @param buf      OUT: the stacked packet
+	 * @param data_len OUT: the length of the packet
+	 * @return true on success, false otherwise
+	 */
+	bool handleStack(unsigned char **buf, size_t &data_len);
+
+
+	/**
+	 * @brief Get the next stacked packet
+	 *
+	 * @param buf      OUT: the stacked packet
+	 * @param data_len OUT: the length of the packet
+	 * @param stack    The stack in which to get packet
+	 */
+	void handleStack(unsigned char **buf, size_t &data_len,
+	                 uint8_t counter, UdpStack *stack);
+
  protected:
 
 	/// the socket which defines the channel
@@ -84,11 +106,9 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	/// A map whose key is an IP address and value is a counter
 	/// (counter ranges from 0 to 255)
-	typedef map<std::string , uint8_t> ip_to_counter_map;
-
 	/// (IP address, counter) map used to check that UDP packets are received in
 	/// sequence on every UDP communication channel
-	ip_to_counter_map counterMap;
+	map<string , uint8_t> udp_counters;
 
 	/// Counter for sending packets
 	uint8_t counter;
@@ -98,17 +118,130 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	/// sometimes an UDP datagram containing unfragmented IP packet overtake one
 	/// containing fragmented IP packets during its reassembly
-	/// Thus, we use the following stack to keep the UDP datagram arrived too early
-	unsigned char *stack;
+	/// Thus, we use the stacks per IP sources to keep the UDP datagram arrived too early
+	map<string, UdpStack *> stacks;
 
-	/// the length of the data in the stack
-	size_t stack_len;
-
-	/// the sequence number of the packet in the stack
-	uint8_t stack_sequ;
-
-	/// whether the content of the stack should be returned
-	bool send_stack;
+	/// the IP address of the stack for which we need to send a packet or
+	//  empty string if we have nothing to send
+	string stacked_ip;
 };
+
+/*
+ * @class The UDP stack
+ * @brief This stack allows UDP packets ordering in order to avoid
+ *        sequence desynchronizations
+ */
+class UdpStack: vector<pair<unsigned char *, size_t> > 
+{
+ public:
+
+	/**
+	 * @brief Create the stack
+	 *
+	 */
+	UdpStack()
+	{
+		// reserve space for all UDP counters
+		this->reserve(256);
+		for(unsigned int i = 0; i < 256; i++)
+		{
+			this->push_back(make_pair<unsigned char *, size_t>(NULL, 0));
+		}
+		this->counter = 0;
+	};
+
+	~UdpStack()
+	{
+		this->reset();
+		this->clear();
+	};
+
+	/**
+	 * @brief Add a packet in the stack
+	 *
+	 * @param udp_counter  The position of the packet in the stack
+	 * @param data         The packet to store
+	 * @param data_length  The packet length
+	 */
+	void add(uint8_t udp_counter, unsigned char *data, size_t data_length)
+	{
+		if(this->at(udp_counter).first)
+		{
+			UTI_ERROR("new data for UDP stack at position %u, erase previous data\n",
+			          udp_counter);
+			this->counter--;
+			delete (this->at(udp_counter).first);
+		}
+		this->at(udp_counter).first = data;
+		this->at(udp_counter).second = data_length;
+		this->counter++;
+	};
+
+	/**
+	 * @brief Remove a packet from the stack
+	 *
+	 * @param udp_counter  The position of the packet in the stack
+	 * @param data         OUT: the packet stored in the stack or NULL if there
+	 *                          is no packet with this counter
+	 * @param data_length  OUT: the packet length or 0 if there is no packet
+	 */
+	void remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
+	{
+		*data = this->at(udp_counter).first;
+		if(*data)
+		{
+			this->counter--;
+		}
+		data_length = this->at(udp_counter).second;
+		this->at(udp_counter).first = NULL;
+		this->at(udp_counter).second = 0;
+	};
+
+	/**
+	 * @brief Check if we have a packet at a specified counter
+	 *
+	 * @param udp_counter  The counter for which we need a packet
+	 * @return true if we have a packet, false otherwise
+	 */
+	bool hasNext(uint8_t udp_counter)
+	{
+		return (this->at(udp_counter).first != NULL &&
+		        this->at(udp_counter).second != 0);
+	};
+
+	/**
+	 * @brief Get the packet counter
+	 * @return the counter
+	 */
+	uint8_t getCounter()
+	{
+		return this->counter;
+	};
+
+	/**
+	 * @brief Reset the stack
+	 */
+	void reset()
+	{
+		vector<pair<unsigned char *, size_t> >::iterator it;
+		for(it = this->begin(); it != this->end(); ++it)
+		{
+			if((*it).first)
+			{
+				delete (*it).first;
+				(*it).first = NULL;
+				(*it).second = 0;
+			}
+			this->counter = 0;
+		}
+	};
+
+ private:
+
+	/// A counter that increase each time we receive a packet and decrease each time
+	//  we handle a packet
+	uint8_t counter;
+};
+
 
 #endif

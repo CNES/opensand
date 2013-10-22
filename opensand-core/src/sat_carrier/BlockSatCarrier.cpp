@@ -136,10 +136,6 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 					{
 						this->onReceivePktFromCarrier(carrier_id, l_buf, l_lg);
 					}
-					else
-					{
-						status = false;
-					}
 				}
 			} while(ret > 0);
 		}
