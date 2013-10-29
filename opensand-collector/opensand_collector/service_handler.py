@@ -44,6 +44,13 @@ import logging
 
 LOGGER = logging.getLogger('sand-collector')
 
+
+def on_error(self, *args):
+    """ error handler """
+    if len(args) == 0:
+        return
+    LOGGER.error('service error handler: ' + str(args[0]))
+
 class ServiceHandler(object):
     """
     Avahi service handler to publish the collector listening port (so the
@@ -69,10 +76,10 @@ class ServiceHandler(object):
 
         # Publishing
         pub_server = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
-            avahi.DBUS_PATH_SERVER), avahi.DBUS_INTERFACE_SERVER)
+                        avahi.DBUS_PATH_SERVER), avahi.DBUS_INTERFACE_SERVER)
 
         self._pub_group = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
-            pub_server.EntryGroupNew()), avahi.DBUS_INTERFACE_ENTRY_GROUP)
+                   pub_server.EntryGroupNew()), avahi.DBUS_INTERFACE_ENTRY_GROUP)
 
         additional_data = ["transfer_port=%d" % self._transfer_port]
 
@@ -80,16 +87,18 @@ class ServiceHandler(object):
             try:
                 iface = pub_server.GetNetworkInterfaceIndexByName(self._iface)
             except DBusException:
-                LOGGER.warning("Cannot publish Avahi service on %s iface")
+                LOGGER.warning("Cannot publish Avahi service on %s iface",
+                               self._iface)
                 iface = avahi.IF_UNSPEC
         else:
             iface = avahi.IF_UNSPEC
 
-        self._pub_group.AddService(iface, avahi.PROTO_UNSPEC,
-            dbus.UInt32(0), "collector", self._service_type, "", "",
-            dbus.UInt16(self._listen_port), additional_data)
-
-        self._pub_group.Commit()
+        self._pub_group.AddService(iface, avahi.PROTO_INET, dbus.UInt32(0),
+                                   "collector", self._service_type, "", "",
+                                   dbus.UInt16(self._listen_port),
+                                   additional_data,
+                                   reply_handler=self._commit_group,
+                                   error_handler=on_error)
 
         self._mainloop = gobject.MainLoop()
         gobject.threads_init()  # Necessary for the transfer_server thread
@@ -109,6 +118,10 @@ class ServiceHandler(object):
         LOGGER.info("Avahi service handler started.")
 
         return self
+    
+    def _commit_group(self, *args):
+        """ reply handler for AddService """
+        self._pub_group.Commit()
 
     def run(self):
         """ start the mainloop for service listening """

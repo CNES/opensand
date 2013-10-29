@@ -106,7 +106,8 @@ class MessagesHandler(object):
         """
         gobject.source_remove(self._tag)
         self._stop.set()
-        self._mgr_status.join()
+        if self._mgr_status is not None:
+            self._mgr_status.join()
 
         try:
             self._sock.shutdown(socket.SHUT_RDWR)

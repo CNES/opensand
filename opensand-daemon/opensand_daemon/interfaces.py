@@ -576,10 +576,14 @@ class OpenSandIfaces(object):
             OpenSandIfaces._ifaces.down(TUN_NAME)
         except NlMissing:
             LOGGER.info("interface %s is already down" % TUN_NAME)
+        except Exception, msg:
+            LOGGER.error("cannot set interface %s down (%s)" % (TUN_NAME, msg))
         try:
             OpenSandIfaces._ifaces.down(BR_NAME)
         except NlMissing:
             LOGGER.info("interface %s is already down" % BR_NAME)
+        except Exception, msg:
+            LOGGER.error("cannot set interface %s down (%s)" % (BR_NAME, msg))
         try:
             OpenSandIfaces._ifaces.down(TAP_NAME)
         except NlMissing:
