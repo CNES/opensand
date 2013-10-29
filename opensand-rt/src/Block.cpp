@@ -310,9 +310,10 @@ void Block::enableChannelMutex(void)
 		                "Failed to initialize mutex attributes [%d: %s]\n",
 		                ret, strerror(ret));
 	}
-	// use PTHREAD_MUTEX_ERRORCHECK for library validation
-	// TODO replace by fast mutex
-	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+	/* choose mutexes depending on what you need:
+	    - PTHREAD_MUTEX_ERRORCHECK for library validation
+	    - PTHREAD_MUTEX_NORMAL for fast mutex */
+	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_NORMAL);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,

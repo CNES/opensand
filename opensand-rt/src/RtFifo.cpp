@@ -81,9 +81,10 @@ bool RtFifo::init()
 		                ret, strerror(ret));
 		return false;
 	}
-	// use PTHREAD_MUTEX_ERRORCHECK for library validation
-	// TODO replace by fast mutex
-	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+	/* choose mutexes depending on what you need:
+	    - PTHREAD_MUTEX_ERRORCHECK for library validation
+	    - PTHREAD_MUTEX_NORMAL for fast mutex */
+	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_NORMAL);
 	if(ret != 0)
 	{
 		Rt::reportError("fifo", pthread_self(), false,
@@ -134,6 +135,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	
 	UTI_DEBUG_L3("push message in fifo\n");
 
+	// we need a semaphore here to block while fifo is full
 	ret = sem_wait(&(this->fifo_size_sem));
 	if(ret != 0)
 	{
