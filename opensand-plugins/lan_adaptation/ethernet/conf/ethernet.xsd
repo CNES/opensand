@@ -38,7 +38,7 @@
 <xsd:element name="virtual_connections">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="connection" minOccurs="0" maxOccurs="255" />
+            <xsd:element ref="connection" minOccurs="1" maxOccurs="255" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>
