@@ -31,6 +31,12 @@
  * @author Julien BERNARD / Viveris Technologies
  */
 
+
+// FIXME we need to include uti_debug.h before...
+#define DBG_PREFIX
+#define DBG_PACKAGE PKG_DVB_RCS
+#include <opensand_conf/uti_debug.h>
+
 #include "FmtGroup.h"
 
 #include "OpenSandCore.h"
@@ -78,7 +84,7 @@ void FmtGroup::parse(string ids)
 		vector<string>::iterator it2;
 		unsigned int previous_id = 0;
 
-		// then splitthe integers separated by '-'
+		// then split the integers separated by '-'
 		tokenize(temp, second_step, "-");
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
@@ -94,6 +100,7 @@ void FmtGroup::parse(string ids)
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
 				this->fmt_ids.push_back(val);
+				UTI_DEBUG("Add ID %u in FMT group %u\n", val, this->id);
 			}
 			if(previous_id == 0)
 			{
@@ -106,9 +113,10 @@ void FmtGroup::parse(string ids)
 			    i < std::max(previous_id, val); i++)
 			{
 				if(std::find(this->fmt_ids.begin(),
-				             this->fmt_ids.end(), val) == this->fmt_ids.end())
+				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
 					this->fmt_ids.push_back(i);
+					UTI_DEBUG("Add ID %u in FMT group %u\n", i, this->id);
 				}
 			}
 
