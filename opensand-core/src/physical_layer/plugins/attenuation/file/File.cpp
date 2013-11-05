@@ -196,10 +196,10 @@ bool File::updateAttenuationModel()
 	double old_attenuation, new_attenuation;
 	double next_attenuation;
 
-	this->current_time += this->granularity;
+	this->current_time += this->granularity / 1000;
 
 	UTI_DEBUG("Updating attenuation scenario: current time: %u (step: %u)\n",
-	          this->current_time, this->granularity);
+	          this->current_time, this->granularity / 1000);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	attenuation_it = this->attenuation.lower_bound(this->current_time);

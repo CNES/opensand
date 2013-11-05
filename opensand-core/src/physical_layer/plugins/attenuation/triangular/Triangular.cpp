@@ -106,15 +106,15 @@ bool Triangular::updateAttenuationModel()
 	double time;
 
 	this->duration_counter = (this->duration_counter + 1) % this->period;
-	time = this->duration_counter * this->granularity/1000;
+	time = this->duration_counter * this->granularity / 1000;
 
-	if(time < this->period/2)
+	if(time < this->period / 2)
 	{
 		this->setAttenuation(time * this->slope);
 	}
 	else
 	{
-		double max = this->period * this->granularity/1000;
+		double max = this->period * this->slope * this->granularity / 1000;
 		this->setAttenuation(max - time * this->slope);
 	}
 
