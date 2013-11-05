@@ -46,10 +46,8 @@
  * Constructor
  */
 BlockSatCarrier::BlockSatCarrier(const string &name,
-                                 component_t host,
                                  struct sc_specific specific):
 	Block(name),
-	host(host),
 	ip_addr(specific.ip_addr),
 	interface_name(specific.emu_iface)
 {
@@ -156,8 +154,7 @@ bool BlockSatCarrier::onInit()
 	sat_carrier_channel *channel;
 
 	// initialize all channels from the configuration file
-	if(m_channelSet.readConfig(this->host,
-	                           this->ip_addr,
+	if(m_channelSet.readConfig(this->ip_addr,
 	                           this->interface_name) < 0)
 	{
 		UTI_ERROR("Wrong channel set configuration\n");

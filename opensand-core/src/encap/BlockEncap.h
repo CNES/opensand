@@ -59,9 +59,6 @@ class BlockEncap: public Block
 	/// Expiration timers for encapsulation contexts
 	std::map<event_id_t, int> timers;
 
-	/// the component name type
-	component_t host;
-
 	/// it is the MAC layer group id received through msg_link_up
 	long group_id;
 
@@ -86,10 +83,9 @@ class BlockEncap: public Block
 	/**
 	 * Build an encapsulation block
 	 *
-	 * @param name  The name of the blocl
-	 * @param host  The type of host
+	 * @param name  The name of the block
 	 */
-	BlockEncap(const string &name, component_t host);
+	BlockEncap(const string &name);
 
 	/**
 	 * Destroy the encapsulation bloc
@@ -136,24 +132,5 @@ class BlockEncap: public Block
 	static Event *error_init;
 };
 
-// TODO use the function to get component from conf instead of that
-class BlockEncapTal: public BlockEncap
-{
- public:
-
-	BlockEncapTal(const string &name):
-		BlockEncap(name, terminal)
-	{};
-};
-
-
-class BlockEncapGw: public BlockEncap
-{
- public:
-
-	BlockEncapGw(const string &name):
-		BlockEncap(name, gateway)
-	{};
-};
 
 #endif

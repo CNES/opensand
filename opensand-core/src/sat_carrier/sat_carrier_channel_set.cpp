@@ -59,11 +59,12 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
  * Read data from the configuration file and create channels
  * @return -1 if failed, 0 if succeed
  */
-int sat_carrier_channel_set::readConfig(component_t host,
-                                        const string local_ip_addr,
+int sat_carrier_channel_set::readConfig(const string local_ip_addr,
                                         const string interface_name)
 {
 	string strConfig;
+	string compo_name;
+	component_t host;
 
 	int i;
 	sat_carrier_channel *channel;
@@ -159,7 +160,17 @@ int sat_carrier_channel_set::readConfig(component_t host,
 			goto error;
 		}
 
-		if(carrier_disabled.c_str() == getComponentName(host))
+		// get host type
+		compo_name = "";
+		if(!globalConfig.getComponent(compo_name))
+		{
+			UTI_ERROR("cannot get component type\n");
+			goto error;
+		}
+		UTI_INFO("host type = %s\n", compo_name.c_str());
+		host = getComponentType(compo_name);
+
+		if(carrier_disabled == compo_name)
 		{
 			continue;
 		}

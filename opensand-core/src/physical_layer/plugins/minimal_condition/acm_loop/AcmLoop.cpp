@@ -80,7 +80,7 @@ bool AcmLoop::init(void)
 		goto error;
 	}
 	UTI_INFO("host type = %s\n", val.c_str());
-	compo = getComponentType(val);;
+	compo = getComponentType(val);
 
 	if(compo == terminal ||
 	   (sat_type == REGENERATIVE && compo == gateway))

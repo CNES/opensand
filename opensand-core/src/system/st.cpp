@@ -242,9 +242,9 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	block_encap = Rt::createBlock<BlockEncapTal,
-	                              BlockEncapTal::Upward,
-	                              BlockEncapTal::Downward>("Encap", block_lan_adaptation);
+	block_encap = Rt::createBlock<BlockEncap,
+	                              BlockEncap::Upward,
+	                              BlockEncap::Downward>("Encap", block_lan_adaptation);
 	if(!block_encap)
 	{
 		UTI_ERROR("%s: cannot create the Encap block\n", progname);
@@ -278,9 +278,9 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrierTal,
-	                                    BlockSatCarrierTal::Upward,
-	                                    BlockSatCarrierTal::Downward,
+	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
+	                                    BlockSatCarrier::Upward,
+	                                    BlockSatCarrier::Downward,
 	                                    struct sc_specific>("SatCarrier",
 	                                                        up_sat_carrier,
 	                                                        specific);

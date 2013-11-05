@@ -61,7 +61,6 @@ class BlockSatCarrier: public Block
 	 * @param specific  Specific block parameters
 	 */
 	BlockSatCarrier(const string &name,
-	                component_t host,
 	                struct sc_specific specific);
 
 	~BlockSatCarrier();
@@ -81,8 +80,6 @@ class BlockSatCarrier: public Block
 
  private:
 
-	/// the component type
-	component_t host;
 	/// the IP address for emulation newtork
 	string ip_addr;
 	/// the interface name for emulation newtork
@@ -91,30 +88,6 @@ class BlockSatCarrier: public Block
 	void onReceivePktFromCarrier(unsigned int i_channel,
 	                             unsigned char *ip_buf,
 	                             unsigned int i_len);
-};
-
-class BlockSatCarrierTal: public BlockSatCarrier
-{
- public:
-	BlockSatCarrierTal(const string &name, struct sc_specific specific):
-		BlockSatCarrier(name, terminal, specific)
-	{};
-};
-
-class BlockSatCarrierGw: public BlockSatCarrier
-{
- public:
-	BlockSatCarrierGw(const string &name, struct sc_specific specific):
-		BlockSatCarrier(name, gateway, specific)
-	{};
-};
-
-class BlockSatCarrierSat: public BlockSatCarrier
-{
- public:
-	BlockSatCarrierSat(const string &name, struct sc_specific specific):
-		BlockSatCarrier(name, satellite, specific)
-	{};
 };
 
 #endif

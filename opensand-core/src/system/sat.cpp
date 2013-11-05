@@ -253,9 +253,9 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrierSat,
-	                                    BlockSatCarrierSat::Upward,
-	                                    BlockSatCarrierSat::Downward,
+	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
+	                                    BlockSatCarrier::Upward,
+	                                    BlockSatCarrier::Downward,
 	                                    struct sc_specific>("SatCarrier",
 	                                                        up_sat_carrier,
 	                                                        specific);

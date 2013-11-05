@@ -46,9 +46,8 @@
 Event* BlockEncap::error_init = NULL;
 
 
-BlockEncap::BlockEncap(const string &name, component_t host):
+BlockEncap::BlockEncap(const string &name):
 	Block(name),
-	host(host),
 	group_id(-1),
 	tal_id(-1),
 	state(link_down)
@@ -179,6 +178,8 @@ bool BlockEncap::onInit()
 	LanAdaptationPlugin *lan_plugin = NULL;
 	StackPlugin *upper_encap = NULL;
 	EncapPlugin *plugin;
+	string compo_name;
+	component_t host;
 
 	// satellite type: regenerative or transparent ?
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
@@ -308,7 +309,17 @@ bool BlockEncap::onInit()
 		          upper_encap->getName().c_str());
 	}
 
-	if(this->host == terminal || satellite_type == "regenerative")
+	// get host type
+	compo_name = "";
+	if(!globalConfig.getComponent(compo_name))
+	{
+		UTI_ERROR("cannot get component type\n");
+		goto error;
+	}
+	UTI_INFO("host type = %s\n", compo_name.c_str());
+	host = getComponentType(compo_name);
+
+	if(host == terminal || satellite_type == "regenerative")
 	{
 		this->emission_ctx = up_return_ctx;
 		this->reception_ctx = down_forward_ctx;

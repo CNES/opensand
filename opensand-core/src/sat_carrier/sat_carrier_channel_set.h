@@ -57,8 +57,7 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	sat_carrier_channel_set();
 	~sat_carrier_channel_set();
 
-	int readConfig(component_t host,
-	               const string local_ip_addr,
+	int readConfig(const string local_ip_addr,
 	               const string interface_name);
 
 	int send(unsigned int i_carrier, unsigned char *ip_buf,
