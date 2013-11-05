@@ -202,7 +202,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The OBR period (frame number):
-                         period used to determine when we should send a request
+                        period used to determine when we should send a request
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -247,10 +247,10 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         RBDC and VBDC Capacity requests computation rules
-                         - "false" = both INPUT + OUTPUT DLB fifos size are
-                                     taken into account
-                         - "true"  = only OUTPUT DLB fifos size are taken into
-                                     account
+                         \n\t- "false" = both INPUT + OUTPUT DLB fifos size are
+                                         taken into account
+                         \n\t- "true"  = only OUTPUT DLB fifos size are taken into
+                                         account
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

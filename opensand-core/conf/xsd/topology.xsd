@@ -192,9 +192,9 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     depending on the case the IP address contains:
-                      - input unicast:   the parameter is not used
-                      - input multicast: the multicast IP address
-                      - output:          the remote IP address
+                      \n\t- input unicast:   the parameter is not used
+                      \n\t- input multicast: the multicast IP address
+                      \n\t- output:          the remote IP address
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

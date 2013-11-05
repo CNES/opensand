@@ -315,7 +315,12 @@ class XmlParser:
             if len(doc) != 1:
                 return None
 
-        return doc[0].text
+        text = doc[0].text
+        # remove indentation
+        text = ' '.join(text.split())
+        # set tabulations and newlines
+        text = text.replace('\\n', '\n').replace('\\t', '\t')
+        return text
 
     def get_reference(self, name):
         """ get a reference in the XSD document """
