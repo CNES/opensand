@@ -223,6 +223,24 @@ bool BlockPhysicalLayer::PhyUpward::onInit(void)
 	name << "attenuation_" << link;
 	this->att_timer = this->addTimerEvent(name.str(), this->granularity);
 
+	this->probe_attenuation = Output::registerProbe<float>("dB", true,
+	                                                       SAMPLE_MAX,
+	                                                       "Phy.%slink_attenuation (%s)",
+	                                                       link.c_str(),
+	                                                       attenuation_type.c_str());
+	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
+	                                                             SAMPLE_MAX,
+	                                                             "Phy.minimal_condition (%s)",
+	                                                             minimal_type.c_str());
+	this->probe_nominal_condition = Output::registerProbe<float>("dB", true,
+	                                                             SAMPLE_MAX,
+	                                                             "Phy.%slink_nominal_condition",
+	                                                             link.c_str());
+	this->probe_drops = Output::registerProbe<int>("Phy.drops",
+	                                               "frame number", true,
+	                                               // we need to sum the drops here !
+	                                               SAMPLE_SUM);
+
 	return true;
 
 error:
@@ -232,7 +250,7 @@ error:
 bool BlockPhysicalLayer::PhyDownward::onInit(void)
 {
 	ostringstream name;
-	string link("down"); // we are on downlink
+	string link("up"); // we are on uplink
 
 	// Intermediate variables for Config file reading
 	string attenuation_type;
@@ -252,6 +270,16 @@ bool BlockPhysicalLayer::PhyDownward::onInit(void)
 	if(!globalConfig.getValue(UPLINK_PHYSICAL_LAYER_SECTION,
 	                          ATTENUATION_MODEL_TYPE,
 	                          attenuation_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
+		goto error;
+	}
+
+	// Initiate Nominal value
+	if(!globalConfig.getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	                          NOMINAL_CONDITION,
+	                          this->nominal_condition))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
@@ -279,6 +307,16 @@ bool BlockPhysicalLayer::PhyDownward::onInit(void)
 
 	name << "attenuation_" << link;
 	this->att_timer = this->addTimerEvent(name.str(), this->granularity);
+
+	this->probe_attenuation = Output::registerProbe<float>("dB", true,
+	                                                       SAMPLE_LAST,
+	                                                       "Phy.%slink_attenuation (%s)",
+	                                                       link.c_str(),
+	                                                       attenuation_type.c_str());
+	this->probe_nominal_condition = Output::registerProbe<float>("dB", true,
+	                                                             SAMPLE_MAX,
+	                                                             "Phy.%slink_nominal_condition",
+	                                                             link.c_str());
 
 	return true;
 
@@ -333,6 +371,7 @@ bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
 		this->modifyPacket(dvb_meta, len_modif);
 	}
 
+
 forward:
 	// message successfully created, send the message to upper block
 	if(!this->enqueueMessage((void **)&dvb_meta, len_modif))
@@ -377,6 +416,7 @@ bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
 	             physical_parameters->cn_previous,
 	             dvb_meta->carrier_id,len_modif,
 	             dvb_meta->hdr->msg_length);
+
 
 forward:
 	// message successfully created, send the message to lower block

@@ -127,6 +127,11 @@ bool BlockPhysicalLayerSat::PhyUpward::onInit(void)
 	}
 	UTI_INFO("satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
+	if(this->satellite_type == TRANSPARENT)
+	{
+		// nothing to do
+		goto ignore;
+	}
 
 	// Initiate Minimal conditions
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION,
@@ -177,6 +182,36 @@ bool BlockPhysicalLayerSat::PhyUpward::onInit(void)
 		goto error;
 	}
 
+	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
+	                                                             SAMPLE_MAX,
+	                                                             "Phy.minimal_condition (%s)",
+	                                                             minimal_type.c_str());
+	this->probe_drops = Output::registerProbe<int>("Phy.drops",
+	                                               "frame number", true,
+	                                               // we need to sum the drops here !
+	                                               SAMPLE_SUM);
+ignore:
+	return true;
+
+error:
+	return false;
+}
+
+
+bool BlockPhysicalLayerSat::PhyDownward::onInit(void)
+{
+	// Intermediate variables for Config file reading
+	string sat_type;
+	// satellite type
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                          sat_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, SATELLITE_TYPE);
+		goto error;
+	}
+	UTI_INFO("satellite type = %s\n", sat_type.c_str());
+	this->satellite_type = strToSatType(sat_type);
 	return true;
 
 error:

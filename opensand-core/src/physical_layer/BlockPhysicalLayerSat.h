@@ -97,6 +97,8 @@ class BlockPhysicalLayerSat: public Block
 			Chan(bl, downward_chan)
 		{};
 
+		bool onInit(void);
+
 	  protected:
 		bool forwardMetaFrame(T_DVB_META *dvb_meta,
 		                      size_t len);

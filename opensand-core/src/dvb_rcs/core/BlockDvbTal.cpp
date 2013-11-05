@@ -1213,8 +1213,8 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			break;
 
 		case MSG_TYPE_CORRUPTED:
-			UTI_INFO("SF#%u: the message was corrupted by physical layer, "
-			         "drop it", this->super_frame_counter);
+			UTI_DEBUG("SF#%u: the message was corrupted by physical layer, "
+			          "drop it", this->super_frame_counter);
 			free(ip_buf);
 			break;
 

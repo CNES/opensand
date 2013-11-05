@@ -45,7 +45,11 @@ PhyChannel::PhyChannel():
 	attenuation_model(NULL),
 	minimal_condition(NULL),
 	error_insertion(NULL),
-	granularity(0)
+	granularity(0),
+	probe_attenuation(NULL),
+	probe_nominal_condition(NULL),
+	probe_minimal_condition(NULL),
+	probe_drops(NULL)
 {
 }
 
@@ -74,6 +78,9 @@ bool PhyChannel::update()
 		UTI_ERROR("channel updating failed, disable it");
 		this->status = false;
 	}
+
+	this->probe_attenuation->put(this->attenuation_model->getAttenuation());
+	this->probe_nominal_condition->put(this->nominal_condition);
 
 error:
 	return this->status;
@@ -132,6 +139,8 @@ void PhyChannel::addSegmentCN(T_DVB_PHY *phy_frame)
 
 bool PhyChannel::isToBeModifiedPacket(double cn_total)
 {
+	// we sum all values so we can put 0 here
+	this->probe_drops->put(0);
 	return error_insertion->isToBeModifiedPacket(cn_total,
 	                                             this->minimal_condition->getMinimalCN());
 }
@@ -145,6 +154,7 @@ void PhyChannel::modifyPacket(T_DVB_META *frame, long length)
 	if(error_insertion->modifyPacket(payload, length))
 	{
 		dvb_hdr->msg_type = MSG_TYPE_CORRUPTED;
+		this->probe_drops->put(1);
 	}
 }
 
@@ -174,6 +184,8 @@ bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 		this->status = false;
 		goto error;     
 	}
+
+	this->probe_minimal_condition->put(this->minimal_condition->getMinimalCN());
 
 ignore:
 	UTI_DEBUG("Update minimal condition: %f\n",

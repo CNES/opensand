@@ -553,19 +553,26 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(unsigned int tal_id,
                                                BBFrame **bbframe)
 {
 	map<unsigned int, BBFrame *>::iterator iter;
+	unsigned int desired_modcod;
 	unsigned int modcod_id;
 
 	*bbframe = NULL;
 
 	// retrieve the current MODCOD for the ST
-	if(!this->retrieveCurrentModcod(tal_id, modcod_id))
+	if(!this->retrieveCurrentModcod(tal_id, desired_modcod))
 	{
 		// cannot get modcod for the ST skip this element
 		goto skip;
 	}
 
 	// get best modcod ID according to carrier
-	modcod_id = carriers->getNearestFmtId(modcod_id);
+	modcod_id = carriers->getNearestFmtId(desired_modcod);
+	if(modcod_id == 0)
+	{
+		UTI_INFO("cannot serve terminal %u with any modcod (desired %u)\n",
+		         tal_id, desired_modcod);
+		goto skip;
+	}
 
 	// find if the BBFrame exists
 	iter = this->incomplete_bb_frames.find(modcod_id);

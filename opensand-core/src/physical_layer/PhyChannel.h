@@ -141,6 +141,12 @@ class PhyChannel
 	virtual bool forwardMetaFrame(T_DVB_META *dvb_meta,
 	                              size_t len) = 0;
 
+	/// probes
+	Probe<float> *probe_attenuation;
+	Probe<float> *probe_nominal_condition;
+	Probe<float> *probe_minimal_condition;
+	Probe<int> *probe_drops;
+
  public:
 
 	/**

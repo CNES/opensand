@@ -1215,7 +1215,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	break;
 
 	case MSG_TYPE_CORRUPTED:
-		UTI_INFO("the message was corrupted by physical layer, drop it");
+		UTI_DEBUG("the message was corrupted by physical layer, drop it");
 		free(frame);
 		break;
 

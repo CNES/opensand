@@ -81,6 +81,13 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The nominal C/N
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

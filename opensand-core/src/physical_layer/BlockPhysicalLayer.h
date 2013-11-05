@@ -116,6 +116,7 @@ class BlockPhysicalLayer: public Block
 	  protected:
 		bool forwardMetaFrame(T_DVB_META *dvb_meta,
 		                      size_t len);
+
 	};
 
 	class PhyDownward: public Chan
@@ -130,6 +131,7 @@ class BlockPhysicalLayer: public Block
 	  protected:
 		bool forwardMetaFrame(T_DVB_META *dvb_meta,
 		                      size_t len);
+
 	};
 
 
