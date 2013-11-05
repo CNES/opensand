@@ -79,6 +79,7 @@
 bool init_process(int argc, char **argv, string &ip_addr,
                   string &emu_iface, string &lan_iface)
 {
+	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
 	bool output_enabled = true;
 	event_level_t output_event_level = LEVEL_INFO;
@@ -253,10 +254,10 @@ int main(int argc, char **argv)
 	up_sat_carrier = block_dvb;
 	if(with_phy_layer)
 	{
-		block_phy_layer = Rt::createBlock<BlockPhysicalLayerGw,
-		                                  BlockPhysicalLayerGw::PhyUpward,
-		                                  BlockPhysicalLayerGw::PhyDownward>("PhysicalLayer",
-		                                                                      block_dvb);
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::PhyUpward,
+		                                  BlockPhysicalLayer::PhyDownward>("PhysicalLayer",
+		                                                                   block_dvb);
 		if(block_phy_layer == NULL)
 		{
 			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);

@@ -190,33 +190,6 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 					}
 					break;
 
-					case nominal_plugin:
-					{
-						if(!enable_phy_layer)
-						{
-							dlclose(handle);
-							break;
-						}
-
-						pl_list_it_t plug;
-
-						// if we load twice the same plugin, keep the first one
-						// this is why LD_LIBRARY_PATH should be first in the paths
-						plug = this->nominal.find(plugin->name);
-						if(plug == this->nominal.end())
-						{
-							UTI_INFO("load nominal conditions plugin %s\n",
-							         plugin->name.c_str());
-							this->nominal[plugin->name] = plugin->create;
-							this->handlers.push_back(handle);
-						}
-						else
-						{
-							dlclose(handle);
-						}
-					}
-					break;
-
 					case minimal_plugin:
 					{
 						if(!enable_phy_layer)
@@ -357,43 +330,30 @@ bool PluginUtils::getLanAdaptationPlugin(string name,
 };
 
 bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
-                                          string nom_pl_name,
                                           string min_pl_name,
                                           string err_pl_name,
                                           AttenuationModelPlugin **attenuation,
-                                          NominalConditionPlugin **nominal,
                                           MinimalConditionPlugin **minimal,
                                           ErrorInsertionPlugin **error)
 {
 	fn_create create;
 
-	create = this->attenuation[att_pl_name];
-	if(!create)
+	if(att_pl_name.size() > 0)
 	{
-		UTI_ERROR("cannot load attenuation model plugin: %s", att_pl_name.c_str());
-		return false;
+		create = this->attenuation[att_pl_name];
+		if(!create)
+		{
+			UTI_ERROR("cannot load attenuation model plugin: %s", att_pl_name.c_str());
+			return false;
+		}
+		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
+		if(*attenuation == NULL)
+		{
+			UTI_ERROR("cannot create attenuation model plugin: %s", att_pl_name.c_str());
+			return false;
+		}
+		this->plugins.push_back(*attenuation);
 	}
-	*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
-	if(*attenuation == NULL)
-	{
-		UTI_ERROR("cannot create attenuation model plugin: %s", att_pl_name.c_str());
-		return false;
-	}
-	this->plugins.push_back(*attenuation);
-
-	create = this->nominal[nom_pl_name];
-	if(!create)
-	{
-		UTI_ERROR("cannot load nominal condition plugin: %s", nom_pl_name.c_str());
-		return false;
-	}
-	*nominal = dynamic_cast<NominalConditionPlugin *>(create());
-	if(*nominal == NULL)
-	{
-		UTI_ERROR("cannot create nominal condition plugin: %s", nom_pl_name.c_str());
-		return false;
-	}
-	this->plugins.push_back(*nominal);
 
 	if(min_pl_name.size() > 0)
 	{
@@ -411,7 +371,6 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		}
 		this->plugins.push_back(*minimal);
 	}
-
 
 	if(err_pl_name.size() > 0)
 	{

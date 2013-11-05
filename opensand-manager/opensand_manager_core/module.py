@@ -256,16 +256,7 @@ class AttenuationModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = ['sat', 'gw', 'st']
-
-class NominalModule(OpenSandModule):
-    """ the nominal conditions module for OpenSAND Manager """
-    _name = None
-    _type = 'nominal'
-
-    def __init__(self):
-        OpenSandModule.__init__(self)
-        self._targets = ['sat', 'gw', 'st']
+        self._targets = ['gw', 'st']
 
 class MinimalModule(OpenSandModule):
     """ the minimal conditions module for OpenSAND Manager """
@@ -274,7 +265,7 @@ class MinimalModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = ['gw', 'st']
+        self._targets = ['sat', 'gw', 'st']
         
 class ErrorModule(OpenSandModule):
     """ the error inesrtions module for OpenSAND Manager """

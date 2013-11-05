@@ -84,46 +84,6 @@ function encap()
     cd ../..
 }
 
-function att()
-{
-    cd opensand-plugins/physical_layer/attenuation_model
-    for dir in ideal on_off triangular; do
-        build_pkg $dir
-    done
-    rm *.dsc *.tar.gz *.changes
-    cd ../../..
-}
-
-function nom()
-{
-    cd opensand-plugins/physical_layer/nominal_condition/
-    for dir in default; do
-        build_pkg $dir
-    done
-    rm *.dsc *.tar.gz *.changes
-    cd ../../..
-}
-
-function min()
-{
-    cd opensand-plugins/physical_layer/minimal_condition/
-    for dir in modcod constant; do
-        build_pkg $dir
-    done
-    rm *.dsc *.tar.gz *.changes
-    cd ../../..
-}
-
-
-function err()
-{
-    cd opensand-plugins/physical_layer/error_insertion
-    for dir in gate; do
-        build_pkg $dir
-    done
-    rm *.dsc *.tar.gz *.changes
-    cd ../../..
-}
 
 function clean()
 {
@@ -157,55 +117,14 @@ function clean()
         rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
     done
     cd ../..
-    cd opensand-plugins/physical_layer/attenuation_model
-    for dir in ideal on_off triangular; do
-        cd $dir
-        dh_clean 1>/dev/null
-        cd ..
-        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
-    done
-    cd ../../..
-    cd opensand-plugins/physical_layer/nominal_condition/
-    for dir in default; do
-        cd $dir
-        dh_clean 1>/dev/null
-        cd ..
-        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
-    done
-    cd ../../..
-    cd opensand-plugins/physical_layer/minimal_condition/
-    for dir in modcod constant; do
-        cd $dir
-        dh_clean 1>/dev/null
-        cd ..
-        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
-    done
-    cd ../../..
-    cd opensand-plugins/physical_layer/error_insertion
-    for dir in gate; do
-        cd $dir
-        dh_clean 1>/dev/null
-        cd ..
-        rm *.dsc *.tar.gz *.changes 1>/dev/null 2>&1
-    done
-    cd ../../..
-}
-
-
-function phy()
-{
-    att
-    nom
-    min
-    err
 }
 
 function move()
 {
 	/bin/echo -e "copy packages for daemon"
-	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-bin_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb packages/daemon 2>&1 1>/dev/null
+	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-bin_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb packages/daemon 2>&1 1>/dev/null
 	/bin/echo -e "copy packages for manager"
-	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-*_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-manager*.deb opensand-plugins/*/libopensand-*plugin-manager*.deb opensand-plugins/physical_layer/*/libopensand-*plugin_*.deb opensand-plugins/physical_layer/*/libopensand-*plugin-manager*.deb opensand-collector_*.deb packages/manager 2>&1 1>/dev/null
+	cp libopensand-conf_*.deb libopensand-plugin_*.deb  libopensand-output_*.deb libopensand-rt_*.deb opensand-core-*_*.deb opensand-daemon_*.deb opensand-plugins/*/libopensand-*plugin_*.deb opensand-manager*.deb opensand-plugins/*/libopensand-*plugin-manager*.deb  opensand-collector_*.deb packages/manager 2>&1 1>/dev/null
 	/bin/echo -e "copy packages for all"
 	mv *.deb `find opensand-plugins -name \*.deb` packages/all 2>&1 1>/dev/null
 }
@@ -215,7 +134,6 @@ case $1 in
         opensand
         encap
         lan
-        phy
         move
         ;;
     "core")
@@ -230,26 +148,6 @@ case $1 in
         encap
         ;;
 
-    "phy_att")
-        att
-        ;;
-
-    "phy_nom")
-        nom
-        ;;
-
-    "phy_min")
-        min
-        ;;
-
-    "phy_err")
-        err
-        ;;
-
-    "phy")
-        phy
-        ;;
-        
     "clean")
         clean
         ;;
@@ -259,6 +157,6 @@ case $1 in
         ;;
 
     *)
-        /bin/echo -e "wrong command (all, core, encap, lan, phy {att, nom, min, err}, clean, move)"
+        /bin/echo -e "wrong command (all, core, encap, lan, clean, move)"
         ;;
 esac

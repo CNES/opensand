@@ -67,20 +67,16 @@ bool Plugin::getLanAdaptationPlugin(string name,
 }
 
 bool Plugin::getPhysicalLayerPlugins(string att_pl_name,
-                                     string nom_pl_name,
                                      string min_pl_name,
                                      string err_pl_name,
                                      AttenuationModelPlugin **attenuation,
-                                     NominalConditionPlugin **nominal,
                                      MinimalConditionPlugin **minimal,
                                      ErrorInsertionPlugin **error)
 {
 	return utils.getPhysicalLayerPlugins(att_pl_name,
-	                                     nom_pl_name,
 	                                     min_pl_name,
 	                                     err_pl_name,
 	                                     attenuation,
-	                                     nominal,
 	                                     minimal,
 	                                     error);
 }

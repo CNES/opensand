@@ -45,20 +45,15 @@
 <xsd:simpleType name="attenuationType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="Ideal" />
+        <xsd:enumeration value="File" />
         <xsd:enumeration value="On/Off" />
         <xsd:enumeration value="Triangular" />
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="nominalCondition">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="Default" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="minimalCondition">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="Modcod" />
+        <xsd:enumeration value="ACM-Loop" />
         <xsd:enumeration value="Constant" />
     </xsd:restriction>
 </xsd:simpleType>
@@ -70,19 +65,19 @@
 </xsd:simpleType>
 
 
-<!-- physical_layer section description -->
-<xsd:element name="physical_layer">
+<!-- physical_layer sections description -->
+<xsd:element name="uplink_physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The physical layer description
+            The physical layer attenuation for uplink
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="models">
-                <xsd:annotation xml:lang="en">
+            <xsd:element name="attenuation_model_type" type="attenuationType">
+                <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The models for uplink or downlink physical layer
+                        The type of attenuation model
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -90,52 +85,43 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- the models for physical_layer section -->
-<xsd:element name="models">
+<xsd:element name="downlink_physical_layer">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The physical layer description for downlink
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="model" minOccurs="2" maxOccurs="2" />
+            <xsd:element name="attenuation_model_type" type="attenuationType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of attenuation model
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="minimal_condition_type" type="minimalCondition">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of minimal conditions
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_insertion_type" type="errorInsertion">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of error insertion
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The nominal C/N
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="model">
-    <xsd:complexType>
-        <xsd:attribute name="link" type="attenuationLink">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The link on which the attenuation is applied
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="attenuation_model_type" type="attenuationType">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The type of attenuation model
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="nominal_condition_type" type="nominalCondition">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The type of nominal conditions
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="minimal_condition_type" type="minimalCondition">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The type of minimal conditions
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="error_insertion_type" type="errorInsertion">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The type of error insertion
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
 

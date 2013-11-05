@@ -21,4 +21,13 @@ for file in $FILES ; do
 	
 done
 
-
+echo "Testing mandatory plugins"
+for file in `ls ${BASEDIR}/mandatory_plugins`; do
+    case $file in
+        *.conf)
+            name=`echo ${file} | sed 's/.conf$//g'`
+            echo "Testing $name..."
+            ${APP} ${BASEDIR}/mandatory_plugins/${name}.conf ${BASEDIR}/mandatory_plugins/${name}.xsd || exit 1
+        ;;
+    esac
+done

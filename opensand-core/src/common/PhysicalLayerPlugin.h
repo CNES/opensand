@@ -27,7 +27,7 @@
 
 /**
  * @file PhysicalLayerPlugin.h
- * @brief Plugins for Physical Layer Minimal conditions, Nominal conditions,
+ * @brief Plugins for Physical Layer Minimal conditions,
  *        Error insertion and Attenuation models
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
@@ -36,10 +36,11 @@
 #define PHYSICAL_LAYER_PLUGIN_H
 
 #include "OpenSandPlugin.h"
-#include "OpenSandFrames.h"
+#include "OpenSandCore.h"
 
 #include <string>
 #include <map>
+#include <stdint.h>
 
 
 using std::string;
@@ -93,7 +94,10 @@ class AttenuationModelPlugin: public OpenSandPlugin
 		 *
 		 * @param attenuation the model attenuation
 		 */
-		void setAttenuation(double attenuation) {this->attenuation = attenuation;};
+		void setAttenuation(double attenuation)
+		{
+			this->attenuation = attenuation;
+		};
 
 		/**
 		 * @brief update the attenuation model current attenuation
@@ -101,47 +105,6 @@ class AttenuationModelPlugin: public OpenSandPlugin
 		 * @return true on success, false otherwise
 		 */
 		virtual bool updateAttenuationModel() = 0;
-
-};
-
-/**
- * @class NominalCondition 
- * @brief Nominal Condition 
- */
-class NominalConditionPlugin: public OpenSandPlugin
-{
-
-	protected:
-
-		/* NominalCondition C/N in clear sky conditions */
-		double nominal_cn;
-
-	public:
-
-		/**
-		  @brief NominamConditionPlugin constructor
-		 */
-		NominalConditionPlugin(): OpenSandPlugin() {};
-
-		/**
-		 * @brief NominalConditionPlugin destructor
-		 */
-		virtual ~NominalConditionPlugin() {};
-
-		/**
-		 * @brief initialize the nominal condition
-		 *
-		 * @param link  the link
-		 * @return true on success, false otherwise
-		 */
-		virtual bool init(string link) = 0;
-
-		/**
-		 * @brief Set the nominalCondition current Carrier to Noise ratio according to time
-		 *
-		 * @return the nominal C/N
-		 */
-		virtual double getNominalCN() {return this->nominal_cn;};
 
 };
 
@@ -175,7 +138,7 @@ class MinimalConditionPlugin: public OpenSandPlugin
 		 *
 		 * @return true on success, false otherwise
 		 */
-		virtual bool init() = 0;
+		virtual bool init(void) = 0;
 
 		/**
 		 * @brief Set the minimalCondition current Carrier to Noise ratio
@@ -187,12 +150,11 @@ class MinimalConditionPlugin: public OpenSandPlugin
 
 		/**
 		 * @brief Updates Thresold when a msg arrives to Channel
-		 *        (when MODCOD mode: use BBFRAME modcod id) 
 		 *
-		 * @param hdr the BBFrame header
+		 * @param modcod_id  The MODCOD id carried by the BBFrame
 		 * @return true on success, false otherwise
 		 */
-		virtual bool updateThreshold(T_DVB_HDR *hdr) = 0;
+		virtual bool updateThreshold(uint8_t modcod_id) = 0;
 };
 
 /**
@@ -224,19 +186,24 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 		 * @brief Determine if a Packet shall be corrupted or not depending on
 		 *        the attenuationModel conditions 
 		 *
+		 * @param cn_total       The total C/N of the link
+		 * @param threshold_qef  The minimal C/N of the link
+		 *
 		 * @return true if it must be corrupted, false otherwise 
 		 */
-		virtual bool isToBeModifiedPacket(double cn_uplink,
-		                                  double nominal_cn,
-		                                  double attenuation,
+		virtual bool isToBeModifiedPacket(double cn_total,
 		                                  double threshold_qef) = 0;
 
 		/**
 		 * @brief Corrupt a package with error bits 
 		 *
-		 * @param frame the packet to be modified 
+		 * @param payload the payload to the frame that should be modified 
+		 * @return true if DVB header should be tagged as corrupted,
+		 *         false otherwise
+		 *         If packet is modified by the function but should be forwarded
+		 *         to other layers return false else it will be discarded
 		 */
-		virtual void modifyPacket(T_DVB_META *frame, long length) = 0;
+		virtual bool modifyPacket(unsigned char *payload, long length) = 0;
 
 };
 

@@ -43,11 +43,10 @@ using std::string;
 
 typedef enum
 {
-	unknown,
+	unknown_plugin,
 	encapsulation_plugin,
 	lan_adaptation_plugin,
 	attenuation_plugin,
-	nominal_plugin,
 	minimal_plugin,
 	error_plugin,
 } plugin_type_t;

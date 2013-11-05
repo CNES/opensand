@@ -112,6 +112,13 @@ opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/aal5_atm.py
 !opensand-manager/opensand_manager_core/modules/mpeg.py
 !opensand-manager/opensand_manager_core/modules/ule.py
+!opensand-manager/opensand_manager_core/modules/ideal.py
+!opensand-manager/opensand_manager_core/modules/on_off.py
+!opensand-manager/opensand_manager_core/modules/file.py
+!opensand-manager/opensand_manager_core/modules/triangular.py
+!opensand-manager/opensand_manager_core/modules/constant.py
+!opensand-manager/opensand_manager_core/modules/acm_loop.py
+!opensand-manager/opensand_manager_core/modules/gate.py
 opensand-plugins/physical_layer/attenuation_model/ideal/debian/files
 opensand-plugins/physical_layer/attenuation_model/ideal/debian/libopensand-ideal-attenuation-plugin
 opensand-plugins/physical_layer/attenuation_model/ideal/debian/libopensand-ideal-attenuation-plugin-dbg

@@ -264,10 +264,10 @@ int main(int argc, char **argv)
 	up_sat_carrier = block_dvb;
 	if(with_phy_layer)
 	{
-		block_phy_layer = Rt::createBlock<BlockPhysicalLayerTal,
-		                                  BlockPhysicalLayerTal::PhyUpward,
-		                                  BlockPhysicalLayerTal::PhyDownward>("PhysicalLayer",
-		                                                                      block_dvb);
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::PhyUpward,
+		                                  BlockPhysicalLayer::PhyDownward>("PhysicalLayer",
+		                                                                   block_dvb);
 		if(block_phy_layer == NULL)
 		{
 			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);

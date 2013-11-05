@@ -63,7 +63,6 @@ class PluginUtils
 	pl_list_t encapsulation;
 	pl_list_t lan_adaptation;
 	pl_list_t attenuation;
-	pl_list_t nominal;
 	pl_list_t minimal;
 	pl_list_t error;
 	vector <void *> handlers;
@@ -110,21 +109,17 @@ class PluginUtils
 	 * @brief get physical layer plugins
 	 *
 	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param nom_pl_name  The name of the nominal condition plugin
 	 * @param min_pl_name  The name of the minimal condition plugin
 	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param attenuation  The attenuation model plugin
-	 * @param nominal      The nominal condition plugin
 	 * @param minimal      The minimal condition plugin
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
 	bool getPhysicalLayerPlugins(string att_pl_name,
-	                             string nom_pl_name,
 	                             string min_pl_name,
 	                             string err_pl_name,
 	                             AttenuationModelPlugin **attenuation,
-	                             NominalConditionPlugin **nominal,
 	                             MinimalConditionPlugin **minimal,
 	                             ErrorInsertionPlugin **error);
 

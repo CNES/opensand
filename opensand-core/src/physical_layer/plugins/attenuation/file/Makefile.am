@@ -1,0 +1,24 @@
+################################################################################
+#   Name       : Makefile
+#   Author     : Julien BERNARD <julien.bernard@toulouse.viveris.com>
+#   Description: create the file attenuation plugin for OpenSAND
+################################################################################
+
+SUBDIRS = 
+
+plugins_LTLIBRARIES = libopensand_file_attenuation_plugin.la
+
+libopensand_file_attenuation_plugin_la_cpp = \
+	File.cpp
+
+libopensand_file_attenuation_plugin_la_h = \
+	File.h
+
+libopensand_file_attenuation_plugin_la_SOURCES = \
+    $(libopensand_file_attenuation_plugin_la_cpp) \
+    $(libopensand_file_attenuation_plugin_la_h)
+
+pluginsdir = $(libdir)/opensand/plugins
+
+INCLUDES = \
+	-I$(top_srcdir)/src/common

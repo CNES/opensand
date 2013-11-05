@@ -9,6 +9,8 @@ for manager with:
     - the /usr/share/opensand/tools/NAME/HOST/config file containing the tool
       configuration for a specific host. This file must be in the OpenSAND XML
       format. See opensand-conf module for more details.
+    - the /usr/share/opensand/tools/NAME/HOST/config.xsd file containing the
+      elements for XML configuration validation
     - the /usr/share/opensand/tools/NAME/HOST/binary file containing the command
       line to start the tool (options are allowed)
     - the /usr/share/opensand/manager/images/tools/NAME.png image (20x20)

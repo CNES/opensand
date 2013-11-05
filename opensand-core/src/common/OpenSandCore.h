@@ -64,7 +64,8 @@ typedef enum
 {
 	satellite,
 	gateway,
-	terminal
+	terminal,
+	unknown_compo,
 } component_t;
 
 
@@ -91,11 +92,32 @@ inline string getComponentName(component_t host)
 	}
 };
 
+/**
+ * @brief get the component type according to its name
+ *
+ * @param name  The component name
+ *
+ * @return the component name enum
+ */
+inline component_t getComponentType(string name)
+{
+	if(name == "sat")
+		return satellite;
+	else if(name == "st")
+		return terminal;
+	else if(name == "gw")
+		return gateway;
+	else
+		return unknown_compo;
+};
+
+
 typedef enum
 {
 	REGENERATIVE,
 	TRANSPARENT,
 } sat_type_t;
+
 
 /**
  * @brief get the satellite type according to its name

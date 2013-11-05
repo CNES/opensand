@@ -70,7 +70,7 @@ class Plugin
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getEncapsulationPlugin(std::string name,
+	static bool getEncapsulationPlugin(string name,
 	                                   EncapPlugin **encapsulation);
 
 	/**
@@ -87,21 +87,17 @@ class Plugin
 	 * @brief get physical layer plugins
 	 *
 	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param nom_pl_name  The name of the nominal condition plugin
 	 * @param min_pl_name  The name of the minimal condition plugin
 	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param attenuation  The attenuation model plugin
-	 * @param nominal      The nominal condition plugin
 	 * @param minimal      The minimal condition plugin
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getPhysicalLayerPlugins(std::string att_pl_name,
-	                                    std::string nom_pl_name,
-	                                    std::string min_pl_name,
-	                                    std::string err_pl_name,
+	static bool getPhysicalLayerPlugins(string att_pl_name,
+	                                    string min_pl_name,
+	                                    string err_pl_name,
 	                                    AttenuationModelPlugin **attenuation,
-	                                    NominalConditionPlugin **nominal,
 	                                    MinimalConditionPlugin **minimal,
 	                                    ErrorInsertionPlugin **error);
 

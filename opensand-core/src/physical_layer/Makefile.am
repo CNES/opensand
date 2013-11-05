@@ -1,19 +1,15 @@
+SUBDIRS = plugins
+
 noinst_LTLIBRARIES = libopensand_physical_layer.la
 
 libopensand_physical_layer_la_cpp = \
 	BlockPhysicalLayer.cpp \
-	AttenuationModel.cpp \
-	NominalCondition.cpp \
-	MinimalCondition.cpp \
-    ErrorInsertion.cpp \
+	BlockPhysicalLayerSat.cpp \
 	PhyChannel.cpp
 
 libopensand_physical_layer_la_h = \
 	BlockPhysicalLayer.h \
-	AttenuationModel.h \
-	NominalCondition.h \
-	MinimalCondition.h \
-	ErrorInsertion.h \
+	BlockPhysicalLayerSat.h \
 	PhyChannel.h
 
 libopensand_physical_layer_la_SOURCES = \

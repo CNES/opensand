@@ -158,7 +158,7 @@ typedef struct
 typedef struct
 {
     double cn_previous;
-} T_DVB_PHY; // internal, no need to pack
+} __attribute__((__packed__)) T_DVB_PHY;
 
 /**
  * This message type is a trick.

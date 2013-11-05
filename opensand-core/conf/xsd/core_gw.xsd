@@ -94,7 +94,8 @@
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_ncc" />
             <xsd:element ref="pep" />
-            <xsd:element ref="physical_layer" />
+            <xsd:element ref="uplink_physical_layer" />
+            <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />

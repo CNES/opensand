@@ -36,6 +36,7 @@
 
 #include "PhysicalLayerPlugin.h"
 #include "FmtDefinitionTable.h"
+#include "OpenSandFrames.h"
 
 #include <opensand_rt/Rt.h>
 
@@ -55,13 +56,11 @@ class PhyChannel
 	/// The channel status
 	bool status;
 
+	/// Nominal Conditions (best C/N in clear-sky conditions)
+	unsigned int nominal_condition;
+
 	/// AttenuationModels
 	AttenuationModelPlugin *attenuation_model;
-
-	/** Nominal Conditions (best C/N in clear-sky conditions) of global
-	 *  link (considering RF equipments,location,frequencies,coding)
-	 */
-	NominalConditionPlugin *nominal_condition;
 
 	/** Minimal Conditions (minimun C/N to have QEF communications)
 	 *  of global link (i.e. considering the Modcod scheme)
@@ -74,19 +73,11 @@ class PhyChannel
 	/// Period of channel(s) attenuation update (ms)
 	time_ms_t granularity;
 
-	/**
-	 * @brief Get the Channel type
-	 *
-	 * @return the channel mode (File, On/Off, ...)
-	 */
-	string getMode();
+	/// The type of satellite payload
+	sat_type_t satellite_type;
 
-	/**
-	 * @brief Set the Channel mode
-	 *
-	 * @param channel_mode  the Channel Mode
-	 */
-	void setMode(string channel_mode);
+	/// Timer id for attenuation update
+	event_id_t att_timer;
 
 	/**
 	 * @brief Update the conditions of the communication model
@@ -96,22 +87,24 @@ class PhyChannel
 	 */
 	bool update();
 
+	/**
+	 * @brief get the total C/N of the link according to the uplink C/N
+	 *        carried in the T_DVB_PHY structure and the downlink C/N
+	 *        computed from nominal conditions and attenuation
+	 *
+	 * @param phy_frame  The uplink physical layer information for the current frame
+	 *
+	 * @return the total C/N
+	 */
+	double getTotalCN(T_DVB_PHY *phy_frame);
+
 	/*
 	 * @brief Inserts the C/N value of the Channel in a given T_DVB_PHY
 	 *        structure
 	 *
-	 * @param frame the packet to be modified
+	 * @param phy_frame  The physical layer data of the current frame
 	 */
 	void addSegmentCN(T_DVB_PHY *phy_frame);
-
-	/*
-	 * @brief Modify the C/N value of the Channel in a given T_DVB_PHY
-	 *        structure with the combination of the current and previous C/N
-	 *        values
-	 *
-	 * @param phy_frame the physical frame
-	 */
-	void modifySegmentCN(T_DVB_PHY *phy_frame);
 
 	/*
 	 * @brief Update the Minimal Condition attribute when a msg is received
@@ -125,9 +118,10 @@ class PhyChannel
 	 * @brief Determine if a Packet shall be corrupted or not
 	 *        depending on the attenuation_model conditions
 	 *
+	 * @param cn_total  The total C/N of the link
 	 * @return true if it must be corrupted, false otherwise
 	 */
-	bool isToBeModifiedPacket(double CN_uplink);
+	bool isToBeModifiedPacket(double cn_total);
 
 	/**
 	 * @brief Corrupt a package with error bits
@@ -136,6 +130,16 @@ class PhyChannel
 	 */
 	void modifyPacket(T_DVB_META *frame, long length);
 
+
+	/**
+	 * Forward a DVB frame to a destination block
+	 *
+	 * @param dvb_meta  The DVB frame to send
+	 * @param len       The length of the DVB frame to send
+	 * @return Whether the DVB frame was successfully sent or not
+	 */
+	virtual bool forwardMetaFrame(T_DVB_META *dvb_meta,
+	                              size_t len) = 0;
 
  public:
 

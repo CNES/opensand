@@ -239,13 +239,15 @@
 
 #define LINK                      "link"
 
+#define UPLINK_PHYSICAL_LAYER_SECTION    "uplink_physical_layer"
+#define DOWNLINK_PHYSICAL_LAYER_SECTION  "downlink_physical_layer"
 #define PHYSICAL_LAYER_SECTION    "physical_layer"
 #define ENABLE                    "enable"
 #define MODEL_LIST                "models"
 #define ATTENUATION_MODEL_TYPE    "attenuation_model_type"
-#define NOMINAL_CONDITION_TYPE    "nominal_condition_type"
 #define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
+#define NOMINAL_CONDITION         "nominal_condition"
 #define GRANULARITY               "granularity"
 
 /////////////////

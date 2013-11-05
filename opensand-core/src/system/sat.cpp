@@ -55,7 +55,7 @@
 #include "BlockEncapSat.h"
 #include "BlockDvbSat.h"
 #include "BlockSatCarrier.h"
-#include "BlockPhysicalLayer.h"
+#include "BlockPhysicalLayerSat.h"
 #include "Plugin.h"
 
 #include <opensand_conf/conf.h>

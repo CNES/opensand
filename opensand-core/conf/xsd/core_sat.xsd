@@ -209,6 +209,42 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- physical_layer section description -->
+<xsd:element name="physical_layer">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The physical layer description for regenerative satellite applied on uplink
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="minimal_condition_type" type="minimalCondition">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of minimal conditions
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="error_insertion_type" type="errorInsertion">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of error insertion
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The nominal C/N
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+
+
 <!-- debug section description -->
 <xsd:element name="debug">
     <xsd:annotation>

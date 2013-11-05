@@ -102,6 +102,8 @@ class ConfigurationFile
 	bool loadConfig(const vector<string> conf_files);
 	void unloadConfig();
 
+	bool getComponent(string &compo);
+
 	/* Get a value */
 	template <class T>
 	bool getValue(const char *section, const char *key, T &val);

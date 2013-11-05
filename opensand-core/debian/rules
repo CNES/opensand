@@ -16,10 +16,6 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
-# enable to disable memory pool in packages
-#override_dh_auto_configure:
-#	dh_auto_configure -- --disable-memory-pool
-
 override_dh_strip:
 	dh_strip --dbg-package=libopensand-plugin-dbg
 	dh_strip --dbg-package=opensand-core-dbg
@@ -69,6 +65,26 @@ override_dh_install:
 	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/plugins/ip.xsd
 	install -m 0644 conf/mandatory_plugins/ip.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.conf
 	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.xsd
+
+	install -m 0644 conf/mandatory_plugins/ip.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/plugins/ip.conf
+	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/gw/plugins/ip.xsd
+	install -m 0644 conf/mandatory_plugins/ip.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.conf
+	install -m 0644 conf/mandatory_plugins/ip.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/st/plugins/ip.xsd
+
+	for host in gw st; do \
+		install -m 0644 conf/mandatory_plugins/ideal.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/ideal.conf ; \
+		install -m 0644 conf/mandatory_plugins/ideal.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/ideal.xsd ; \
+		install -m 0644 conf/mandatory_plugins/on_off.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/on_off.conf ; \
+		install -m 0644 conf/mandatory_plugins/on_off.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/on_off.xsd ; \
+		install -m 0644 conf/mandatory_plugins/file.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/file.conf ; \
+		install -m 0644 conf/mandatory_plugins/file.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/file.xsd ; \
+		install -m 0644 conf/mandatory_plugins/triangular.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/triangular.conf ; \
+		install -m 0644 conf/mandatory_plugins/triangular.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/triangular.xsd ; \
+		install -m 0644 conf/mandatory_plugins/constant.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/constant.conf ; \
+		install -m 0644 conf/mandatory_plugins/constant.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/constant.xsd ; \
+	done
+	install -D -m 0644 conf/mandatory_plugins/constant.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/plugins/constant.conf
+	install -D -m 0644 conf/mandatory_plugins/constant.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/plugins/constant.xsd
 
 %:
 	dh  $@

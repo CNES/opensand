@@ -71,7 +71,7 @@ if test "x$fail_on_warning" != "xno"; then
 	WERROR="-Werror"
 fi
 
-AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall ${WERROR} -DUTI_DEBUG_ON")
+AC_SUBST(AM_CPPFLAGS, "$AM_CPPFLAGS -g -Wall -Wextra ${WERROR} -DUTI_DEBUG_ON")
 
 # Install binaries and libraries in usr/bin
 #AC_PREFIX_DEFAULT("/usr")
@@ -101,6 +101,17 @@ AC_CONFIG_FILES([ \
 	src/lan_adaptation/tests/Makefile \
 	src/sat_carrier/Makefile \
 	src/physical_layer/Makefile \
+	src/physical_layer/plugins/Makefile \
+	src/physical_layer/plugins/attenuation/Makefile \
+	src/physical_layer/plugins/attenuation/on_off/Makefile \
+	src/physical_layer/plugins/attenuation/ideal/Makefile \
+	src/physical_layer/plugins/attenuation/file/Makefile \
+	src/physical_layer/plugins/attenuation/triangular/Makefile \
+	src/physical_layer/plugins/error_insertion/Makefile \
+	src/physical_layer/plugins/error_insertion/gate/Makefile \
+	src/physical_layer/plugins/minimal_condition/Makefile \
+	src/physical_layer/plugins/minimal_condition/acm_loop/Makefile \
+	src/physical_layer/plugins/minimal_condition/constant/Makefile \
 	src/system/Makefile \
 	src/mandatory_plugins/Makefile \
 	src/mandatory_plugins/aal5_atm/Makefile \

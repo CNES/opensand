@@ -16,19 +16,9 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-del_module()
-{
-    for name in AAL5/ATM ULE MPEG2-TS IP; do
-        /usr/libexec/opensand/module_support.py remove $name || true
-    done
-    service opensand-daemon stop || true
-    service opensand-daemon start || true
-}
-
 
 case "$1" in
     remove|upgrade|deconfigure)
-        del_module
     ;;
 
     failed-upgrade)

@@ -142,6 +142,45 @@ void ConfigurationFile::unloadConfig()
 	this->parsers.clear();
 } // unloadConfig
 
+
+/**
+ * @brief Get the component among sat, gw, st or ws
+ *
+ * @param compo  OUT: the component type
+ * @return true if an adequate component was found, false otherwise
+ */
+bool ConfigurationFile::getComponent(string &compo)
+{
+	vector<xmlpp::DomParser *>::iterator parser;
+
+	for(parser = this->parsers.begin(); parser != this->parsers.end(); parser++)
+	{
+		const xmlpp::Attribute *name;
+		const xmlpp::Element *root;
+
+		root = (*parser)->get_document()->get_root_node();
+		name = root->get_attribute("component");
+		if(!name)
+		{
+			UTI_ERROR("no component attribute in root node\n");
+			continue;
+		}
+		else
+		{
+			string val = name->get_value();
+			// we may be in the global config or topology or ...
+			if(val == "st" || val == "gw" || val == "sat" || val == "ws")
+			{
+				compo = val;
+				// we found the component
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
 /**
  * Get a XML section node from its name
  *
