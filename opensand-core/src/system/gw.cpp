@@ -223,9 +223,9 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptationGw,
-	                                       BlockLanAdaptationGw::Upward,
-	                                       BlockLanAdaptationGw::Downward,
+	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
+	                                       BlockLanAdaptation::Upward,
+	                                       BlockLanAdaptation::Downward,
 	                                       string>("LanAdaptation", NULL, lan_iface);
 	if(!block_lan_adaptation)
 	{

@@ -124,8 +124,7 @@ static bool open_pcap(string filename, pcap_t **handle,
 static bool test_iter(string src_filename, string encap_filename,
                        bool compare, string name,
                        lan_contexts_t lan_contexts,
-                       encap_contexts_t encap_contexts,
-                       vector<string> &failure);
+                       encap_contexts_t encap_contexts);
 static bool test_lan_adapt(string src_filename,
                            string folder,
                            bool compare);
@@ -539,7 +538,7 @@ static void test_encap_and_decap(
 		}
 
 		if(!test_iter(src_filename, folder + '/' + name_low + ".pcap",
-		              compare, name, lan_contexts, encap_contexts, failure))
+		              compare, name, lan_contexts, encap_contexts))
 		{
 			ERROR("FAILURE %s\n\n", stack.c_str());
 			failure.push_back(stack);
@@ -562,15 +561,13 @@ static void test_encap_and_decap(
  * @param compare        Whether we dump or compare the encapsualted packets
  * @param name           The name of the tested encapsulation plugin
  * @param contexts       The stack of encapsulated contexts
- * @param failure        The list of plugin for which test failed
  *
  * @return true on success, false otherwise
  */
 static bool test_iter(string src_filename, string encap_filename,
                        bool compare, string name,
                        lan_contexts_t lan_contexts,
-                       encap_contexts_t encap_contexts,
-	                   vector<string> &failure)
+                       encap_contexts_t encap_contexts)
 {
 	bool success = false;
 

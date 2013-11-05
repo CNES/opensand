@@ -74,8 +74,7 @@ class BlockLanAdaptation: public Block
 {
  public:
 
-	BlockLanAdaptation(const string &name, component_t host,
-	                   string lan_iface);
+	BlockLanAdaptation(const string &name, string lan_iface);
 	~BlockLanAdaptation();
 
 	/// event handlers
@@ -140,9 +139,6 @@ class BlockLanAdaptation: public Block
 
 	bool onMsgFromUp(NetSocketEvent *const event);
 
-	/// Whether the bloc has been initialized or not
-	component_t host;
-
 	/**
 	 * This map associates directly the category identifier (unique) to a ptr
 	 * on the category; it allows fast access when a packet coming from upper
@@ -182,24 +178,6 @@ class BlockLanAdaptation: public Block
 
 	/// statistic timer
 	event_id_t stats_timer;
-};
-
-class BlockLanAdaptationTal: public BlockLanAdaptation
-{
- public:
-
-	BlockLanAdaptationTal(const string &name, string lan_iface):
-		BlockLanAdaptation(name, terminal, lan_iface)
-	{};
-};
-
-class BlockLanAdaptationGw: public BlockLanAdaptation
-{
- public:
-
-	BlockLanAdaptationGw(const string &name, string lan_iface):
-		BlockLanAdaptation(name, gateway, lan_iface)
-	{};
 };
 
 #endif

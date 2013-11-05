@@ -343,7 +343,7 @@ tal_id_t FmtSimulation::getTalIdWithLowerFwdModcod() const
 	unsigned int modcod_id;
 	unsigned int lower_modcod_id = 0;
 	tal_id_t tal_id;
-	tal_id_t lower_tal_id = -1;
+	tal_id_t lower_tal_id = 255;
 	bool advertised_modcod;
 
 	for(st_iterator = this->sts.begin(); st_iterator != this->sts.end();

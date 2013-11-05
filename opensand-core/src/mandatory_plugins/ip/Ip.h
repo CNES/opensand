@@ -120,7 +120,7 @@ class Ip: public LanAdaptationPlugin
 
 		size_t getFixedLength() const {return 0;};
 
-		size_t getLength(const unsigned char *data) const
+		size_t getLength(const unsigned char *UNUSED(data)) const
 		{
 			return 0;
 		}

@@ -292,7 +292,7 @@ bool DamaAgentRcsRrmQos::processOnFrameTick()
 }
 
 
-bool DamaAgentRcsRrmQos::buildCR(cr_type_t cr_type,
+bool DamaAgentRcsRrmQos::buildCR(cr_type_t UNUSED(cr_type),
                                  CapacityRequest &capacity_request,
                                  bool &empty)
 {

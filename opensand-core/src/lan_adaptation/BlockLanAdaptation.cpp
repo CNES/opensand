@@ -56,8 +56,7 @@ extern "C"
 /**
  * constructor
  */
-BlockLanAdaptation::BlockLanAdaptation(const string &name, component_t host,
-                                       string lan_iface):
+BlockLanAdaptation::BlockLanAdaptation(const string &name, string lan_iface):
 	Block(name),
 	sarp_table(),
 	lan_iface(lan_iface),

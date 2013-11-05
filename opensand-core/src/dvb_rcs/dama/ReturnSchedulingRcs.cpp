@@ -59,7 +59,7 @@ ReturnSchedulingRcs::ReturnSchedulingRcs(
 
 bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
                                    const time_frame_t current_frame,
-                                   clock_t current_time,
+                                   clock_t UNUSED(current_time),
                                    list<DvbFrame *> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
 {

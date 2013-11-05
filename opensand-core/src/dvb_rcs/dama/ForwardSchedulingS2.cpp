@@ -251,7 +251,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			// make all terminal able to read the message
 			tal_id =
 				this->fmt_simu->getTalIdWithLowerFwdModcod();
-			if(tal_id < 0)
+			if(tal_id == 255)
 			{
 				UTI_ERROR("SF#%u: frame %u: The shceduling of a multicast "
 				          "frame failed\n", current_superframe_sf, current_frame);

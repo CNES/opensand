@@ -61,7 +61,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
                                    const time_frame_t current_frame,
                                    clock_t current_time,
                                    list<DvbFrame *> *complete_dvb_frames,
-                                   uint32_t &remaining_allocation)
+                                   uint32_t &UNUSED(remaining_allocation))
 {
 	fifos_t::const_iterator fifo_it;
 	vector<CarriersGroup *> carriers;

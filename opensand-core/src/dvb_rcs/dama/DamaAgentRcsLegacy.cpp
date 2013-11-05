@@ -192,7 +192,7 @@ bool DamaAgentRcsLegacy::processOnFrameTick()
 }
 
 
-bool DamaAgentRcsLegacy::buildCR(cr_type_t cr_type,
+bool DamaAgentRcsLegacy::buildCR(cr_type_t UNUSED(cr_type),
                                  CapacityRequest &capacity_request,
                                  bool &empty)
 {

@@ -32,7 +32,7 @@
 #include <Ipv4Address.h>
 #include <Ipv6Address.h>
 
-int main(int argc, char *argv[])
+int main()
 {
 	IpAddress *ipv4_addr_1, *ipv4_addr_2, *ipv4_addr_3;
 	IpAddress *ipv6_addr_1, *ipv6_addr_2;

@@ -937,7 +937,7 @@ error:
  *
  * @param sig  The signal that called the function
  */
-void BlockDvbTal::closeQosSocket(int sig)
+void BlockDvbTal::closeQosSocket(int UNUSED(sig))
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[BlockDvbTal::closeQosSocket]";
 	UTI_NOTICE("%s TCP connection broken, close socket\n", FUNCNAME);

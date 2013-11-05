@@ -136,7 +136,7 @@ class BlockEncap: public Block
 	static Event *error_init;
 };
 
-
+// TODO use the function to get component from conf instead of that
 class BlockEncapTal: public BlockEncap
 {
  public:
