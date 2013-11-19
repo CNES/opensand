@@ -64,6 +64,7 @@ BlockDvb::BlockDvb(const string &name):
 	super_frame_counter(0),
 	frame_counter(0),
 	fmt_simu(),
+	with_phy_layer(false),
 	dvb_scenario_refresh(-1),
 	receptionStd(NULL)
 {
@@ -108,6 +109,15 @@ bool BlockDvb::initCommon()
 	}
 	UTI_INFO("satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
+
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	                          this->with_phy_layer))
+	{
+		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, PHYSICAL_LAYER_SECTION,
+		          ENABLE);
+		goto error;
+	}
 
 	// get the packet types
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
@@ -247,10 +257,14 @@ bool BlockDvb::initForwardModcodFiles()
 		goto error;
 	}
 
-	// set the MODCOD simulation file
-	if(!this->fmt_simu.setForwardModcodSimu(modcod_simu_file))
+	// no need for simulation file if there is a physical layer
+	if(!this->with_phy_layer)
 	{
-		goto error;
+		// set the MODCOD simulation file
+		if(!this->fmt_simu.setForwardModcodSimu(modcod_simu_file))
+		{
+			goto error;
+		}
 	}
 
 	return true;
@@ -292,10 +306,14 @@ bool BlockDvb::initReturnModcodFiles()
 		goto error;
 	}
 
-	// set the MODCOD simulation file
-	if(!this->fmt_simu.setReturnModcodSimu(modcod_simu_file))
+	// no need for simulation file if there is a physical layer
+	if(!this->with_phy_layer)
 	{
-		goto error;
+		// set the MODCOD simulation file
+		if(!this->fmt_simu.setReturnModcodSimu(modcod_simu_file))
+		{
+			goto error;
+		}
 	}
 
 	return true;

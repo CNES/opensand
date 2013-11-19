@@ -121,7 +121,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
 	 * @return          true on succes, false otherwise
 	 */
-	bool retrieveCurrentModcod(long tal_id, unsigned int &modcod_id);
+	bool retrieveCurrentModcod(tal_id_t tal_id, unsigned int &modcod_id);
 
 	/**
 	 * @brief Create an incomplete BB frame
@@ -141,7 +141,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param bbframe   OUT: the BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
-	bool getIncompleteBBFrame(unsigned int tal_id,
+	bool getIncompleteBBFrame(tal_id_t tal_id,
 	                          CarriersGroup *carriers,
 	                          BBFrame **bbframe);
 

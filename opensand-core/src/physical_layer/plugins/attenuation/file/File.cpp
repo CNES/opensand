@@ -173,7 +173,7 @@ bool File::load(string filename)
 
 		this->attenuation[time] = attenuation;
 
-		UTI_DEBUG_L3("Entry: time: %u, attenuation: %f\n", time, attenuation);
+		UTI_DEBUG_L3("Entry: time: %u, attenuation: %.2f dB\n", time, attenuation);
 	}
 
 	file.close();
@@ -211,7 +211,7 @@ bool File::updateAttenuationModel()
 		new_time = attenuation_it->first;
 		new_attenuation = attenuation_it->second;
 
-		UTI_DEBUG_L3("New entry found: time: %u, value: %f\n",
+		UTI_DEBUG_L3("New entry found: time: %u, value: %.2f\n",
 					 new_time, new_attenuation);
 
 		if(attenuation_it != this->attenuation.begin())
@@ -223,7 +223,7 @@ bool File::updateAttenuationModel()
 			old_time = attenuation_it->first;
 			old_attenuation = attenuation_it->second;
 
-			UTI_DEBUG_L3("Old time: %u, old attenuation: %f\n",
+			UTI_DEBUG_L3("Old time: %u, old attenuation: %.2f\n",
 						 old_time, old_attenuation);
 
 			// Linear interpolation
@@ -260,7 +260,7 @@ bool File::updateAttenuationModel()
 		this->current_time = 0;
 	}
 
-	UTI_DEBUG_L3("new attenuation value: %f\n", next_attenuation);
+	UTI_DEBUG_L3("new attenuation value: %.2f\n", next_attenuation);
 
 	this->setAttenuation(next_attenuation);
 

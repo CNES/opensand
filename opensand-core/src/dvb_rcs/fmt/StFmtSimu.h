@@ -117,9 +117,10 @@ class StFmtSimu
 	/**
 	 * @brief Update the down/forward MODCOD ID of the ST
 	 *
-	 * @param new_id  the new down/forward MODCOD ID of the ST
+	 * @param new_id     the new down/forward MODCOD ID of the ST
+	 * @param advertise  whether we should set advertise if the MODCOD changed
 	 */
-	void updateFwdModcodId(unsigned int new_id);
+	void updateFwdModcodId(unsigned int new_id, bool advertise=true);
 
 	/**
 	 * @brief Get the previous down/forward MODCOD ID of the ST

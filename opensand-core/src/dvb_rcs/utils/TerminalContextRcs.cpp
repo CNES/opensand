@@ -110,7 +110,7 @@ void TerminalContextRcs::setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf)
 	this->rbdc_request_pktpf = rbdc_request_pktpf;
 	this->rbdc_credit_pktpf = 0;
 	this->timer_sf = this->rbdc_timeout_sf;
-	UTI_DEBUG_L3("new RBDC request %d credit %f timer %d for ST%u.\n",
+	UTI_DEBUG_L3("new RBDC request %d credit %.2f timer %d for ST%u.\n",
 	             this->rbdc_request_pktpf, this->rbdc_credit_pktpf,
 	             this->timer_sf, this->tal_id);
 }

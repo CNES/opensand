@@ -71,7 +71,7 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	m_carrierIdLogon(-1),
 	m_carrierIdData(-1),
 	complete_dvb_frames(),
-	capacity_request(mac_id),
+	sac(mac_id),
 	ttp(),
 	out_encap_packet_length(-1),
 	out_encap_packet_type(MSG_TYPE_ERROR),
@@ -773,13 +773,17 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	                                               LEVEL_INFO);
 	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete",
 	                                                   LEVEL_INFO);
-	this->probe_st_real_modcod = Output::registerProbe<int>("Real_modcod",
-	                                                        "modcod index",
-	                                                        true, SAMPLE_LAST);
+	if(!this->with_phy_layer)
+	{
+		// maximum modcod if physical layer is enabled => not useful
+		this->probe_st_real_modcod = Output::registerProbe<int>("Required_modcod",
+		                                                        "modcod index",
+		                                                        true, SAMPLE_LAST);
+	}
 	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
-	this->probe_sof_interval = Output::registerProbe<float>("perf.SOF_interval",
+	this->probe_sof_interval = Output::registerProbe<float>("Perf.SOF_interval",
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
@@ -1126,16 +1130,31 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 	// Get msg header
 	hdr = (T_DVB_HDR *) ip_buf;
 
+
 	switch(hdr->msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
+		case MSG_TYPE_CORRUPTED:
 		{
+			NetBurst *burst;
+
 			// Update stats
 			this->l2_from_sat_bytes += hdr->msg_length;
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
 			this->phy_from_sat_bytes += hdr->msg_length;
 
-			NetBurst *burst;
+			if(this->with_phy_layer)
+			{
+				T_DVB_PHY *physical_parameters;
+				double cni = 0;
+
+				// get ACM parameters
+				physical_parameters = (T_DVB_PHY *)((char *)hdr +
+													hdr->msg_length);
+				cni = ncntoh(physical_parameters->cn_previous);
+				this->sac.setAcm(cni);
+				i_len -= sizeof(T_DVB_PHY);
+			}
 
 			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
 			                                  this->m_talId, &burst) < 0)
@@ -1144,6 +1163,23 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 				          "BB frame (length = %ld)\n", i_len);
 				goto error;
 			}
+			// update MODCOD probes
+			if(!this->with_phy_layer)
+			{
+				this->probe_st_real_modcod->put(
+						((DvbS2Std *)this->receptionStd)->getRealModcod());
+			}
+			this->probe_st_used_modcod->put(
+					((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+
+			// do not transmit anything more
+			if(hdr->msg_type == MSG_TYPE_CORRUPTED)
+			{
+				UTI_DEBUG("SF#%u: the message was corrupted by physical layer, "
+				          "drop it", this->super_frame_counter);
+				break;
+			}
+
 			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
@@ -1207,14 +1243,8 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			break;
 
 		// messages sent by current or another ST for the NCC --> ignore
-		case MSG_TYPE_CR:
+		case MSG_TYPE_SAC:
 		case MSG_TYPE_SESSION_LOGON_REQ:
-			free(ip_buf);
-			break;
-
-		case MSG_TYPE_CORRUPTED:
-			UTI_DEBUG("SF#%u: the message was corrupted by physical layer, "
-			          "drop it", this->super_frame_counter);
 			free(ip_buf);
 			break;
 
@@ -1239,12 +1269,12 @@ error:
 }
 
 /**
- * Send a capacity request for NRT data
+ * Send a SAC
  * @return true on success, false otherwise
  */
-bool BlockDvbTal::sendCR()
+bool BlockDvbTal::sendSAC()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[sendCR]";
+	const char *FUNCNAME = DVB_DBG_PREFIX "[sendSAC]";
 	unsigned char *dvb_frame;
 	size_t length;
 	bool empty;
@@ -1252,9 +1282,9 @@ bool BlockDvbTal::sendCR()
 	// Set CR body
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
-	if(!this->dama_agent->buildCR(cr_none,
-	                              this->capacity_request,
-	                              empty))
+	if(!this->dama_agent->buildSAC(cr_none,
+	                               this->sac,
+	                               empty))
 	{
 		UTI_ERROR("%s SF#%u frame %u: DAMA cannot build CR\n", FUNCNAME,
 		          this->super_frame_counter, this->frame_counter);
@@ -1265,7 +1295,7 @@ bool BlockDvbTal::sendCR()
 	{
 		UTI_DEBUG_L3("SF#%u frame %u: Empty CR\n",
 		             this->super_frame_counter, this->frame_counter);
-		return true;
+		// keep going as we can send ACM parameters
 	}
 
 	// Get a dvb frame
@@ -1278,7 +1308,7 @@ bool BlockDvbTal::sendCR()
 		goto error;
 	}
 
-	this->capacity_request.build(dvb_frame, length);
+	this->sac.build(dvb_frame, length);
 
 	// Send message
 	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
@@ -1340,9 +1370,6 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		goto error;
 	}
 
-	// as long as the frame is changing, send all probes and event
-	Output::sendProbes();
-
 	// update the frame numerotation
 	this->super_frame_counter = sfn;
 
@@ -1386,6 +1413,10 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		// hence we do only a reassignation of frame_counter (the frame active
 		// count now as one frame in our superframe)
 		this->frame_counter = 0;
+
+		// as long as the frame is changing, send all probes and event
+		// already done if processOnFrameTick is called
+		Output::sendProbes();
 	}
 
 	free(ip_buf);
@@ -1452,17 +1483,17 @@ int BlockDvbTal::processOnFrameTick()
 		goto error;
 	}
 
-	// ---------- Capacity Request ----------
-	// compute and send Capacity Request ... only if
-	// the OBR period has been reached
+	// ---------- SAC ----------
+	// compute Capacity Request and send SAC...
+	// only if the OBR period has been reached
 	globalFrameNumber =
 		(this->super_frame_counter - 1) * this->frames_per_superframe
 		+ this->frame_counter;
 	if((globalFrameNumber % m_obrPeriod) == m_obrSlotFrame)
 	{
-		if(!this->sendCR())
+		if(!this->sendSAC())
 		{
-			UTI_ERROR("failed to send Capacity Request\n");
+			UTI_ERROR("failed to send SAC\n");
 			goto error;
 		}
 	}

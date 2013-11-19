@@ -156,7 +156,7 @@ bool Block::start(void)
 		Rt::reportError(this->name, pthread_self(), true,
 		                "cannot initialize thread attribute [%u: %s]",
 		                ret, strerror(ret));
-		return false;;
+		return false;
 	}
 	ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	if(ret != 0)

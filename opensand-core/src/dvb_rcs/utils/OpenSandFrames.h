@@ -37,7 +37,7 @@
 
 #include <opensand_conf/uti_debug.h>
 
-#include "CapacityRequest.h"
+#include "Sac.h"
 #include "Ttp.h"
 
 #include <string>
@@ -86,9 +86,9 @@
 #define MSG_TYPE_CORRUPTED 5
 
 /**
- * Capacity Request, ST -> NCC
+ * Satellie Access Control, ST -> NCC
  */
-#define MSG_TYPE_CR 10
+#define MSG_TYPE_SAC 10
 
 /**
  * FIXME: to be documented, ST->NCC
@@ -157,7 +157,7 @@ typedef struct
  */
 typedef struct
 {
-    double cn_previous;
+    uint32_t cn_previous;  ///< The C/N computed on the link (* 100)
 } __attribute__((__packed__)) T_DVB_PHY;
 
 /**
@@ -235,13 +235,13 @@ typedef struct
 
 
 /**
- * Capacity Request
+ * Satellite Access Control
  */
 typedef struct
 {
 	T_DVB_HDR hdr;           ///< Basic DVB Header
 	emu_sac_t sac;
-} __attribute__((packed)) T_DVB_SAC_CR;
+} __attribute__((packed)) T_DVB_SAC;
 
 
 /**

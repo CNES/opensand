@@ -135,8 +135,8 @@ class BlockDvbTal: public BlockDvb
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
 
-	/// The capacity request
-	CapacityRequest capacity_request;
+	/// The SAC
+	Sac sac;
 	/// The received TTP
 	Ttp ttp;
 
@@ -316,7 +316,7 @@ class BlockDvbTal: public BlockDvb
 	 * @return true on success, false otherwise
 	 */
 	bool sendLogonReq();
-	bool sendCR();
+	bool sendSAC();
 
 	void deletePackets();
 

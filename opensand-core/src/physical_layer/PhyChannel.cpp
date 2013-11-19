@@ -37,6 +37,7 @@
 #include <opensand_conf/uti_debug.h>
 
 #include  "PhyChannel.h"
+#include "BBFrame.h"
 
 #include <math.h>
 
@@ -49,6 +50,7 @@ PhyChannel::PhyChannel():
 	probe_attenuation(NULL),
 	probe_nominal_condition(NULL),
 	probe_minimal_condition(NULL),
+	probe_total_cn(NULL),
 	probe_drops(NULL)
 {
 }
@@ -70,7 +72,7 @@ bool PhyChannel::update()
 	UTI_DEBUG("%s Channel updated\n", FUNCNAME);
 	if(this->attenuation_model->updateAttenuationModel())
 	{
-		UTI_DEBUG("%s New attenuation: %f \n",
+		UTI_DEBUG("%s New attenuation: %.2f dB\n",
 		          FUNCNAME, this->attenuation_model->getAttenuation());
 	}
 	else
@@ -96,26 +98,21 @@ double PhyChannel::getTotalCN(T_DVB_PHY *phy_frame)
 	cn_down = this->nominal_condition - this->attenuation_model->getAttenuation();
 
 	/* C/N of uplink */ 
-	cn_up = phy_frame->cn_previous; 
+	cn_up = ncntoh(phy_frame->cn_previous);
 
-	// if -1 we are in the regenerative case were downlink C/N is entirely 
-	// defined here
-	if(cn_up != -1)
-	{
-		// Calculation of the sub total C/N ratio
-		num_down = pow(10, cn_down / 10);
-		num_up = pow(10, cn_up / 10);
+	// Calculation of the sub total C/N ratio
+	num_down = pow(10, cn_down / 10);
+	num_up = pow(10, cn_up / 10);
 
-		num_total = 1 / ((1 / num_down) + (1 / num_up)); 
-		cn_total = 10 * log10(num_total);
-	}
-	else
-	{
-		cn_total = cn_down;
-	}
+	num_total = 1 / ((1 / num_down) + (1 / num_up)); 
+	cn_total = 10 * log10(num_total);
 
-	UTI_DEBUG_L3("Satellite: cn_downlink= %f cn_uplink= %f cn_total= %f \n",
-	             cn_down, cn_up, cn_total);
+	// update CN in frame for DVB block transmission
+	phy_frame->cn_previous = hcnton(cn_total);
+
+	UTI_DEBUG_L3("Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
+	             "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
+	this->probe_total_cn->put(cn_total);
 
 	return cn_total;
 }
@@ -131,9 +128,9 @@ void PhyChannel::addSegmentCN(T_DVB_PHY *phy_frame)
 	   the Attenuation for this segment(uplink) */
 
 	val = this->nominal_condition - this->attenuation_model->getAttenuation();
-	UTI_DEBUG("%s Calculation of C/N: %f \n", FUNCNAME, val);
+	UTI_DEBUG("%s Calculation of C/N: %.2f dB\n", FUNCNAME, val);
 
-	phy_frame->cn_previous = val;
+	phy_frame->cn_previous = hcnton(val);
 }
 
 
@@ -148,8 +145,23 @@ bool PhyChannel::isToBeModifiedPacket(double cn_total)
 void PhyChannel::modifyPacket(T_DVB_META *frame, long length)
 {
 	T_DVB_HDR *dvb_hdr = (T_DVB_HDR *)(frame->hdr);
-	unsigned char *payload = (unsigned char *)dvb_hdr + sizeof(T_DVB_HDR);
-	length -= sizeof(T_DVB_HDR);
+	unsigned char *payload;
+
+	// keep the complete header because we carry useful data
+	if(dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
+	{
+		T_DVB_BBFRAME *bbhdr = (T_DVB_BBFRAME *)frame;
+		size_t hdr_length = sizeof(T_DVB_BBFRAME) + \
+		                    bbhdr->real_modcod_nbr + sizeof(T_DVB_REAL_MODCOD);
+
+		payload = (unsigned char *)frame + hdr_length;
+		length -= hdr_length;
+	}
+	else
+	{
+		payload = (unsigned char *)dvb_hdr + sizeof(T_DVB_HDR);
+		length -= sizeof(T_DVB_HDR);
+	}
 
 	if(error_insertion->modifyPacket(payload, length))
 	{
@@ -173,6 +185,8 @@ bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 	// TODO remove when supporting other frames
 	if(hdr->msg_type != MSG_TYPE_BBFRAME)
 	{
+		// TODO on ne connait pas la source quand on recoit, et les
+		// conditions en dépendent...
 		UTI_DEBUG("updateMinimalCondition called in transparent mode, "
 		          "not supported currently\n");
 		goto ignore;
@@ -188,7 +202,7 @@ bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 	this->probe_minimal_condition->put(this->minimal_condition->getMinimalCN());
 
 ignore:
-	UTI_DEBUG("Update minimal condition: %f\n",
+	UTI_DEBUG("Update minimal condition: %.2f dB\n",
 	          this->minimal_condition->getMinimalCN());
 error:
 	return this->status;

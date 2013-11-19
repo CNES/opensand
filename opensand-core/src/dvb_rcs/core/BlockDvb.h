@@ -189,6 +189,9 @@ class BlockDvb: public Block
 	/// The MODCOD simulation elements
 	FmtSimulation fmt_simu;
 
+	/// Physical layer enable
+	bool with_phy_layer;
+
 	/// the scenario refresh interval
 	int dvb_scenario_refresh;
 

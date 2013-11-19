@@ -133,4 +133,3 @@ float FmtDefinition::getRequiredEsN0() const
 	return this->required_Es_N0;
 }
 
-

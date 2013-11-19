@@ -137,8 +137,6 @@ class BBFrame: public DvbFrame
 	 */
 	void addModcodOption(tal_id_t tal_id, unsigned int modcod_id);
 
- private:
-
 	/**
 	 * @brief Get the offset from header beginning to payload
 	 *

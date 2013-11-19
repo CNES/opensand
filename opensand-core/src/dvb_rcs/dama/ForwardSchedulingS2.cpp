@@ -486,31 +486,31 @@ error:
 }
 
 
-bool ForwardSchedulingS2::retrieveCurrentModcod(long tal_id,
+bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
                                                 unsigned int &modcod_id)
 {
-	bool advertised_modcod;
+	bool is_advertised;
 
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
 	if(!this->fmt_simu->doTerminalExist(tal_id))
 	{
-		UTI_ERROR("encapsulation packet is for ST with ID %ld "
+		UTI_ERROR("encapsulation packet is for ST with ID %u "
 		          "that is not registered\n", tal_id);
 		goto error;
 	}
-	advertised_modcod = !this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
-	if(!advertised_modcod)
+	modcod_id = this->fmt_simu->getCurrentFwdModcodId(tal_id);
+	is_advertised = this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
+	if(!is_advertised)
 	{
-		modcod_id = this->fmt_simu->getCurrentFwdModcodId(tal_id);
+		// send the most robust MODCOD if not advertised
+		modcod_id = std::min(this->fmt_simu->getCurrentFwdModcodId(tal_id),
+		                     this->fmt_simu->getPreviousFwdModcodId(tal_id));
 	}
-	else
-	{
-		modcod_id = this->fmt_simu->getPreviousFwdModcodId(tal_id);
-	}
-	UTI_DEBUG_L3("MODCOD for ST ID %ld = %u (changed = %s)\n",
+
+	UTI_DEBUG_L3("MODCOD for ST ID %u = %u (changed = %s)\n",
 	             tal_id, modcod_id,
-	             advertised_modcod ? "yes" : "no");
+	             is_advertised ? "no" : "yes");
 
 	return true;
 
@@ -548,7 +548,7 @@ error:
 }
 
 
-bool ForwardSchedulingS2::getIncompleteBBFrame(unsigned int tal_id,
+bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
                                                CarriersGroup *carriers,
                                                BBFrame **bbframe)
 {
@@ -571,6 +571,7 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(unsigned int tal_id,
 	{
 		UTI_INFO("cannot serve terminal %u with any modcod (desired %u)\n",
 		         tal_id, desired_modcod);
+		// TODO we may send frame with modcod 1 ? 
 		goto skip;
 	}
 

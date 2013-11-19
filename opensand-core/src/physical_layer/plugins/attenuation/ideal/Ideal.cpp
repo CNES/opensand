@@ -88,7 +88,7 @@ error:
 bool Ideal::updateAttenuationModel()
 {
 	this->attenuation = this->value;
-	UTI_DEBUG("Constant attenuation: %f \n",
+	UTI_DEBUG("Constant attenuation: %.2f dB\n",
 	          this->getAttenuation());
 
 	return true;

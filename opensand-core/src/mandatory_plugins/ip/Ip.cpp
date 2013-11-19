@@ -105,7 +105,7 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 		return NULL;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(packet = burst->begin(); packet != burst->end(); ++packet)
 	{
 		IpPacket *ip_packet;
 
@@ -161,7 +161,7 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 		return false;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(packet = burst->begin(); packet != burst->end(); ++packet)
 	{
 		IpPacket *ip_packet;
 		IpAddress *ip_addr;
@@ -215,6 +215,7 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 	}
 
 	// delete the burst and all packets in it
+	//  TODO we may have a memory leak here with burst or packets in burst
 	delete burst;
 	return net_packets;
 }

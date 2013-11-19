@@ -292,9 +292,9 @@ bool DamaAgentRcsRrmQos::processOnFrameTick()
 }
 
 
-bool DamaAgentRcsRrmQos::buildCR(cr_type_t UNUSED(cr_type),
-                                 CapacityRequest &capacity_request,
-                                 bool &empty)
+bool DamaAgentRcsRrmQos::buildSAC(cr_type_t UNUSED(cr_type),
+                                  Sac &sac,
+                                  bool &empty)
 {
 	bool send_rbdc_request = false;
 	bool send_vbdc_request = false;
@@ -361,7 +361,7 @@ bool DamaAgentRcsRrmQos::buildCR(cr_type_t UNUSED(cr_type),
 	// set RBDC request (if any) in SAC
 	if(send_rbdc_request)
 	{
-		capacity_request.addRequest(0, cr_rbdc, rbdc_request_kbps);
+		sac.addRequest(0, cr_rbdc, rbdc_request_kbps);
 
 		// update variables used for next RBDC CR computation
 		this->rbdc_timer_sf = 0;
@@ -382,7 +382,7 @@ bool DamaAgentRcsRrmQos::buildCR(cr_type_t UNUSED(cr_type),
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		capacity_request.addRequest(0, cr_vbdc, vbdc_request_pkt);
+		sac.addRequest(0, cr_vbdc, vbdc_request_pkt);
 
 		// Update statistics
 		this->probe_st_vbdc_req_size->put(
@@ -740,5 +740,4 @@ vol_pkt_t DamaAgentRcsRrmQos::getMacBufferArrivals(cr_type_t cr_type)
 
 void DamaAgentRcsRrmQos::updateStatistics()
 {
-	Output::sendProbes();
 }

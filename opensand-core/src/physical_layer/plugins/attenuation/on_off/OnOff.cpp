@@ -125,7 +125,7 @@ bool OnOff::updateAttenuationModel()
 		this->setAttenuation(this->amplitude);
 	}
 
-	UTI_DEBUG("On/Off Attenuation %f\n", this->getAttenuation());
+	UTI_DEBUG("On/Off Attenuation %.2f dB\n", this->getAttenuation());
 	return true;
 }
 

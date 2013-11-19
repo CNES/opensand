@@ -128,7 +128,7 @@ class FmtSimulation
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the list
 	 *
-	 * @param id  the ID of the ST (called TAL ID or MAC ID elsewhere in the code)
+	 * @param id  the ID of the ST
 	 * @return    true if the deletion is successful, false otherwise
 	 */
 	bool delTerminal(tal_id_t id);
@@ -197,7 +197,7 @@ class FmtSimulation
 	/**
 	 * @brief Get the column # associated to the ST whose ID is given as input
 	 *
-	 * @param id  the ID of the MODCOD definition we want information for
+	 * @param id  the ID of the ST
 	 * @return    the column # associated to the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
@@ -207,7 +207,7 @@ class FmtSimulation
 	/**
 	 * @brief Get the current down/forward MODCOD ID of the ST whose ID is given as input
 	 *
-	 * @param id  the ID of the down/forward MODCOD definition we want information for
+	 * @param id  the ID of the ST
 	 * @return    the current MODCOD ID of the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
@@ -217,7 +217,7 @@ class FmtSimulation
 	/**
 	 * @brief Get the previous MODCOD ID of the ST whose ID is given as input
 	 *
-	 * @param id  the ID of the down/forwardn MODCOD definition we want information for
+	 * @param id  the ID of the ST
 	 * @return    the previous MODCOD ID of the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
@@ -254,7 +254,7 @@ class FmtSimulation
 	/**
 	 * @brief Get the current up/return MODCOD ID of the ST whose ID is given as input
 	 *
-	 * @param id  the ID of the up/return MODCOD definition we want information for
+	 * @param id  the ID of the ST
 	 * @return    the current up/return MODCOD ID of the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
@@ -282,6 +282,24 @@ class FmtSimulation
 	 * @return the MODCOD definitions
 	 */
 	const FmtDefinitionTable *getRetModcodDefinitions() const;
+
+	/**
+	 * @brief Set the required up/return MODCOD ID for of the
+	 *        ST whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id   the ID of the ST
+	 * @param cni  the required Es/N0 for that terminal
+	 */
+	void setRetRequiredModcod(tal_id_t tal_id, double cni) const;
+
+	/**
+	 * @brief Set the required down/forward MODCOD ID for of the
+	 *        ST whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id   the ID of the ST
+	 * @param cni  the required Es/N0 for that terminal
+	 */
+	void setFwdRequiredModcod(tal_id_t tal_id, double cni);
 
  private:
 

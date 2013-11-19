@@ -128,7 +128,7 @@ bool AcmLoop::updateThreshold(uint8_t modcod_id)
 	// Init variables
 	threshold = this->minimal_cn; // Default, keep previous threshold
 	threshold = (double)(this->modcod_table.getRequiredEsN0(modcod_id));
-	UTI_DEBUG("BBFrame: Required Es/N0 for ACM loop %u --> %f\n",
+	UTI_DEBUG("BBFrame: Required Es/N0 for ACM loop %u --> %.2f dB\n",
 	          modcod_id,
 	          this->modcod_table.getRequiredEsN0(modcod_id));
 

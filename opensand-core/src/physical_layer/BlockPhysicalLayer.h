@@ -59,22 +59,6 @@ class Chan: public RtChannel, PhyChannel
 		RtChannel(bl, chan_type),
 		PhyChannel()
 	{};
-
-#if 0
- protected:
-	/// Timer id for attenuation update
-	event_id_t att_timer;
-
-	/**
-	 * Forward a DVB frame to a destination block
-	 *
-	 * @param dvb_meta  The DVB frame to send
-	 * @param len       The length of the DVB frame to send
-	 * @return Whether the DVB frame was successfully sent or not
-	 */
-	virtual bool forwardMetaFrame(T_DVB_META *dvb_meta,
-	                              size_t len) = 0;
-#endif
 };
 
 /**

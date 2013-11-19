@@ -165,6 +165,15 @@ class FmtDefinitionTable
 	float getRequiredEsN0(unsigned int id) const;
 
 	/**
+	 * @brief Get the best required MODCOD according to the Es/N0 ratio
+	 *        given as input
+	 *
+	 * @param id  the required Es/N0 ratio
+	 * @return    the best required MODCOD ID, most robust if no MODCOD is found
+	 */
+	uint8_t getRequiredModcod(double cni) const;
+
+	/**
 	 * @brief  Get the highest definition ID
 	 *
 	 * @return the highest definition ID

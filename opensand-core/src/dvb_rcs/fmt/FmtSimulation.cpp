@@ -45,6 +45,11 @@
 #include <string.h>
 
 
+// TODO we say that if modcod id1 < modcod id2, then
+// modcod id1 is more robust thant modcod id2 but this is not really
+// the case as the modcod are ordered per modulation type and not
+// per Es/N0
+
 /**
  * @brief Check if a file exists
  *
@@ -122,11 +127,12 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 		          simu_column_num, id);
 		return false;
 	}
+	// if scenario are not defined, set most robust modcod at init
 	new_st = new StFmtSimu(id, simu_column_num,
 		this->is_fwd_modcod_simu_defined ?
-			atoi(this->fwd_modcod_list[simu_column_num].c_str()) : 0,
+			atoi(this->fwd_modcod_list[simu_column_num].c_str()) : 1,
 		this->is_ret_modcod_simu_defined ?
-			atoi(this->ret_modcod_list[simu_column_num].c_str()) : 0);
+			atoi(this->ret_modcod_list[simu_column_num].c_str()) : 1);
 	if(new_st == NULL)
 	{
 		UTI_ERROR("failed to create a new ST\n");
@@ -473,6 +479,45 @@ const FmtDefinitionTable *FmtSimulation::getRetModcodDefinitions() const
 	return &(this->ret_modcod_def);
 }
 
+void FmtSimulation::setRetRequiredModcod(tal_id_t id, double cni) const
+{
+	uint8_t modcod_id;
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+
+	modcod_id = this->ret_modcod_def.getRequiredModcod(cni);
+	st_iter = this->sts.find(id);
+	if(st_iter != this->sts.end())
+	{
+		return (*st_iter).second->updateRetModcodId(modcod_id);
+	}
+}
+
+void FmtSimulation::setFwdRequiredModcod(tal_id_t id, double cni)
+{
+	uint8_t modcod_id;
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+
+	modcod_id = this->fwd_modcod_def.getRequiredModcod(cni);
+	UTI_DEBUG("Terminal %u required %.2f dB, will be served with MODCOD %u\n",
+	          id, cni, modcod_id);
+	st_iter = this->sts.find(id);
+	if(st_iter != this->sts.end())
+	{
+/* do not advertise because we have the physical layer enabled in this case
+		list<tal_id_t>::const_iterator tal_it;
+
+		tal_it = std::find(this->need_advertise.begin(), this->need_advertise.end(), id);
+		// add the terminal ID in le list of not advertised terminal if necessary
+		if(!(*st_iter).second->isCurrentFwdModcodAdvertised() &&
+		   tal_it == this->need_advertise.end())
+		{
+			this->need_advertise.push_back(id);
+		}*/
+		return (*st_iter).second->updateFwdModcodId(modcod_id, false);
+	}
+}
+
+
 /**** private methods ****/
 
 
@@ -672,4 +717,5 @@ void FmtSimulation::setFwdModcodAdvertised(tal_id_t tal_id)
 		(*st_iter).second->setFwdModcodAdvertised();
 	}
 }
+
 

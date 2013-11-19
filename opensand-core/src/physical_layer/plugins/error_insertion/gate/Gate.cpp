@@ -27,11 +27,11 @@
 
 /**
  * @file Gate.cpp
- * @brief Gate: Class that implements Error Insertion, Attribute class of 
- *                   Channel that manages how bit errors affect the frames.
- *                   -Gate process the packets with an ON/OFF perspective.
- *                   If the Carrier to Noise ratio is below a certain threshold,
- *                   the whole packet will corrupted in all its bits.
+ * @brief Class that implements Error Insertion, Attribute class of 
+ *        Channel that manages how bit errors affect the frames.
+ *        Process the packets with an ON/OFF perspective.
+ *        If the Carrier to Noise ratio is below a certain threshold,
+ *        the whole packet will corrupted in all its bits.
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
  */
 
@@ -78,10 +78,11 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 	return do_modify;
 }
 
-bool Gate::modifyPacket(unsigned char *payload, long length)
+bool Gate::modifyPacket(unsigned char *UNUSED(payload), long UNUSED(length))
 {
 	UTI_DEBUG_L3("Payload is modified\n");
-	memset(payload, '\0', length);
+	// not needed, we will reject frame in DVB layer as we return true
+	// memset(payload, '\0', length);
 	return true;
 }
 

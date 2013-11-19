@@ -26,12 +26,12 @@
  */
 
 /**
- * @file    CapacityRequest.cpp
- * @brief   Represent a CR (Capacity Request)
+ * @file    Sac.cpp
+ * @brief   Represent a Satellite Access Control message
  * @author  Audric Schiltknecht / Viveris Technologies
  */
 
-#include "CapacityRequest.h"
+#include "Sac.h"
 #include "OpenSandFrames.h"
 
 #include <cstring>
@@ -50,19 +50,20 @@ static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
 static uint16_t getDecodedCrValue(const emu_cr_t &cr);
 
 
-CapacityRequest::CapacityRequest(tal_id_t tal_id, group_id_t group_id):
+Sac::Sac(tal_id_t tal_id, group_id_t group_id):
 	tal_id(tal_id),
 	group_id(group_id),
+	cni(-100), // very low as we will force the most robust MODCOD at beginning
 	requests()
 {
 }
 
-CapacityRequest::~CapacityRequest()
+Sac::~Sac()
 {
 	this->requests.clear();
 }
 
-void CapacityRequest::addRequest(uint8_t prio, uint8_t type, uint32_t value)
+void Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 {
 	cr_info_t info;
 	info.prio = prio;
@@ -72,20 +73,21 @@ void CapacityRequest::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 
 }
 
-bool CapacityRequest::parse(const unsigned char *data, size_t length)
+bool Sac::parse(const unsigned char *data, size_t length)
 {
 	// remove all requests
 	this->requests.clear();
-	/* check that data contains DVB header, tal_id and cr_number */
-	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t))
+	/* check that data contains DVB header, tal_id, acm  and cr_number */
+	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t) + sizeof(emu_acm_t))
 	{
 		return false;
 	}
-	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t);
+	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t) - sizeof(emu_acm_t);
 
 	this->sac = *((emu_sac_t *)(data + sizeof(T_DVB_HDR)));
 	this->tal_id = ntohs(this->sac.tal_id);
 	this->group_id = this->sac.group_id;
+	this->cni = ncntoh(this->sac.acm.cni);
 
 	/* check that we can read enough cr */
 	if(length < this->sac.cr_number * sizeof(emu_cr_t))
@@ -106,18 +108,23 @@ bool CapacityRequest::parse(const unsigned char *data, size_t length)
 	return true;
 }
 
-void CapacityRequest::build(unsigned char *frame, size_t &length)
+void Sac::build(unsigned char *frame, size_t &length)
 {
-	T_DVB_SAC_CR dvb_sac;
+	T_DVB_SAC dvb_sac;
 
 	// fill T_DVB_SAC fields
 	dvb_sac.hdr.msg_length = sizeof(T_DVB_HDR);
-	dvb_sac.hdr.msg_type = MSG_TYPE_CR;
+	dvb_sac.hdr.msg_type = MSG_TYPE_SAC;
 
 	// fill emu_sac_t fields
-	this->sac.group_id = this->group_id;
 	this->sac.tal_id = htons(this->tal_id);
+	dvb_sac.hdr.msg_length += sizeof(tal_id_t);
+	this->sac.group_id = this->group_id;
+	dvb_sac.hdr.msg_length += sizeof(group_id_t);
+	this->sac.acm.cni = hcnton(this->cni);
+	dvb_sac.hdr.msg_length += sizeof(emu_acm_t);
 	this->sac.cr_number = 0;
+	dvb_sac.hdr.msg_length += sizeof(uint8_t);
 	for(unsigned int i = 0; i < this->requests.size() && i < NBR_MAX_CR; i++)
 	{
 		uint8_t scale;
@@ -128,7 +135,7 @@ void CapacityRequest::build(unsigned char *frame, size_t &length)
 		                 scale, value);
 		this->sac.cr[i].scale = scale;
 		this->sac.cr[i].value = value;
-		dvb_sac.hdr.msg_length += sizeof(emu_sac_t);
+		dvb_sac.hdr.msg_length += sizeof(emu_cr_t);
 		this->sac.cr_number++;
 	}
 	dvb_sac.sac = this->sac;

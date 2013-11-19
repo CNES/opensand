@@ -26,14 +26,14 @@
  */
 
 /**
- * @file    CapacityRequest.h
- * @brief   Represent a CR (Capacity Request)
+ * @file    Sac.h
+ * @brief   Represent a Satellite Access Control message
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#ifndef _CAPACITY_REQUEST_H_
-#define _CAPACITY_REQUEST_H_
+#ifndef _SAC_H_
+#define _SAC_H_
 
 
 #include "OpenSandCore.h"
@@ -99,14 +99,24 @@ typedef struct
 } cr_info_t;
 
 /**
+ * The ACM field
+ */
+typedef struct
+{
+	uint32_t cni;   ///< The C/N of the forward link
+} __attribute__((packed)) emu_acm_t;
+
+/**
  * The Emulated SAC field
  */
 typedef struct
 {
-	tal_id_t tal_id; ///< The terminal ID (logon_id)
-	                 //   size 5 for physical ST, 5->max for simulated ST requests
-	group_id_t group_id; ///< The group ID 
-	uint8_t cr_number;   ///< The number of CR in SAC
+	tal_id_t tal_id;         ///< The terminal ID (logon_id)
+	                         //   size 5 for physical ST, 5->max for simulated
+	                         //   ST requests
+	group_id_t group_id;     ///< The group ID 
+	uint8_t cr_number;       ///< The number of CR in SAC
+	emu_acm_t acm;           ///< The emulated ACM fields
 	emu_cr_t cr[NBR_MAX_CR]; ///< The emulated CR field
 	                         //   when in frame, the length should be correctly set
 	                         //   in order to send only the CR which were filled
@@ -115,28 +125,28 @@ typedef struct
 
 
 /**
- * @class CapacityRequest
- * @brief Represent a CR
+ * @class Sac
+ * @brief Represent a SAC
  */
-class CapacityRequest
+class Sac
 {
  public:
 
 	/**
-	 * @brief Capacity Request constructor for agent
+	 * @brief SAC constructor for agent
 	 *
 	 * @param tal_id   The terminal ID
 	 * @param group_id The group ID
 	 */
-	CapacityRequest(tal_id_t tal_id, group_id_t group_id = 0);
+	Sac(tal_id_t tal_id, group_id_t group_id = 0);
 
 	/**
-	 * @brief Capacity Request constructor for controller
+	 * @brief SAC constructor for controller
 	 */
-	CapacityRequest()
+	Sac()
 	{};
 
-	~CapacityRequest();
+	~Sac();
 
 	/**
 	 * @brief Set the requests
@@ -146,6 +156,16 @@ class CapacityRequest
 	 * @param value The request value
 	 */
 	void addRequest(uint8_t prio, uint8_t type, uint32_t value);
+
+	/**
+	 * @brief Set the ACM parameters
+	 *
+	 * @param cni  The CNI parameter value
+	 */
+	void setAcm(double cni)
+	{
+		this->cni = cni;
+	};
 
 	/**
 	 * @brief Parse CR data
@@ -187,6 +207,11 @@ class CapacityRequest
 		return this->requests;
 	};
 
+	double getCni() const
+	{
+		return this->cni;
+	};
+
 	/**
 	 * @brief  Build a SAC field to be sent on the network
 	 *
@@ -203,6 +228,8 @@ class CapacityRequest
 	tal_id_t tal_id;
 	/// the group ID
 	group_id_t group_id;
+	/// the CNI parameter (C/N of forward link)
+	double cni;
 	/// the requets
 	vector<cr_info_t> requests;
 	/// the SAC avoid allocating a complete SAC

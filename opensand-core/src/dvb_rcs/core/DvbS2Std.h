@@ -82,21 +82,25 @@ class DvbS2Std: public PhysicStd
 	               tal_id_t tal_id,
 	               NetBurst **burst);
 
- private:
-
 	/**
-	 * @brief Get the real MODCOD of the terminal
+	 * @brief  Get the real MODCOD for the terminal
 	 *
 	 * @return the real MODCOD
 	 */
-	int getRealModcod();
+	uint8_t getRealModcod() const
+	{
+		return this->real_modcod;
+	};
 
 	/**
-	 * @brief Get the received MODCOD of the terminal
+	 * @brief  Get the received MODCOD for the terminal
 	 *
 	 * @return the received MODCOD
 	 */
-	int getReceivedModcod();
+	uint8_t getReceivedModcod() const
+	{
+		return this->received_modcod;
+	};
 
 
 };

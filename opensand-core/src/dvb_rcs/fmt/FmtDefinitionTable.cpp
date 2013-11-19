@@ -283,7 +283,6 @@ bool FmtDefinitionTable::add(const unsigned int id,
                              const float spectral_efficiency,
                              const float required_Es_N0)
 {
-	map<unsigned int, FmtDefinition *>::iterator it;
 	FmtDefinition *new_def;
 
 	// check that the table does not already own a FMT definition
@@ -370,6 +369,34 @@ float FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
 	}
 	return def->getRequiredEsN0();
 }
+
+
+uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
+{
+	uint8_t modcod_id = 1; // use at least most robust MODCOD
+	double current_cni;
+	double previous_cni = 0.0;
+	map<unsigned int, FmtDefinition *>::const_iterator it;
+
+	for(it = this->definitions.begin(); it != this->definitions.end(); it++)
+	{
+		current_cni = (*it).second->getRequiredEsN0();
+		if(current_cni > cni)
+		{
+			// not supported
+			continue;
+		}
+		// here we havea supported Es/N0 value check if it is better than the
+		// previous one
+		if(current_cni > previous_cni)
+		{
+			previous_cni = current_cni;
+			modcod_id = (*it).first;
+		}
+	}
+	return modcod_id;
+}
+
 
 FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
 {

@@ -47,6 +47,7 @@ using std::list;
 
 DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
+	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
 	received_modcod(this->real_modcod)
 {
@@ -88,7 +89,8 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	}
 
 	// sanity check: this function only handle BB frames
-	if(type != MSG_TYPE_BBFRAME)
+	// keep corrupted for MODCOD updating
+	if(type != MSG_TYPE_BBFRAME && type != MSG_TYPE_CORRUPTED)
 	{
 		UTI_ERROR("the message received is not a BB frame\n");
 		goto error;
@@ -113,8 +115,13 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	bbframe_burst.getRealModcod(tal_id, this->real_modcod);
 
 	// used for terminal statistics
-	// TODO add the stat
 	this->received_modcod = bbframe_burst.getModcodId();
+
+	if(type != MSG_TYPE_BBFRAME)
+	{
+		// corrupted, nothing more to do
+		goto drop;
+	}
 
 	// is the ST able to decode the received BB frame ?
 	if(this->received_modcod > real_mod)

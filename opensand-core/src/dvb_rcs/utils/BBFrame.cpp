@@ -186,9 +186,6 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 
 	for(i = 0; i < bb_header->real_modcod_nbr; i++)
 	{
-		// retrieve one real MODCOD option
-		real_modcod_option += 1;
-
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
 		{
@@ -198,6 +195,8 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 			modcod_id = real_modcod_option->real_modcod;
 			return;
 		}
+		// retrieve one real MODCOD option
+		real_modcod_option += 1;
 	}
 	// let modcod_id unchanged if there is no option
 }

@@ -45,6 +45,9 @@
 
 using std::string;
 
+#define IS_DVB_FRAME(msg_type) \
+ 	(msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST)
+
 /**
  * @class PhyChannel
  * @brief Physical Layer Channel
@@ -145,6 +148,7 @@ class PhyChannel
 	Probe<float> *probe_attenuation;
 	Probe<float> *probe_nominal_condition;
 	Probe<float> *probe_minimal_condition;
+	Probe<float> *probe_total_cn;
 	Probe<int> *probe_drops;
 
  public:

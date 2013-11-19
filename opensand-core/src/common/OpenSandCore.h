@@ -41,6 +41,7 @@
 #include <cmath>
 #include <stdint.h>
 #include <vector>
+#include <arpa/inet.h>
 
 using std::string;
 using std::vector;
@@ -166,7 +167,35 @@ inline void tokenize(const string &str,
 		// Find next "non-delimiter"
 		pos = str.find_first_of(delimiters, last_pos);
 	}
-}
+};
+
+/**
+ * @brief  Convert a C/N value from host to network
+ * @warning This code has not be tested and may be incorrect for endianess
+ *
+ * @param cn  The CN value
+ * return the CN value than can be carried on network
+ */
+inline uint32_t hcnton(double cn)
+{
+	int16_t tmp_cn = (int16_t)(cn * 100); // we take two digits in decimal part
+	uint32_t new_cn = htonl((uint32_t)tmp_cn);
+	return new_cn;
+};
+
+/**
+ * @brief  Convert a C/N value from network to host
+ * @warning This code has not be tested and may be incorrect for endianess
+ *
+ * @param cn  The CN value
+ * return the CN value than can be handled on host
+ */
+inline double ncntoh(uint32_t cn)
+{
+	int16_t tmp_cn = (int16_t)ntohl(cn);
+	double new_cn = double(tmp_cn / 100.0);
+	return new_cn;
+};
 
 // The types used in OpenSAND
 

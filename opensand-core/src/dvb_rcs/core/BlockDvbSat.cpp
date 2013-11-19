@@ -296,14 +296,11 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 			{
 				UTI_DEBUG_L3("MODCOD scenario timer expired\n");
 
-				if(this->satellite_type == REGENERATIVE)
+				UTI_DEBUG_L3("update modcod table\n");
+				if(!this->fmt_simu.goNextScenarioStep())
 				{
-					UTI_DEBUG_L3("update modcod table\n");
-					if(!this->fmt_simu.goNextScenarioStep())
-					{
-						UTI_ERROR("failed to update MODCOD IDs\n");
-						return false;
-					}
+					UTI_ERROR("failed to update MODCOD IDs\n");
+					return false;
 				}
 			}
 			else if (*event == this->stats_timer)
@@ -473,7 +470,7 @@ bool BlockDvbSat::initDownwardTimers()
 	this->frame_timer = this->downward->addTimerEvent("dvb_frame_timer",
 	                                                  this->frame_duration_ms);
 
-	if(this->satellite_type == REGENERATIVE)
+	if(this->satellite_type == REGENERATIVE && !this->with_phy_layer)
 	{
 		// launch the timer in order to retrieve the modcods
 		this->scenario_timer = this->downward->addTimerEvent("dvb_scenario_timer",
@@ -1146,7 +1143,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	break;
 
 	// Generic control frames (CR, TBTP, etc)
-	case MSG_TYPE_CR:
+	case MSG_TYPE_SAC:
 	case MSG_TYPE_SOF:
 	case MSG_TYPE_TTP:
 	case MSG_TYPE_SYNC:

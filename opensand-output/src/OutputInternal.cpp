@@ -328,6 +328,12 @@ void OutputInternal::sendProbes()
 void OutputInternal::sendEvent(Event *event,
                                const string &message_text)
 {
+	if(!event)
+	{
+		UTI_ERROR("Event is NULL !\n");
+		return;
+	}
+
 	if(!this->enabled || event->level < this->min_level)
 	{
 		return;

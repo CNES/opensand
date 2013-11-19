@@ -92,8 +92,8 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// The TTP
 	Ttp ttp;
 
-	/// The capacity requests
-	CapacityRequest capacity_request;
+	/// The SAC
+	Sac sac;
 
 	/// timer used to awake the block every second in order to retrieve
 	/// the current MODCODs

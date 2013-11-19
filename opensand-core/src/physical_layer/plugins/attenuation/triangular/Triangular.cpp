@@ -118,7 +118,7 @@ bool Triangular::updateAttenuationModel()
 		this->setAttenuation(max - time * this->slope);
 	}
 
-	UTI_DEBUG("On/Off Attenuation %f\n", this->getAttenuation());
+	UTI_DEBUG("On/Off Attenuation %.2f dB\n", this->getAttenuation());
 
 	return true;
 }

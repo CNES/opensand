@@ -427,7 +427,6 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 			int l_len;
 
 			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
-			//carrier_id = dvb_meta->carrier_id;
 			frame = (unsigned char *) dvb_meta->hdr;
 			l_len = ((MessageEvent *)event)->getLength();
 
@@ -613,9 +612,16 @@ bool BlockDvbNcc::initRequestSimulation()
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
 	{
 		UTI_ERROR("cannot load parameter %s from section %s\n",
-		        DVB_EVENT_FILE, DVB_NCC_SECTION);
+		          DVB_EVENT_FILE, DVB_NCC_SECTION);
 		goto error;
 	}
+	if(str_config != "none" && this->with_phy_layer)
+	{
+		UTI_ERROR("cannot use simulated request with physical layer "
+		          "because we need to add cni parameters in SAC (TBD!)\n");
+		goto error;
+	}
+
 	if(str_config ==  "stdout")
 	{
 		this->event_file = stdout;
@@ -791,9 +797,12 @@ bool BlockDvbNcc::initDownwardTimers()
 	this->frame_timer = this->downward->addTimerEvent("frame",
 	                                                  this->frame_duration_ms);
 
-	// Launch the timer in order to retrieve the modcods
-	this->scenario_timer = this->downward->addTimerEvent("scenario",
-	                                                     this->dvb_scenario_refresh);
+	// Launch the timer in order to retrieve the modcods if there is no physical layer
+	if(!this->with_phy_layer)
+	{
+		this->scenario_timer = this->downward->addTimerEvent("scenario",
+		                                                     this->dvb_scenario_refresh);
+	}
 
 	return true;
 
@@ -1130,6 +1139,7 @@ bool BlockDvbNcc::initDama()
 	// Initialize the DamaCtrl parent class
 	if(!this->dama_ctrl->initParent(this->frame_duration_ms,
 	                                this->frames_per_superframe,
+	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
 	                                cra_decrease,
 	                                rbdc_timeout_sf,
@@ -1245,13 +1255,12 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
 
+			NetBurst *burst;
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_hdr->msg_length;
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
 			this->phy_from_sat_bytes += dvb_hdr->msg_length;
-
-			NetBurst *burst;
 
 			if(this->receptionStd->getType() == "DVB-RCS" &&
 			   dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
@@ -1274,16 +1283,15 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		}
 		break;
 
-		case MSG_TYPE_CR:
+		case MSG_TYPE_SAC:
 		{
-			this->capacity_request.parse(data, len);
+			this->sac.parse(data, len);
 
-			UTI_DEBUG_L3("handle received Capacity Request (CR)\n");
+			UTI_DEBUG_L3("handle received SAC\n");
 
-			if(!this->dama_ctrl->hereIsCR(this->capacity_request))
+			if(!this->dama_ctrl->hereIsSAC(this->sac))
 			{
-				UTI_ERROR("failed to handle Capacity Request "
-				          "(CR) frame\n");
+				UTI_ERROR("failed to handle SAC frame\n");
 				goto error;
 			}
 			free(data);
@@ -1542,13 +1550,13 @@ bool BlockDvbNcc::simulateFile()
 		{
 		case cr:
 		{
-			CapacityRequest cr(st_id);
+			Sac cr(st_id);
 
 			cr.addRequest(0, cr_type, st_request);
 			UTI_DEBUG("SF#%u: send a simulated CR of type %u with value = %u "
 			          "for ST %hu\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			if(!this->dama_ctrl->hereIsCR(cr))
+			if(!this->dama_ctrl->hereIsSAC(cr))
 			{
 				goto error;
 			}
@@ -1676,13 +1684,13 @@ void BlockDvbNcc::simulateRandom()
 	for(i = 0; i < this->simu_st; i++)
 	{
 		uint32_t val;
-		CapacityRequest cr(sim_tal_id + i);
+		Sac cr(sim_tal_id + i);
 
 		val = this->simu_cr - this->simu_interval / 2 +
 		      random() % this->simu_interval;
 		cr.addRequest(0, cr_rbdc, val);
 
-		this->dama_ctrl->hereIsCR(cr);
+		this->dama_ctrl->hereIsSAC(cr);
 	}
 }
 

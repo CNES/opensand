@@ -35,7 +35,7 @@
 #define _DAMA_AGENT_H_
 
 #include "Ttp.h"
-#include "CapacityRequest.h"
+#include "Sac.h"
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 #include "OpenSandCore.h"
@@ -143,16 +143,16 @@ class DamaAgent
 	virtual bool hereIsTTP(Ttp &ttp) = 0;
 
 	/**
-	 * @brief Build Capacity Requests.
+	 * @brief Build SAC.
 	 *
-	 * @param cr_type           CR type to compute CR on.
-	 * @param capacity_request  capacity request built.
-	 * @param empty             flag if CR is 0.
+	 * @param cr_type   CR type to compute CR on.
+	 * @param sac       SAC built.
+	 * @param empty     flag if CR is 0.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool buildCR(cr_type_t cr_type,
-	                     CapacityRequest &capacity_request,
-	                     bool &empty) = 0;
+	virtual bool buildSAC(cr_type_t cr_type,
+	                      Sac &sac,
+	                      bool &empty) = 0;
 
 	/**
 	 * @brief Schedule uplink packets emission.

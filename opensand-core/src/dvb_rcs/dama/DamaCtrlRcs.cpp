@@ -49,6 +49,7 @@
 using namespace std;
 
 
+// TODO
 // Static output events and probes
 Event* DamaCtrlRcs::error_alloc = NULL;
 Event* DamaCtrlRcs::error_ncc_req = NULL;
@@ -112,12 +113,12 @@ bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
 	return true;
 }
 
-bool DamaCtrlRcs::hereIsCR(const CapacityRequest &capacity_request)
+bool DamaCtrlRcs::hereIsSAC(const Sac &sac)
 {
 	DamaTerminalList::iterator st;
 	TerminalContextRcs *terminal;
-	tal_id_t tal_id = capacity_request.getTerminalId();
-	std::vector<cr_info_t> requests = capacity_request.getRequets();
+	tal_id_t tal_id = sac.getTerminalId();
+	std::vector<cr_info_t> requests = sac.getRequets();
 
 	// Checking if the station is registered
 	st = this->terminals.find(tal_id);
@@ -125,8 +126,8 @@ bool DamaCtrlRcs::hereIsCR(const CapacityRequest &capacity_request)
 	{
 		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%d). Discarded.\n" ,
 		          this->current_superframe_sf, tal_id);
-		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
-		                  "Discarded.\n",tal_id);
+/*		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
+		                  "Discarded.\n", tal_id);*/
 		goto error;
 	}
 	terminal = (TerminalContextRcs*) st->second; // Now st_context points to a valid context
@@ -170,6 +171,12 @@ bool DamaCtrlRcs::hereIsCR(const CapacityRequest &capacity_request)
 
 				break;
 		}
+	}
+	if(this->with_phy_layer)
+	{
+		// we should got the C/N0 of forward link
+		double cni = sac.getCni();
+		this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
 	}
 
 	return true;

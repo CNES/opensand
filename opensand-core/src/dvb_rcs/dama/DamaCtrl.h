@@ -36,7 +36,7 @@
 #endif
 
 
-#include "CapacityRequest.h"
+#include "Sac.h"
 #include "Ttp.h"
 #include "TerminalContext.h"
 #include "TerminalCategory.h"
@@ -75,6 +75,7 @@ class DamaCtrl
 	 *
 	 * @param   frame_duration_ms       duration of the frame (in ms).
 	 * @param   frames_per_superframe   The number of frames per superframe
+	 * @param   with_phy_layer          Whether the physical layer is enabled or not
 	 * @param   packet_length_bytes     The packet length in bytes, for constant length
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
@@ -87,6 +88,7 @@ class DamaCtrl
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
 	                        unsigned int frames_per_superframe,
+	                        bool with_phy_layer,
 	                        vol_bytes_t packet_length_bytes,
 	                        bool cra_decrease,
 	                        time_sf_t rbdc_timeout_sf,
@@ -94,7 +96,7 @@ class DamaCtrl
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
 	                        TerminalCategory *default_category,
-	                        const FmtSimulation *const fmt_simu);
+	                        FmtSimulation *const fmt_simu);
 
 	// Protocol frames processing
 
@@ -115,14 +117,14 @@ class DamaCtrl
 	virtual bool hereIsLogoff(const Logoff &logoff);
 
 	/**
-	 * @brief  Process a Capacity Request frame.
+	 * @brief  Process a SAC frame.
 	 * @warning Should set enable_rbdc or enable_vbdc to true depending on
 	 *          the type of CR it receives
 	 *
-	 * @param   capacity_request  capacity Request frame.
+	 * @param   sac  SAC frame.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsCR(const CapacityRequest &capacity_request) = 0;
+	virtual bool hereIsSAC(const Sac &sac) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.
@@ -218,6 +220,9 @@ class DamaCtrl
 	// TODO useful? they are in TerminalCategories
 	DamaTerminalList terminals;
 
+	/// Physical layer enable
+	bool with_phy_layer;
+
 	/** Current SuperFrame number */
 	time_sf_t current_superframe_sf;
 
@@ -262,7 +267,7 @@ class DamaCtrl
 	TerminalCategory *default_category;
 
 	/** FMT simulation information */
-	const FmtSimulation *fmt_simu;
+	FmtSimulation *fmt_simu;
 
 	/** Roll-off factor */
 	double roll_off;

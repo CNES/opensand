@@ -48,6 +48,7 @@ DamaCtrl::DamaCtrl():
 	is_parent_init(false),
 	converter(NULL),
 	terminals(), // TODO not very useful, they are stocked in categories
+	with_phy_layer(false),
 	current_superframe_sf(0),
 	frame_duration_ms(0),
 	frames_per_superframe(0),
@@ -103,6 +104,7 @@ DamaCtrl::~DamaCtrl()
 
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           unsigned int frames_per_superframe,
+                          bool with_phy_layer,
                           vol_bytes_t packet_length_bytes,
                           bool cra_decrease,
                           time_sf_t rbdc_timeout_sf,
@@ -110,10 +112,11 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           TerminalCategories categories,
                           TerminalMapping terminal_affectation,
                           TerminalCategory *default_category,
-                          const FmtSimulation *const fmt_simu)
+                          FmtSimulation *const fmt_simu)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->frames_per_superframe = frames_per_superframe;
+	this->with_phy_layer = with_phy_layer;
 	this->cra_decrease = cra_decrease;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
@@ -385,23 +388,6 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
-//TODO
-	/*for(DamaTerminalList::iterator st = this->terminals.begin();
-	    st != this->terminals.end(); ++st)
-	{
-		tal_id_t tal_id = st->first;
-		TerminalContext *terminal = st->second;
-		//uint16_t request;
-
-		// ignore simulated ST in stats, there ID is > 31
-		// TODO create a stat that sum all simulated tal
-		if(tal_id > BROADCAST_TAL_ID)
-		{
-			continue;
-		}
-
-	}*/
-
 	return 0;
 }
 
@@ -486,8 +472,4 @@ void DamaCtrl::updateStatistics()
 					this->carrier_return_remaining_capacity_pktpf[carrier_id]));
 		}
 	}
-
-
-	// Send probes
-	Output::sendProbes();
 }

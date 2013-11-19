@@ -60,9 +60,9 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 	bool hereIsTTP(Ttp &ttp);
 	bool processOnFrameTick();
 	bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
-	bool buildCR(cr_type_t cr_type,
-	             CapacityRequest &capacity_request,
-	             bool &emtpy);
+	bool buildSAC(cr_type_t cr_type,
+	              Sac &sac,
+	              bool &emtpy);
 	//void updateStatistics();
 	void updateStatistics();
 
@@ -111,9 +111,9 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 	vol_pkt_t getMacBufferLength(cr_type_t cr_type);
 	/**
 	 * @brief Utility function to get total number of "last arrived" packets
-	 *        (since last CR) of all MAC fifos associated to the concerned CR type
+	 *        (since last SAC) of all MAC fifos associated to the concerned CR type
 	 *
-	 * @param crType            the type of capacity request
+	 * @param cr_type            the type of capacity request
 	 *
 	 * @return                  total number of "last arrived" packets"
 	 *                          in packets number

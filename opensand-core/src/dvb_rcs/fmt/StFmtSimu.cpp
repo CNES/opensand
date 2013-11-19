@@ -45,8 +45,9 @@ StFmtSimu::StFmtSimu(long id,
 	this->previous_fwd_modcod_id = this->current_fwd_modcod_id;
 	this->current_ret_modcod_id = ret_modcod_id;
 
-	// force the advertising of down/forward MODCOD ID at startup
-	this->is_current_modcod_advertised = false;
+	// do not advertise at startup because for physical layer scenario we do not
+	// want advertisment
+	this->is_current_modcod_advertised = true;
 }
 
 
@@ -73,14 +74,13 @@ unsigned int StFmtSimu::getCurrentFwdModcodId() const
 	return this->current_fwd_modcod_id;
 }
 
-
-void StFmtSimu::updateFwdModcodId(unsigned int new_id)
+void StFmtSimu::updateFwdModcodId(unsigned int new_id, bool advertise)
 {
 	this->previous_fwd_modcod_id = this->current_fwd_modcod_id;
 	this->current_fwd_modcod_id = new_id;
 
 	// mark the down/forward MODCOD as not advertised yet if the MODCOD changed
-	if(this->current_fwd_modcod_id != this->previous_fwd_modcod_id)
+	if(this->current_fwd_modcod_id != this->previous_fwd_modcod_id && advertise)
 	{
 		this->is_current_modcod_advertised = false;
 	}
@@ -89,6 +89,11 @@ void StFmtSimu::updateFwdModcodId(unsigned int new_id)
 
 unsigned int StFmtSimu::getPreviousFwdModcodId() const
 {
+	if(this->previous_fwd_modcod_id > this->current_fwd_modcod_id)
+	{
+		// will be decoded
+		return this->current_ret_modcod_id;
+	}
 	return this->previous_fwd_modcod_id;
 }
 
