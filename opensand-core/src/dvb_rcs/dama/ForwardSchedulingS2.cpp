@@ -159,13 +159,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		// keep total remaining capacity (for stats)
 		remaining_allocation += (*carrier_it)->getRemainingCapacity();
 		// reset remaining capacity
-		// TODO
-		// we could keep some remaining capacity for next frame but it should not be
-		// kept among frames so we should add a variable to now if
-		// something has been allocated during fifo iterations and reset if
-		// nothing has been done
-		// we should also take care of the amount of remaining capa that
-		// could be greater than timeslot if we keep it twice
 		(*carrier_it)->setRemainingCapacity(0);
 	}
 
@@ -186,12 +179,28 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	BBFrame *current_bbframe;
 	list<unsigned int> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
+	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf,
+	                                                       current_frame);
+	vol_sym_t init_capa = capacity_sym;
+	capacity_sym += previous_sym;
 
-	UTI_DEBUG("SF#%u: frame %u: capacity is %u symbols\n",
-	          current_superframe_sf, current_frame, capacity_sym);
+		// TODO DEBUG
+	UTI_ERROR("SF#%u: frame %u: capacity is %u symbols (+ %u previous)\n",
+	          current_superframe_sf, current_frame, capacity_sym, previous_sym);
 
 	// first add the pending complete BBFrame in the complete BBframes list
-	this->schedulePending(supported_modcods, complete_dvb_frames, capacity_sym);
+	// we add previous remaining capacity here because if a BBFrame was
+	// not send before, previous_capacity contains the remaining capacity at the
+	// end of the previous frame
+	this->schedulePending(supported_modcods, complete_dvb_frames,
+	                      capacity_sym);
+	// reset previous capacity
+	carriers->setPreviousCapacity(0, 0, 0);
+	// all the previous capacity was not consumed, remove it as we are not on
+	// pending frames anymore
+	capacity_sym = std::min(init_capa, capacity_sym);
+
+	
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
@@ -386,6 +395,18 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				this->incomplete_bb_frames.erase(modcod);
 				if(ret == status_full)
 				{
+					time_sf_t next_sf = current_superframe_sf;
+					time_frame_t next_frame;
+					next_frame = (current_frame + 1) % this->frames_per_superframe;
+					if(next_frame == 0)
+					{
+						next_sf += 1;
+					}
+					// we keep the remaining capacity that won't be used for
+					// next frame
+					carriers->setPreviousCapacity(capacity_sym,
+					                              next_sf, next_frame);
+					capacity_sym = 0;
 					this->pending_bbframes.push_back(current_bbframe);
 					break;
 				}
@@ -414,6 +435,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			unsigned int modcod = (*it)->getModcodId();
 
 			this->incomplete_bb_frames.erase(modcod);
+			// incomplete ordered erased in loop
 		}
 	}
 
@@ -659,8 +681,7 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
                                           list<DvbFrame *> *complete_dvb_frames,
                                           vol_sym_t &remaining_capacity_sym)
 {
-
-	if(this->pending_bbframes.size() > 0)
+	if(this->pending_bbframes.size() == 0)
 	{
 		return;
 	}
@@ -696,3 +717,16 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 	                              new_pending.begin(), new_pending.end());
 
 }
+
+// TODO scheduling improvement
+// At the moment, incomplete BBFrames that can not be sent are kept:
+//  1 - until they are completed
+//  2 - until there is space to send them
+//  In first case, we have a problem if no terminal required the same
+//  modcod, the BBFrame will wait forever to be completed and we will
+//  have to wait case 2 for the BBFrame to be sent
+//  One way to improve this algo, use to counter :
+//   - first: if the counter is reached, try to complete the frame
+//            with packet requiring higher MODCODs
+//   - second: (the frame is still not completed) force sending the incomplete
+//             frame

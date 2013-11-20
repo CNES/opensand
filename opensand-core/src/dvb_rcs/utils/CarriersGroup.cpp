@@ -83,6 +83,25 @@ unsigned int CarriersGroup::getRemainingCapacity() const
 	return this->remaining_capacity;
 }
 
+void CarriersGroup::setPreviousCapacity(const unsigned int previous_capacity,
+                                        const time_sf_t superframe_sf,
+                                        const time_frame_t frame)
+{
+	this->previous_capacity = previous_capacity;
+	this->previous_sf = superframe_sf;
+	this->previous_frame = frame;
+}
+
+unsigned int CarriersGroup::getPreviousCapacity(const time_sf_t superframe_sf,
+                                                const time_frame_t frame) const
+{
+	if(this->previous_sf != superframe_sf || this->previous_frame != frame)
+	{
+		return 0;
+	}
+	return this->previous_capacity;
+}
+
 rate_symps_t CarriersGroup::getSymbolRate() const
 {
 	return this->symbol_rate_symps;

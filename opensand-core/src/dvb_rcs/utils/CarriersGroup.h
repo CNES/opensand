@@ -96,7 +96,7 @@ class CarriersGroup
 	 *           the unit can be choosen according to the most conveninent
 	 *           one.
 	 *
-	 * @return  available capacity (in kbits).
+	 * @return  available capacity
 	 */
 	unsigned int getRemainingCapacity() const;
 
@@ -110,6 +110,32 @@ class CarriersGroup
 	 * @param remaining_capacity  available capacity
 	 */
 	void setRemainingCapacity(const unsigned int remaining_capacity);
+
+	/**
+	 * @brief  Get previous capacity.
+	 *         This can be used if all the capacity has not been used and can
+	 *         be consumed on next frames
+	 * @warning  As this value is only used locally in DAMA Controller,
+	 *           the unit can be choosen according to the most conveninent
+	 *           one.
+	 *
+	 * @param superframe_sf  The current superframe
+	 * @param frame          The current frame
+	 * @return  available capacity if this is actually the next frame
+	 */
+	unsigned int getPreviousCapacity(const time_sf_t superframe_sf,
+	                                 const time_frame_t frame) const;
+
+	/**
+	 * @brief  Set available capacity.
+	 *
+	 * @param superframe_sf  The next superframe
+	 * @param frame          The next frame
+	 * @param previous_capacity  available capacity for next frame
+	 */
+	void setPreviousCapacity(const unsigned int previous_capacity,
+	                         const time_sf_t superframe_sf,
+	                         const time_frame_t frame);
 
 	/**
 	 * @brief  Get carriers's symbol rate.
@@ -172,8 +198,17 @@ class CarriersGroup
 	/** The total capacity of each carriers (symbol number) */
 	vol_sym_t capacity_sym;
 
-	/** The remaining capacity on the current frame in (kbits) */
+	/** The remaining capacity on the current frame */
 	unsigned int remaining_capacity;
+
+	/** The previous capacity */
+	unsigned int previous_capacity;
+
+	/** The superframe for which we can get the previous capacity */
+	time_sf_t previous_sf;
+
+	/** The frame for wich we can get the previous capacity */
+	time_frame_t previous_frame;
 
 	/** Symbol rate (symbol per second) */
 	rate_symps_t symbol_rate_symps;

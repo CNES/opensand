@@ -1142,7 +1142,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 	}
 	break;
 
-	// Generic control frames (CR, TBTP, etc)
+	// Generic control frames (SAC, TTP, etc)
 	case MSG_TYPE_SAC:
 	case MSG_TYPE_SOF:
 	case MSG_TYPE_TTP:
