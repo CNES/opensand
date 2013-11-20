@@ -17,7 +17,7 @@ from opensand_manager_core.utils import GreedyConfigParser
 XSD="/usr/share/opensand/core_global.xsd"
 
 
-
+# TODO add minimum bitrate so we have max and min !
 
 class OpenSandBand():
     """ The OpenSAND Bandwidth representation """
@@ -176,8 +176,19 @@ class OpenSandBand():
         bitrate = 0
         for carriers in self._categories[name]:
             rs = carriers.symbol_rate * carriers.number
-            max_fmt = max(self._fmt_group[carriers.fmt_group])
-            fmt = self._fmt[max_fmt]
+            min_fmt = max(self._fmt_group[carriers.fmt_group])
+            fmt = self._fmt[min_fmt]
+            br = rs * fmt.modulation * fmt.coding_rate
+            bitrate += br
+        return bitrate
+    
+    def _get_min_bitrate(self, name):
+        """ get the maximum bitrate for a given category """
+        bitrate = 0
+        for carriers in self._categories[name]:
+            rs = carriers.symbol_rate * carriers.number
+            min_fmt = min(self._fmt_group[carriers.fmt_group])
+            fmt = self._fmt[min_fmt]
             br = rs * fmt.modulation * fmt.coding_rate
             bitrate += br
         return bitrate
@@ -201,8 +212,9 @@ class OpenSandBand():
                           (i, carriers,
                            self._get_carrier_bitrate(carriers) / 1000)
             output += "\n    %d carrier(s)" % (self._get_carriers_number(name))
-            output += "\n    Bitrate %d kb/s" % \
-                      (self._get_max_bitrate(name) / 1000)
+            output += "\n    Bitrate [%d, %d] kb/s" % (
+                      (self._get_min_bitrate(name) / 1000),
+                      (self._get_max_bitrate(name) / 1000))
         return output
 
 class _CarriersGroup():
