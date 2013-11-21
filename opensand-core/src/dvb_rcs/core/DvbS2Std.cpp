@@ -120,6 +120,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	if(type != MSG_TYPE_BBFRAME)
 	{
 		// corrupted, nothing more to do
+		UTI_DEBUG("The BBFrame was corrupted by physical layer, drop it\n");
 		goto drop;
 	}
 

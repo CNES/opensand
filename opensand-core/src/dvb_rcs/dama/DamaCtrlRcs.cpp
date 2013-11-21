@@ -175,6 +175,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac &sac)
 	if(this->with_phy_layer)
 	{
 		// we should got the C/N0 of forward link
+		// unused for regenerative case
 		double cni = sac.getCni();
 		this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
 	}

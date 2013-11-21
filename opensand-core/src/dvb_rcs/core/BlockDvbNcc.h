@@ -118,6 +118,9 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;
 
+	/// The C/N0 for downlink in regenerative scenario
+	double cni;
+
 	/**** NGN network / Policy Enforcement Point (PEP) ****/
 
 	/// timer used for applying resources allocations received from PEP
@@ -265,6 +268,13 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	 * Simulate event based on random generation
 	 */
 	void simulateRandom();
+
+	/**
+	 * @brief Send a SAC message containing ACM parameters
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool sendAcmParameters();
 
 	// Output probes and stats
 

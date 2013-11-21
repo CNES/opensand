@@ -277,6 +277,14 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			}
 			else if(*event == this->scenario_timer)
 			{
+				// if regenerative satellite and physical layer scenario,
+				// send ACM parameters
+				if(this->satellite_type == REGENERATIVE &&
+				   this->with_phy_layer)
+				{
+					return this->sendAcmParameters();
+				}
+
 				// it's time to update MODCOD IDs
 				UTI_DEBUG_L3("MODCOD scenario timer received\n");
 
@@ -798,7 +806,8 @@ bool BlockDvbNcc::initDownwardTimers()
 	                                                  this->frame_duration_ms);
 
 	// Launch the timer in order to retrieve the modcods if there is no physical layer
-	if(!this->with_phy_layer)
+	// or to send SAC with ACM parameters in regenerative mode
+	if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
 	{
 		this->scenario_timer = this->downward->addTimerEvent("scenario",
 		                                                     this->dvb_scenario_refresh);
@@ -1250,6 +1259,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		// burst
 		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_BBFRAME:
+		case MSG_TYPE_CORRUPTED:
 		{
 			// ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
@@ -1261,6 +1271,17 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			this->l2_from_sat_bytes += dvb_hdr->msg_length;
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
 			this->phy_from_sat_bytes += dvb_hdr->msg_length;
+
+			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+			{
+				T_DVB_PHY *physical_parameters;
+
+				// get ACM parameters
+				physical_parameters = (T_DVB_PHY *)((char *)dvb_hdr +
+				                                    dvb_hdr->msg_length);
+				this->cni = ncntoh(physical_parameters->cn_previous);
+				len -= sizeof(T_DVB_PHY);
+			}
 
 			if(this->receptionStd->getType() == "DVB-RCS" &&
 			   dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
@@ -1314,11 +1335,6 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			// nothing to do in this case
 			UTI_DEBUG_L3("ignore TTP, logon response or SOF frame "
 			             "(type = %d)\n", dvb_hdr->msg_type);
-			free(data);
-			break;
-
-		case MSG_TYPE_CORRUPTED:
-			UTI_DEBUG("the message was corrupted by physical layer, drop it");
 			free(data);
 			break;
 
@@ -1734,9 +1750,33 @@ void BlockDvbNcc::updateStatsOnFrame()
 
 }
 
+bool BlockDvbNcc::sendAcmParameters()
+{
+	unsigned char *dvb_frame;
+	size_t length;
+	Sac send_sac = Sac(GW_TAL_ID);
+	send_sac.setAcm(this->cni);
+	UTI_DEBUG_L3("Send SAC with CNI = %.2f\n", this->cni);
+	// Get a dvb frame
+	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_SAC),
+	                                    sizeof(unsigned char));
+	if(dvb_frame == 0)
+	{
+		UTI_ERROR("SF#%u frame %u: cannot get memory for SAC\n",
+		          this->super_frame_counter, this->frame_counter);
+		return false;
+	}
 
+	send_sac.build(dvb_frame, length);
 
-
-
-
+	// Send message
+	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
+	{
+		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
+		          this->super_frame_counter, this->frame_counter);
+		free(dvb_frame);
+		return false;
+	}
+	return true;
+}
 

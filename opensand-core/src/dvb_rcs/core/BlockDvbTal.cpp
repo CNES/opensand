@@ -1299,11 +1299,11 @@ bool BlockDvbTal::sendSAC()
 	}
 
 	// Get a dvb frame
-	dvb_frame = (unsigned char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
+	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_SAC),
 	                                    sizeof(unsigned char));
 	if(dvb_frame == 0)
 	{
-		UTI_ERROR("SF#%u frame %u: cannot get memory for CR\n",
+		UTI_ERROR("SF#%u frame %u: cannot get memory for SAC\n",
 		          this->super_frame_counter, this->frame_counter);
 		goto error;
 	}
@@ -1313,14 +1313,14 @@ bool BlockDvbTal::sendSAC()
 	// Send message
 	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
 	{
-		UTI_ERROR("%s SF#%u frame %u: failed to allocate mgl msg\n",
-		          FUNCNAME, this->super_frame_counter, this->frame_counter);
+		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
+		          this->super_frame_counter, this->frame_counter);
 		free(dvb_frame);
 		goto error;
 	}
 
-	UTI_DEBUG("%s SF#%u frame %u: CR sent\n", FUNCNAME,
-	          this->super_frame_counter, this->frame_counter);
+	UTI_DEBUG("SF#%u frame %u: SAC sent\n", this->super_frame_counter,
+	          this->frame_counter);
 
 	return true;
 

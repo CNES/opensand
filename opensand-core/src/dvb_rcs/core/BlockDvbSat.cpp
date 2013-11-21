@@ -1144,6 +1144,26 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 
 	// Generic control frames (SAC, TTP, etc)
 	case MSG_TYPE_SAC:
+		// handle SAC here to get the uplink ACM parameters
+		if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+		{
+			Sac sac = Sac();
+			double cni;
+			tal_id_t tal_id;
+
+			sac.parse(frame, length);
+			tal_id = sac.getTerminalId();
+			cni = sac.getCni();
+			UTI_DEBUG("Get SAC from ST%u, with C/N0 = %.2f\n",
+			          tal_id, cni);
+			this->fmt_simu.setFwdRequiredModcod(tal_id, cni);
+			if(tal_id == GW_TAL_ID)
+			{
+				// no need to transmit back this message to GW
+				break;
+			}
+		}
+		// do not break here !
 	case MSG_TYPE_SOF:
 	case MSG_TYPE_TTP:
 	case MSG_TYPE_SYNC:

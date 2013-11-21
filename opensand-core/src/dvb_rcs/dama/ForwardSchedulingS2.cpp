@@ -184,8 +184,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	vol_sym_t init_capa = capacity_sym;
 	capacity_sym += previous_sym;
 
-		// TODO DEBUG
-	UTI_ERROR("SF#%u: frame %u: capacity is %u symbols (+ %u previous)\n",
+	UTI_DEBUG("SF#%u: frame %u: capacity is %u symbols (+ %u previous)\n",
 	          current_superframe_sf, current_frame, capacity_sym, previous_sym);
 
 	// first add the pending complete BBFrame in the complete BBframes list

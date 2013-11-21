@@ -68,6 +68,20 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 	size_t offset;
 	size_t previous_length = 0;
 
+	if(type == MSG_TYPE_CORRUPTED)
+	{
+		// corrupted, nothing more to do
+		UTI_DEBUG("The Frame was corrupted by physical layer, drop it\n");
+		goto skip;
+	}
+
+	if(type != MSG_TYPE_DVB_BURST)
+	{
+		UTI_ERROR("the message received is not a DVB burst\n");
+		goto error;
+	}
+
+
 	dvb_burst = (T_DVB_ENCAP_BURST *) frame;
 	if(dvb_burst->qty_element <= 0)
 	{
@@ -87,11 +101,6 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 		return false;
 	}
 
-	if(type != MSG_TYPE_DVB_BURST)
-	{
-		UTI_ERROR("the message received is not a DVB burst\n");
-		goto error;
-	}
 	UTI_DEBUG("%s burst received (%u packet(s))\n",
 	          this->packet_handler->getName().c_str(), dvb_burst->qty_element);
 
