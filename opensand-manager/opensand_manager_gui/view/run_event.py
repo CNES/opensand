@@ -37,6 +37,7 @@ run_event.py - the events on the run view
 import gobject
 import os
 import gtk
+import shutil
 
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
@@ -151,7 +152,8 @@ class RunEvent(RunView):
                                    "gtk-dialog-warning")
                 if ret != gtk.RESPONSE_YES:
                     return
-
+                # clean path
+                shutil.rmtree(path)
             # disable the buttons
             self.disable_start_button(True)
             self.disable_deploy_buttons(True)
