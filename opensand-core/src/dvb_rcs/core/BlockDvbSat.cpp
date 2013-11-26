@@ -949,8 +949,6 @@ bool BlockDvbSat::initOutput()
 	this->probe_frame_interval = Output::registerProbe<float>(
 		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
-	this->updateStats();
-
 	return true;
 }
 
@@ -970,6 +968,15 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 
 	switch(hdr->msg_type)
 	{
+	case MSG_TYPE_CORRUPTED:
+		if(this->satellite_type == TRANSPARENT)
+		{
+			// in transparent scenario, satellite physical layer cannot corrupt
+			UTI_DEBUG("the message was corrupted by physical layer, drop it");
+			free(frame);
+			break;
+		}
+		// continue to handle the corrupted message in onRcvFrame
 	case MSG_TYPE_DVB_BURST:
 	{
 		/* the DVB frame contains a burst of packets:
@@ -978,7 +985,6 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		 *  - if the satellite is a transparent one, forward DVB burst as the
 		 *    other DVB frames.
 		 */
-
 
 		if(this->satellite_type == TRANSPARENT)
 		{
@@ -1035,6 +1041,17 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		}
 		else // else satellite_type == REGENERATIVE
 		{
+			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+			{
+				// TODO
+				/*T_DVB_PHY *physical_parameters;
+
+				// get ACM parameters
+				physical_parameters = (T_DVB_PHY *)((char *)hdr +
+				                                    hdr->msg_length);
+				this->cni = ncntoh(physical_parameters->cn_previous);*/
+				length -= sizeof(T_DVB_PHY);
+			}
 			/* The satellite is a regenerative one and the DVB frame contains
 			 * a burst:
 			 *  - extract the packets from the DVB frame,
@@ -1044,7 +1061,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			 *  - send the burst to the upper layer.
 			 */
 
-			NetBurst *burst;
+			NetBurst *burst = NULL;
 
 			// Update probes and stats
 			// get the satellite spot from which the DVB frame comes from
@@ -1072,7 +1089,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 				          "(regenerative satellite)\n");
 				status = false;
 			}
-			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				status = false;
@@ -1159,6 +1176,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			this->fmt_simu.setFwdRequiredModcod(tal_id, cni);
 			if(tal_id == GW_TAL_ID)
 			{
+				free(frame);
 				// no need to transmit back this message to GW
 				break;
 			}
@@ -1182,7 +1200,7 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 			                            sizeof(unsigned char));
 			if(frame_copy == NULL)
 			{
-				UTI_ERROR("[1] cannot allocate frame, aborting on spot %u\n",
+				UTI_ERROR("cannot allocate frame, aborting on spot %u\n",
 				          spot->first);
 				continue;
 			}
@@ -1230,11 +1248,6 @@ bool BlockDvbSat::onRcvDvbFrame(unsigned char *frame,
 		free(frame);
 	}
 	break;
-
-	case MSG_TYPE_CORRUPTED:
-		UTI_DEBUG("the message was corrupted by physical layer, drop it");
-		free(frame);
-		break;
 
 	default:
 	{
@@ -1302,7 +1315,7 @@ int BlockDvbSat::sendSigFrames(DvbFifo * sigFifo)
 		// Reminder: DVB frame is ready to be sent (carrier id already set)
 		frame = elem->getData();
 		frame_len = elem->getDataLength();
-		if(!sendDvbFrame((T_DVB_HDR *) frame, carrier_id, frame_len))
+		if(!this->sendDvbFrame((T_DVB_HDR *) frame, carrier_id, frame_len))
 		{
 			UTI_ERROR("%s sendDvbFrame() failed, buffers preserved\n", FUNCNAME);
 			goto release_fifo_elem;
@@ -1328,7 +1341,7 @@ void BlockDvbSat::updateStats()
 	// Update stats and probes
 
 	SpotMap::iterator spot_it;
-	for (spot_it=this->spots.begin(); spot_it!=spots.end(); ++spot_it)
+	for (spot_it = this->spots.begin(); spot_it != spots.end(); ++spot_it)
 	{
 		SatSpot* spot = (*spot_it).second;
 		unsigned int spot_id = spot->getSpotId();

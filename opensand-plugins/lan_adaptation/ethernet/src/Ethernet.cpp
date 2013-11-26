@@ -204,12 +204,19 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 
 Ethernet::Context::~Context()
 {
-	map<uint8_t, Evc *>::iterator it;
-	for(it = this->evc_map.begin(); it != this->evc_map.end(); ++it)
+	map<uint8_t, Evc *>::iterator evc_it;
+    std::map<qos_t, TrafficCategory *>::iterator cat_it;
+	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
 	{
-		delete (*it).second;
+		delete (*evc_it).second;
 	}
 	this->evc_map.clear();
+	
+	for(cat_it = this->category_map.begin(); cat_it != this->category_map.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
+	this->category_map.clear();
 
 	this->probe_evc_throughput.clear();
 	this->probe_evc_size.clear();

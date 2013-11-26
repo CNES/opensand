@@ -101,8 +101,14 @@ ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *
 
 ForwardSchedulingS2::~ForwardSchedulingS2()
 {
-	for(list<BBFrame *>::iterator it = incomplete_bb_frames_ordered.begin();
-	    it != incomplete_bb_frames_ordered.end(); ++it)
+	list<BBFrame *>::iterator it;
+	for(it = this->incomplete_bb_frames_ordered.begin();
+	    it != this->incomplete_bb_frames_ordered.end(); ++it)
+	{
+		delete *it;
+	}
+	for(it = this->pending_bbframes.begin();
+	    it != this->pending_bbframes.end(); ++it)
 	{
 		delete *it;
 	}

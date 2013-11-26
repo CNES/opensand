@@ -62,18 +62,6 @@ SatSpot::~SatSpot()
 {
 	this->complete_dvb_frames.clear();
 
-	// clear logon fifo
-	this->logon_fifo.flush();
-
-	// clear control fifo
-	this->control_fifo.flush();
-
-	// clear data OUT ST fifo
-	this->data_out_st_fifo.flush();
-
-	// clear data OUT GW fifo
-	this->data_out_gw_fifo.flush();
-
 	// remove scheduling (only for regenerative satellite)
 	if(scheduling)
 		delete this->scheduling;

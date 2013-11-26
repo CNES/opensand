@@ -116,7 +116,6 @@ BlockDvbTal::~BlockDvbTal()
 		delete this->dama_agent;
 	}
 
-	deletePackets();
 	// delete fifos
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1136,7 +1135,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
 		{
-			NetBurst *burst;
+			NetBurst *burst = NULL;
 
 			// Update stats
 			this->l2_from_sat_bytes += hdr->msg_length;
@@ -1172,15 +1171,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			this->probe_st_used_modcod->put(
 					((DvbS2Std *)this->receptionStd)->getReceivedModcod());
 
-			// do not transmit anything more
-			if(hdr->msg_type == MSG_TYPE_CORRUPTED)
-			{
-				UTI_DEBUG("SF#%u: the message was corrupted by physical layer, "
-				          "drop it", this->super_frame_counter);
-				break;
-			}
-
-			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
@@ -1299,7 +1290,8 @@ bool BlockDvbTal::sendSAC()
 	}
 
 	// Get a dvb frame
-	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_SAC),
+	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_HDR) +
+	                                    Sac::getMaxSize(),
 	                                    sizeof(unsigned char));
 	if(dvb_frame == 0)
 	{

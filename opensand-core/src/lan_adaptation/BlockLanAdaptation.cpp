@@ -150,11 +150,11 @@ bool BlockLanAdaptation::onDownwardEvent(const RtEvent *const event)
 bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 {
 	string str;
-	NetBurst *burst;
 
 	switch(event->getType())
 	{
 		case evt_message:
+		{
 			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
@@ -194,6 +194,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 				break;
 			}
 			// not a link up message
+			NetBurst *burst;
 			UTI_DEBUG("packet received from lower layer\n");
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
@@ -209,7 +210,8 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 			{
 				return false;
 			}
-			break;
+		}
+		break;
 
 		default:
 			UTI_ERROR("unknown event received %s",

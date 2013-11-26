@@ -117,7 +117,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	// used for terminal statistics
 	this->received_modcod = bbframe_burst.getModcodId();
 
-	if(type != MSG_TYPE_BBFRAME)
+	if(type == MSG_TYPE_CORRUPTED)
 	{
 		// corrupted, nothing more to do
 		UTI_DEBUG("The BBFrame was corrupted by physical layer, drop it\n");

@@ -157,7 +157,7 @@ NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 		return false;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(packet = burst->begin(); packet != burst->end(); ++packet)
 	{
 		uint8_t dst_tal_id;
 

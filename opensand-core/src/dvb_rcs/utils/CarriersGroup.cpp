@@ -44,6 +44,9 @@ CarriersGroup::CarriersGroup(unsigned int carriers_id,
 	ratio(ratio),
 	capacity_sym(0),
 	remaining_capacity(0),
+	previous_capacity(0),
+	previous_sf(0),
+	previous_frame(0),
 	symbol_rate_symps(symbol_rate_symps)
 {
 }

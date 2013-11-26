@@ -56,7 +56,8 @@
 #define CONF_TRIANGULAR_FILE "/etc/opensand/plugins/triangular.conf"
 
 Triangular::Triangular():
-	AttenuationModelPlugin()
+	AttenuationModelPlugin(),
+	duration_counter(0)
 {
 }
 

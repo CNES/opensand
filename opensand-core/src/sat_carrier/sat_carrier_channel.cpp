@@ -49,12 +49,12 @@
  */
 sat_carrier_channel::sat_carrier_channel(unsigned int channelID,
                                          bool input,
-                                         bool output)
+                                         bool output):
+	m_channelID(channelID),
+	m_input(input),
+	m_output(output),
+	init_success(false)
 {
-	this->init_success = false;
-	m_channelID = channelID;
-	m_input = input;
-	m_output = output;
 }
 
 /**

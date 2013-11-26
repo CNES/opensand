@@ -215,7 +215,6 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 	}
 
 	// delete the burst and all packets in it
-	//  TODO we may have a memory leak here with burst or packets in burst
 	delete burst;
 	return net_packets;
 }

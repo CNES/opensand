@@ -387,6 +387,7 @@ forward:
 
 	return true;
 error:
+	delete dvb_meta;
 	return false;
 }
 
@@ -432,6 +433,7 @@ forward:
 
 	return true;
 error:
+	delete dvb_meta;
 	return false;
 }
 

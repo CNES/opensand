@@ -41,9 +41,12 @@
 #include <vector>
 #include <endian.h>
 
+using std::vector;
+
+
+/// The maximum number of CR in a SAC
 #define NBR_MAX_CR 2
 
-using std::vector;
 
 ///> The type of capacity request associated to each FIFO among RBDC, VBDC or None
 typedef enum
@@ -111,15 +114,15 @@ typedef struct
  */
 typedef struct
 {
-	tal_id_t tal_id;         ///< The terminal ID (logon_id)
-	                         //   size 5 for physical ST, 5->max for simulated
-	                         //   ST requests
-	group_id_t group_id;     ///< The group ID 
-	uint8_t cr_number;       ///< The number of CR in SAC
-	emu_acm_t acm;           ///< The emulated ACM fields
-	emu_cr_t cr[NBR_MAX_CR]; ///< The emulated CR field
-	                         //   when in frame, the length should be correctly set
-	                         //   in order to send only the CR which were filled
+	tal_id_t tal_id;      ///< The terminal ID (logon_id)
+	                      //   size 5 for physical ST, 5->max for simulated
+	                      //   ST requests
+	group_id_t group_id;  ///< The group ID 
+	uint8_t cr_number;    ///< The number of CR in SAC
+	emu_acm_t acm;        ///< The emulated ACM fields
+	emu_cr_t cr[0];       ///< The emulated CR field
+	                      //   when in frame, the length should be correctly set
+	                      //   in order to send only the CR which were filled
 } __attribute__((packed)) emu_sac_t;
 
 
@@ -143,8 +146,7 @@ class Sac
 	/**
 	 * @brief SAC constructor for controller
 	 */
-	Sac()
-	{};
+	Sac();
 
 	~Sac();
 
@@ -222,6 +224,17 @@ class Sac
 	 */
 	void build(unsigned char *sac, size_t &length);
 
+	/**
+	 *  @brief  Get the maximum size of a SAC
+	 *          (i.e. the maximum size of the emu_sac_t structure)
+	 *
+	 *  @return the maximum size of a SAC
+	 */
+	static size_t getMaxSize(void)
+	{
+		return sizeof(emu_sac_t) + (sizeof(emu_cr_t) * NBR_MAX_CR);
+	};
+
  private:
 
 	/// the terminal ID
@@ -233,7 +246,7 @@ class Sac
 	/// the requets
 	vector<cr_info_t> requests;
 	/// the SAC avoid allocating a complete SAC
-	emu_sac_t sac;
+	emu_sac_t *sac;
 };
 
 #endif

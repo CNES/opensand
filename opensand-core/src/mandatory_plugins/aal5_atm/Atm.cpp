@@ -67,9 +67,13 @@ Atm::Context::~Context()
 	for(it = this->contexts.begin(); it != this->contexts.end(); it++)
 	{
 		if((*it).first != NULL)
+		{
 			delete (*it).first;
+		}
 		if((*it).second != NULL)
+		{
 			delete (*it).second;
+		}
 	}
 }
 
@@ -331,7 +335,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	}
 	else
 	{
-		UTI_DEBUG("%s desencapsulation context already exists\n", FUNCNAME);
+		UTI_DEBUG_L3("%s desencapsulation context already exists\n", FUNCNAME);
 		context = (*context_it).second;
 		delete atm_id;
 	}

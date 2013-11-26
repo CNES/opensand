@@ -139,7 +139,6 @@ BlockDvbNcc::~BlockDvbNcc()
 	{
 		fclose(this->simu_file);
 	}
-	this->data_dvb_fifo.flush();
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
 	for(fmt_groups_t::iterator it = this->fwd_fmt_groups.begin();
@@ -153,12 +152,16 @@ BlockDvbNcc::~BlockDvbNcc()
 		delete (*it).second;
 	}
 
-	for(TerminalCategories::iterator it = this->categories.begin();
-	    it != this->categories.end(); ++it)
+	if(satellite_type == TRANSPARENT)
 	{
-		delete (*it).second;
+		for(TerminalCategories::iterator it = this->categories.begin();
+		    it != this->categories.end(); ++it)
+		{
+			delete (*it).second;
+		}
+		this->categories.clear();
 	}
-	this->categories.clear();
+	// in regenerative mode categories is also owned and released by DAMA
 
 	this->terminal_affectation.clear();
 
@@ -1265,7 +1268,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
 
-			NetBurst *burst;
+			NetBurst *burst = NULL;
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_hdr->msg_length;
@@ -1295,7 +1298,7 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 				UTI_ERROR("failed to handle DVB frame or BB frame\n");
 				goto error;
 			}
-			if(burst && this->SendNewMsgToUpperLayer(burst) < 0)
+			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
@@ -1758,7 +1761,7 @@ bool BlockDvbNcc::sendAcmParameters()
 	send_sac.setAcm(this->cni);
 	UTI_DEBUG_L3("Send SAC with CNI = %.2f\n", this->cni);
 	// Get a dvb frame
-	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_SAC),
+	dvb_frame = (unsigned char *)calloc(Sac::getMaxSize(),
 	                                    sizeof(unsigned char));
 	if(dvb_frame == 0)
 	{

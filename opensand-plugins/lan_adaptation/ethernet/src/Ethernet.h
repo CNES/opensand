@@ -215,7 +215,7 @@ class Ethernet: public LanAdaptationPlugin
 		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
         /// The traffic categories
-        std::map<qos_t, TrafficCategory *> category_map;
+        map<qos_t, TrafficCategory *> category_map;
 
         /// The default traffic category
         qos_t default_category;

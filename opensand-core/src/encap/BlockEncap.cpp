@@ -544,6 +544,7 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	          burst->size(), burst->name().c_str());
 	if(burst->size() == 0)
 	{
+		delete burst;
 		return true;
 	}
 

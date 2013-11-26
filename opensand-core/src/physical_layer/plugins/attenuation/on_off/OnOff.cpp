@@ -54,7 +54,8 @@
 
 
 OnOff::OnOff():
-	AttenuationModelPlugin()
+	AttenuationModelPlugin(),
+	duration_counter(0)
 {
 }
 
@@ -102,8 +103,6 @@ bool OnOff::init(int granularity, string link)
 		          link.c_str(), AMPLITUDE);
 		goto error;
 	}
-
-	this->duration_counter = 0;
 
 	return true;
 error:

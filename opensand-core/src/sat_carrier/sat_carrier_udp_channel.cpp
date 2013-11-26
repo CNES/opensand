@@ -71,6 +71,8 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  const string local_ip_addr,
                                                  const string ip_addr):
 	sat_carrier_channel(channelID, input, output),
+	sock_channel(-1),
+	m_multicast(multicast),
 	stacked_ip("")
 {
 	int ifIndex;
@@ -80,13 +82,12 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	int buffer = 0;
 	socklen_t size = 4;
 
-	this->m_multicast = multicast;
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
 	m_socketAddr.sin_port = htons(port);
 
-	bzero(&m_remoteIPAddress,sizeof(m_remoteIPAddress));
+	bzero(&m_remoteIPAddress, sizeof(m_remoteIPAddress));
 
 	// open the socket
 	this->sock_channel = socket(AF_INET, SOCK_DGRAM, 0);
@@ -206,6 +207,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		UTI_ERROR("channel doesn't receive and doesn't send data\n");
 		goto error;
 	}
+	bzero(this->send_buffer, sizeof(this->send_buffer));
 
 	UTI_INFO("UDP channel %u created with local IP %s and local port %u\n",
 	         getChannelID(), inet_ntoa(m_socketAddr.sin_addr),

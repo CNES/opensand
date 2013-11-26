@@ -98,6 +98,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
  */
 DvbFifo::~DvbFifo()
 {
+	this->flush();
 }
 
 string DvbFifo::getName() const
@@ -252,11 +253,22 @@ MacFifoElement *DvbFifo::pop()
 
 void DvbFifo::flush()
 {
-	for(std::vector<MacFifoElement *>::iterator it = this->queue.begin();
-	    it != this->queue.end(); ++it)
+	vector<MacFifoElement *>::iterator it;
+	for(it = this->queue.begin(); it < this->queue.end(); ++it)
 	{
-		delete (*it);
+		NetPacket *packet = (*it)->getPacket();
+		unsigned char *data = (*it)->getData();
+		if(packet)
+		{
+			delete packet;
+		}
+		if(data)
+		{
+			free(data);
+		}
+		delete *it;
 	}
+
 	this->queue.clear();
 	this->new_size_pkt = 0;
 	this->new_length_bytes = 0;

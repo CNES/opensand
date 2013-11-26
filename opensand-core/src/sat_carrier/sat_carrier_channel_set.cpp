@@ -62,12 +62,7 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
 int sat_carrier_channel_set::readConfig(const string local_ip_addr,
                                         const string interface_name)
 {
-	string strConfig;
-	string compo_name;
-	component_t host;
-
 	int i;
-	sat_carrier_channel *channel;
 	ConfigurationList carrier_list;
 	ConfigurationList::iterator iter;
 
@@ -91,13 +86,17 @@ int sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	i = 0;
 	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 	{
-		int carrier_id;
-		long carrier_port;
-		bool carrier_up;
-		bool carrier_down;
-		bool carrier_multicast;
-		string carrier_ip;
-		string carrier_disabled;
+		sat_carrier_channel *channel;
+		string strConfig;
+		int carrier_id = 0;
+		long carrier_port = 0;
+		bool carrier_up = false;
+		bool carrier_down = false;
+		bool carrier_multicast = false;
+		component_t host = unknown_compo;
+		string compo_name;
+		string carrier_ip("");
+		string carrier_disabled("");
 
 		i++;
 		// get carrier ID

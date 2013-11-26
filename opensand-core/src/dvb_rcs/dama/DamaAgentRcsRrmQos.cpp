@@ -36,8 +36,6 @@
 
 #include "DamaAgentRcsRrmQos.h"
 
-#include "MacFifoElement.h"
-
 #include <opensand_output/Output.h>
 
 #include <algorithm>

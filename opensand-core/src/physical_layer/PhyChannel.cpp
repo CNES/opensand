@@ -43,6 +43,7 @@
 
 PhyChannel::PhyChannel():
 	status(true),
+	nominal_condition(0),
 	attenuation_model(NULL),
 	minimal_condition(NULL),
 	error_insertion(NULL),
