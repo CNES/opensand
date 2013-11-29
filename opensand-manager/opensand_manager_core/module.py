@@ -40,7 +40,7 @@ import shutil
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
-modules = {}
+modules = []
 
 class MetaModule(type):
     """ meta class used to easily load the modules in Manager """
@@ -54,11 +54,7 @@ class MetaModule(type):
         else:
             module_type = dct['_type']
         if module_name is not None and module_type is not None:
-            if not module_type in modules:
-                modules[module_type] = {}
-            modules[module_type][module_name] = metacls
-# TODO see if it is still necessary to make dict, we may also return a list of
-# OpenSandModule
+            modules.append(metacls)
 
 class OpenSandModule(object):
     """ the physical layer modules for OpenSAND Manager """
@@ -288,15 +284,11 @@ from opensand_manager_core.modules import *
 
 def load_modules(component):
     """ load all modules """
-    loaded = {}
-    for module_type in modules:
-        for module_name in modules[module_type]:
-            module = modules[module_type][module_name]()
-
-            if component in module.get_targets():
-                if not module_type in loaded:
-                    loaded[module_type] = {}
-                loaded[module_type][module_name] = module
+    loaded = []
+    for metacls in modules:
+        module = metacls()
+        if component in module.get_targets():
+            loaded.append(module)
     return loaded
 
 

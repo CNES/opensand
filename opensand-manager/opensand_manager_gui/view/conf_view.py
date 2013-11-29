@@ -133,10 +133,10 @@ class ConfView(WindowView):
                 label = gtk.Label(name.upper())
                 self._lan_stack_notebook.append_page(vbox, label)
                 header_modif = self._model.get_global_lan_adaptation_modules()
-                plugins = dict(host.get_lan_adapt_modules())
-                plugins.update(header_modif)
+                modules = dict(host.get_lan_adapt_modules())
+                modules.update(header_modif)
                 stack  = ProtocolStack(vbox,
-                                       plugins,
+                                       modules,
                                        self.on_stack_modif,
                                        self._ui.get_widget('header_modif_vbox'),
                                        self._ui.get_widget('frame_header_modif'))

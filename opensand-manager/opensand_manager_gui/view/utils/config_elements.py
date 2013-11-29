@@ -340,7 +340,7 @@ class ConfigurationTree(gtk.TreeStore):
         else:
             top_elt = self.append(None)
 
-        # for tools (and probes ???)
+        # for tools
         if elt_info is not None:
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, False,
@@ -357,20 +357,6 @@ class ConfigurationTree(gtk.TreeStore):
                                        VISIBLE, True,
                                        ACTIVE, False,
                                        ACTIVATABLE, activatable)
-                else:
-                # for probes
-                    activatable = False
-                    self.set(sub_iter, TEXT, sub_name,
-                                       VISIBLE, False,
-                                       ACTIVE, False,
-                                       ACTIVATABLE, False)
-                    for sub2_name in elt_info[sub_name]:
-                        sub2_iter = self.append(sub_iter)
-                        self.set(sub2_iter, TEXT, sub2_name.upper(),
-                                            VISIBLE, True,
-                                            ACTIVE, False,
-                                            ACTIVATABLE, True)
-
         else:
             # for advanced host
             activatable = True

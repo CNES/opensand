@@ -88,9 +88,6 @@ class Model:
 
         # load the global modules
         self._modules = load_modules('global')
-        if not 'encap' in self._modules or len(self._modules['encap']) == 0:
-            raise ModelException("You need encapsulation modules to use your "
-                                 "platform")
 
         try:
             self.load()
@@ -180,10 +177,8 @@ class Model:
             
     def reload_modules(self):
         """ load or reload the modules configuration """
-        for module_type in self._modules:
-            for module_name in self._modules[module_type]:
-                module = self._modules[module_type][module_name]
-                module.update(self._scenario_path, 'global')
+        for module in self._modules:
+            module.update(self._scenario_path, 'global')
 
     def load_simulation(self):
         """ load the simulation deployment file """
@@ -381,12 +376,11 @@ class Model:
 
         self._log.debug("add host '%s'" % name)
         # report a warning if a module is not supported by the host
-        for module_type in self._modules:
-            for module in [mod for mod in self._modules[module_type]
-                               if mod.upper() not in host_modules]:
+        for module in self._modules:
+            if module.get_name().upper() not in host_modules:
                 if component != 'ws':
                     self._log.warning("%s: plugin %s may be missing" %
-                                      (name.upper(), module))
+                                      (name.upper(), module.get_name()))
                     if not module in self._missing_modules:
                         self._missing_modules[module] = [name]
                     else:
@@ -534,21 +528,26 @@ class Model:
 
     def get_module(self, name):
         """ get a module according to its name """
-        for module_type in self._modules:
-            for module_name in self._modules[module_type]:
-                if name == module_name:
-                    return self._modules[module_type][module_name]
+        for module in self._modules:
+            if name == module.get_name():
+                return module
 
     def get_encap_modules(self):
-        """ get the encapsulation modules """
-        return self._modules['encap']
+        """ get the encapsulation modules {name: module} """
+        modules = {}
+        for module in self._modules:
+            if module.get_type() == "encap":
+                modules[module.get_name()] = module
+        return modules
 
     def get_global_lan_adaptation_modules(self):
-        """ get the global lan adaptation modules
+        """ get the global lan adaptation modules {name: module}
             (i.e. header modification modules) """
-        if 'lan_adaptation' in self._modules:
-            return self._modules['lan_adaptation']
-        return {}
+        modules = {}
+        for module in self._modules:
+            if module.get_type() == "lan_adaptation":
+                modules[module.get_name()] = module
+        return modules
 
     def get_missing(self):
         """ get the missing module list """
@@ -579,17 +578,13 @@ class Model:
                 dst = config.get(xpath)
                 if dst is None:
                     # try to find dst in the modules
-                    for module_type in modules:
+                    for module in modules:
+                        module_config = module.get_config_parser()
+                        if module_config is not None:
+                            dst = module_config.get(xpath)
                         if dst is not None:
+                            init.append(module_config.get("%s/.." % xpath))
                             break
-                        for module_name in modules[module_type]:
-                            module = modules[module_type][module_name]
-                            module_config = module.get_config_parser()
-                            if module_config is not None:
-                                dst = module_config.get(xpath)
-                            if dst is not None:
-                                init.append(module_config.get("%s/.." % xpath))
-                                break
                     if dst is None:
                         continue
                 else:
@@ -604,17 +599,15 @@ class Model:
             # get the elements containing files in configuration
             for path in new_files:
                 new[config.get("%s/.." % path)] = path
-            for module_type in modules:
-                for module_name in modules[module_type]:
-                    module = modules[module_type][module_name]
-                    module_config = module.get_config_parser()
-                    if module_config is not None:
-                        # get the elements containing files in module
-                        # configuration
-                        new_module_files = module_config.get_files()
-                        for path in new_module_files:
-                            new[module_config.get("%s/.." % path)] = path
-                        new_files.update(new_module_files)
+            for module in modules:
+                module_config = module.get_config_parser()
+                if module_config is not None:
+                    # get the elements containing files in module
+                    # configuration
+                    new_module_files = module_config.get_files()
+                    for path in new_module_files:
+                        new[module_config.get("%s/.." % path)] = path
+                    new_files.update(new_module_files)
             # get the elements containing files that are delacred in the
             # deployment file
             # keep only the new elements
@@ -635,17 +628,13 @@ class Model:
                 dst = glob.get(xpath)
                 if dst is None:
                     # try to find dst in the modules
-                    for module_type in self._modules:
+                    for module in self._modules:
+                        module_config = module.get_config_parser()
+                        if module_config is not None:
+                            dst = module_config.get(xpath)
                         if dst is not None:
+                            init.append(module_config.get("%s/.." % xpath))
                             break
-                        for module_name in modules[module_type]:
-                            module = self._modules[module_type][module_name]
-                            module_config = module.get_config_parser()
-                            if module_config is not None:
-                                dst = module_config.get(xpath)
-                            if dst is not None:
-                                init.append(module_config.get("%s/.." % xpath))
-                                break
                     if dst is None:
                         continue
                 else:
@@ -659,17 +648,15 @@ class Model:
         # get the elements containing files in configuration
         for path in new_files:
             new[glob.get("%s/.." % path)] = path
-        for module_type in self._modules:
-            for module_name in self._modules[module_type]:
-                module = self._modules[module_type][module_name]
-                module_config = module.get_config_parser()
-                if module_config is not None:
-                    # get the elements containing files in module
-                    # configuration
-                    new_module_files = module_config.get_files()
-                    for path in new_module_files:
-                        new[module_config.get("%s/.." % path)] = path
-                    new_files.update(new_module_files)
+        for module in self._modules:
+            module_config = module.get_config_parser()
+            if module_config is not None:
+                # get the elements containing files in module
+                # configuration
+                new_module_files = module_config.get_files()
+                for path in new_module_files:
+                    new[module_config.get("%s/.." % path)] = path
+                new_files.update(new_module_files)
         # get the elements containing files that are delacred in the
         # deployment file
         # keep only the new elements

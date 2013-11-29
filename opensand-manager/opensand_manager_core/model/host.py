@@ -95,16 +95,15 @@ class HostModel:
             finally:
                 self._tools[tool_name] = new_tool
 
-        # the modules dictionary {category: {name: OpenSandModule}}
+        # the modules list
         self._modules = load_modules(self._component)
 
         # a list of modules that where not detected by the host
         self._missing_modules = []
-        for module_type in self._modules:
-            for module in [mod for mod in self._modules[module_type]
-                               if mod.upper() not in modules]:
+        for module in self._modules:
+            if module.get_name().upper() not in modules:
                 self._log.warning("%s: plugin %s may be missing" %
-                                  (name.upper(), module))
+                                  (name.upper(), module.get_name()))
                 self._missing_modules.append(module)
         self.reload_modules(scenario)
 
@@ -134,13 +133,11 @@ class HostModel:
 
     def reload_modules(self, scenario):
         """ update the scenario path for modules configuration """
-        for module_type in self._modules:
-            for module_name in self._modules[module_type]:
-                module = self._modules[module_type][module_name]
-                try:
-                    module.update(scenario, self._component, self._name)
-                except ModelException as error:
-                    self._log.warning("%s: %s" % (self._name.upper(), error))
+        for module in self._modules:
+            try:
+                module.update(scenario, self._component, self._name)
+            except ModelException as error:
+                self._log.warning("%s: %s" % (self._name.upper(), error))
 
     def get_modules(self):
         """get the modules """
@@ -148,14 +145,17 @@ class HostModel:
 
     def get_module(self, name):
         """ get a module according to its name """
-        for module_type in self._modules:
-            for module_name in self._modules[module_type]:
-                if name == module_name:
-                    return self._modules[module_type][module_name]
+        for module in self._modules:
+            if name == module.get_name():
+                return module
 
     def get_lan_adapt_modules(self):
-        """ get the lan adaptation modules """
-        return self._modules['lan_adaptation']
+        """ get the lan adaptation modules {name: module} """
+        modules = {}
+        for module in self._modules:
+            if module.get_type() == "lan_adaptation":
+                modules[module.get_name()] = module
+        return modules
 
     def get_missing_modules(self):
         """ get the missing modules """
@@ -325,9 +325,9 @@ class HostModel:
                                                  'proto')
             try:
                 name = lan_adapt['0']
-                module = self.get_lan_adapt_modules()[name]
+                modules = self.get_lan_adapt_modules()
+                return modules[name].get_interface_type()
             except KeyError:
                 raise ModelException("cannot find first Lan Adaptation scheme")
-            return module.get_interface_type()
         return ''
 

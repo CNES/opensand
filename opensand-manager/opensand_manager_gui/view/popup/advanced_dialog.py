@@ -152,10 +152,8 @@ class AdvancedDialog(WindowView):
                 self._host_lock.acquire()
 
             # remove modules configuration view to reload them
-            modules = host.get_modules()
-            for module_type in modules:
-                for module in modules[module_type].values():
-                    module.set_conf_view(None)
+            for module in host.get_modules():
+                module.set_conf_view(None)
         self._host_lock.release()
 
     def update_trees(self):
@@ -210,7 +208,7 @@ class AdvancedDialog(WindowView):
             if module_name in self._modules_name[host_name]:
                 # module already loaded in tree
                 continue
-            # second argument to say if we use the module_type
+            # second argument to say if we use the module_type in tree
             gobject.idle_add(tree.add_module, module, self._all_modules)
             # add module in dic
             self._modules_name[host_name].append(module_name)
@@ -229,15 +227,9 @@ class AdvancedDialog(WindowView):
         all_modules = self._current_host.get_modules()
         # header modifications modules have their configuration in st and gw
         # but a global target si get them
-        if "lan_adaptation" in all_modules:
-            all_modules["lan_adaptation"].update(
-                    self._model.get_global_lan_adaptation_modules())
+        all_modules += self._model.get_global_lan_adaptation_modules().values()
         if self._all_modules:
-            modules = []
-            for module_type in all_modules:
-                for module_name in all_modules[module_type]:
-                    modules.append(all_modules[module_type][module_name])
-            return modules
+            return all_modules
 
         with_phy_layer = self._model.get_conf().get_enable_physical_layer()
         modules = []
@@ -262,11 +254,9 @@ class AdvancedDialog(WindowView):
             modules += adv.get_params("minimal_condition_type")
             modules += adv.get_params("error_insertion_type")
         used_modules = []
-        for module_type in all_modules:
-            for name in modules:
-                if name in all_modules[module_type]:
-                    module = all_modules[module_type][name]
-                    used_modules.append(module)
+        for module in all_modules:
+            if module.get_name() in modules:
+                used_modules.append(module)
         return used_modules
 
 
@@ -418,18 +408,17 @@ class AdvancedDialog(WindowView):
 
             # remove modules configuration view to reload them
             modules = host.get_modules()
-            for module_type in modules:
-                for module in modules[module_type].values():
-                    try:
-                        self._log.debug("Save module %s on %s" %
-                                        (module.get_name(), name))
-                        module.save()
-                    except XmlException, error:
-                        self._host_lock.release()
-                        error_popup("Cannot save %s module on %s: %s" %
-                                    (module.get_name(), name,
-                                     error.description))
-                        self._host_lock.acquire()
+            for module in modules:
+                try:
+                    self._log.debug("Save module %s on %s" %
+                                    (module.get_name(), name))
+                    module.save()
+                except XmlException, error:
+                    self._host_lock.release()
+                    error_popup("Cannot save %s module on %s: %s" %
+                                (module.get_name(), name,
+                                 error.description))
+                    self._host_lock.acquire()
 
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
 
