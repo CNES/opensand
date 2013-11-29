@@ -580,6 +580,7 @@ class ConfigurationNotebook(gtk.Notebook):
         try:
             hbox.set_name(self._config.get_path(line))
         except:
+            # this is a new line
             self._new.append(key_path)
             name = self._config.get_name(line)
             nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
@@ -630,11 +631,15 @@ class ConfigurationNotebook(gtk.Notebook):
                 value = dic[att]
             except:
                 # this is a new line entry
-                path = '/%s/%s[last()]--%s' % (key_path, name, att)
+                nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
+                path = '/%s/%s[%d]--%s' % (key_path, name,
+                                           nbr + self._new.count(key_path),
+                                           att)
             entry = ConfEntry(elt_type, value, path, cb)
             if value == '':
                 # add new lines to changed list
-                self._changed.append(entry)
+                if not entry in self._changed:
+                    self._changed.append(entry)
             self._backup.append(entry)
             hbox.pack_start(entry.get())
             hbox.set_child_packing(entry.get(), expand=False,
@@ -647,7 +652,8 @@ class ConfigurationNotebook(gtk.Notebook):
     def handle_param_chanded(self, source=None, event=None):
         """ 'changed' event on configuration value """
         if source is not None:
-            self._changed.append(source)
+            if not source in self._changed:
+                self._changed.append(source)
 
     def save(self):
         """ save the configuration """
@@ -664,7 +670,7 @@ class ConfigurationNotebook(gtk.Notebook):
                 path = entry.get_name().split('--')
                 val = entry.get_value()
                 if len(path) == 0 or len(path) > 2:
-                    raise XmlException("wrong xpath")
+                    raise XmlException("wrong xpath %s" % path)
                 elif len(path) == 1:
                     self._config.set_value(val, path[0])
                 elif len(path) == 2:
@@ -683,7 +689,6 @@ class ConfigurationNotebook(gtk.Notebook):
         self._changed = []
         self._removed = []
         self._new = []
-
 
     def on_show(self, widget):
         """ notebook shown """
@@ -868,6 +873,8 @@ class ConfEntry(object):
         elif type_name == "enum":
             model = self._entry.get_model()
             active = self._entry.get_active_iter()
+            if active is None:
+                return ''
             return model.get_value(active, 0)
         elif type_name == "numeric":
             return self._entry.get_text()
