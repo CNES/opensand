@@ -57,6 +57,8 @@ class MetaModule(type):
             if not module_type in modules:
                 modules[module_type] = {}
             modules[module_type][module_name] = metacls
+# TODO see if it is still necessary to make dict, we may also return a list of
+# OpenSandModule
 
 class OpenSandModule(object):
     """ the physical layer modules for OpenSAND Manager """
@@ -89,8 +91,12 @@ class OpenSandModule(object):
         return self._xsd
 
     def get_name(self):
-        """ get the physical layer module name """
+        """ get the  module name """
         return self._name
+
+    def get_type(self):
+        """ get the module type """
+        return self._type
 
     def set_conf_view(self, notebook):
         """ set the configuration notebook """

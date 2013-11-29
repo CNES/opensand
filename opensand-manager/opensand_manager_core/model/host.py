@@ -146,6 +146,13 @@ class HostModel:
         """get the modules """
         return self._modules
 
+    def get_module(self, name):
+        """ get a module according to its name """
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                if name == module_name:
+                    return self._modules[module_type][module_name]
+
     def get_lan_adapt_modules(self):
         """ get the lan adaptation modules """
         return self._modules['lan_adaptation']

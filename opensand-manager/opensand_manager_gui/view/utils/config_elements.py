@@ -282,22 +282,24 @@ class ConfigurationTree(gtk.TreeStore):
         self._treeselection = None
         self._cell_renderer_toggle = None
         self._is_first_elt = 0
+        self._treeview = treeview
 
-        self.load(treeview, col1_title, col2_title, col1_changed_cb,
+        self.load(col1_title, col2_title, col1_changed_cb,
                   col2_toggled_cb)
 
-    def load(self, treeview, col1_title, col2_title,
+    def load(self, col1_title, col2_title,
              col1_changed_cb, col2_toggled_cb):
         """ load the treestore """
         # attach the treestore to the treeview
-        treeview.set_model(self)
+        self._treeview.set_model(self)
 
         cell_renderer = gtk.CellRendererText()
         # Connect check box on the treeview
         self._cell_renderer_toggle = gtk.CellRendererToggle()
         self._cell_renderer_toggle.set_active(True)
         self._cell_renderer_toggle.set_activatable(True)
-        self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
+        if col2_toggled_cb is not None:
+            self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
 
         column = gtk.TreeViewColumn(col1_title, cell_renderer, text=TEXT)
         column.set_resizable(True)
@@ -310,20 +312,20 @@ class ConfigurationTree(gtk.TreeStore):
         column_toggle.set_resizable(True)
         #column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 
-        treeview.append_column(column)
-        treeview.append_column(column_toggle)
+        self._treeview.append_column(column)
+        self._treeview.append_column(column_toggle)
 
         # add a column to avoid large toggle column
         col = gtk.TreeViewColumn('')
-        treeview.append_column(col)
+        self._treeview.append_column(col)
 
         # get the tree selection
-        self._treeselection = treeview.get_selection()
+        self._treeselection = self._treeview.get_selection()
         self._treeselection.set_mode(gtk.SELECTION_SINGLE)
         if col1_changed_cb is not None:
             self._treeselection.connect('changed', col1_changed_cb)
 
-    def add_host(self, host, elt_info=None, modules=None):
+    def add_host(self, host, elt_info=None):
         """ add a host with its elements in the treeview """
         name = host.get_name()
         # append an element in the treestore
@@ -338,25 +340,12 @@ class ConfigurationTree(gtk.TreeStore):
         else:
             top_elt = self.append(None)
 
+        # for tools (and probes ???)
         if elt_info is not None:
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, False,
                               ACTIVE, False,
                               ACTIVATABLE, False)
-            # first add modules in host
-            if modules is not None:
-                for cat in modules:
-                    cat_iter = self.append(top_elt)
-                    self.set(cat_iter, TEXT, cat,
-                                       VISIBLE, False,
-                                       ACTIVE, False,
-                                       ACTIVATABLE, False)
-                    for name in modules[cat].keys():
-                        sub_iter = self.append(cat_iter)
-                        self.set(sub_iter, TEXT, name,
-                                           VISIBLE, False,
-                                           ACTIVE, False,
-                                           ACTIVATABLE, False)
             for sub_name in elt_info.keys():
                 activatable = True
                 sub_iter = self.append(top_elt)
@@ -393,48 +382,54 @@ class ConfigurationTree(gtk.TreeStore):
                               ACTIVE, active,
                               ACTIVATABLE, activatable)
 
-    def add_modules(self, modules):
-        """ insert the modules in the tree """
-        if len(modules) == 0:
-            return
 
-        top_elt = self.insert(None, 0)
-        self._is_first_elt = 1
-        self.set(top_elt, TEXT, 'Plugins',
-                          VISIBLE, False,
-                          ACTIVE, False,
-                          ACTIVATABLE, False)
-        for cat in modules:
-            cat_iter = self.append(top_elt)
-            self.set(cat_iter, TEXT, cat,
+    def add_module(self, module, parents=False):
+        """ add a module in the module tree """
+        name = module.get_name()
+
+        top_elt = None
+        if parents:
+            top_elt = self.get_parent(module.get_type())
+
+        # set top element, either module or type depending on parents
+        if top_elt is None:
+            top_elt = self.append(None)
+            top_name = name
+            if parents:
+                top_name = module.get_type()
+            self.set(top_elt, TEXT, top_name,
+                              VISIBLE, False,
+                              ACTIVE, False,
+                              ACTIVATABLE, False)
+
+        if parents:
+            sub_iter = self.append(top_elt)
+            self.set(sub_iter, TEXT, name,
                                VISIBLE, False,
                                ACTIVE, False,
                                ACTIVATABLE, False)
-            for name in modules[cat].keys():
-                sub_iter = self.append(cat_iter)
-                self.set(sub_iter, TEXT, name,
-                                   VISIBLE, False,
-                                   ACTIVE, False,
-                                   ACTIVATABLE, False)
 
-    def del_host(self, host_name):
+    def del_elem(self, name):
         """ remove a host from the treeview """
-        name = host_name.upper()
+        iterator = self.get_parent(name)
+        if iterator is not None:
+            self.remove(iterator)
+
+    def get_parent(self, name):
+        """ get a parent in the treeview """
         iterator = self.get_iter_first()
         while iterator is not None and \
               self.get_value(iterator, TEXT) != name:
             iterator = self.iter_next(iterator)
-        if iterator is not None:
-            self.remove(iterator)
-
-    def disable_all(self):
-        """ set all the check boxes activatable property to False """
-        # FIXME
-        self._cell_renderer_toggle.set_property('activatable', False)
+        return iterator
 
     def get_selection(self):
         """ get the treeview selection """
         return self._treeselection
+
+    def get_treeview(self):
+        """ get the treeview """
+        return self._treeview
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """

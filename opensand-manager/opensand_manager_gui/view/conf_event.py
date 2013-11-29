@@ -420,7 +420,7 @@ class ConfEvent(ConfView) :
                 mod = stack[str(len(stack) - 1 - pos)]
                 # header modification plugins are generally in global plugins
                 host_modules = host.get_lan_adapt_modules()
-                if mod in  host_modules and  \
+                if mod in host_modules and  \
                    not host_modules[mod].get_condition("header_modif"):
                     last = mod
                     break

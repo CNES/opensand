@@ -88,15 +88,6 @@ class GlobalConfig(AdvancedHostModel):
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
 
-    def get_name(self):
-        """ for compatibility with advanced dialog calls """
-        return 'global'
-
-    def get_advanced_conf(self):
-        """ for compatibility with advanced dialog calls """
-        return self
-
-        
     def save(self):
         """ save the configuration """
         try:
@@ -188,8 +179,6 @@ class GlobalConfig(AdvancedHostModel):
                 pass
         return val
 
-    def enable(self, val=True):
-        """ for compatibility with advanced dialog calls """
-        self._enabled = val
         
-        
+
+

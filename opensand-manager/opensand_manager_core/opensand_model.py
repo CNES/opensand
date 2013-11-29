@@ -180,9 +180,9 @@ class Model:
             
     def reload_modules(self):
         """ load or reload the modules configuration """
-        for host_type in self._modules:
-            for host_name in self._modules[host_type]:
-                module = self._modules[host_type][host_name]
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                module = self._modules[module_type][module_name]
                 module.update(self._scenario_path, 'global')
 
     def load_simulation(self):
@@ -310,7 +310,7 @@ class Model:
             if name == host.get_name():
                 return host
         if name == 'global':
-            return self._config
+            return self
         return None
 
     def get_workstations_list(self):
@@ -532,6 +532,13 @@ class Model:
         """ get the module list """
         return self._modules
 
+    def get_module(self, name):
+        """ get a module according to its name """
+        for module_type in self._modules:
+            for module_name in self._modules[module_type]:
+                if name == module_name:
+                    return self._modules[module_type][module_name]
+
     def get_encap_modules(self):
         """ get the encapsulation modules """
         return self._modules['encap']
@@ -709,6 +716,20 @@ class Model:
             return SavedProbeLoader(run_path)
         except ValueError:
             return None
+
+    # functions for global host
+    def get_name(self):
+        """ for compatibility with advanced dialog host calls """
+        return 'global'
+
+    def get_advanced_conf(self):
+        """ for compatibility with advanced dialog host calls """
+        return self._config
+        
+    def enable(self, val=True):
+        """ for compatibility with advanced dialog host calls """
+        pass
+
 
 ##### TEST #####
 if __name__ == "__main__":

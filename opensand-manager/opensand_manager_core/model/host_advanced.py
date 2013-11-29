@@ -121,6 +121,17 @@ class AdvancedHostModel:
         """ disable host """
         self._enabled = False
 
+    def get_params(self, name):
+        """ get a parameter in the XML configuration file """
+        val = []
+        keys = self._configuration.get_all("//" + name)
+        for key in keys:
+            try:
+                val.append(self._configuration.get_value(key))
+            except:
+                pass
+        return val
+
     def get_stack(self, name, key):
         """ get a lan adaptation stack """
         table = self.get_table(name)
@@ -168,3 +179,7 @@ class AdvancedHostModel:
             self._configuration.set_value(stack[pos], path, key)
             idx += 1
         self._configuration.write()
+
+
+
+

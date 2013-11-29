@@ -61,8 +61,6 @@ class ToolView(WindowView):
         self._selected_tools = {}
         # the selected tools once the configuration has been saved
         self._saved_tools = {}
-        # the available modules
-        self._modules = self._model.get_modules()
 
         with gtk.gdk.lock:
             # get the description widget
@@ -82,12 +80,9 @@ class ToolView(WindowView):
 
             # create the tree for tools selection
             treeview = self._ui.get_widget('tools_selection_tree')
-            self._tree = ConfigurationTree(treeview, 'Tools/modules',
+            self._tree = ConfigurationTree(treeview, 'Tools',
                                            'Selected', self.on_selection,
                                            self.tool_toggled_cb)
-            # populate the tree
-            # add the global modules
-            self._tree.add_modules(self._modules)
 
             # disable save button
             self._ui.get_widget('save_tool_conf').set_sensitive(False)
@@ -104,11 +99,8 @@ class ToolView(WindowView):
         pass
 
     def update_tree(self):
-        """ update the tools and modules tree """
+        """ update the tools tree """
         self._tool_lock.acquire()
-        # disable tool selection when running
-        if self._model.is_running():
-            self._tree.disable_all()
 
         for host in [elt for elt in self._model.get_all()
                      if elt.get_name() not in self._hosts_name]:
@@ -120,7 +112,7 @@ class ToolView(WindowView):
                 tools[tool.get_name().upper()] = tool.get_state()
 
             gobject.idle_add(self._tree.add_host,
-                             host, tools, host.get_modules())
+                             host, tools)
 
         real_names = []
         for host in self._model.get_all():

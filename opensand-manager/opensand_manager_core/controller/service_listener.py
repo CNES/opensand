@@ -210,7 +210,7 @@ class OpenSandServiceListener():
             self._model.set_collector_functional(False)
             return
         
-        self._model.del_host(name)
+        self._model.del_elem(name)
         for host in self._hosts:
             if host.get_name().lower() == name:
                 host.close()
