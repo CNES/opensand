@@ -238,7 +238,6 @@ unseen(){
 }
 
 db_capb backup
-db_fset opensand-daemon/service/modules seen false
 
 if [ "$#" -gt 0 ]; then
     if [ "$1" = "configure" ]; then

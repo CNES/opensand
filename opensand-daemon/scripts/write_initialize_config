@@ -72,6 +72,16 @@ read_conf(){
     SERVICE_TOOLS=$RET
     db_get opensand-daemon/service/modules
     SERVICE_MODULES=$RET
+    # now get the default modules that may have been updated
+    db_reset opensand-daemon/service/modules
+    db_get opensand-daemon/service/modules
+    for module in $RET; do
+        if [[ "$SERVICE_MODULES" != *"$module"* ]]; then
+            SERVICE_MODULES="$SERVICE_MODULES $module"
+        fi
+    done
+    # update modules with default and others
+    db_set opensand-daemon/service/modules $SERVICE_MODULES
     db_get opensand-daemon/command/port
     COMMAND_PORT=$RET
     db_get opensand-daemon/state/port
