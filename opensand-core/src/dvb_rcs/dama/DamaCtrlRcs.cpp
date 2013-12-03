@@ -158,13 +158,13 @@ bool DamaCtrlRcs::hereIsSAC(const Sac &sac)
 
 			case cr_rbdc:
 				this->enable_rbdc = true;
-				request = this->converter->kbpsToPktpf(xbdc);
 				if(this->cra_decrease)
 				{
 					// remove the CRA of the RBDC request
-					request =
-						std::max(request - terminal->getCra(), 0);
+					xbdc =
+						std::max(xbdc - terminal->getCra(), 0);
 				}
+				request = this->converter->kbpsToPktpf(xbdc);
 				terminal->setRequiredRbdc(request);
 				DC_RECORD_EVENT("CR ST%u value=%u type=RBDC",
 				                tal_id, xbdc);

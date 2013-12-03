@@ -239,6 +239,10 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		TerminalMapping::const_iterator it;
 		TerminalCategories::const_iterator category_it;
 		TerminalCategory *category;
+		vector<CarriersGroup *> carriers;
+		vector<CarriersGroup *>::const_iterator carrier_it;
+		const FmtDefinitionTable *modcod_def;
+		uint32_t max_capa_kbps = 0;
 
 		Probe<int> *probe_cra;
 		Probe<int> *probe_rbdc_max;
@@ -316,6 +320,34 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		this->probe_gw_cra_alloc->put(gw_cra_alloc_kbps);
 		this->gw_rbdc_max_kbps += max_rbdc_kbps;
 		this->probe_gw_rbdc_max->put(gw_rbdc_max_kbps);
+
+		// check that CRA is not too high, else print a warning !
+		carriers = category->getCarriersGroups();
+		modcod_def = this->fmt_simu->getRetModcodDefinitions();
+		for(carrier_it = carriers.begin();
+		    carrier_it != carriers.end();
+		    ++carrier_it)
+		{
+			// we can use the same function that convert sym to kbits
+			// for conversion from sym/s to kbits/s
+			max_capa_kbps +=
+					// maxium FMT ID is the last in getFmtIds() and this is the one
+					// which will give us the higher rate
+					modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
+					                       (*carrier_it)->getSymbolRate() *
+					                       (*carrier_it)->getCarriersNumber());
+
+		}
+
+		if(cra_kbps > max_capa_kbps)
+		{
+			// TODO WARNING
+			UTI_INFO("The CRA value for ST%u is too high compared to the "
+			         "maximum carrier capacity (%u > %u)\n",
+			         tal_id, cra_kbps, max_capa_kbps);
+			// TODO OUTPUT::EVENT
+	}
+
 	}
 	else
 	{
