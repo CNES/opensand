@@ -9,7 +9,6 @@ libopensand_dvb_utils_la_cpp = \
 	Sof.cpp \
 	DvbFifo.cpp \
 	MacFifoElement.cpp \
-	sat_emulator_err.cpp \
 	TerminalContext.cpp \
 	TerminalContextRcs.cpp \
 	FmtGroup.cpp \
@@ -29,7 +28,6 @@ libopensand_dvb_utils_la_h = \
 	Sof.h \
 	DvbFifo.h \
 	MacFifoElement.h \
-	sat_emulator_err.h \
 	TerminalContext.h \
 	TerminalContextRcs.h \
 	TerminalCategory.h \

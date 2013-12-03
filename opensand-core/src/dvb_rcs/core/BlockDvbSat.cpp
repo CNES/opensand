@@ -42,7 +42,6 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
-#include "sat_emulator_err.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
@@ -376,93 +375,6 @@ error:
 }
 
 
-bool BlockDvbSat::initErrorGenerator()
-{
-	string err_generator;
-
-	// Load a precalculated data file or use a default generator
-	if(globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_GENERATOR, err_generator))
-	{
-		UTI_INFO("Section %s, %s missing. No error generator used.\n",
-		         SAT_DVB_SECTION, SAT_ERR_GENERATOR);
-		this->m_useErrorGenerator = 0;
-	}
-	else if(err_generator == SAT_ERR_GENERATOR_NONE)
-	{
-		// No error generator
-		UTI_INFO("No error generator used\n");
-		this->m_useErrorGenerator = 0;
-	}
-	else if(err_generator == SAT_ERR_GENERATOR_DEFAULT)
-	{
-		int err_ber;
-		int err_mean;
-		int err_delta;
-
-		// Get values for default error generator
-		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_BER, err_ber))
-		{
-			err_ber = 9;
-			UTI_INFO("Section %s, %s missing setting it to default: "
-			         "BER = 10 - %d\n", SAT_DVB_SECTION,
-			         SAT_ERR_BER, err_ber);
-		}
-
-		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_MEAN, err_mean))
-		{
-			err_mean = 50;
-			UTI_INFO("Section %s, %s missing setting it to "
-			         "default: burst mean length = %d\n",
-			         SAT_DVB_SECTION, SAT_ERR_MEAN, err_mean);
-		}
-
-		if(!globalConfig.getValue(SAT_DVB_SECTION, SAT_ERR_DELTA, err_delta))
-		{
-			err_delta = 10;
-			UTI_INFO("Section %s, %s missing setting it to "
-			         "default: burst delta = %d\n",
-			         SAT_DVB_SECTION, SAT_ERR_DELTA, err_delta);
-		}
-
-		UTI_INFO("setting error generator to: BER = 10 - %d, burst mean "
-		         "length = %d, burst delta = %d\n", err_ber,
-		         err_mean, err_delta);
-
-		SE_set_err_param(err_ber, err_mean, err_delta);
-		this->m_useErrorGenerator = 1;
-	}
-	else
-	{
-		int index;
-
-		// Load associated file
-		index = SE_init_error_generator_from_file((char *) err_generator.c_str());
-		if(index > 0)
-		{
-			SE_set_error_generator(index);
-			UTI_INFO("loaded error data file %s\n",
-			         err_generator.c_str());
-		}
-		else
-		{
-			int err_ber = 9;
-			int err_mean = 50;
-			int err_delta = 10;
-
-			UTI_INFO("cannot load error data file %s. Setting it to default: "
-			         "BER = 10 - %d, burst mean length = %d, burst delta = %d\n",
-			         err_generator.c_str(), err_ber, err_mean,
-			         err_delta);
-			SE_set_err_param(err_ber, err_mean, err_delta);
-		}
-
-		this->m_useErrorGenerator = 1;
-	}
-
-	return true;
-}
-
-
 // TODO call in Downward::onInit()
 bool BlockDvbSat::initDownwardTimers()
 {
@@ -751,14 +663,6 @@ bool  BlockDvbSat::onInit()
 	if(!this->initMode())
 	{
 		UTI_ERROR("failed to complete the mode part of the "
-		          "initialisation");
-		goto error;
-	}
-
-	// get the parameters of the error generator
-	if(!this->initErrorGenerator())
-	{
-		UTI_ERROR("failed to complete the error generator part of the "
 		          "initialisation");
 		goto error;
 	}

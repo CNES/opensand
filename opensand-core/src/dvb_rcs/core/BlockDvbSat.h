@@ -163,13 +163,6 @@ class BlockDvbSat: public BlockDvb
 	bool initMode();
 
 	/**
-	 * @brief Initialize the error generator
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initErrorGenerator();
-
-	/**
 	 * @brief Read configuration for the different downward timers
 	 *
 	 * @return  true on success, false otherwise
