@@ -84,7 +84,7 @@
         <xsd:attribute name="amplitude" type="amplitudes">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    When the attenuation model is ON, the attenuation attribute is equal to this value
+                    When the attenuation model is ON, the attenuation attribute is equal to this value (dB)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
