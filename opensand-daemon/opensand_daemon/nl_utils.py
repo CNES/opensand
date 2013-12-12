@@ -116,6 +116,14 @@ class NlInterfaces(object):
         self._cache = link.LinkCache()
         self._cache.refill(self._sock)
 
+    def exists(self, name):
+        """ check if an interface exists with this name """
+        try:
+            self._cache[name]
+        except KeyError:
+            return False
+        return True
+
     def add_address(self, addr, iface):
         """ add a new address """
         try:
@@ -183,6 +191,7 @@ class NlInterfaces(object):
         finally:
             # refresh cache
             self._cache.refill(self._sock)
+
 
 
 if __name__ == '__main__':

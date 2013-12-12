@@ -403,20 +403,20 @@ class OpenSandIfaces(object):
         """ get the addresses elements """
         descr = {}
         mac = ''
-        # for ST and GW sometimes bridge takes address of lan interface
-        # once it is added to it so we need to know both MAC addresses
         if OpenSandIfaces._name != 'ws':
             descr.update({'emu_iface': OpenSandIfaces._emu_iface,
                           'emu_ipv4': str(OpenSandIfaces._emu_ipv4),
                          })
             if OpenSandIfaces._name != 'sat':
-                mac = get_mac_address(BR_NAME)
+                if OpenSandIfaces._ifaces.exists(BR_NAME):
+                    mac = get_mac_address(BR_NAME)
         if OpenSandIfaces._name != 'sat':
             descr.update({'lan_iface': OpenSandIfaces._lan_iface,
                           'lan_ipv4': OpenSandIfaces._lan_ipv4,
                           'lan_ipv6': OpenSandIfaces._lan_ipv6,
-                          'mac': mac,
                          })
+            if mac != '':
+                descr.update({'mac': mac})
         return descr
 
     def setup_interfaces(self, is_l2):
@@ -510,6 +510,9 @@ class OpenSandIfaces(object):
             OpenSandIfaces._ifaces.up(BR_NAME)
         except NlExists:
             LOGGER.debug("interface %s is already up" % BR_NAME)
+            
+        # TODO add lan in bridge here and do not do that in core anymore
+        
 
     def release(self):
         """ remove interfaces """
@@ -542,12 +545,13 @@ class OpenSandIfaces(object):
     def _stanbye(self):
         """ internal wrapper to simplify lock management """
         # remove IPv4 address on bridge if it exists
-        try:
-            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
-                                               BR_NAME)
-        except NlMissing:
-            LOGGER.info("address %s already removed on %s" %
-                        (OpenSandIfaces._lan_ipv4, BR_NAME))
+        if OpenSandIfaces._ifaces.exists(BR_NAME):
+            try:
+                OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
+                                                   BR_NAME)
+            except NlMissing:
+                LOGGER.info("address %s already removed on %s" %
+                            (OpenSandIfaces._lan_ipv4, BR_NAME))
         # set back IPv4 address on lan interface
         try:
             OpenSandIfaces._ifaces.add_address(str(OpenSandIfaces._lan_ipv4),
@@ -557,12 +561,13 @@ class OpenSandIfaces(object):
                         (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface))
 
         # remove IPv6 address on bridge if it exists
-        try:
-            OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
-                                               BR_NAME)
-        except NlMissing:
-            LOGGER.info("address %s already removed on %s" %
-                        (OpenSandIfaces._lan_ipv6, BR_NAME))
+        if OpenSandIfaces._ifaces.exists(BR_NAME):
+            try:
+                OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
+                                                   BR_NAME)
+            except NlMissing:
+                LOGGER.info("address %s already removed on %s" %
+                            (OpenSandIfaces._lan_ipv6, BR_NAME))
 
         # set back IPv6 address on lan interface
         try:
@@ -578,19 +583,21 @@ class OpenSandIfaces(object):
             LOGGER.info("interface %s is already down" % TUN_NAME)
         except Exception, msg:
             LOGGER.error("cannot set interface %s down (%s)" % (TUN_NAME, msg))
-        try:
-            OpenSandIfaces._ifaces.down(BR_NAME)
-        except NlMissing:
-            LOGGER.info("interface %s is already down" % BR_NAME)
-        except Exception, msg:
-            LOGGER.error("cannot set interface %s down (%s)" % (BR_NAME, msg))
-        try:
-            OpenSandIfaces._ifaces.down(TAP_NAME)
-        except NlMissing:
-            LOGGER.info("interface %s is already down" % TAP_NAME)
-        except Exception:
-            # TODO find a way to set TAP down
-            LOGGER.warning("cannot set TAP interface down, this always happend,"
-                           " we need to find a solution (waiting for feedback "
-                           "from the libnl mailing list)")
-            pass
+        if OpenSandIfaces._ifaces.exists(BR_NAME):
+            try:
+                OpenSandIfaces._ifaces.down(BR_NAME)
+            except NlMissing:
+                LOGGER.info("interface %s is already down" % BR_NAME)
+            except Exception, msg:
+                LOGGER.error("cannot set interface %s down (%s)" % (BR_NAME, msg))
+        if OpenSandIfaces._ifaces.exists(TAP_NAME):
+            try:
+                OpenSandIfaces._ifaces.down(TAP_NAME)
+            except NlMissing:
+                LOGGER.info("interface %s is already down" % TAP_NAME)
+            except Exception:
+                # TODO find a way to set TAP down
+                LOGGER.warning("cannot set TAP interface down, this always happend,"
+                               " we need to find a solution (waiting for feedback "
+                               "from the libnl mailing list)")
+                pass

@@ -42,6 +42,9 @@
 
 #include "bridge_utils.h"
 
+//TODO soon we should be able to create tun and tap with libnl so remove
+//     all the interfaces folder and handle tun, tap and bridge in libnl
+
 #define ON_ERROR_RETURN(fd, err, str_err, args...)\
 {\
 	if(err < 0)\
@@ -55,8 +58,11 @@
 /// The program usage
 #define USAGE \
 "Create/Delete TUN, TAP and bridge interfaces for OpenSAND\n\n\
-usage: opensand_interfaces [-h] [-d]\n\
+usage: opensand_interfaces [-h] [-d] [-l] [-n]\n\
   -h        print this usage and exit\n\
+  -l        add link layer interfaces (bridge and tap)\n\
+  -n        add network layer interface (tun)\n\
+            if none of -l or -n is specified both will be done\n\
   -d        delete the interfaces instead of creating them\n\n"
 
 
@@ -128,109 +134,69 @@ static void del_bridge()
 	}
 }
 
-int main(int argc, char *argv[])
+
+int tun_tap(int tun, int delete)
 {
-	int delete = 0;
-	
-	struct ifreq ifr_tun;
-	struct ifreq ifr_tap;
-	struct ifreq ifr_br;
+	struct ifreq ifr;
 	int fd = -1;
 	int err = -1;
 	int owner;
 	int group;
-
+	
 	const char *clone_dev_path = "/dev/net/tun";
-	const char *dev_tun = "opensand_tun";
-	const char *dev_tap = "opensand_tap";
-	const char *dev_br = "opensand_br";
+	const char *dev = (tun ? "opensand_tun" : "opensand_tap");
 
 	struct passwd *pwd;
 
 	pwd = getpwnam("opensand");
 	owner = pwd->pw_uid;
 	group = pwd->pw_gid;
-	
-	if(argc > 2)
-	{
-		fprintf(stderr, "%s", USAGE);
-		return 1;
-	}
-
-	for(argc--, argv++; argc > 0; argc -= 1, argv += 1)
-	{
-		if(!strcmp(*argv, "-h"))
-		{
-			// print help
-			printf("%s", USAGE);
-			return 1;
-		}
-		else if(!strcmp(*argv, "-d"))
-		{
-			delete = 1;
-		}
-		else
-		{
-			fprintf(stderr, "%s", USAGE);
-			return 1;
-		}
-	}
 
 	if(!delete)
-		printf("Create TUN interface with user opensand:\n");
+		printf("Create %s interface with user opensand:\n",
+		       (tun ? "TUN": "TAP"));
 	else
-		printf("Delete TUN interface\n");
+		printf("Delete %s interface\n", (tun ? "TUN": "TAP"));
 		
 	fd = open(clone_dev_path, O_RDWR);
 	if(fd < 0)
 	{
-		return fd;
+		return 1;
 	}
-	memset(&ifr_tun, 0, sizeof(ifr_tun));
+	memset(&ifr, 0, sizeof(ifr));
 
-	/* create TUN interface */
-	snprintf(ifr_tun.ifr_name, IFNAMSIZ, "%s", dev_tun);
+	/* create TUN/TAP interface */
+	snprintf(ifr.ifr_name, IFNAMSIZ, "%s", dev);
 	
 	/* Flags: IFF_TUN - TUN device (no Ethernet headers)
 	 *        IFF_TAP - TAP device
 	 *        IFF_NO_PI - Do not provide packet information
 	 */
-	ifr_tun.ifr_flags = IFF_TUN;
-	err = ioctl(fd, TUNSETIFF, (void *) &ifr_tun);
+	ifr.ifr_flags = (tun ? IFF_TUN : IFF_TAP);
+	err = ioctl(fd, TUNSETIFF, (void *) &ifr);
 	ON_ERROR_RETURN(fd, err, "TUNSETIFF: %s\n", strerror(errno));
 	set_dev_ioctl(fd, owner, group, delete);
 	close(fd);
 	if(!delete)
-		printf("Interface %s created.\n", ifr_tun.ifr_name);
+		printf("Interface %s created.\n", ifr.ifr_name);
+	return 0;
+}
 
-	if(!delete)
-		printf("Create TAP interface with user opensand:\n");
-	else
-		printf("Delete TAP interface\n");
-	fd = open(clone_dev_path, O_RDWR);
-	if(fd < 0)
-	{
-		return fd;
-	}
-	memset(&ifr_tap, 0, sizeof(ifr_tap));
-	/* create TAP interface */
-	snprintf(ifr_tap.ifr_name, IFNAMSIZ, "%s", dev_tap);
-	ifr_tap.ifr_flags = IFF_TAP;
-	err = ioctl(fd, TUNSETIFF, (void *) &ifr_tap);
-	ON_ERROR_RETURN(fd, err, "TUNSETIFF: %s\n", strerror(errno));
-	set_dev_ioctl(fd, owner, group, delete);
 
-	close(fd);
-	if(!delete)
-		printf("Interface %s created.\n", ifr_tap.ifr_name);
+int bridge(int delete)
+{
+	struct ifreq ifr_br;
+	int fd = -1;
+	int err = -1;
+	
+	const char *dev_br = "opensand_br";
+	const char *dev_tap = "opensand_tap";
+
 
 	/* create bridge and add TAP in it */
 	memset(&ifr_br, 0, sizeof(ifr_br));
 	snprintf(ifr_br.ifr_name, IFNAMSIZ, "%s", dev_br);
 
-	// bridge creation
-	if(!delete)
-		printf("Create bridge and add TAP in it:\n");
 	err = br_init();
 	if(err)
 	{
@@ -245,6 +211,10 @@ int main(int argc, char *argv[])
 		br_shutdown();
 		return 0;
 	}
+
+	// bridge creation
+	if(!delete)
+		printf("Create bridge and add TAP in it:\n");
 	
 	err = br_add_bridge(dev_br);
 	if(err)
@@ -268,29 +238,71 @@ int main(int argc, char *argv[])
 	{
 		return fd;
 	}
-	err = set_if_up(fd, dev_tun, ifr_tun.ifr_flags);
-	if(err)
-	{
-		fprintf(stderr, "Failed to set TUN interface up: %s\n",
-		        strerror(errno));
-		return err;
-	}
-	err = set_if_up(fd, dev_tap, ifr_tap.ifr_flags);
-	if(err)
-	{
-		fprintf(stderr, "Failed to set TUN interface up: %s\n",
-		        strerror(errno));
-		return err;
-	}
-	err = set_if_up(fd, dev_br, ifr_br.ifr_flags);
-	if(err)
-	{
-		fprintf(stderr, "Failed to set TUN interface up: %s\n",
-		        strerror(errno));
-		return err;
-	}
 
 	return 0;
 }
+
+
+
+int main(int argc, char *argv[])
+{
+	int delete = 0;
+	
+	int err = 0;
+	
+	int link = 0;
+	int net = 0;
+
+	if(argc > 4)
+	{
+		fprintf(stderr, "%s", USAGE);
+		return 1;
+	}
+
+	for(argc--, argv++; argc > 0; argc -= 1, argv += 1)
+	{
+		if(!strcmp(*argv, "-h"))
+		{
+			// print help
+			printf("%s", USAGE);
+			return 1;
+		}
+		else if(!strcmp(*argv, "-d"))
+		{
+			delete = 1;
+		}
+		else if(!strcmp(*argv, "-l"))
+		{
+			link = 1;
+		}
+		else if(!strcmp(*argv, "-n"))
+		{
+			net = 1;
+		}
+		else
+		{
+			fprintf(stderr, "%s", USAGE);
+			return 1;
+		}
+	}
+	if(link == 0 && net == 0)
+	{
+		// if nothing specified do both
+		link = 1;
+		net = 1;
+	}
+	
+	if(link)
+	{
+		err |= tun_tap(0, delete);
+		err |= bridge(delete);
+	}
+	if(net)
+	{
+		err = tun_tap(1, delete);
+	}
+	return err;
+}
+
 
 

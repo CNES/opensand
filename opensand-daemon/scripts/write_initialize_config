@@ -165,10 +165,28 @@ initialize(){
         # create the OpenSAND tun/tap interface if it does not exist
         is_iface=`ip link show | grep opensand_tun`
         if [ "${is_iface}" == "" ]; then
-            ${TUN_TAP_INIT} > /dev/null
+            ${TUN_TAP_INIT} -n > /dev/null
             if [ $? -ne 0 ] ; then
                 echo "Error when creating the tun interface" >&2
                 exit 1
+            fi
+        fi
+        # test if ethernet plugin is installed
+        # TODO we may add something more automatic to say if we need layer 2 !
+        if [[ "$SERVICE_MODULES" == *"Ethernet"* ]]; then
+            is_iface=`ip link show | grep opensand_tap`
+            if [ "${is_iface}" == "" ]; then
+                ${TUN_TAP_INIT} -l > /dev/null
+                if [ $? -ne 0 ] ; then
+                    echo "Error when creating the tap interface" >&2
+                    exit 1
+                fi
+            fi
+        else
+            # remove BR and TAP is they exists
+            is_iface=`ip link show | grep opensand_tap`
+            if [ "${is_iface}" != "" ]; then
+                ${TUN_TAP_INIT} -l -d > /dev/null 2>&1
             fi
         fi
     else
