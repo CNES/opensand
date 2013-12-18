@@ -54,7 +54,6 @@ class GlobalConfig(AdvancedHostModel):
 #        self._dama = ''
         self._down_forward = {}
         self._up_return = {}
-        self._frame_duration = ''
         self._enable_phy_layer = None
 
     def load(self, name, scenario):
@@ -98,8 +97,6 @@ class GlobalConfig(AdvancedHostModel):
                            self._down_forward, 'encap')
             self.set_stack('up_return_encap_schemes',
                            self._up_return, 'encap')
-            self._configuration.set_value(self._frame_duration,
-                                          "//frame_duration")
             self._configuration.set_value(self._enable_phy_layer,
                                           "//physical_layer/enable")
             self._configuration.write()
@@ -151,14 +148,6 @@ class GlobalConfig(AdvancedHostModel):
         """ get the down_forward_encap_schemes values """
         encap = self.get_stack("down_forward_encap_schemes", 'encap')
         return encap
-
-    def set_frame_duration(self, val):
-        """ set the frame_duration value """
-        self._frame_duration = val
-
-    def get_frame_duration(self):
-        """ get the frame_duration value """
-        return self.get_param("frame_duration")
 
     def set_enable_physical_layer(self, val):
         """ set the enable value in physical layer section """

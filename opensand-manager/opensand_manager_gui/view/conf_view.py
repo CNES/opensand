@@ -111,9 +111,6 @@ class ConfView(WindowView):
         self._in_stack.load(config.get_down_forward_encap(),
                             config.get_payload_type(),
                             "DVB-S2")
-        # frame_duration
-        widget = self._ui.get_widget('frame_duration')
-        widget.set_value(int(config.get_frame_duration()))
         # physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if config.get_enable_physical_layer().lower() == "true":
@@ -188,10 +185,6 @@ class ConfView(WindowView):
             if self._in_stack.get_stack() != config.get_down_forward_encap():
                 return True
 
-            # frame_duration
-            widget = self._ui.get_widget('frame_duration')
-            if widget.get_text() == int(config.get_frame_duration()):
-                return True
             # enable physical_layer
             widget = self._ui.get_widget('enable_physical_layer')
             if widget.get_active() and \

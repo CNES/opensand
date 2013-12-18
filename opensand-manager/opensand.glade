@@ -12,16 +12,31 @@
     <property name="type_hint">normal</property>
     <property name="program_name">OpenSAND Manager</property>
     <property name="comments" translatable="yes">This tool helps you configuring and running the OpenSAND platform on your LAN</property>
-    <property name="authors">Thales Alenia Space:
-    Cédric Baudoin
+    <property name="website">http://opensand.org</property>
+    <property name="website_label" translatable="yes">OpenSAND</property>
+    <property name="license" translatable="yes">OpenSAND is free software : you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
 
-Viveris Technologies:
-    Christophe Lhermitte
-    Yassine Atter
-    Julien Bernard
-    Didier Barvaux
-  </property>
-    <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">translator-credits</property>
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see http://www.gnu.org/licenses/.
+</property>
+    <property name="authors">Thales Alenia Space
+    www.thalesaleniaspace.com
+CNES (Centre National d'Etudes Spatiales)
+    www.cnes.fr
+
+Current maintainer:
+Viveris technologies
+    www.viveris.fr</property>
+    <property name="logo">opensand-manager48.png</property>
+    <property name="logo_icon_name">OpenSAND logo</property>
     <signal name="on_about_activate" handler="gtk_widget_show"/>
     <signal name="close" handler="on_about_dialog_close"/>
     <signal name="response" handler="on_about_dialog_close"/>
@@ -624,49 +639,38 @@ Viveris Technologies:
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <widget class="GtkMenuItem" id="action">
+              <widget class="GtkMenuItem" id="scenario">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
-                <property name="label" translatable="yes">_Action</property>
+                <property name="label" translatable="yes">_Scenario</property>
                 <property name="use_underline">True</property>
                 <child>
                   <widget class="GtkMenu" id="menuitem1_menu">
                     <property name="can_focus">False</property>
                     <child>
-                      <widget class="GtkImageMenuItem" id="new scenario">
-                        <property name="label">New Scenario</property>
+                      <widget class="GtkImageMenuItem" id="new_scenario">
+                        <property name="label">gtk-new</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_new_activate"/>
                         <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image6">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-new</property>
-                          </widget>
-                        </child>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkImageMenuItem" id="open scenario">
-                        <property name="label">Open Scenario</property>
+                      <widget class="GtkImageMenuItem" id="open_scenario">
+                        <property name="label">gtk-open</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip" translatable="yes">Create a new folder containing the current configuration and subfolders with simulations results corresponding to Run IDs.</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_open_activate"/>
                         <accelerator key="o" signal="activate" modifiers="GDK_CONTROL_MASK"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image7">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-open</property>
-                          </widget>
-                        </child>
                       </widget>
                     </child>
                     <child>
@@ -674,7 +678,7 @@ Viveris Technologies:
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="label" translatable="yes">Open Recent</property>
+                        <property name="label" translatable="yes">Recent</property>
                         <property name="use_underline">True</property>
                       </widget>
                     </child>
@@ -703,87 +707,15 @@ Viveris Technologies:
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkImageMenuItem" id="start_stop">
-                        <property name="label" translatable="yes">Start</property>
+                      <widget class="GtkImageMenuItem" id="close_scenario">
+                        <property name="label">gtk-close</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_start_stop_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image1">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-execute</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkSeparatorMenuItem" id="separatormenuitem2">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="install">
-                        <property name="label" translatable="yes">Copy simulation files</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip" translatable="yes">Copy the simulation files to the different hosts.
-You can choose the sources with the button below and  the destination in advanced configuration</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_install_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image5">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-sort-descending</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="edit_install">
-                        <property name="label" translatable="yes">Configure copy</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip" translatable="yes">Specify the sources for simulation files copy</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_edit_install_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image2">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-edit</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkSeparatorMenuItem" id="sep3">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="close scenario">
-                        <property name="label">Close Scenario</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="use_stock">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_close_activate"/>
                         <accelerator key="w" signal="activate" modifiers="GDK_CONTROL_MASK"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image3">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-close</property>
-                          </widget>
-                        </child>
                       </widget>
                     </child>
                     <child>
@@ -803,11 +735,81 @@ You can choose the sources with the button below and  the destination in advance
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="options">
+              <widget class="GtkMenuItem" id="simulation">
+                <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip" translatable="yes">Deploy options</property>
                 <property name="use_action_appearance">False</property>
-                <property name="label" translatable="yes">_Options</property>
+                <property name="label" translatable="yes">Simulation</property>
+                <child>
+                  <widget class="GtkMenu" id="menuitem1_menu1">
+                    <property name="can_focus">False</property>
+                    <property name="ubuntu_local">True</property>
+                    <child>
+                      <widget class="GtkImageMenuItem" id="start_stop">
+                        <property name="label" translatable="yes">Start</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_start_stop_activate"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkSeparatorMenuItem" id="separatormenuitem4">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkImageMenuItem" id="install">
+                        <property name="label" translatable="yes">Copy simulation files</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="has_tooltip">True</property>
+                        <property name="tooltip" translatable="yes">Copy the simulation files to the different hosts.
+You can choose the sources with the button below and  the destination in advanced configuration</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_install_activate"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="stock">gtk-sort-descending</property>
+                          </widget>
+                        </child>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkImageMenuItem" id="edit_install">
+                        <property name="label" translatable="yes">Configure copy</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="has_tooltip">True</property>
+                        <property name="tooltip" translatable="yes">Specify the sources for simulation files copy.
+For destionations, see the advance configuration.</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_edit_install_activate"/>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image3">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="stock">gtk-edit</property>
+                          </widget>
+                        </child>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+            <child>
+              <widget class="GtkMenuItem" id="deployment">
+                <property name="can_focus">False</property>
+                <property name="tooltip" translatable="yes">Deployment options</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">_Deployment</property>
                 <property name="use_underline">True</property>
                 <child>
                   <widget class="GtkMenu" id="menu1">
@@ -1016,6 +1018,8 @@ You can choose the sources with the button below and  the destination in advance
                       <widget class="GtkLabel" id="run_id">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip" translatable="yes">The scenario subfolder where probes will be saved for the current simulation.
+This is the name used when loading probes.</property>
                         <property name="label" translatable="yes">Run ID</property>
                       </widget>
                       <packing>
@@ -1193,7 +1197,7 @@ You can choose the sources with the button below and  the destination in advance
                                 <property name="can_focus">False</property>
                                 <property name="has_tooltip">True</property>
                                 <property name="tooltip" translatable="yes">The type of satellite</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Payload type&lt;/b&gt;</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Satellite payload type&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
@@ -1208,68 +1212,139 @@ You can choose the sources with the button below and  the destination in advance
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkFrame" id="frame_emission_std">
-                            <property name="width_request">153</property>
+                          <widget class="GtkFrame" id="frame_lan_adaptation">
+                            <property name="width_request">132</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <property name="shadow_type">etched-out</property>
                             <child>
-                              <widget class="GtkAlignment" id="alignment7">
+                              <widget class="GtkVBox" id="vbox5">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
                                 <child>
-                                  <widget class="GtkVBox" id="vbox12">
+                                  <widget class="GtkFrame" id="frame_lan_scheme">
+                                    <property name="width_request">132</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="label_xalign">0</property>
                                     <child>
-                                      <widget class="GtkRadioButton" id="DVB-RCS">
-                                        <property name="label" translatable="yes">DVB-RCS</property>
+                                      <widget class="GtkAlignment" id="alignment3">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">False</property>
-                                        <property name="use_action_appearance">False</property>
-                                        <property name="use_underline">True</property>
-                                        <property name="active">True</property>
-                                        <property name="draw_indicator">True</property>
-                                        <signal name="clicked" handler="on_dvb_rcs_button_clicked"/>
+                                        <property name="can_focus">False</property>
+                                        <property name="left_padding">12</property>
+                                        <child>
+                                          <widget class="GtkVBox" id="lan_adapt_stacks">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <child>
+                                              <widget class="GtkNotebook" id="lan_adapt_notebook">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">True</property>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                  <packing>
+                                                    <property name="type">tab</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                  <packing>
+                                                    <property name="type">tab</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                                <child>
+                                                  <placeholder/>
+                                                  <packing>
+                                                    <property name="type">tab</property>
+                                                  </packing>
+                                                </child>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                          </widget>
+                                        </child>
                                       </widget>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">False</property>
-                                        <property name="position">0</property>
-                                      </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkRadioButton" id="DVB-S2">
-                                        <property name="label" translatable="yes">DVB-S2</property>
+                                      <widget class="GtkLabel" id="label6">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">False</property>
-                                        <property name="use_action_appearance">False</property>
-                                        <property name="use_underline">True</property>
-                                        <property name="draw_indicator">True</property>
-                                        <property name="group">DVB-RCS</property>
-                                        <signal name="clicked" handler="on_dvb_s2_button_clicked"/>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Scheme</property>
+                                        <property name="use_markup">True</property>
                                       </widget>
                                       <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">False</property>
-                                        <property name="position">1</property>
+                                        <property name="type">label_item</property>
                                       </packing>
                                     </child>
                                   </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <widget class="GtkFrame" id="frame_header_modif">
+                                    <property name="width_request">132</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label_xalign">0</property>
+                                    <child>
+                                      <widget class="GtkAlignment" id="alignment5">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="left_padding">12</property>
+                                        <child>
+                                          <widget class="GtkVBox" id="header_modif_vbox">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <child>
+                                              <placeholder/>
+                                            </child>
+                                          </widget>
+                                        </child>
+                                      </widget>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label3">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Header compression/suppression</property>
+                                        <property name="use_markup">True</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="type">label_item</property>
+                                      </packing>
+                                    </child>
+                                  </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </widget>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label_emission_standard">
+                              <widget class="GtkLabel" id="label2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">The output DVB standard for terminals. Only DVB-RCS is available at the moment</property>
-                                <property name="label" translatable="yes">&lt;b&gt;ST Uplink Standard&lt;/b&gt;</property>
+                                <property name="label" translatable="yes">&lt;b&gt;LAN adaptation&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
@@ -1284,59 +1359,109 @@ You can choose the sources with the button below and  the destination in advance
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkFrame" id="frame_dama">
+                          <widget class="GtkFrame" id="frame_encap">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <property name="shadow_type">etched-out</property>
                             <child>
-                              <widget class="GtkAlignment" id="alignment2">
+                              <widget class="GtkVBox" id="vbox6">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
-                                <property name="right_padding">12</property>
                                 <child>
-                                  <widget class="GtkTable" id="table2">
+                                  <widget class="GtkFrame" id="frame_out_encap">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="n_columns">2</property>
+                                    <property name="label_xalign">0</property>
                                     <child>
-                                      <widget class="GtkLabel" id="label_dama">
-                                        <property name="width_request">140</property>
+                                      <widget class="GtkAlignment" id="align_out_encap">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="xalign">0</property>
-                                        <property name="label" translatable="yes">Algorithm</property>
+                                        <property name="left_padding">12</property>
+                                        <property name="right_padding">50</property>
+                                        <child>
+                                          <widget class="GtkVBox" id="out_encap_stack">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <child>
+                                              <placeholder/>
+                                            </child>
+                                          </widget>
+                                        </child>
                                       </widget>
-                                      <packing>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
-                                      </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkComboBox" id="dama_box">
+                                      <widget class="GtkLabel" id="label_out_encap">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <signal name="changed" handler="on_dama_box_changed"/>
+                                        <property name="has_tooltip">True</property>
+                                        <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
+                                        <property name="label" translatable="yes">Uplink encapsulation scheme</property>
+                                        <property name="use_markup">True</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">2</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
+                                        <property name="type">label_item</property>
                                       </packing>
                                     </child>
                                   </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <widget class="GtkFrame" id="frame_in_encap">
+                                    <property name="width_request">270</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label_xalign">0</property>
+                                    <child>
+                                      <widget class="GtkAlignment" id="align_in_encap">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="left_padding">12</property>
+                                        <property name="right_padding">50</property>
+                                        <child>
+                                          <widget class="GtkVBox" id="in_encap_stack">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <child>
+                                              <placeholder/>
+                                            </child>
+                                          </widget>
+                                        </child>
+                                      </widget>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label_in_encap">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="has_tooltip">True</property>
+                                        <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
+                                        <property name="label" translatable="yes">Downlink encapsulation scheme</property>
+                                        <property name="use_markup">True</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="type">label_item</property>
+                                      </packing>
+                                    </child>
+                                  </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </widget>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label1">
+                              <widget class="GtkLabel" id="label_encap">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">The available DAMA implementations</property>
-                                <property name="label" translatable="yes">&lt;b&gt;DAMA&lt;/b&gt;</property>
+                                <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Encapsulation&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
@@ -1351,69 +1476,164 @@ You can choose the sources with the button below and  the destination in advance
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkFrame" id="frame_lan_adaptation">
-                            <property name="width_request">132</property>
+                          <widget class="GtkFrame" id="frame_dvb">
+                            <property name="width_request">153</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <property name="shadow_type">etched-out</property>
                             <child>
-                              <widget class="GtkAlignment" id="alignment3">
+                              <widget class="GtkVBox" id="vbox7">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
                                 <child>
-                                  <widget class="GtkVBox" id="lan_adapt_stacks">
+                                  <widget class="GtkFrame" id="frame_emission_std">
+                                    <property name="width_request">153</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="label_xalign">0</property>
                                     <child>
-                                      <widget class="GtkNotebook" id="lan_adapt_notebook">
+                                      <widget class="GtkAlignment" id="alignment7">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="left_padding">12</property>
                                         <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                          <packing>
-                                            <property name="type">tab</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                          <packing>
-                                            <property name="type">tab</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                          <packing>
-                                            <property name="type">tab</property>
-                                          </packing>
+                                          <widget class="GtkVBox" id="vbox12">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <child>
+                                              <widget class="GtkRadioButton" id="DVB-RCS">
+                                                <property name="label" translatable="yes">DVB-RCS</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">False</property>
+                                                <property name="use_action_appearance">False</property>
+                                                <property name="use_underline">True</property>
+                                                <property name="active">True</property>
+                                                <property name="draw_indicator">True</property>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkRadioButton" id="DVB-S2">
+                                                <property name="label" translatable="yes">DVB-S2</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">False</property>
+                                                <property name="use_action_appearance">False</property>
+                                                <property name="use_underline">True</property>
+                                                <property name="draw_indicator">True</property>
+                                                <property name="group">DVB-RCS</property>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </widget>
                                         </child>
                                       </widget>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label_emission_standard">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="has_tooltip">True</property>
+                                        <property name="tooltip" translatable="yes">The output DVB standard for terminals. Only DVB-RCS is available at the moment</property>
+                                        <property name="label" translatable="yes">Uplink standard</property>
+                                        <property name="use_markup">True</property>
+                                      </widget>
                                       <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
+                                        <property name="type">label_item</property>
                                       </packing>
                                     </child>
                                   </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <widget class="GtkFrame" id="frame_dama">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label_xalign">0</property>
+                                    <child>
+                                      <widget class="GtkAlignment" id="alignment2">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="left_padding">12</property>
+                                        <property name="right_padding">12</property>
+                                        <child>
+                                          <widget class="GtkTable" id="table2">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="n_columns">2</property>
+                                            <child>
+                                              <widget class="GtkLabel" id="label_dama">
+                                                <property name="width_request">140</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="xalign">0</property>
+                                                <property name="label" translatable="yes">Algorithm</property>
+                                              </widget>
+                                              <packing>
+                                                <property name="x_options"></property>
+                                                <property name="y_options"></property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkComboBox" id="dama_box">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <signal name="changed" handler="on_dama_box_changed"/>
+                                              </widget>
+                                              <packing>
+                                                <property name="left_attach">1</property>
+                                                <property name="right_attach">2</property>
+                                                <property name="x_options"></property>
+                                                <property name="y_options"></property>
+                                              </packing>
+                                            </child>
+                                          </widget>
+                                        </child>
+                                      </widget>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label1">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="has_tooltip">True</property>
+                                        <property name="tooltip" translatable="yes">The available DAMA implementations</property>
+                                        <property name="label" translatable="yes">DAMA</property>
+                                        <property name="use_markup">True</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="type">label_item</property>
+                                      </packing>
+                                    </child>
+                                  </widget>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </widget>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label2">
+                              <widget class="GtkLabel" id="label_dvb">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="has_tooltip">True</property>
-                                <property name="label" translatable="yes">&lt;b&gt;LAN encapsulation scheme&lt;/b&gt;</property>
+                                <property name="tooltip" translatable="yes">The output DVB standard for terminals. Only DVB-RCS is available at the moment</property>
+                                <property name="label" translatable="yes">&lt;b&gt;DVB&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
@@ -1425,210 +1645,6 @@ You can choose the sources with the button below and  the destination in advance
                             <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkFrame" id="frame_header_modif">
-                            <property name="width_request">132</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">etched-out</property>
-                            <child>
-                              <widget class="GtkAlignment" id="alignment5">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
-                                <child>
-                                  <widget class="GtkVBox" id="header_modif_vbox">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label3">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Header compression/suppression&lt;/b&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="type">label_item</property>
-                              </packing>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">4</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkFrame" id="frame_out_encap">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">etched-out</property>
-                            <child>
-                              <widget class="GtkAlignment" id="align_out_encap">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
-                                <property name="right_padding">50</property>
-                                <child>
-                                  <widget class="GtkVBox" id="out_encap_stack">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label_out_encap">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
-                                <property name="label" translatable="yes">&lt;b&gt;ST Uplink Encapsulation Scheme&lt;/b&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="type">label_item</property>
-                              </packing>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">5</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkFrame" id="frame_in_encap">
-                            <property name="width_request">270</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">etched-out</property>
-                            <child>
-                              <widget class="GtkAlignment" id="align_in_encap">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
-                                <property name="right_padding">50</property>
-                                <child>
-                                  <widget class="GtkVBox" id="in_encap_stack">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label_in_encap">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">The available encapsulation protocols according to the payload type and link standard</property>
-                                <property name="label" translatable="yes">&lt;b&gt;ST Downlink Encapsulation Scheme&lt;/b&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="type">label_item</property>
-                              </packing>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">6</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkFrame" id="frame_dimensionning">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">etched-out</property>
-                            <child>
-                              <widget class="GtkAlignment" id="alignment4">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="left_padding">12</property>
-                                <property name="right_padding">12</property>
-                                <child>
-                                  <widget class="GtkTable" id="table1">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="n_columns">2</property>
-                                    <child>
-                                      <widget class="GtkLabel" id="label_frame_duration">
-                                        <property name="width_request">140</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="xalign">0</property>
-                                        <property name="label" translatable="yes">Frame duration (ms)</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkSpinButton" id="frame_duration">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="max_length">3</property>
-                                        <property name="invisible_char">●</property>
-                                        <property name="caps_lock_warning">False</property>
-                                        <property name="primary_icon_activatable">False</property>
-                                        <property name="secondary_icon_activatable">False</property>
-                                        <property name="primary_icon_sensitive">True</property>
-                                        <property name="secondary_icon_sensitive">True</property>
-                                        <property name="adjustment">53 0 100 1 10 0</property>
-                                        <property name="climb_rate">1</property>
-                                        <signal name="value_changed" handler="on_frame_duration_value_changed"/>
-                                      </widget>
-                                      <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">2</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
-                                      </packing>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label7">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="has_tooltip">True</property>
-                                <property name="tooltip" translatable="yes">DVB frame dimensionning</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Dimensionning&lt;/b&gt;</property>
-                                <property name="use_markup">True</property>
-                              </widget>
-                              <packing>
-                                <property name="type">label_item</property>
-                              </packing>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">7</property>
                           </packing>
                         </child>
                         <child>
@@ -1671,7 +1687,7 @@ You can choose the sources with the button below and  the destination in advance
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">8</property>
+                            <property name="position">4</property>
                           </packing>
                         </child>
                       </widget>
@@ -2470,6 +2486,17 @@ You can choose the sources with the button below and  the destination in advance
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2533,17 +2560,6 @@ You can choose the sources with the button below and  the destination in advance
                   </widget>
                   <packing>
                     <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>

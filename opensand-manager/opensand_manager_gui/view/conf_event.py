@@ -265,11 +265,11 @@ class ConfEvent(ConfView) :
         self._out_stack.set_payload_type('regenerative')
         self._in_stack.set_payload_type('regenerative')
         widget = self._ui.get_widget('label_in_encap')
-        widget.set_markup('<b>ST Downlink Encapsulation Scheme</b>')
+        widget.set_markup('Downlink')
         widget = self._ui.get_widget('label_out_encap')
-        widget.set_markup('<b>ST Uplink Encapsulation Scheme</b>')
+        widget.set_markup('Uplink')
         widget = self._ui.get_widget('label_emission_standard')
-        widget.set_markup('<b>ST Uplink Standard</b>')
+        widget.set_markup('Uplink standard')
 
         # disable DVB-S2 emission standard on ST because it is not
         # implemented in regenerative mode yet
@@ -284,11 +284,11 @@ class ConfEvent(ConfView) :
         self._out_stack.set_payload_type('transparent')
         self._in_stack.set_payload_type('transparent')
         widget = self._ui.get_widget('label_in_encap')
-        widget.set_markup('<b>Forward Link Encapsulation Scheme</b>')
+        widget.set_markup('Forward link')
         widget = self._ui.get_widget('label_out_encap')
-        widget.set_markup('<b>Return Link Encapsulation Scheme</b>')
+        widget.set_markup('Return link')
         widget = self._ui.get_widget('label_emission_standard')
-        widget.set_markup('<b>ST Return Link Standard</b>')
+        widget.set_markup('Return link standard')
 
         # disable DVB-S2 emission standard on ST because it is not
         # implemented in transparent mode yet
@@ -444,11 +444,6 @@ class ConfEvent(ConfView) :
         # input encapsulation scheme
         config.set_down_forward_encap(self._in_stack.get_stack())
 
-        # fame duration
-        widget = self._ui.get_widget('frame_duration')
-        frame_duration = widget.get_text()
-        config.set_frame_duration(frame_duration)
-
         # enable physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if widget.get_active():
@@ -464,10 +459,6 @@ class ConfEvent(ConfView) :
         except ConfException, error:
             error_popup(str(error))
             self.on_undo_conf_clicked()
-
-    def on_frame_duration_value_changed(self, source=None, event=None):
-        """ 'change-value' event callback on frame duration button """
-        self.enable_conf_buttons()
 
 #    def on_dama_box_changed(self, source=None, event=None):
 #        """ 'change' event callback on dama box """
