@@ -36,7 +36,7 @@
 #ifndef DVB_RCS_FRAME_H
 #define DVB_RCS_FRAME_H
 
-#include <DvbFrame.h>
+#include "DvbFrame.h"
 
 
 /**
@@ -45,7 +45,7 @@
  *        be choosen with a relevant size in order to be totally included
  *        in one sat_carrier paquets (ie. < MTU for UDP)
  */
-class DvbRcsFrame: public DvbFrame
+class DvbRcsFrame: public DvbFrameTpl<T_DVB_ENCAP_BURST>
 {
  public:
 
@@ -55,21 +55,29 @@ class DvbRcsFrame: public DvbFrame
 	 * @param data    raw data from which a DVB-RCS frame can be created
 	 * @param length  length of raw data
 	 */
-	DvbRcsFrame(unsigned char *data, unsigned int length);
+	DvbRcsFrame(const unsigned char *data, size_t length);
 
 	/**
 	 * Build a DVB-RCS frame
 	 *
 	 * @param data  raw data from which a DVB-RCS frame can be created
 	 */
-	DvbRcsFrame(Data data);
+	DvbRcsFrame(const Data &data);
+
+	/**
+	 * Build a DVB-RCS frame
+	 *
+	 * @param data    raw data from which a DVB-RCS frame can be created
+	 * @param length  length of raw data
+	 */
+	DvbRcsFrame(const Data &data, size_t length);
 
 	/**
 	 * Duplicate a DVB-RCS frame
 	 *
 	 * @param frame  the DVB-RCS frame to duplicate
 	 */
-	DvbRcsFrame(DvbRcsFrame *frame);
+	DvbRcsFrame(DvbFrame *frame);
 
 	/**
 	 * Build an empty DVB-RCS frame
@@ -81,12 +89,16 @@ class DvbRcsFrame: public DvbFrame
 	 */
 	~DvbRcsFrame();
 
+	/**
+	 * Get the number of encapsulation packets stored in the DVB frame
+	 *
+	 * @return the number of packets stored in the DVB frame
+	 */
+	uint16_t getNumPackets(void) const;
+
 	// implementation of virtual functions
-	uint16_t getPayloadLength();
-	Data getPayload();
 	bool addPacket(NetPacket *packet);
 	void empty(void);
-	void setEncapPacketEtherType(uint16_t type);
 
 };
 

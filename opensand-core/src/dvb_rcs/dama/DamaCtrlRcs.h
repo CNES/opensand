@@ -89,10 +89,10 @@ class DamaCtrlRcs: public DamaCtrl
 
 
 	// Process DVB frames
-	virtual bool hereIsSAC(const Sac &capacity);
+	virtual bool hereIsSAC(const Sac *sac);
 
 	// Build allocation table
-	virtual bool buildTTP(Ttp &ttp);
+	virtual bool buildTTP(Ttp *ttp);
 
 	// Reset dama
 	virtual bool resetDama() = 0;

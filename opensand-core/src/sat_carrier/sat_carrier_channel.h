@@ -68,7 +68,14 @@ class sat_carrier_channel
 
 	bool isOutputOk();
 
-	virtual int send(unsigned char *buf, unsigned int len) = 0;
+	/**
+	 * @brief Send data on the satellite carrier
+	 *
+	 * @param data        The data to send
+	 * @param length      The length of the data
+	 * @return true on success, false otherwise
+	 */
+	virtual bool send(const unsigned char *data, size_t length) = 0;
 	virtual int receive(NetSocketEvent *const event,
 	                    unsigned char **buf, size_t &data_len) = 0;
 

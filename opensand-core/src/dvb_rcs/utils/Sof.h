@@ -37,14 +37,14 @@
 
 
 #include "OpenSandCore.h"
-#include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 
 /**
  * @class Sof
  * @brief Represent a SOF
  */
-class Sof: public OpenSandFrame<T_DVB_SOF>
+class Sof: public DvbFrameTpl<T_DVB_SOF>
 {
  public:
 
@@ -54,14 +54,6 @@ class Sof: public OpenSandFrame<T_DVB_SOF>
 	 * @param mac  The superframe number
 	 */
 	Sof(time_sf_t sf_nbr);
-
-	/**
-	 * @brief SOF constructor for terminal (receiver)
-	 *
-	 * @param frame   The DVB frame containing the SOF
-	 * @ aram length  The DVB frame length
-	 */
-	Sof(unsigned char *frame, size_t length);
 
 	~Sof();
 

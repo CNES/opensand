@@ -59,14 +59,11 @@ DvbS2Std::~DvbS2Std()
 
 
 // TODO factorize with DVB-RCS function ?
-int DvbS2Std::onRcvFrame(unsigned char *frame,
-                         long length,
-                         long type,
-                         tal_id_t tal_id,
-                         NetBurst **burst)
+bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
+                          tal_id_t tal_id,
+                          NetBurst **burst)
 {
-	// TODO insted of cast in T_DVB_BBFRAME use this !
-	BBFrame bbframe_burst(frame, length);
+	BBFrame *bbframe_burst;
 	long i;                       // counter for packets
 	int real_mod;                 // real modcod of the receiver
 
@@ -76,7 +73,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 	*burst = NULL;
 
 	// sanity check
-	if(frame == NULL)
+	if(dvb_frame == NULL)
 	{
 		UTI_ERROR("invalid frame received\n");
 		goto error;
@@ -90,20 +87,17 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// sanity check: this function only handle BB frames
 	// keep corrupted for MODCOD updating
-	if(type != MSG_TYPE_BBFRAME && type != MSG_TYPE_CORRUPTED)
+	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME &&
+	   dvb_frame->getMessageType() != MSG_TYPE_CORRUPTED)
 	{
 		UTI_ERROR("the message received is not a BB frame\n");
 		goto error;
 	}
-	if(bbframe_burst.getEncapPacketEtherType() != this->packet_handler->getEtherType())
-	{
-		UTI_ERROR("Bad packet type (%d) in BB frame burst (expecting %d)\n",
-		          bbframe_burst.getEncapPacketEtherType(),
-		          this->packet_handler->getEtherType());
-		goto error;
-	}
+
+	// TODO bbframe_burst = static_cast<BBFrame *>(dvb_frame);
+	bbframe_burst = dvb_frame->operator BBFrame*();
 	UTI_DEBUG("BB frame received (%d %s packet(s)\n",
-	           bbframe_burst.getDataLength(),
+	           bbframe_burst->getDataLength(),
 	           this->packet_handler->getName().c_str());
 
 	// retrieve the current real MODCOD of the receiver
@@ -112,12 +106,12 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// check if there is an update of the real MODCOD among all the real
 	// MODCOD options located just after the header of the BB frame
-	bbframe_burst.getRealModcod(tal_id, this->real_modcod);
+	bbframe_burst->getRealModcod(tal_id, this->real_modcod);
 
 	// used for terminal statistics
-	this->received_modcod = bbframe_burst.getModcodId();
+	this->received_modcod = bbframe_burst->getModcodId();
 
-	if(type == MSG_TYPE_CORRUPTED)
+	if(bbframe_burst->getMessageType() == MSG_TYPE_CORRUPTED)
 	{
 		// corrupted, nothing more to do
 		UTI_DEBUG("The BBFrame was corrupted by physical layer, drop it\n");
@@ -135,7 +129,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 		goto drop;
 	}
 
-	if(bbframe_burst.getDataLength() <= 0)
+	if(bbframe_burst->getDataLength() <= 0)
 	{
 		UTI_DEBUG("skip BB frame with no encapsulation packet\n");
 		goto skip;
@@ -153,19 +147,16 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 	// add packets received from lower layer
 	// to the newly created burst
-	for(i = 0; i < bbframe_burst.getDataLength(); i++)
+	for(i = 0; i < bbframe_burst->getDataLength(); i++)
 	{
 		NetPacket *encap_packet;
 		size_t current_length;
 
 		current_length = this->packet_handler->getLength(
-								bbframe_burst.getPayload().c_str() +
-								previous_length);
+								bbframe_burst->getPayload(previous_length).c_str());
 		// Use default values for QoS, source/destination tal_id
 		encap_packet = this->packet_handler->build(
-								// TODO remove cast if build accepts const
-								(unsigned char *)bbframe_burst.getPayload().c_str() +
-								previous_length,
+								bbframe_burst->getPayload(previous_length),
 								current_length,
 								0x00, BROADCAST_TAL_ID,
 								BROADCAST_TAL_ID);
@@ -179,7 +170,7 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
-		UTI_DEBUG("%s packet (%d bytes) added to burst\n",
+		UTI_DEBUG("%s packet (%zu bytes) added to burst\n",
 		          this->packet_handler->getName().c_str(),
 		          encap_packet->getTotalLength());
 	}
@@ -187,14 +178,14 @@ int DvbS2Std::onRcvFrame(unsigned char *frame,
 drop:
 skip:
 	// release buffer (data is now saved in NetPacket objects)
-	free(frame);
-	return 0;
+	delete dvb_frame;
+	return true;
 
 release_burst:
 	delete burst;
 error:
-	free(frame);
-	return -1;
+	delete dvb_frame;
+	return false;
 }
 
 

@@ -57,33 +57,31 @@ DvbRcsStd::~DvbRcsStd()
 }
 
 
-int DvbRcsStd::onRcvFrame(unsigned char *frame,
-                          long UNUSED(length),
-                          long type,
-                          tal_id_t UNUSED(tal_id),
-                          NetBurst **burst)
+bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
+                           tal_id_t UNUSED(tal_id),
+                           NetBurst **burst)
 {
-	T_DVB_ENCAP_BURST *dvb_burst;  // DVB burst received from lower layer
 	long i;                        // counter for packets
 	size_t offset;
 	size_t previous_length = 0;
+	// TODO DvbRcsFrame *dvb_frame = static_cast<DvbRcsFrame *>(dvb_frame);
+	DvbRcsFrame *dvb_rcs_frame = dvb_frame->operator DvbRcsFrame*();
 
-	if(type == MSG_TYPE_CORRUPTED)
+	if(dvb_rcs_frame->getMessageType() == MSG_TYPE_CORRUPTED)
 	{
 		// corrupted, nothing more to do
 		UTI_DEBUG("The Frame was corrupted by physical layer, drop it\n");
 		goto skip;
 	}
 
-	if(type != MSG_TYPE_DVB_BURST)
+	if(dvb_rcs_frame->getMessageType() != MSG_TYPE_DVB_BURST)
 	{
 		UTI_ERROR("the message received is not a DVB burst\n");
 		goto error;
 	}
 
 
-	dvb_burst = (T_DVB_ENCAP_BURST *) frame;
-	if(dvb_burst->qty_element <= 0)
+	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
 		UTI_DEBUG("skip DVB-RCS frame with no encapsulation packet\n");
 		goto skip;
@@ -102,7 +100,8 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 	}
 
 	UTI_DEBUG("%s burst received (%u packet(s))\n",
-	          this->packet_handler->getName().c_str(), dvb_burst->qty_element);
+	          this->packet_handler->getName().c_str(),
+	          dvb_rcs_frame->getNumPackets());
 
 	// create an empty burst of encapsulation packets
 	*burst = new NetBurst();
@@ -114,15 +113,17 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 
 	// add packets received from lower layer
 	// to the newly created burst
-	offset = sizeof(T_DVB_ENCAP_BURST);
-	for(i = 0; i < dvb_burst->qty_element; i++)
+	offset = dvb_rcs_frame->getHeaderLength();
+	for(i = 0; i < dvb_rcs_frame->getNumPackets(); i++)
 	{
 		NetPacket *encap_packet; // one encapsulation packet
 		size_t current_length;
 
-		current_length = this->packet_handler->getLength(frame + offset + previous_length);
+		current_length = this->packet_handler->getLength(
+							dvb_rcs_frame->getData(offset + previous_length).c_str());
 		// Use default values for QoS, source/destination tal_id
-		encap_packet = this->packet_handler->build(frame + offset + previous_length,
+		encap_packet = this->packet_handler->build(dvb_rcs_frame->getData(offset +
+		                                                                  previous_length),
 		                                           current_length,
 		                                           0x00, BROADCAST_TAL_ID,
 		                                           BROADCAST_TAL_ID);
@@ -156,21 +157,21 @@ int DvbRcsStd::onRcvFrame(unsigned char *frame,
 
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
-		UTI_DEBUG("%s packet (%d bytes) added to burst\n",
+		UTI_DEBUG("%s packet (%zu bytes) added to burst\n",
 		          this->packet_handler->getName().c_str(),
 		          encap_packet->getTotalLength());
 	}
 
 skip:
 	// release buffer (data is now saved in NetPacket objects)
-	free(frame);
-	return 0;
+	delete dvb_frame;
+	return true;
 
 release_burst:
 	delete burst;
 error:
-	free(frame);
-	return -1;
+	delete dvb_frame;;
+	return false;
 }
 
 bool DvbRcsStd::setSwitch(GenericSwitch *generic_switch)

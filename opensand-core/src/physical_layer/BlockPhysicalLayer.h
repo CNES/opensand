@@ -59,6 +59,10 @@ class Chan: public RtChannel, PhyChannel
 		RtChannel(bl, chan_type),
 		PhyChannel()
 	{};
+
+ protected:
+	virtual bool forwardFrame(DvbFrame *dvb_frame) = 0;
+
 };
 
 /**
@@ -98,9 +102,7 @@ class BlockPhysicalLayer: public Block
 		bool onInit(void);
 
 	  protected:
-		bool forwardMetaFrame(T_DVB_META *dvb_meta,
-		                      size_t len);
-
+		bool forwardFrame(DvbFrame *dvb_frame);
 	};
 
 	class PhyDownward: public Chan
@@ -113,9 +115,7 @@ class BlockPhysicalLayer: public Block
 		bool onInit(void);
 
 	  protected:
-		bool forwardMetaFrame(T_DVB_META *dvb_meta,
-		                      size_t len);
-
+		bool forwardFrame(DvbFrame *dvb_frame);
 	};
 
 

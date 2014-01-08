@@ -74,9 +74,6 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	NccPepInterface(),
 	dama_ctrl(NULL),
 	scheduling(NULL),
-	m_carrierIdDvbCtrl(-1),
-	m_carrierIdSOF(-1),
-	m_carrierIdData(-1),
 	frame_timer(-1),
 	macId(GW_TAL_ID),
 	complete_dvb_frames(),
@@ -269,7 +266,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				          remaining_alloc_sym);
 
 				if(!this->sendBursts(&this->complete_dvb_frames,
-				                     this->m_carrierIdData))
+				                     this->data_carrier_id))
 				{
 					UTI_ERROR("failed to build and send DVB/BB frames\n");
 					return false;
@@ -431,23 +428,14 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			// messages from lower layer: dvb frames
-			T_DVB_META *dvb_meta;
-			//long carrier_id;
-			unsigned char *frame;
-			int l_len;
-
-			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
-			frame = (unsigned char *) dvb_meta->hdr;
-			l_len = ((MessageEvent *)event)->getLength();
+			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
 			UTI_DEBUG("[onEvent] DVB frame received\n");
-			if(!this->onRcvDvbFrame(frame, l_len))
+			if(!this->onRcvDvbFrame(dvb_frame))
 			{
-				free(dvb_meta);
+				delete dvb_frame;
 				return false;
 			}
-			delete dvb_meta;
 		}
 		break;
 
@@ -984,35 +972,35 @@ bool BlockDvbNcc::initCarrierIds()
 {
 	int val;
 
-	// Get the carrier Id m_carrierIdDvbCtrl
+	// Get the ID for DVB control carrier
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_CTRL_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_CTRL_CAR);
 		goto error;
 	}
-	this->m_carrierIdDvbCtrl = val;
-	UTI_INFO("carrierIdDvbCtrl set to %ld\n", this->m_carrierIdDvbCtrl);
+	this->ctrl_carrier_id = val;
+	UTI_INFO("DVB control carrier ID set to %u\n", this->ctrl_carrier_id);
 
-	// Get the carrier Id m_carrierIdSOF
+	// Get the ID for SOF carrier
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SOF_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SOF_CAR);
 		goto error;
 	}
-	this->m_carrierIdSOF = val;
-	UTI_INFO("carrierIdSOF set to %ld\n", this->m_carrierIdSOF);
+	this->sof_carrier_id = val;
+	UTI_INFO("SoF carrier ID set to %u\n", this->sof_carrier_id);
 
-	// Get the carrier Id m_carrierIdData
+	// Get the ID for data carrier
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_DATA_CAR, val))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_DATA_CAR);
 	goto error;
 	}
-	this->m_carrierIdData = val;
-	UTI_INFO("carrierIdData set to %ld\n", this->m_carrierIdData);
+	this->data_carrier_id = val;
+	UTI_INFO("Data carrier ID set to %u\n", this->data_carrier_id);
 
 	return true;
 
@@ -1192,7 +1180,7 @@ bool BlockDvbNcc::initFifo()
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);
 		goto error;
 	}
-	this->data_dvb_fifo.init(m_carrierIdData, val, "GW_Fifo");
+	this->data_dvb_fifo.init(this->data_carrier_id, val, "GW_Fifo");
 
 	return true;
 
@@ -1250,14 +1238,9 @@ bool BlockDvbNcc::initOutput(void)
 /******************* EVENT MANAGEMENT *********************/
 
 
-bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
+bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	T_DVB_HDR *dvb_hdr;
-
-	// get DVB header
-	dvb_hdr = (T_DVB_HDR *) data;
-
-	switch(dvb_hdr->msg_type)
+	switch(dvb_frame->getMessageType())
 	{
 		// burst
 		case MSG_TYPE_DVB_BURST:
@@ -1271,29 +1254,22 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 			NetBurst *burst = NULL;
 
 			// Update stats
-			this->l2_from_sat_bytes += dvb_hdr->msg_length;
-			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-			this->phy_from_sat_bytes += dvb_hdr->msg_length;
+			this->l2_from_sat_bytes += dvb_frame->getPayloadLength();
+			this->phy_from_sat_bytes += dvb_frame->getMessageLength();
 
 			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
 			{
-				T_DVB_PHY *physical_parameters;
-
 				// get ACM parameters
-				physical_parameters = (T_DVB_PHY *)((char *)dvb_hdr +
-				                                    dvb_hdr->msg_length);
-				this->cni = ncntoh(physical_parameters->cn_previous);
-				len -= sizeof(T_DVB_PHY);
+				this->cni = dvb_frame->getCn();
 			}
 
 			if(this->receptionStd->getType() == "DVB-RCS" &&
-			   dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
+			   dvb_frame->getMessageType() == MSG_TYPE_BBFRAME)
 			{
 				UTI_DEBUG("ignore received BB frame in transparent scenario\n");
 				goto drop;
 			}
-			if(this->receptionStd->onRcvFrame(data, len, dvb_hdr->msg_type,
-			                                  this->macId, &burst) < 0)
+			if(!this->receptionStd->onRcvFrame(dvb_frame, this->macId, &burst))
 			{
 				UTI_ERROR("failed to handle DVB frame or BB frame\n");
 				goto error;
@@ -1309,27 +1285,28 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 
 		case MSG_TYPE_SAC:
 		{
-			this->sac.parse(data, len);
+			// TODOSac *sac = dynamic_cast<Sac *>(dvb_frame);
+			Sac *sac = (Sac *)dvb_frame;
 
 			UTI_DEBUG_L3("handle received SAC\n");
 
-			if(!this->dama_ctrl->hereIsSAC(this->sac))
+			if(!this->dama_ctrl->hereIsSAC(sac))
 			{
 				UTI_ERROR("failed to handle SAC frame\n");
 				goto error;
 			}
-			free(data);
+			delete dvb_frame;
 		}
 		break;
 
 		case MSG_TYPE_SESSION_LOGON_REQ:
 			UTI_DEBUG("Logon Req\n");
-			this->onRcvLogonReq(data, len);
+			this->onRcvLogonReq(dvb_frame);
 			break;
 
 		case MSG_TYPE_SESSION_LOGOFF:
 			UTI_DEBUG_L3("Logoff Req\n");
-			this->onRcvLogoffReq(data, len);
+			this->onRcvLogoffReq(dvb_frame);
 			break;
 
 		case MSG_TYPE_TTP:
@@ -1337,21 +1314,21 @@ bool BlockDvbNcc::onRcvDvbFrame(unsigned char *data, int len)
 		case MSG_TYPE_SOF:
 			// nothing to do in this case
 			UTI_DEBUG_L3("ignore TTP, logon response or SOF frame "
-			             "(type = %d)\n", dvb_hdr->msg_type);
-			free(data);
+			             "(type = %d)\n", dvb_frame->getMessageType());
+			delete dvb_frame;
 			break;
 
 		default:
 			UTI_ERROR("unknown type (%d) of DVB frame\n",
-			          dvb_hdr->msg_type);
-			free(data);
+			          dvb_frame->getMessageType());
+			delete dvb_frame;
 			break;
 	}
 
 	return true;
 
 drop:
-	free(data);
+	delete dvb_frame;
 	return true;
 
 error:
@@ -1366,10 +1343,10 @@ error:
  */
 void BlockDvbNcc::sendSOF()
 {
-	Sof sof(this->super_frame_counter);
+	Sof *sof = new Sof(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame(sof.getFrame(), m_carrierIdSOF, sof.getLength()))
+	if(!this->sendDvbFrame((DvbFrame *)sof, this->sof_carrier_id))
 	{
 		UTI_ERROR("Failed to call sendDvbFrame() for SOF\n");
 		return;
@@ -1379,10 +1356,12 @@ void BlockDvbNcc::sendSOF()
 }
 
 
-void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
+void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 {
-	LogonRequest logon_req(ip_buf, l_len);
-	uint16_t mac = logon_req.getMac();
+	//TODO find why dynamic cast fail here !?
+//	LogonRequest *logon_req = dynamic_cast<LogonRequest *>(dvb_frame);
+	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
+	uint16_t mac = logon_req->getMac();
 	std::list<long>::iterator list_it;
 
 	UTI_DEBUG("Logon request from %u\n", mac);
@@ -1423,12 +1402,11 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	// Inform the Dama controler (for its own context)
 	if(this->dama_ctrl->hereIsLogon(logon_req))
 	{
-		LogonResponse logon_resp(mac, 0, mac);
+		LogonResponse *logon_resp = new LogonResponse(mac, 0, mac);
 
 		// Send it
-		if(!sendDvbFrame(logon_resp.getFrame(),
-		                 m_carrierIdDvbCtrl,
-		                 logon_resp.getLength()))
+		if(!sendDvbFrame((DvbFrame *)logon_resp,
+		                 this->ctrl_carrier_id))
 		{
 			UTI_ERROR("Failed send message\n");
 			goto release;
@@ -1445,61 +1423,46 @@ void BlockDvbNcc::onRcvLogonReq(unsigned char *ip_buf, int l_len)
 	}
 
 release:
-	free(ip_buf);
+	delete dvb_frame;
 }
 
-void BlockDvbNcc::onRcvLogoffReq(unsigned char *ip_buf, int l_len)
+void BlockDvbNcc::onRcvLogoffReq(DvbFrame *dvb_frame)
 {
 	std::list<long>::iterator list_it;
-	Logoff logoff(ip_buf, l_len);
+// TODO	Logoff *logoff = dynamic_cast<Logoff *>(dvb_frame);
+	Logoff *logoff = (Logoff *)dvb_frame;
+
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->fmt_simu.delTerminal(logoff.getMac()))
+	if(!this->fmt_simu.delTerminal(logoff->getMac()))
 	{
 		UTI_ERROR("failed to delete the ST with ID %d\n",
-		          logoff.getMac());
+		          logoff->getMac());
 		goto release;
 	}
 
 	this->dama_ctrl->hereIsLogoff(logoff);
 	UTI_DEBUG_L3("SF#%u: logoff request from %d\n",
-	             this->super_frame_counter, logoff.getMac());
+	             this->super_frame_counter, logoff->getMac());
 
 release:
-	free(ip_buf);
+	delete dvb_frame;
 }
 
 void BlockDvbNcc::sendTTP()
 {
-	unsigned char *frame;
-	size_t length;
-
+	Ttp *ttp = new Ttp(0, this->super_frame_counter);
 	// Build TTP
-	if(!this->dama_ctrl->buildTTP(this->ttp))
+	if(!this->dama_ctrl->buildTTP(ttp))
 	{
+		delete ttp;
 		UTI_DEBUG_L3("Dama didn't build TTP\bn");
 		return;
 	};
 
-	// Get a dvb frame
-	frame = (unsigned char *)calloc(MSG_DVB_RCS_SIZE_MAX,
-	                                sizeof(unsigned char));
-	if(!frame)
+	if(!this->sendDvbFrame((DvbFrame *)ttp, this->ctrl_carrier_id))
 	{
-		UTI_ERROR("failed to allocate DVB frame\n");
-		return;
-	}
-
-	// Set DVB frame data
-	if(!this->ttp.build(this->super_frame_counter, frame, length))
-	{
-		free(frame);
-		UTI_ERROR("Failed to set TTP data\n");
-		return;
-	}
-	if(!this->sendDvbFrame((T_DVB_HDR *) frame, m_carrierIdDvbCtrl, length))
-	{
-		free(frame);
+		delete ttp;
 		UTI_ERROR("Failed to send TTP\n");
 		return;
 	}
@@ -1569,13 +1532,13 @@ bool BlockDvbNcc::simulateFile()
 		{
 		case cr:
 		{
-			Sac cr(st_id);
+			Sac *sac = new Sac(st_id);
 
-			cr.addRequest(0, cr_type, st_request);
+			sac->addRequest(0, cr_type, st_request);
 			UTI_DEBUG("SF#%u: send a simulated CR of type %u with value = %u "
 			          "for ST %hu\n", this->super_frame_counter,
 			          cr_type, st_request, st_id);
-			if(!this->dama_ctrl->hereIsSAC(cr))
+			if(!this->dama_ctrl->hereIsSAC(sac))
 			{
 				goto error;
 			}
@@ -1583,7 +1546,10 @@ bool BlockDvbNcc::simulateFile()
 		}
 		case logon:
 		{
-			LogonRequest sim_logon_req(st_id, st_rt, st_rbdc, st_vbdc);
+			LogonRequest *sim_logon_req = new LogonRequest(st_id,
+			                                               st_rt,
+			                                               st_rbdc,
+			                                               st_vbdc);
 			bool ret = false;
 
 			UTI_DEBUG("SF#%u: send a simulated logon for ST %d\n",
@@ -1613,7 +1579,7 @@ bool BlockDvbNcc::simulateFile()
 		break;
 		case logoff:
 		{
-			Logoff sim_logoff(st_id);
+			Logoff *sim_logoff = new Logoff(st_id);
 			UTI_DEBUG("SF#%u: send a simulated logoff for ST %d\n",
 			          this->super_frame_counter, st_id);
 			if(!this->dama_ctrl->hereIsLogoff(sim_logoff))
@@ -1672,9 +1638,9 @@ void BlockDvbNcc::simulateRandom()
 		for(i = 0; i < this->simu_st; i++)
 		{
 			tal_id_t tal_id = sim_tal_id + i;
-			LogonRequest sim_logon_req(tal_id, this->simu_rt,
-			                           this->simu_max_rbdc,
-			                           this->simu_max_vbdc);
+			LogonRequest *sim_logon_req = new LogonRequest(tal_id, this->simu_rt,
+			                                               this->simu_max_rbdc,
+			                                               this->simu_max_vbdc);
 			bool ret = false;
 
 			// check for column in FMT simulation list
@@ -1703,13 +1669,13 @@ void BlockDvbNcc::simulateRandom()
 	for(i = 0; i < this->simu_st; i++)
 	{
 		uint32_t val;
-		Sac cr(sim_tal_id + i);
+		Sac *sac = new Sac(sim_tal_id + i);
 
 		val = this->simu_cr - this->simu_interval / 2 +
 		      random() % this->simu_interval;
-		cr.addRequest(0, cr_rbdc, val);
+		sac->addRequest(0, cr_rbdc, val);
 
-		this->dama_ctrl->hereIsSAC(cr);
+		this->dama_ctrl->hereIsSAC(sac);
 	}
 }
 
@@ -1755,29 +1721,16 @@ void BlockDvbNcc::updateStatsOnFrame()
 
 bool BlockDvbNcc::sendAcmParameters()
 {
-	unsigned char *dvb_frame;
-	size_t length;
-	Sac send_sac = Sac(GW_TAL_ID);
-	send_sac.setAcm(this->cni);
+	Sac *send_sac = new Sac(GW_TAL_ID);
+	send_sac->setAcm(this->cni);
 	UTI_DEBUG_L3("Send SAC with CNI = %.2f\n", this->cni);
-	// Get a dvb frame
-	dvb_frame = (unsigned char *)calloc(Sac::getMaxSize(),
-	                                    sizeof(unsigned char));
-	if(dvb_frame == 0)
-	{
-		UTI_ERROR("SF#%u frame %u: cannot get memory for SAC\n",
-		          this->super_frame_counter, this->frame_counter);
-		return false;
-	}
-
-	send_sac.build(dvb_frame, length);
 
 	// Send message
-	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
+	if(!this->sendDvbFrame((DvbFrame *)send_sac, this->ctrl_carrier_id))
 	{
 		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
 		          this->super_frame_counter, this->frame_counter);
-		free(dvb_frame);
+		delete send_sac;
 		return false;
 	}
 	return true;

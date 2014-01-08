@@ -86,8 +86,7 @@ class BlockPhysicalLayerSat: public Block
 		bool onInit(void);
 
 	  protected:
-		bool forwardMetaFrame(T_DVB_META *dvb_meta,
-		                      size_t len);
+		bool forwardFrame(DvbFrame *dvb_frame);
 	};
 
 	class PhyDownward: public Chan
@@ -100,8 +99,7 @@ class BlockPhysicalLayerSat: public Block
 		bool onInit(void);
 
 	  protected:
-		bool forwardMetaFrame(T_DVB_META *dvb_meta,
-		                      size_t len);
+		bool forwardFrame(DvbFrame *dvb_frame);
 	};
 
  private:

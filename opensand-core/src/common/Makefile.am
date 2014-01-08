@@ -12,9 +12,12 @@ libopensand_plugin_utils_la_cpp = \
 libopensand_plugin_utils_la_h = \
 	PluginUtils.h \
 	Plugin.h
+	
+# TODO move NetPacket ?
 
 libopensand_plugin_la_cpp = \
 	Data.cpp \
+	NetContainer.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp \
 	IpAddress.cpp \
@@ -27,6 +30,7 @@ libopensand_plugin_la_h = \
 	StackPlugin.h \
 	OpenSandCore.h \
 	Data.h \
+	NetContainer.h \
 	NetPacket.h \
 	NetBurst.h \
 	IpAddress.h \

@@ -35,7 +35,8 @@
 #ifndef NET_PACKET_H
 #define NET_PACKET_H
 
-#include <Data.h>
+#include "Data.h"
+#include "NetContainer.h"
 
 #include <linux/if_ether.h>
 
@@ -66,7 +67,7 @@
 /// Network protocol ID for ROHC
 #define NET_PROTO_ROHC    0x0605
 /// Network protocol ID for DVB frame
-#define NET_PROTO_DVB_FRAME  0x0606
+//#define NET_PROTO_DVB_FRAME  0x0606
 /// Network protocol ID for GSE
 #define NET_PROTO_GSE     0x0607
 /// Network protocol ID for both IP v4 or v6
@@ -108,15 +109,10 @@
  * @class NetPacket
  * @brief Network-layer packet
  */
-class NetPacket
+class NetPacket: public NetContainer
 {
  protected:
 
-	/// Internal buffer for packet data
-	Data data;
-
-	/// The name of the network protocol
-	std::string name;
 	/// The type of network protocol
 	uint16_t type;
 	/// The packet QoS
@@ -127,8 +123,6 @@ class NetPacket
 	uint8_t dst_tal_id;
 	/// The destination spot ID
 	uint8_t dst_spot;
-	/// The packet header length
-	size_t header_length;
 
 
  public:
@@ -146,24 +140,29 @@ class NetPacket
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetPacket(unsigned char *data, size_t length);
-
+	NetPacket(const unsigned char *data, size_t length);
 
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
 	 */
-	NetPacket(Data data);
+	NetPacket(const Data &data);
+
+	/**
+	 * Build a network-layer packet
+	 * @param data raw data from which a network-layer packet can be created
+	 * @param length length of raw data
+	 */
+	NetPacket(const Data &data, size_t length);
 
 	/**
 	 * Build an empty network-layer packet
 	 */
 	NetPacket();
 
- public:
-	
 	/**
 	 * Build a network-layer packet initialized
+	 *
 	 * @param data              raw data from which a network-layer packet can be created
 	 * @param length            length of raw data
 	 * @param name              the name of the network protocol
@@ -173,9 +172,9 @@ class NetPacket
 	 * @param dst_tal_id        the destination terminal ID to associate with the packet
 	 * @param header_length     the header length of the packet
 	 */
-	NetPacket(unsigned char *data,
+	NetPacket(const Data &data,
 	          size_t length,
-	          std::string name,
+	          string name,
 	          uint16_t type,
 	          uint8_t qos,
 	          uint8_t src_tal_id,
@@ -188,58 +187,53 @@ class NetPacket
 	virtual ~NetPacket();
 
 	/**
+	 * Set the QoS associated with the packet
+	 *
+	 * @param qos  the QoS associated with the packet
+	 */
+	virtual void setQos(uint8_t qos);
+
+	/**
 	 * Get the QoS associated with the packet
+	 *
 	 * @return the QoS associated with the packet
 	 */
-	virtual uint8_t getQos();
+	virtual uint8_t getQos() const;
+
+	/**
+	 * Set the source TAL id associated with the packet
+	 *
+	 * @param tal_id  the source TAL id associated with the packet
+	 */
+	virtual void setSrcTalId(uint8_t tal_id);
 
 	/**
 	 * Get the source TAL id associated with the packet
+	 *
 	 * @return the source TAL id associated with the packet
 	 */
-	virtual uint8_t getSrcTalId();
+	virtual uint8_t getSrcTalId() const;
+
+	/**
+	 * Set the destination TAL id associated with the packet
+	 *
+	 * @param tal_id  the destination TAL id associated with the packet
+	 */
+	virtual void setDstTalId(uint8_t tal_id);
 
 	/**
 	 * Get the destination TAL id associated with the packet
+	 *
 	 * @return the destination TAL id associated with the packet
 	 */
-	virtual uint8_t getDstTalId();
-
-	/**
-	 * Get the name of the network protocol
-	 * @return the name of the network protocol
-	 */
-	std::string getName();
+	virtual uint8_t getDstTalId() const;
 
 	/**
 	 * Get the type of network protocol
+	 *
 	 * @return the type of network protocol
 	 */
-	uint16_t getType();
-
-	/**
-	 * Retrieve the total length of the packet
-	 * @return the total length of the packet
-	 */
-	virtual uint16_t getTotalLength();
-
-	/**
-	 * Get a copy of the raw packet data
-	 * @return a copy of the raw packet data
-	 */
-	Data getData();
-
-	/**
-	 * Retrieve the length of the packet payload
-	 * @return the length of the packet payload
-	 */
-	virtual uint16_t getPayloadLength();
-
-	/**
-	 * Retrieve the payload of the packet
-	 * @return the payload of the packet
-	 */
-	virtual Data getPayload();
+	uint16_t getType() const;
 
 	/**
 	 * Set the destination spot ID
@@ -253,14 +247,8 @@ class NetPacket
 	 *
 	 * @return the destination spot ID
 	 */
-	uint8_t getDstSpot();
+	uint8_t getDstSpot() const;
 
-	/**
-	 * Get the packet header length
-	 *
-	 * @return the header length
-	 */
-	size_t getHeaderLength();
 };
 
 #endif

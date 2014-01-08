@@ -39,6 +39,7 @@
 #include <syslog.h>
 
 #include "NetPacket.h"
+#include "DvbFrame.h"
 
 /**
  * @class MacFifoElement
@@ -52,12 +53,17 @@ class MacFifoElement
 	/// 1 if the element contains a NetPacket
 	int type;
 
-	/// The data to store in the FIFO (if type = 0)
+/*	/// The data to store in the FIFO (if type = 0)
 	unsigned char *data;
 	/// The length of data
-	size_t length;
+	size_t length;*/
+	//
+	/// The frame to store in the FIFO (if type = 0)
+	DvbFrame *dvb_frame;
 	/// The data to store in the FIFO (if type = 1)
 	NetPacket *packet;
+// TODO once everything will be uniformized
+// 	NetContainer *elem;
 
 	/// The arrival time of packet in FIFO (in ms)
 	time_t tick_in;
@@ -69,12 +75,11 @@ class MacFifoElement
 
 	/**
 	 * Build a fifo element
-	 * @param data     The data to store in the FIFO
-	 * @param length   The length of the data
-	 * @param tick_in  The arrival time of packet in FIFO (in ms)
-	 * @param tick_out The minimal time the packet will output the FIFO (in ms)
+	 * @param dvb_frame  The DVB frame to store in the FIFO
+	 * @param tick_in    The arrival time of packet in FIFO (in ms)
+	 * @param tick_out   The minimal time the packet will output the FIFO (in ms)
 	 */
-	MacFifoElement(unsigned char *data, size_t length,
+	MacFifoElement(DvbFrame *dvb_frame,
 	               time_t tick_in, time_t tick_out);
 
 	/**
@@ -92,18 +97,10 @@ class MacFifoElement
 	~MacFifoElement();
 
 	/**
-	 * Get the data
-	 * @return The data
+	 * Get the frame
+	 * @return The frame
 	 */
-	unsigned char *getData();
-
-
-	/**
-	 * Get the length of data
-	 * @return The length of data
-	 */
-	size_t getDataLength();
-
+	DvbFrame *getFrame() const;
 
 	/**
 	 * Set the packet
@@ -117,33 +114,33 @@ class MacFifoElement
 	 * Get the packet
 	 * @return The packet
 	 */
-	NetPacket *getPacket();
+	NetPacket *getPacket() const;
 
 
 	/**
-	 * Get the packet length
-	 * @return The packet length
+	 * Get the element length
+	 * @return The element length
 	 */
-	size_t getTotalPacketLength();
+	size_t getTotalLength() const;
 
 
 	/**
 	 * Get the type of data in FIFO element
 	 * @return The type of data in FIFO element
 	 */
-	int getType();
+	int getType() const;
 
 	/**
 	 * Get the arrival time of packet in FIFO (in ms)
 	 * @return The arrival time of packet in FIFO
 	 */
-	time_t getTickIn();
+	time_t getTickIn() const;
 
 	/**
 	 * Get the minimal time the packet will output the FIFO (in ms)
 	 * @return The minimal time the packet will output the FIFO
 	 */
-	time_t getTickOut();
+	time_t getTickOut() const;
 
 };
 

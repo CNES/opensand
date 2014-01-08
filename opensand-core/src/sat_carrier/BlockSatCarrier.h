@@ -85,9 +85,16 @@ class BlockSatCarrier: public Block
 	/// the interface name for emulation newtork
 	string interface_name;
 
-	void onReceivePktFromCarrier(unsigned int i_channel,
-	                             unsigned char *ip_buf,
-	                             unsigned int i_len);
+	/**
+	 * @brief Handle a packt received from carrier
+	 *
+	 * @param carrier_id  The carrier of the packet
+	 * @param data        The data read on socket
+	 * @param length      The data length
+	 */
+	void onReceivePktFromCarrier(uint8_t carrier_id,
+	                             unsigned char *data,
+	                             size_t length);
 };
 
 #endif

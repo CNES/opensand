@@ -38,7 +38,7 @@
 #include "opensand_conf/uti_debug.h"
 
 
-RohcPacket::RohcPacket(unsigned char *data, unsigned int length, uint16_t type):
+RohcPacket::RohcPacket(const unsigned char *data, size_t length, uint16_t type):
 	NetPacket(data, length)
 {
 	this->name = "ROHC";
@@ -46,7 +46,15 @@ RohcPacket::RohcPacket(unsigned char *data, unsigned int length, uint16_t type):
 	this->data.reserve(1500);
 }
 
-RohcPacket::RohcPacket(Data data, uint16_t type): NetPacket(data)
+RohcPacket::RohcPacket(const Data &data, uint16_t type): NetPacket(data)
+{
+	this->name = "ROHC";
+	this->type = type;
+	this->data.reserve(1500);
+}
+
+RohcPacket::RohcPacket(const Data &data, size_t length, uint16_t type):
+	NetPacket(data, length)
 {
 	this->name = "ROHC";
 	this->type = type;
@@ -62,50 +70,5 @@ RohcPacket::RohcPacket(uint16_t type): NetPacket()
 
 RohcPacket::~RohcPacket()
 {
-}
-
-uint8_t RohcPacket::getQos()
-{
-	return this->qos;
-}
-
-uint8_t RohcPacket::getSrcTalId()
-{
-	return this->src_tal_id;
-}
-
-uint8_t RohcPacket::getDstTalId()
-{
-	return this->dst_tal_id;
-}
-
-uint16_t RohcPacket::getTotalLength()
-{
-	return this->data.length();
-}
-
-uint16_t RohcPacket::getPayloadLength()
-{
-	return this->getTotalLength();
-}
-
-Data RohcPacket::getPayload()
-{
-	return this->data;
-}
-
-void RohcPacket::setSrcTalId(uint8_t tal_id)
-{
-	this->src_tal_id = tal_id;
-}
-
-void RohcPacket::setDstTalId(uint8_t tal_id)
-{
-	this->dst_tal_id = tal_id;
-}
-
-void RohcPacket::setQos(uint8_t qos)
-{
-	this->qos = qos;
 }
 

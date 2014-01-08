@@ -253,6 +253,7 @@ int sat_carrier_udp_channel::getChannelFd()
  * @return         0 on success, 1 if the function should be
  *                 called another time, -1 on error
  */
+// TODO why not work directly with Data here instead of buf, length
 int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
                                      unsigned char **buf, size_t &data_len)
 {
@@ -429,15 +430,9 @@ void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
 }
 
 
-/**
-* Send a variable length buffer on the specified satellite carrier.
-* @param buf pointer to a char buffer
-* @param len length of the buffer
-* @return -1 if failed, the size of data send if succeed
-*/
-int sat_carrier_udp_channel::send(unsigned char *buf, unsigned int len)
+bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 {
-	int lg;
+	ssize_t slen;
 
 	UTI_DEBUG("data are trying to be send on channel %d\n",m_channelID);
 
@@ -458,12 +453,12 @@ int sat_carrier_udp_channel::send(unsigned char *buf, unsigned int len)
 	// add a sequencing field
 	bzero(this->send_buffer, sizeof(this->send_buffer));
 	this->send_buffer[0] = this->counter;
-	memcpy(send_buffer + 1, buf, len);
-	lg = len + 1;
+	memcpy(send_buffer + 1, data, length);
+	slen = length + 1;
 
-	if(sendto(this->sock_channel, this->send_buffer, lg, 0,
+	if(sendto(this->sock_channel, this->send_buffer, slen, 0,
 	          (struct sockaddr *) &this->m_remoteIPAddress,
-	          sizeof(this->m_remoteIPAddress)) < lg)
+	          sizeof(this->m_remoteIPAddress)) < slen)
 	{
 		UTI_ERROR("Error:  sendto(..,0,..) errno %s (%d)\n",
 		          strerror(errno),errno);
@@ -476,12 +471,12 @@ int sat_carrier_udp_channel::send(unsigned char *buf, unsigned int len)
 	else
 		this->counter++;
 
-	UTI_DEBUG("==> SAT_Channel_Send [%d] (%s:%d): len=%d, counter: %d\n",
+	UTI_DEBUG("==> SAT_Channel_Send [%d] (%s:%d): len=%zd, counter: %d\n",
 	          m_channelID, inet_ntoa(this->m_remoteIPAddress.sin_addr),
-	          ntohs(this->m_remoteIPAddress.sin_port), lg, this->counter);
+	          ntohs(this->m_remoteIPAddress.sin_port), slen, this->counter);
 
-	return lg;
+	return true;
 
  error:
-	return (-1);
+	return false;
 }

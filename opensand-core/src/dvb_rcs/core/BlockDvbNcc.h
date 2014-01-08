@@ -76,9 +76,9 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	Scheduling *scheduling;
 
 	/// carrier ids
-	long m_carrierIdDvbCtrl;
-	long m_carrierIdSOF;
-	long m_carrierIdData;
+	uint8_t ctrl_carrier_id;
+	uint8_t sof_carrier_id;
+	uint8_t data_carrier_id;
 
 	/// frame timer, used to awake the block every frame period
 	event_id_t frame_timer;
@@ -88,12 +88,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
-
-	/// The TTP
-	Ttp ttp;
-
-	/// The SAC
-	Sac sac;
 
 	/// timer used to awake the block every second in order to retrieve
 	/// the current MODCODs
@@ -248,9 +242,9 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	bool initOutput(void);
 
 	/// DVB frame from lower layer
-	bool onRcvDvbFrame(unsigned char *ip_buf, int l_len);
-	void onRcvLogonReq(unsigned char *ip_buf, int l_len);
-	void onRcvLogoffReq(unsigned char *ip_buf, int l_len);
+	bool onRcvDvbFrame(DvbFrame *dvb_frame);
+	void onRcvLogonReq(DvbFrame *dvb_frame);
+	void onRcvLogoffReq(DvbFrame *dvb_frame);
 
 	// NCC functions
 	void sendTTP();

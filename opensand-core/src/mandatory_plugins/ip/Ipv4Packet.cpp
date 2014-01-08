@@ -39,7 +39,9 @@
 #include "opensand_conf/uti_debug.h"
 
 
-Ipv4Packet::Ipv4Packet(Data data): IpPacket(data)
+Ipv4Packet::Ipv4Packet(const unsigned char *data,
+                       size_t length):
+	IpPacket(data, length)
 {
 	this->name = "IPv4";
 	this->type = NET_PROTO_IPV4;
@@ -49,8 +51,18 @@ Ipv4Packet::Ipv4Packet(Data data): IpPacket(data)
 	this->header_length = 20;
 }
 
-Ipv4Packet::Ipv4Packet(unsigned char *data,
-                       unsigned int length):
+Ipv4Packet::Ipv4Packet(const Data &data): IpPacket(data)
+{
+	this->name = "IPv4";
+	this->type = NET_PROTO_IPV4;
+
+	this->validity_checked = false;
+	this->validity_result = false;
+	this->header_length = 20;
+}
+
+Ipv4Packet::Ipv4Packet(const Data &data,
+                       size_t length):
 	IpPacket(data, length)
 {
 	this->name = "IPv4";
@@ -75,7 +87,7 @@ Ipv4Packet::~Ipv4Packet()
 {
 }
 
-bool Ipv4Packet::isValid()
+bool Ipv4Packet::isValid() const
 {
 	bool is_valid = false;
 	uint16_t crc;
@@ -113,7 +125,7 @@ skip:
 	return this->validity_result;
 }
 
-uint16_t Ipv4Packet::calcCrc()
+uint16_t Ipv4Packet::calcCrc() const
 {
 	size_t nbytes;
 	uint16_t *data;
@@ -137,7 +149,7 @@ uint16_t Ipv4Packet::calcCrc()
 	return ((uint16_t) ~ sum);
 }
 
-uint16_t Ipv4Packet::crc()
+uint16_t Ipv4Packet::crc() const
 {
 	if(this->data.length() < 4 * 5)
 	{
@@ -149,7 +161,7 @@ uint16_t Ipv4Packet::crc()
 	                 + ((this->data.at(11) & 0xff) << 0));
 }
 
-uint16_t Ipv4Packet::getTotalLength()
+size_t Ipv4Packet::getTotalLength() const
 {
 	if(!this->isValid())
 	{
@@ -157,11 +169,11 @@ uint16_t Ipv4Packet::getTotalLength()
 		return 0;
 	}
 
-	return (uint16_t) (((this->data.at(2) & 0xff) << 8)
-	                 + ((this->data.at(3) & 0xff) << 0));
+	return (((this->data.at(2) & 0xff) << 8)
+	        + ((this->data.at(3) & 0xff) << 0));
 }
 
-uint8_t Ipv4Packet::ihl()
+uint8_t Ipv4Packet::ihl() const
 {
 	if(this->data.length() < 4 * 5)
 	{
@@ -172,7 +184,7 @@ uint8_t Ipv4Packet::ihl()
 	return (uint8_t) (this->data.at(0) & 0x0f);
 }
 
-uint16_t Ipv4Packet::getPayloadLength()
+size_t Ipv4Packet::getPayloadLength() const
 {
 	if(!this->isValid())
 	{
@@ -180,10 +192,10 @@ uint16_t Ipv4Packet::getPayloadLength()
 		return 0;
 	}
 
-	return (uint16_t) (this->getTotalLength() - this->ihl() * 4);
+	return (this->getTotalLength() - this->ihl() * 4);
 }
 
-IpAddress * Ipv4Packet::srcAddr()
+IpAddress *Ipv4Packet::srcAddr()
 {
 	if(this->src_addr == NULL)
 	{
@@ -201,7 +213,7 @@ IpAddress * Ipv4Packet::srcAddr()
 	return this->src_addr;
 }
 
-IpAddress * Ipv4Packet::dstAddr()
+IpAddress *Ipv4Packet::dstAddr()
 {
 	if(this->dst_addr == NULL)
 	{
@@ -219,7 +231,7 @@ IpAddress * Ipv4Packet::dstAddr()
 	return this->dst_addr;
 }
 
-uint8_t Ipv4Packet::diffServField()
+uint8_t Ipv4Packet::diffServField() const
 {
 	uint8_t diffServField;
 	
@@ -233,7 +245,7 @@ uint8_t Ipv4Packet::diffServField()
 	return diffServField;
 }
 
-uint8_t Ipv4Packet::diffServCodePoint()
+uint8_t Ipv4Packet::diffServCodePoint() const
 {
 	uint8_t diffServCodePoint;
 
@@ -247,7 +259,7 @@ uint8_t Ipv4Packet::diffServCodePoint()
 	return diffServCodePoint;
 }
 
-uint8_t Ipv4Packet::explicitCongestionNotification()
+uint8_t Ipv4Packet::explicitCongestionNotification() const
 {
 	uint8_t explicitCongestionNotification;
 

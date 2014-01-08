@@ -37,12 +37,13 @@
 
 
 #include "OpenSandCore.h"
+#include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 #include <vector>
 #include <endian.h>
 
 using std::vector;
-
 
 /// The maximum number of CR in a SAC
 #define NBR_MAX_CR 2
@@ -126,12 +127,21 @@ typedef struct
 } __attribute__((packed)) emu_sac_t;
 
 
+/**
+ * Satellite Access Control
+ */
+typedef struct
+{
+	T_DVB_HDR hdr;           ///< Basic DVB Header
+	emu_sac_t sac;
+} __attribute__((packed)) T_DVB_SAC;
+
 
 /**
  * @class Sac
  * @brief Represent a SAC
  */
-class Sac
+class Sac: public DvbFrameTpl<T_DVB_SAC>
 {
  public:
 
@@ -143,10 +153,6 @@ class Sac
 	 */
 	Sac(tal_id_t tal_id, group_id_t group_id = 0);
 
-	/**
-	 * @brief SAC constructor for controller
-	 */
-	Sac();
 
 	~Sac();
 
@@ -156,97 +162,52 @@ class Sac
 	 * @param prio  The request priority
 	 * @param type  The request type
 	 * @param value The request value
+	 *
+	 * @return true on success, false otherwise
 	 */
-	void addRequest(uint8_t prio, uint8_t type, uint32_t value);
+	bool addRequest(uint8_t prio, uint8_t type, uint32_t value);
 
 	/**
 	 * @brief Set the ACM parameters
 	 *
 	 * @param cni  The CNI parameter value
 	 */
-	void setAcm(double cni)
-	{
-		this->cni = cni;
-	};
-
-	/**
-	 * @brief Parse CR data
-	 *
-	 * @param data   the RAW data containing the CR
-	 * @param length the data length
-	 * @return true on success, false otherwise
-	 */
-	bool parse(const unsigned char *data, size_t length);
-
+	void setAcm(double cni);
 
 	/**
 	 * @brief   Get the terminal Id.
 	 *
 	 * @return  terminal Id.
 	 */
-	tal_id_t getTerminalId() const
-	{
-		return this->tal_id;
-	};
+	tal_id_t getTerminalId(void) const;
 
 	/**
 	 * @brief  Get the group Id
 	 *
 	 * @return the group ID
 	 */
-	group_id_t getGroupId() const
-	{
-		return this->group_id;
-	};
+	group_id_t getGroupId(void) const;
 
 	/**
 	 * @brief  Get the requests
 	 *
 	 * @return  the requets
 	 */
-	vector<cr_info_t> getRequets() const
-	{
-		return this->requests;
-	};
-
-	double getCni() const
-	{
-		return this->cni;
-	};
+	vector<cr_info_t> getRequets(void) const;
 
 	/**
-	 * @brief  Build a SAC field to be sent on the network
+	 * @brief Get the C/N0 ratio
 	 *
-	 * @param frame  the frame containing the SAC field
-	 * @param length the length of the frame
-	 *
-	 * @return true on success, false otherwise
+	 * @return the CNI value
 	 */
-	void build(unsigned char *sac, size_t &length);
+	double getCni() const;
 
-	/**
-	 *  @brief  Get the maximum size of a SAC
-	 *          (i.e. the maximum size of the emu_sac_t structure)
-	 *
-	 *  @return the maximum size of a SAC
-	 */
-	static size_t getMaxSize(void)
-	{
-		return sizeof(emu_sac_t) + (sizeof(emu_cr_t) * NBR_MAX_CR);
-	};
+void toto();
 
  private:
 
-	/// the terminal ID
-	tal_id_t tal_id;
-	/// the group ID
-	group_id_t group_id;
-	/// the CNI parameter (C/N of forward link)
-	double cni;
-	/// the requets
-	vector<cr_info_t> requests;
-	/// the SAC avoid allocating a complete SAC
-	emu_sac_t *sac;
+	/// the number of requests
+	uint8_t request_nbr;
 };
 
 #endif

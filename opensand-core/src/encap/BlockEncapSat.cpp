@@ -257,7 +257,7 @@ bool BlockEncapSat::onTimer(event_id_t timer_id)
 		goto clean;
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst, sizeof(burst)))
+	if(!this->sendDown((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
@@ -315,7 +315,7 @@ bool BlockEncapSat::ForwardPackets(NetBurst *burst)
 	}
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst, sizeof(burst)))
+	if(!this->sendDown((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
@@ -402,7 +402,7 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 	}
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&packets, sizeof(packets)))
+	if(!this->sendDown((void **)&packets))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;

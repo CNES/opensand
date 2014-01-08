@@ -34,9 +34,6 @@
 
 #include "DvbFifo.h"
 
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
-
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -169,6 +166,7 @@ clock_t DvbFifo::getTickOut() const
 
 bool DvbFifo::push(MacFifoElement *elem)
 {
+	vol_bytes_t length;
 	// insert in top of fifo
 
 	if(this->queue.size() >= this->max_size_pkt)
@@ -181,15 +179,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.in_pkt_nbr++;
-	vol_bytes_t length;
-	if(elem->getType() == 1)
-	{
-		length = elem->getTotalPacketLength();
-	}
-	else   // elem->getType() == 0
-	{
-		length = elem->getDataLength();
-	}
+	length = elem->getTotalLength();
 	this->new_length_bytes += length;
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
@@ -204,7 +194,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
-		vol_bytes_t length = elem->getTotalPacketLength();
+		vol_bytes_t length = elem->getTotalLength();
 
 		this->queue.insert(this->queue.begin(), elem);
 		// update counter but not new ones as it is a fragment of an old element
@@ -222,6 +212,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 MacFifoElement *DvbFifo::pop()
 {
 	MacFifoElement *elem;
+	vol_bytes_t length;
 
 	if(this->queue.size() <= 0)
 	{
@@ -236,15 +227,8 @@ MacFifoElement *DvbFifo::pop()
 	// update counters
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.out_pkt_nbr++;
-	vol_bytes_t length;
-	if(elem->getType() == 1)
-	{
-		length = elem->getTotalPacketLength();
-	}
-	else  // elem->getType() == 0
-	{
-		length = elem->getDataLength();
-	}
+	length = elem->getTotalLength();
+
 	this->stat_context.current_length_bytes -= length;
 	this->stat_context.out_length_bytes += length;
 
@@ -257,14 +241,14 @@ void DvbFifo::flush()
 	for(it = this->queue.begin(); it < this->queue.end(); ++it)
 	{
 		NetPacket *packet = (*it)->getPacket();
-		unsigned char *data = (*it)->getData();
+		DvbFrame *frame = (*it)->getFrame();
 		if(packet)
 		{
 			delete packet;
 		}
-		if(data)
+		if(frame)
 		{
-			free(data);
+			delete frame;
 		}
 		delete *it;
 	}

@@ -39,48 +39,66 @@
 #include "opensand_conf/uti_debug.h"
 
 
-NetPacket::NetPacket(Data data):
-	data(data),
-	name("unknown"),
+NetPacket::NetPacket(const unsigned char *data, size_t length):
+	NetContainer(data, length),
 	type(NET_PROTO_ERROR),
-	header_length(0)
+	qos(),
+	src_tal_id(),
+	dst_tal_id(),
+	dst_spot()
 {
+	this->name = "NetPacket";
 }
 
-NetPacket::NetPacket(unsigned char *data, size_t length):
-	data(),
-	name("unknown"),
+NetPacket::NetPacket(const Data &data):
+	NetContainer(data),
 	type(NET_PROTO_ERROR),
-	header_length(0)
+	qos(),
+	src_tal_id(),
+	dst_tal_id(),
+	dst_spot()
 {
-	this->data.append(data, length);
+	this->name = "NetPacket";
+}
+
+NetPacket::NetPacket(const Data &data, size_t length):
+	NetContainer(data, length),
+	type(NET_PROTO_ERROR),
+	qos(),
+	src_tal_id(),
+	dst_tal_id(),
+	dst_spot()
+{
+	this->name = "NetPacket";
 }
 
 NetPacket::NetPacket():
-	data(),
-	name("unknown"),
+	NetContainer(),
 	type(NET_PROTO_ERROR),
-	header_length(0)
+	qos(),
+	src_tal_id(),
+	dst_tal_id(),
+	dst_spot()
 {
+	this->name = "NetPacket";
 }
 
-NetPacket::NetPacket(unsigned char *data,
+NetPacket::NetPacket(const Data &data,
                      size_t length,
-                     std::string name,
+                     string name,
                      uint16_t type,
                      uint8_t qos,
                      uint8_t src_tal_id,
                      uint8_t dst_tal_id,
                      size_t header_length):
-	data(),
-	name(name),
+	NetContainer(data, length),
 	type(type),
 	qos(qos),
 	src_tal_id(src_tal_id),
-	dst_tal_id(dst_tal_id),
-	header_length(header_length)
+	dst_tal_id(dst_tal_id)
 {
-	this->data.append(data, length);
+	this->name = name;
+	this->header_length = header_length;
 }
 
 
@@ -89,50 +107,39 @@ NetPacket::~NetPacket()
 }
 
 
-std::string NetPacket::getName()
-{
-	return this->name;
-}
-
-uint16_t NetPacket::getType()
+uint16_t NetPacket::getType() const
 {
 	return this->type;
 }
 
-Data NetPacket::getData()
+void NetPacket::setQos(uint8_t qos)
 {
-	return this->data;
+	this->qos = qos;
 }
 
-uint8_t NetPacket::getQos()
+uint8_t NetPacket::getQos() const
 {
 	return this->qos;
 }
 
-uint8_t NetPacket::getSrcTalId()
+void NetPacket::setSrcTalId(uint8_t tal_id)
+{
+	this->src_tal_id = tal_id;
+}
+
+uint8_t NetPacket::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
-uint8_t NetPacket::getDstTalId()
+void NetPacket::setDstTalId(uint8_t tal_id)
+{
+	this->dst_tal_id = tal_id;
+}
+
+uint8_t NetPacket::getDstTalId() const
 {
 	return this->dst_tal_id;
-}
-
-Data NetPacket::getPayload()
-{
-	return Data(this->data, this->header_length,
-	            this->getPayloadLength());
-}
-
-uint16_t NetPacket::getPayloadLength()
-{
-	return (this->getTotalLength() - this->header_length);
-}
-
-uint16_t NetPacket::getTotalLength()
-{
-	return this->data.length();
 }
 
 void NetPacket::setDstSpot(uint8_t spot_id)
@@ -140,12 +147,8 @@ void NetPacket::setDstSpot(uint8_t spot_id)
 	this->dst_spot = spot_id;
 }
 
-uint8_t NetPacket::getDstSpot()
+uint8_t NetPacket::getDstSpot() const
 {
 	return this->dst_spot;
 }
 
-size_t NetPacket::getHeaderLength()
-{
-	return this->header_length;
-}

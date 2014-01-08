@@ -38,8 +38,8 @@
 #include "opensand_conf/uti_debug.h"
 
 
-MpegPacket::MpegPacket(unsigned char *data, unsigned int length):
-                       NetPacket(data, length)
+MpegPacket::MpegPacket(const unsigned char *data, size_t length):
+	NetPacket(data, length)
 {
 	this->name = "MPEG2-TS";
 	this->type = NET_PROTO_MPEG;
@@ -47,7 +47,16 @@ MpegPacket::MpegPacket(unsigned char *data, unsigned int length):
 	this->header_length = TS_HEADERSIZE;
 }
 
-MpegPacket::MpegPacket(Data data): NetPacket(data)
+MpegPacket::MpegPacket(const Data &data): NetPacket(data)
+{
+	this->name = "MPEG2-TS";
+	this->type = NET_PROTO_MPEG;
+	this->data.reserve(TS_PACKETSIZE);
+	this->header_length = TS_HEADERSIZE;
+}
+
+MpegPacket::MpegPacket(const Data &data, size_t length):
+	NetPacket(data, length)
 {
 	this->name = "MPEG2-TS";
 	this->type = NET_PROTO_MPEG;
@@ -82,14 +91,14 @@ uint8_t MpegPacket::getDstTalId()
 	return (this->getPid() >> 8) & 0x1F;
 }
 
-bool MpegPacket::isValid()
+bool MpegPacket::isValid() const
 {
 	const char FUNCNAME[] = "[MpegPacket::isValid]";
 
 	/* check length */
 	if(this->getTotalLength() != TS_PACKETSIZE)
 	{
-		UTI_ERROR("%s bad length (%d bytes)\n",
+		UTI_ERROR("%s bad length (%zu bytes)\n",
 		          FUNCNAME, this->getTotalLength());
 		goto bad;
 	}
@@ -130,59 +139,43 @@ bad:
 	return false;
 }
 
-uint16_t MpegPacket::getTotalLength()
-{
-	return this->data.length();
-}
-
-uint16_t MpegPacket::getPayloadLength()
-{
-	return (this->getTotalLength() - TS_HEADERSIZE);
-}
-
-Data MpegPacket::getPayload()
-{
-	return Data(this->data, TS_HEADERSIZE,
-	            this->getPayloadLength());
-}
-
-uint8_t MpegPacket::sync()
+uint8_t MpegPacket::sync() const
 {
 	return this->data.at(0) & 0xff;
 }
 
-bool MpegPacket::tei()
+bool MpegPacket::tei() const
 {
 	return (this->data.at(1) & 0x80) != 0;
 }
 
-bool MpegPacket::pusi()
+bool MpegPacket::pusi() const
 {
 	return (this->data.at(1) & 0x40) != 0;
 }
 
-bool MpegPacket::tp()
+bool MpegPacket::tp() const
 {
 	return (this->data.at(1) & 0x20) != 0;
 }
 
-uint16_t MpegPacket::getPid()
+uint16_t MpegPacket::getPid() const
 {
 	return (uint16_t) (((this->data.at(1) & 0x1f) << 8) +
 	                   ((this->data.at(2) & 0xff) << 0));
 }
 
-uint8_t MpegPacket::tsc()
+uint8_t MpegPacket::tsc() const
 {
 	return (this->data.at(3) & 0xC0);
 }
 
-uint8_t MpegPacket::cc()
+uint8_t MpegPacket::cc() const
 {
 	return (this->data.at(3) & 0x0f);
 }
 
-uint8_t MpegPacket::pp()
+uint8_t MpegPacket::pp() const
 {
 	return (this->data.at(4) & 0xff);
 }

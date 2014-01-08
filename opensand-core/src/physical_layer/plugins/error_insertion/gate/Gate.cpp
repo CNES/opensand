@@ -78,7 +78,7 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 	return do_modify;
 }
 
-bool Gate::modifyPacket(unsigned char *UNUSED(payload), long UNUSED(length))
+bool Gate::modifyPacket(const Data &UNUSED(payload))
 {
 	UTI_DEBUG_L3("Payload is modified\n");
 	// not needed, we will reject frame in DVB layer as we return true

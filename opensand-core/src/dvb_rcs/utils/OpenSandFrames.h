@@ -35,10 +35,14 @@
 #ifndef _OPENSAND_FRAMES_H_
 #define _OPENSAND_FRAMES_H_
 
+// TODO only class inheriting from frame should include this !
+// TODO move T_DVB_XXX into related classes
+//      move other content into DvbFrames
+// MSG_TYPES should be in these classes as for NET_PROTO in NetPacket
+
 #include <opensand_conf/uti_debug.h>
 
-#include "Sac.h"
-#include "Ttp.h"
+#include "OpenSandCore.h"
 
 #include <string>
 #include <stdint.h>
@@ -52,11 +56,13 @@
 
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
-#define MSG_DVB_RCS_SIZE_MAX 1200
+#define MSG_DVB_RCS_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 /// The maximum size of a BBFrame
-#define MSG_BBFRAME_SIZE_MAX 8100 + MAX_MODCOD_OPTIONS * sizeof(T_DVB_REAL_MODCOD)
-/// The maximum size of the pysical layer data
-#define MSG_PHYFRAME_SIZE_MAX 8
+#define MSG_BBFRAME_SIZE_MAX 8100 + MAX_MODCOD_OPTIONS * sizeof(T_DVB_REAL_MODCOD) + sizeof(T_DVB_PHY)
+
+/// Whether the frame contains data or sig
+#define IS_DATA_FRAME(msg_type) \
+    (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST)
 
 
 /**
@@ -130,7 +136,6 @@
  */
 #define MSG_TYPE_SESSION_LOGOFF 51
 
-
 /**
  * Basic DVB Header, other structures defined below should follow in a packet
  */
@@ -140,19 +145,15 @@ typedef struct
 	uint8_t msg_type;   ///< Type of the message (see \#defines above)
 } __attribute__((__packed__)) T_DVB_HDR;
 
-
 /**
- * Internal structure between DVB and Carrier blocks.
- * Encapsulate a DVB Frame and some metadata.
+ * Generic Frame
  */
 typedef struct
 {
-	uint8_t carrier_id; ///< Identifier of the carrier
-	T_DVB_HDR *hdr;  ///< Pointer to the DVB Header
-} T_DVB_META; // internal, no need to pack
+	T_DVB_HDR hdr;
+} T_DVB_FRAME;
 
 /**
- * Internal structure between DVB and Carrier blocks.
  * Carry information about physicalLayer block.
  */
 typedef struct
@@ -217,7 +218,6 @@ typedef struct
 typedef struct
 {
 	T_DVB_HDR hdr;
-	uint16_t pkt_type;   ///< EtherType of the packets contained in the BBFrame
 	uint16_t data_length;
 	uint8_t used_modcod;
 	uint8_t real_modcod_nbr;
@@ -235,35 +235,14 @@ typedef struct
 
 
 /**
- * Satellite Access Control
- */
-typedef struct
-{
-	T_DVB_HDR hdr;           ///< Basic DVB Header
-	emu_sac_t sac;
-} __attribute__((packed)) T_DVB_SAC;
-
-
-/**
- * Time Burst Time plan, essentially A basic DVB Header
- * followed by an array descriptor of T_DVB_FRAME structures
- */
-typedef struct
-{
-	T_DVB_HDR hdr;  ///< Basic DVB_RCS Header
-	emu_ttp_t ttp;  ///< The emulated TTP
-} __attribute__((packed)) T_DVB_TTP;
-
-
-/**
  * Format of an encapsulation frame burst
  * Essentially an encapsulation packets array descriptor
  */
 typedef struct
 {
 	T_DVB_HDR hdr;         ///< Basic DVB_RCS Header
-	uint16_t pkt_type;     ///< EtherType of the packets contained in the BBFrame
 	uint16_t qty_element;  ///< Number of following encapsulation packets
+	uint8_t modcod;        ///< The MODCOD of the data carried in frame
 } __attribute__((__packed__)) T_DVB_ENCAP_BURST;
 
 
@@ -283,105 +262,5 @@ typedef struct
 	tal_id_t tal_id;      /// The terminal ID
 } T_LINK_UP;
 
-
-
-/**
- * @class OpenSandFrame
- * @brief Common part for frames
- */
-template<class T>
-class OpenSandFrame
-{
- protected:
-	/**
-	 * @brief Set a frame from data coming from network
-	 * 
-	 * @param frame   The DVB frame
-	 * @param length  The DVB frame length
-	 */
-	OpenSandFrame(unsigned char *frame, size_t length)
-	{
-		this->frame = (T *)frame;
-		if(this->getLength() != length)
-		{
-			UTI_ERROR("Wrong length received %zu, %u expected\n",
-			          length, this->getLength());
-			// this will segfault or return errors if we use this
-			this->frame = NULL;
-		}
-	};
-	
-	/**
-	 * @brief Create a new frame
-	 * 
-	 * @param length  The length allocated for the DVB frame
-	 */
-	OpenSandFrame(size_t length)
-	{
-		this->frame = (T *)calloc(sizeof(unsigned char), length);
-		if(!this->frame)
-		{
-			UTI_ERROR("cannot allocate memory\n");
-		}
-	};
-
-	/// The DVB frame
-	T *frame;
-
- public:
-
-	/**
-	 * @brief Set the DVB header message type
-	 * 
-	 * @param  type the DVB frame message type
-	 */
-	void setMessageType(uint8_t type)
-	{
-		memcpy(&this->frame->hdr.msg_type, &type, sizeof(uint8_t));
-	};
-	
-	/**
-	 * @brief Set the DVB frame length
-	 * 
-	 * @param  length  The DVB frame length
-	 */
-	void setLength(uint16_t length)
-	{
-		uint16_t len = htons(length);
-		memcpy(&this->frame->hdr.msg_length, &len, sizeof(uint16_t));
-	};
-	
-	/**
-	 * @brief Get the DVB header message type
-	 * 
-	 * @return  the type the DVB frame message type
-	 */
-	uint8_t getMessageType(void) const
-	{
-		return this->frame->hdr.msg_type;
-	};
-	
-	/**
-	 * @brief Get the DVB frame length
-	 * 
-	 * @return  the length  The DVB frame length
-	 */
-	uint16_t getLength(void) const
-	{
-		return ntohs(this->frame->hdr.msg_length);
-	};
-	
-	/**
-	 * @brief Get the DVB frame
-	 * 
-	 * @return  the DVB frame
-	 */
-	T_DVB_HDR *getFrame(void)
-	{
-		return (T_DVB_HDR *)this->frame;
-	};
-
-};
-
-
+// TODO rename into OpenSandHeaders
 #endif

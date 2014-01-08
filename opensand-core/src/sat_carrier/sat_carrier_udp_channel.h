@@ -62,7 +62,7 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	int getChannelFd();
 
-	int send(unsigned char *buf, unsigned int len);
+	bool send(const unsigned char *data, size_t length);
 
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);

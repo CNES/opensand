@@ -38,13 +38,14 @@
 
 #include "OpenSandCore.h"
 #include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 
 /**
  * @class LogonRequest
  * @brief Represent a Logon request
  */
-class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
+class LogonRequest: public DvbFrameTpl<T_DVB_LOGON_REQ>
 {
  public:
 
@@ -64,11 +65,8 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
 
 	/**
 	 * @brief Logon request constructor for NCC (receiver)
-	 *
-	 * @param frame   The DVB frame containing the logon request
-	 * @ aram length  The DVB frame length
 	 */
-	LogonRequest(unsigned char *frame, size_t length);
+	LogonRequest();
 
 	~LogonRequest();
 
@@ -107,7 +105,7 @@ class LogonRequest: public OpenSandFrame<T_DVB_LOGON_REQ>
  * @class LogonResponse
  * @brief Represent a Logon response
  */
-class LogonResponse: public OpenSandFrame<T_DVB_LOGON_RESP>
+class LogonResponse: public DvbFrameTpl<T_DVB_LOGON_RESP>
 {
  public:
 
@@ -119,14 +117,6 @@ class LogonResponse: public OpenSandFrame<T_DVB_LOGON_RESP>
 	 * @param logon_id  The terminal logon ID
 	 */
 	LogonResponse(tal_id_t mac, group_id_t group_id, tal_id_t logon_id);
-
-	/**
-	 * @brief Logon response constructor for Terminal (receiver)
-	 *
-	 * @param frame  The DVB frame containing the logon response
-	 * @ aram length  The DVB frame length
-	 */
-	LogonResponse(unsigned char *frame, size_t length);
 
 	~LogonResponse();
 

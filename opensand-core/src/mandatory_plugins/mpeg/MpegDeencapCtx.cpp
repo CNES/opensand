@@ -97,9 +97,9 @@ void MpegDeencapCtx::set_sndu_len(unsigned int len)
 	this->_sndu_len = len;
 }
 
-void MpegDeencapCtx::add(unsigned char *data, unsigned int length)
+void MpegDeencapCtx::add(const Data &data, unsigned int offset, unsigned int length)
 {
-	this->_data.append(data, length);
+	this->_data.append(data, offset, length);
 }
 
 Data MpegDeencapCtx::data()

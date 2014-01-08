@@ -105,6 +105,9 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 		return NULL;
 	}
 
+	// TODO for here and deencap functions try to dynamic cast packets
+	//      instead of allocating (do not forget to erase from source burst
+	//      because when releasing burst content is also released
 	for(packet = burst->begin(); packet != burst->end(); ++packet)
 	{
 		IpPacket *ip_packet;
@@ -332,12 +335,13 @@ char Ip::Context::getLanHeader(unsigned int pos, NetPacket *packet)
 }
 
 
-NetPacket *Ip::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Ip::PacketHandler::build(const Data &data,
+                                    size_t data_length,
                                     uint8_t qos,
                                     uint8_t src_tal_id,
                                     uint8_t dst_tal_id) const
 {
-	if(IpPacket::version(data, data_length) == 4)
+	if(IpPacket::version(data) == 4)
 	{
 		Ipv4Packet *packet;
 		packet = new Ipv4Packet(data, data_length);
@@ -346,7 +350,7 @@ NetPacket *Ip::PacketHandler::build(unsigned char *data, size_t data_length,
 		packet->setDstTalId(dst_tal_id);
 		return packet;
 	}
-	else if(IpPacket::version(data, data_length) == 6)
+	else if(IpPacket::version(data) == 6)
 	{
 		Ipv6Packet *packet;
 		packet = new Ipv6Packet(data, data_length);

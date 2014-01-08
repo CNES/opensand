@@ -177,7 +177,7 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 				             current_superframe_sf, current_frame,
 				             complete_frames_count + 1);
 
-				complete_dvb_frames->push_back(incomplete_dvb_frame);
+				complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
 				// create another incomplete DVB-RCS frame
 				if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -229,7 +229,7 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 	{
 		if(incomplete_dvb_frame->getNumPackets() > 0)
 		{
-			complete_dvb_frames->push_back(incomplete_dvb_frame);
+			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
 			// increment the counter of complete frames
 			complete_frames_count++;
@@ -267,8 +267,6 @@ bool ReturnSchedulingRcs::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame
 	// set the max size of the DVB-RCS frame, also set the type
 	// of encapsulation packets the DVB-RCS frame will contain
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketEtherType(
-						this->packet_handler->getEtherType());
 
 	return true;
 

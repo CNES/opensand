@@ -76,15 +76,10 @@ bool BlockPhysicalLayer::onEvent(const RtEvent *const event,
 		case evt_message:
 		{
 			// message event: forward DVB frames from upper block to lower block
-			T_DVB_META *dvb_meta; // Header structure for Meta data (carrier_id)
-			long l_len;           // Length of the received packet
-
-			// retrieve data (ie. the DVB frame) from the message
-			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
-			l_len = ((MessageEvent *)event)->getLength();
+			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
 			// forward the DVB frame to the lower block
-			return chan->forwardMetaFrame(dvb_meta, l_len);
+			return chan->forwardFrame(dvb_frame);
 		}
 		break;
 
@@ -331,14 +326,11 @@ error:
 }
 
 
-bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
-                                                     size_t len)
+bool BlockPhysicalLayer::PhyUpward::forwardFrame(DvbFrame *dvb_frame)
 {
-	size_t len_modif = len; // Length of the final resulting frame.
 	double cn_total;
-	T_DVB_PHY *physical_parameters;
 
-	if(!IS_DVB_FRAME(((T_DVB_HDR *)dvb_meta->hdr)->msg_type))
+	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation
 		goto forward;
@@ -346,40 +338,30 @@ bool BlockPhysicalLayer::PhyUpward::forwardMetaFrame(T_DVB_META *dvb_meta,
 
 	// Update of the Threshold CN if Minimal Condition
 	// Mde is Modcod dependent
-	if(!this->updateMinimalCondition(dvb_meta->hdr))
+	if(!this->updateMinimalCondition(dvb_frame))
 	{
 		// debug because it will be very verbose
 		UTI_DEBUG("Error in Update of Minimal Condition\n");
 		goto error;
 	}
 
-	// Location of T_DVB_PHY at the end of the frame
-	physical_parameters = (T_DVB_PHY *)((char *)dvb_meta->hdr +
-	                                    dvb_meta->hdr->msg_length);
+	UTI_DEBUG_L3("Received DVB frame on carrier %u: C/N  = %.2f\n",
+	             dvb_frame->getCarrierId(),
+	             dvb_frame->getCn());
 
-	// Length of the new msg without the PHY trailer
-	len_modif = len - sizeof(T_DVB_PHY);
-
-	UTI_DEBUG_L3("RECEIVE: Previous C/N  = %.2f dB - CarrierId = %u "
-	             "PktLength = %ld MsgLength = %u\n",
-	             ncntoh(physical_parameters->cn_previous),
-	             dvb_meta->carrier_id, len_modif,
-	             dvb_meta->hdr->msg_length);
-
-	cn_total = this->getTotalCN(physical_parameters);
+	cn_total = this->getTotalCN(dvb_frame);
 	UTI_DEBUG("Total C/N: %.2f dB\n", cn_total);
 	// Checking if the received frame must be affected by errors
 	if(this->isToBeModifiedPacket(cn_total))
 	{
 		// Insertion of errors if necessary
-		this->modifyPacket(dvb_meta, len_modif);
+		this->modifyPacket(dvb_frame);
 	}
-
 
 forward:
 	// message successfully created, send the message to upper block
 	// transmit the physical parameters as they will be used by DVB layer
-	if(!this->enqueueMessage((void **)&dvb_meta, len))
+	if(!this->enqueueMessage((void **)&dvb_frame))
 	{
 		UTI_ERROR("failed to send burst of packets to upper layer\n");
 		goto error;
@@ -387,45 +369,30 @@ forward:
 
 	return true;
 error:
-	delete dvb_meta;
+	delete dvb_frame;
 	return false;
 }
 
 
 
-bool BlockPhysicalLayer::PhyDownward::forwardMetaFrame(T_DVB_META *dvb_meta,
-                                                       size_t len)
+bool BlockPhysicalLayer::PhyDownward::forwardFrame(DvbFrame *dvb_frame)
 {
-	size_t len_modif = len; // Length of the final resulting frame.
-	T_DVB_PHY *physical_parameters;
-
-	if(!IS_DVB_FRAME(((T_DVB_HDR *)dvb_meta->hdr)->msg_type))
+	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation
 		goto forward;
 	}
 
-	//Location of T_DVB_PHY at the end of the frame (Note:(char *)
-	//         used to point/address individual bytes)
-	physical_parameters = (T_DVB_PHY *)((char *)dvb_meta->hdr +
-	                                    dvb_meta->hdr->msg_length);
-
 	// Case of outgoing msg: Mark the msg with the C/N of Channel
-	this->addSegmentCN(physical_parameters);
+	this->addSegmentCN(dvb_frame);
 
-	// Length of the resulting msg including the PHY trailer
-	len_modif = len + sizeof(T_DVB_PHY);
-
-	UTI_DEBUG_L3("SEND: Insert Uplink C/N = %.2f dB, CarrierId = %u, "
-	             "PktLength = %ld, MsgLength = %u\n",
-	             ncntoh(physical_parameters->cn_previous),
-	             dvb_meta->carrier_id,len_modif,
-	             dvb_meta->hdr->msg_length);
-
+	UTI_DEBUG_L3("Send DVB frame on carrier %u: C/N  = %.2f\n",
+	             dvb_frame->getCarrierId(),
+	             dvb_frame->getCn());
 
 forward:
 	// message successfully created, send the message to lower block
-	if(!this->enqueueMessage((void **)&dvb_meta, len_modif))
+	if(!this->enqueueMessage((void **)&dvb_frame))
 	{
 		UTI_ERROR("failed to send burst of packets to lower layer\n");
 		goto error;
@@ -433,7 +400,7 @@ forward:
 
 	return true;
 error:
-	delete dvb_meta;
+	delete dvb_frame;
 	return false;
 }
 

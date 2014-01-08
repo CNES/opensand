@@ -113,18 +113,18 @@ bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
 	return true;
 }
 
-bool DamaCtrlRcs::hereIsSAC(const Sac &sac)
+bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 {
 	DamaTerminalList::iterator st;
 	TerminalContextRcs *terminal;
-	tal_id_t tal_id = sac.getTerminalId();
-	std::vector<cr_info_t> requests = sac.getRequets();
+	tal_id_t tal_id = sac->getTerminalId();
+	std::vector<cr_info_t> requests = sac->getRequets();
 
 	// Checking if the station is registered
 	st = this->terminals.find(tal_id);
 	if(st == this->terminals.end())
 	{
-		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%d). Discarded.\n" ,
+		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%u). Discarded.\n" ,
 		          this->current_superframe_sf, tal_id);
 /*		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
 		                  "Discarded.\n", tal_id);*/
@@ -176,7 +176,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac &sac)
 	{
 		// we should got the C/N0 of forward link
 		// unused for regenerative case
-		double cni = sac.getCni();
+		double cni = sac->getCni();
 		this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
 	}
 
@@ -187,7 +187,7 @@ error:
 }
 
 
-bool DamaCtrlRcs::buildTTP(Ttp &ttp)
+bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 {
 	TerminalCategories::const_iterator category_it;
 	for(category_it = this->categories.begin();
@@ -212,12 +212,12 @@ bool DamaCtrlRcs::buildTTP(Ttp &ttp)
 			total_allocation_pkt += terminal->getTotalRateAllocation();
 
 			//FIXME: is the offset to be 0 ???
-			if(!ttp.addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_rcs_ncc ?*/,
-			                    terminal->getTerminalId(),
-			                    0,
-			                    total_allocation_pkt,
-			                    terminal->getFmtId(),
-			                    0))
+			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_rcs_ncc ?*/,
+			                     terminal->getTerminalId(),
+			                     0,
+			                     total_allocation_pkt,
+			                     terminal->getFmtId(),
+			                     0))
 			{
 				UTI_ERROR("SF#%u: cannot add TimePlan for terminal %u\n",
 				          this->current_superframe_sf, terminal->getTerminalId());
@@ -225,6 +225,7 @@ bool DamaCtrlRcs::buildTTP(Ttp &ttp)
 			}
 		}
 	}
+	ttp->build();
 
 	return true;
 }

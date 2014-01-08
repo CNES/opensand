@@ -96,19 +96,15 @@ class PhysicStd
 	/**
 	 * Receive frame from lower layer and get the EncapPackets
 	 *
-	 * @param frame   the received DVB frame
-	 * @param length  the length of the received DVB frame
-	 * @param type    the type of the received DVB frame
-	 * @param tal_id  the unsique terminal id
-	 *                (only used for DVB-S2)
-	 * @param burst   OUT: a burst of encapsulation packets
-	 * @return        0 if successful, -1 otherwise
+	 * @param dvb_frame  the received DVB frame
+	 * @param tal_id     the unsique terminal id
+	 *                   (only used for DVB-S2)
+	 * @param burst      OUT: a burst of encapsulation packets
+	 * @return           true on success, false otherwise
 	 */
-	virtual int onRcvFrame(unsigned char *frame,
-	                       long length,
-	                       long type,
-	                       tal_id_t tal_id,
-	                       NetBurst **burst) = 0;
+	virtual bool onRcvFrame(DvbFrame *dvb_frame,
+	                        tal_id_t tal_id,
+	                        NetBurst **burst) = 0;
 
 
 

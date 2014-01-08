@@ -41,94 +41,30 @@
 #include <arpa/inet.h>
 
 
-Ttp::Ttp(group_id_t group_id):
-	group_id(group_id)
-{}
 
-bool Ttp::parse(const unsigned char *data, size_t length)
+/// The maximum number of frames
+#define NBR_MAX_FRAMES 1
+/// The maximum number of TP per frame
+#define NBR_MAX_TP BROADCAST_TAL_ID
+
+
+
+Ttp::Ttp():
+	DvbFrameTpl<T_DVB_TTP>()
+{};
+
+Ttp::Ttp(group_id_t group_id, time_sf_t sf_id):
+	DvbFrameTpl<T_DVB_TTP>()
 {
-	emu_ttp_t *ttp;
-
-	// we need this unsigned char * for arithmetical operations
-	// on pointers as frame size is not constant
-	unsigned char *frame_start;
-
-	// clean TPs
-	this->reset();
-	/* check that data contains DVB header, superframe_count and
-	 * frame_loop_count */
-	if(length < sizeof(T_DVB_HDR) + sizeof(ttp_info_t))
-	{
-		UTI_ERROR("Length is to small for a TTP\n");
-		return false;
-	}
-	length -= sizeof(T_DVB_HDR);
-
-	ttp = &((T_DVB_TTP *)data)->ttp;
-	this->group_id = ntohs(ttp->ttp_info.group_id);
-	this->superframe_count = ntohs(ttp->ttp_info.superframe_count);
-	UTI_DEBUG_L3("SF#%u: ttp->frame_loop_count=%u\n",
-	             this->superframe_count, ttp->ttp_info.frame_loop_count);
-
-	length -= sizeof(ttp_info_t);
-	// fill the frames manually because the structure is allocated for
-	// the maximum possible size
-	frame_start = (unsigned char *)(&ttp->frames);
-	for(unsigned int i = 0; i < ttp->ttp_info.frame_loop_count; i++)
-	{
-		emu_tp_t *tp;
-		emu_frame_t *frame = (emu_frame_t *)frame_start;
-
-		if(length < sizeof(frame_info_t) + frame->frame_info.tp_loop_count * sizeof(emu_tp_t))
-		{
-			UTI_ERROR("Length is too small for the given tp number\n");
-			return false;
-		}
-		// update length
-		length -= sizeof(frame_info_t);
-		UTI_DEBUG_L3("SF#%u: frame #%u btp_loop_count=%u\n",
-		             this->superframe_count, i, frame->frame_info.tp_loop_count);
-		// get the first TP
-		// increase from 1 * sizeof(tp)
-		tp = (emu_tp_t *)(&frame->tp);
-		for(unsigned int j = 0; j < frame->frame_info.tp_loop_count; j++)
-		{
-			length -= sizeof(emu_tp_t);
-			tal_id_t tal_id = ntohs(tp->tal_id);
-			tp->offset = ntohl(tp->offset);
-			tp->assignment_count = ntohs(tp->assignment_count);
-			// create the entry for this terminal ID if it does not exist
-			if(this->tps.find(tal_id) == this->tps.end())
-			{
-				std::map<uint8_t, emu_tp_t> time_plans;
-				time_plans[frame->frame_info.frame_number] = *tp;
-				this->tps[tal_id] = time_plans;
-			}
-			// add the TP for this terminal at the position corresponding to
-			// the frame ID
-			else
-			{
-				this->tps[tal_id][frame->frame_info.frame_number] = *tp;
-			}
-			UTI_DEBUG_L3("SF#%u: frame#%u btp#%u: tal_id:%u, "
-			             "offset:%u, assignment_count:%u, "
-			             "fmt_id:%u priority:%u\n",
-			             this->superframe_count, i, j,
-			             tal_id,
-			             tp->offset,
-			             tp->assignment_count,
-			             tp->fmt_id,
-			             tp->priority);
-			// increase from 1 * sizeof(tp), we do not need to
-			// use an unsigned char * for arithmetic operation here
-			tp = tp + 1;
-		}
-		// go to next frame
-		frame_start = frame_start + frame->frame_info.tp_loop_count * sizeof(emu_tp_t);
-	}
-
-	return true;
+	this->setMessageType(MSG_TYPE_TTP);
+	this->setMessageLength(sizeof(T_DVB_TTP));
+	this->setMaxSize(sizeof(T_DVB_TTP) +
+	                 NBR_MAX_FRAMES * (sizeof(emu_frame_t) +
+	                                   NBR_MAX_TP * sizeof(emu_tp_t))); 
+	this->frame->ttp.ttp_info.group_id = group_id;
+	this->frame->ttp.ttp_info.superframe_count = htons(sf_id);
 }
+
 
 bool Ttp::addTimePlan(time_frame_t frame_id,
                       tal_id_t tal_id,
@@ -170,80 +106,117 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	return true;
 }
 
-void Ttp::reset()
+bool Ttp::build(void)
 {
-	this->frames.clear();
-	this->tps.clear();
-}
-
-bool Ttp::build(time_sf_t superframe_nbr_sf, unsigned char *frame, size_t &length)
-{
-	T_DVB_TTP *dvb_ttp = (T_DVB_TTP *)frame;
 	frames_t::iterator frame_it;
 	unsigned int frame_count = 0;
 	time_plans_t::iterator tp_it;
 	unsigned int tp_count;
 	size_t ttp_length = 0;
-	// we need this unsigned char * for arithmetical operations
-	// on pointers as frame size is not constant
-	unsigned char *frame_start;
 
-	dvb_ttp->hdr.msg_type = MSG_TYPE_TTP;
-
-	dvb_ttp->ttp.ttp_info.group_id = htons(this->group_id);
-	dvb_ttp->ttp.ttp_info.superframe_count = htons(superframe_nbr_sf);
-	// we need the position for the frames beginning
-	ttp_length += sizeof(ttp_info_t);
+	ttp_length = sizeof(T_DVB_TTP);
 	// get the beginning of the frame
-	frame_start = (unsigned char *)(&dvb_ttp->ttp.frames);
 	for(frame_it = this->frames.begin(); frame_it != this->frames.end();
 	    ++frame_it)
 	{
 		vector<emu_tp_t> tp_list = (*frame_it).second;
-		emu_tp_t *tp;
-		emu_frame_t *emu_frame = (emu_frame_t *)frame_start;
+		emu_frame_t emu_frame;
 
-		frame_count++;
-		emu_frame->frame_info.frame_number = (*frame_it).first;
+		emu_frame.frame_info.frame_number = (*frame_it).first;
 		ttp_length += sizeof(frame_info_t);
 		tp_count = 0;
+		this->data.append((unsigned char *)&emu_frame, sizeof(emu_frame_t));
 		// get the first TP
-		tp = (emu_tp_t *)(&emu_frame->tp);
 		for(tp_it = tp_list.begin(); tp_it != tp_list.end(); ++tp_it)
 		{
-			emu_tp_t tp_orig = *tp_it;
-
-			memcpy(tp, &tp_orig, sizeof(emu_tp_t));
+			this->data.append((unsigned char *)&(*tp_it), sizeof(emu_tp_t));
 			ttp_length += sizeof(emu_tp_t);
 			tp_count++;
-			// go to next TP
-			// increase from 1 * sizeof(tp), we do not need to
-			// use an unsigned char * for arithmetic operation here
-			tp = tp + 1;
 		}
-		emu_frame->frame_info.tp_loop_count = tp_count;
-		// go to next frame
-		frame_start = frame_start + sizeof(emu_tp_t) * tp_count;
+		this->frame->ttp.frames[frame_count].frame_info.tp_loop_count = tp_count;
+		frame_count++;
 	}
-	dvb_ttp->ttp.ttp_info.frame_loop_count = frame_count;
-	// clean the frames list
-	this->reset();
+	this->frame->ttp.ttp_info.frame_loop_count = frame_count;
 	// update message length
-	// TODO when this will be handled in reception HTONL !!!!
-	dvb_ttp->hdr.msg_length = sizeof(T_DVB_HDR) + ttp_length;
-	length = sizeof(T_DVB_HDR) + ttp_length;
+	// TODO we may use getPayloadLength, this should be the same value
+	this->setMessageLength(ttp_length);
 
 	return true;
 }
 
-bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tp)
+
+bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 {
-	if(this->tps.find(tal_id) == this->tps.end())
+	size_t length = this->getMessageLength();
+	emu_ttp_t *ttp;
+
+	// we need this unsigned char * for arithmetical operations
+	// on pointers as frame size is not constant
+	unsigned char *frame_start;
+
+	/* check that data contains DVB header, superframe_count and
+	 * frame_loop_count */
+	if(length < sizeof(T_DVB_TTP))
 	{
-		UTI_INFO("No TP for ST%u\n", tal_id);
+		UTI_ERROR("Length is to small for a TTP\n");
 		return false;
 	}
-	tp = this->tps[tal_id];
+	length -= sizeof(T_DVB_HDR);
+
+	ttp = &(this->frame->ttp);
+	UTI_DEBUG_L3("SF#%u: ttp->frame_loop_count=%u\n",
+	             this->getSuperframeCount(), ttp->ttp_info.frame_loop_count);
+
+	length -= sizeof(ttp_info_t);
+	frame_start = (unsigned char *)(&ttp->frames);
+	for(unsigned int i = 0; i < ttp->ttp_info.frame_loop_count; i++)
+	{
+		emu_tp_t *tp;
+		emu_frame_t *emu_frame = (emu_frame_t *)frame_start;
+
+		if(length < sizeof(frame_info_t) + emu_frame->frame_info.tp_loop_count * sizeof(emu_tp_t))
+		{
+			UTI_ERROR("Length is too small for the given tp number\n");
+			return false;
+		}
+		// update length
+		length -= sizeof(frame_info_t);
+		UTI_DEBUG_L3("SF#%u: frame #%u btp_loop_count=%u\n",
+		             this->getSuperframeCount(), i,
+		             emu_frame->frame_info.tp_loop_count);
+		// get the first TP
+		// increase from 1 * sizeof(tp)
+		tp = (emu_tp_t *)(&emu_frame->tp);
+		for(unsigned int j = 0; j < emu_frame->frame_info.tp_loop_count; j++)
+		{
+			length -= sizeof(emu_tp_t);
+			if(ntohs(tp->tal_id) != tal_id)
+			{
+				UTI_DEBUG_L3("SF#%u: TP for ST%u ignored\n",
+				             this->getSuperframeCount(),
+				             ntohs(tp->tal_id));
+				tp = tp + 1;
+				continue;
+			}
+			tp->offset = ntohl(tp->offset);
+			tp->assignment_count = ntohs(tp->assignment_count);
+			tps[emu_frame->frame_info.frame_number] = *tp;
+			UTI_DEBUG_L3("SF#%u: frame#%u btp#%u: tal_id:%u, "
+			             "offset:%u, assignment_count:%u, "
+			             "fmt_id:%u priority:%u\n",
+			             this->getSuperframeCount(), i, j,
+			             tal_id,
+			             tp->offset,
+			             tp->assignment_count,
+			             tp->fmt_id,
+			             tp->priority);
+			// increase from 1 * sizeof(tp), we do not need to
+			// use an unsigned char * for arithmetic operation here
+			tp = tp + 1;
+		}
+		// go to next frame
+		frame_start = frame_start + emu_frame->frame_info.tp_loop_count * sizeof(emu_tp_t);
+	}
 
 	return true;
 }

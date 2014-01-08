@@ -335,19 +335,19 @@ bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 	    frame_it != complete_frames->end();
 	    ++frame_it)
 	{
-		DvbFrame *frame = dynamic_cast<DvbFrame *>(*frame_it);
-
 		// Send DVB frames to lower layer
-		if(!this->sendDvbFrame(frame, carrier_id))
+		if(!this->sendDvbFrame(*frame_it, carrier_id))
 		{
 			status = false;
-			if(frame)
-				delete frame;
+			if(*frame_it)
+			{
+				delete *frame_it;
+			}
 			continue;
 		}
 
 		// DVB frame is now sent, so delete its content
-		delete frame;
+		//delete frame;
 		UTI_DEBUG("complete DVB frame sent to carrier %ld\n", carrier_id);
 	}
 	// clear complete DVB frames
@@ -356,104 +356,44 @@ bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 	return status;
 }
 
-/**
- * @brief Send message to lower layer with the given DVB frame
- *
- * @param frame       the DVB frame to put in the message
- * @param carrier_id  the carrier ID used to send the message
- * @return            true on success, false otherwise
- */
-bool BlockDvb::sendDvbFrame(DvbFrame *frame, long carrier_id)
+bool BlockDvb::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id)
 {
-	unsigned char *dvb_frame;
-	unsigned int dvb_length;
-
-	if(!frame)
+	if(!dvb_frame)
 	{
-		UTI_ERROR("frame is %p\n", frame);
+		UTI_ERROR("frame is %p\n", dvb_frame);
 		goto error;
 	}
 
-	if(frame->getTotalLength() <= 0)
+	dvb_frame->setCarrierId(carrier_id);
+
+	if(dvb_frame->getTotalLength() <= 0)
 	{
 		UTI_ERROR("empty frame, header and payload are not present\n");
 		goto error;
 	}
 
-	if(frame->getNumPackets() <= 0)
+	if(IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
-		UTI_ERROR("empty frame, header is present but not payload\n");
-		goto error;
+		// Update stats
+		this->phy_to_sat_bytes += dvb_frame->getTotalLength();
 	}
-
-	// get memory for a DVB frame
-	dvb_frame = (unsigned char *)calloc(MSG_BBFRAME_SIZE_MAX + MSG_PHYFRAME_SIZE_MAX,
-	                                    sizeof(unsigned char));
-	if(dvb_frame == NULL)
-	{
-		UTI_ERROR("cannot get memory for DVB frame\n");
-		goto error;
-	}
-
-	// copy the DVB frame
-	dvb_length = frame->getTotalLength();
-	memcpy(dvb_frame, frame->getData().c_str(), dvb_length);
-
-	// Update stats
-	this->phy_to_sat_bytes += dvb_length;
-
-	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, carrier_id, (long)dvb_length))
-	{
-		UTI_ERROR("failed to send message\n");
-		goto release_dvb_frame;
-	}
-
-	UTI_DEBUG_L3("end of message sending on carrier %li\n", carrier_id);
-
-	return true;
-
-release_dvb_frame:
-	free(dvb_frame);
-error:
-	return false;
-}
-
-
-/**
- * @brief Create a message with the given DVB frame
- *        and send it to lower layer
- *
- * @param dvb_frame     the DVB frame
- * @param carrier_id    the DVB carrier Id
- * @param l_len         the DVB frame length
- * @return              true on success, false otherwise
- */
-bool BlockDvb::sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len)
-{
-	T_DVB_META *dvb_meta; // encapsulates the DVB Frame in a structure
-
-	if(!dvb_frame)
-	{
-		UTI_ERROR("frame is %p\n", dvb_frame);
-		return false;
-	}
-
-	dvb_meta = new T_DVB_META;
-	dvb_meta->carrier_id = carrier_id;
-	dvb_meta->hdr = dvb_frame;
 
 	// send the message to the lower layer
 	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->sendDown((void **)(&dvb_meta), l_len))
+	if(!this->sendDown((void **)(&dvb_frame)))
 	{
 		UTI_ERROR("failed to send DVB frame to lower layer\n");
-		return false;
+		goto release_dvb_frame;
 	}
 	UTI_DEBUG("DVB frame sent to the lower layer\n");
 
 	return true;
-}
 
+release_dvb_frame:
+	delete dvb_frame;
+error:
+	return false;
+}
 
 bool BlockDvb::onRcvEncapPacket(NetPacket *packet,
                                 DvbFifo *fifo,

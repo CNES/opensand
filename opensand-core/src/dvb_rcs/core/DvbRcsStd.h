@@ -62,11 +62,9 @@ class DvbRcsStd: public PhysicStd
 	 */
 	~DvbRcsStd();
 
-	int onRcvFrame(unsigned char *frame,
-	               long length,
-	               long type,
-	               tal_id_t tal_id,
-	               NetBurst **burst);
+	bool onRcvFrame(DvbFrame *dvb_frame,
+	                tal_id_t tal_id,
+	                NetBurst **burst);
 
 	/* function for regenerative satellite */
 	bool setSwitch(GenericSwitch *generic_switch);

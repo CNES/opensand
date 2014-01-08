@@ -76,11 +76,9 @@ class DvbS2Std: public PhysicStd
 	~DvbS2Std();
 
 	/* only for NCC and Terminals */
-	int onRcvFrame(unsigned char *frame,
-	               long length,
-	               long type,
-	               tal_id_t tal_id,
-	               NetBurst **burst);
+	bool onRcvFrame(DvbFrame *dvb_frame,
+	                tal_id_t tal_id,
+	                NetBurst **burst);
 
 	/**
 	 * @brief  Get the real MODCOD for the terminal

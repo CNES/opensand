@@ -140,10 +140,10 @@ bool DamaAgent::initOutput()
 	return true;
 }
 
-bool DamaAgent::hereIsLogonResp(const LogonResponse &response)
+bool DamaAgent::hereIsLogonResp(const LogonResponse *response)
 {
-	this->group_id = response.getGroupId();
-	this->tal_id = response.getLogonId();
+	this->group_id = response->getGroupId();
+	this->tal_id = response->getLogonId();
 	return true;
 }
 

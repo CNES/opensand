@@ -38,20 +38,11 @@
 
 
 Sof::Sof(time_sf_t sf_nbr):
-	OpenSandFrame<T_DVB_SOF>(sizeof(T_DVB_SOF))
+	DvbFrameTpl<T_DVB_SOF>()
 {
 	this->setMessageType(MSG_TYPE_SOF);
-	this->setLength(sizeof(T_DVB_SOF));
+	this->setMessageLength(sizeof(T_DVB_SOF));
 	this->frame->sf_nbr = htons(sf_nbr);
-}
-
-Sof::Sof(unsigned char *frame, size_t length):
-	OpenSandFrame<T_DVB_SOF>(frame, length)
-{
-	if(this->getMessageType() != MSG_TYPE_SOF)
-	{
-		UTI_ERROR("Frame is not a sof\n");
-	}
 }
 
 Sof::~Sof()

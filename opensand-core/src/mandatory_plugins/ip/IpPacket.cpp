@@ -38,8 +38,8 @@
 #define DBG_PACKAGE PKG_DEFAULT
 #include "opensand_conf/uti_debug.h"
 
-
-IpPacket::IpPacket(Data data): NetPacket(data)
+IpPacket::IpPacket(const unsigned char *data, size_t length):
+	NetPacket(data, length)
 {
 	this->data.reserve(1500);
 
@@ -47,7 +47,16 @@ IpPacket::IpPacket(Data data): NetPacket(data)
 	this->dst_addr = NULL;
 }
 
-IpPacket::IpPacket(unsigned char *data, unsigned int length):
+
+IpPacket::IpPacket(const Data &data): NetPacket(data)
+{
+	this->data.reserve(1500);
+
+	this->src_addr = NULL;
+	this->dst_addr = NULL;
+}
+
+IpPacket::IpPacket(const Data &data, size_t length):
 	NetPacket(data, length)
 {
 	this->data.reserve(1500);
@@ -72,24 +81,9 @@ IpPacket::~IpPacket()
 		delete this->dst_addr;
 }
 
-void IpPacket::setQos(int qos)
+Data IpPacket::getPayloadData() const
 {
-	this->qos = qos;
-}
-
-void IpPacket::setSrcTalId(long tal_id)
-{
-	this->src_tal_id = tal_id;
-}
-
-void IpPacket::setDstTalId(long tal_id)
-{
-	this->dst_tal_id = tal_id;
-}
-
-Data IpPacket::getPayload()
-{
-	uint16_t payload_len, header_len;
+	size_t payload_len, header_len;
 
 	if(!this->isValid())
 	{
@@ -122,7 +116,7 @@ int IpPacket::version(Data data)
 }
 
 // static
-int IpPacket::version(unsigned char *data, unsigned int length)
+/*int IpPacket::version(const unsigned char *data, unsigned int length)
 {
 	if(length < 4 * 5)
 	{
@@ -131,9 +125,9 @@ int IpPacket::version(unsigned char *data, unsigned int length)
 	}
 
 	return ((data[0] & 0xf0) >> 4);
-}
+}*/
 
-int IpPacket::version()
+int IpPacket::version() const
 {
 	if(!this->isValid())
 	{

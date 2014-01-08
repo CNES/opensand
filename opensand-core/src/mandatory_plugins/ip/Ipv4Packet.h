@@ -49,15 +49,15 @@ class Ipv4Packet: public IpPacket
  protected:
 
 	/// Is the validity of the IPv4 packet already checked?
-	bool validity_checked;
+	mutable bool validity_checked;
 	/// If IPv4 packet validity is checked, what is the result?
-	bool validity_result;
+	mutable bool validity_result;
 
 	/**
 	 * Calculate the CRC of the IPv4 packet
 	 * @return the CRC of the IPv4 packet
 	 */
-	uint16_t calcCrc();
+	uint16_t calcCrc() const;
 
  public:
 
@@ -66,13 +66,20 @@ class Ipv4Packet: public IpPacket
 	 * @param data raw data from which an IPv4 packet can be created
 	 * @param length length of raw data
 	 */
-	Ipv4Packet(unsigned char *data, unsigned int length);
+	Ipv4Packet(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an IPv4 packet
 	 * @param data raw data from which an IPv4 packet can be created
 	 */
-	Ipv4Packet(Data data);
+	Ipv4Packet(const Data &data);
+
+	/**
+	 * Build an IPv4 packet
+	 * @param data raw data from which an IPv4 packet can be created
+	 * @param length length of raw data
+	 */
+	Ipv4Packet(const Data &data, size_t length);
 
 	/**
 	 * Build an empty IPv4 packet
@@ -85,14 +92,14 @@ class Ipv4Packet: public IpPacket
 	~Ipv4Packet();
 
 	// implementation of virtual functions
-	bool isValid();
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
+	bool isValid() const;
+	size_t getTotalLength() const;
+	size_t getPayloadLength() const;
 	IpAddress *dstAddr();
 	IpAddress *srcAddr();
-	uint8_t diffServField();
-	uint8_t diffServCodePoint();
-	uint8_t explicitCongestionNotification();
+	uint8_t diffServField() const;
+	uint8_t diffServCodePoint() const;
+	uint8_t explicitCongestionNotification() const;
 
  protected:
 
@@ -100,13 +107,13 @@ class Ipv4Packet: public IpPacket
 	 * Retrieve the CRC field of the IPv4 header
 	 * @return the CRC field of the IPv4 header
 	 */
-	uint16_t crc();
+	uint16_t crc() const;
 
 	/**
 	 * Retrieve the header length of the IPv4 packet
 	 * @return the header length of the IPv4 packet
 	 */
-	uint8_t ihl();
+	uint8_t ihl() const;
 };
 
 #endif

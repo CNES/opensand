@@ -223,12 +223,12 @@ bool DamaCtrl::initOutput()
 	return true;
 }
 
-bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
+bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 {
-	tal_id_t tal_id = logon.getMac();
-	rate_kbps_t cra_kbps = logon.getRtBandwidth();
-	rate_kbps_t max_rbdc_kbps = logon.getMaxRbdc();
-	vol_kb_t max_vbdc_kb = logon.getMaxVbdc();
+	tal_id_t tal_id = logon->getMac();
+	rate_kbps_t cra_kbps = logon->getRtBandwidth();
+	rate_kbps_t max_rbdc_kbps = logon->getMaxRbdc();
+	vol_kb_t max_vbdc_kb = logon->getMaxVbdc();
 	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
 	DamaTerminalList::iterator it;
@@ -311,8 +311,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 		terminal->setCurrentCategory(category->getLabel());
 		UTI_INFO("Add terminal %u in category %s\n",
 		         tal_id, category->getLabel().c_str());
-		DC_RECORD_EVENT("LOGON st%d rt = %u", logon.getMac(),
-		                logon.getRtBandwidth());
+		DC_RECORD_EVENT("LOGON st%d rt = %u", logon->getMac(),
+		                logon->getRtBandwidth());
 
 		// Output probes and stats
 		this->gw_st_num += 1;
@@ -358,13 +358,13 @@ bool DamaCtrl::hereIsLogon(const LogonRequest &logon)
 	return true;
 }
 
-bool DamaCtrl::hereIsLogoff(const Logoff &logoff)
+bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 {
 	DamaTerminalList::iterator it;
 	TerminalContext *terminal;
 	TerminalCategories::const_iterator category_it;
 	TerminalCategory *category;
-	tal_id_t tal_id = logoff.getMac();
+	tal_id_t tal_id = logoff->getMac();
 
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())

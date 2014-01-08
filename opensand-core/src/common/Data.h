@@ -74,7 +74,6 @@ class Data: public std::basic_string<unsigned char>
 	 * @param len   the number of bytes to copy
 	 */
 	Data(Data data, unsigned int pos, unsigned int len);
-
 };
 
 #endif

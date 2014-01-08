@@ -58,13 +58,20 @@ class MpegPacket: public NetPacket
 	 * @param data raw data from which a MPEG2-TS packet can be created
 	 * @param length length of raw data
 	 */
-	MpegPacket(unsigned char *data, unsigned int length);
+	MpegPacket(const unsigned char *data, size_t length);
 
 	/**
 	 * Build a MPEG2-TS packet
 	 * @param data raw data from which a MPEG2-TS packet can be created
 	 */
-	MpegPacket(Data data);
+	MpegPacket(const Data &data);
+
+	/**
+	 * Build a MPEG2-TS packet
+	 * @param data raw data from which a MPEG2-TS packet can be created
+	 * @param length length of raw data
+	 */
+	MpegPacket(const Data &data, size_t length);
 
 	/**
 	 * Build an empty MPEG2-TS packet
@@ -77,10 +84,8 @@ class MpegPacket: public NetPacket
 	~MpegPacket();
 
 	// implementation of virtual functions
-	bool isValid();
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
-	Data getPayload();
+	// TODO add isValid in NetPacket
+	bool isValid() const;
 	uint8_t getQos();
 	uint8_t getSrcTalId();
 	uint8_t getDstTalId();
@@ -90,7 +95,7 @@ class MpegPacket: public NetPacket
 	 *
 	 * @return the Synchronization byte of the MPEG2-TS header
 	 */
-	uint8_t sync();
+	uint8_t sync() const;
 
 	/**
 	 * @brief Whether the Transport Error Indicator (TEI) bit of the MPEG2-TS
@@ -98,7 +103,7 @@ class MpegPacket: public NetPacket
 	 *
 	 * @return true if the TEI bit is set, false otherwise
 	 */
-	bool tei();
+	bool tei() const;
 
 	/**
 	 * @brief Whether the Payload Unit Start Indicator (PUSI) bit of the MPEG2-TS
@@ -106,7 +111,7 @@ class MpegPacket: public NetPacket
 	 *
 	 * @return true if the PUSI bit is set, false otherwise
 	 */
-	bool pusi();
+	bool pusi() const;
 
 	/**
 	 * @brief Whether the Transport Priority (TP) bit of the MPEG2-TS header is
@@ -114,35 +119,35 @@ class MpegPacket: public NetPacket
 	 *
 	 * @return true if the TP bit is set, false otherwise
 	 */
-	bool tp();
+	bool tp() const;
 
 	/**
 	 * Retrieve the PID field from the MPEG2-TS header
 	 *
 	 * @return the PID field from the MPEG2-TS header
 	 */
-	uint16_t getPid();
+	uint16_t getPid() const;
 
 	/**
 	 * Get the Transport Scrambling Control (TSC) of the MPEG2-TS header
 	 *
 	 * @return the TSC of the MPEG2-TS header
 	 */
-	uint8_t tsc();
+	uint8_t tsc() const;
 
 	/**
 	 * Get the Continuity Counter (CC) of the MPEG2-TS header
 	 *
 	 * @return the CC of the MPEG2-TS header
 	 */
-	uint8_t cc();
+	uint8_t cc() const;
 
 	/**
 	 * Get the Payload Pointer (PP) of the MPEG2-TS header
 	 *
 	 * @return the PP of the MPEG2-TS header
 	 */
-	uint8_t pp();
+	uint8_t pp() const;
 
 	/**
 	 * @brief  Get the PID of a MPEG packet from a NetPacket.
@@ -150,7 +155,7 @@ class MpegPacket: public NetPacket
 	 * @param   packet  The packet to read values from.
 	 * @return  The PID field
 	 */
-	static uint16_t getPidFromPacket(NetPacket *packet); 
+	static uint16_t getPidFromPacket(NetPacket *packet);
 
 };
 

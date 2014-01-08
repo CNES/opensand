@@ -244,7 +244,7 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 			          FUNCNAME);
 			continue;
 		}
-		atm = this->createPacket((unsigned char *)(atm_cell->getData().c_str()),
+		atm = this->createPacket(atm_cell->getData(),
 		                         atm_cell->getTotalLength(),
 		                         qos, src_tal_id, dst_tal_id);
 		delete atm_cell;
@@ -272,6 +272,7 @@ drop:
 	return false;
 }
 
+// TODO for here and other encap/deencapmethods : handle endianess !!
 NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 {
 	const char *FUNCNAME = "[Atm::Context::deencapAtm]";
@@ -493,7 +494,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		qos = aal5_packet->getQos();
 
 		packet = this->current_upper->build(
-				(unsigned char *)(aal5_packet->getPayload().c_str()),
+				aal5_packet->getPayload(),
 				aal5_packet->getPayloadLength(),
 				qos, src_tal_id, dst_tal_id);
 		if(packet == NULL)
@@ -520,7 +521,8 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 }
 
 
-NetPacket *Atm::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Atm::PacketHandler::build(const Data &data,
+                                     size_t data_length,
                                      uint8_t UNUSED(_qos),
                                      uint8_t UNUSED(_src_tal_id),
                                      uint8_t UNUSED(_dst_tal_id)) const

@@ -456,18 +456,15 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 		}
 		else
 		{
-			Data payload = (*packet)->getData();
-			unsigned char *data =(unsigned char *)payload.data();
-			size_t length = (*packet)->getTotalLength();
 			size_t header_length;
-			uint16_t ether_type = Ethernet::getPayloadEtherType(data, length);
-			uint16_t frame_type = Ethernet::getFrameType(data, length);
-			MacAddress src_mac = Ethernet::getSrcMac(data, length);
-			MacAddress dst_mac = Ethernet::getDstMac(data, length);
+			uint16_t ether_type = Ethernet::getPayloadEtherType((*packet)->getData());
+			uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
+			MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
+			MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
 			tal_id_t src;
 			tal_id_t dst = 0;
-			uint16_t q_tag = Ethernet::getQTag(data, length);
-			uint16_t ad_tag = Ethernet::getAdTag(data, length);
+			uint16_t q_tag = Ethernet::getQTag((*packet)->getData());
+			uint16_t ad_tag = Ethernet::getAdTag((*packet)->getData());
 			qos_t qos = 0;
 			Evc *evc;
 			map<qos_t, TrafficCategory *>::const_iterator default_category;
@@ -561,9 +558,8 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					UTI_DEBUG("Use the ad-tag to get the QoS value (%u) for DVB layer\n",
 					          qos);
 				}
-
-				eth_frame = this->createEthFrameData(data + header_length,
-				                                     length - header_length,
+				// TODO we should cast to an EthernetPacket and use getPayload instead
+				eth_frame = this->createEthFrameData((*packet)->getData().substr(header_length),
 				                                     src_mac, dst_mac,
 				                                     ether_type,
 				                                     q_tag, ad_tag,
@@ -572,7 +568,9 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 			else
 			{
-				eth_frame = this->createPacket(data, length, qos, src, dst);
+				eth_frame = this->createPacket((*packet)->getData(),
+				                               (*packet)->getTotalLength(),
+				                               qos, src, dst);
 			}
 			if(eth_frame == NULL)
 			{
@@ -632,14 +630,12 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 	{
 		NetPacket *deenc_packet = NULL;
 		size_t data_length = (*packet)->getTotalLength();
-		Data payload = (*packet)->getData();
-		unsigned char *data =(unsigned char *)payload.data();
-		MacAddress dst_mac = Ethernet::getDstMac(data, data_length);
-		MacAddress src_mac = Ethernet::getSrcMac(data, data_length);
-		uint16_t q_tag = Ethernet::getQTag(data, data_length);
-		uint16_t ad_tag = Ethernet::getAdTag(data, data_length);
-		uint16_t ether_type = Ethernet::getPayloadEtherType(data, data_length);
-		uint16_t frame_type = Ethernet::getFrameType(data, data_length);
+		MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
+		MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
+		uint16_t q_tag = Ethernet::getQTag((*packet)->getData());
+		uint16_t ad_tag = Ethernet::getAdTag((*packet)->getData());
+		uint16_t ether_type = Ethernet::getPayloadEtherType((*packet)->getData());
+		uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
@@ -683,13 +679,9 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 				continue;
 			}
 
-			// we need to instantiate payload, else if we directly do the cast
-			// on getPayload the data can be lost
-			Data payload = (*packet)->getPayload();
 			// strip eth header to get to IP
-			data_length = (*packet)->getPayloadLength();
-			data = (unsigned char *)payload.data();
-			deenc_packet = this->current_upper->build(data, data_length,
+			deenc_packet = this->current_upper->build((*packet)->getPayload(),
+			                                          (*packet)->getPayloadLength(),
 			                                          (*packet)->getQos(),
 			                                          (*packet)->getSrcTalId(),
 			                                          (*packet)->getDstTalId());
@@ -726,8 +718,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 					q_tag = (evc->getQTag() & 0xff);
 					ad_tag = (evc->getAdTag() & 0xff);
 				}
-				deenc_packet = this->createEthFrameData(data + header_length,
-				                                        data_length - header_length,
+				// TODO we should cast to an EthernetPacket and use getPayload instead
+				deenc_packet = this->createEthFrameData((*packet)->getData().substr(header_length),
 				                                        src_mac, dst_mac,
 				                                        ether_type,
 				                                        q_tag, ad_tag,
@@ -739,7 +731,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 			else
 			{
 				// create ETH packet
-				deenc_packet = this->createPacket(data, data_length,
+				deenc_packet = this->createPacket((*packet)->getData(),
+				                                  data_length,
 				                                  (*packet)->getQos(),
 				                                  (*packet)->getSrcTalId(),
 				                                  dst);
@@ -763,9 +756,6 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc_id)
 {
-	Data payload = packet->getData();
-	unsigned char *data =(unsigned char *)payload.data();
-	size_t data_length = packet->getTotalLength();
 	vector<MacAddress> src_macs;
 	vector<MacAddress> dst_macs;
 	MacAddress src_mac;
@@ -842,11 +832,11 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 		src_mac = *(evc->getMacSrc());
 		dst_mac = *(evc->getMacDst());
 	}
-	return this->createEthFrameData(data, data_length, src_mac, dst_mac, ether_type,
+	return this->createEthFrameData(packet->getData(), src_mac, dst_mac, ether_type,
 	                                q_tag, ad_tag, qos, src_tal, dst_tal, this->sat_frame_type);
 }
 
-NetPacket *Ethernet::Context::createEthFrameData(unsigned char *data, size_t length,
+NetPacket *Ethernet::Context::createEthFrameData(Data data,
                                                  MacAddress src_mac, MacAddress dst_mac,
                                                  uint16_t ether_type,
                                                  uint16_t q_tag, uint16_t ad_tag,
@@ -858,12 +848,10 @@ NetPacket *Ethernet::Context::createEthFrameData(unsigned char *data, size_t len
 	eth_1q_header_t *eth_1q_hdr;
 	eth_1ad_header_t *eth_1ad_hdr;
 
-	unsigned char frame_data[MAX_ETHERNET_SIZE];
-	size_t frame_data_length = 0;
+	unsigned char header[ETHERNET_802_1AD_HEADSIZE];
 
-	memset(frame_data, '\0', MAX_ETHERNET_SIZE);
 	// common part for all header
-	eth_2_hdr = (eth_2_header_t *) frame_data;
+	eth_2_hdr = (eth_2_header_t *) header;
 	for(unsigned int i = 0; i < 6; i++)
 	{
 		eth_2_hdr->ether_dhost[i] = dst_mac.at(i);
@@ -874,24 +862,22 @@ NetPacket *Ethernet::Context::createEthFrameData(unsigned char *data, size_t len
 	{
 		case NET_PROTO_ETH:
 			eth_2_hdr->ether_type = htons(ether_type);
-			memcpy(frame_data + ETHERNET_2_HEADSIZE, data, length);
-			frame_data_length = length + ETHERNET_2_HEADSIZE;
+			data.insert(0, header, ETHERNET_2_HEADSIZE);
 			UTI_DEBUG("create an Ethernet frame with src = %s, "
 			          "dst = %s\n", src_mac.str().c_str(), dst_mac.str().c_str());
 			break;
 		case NET_PROTO_802_1Q:
-			eth_1q_hdr = (eth_1q_header_t *) frame_data;
+			eth_1q_hdr = (eth_1q_header_t *) header;
 			eth_1q_hdr->TPID = htons(NET_PROTO_802_1Q);
 			eth_1q_hdr->TCI = htons(q_tag);
 			eth_1q_hdr->ether_type = htons(ether_type);
-			memcpy(frame_data + ETHERNET_802_1Q_HEADSIZE, data, length);
-			frame_data_length = length + ETHERNET_802_1Q_HEADSIZE;
+			data.insert(0, header, ETHERNET_802_1Q_HEADSIZE);
 			UTI_DEBUG("create a 802.1Q frame with src = %s, "
 			          "dst = %s, VLAN ID = %d\n", src_mac.str().c_str(),
 			          dst_mac.str().c_str(), q_tag);
 			break;
 		case NET_PROTO_802_1AD:
-			eth_1ad_hdr = (eth_1ad_header_t *) frame_data;
+			eth_1ad_hdr = (eth_1ad_header_t *) header;
 			// TODO use NET_PROTO_802_1AD once kernel will support it
 			eth_1ad_hdr->outer_TPID = htons(NET_PROTO_802_1Q);
 			//eth_1ad_hdr->outer_TPID = htons(NET_PROTO_802_1AD);
@@ -899,8 +885,7 @@ NetPacket *Ethernet::Context::createEthFrameData(unsigned char *data, size_t len
 			eth_1ad_hdr->inner_TPID = htons(NET_PROTO_802_1Q);
 			eth_1ad_hdr->inner_TCI = htons(q_tag);
 			eth_1ad_hdr->ether_type = htons(ether_type);
-			memcpy(frame_data + ETHERNET_802_1AD_HEADSIZE, data, length);
-			frame_data_length = length + ETHERNET_802_1AD_HEADSIZE;
+			data.insert(0, header, ETHERNET_802_1AD_HEADSIZE);
 			UTI_DEBUG("create a 802.1AD frame with src = %s, "
 			          "dst = %s, q-tag = %u, ad-tag = %u\n",
 			          src_mac.str().c_str(), dst_mac.str().c_str(), q_tag, ad_tag);
@@ -909,8 +894,7 @@ NetPacket *Ethernet::Context::createEthFrameData(unsigned char *data, size_t len
 			UTI_ERROR("Bad protocol value (0x%.4x) for Ethernet plugin\n", desired_frame_type);
 			return NULL;
 	}
-	return this->createPacket(frame_data, frame_data_length,
-	                          qos,
+	return this->createPacket(data, data.length(), qos,
 	                          src_tal_id, dst_tal_id);
 
 }
@@ -986,7 +970,7 @@ void Ethernet::Context::updateStats(unsigned int period)
 	}
 }
 
-NetPacket *Ethernet::PacketHandler::build(unsigned char *data,
+NetPacket *Ethernet::PacketHandler::build(const Data &data,
                                           size_t data_length,
                                           uint8_t qos,
                                           uint8_t src_tal_id,
@@ -994,7 +978,7 @@ NetPacket *Ethernet::PacketHandler::build(unsigned char *data,
 {
 	NetPacket *frame = NULL;
 	size_t head_length = 0;
-	uint16_t frame_type = Ethernet::getFrameType(data, data_length);
+	uint16_t frame_type = Ethernet::getFrameType(data);
 	switch(frame_type)
 	{
 		case NET_PROTO_802_1Q:
@@ -1075,19 +1059,18 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
 	return NULL;
 }
 
-uint16_t Ethernet::getFrameType(const unsigned char *data,
-                                size_t length)
+uint16_t Ethernet::getFrameType(const Data &data)
 {
 	uint16_t ether_type = NET_PROTO_ERROR;
 	uint16_t ether_type2 = NET_PROTO_ERROR;
-	if(data == NULL || length < 13)
+	if(data.length() < 13)
 	{
 		UTI_ERROR("cannot retrieve EtherType in Ethernet header\n");
 		return NET_PROTO_ERROR;
 	}
 	// read ethertype: 2 bytes at a 12 bytes offset
-	ether_type = (data[12] << 8) | data[13];
-	ether_type2 = (data[16] << 8) | data[17];
+	ether_type = (data.at(12) << 8) | data.at(13);
+	ether_type2 = (data.at(16) << 8) | data.at(17);
 	if(ether_type != NET_PROTO_802_1Q && ether_type != NET_PROTO_802_1AD)
 	{
 		ether_type = NET_PROTO_ETH;
@@ -1100,26 +1083,25 @@ uint16_t Ethernet::getFrameType(const unsigned char *data,
 	return ether_type;
 }
 
-uint16_t Ethernet::getPayloadEtherType(const unsigned char *data,
-                                       size_t length)
+uint16_t Ethernet::getPayloadEtherType(const Data &data)
 {
 	uint16_t ether_type = NET_PROTO_ERROR;
-	if(data == NULL || length < 13)
+	if(data.length() < 13)
 	{
 		UTI_ERROR("cannot retrieve EtherType in Ethernet header\n");
 		return NET_PROTO_ERROR;
 	}
 	// read ethertype: 2 bytes at a 12 bytes offset
-	ether_type = (data[12] << 8) | data[13];
+	ether_type = (data.at(12) << 8) | data.at(13);
 	switch(ether_type)
 	{
 		case NET_PROTO_802_1Q:
-			if(length < 17)
+			if(data.length() < 17)
 			{
 				UTI_ERROR("cannot retrieve EtherType in Ethernet header\n");
 				return NET_PROTO_ERROR;
 			}
-			ether_type = (data[16] << 8) | data[17];
+			ether_type = (data.at(16) << 8) | data.at(17);
 
 			// TODO: we need the following part because we use two 802.1Q
 			//       tags for kernel support
@@ -1128,61 +1110,59 @@ uint16_t Ethernet::getPayloadEtherType(const unsigned char *data,
 				break;
 			}
 		case NET_PROTO_802_1AD:
-			if(length < 21)
+			if(data.length() < 21)
 			{
 				UTI_ERROR("cannot retrieve EtherType in Ethernet header\n");
 				return NET_PROTO_ERROR;
 			}
-			ether_type = (data[20] << 8) | data[21];
+			ether_type = (data.at(20) << 8) | data.at(21);
 			break;
 	}
 
 	return ether_type;
 }
 
-uint16_t Ethernet::getQTag(const unsigned char *data,
-                           size_t length)
+uint16_t Ethernet::getQTag(const Data &data)
 {
 	uint16_t vlan_id = 0;
 	uint16_t ether_type;
-	if(data == NULL || length < 17)
+	if(data.length() < 17)
 	{
 		UTI_ERROR("cannot retrieve vlan id in Ethernet header\n");
 		return 0;
 	}
-	ether_type = (data[12] << 8) | data[13];
+	ether_type = (data.at(12) << 8) | data.at(13);
 	switch(ether_type)
 	{
 		case NET_PROTO_802_1Q:
-			vlan_id = (data[14] << 8) | data[15];
+			vlan_id = (data.at(14) << 8) | data.at(15);
 			// TODO: we need the following part because we use two 802.1Q
 			//       tags for kernel support
-			ether_type = (data[16] << 8) | data[17];
+			ether_type = (data.at(16) << 8) | data.at(17);
 			if(ether_type != NET_PROTO_802_1Q)
 			{
 				break;
 			}
 		case NET_PROTO_802_1AD:
-			vlan_id = (data[18] << 8) | data[19];
+			vlan_id = (data.at(18) << 8) | data.at(19);
 			break;
 	}
 
 	return vlan_id;
 }
 
-uint16_t Ethernet::getAdTag(const unsigned char *data,
-                            size_t length)
+uint16_t Ethernet::getAdTag(const Data &data)
 {
 	uint16_t vlan_id = 0;
 	uint16_t ether_type;
 	uint16_t ether_type2;
-	if(data == NULL || length < 17)
+	if(data.length() < 17)
 	{
 		UTI_ERROR("cannot retrieve vlan id in Ethernet header\n");
 		return 0;
 	}
-	ether_type = (data[12] << 8) | data[13];
-	ether_type2 = (data[16] << 8) | data[17];
+	ether_type = (data.at(12) << 8) | data.at(13);
+	ether_type2 = (data.at(16) << 8) | data.at(17);
 	// TODO: we need the following part because we use two 802.1Q tags for kernel support
 	if(ether_type == NET_PROTO_802_1Q && ether_type2 == NET_PROTO_802_1Q)
 	{
@@ -1192,34 +1172,32 @@ uint16_t Ethernet::getAdTag(const unsigned char *data,
 	switch(ether_type)
 	{
 		case NET_PROTO_802_1AD:
-			vlan_id = (data[14] << 8) | data[15];
+			vlan_id = (data.at(14) << 8) | data.at(15);
 			break;
 	}
 
 	return vlan_id;
 }
 
-MacAddress Ethernet::getDstMac(const unsigned char *data,
-                               size_t length)
+MacAddress Ethernet::getDstMac(const Data &data)
 {
-	if(data == NULL || length < 6)
+	if(data.length() < 6)
 	{
 		UTI_ERROR("cannot retrieve destination MAC in Ethernet header\n");
 		return MacAddress(0, 0, 0, 0, 0, 0);
 	}
 
-	return MacAddress(data[0], data[1], data[2],
-	                  data[3], data[4], data[5]);
+	return MacAddress(data.at(0), data.at(1), data.at(2),
+	                  data.at(3), data.at(4), data.at(5));
 }
 
-MacAddress Ethernet::getSrcMac(const unsigned char *data,
-                               size_t length)
+MacAddress Ethernet::getSrcMac(const Data &data)
 {
-	if(data == NULL || length < 12)
+	if(data.length() < 12)
 	{
 		UTI_ERROR("cannot retrieve source MAC in Ethernet header\n");
 		return MacAddress(0, 0, 0, 0, 0, 0);
 	}
-	return MacAddress(data[6], data[7], data[8],
-	                  data[9], data[10], data[11]);
+	return MacAddress(data.at(6), data.at(7), data.at(8),
+	                  data.at(9), data.at(10), data.at(11));
 }

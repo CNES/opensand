@@ -53,13 +53,20 @@ class Ipv6Packet: public IpPacket
 	 * @param data raw data from which an IPv6 packet can be created
 	 * @param length length of raw data
 	 */
-	Ipv6Packet(unsigned char *data, unsigned int length);
+	Ipv6Packet(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an IPv6 packet
 	 * @param data raw data from which an IPv6 packet can be created
 	 */
-	Ipv6Packet(Data data);
+	Ipv6Packet(const Data &data);
+
+	/**
+	 * Build an IPv6 packet
+	 * @param data raw data from which an IPv6 packet can be created
+	 * @param length length of raw data
+	 */
+	Ipv6Packet(const Data &data, size_t length);
 
 	/**
 	 * Build an empty IPv6 packet
@@ -72,22 +79,14 @@ class Ipv6Packet: public IpPacket
 	~Ipv6Packet();
 
 	// implementation of virtual functions
-	bool isValid();
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
+	bool isValid() const;
+	size_t getTotalLength() const;
+	size_t getPayloadLength() const;
 	IpAddress *srcAddr();
 	IpAddress *dstAddr();
-	uint8_t diffServField();
-	uint8_t diffServCodePoint();
-	uint8_t explicitCongestionNotification();
-
- protected:
-
-	/**
-	 * Retrieve the header length of the IPv6 packet
-	 * @return the header length of the IPv6 packet
-	 */
-	static unsigned int headerLength();
+	uint8_t diffServField() const;
+	uint8_t diffServCodePoint() const;
+	uint8_t explicitCongestionNotification() const;
 };
 
 #endif

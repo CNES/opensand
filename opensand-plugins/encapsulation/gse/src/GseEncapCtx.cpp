@@ -92,7 +92,7 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	}
 
 	memcpy(gse_get_vfrag_start(this->vfrag) + previous_length,
-	       (unsigned char *)packet->getData().c_str(),
+	       packet->getData().c_str(),
 	       packet->getTotalLength());
 	// Update the virtual fragment length
 	status = gse_set_vfrag_length(this->vfrag, previous_length +

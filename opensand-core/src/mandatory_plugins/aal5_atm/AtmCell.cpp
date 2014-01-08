@@ -38,7 +38,7 @@
 #include "opensand_conf/uti_debug.h"
 
 
-AtmCell::AtmCell(unsigned char *data, unsigned int length):
+AtmCell::AtmCell(const unsigned char *data, size_t length):
 	NetPacket(data, length)
 {
 	this->name = "ATM";
@@ -47,7 +47,16 @@ AtmCell::AtmCell(unsigned char *data, unsigned int length):
 	this->header_length = 5;
 }
 
-AtmCell::AtmCell(Data data): NetPacket(data)
+AtmCell::AtmCell(const Data &data): NetPacket(data)
+{
+	this->name = "ATM";
+	this->type = NET_PROTO_ATM;
+	this->data.reserve(53);
+	this->header_length = 5;
+}
+
+AtmCell::AtmCell(const Data &data, size_t length):
+	NetPacket(data, length)
 {
 	this->name = "ATM";
 	this->type = NET_PROTO_ATM;

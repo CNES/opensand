@@ -61,7 +61,7 @@ class UlePacket: public NetPacket
 	 * @param enabled is the CRC computing enabled
 	 * @return     the calculated CRC
 	 */
-	uint32_t calcCrc(bool enabled);
+	uint32_t calcCrc(bool enabled) const;
 
  public:
 
@@ -71,14 +71,22 @@ class UlePacket: public NetPacket
 	 * @param data    raw data from which an ULE packet can be created
 	 * @param length  length of raw data
 	 */
-	UlePacket(unsigned char *data, unsigned int length);
+	UlePacket(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an ULE packet
 	 *
 	 * @param data  raw data from which an ULE packet can be created
 	 */
-	UlePacket(Data data);
+	UlePacket(const Data &data);
+
+	/**
+	 * Build an ULE packet
+	 *
+	 * @param data    raw data from which an ULE packet can be created
+	 * @param length  length of raw data
+	 */
+	UlePacket(const Data &data, size_t length);
 
 	/**
 	 * Build an empty ULE packet
@@ -107,39 +115,11 @@ class UlePacket: public NetPacket
 	 * @param crc_enabled is the CRC computing enabled
 	 * @return true if the packet is valied, false otherwise
 	 */
-	bool isValid(bool crc_enabled);
+	bool isValid(bool crc_enabled) const;
 
 	// implementation of virtual functions
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
-	Data getPayload();
-	uint8_t getQos();
-	uint8_t getSrcTalId();
-	uint8_t getDstTalId();
-
-	/**
-	 * Set the ULE packet source terminal ID
-	 * since it cannot be stored in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setSrcTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ULE packet destination terminal ID
-	 * since it cannot be stored in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setDstTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ULE packet QoS value because it cannot be stored
-	 * in a header field
-	 *
-	 * @param QoS The QoS value
-	 */
-	void setQos(uint8_t qos);
+	size_t getPayloadLength() const;
+	Data getPayloadData() const;
 
 	/**
 	 * @brief Whether the Destination Address field of the ULE header is present
@@ -147,28 +127,28 @@ class UlePacket: public NetPacket
 	 *
 	 * @return  true if the Destination Address field is present, false otherwise
 	 */
-	bool isDstAddrPresent();
+	bool isDstAddrPresent() const;
 
 	/**
 	 * Get the Type field of the ULE header
 	 *
 	 * @return  the Type field of the ULE header
 	 */
-	uint16_t getPayloadType();
+	uint16_t getPayloadType() const;
 
 	/**
 	 * Get the Destination Address field of the ULE header
 	 *
 	 * @return  the Destination Address field of the ULE header
 	 */
-	Data destAddr();
+	Data destAddr() const;
 
 	/**
 	 * Get the CRC field at the end of the ULE packet
 	 *
 	 * @return  the CRC field at the end of the ULE packet
 	 */
-	uint32_t crc();
+	uint32_t crc() const;
 };
 
 #endif

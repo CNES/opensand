@@ -200,7 +200,7 @@ class RtChannel
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(void **data, size_t size, uint8_t type = 0);
+	bool enqueueMessage(void **data, size_t size = 0, uint8_t type = 0);
 
 
 

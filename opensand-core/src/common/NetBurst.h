@@ -35,12 +35,11 @@
 #ifndef NET_BURST_H
 #define NET_BURST_H
 
+#include "Data.h"
+#include "NetPacket.h"
+
 #include <list>
 #include <string>
-
-#include <Data.h>
-#include <NetPacket.h>
-
 
 /**
  * @class NetBurst

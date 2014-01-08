@@ -53,7 +53,7 @@ class RohcPacket: public NetPacket
 	 * @param length  length of raw data
 	 * @param type    the type of compressed packet or NET_PROTO_ROHC
 	 */
-	RohcPacket(unsigned char *data, unsigned int length, uint16_t type);
+	RohcPacket(const unsigned char *data, size_t length, uint16_t type);
 
 	/**
 	 * Build a ROHC packet
@@ -61,7 +61,16 @@ class RohcPacket: public NetPacket
 	 * @param data  raw data from which a ROHC packet can be created
 	 * @param type    the type of compressed packet or NET_PROTO_ROHC
 	 */
-	RohcPacket(Data data, uint16_t type);
+	RohcPacket(const Data &data, uint16_t type);
+
+	/**
+	 * Build a ROHC packet
+	 *
+	 * @param data    raw data from which a ROHC packet can be created
+	 * @param length  length of raw data
+	 * @param type    the type of compressed packet or NET_PROTO_ROHC
+	 */
+	RohcPacket(const Data &data, size_t length, uint16_t type);
 
 	/**
 	 * Build an empty ROHC packet
@@ -74,38 +83,6 @@ class RohcPacket: public NetPacket
 	 * Destroy the ROHC packet
 	 */
 	~RohcPacket();
-
-	// implementation of virtual functions
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
-	Data getPayload();
-	uint8_t getQos();
-	uint8_t getSrcTalId();
-	uint8_t getDstTalId();
-
-	/**
-	 * Set the ROHC packet source terminal ID
-	 * since it cannot be stored in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setSrcTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ROHC packet terminal ID
-	 * since it cannot be stored in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setDstTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ROHC packet QoS value
-	 * since it cannot be stored in a header field
-	 *
-	 * @param QoS The QoS value
-	 */
-	void setQos(uint8_t qos);
 
 };
 

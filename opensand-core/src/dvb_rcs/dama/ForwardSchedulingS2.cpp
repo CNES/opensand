@@ -315,8 +315,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			if(!current_bbframe->addPacket(data))
 			{
 				UTI_ERROR("SF#%u: frame %u: failed to add encapsulation packet "
-				          "#%u in BB frame with MODCOD ID %u (packet length %i,"
-				          "  free space %u",
+				          "#%u in BB frame with MODCOD ID %u (packet length %zu,"
+				          "  free space %zu",
 				          current_superframe_sf, current_frame,
 				          sent_packets + 1, current_bbframe->getModcodId(),
 				          data->getTotalLength(),
@@ -336,7 +336,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			{
 				UTI_ERROR("SF#%u: frame %u: failed to add encapsulation packet "
 				          "#%u in BB frame with MODCOD ID %u (packet "
-				          "length %u, free space %u",
+				          "length %zu, free space %zu",
 				          current_superframe_sf, current_frame,
 				          sent_packets + 1, current_bbframe->getModcodId(),
 				          data->getTotalLength(),
@@ -351,7 +351,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			fifo->pushFront(elem);
 
 			UTI_DEBUG("SF#%u: frame %u: packet fragmented, there is still "
-			          "%u bytes of data\n",
+			          "%zu bytes of data\n",
 			          current_superframe_sf, current_frame,
 			          remaining_data->getTotalLength());
 		}
@@ -364,7 +364,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 
 			// keep the NetPacket in the fifo
 			UTI_DEBUG("SF#%u: frame %u: not enough free space in BBFrame "
-			          "(%u bytes) for %s packet (%u bytes)\n",
+			          "(%zu bytes) for %s packet (%zu bytes)\n",
 			          current_superframe_sf, current_frame,
 			          current_bbframe->getFreeSpace(),
 			          this->packet_handler->getName().c_str(),
@@ -491,9 +491,6 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 
 	// set the MODCOD ID of the BB frame
 	(*bbframe)->setModcodId(modcod_id);
-
-	// set the type of encapsulation packets the BB frame will contain
-	(*bbframe)->setEncapPacketEtherType(this->packet_handler->getEtherType());
 
 	// get the payload size
 	// to simulate the modcod applied to transmitted data, we limit the
@@ -673,7 +670,7 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 	}
 
 	// we can send the BBFrame
-	complete_bb_frames->push_back(bbframe);
+	complete_bb_frames->push_back((DvbFrame *)bbframe);
 
 	// reduce the time carrier capacity by the BBFrame size
 	remaining_capacity_sym -= bbframe_size_sym;

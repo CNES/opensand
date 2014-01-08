@@ -39,14 +39,23 @@
 #include "opensand_conf/uti_debug.h"
 
 
-Ipv6Packet::Ipv6Packet(Data data): IpPacket(data)
+// TODO for all packets : better link with NetContainer and NetPacket (header_length, ...)
+Ipv6Packet::Ipv6Packet(const unsigned char *data, size_t length):
+	IpPacket(data, length)
 {
 	this->name = "IPv6";
 	this->type = NET_PROTO_IPV6;
 	this->header_length = 40;
 }
 
-Ipv6Packet::Ipv6Packet(unsigned char *data, unsigned int length):
+Ipv6Packet::Ipv6Packet(const Data &data): IpPacket(data)
+{
+	this->name = "IPv6";
+	this->type = NET_PROTO_IPV6;
+	this->header_length = 40;
+}
+
+Ipv6Packet::Ipv6Packet(const Data &data, size_t length):
 	IpPacket(data, length)
 {
 	this->name = "IPv6";
@@ -65,12 +74,12 @@ Ipv6Packet::~Ipv6Packet()
 {
 }
 
-bool Ipv6Packet::isValid()
+bool Ipv6Packet::isValid() const
 {
-	return (this->data.length() >= Ipv6Packet::headerLength());
+	return (this->data.length() >= this->header_length);
 }
 
-uint16_t Ipv6Packet::getTotalLength()
+size_t Ipv6Packet::getTotalLength() const
 {
 	if(!this->isValid())
 	{
@@ -78,10 +87,10 @@ uint16_t Ipv6Packet::getTotalLength()
 		return 0;
 	}
 
-	return (uint16_t) (this->getPayloadLength() + Ipv6Packet::headerLength());
+	return (this->getPayloadLength() + this->header_length);
 }
 
-uint16_t Ipv6Packet::getPayloadLength()
+size_t Ipv6Packet::getPayloadLength() const
 {
 	if(!this->isValid())
 	{
@@ -89,11 +98,11 @@ uint16_t Ipv6Packet::getPayloadLength()
 		return 0;
 	}
 
-	return (uint16_t) (((this->data.at(4) & 0xff) << 8)
-	                 + ((this->data.at(5) & 0xff) << 0));
+	return (((this->data.at(4) & 0xff) << 8)
+	        + ((this->data.at(5) & 0xff) << 0));
 }
 
-IpAddress * Ipv6Packet::srcAddr()
+IpAddress *Ipv6Packet::srcAddr()
 {
 	if(this->src_addr == NULL)
 	{
@@ -141,13 +150,7 @@ IpAddress *Ipv6Packet::dstAddr()
 	return this->dst_addr;
 }
 
-// static
-unsigned int Ipv6Packet::headerLength()
-{
-	return 40;
-}
-
-uint8_t Ipv6Packet::diffServField()
+uint8_t Ipv6Packet::diffServField() const
 {
 	uint8_t diffServField;
 
@@ -162,7 +165,7 @@ uint8_t Ipv6Packet::diffServField()
 	return diffServField;
 }
 
-uint8_t Ipv6Packet::diffServCodePoint()
+uint8_t Ipv6Packet::diffServCodePoint() const
 {
 	uint8_t diffServCodePoint;
 
@@ -177,7 +180,7 @@ uint8_t Ipv6Packet::diffServCodePoint()
 	return diffServCodePoint;
 }
 
-uint8_t Ipv6Packet::explicitCongestionNotification()
+uint8_t Ipv6Packet::explicitCongestionNotification() const
 {
 	uint8_t explicitCongestionNotification;
 

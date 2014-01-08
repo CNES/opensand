@@ -67,12 +67,10 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	_state(state_initializing),
 	mac_id(mac_id),
 	dama_agent(NULL),
-	m_carrierIdDvbCtrl(-1),
-	m_carrierIdLogon(-1),
-	m_carrierIdData(-1),
+	carrier_id_ctrl(-1),
+	carrier_id_logon(-1),
+	carrier_id_data(-1),
 	complete_dvb_frames(),
-	sac(mac_id),
-	ttp(),
 	out_encap_packet_length(-1),
 	out_encap_packet_type(MSG_TYPE_ERROR),
 	in_encap_packet_length(-1),
@@ -307,16 +305,10 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			unsigned char *dvb_frame;
-			long len;
-			T_DVB_META *dvb_meta;
-
-			dvb_meta = (T_DVB_META *)((MessageEvent *)event)->getData();
-			dvb_frame = (unsigned char *) dvb_meta->hdr;
-			len = ((MessageEvent *)event)->getLength();
+			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
 			if(this->probe_sof_interval->isEnabled() &&
-			   dvb_meta->hdr->msg_type == MSG_TYPE_SOF)
+			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
 			{
 				struct timeval time = event->getTimeFromCustom();
 				float val = time.tv_sec * 1000000L + time.tv_usec;
@@ -325,19 +317,19 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			}
 
 			// message from lower layer: DL dvb frame
-			UTI_DEBUG_L3("SF#%u DVB frame received (len %ld)\n",
-				         this->super_frame_counter, len);
+			UTI_DEBUG_L3("SF#%u DVB frame received (len %u)\n",
+				         this->super_frame_counter,
+				         dvb_frame->getMessageLength());
 
-			if(!this->onRcvDvbFrame(dvb_frame, len))
+			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				UTI_DEBUG_L3("SF#%u: failed to handle received DVB frame\n",
 				             this->super_frame_counter);
 				// a problem occured, trace is made in onRcvDVBFrame()
 				// carry on simulation
-				delete dvb_meta;
+				delete dvb_frame;
 				return false;
 			}
-			delete dvb_meta;
 		}
 		break;
 
@@ -415,33 +407,33 @@ bool BlockDvbTal::initCarrierId()
 
 #define FMT_KEY_MISSING "SF#%u %s missing from section %s\n", this->super_frame_counter
 
-	 // Get the carrier Id m_carrierIdDvbCtrl
+	// Get the ID for control carrier
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->m_carrierIdDvbCtrl = val;
+	this->carrier_id_ctrl = val;
 
-	// Get the carrier Id m_carrierIdLogon
+	// Get the ID for logon carrier
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->m_carrierIdLogon = val;
+	this->carrier_id_logon = val;
 
-	// Get the carrier Id m_carrierIdData
+	// Get the ID for data carrier
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->m_carrierIdData = val;
+	this->carrier_id_data = val;
 
-	UTI_INFO("SF#%u: carrier IDs for Ctrl = %ld, Logon = %ld, Data = %ld\n",
-	         this->super_frame_counter, this->m_carrierIdDvbCtrl,
-	         this->m_carrierIdLogon, this->m_carrierIdData);
+	UTI_INFO("SF#%u: carrier IDs for Ctrl = %u, Logon = %u, Data = %u\n",
+	         this->super_frame_counter, this->carrier_id_ctrl,
+	         this->carrier_id_logon, this->carrier_id_data);
 
 	return true;
 error:
@@ -1091,13 +1083,14 @@ error:
 
 bool BlockDvbTal::sendLogonReq()
 {
-	LogonRequest logon_req(this->mac_id, this->fixed_bandwidth,
-	                       this->max_rbdc_kbps, this->max_vbdc_kb);
+	LogonRequest *logon_req = new LogonRequest(this->mac_id,
+	                                           this->fixed_bandwidth,
+	                                           this->max_rbdc_kbps,
+	                                           this->max_vbdc_kb);
 
 	// send the message to the lower layer
-	if(!this->sendDvbFrame(logon_req.getFrame(),
-		                   m_carrierIdLogon,
-		                   logon_req.getLength()))
+	if(!this->sendDvbFrame((DvbFrame *)logon_req,
+		                   this->carrier_id_logon))
 	{
 		UTI_ERROR("Failed to send Logon Request\n");
 		goto error;
@@ -1122,15 +1115,9 @@ error:
 }
 
 
-bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
+bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	T_DVB_HDR *hdr;
-
-	// Get msg header
-	hdr = (T_DVB_HDR *) ip_buf;
-
-
-	switch(hdr->msg_type)
+	switch(dvb_frame->getMessageType())
 	{
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
@@ -1138,28 +1125,22 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			NetBurst *burst = NULL;
 
 			// Update stats
-			this->l2_from_sat_bytes += hdr->msg_length;
+			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-			this->phy_from_sat_bytes += hdr->msg_length;
+			this->phy_from_sat_bytes += dvb_frame->getMessageLength();
 
 			if(this->with_phy_layer)
 			{
-				T_DVB_PHY *physical_parameters;
-				double cni = 0;
-
 				// get ACM parameters
-				physical_parameters = (T_DVB_PHY *)((char *)hdr +
-													hdr->msg_length);
-				cni = ncntoh(physical_parameters->cn_previous);
-				this->sac.setAcm(cni);
-				i_len -= sizeof(T_DVB_PHY);
+				this->cni = dvb_frame->getCn();
 			}
 
-			if(this->receptionStd->onRcvFrame(ip_buf, i_len, hdr->msg_type,
-			                                  this->m_talId, &burst) < 0)
+			if(!this->receptionStd->onRcvFrame(dvb_frame, this->tal_id,
+			                                   &burst))
 			{
 				UTI_ERROR("failed to handle the reception of "
-				          "BB frame (length = %ld)\n", i_len);
+				          "BB frame (len = %u)\n",
+				          dvb_frame->getMessageLength());
 				goto error;
 			}
 			// update MODCOD probes
@@ -1198,7 +1179,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 
 			if(this->_state == state_running)
 			{
-				if(!this->onStartOfFrame(ip_buf, i_len))
+				if(!this->onStartOfFrame(dvb_frame))
 				{
 					UTI_ERROR("Cannot handle SoF");
 					goto error;
@@ -1206,7 +1187,7 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 			}
 			else
 			{
-				free(ip_buf);
+				delete dvb_frame;
 			}
 			break;
 
@@ -1216,18 +1197,19 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 		case MSG_TYPE_TTP:
 			if(this->_state == state_running)
 			{
-				this->ttp.parse(ip_buf, i_len);
-				if(!this->dama_agent->hereIsTTP(this->ttp))
+				// TODO Ttp *ttp = dynamic_cast<Ttp *>(dvb_frame);
+				Ttp *ttp = (Ttp *)dvb_frame;
+				if(!this->dama_agent->hereIsTTP(ttp))
 				{
-					free(ip_buf);
+					delete dvb_frame;
 					goto error_on_TTP;
 				}
 			}
-			free(ip_buf);
+			delete dvb_frame;
 			break;
 
 		case MSG_TYPE_SESSION_LOGON_RESP:
-			if(!this->onRcvLogonResp(ip_buf, i_len))
+			if(!this->onRcvLogonResp(dvb_frame))
 			{
 				goto error;
 			}
@@ -1236,13 +1218,13 @@ bool BlockDvbTal::onRcvDvbFrame(unsigned char *ip_buf, long i_len)
 		// messages sent by current or another ST for the NCC --> ignore
 		case MSG_TYPE_SAC:
 		case MSG_TYPE_SESSION_LOGON_REQ:
-			free(ip_buf);
+			delete dvb_frame;
 			break;
 
 		default:
 			UTI_ERROR("SF#%u: unknown type of DVB frame (%u), ignore\n",
-			          this->super_frame_counter, hdr->msg_type);
-			free(ip_buf);
+			          this->super_frame_counter, dvb_frame->getMessageType());
+			delete dvb_frame;
 			goto error;
 	}
 
@@ -1265,21 +1247,24 @@ error:
  */
 bool BlockDvbTal::sendSAC()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[sendSAC]";
-	unsigned char *dvb_frame;
-	size_t length;
 	bool empty;
+	Sac *sac = new Sac(this->tal_id, this->group_id);
 
 	// Set CR body
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
 	if(!this->dama_agent->buildSAC(cr_none,
-	                               this->sac,
+	                               sac,
 	                               empty))
 	{
-		UTI_ERROR("%s SF#%u frame %u: DAMA cannot build CR\n", FUNCNAME,
+		UTI_ERROR("SF#%u frame %u: DAMA cannot build CR\n",
 		          this->super_frame_counter, this->frame_counter);
 		goto error;
+	}
+	// Set the ACM parameters
+	if(this->with_phy_layer)
+	{
+		sac->setAcm(this->cni);
 	}
 
 	if(empty)
@@ -1289,25 +1274,13 @@ bool BlockDvbTal::sendSAC()
 		// keep going as we can send ACM parameters
 	}
 
-	// Get a dvb frame
-	dvb_frame = (unsigned char *)calloc(sizeof(T_DVB_HDR) +
-	                                    Sac::getMaxSize(),
-	                                    sizeof(unsigned char));
-	if(dvb_frame == 0)
-	{
-		UTI_ERROR("SF#%u frame %u: cannot get memory for SAC\n",
-		          this->super_frame_counter, this->frame_counter);
-		goto error;
-	}
-
-	this->sac.build(dvb_frame, length);
 
 	// Send message
-	if(!this->sendDvbFrame((T_DVB_HDR *) dvb_frame, m_carrierIdDvbCtrl, length))
+	if(!this->sendDvbFrame((DvbFrame *)sac, this->carrier_id_ctrl))
 	{
 		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
 		          this->super_frame_counter, this->frame_counter);
-		free(dvb_frame);
+		delete sac;
 		goto error;
 	}
 
@@ -1325,16 +1298,16 @@ error:
  * Upon reception of a SoF:
  * - update allocation with TBTP received last superframe (in DAMA agent)
  * - reset timers
- * @param ip_buf points to the dvb_rcs buffer containing SoF
- * @param i_len is the length of *ip_buf
+ * @param dvb_frame  The DVB frame
  * @return true eon success, false otherwise
  */
-bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
+bool BlockDvbTal::onStartOfFrame(DvbFrame *dvb_frame)
 {
 	uint16_t sfn; // the superframe number piggybacked by SOF packet
-	Sof sof(ip_buf, i_len);
+	// TODO Sof *sof = dynamic_cast<Sof *>(dvb_frame);
+	Sof *sof = (Sof *)dvb_frame;
 
-	sfn = sof.getSuperFrameNumber();
+	sfn = sof->getSuperFrameNumber();
 
 	UTI_DEBUG_L3("SOF reception SFN #%u super frame nb %u frame "
 	             "counter %u\n", sfn, this->super_frame_counter,
@@ -1411,11 +1384,11 @@ bool BlockDvbTal::onStartOfFrame(unsigned char *ip_buf, long i_len)
 		Output::sendProbes();
 	}
 
-	free(ip_buf);
+	delete dvb_frame;
 	return true;
 
 error:
-	free(ip_buf);
+	delete dvb_frame;
 	return false;
 }
 
@@ -1469,7 +1442,7 @@ int BlockDvbTal::processOnFrameTick()
 
 	// send on the emulated DVB network the DVB frames that contain
 	// the encapsulation packets scheduled by the DAMA agent algorithm
-	if(!this->sendBursts(&this->complete_dvb_frames, this->m_carrierIdData))
+	if(!this->sendBursts(&this->complete_dvb_frames, this->carrier_id_data))
 	{
 		UTI_ERROR("failed to send bursts in DVB frames\n");
 		goto error;
@@ -1501,22 +1474,25 @@ error:
 }
 
 
-bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
+bool BlockDvbTal::onRcvLogonResp(DvbFrame *dvb_frame)
 {
 	T_LINK_UP *link_is_up;
-	LogonResponse logon_resp(ip_buf, l_len);
+	// TODO LogonResponse *logon_resp = dynamic_cast<LogonResponse *>(dvb_frame);
+	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
+
 
 	// Retrieve the Logon Response frame
-	if(logon_resp.getMac() != this->mac_id)
+	if(logon_resp->getMac() != this->mac_id)
 	{
 		UTI_DEBUG("SF#%u Loggon_resp for mac=%d, not %d\n",
-		          this->super_frame_counter, logon_resp.getMac(), this->mac_id);
+		          this->super_frame_counter, logon_resp->getMac(),
+		          this->mac_id);
 		goto ok;
 	}
 
 	// Remember the id
-	this->m_groupId = logon_resp.getGroupId();
-	this->m_talId = logon_resp.getLogonId();
+	this->group_id = logon_resp->getGroupId();
+	this->tal_id = logon_resp->getLogonId();
 
 	// Inform Dama agent
 	this->dama_agent->hereIsLogonResp(logon_resp);
@@ -1530,8 +1506,8 @@ bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 		          this->super_frame_counter);
 		goto error;
 	}
-	link_is_up->group_id = this->m_groupId;
-	link_is_up->tal_id = this->m_talId;
+	link_is_up->group_id = this->group_id;
+	link_is_up->tal_id = this->tal_id;
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
@@ -1545,8 +1521,8 @@ bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 
 	// Set the state to "running"
 	this->_state = state_running;
-	UTI_INFO("SF#%u: logon succeeded, running as group %ld and logon %ld\n",
-	         this->super_frame_counter, this->m_groupId, this->m_talId);
+	UTI_INFO("SF#%u: logon succeeded, running as group %u and logon %u\n",
+	         this->super_frame_counter, this->group_id, this->tal_id);
 
 	// send the corresponding event
 
@@ -1554,10 +1530,10 @@ bool BlockDvbTal::onRcvLogonResp(unsigned char *ip_buf, long l_len)
 	                  this->mac_id);
 
  ok:
-	free(ip_buf);
+	delete dvb_frame;
 	return true;
  error:
-	free(ip_buf);
+	delete dvb_frame;
 	return false;
 }
 

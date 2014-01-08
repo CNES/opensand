@@ -154,9 +154,14 @@ class BlockDvb: public Block
 	 */
 	bool sendBursts(std::list<DvbFrame *> *complete_frames, long carrier_id);
 
-	// Send a DVB frame to the sat carrier block
-	bool sendDvbFrame(T_DVB_HDR *dvb_frame, long carrier_id, long l_len);
-	bool sendDvbFrame(DvbFrame *frame, long carrier_id);
+	/**
+	 * @brief Send message to lower layer with the given DVB frame
+	 *
+	 * @param frame       the DVB frame to put in the message
+	 * @param carrier_id  the carrier ID used to send the message
+	 * @return            true on success, false otherwise
+	 */
+	bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
 
 	/**
 	 * Receive Packet from upper layer

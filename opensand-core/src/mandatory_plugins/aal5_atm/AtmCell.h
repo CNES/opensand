@@ -51,13 +51,20 @@ class AtmCell: public NetPacket
 	 * @param data raw data from which an ATM cell can be created
 	 * @param length length of raw data
 	 */
-	AtmCell(unsigned char *data, unsigned int length);
+	AtmCell(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an ATM cell
 	 * @param data raw data from which an ATM cell can be created
 	 */
-	AtmCell(Data data);
+	AtmCell(const Data &data);
+
+	/**
+	 * Build an ATM cell
+	 * @param data raw data from which an ATM cell can be created
+	 * @param length length of raw data
+	 */
+	AtmCell(const Data &data, size_t length);
 
 	/**
 	 * Build an empty ATM cell

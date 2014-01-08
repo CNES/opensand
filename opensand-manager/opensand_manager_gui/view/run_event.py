@@ -76,7 +76,7 @@ class RunEvent(RunView):
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
-            self._ui.get_widget('options').set_visible(True)
+            self._ui.get_widget('deployment').set_visible(True)
         else:
             # do not show deploy button
             gobject.idle_add(self.hide_deploy_button,
@@ -188,7 +188,7 @@ class RunEvent(RunView):
         self._dev_mode = not self._dev_mode
         self.hide_deploy_button(not self._dev_mode)
         self._model.set_dev_mode(self._dev_mode)
-        self._ui.get_widget('options').set_visible(self._dev_mode)
+        self._ui.get_widget('deployment').set_visible(self._dev_mode)
         
     def on_timer_status(self):
         """ handler to get OpenSAND status from model periodicaly """

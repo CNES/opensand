@@ -32,13 +32,16 @@
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  */
 
-#include "Rohc.h"
 
 #undef DBG_PACKAGE
 #define DBG_PACKAGE PKG_QOS_DATA
 #include <opensand_conf/uti_debug.h>
-#include <opensand_conf/ConfigurationFile.h>
+
+#include "Rohc.h"
+
 #include <NetPacket.h>
+#include <opensand_conf/ConfigurationFile.h>
+
 #include <vector>
 #include <map>
 
@@ -81,11 +84,6 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 		goto unload;
 	}
 	UTI_DEBUG("Max CID: %d\n", max_cid);
-
-	// init the CRC tables of the ROHC library
-	crc_init_table(crc_table_3, crc_get_polynom(CRC_TYPE_3));
-	crc_init_table(crc_table_7, crc_get_polynom(CRC_TYPE_7));
-	crc_init_table(crc_table_8, crc_get_polynom(CRC_TYPE_8));
 
 	// create the ROHC compressor
 	this->comp = rohc_alloc_compressor(max_cid, 0, 0, 0);
@@ -322,11 +320,11 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 {
 	RohcPacket *rohc_packet;
 	static unsigned char rohc_data[MAX_ROHC_SIZE];
-	int rohc_len;
+	size_t rohc_len;
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	UTI_DEBUG("compress a %d-byte packet of type 0x%04x\n",
+	UTI_DEBUG("compress a %zu-byte packet of type 0x%04x\n",
 	          packet->getTotalLength(), packet->getType());
 
 	// the ROHC compressor must be ready
@@ -338,14 +336,12 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	}
 
 	// compress the IP packet thanks to the ROHC library
-	rohc_len = rohc_compress(this->comp,
-	                         (unsigned char *) packet->getData().c_str(),
-	                         packet->getTotalLength(),
-	                         rohc_data, MAX_ROHC_SIZE);
-	if(rohc_len <= 0)
+	if(rohc_compress2(this->comp,
+	                  packet->getData().c_str(),
+	                  packet->getTotalLength(),
+	                  rohc_data, MAX_ROHC_SIZE, &rohc_len) != ROHC_OK)
 	{
-		UTI_ERROR("ROHC compression failed, "
-		          "drop packet\n");
+		UTI_ERROR("ROHC compression failed, drop packet\n");
 		goto drop;
 	}
 
@@ -366,7 +362,7 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	// set OUT parameter with compressed packet
 	*comp_packet = rohc_packet;
 
-	UTI_DEBUG("%d-byte %s packet/frame => %d-byte ROHC packet\n",
+	UTI_DEBUG("%zu-byte %s packet/frame => %zu-byte ROHC packet\n",
 	          packet->getTotalLength(), packet->getName().c_str(),
 	          rohc_packet->getTotalLength());
 
@@ -383,6 +379,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	NetPacket *net_packet;
 	RohcPacket *rohc_packet;
 	static unsigned char ip_data[MAX_ROHC_SIZE];
+	Data ip_packet;
 	int ip_len;
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
@@ -396,7 +393,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 
 	// decompress the IP packet thanks to the ROHC library
 	ip_len = rohc_decompress(this->decompressors[packet->getSrcTalId()],
-	                         (unsigned char *) rohc_packet->getData().c_str(),
+	                         (unsigned char *)rohc_packet->getData().c_str(),
 	                         rohc_packet->getTotalLength(),
 	                         ip_data, MAX_ROHC_SIZE);
 	if(ip_len <= 0)
@@ -406,7 +403,8 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 		goto drop;
 	}
 
-	net_packet = this->current_upper->build(ip_data, ip_len,
+	ip_packet.append(ip_data, ip_len);
+	net_packet = this->current_upper->build(ip_packet, ip_len,
 	                                        packet->getQos(),
 	                                        packet->getSrcTalId(),
 	                                        packet->getDstTalId());
@@ -422,7 +420,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	// set OUT parameter with decompressed packet
 	*dec_packet = net_packet;
 
-	UTI_DEBUG("%d-byte ROHC packet => %d-byte %s packet/frame\n",
+	UTI_DEBUG("%zu-byte ROHC packet => %zu-byte %s packet/frame\n",
 	          rohc_packet->getTotalLength(),
 	          net_packet->getTotalLength(), net_packet->getName().c_str());
 
@@ -443,7 +441,7 @@ bool Rohc::Context::extractPacketFromEth(NetPacket *frame,
 	// build Ethernet frame to get the correct EtherType in
 	// extractPacketFromEth function
 	NetPacket *eth_frame =
-		this->current_upper->build((unsigned char *)frame->getData().c_str(),
+		this->current_upper->build(frame->getData(),
 		                           frame->getTotalLength(),
 		                           frame->getQos(),
 		                           frame->getSrcTalId(),
@@ -456,9 +454,9 @@ bool Rohc::Context::extractPacketFromEth(NetPacket *frame,
 	head_length = eth_frame->getHeaderLength();
 
 	// keep the Ethernet header
-	memcpy(head_buffer, (unsigned char *)eth_frame->getData().c_str(), head_length);
+	memcpy(head_buffer, eth_frame->getData().c_str(), head_length);
 	// create a packet without ethernet header
-	*payload = this->createPacket((unsigned char *)eth_frame->getPayload().c_str(),
+	*payload = this->createPacket(eth_frame->getPayload(),
 	                              eth_frame->getPayloadLength(),
 	                              frame->getQos(), frame->getSrcTalId(),
 	                              frame->getDstTalId());
@@ -472,6 +470,7 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
                                        NetPacket **eth_frame)
 {
 	size_t new_eth_size;
+	Data eth_packet;
 
 	*eth_frame = NULL;
 	new_eth_size = head_length + packet->getTotalLength();
@@ -485,14 +484,15 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
 	// ethernet frame << eth header << rohc packet data
 	memcpy(head_buffer + head_length, packet->getData().c_str(),
 	       packet->getTotalLength());
-	*eth_frame = this->createPacket(head_buffer, new_eth_size,
+	eth_packet.append(head_buffer, new_eth_size);
+	*eth_frame = this->createPacket(eth_packet, new_eth_size,
 	                                packet->getQos(),
 	                                packet->getSrcTalId(),
 	                                packet->getDstTalId());
 	return true;
 }
 
-NetPacket *Rohc::PacketHandler::build(unsigned char *data,
+NetPacket *Rohc::PacketHandler::build(const Data &data,
                                       size_t data_length,
                                       uint8_t qos,
                                       uint8_t src_tal_id,

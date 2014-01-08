@@ -36,6 +36,8 @@
 #define _TTP_H_
 
 #include "OpenSandCore.h"
+#include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 #include <map>
 #include <vector>
@@ -49,6 +51,7 @@ typedef struct
 {
 	group_id_t group_id;       ///< The group ID 
 	uint16_t superframe_count; ///< Superframe count to wich the TP applies
+	// TODO we don't do one less
 	uint8_t frame_loop_count;  ///< One less than the number of superframe
 } __attribute__((packed)) ttp_info_t;
 
@@ -57,11 +60,10 @@ typedef struct
 {
 	uint8_t frame_number;            ///< The frame number within the superframe
 	// TODO we don't do one less
-	uint16_t tp_loop_count;           ///< one less than the number of the frame
-	                                   //   TP entry loops that follow
-	                                   //   nbr max loop = nbr max of terminals
+	uint16_t tp_loop_count;          ///< one less than the number of the frame
+	                                 //   TP entry loops that follow
+	                                 //   nbr max loop = nbr max of terminals
 } __attribute__((packed)) frame_info_t;
-
 
 /** The emulated Time Plan */
 typedef struct
@@ -81,44 +83,46 @@ typedef struct
 typedef struct
 {
 	frame_info_t frame_info;  ///< the frame specific content
-	emu_tp_t tp;              ///< The first Time Plans in the frame
+	emu_tp_t tp[0];           ///< The first Time Plans in the frame
 	                          //   max nbr of terminals = broadcast tal_id
 } __attribute__((packed)) emu_frame_t;
 
 /** The emulated TTP field */
 typedef struct
 {
-	ttp_info_t ttp_info;   ///< The TTP specific content
-	emu_frame_t frames;    ///< The first frames in the superframe
+	ttp_info_t ttp_info;    ///< The TTP specific content
+	emu_frame_t frames[0];  ///< The first frames in the superframe
 } __attribute__((packed)) emu_ttp_t;
 
+/**
+ * Time Burst Time plan, essentially A basic DVB Header
+ * followed by an array descriptor of frame structures
+ */
+typedef struct
+{
+	T_DVB_HDR hdr;  ///< Basic DVB Header
+	emu_ttp_t ttp;  ///< The emulated TTP
+} __attribute__((packed)) T_DVB_TTP;
 
-class Ttp
+
+class Ttp: public DvbFrameTpl<T_DVB_TTP>
 {
  public:
 	/**
 	 * @brief Terminal Time Plan contructor
 	 */
-	Ttp() {};
+	Ttp();
 
 	/**
 	 * @brief Terminal Time Plan contructor
 	 *
 	 * @param group_id  The group ID
+	 * @param sf_id     The superframe ID
 	 */
-	Ttp(group_id_t group_id);
+	Ttp(group_id_t group_id, time_sf_t sf_id);
 
 
 	~Ttp() {};
-
-	/**
-	 * @brief Parse TTP data
-	 *
-	 * @param data   The RAW data contining the TP
-	 * @param length The data length
-	 * @return true on success, false otherwise
-	 */
-	bool parse(const unsigned char *data, size_t length);
 
 	/**
 	 * @brief Add the new Time Plan entry
@@ -147,13 +151,9 @@ class Ttp
 	/**
 	 * @brief Build the TTP
 	 *
-	 * @param superframe_nbr_sf The superframe number
-	 * @param frame             The frame containing the TTP field
-	 * @param length            The length of the frame
-	 *
 	 * @return true on success, false othertwise
 	 */
-	bool build(time_sf_t superframe_nbr_sf, unsigned char *frame, size_t &length);
+	bool build(void);
 
 	/**
 	 * @brief Get the Time Plan for a terminal
@@ -163,7 +163,7 @@ class Ttp
 	 *
 	 * @return true if a TP is found, false otherwise
 	 */
-	bool getTp(tal_id_t tal_id, map<uint8_t, emu_tp_t> &tp);
+	bool getTp(tal_id_t tal_id, map<uint8_t, emu_tp_t> &tps);
 
 	/**
 	 * @brief  Get the group Id
@@ -172,7 +172,7 @@ class Ttp
 	 */
 	group_id_t getGroupId() const
 	{
-		return this->group_id;
+		return this->frame->ttp.ttp_info.group_id;
 	};
 
 	/**
@@ -182,7 +182,7 @@ class Ttp
 	 */
 	time_sf_t getSuperframeCount() const
 	{
-		return this->superframe_count;
+		return ntohs(this->frame->ttp.ttp_info.superframe_count);
 	};
 
  private:
@@ -194,12 +194,6 @@ class Ttp
 
 	/// The frames, completed each time we add a TP
 	frames_t frames;
-	/// The Time Plans per frame ID for a terminal ID
-	map<tal_id_t, map<uint8_t, emu_tp_t> > tps;
-	/// The group ID
-	group_id_t group_id;
-	/// The superframe count
-	time_sf_t superframe_count;
 };
 
 #endif

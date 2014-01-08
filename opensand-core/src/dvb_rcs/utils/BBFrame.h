@@ -36,14 +36,14 @@
 #ifndef BB_FRAME_H
 #define BB_FRAME_H
 
-#include <DvbFrame.h>
+#include "DvbFrame.h"
 
 
 /**
  * @class BBFrame
  * @brief BB frame
  */
-class BBFrame: public DvbFrame
+class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 {
 
  public:
@@ -54,21 +54,29 @@ class BBFrame: public DvbFrame
 	 * @param data    raw data from which a BB frame can be created
 	 * @param length  length of raw data
 	 */
-	BBFrame(unsigned char *data, unsigned int length);
+	BBFrame(const unsigned char *data, size_t length);
 
 	/**
 	 * Build a BB frame
 	 *
 	 * @param data  raw data from which a BB frame can be created
 	 */
-	BBFrame(Data data);
+	BBFrame(const Data &data);
+
+	/**
+	 * Build a BB frame
+	 *
+	 * @param data    raw data from which a BB frame can be created
+	 * @param length  length of raw data
+	 */
+	BBFrame(const Data &data, size_t length);
 
 	/**
 	 * Duplicate a BB frame
 	 *
 	 * @param frame  the BB frame to duplicate
 	 */
-	BBFrame(BBFrame *frame);
+	BBFrame(DvbFrame *frame);
 
 	/**
 	 * Build an empty BB frame
@@ -81,11 +89,8 @@ class BBFrame: public DvbFrame
 	~BBFrame();
 
 	// implementation of virtual functions
-	uint16_t getPayloadLength();
-	Data getPayload();
 	bool addPacket(NetPacket *packet);
 	void empty(void);
-	void setEncapPacketEtherType(uint16_t type);
 
 	// BB frame specific
 
@@ -103,13 +108,6 @@ class BBFrame: public DvbFrame
 	 */
 	uint8_t getModcodId(void) const;
 
-
-	/**
-	 * @brief Get the type of encapsulated packets
-	 *
-	 * @return  the type of encapsulated packets
-	 */
-	uint16_t getEncapPacketEtherType(void) const;
 
 	/**
 	 * @brief Get the data length in the BBFrame
@@ -143,6 +141,7 @@ class BBFrame: public DvbFrame
 	 * @return the offset
 	 */
 	size_t getOffsetForPayload(void); 
+
 };
 
 #endif

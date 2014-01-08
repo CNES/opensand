@@ -37,6 +37,7 @@
 
 #include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
+#include "Data.h"
 
 #include <string>
 #include <map>
@@ -203,7 +204,7 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 		 *         If packet is modified by the function but should be forwarded
 		 *         to other layers return false else it will be discarded
 		 */
-		virtual bool modifyPacket(unsigned char *payload, long length) = 0;
+		virtual bool modifyPacket(const Data &payload) = 0;
 
 };
 

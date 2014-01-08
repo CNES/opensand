@@ -64,7 +64,7 @@ class Gate: public ErrorInsertionPlugin
 		 * @return true if DVB header should be tagged as corrupted,
 		 *         false otherwise
 		 */
-		bool modifyPacket(unsigned char *payload, long length);
+		bool modifyPacket(const Data &payload);
 
 		/**
 		 * @brief Determine if a Packet shall be corrupted or not depending on

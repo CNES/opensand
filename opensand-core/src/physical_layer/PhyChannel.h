@@ -36,7 +36,7 @@
 
 #include "PhysicalLayerPlugin.h"
 #include "FmtDefinitionTable.h"
-#include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 #include <opensand_rt/Rt.h>
 
@@ -44,9 +44,6 @@
 
 
 using std::string;
-
-#define IS_DVB_FRAME(msg_type) \
- 	(msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST)
 
 /**
  * @class PhyChannel
@@ -95,27 +92,27 @@ class PhyChannel
 	 *        carried in the T_DVB_PHY structure and the downlink C/N
 	 *        computed from nominal conditions and attenuation
 	 *
-	 * @param phy_frame  The uplink physical layer information for the current frame
+	 * @param dvb_frame  The uplink DVB frame
 	 *
 	 * @return the total C/N
 	 */
-	double getTotalCN(T_DVB_PHY *phy_frame);
+	double getTotalCN(DvbFrame *dvb_frame);
 
 	/*
 	 * @brief Inserts the C/N value of the Channel in a given T_DVB_PHY
 	 *        structure
 	 *
-	 * @param phy_frame  The physical layer data of the current frame
+	 * @param dvb_frame  The current frame
 	 */
-	void addSegmentCN(T_DVB_PHY *phy_frame);
+	void addSegmentCN(DvbFrame *dvb_frame);
 
 	/*
 	 * @brief Update the Minimal Condition attribute when a msg is received
 	 *
-	 * @param hdr The DVB header
+	 * @param dvb_frame The DVB frame
 	 * @return true on success, false otherwise
 	 */
-	bool updateMinimalCondition(T_DVB_HDR *hdr);
+	bool updateMinimalCondition(DvbFrame *dvb_frame);
 
 	/**
 	 * @brief Determine if a Packet shall be corrupted or not
@@ -129,20 +126,18 @@ class PhyChannel
 	/**
 	 * @brief Corrupt a package with error bits
 	 *
-	 * @param frame the packet to be modified
+	 * @param dvb_frame the frame to be modified
 	 */
-	void modifyPacket(T_DVB_META *frame, long length);
+	void modifyPacket(DvbFrame *dvb_frame);
 
 
 	/**
 	 * Forward a DVB frame to a destination block
 	 *
-	 * @param dvb_meta  The DVB frame to send
-	 * @param len       The length of the DVB frame to send
+	 * @param dvb_frame The DVB frame to send
 	 * @return Whether the DVB frame was successfully sent or not
 	 */
-	virtual bool forwardMetaFrame(T_DVB_META *dvb_meta,
-	                              size_t len) = 0;
+	virtual bool forwardFrame(DvbFrame *dvb_frame) = 0;
 
 	/// probes
 	Probe<float> *probe_attenuation;

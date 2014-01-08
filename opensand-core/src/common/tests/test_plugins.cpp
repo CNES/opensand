@@ -667,7 +667,7 @@ static bool test_iter(string src_filename, string encap_filename,
 			continue;
 		}
 
-		DEBUG("[packet #%d] %s packet is %d-byte long\n", counter_src,
+		DEBUG("[packet #%d] %s packet is %zu-byte long\n", counter_src,
 		      (*lan_contexts.begin())->getName().c_str(),
 		      net_packet->getTotalLength());
 

@@ -62,13 +62,20 @@ class IpPacket: public NetPacket
 	 * @param data raw data from which an IP packet can be created
 	 * @param length length of raw data
 	 */
-	IpPacket(unsigned char *data, unsigned int length);
+	IpPacket(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an IP packet
 	 * @param data raw data from which an IP packet can be created
 	 */
-	IpPacket(Data data);
+	IpPacket(const Data &data);
+
+	/**
+	 * Build an IP packet
+	 * @param data raw data from which an IP packet can be created
+	 * @param length length of raw data
+	 */
+	IpPacket(const Data &data, size_t length);
 
 	/**
 	 * Build an empty IP packet
@@ -81,10 +88,7 @@ class IpPacket: public NetPacket
 	virtual ~IpPacket();
 
 	// implementation of virtual functions
-	void setQos(int qos);
-	void setSrcTalId(long talId);
-	void setDstTalId(long talId);
-	Data getPayload();
+	Data getPayloadData() const;
 
 	/**
 	 * Retrieve the version from an IP packet
@@ -94,18 +98,10 @@ class IpPacket: public NetPacket
 	static int version(Data data);
 
 	/**
-	 * Retrieve the version from an IP packet
-	 * @param data IP data
-	 * @param length IP data length
-	 * @return the IP version
-	 */
-	static int version(unsigned char *data, unsigned int length);
-
-	/**
 	 * Retrieve the version of the IP packet
 	 * @return the version of the IP packet
 	 */
-	int version();
+	int version() const;
 
 	/**
 	 * Retrieve the source address of the IP packet
@@ -125,27 +121,27 @@ class IpPacket: public NetPacket
 	 * @return the DiffServField, that is the Type Of Service (TOS) 
 	 * or Traffic Class (TC) of the IP packet
 	 */
-	virtual uint8_t diffServField() = 0;
+	virtual uint8_t diffServField() const = 0;
 
 	/** 
 	 * Retrieve the diffServCodePoint (DSCP) value of the IP packet, 
 	 * that is the 6 leftmost bits of the DiffServField.
 	 * @return the diffServCodePoint (DSCP)
 	 */
-	virtual uint8_t diffServCodePoint() = 0;
+	virtual uint8_t diffServCodePoint() const = 0;
 
 	/**
 	 * Retrieve the explicitCongestionNoficiation (ECN) value of the IP packet,
 	 * that is the 2 rightmost bits of the DiffServField. 
 	 * @return the explicitCongestionNotification (ECN)
 	 */
-	virtual uint8_t explicitCongestionNotification() = 0;
+	virtual uint8_t explicitCongestionNotification() const = 0;
 
 	/**
 	 * Is the network-layer packet a valid one?
 	 * @return true if network-layer packet is valid, false otherwise
 	 */
-	virtual bool isValid() = 0;
+	virtual bool isValid() const = 0;
 };
 
 #endif

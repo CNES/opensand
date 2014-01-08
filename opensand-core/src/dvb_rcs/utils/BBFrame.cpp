@@ -41,132 +41,101 @@
 
 #include <string.h>
 
-BBFrame::BBFrame(unsigned char *data, unsigned int length):
-	DvbFrame(data, length)
+BBFrame::BBFrame(const unsigned char *data, size_t length):
+	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
 {
 	this->name = "BB frame";
-	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->data.reserve(this->max_size);
+	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
+	this->num_packets = this->getDataLength();
+	this->header_length = this->getOffsetForPayload();
 }
 
-BBFrame::BBFrame(Data data):
-	DvbFrame(data)
+BBFrame::BBFrame(const Data &data):
+	DvbFrameTpl<T_DVB_BBFRAME>(data)
 {
 	this->name = "BB frame";
-	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->data.reserve(this->max_size);
+	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
+	this->num_packets = this->getDataLength();
+	this->header_length = this->getOffsetForPayload();
 }
 
-BBFrame::BBFrame(BBFrame *frame):
-	DvbFrame(frame)
+BBFrame::BBFrame(const Data &data, size_t length):
+	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
 {
-	this->data.reserve(this->max_size);
+	this->name = "BB frame";
+	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
+	this->num_packets = this->getDataLength();
+	this->header_length = this->getOffsetForPayload();
+}
+
+BBFrame::BBFrame(DvbFrame *frame):
+	DvbFrameTpl<T_DVB_BBFRAME>(frame)
+{
 }
 
 BBFrame::BBFrame():
-	DvbFrame()
+	DvbFrameTpl<T_DVB_BBFRAME>()
 {
-	T_DVB_BBFRAME header;
-
 	this->name = "BB frame";
-	this->max_size = MSG_BBFRAME_SIZE_MAX;
-	this->data.reserve(this->max_size);
+	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
 
 	// no data given as input, so create the BB header
-	header.hdr.msg_length = sizeof(T_DVB_BBFRAME);
-	header.hdr.msg_type = MSG_TYPE_BBFRAME;
-	header.data_length = 0; // no encapsulation packet at the beginning
-	header.used_modcod = 0; // by default, may be changed
-	header.real_modcod_nbr = 0; // no MODCOD option at the beginning
-	this->data.append((unsigned char *) &header, sizeof(T_DVB_BBFRAME));
+	this->setMessageLength(sizeof(T_DVB_BBFRAME));
+	this->setMessageType(MSG_TYPE_BBFRAME);
+	this->frame->data_length = 0; // no encapsulation packet at the beginning
+	this->frame->used_modcod = 0; // by default, may be changed
+	this->frame->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
 BBFrame::~BBFrame()
 {
 }
 
-uint16_t BBFrame::getPayloadLength()
-{
-	return (this->getTotalLength() - this->getOffsetForPayload());
-}
-
-Data BBFrame::getPayload()
-{
-	return Data(this->data, this->getOffsetForPayload(), this->getPayloadLength());
-}
-
 bool BBFrame::addPacket(NetPacket *packet)
 {
 	bool is_added;
 
-	is_added = DvbFrame::addPacket(packet);
+	is_added = DvbFrameTpl<T_DVB_BBFRAME>::addPacket(packet);
 	if(is_added)
 	{
-		T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-
-		bb_header->hdr.msg_length += packet->getTotalLength();
-		bb_header->data_length++;
+		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+		this->frame->data_length = htons(this->num_packets);
 	}
 
 	return is_added;
 }
 
+// TODO not used => remove ?!
 void BBFrame::empty(void)
 {
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-
 	// remove the payload
 	this->data.erase(sizeof(T_DVB_BBFRAME));
 	this->num_packets = 0;
 
 	// update the BB frame header
-	bb_header->hdr.msg_length = sizeof(T_DVB_BBFRAME);
-	bb_header->data_length = 0; // no encapsulation packet at the beginning
-	bb_header->real_modcod_nbr = 0; // no MODCOD option at the beginning
+	this->setMessageLength(sizeof(T_DVB_BBFRAME));
+	this->frame->data_length = 0; // no encapsulation packet at the beginning
+	this->frame->used_modcod = 0; // by default, may be changed
+	this->frame->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
 void BBFrame::setModcodId(unsigned int modcod_id)
 {
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-
-	bb_header->used_modcod = modcod_id;
+	this->frame->used_modcod = modcod_id;
 }
-
-void BBFrame::setEncapPacketEtherType(uint16_t type)
-{
-	T_DVB_BBFRAME *bbframe_burst = (T_DVB_BBFRAME *)this->data.c_str();
-
-	bbframe_burst->pkt_type = type;
-}
-
-// TODO endianess
 
 uint8_t BBFrame::getModcodId(void) const
 {
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-
-	return bb_header->used_modcod;
+	return this->frame->used_modcod;
 }
-
-
-uint16_t BBFrame::getEncapPacketEtherType(void) const
-{
-	T_DVB_BBFRAME *bbframe_burst = (T_DVB_BBFRAME *)this->data.c_str();
-
-	return bbframe_burst->pkt_type;
-}
-
 
 uint16_t BBFrame::getDataLength(void) const
 {
-	T_DVB_BBFRAME *bbframe_burst = (T_DVB_BBFRAME *)this->data.c_str();
-
-	return bbframe_burst->data_length;
+	return ntohs(this->frame->data_length);
 }
 
 void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
 {
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
 	T_DVB_REAL_MODCOD option;
 
 	option.terminal_id = htons(tal_id);
@@ -174,17 +143,16 @@ void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
 	this->data.insert(sizeof(T_DVB_BBFRAME), (unsigned char *)(&option),
 	                  sizeof(T_DVB_REAL_MODCOD));
 
-	bb_header->real_modcod_nbr += 1;
+	this->frame->real_modcod_nbr += 1;
 }
 
 void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 {
 	unsigned int i;
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
 	T_DVB_REAL_MODCOD *real_modcod_option;
-	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->data.c_str() + sizeof(T_DVB_BBFRAME));
+	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->frame + sizeof(T_DVB_BBFRAME));
 
-	for(i = 0; i < bb_header->real_modcod_nbr; i++)
+	for(i = 0; i < this->frame->real_modcod_nbr; i++)
 	{
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
@@ -203,6 +171,6 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 
 size_t BBFrame::getOffsetForPayload(void)
 {
-	T_DVB_BBFRAME *bb_header = (T_DVB_BBFRAME *)this->data.c_str();
-	return sizeof(T_DVB_BBFRAME) + bb_header->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
+	return sizeof(T_DVB_BBFRAME) + this->frame->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
 }
+

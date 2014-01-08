@@ -35,8 +35,8 @@
 #ifndef AAL5_PACKET_H
 #define AAL5_PACKET_H
 
-#include <NetPacket.h>
-#include <AtmCell.h>
+#include "NetPacket.h"
+#include "AtmCell.h"
 
 
 /**
@@ -48,9 +48,9 @@ class Aal5Packet: public NetPacket
  private:
 
 	/// Is the validity of the AAL5 packet already checked?
-	bool validityChecked;
+	mutable bool validityChecked;
 	/// If AAL5 packet validity is checked, what is the result?
-	bool validityResult;
+	mutable bool validityResult;
 
  public:
 
@@ -59,13 +59,20 @@ class Aal5Packet: public NetPacket
 	 * @param data raw data from which an AAL5 packet can be created
 	 * @param length length of raw data
 	 */
-	Aal5Packet(unsigned char *data, unsigned int length);
+	Aal5Packet(const unsigned char *data, size_t length);
 
 	/**
 	 * Build an AAL5 packet from raw data
 	 * @param data raw data to create an AAL5 packet from
 	 */
-	Aal5Packet(Data data);
+	Aal5Packet(const Data &data);
+
+	/**
+	 * Build an AAL5 packet from raw data
+	 * @param data raw data from which an AAL5 packet can be created
+	 * @param length length of raw data
+	 */
+	Aal5Packet(const Data &data, size_t length);
 
 	/**
 	 * Build an empty AAL5 packet
@@ -77,48 +84,23 @@ class Aal5Packet: public NetPacket
 	 */
 	~Aal5Packet();
 
-	bool isValid();
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
-	Data getPayload();
-
-	/**
-	 * Set the ULE packet source terminal ID because it cannot be stored
-	 * in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setSrcTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ULE packet destination terminal ID because it cannot be stored
-	 * in a header field
-	 *
-	 * @param tal_id The terminal ID
-	 */
-	void setDstTalId(uint8_t tal_id);
-
-	/**
-	 * Set the ULE packet QoS value because it cannot be stored
-	 * in a header field
-	 *
-	 * @param QoS The QoS value
-	 */
-	void setQos(uint8_t qos);
+	bool isValid() const;
+	size_t getPayloadLength() const;
+	Data getPayloadData() const;
 
 	/**
 	 * Create an AAL5 packet from its payload
 	 * @param payload the payload of the AAL5 packet to be created
 	 * @return a newly created AAL5 packet
 	 */
-	static Aal5Packet * createFromPayload(Data payload);
+	static Aal5Packet *createFromPayload(Data payload);
 
 	/**
 	 * Get the number of ATM cells needed to encapsulate payload data into an
 	 * AAL5 packet and fragment this packet into one or several ATM cells
 	 * @return number of ATM cells
 	 */
-	unsigned int nbAtmCells();
+	unsigned int nbAtmCells() const;
 
 	/**
 	 * Get the ATM cell at the given position in AAL5 packet
@@ -126,7 +108,7 @@ class Aal5Packet: public NetPacket
 	 * @return the raw data of the ATM cell at the position given by parameter
 	 *         index
 	 */
-	Data atmCell(unsigned int index);
+	Data atmCell(unsigned int index) const;
 
  protected:
 
@@ -141,7 +123,7 @@ class Aal5Packet: public NetPacket
 	 * Retrieve the CRC from the AAL5 trailer
 	 * @return the CRC from the AAL5 trailer
 	 */
-	uint32_t crc();
+	uint32_t crc() const;
 };
 
 #endif

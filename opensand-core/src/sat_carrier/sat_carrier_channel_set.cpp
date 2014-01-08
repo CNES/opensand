@@ -222,37 +222,32 @@ error:
 }
 
 
-/**
- * Send a variable length buffer on the specified satellite Carrier.
- *
- * @param channel  Satellite Carrier id
- * @param buf      pointer to a char buffer
- * @param len      length of the buffer
- * @return         the size of sent data if successful, -1 otherwise
- */
-int sat_carrier_channel_set::send(unsigned int channel,
-                                  unsigned char *buf,
-                                  unsigned int len)
+bool sat_carrier_channel_set::send(uint8_t carrier_id,
+                                   const unsigned char *data,
+                                   size_t length)
 {
-	std::vector < sat_carrier_channel * >::iterator it;
-	int ret = -1;
+	std::vector <sat_carrier_channel *>::const_iterator it;
+	bool status;
 
-	for(it = this->begin(); it != this->end(); it++)
+	for(it = this->begin(); it != this->end(); ++it)
 	{
-		if(channel == (*it)->getChannelID() && (*it)->isOutputOk())
+		if(carrier_id == (*it)->getChannelID() && (*it)->isOutputOk())
 		{
-			ret = (*it)->send(buf, len);
+			if((*it)->send(data, length))
+			{
+				status = true;
+			}
 			break;
 		}
 	}
 
 	if(it == this->end())
 	{
-		UTI_ERROR("failed to send %u bytes of data through channel %d: "
-		          "channel not found\n", len, channel);
+		UTI_ERROR("failed to send %zu bytes of data through channel %u: "
+		          "channel not found\n", length, carrier_id);
 	}
 
-	return ret;
+	return status;
 }
 
 

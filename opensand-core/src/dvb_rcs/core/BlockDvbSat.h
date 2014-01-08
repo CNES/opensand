@@ -196,18 +196,21 @@ class BlockDvbSat: public BlockDvb
 	* Called upon reception event it is another layer (below on event) of demultiplexing
 	* Do the appropriate treatment according to the type of the DVB message
 	*
-	* @param frame      the DVB or BB frame to forward
-	* @param length     the length (in bytes) of the frame
-	* @param carrier_id the carrier id of the frame
+	* @param dvb_frame  the DVB or BB frame to forward
 	* @return           true on success, false otherwise
 	*/
-	bool onRcvDvbFrame(unsigned char *frame,
-	                   unsigned int length,
-	                   unsigned int carrier_id);
+	bool onRcvDvbFrame(DvbFrame *dvb_frame);
 
-	int sendSigFrames(DvbFifo * sigFifo);
+	bool sendSigFrames(DvbFifo *sig_fifo);
 
-	bool forwardDvbFrame(DvbFifo * sigFifo, char *ip_buf, int i_len);
+	/**
+	 * Forward a signaling frame
+	 *
+	 * @param sig_fifo   The correct fifo
+	 * @param dvb_frame  The frame to forward
+	 * @return true on success, false otherwise
+	 */
+	bool forwardDvbFrame(DvbFifo *sig_fifo, DvbFrame *dvb_frame);
 
 	/**
 	 * Send the DVB frames stored in the given MAC FIFO by
@@ -232,8 +235,7 @@ class BlockDvbSat: public BlockDvb
 	 * @return              true on success, false otherwise
 	 */
 	virtual bool onForwardFrame(DvbFifo *data_fifo,
-	                            unsigned char *frame,
-	                            unsigned int length,
+	                            DvbFrame *dvb_frame,
 	                            long current_time,
 	                            int fifo_delay);
 

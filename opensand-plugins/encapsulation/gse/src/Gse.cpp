@@ -63,14 +63,13 @@ Gse::Gse():
 Gse::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin), contexts()
 {
-	const char *FUNCNAME = "[Gse::Context::Context]";
 	gse_status_t status;
 	ConfigurationFile config;
 
 	if(config.loadConfig(CONF_GSE_FILE) < 0)
 	{
-		UTI_ERROR("%s failed to load config file '%s'",
-		          FUNCNAME, CONF_GSE_FILE);
+		UTI_ERROR("failed to load config file '%s'",
+		          CONF_GSE_FILE);
 		goto error;
 	}
 
@@ -78,10 +77,10 @@ Gse::Context::Context(EncapPlugin &plugin):
 	if(!config.getValue(GSE_SECTION,
 	                    PACKING_THRESHOLD, this->packing_threshold))
 	{
-		UTI_ERROR("%s missing %s parameter\n", FUNCNAME, PACKING_THRESHOLD);
+		UTI_ERROR("missing %s parameter\n", PACKING_THRESHOLD);
 		goto unload;
 	}
-	UTI_DEBUG("%s packing thershold: %lu\n", FUNCNAME, this->packing_threshold);
+	UTI_DEBUG("packing thershold: %lu\n", this->packing_threshold);
 
 	// Initialize encapsulation and deencapsulation contexts
 	// Since we use a "custom" frag_id based on QoS value and the source tal_id,
@@ -89,15 +88,15 @@ Gse::Context::Context(EncapPlugin &plugin):
 	status = gse_encap_init(MAX_QOS_NBR, 1, &this->encap);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot init GSE encapsulation context (%s)\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("cannot init GSE encapsulation context (%s)\n",
+		          gse_get_status(status));
 		goto unload;
 	}
 	status = gse_deencap_init(MAX_QOS_NBR, &this->deencap);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot init GSE deencapsulation context (%s)\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("cannot init GSE deencapsulation context (%s)\n",
+		          gse_get_status(status));
 		goto release_encap;
 	}
 
@@ -109,8 +108,8 @@ release_encap:
 	status = gse_encap_release(this->encap);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot release GSE encapsulation context (%s)\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("cannot release GSE encapsulation context (%s)\n",
+		          gse_get_status(status));
 	}
 unload:
 	config.unloadConfig();
@@ -121,8 +120,6 @@ error:
 
 Gse::Context::~Context()
 {
-	const char *FUNCNAME = "[Gse::Context::~Context]";
-
 	gse_status_t status;
 	std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier>::iterator it;
 
@@ -132,8 +129,8 @@ Gse::Context::~Context()
 		status = gse_encap_release(this->encap);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s cannot release GSE encapsulation context (%s)\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("cannot release GSE encapsulation context (%s)\n",
+			          gse_get_status(status));
 		}
 	}
 	if(this->deencap != NULL)
@@ -141,8 +138,8 @@ Gse::Context::~Context()
 		status = gse_deencap_release(this->deencap);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s cannot release GSE deencapsulation context (%s)\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("cannot release GSE deencapsulation context (%s)\n",
+			          gse_get_status(status));
 		}
 	}
 
@@ -156,7 +153,6 @@ Gse::Context::~Context()
 NetBurst *Gse::Context::encapsulate(NetBurst *burst,
                                     map<long, int> &time_contexts)
 {
-	const char *FUNCNAME = "[Gse::Context::encapsulate]";
 	NetBurst *gse_packets = NULL;
 
 	NetBurst::iterator packet;
@@ -165,8 +161,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 	gse_packets = new NetBurst();
 	if(gse_packets == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for burst of GSE packets\n",
-		          FUNCNAME);
+		UTI_ERROR("cannot allocate memory for burst of GSE packets\n");
 		delete burst;
 		return NULL;
 	}
@@ -179,7 +174,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 		// packet must be valid
 		if(*packet == NULL)
 		{
-			UTI_ERROR("%s packet is not valid, drop the packet\n", FUNCNAME);
+			UTI_ERROR("packet is not valid, drop the packet\n");
 			continue;
 		}
 
@@ -187,9 +182,8 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 		             (((*packet)->getDstTalId() & 0x1f) << 3) |
 		             ((*packet)->getQos() & 0x07);
 
-		UTI_DEBUG("%s encapsulate a %d-byte packet of type 0x%04x "
+		UTI_DEBUG("encapsulate a %zu-byte packet of type 0x%04x "
 		          "with SRC TAL Id = %u, DST TAL Id = %u, QoS = %u\n",
-		          FUNCNAME,
 		          (*packet)->getTotalLength(),
 		          (*packet)->getType(),
 		          (*packet)->getSrcTalId(),
@@ -199,8 +193,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 		// the GSE encapsulation context must exist
 		if(this->encap == NULL)
 		{
-			UTI_ERROR("%s GSE encapsulation context unexisting, drop packet\n",
-			          FUNCNAME);
+			UTI_ERROR("GSE encapsulation context unexisting, drop packet\n");
 			continue;
 		}
 
@@ -240,7 +233,6 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
                                     long &time)
 {
-	const char *FUNCNAME = "[Gse::Context::encapFixedLength]";
 	std::map <GseIdentifier *, GseEncapCtx *,
 	          ltGseIdentifier >::iterator context_it;
 	GseEncapCtx *context = NULL;
@@ -253,32 +245,31 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 
 	if(packet->getTotalLength() != this->current_upper->getFixedLength())
 	{
-		UTI_ERROR("%s Bad packet length (%zu), drop packet\n",
-		          FUNCNAME, this->current_upper->getFixedLength());
+		UTI_ERROR("Bad packet length (%zu), drop packet\n",
+		          this->current_upper->getFixedLength());
 		return false;
 	}
 
 	identifier = new GseIdentifier(packet->getSrcTalId(),
 	                               packet->getDstTalId(),
 	                               packet->getQos());
-	UTI_DEBUG("%s check if encapsulation context exists\n", FUNCNAME);
+	UTI_DEBUG("check if encapsulation context exists\n");
 	context_it = this->contexts.find(identifier);
 	if(context_it == this->contexts.end())
 	{
-		UTI_DEBUG("%s encapsulation context does not exist yet\n", FUNCNAME);
+		UTI_DEBUG("encapsulation context does not exist yet\n");
 		context = new GseEncapCtx(identifier, dest_spot);
 		this->contexts.insert(std::pair <GseIdentifier *, GseEncapCtx *>
 		                      (identifier, context));
-		UTI_DEBUG("%s new encapsulation context created, "
+		UTI_DEBUG("new encapsulation context created, "
 		          "Src TAL Id = %u, Dst TAL Id = %u, QoS = %u\n",
-		          FUNCNAME,
 		          context->getSrcTalId(), context->getDstTalId(), context->getQos());
 	}
 	else
 	{
 		context = (*context_it).second;
-		UTI_DEBUG("%s find an encapsulation context containing %zu "
-		          "bytes of data\n", FUNCNAME, context->length());
+		UTI_DEBUG("find an encapsulation context containing %zu "
+		          "bytes of data\n", context->length());
 		delete identifier;
 	}
 
@@ -288,21 +279,21 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	status = context->add(packet);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Error when adding packet in context (%s), drop packet\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Error when adding packet in context (%s), drop packet\n",
+		          gse_get_status(status));
 		return false;
 	}
 
-	UTI_DEBUG("%s Packet now entirely packed into GSE context, "
-	          "context contains %zu bytes\n", FUNCNAME, context->length());
+	UTI_DEBUG("Packet now entirely packed into GSE context, "
+	          "context contains %zu bytes\n", context->length());
 
 	// if there is enough space in buffer for another MPEG/ATM packet or if
 	// packing_threshold is not 0 keep data in the virtual buffer
 	if((!context->isFull()) && this->packing_threshold != 0)
 	{
-		UTI_DEBUG("%s enough unused space in virtual buffer for packing "
+		UTI_DEBUG("enough unused space in virtual buffer for packing "
 		          "=> keep the packets %lu ms\n",
-		          FUNCNAME, this->packing_threshold);
+		          this->packing_threshold);
 
 		time = this->packing_threshold;
 
@@ -325,8 +316,8 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	delete ctx_id;
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Fail to duplicated context data (%s), drop packet\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Fail to duplicated context data (%s), drop packet\n",
+		          gse_get_status(status));
 		return false;
 	}
 
@@ -342,7 +333,6 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
  */
 bool Gse::Context::encapVariableLength(NetPacket *packet, NetBurst *gse_packets)
 {
-	const char *FUNCNAME = "[Gse::Context::encapVariableLength]";
 	gse_status_t status;
 	gse_vfrag_t *vfrag_pkt;
 
@@ -350,12 +340,12 @@ bool Gse::Context::encapVariableLength(NetPacket *packet, NetBurst *gse_packets)
 	status = gse_create_vfrag_with_data(&vfrag_pkt, packet->getTotalLength(),
 	                                    GSE_MAX_HEADER_LENGTH,
 	                                    GSE_MAX_TRAILER_LENGTH,
-	                                    (unsigned char *)packet->getData().c_str(),
+	                                    packet->getData().c_str(),
                                         packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Virtual fragment creation failed (%s), drop packet\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Virtual fragment creation failed (%s), drop packet\n",
+		          gse_get_status(status));
 		return false;
 	}
 	return this->encapPacket(packet, vfrag_pkt, gse_packets);
@@ -373,7 +363,6 @@ bool Gse::Context::encapPacket(NetPacket *packet,
                                gse_vfrag_t *vfrag_pkt,
                                NetBurst *gse_packets)
 {
-	const char *FUNCNAME = "[Gse::Context::encapPacket]";
 	gse_status_t status;
 	gse_vfrag_t *vfrag_gse;
 	unsigned int counter;
@@ -407,7 +396,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	// Set packet label
 	if(!Gse::setLabel(packet, label))
 	{
-		UTI_ERROR("%s Cannot set label for GSE packet\n", FUNCNAME);
+		UTI_ERROR("Cannot set label for GSE packet\n");
 		goto drop;
 	}
 
@@ -420,8 +409,8 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	                               packet->getType(), frag_id);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Fail to store packet in GSE encapsulation context (%s), "
-		          "drop packet\n", FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Fail to store packet in GSE encapsulation context (%s), "
+		          "drop packet\n", gse_get_status(status));
 		goto drop;
 	}
 
@@ -433,8 +422,8 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 		                              GSE_MAX_PACKET_LENGTH, frag_id);
 		if(status != GSE_STATUS_OK && status != GSE_STATUS_FIFO_EMPTY)
 		{
-			UTI_ERROR("%s Fail to get GSE packet #%u in encapsulation context "
-			          "(%s), drop packet\n", FUNCNAME, counter,
+			UTI_ERROR("Fail to get GSE packet #%u in encapsulation context "
+			          "(%s), drop packet\n", counter,
 			          gse_get_status(status));
 			goto clean;
 		}
@@ -442,14 +431,16 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 		if(status == GSE_STATUS_OK)
 		{
 			NetPacket *gse;
-			gse = this->createPacket(gse_get_vfrag_start(vfrag_gse),
+			Data gse_packet(gse_get_vfrag_start(vfrag_gse),
+			                gse_get_vfrag_length(vfrag_gse));
+			gse = this->createPacket(gse_packet,
 			                         gse_get_vfrag_length(vfrag_gse),
 			                         qos, src_tal_id, dst_tal_id);
 			// create a GSE packet from fragments computed by the GSE library
 			if(gse == NULL)
 			{
-				UTI_ERROR("%s cannot create GSE packet, drop the network "
-				          "packet\n", FUNCNAME);
+				UTI_ERROR("cannot create GSE packet, drop the network "
+				          "packet\n");
 				goto clean;
 			}
 
@@ -458,22 +449,22 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 			gse->setDstSpot(dest_spot);
 			// add GSE packet to burst
 			gse_packets->add(gse);
-			UTI_DEBUG("%s %d-byte GSE packet added to burst\n", FUNCNAME,
+			UTI_DEBUG("%zu-byte GSE packet added to burst\n",
 			          gse->getTotalLength());
 
 			status = gse_free_vfrag(&vfrag_gse);
 			if(status != GSE_STATUS_OK)
 			{
-				UTI_ERROR("%s Fail to free GSE fragment #%u (%s), "
-				          "drop packet\n", FUNCNAME, counter,
+				UTI_ERROR("Fail to free GSE fragment #%u (%s), "
+				          "drop packet\n", counter,
 				          gse_get_status(status));
 				goto clean;
 			}
 		}
 	}
 	while(status != GSE_STATUS_FIFO_EMPTY && !gse_packets->isFull());
-	UTI_DEBUG("%s %d-byte %s packet/frame => %u GSE packets\n",
-	          FUNCNAME, packet->getTotalLength(), packet->getName().c_str(),
+	UTI_DEBUG("%zu-byte %s packet/frame => %u GSE packets\n",
+	          packet->getTotalLength(), packet->getName().c_str(),
 	          counter - 1);
 
 	return true;
@@ -484,8 +475,8 @@ clean:
 		status = gse_free_vfrag(&vfrag_gse);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s failed to free GSE virtual fragment (%s)\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("failed to free GSE virtual fragment (%s)\n",
+			          gse_get_status(status));
 		}
 	}
 drop:
@@ -494,7 +485,6 @@ drop:
 
 NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 {
-	const char *FUNCNAME = "[Gse::Context::deencapsulate]";
 	NetBurst *net_packets;
 	gse_vfrag_t *vfrag_gse;
 	gse_status_t status;
@@ -505,9 +495,7 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for burst of network packets\n",
-		          FUNCNAME);
-		gse_free_vfrag(&vfrag_gse);
+		UTI_ERROR("cannot allocate memory for burst of network packets\n");
 		delete burst;
 		return false;
 	}
@@ -519,8 +507,7 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		// packet must be valid
 		if(*packet == NULL)
 		{
-			UTI_ERROR("%s encapsulation packet is not valid, drop the packet\n",
-			          FUNCNAME);
+			UTI_ERROR("encapsulation packet is not valid, drop the packet\n");
 			continue;
 		}
 
@@ -529,8 +516,8 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		if((dst_tal_id != this->dst_tal_id)
 			&& (dst_tal_id != BROADCAST_TAL_ID))
 		{
-			UTI_DEBUG("%s encapsulation packet is for ST#%u. Drop\n",
-			          FUNCNAME, (*packet)->getDstTalId());
+			UTI_DEBUG("encapsulation packet is for ST#%u. Drop\n",
+			          (*packet)->getDstTalId());
 			continue;
 		}
 
@@ -538,33 +525,33 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		// packet must be a GSE packet
 		if((*packet)->getType() != this->getEtherType())
 		{
-			UTI_ERROR("%s encapsulation packet is not a GSE packet "
+			UTI_ERROR("encapsulation packet is not a GSE packet "
 			          "(type = 0x%04x), drop the packet\n",
-			          FUNCNAME, (*packet)->getType());
+			          (*packet)->getType());
 			continue;
 		}
 
 		// the GSE deencapsulation context must exist
 		if(this->deencap == NULL)
 		{
-			UTI_ERROR("%s GSE deencapsulation context does not exist, "
-			          "drop packet\n", FUNCNAME);
+			UTI_ERROR("GSE deencapsulation context does not exist, "
+			          "drop packet\n");
 			continue;
 		}
 
 		// Create a virtual fragment containing the GSE packet
 		status = gse_create_vfrag_with_data(&vfrag_gse, (*packet)->getTotalLength(),
-		                                    0, 0, (unsigned char *)
+		                                    0, 0,
 		                                    (*packet)->getData().c_str(),
 		                                    (*packet)->getTotalLength());
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s Virtual fragment creation failed (%s), drop packet\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("Virtual fragment creation failed (%s), drop packet\n",
+			          gse_get_status(status));
 			continue;
 		}
-		UTI_DEBUG("%s Create a virtual fragment for GSE library "
-		          "(length = %d)\n", FUNCNAME, (*packet)->getTotalLength());
+		UTI_DEBUG("Create a virtual fragment for GSE library "
+		          "(length = %zu)\n", (*packet)->getTotalLength());
 
 		if(!this->deencapPacket(vfrag_gse, (*packet)->getDstSpot(), net_packets))
 		{
@@ -580,7 +567,6 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
                                  uint16_t dest_spot, NetBurst *net_packets)
 {
-	const char *FUNCNAME = "[Gse::Context::deencapPacket]";
 	gse_vfrag_t *vfrag_pdu;
 	gse_status_t status;
 	uint8_t label_type;
@@ -594,47 +580,47 @@ bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
 	switch(status)
 	{
 		case GSE_STATUS_OK:
-			UTI_DEBUG("%s GSE packet deencapsulated, Gse packet length = %u;"
-			          "PDU is not complete\n", FUNCNAME, packet_length);
+			UTI_DEBUG("GSE packet deencapsulated, Gse packet length = %u;"
+			          "PDU is not complete\n", packet_length);
 			break;
 
 		case GSE_STATUS_DATA_OVERWRITTEN:
-			UTI_INFO("%s GSE packet deencapsulated, GSE Length = %u (%s);"
+			UTI_INFO("GSE packet deencapsulated, GSE Length = %u (%s);"
 			         "PDU is not complete, a context was erased\n",
-			         FUNCNAME, packet_length, gse_get_status(status));
+			         packet_length, gse_get_status(status));
 			break;
 
 		case GSE_STATUS_PADDING_DETECTED:
-			UTI_DEBUG("%s %s\n", FUNCNAME, gse_get_status(status));
+			UTI_DEBUG("%s\n", gse_get_status(status));
 			break;
 
 		case GSE_STATUS_PDU_RECEIVED:
 			UTI_DEBUG("received a packet with type 0x%.4x\n", protocol);
 			if(this->current_upper->getFixedLength() > 0)
 			{
-				UTI_DEBUG("%s Inner packet has a fixed length (%zu)\n",
-				          FUNCNAME, this->current_upper->getFixedLength());
+				UTI_DEBUG("Inner packet has a fixed length (%zu)\n",
+				          this->current_upper->getFixedLength());
 				return this->deencapFixedLength(vfrag_pdu ,dest_spot,
 				                                label, net_packets);
 			}
 			else
 			{
-				UTI_DEBUG("%s Inner packet has a variable length\n", FUNCNAME);
+				UTI_DEBUG("Inner packet has a variable length\n");
 				return this->deencapVariableLength(vfrag_pdu, dest_spot,
 				                                   label, net_packets);
 			}
 			break;
 
 		case GSE_STATUS_CTX_NOT_INIT:
-			UTI_DEBUG("%s GSE deencapsulation failed (%s), drop packet "
+			UTI_DEBUG("GSE deencapsulation failed (%s), drop packet "
 			          "(probably not an error, this happens when we receive a "
 			          "fragment that is not for us)\n",
-			          FUNCNAME, gse_get_status(status));
+			          gse_get_status(status));
 			break;
 
 		default:
-			UTI_ERROR("%s GSE deencapsulation failed (%s), drop packet\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("GSE deencapsulation failed (%s), drop packet\n",
+			          gse_get_status(status));
 			return false;
 
 	}
@@ -647,7 +633,6 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
                                       uint8_t label[6],
                                       NetBurst *net_packets)
 {
-	const char *FUNCNAME = "[Gse::Context::deencapFixedLength]";
 	gse_status_t status;
 	NetPacket *packet = NULL;
 	uint8_t src_tal_id, dst_tal_id;
@@ -661,28 +646,30 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 	if(gse_get_vfrag_length(vfrag_pdu) %
 	   this->current_upper->getFixedLength() != 0)
 	{
-		UTI_ERROR("%s Number of packets in GSE payload is not an integer,"
-		          " drop packets\n", FUNCNAME);
+		UTI_ERROR("Number of packets in GSE payload is not an integer,"
+		          " drop packets\n");
 		gse_free_vfrag(&vfrag_pdu);
 		return false;
 	}
 	while(gse_get_vfrag_length(vfrag_pdu) > 0)
 	{
-		packet = this->current_upper->build(gse_get_vfrag_start(vfrag_pdu),
+		Data pdu_frag(gse_get_vfrag_start(vfrag_pdu),
+		              this->current_upper->getFixedLength());
+		packet = this->current_upper->build(pdu_frag,
 		                                    this->current_upper->getFixedLength(),
 		                                    qos, src_tal_id, dst_tal_id);
 		if(packet == NULL)
 		{
-			UTI_ERROR("%s cannot build a %s packet, drop the GSE packet\n",
-			          FUNCNAME, this->current_upper->getName().c_str());
+			UTI_ERROR("cannot build a %s packet, drop the GSE packet\n",
+			          this->current_upper->getName().c_str());
 			gse_free_vfrag(&vfrag_pdu);
 			// move the data pointer after the current packet
 			status = gse_shift_vfrag(vfrag_pdu,
 			                         this->current_upper->getFixedLength(), 0);
 			if(status != GSE_STATUS_OK)
 			{
-				UTI_ERROR("%s cannot shift virtual fragment (%s), drop the "
-				          "GSE packet\n", FUNCNAME, gse_get_status(status));
+				UTI_ERROR("cannot shift virtual fragment (%s), drop the "
+				          "GSE packet\n", gse_get_status(status));
 				gse_free_vfrag(&vfrag_pdu);
 				return false;
 			}
@@ -700,17 +687,17 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 		                         this->current_upper->getFixedLength(), 0);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s cannot shift virtual fragment (%s), drop the "
-			          "GSE packet\n", FUNCNAME, gse_get_status(status));
+			UTI_ERROR("cannot shift virtual fragment (%s), drop the "
+			          "GSE packet\n", gse_get_status(status));
 			gse_free_vfrag(&vfrag_pdu);
 			return false;
 		}
 		pkt_nbr++;
 	}
 
-	UTI_DEBUG("%s Complete PDU received, got %u %d-byte %s packet(s)/frame "
+	UTI_DEBUG("Complete PDU received, got %u %zu-byte %s packet(s)/frame "
 	          "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
-	          FUNCNAME, pkt_nbr, packet->getTotalLength(),
+	          pkt_nbr, packet->getTotalLength(),
 	          packet->getName().c_str(),
 	          gse_get_vfrag_length(vfrag_pdu),
 	          src_tal_id, dst_tal_id, qos);
@@ -725,23 +712,24 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
                                          uint8_t label[6],
                                          NetBurst *net_packets)
 {
-	const char *FUNCNAME = "[Gse::Context::deencapVariableLength]";
 	NetPacket *packet = NULL;
 	uint8_t src_tal_id, dst_tal_id;
 	uint8_t qos;
 	unsigned int pkt_nbr = 0;
+	Data pdu_frag(gse_get_vfrag_start(vfrag_pdu),
+	              gse_get_vfrag_length(vfrag_pdu));
 
 	src_tal_id = Gse::getSrcTalIdFromLabel(label);
 	dst_tal_id = Gse::getDstTalIdFromLabel(label);
 	qos = Gse::getQosFromLabel(label);
 
-	packet = this->current_upper->build(gse_get_vfrag_start(vfrag_pdu),
+	packet = this->current_upper->build(pdu_frag,
 	                                    gse_get_vfrag_length(vfrag_pdu),
 	                                    qos, src_tal_id, dst_tal_id);
 	if(packet == NULL)
 	{
-		UTI_ERROR("%s cannot build a %s packet, drop the GSE packet\n",
-		          FUNCNAME, this->current_upper->getName().c_str());
+		UTI_ERROR("cannot build a %s packet, drop the GSE packet\n",
+		          this->current_upper->getName().c_str());
 		gse_free_vfrag(&vfrag_pdu);
 		return false;
 	}
@@ -752,9 +740,9 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 	net_packets->add(packet);
 	pkt_nbr++;
 
-	UTI_DEBUG("%s Complete PDU received, got %u %d-byte %s packet(s)/frame "
+	UTI_DEBUG("Complete PDU received, got %u %zu-byte %s packet(s)/frame "
 	          "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
-	          FUNCNAME, pkt_nbr, packet->getTotalLength(),
+	          pkt_nbr, packet->getTotalLength(),
 	          packet->getName().c_str(),
 	          gse_get_vfrag_length(vfrag_pdu),
 	          src_tal_id, dst_tal_id, qos);
@@ -766,8 +754,6 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 
 NetBurst *Gse::Context::flush(int context_id)
 {
-	const char *FUNCNAME = "[Gse::Context::flush]";
-
 	gse_status_t status;
 	NetBurst *gse_packets;
 	GseEncapCtx *context;
@@ -791,31 +777,30 @@ NetBurst *Gse::Context::flush(int context_id)
 	gse_packets = new NetBurst();
 	if(gse_packets == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for burst of GSE packets\n",
-		          FUNCNAME);
+		UTI_ERROR("cannot allocate memory for burst of GSE packets\n");
 		goto drop;
 	}
 
-	UTI_DEBUG("%s search for encapsulation context (id = %d) to flush...\n",
-			  FUNCNAME, context_id);
+	UTI_DEBUG("search for encapsulation context (id = %d) to flush...\n",
+			  context_id);
 	identifier = new GseIdentifier((context_id >> 8) & 0x1f,
 	                               (context_id >> 3) & 0x1f,
 	                               context_id & 0x07);
-	UTI_DEBUG("%s Associated identifier: Src TAL Id = %u, Dst TAL Id = %u, QoS = %u\n",
-	          FUNCNAME, identifier->getSrcTalId(), identifier->getDstTalId(),
+	UTI_DEBUG("Associated identifier: Src TAL Id = %u, Dst TAL Id = %u, QoS = %u\n",
+	          identifier->getSrcTalId(), identifier->getDstTalId(),
 	          identifier->getQos());
 	context_it = this->contexts.find(identifier);
 	if(context_it == this->contexts.end())
 	{
-		UTI_ERROR("%s encapsulation context does not exist\n", FUNCNAME);
+		UTI_ERROR("encapsulation context does not exist\n");
 		delete identifier;
 		goto erase_burst;
 	}
 	else
 	{
 		context = (*context_it).second;
-		UTI_DEBUG("%s find an encapsulation context containing %zu "
-		          "bytes of data\n", FUNCNAME, context->length());
+		UTI_DEBUG("find an encapsulation context containing %zu "
+		          "bytes of data\n", context->length());
 		delete identifier;
 	}
 
@@ -843,8 +828,8 @@ NetBurst *Gse::Context::flush(int context_id)
 	delete ctx_id;
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Fail to duplicated context data (%s), drop packets\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Fail to duplicated context data (%s), drop packets\n",
+		          gse_get_status(status));
 		goto erase_burst;
 	}
 
@@ -866,7 +851,7 @@ NetBurst *Gse::Context::flush(int context_id)
 	// Set packet label
 	if(!Gse::setLabel(context, label))
 	{
-		UTI_ERROR("%s Cannot set label for GSE packet\n", FUNCNAME);
+		UTI_ERROR("Cannot set label for GSE packet\n");
 		goto drop;
 	}
 
@@ -878,8 +863,8 @@ NetBurst *Gse::Context::flush(int context_id)
 	                               protocol, frag_id);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Fail to store packet in GSE encapsulation context (%s), "
-		          "drop packet\n", FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Fail to store packet in GSE encapsulation context (%s), "
+		          "drop packet\n", gse_get_status(status));
 		goto erase_burst;
 	}
 
@@ -891,23 +876,25 @@ NetBurst *Gse::Context::flush(int context_id)
 		                                   GSE_MAX_PACKET_LENGTH, frag_id);
 		if(status != GSE_STATUS_OK && status != GSE_STATUS_FIFO_EMPTY)
 		{
-			UTI_ERROR("%s Fail to get GSE packet #%d in encapsulation context "
+			UTI_ERROR("Fail to get GSE packet #%d in encapsulation context "
 			          "(%s), drop packet\n",
-			          FUNCNAME, counter, gse_get_status(status));
+			          counter, gse_get_status(status));
 			goto clean;
 		}
 
 		if(status == GSE_STATUS_OK)
 		{
 			NetPacket *gse;
-			gse = this->createPacket(gse_get_vfrag_start(vfrag_gse),
+			Data gse_frag(gse_get_vfrag_start(vfrag_gse),
+			              gse_get_vfrag_length(vfrag_gse));
+			gse = this->createPacket(gse_frag,
 			                         gse_get_vfrag_length(vfrag_gse),
 			                         qos, src_tal_id, dst_tal_id);
 			// create a GSE packet from fragments computed by the GSE library
 			if(gse == NULL)
 			{
-				UTI_ERROR("%s cannot create GSE packet, drop the network "
-				          "packet\n", FUNCNAME);
+				UTI_ERROR("cannot create GSE packet, drop the network "
+				          "packet\n");
 				goto clean;
 			}
 
@@ -915,22 +902,22 @@ NetBurst *Gse::Context::flush(int context_id)
 			gse->setDstSpot(dest_spot);
 			// add GSE packet to burst
 			gse_packets->add(gse);
-			UTI_DEBUG("%s %d-byte GSE packet added to burst\n", FUNCNAME,
+			UTI_DEBUG("%zu-byte GSE packet added to burst\n",
 			          gse->getTotalLength());
 
 			status = gse_free_vfrag(&vfrag_gse);
 			if(status != GSE_STATUS_OK)
 			{
-				UTI_ERROR("%s Fail to free GSE fragment #%u (%s), "
-				          "drop packet\n", FUNCNAME, counter,
+				UTI_ERROR("Fail to free GSE fragment #%u (%s), "
+				          "drop packet\n", counter,
 				          gse_get_status(status));
 				goto clean;
 			}
 		}
 	}
 	while(status != GSE_STATUS_FIFO_EMPTY && !gse_packets->isFull());
-	UTI_DEBUG("%s %zu-byte %s packet/frame => %u GSE packets\n",
-	          FUNCNAME, ctx_length, packet_name.c_str(),
+	UTI_DEBUG("%zu-byte %s packet/frame => %u GSE packets\n",
+	          ctx_length, packet_name.c_str(),
 	          counter - 1);
 
 	return gse_packets;
@@ -941,8 +928,8 @@ clean:
 		status = gse_free_vfrag(&vfrag_gse);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s failed to free GSE virtual fragment (%s)\n",
-			          FUNCNAME, gse_get_status(status));
+			UTI_ERROR("failed to free GSE virtual fragment (%s)\n",
+			          gse_get_status(status));
 		}
 	}
 erase_burst:
@@ -958,13 +945,12 @@ NetBurst *Gse::Context::flushAll()
 	return NULL;
 }
 
-NetPacket *Gse::PacketHandler::build(unsigned char *data,
+NetPacket *Gse::PacketHandler::build(const Data &data,
                                      size_t data_length,
                                      uint8_t UNUSED(_qos),
                                      uint8_t UNUSED(_src_tal_id),
                                      uint8_t _dst_tal_id) const
 {
-	const char *FUNCNAME = "[Gse::PacketHandler::build]";
 	gse_status_t status;
 	uint8_t label[6];
 	uint8_t s;
@@ -976,19 +962,20 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 	uint8_t dst_tal_id = BROADCAST_TAL_ID;
 	uint8_t frag_id;
 	uint16_t header_length = 0;
+	unsigned char *packet = (unsigned char *)data.c_str();
 
-	status = gse_get_start_indicator(data, &s);
+	status = gse_get_start_indicator(packet, &s);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot get start indicator (%s)\n", FUNCNAME,
+		UTI_ERROR("cannot get start indicator (%s)\n",
 		          gse_get_status(status));
 		return NULL;
 	}
 
-	status = gse_get_end_indicator(data, &e);
+	status = gse_get_end_indicator(packet, &e);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot get end indicator (%s)\n", FUNCNAME,
+		UTI_ERROR("cannot get end indicator (%s)\n",
 		          gse_get_status(status));
 		return NULL;
 	}
@@ -996,19 +983,18 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 	// subsequent fragment
 	if(s == 0)
 	{
-		status = gse_get_frag_id(data, &frag_id);
+		status = gse_get_frag_id(packet, &frag_id);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s cannot get frag ID (%s)\n", FUNCNAME,
+			UTI_ERROR("cannot get frag ID (%s)\n",
 			          gse_get_status(status));
 			return NULL;
 		}
 		qos = Gse::getQosFromFragId(frag_id);
 		src_tal_id = Gse::getSrcTalIdFromFragId(frag_id);
         dst_tal_id = _dst_tal_id;
-		UTI_DEBUG_L3("%s build a subsequent fragment "
+		UTI_DEBUG_L3("build a subsequent fragment "
 		             "SRC TAL Id = %u, QoS = %u, DST TAL Id=  %u\n",
-		             FUNCNAME,
 		             src_tal_id, qos, dst_tal_id);
 		header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
 		                1 + //GSE_FRAG_ID_LENGTH +
@@ -1017,10 +1003,10 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 	// complete or first fragment
 	else
 	{
-		status = gse_get_label(data, label);
+		status = gse_get_label(packet, label);
 		if(status != GSE_STATUS_OK)
 		{
-			UTI_ERROR("%s cannot get label (%s)\n", FUNCNAME,
+			UTI_ERROR("cannot get label (%s)\n",
 			          gse_get_status(status));
 			return NULL;
 		}
@@ -1031,7 +1017,7 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 		// first fragment
 		if(e == 0)
 		{
-			UTI_DEBUG_L3("%s build a first fragment\n", FUNCNAME);
+			UTI_DEBUG_L3("build a first fragment\n");
 			header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH
 			                1 + //GSE_FRAG_ID_LENGTH +
 			                2 + //GSE_TOTAL_LENGTH_LENGTH +
@@ -1040,12 +1026,12 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 		// complete
 		else
 		{
-			UTI_DEBUG_L3("%s build a complete packet\n", FUNCNAME);
+			UTI_DEBUG_L3("build a complete packet\n");
 			header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
 			                label_length;
 		}
-		UTI_DEBUG("%s build a new %zu-bytes GSE packet: QoS = %u, Src Tal ID = %u, "
-		          "Dst TAL ID = %u, header length = %u\n", FUNCNAME, data_length,
+		UTI_DEBUG("build a new %zu-bytes GSE packet: QoS = %u, Src Tal ID = %u, "
+		          "Dst TAL ID = %u, header length = %u\n", data_length,
 		          qos, src_tal_id, dst_tal_id, header_length);
 	}
 
@@ -1056,14 +1042,13 @@ NetPacket *Gse::PacketHandler::build(unsigned char *data,
 
 size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 {
-	const char *FUNCNAME = "[Gse::PacketHandler::getLength]";
 	uint16_t length;
 	gse_status_t status;
 
 	status = gse_get_gse_length((unsigned char *)data, &length);
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s cannot get length (%s)\n", FUNCNAME,
+		UTI_ERROR("cannot get length (%s)\n",
 		          gse_get_status(status));
 		return 0;
 	}
@@ -1075,7 +1060,6 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
                                   NetPacket **data, NetPacket **remaining_data) const
 {
-	const char *FUNCNAME = "[Gse::PacketHandler::getChunk]";
 	gse_vfrag_t *first_frag;
 	gse_vfrag_t *second_frag;
 	gse_status_t status;
@@ -1087,22 +1071,22 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 
 	frag_id = Gse::getFragId(packet);
 
-	UTI_DEBUG_L3("%s Create a virtual fragment with GSE packet to "
-	             "refragment it\n", FUNCNAME);
+	UTI_DEBUG_L3("Create a virtual fragment with GSE packet to "
+	             "refragment it\n");
 	status = gse_create_vfrag_with_data(&first_frag,
 	                                    packet->getTotalLength(),
 	                                    GSE_MAX_REFRAG_HEAD_OFFSET, 0,
-	                                    (unsigned char *)packet->getData().c_str(),
+	                                    packet->getData().c_str(),
 	                                    packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("%s Failed to create a virtual fragment for the GSE packet "
-		          "refragmentation (%s)\n", FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Failed to create a virtual fragment for the GSE packet "
+		          "refragmentation (%s)\n", gse_get_status(status));
 		goto error;
 	}
 
-	UTI_DEBUG_L3("%s Refragment the GSE packet to fit the BB frame "
-	             "(length = %zu)\n", FUNCNAME, remaining_length);
+	UTI_DEBUG_L3("Refragment the GSE packet to fit the BB frame "
+	             "(length = %zu)\n", remaining_length);
 	status = gse_refrag_packet(first_frag, &second_frag, 0, 0,
 	                           frag_id,
 	                           MIN(remaining_length, GSE_MAX_PACKET_LENGTH));
@@ -1110,8 +1094,8 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	{
 		// there is not enough space to create a GSE fragment,
 
-		UTI_DEBUG("%s Unable to refragment GSE packet (%s)\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_DEBUG("Unable to refragment GSE packet (%s)\n",
+		          gse_get_status(status));
 		// the packet cannot be encapsulated, copy it on data but return false
 		// (use case 3)
 		*remaining_data = packet;
@@ -1119,8 +1103,8 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	}
 	else if(status == GSE_STATUS_REFRAG_UNNECESSARY)
 	{
-		UTI_DEBUG_L3("%s no need to refragment, the whole packet can be "
-		             "encapsulated\n", FUNCNAME);
+		UTI_DEBUG_L3("no need to refragment, the whole packet can be "
+		             "encapsulated\n");
 		// the whole packet can be encapsulated, copy it in data and return true
 		// (use case 1)
 		*data = packet;
@@ -1130,37 +1114,41 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	{
 		// the packet has been fragmented in order to be encapsulated partially
 		// (use case 2)
+		Data gse_first(gse_get_vfrag_start(first_frag),
+		               gse_get_vfrag_length(first_frag));
+		Data gse_second(gse_get_vfrag_start(second_frag),
+		                gse_get_vfrag_length(second_frag));
 
-		UTI_DEBUG("%s packet has been refragmented, first fragment is "
+		UTI_DEBUG("packet has been refragmented, first fragment is "
 		          "%zu bytes long, second fragment is %zu bytes long\n",
-		          FUNCNAME, gse_get_vfrag_length(first_frag),
+		          gse_get_vfrag_length(first_frag),
 		          gse_get_vfrag_length(second_frag));
 		// add the first fragment to the BB frame
-		*data = this->build(gse_get_vfrag_start(first_frag),
+		*data = this->build(gse_first,
 		                    gse_get_vfrag_length(first_frag),
 		                    packet->getQos(),
 		                    packet->getSrcTalId(), packet->getDstTalId());
 		if(*data == NULL)
 		{
-			UTI_ERROR("%s failed to create the first fragment\n", FUNCNAME);
+			UTI_ERROR("failed to create the first fragment\n");
 			goto free;
 		}
 
 		// create a new NetPacket containing the second fragment
-		*remaining_data = this->build(gse_get_vfrag_start(second_frag),
+		*remaining_data = this->build(gse_second,
 		                              gse_get_vfrag_length(second_frag),
 		                              packet->getQos(),
 		                              packet->getSrcTalId(), packet->getDstTalId());
 		if(*remaining_data == NULL)
 		{
-			UTI_ERROR("%s failed to create the second fragment\n", FUNCNAME);
+			UTI_ERROR("failed to create the second fragment\n");
 			goto free_data;
 		}
 	}
 	else
 	{
-		UTI_ERROR("%s Failed to refragment GSE packet (%s)\n",
-		          FUNCNAME, gse_get_status(status));
+		UTI_ERROR("Failed to refragment GSE packet (%s)\n",
+		          gse_get_status(status));
 		goto error;
 	}
 

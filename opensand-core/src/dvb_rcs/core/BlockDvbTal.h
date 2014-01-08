@@ -115,10 +115,10 @@ class BlockDvbTal: public BlockDvb
 	// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 	/// the group ID sent by NCC (only valid in state ef state_running)
-	long m_groupId;
+	group_id_t group_id;
 	/// the logon ID sent by NCC (only valid in state ef state_running,
 	/// should be the same as ef mac_d)
-	long m_talId;
+	tal_id_t tal_id;
 
 	/// the DAMA agent
 	DamaAgent *dama_agent;
@@ -126,19 +126,14 @@ class BlockDvbTal: public BlockDvb
 
 	/* carrier IDs */
 
-	long m_carrierIdDvbCtrl; ///< carrier id for DVB control frames emission
-	long m_carrierIdLogon;   ///< carrier id for Logon req  emission
-	long m_carrierIdData;    ///< carrier id for traffic emission
+	uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
+	uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
+	uint8_t carrier_id_data;  ///< carrier id for traffic emission
 
 	/* DVB-RCS/S2 emulation */
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
 	std::list<DvbFrame *> complete_dvb_frames;
-
-	/// The SAC
-	Sac sac;
-	/// The received TTP
-	Ttp ttp;
 
 	/// Length of an output encapsulation packet (in bytes)
 	int out_encap_packet_length;
@@ -151,6 +146,8 @@ class BlockDvbTal: public BlockDvb
 	rate_kbps_t max_rbdc_kbps;     ///< Maximum RBDC in kbits/s
 	vol_kb_t max_vbdc_kb;          ///< Maximum VBDC in kbits
 
+	/// The C/N0 for downlink in scenario
+	double cni;
 
 	/* Timers and their values */
 
@@ -287,7 +284,7 @@ class BlockDvbTal: public BlockDvb
 	 */
 	bool initOutput(const std::vector<std::string>&);
 
-	bool onStartOfFrame(unsigned char *ip_buf, long l_len);
+	bool onStartOfFrame(DvbFrame *dvb_frame);
 	int processOnFrameTick();
 
 	// DVB frame from lower layer
@@ -295,19 +292,18 @@ class BlockDvbTal: public BlockDvb
 	/**
 	 * Manage the receipt of the DVB Frames
 	 *
-	 * @param ip_buf the data buffer
-	 * @param i_len the length of the buffer
+	 * @param dvb_frame  The DVB frame
 	 * @return true on success, false otherwise
 	 */
-	bool onRcvDvbFrame(unsigned char *ip_buf, long l_len);
+	bool onRcvDvbFrame(DvbFrame *dvb_frame);
 
 	/**
 	 * Manage logon response: inform dama and upper layer that the link is now up and running
-	 * @param ip_buf the pointer to the longon response message
-	 * @param l_len the lenght of the message
+	 *
+	 * @param dvb_frame  The frame containing the logon response
 	 * @return true on success, false otherwise
 	 */
-	bool onRcvLogonResp(unsigned char *ip_buf, long l_len);
+	bool onRcvLogonResp(DvbFrame *dvb_frame);
 
 	// UL DVB frames emission
 	/**

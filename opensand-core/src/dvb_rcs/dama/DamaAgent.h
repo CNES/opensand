@@ -120,7 +120,7 @@ class DamaAgent
 	 * @param response logon response.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsLogonResp(const LogonResponse &response);
+	virtual bool hereIsLogonResp(const LogonResponse *response);
 
 	/**
 	 * @brief Called when the DVB RCS layer receive a SOF.
@@ -140,7 +140,7 @@ class DamaAgent
 	 * @param ttp received TTP.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsTTP(Ttp &ttp) = 0;
+	virtual bool hereIsTTP(Ttp *ttp) = 0;
 
 	/**
 	 * @brief Build SAC.
@@ -151,7 +151,7 @@ class DamaAgent
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool buildSAC(cr_type_t cr_type,
-	                      Sac &sac,
+	                      Sac *sac,
 	                      bool &empty) = 0;
 
 	/**
@@ -173,7 +173,7 @@ class DamaAgent
 	 * @brief  Update the DAMA statistics
 	 *         Called each frame
 	 */
-	virtual void updateStatistics() = 0;
+	virtual void updateStatistics() {};;
 
 
 protected:

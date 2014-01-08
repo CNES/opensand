@@ -645,7 +645,7 @@ restart:
 		          TS_DATASIZE - sndu_offset);
 
 		// add SNDU fragment to context
-		context->add((unsigned char *)mpeg_packet->getPayload().c_str() +
+		context->add(mpeg_packet->getPayload(),
 		             sndu_offset, max_len);
 		sndu_offset += max_len;
 
@@ -658,7 +658,7 @@ restart:
 			UTI_DEBUG("%s SNDU completed (%u bytes)\n", FUNCNAME, context->length());
 
 			net_packet = this->current_upper->build(
-					(unsigned char *)(context->data().c_str()),
+					context->data(),
 					context->length(),
 					packet->getQos(),
 					packet->getSrcTalId(), packet->getDstTalId());
@@ -956,7 +956,7 @@ error:
 }
 
 
-NetPacket *Mpeg::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Mpeg::PacketHandler::build(const Data &data, size_t data_length,
                                       uint8_t UNUSED(_qos),
                                       uint8_t UNUSED(_src_tal_id),
                                       uint8_t UNUSED(_dst_tal_id)) const

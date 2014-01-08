@@ -39,7 +39,6 @@
 #include "MacFifoElement.h"
 #include "Sac.h"
 
-//#include <linux/param.h>
 #include <vector>
 #include <map>
 #include <sys/times.h>

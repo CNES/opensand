@@ -127,7 +127,7 @@ class Gse: public EncapPlugin
 
 		PacketHandler(EncapPlugin &plugin);
 
-		NetPacket *build(unsigned char *data,
+		NetPacket *build(const Data &data,
 		                 size_t data_length,
 		                 uint8_t qos,
 		                 uint8_t src_tal_id,

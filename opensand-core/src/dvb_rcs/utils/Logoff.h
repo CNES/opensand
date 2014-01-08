@@ -36,14 +36,14 @@
 #define _LOGOFF_H_
 
 
-#include "OpenSandFrames.h"
+#include "DvbFrame.h"
 
 
 /**
  * @class Logoff
  * @brief Represent a Logoff request
  */
-class Logoff: public OpenSandFrame<T_DVB_LOGOFF>
+class Logoff: public DvbFrameTpl<T_DVB_LOGOFF>
 {
  public:
 
@@ -53,14 +53,6 @@ class Logoff: public OpenSandFrame<T_DVB_LOGOFF>
 	 * @param mac           The terminal MAC id
 	 */
 	Logoff(tal_id_t  mac);
-
-	/**
-	 * @brief Logoff request constructor for NCC (receiver)
-	 *
-	 * @param frame   The DVB frame containing the logoff request
-	 * @ aram length  The DVB frame length
-	 */
-	Logoff(unsigned char *frame, size_t length);
 
 	~Logoff();
 

@@ -153,10 +153,12 @@ class MpegDeencapCtx
 	/**
 	 * Add data at the end of the SNDU
 	 *
-	 * @param data    the data to add
+	 * @param data    the data set that contains the data to add
+	 * @param offset  the offset of the data to add in the data set
 	 * @param length  the length of the data to add
 	 */
-	void add(unsigned char *data, unsigned int length);
+	void add(const Data &data, unsigned int offset, unsigned int length);
+
 
 	/**
 	 * Get the internal buffer that stores the SNDU under build

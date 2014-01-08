@@ -38,6 +38,7 @@
 
 #include  "PhyChannel.h"
 #include "BBFrame.h"
+#include "DvbRcsFrame.h"
 
 #include <math.h>
 
@@ -89,7 +90,7 @@ error:
 	return this->status;
 }
 
-double PhyChannel::getTotalCN(T_DVB_PHY *phy_frame)
+double PhyChannel::getTotalCN(DvbFrame *dvb_frame)
 {
 	double cn_down, cn_up, cn_total; 
 	double num_down, num_up, num_total; 
@@ -99,7 +100,7 @@ double PhyChannel::getTotalCN(T_DVB_PHY *phy_frame)
 	cn_down = this->nominal_condition - this->attenuation_model->getAttenuation();
 
 	/* C/N of uplink */ 
-	cn_up = ncntoh(phy_frame->cn_previous);
+	cn_up = dvb_frame->getCn();
 
 	// Calculation of the sub total C/N ratio
 	num_down = pow(10, cn_down / 10);
@@ -109,7 +110,7 @@ double PhyChannel::getTotalCN(T_DVB_PHY *phy_frame)
 	cn_total = 10 * log10(num_total);
 
 	// update CN in frame for DVB block transmission
-	phy_frame->cn_previous = hcnton(cn_total);
+	dvb_frame->setCn(cn_total);
 
 	UTI_DEBUG_L3("Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
 	             "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
@@ -119,7 +120,7 @@ double PhyChannel::getTotalCN(T_DVB_PHY *phy_frame)
 }
 
 
-void PhyChannel::addSegmentCN(T_DVB_PHY *phy_frame)
+void PhyChannel::addSegmentCN(DvbFrame *dvb_frame)
 {
 
 	const char *FUNCNAME = "[Channel::addSegmentCN]";
@@ -131,7 +132,7 @@ void PhyChannel::addSegmentCN(T_DVB_PHY *phy_frame)
 	val = this->nominal_condition - this->attenuation_model->getAttenuation();
 	UTI_DEBUG("%s Calculation of C/N: %.2f dB\n", FUNCNAME, val);
 
-	phy_frame->cn_previous = hcnton(val);
+	dvb_frame->setCn(val);
 }
 
 
@@ -143,38 +144,37 @@ bool PhyChannel::isToBeModifiedPacket(double cn_total)
 	                                             this->minimal_condition->getMinimalCN());
 }
 
-void PhyChannel::modifyPacket(T_DVB_META *frame, long length)
+void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 {
-	T_DVB_HDR *dvb_hdr = (T_DVB_HDR *)(frame->hdr);
-	unsigned char *payload;
+	Data payload;
 
 	// keep the complete header because we carry useful data
-	if(dvb_hdr->msg_type == MSG_TYPE_BBFRAME)
+	if(dvb_frame->getMessageType() == MSG_TYPE_BBFRAME)
 	{
-		T_DVB_BBFRAME *bbhdr = (T_DVB_BBFRAME *)frame;
-		size_t hdr_length = sizeof(T_DVB_BBFRAME) + \
-		                    bbhdr->real_modcod_nbr + sizeof(T_DVB_REAL_MODCOD);
+		// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
+		BBFrame *bbframe = dvb_frame->operator BBFrame *();
 
-		payload = (unsigned char *)frame + hdr_length;
-		length -= hdr_length;
+		payload = bbframe->getPayload();
 	}
 	else
 	{
-		payload = (unsigned char *)dvb_hdr + sizeof(T_DVB_HDR);
-		length -= sizeof(T_DVB_HDR);
+		// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
+		DvbRcsFrame *dvb_rcs_frame = dvb_frame->operator DvbRcsFrame *();
+
+		payload = dvb_rcs_frame->getPayload();
 	}
 
-	if(error_insertion->modifyPacket(payload, length))
+	if(error_insertion->modifyPacket(payload))
 	{
-		dvb_hdr->msg_type = MSG_TYPE_CORRUPTED;
+		dvb_frame->setMessageType(MSG_TYPE_CORRUPTED);
 		this->probe_drops->put(1);
 	}
 }
 
-bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
+bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 {
-	T_DVB_BBFRAME *bbheader = (T_DVB_BBFRAME *) hdr;
-
+	// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
+	BBFrame *bbframe = (BBFrame *)dvb_frame;
 	UTI_DEBUG_L3("Trace update minimal condition\n");
 
 	if(!this->status)
@@ -184,7 +184,7 @@ bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 	}
 
 	// TODO remove when supporting other frames
-	if(hdr->msg_type != MSG_TYPE_BBFRAME)
+	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME)
 	{
 		// TODO on ne connait pas la source quand on recoit, et les
 		// conditions en dépendent...
@@ -193,7 +193,7 @@ bool PhyChannel::updateMinimalCondition(T_DVB_HDR *hdr)
 		goto ignore;
 	}
 
-	if(!this->minimal_condition->updateThreshold(bbheader->used_modcod))
+	if(!this->minimal_condition->updateThreshold(bbframe->getModcodId()))
 	{
 		UTI_ERROR("Threshold update failed, the channel will be disabled\n");
 		this->status = false;

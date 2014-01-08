@@ -111,7 +111,6 @@ class Ethernet: public LanAdaptationPlugin
 		 *        and other information
 		 *
 		 * @param data               The upper or network packet data
-		 * @param length             The upper or network packet data length
 		 * @param mac_src            The source MAC address
 		 * @param mac_dst            The destination MAC address
 		 * @param ether_type         The payload EtherType
@@ -123,7 +122,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		NetPacket *createEthFrameData(unsigned char *data, size_t length,
+		NetPacket *createEthFrameData(Data data,
                                       MacAddress mac_src, MacAddress mac_dst,
                                       uint16_t ether_type,
                                       uint16_t q_tag, uint16_t ad_tag,
@@ -250,7 +249,7 @@ class Ethernet: public LanAdaptationPlugin
 
 		string getName() const {return "Ethernet";}
 
-		NetPacket *build(unsigned char *data,
+		NetPacket *build(const Data &data,
 		                 size_t data_length,
 		                 uint8_t qos,
 		                 uint8_t src_tal_id,
@@ -264,57 +263,49 @@ class Ethernet: public LanAdaptationPlugin
 	 * @brief Retrieve the type of frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the type of frame
 	 */
-	static uint16_t getFrameType(const unsigned char *data, size_t length);
+	static uint16_t getFrameType(const Data &data);
 
 	/**
 	 * @brief Retrieve the EtherType of a payload carried by an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the EtherType
 	 */
-	static uint16_t getPayloadEtherType(const unsigned char *data, size_t length);
+	static uint16_t getPayloadEtherType(const Data &data);
 
 	/**
 	 * @brief Retrieve the Q-tag from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the Q-tag
 	 */
-	static uint16_t getQTag(const unsigned char *data, size_t length);
+	static uint16_t getQTag(const Data &data);
 
 	/**
 	 * @brief Retrieve the ad-tag from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the ad-tag
 	 */
-	static uint16_t getAdTag(const unsigned char *data, size_t length);
+	static uint16_t getAdTag(const Data &data);
 
 	/**
 	 * @brief Retrieve the source MAC address from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the source MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getSrcMac(const unsigned char *data,
-                                size_t length);
+	static MacAddress getSrcMac(const Data &data);
 
 	/**
 	 * @brief Retrieve the destination MAC address from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @param length the Ethernet data length
 	 * @return the destination MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getDstMac(const unsigned char *data,
-                                size_t length);
+	static MacAddress getDstMac(const Data &data);
 
 };
 

@@ -38,20 +38,11 @@
 
 
 Logoff::Logoff(tal_id_t mac):
-	OpenSandFrame<T_DVB_LOGOFF>(sizeof(T_DVB_LOGOFF))
+	DvbFrameTpl<T_DVB_LOGOFF>()
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGOFF);
-	this->setLength(sizeof(T_DVB_LOGOFF));
+	this->setMessageLength(sizeof(T_DVB_LOGOFF));
 	this->frame->mac = htons(mac);
-}
-
-Logoff::Logoff(unsigned char *frame, size_t length):
-	OpenSandFrame<T_DVB_LOGOFF>(frame, length)
-{
-	if(this->getMessageType() != MSG_TYPE_SESSION_LOGOFF)
-	{
-		UTI_ERROR("Frame is not a logoff\n");
-	}
 }
 
 Logoff::~Logoff()

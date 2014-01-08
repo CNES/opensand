@@ -32,7 +32,6 @@
  */
 
 #include "Sac.h"
-#include "OpenSandFrames.h"
 
 #include <cstring>
 
@@ -49,114 +48,91 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
 static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
 static uint16_t getDecodedCrValue(const emu_cr_t &cr);
 
-
 Sac::Sac(tal_id_t tal_id, group_id_t group_id):
-	tal_id(tal_id),
-	group_id(group_id),
-	cni(-100), // very low as we will force the most robust MODCOD at beginning
-	requests()
+	DvbFrameTpl<T_DVB_SAC>(),
+	request_nbr(0)
 {
-	this->sac = (emu_sac_t *)calloc(this->getMaxSize(),
-	                                sizeof(unsigned char));
-}
-
-Sac::Sac():
-	sac(NULL)
-{
+	this->setMessageType(MSG_TYPE_SAC);
+	this->setMessageLength(sizeof(T_DVB_SAC));
+	this->setMaxSize(sizeof(T_DVB_SAC) + (sizeof(emu_cr_t) * NBR_MAX_CR));
+	this->frame->sac.tal_id = htons(tal_id);
+	this->frame->sac.group_id = group_id;
+	// very low as we will force the most robust MODCOD at beginning
+	this->frame->sac.acm.cni = hcnton(-100);
+	this->frame->sac.cr_number = 0;
 }
 
 Sac::~Sac()
 {
-	this->requests.clear();
-	if(this->sac)
-	{
-		free(this->sac);
-	}
 }
 
-void Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
+bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 {
+	uint8_t scale;
+	uint8_t val;
 	cr_info_t info;
 	info.prio = prio;
 	info.type = type;
 	info.value = value;
-	this->requests.push_back(info);
+	emu_cr_t cr;
 
-}
-
-bool Sac::parse(const unsigned char *data, size_t length)
-{
-	// remove all requests
-	this->requests.clear();
-	/* check that data contains DVB header, tal_id, acm  and cr_number */
-	if(length < sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t) + sizeof(emu_acm_t))
+	if(this->request_nbr + 1 >= NBR_MAX_CR)
 	{
+		UTI_ERROR("Cannot add more request\n");
 		return false;
 	}
-	length -= sizeof(T_DVB_HDR) + 2 * sizeof(uint8_t) - sizeof(emu_acm_t);
+	this->request_nbr++;
 
-	this->sac = (emu_sac_t *)(data + sizeof(T_DVB_HDR));
-	this->tal_id = ntohs(this->sac->tal_id);
-	this->group_id = this->sac->group_id;
-	this->cni = ncntoh(this->sac->acm.cni);
-
-	/* check that we can read enough cr */
-	if(length < this->sac->cr_number * sizeof(emu_cr_t))
-	{
-		return false;
-	}
-
-	for(unsigned int i = 0; i < this->sac->cr_number; i++)
-	{
-		cr_info_t req;
-
-		req.prio = this->sac->cr[i].prio;
-		req.type = this->sac->cr[i].type;
-		req.value = getDecodedCrValue(this->sac->cr[i]);
-
-		this->requests.push_back(req);
-	}
-	// to avoid bad release at destruction
-	this->sac = NULL;
+	cr.type = type;
+	cr.prio = prio;
+	getScaleAndValue(info, scale, val);
+	cr.scale = scale;
+	cr.value = val;
+	this->data.append((unsigned char *)&cr, sizeof(emu_cr_t));
+	// increase cr_number
+	this->frame->sac.cr_number++;
+	// increase message length
+	this->setMessageLength(this->getMessageLength() + sizeof(emu_cr_t));
 	return true;
 }
 
-void Sac::build(unsigned char *frame, size_t &length)
+
+tal_id_t Sac::getTerminalId(void) const 
 {
-	T_DVB_SAC *dvb_sac = (T_DVB_SAC *)frame;
+	return ntohs(this->frame->sac.tal_id);
+}
 
-	// fill T_DVB_SAC fields
-	dvb_sac->hdr.msg_length = sizeof(T_DVB_HDR);
-	dvb_sac->hdr.msg_type = MSG_TYPE_SAC;
+group_id_t Sac::getGroupId(void) const
+{
+	return this->frame->sac.group_id;
+}
 
-	// fill emu_sac_t fields
-	this->sac->tal_id = htons(this->tal_id);
-	dvb_sac->hdr.msg_length += sizeof(tal_id_t);
-	this->sac->group_id = this->group_id;
-	dvb_sac->hdr.msg_length += sizeof(group_id_t);
-	this->sac->acm.cni = hcnton(this->cni);
-	dvb_sac->hdr.msg_length += sizeof(emu_acm_t);
-	this->sac->cr_number = 0;
-	dvb_sac->hdr.msg_length += sizeof(uint8_t);
-	for(unsigned int i = 0; i < this->requests.size() && i < NBR_MAX_CR; i++)
+double Sac::getCni() const
+{
+	return ncntoh(this->frame->sac.acm.cni);
+}
+
+vector<cr_info_t> Sac::getRequets(void) const
+{
+	vector<cr_info_t> requests;
+
+	for(unsigned int i = 0; i < this->frame->sac.cr_number; i++)
 	{
-		uint8_t scale;
-		uint8_t value;
-		this->sac->cr[i].type = this->requests[i].type;
-		this->sac->cr[i].prio = this->requests[i].prio;
-		getScaleAndValue(this->requests[i],
-		                 scale, value);
-		this->sac->cr[i].scale = scale;
-		this->sac->cr[i].value = value;
-		dvb_sac->hdr.msg_length += sizeof(emu_cr_t);
-		this->sac->cr_number++;
+		cr_info_t req;
+
+		req.prio = this->frame->sac.cr[i].prio;
+		req.type = this->frame->sac.cr[i].type;
+		req.value = getDecodedCrValue(this->frame->sac.cr[i]);
+
+		requests.push_back(req);
 	}
-	length = dvb_sac->hdr.msg_length;
-	memcpy(&dvb_sac->sac, this->sac, length - sizeof(T_DVB_HDR));
-	// TODO we should be able to remove that
-	memset(this->sac, '\0', this->getMaxSize());
-	// remove all requests
-	this->requests.clear();
+	return requests;
+};
+
+
+void Sac::setAcm(double cni)
+{
+	this->frame->sac.acm.cni = hcnton(cni);
 }
 
 /**

@@ -14,7 +14,6 @@ libopensand_dvb_utils_la_cpp = \
 	FmtGroup.cpp \
 	CarriersGroup.cpp \
 	TerminalCategory.cpp \
-	DvbFrame.cpp \
 	DvbRcsFrame.cpp \
 	BBFrame.cpp
 

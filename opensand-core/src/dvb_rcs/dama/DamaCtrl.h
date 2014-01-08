@@ -106,7 +106,7 @@ class DamaCtrl
 	 * @param   logon  logon request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogon(const LogonRequest &logon);
+	virtual bool hereIsLogon(const LogonRequest *logon);
 
 	/**
 	 * @brief  Process a Logoff request frame.
@@ -114,7 +114,7 @@ class DamaCtrl
 	 * @param   logoff  logoff request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogoff(const Logoff &logoff);
+	virtual bool hereIsLogoff(const Logoff *logoff);
 
 	/**
 	 * @brief  Process a SAC frame.
@@ -124,7 +124,7 @@ class DamaCtrl
 	 * @param   sac  SAC frame.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsSAC(const Sac &sac) = 0;
+	virtual bool hereIsSAC(const Sac *sac) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.
@@ -132,7 +132,7 @@ class DamaCtrl
 	 * @param   ttp  the TTP built.
 	 * @return  true on succes, false otherwise.
 	 */
-	virtual bool buildTTP(Ttp &ttp) = 0;
+	virtual bool buildTTP(Ttp *ttp) = 0;
 
 	/**
 	 * @brief  Apply a PEP command

@@ -43,23 +43,19 @@ LogonRequest::LogonRequest(tal_id_t mac,
                            rate_kbps_t rt_bandwidth,
                            rate_kbps_t max_rbdc,
                            vol_kb_t max_vbdc):
-	OpenSandFrame<T_DVB_LOGON_REQ>(sizeof(T_DVB_LOGON_REQ))
+	DvbFrameTpl<T_DVB_LOGON_REQ>()
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
-	this->setLength(sizeof(T_DVB_LOGON_REQ));
+	this->setMessageLength(sizeof(T_DVB_LOGON_REQ));
 	this->frame->mac = htons(mac);
 	this->frame->rt_bandwidth = htons(rt_bandwidth);
 	this->frame->max_rbdc = htons(max_rbdc);
 	this->frame->max_vbdc = htons(max_vbdc);
 }
 
-LogonRequest::LogonRequest(unsigned char *frame, size_t length):
-	OpenSandFrame<T_DVB_LOGON_REQ>(frame, length)
+LogonRequest::LogonRequest():
+	DvbFrameTpl<T_DVB_LOGON_REQ>()
 {
-	if(this->getMessageType() != MSG_TYPE_SESSION_LOGON_REQ)
-	{
-		UTI_ERROR("Frame is not a logon request\n");
-	}
 }
 
 LogonRequest::~LogonRequest()
@@ -89,22 +85,13 @@ rate_kbps_t LogonRequest::getMaxVbdc(void) const
 /* RESPONSE */
 
 LogonResponse::LogonResponse(tal_id_t mac, uint8_t group_id, tal_id_t logon_id):
-	OpenSandFrame<T_DVB_LOGON_RESP>(sizeof(T_DVB_LOGON_RESP))
+	DvbFrameTpl<T_DVB_LOGON_RESP>()
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_RESP);
-	this->setLength(sizeof(T_DVB_LOGON_RESP));
+	this->setMessageLength(sizeof(T_DVB_LOGON_RESP));
 	this->frame->mac = htons(mac);
 	this->frame->group_id = group_id;
 	this->frame->logon_id = htons(logon_id);
-}
-
-LogonResponse::LogonResponse(unsigned char *frame, size_t length):
-	OpenSandFrame<T_DVB_LOGON_RESP>(frame, length)
-{
-	if(this->getMessageType() != MSG_TYPE_SESSION_LOGON_RESP)
-	{
-		UTI_ERROR("Frame is not a logon response\n");
-	}
 }
 
 LogonResponse::~LogonResponse()

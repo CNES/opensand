@@ -234,6 +234,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 {
 	bool success = true;
 	NetBurst *forward_burst = NULL;
+	NetBurst::iterator burst_it;
 
 	if(burst == NULL)
 	{
@@ -253,55 +254,39 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 		}
 	}
 
-	for(NetBurst::iterator iter = burst->begin(); iter != burst->end();
-	    ++iter)
+	burst_it = burst->begin();
+	while(burst_it != burst->end())
 	{
-		size_t length;
-		tal_id_t pkt_tal_id = (*iter)->getDstTalId();
+		tal_id_t pkt_tal_id = (*burst_it)->getDstTalId();
 		UTI_DEBUG("packet from lower layer has terminal ID %u\n", pkt_tal_id);
 
 		if(pkt_tal_id == BROADCAST_TAL_ID || pkt_tal_id == this->tal_id)
 		{
-			unsigned char *lan_packet;
-
 			UTI_DEBUG("%s packet received from lower layer & should be read\n", 
-			          (*iter)->getName().c_str());
+			          (*burst_it)->getName().c_str());
 			
-			// allocate memory for data
-			length = (*iter)->getTotalLength();
-			lan_packet = (unsigned char *) calloc(length + TUNTAP_FLAGS_LEN,
-			                                      sizeof(unsigned char));
-			if(lan_packet == NULL)
-			{
-				UTI_ERROR("cannot allocate memory for sending %s data on TUN/TAP\n",
-				          (*iter)->getName().c_str());
-				delete *iter;
-				success = false;
-				continue;
-			}
-			memcpy(lan_packet + TUNTAP_FLAGS_LEN, (*iter)->getData().c_str(), length);
-
+			Data packet = (*burst_it)->getData();
+			unsigned char head[TUNTAP_FLAGS_LEN];
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
 			{
 				// add the protocol flag in the header
-				lan_packet[i] = (this->contexts.front())->getLanHeader(i, *iter);
+				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
 				UTI_DEBUG_L3("Add 0x%2x for bit %u in TUN/TAP header\n",
-				             lan_packet[i], i);
+				             head[i], i);
 			}
 
-			// write data on TUN/TAP device
-			if(write(this->fd, lan_packet, length + TUNTAP_FLAGS_LEN) < 0)
+			packet.insert(0, head, TUNTAP_FLAGS_LEN);
+			if(write(this->fd, packet.data(), packet.length()) < 0)
 			{
 				UTI_ERROR("Unable to write data on tun or tap interface: %s\n",
 				          strerror(errno));
-				free(lan_packet);
 				success = false;
+				++burst_it;
 				continue;
 			}
 
 			UTI_DEBUG("%s packet received from lower layer & forwarded to "
-					  "network layer\n", (*iter)->getName().c_str());
-			free(lan_packet);
+					  "network layer\n", (*burst_it)->getName().c_str());
 		}
 
 		if(this->tal_id == GW_TAL_ID &&
@@ -309,22 +294,28 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 		   pkt_tal_id != GW_TAL_ID)
 		{
 			// packet should be forwarded
-			NetPacket *forward_packet = new NetPacket((*iter)->getData());
-			if(!forward_packet)
-			{
-				UTI_ERROR("cannot create the packet to forward\n");
-				continue;
-			}
+			/*  TODO avoid allocating new packet here !
+			/  => remove packet from burst and use it*/
 			if(!forward_burst)
 			{
 				forward_burst = new NetBurst();
 				if(!forward_burst)
 				{
 					UTI_ERROR("cannot create the burst for forward packets\n");
+					++burst_it;
 					continue;
 				}
 			}
-			forward_burst->add(forward_packet);
+			//forward_burst->add(forward_packet);
+			forward_burst->add(*burst_it);
+			// remove packet from burst to avoid releasing it as it is now forwarded
+			// erase return next element
+			burst_it = burst->erase(burst_it);
+		}
+		else
+		{
+			// go to next element
+			++burst_it;
 		}
 	}
 	if(forward_burst)
@@ -347,7 +338,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 		// FIXME we call a function from the opposite channel, this could create
 		//       interblocking
 		//       Create a communication interface between channels in Rt
-		if(!this->sendDown((void **)&forward_burst, sizeof(forward_burst)))
+		if(!this->sendDown((void **)&forward_burst))
 		{
 			UTI_ERROR("failed to send burst to lower layer\n");
 			delete forward_burst;
@@ -370,7 +361,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 {
 	unsigned char *read_data;
-	unsigned char *data;
+	const unsigned char *data;
 	unsigned int length;
 	NetPacket *packet;
 	NetBurst *burst;
@@ -406,7 +397,7 @@ bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 		}
 	}
 
-	if(!this->sendDown((void **)&burst, sizeof(burst)))
+	if(!this->sendDown((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		delete burst;

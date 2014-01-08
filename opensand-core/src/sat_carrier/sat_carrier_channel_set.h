@@ -60,8 +60,15 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	int readConfig(const string local_ip_addr,
 	               const string interface_name);
 
-	int send(unsigned int i_carrier, unsigned char *ip_buf,
-	         unsigned int i_len);
+	/**
+	 * @brief Send data on a satellite carrier
+	 *
+	 * @param carrier_id  The satellite carrier ID
+	 * @param data        The data to send
+	 * @param length      The liength of the data
+	 * @return true on success, false otherwise
+	 */
+	bool send(uint8_t carrier_id, const unsigned char *data, size_t length);
 
 	/**
 	* @brief Receive data on a channel set

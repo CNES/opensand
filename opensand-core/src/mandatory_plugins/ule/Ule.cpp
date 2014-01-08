@@ -221,7 +221,7 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	UTI_DEBUG("%s encapsulate a %d-byte packet of type 0x%04x\n", FUNCNAME,
+	UTI_DEBUG("%s encapsulate a %zu-byte packet of type 0x%04x\n", FUNCNAME,
 	          packet->getTotalLength(), packet->getType());
 
 	// add ULE extension headers if asked
@@ -271,7 +271,7 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	// add ULE packet to burst
 	ule_packets->add(ule_packet);
 
-	UTI_DEBUG("%s %d-byte %s packet/frame => %d-byte ULE packet\n", FUNCNAME,
+	UTI_DEBUG("%s %zu-byte %s packet/frame => %zu-byte ULE packet\n", FUNCNAME,
 	          packet->getTotalLength(), packet->getName().c_str(),
 	          ule_packet->getTotalLength());
 
@@ -381,7 +381,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 
 	UTI_DEBUG("received a packet with type 0x%.4x\n", ptype);
 
-	net_packet = this->current_upper->build((unsigned char *)(payload.c_str()),
+	net_packet = this->current_upper->build(payload,
 	                                        payload.length(),
 	                                        packet->getQos(),
 	                                        packet->getSrcTalId(), packet->getDstTalId());
@@ -397,7 +397,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	// add network packet to burst
 	net_packets->add(net_packet);
 
-	UTI_DEBUG("%s %d-byte ULE packet => %d-byte %s packet/frame\n", FUNCNAME,
+	UTI_DEBUG("%s %zu-byte ULE packet => %zu-byte %s packet/frame\n", FUNCNAME,
 	          ule_packet->getTotalLength(), net_packet->getTotalLength(),
 	          net_packet->getName().c_str());
 
@@ -460,7 +460,7 @@ bad:
 }
 
 
-NetPacket *Ule::PacketHandler::build(unsigned char *data, size_t data_length,
+NetPacket *Ule::PacketHandler::build(const Data &data, size_t data_length,
                                      uint8_t qos,
                                      uint8_t src_tal_id, uint8_t dst_tal_id) const
 {

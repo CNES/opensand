@@ -216,13 +216,13 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 			//  - put the encapsulation packet in this next DVB-RCS frame
 
 			UTI_DEBUG("SF#%u: frame %u: DVB-RCS frame #%u does not contain enough "
-			          "free space (%u bytes) for the encapsulation "
-			          "packet (%u bytes), pad the DVB-RCS frame "
+			          "free space (%zu bytes) for the encapsulation "
+			          "packet (%zu bytes), pad the DVB-RCS frame "
 			          "and send it\n", current_superframe_sf, current_frame,
 			          cpt_frame, incomplete_dvb_frame->getFreeSpace(),
 			          encap_packet->getTotalLength());
 
-			complete_dvb_frames->push_back(incomplete_dvb_frame);
+			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
 			// create another incomplete DVB-RCS frame
 			if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame))
@@ -265,7 +265,7 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 	{
 		if(incomplete_dvb_frame->getNumPackets() > 0)
 		{
-			complete_dvb_frames->push_back(incomplete_dvb_frame);
+			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
 			// increment the counter of complete frames
 			cpt_frame++;
@@ -311,8 +311,6 @@ bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_d
 	// managed by the allocation, the DVB frame is only an abstract
 	// object to transport data
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-	(*incomplete_dvb_frame)->setEncapPacketEtherType(
-								this->packet_handler->getEtherType());
 
 	return true;
 
