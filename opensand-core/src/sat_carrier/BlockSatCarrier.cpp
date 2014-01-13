@@ -145,6 +145,11 @@ bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
 
 bool BlockSatCarrier::onInit()
 {
+	return true;
+}
+
+bool BlockSatCarrier::Upward::onInit()
+{
 	std::vector < sat_carrier_channel * >::iterator it;
 	sat_carrier_channel *channel;
 

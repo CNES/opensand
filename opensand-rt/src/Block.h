@@ -82,29 +82,29 @@ class Block
 	 *        With this class we are able to define Upward channel
 	 *        functions in Block
 	 */
-	class Upward: public RtChannel
+	class RtUpward: public RtChannel
 	{
 	  public:
-		Upward(Block &bl):
+		RtUpward(Block &bl):
 			RtChannel(bl, upward_chan)
 		{};
 
-		virtual ~Upward() {};
+		virtual ~RtUpward() {};
 	};
 
 	/**
 	 * @class Downward channel
-	 *        With this class we are able to define Upward channel
+	 *        With this class we are able to define Downward channel
 	 *        functions in Block
 	 */
-	class Downward: public RtChannel
+	class RtDownward: public RtChannel
 	{
 	  public:
-		Downward(Block &bl):
+		RtDownward(Block &bl):
 			RtChannel(bl, downward_chan)
 		{};
 
-		virtual ~Downward() {};
+		virtual ~RtDownward() {};
 	};
 
 

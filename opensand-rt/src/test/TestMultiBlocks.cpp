@@ -407,14 +407,14 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 
 	std::cout << "Launch test" << std::endl;
 
-	top = Rt::createBlock<TopBlock, TopBlock::Upward,
-	                      TopBlock::Downward, string>("top", NULL, input_file);
+	top = Rt::createBlock<TopBlock, TopBlock::RtUpward,
+	                      TopBlock::RtDownward, string>("top", NULL, input_file);
 
-	middle = Rt::createBlock<MiddleBlock, MiddleBlock::Upward,
-	                         MiddleBlock::Downward>("middle", top);
+	middle = Rt::createBlock<MiddleBlock, MiddleBlock::RtUpward,
+	                         MiddleBlock::RtDownward>("middle", top);
 
-	Rt::createBlock<BottomBlock, BottomBlock::Upward,
-	                BottomBlock::Downward>("bottom", middle);
+	Rt::createBlock<BottomBlock, BottomBlock::RtUpward,
+	                BottomBlock::RtDownward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	if(!Rt::run(true))

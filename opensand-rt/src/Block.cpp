@@ -170,7 +170,7 @@ bool Block::start(void)
 	UTI_DEBUG("Block %s: start upward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->up_thread_id), &attr,
-	                     &Upward::startThread, this->upward);
+	                     &RtUpward::startThread, this->upward);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,
@@ -183,7 +183,7 @@ bool Block::start(void)
 	UTI_DEBUG("Block %s: start downward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->down_thread_id), &attr,
-	                     &Downward::startThread, this->downward);
+	                     &RtDownward::startThread, this->downward);
 	if(ret != 0)
 	{
 		Rt::reportError(this->name, pthread_self(), true,

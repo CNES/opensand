@@ -119,7 +119,7 @@ class RtChannel
 	/**
 	 * @brief Add a net socket event to the channel
 	 *
-	 * @param name	    The name of the event
+	 * @param name      The name of the event
 	 * @param fd        The file descriptor to monitor
 	 * @param max_size  The maximum data size
 	 * @param priority  The priority of the event (small for high priority)
@@ -200,9 +200,18 @@ class RtChannel
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool enqueueMessage(void **data, size_t size = 0, uint8_t type = 0);
+	bool enqueueMessage(void **data, size_t size=0, uint8_t type=0);
 
-
+	/**
+	 * @brief Transmit a message to the opposite channel (in the same block)
+	 *
+	 * @param data  IN: A pointer on the  message to enqueue
+	 *              OUT: NULL
+	 * @param size  The size of data in message
+	 * @param type  The type of message
+	 * @return true on success, false otherwise
+	 */
+	bool shareMessage(void **data, size_t size, uint8_t type=0);
 
   protected:
 
@@ -215,18 +224,26 @@ class RtChannel
 	bool init(void);
 
 	/**
-	 * @brief Set the channel fifo
+	 * @brief Set the fifo for previous channel message
 	 *
 	 * @param fifo  The fifo
 	 */
-	void setFifo(RtFifo *fifo);
+	void setPreviousFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Set the fifo for next channl
+	 * @brief Set the fifo for next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
 	void setNextFifo(RtFifo *fifo);
+
+	/**
+	 * @brief Set the fifois for opposite channel (in the same block)
+	 *
+	 * @param in_fifo   The fifo for incoming messages
+	 * @param out_fifo  The fifo for outgoing messages
+	 */
+	void setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo);
 
 	/**
 	 * @brief Start the channel thread
@@ -250,10 +267,14 @@ class RtChannel
 	/// the list of removed event id
 	list<event_id_t> removed_events;
 
-	/// The fifo of the channel
-	RtFifo *fifo;
+	/// The fifo of the channel for messages from previous channel
+	RtFifo *previous_fifo;
 	/// The fifo on the next channel
 	RtFifo *next_fifo;
+	/// The fifo for incoming messages from opposite channel
+	RtFifo *in_opp_fifo;
+	/// The fifo for outgoing messages to opposite channel
+	RtFifo *out_opp_fifo;
 
 	/// contains the highest FD of input events
 	int32_t max_input_fd;
@@ -272,10 +293,12 @@ class RtChannel
 	/**
 	 * @brief Add a message  event to the channel
 	 *
-	 * @param signal_mask  Mask containing all the signals that trigger this event
-	 * @param priority     The priority of the event (small for high priority)
+	 * @param fifo      The fifo for the messages
+	 * @param priority  The priority of the event (small for high priority)
+	 * @param opposite  Whether this is a message for opposite channels
+	 * @return true on success, false otherwise
 	 */
-	void addMessageEvent(uint8_t priority = 6);
+	bool addMessageEvent(RtFifo *fifo, uint8_t priority=6, bool opposite=false);
 
 	/**
 	 * @brief the loop
@@ -330,6 +353,17 @@ class RtChannel
 	 */
 	TimerEvent *getTimer(event_id_t id);
 
+	/**
+	 * @brief Push a message in another channel fifo
+	 *
+	 * @param fifo  The fifo
+	 * @param data  IN: A pointer on the  message to enqueue
+	 *              OUT: NULL
+	 * @param size  The size of data in message
+	 * @param type  The type of message
+	 * @return true on success, false otherwise
+	 */
+	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type=0);
 
 };
 

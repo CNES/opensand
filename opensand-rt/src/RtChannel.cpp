@@ -58,7 +58,8 @@ using std::ostringstream;
 RtChannel::RtChannel(Block &bl, chan_type_t chan):
 	block(bl),
 	chan(chan),
-	fifo(NULL),
+	previous_fifo(NULL),
+	in_opp_fifo(NULL),
 	max_input_fd(-1),
 	stop_fd(-1),
 	w_sel_break(-1),
@@ -81,9 +82,10 @@ RtChannel::~RtChannel()
 		delete((*iter).second);
 	}
 	this->events.clear();
-	if(this->fifo)
+	delete this->in_opp_fifo;
+	if(this->previous_fifo)
 	{
-		delete this->fifo;
+		delete this->previous_fifo;
 	}
 	close(this->w_sel_break);
 	close(this->r_sel_break);
@@ -91,55 +93,13 @@ RtChannel::~RtChannel()
 
 bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
 {
-	int success = true;
-
-	// check that block is initialized (i.e. we are in event processing)
-	if(!this->block.initialized)
-	{
-		UTI_DEBUG("Be careful, some message are sent while process are not "
-		          "started. If too many messages are sent we may block because "
-		          "fifo is full");
-		// FIXME we could separate onInit into a static initialization and an
-		//       initialization when threads are started
-	}
-
-	// release lock in block because we can create interblocking here
-	// as we can block on semaphore
-	if(this->block.chan_mutex && this->block.initialized)
-	{
-		int err;
-		err = pthread_mutex_unlock(&(this->block.block_mutex));
-		if(err != 0)
-		{
-			this->reportError(false, "Mutex unlock failure [%u: %s]",
-			                  err, strerror(err));
-			return false;
-		}
-	}
-	if(!this->next_fifo->push(*data, size, type))
-	{
-		this->reportError(false,
-		                  "cannot push data in fifo for next block");
-		success = false;
-	}
-	// take the lock again
-	if(this->block.chan_mutex && this->block.initialized)
-	{
-		int err;
-		err = pthread_mutex_lock(&(this->block.block_mutex));
-		if(err != 0)
-		{
-			this->reportError(false, "Mutex lock failure [%u: %s]",
-			                  err, strerror(err));
-			success = false;
-		}
-	}
-
-	// be sure that the pointer won't be used anymore
-	*data = NULL;
-	return success;
+	return this->pushMessage(this->next_fifo, data, size, type);
 }
 
+bool RtChannel::shareMessage(void **data, size_t size, uint8_t type)
+{
+	return this->pushMessage(this->out_opp_fifo, data, size, type);
+}
 
 bool RtChannel::init(void)
 {
@@ -166,17 +126,34 @@ bool RtChannel::init(void)
 	sigaddset(&signal_mask, SIGQUIT);
 	sigaddset(&signal_mask, SIGTERM);
 	this->stop_fd = this->addSignalEvent("stop", signal_mask, 0);
-	
-	// initialize fifo and create associated message
-	if(this->fifo)
+
+	// initialize fifos and create associated messages
+	if(!this->in_opp_fifo->init())
 	{
-		if(!this->fifo->init())
+		this->reportError(true,
+		                  "cannot initialize opposite fifo");
+		return false;
+	}
+	if(this->addMessageEvent(this->in_opp_fifo, 4, true) < 0)
+	{
+		this->reportError(true,
+		                  "cannot create opposite message event");
+		return false;
+	}
+	if(this->previous_fifo)
+	{
+		if(!this->previous_fifo->init())
 		{
 			this->reportError(true,
-			                  "cannot initialize fifo");
+			                  "cannot initialize previous fifo");
 			return false;
 		}
-		this->addMessageEvent();
+		if(this->addMessageEvent(this->previous_fifo) < 0)
+		{
+			this->reportError(true,
+			                  "cannot create previous message event");
+			return false;
+		}
 	}
 
 	return true;
@@ -266,26 +243,36 @@ int32_t RtChannel::addSignalEvent(const string &name,
 	return event->getFd();
 }
 
-void RtChannel::addMessageEvent(uint8_t priority)
+bool RtChannel::addMessageEvent(RtFifo *out_fifo,
+                                uint8_t priority,
+                                bool opposite)
 {
+	MessageEvent *event;
+	
 	string name = "downward";
 	if(this->chan == upward_chan)
 	{
 		name = "upward";
 	}
 
-	MessageEvent *event = new MessageEvent(this->fifo, name,
-	                                       this->fifo->getSigFd(),
-	                                       priority);
+	if(opposite)
+	{
+		name += "_opposite";
+	}
+	event = new MessageEvent(out_fifo, name,
+	                         out_fifo->getSigFd(),
+	                         priority);
 	if(!event)
 	{
 		this->reportError(true, "cannot create message event");
-		return;
+		return false;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
-		return;
+		return false;
 	}
+
+	return true;
 }
 
 bool RtChannel::addEvent(RtEvent *event)
@@ -307,13 +294,13 @@ bool RtChannel::addEvent(RtEvent *event)
 		UTI_ERROR("[%s]Channel %u: failed to break select upon a new "
 		          "event reception\n", this->block.getName().c_str(), this->chan);
 	}
-	
+
 	return true;
 }
 
 void RtChannel::updateEvents(void)
 {
-	
+
 	// add new events
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
@@ -324,13 +311,13 @@ void RtChannel::updateEvents(void)
 		this->events[(*iter)->getFd()] = *iter;
 	}
 	this->new_events.clear();
-	
+
 	// remove old events
 	for(list<event_id_t>::iterator iter = this->removed_events.begin();
 		iter != this->removed_events.end(); ++iter)
 	{
 		map<event_id_t, RtEvent *>::iterator it;
-		
+
 		it = this->events.find(*iter);
 		if(it != this->events.end())
 		{
@@ -370,7 +357,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 {
 	map<event_id_t, RtEvent *>::iterator it;
 	RtEvent *event = NULL;
-	
+
 	it = this->events.find(id);
 	if(it == this->events.end())
 	{
@@ -407,7 +394,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 		this->reportError(false, "cannot start event that is not a timer");
 		return NULL;
 	}
-	
+
 	return (TimerEvent *)event;
 }
 
@@ -419,9 +406,9 @@ bool RtChannel::startTimer(event_id_t id)
 		this->reportError(false, "cannot find timer: should not happend here");
 		return false;
 	}
-	
+
 	event->start();
-	
+
 	return true;
 }
 
@@ -433,9 +420,9 @@ bool RtChannel::raiseTimer(event_id_t id)
 		this->reportError(false, "cannot find timer: should not happend here");
 		return false;
 	}
-	
+
 	event->raise();
-	
+
 	return true;
 }
 
@@ -480,7 +467,7 @@ void RtChannel::executeThread(void)
 	while(true)
 	{
 		handled = 0;
-		
+
 		// get the new events for the next loop
 		this->updateEvents();
 		readfds = this->input_fd_set;
@@ -494,7 +481,7 @@ void RtChannel::executeThread(void)
 		}
 		// unfortunately, FD_ISSET is the only usable thing
 		priority_sorted_events.clear();
-		
+
 		// check for select break
 		if(FD_ISSET(this->r_sel_break, &readfds))
 		{
@@ -580,13 +567,70 @@ void RtChannel::reportError(bool critical, const char *msg_format, ...)
 	                critical, msg);
 };
 
-void RtChannel::setFifo(RtFifo *fifo)
+void RtChannel::setPreviousFifo(RtFifo *fifo)
 {
-	this->fifo = fifo;
+	this->previous_fifo = fifo;
 };
 
 void RtChannel::setNextFifo(RtFifo *fifo)
 {
 	this->next_fifo = fifo;
 };
+
+void RtChannel::setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo)
+{
+	this->in_opp_fifo = in_fifo;
+	this->out_opp_fifo = out_fifo;
+};
+
+bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t type)
+{
+	int success = true;
+
+	// check that block is initialized (i.e. we are in event processing)
+	if(!this->block.initialized)
+	{
+		UTI_INFO("Be careful, some message are sent while process are not "
+		         "started. If too many messages are sent we may block because "
+		         "fifo is full");
+		// FIXME we could separate onInit into a static initialization and an
+		//       initialization when threads are started
+	}
+
+	// release lock in block because we can create interblocking here
+	// as we can block on semaphore
+	if(this->block.chan_mutex && this->block.initialized)
+	{
+		int err;
+		err = pthread_mutex_unlock(&(this->block.block_mutex));
+		if(err != 0)
+		{
+			this->reportError(false, "Mutex unlock failure [%u: %s]",
+			                  err, strerror(err));
+			return false;
+		}
+	}
+	if(!out_fifo->push(*data, size, type))
+	{
+		this->reportError(false,
+		                  "cannot push data in fifo for next block");
+		success = false;
+	}
+	// take the lock again
+	if(this->block.chan_mutex && this->block.initialized)
+	{
+		int err;
+		err = pthread_mutex_lock(&(this->block.block_mutex));
+		if(err != 0)
+		{
+			this->reportError(false, "Mutex lock failure [%u: %s]",
+			                  err, strerror(err));
+			success = false;
+		}
+	}
+
+	// be sure that the pointer won't be used anymore
+	*data = NULL;
+	return success;
+}
 

@@ -50,7 +50,6 @@ MessageEvent::MessageEvent(RtFifo *const fifo,
 {
 }
 
-
 MessageEvent::~MessageEvent()
 {
 }

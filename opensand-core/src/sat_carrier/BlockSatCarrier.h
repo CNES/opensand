@@ -65,6 +65,7 @@ class BlockSatCarrier: public Block
 
 	~BlockSatCarrier();
 
+	class Upward: public Block::Upward
 
  protected:
 

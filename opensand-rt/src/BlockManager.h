@@ -166,8 +166,15 @@ Block *BlockManager::createBlock(const string &name,
 	Up *up = new Up(*block);
 	Down *down = new Down(*block);
 
+	RtFifo *up_opp_fifo = new RtFifo();
+	RtFifo *down_opp_fifo = new RtFifo();
+
 	block->upward = up;
 	block->downward = down;
+
+	// set opposite fifo
+	up->setOppositeFifo(up_opp_fifo, down_opp_fifo);
+	down->setOppositeFifo(down_opp_fifo, up_opp_fifo);
 
 	if(upper)
 	{
@@ -176,10 +183,10 @@ Block *BlockManager::createBlock(const string &name,
 
 		// set upward fifo for upper block
 		up->setNextFifo(up_fifo);
-		upper->getUpwardChannel()->setFifo(up_fifo);
+		upper->getUpwardChannel()->setPreviousFifo(up_fifo);
 
 		// set downward fifo for block
-		down->setFifo(down_fifo);
+		down->setPreviousFifo(down_fifo);
 		upper->getDownwardChannel()->setNextFifo(down_fifo);
 	}
 
@@ -198,8 +205,15 @@ Block *BlockManager::createBlock(const string &name,
 	Up *up = new Up(*block);
 	Down *down = new Down(*block);
 
+	RtFifo *up_opp_fifo = new RtFifo();
+	RtFifo *down_opp_fifo = new RtFifo();
+
 	block->upward = up;
 	block->downward = down;
+
+	// set opposite fifo
+	up->setOppositeFifo(up_opp_fifo, down_opp_fifo);
+	down->setOppositeFifo(down_opp_fifo, up_opp_fifo);
 
 	if(upper)
 	{
@@ -208,10 +222,10 @@ Block *BlockManager::createBlock(const string &name,
 
 		// set upward fifo for upper block
 		up->setNextFifo(up_fifo);
-		upper->getUpwardChannel()->setFifo(up_fifo);
+		upper->getUpwardChannel()->setPreviousFifo(up_fifo);
 
 		// set downward fifo for block
-		down->setFifo(down_fifo);
+		down->setPreviousFifo(down_fifo);
 		upper->getDownwardChannel()->setNextFifo(down_fifo);
 	}
 
