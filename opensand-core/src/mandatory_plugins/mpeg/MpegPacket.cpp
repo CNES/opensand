@@ -45,6 +45,9 @@ MpegPacket::MpegPacket(const unsigned char *data, size_t length):
 	this->type = NET_PROTO_MPEG;
 	this->data.reserve(TS_PACKETSIZE);
 	this->header_length = TS_HEADERSIZE;
+	this->src_tal_id = this->getSrcTalId();
+	this->dst_tal_id = this->getDstTalId();
+	this->qos = this->getQos();
 }
 
 MpegPacket::MpegPacket(const Data &data): NetPacket(data)
@@ -53,6 +56,9 @@ MpegPacket::MpegPacket(const Data &data): NetPacket(data)
 	this->type = NET_PROTO_MPEG;
 	this->data.reserve(TS_PACKETSIZE);
 	this->header_length = TS_HEADERSIZE;
+	this->src_tal_id = this->getSrcTalId();
+	this->dst_tal_id = this->getDstTalId();
+	this->qos = this->getQos();
 }
 
 MpegPacket::MpegPacket(const Data &data, size_t length):
@@ -62,6 +68,9 @@ MpegPacket::MpegPacket(const Data &data, size_t length):
 	this->type = NET_PROTO_MPEG;
 	this->data.reserve(TS_PACKETSIZE);
 	this->header_length = TS_HEADERSIZE;
+	this->src_tal_id = this->getSrcTalId();
+	this->dst_tal_id = this->getDstTalId();
+	this->qos = this->getQos();
 }
 
 MpegPacket::MpegPacket(): NetPacket()

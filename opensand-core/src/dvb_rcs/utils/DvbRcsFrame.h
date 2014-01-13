@@ -96,10 +96,23 @@ class DvbRcsFrame: public DvbFrameTpl<T_DVB_ENCAP_BURST>
 	 */
 	uint16_t getNumPackets(void) const;
 
+	/**
+	 * @brief Set the MODCOD of the frame
+	 *
+	 * @param modcod_id  the MODCOD ID of the frame
+	 */
+	void setModcodId(uint8_t modcod_id);
+
+	/**
+	 * @brief Get the MODCOD of the frame
+	 *
+	 * @return  the MODCOD ID of the frame
+	 */
+	uint8_t getModcodId(void) const;
+
 	// implementation of virtual functions
 	bool addPacket(NetPacket *packet);
 	void empty(void);
-
 };
 
 #endif

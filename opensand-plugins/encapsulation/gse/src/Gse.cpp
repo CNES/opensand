@@ -822,10 +822,19 @@ NetBurst *Gse::Context::flush(int context_id)
 	                             context->length());
 	// keep the destination spot
 	dest_spot = context->getDestSpot();
+	// Set packet label
+	if(!Gse::setLabel(context, label))
+	{
+		UTI_ERROR("Cannot set label for GSE packet\n");
+		goto drop;
+	}
+	// Get the frag Id
+	frag_id = Gse::getFragId(context);
 	delete context;
 	ctx_id = (*context_it).first;
 	this->contexts.erase((*context_it).first);
 	delete ctx_id;
+	// now context is release check status
 	if(status != GSE_STATUS_OK)
 	{
 		UTI_ERROR("Fail to duplicated context data (%s), drop packets\n",
@@ -848,15 +857,6 @@ NetBurst *Gse::Context::flush(int context_id)
 		UTI_ERROR("Be careful, you have set a QoS greater than 0x7,"
 		          " it will be truncated for GSE packet creation!!!\n");
 	}
-	// Set packet label
-	if(!Gse::setLabel(context, label))
-	{
-		UTI_ERROR("Cannot set label for GSE packet\n");
-		goto drop;
-	}
-
-	// Get the frag Id
-	frag_id = Gse::getFragId(context);
 
 	// Store the IP packet in the encapsulation context thanks to the GSE library
 	status = gse_encap_receive_pdu(vfrag_pkt, this->encap, label, 0,
@@ -1181,6 +1181,62 @@ error:
 Gse::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	EncapPlugin::EncapPacketHandler(plugin)
 {
+}
+
+bool Gse::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
+{
+	gse_status_t status;
+	uint8_t s;
+	uint8_t e;
+
+	uint8_t src_tal_id = BROADCAST_TAL_ID;
+	unsigned char *packet = (unsigned char *)data.c_str();
+
+	status = gse_get_start_indicator(packet, &s);
+	if(status != GSE_STATUS_OK)
+	{
+		UTI_ERROR("cannot get start indicator (%s)\n",
+		          gse_get_status(status));
+		return false;
+	}
+
+	status = gse_get_end_indicator(packet, &e);
+	if(status != GSE_STATUS_OK)
+	{
+		UTI_ERROR("cannot get end indicator (%s)\n",
+		          gse_get_status(status));
+		return false;
+	}
+
+	// subsequent fragment
+	if(s == 0)
+	{
+		uint8_t frag_id;
+		status = gse_get_frag_id(packet, &frag_id);
+		if(status != GSE_STATUS_OK)
+		{
+			UTI_ERROR("cannot get frag ID (%s)\n",
+			          gse_get_status(status));
+			return false;
+		}
+		tal_id = Gse::getSrcTalIdFromFragId(frag_id);
+	}
+	// complete or first fragment
+	else
+	{
+		uint8_t label[6];
+		status = gse_get_label(packet, label);
+		if(status != GSE_STATUS_OK)
+		{
+			UTI_ERROR("cannot get label (%s)\n",
+			          gse_get_status(status));
+			return NULL;
+		}
+		tal_id = Gse::getSrcTalIdFromLabel(label);
+
+	}
+
+	return true;
 }
 
 // Static methods

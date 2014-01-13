@@ -1007,3 +1007,13 @@ Mpeg::PacketHandler::PacketHandler(EncapPlugin &plugin):
 {
 }
 
+bool Mpeg::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
+{
+	MpegPacket packet(data, this->getFixedLength());
+	if(!packet.isValid())
+	{
+		return false;
+	}
+	tal_id = packet.getSrcTalId();
+	return true;
+}

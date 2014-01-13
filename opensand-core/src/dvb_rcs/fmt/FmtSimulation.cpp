@@ -127,12 +127,15 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 		          simu_column_num, id);
 		return false;
 	}
-	// if scenario are not defined, set most robust modcod at init
+	// if scenario are not defined, set less robust modcod at init
+	// in order to authorize any MODCOD
 	new_st = new StFmtSimu(id, simu_column_num,
 		this->is_fwd_modcod_simu_defined ?
-			atoi(this->fwd_modcod_list[simu_column_num].c_str()) : 1,
+			atoi(this->fwd_modcod_list[simu_column_num].c_str()) :
+			this->getMaxFwdModcod(),
 		this->is_ret_modcod_simu_defined ?
-			atoi(this->ret_modcod_list[simu_column_num].c_str()) : 1);
+			atoi(this->ret_modcod_list[simu_column_num].c_str()) :
+			this->getMaxRetModcod());
 	if(new_st == NULL)
 	{
 		UTI_ERROR("failed to create a new ST\n");
@@ -455,6 +458,10 @@ unsigned int FmtSimulation::getMaxFwdModcod() const
 	return this->fwd_modcod_def.getMaxId();
 }
 
+unsigned int FmtSimulation::getMaxRetModcod() const
+{
+	return this->ret_modcod_def.getMaxId();
+}
 
 unsigned int FmtSimulation::getCurrentRetModcodId(tal_id_t id) const
 {
@@ -485,6 +492,8 @@ void FmtSimulation::setRetRequiredModcod(tal_id_t id, double cni) const
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 
 	modcod_id = this->ret_modcod_def.getRequiredModcod(cni);
+	UTI_DEBUG("Terminal %u required %.2f dB, will receive allocation with MODCOD %u\n",
+	          id, cni, modcod_id);
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{

@@ -50,7 +50,7 @@ TerminalContext::TerminalContext(tal_id_t tal_id,
 	max_rbdc_kbps(max_rbdc_kbps),
 	rbdc_timeout_sf(rbdc_timeout_sf),
 	max_vbdc_kb(max_vbdc_kb),
-	fmt_id(0),
+	fmt_id(1), // at beginning the terminal need to be served whlie FMT ID is unknown
 	carrier_id()
 {
 }

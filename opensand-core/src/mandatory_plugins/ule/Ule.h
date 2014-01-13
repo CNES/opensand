@@ -130,6 +130,10 @@ class Ule: public EncapPlugin
 		{
 			assert(0);
 		};
+		bool getSrc(const Data &UNUSED(data), tal_id_t &UNUSED(tal_id)) const
+		{
+			assert(0);
+		};
 	};
 
 	/// Constructor

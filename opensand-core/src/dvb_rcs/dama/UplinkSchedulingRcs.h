@@ -96,9 +96,18 @@ class UplinkSchedulingRcs: public Scheduling
 	 * @brief Create an incomplete DVB-RCS frame
 	 *
 	 * @param incomplete_dvb_frame OUT: the DVB-RCS frame that will be created
+	 * @param modcod_id            The MODCOD ID of the frame
 	 * return                      true on success, false otherwise
 	 */
-	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
+	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
+	                                 uint8_t modcod_id);
+
+	/**
+	 * @brief Get the current simulated MODCOD ID for GW uplink
+	 *
+	 * @return the simulated modcod ID for GW uplink
+	 */
+	uint8_t retrieveCurrentModcod(void);
 
 };
 

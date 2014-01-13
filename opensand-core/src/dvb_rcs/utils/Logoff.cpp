@@ -42,7 +42,7 @@ Logoff::Logoff(tal_id_t mac):
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGOFF);
 	this->setMessageLength(sizeof(T_DVB_LOGOFF));
-	this->frame->mac = htons(mac);
+	this->frame()->mac = htons(mac);
 }
 
 Logoff::~Logoff()
@@ -51,7 +51,7 @@ Logoff::~Logoff()
 
 tal_id_t Logoff::getMac(void) const
 {
-	return ntohs(this->frame->mac);
+	return ntohs(this->frame()->mac);
 }
 
 

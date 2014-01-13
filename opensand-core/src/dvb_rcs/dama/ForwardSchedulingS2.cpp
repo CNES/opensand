@@ -267,7 +267,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				this->fmt_simu->getTalIdWithLowerFwdModcod();
 			if(tal_id == 255)
 			{
-				UTI_ERROR("SF#%u: frame %u: The shceduling of a multicast "
+				UTI_ERROR("SF#%u: frame %u: The scheduling of a multicast "
 				          "frame failed\n", current_superframe_sf, current_frame);
 				UTI_ERROR("SF#%u: frame %u: The Tal_Id corresponding to the "
 				          "terminal using the lower modcod can not be retrieved\n",
@@ -593,11 +593,14 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 	modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
-		UTI_INFO("cannot serve terminal %u with any modcod (desired %u)\n",
-		         tal_id, desired_modcod);
-		// TODO we may send frame with modcod 1 ? 
+		UTI_INFO("cannot serve terminal %u with any modcod (desired %u) "
+		         "on carrier %u\n", tal_id, desired_modcod,
+		         carriers->getCarriersId());
+
 		goto skip;
 	}
+	UTI_DEBUG_L3("Available MODCOD for ST id %u = %u\n",
+	             tal_id, modcod_id);
 
 	// find if the BBFrame exists
 	iter = this->incomplete_bb_frames.find(modcod_id);

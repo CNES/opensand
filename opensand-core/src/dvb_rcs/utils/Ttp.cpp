@@ -61,8 +61,8 @@ Ttp::Ttp(group_id_t group_id, time_sf_t sf_id):
 	this->setMaxSize(sizeof(T_DVB_TTP) +
 	                 NBR_MAX_FRAMES * (sizeof(emu_frame_t) +
 	                                   NBR_MAX_TP * sizeof(emu_tp_t))); 
-	this->frame->ttp.ttp_info.group_id = group_id;
-	this->frame->ttp.ttp_info.superframe_count = htons(sf_id);
+	this->frame()->ttp.ttp_info.group_id = group_id;
+	this->frame()->ttp.ttp_info.superframe_count = htons(sf_id);
 }
 
 
@@ -133,10 +133,10 @@ bool Ttp::build(void)
 			ttp_length += sizeof(emu_tp_t);
 			tp_count++;
 		}
-		this->frame->ttp.frames[frame_count].frame_info.tp_loop_count = tp_count;
+		this->frame()->ttp.frames[frame_count].frame_info.tp_loop_count = tp_count;
 		frame_count++;
 	}
-	this->frame->ttp.ttp_info.frame_loop_count = frame_count;
+	this->frame()->ttp.ttp_info.frame_loop_count = frame_count;
 	// update message length
 	// TODO we may use getPayloadLength, this should be the same value
 	this->setMessageLength(ttp_length);
@@ -163,7 +163,7 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 	}
 	length -= sizeof(T_DVB_HDR);
 
-	ttp = &(this->frame->ttp);
+	ttp = &(this->frame()->ttp);
 	UTI_DEBUG_L3("SF#%u: ttp->frame_loop_count=%u\n",
 	             this->getSuperframeCount(), ttp->ttp_info.frame_loop_count);
 

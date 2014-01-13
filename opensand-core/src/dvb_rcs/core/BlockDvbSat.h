@@ -113,6 +113,9 @@ class BlockDvbSat: public BlockDvb
 	/// statistic timer
 	event_id_t stats_timer;
 
+	/// The uplink C/N0 per terminal
+	map<tal_id_t, double> cni;
+
  public:
 
 	BlockDvbSat(const string &name);

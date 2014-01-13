@@ -85,6 +85,11 @@ class DamaAgentRcs : public DamaAgent
 	/** RBDC timer */
 	time_sf_t rbdc_timer_sf;
 
+	/** The current MODCOD id read in TTP, this is used to inform sat and gw upon
+	 *  frames reception instead of keeping TTP contexts.
+	 *  Only one modcod_id here because we only receive one TTP per allocation */
+	uint8_t modcod_id;
+
 	/**
 	 * @brief Utility function to get total buffer size of all MAC fifos
 	 *        associated to the concerned CR type
@@ -120,6 +125,8 @@ class DamaAgentRcs : public DamaAgent
 	 */
 	virtual vol_pkt_t computeVbdcRequest() = 0;
 
+	/// The MODCOD for emmited frames as received in TTP
+	Probe<int> *probe_st_used_modcod;
 };
 
 #endif

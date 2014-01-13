@@ -73,11 +73,11 @@ class PhyChannel
 	/// Period of channel(s) attenuation update (ms)
 	time_ms_t granularity;
 
-	/// The type of satellite payload
-	sat_type_t satellite_type;
-
 	/// Timer id for attenuation update
 	event_id_t att_timer;
+
+	/// Whether this is the satellite
+	bool is_sat;
 
 	/**
 	 * @brief Update the conditions of the communication model

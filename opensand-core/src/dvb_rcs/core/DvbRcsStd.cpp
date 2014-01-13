@@ -80,7 +80,6 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-
 	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
 		UTI_DEBUG("skip DVB-RCS frame with no encapsulation packet\n");

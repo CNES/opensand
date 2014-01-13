@@ -36,7 +36,7 @@
 #define DBG_PACKAGE PKG_PHY_LAYER
 #include <opensand_conf/uti_debug.h>
 
-#include  "PhyChannel.h"
+#include "PhyChannel.h"
 #include "BBFrame.h"
 #include "DvbRcsFrame.h"
 
@@ -49,6 +49,7 @@ PhyChannel::PhyChannel():
 	minimal_condition(NULL),
 	error_insertion(NULL),
 	granularity(0),
+	is_sat(false),
 	probe_attenuation(NULL),
 	probe_nominal_condition(NULL),
 	probe_minimal_condition(NULL),
@@ -122,15 +123,13 @@ double PhyChannel::getTotalCN(DvbFrame *dvb_frame)
 
 void PhyChannel::addSegmentCN(DvbFrame *dvb_frame)
 {
-
-	const char *FUNCNAME = "[Channel::addSegmentCN]";
 	double val; 
 
 	/* C/N calculation as the substraction of the Nominal C/N with
 	   the Attenuation for this segment(uplink) */
 
 	val = this->nominal_condition - this->attenuation_model->getAttenuation();
-	UTI_DEBUG("%s Calculation of C/N: %.2f dB\n", FUNCNAME, val);
+	UTI_DEBUG("Calculation of C/N: %.2f dB\n", val);
 
 	dvb_frame->setCn(val);
 }
@@ -173,8 +172,7 @@ void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 
 bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 {
-	// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
-	BBFrame *bbframe = (BBFrame *)dvb_frame;
+	uint8_t modcod_id = 0;
 	UTI_DEBUG_L3("Trace update minimal condition\n");
 
 	if(!this->status)
@@ -183,26 +181,39 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 		goto error;
 	}
 
-	// TODO remove when supporting other frames
-	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME)
+	// keep the complete header because we carry useful data
+	if(dvb_frame->getMessageType() == MSG_TYPE_BBFRAME)
 	{
-		// TODO on ne connait pas la source quand on recoit, et les
-		// conditions en dépendent...
-		UTI_DEBUG("updateMinimalCondition called in transparent mode, "
-		          "not supported currently\n");
-		goto ignore;
-	}
+		// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
+		BBFrame *bbframe = (BBFrame *)dvb_frame;
 
-	if(!this->minimal_condition->updateThreshold(bbframe->getModcodId()))
+		modcod_id = bbframe->getModcodId();
+	}
+	else
+	{
+		// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
+		DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
+
+		modcod_id = dvb_rcs_frame->getModcodId();
+	}
+	UTI_DEBUG("Receive frame with MODCOD %u\n", modcod_id);
+
+	if(!this->minimal_condition->updateThreshold(modcod_id))
 	{
 		UTI_ERROR("Threshold update failed, the channel will be disabled\n");
 		this->status = false;
 		goto error;     
 	}
 
+	// TODO this would be better to get minimal condition per source terminal
+	//      if we are on regenerative satellite or GW
+	//      On terminals,  here we receive all BBFrame on the spot,
+	//      some may not contain packets for us but we will still count them in stats
+	//      We would have to parse frames in order to remove them from
+	//      statistics, this is not efficient 
+	//      With physcal layer ACM loop, these frame would be mark as corrupted
 	this->probe_minimal_condition->put(this->minimal_condition->getMinimalCN());
 
-ignore:
 	UTI_DEBUG("Update minimal condition: %.2f dB\n",
 	          this->minimal_condition->getMinimalCN());
 error:

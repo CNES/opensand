@@ -55,11 +55,11 @@ Sac::Sac(tal_id_t tal_id, group_id_t group_id):
 	this->setMessageType(MSG_TYPE_SAC);
 	this->setMessageLength(sizeof(T_DVB_SAC));
 	this->setMaxSize(sizeof(T_DVB_SAC) + (sizeof(emu_cr_t) * NBR_MAX_CR));
-	this->frame->sac.tal_id = htons(tal_id);
-	this->frame->sac.group_id = group_id;
+	this->frame()->sac.tal_id = htons(tal_id);
+	this->frame()->sac.group_id = group_id;
 	// very low as we will force the most robust MODCOD at beginning
-	this->frame->sac.acm.cni = hcnton(-100);
-	this->frame->sac.cr_number = 0;
+	this->frame()->sac.acm.cni = hcnton(-100);
+	this->frame()->sac.cr_number = 0;
 }
 
 Sac::~Sac()
@@ -90,7 +90,7 @@ bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 	cr.value = val;
 	this->data.append((unsigned char *)&cr, sizeof(emu_cr_t));
 	// increase cr_number
-	this->frame->sac.cr_number++;
+	this->frame()->sac.cr_number++;
 	// increase message length
 	this->setMessageLength(this->getMessageLength() + sizeof(emu_cr_t));
 	return true;
@@ -99,30 +99,30 @@ bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 
 tal_id_t Sac::getTerminalId(void) const 
 {
-	return ntohs(this->frame->sac.tal_id);
+	return ntohs(this->frame()->sac.tal_id);
 }
 
 group_id_t Sac::getGroupId(void) const
 {
-	return this->frame->sac.group_id;
+	return this->frame()->sac.group_id;
 }
 
 double Sac::getCni() const
 {
-	return ncntoh(this->frame->sac.acm.cni);
+	return ncntoh(this->frame()->sac.acm.cni);
 }
 
 vector<cr_info_t> Sac::getRequets(void) const
 {
 	vector<cr_info_t> requests;
 
-	for(unsigned int i = 0; i < this->frame->sac.cr_number; i++)
+	for(unsigned int i = 0; i < this->frame()->sac.cr_number; i++)
 	{
 		cr_info_t req;
 
-		req.prio = this->frame->sac.cr[i].prio;
-		req.type = this->frame->sac.cr[i].type;
-		req.value = getDecodedCrValue(this->frame->sac.cr[i]);
+		req.prio = this->frame()->sac.cr[i].prio;
+		req.type = this->frame()->sac.cr[i].type;
+		req.value = getDecodedCrValue(this->frame()->sac.cr[i]);
 
 		requests.push_back(req);
 	}
@@ -132,7 +132,7 @@ vector<cr_info_t> Sac::getRequets(void) const
 
 void Sac::setAcm(double cni)
 {
-	this->frame->sac.acm.cni = hcnton(cni);
+	this->frame()->sac.acm.cni = hcnton(cni);
 }
 
 /**

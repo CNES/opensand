@@ -570,3 +570,14 @@ Atm::PacketHandler::PacketHandler(EncapPlugin &plugin):
 {
 }
 
+
+bool Atm::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
+{
+	AtmCell atm_cell(data, this->getFixedLength());
+	if(!atm_cell.isValid())
+	{
+		return false;
+	}
+	tal_id = atm_cell.getSrcTalId();
+	return true;
+}

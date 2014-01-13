@@ -47,7 +47,7 @@ DvbRcsFrame::DvbRcsFrame(const unsigned char *data, size_t length):
 {
 	this->name = "DVB-RCS frame";
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
-	this->num_packets = ntohl(this->frame->qty_element);
+	this->num_packets = ntohl(this->frame()->qty_element);
 }
 
 DvbRcsFrame::DvbRcsFrame(const Data &data):
@@ -55,7 +55,7 @@ DvbRcsFrame::DvbRcsFrame(const Data &data):
 {
 	this->name = "DVB-RCS frame";
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
-	this->num_packets = ntohl(this->frame->qty_element);
+	this->num_packets = ntohl(this->frame()->qty_element);
 }
 
 DvbRcsFrame::DvbRcsFrame(const Data &data, size_t length):
@@ -63,7 +63,7 @@ DvbRcsFrame::DvbRcsFrame(const Data &data, size_t length):
 {
 	this->name = "DVB-RCS frame";
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
-	this->num_packets = ntohl(this->frame->qty_element);
+	this->num_packets = ntohl(this->frame()->qty_element);
 }
 
 DvbRcsFrame::DvbRcsFrame(DvbFrame *frame):
@@ -81,7 +81,7 @@ DvbRcsFrame::DvbRcsFrame():
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
 	this->setMessageType(MSG_TYPE_DVB_BURST);
-	this->frame->qty_element = 0; // no encapsulation packet at the beginning
+	this->frame()->qty_element = 0; // no encapsulation packet at the beginning
 }
 
 DvbRcsFrame::~DvbRcsFrame()
@@ -96,7 +96,7 @@ bool DvbRcsFrame::addPacket(NetPacket *packet)
 	if(is_added)
 	{
 		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
-		this->frame->qty_element = htons(this->num_packets);
+		this->frame()->qty_element = htons(this->num_packets);
 	}
 
 	return is_added;
@@ -111,11 +111,21 @@ void DvbRcsFrame::empty(void)
 
 	// update the DVB-RCS frame header
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
-	this->frame->qty_element = 0; // no encapsulation packet at the beginning
+	this->frame()->qty_element = 0; // no encapsulation packet at the beginning
 }
 
 
 uint16_t DvbRcsFrame::getNumPackets(void) const
 {
-	return ntohs(this->frame->qty_element);
+	return ntohs(this->frame()->qty_element);
+}
+
+void DvbRcsFrame::setModcodId(uint8_t modcod_id)
+{
+	this->frame()->modcod = modcod_id;
+}
+ 
+uint8_t DvbRcsFrame::getModcodId(void) const
+{
+	return this->frame()->modcod;
 }

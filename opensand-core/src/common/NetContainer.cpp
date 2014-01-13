@@ -90,7 +90,7 @@ Data NetContainer::getData() const
 
 Data NetContainer::getData(size_t pos) const
 {
-	return this->data.substr(pos, this->getTotalLength() - pos);;
+	return this->data.substr(pos, this->getTotalLength() - pos);
 }
 
 

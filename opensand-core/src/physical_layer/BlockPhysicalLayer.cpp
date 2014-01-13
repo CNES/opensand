@@ -123,10 +123,43 @@ bool BlockPhysicalLayer::PhyUpward::onInit(void)
 	string link("down"); // we are on downlink
 
 	// Intermediate variables for Config file reading
-	string sat_type;
+	sat_type_t sat_type;
 	string attenuation_type;
 	string minimal_type;
 	string error_type;
+
+	component_t compo;
+	string val;
+
+	// satellite type
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                          val))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          GLOBAL_SECTION, SATELLITE_TYPE);
+		goto error;
+	}
+	UTI_INFO("satellite type = %s\n", val.c_str());
+	sat_type = strToSatType(val);
+
+	val = "";
+	if(!globalConfig.getComponent(val))
+	{
+		UTI_ERROR("cannot get component type\n");
+		goto error;
+	}
+	UTI_INFO("host type = %s\n", val.c_str());
+	compo = getComponentType(val);
+
+	if(compo == terminal ||
+	   (sat_type == REGENERATIVE && compo == gateway))
+	{
+		this->msg_type = MSG_TYPE_BBFRAME;
+	}
+	else
+	{
+		this->msg_type = MSG_TYPE_DVB_BURST;
+	}
 
 	// get granularity
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
@@ -251,10 +284,7 @@ bool BlockPhysicalLayer::PhyDownward::onInit(void)
 {
 	ostringstream name;
 	string link("up"); // we are on uplink
-
-	// Intermediate variables for Config file reading
 	string attenuation_type;
-
 
 	// get granularity
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
@@ -330,11 +360,21 @@ bool BlockPhysicalLayer::PhyUpward::forwardFrame(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
-	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
+	if(dvb_frame->getMessageType() != this->msg_type)
 	{
-		// do not handle signalisation
-		goto forward;
+		if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
+		{
+			// do not handle signalisation but forward it
+			goto forward;
+		}
+		// reject wrong frames, we need this because
+		// GW receives its own traffic that does not need to be handled
+		// we may forward it bu it will be rejected at DVB layer
+		UTI_DEBUG_L3("unsupported frame rejected at physical layer\n");
+		delete dvb_frame;
+		return true;
 	}
+
 
 	// Update of the Threshold CN if Minimal Condition
 	// Mde is Modcod dependent
@@ -349,7 +389,14 @@ bool BlockPhysicalLayer::PhyUpward::forwardFrame(DvbFrame *dvb_frame)
 	             dvb_frame->getCarrierId(),
 	             dvb_frame->getCn());
 
-	cn_total = this->getTotalCN(dvb_frame);
+	if(this->is_sat)
+	{
+		cn_total = dvb_frame->getCn();
+	}
+	else
+	{
+		cn_total = this->getTotalCN(dvb_frame);
+	}
 	UTI_DEBUG("Total C/N: %.2f dB\n", cn_total);
 	// Checking if the received frame must be affected by errors
 	if(this->isToBeModifiedPacket(cn_total))
@@ -384,7 +431,17 @@ bool BlockPhysicalLayer::PhyDownward::forwardFrame(DvbFrame *dvb_frame)
 	}
 
 	// Case of outgoing msg: Mark the msg with the C/N of Channel
-	this->addSegmentCN(dvb_frame);
+	if(this->is_sat)
+	{
+		// we only need physical parameters for factorization on the receving side
+		// that is the same for transparent mode
+		// we use a very high value for unused C/N as it won't change anything
+		dvb_frame->setCn(0x0fff);
+	}
+	else
+	{
+		this->addSegmentCN(dvb_frame);
+	}
 
 	UTI_DEBUG_L3("Send DVB frame on carrier %u: C/N  = %.2f\n",
 	             dvb_frame->getCarrierId(),
@@ -402,6 +459,88 @@ forward:
 error:
 	delete dvb_frame;
 	return false;
+}
+
+
+bool BlockPhysicalLayerSat::PhyUpward::onInit(void)
+{
+	ostringstream name;
+	string link("down"); // we are on downlink
+
+	string minimal_type;
+	string error_type;
+
+	this->is_sat = true;
+	this->msg_type = MSG_TYPE_DVB_BURST;
+
+	// Initiate Minimal conditions
+	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION,
+	                          MINIMAL_CONDITION_TYPE,
+	                          minimal_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
+		goto error;
+	}
+
+	// Initiate Error Insertion
+	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION,
+	                          ERROR_INSERTION_TYPE,
+	                          error_type))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
+		goto error;
+	}
+
+	/* get all the plugins */
+	if(!Plugin::getPhysicalLayerPlugins("",
+	                                    minimal_type,
+	                                    error_type,
+	                                    &this->attenuation_model,
+	                                    &this->minimal_condition,
+	                                    &this->error_insertion))
+	{
+		UTI_ERROR("error when getting physical layer plugins");
+		goto error;
+	}
+	
+	UTI_INFO("uplink: minimal condition type = %s, error insertion type = %s",
+	         minimal_type.c_str(), error_type.c_str());
+
+	if(!this->minimal_condition->init())
+	{
+		UTI_ERROR("cannot initialize minimal condition plugin %s",
+		          minimal_type.c_str());
+		goto error;
+	}
+
+	if(!this->error_insertion->init())
+	{
+		UTI_ERROR("cannot initialize error insertion plugin %s",
+		          error_type.c_str());
+		goto error;
+	}
+
+	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
+	                                                             SAMPLE_MAX,
+	                                                             "Phy.minimal_condition (%s)",
+	                                                             minimal_type.c_str());
+	this->probe_drops = Output::registerProbe<int>("Phy.drops",
+	                                               "frame number", true,
+	                                               // we need to sum the drops here !
+	                                               SAMPLE_SUM);
+	return true;
+
+error:
+	return false;
+}
+
+
+bool BlockPhysicalLayerSat::PhyDownward::onInit(void)
+{
+	this->is_sat = true;
+	return true;
 }
 
 

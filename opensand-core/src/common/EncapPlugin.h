@@ -53,6 +53,10 @@ class EncapPlugin: public StackPlugin
 
  public:
 
+	EncapPlugin(uint16_t ether_type): StackPlugin(ether_type)
+	{
+	};
+
 	/**
 	 * @class EncapPacketHandler
 	 * @brief Functions to handle the encapsulated packets
@@ -69,6 +73,15 @@ class EncapPlugin: public StackPlugin
 		EncapPacketHandler(EncapPlugin &pl):
 			StackPacketHandler(pl)
 		{};
+
+		/**
+		 * @brief Get the source terminal ID of a packet
+		 *
+		 * @param data    The packet content
+		 * @param tal_id  OUT: the source terminal ID of the packet
+		 * @return true on success, false otherwise
+		 */
+		virtual bool getSrc(const Data &data, tal_id_t &tal_id) const = 0;
 	};
 
 	/**
@@ -124,7 +137,6 @@ class EncapPlugin: public StackPlugin
 		uint8_t dst_tal_id;
 	};
 
-	EncapPlugin(uint16_t ether_type): StackPlugin(ether_type) {};
 	
 
 	/* for the following functions we use "covariant return type" */

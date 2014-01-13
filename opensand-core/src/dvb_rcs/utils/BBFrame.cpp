@@ -82,9 +82,9 @@ BBFrame::BBFrame():
 	// no data given as input, so create the BB header
 	this->setMessageLength(sizeof(T_DVB_BBFRAME));
 	this->setMessageType(MSG_TYPE_BBFRAME);
-	this->frame->data_length = 0; // no encapsulation packet at the beginning
-	this->frame->used_modcod = 0; // by default, may be changed
-	this->frame->real_modcod_nbr = 0; // no MODCOD option at the beginning
+	this->frame()->data_length = 0; // no encapsulation packet at the beginning
+	this->frame()->used_modcod = 0; // by default, may be changed
+	this->frame()->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
 BBFrame::~BBFrame()
@@ -99,7 +99,7 @@ bool BBFrame::addPacket(NetPacket *packet)
 	if(is_added)
 	{
 		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
-		this->frame->data_length = htons(this->num_packets);
+		this->frame()->data_length = htons(this->num_packets);
 	}
 
 	return is_added;
@@ -114,24 +114,24 @@ void BBFrame::empty(void)
 
 	// update the BB frame header
 	this->setMessageLength(sizeof(T_DVB_BBFRAME));
-	this->frame->data_length = 0; // no encapsulation packet at the beginning
-	this->frame->used_modcod = 0; // by default, may be changed
-	this->frame->real_modcod_nbr = 0; // no MODCOD option at the beginning
+	this->frame()->data_length = 0; // no encapsulation packet at the beginning
+	this->frame()->used_modcod = 0; // by default, may be changed
+	this->frame()->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
-void BBFrame::setModcodId(unsigned int modcod_id)
+void BBFrame::setModcodId(uint8_t modcod_id)
 {
-	this->frame->used_modcod = modcod_id;
+	this->frame()->used_modcod = modcod_id;
 }
 
 uint8_t BBFrame::getModcodId(void) const
 {
-	return this->frame->used_modcod;
+	return this->frame()->used_modcod;
 }
 
 uint16_t BBFrame::getDataLength(void) const
 {
-	return ntohs(this->frame->data_length);
+	return ntohs(this->frame()->data_length);
 }
 
 void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
@@ -143,16 +143,16 @@ void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
 	this->data.insert(sizeof(T_DVB_BBFRAME), (unsigned char *)(&option),
 	                  sizeof(T_DVB_REAL_MODCOD));
 
-	this->frame->real_modcod_nbr += 1;
+	this->frame()->real_modcod_nbr += 1;
 }
 
 void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 {
 	unsigned int i;
 	T_DVB_REAL_MODCOD *real_modcod_option;
-	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->frame + sizeof(T_DVB_BBFRAME));
+	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->frame() + sizeof(T_DVB_BBFRAME));
 
-	for(i = 0; i < this->frame->real_modcod_nbr; i++)
+	for(i = 0; i < this->frame()->real_modcod_nbr; i++)
 	{
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
@@ -171,6 +171,6 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 
 size_t BBFrame::getOffsetForPayload(void)
 {
-	return sizeof(T_DVB_BBFRAME) + this->frame->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
+	return sizeof(T_DVB_BBFRAME) + this->frame()->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
 }
 

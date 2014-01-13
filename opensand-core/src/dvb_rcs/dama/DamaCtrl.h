@@ -121,10 +121,12 @@ class DamaCtrl
 	 * @warning Should set enable_rbdc or enable_vbdc to true depending on
 	 *          the type of CR it receives
 	 *
-	 * @param   sac  SAC frame.
+	 * @param   sac             SAC frame.
+	 * @param   satellite_type  The type of satellite
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsSAC(const Sac *sac) = 0;
+	virtual bool hereIsSAC(const Sac *sac,
+	                       sat_type_t satellite_type = REGENERATIVE) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.

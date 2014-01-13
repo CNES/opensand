@@ -86,8 +86,8 @@ class BlockPhysicalLayer: public Block
 	~BlockPhysicalLayer();
 
 	/// event handlers
-	virtual bool onDownwardEvent(const RtEvent *const event);
-	virtual bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
 
 	// initialization method
 	bool onInit();
@@ -99,10 +99,12 @@ class BlockPhysicalLayer: public Block
 			Chan(bl, upward_chan)
 		{};
 
-		bool onInit(void);
+		virtual bool onInit(void);
 
 	  protected:
 		bool forwardFrame(DvbFrame *dvb_frame);
+		/// the expected message type (for filtering on GW)
+		uint8_t msg_type;
 	};
 
 	class PhyDownward: public Chan
@@ -112,7 +114,7 @@ class BlockPhysicalLayer: public Block
 			Chan(bl, downward_chan)
 		{};
 
-		bool onInit(void);
+		virtual bool onInit(void);
 
 	  protected:
 		bool forwardFrame(DvbFrame *dvb_frame);
@@ -127,7 +129,52 @@ class BlockPhysicalLayer: public Block
 	 * @param event  The event
 	 * @param chan   The channel
 	 */
-	virtual bool onEvent(const RtEvent *const event, Chan *chan);
+	bool onEvent(const RtEvent *const event, Chan *chan);
+
+	/// output events
+	static Event *error_init;
+	static Event *init_done;
+};
+
+/**
+ * @class BlockPhysicalLayerSat
+ * @brief Basic DVB PhysicalLayer block
+ */
+class BlockPhysicalLayerSat: public BlockPhysicalLayer
+{
+ public:
+	BlockPhysicalLayerSat(const string &name):
+		BlockPhysicalLayer(name)
+	{};
+	class PhyUpward: public BlockPhysicalLayer::PhyUpward
+	{
+	  public:
+		PhyUpward(Block &bl):
+			BlockPhysicalLayer::PhyUpward(bl)
+		{};
+
+		bool onInit(void);
+	};
+
+	class PhyDownward: public BlockPhysicalLayer::PhyDownward
+	{
+	  public:
+		PhyDownward(Block &bl):
+			BlockPhysicalLayer::PhyDownward(bl)
+		{};
+
+		bool onInit(void);
+	};
+
+ private:
+
+	/**
+	 * @brief Global event function for both upward and downward channels
+	 *
+	 * @param event  The event
+	 * @param chan   The channel
+	 */
+	bool onEvent(const RtEvent *const event, Chan *chan);
 
 	/// output events
 	static Event *error_init;
@@ -135,4 +182,5 @@ class BlockPhysicalLayer: public Block
 };
 
 #endif
+
 

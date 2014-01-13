@@ -248,7 +248,7 @@ bool BlockDvb::initForwardModcodFiles()
 		          GLOBAL_SECTION, DOWN_FORWARD_MODCOD_DEF);
 		goto error;
 	}
-	UTI_INFO("up/return link MODCOD definition path set to %s\n",
+	UTI_INFO("down/forward link MODCOD definition path set to %s\n",
 	         modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file

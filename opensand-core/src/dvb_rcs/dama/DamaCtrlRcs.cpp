@@ -113,16 +113,18 @@ bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
 	return true;
 }
 
-bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
+bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 {
 	DamaTerminalList::iterator st;
 	TerminalContextRcs *terminal;
 	tal_id_t tal_id = sac->getTerminalId();
 	std::vector<cr_info_t> requests = sac->getRequets();
 
+
 	// Checking if the station is registered
+	// if we get GW terminal ID this is for physical layer parameters
 	st = this->terminals.find(tal_id);
-	if(st == this->terminals.end())
+	if(st == this->terminals.end() && tal_id != GW_TAL_ID)
 	{
 		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%u). Discarded.\n" ,
 		          this->current_superframe_sf, tal_id);
@@ -172,12 +174,20 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 				break;
 		}
 	}
+	// TODO global part ? for DamaCtrl and not only RCS
 	if(this->with_phy_layer)
 	{
-		// we should got the C/N0 of forward link
-		// unused for regenerative case
+		// transparent : the C/N0 of forward link
+		// regenerative : the C/N0 of uplink (updated by sat)
 		double cni = sac->getCni();
-		this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
+		if(satellite_type == TRANSPARENT)
+		{
+			this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
+		}
+		else if(satellite_type == REGENERATIVE)
+		{
+			this->fmt_simu->setRetRequiredModcod(tal_id, cni);
+		}
 	}
 
 	return true;
@@ -192,11 +202,11 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 	TerminalCategories::const_iterator category_it;
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
-		category_it++)
+	    category_it++)
 	{
 		//const std::vector<TerminalContextRcs *> &terminals
-		const std::vector<TerminalContext *> &terminals
-							  = (*category_it).second->getTerminals();
+		const std::vector<TerminalContext *> &terminals =
+							(*category_it).second->getTerminals();
 
 		UTI_DEBUG_L3("SF#%u: Category %s has %zu terminals\n",
 		             this->current_superframe_sf,

@@ -68,13 +68,6 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroup *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
 
-	// TODO
-	// at beginning we set the carrier capa to the total capa + the previous
-	// non allocated capa then for each fifo we use this capacity
-	// at the end the non allocated capa remain
-	// BUT should we keep complete remaining capacity in all cases ?
-	// there can remain more than capa for a timeslot if nothing was consumed
-
 	// initialize carriers capacity
 	for(carrier_it = carriers.begin();
 	    carrier_it != carriers.end();
@@ -83,12 +76,22 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		vol_kb_t remaining_capacity_kb;
 		rate_pktpf_t remaining_capacity_pktpf;
 		const FmtDefinitionTable *modcod_def;
+		uint8_t desired_modcod = retrieveCurrentModcod();
+		uint8_t modcod_id;
+
+		// get best modcod ID according to carrier
+		modcod_id = (*carrier_it)->getNearestFmtId(desired_modcod);
+		if(modcod_id == 0)
+		{
+			UTI_DEBUG("cannot serve GW with any modcod (desired %u) on carrier %u\n",
+			         desired_modcod, (*carrier_it)->getCarriersId());
+			continue;
+		}
+		UTI_DEBUG_L3("Available MODCOD for GW = %u\n", modcod_id);
 
 		modcod_def = this->fmt_simu->getRetModcodDefinitions();
-		// we have only one MODCOD for each carrier so we can convert
-		// directly from bauds to kbits
 		remaining_capacity_kb =
-			modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+			modcod_def->symToKbits(modcod_id,
 			                       (*carrier_it)->getTotalCapacity());
 		// as this function is called each superframe we can directly
 		// convert number of packet to rate in packet per superframe
@@ -157,7 +160,8 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 	          current_superframe_sf, current_frame, max_to_send);
 
 	// create an incomplete DVB-RCS frame
-	if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame))
+	if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame,
+	                                      carriers->getFmtIds().front()))
 	{
 		goto error;
 	}
@@ -225,7 +229,8 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
 			// create another incomplete DVB-RCS frame
-			if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame))
+			if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame,
+			                                      carriers->getFmtIds().front()))
 			{
 				goto error;
 			}
@@ -290,7 +295,8 @@ error:
 }
 
 
-bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
+bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
+                                                      uint8_t modcod_id)
 {
 	if(!this->packet_handler)
 	{
@@ -311,6 +317,7 @@ bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_d
 	// managed by the allocation, the DVB frame is only an abstract
 	// object to transport data
 	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
+	(*incomplete_dvb_frame)->setModcodId(modcod_id);
 
 	return true;
 
@@ -318,4 +325,11 @@ error:
 	return false;
 }
 
+uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
+{
+	uint8_t modcod_id = this->fmt_simu->getCurrentRetModcodId(GW_TAL_ID);
+	UTI_DEBUG_L3("Simulated MODCOD for GW = %u\n", modcod_id);
+
+	return modcod_id;
+}
 

@@ -232,6 +232,13 @@ class FmtSimulation
 	unsigned int getMaxFwdModcod() const;
 
 	/**
+	 * @brief Get the higher return MODCOD ID
+	 *
+	 * @return the highest return MODCOD ID
+	 */
+	unsigned int getMaxRetModcod() const;
+
+	/**
 	 * @brief Was the current down/forward MODCOD ID of the ST whose ID
 	 *        is given as input  advertised over the emulated network ?
 	 *

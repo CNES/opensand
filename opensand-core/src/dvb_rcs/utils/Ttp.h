@@ -172,7 +172,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	 */
 	group_id_t getGroupId() const
 	{
-		return this->frame->ttp.ttp_info.group_id;
+		return this->frame()->ttp.ttp_info.group_id;
 	};
 
 	/**
@@ -182,7 +182,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	 */
 	time_sf_t getSuperframeCount() const
 	{
-		return ntohs(this->frame->ttp.ttp_info.superframe_count);
+		return ntohs(this->frame()->ttp.ttp_info.superframe_count);
 	};
 
  private:

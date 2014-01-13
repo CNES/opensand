@@ -89,7 +89,8 @@ class DamaCtrlRcs: public DamaCtrl
 
 
 	// Process DVB frames
-	virtual bool hereIsSAC(const Sac *sac);
+	virtual bool hereIsSAC(const Sac *sac,
+	                       sat_type_t satellite_type = TRANSPARENT);
 
 	// Build allocation table
 	virtual bool buildTTP(Ttp *ttp);

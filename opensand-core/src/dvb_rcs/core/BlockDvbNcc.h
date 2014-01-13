@@ -112,7 +112,10 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;
 
-	/// The C/N0 for downlink in regenerative scenario
+	/// The C/N0 for downlink in regenerative scenario that will be transmited
+	//  to satellite in SAC
+	//  For transparent scenario the return link cni will be used to update return
+	//  MODCOD id for terminals
 	double cni;
 
 	/**** NGN network / Policy Enforcement Point (PEP) ****/
@@ -294,7 +297,10 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 		// Queue sizes
 	Probe<int> *probe_gw_queue_size;
 	Probe<int> *probe_gw_queue_size_kb;
-
+		// Physical layer information
+	Probe<int> *probe_received_modcod;
+	Probe<int> *probe_rejected_modcod;
+	Probe<int> *probe_used_modcod;
 
 	/// TODO following
 

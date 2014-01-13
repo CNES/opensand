@@ -45,7 +45,8 @@ DamaAgentRcs::DamaAgentRcs():
 	dynamic_allocation_pkt(0),
 	remaining_allocation_pktpf(0),
 	cra_in_cr(false),
-	rbdc_timer_sf(0)
+	rbdc_timer_sf(0),
+	modcod_id(0)
 {
 }
 
@@ -95,6 +96,10 @@ bool DamaAgentRcs::init()
 		}
 	}
 
+	this->probe_st_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
+	                                                        "modcod index",
+	                                                        true, SAMPLE_LAST);
+
 	return true;
 }
 
@@ -133,6 +138,16 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 		          this->current_superframe_sf, this->current_frame);
 		return false;
 	}
+	// add modcod id in frames
+	for(list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
+	    it != complete_dvb_frames->end(); ++it)
+	{
+		// TODO DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
+		DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
+		frame->setModcodId(this->modcod_id);
+	}
+	this->probe_st_used_modcod->put(this->modcod_id);
+
 	UTI_DEBUG_L3("SF#%u: frame %u: remaining allocation after scheduling %u\n",
 	             this->current_superframe_sf, this->current_frame,
 	             remaining_alloc_pktpf);
@@ -159,7 +174,8 @@ bool DamaAgentRcs::hereIsSOF(time_sf_t superframe_number_sf)
 	return true;
 }
 
-// a TTP reading function that handles MODCOD but not priority
+// a TTP reading function that handles MODCOD but not priority and frame id
+// only one TP is supported for MODCOD handling
 bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 {
 	map<uint8_t, emu_tp_t> tp;
@@ -177,6 +193,13 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 		this->probe_st_total_allocation->put(0);
 		return true;
 	}
+	if(tp.size() > 1)
+	{
+		// TODO WARNING
+		UTI_ERROR("Received more than one TP in TTP, "
+		          "allocation will be correctly handled but not "
+		          "modcod for physical layer emulation\n");
+	}
 
 	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
 	    it != tp.end(); ++it)
@@ -185,6 +208,9 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 
 		assign_pkt = (*it).second.assignment_count;
 		this->allocated_pkt += assign_pkt;
+		// we can directly assign here because we should have
+		// received only one TTP
+		this->modcod_id = (*it).second.fmt_id;
 		UTI_DEBUG_L3("SF#%u: frame#%u: "
 		             "offset:%u, assignment_count:%u, "
 		             "fmt_id:%u priority:%u\n",

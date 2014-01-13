@@ -928,12 +928,6 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 		}
 		else // else satellite_type == REGENERATIVE
 		{
-			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
-			{
-				// get ACM parameters
-				// TODO !
-//				this->cni = dvb_frame->getCn();
-			}
 			/* The satellite is a regenerative one and the DVB frame contains
 			 * a burst:
 			 *  - extract the packets from the DVB frame,
@@ -961,6 +955,23 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
+			if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
+			   this->receptionStd->getType() == "DVB-RCS")
+			{
+				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+				tal_id_t tal_id;
+				// decode the first packet in frame to be able to get source terminal ID
+				if(!this->up_return_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+				{
+					UTI_ERROR("unable to read source terminal ID in frame, "
+					          "won't be able to update C/N value\n");
+				}
+				else
+				{
+					this->cni[tal_id] = frame->getCn();
+				}
+			}
+
 			if(!this->receptionStd->onRcvFrame(dvb_frame,
 			                                   0 /* no used */, &burst))
 			{
@@ -968,6 +979,7 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 				          "(regenerative satellite)\n");
 				status = false;
 			}
+
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
@@ -1028,9 +1040,9 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	// Generic control frames (SAC, TTP, etc)
 	case MSG_TYPE_SAC:
-		// handle SAC here to get the uplink ACM parameters
 		if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
 		{
+			// handle SAC here to get the uplink ACM parameters
 			// TODO Sac *sac = dynamic_cast<Sac *>(dvb_frame);
 			Sac *sac = (Sac *)dvb_frame;
 
@@ -1042,12 +1054,14 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 			UTI_DEBUG("Get SAC from ST%u, with C/N0 = %.2f\n",
 			          tal_id, cni);
 			this->fmt_simu.setFwdRequiredModcod(tal_id, cni);
-			if(tal_id == GW_TAL_ID)
+			// update ACM parameters with uplink value, thus the GW will
+			// known uplink C/N and thus update uplink MODCOD
+			if(this->cni.find(tal_id) != this->cni.end())
 			{
-				delete dvb_frame;
-				// no need to transmit back this message to GW
-				break;
-			}
+				sac->setAcm(this->cni[tal_id]);
+ 			}
+			// TODO we won't update ACM parameters if we did not receive
+			// traffic from this terminal, GW will have a wrong value...
 		}
 		// do not break here !
 	case MSG_TYPE_SOF:

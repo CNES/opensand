@@ -103,7 +103,10 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	probe_gw_l2_from_sat(NULL),
 	probe_frame_interval(NULL),
 	probe_gw_queue_size(NULL),
-	probe_gw_queue_size_kb(NULL)
+	probe_gw_queue_size_kb(NULL),
+	probe_received_modcod(NULL),
+	probe_rejected_modcod(NULL),
+	probe_used_modcod(NULL)
 {
 }
 
@@ -149,7 +152,7 @@ BlockDvbNcc::~BlockDvbNcc()
 		delete (*it).second;
 	}
 
-	if(satellite_type == TRANSPARENT)
+	if(this->satellite_type == TRANSPARENT)
 	{
 		for(TerminalCategories::iterator it = this->categories.begin();
 		    it != this->categories.end(); ++it)
@@ -242,6 +245,14 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					// send Start Of Frame (SOF)
 					this->sendSOF();
 
+					if(this->with_phy_layer)
+					{
+						// for each terminal in DamaCtrl update FMT because in this case
+						// this it not done with scenario timer and FMT is updated
+						// each received frame but we only need it for allocation
+						this->dama_ctrl->updateFmt();
+					}
+
 					// run the allocation algorithms (DAMA)
 					this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
@@ -252,14 +263,23 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				// schedule encapsulation packets
 				// TODO loop on categories (see todo in initMode)
 				if(!this->scheduling->schedule(this->super_frame_counter,
-				                              this->frame_counter,
-				                              this->getCurrentTime(),
-				                              &this->complete_dvb_frames,
-				                              remaining_alloc_sym))
+				                               this->frame_counter,
+				                               this->getCurrentTime(),
+				                               &this->complete_dvb_frames,
+				                               remaining_alloc_sym))
 				{
 					UTI_ERROR("failed to schedule encapsulation "
 					          "packets stored in DVB FIFO\n");
 					return false;
+				}
+				if(this->satellite_type == REGENERATIVE &&
+				   this->complete_dvb_frames.size() > 0)
+				{
+					// we can do that because we have only one MODCOD per allocation
+					// TODO this may change in the future...
+					uint8_t modcod_id;
+					modcod_id = ((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();
+					this->probe_used_modcod->put(modcod_id);
 				}
 				UTI_DEBUG("SF#%u: frame %u: %u symbols remaining after scheduling\n",
 				          this->super_frame_counter, this->frame_counter,
@@ -1231,6 +1251,19 @@ bool BlockDvbNcc::initOutput(void)
 	this->probe_gw_queue_size_kb = Output::registerProbe<int>("Queue size.kbits",
 	                                                          "kbits", true,
 	                                                          SAMPLE_LAST);
+
+	if(this->satellite_type == REGENERATIVE)
+	{
+		this->probe_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
+		                                                         "modcod index",
+		                                                         true, SAMPLE_LAST);
+		this->probe_rejected_modcod = Output::registerProbe<int>("ACM.Rejected_modcod",
+		                                                         "modcod index",
+		                                                         true, SAMPLE_LAST);
+		this->probe_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
+		                                                     "modcod index",
+		                                                     true, SAMPLE_LAST);
+	}
 	return true;
 }
 
@@ -1240,46 +1273,78 @@ bool BlockDvbNcc::initOutput(void)
 
 bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	switch(dvb_frame->getMessageType())
+	uint8_t msg_type = dvb_frame->getMessageType();
+	switch(msg_type)
 	{
 		// burst
-		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_BBFRAME:
-		case MSG_TYPE_CORRUPTED:
-		{
 			// ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
-
+			if(this->receptionStd->getType() == "DVB-RCS") 
+			{
+				UTI_DEBUG("ignore received BB frame in transparent scenario\n");
+				goto drop;
+			}
+			// breakthrough
+		case MSG_TYPE_DVB_BURST:
+		case MSG_TYPE_CORRUPTED:
+		{
 			NetBurst *burst = NULL;
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getPayloadLength();
 			this->phy_from_sat_bytes += dvb_frame->getMessageLength();
-
-			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+			if(this->with_phy_layer)
 			{
-				// get ACM parameters
+				// regenerative case : get downlink ACM parameters to inform
+				//                     satellite ith a SAC
 				this->cni = dvb_frame->getCn();
+
+				// transparent case : update return modcod for terminal
+				if(this->satellite_type == TRANSPARENT &&
+				   this->receptionStd->getType() == "DVB-RCS")
+				{
+					DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+					tal_id_t tal_id;
+					// decode the first packet in frame to be able to get source terminal ID
+					if(!this->up_return_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+					{
+						UTI_ERROR("unable to read source terminal ID in frame, "
+						          "won't be able to update C/N value\n");
+					}
+					else
+					{
+						this->fmt_simu.setRetRequiredModcod(tal_id, this->cni);
+					}
+				}
 			}
 
-			if(this->receptionStd->getType() == "DVB-RCS" &&
-			   dvb_frame->getMessageType() == MSG_TYPE_BBFRAME)
-			{
-				UTI_DEBUG("ignore received BB frame in transparent scenario\n");
-				goto drop;
-			}
 			if(!this->receptionStd->onRcvFrame(dvb_frame, this->macId, &burst))
 			{
 				UTI_ERROR("failed to handle DVB frame or BB frame\n");
 				goto error;
 			}
+			if(this->receptionStd->getType() == "DVB-S2")
+			{
+				if(msg_type != MSG_TYPE_CORRUPTED)
+				{
+					this->probe_received_modcod->put(
+							((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+				}
+				else
+				{
+					this->probe_rejected_modcod->put(
+							((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+				}
+			}
+
+
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
 				UTI_ERROR("failed to send burst to upper layer\n");
 				goto error;
 			}
-
 		}
 		break;
 
@@ -1290,7 +1355,7 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			UTI_DEBUG_L3("handle received SAC\n");
 
-			if(!this->dama_ctrl->hereIsSAC(sac))
+			if(!this->dama_ctrl->hereIsSAC(sac, this->satellite_type))
 			{
 				UTI_ERROR("failed to handle SAC frame\n");
 				goto error;
@@ -1520,7 +1585,7 @@ bool BlockDvbNcc::simulateFile()
 			UTI_ERROR("Simulated ST%u ignored, IDs smaller than %u "
 			          "reserved for emulated terminals\n",
 			          st_id, BROADCAST_TAL_ID);
-	          goto loop_step;
+			goto loop_step;
 		}
 		if(event_selected == none)
 			goto loop_step;

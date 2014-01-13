@@ -63,9 +63,6 @@ class DvbFrameTpl: public NetContainer
 	/** The carrier Id */
 	uint8_t carrier_id;
 
-	/** The frame */
-	T *frame;
-
  public:
 
 	/**
@@ -81,7 +78,6 @@ class DvbFrameTpl: public NetContainer
 		carrier_id(0)
 	{
 		this->name = "DvbFrame";
-		this->frame = (T *)this->data.c_str();
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();
 		this->header_length = sizeof(T);
 	};
@@ -98,7 +94,6 @@ class DvbFrameTpl: public NetContainer
 		carrier_id(0)
 	{
 		this->name = "DvbFrame";
-		this->frame = (T *)this->data.c_str();
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();
 		this->header_length = sizeof(T);
 	};
@@ -116,7 +111,6 @@ class DvbFrameTpl: public NetContainer
 		carrier_id(0)
 	{
 		this->name = "DvbFrame";
-		this->frame = (T *)this->data.c_str();
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();
 		this->header_length = sizeof(T);
 	};
@@ -133,7 +127,6 @@ class DvbFrameTpl: public NetContainer
 	{
 		this->name = frame->getName();
 		this->data.reserve(this->max_size);
-		this->frame = (T *)this->data.c_str();
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();
 		this->header_length = sizeof(T);
 	};
@@ -152,7 +145,6 @@ class DvbFrameTpl: public NetContainer
 		this->data.reserve(this->max_size);
 		// add at least the base header of the created frame
 		this->data.append((unsigned char *)&header, sizeof(T));
-		this->frame = (T *)this->data.c_str();
 		this->header_length = sizeof(T);
 	};
 
@@ -168,7 +160,7 @@ class DvbFrameTpl: public NetContainer
 	 */
 	void setMessageType(uint8_t type)
 	{
-		this->frame->hdr.msg_type = type;
+		this->frame()->hdr.msg_type = type;
 	};
 	
 	/**
@@ -178,7 +170,7 @@ class DvbFrameTpl: public NetContainer
 	 */
 	void setMessageLength(uint16_t length)
 	{
-		this->frame->hdr.msg_length = htons(length);
+		this->frame()->hdr.msg_length = htons(length);
 	};
 	
 	/**
@@ -188,7 +180,7 @@ class DvbFrameTpl: public NetContainer
 	 */
 	uint8_t getMessageType(void) const
 	{
-		return this->frame->hdr.msg_type;
+		return this->frame()->hdr.msg_type;
 	};
 	
 	/**
@@ -198,7 +190,7 @@ class DvbFrameTpl: public NetContainer
 	 */
 	uint16_t getMessageLength(void) const
 	{
-		return ntohs(this->frame->hdr.msg_length);
+		return ntohs(this->frame()->hdr.msg_length);
 	};
 
 
@@ -226,7 +218,6 @@ class DvbFrameTpl: public NetContainer
 		// we need to do that again because data may have moved
 		// this is very important to set max size because data may also move
 		// when using append
-		this->frame = (T *)this->data.c_str();
 	};
 
 	/**
@@ -276,7 +267,6 @@ class DvbFrameTpl: public NetContainer
 		}
 
 		this->data.append(packet->getData());
-		this->frame = (T *)this->data.c_str();
 		this->num_packets++;
 
 		return true;
@@ -294,7 +284,9 @@ class DvbFrameTpl: public NetContainer
 	 */
 	double getCn(void) const
 	{
-		T_DVB_PHY *phy = (T_DVB_PHY *)this->getData(this->getMessageLength()).c_str();
+		size_t msg_length = this->getMessageLength();
+		Data phy_data = this->getData(msg_length);
+		T_DVB_PHY *phy = (T_DVB_PHY *)(phy_data.c_str());
 		return ncntoh(phy->cn_previous);
 	};
 
@@ -305,33 +297,28 @@ class DvbFrameTpl: public NetContainer
 	 */
 	void setCn(double cn)
 	{
+		T_DVB_PHY phy;
+		phy.cn_previous = hcnton(cn);
 		if(this->trailer_length == 0)
 		{
-			T_DVB_PHY phy;
 			this->data.append((unsigned char *)&phy, sizeof(T_DVB_PHY));
-			this->frame = (T *)this->data.c_str();
 			this->trailer_length = sizeof(T_DVB_PHY);
 		}
-		T_DVB_PHY *phy = (T_DVB_PHY *)(this->getData(this->getMessageLength()).c_str());
-		phy->cn_previous = hcnton(cn);
+		else
+		{
+			size_t msg_length = this->getMessageLength();
+			this->data.replace(msg_length, this->trailer_length,
+			                   (unsigned char *)(&phy), this->trailer_length);
+		}
 	};
 
 	/**
-	 * @brief Set the MODCOD of the frame
-	 *
-	 * @param modcod_id  the MODCOD ID of the frame
+	 * @brief Accessor on the frame data
 	 */
-	virtual void setModcodId(uint8_t UNUSED(modcod_id)) {};
-
-	/**
-	 * @brief Get the MODCOD of the frame
-	 *
-	 * @return  the MODCOD ID of the frame
-	 */
-	virtual uint8_t getModcodId(void) const
+	T *frame(void) const
 	{
-		return 0;
-	};
+		return (T *)this->data.c_str();
+	}
 
 	// Overloaded cast
 	operator BBFrame* ()
@@ -345,7 +332,6 @@ class DvbFrameTpl: public NetContainer
 		this->header_length = sizeof(T_DVB_ENCAP_BURST);
 		return (DvbRcsFrame *)this;
 	};
-
 
 };
 

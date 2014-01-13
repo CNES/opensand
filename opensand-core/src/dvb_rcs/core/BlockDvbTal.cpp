@@ -96,7 +96,8 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	probe_st_l2_from_sat(NULL),
 	probe_st_phy_from_sat(NULL),
 	probe_st_real_modcod(NULL),
-	probe_st_used_modcod(NULL),
+	probe_st_received_modcod(NULL),
+	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
 {
 	this->l2_to_sat_cells_before_sched = NULL;
@@ -767,13 +768,16 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	if(!this->with_phy_layer)
 	{
 		// maximum modcod if physical layer is enabled => not useful
-		this->probe_st_real_modcod = Output::registerProbe<int>("Required_modcod",
+		this->probe_st_real_modcod = Output::registerProbe<int>("ACM.Required_modcod",
 		                                                        "modcod index",
 		                                                        true, SAMPLE_LAST);
 	}
-	this->probe_st_used_modcod = Output::registerProbe<int>("Received_modcod",
-	                                                        "modcod index",
-	                                                        true, SAMPLE_LAST);
+	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
+	this->probe_st_rejected_modcod = Output::registerProbe<int>("ACM.Rejected_modcod",
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
 	this->probe_sof_interval = Output::registerProbe<float>("Perf.SOF_interval",
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
@@ -1117,7 +1121,8 @@ error:
 
 bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	switch(dvb_frame->getMessageType())
+	uint8_t msg_type = dvb_frame->getMessageType();
+	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
@@ -1131,7 +1136,7 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(this->with_phy_layer)
 			{
-				// get ACM parameters
+				// get ACM parameters that will be transmited to GW in SAC
 				this->cni = dvb_frame->getCn();
 			}
 
@@ -1143,14 +1148,22 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 				          dvb_frame->getMessageLength());
 				goto error;
 			}
-			// update MODCOD probes
-			if(!this->with_phy_layer)
+			if(msg_type != MSG_TYPE_CORRUPTED)
 			{
-				this->probe_st_real_modcod->put(
-						((DvbS2Std *)this->receptionStd)->getRealModcod());
+				// update MODCOD probes
+				if(!this->with_phy_layer)
+				{
+					this->probe_st_real_modcod->put(
+							((DvbS2Std *)this->receptionStd)->getRealModcod());
+				}
+				this->probe_st_received_modcod->put(
+						((DvbS2Std *)this->receptionStd)->getReceivedModcod());
 			}
-			this->probe_st_used_modcod->put(
-					((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+			else
+			{
+				this->probe_st_rejected_modcod->put(
+						((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+			}
 
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{

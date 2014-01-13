@@ -137,6 +137,7 @@ class Gse: public EncapPlugin
 		size_t getLength(const unsigned char *data) const;
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data) const;
+		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 	};
 
 	/// Constructor

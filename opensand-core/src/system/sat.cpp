@@ -55,7 +55,7 @@
 #include "BlockEncapSat.h"
 #include "BlockDvbSat.h"
 #include "BlockSatCarrier.h"
-#include "BlockPhysicalLayerSat.h"
+#include "BlockPhysicalLayer.h"
 #include "Plugin.h"
 
 #include <opensand_conf/conf.h>
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 	}
 
 	up_sat_carrier = block_dvb;
-	if(with_phy_layer)
+	if(with_phy_layer && strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_phy_layer = Rt::createBlock<BlockPhysicalLayerSat,
 		                                  BlockPhysicalLayerSat::PhyUpward,

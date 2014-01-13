@@ -47,10 +47,10 @@ LogonRequest::LogonRequest(tal_id_t mac,
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
 	this->setMessageLength(sizeof(T_DVB_LOGON_REQ));
-	this->frame->mac = htons(mac);
-	this->frame->rt_bandwidth = htons(rt_bandwidth);
-	this->frame->max_rbdc = htons(max_rbdc);
-	this->frame->max_vbdc = htons(max_vbdc);
+	this->frame()->mac = htons(mac);
+	this->frame()->rt_bandwidth = htons(rt_bandwidth);
+	this->frame()->max_rbdc = htons(max_rbdc);
+	this->frame()->max_vbdc = htons(max_vbdc);
 }
 
 LogonRequest::LogonRequest():
@@ -64,22 +64,22 @@ LogonRequest::~LogonRequest()
 
 tal_id_t LogonRequest::getMac(void) const
 {
-	return ntohs(this->frame->mac);
+	return ntohs(this->frame()->mac);
 }
 
 rate_kbps_t LogonRequest::getRtBandwidth(void) const
 {
-	return ntohs(this->frame->rt_bandwidth);
+	return ntohs(this->frame()->rt_bandwidth);
 }
 
 rate_kbps_t LogonRequest::getMaxRbdc(void) const
 {
-	return ntohs(this->frame->max_rbdc);
+	return ntohs(this->frame()->max_rbdc);
 }
 
 rate_kbps_t LogonRequest::getMaxVbdc(void) const
 {
-	return ntohs(this->frame->max_vbdc);
+	return ntohs(this->frame()->max_vbdc);
 }
 
 /* RESPONSE */
@@ -89,9 +89,9 @@ LogonResponse::LogonResponse(tal_id_t mac, uint8_t group_id, tal_id_t logon_id):
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_RESP);
 	this->setMessageLength(sizeof(T_DVB_LOGON_RESP));
-	this->frame->mac = htons(mac);
-	this->frame->group_id = group_id;
-	this->frame->logon_id = htons(logon_id);
+	this->frame()->mac = htons(mac);
+	this->frame()->group_id = group_id;
+	this->frame()->logon_id = htons(logon_id);
 }
 
 LogonResponse::~LogonResponse()
@@ -100,17 +100,17 @@ LogonResponse::~LogonResponse()
 
 tal_id_t LogonResponse::getMac(void) const
 {
-	return ntohs(this->frame->mac);
+	return ntohs(this->frame()->mac);
 }
 
 uint8_t LogonResponse::getGroupId(void) const
 {
-	return this->frame->group_id;
+	return this->frame()->group_id;
 }
 
 tal_id_t LogonResponse::getLogonId(void) const
 {
-	return ntohs(this->frame->logon_id);
+	return ntohs(this->frame()->logon_id);
 }
 
 

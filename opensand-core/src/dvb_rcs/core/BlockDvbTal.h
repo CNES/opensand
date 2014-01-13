@@ -351,7 +351,8 @@ class BlockDvbTal: public BlockDvb
 	int phy_from_sat_bytes;
 		// Physical layer information
 	Probe<int> *probe_st_real_modcod;
-	Probe<int> *probe_st_used_modcod;
+	Probe<int> *probe_st_received_modcod;
+	Probe<int> *probe_st_rejected_modcod;
 		// Stability
 	Probe<float> *probe_sof_interval;
 };

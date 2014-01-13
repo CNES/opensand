@@ -173,12 +173,12 @@ class OpenSandRoutes(object):
             try:
                 v4 = OpenSandRoutes._routes_v4[host][0]
                 gw_v4 = OpenSandRoutes._routes_v4[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 v6 = OpenSandRoutes._routes_v6[host][0]
                 gw_v6 = OpenSandRoutes._routes_v6[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 self.remove_route(host, v4, v6, gw_v4, gw_v6)
@@ -193,7 +193,7 @@ class OpenSandRoutes(object):
             try:
                 del OpenSandRoutes._routes_v4[host]
                 del OpenSandRoutes._routes_v6[host]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
         OpenSandRoutes._routes_lock.release()
 
@@ -223,12 +223,12 @@ class OpenSandRoutes(object):
             try:
                 v4 = OpenSandRoutes._routes_v4[host][0]
                 gw_v4 = OpenSandRoutes._routes_v4[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 v6 = OpenSandRoutes._routes_v6[host][0]
                 gw_v6 = OpenSandRoutes._routes_v6[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 self.add_route(host, v4, v6, gw_v4, gw_v6)
@@ -253,12 +253,12 @@ class OpenSandRoutes(object):
             try:
                 v4 = OpenSandRoutes._routes_v4[host][0]
                 gw_v4 = OpenSandRoutes._routes_v4[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 v6 = OpenSandRoutes._routes_v6[host][0]
                 gw_v6 = OpenSandRoutes._routes_v6[host][1]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 self.remove_route(host, v4, v6, gw_v4, gw_v6)
@@ -337,11 +337,11 @@ class OpenSandRoutes(object):
             v6 = None
             try:
                 v4 = OpenSandRoutes._routes_v4[host]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             try:
                 v6 = OpenSandRoutes._routes_v6[host]
-            except KeyError:
+            except KeyError, TypeError:
                 pass
             routes[str(host)] = (v4, v6)
         if len(routes) == 0:

@@ -95,19 +95,18 @@ class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 	// BB frame specific
 
 	/**
-	 * @brief Set the MODCOD of the BB frame
+	 * @brief Set the MODCOD of the frame
 	 *
 	 * @param modcod_id  the MODCOD ID of the frame
 	 */
-	void setModcodId(unsigned int modcod_id);
+	void setModcodId(uint8_t modcod_id);
 
 	/**
-	 * @brief Get the MODCOD of the BB frame
+	 * @brief Get the MODCOD of the frame
 	 *
 	 * @return  the MODCOD ID of the frame
 	 */
 	uint8_t getModcodId(void) const;
-
 
 	/**
 	 * @brief Get the data length in the BBFrame

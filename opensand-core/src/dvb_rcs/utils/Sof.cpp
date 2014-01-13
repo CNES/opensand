@@ -42,7 +42,7 @@ Sof::Sof(time_sf_t sf_nbr):
 {
 	this->setMessageType(MSG_TYPE_SOF);
 	this->setMessageLength(sizeof(T_DVB_SOF));
-	this->frame->sf_nbr = htons(sf_nbr);
+	this->frame()->sf_nbr = htons(sf_nbr);
 }
 
 Sof::~Sof()
@@ -51,7 +51,7 @@ Sof::~Sof()
 
 time_sf_t Sof::getSuperFrameNumber(void) const
 {
-	return ntohs(this->frame->sf_nbr);
+	return ntohs(this->frame()->sf_nbr);
 }
 
 
