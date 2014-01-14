@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 	if(strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_encap = Rt::createBlock<BlockEncapSat,
-		                              BlockEncapSat::Upward,
-		                              BlockEncapSat::Downward>("Encap");
+		                              BlockEncapSat::RtUpward,
+		                              BlockEncapSat::RtDownward>("Encap");
 		if(!block_encap)
 		{
 			UTI_ERROR("%s: cannot create the Encap block\n", progname);
@@ -228,8 +228,8 @@ int main(int argc, char **argv)
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbSat,
-	                            BlockDvbSat::Upward,
-	                            BlockDvbSat::Downward>("DvbSat", block_encap);
+	                            BlockDvbSat::RtUpward,
+	                            BlockDvbSat::RtDownward>("DvbSat", block_encap);
 	if(!block_dvb)
 	{
 		UTI_ERROR("%s: cannot create the DvbSat block\n", progname);
@@ -240,9 +240,9 @@ int main(int argc, char **argv)
 	if(with_phy_layer && strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_phy_layer = Rt::createBlock<BlockPhysicalLayerSat,
-		                                  BlockPhysicalLayerSat::PhyUpward,
-		                                  BlockPhysicalLayerSat::PhyDownward>("PhysicalLayer",
-		                                                                      block_dvb);
+		                                  BlockPhysicalLayerSat::Upward,
+		                                  BlockPhysicalLayerSat::Downward>("PhysicalLayer",
+		                                                                   block_dvb);
 		if(block_phy_layer == NULL)
 		{
 			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);

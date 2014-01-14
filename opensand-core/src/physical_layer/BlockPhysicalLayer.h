@@ -92,10 +92,10 @@ class BlockPhysicalLayer: public Block
 	// initialization method
 	bool onInit();
 
-	class PhyUpward: public Chan
+	class Upward: public Chan
 	{
 	  public:
-		PhyUpward(Block &bl):
+		Upward(Block &bl):
 			Chan(bl, upward_chan)
 		{};
 
@@ -107,10 +107,10 @@ class BlockPhysicalLayer: public Block
 		uint8_t msg_type;
 	};
 
-	class PhyDownward: public Chan
+	class Downward: public Chan
 	{
 	  public:
-		PhyDownward(Block &bl):
+		Downward(Block &bl):
 			Chan(bl, downward_chan)
 		{};
 
@@ -146,21 +146,21 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	BlockPhysicalLayerSat(const string &name):
 		BlockPhysicalLayer(name)
 	{};
-	class PhyUpward: public BlockPhysicalLayer::PhyUpward
+	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:
-		PhyUpward(Block &bl):
-			BlockPhysicalLayer::PhyUpward(bl)
+		Upward(Block &bl):
+			BlockPhysicalLayer::Upward(bl)
 		{};
 
 		bool onInit(void);
 	};
 
-	class PhyDownward: public BlockPhysicalLayer::PhyDownward
+	class Downward: public BlockPhysicalLayer::Downward
 	{
 	  public:
-		PhyDownward(Block &bl):
-			BlockPhysicalLayer::PhyDownward(bl)
+		Downward(Block &bl):
+			BlockPhysicalLayer::Downward(bl)
 		{};
 
 		bool onInit(void);

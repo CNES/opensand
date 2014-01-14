@@ -848,7 +848,7 @@ bool BlockDvbTal::initTimers()
 }
 
 
-bool BlockDvbTal::onInit()
+bool BlockDvbTal::onInit(void)
 {
 	std::vector<std::string> fifo_types;
 
@@ -1640,13 +1640,13 @@ void BlockDvbTal::deletePackets()
 }
 
 // TODO move all upward initialization here
-bool BlockDvbTal::DvbTalUpward::onInit()
+bool BlockDvbTal::Upward::onInit(void)
 {
 	return true;
 }
 
 // TODO move all downward initialization here, move attributes and methods also
-bool BlockDvbTal::DvbTalDownward::onInit()
+bool BlockDvbTal::Downward::onInit(void)
 {
 	// here everyhing is initialized so we can do some processing
 

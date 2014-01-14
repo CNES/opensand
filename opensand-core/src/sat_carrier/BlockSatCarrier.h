@@ -65,7 +65,58 @@ class BlockSatCarrier: public Block
 
 	~BlockSatCarrier();
 
-	class Upward: public Block::Upward
+	class Upward: public RtUpward
+	{
+	 public:
+		Upward(Block &bl, struct sc_specific specific):
+			RtUpward(bl),
+			ip_addr(specific.ip_addr),
+			interface_name(specific.emu_iface)
+		{};
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 private:
+		/// List of input channels
+		sat_carrier_channel_set in_channel_set;
+		/// the IP address for emulation newtork
+		string ip_addr;
+		/// the interface name for emulation newtork
+		string interface_name;
+
+		/**
+		 * @brief Handle a packt received from carrier
+		 *
+		 * @param carrier_id  The carrier of the packet
+		 * @param data        The data read on socket
+		 * @param length      The data length
+		 */
+		void onReceivePktFromCarrier(uint8_t carrier_id,
+		                             unsigned char *data,
+		                             size_t length);
+	};
+
+	class Downward: public RtDownward
+	{
+	 public:
+		Downward(Block &bl, struct sc_specific specific):
+			RtDownward(bl),
+			ip_addr(specific.ip_addr),
+			interface_name(specific.emu_iface)
+		{};
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 private:
+		/// List of output channels
+		sat_carrier_channel_set out_channel_set;
+		/// the IP address for emulation newtork
+		string ip_addr;
+		/// the interface name for emulation newtork
+		string interface_name;
+	};
 
  protected:
 
@@ -75,27 +126,6 @@ class BlockSatCarrier: public Block
 
 	// initialization method
 	bool onInit();
-
-	/// List of channels
-	sat_carrier_channel_set m_channelSet;
-
- private:
-
-	/// the IP address for emulation newtork
-	string ip_addr;
-	/// the interface name for emulation newtork
-	string interface_name;
-
-	/**
-	 * @brief Handle a packt received from carrier
-	 *
-	 * @param carrier_id  The carrier of the packet
-	 * @param data        The data read on socket
-	 * @param length      The data length
-	 */
-	void onReceivePktFromCarrier(uint8_t carrier_id,
-	                             unsigned char *data,
-	                             size_t length);
 };
 
 #endif

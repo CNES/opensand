@@ -80,9 +80,20 @@ class RtChannel
 	 *
 	 * @param bl    The block containing this channel (TODO remove)
 	 * @param chan  The channel type
-     *
+	 *
 	 */
 	RtChannel(Block &bl, chan_type_t chan);
+
+	/**
+	 * @brief Channel Constructor
+	 *
+	 * @param bl        The block containing this channel (TODO remove)
+	 * @param chan      The channel type
+	 * @tparam specific  User defined data
+	 *
+	 */
+	template<class T>
+	RtChannel(Block &bl, chan_type_t chan, T specific);
 
 	virtual ~RtChannel();
 
@@ -92,7 +103,7 @@ class RtChannel
 	 *
 	 * @warning: called at the end of initialization, if you have to do some
 	 *           processing, you can do them here
-	 * 
+	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool onInit(void) {return true;};
@@ -365,6 +376,20 @@ class RtChannel
 	 */
 	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type=0);
 
+};
+
+template<class T>
+RtChannel::RtChannel(Block &bl, chan_type_t chan, T specific):
+	block(bl),
+	chan(chan),
+	previous_fifo(NULL),
+	in_opp_fifo(NULL),
+	max_input_fd(-1),
+	stop_fd(-1),
+	w_sel_break(-1),
+	r_sel_break(-1)
+{
+	FD_ZERO(&(this->input_fd_set));
 };
 
 #endif

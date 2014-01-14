@@ -224,8 +224,8 @@ int main(int argc, char **argv)
 
 	// instantiate all blocs
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-	                                       BlockLanAdaptation::Upward,
-	                                       BlockLanAdaptation::Downward,
+	                                       BlockLanAdaptation::RtUpward,
+	                                       BlockLanAdaptation::RtDownward,
 	                                       string>("LanAdaptation", NULL, lan_iface);
 	if(!block_lan_adaptation)
 	{
@@ -234,8 +234,8 @@ int main(int argc, char **argv)
 	}
 
 	block_encap = Rt::createBlock<BlockEncap,
-	                              BlockEncap::Upward,
-	                              BlockEncap::Downward>("Encap", block_lan_adaptation);
+	                              BlockEncap::RtUpward,
+	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
 	if(!block_encap)
 	{
 		UTI_ERROR("%s: cannot create the Encap block\n", progname);
@@ -243,8 +243,8 @@ int main(int argc, char **argv)
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbNcc,
-	                            BlockDvbNcc::Upward,
-	                            BlockDvbNcc::Downward>("DvbNcc", block_encap);
+	                            BlockDvbNcc::RtUpward,
+	                            BlockDvbNcc::RtDownward>("DvbNcc", block_encap);
 	if(!block_dvb)
 	{
 		UTI_ERROR("%s: cannot create the DvbNcc block\n", progname);
@@ -255,9 +255,9 @@ int main(int argc, char **argv)
 	if(with_phy_layer)
 	{
 		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		                                  BlockPhysicalLayer::PhyUpward,
-		                                  BlockPhysicalLayer::PhyDownward>("PhysicalLayer",
-		                                                                   block_dvb);
+		                                  BlockPhysicalLayer::Upward,
+		                                  BlockPhysicalLayer::Downward>("PhysicalLayer",
+		                                                                block_dvb);
 		if(block_phy_layer == NULL)
 		{
 			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);

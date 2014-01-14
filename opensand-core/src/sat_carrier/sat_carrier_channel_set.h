@@ -57,8 +57,25 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	sat_carrier_channel_set();
 	~sat_carrier_channel_set();
 
-	int readConfig(const string local_ip_addr,
-	               const string interface_name);
+	/**
+	 * Read data from the configuration file and create input channels
+	 *
+	 * @param local_ip_addr   The IP address for emulation network
+	 * @param interface_name  The interface name for emulation network
+	 * @return true on success, false otherwise
+	 */
+	bool readInConfig(const string local_ip_addr,
+	                  const string interface_name);
+
+	/**
+	 * Read data from the configuration file and create output channels
+	 *
+	 * @param local_ip_addr   The IP address for emulation network
+	 * @param interface_name  The interface name for emulation network
+	 * @return true on success, false otherwise
+	 */
+	bool readOutConfig(const string local_ip_addr,
+	                   const string interface_name);
 
 	/**
 	 * @brief Send data on a satellite carrier
@@ -92,6 +109,19 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	unsigned int getNbChannel();
 
  private:
+
+	/**
+	 * Read data from the configuration file and create channels
+	 *
+	 * @param local_ip_addr   The IP address for emulation network
+	 * @param interface_name  The interface name for emulation network
+	 * @param in              Whether we want input or output channels
+	 * @return true on success, false otherwise
+	 */
+	bool readConfig(const string local_ip_addr,
+	                const string interface_name,
+	                bool in);
+
 	// type of the socket (udp or ethernet)
 	std::string socket_type;
 };

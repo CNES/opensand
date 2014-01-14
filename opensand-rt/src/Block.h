@@ -89,6 +89,11 @@ class Block
 			RtChannel(bl, upward_chan)
 		{};
 
+		template<class T>
+		RtUpward(Block &bl, T specific):
+			RtChannel(bl, upward_chan, specific)
+		{};
+
 		virtual ~RtUpward() {};
 	};
 
@@ -102,6 +107,11 @@ class Block
 	  public:
 		RtDownward(Block &bl):
 			RtChannel(bl, downward_chan)
+		{};
+
+		template<class T>
+		RtDownward(Block &bl, T specific):
+			RtChannel(bl, downward_chan, specific)
 		{};
 
 		virtual ~RtDownward() {};

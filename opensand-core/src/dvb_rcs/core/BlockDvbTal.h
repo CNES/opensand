@@ -188,23 +188,21 @@ class BlockDvbTal: public BlockDvb
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	virtual ~BlockDvbTal();
 
-	class DvbTalUpward: public Upward
+	class Upward: public RtUpward
 	{
 	  public:
-		DvbTalUpward(Block &bl):
-			Upward(bl)
+		Upward(Block &bl, tal_id_t mac_id):
+			RtUpward(bl, mac_id)
 		{};
-
 		bool onInit(void);
 	};
 
-	class DvbTalDownward: public Downward
+	class Downward: public RtDownward
 	{
 	  public:
-		DvbTalDownward(Block &bl):
-			Downward(bl)
+		Downward(Block &bl, tal_id_t mac_id):
+			RtDownward(bl, mac_id)
 		{};
-
 		bool onInit(void);
 	};
 
@@ -212,7 +210,7 @@ class BlockDvbTal: public BlockDvb
 
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
-	bool onInit();
+	bool onInit(void);
 
  private:
 

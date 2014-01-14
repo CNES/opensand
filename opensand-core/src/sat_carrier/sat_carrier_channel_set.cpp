@@ -55,12 +55,9 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
 }
 
 
-/**
- * Read data from the configuration file and create channels
- * @return -1 if failed, 0 if succeed
- */
-int sat_carrier_channel_set::readConfig(const string local_ip_addr,
-                                        const string interface_name)
+bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
+                                         const string interface_name,
+                                         bool in)
 {
 	int i;
 	ConfigurationList carrier_list;
@@ -92,6 +89,8 @@ int sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		long carrier_port = 0;
 		bool carrier_up = false;
 		bool carrier_down = false;
+		bool is_input = false;
+		bool is_output = false;
 		bool carrier_multicast = false;
 		component_t host = unknown_compo;
 		string compo_name;
@@ -174,6 +173,13 @@ int sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			continue;
 		}
 
+		is_input = (host == satellite) ? carrier_up : carrier_down;
+		is_output = (host == satellite) ? carrier_down : carrier_up;
+		if((in && !is_input) || (!in && !is_output))
+		{
+			continue;
+		}
+
 		UTI_DEBUG("Line: %d, Carrier ID: %u, IP address: %s, "
 		          "port: %ld, up: %s, down: %s, multicast: %s, "
 		          "disabled on: %s\n",
@@ -184,17 +190,15 @@ int sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		          carrier_disabled.c_str());
 
 		// if for a a channel in=false and out=false channel is not active
-		if(carrier_down || carrier_up)
+		if(is_input || is_output)
 		{
 			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
 				channel = new sat_carrier_udp_channel(carrier_id,
-				                                      (host == satellite) ?
-				                                            carrier_up : carrier_down,
-				                                      (host == satellite) ?
-				                                            carrier_down : carrier_up,
+				                                      is_input,
+				                                      is_output,
 				                                      interface_name,
 				                                      carrier_port,
 				                                      carrier_multicast,
@@ -215,12 +219,23 @@ int sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		}
 	}
 
-	return 0;
+	return true;
 
 error:
-	return -1;
+	return false;
 }
 
+bool sat_carrier_channel_set::readInConfig(const string local_ip_addr,
+                                           const string interface_name)
+{
+	return this->readConfig(local_ip_addr, interface_name, true);
+}
+
+bool sat_carrier_channel_set::readOutConfig(const string local_ip_addr,
+                                            const string interface_name)
+{
+	return this->readConfig(local_ip_addr, interface_name, false);
+}
 
 bool sat_carrier_channel_set::send(uint8_t carrier_id,
                                    const unsigned char *data,

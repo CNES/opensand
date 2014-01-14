@@ -117,7 +117,7 @@ bool BlockPhysicalLayer::onUpwardEvent(const RtEvent *const event)
 	return this->onEvent(event, (Chan *)this->upward);
 }
 
-bool BlockPhysicalLayer::PhyUpward::onInit(void)
+bool BlockPhysicalLayer::Upward::onInit(void)
 {
 	ostringstream name;
 	string link("down"); // we are on downlink
@@ -280,7 +280,7 @@ error:
 	return false;
 }
 
-bool BlockPhysicalLayer::PhyDownward::onInit(void)
+bool BlockPhysicalLayer::Downward::onInit(void)
 {
 	ostringstream name;
 	string link("up"); // we are on uplink
@@ -356,7 +356,7 @@ error:
 }
 
 
-bool BlockPhysicalLayer::PhyUpward::forwardFrame(DvbFrame *dvb_frame)
+bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
@@ -422,7 +422,7 @@ error:
 
 
 
-bool BlockPhysicalLayer::PhyDownward::forwardFrame(DvbFrame *dvb_frame)
+bool BlockPhysicalLayer::Downward::forwardFrame(DvbFrame *dvb_frame)
 {
 	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
@@ -462,7 +462,7 @@ error:
 }
 
 
-bool BlockPhysicalLayerSat::PhyUpward::onInit(void)
+bool BlockPhysicalLayerSat::Upward::onInit(void)
 {
 	ostringstream name;
 	string link("down"); // we are on downlink
@@ -537,7 +537,7 @@ error:
 }
 
 
-bool BlockPhysicalLayerSat::PhyDownward::onInit(void)
+bool BlockPhysicalLayerSat::Downward::onInit(void)
 {
 	this->is_sat = true;
 	return true;
