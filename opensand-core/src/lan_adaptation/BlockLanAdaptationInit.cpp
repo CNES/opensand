@@ -50,16 +50,107 @@
 #include <algorithm>
 
 
+#define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
-/**
- * Read configuration parameters;
- * instantiate all service classes and traffic flow categories
- * open the record file if necessary
- * instantiate IPv4 and IPv6 SARP tables
- *
- * @return true on success, false otherwise
- */
-bool BlockLanAdaptation::getConfig()
+bool BlockLanAdaptation::onInit(void)
+{
+	ConfigurationList lan_list;
+	int lan_scheme_nbr;
+	LanAdaptationPlugin *upper = NULL;
+	LanAdaptationPlugin *plugin;
+	string sat_type;
+	sat_type_t satellite_type;
+	lan_contexts_t contexts;
+	int fd = -1;
+
+	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
+	{
+		UTI_ERROR("%s missing from section %s.\n", GLOBAL_SECTION, SATELLITE_TYPE);
+		return false;
+	}
+	UTI_INFO("satellite type = %s\n", sat_type.c_str());
+	satellite_type = strToSatType(sat_type);
+
+	// get the number of lan adaptation context to use
+	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                                lan_scheme_nbr))
+	{
+		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
+		          LAN_ADAPTATION_SCHEME_LIST);
+		return false;
+	}
+	UTI_DEBUG("found %d lan adaptation contexts\n", lan_scheme_nbr);
+
+	for(int i = 0; i < lan_scheme_nbr; i++)
+	{
+		string name;
+		LanAdaptationPlugin::LanAdaptationContext *context;
+
+		// get all the lan adaptation plugins to use from upper to lower
+		if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+		                                POSITION, toString(i), PROTO, name))
+		{
+			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
+			          GLOBAL_SECTION, i, POSITION);
+			return false;
+		}
+
+		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
+		{
+			UTI_ERROR("cannot get plugin for %s lan adaptation",
+			          name.c_str());
+			return false;
+		}
+
+		context = plugin->getContext();
+		contexts.push_back(context);
+		if(upper == NULL &&
+		   !context->setUpperPacketHandler(NULL,
+		                                   satellite_type))
+		{
+			UTI_ERROR("cannot use %s for packets read on the interface",
+			          context->getName().c_str());
+			return false;
+		}
+		else if(upper && !context->setUpperPacketHandler(
+										upper->getPacketHandler(),
+										satellite_type))
+		{
+			UTI_ERROR("upper lan adaptation type %s is not supported by %s",
+			          upper->getName().c_str(),
+			          context->getName().c_str());
+			return false;
+		}
+		upper = plugin;
+		UTI_DEBUG("add lan adaptation: %s\n",
+		          plugin->getName().c_str());
+	}
+
+	this->is_tap = contexts.front()->handleTap();
+	// create TUN or TAP virtual interface
+	if(!this->allocTunTap(fd))
+	{
+		return false;
+	}
+
+	((Upward *)this->upward)->setContexts(contexts);
+	((Downward *)this->downward)->setContexts(contexts);
+	// we can share FD as one thread will write, the second will read
+	((Upward *)this->upward)->setFd(fd);
+	((Downward *)this->downward)->setFd(fd);
+
+	return true;
+}
+
+
+bool BlockLanAdaptation::Downward::onInit(void)
+{
+	this->stats_timer = this->addTimerEvent("LanAdaptationStats",
+	                                        this->stats_period);
+	return true;
+}
+
+bool BlockLanAdaptation::Upward::onInit(void)
 {
 	string sat_type;
 	int dflt = -1;
@@ -72,27 +163,44 @@ bool BlockLanAdaptation::getConfig()
 	UTI_INFO("satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
 
+
 	if(!globalConfig.getValue(SARP_SECTION, DEFAULT, dflt))
 	{
 		UTI_ERROR("cannot get default destination terminal, "
 		          "this is not fatal\n");
 		// do not return, this is not fatal
 	}
+
 	this->sarp_table.setDefaultTal(dflt);
 	if(!this->initSarpTables())
 	{
 		return false;
 	}
-	if(!this->initLanAdaptationPlugin())
-	{
-		return false;
-	}
-	this->stats_timer = this->downward->addTimerEvent("LanAdaptationStats",
-	                                                  this->stats_period);
 	return true;
 }
 
-bool BlockLanAdaptation::initSarpTables()
+void BlockLanAdaptation::Upward::setContexts(const lan_contexts_t &contexts)
+{
+	this->contexts = contexts;
+}
+
+void BlockLanAdaptation::Downward::setContexts(const lan_contexts_t &contexts)
+{
+	this->contexts = contexts;
+}
+
+void BlockLanAdaptation::Upward::setFd(int fd)
+{
+	this->fd = fd;
+}
+
+void BlockLanAdaptation::Downward::setFd(int fd)
+{
+	// add file descriptor for TUN/TAP interface
+	this->addFileEvent("tun/tap", fd, TUNTAP_BUFSIZE + 4);
+}
+
+bool BlockLanAdaptation::Upward::initSarpTables(void)
 {
 	int i;
 
@@ -238,84 +346,4 @@ bool BlockLanAdaptation::initSarpTables()
 	return true;
 }
 
-bool BlockLanAdaptation::initLanAdaptationPlugin()
-{
-	ConfigurationList lan_list;
-	int lan_scheme_nbr;
-	LanAdaptationPlugin *upper = NULL;
-	LanAdaptationPlugin *plugin;
 
-	// get the number of lan adaptation context to use
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-	                                lan_scheme_nbr))
-	{
-		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
-		          LAN_ADAPTATION_SCHEME_LIST);
-		return false;
-	}
-	UTI_DEBUG("found %d lan adaptation contexts\n", lan_scheme_nbr);
-
-	for(int i = 0; i < lan_scheme_nbr; i++)
-	{
-		string name;
-		LanAdaptationPlugin::LanAdaptationContext *context;
-
-		// get all the lan adaptation plugins to use from upper to lower
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-		                                POSITION, toString(i), PROTO, name))
-		{
-			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
-			          GLOBAL_SECTION, i, POSITION);
-			return false;
-		}
-
-		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
-		{
-			UTI_ERROR("cannot get plugin for %s lan adaptation",
-			          name.c_str());
-			return false;
-		}
-
-		context = plugin->getContext();
-		this->contexts.push_back(context);
-		if(upper == NULL &&
-		   !context->setUpperPacketHandler(NULL,
-		                                   this->satellite_type))
-		{
-			UTI_ERROR("cannot use %s for packets read on the interface",
-			          context->getName().c_str());
-			return false;
-		}
-		else if(upper && !context->setUpperPacketHandler(
-										upper->getPacketHandler(),
-										this->satellite_type))
-		{
-			UTI_ERROR("upper lan adaptation type %s is not supported by %s",
-			          upper->getName().c_str(),
-			          context->getName().c_str());
-			return false;
-		}
-		upper = plugin;
-		UTI_DEBUG("add lan adaptation: %s\n",
-		          plugin->getName().c_str());
-	}
-
-	return true;
-}
-
-
-/**
- * Free all resources
- */
-void BlockLanAdaptation::terminate()
-{
-	map<qos_t, TrafficCategory *>::iterator iter;
-
-	// free all traffic flow categories
-	for(iter = this->category_map.begin();
-	    iter != this->category_map.end(); ++iter)
-	{
-		delete(*iter).second;
-	}
-	this->category_map.clear();
-}

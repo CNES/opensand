@@ -56,6 +56,17 @@ class LanAdaptationPlugin: public StackPlugin
 	/**
 	 * @class LanAdaptationPacketHandler
 	 * @brief Functions to handle the encapsulated packets
+	 * @warning Be really careful, encapsulation and deencapsulation
+	 *          are handled in two different thread so shared ressources
+	 *          can be accessed concurrently
+	 *          If you wish to prevent concurrent access to one ressource
+	 *          you can take the lock with the Block function Lock and
+	 *          unlock it with the Block function Unlock
+	 *          This should be avoided as this will remove process
+	 *          efficiency
+	 *          All the attributes defines below should be read-only
+	 *          once initLanAdaptationContext is called so there is
+	 *          no need to protect them
 	 */
 	class LanAdaptationPacketHandler: public StackPacketHandler
 	{

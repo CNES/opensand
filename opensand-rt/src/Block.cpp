@@ -59,7 +59,9 @@ Block::Block(const string &name, void *specific):
 	UTI_DEBUG("Block %s: created\n", this->name.c_str());
 }
 
-
+// TODO create a function that allows locking and unlocking block_mutex
+// if chan_mutex is false
+// TODO add onEvent in channels
 Block::~Block()
 {
 	if(this->chan_mutex)

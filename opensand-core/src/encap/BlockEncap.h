@@ -66,11 +66,7 @@ class BlockEncap: public Block
 	tal_id_t tal_id;
 
 	/// State of the satellite link
-	enum
-	{
-		link_down,
-		link_up
-	} state;
+	link_state_t state;
 
 	/// the emission contexts list from lower to upper context
 	std::vector<EncapPlugin::EncapContext *> emission_ctx;

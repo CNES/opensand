@@ -66,6 +66,7 @@
 
 using std::string;
 
+
 /**
  * @class BlockLanAdaptation
  * @brief Interface between network interfaces and OpenSAND
@@ -82,46 +83,146 @@ class BlockLanAdaptation: public Block
 	bool onUpwardEvent(const RtEvent *const event);
 
 	// initialization method
-	bool onInit();
+	bool onInit(void);
+
+	class Upward: public RtUpward
+	{
+	 public:
+		Upward(Block &bl, string UNUSED(lan_iface)):
+			RtUpward(bl),
+			sarp_table(),
+			contexts(),
+			state(link_down)
+		{};
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+		/**
+		 * @brief Set the lan adaptation contexts for channels
+		 *
+		 * @param contexts the lan adaptation contexts
+		 */
+		void setContexts(const lan_contexts_t &contexts);
+
+		/**
+		 * @brief Set the network socket file descriptor
+		 *
+		 * @param fd  The socket file descriptor
+		 */
+		void setFd(int fd);
+
+	 private:
+		/**
+		 * @brief Instantiate the traffic classes
+		 * 
+		 * @return true on success, false otherwise
+		 */
+		bool initSarpTables(void);
+
+		/**
+		 * @brief Handle a message from lower block
+		 *  - build the TUN or TAP header with appropriate protocol identifier
+		 *  - write TUN/TAP header + packet to TUN/TAP interface
+		 *
+		 * @param burst  The burst of packets
+		 * @return true on success, false otherwise
+		 */
+		bool onMsgFromDown(NetBurst *burst);
+
+		/// SARP table
+		SarpTable sarp_table;
+
+		/// The satellite type
+		sat_type_t satellite_type;
+
+		/// TUN file descriptor
+		int fd;
+
+		/// the contexts list from lower to upper context
+		lan_contexts_t contexts;
+
+		/// The MAC layer group id received through msg_link_up
+		spot_id_t group_id;
+		/// The MAC layer MAC id received through msg_link_up
+		tal_id_t tal_id;
+
+		/// State of the satellite link
+		link_state_t state;
+	};
+
+	class Downward: public RtDownward
+	{
+	 public:
+		Downward(Block &bl, string UNUSED(lan_iface)):
+			RtDownward(bl),
+			// TODO load stats_period from configuration
+			stats_period(53),
+			contexts(),
+			state(link_down)
+		{};
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+		/**
+		 * @brief Set the lan adaptation contexts for channels
+		 *
+		 * @param contexts the lan adaptation contexts
+		 */
+		void setContexts(const lan_contexts_t &contexts);
+
+		/**
+		 * @brief Set the network socket file descriptor
+		 *
+		 * @param fd  The socket file descriptor
+		 */
+		void setFd(int fd);
+
+	 private:
+		/**
+		 * @brief Handle a message from upper block
+		 *  - read data from TUN or TAP interface
+		 *  - create a packet with data
+		 *
+		 * @param event  The event on TUN/TAP interface, containing th message
+		 * @return true on success, false otherwise
+		 */
+		bool onMsgFromUp(NetSocketEvent *const event);
+
+		/// statistic timer
+		event_id_t stats_timer;
+
+		///  The period for statistics update
+		unsigned int stats_period;
+
+		/// the contexts list from lower to upper context
+		lan_contexts_t contexts;
+
+		/// The MAC layer group id received through msg_link_up
+		spot_id_t group_id;
+		/// The MAC layer MAC id received through msg_link_up
+		tal_id_t tal_id;
+
+		/// State of the satellite link
+		link_state_t state;
+	};
 
  private:
-
-	SarpTable sarp_table; ///< SARP table
 
 	/// The LAN interface name
 	string lan_iface;
 
-	/// The satellite type
-	sat_type_t satellite_type;
-
-	/// the contexts list from lower to upper context
-	lan_contexts_t contexts;
-
-	bool getConfig();
-
-	/**
-	 * @brief Instantiate the traffic classes
-	 * 
-	 * @return true on success, false otherwise
-	 */
-	bool initSarpTables();
-	/**
-	 * @brief Load the Lan Adaptation plugins according to stack
-	 * 
-	 * @return true on success, false otherwise
-	 */
-	bool initLanAdaptationPlugin();
-	void terminate();
-
-	// if down
-	bool onMsgFromDown(NetBurst *burst);
+	/// whether we handle a TAP interface or a TUN interface
+	bool is_tap;
 
 	/**
 	 * Create or connect to an existing TUN/TAP interface
 	 *
+	 * @param fd  OUT: the file descriptor
 	 * @return  true on success, false otherwise
 	 */
-	bool allocTunTap();
+	bool allocTunTap(int &fd);
 
 	/**
 	 * @brief add LAN interface in bridge
@@ -137,47 +238,7 @@ class BlockLanAdaptation: public Block
 	 */
 	bool delFromBridge();
 
-	bool onMsgFromUp(NetSocketEvent *const event);
-
-	/**
-	 * This map associates directly the category identifier (unique) to a ptr
-	 * on the category; it allows fast access when a packet coming from upper
-	 * layer needs to be inserted in this category
-	 */
-	map<qos_t, TrafficCategory *> category_map;
-
-	/// Category to be used when classifier returns no category
-	qos_t default_category;
-
-	/// TUN file descriptor
-	int fd;
-
-	long _group_id;      ///< it is the MAC layer group id received through msg_link_up
-	long _tal_id;        ///< it is the MAC layer MAC id received through msg_link_up
-
-	/// The type of satellite
-	string _satellite_type;
-
-	bool tun_configuration();
-
-	/// State of the satellite link
-	enum
-	{
-		link_down,
-		link_up
-	} state;
-
-	spot_id_t group_id;   ///< it is the MAC layer group id received through msg_link_up
-	tal_id_t tal_id;      ///< it is the MAC layer MAC id received through msg_link_up
-
-	/// whether we handle a TAP interface or a TUN interface
-	bool is_tap;
-
-	/// the statistics period
-	unsigned int stats_period;
-
-	/// statistic timer
-	event_id_t stats_timer;
+	bool tunConfiguration();
 };
 
 #endif

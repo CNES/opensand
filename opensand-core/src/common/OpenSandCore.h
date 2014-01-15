@@ -135,6 +135,14 @@ inline sat_type_t strToSatType(string sat_type)
 		return TRANSPARENT;
 }
 
+/// State of the satellite link
+typedef enum
+{
+	link_down,
+	link_up
+} link_state_t;
+
+
 /** Compare two floats */
 inline bool equals(double val1, double val2)
 {

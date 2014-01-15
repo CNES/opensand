@@ -80,9 +80,9 @@ class BlockSatCarrier: public Block
 	 private:
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
-		/// the IP address for emulation newtork
+		/// the IP address for emulation network
 		string ip_addr;
-		/// the interface name for emulation newtork
+		/// the interface name for emulation network
 		string interface_name;
 
 		/**
@@ -112,9 +112,9 @@ class BlockSatCarrier: public Block
 	 private:
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
-		/// the IP address for emulation newtork
+		/// the IP address for emulation network
 		string ip_addr;
-		/// the interface name for emulation newtork
+		/// the interface name for emulation network
 		string interface_name;
 	};
 

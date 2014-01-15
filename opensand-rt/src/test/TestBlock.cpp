@@ -31,6 +31,8 @@
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
  * @brief This test check that we can raise a timer on a channel then
  *        write on a socket that will be monitored by the opposite channel
+ *        and transmit back data to the initial channel in order to
+ *        compare it
  *
  *        The NetSocketEvent should be raised directly after timer and
  *        contain the same data
@@ -38,9 +40,9 @@
  *  +------------------------------+
  *  | +----------+   +-----------+ |
  *  | |          |   |           | |
- *  | |          |   |           | |
- *  | |          |   |           | |
- *  | |          |   |           | |
+ *  | | compare<-+---+-----+     | |
+ *  | |          |   |     |     | |
+ *  | |          |   |     |     | |
  *  | |  timer   |   | NetSocket | |
  *  | |    |     |   |     ^     | |
  *  | |    |     |   |     |     | |
@@ -137,10 +139,28 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 			}
 			break;
 
+		case evt_message:
+		{
+			size_t length = ((MessageEvent *)event)->getLength();
+			char *data = (char *)((MessageEvent *)event)->getData();
+			std::cout << "Data received from opposite channel in block: "
+			          << this->name << "; data: " << data << std::endl;
+			fflush(stdout);
+
+			if(strncmp(this->last_written, (char*)data, length))
+			{
+				Rt::reportError(this->name, pthread_self(), true,
+				                "wrong data received '%s' instead of '%s'",
+				                data, this->last_written);
+			}
+			bzero(this->last_written, 64);
+			free(data);
+		}
+		break;
+
 		default:
 			Rt::reportError(this->name, pthread_self(), true, "unknown event");
 			return false;
-
 	}
 	return true;
 }
@@ -158,14 +178,11 @@ bool TestBlock::onDownwardEvent(const RtEvent *const event)
 			          << "; data: " << data << std::endl;
 			fflush(stdout);
 
-			if(strncmp(this->last_written, (char*)data, size))
+			if(!this->downward->shareMessage((void **)&data, size))
 			{
 				Rt::reportError(this->name, pthread_self(), true,
-				                "wrong data received '%s' instead of '%s'",
-				                data, this->last_written);
+				                "unable to transmit data to opposite channel");
 			}
-			bzero(this->last_written, 64);
-			free(data);
 			break;
 
 		default:

@@ -48,7 +48,6 @@ extern "C"
 
 #include <cstdio>
 
-#define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 
 //TODO add events for initialization failure in all blocks
@@ -58,17 +57,10 @@ extern "C"
  */
 BlockLanAdaptation::BlockLanAdaptation(const string &name, string lan_iface):
 	Block(name),
-	sarp_table(),
 	lan_iface(lan_iface),
-	state(link_down),
-	is_tap(false),
-	// TODO add a parameter for that or use frame timer
-	stats_period(53)
+	is_tap(false)
 {
-	// TODO we need a mutex here because some parameters may be used in upward and downward
-	this->enableChannelMutex();
 }
-
 
 /**
  * destructor : Free all resources
@@ -79,42 +71,47 @@ BlockLanAdaptation::~BlockLanAdaptation()
 	{
 		this->delFromBridge();
 	}
-
-	// free some ressources of LanAdaptation block
-	this->terminate();
-}
-
-bool BlockLanAdaptation::onInit()
-{
-	std::basic_ostringstream<char> cmd;
-
-	// retrieve bloc config
-	if(!this->getConfig())
-	{
-		UTI_ERROR("cannot load lan adaptation bloc configuration\n");
-		return false;
-	}
-
-	this->is_tap = (*this->contexts.begin())->handleTap();
-	// create TUN or TAP virtual interface
-	if(!allocTunTap())
-	{
-		return false;
-	}
-
-	// add file descriptor for TUN interface
-	this->downward->addFileEvent("tun", this->fd, TUNTAP_BUFSIZE + 4);
-
-	UTI_INFO("TUN/TAP handle with fd %d initialized\n",
-	         this->fd);
-
-	return true;
 }
 
 bool BlockLanAdaptation::onDownwardEvent(const RtEvent *const event)
 {
+	return ((Downward *)this->downward)->onEvent(event);
+}
+
+bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
+{
 	switch(event->getType())
 	{
+		case evt_message:
+		{
+			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			{
+				T_LINK_UP *link_up_msg;
+
+				// 'link is up' message advertised
+
+				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				// save group id and TAL id sent by MAC layer
+				this->group_id = link_up_msg->group_id;
+				this->tal_id = link_up_msg->tal_id;
+				this->state = link_up;
+				delete link_up_msg;
+				break;
+			}
+
+			// this is not a link up message, this should be a forward burst
+			UTI_DEBUG_L3("Get a forward burst from opposite channel\n");
+			NetBurst *forward_burst;
+			forward_burst = (NetBurst *)((MessageEvent *)event)->getData();
+			if(!this->enqueueMessage((void **)&forward_burst))
+			{
+				UTI_ERROR("failed to forward burst to lower layer\n");
+				delete forward_burst;
+				return false;
+			}
+		}
+		break;
+
 		case evt_file:
 			// input data available on TUN handle
 			this->onMsgFromUp((NetSocketEvent *)event);
@@ -127,7 +124,6 @@ bool BlockLanAdaptation::onDownwardEvent(const RtEvent *const event)
 				    it != this->contexts.end(); ++it)
 				{
 					(*it)->updateStats(this->stats_period);
-	
 				}
 			}
 			else
@@ -149,6 +145,11 @@ bool BlockLanAdaptation::onDownwardEvent(const RtEvent *const event)
 
 bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 {
+	return ((Upward *)this->upward)->onEvent(event);
+}
+
+bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
+{
 	string str;
 
 	switch(event->getType())
@@ -168,6 +169,8 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 				if(this->state == link_up)
 				{
 					UTI_INFO("duplicate link up msg\n");
+					delete link_up_msg;
+					return false;
 				}
 				else
 				{
@@ -176,7 +179,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 					this->tal_id = link_up_msg->tal_id;
 					// initialize contexts
 					for(lan_contexts_t::iterator ctx_iter = this->contexts.begin();
-						ctx_iter != this->contexts.end(); ++ctx_iter)
+					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
 						                                          this->satellite_type,
@@ -184,13 +187,21 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 						{
 							UTI_ERROR("cannot initialize %s context\n",
 									  (*ctx_iter)->getName().c_str());
+							delete link_up_msg;
 							return false;
 						}
 					}
 					this->state = link_up;
+					// transmit link up to opposite channel
+					if(!this->shareMessage((void **)&link_up_msg,
+					                       ((MessageEvent *)event)->getLength(),
+					                       ((MessageEvent *)event)->getMessageType()))
+					{
+						UTI_ERROR("failed to transmit link up message to "
+						          "opposite channel\n");
+						return false;
+					}
 				}
-
-				delete link_up_msg;
 				break;
 			}
 			// not a link up message
@@ -222,15 +233,7 @@ bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
 	return true;
 }
 
-/**
- * Manage packets received from lower layer:
- *  - build the TUN or TAP header with appropriate protocol identifier
- *  - write TUN/TAP header + packet to TUN/TAP interface
- *
- * @param burst  burst of packets received from lower layer
- * @return       true on success, false otherwise
- */
-bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
+bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 {
 	bool success = true;
 	NetBurst *forward_burst = NULL;
@@ -335,12 +338,11 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 		UTI_DEBUG("%d packet should be forwarded (multicast/broadcast or "
 		          "unicast not for GW)\n", forward_burst->length());
 
-		// FIXME we call a function from the opposite channel, this could create
-		//       interblocking
-		//       Create a communication interface between channels in Rt
-		if(!this->sendDown((void **)&forward_burst))
+		// transmit message to the opposite channel that will
+		// send it to lower layer 
+		if(!this->shareMessage((void **)&forward_burst))
 		{
-			UTI_ERROR("failed to send burst to lower layer\n");
+			UTI_ERROR("failed to transmit forward burst to opposite channel\n");
 			delete forward_burst;
 			success = false;
 		}
@@ -350,15 +352,7 @@ bool BlockLanAdaptation::onMsgFromDown(NetBurst *burst)
 	return success;
 }
 
-/**
- * Manage an packet received from upper layer:
- *  - read data from TUN or TAP interface
- *  - create a packet with data
- *
- * @param event  The event on TUN/TAP interface
- * @return    true on success, false if there was an error
- */
-bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
+bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 {
 	unsigned char *read_data;
 	const unsigned char *data;
@@ -367,7 +361,6 @@ bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 	NetBurst *burst;
 
 	// read  data received on tun/tap interface
-	// we need to memcpy as start pointer is not the same
 	length = event->getSize() - TUNTAP_FLAGS_LEN;
 	read_data = event->getData();
 	data = read_data + TUNTAP_FLAGS_LEN;
@@ -397,7 +390,7 @@ bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 		}
 	}
 
-	if(!this->sendDown((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		delete burst;
@@ -407,13 +400,13 @@ bool BlockLanAdaptation::onMsgFromUp(NetSocketEvent *const event)
 	return true;
 }
 
-bool BlockLanAdaptation::allocTunTap()
+bool BlockLanAdaptation::allocTunTap(int &fd)
 {
 	struct ifreq ifr;
 	int err;
 
-	this->fd = open("/dev/net/tun", O_RDWR);
-	if(this->fd < 0)
+	fd = open("/dev/net/tun", O_RDWR);
+	if(fd < 0)
 	{
 		UTI_ERROR("cannot open '/dev/net/tun': %s\n",
 		          strerror(errno));
@@ -443,9 +436,12 @@ bool BlockLanAdaptation::allocTunTap()
 	{
 		UTI_ERROR("cannot set flags on file descriptor %s\n",
 		          strerror(errno));
-		close(this->fd);
+		close(fd);
 		return false;
 	}
+
+	UTI_INFO("TUN/TAP handle with fd %d initialized\n",
+	         fd);
 
 	return true;
 }

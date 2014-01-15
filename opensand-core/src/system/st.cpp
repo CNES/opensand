@@ -233,8 +233,8 @@ int main(int argc, char **argv)
 	// instantiate all blocs
 	// TODO remove lan iface once daemon handles bridging part
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-	                                       BlockLanAdaptation::RtUpward,
-	                                       BlockLanAdaptation::RtDownward,
+	                                       BlockLanAdaptation::Upward,
+	                                       BlockLanAdaptation::Downward,
 	                                       string>("LanAdaptation", NULL, lan_iface);
 	if(!block_lan_adaptation)
 	{
