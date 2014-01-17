@@ -53,11 +53,6 @@ class BlockEncapSat: public Block
 {
  private:
 
-	/// Output encapsulation context
-	vector<EncapPlugin::EncapContext *> downlink_ctx;
-
-	/// Expiration timers for encapsulation contexts
-	std::map<event_id_t, int> timers;
 
  public:
 
@@ -73,54 +68,68 @@ class BlockEncapSat: public Block
 	 */
 	~BlockEncapSat();
 
+	class Upward: public RtUpward
+	{
+	 public:
+		bool onEvent(const RtEvent *const event);
+	};
+
+	class Downward: public RtDownward
+	{
+	 public:
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 private:
+		/// Expiration timers for encapsulation contexts
+		std::map<event_id_t, int> timers;
+
+		/// Output encapsulation context
+		vector<EncapPlugin::EncapContext *> downlink_ctx;
+
+		/**
+		 * Handle a burst of encapsulation packets received from the lower-layer
+		 * block
+		 *
+		 * @param burst  The burst received from the lower-layer block
+		 * @return       Whether the burst was successful handled or not
+		 */
+		bool onRcvBurst(NetBurst *burst);
+
+		/**
+		 * Handle the timer event
+		 *
+		 * @param timer_id  The id of the timer to handle
+		 * @return          Whether the timer event was successfully handled or not
+		 */
+		bool onTimer(event_id_t timer_id);
+
+		/**
+		 * Forward a burst of packets to the lower-layer block
+		 *
+		 * @param burst  The burst to forward
+		 * @return       Whether the burst was successful forwarded or not
+		 */
+		bool ForwardPackets(NetBurst *burst);
+
+		/**
+		 * Encapsulate a burst of packets and forward the resulting
+		 * burst of packets to the lower-layer block
+		 *
+		 * @param burst  The burst to encapsulate and forward
+		 * @return       Whether the burst was successful encapsulated and forwarded
+		 *               or not
+		 */
+		bool EncapsulatePackets(NetBurst *burst);
+	};
+
  protected:
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 
-	// initialization method
 	bool onInit();
-
- private:
-
-	/**
-	 * Handle the timer event
-	 *
-	 * @param timer_id  The id of the timer to handle
-	 * @return          Whether the timer event was successfully handled or not
-	 */
-	bool onTimer(event_id_t timer_id);
-
-	/**
-	 * Handle a burst of encapsulation packets received from the lower-layer
-	 * block
-	 *
-	 * @param burst  The burst received from the lower-layer block
-	 * @return       Whether the burst was successful handled or not
-	 */
-	bool onRcvBurstFromDown(NetBurst *burst);
-
-	/**
-	 * Forward a burst of packets to the lower-layer block
-	 *
-	 * @param burst  The burst to forward
-	 * @return       Whether the burst was successful forwarded or not
-	 */
-	bool ForwardPackets(NetBurst *burst);
-
-	/**
-	 * Encapsulate a burst of packets and forward the resulting
-	 * burst of packets to the lower-layer block
-	 *
-	 * @param burst  The burst to encapsulate and forward
-	 * @return       Whether the burst was successful encapsulated and forwarded
-	 *               or not
-	 */
-	bool EncapsulatePackets(NetBurst *burst);
-	
-	/// output events
-	static Event *error_init;
 };
 
 #endif

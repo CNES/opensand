@@ -44,18 +44,9 @@
 #include "Plugin.h"
 
 
-Event *BlockEncapSat::error_init = NULL;
-
 BlockEncapSat::BlockEncapSat(const string &name):
 	Block(name)
 {
-	// TODO we need a mutex here because some parameters may be used in upward and downward
-	this->enableChannelMutex();
-	
-	if(error_init == NULL)
-	{
-		error_init = Output::registerEvent("BlockEncapSat:init", LEVEL_ERROR);
-	}
 }
 
 BlockEncapSat::~BlockEncapSat()
@@ -64,12 +55,27 @@ BlockEncapSat::~BlockEncapSat()
 
 bool BlockEncapSat::onDownwardEvent(const RtEvent *const event)
 {
+	return ((Downward *)this->downward)->onEvent(event);
+}
+
+bool BlockEncapSat::Downward::onEvent(const RtEvent *const event)
+{
 	switch(event->getType())
 	{
 		case evt_timer:
 		{
 			// timer event, flush corresponding encapsulation context
 			return this->onTimer(event->getFd());
+		}
+		break;
+
+		case evt_message:
+		{
+			NetBurst *burst;
+
+			UTI_DEBUG("message received from the lower layer\n");
+			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			return this->onRcvBurst(burst);
 		}
 		break;
 
@@ -84,6 +90,11 @@ bool BlockEncapSat::onDownwardEvent(const RtEvent *const event)
 
 bool BlockEncapSat::onUpwardEvent(const RtEvent *const event)
 {
+	return ((Upward *)this->upward)->onEvent(event);
+}
+
+bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)
+{
 	switch(event->getType())
 	{
 		case evt_message:
@@ -92,9 +103,13 @@ bool BlockEncapSat::onUpwardEvent(const RtEvent *const event)
 
 			UTI_DEBUG("message received from the lower layer\n");
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
-			return this->onRcvBurstFromDown(burst);
+			if(!this->shareMessage((void **)&burst))
+			{   
+				UTI_ERROR("failed to transmist burst to opposite block\n");
+				delete burst;
+				return false;
+			}
 		}
-
 		break;
 
 		default:
@@ -108,7 +123,11 @@ bool BlockEncapSat::onUpwardEvent(const RtEvent *const event)
 
 bool BlockEncapSat::onInit()
 {
-	const char *FUNCNAME = "[BlockEncapSat::onInit]";
+	return true;
+}
+
+bool BlockEncapSat::Downward::onInit()
+{
 	int i;
 	int encap_nbr;
 	EncapPlugin *plugin = NULL;
@@ -121,7 +140,7 @@ bool BlockEncapSat::onInit()
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
 		          UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -134,8 +153,8 @@ bool BlockEncapSat::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
-			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
+			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
+			          GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
@@ -146,7 +165,7 @@ bool BlockEncapSat::onInit()
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR("%s Section %s, %s missing\n", FUNCNAME, GLOBAL_SECTION,
+		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
 		          UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -164,15 +183,15 @@ bool BlockEncapSat::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("%s Section %s, invalid value %d for parameter '%s'\n",
-			          FUNCNAME, GLOBAL_SECTION, i, POSITION);
+			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
+			          GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
-			UTI_ERROR("%s cannot get plugin for %s encapsulation",
-			          FUNCNAME, encap_name.c_str());
+			UTI_ERROR("cannot get plugin for %s encapsulation",
+			          encap_name.c_str());
 			goto error;
 		}
 
@@ -199,14 +218,14 @@ bool BlockEncapSat::onInit()
 					upper_encap->getPacketHandler(),
 					REGENERATIVE))
 		{
-			UTI_ERROR("%s upper encapsulation type %s not supported for %s "
-			          "encapsulation", FUNCNAME, upper_encap->getName().c_str(),
+			UTI_ERROR("upper encapsulation type %s not supported for %s "
+			          "encapsulation", upper_encap->getName().c_str(),
 			          context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		UTI_DEBUG("%s add downlink encapsulation layer: %s\n",
-		          FUNCNAME, upper_encap->getName().c_str());
+		UTI_DEBUG("add downlink encapsulation layer: %s\n",
+		          upper_encap->getName().c_str());
 	}
 
 	return true;
@@ -215,55 +234,54 @@ error:
 	return false;
 }
 
-bool BlockEncapSat::onTimer(event_id_t timer_id)
+bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
 {
-	const char *FUNCNAME = "[BlockEncapSat::onTimer]";
 	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
 
-	UTI_DEBUG("%s emission timer received, flush corresponding emission "
-	          "context\n", FUNCNAME);
+	UTI_DEBUG("emission timer received, flush corresponding emission "
+	          "context\n");
 
 	// find encapsulation context to flush
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
-		UTI_ERROR("%s timer not found\n", FUNCNAME);
+		UTI_ERROR("timer not found\n");
 		goto error;
 	}
 
 	// context found
 	id = (*it).second;
-	UTI_DEBUG("%s corresponding emission context found (ID = %d)\n",
-	          FUNCNAME, id);
+	UTI_DEBUG("corresponding emission context found (ID = %d)\n",
+	          id);
 
 	// remove emission timer from the list
-	this->downward->removeEvent((*it).first);
+	this->removeEvent((*it).first);
 	this->timers.erase(it);
 
 	// flush the last encapsulation context
 	burst = this->downlink_ctx.back()->flush(id);
 	if(burst == NULL)
 	{
-		UTI_DEBUG("%s flushing context %d failed\n", FUNCNAME, id);
+		UTI_DEBUG("flushing context %d failed\n", id);
 		goto error;
 	}
 
-	UTI_DEBUG("%s %zu encapsulation packet(s) flushed\n",
-	          FUNCNAME, burst->size());
+	UTI_DEBUG("%zu encapsulation packet(s) flushed\n",
+	          burst->size());
 
 	if(burst->size() <= 0)
 		goto clean;
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
+	UTI_DEBUG("encapsulation burst sent to the lower layer\n");
 
 	return true;
 
@@ -273,20 +291,19 @@ error:
 	return false;
 }
 
-bool BlockEncapSat::onRcvBurstFromDown(NetBurst *burst)
+bool BlockEncapSat::Downward::onRcvBurst(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlockEncapSat::onRcvBurstFromDown]";
 	bool status;
 
 	// check burst validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
+		UTI_ERROR("burst is not valid\n");
 		goto error;
 	}
 
-	UTI_DEBUG("%s message contains a burst of %d %s packet(s)\n",
-	          FUNCNAME, burst->length(), burst->name().c_str());
+	UTI_DEBUG("message contains a burst of %d %s packet(s)\n",
+	          burst->length(), burst->name().c_str());
 
 	if(this->downlink_ctx.size() > 0)
 	{
@@ -303,25 +320,23 @@ error:
 	return false;
 }
 
-bool BlockEncapSat::ForwardPackets(NetBurst *burst)
+bool BlockEncapSat::Downward::ForwardPackets(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlockEncapSat::ForwardPackets]";
-
 	// check burst validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
+		UTI_ERROR("burst is not valid\n");
 		goto error;
 	}
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	UTI_DEBUG("%s burst sent to the lower layer\n", FUNCNAME);
+	UTI_DEBUG("burst sent to the lower layer\n");
 
 	// everthing is fine
 	return true;
@@ -332,9 +347,8 @@ error:
 	return false;
 }
 
-bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
+bool BlockEncapSat::Downward::EncapsulatePackets(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlockEncapSat::EncapsulatePackets]";
 	NetBurst::iterator pkt_it;
 	NetBurst *packets;
 	map<long, int> time_contexts;
@@ -344,7 +358,7 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
+		UTI_ERROR("burst is not valid\n");
 		goto error;
 	}
 
@@ -355,8 +369,8 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 		packets = (*iter)->encapsulate(packets, time_contexts);
 		if(packets == NULL)
 		{
-			UTI_ERROR("%s encapsulation failed in %s context\n",
-			          FUNCNAME, (*iter)->getName().c_str());
+			UTI_ERROR("encapsulation failed in %s context\n",
+			          (*iter)->getName().c_str());
 			goto clean;
 		}
 	}
@@ -379,18 +393,18 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 			ostringstream name;
 
 			name << "context_" << (*time_iter).second;
-			timer = this->downward->addTimerEvent(name.str(),
-			                                      (*time_iter).first,
-			                                      false);
+			timer = this->addTimerEvent(name.str(),
+			                            (*time_iter).first,
+			                            false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
-			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
-			          FUNCNAME, (*time_iter).second, (*time_iter).first);
+			UTI_DEBUG("timer for context ID %d armed with %ld ms\n",
+			          (*time_iter).second, (*time_iter).first);
 		}
 		else
 		{
-			UTI_DEBUG("%s timer already set for context ID %d\n",
-			          FUNCNAME, (*time_iter).second);
+			UTI_DEBUG("timer already set for context ID %d\n",
+			          (*time_iter).second);
 		}
 	}
 
@@ -402,13 +416,13 @@ bool BlockEncapSat::EncapsulatePackets(NetBurst *burst)
 	}
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&packets))
+	if(!this->enqueueMessage((void **)&packets))
 	{
 		UTI_ERROR("failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	UTI_DEBUG("%s %s burst sent to the lower layer\n", FUNCNAME,
+	UTI_DEBUG("%s burst sent to the lower layer\n",
 	          (this->downlink_ctx.back())->getName().c_str());
 
 	// everthing is fine
