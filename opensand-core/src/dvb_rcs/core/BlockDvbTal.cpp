@@ -87,10 +87,10 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	m_obrSlotFrame(-1),
 	event_login_sent(NULL),
 	event_login_complete(NULL),
-	probe_st_queue_size(NULL),
-	probe_st_queue_size_kb(NULL),
-	probe_st_l2_to_sat_before_sched(NULL),
-	probe_st_l2_to_sat_after_sched(NULL),
+	probe_st_queue_size(),
+	probe_st_queue_size_kb(),
+	probe_st_l2_to_sat_before_sched(),
+	probe_st_l2_to_sat_after_sched(),
 	probe_st_l2_to_sat_total(NULL),
 	probe_st_phy_to_sat(NULL),
 	probe_st_l2_from_sat(NULL),
@@ -143,12 +143,6 @@ BlockDvbTal::~BlockDvbTal()
 	{
 		delete this->receptionStd;
 	}
-
-	// release the output arrays (no need to delete the probes)
-	delete[] this->probe_st_queue_size;
-	delete[] this->probe_st_queue_size_kb;
-	delete[] this->probe_st_l2_to_sat_before_sched;
-	delete[] this->probe_st_l2_to_sat_after_sched;
 
 	this->complete_dvb_frames.clear();
 }
@@ -441,7 +435,7 @@ error:
 	return false;
 }
 
-bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
+bool BlockDvbTal::initMacFifo()
 {
 	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
 	ConfigurationList fifo_list;
@@ -525,7 +519,6 @@ bool BlockDvbTal::initMacFifo(std::vector<std::string>& fifo_types)
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
-		fifo_types.push_back(fifo_mac_prio);
 	} // end for(queues are now instanciated and initialized)
 
 	// init stats context per QoS
@@ -759,7 +752,7 @@ error:
 	return false;
 }
 
-bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
+bool BlockDvbTal::initOutput()
 {
 	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent",
 	                                               LEVEL_INFO);
@@ -782,39 +775,27 @@ bool BlockDvbTal::initOutput(const std::vector<std::string>& fifo_types)
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
-	this->probe_st_queue_size = new Probe<int>*[this->dvb_fifos.size()];
-	this->probe_st_queue_size_kb = new Probe<int>*[this->dvb_fifos.size()];
-	this->probe_st_l2_to_sat_before_sched = new Probe<int>*[this->dvb_fifos.size()];
-	this->probe_st_l2_to_sat_after_sched = new Probe<int>*[this->dvb_fifos.size()];
-
-	if(this->probe_st_queue_size == NULL ||
-	   this->probe_st_queue_size_kb == NULL ||
-	   this->probe_st_l2_to_sat_before_sched == NULL ||
-	   this->probe_st_l2_to_sat_after_sched == NULL)
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		UTI_ERROR("Failed to allocate memory for probe arrays");
-		return false;
-	}
+		const char *fifo_name = ((*it).second)->getName().data();
+		unsigned int id = (*it).first;
 
-	for(unsigned int i = 0 ; i < this->dvb_fifos.size() ; i++)
-	{
-		const char* fifo_type = fifo_types[i].c_str();
-
-		this->probe_st_queue_size[i] =
+		this->probe_st_queue_size[id] =
 			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-			                           "Queue size.packets.%s", fifo_type);
-		this->probe_st_queue_size_kb[i] =
+			                           "Queue size.packets.%s", fifo_name);
+		this->probe_st_queue_size_kb[id] =
 			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-			                           "Queue size.%s", fifo_type);
+			                           "Queue size.%s", fifo_name);
 
-		this->probe_st_l2_to_sat_before_sched[i] =
+		this->probe_st_l2_to_sat_before_sched[id] =
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
 			                           "Throughputs.L2_to_SAT_before_sched.%s",
-			                           fifo_type);
-		this->probe_st_l2_to_sat_after_sched[i] =
+			                           fifo_name);
+		this->probe_st_l2_to_sat_after_sched[id] =
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
 			                           "Throughputs.L2_to_SAT_after_sched.%s",
-			                           fifo_type);
+			                           fifo_name);
 	}
 	this->probe_st_l2_to_sat_total =
 		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
@@ -850,8 +831,6 @@ bool BlockDvbTal::initTimers()
 
 bool BlockDvbTal::onInit(void)
 {
-	std::vector<std::string> fifo_types;
-
 	// get the common parameters
 	if(!this->initCommon())
 	{
@@ -880,7 +859,7 @@ bool BlockDvbTal::onInit(void)
 		goto error;
 	}
 
-	if(!this->initMacFifo(fifo_types))
+	if(!this->initMacFifo())
 	{
 		UTI_ERROR("failed to complete the MAC FIFO part of the "
 		          "initialisation");
@@ -909,7 +888,7 @@ bool BlockDvbTal::onInit(void)
 	}
 
 	// Init the output here since we now know the FIFOs
-	if(!this->initOutput(fifo_types))
+	if(!this->initOutput())
 	{
 		UTI_ERROR("failed to complete the initialisation of output");
 		goto error;

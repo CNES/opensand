@@ -243,7 +243,7 @@ class BlockDvbTal: public BlockDvb
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initMacFifo(std::vector<std::string>&);
+	bool initMacFifo();
 
 	/**
 	 * Read configuration for the OBR period
@@ -280,7 +280,7 @@ class BlockDvbTal: public BlockDvb
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initOutput(const std::vector<std::string>&);
+	bool initOutput();
 
 	bool onStartOfFrame(DvbFrame *dvb_frame);
 	int processOnFrameTick();
@@ -329,13 +329,13 @@ class BlockDvbTal: public BlockDvb
 	// Output probes and stats
 
 		// Queue sizes
-	Probe<int> **probe_st_queue_size;
-	Probe<int> **probe_st_queue_size_kb;
+	map<unsigned int, Probe<int> *> probe_st_queue_size;
+	map<unsigned int, Probe<int> *> probe_st_queue_size_kb;
 		// Rates
 				// Layer 2 to SAT
-	Probe<int> **probe_st_l2_to_sat_before_sched;
+	map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
 	int *l2_to_sat_cells_before_sched;
-	Probe<int> **probe_st_l2_to_sat_after_sched;
+	map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
 	int *l2_to_sat_cells_after_sched;
 	Probe<int> *probe_st_l2_to_sat_total;
 	int l2_to_sat_total_cells;
