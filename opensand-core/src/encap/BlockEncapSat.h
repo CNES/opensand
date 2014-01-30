@@ -51,9 +51,6 @@
  */
 class BlockEncapSat: public Block
 {
- private:
-
-
  public:
 
 	/**

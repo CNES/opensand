@@ -127,13 +127,6 @@
 #define SWITCH_LIST               "switchs"
 #define DEFAULT_SPOT             "default_spot"
 
-#define SAT_ERR_GENERATOR         "error_generator"
-#define SAT_ERR_GENERATOR_NONE    "none"
-#define SAT_ERR_GENERATOR_DEFAULT "default"
-#define SAT_ERR_BER               "error_generator_ber"
-#define SAT_ERR_MEAN              "error_generator_mean"
-#define SAT_ERR_DELTA             "error_generator_delta"
-
 
 //////////////////////
 // bloc_dvb_rcs_ncc //

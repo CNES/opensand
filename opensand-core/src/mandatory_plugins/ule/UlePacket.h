@@ -119,7 +119,7 @@ class UlePacket: public NetPacket
 
 	// implementation of virtual functions
 	size_t getPayloadLength() const;
-	Data getPayloadData() const;
+	Data getPayload() const;
 
 	/**
 	 * @brief Whether the Destination Address field of the ULE header is present

@@ -81,7 +81,7 @@ IpPacket::~IpPacket()
 		delete this->dst_addr;
 }
 
-Data IpPacket::getPayloadData() const
+Data IpPacket::getPayload() const
 {
 	size_t payload_len, header_len;
 

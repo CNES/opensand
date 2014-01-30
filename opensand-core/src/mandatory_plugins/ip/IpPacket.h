@@ -88,7 +88,7 @@ class IpPacket: public NetPacket
 	virtual ~IpPacket();
 
 	// implementation of virtual functions
-	Data getPayloadData() const;
+	Data getPayload() const;
 
 	/**
 	 * Retrieve the version from an IP packet

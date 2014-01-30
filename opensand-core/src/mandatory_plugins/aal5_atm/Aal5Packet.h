@@ -86,7 +86,7 @@ class Aal5Packet: public NetPacket
 
 	bool isValid() const;
 	size_t getPayloadLength() const;
-	Data getPayloadData() const;
+	Data getPayload() const;
 
 	/**
 	 * Create an AAL5 packet from its payload

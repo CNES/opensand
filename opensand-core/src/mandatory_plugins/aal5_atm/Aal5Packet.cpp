@@ -225,7 +225,7 @@ size_t Aal5Packet::getPayloadLength() const
 	       + ((this->data.at(this->data.length() - 5) & 0xff) << 0));
 }
 
-Data Aal5Packet::getPayloadData() const
+Data Aal5Packet::getPayload() const
 {
 	if(!this->isValid())
 	{

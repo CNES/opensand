@@ -221,7 +221,7 @@ size_t UlePacket::getPayloadLength() const
 	return length - ULE_CRC_LEN;
 }
 
-Data UlePacket::getPayloadData() const
+Data UlePacket::getPayload() const
 {
 	return Data(this->data,
 	            this->getTotalLength() - this->getPayloadLength() - ULE_CRC_LEN,
