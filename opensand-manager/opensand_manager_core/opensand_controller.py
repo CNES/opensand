@@ -329,7 +329,7 @@ class Controller(threading.Thread):
         self._log.info("Platform configured")
 
         try:
-            for host in self._hosts:
+            for host in self._hosts + self._ws:
                 self._log.info("Starting " + host.get_name().upper())
                 host.start_stop('START %s' % host.get_interface_type())
         except (ModelException, CommandException), err:
@@ -352,7 +352,7 @@ class Controller(threading.Thread):
         self._log.info("Stop OpenSAND platform")
 
         try:
-            for host in self._hosts:
+            for host in self._hosts + self._ws:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
         except CommandException:
