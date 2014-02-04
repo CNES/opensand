@@ -40,6 +40,17 @@
 #include <netinet/in.h>
 
 
+/// The size of the UDP counter (in bytes), 1 or 2
+/// Use 2 when you need to rach high bitrates (> 20Mb/s)
+//#define COUNTER_SIZE 2 // for uint16_t
+#define COUNTER_SIZE 1 // for uint8_t
+
+/// The maximum packets to keep in stack before considering
+//  that missing packets are lost
+//  be careful to keep coherence with the counter size
+//#define MAX_DATA_STACK 1000 // for uint16_t
+#define MAX_DATA_STACK 5 // for uint8_t
+
 class UdpStack;
 
 /*
@@ -52,6 +63,7 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	sat_carrier_udp_channel(unsigned int channelID,
 	                        bool input, bool output,
+	                        bool is_data,
 	                        const string local_interface_name,
 	                        unsigned short port,
 	                        bool multicast,
@@ -66,6 +78,11 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);
+
+ protected:
+
+	int receiveSig(NetSocketEvent *const event,
+	               unsigned char **buf, size_t &data_len);
 
 	/**
 	 * @brief Get the next stacked packet
@@ -85,9 +102,10 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	 * @param stack    The stack in which to get packet
 	 */
 	void handleStack(unsigned char **buf, size_t &data_len,
-	                 uint8_t counter, UdpStack *stack);
+	                 uint16_t counter, UdpStack *stack);
 
- protected:
+	/// Whether the input channel is a data channel, not used for output
+	bool is_data;
 
 	/// the socket which defines the channel
 	int sock_channel;
@@ -105,13 +123,16 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	bool m_multicast;
 
 	/// A map whose key is an IP address and value is a counter
-	/// (counter ranges from 0 to 255)
+	/// (counter ranges from 0 to 65535)
 	/// (IP address, counter) map used to check that UDP packets are received in
 	/// sequence on every UDP communication channel
-	map<string , uint8_t> udp_counters;
+	map<string , uint16_t> udp_counters;
 
 	/// Counter for sending packets
-	uint8_t counter;
+	uint16_t counter;
+
+	/// The maximum value for counter
+	unsigned int max_counter;
 
 	/// internal buffer to build and send udp datagramms
 	unsigned char send_buffer[MAX_SOCK_SIZE];
@@ -139,15 +160,17 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @brief Create the stack
 	 *
 	 */
-	UdpStack()
+	UdpStack():
+		counter(0)
 	{
+		size_t size = 2 << ((COUNTER_SIZE * 8) - 1);
+
 		// reserve space for all UDP counters
-		this->reserve(256);
-		for(unsigned int i = 0; i < 256; i++)
+		this->reserve(size);
+		for(unsigned int i = 0; i < size; i++)
 		{
 			this->push_back(make_pair<unsigned char *, size_t>(NULL, 0));
 		}
-		this->counter = 0;
 	};
 
 	~UdpStack()
@@ -163,7 +186,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @param data         The packet to store
 	 * @param data_length  The packet length
 	 */
-	void add(uint8_t udp_counter, unsigned char *data, size_t data_length)
+	void add(uint16_t udp_counter, unsigned char *data, size_t data_length)
 	{
 		if(this->at(udp_counter).first)
 		{
@@ -185,7 +208,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 *                          is no packet with this counter
 	 * @param data_length  OUT: the packet length or 0 if there is no packet
 	 */
-	void remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
+	void remove(uint16_t udp_counter, unsigned char **data, size_t &data_length)
 	{
 		*data = this->at(udp_counter).first;
 		if(*data)
@@ -203,7 +226,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @param udp_counter  The counter for which we need a packet
 	 * @return true if we have a packet, false otherwise
 	 */
-	bool hasNext(uint8_t udp_counter)
+	bool hasNext(uint16_t udp_counter)
 	{
 		return (this->at(udp_counter).first != NULL &&
 		        this->at(udp_counter).second != 0);
@@ -213,7 +236,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @brief Get the packet counter
 	 * @return the counter
 	 */
-	uint8_t getCounter()
+	uint16_t getCounter()
 	{
 		return this->counter;
 	};
@@ -240,7 +263,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
-	uint8_t counter;
+	uint16_t counter;
 };
 
 

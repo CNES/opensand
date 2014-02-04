@@ -60,6 +60,9 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
                                          bool in)
 {
 	int i;
+	string compo_name;
+	component_t host = unknown_compo;
+	vector<unsigned int> data_carrier_id;
 	ConfigurationList carrier_list;
 	ConfigurationList::iterator iter;
 
@@ -80,6 +83,71 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		goto error;
 	}
 
+	// get host type
+	compo_name = "";
+	if(!globalConfig.getComponent(compo_name))
+	{
+		UTI_ERROR("cannot get component type\n");
+		goto error;
+	}
+	UTI_INFO("host type = %s\n", compo_name.c_str());
+	host = getComponentType(compo_name);
+
+	if(host == satellite)
+	{
+		ConfigurationList spot_list;
+		ConfigurationList::iterator iter;
+		// Retrieving the spots description
+		if(!globalConfig.getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
+		{
+			UTI_ERROR("section '%s, %s': missing satellite spot list\n",
+			          SAT_DVB_SECTION, SPOT_LIST);
+			goto error;
+		}
+
+		for(iter = spot_list.begin(); iter != spot_list.end(); iter++)
+		{
+			unsigned int carrier_id;
+
+			// get the data_in_carrier_id
+			if(!globalConfig.getAttributeValue(iter, DATA_IN_ID, carrier_id))
+			{
+				UTI_ERROR("section '%s, %s': failed to retrieve %s\n",
+				          SAT_DVB_SECTION, SPOT_LIST, DATA_IN_ID);
+				goto error;
+			}
+			data_carrier_id.push_back(carrier_id);
+		}
+	}
+	else if (host == gateway)
+	{
+		unsigned int carrier_id;
+		// Get the ID for input data carrier
+		if(!globalConfig.getValue(DVB_NCC_SECTION,
+		                          DVB_IN_DATA_CAR,
+		                          carrier_id))
+		{
+			UTI_ERROR("section '%s': missing parameter '%s'\n",
+			          DVB_NCC_SECTION, DVB_DATA_CAR);
+			goto error;
+		}
+		data_carrier_id.push_back(carrier_id);
+	}
+	else if (host == terminal)
+	{
+		unsigned int carrier_id;
+		// Get the ID for input data carrier
+		if(!globalConfig.getValue(DVB_TAL_SECTION,
+		                          DVB_CAR_ID_IN_DATA,
+		                          carrier_id))
+		{
+			UTI_ERROR("section '%s: failed to retrieve %s\n",
+			          DVB_TAL_SECTION, DVB_CAR_ID_IN_DATA);
+			goto error;
+		}
+		data_carrier_id.push_back(carrier_id);
+	}
+
 	i = 0;
 	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 	{
@@ -92,8 +160,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		bool is_input = false;
 		bool is_output = false;
 		bool carrier_multicast = false;
-		component_t host = unknown_compo;
-		string compo_name;
 		string carrier_ip("");
 		string carrier_disabled("");
 
@@ -158,16 +224,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 
-		// get host type
-		compo_name = "";
-		if(!globalConfig.getComponent(compo_name))
-		{
-			UTI_ERROR("cannot get component type\n");
-			goto error;
-		}
-		UTI_INFO("host type = %s\n", compo_name.c_str());
-		host = getComponentType(compo_name);
-
 		if(carrier_disabled == compo_name)
 		{
 			continue;
@@ -192,6 +248,13 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		// if for a a channel in=false and out=false channel is not active
 		if(is_input || is_output)
 		{
+			bool is_data = false;
+			if(find(data_carrier_id.begin(), data_carrier_id.end(), carrier_id) !=
+			   data_carrier_id.end())
+			{
+				UTI_DEBUG("Carrier %u is an input data carrier\n", carrier_id);
+				is_data = true;
+			}
 			if(this->socket_type == UDP)
 			{
 				// create a new udp channel configure it, with information from file
@@ -199,6 +262,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				channel = new sat_carrier_udp_channel(carrier_id,
 				                                      is_input,
 				                                      is_output,
+				                                      is_data,
 				                                      interface_name,
 				                                      carrier_port,
 				                                      carrier_multicast,

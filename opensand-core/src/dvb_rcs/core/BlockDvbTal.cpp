@@ -322,7 +322,6 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 				             this->super_frame_counter);
 				// a problem occured, trace is made in onRcvDVBFrame()
 				// carry on simulation
-				delete dvb_frame;
 				return false;
 			}
 		}
@@ -398,33 +397,34 @@ error:
 
 bool BlockDvbTal::initCarrierId()
 {
-	int val;
-
 #define FMT_KEY_MISSING "SF#%u %s missing from section %s\n", this->super_frame_counter
 
 	// Get the ID for control carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_CTRL, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION,
+	                          DVB_CAR_ID_CTRL,
+	                          this->carrier_id_ctrl))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->carrier_id_ctrl = val;
 
 	// Get the ID for logon carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_LOGON, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION,
+	                          DVB_CAR_ID_LOGON,
+	                          this->carrier_id_logon))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->carrier_id_logon = val;
 
 	// Get the ID for data carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_CAR_ID_DATA, val))
+	if(!globalConfig.getValue(DVB_TAL_SECTION,
+	                          DVB_CAR_ID_DATA,
+	                          this->carrier_id_data))
 	{
 		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
 		goto error;
 	}
-	this->carrier_id_data = val;
 
 	UTI_INFO("SF#%u: carrier IDs for Ctrl = %u, Logon = %u, Data = %u\n",
 	         this->super_frame_counter, this->carrier_id_ctrl,

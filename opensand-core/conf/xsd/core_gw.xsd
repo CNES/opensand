@@ -210,7 +210,7 @@
             <xsd:element name="carrier_id_data" type="carrierId">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The sending carrier id for ATM cells, MPEG or GSE packets
+                        The sending carrier id for DVB data frames
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -218,6 +218,13 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The sending carrier id for DVB Start of Frame
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_in_data" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The receiving carrier id for DVB data frames
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

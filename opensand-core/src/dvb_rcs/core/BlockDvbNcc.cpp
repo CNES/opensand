@@ -990,36 +990,37 @@ error:
 
 bool BlockDvbNcc::initCarrierIds()
 {
-	int val;
-
 	// Get the ID for DVB control carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_CTRL_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION,
+	                          DVB_CTRL_CAR,
+	                          this->ctrl_carrier_id))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_CTRL_CAR);
 		goto error;
 	}
-	this->ctrl_carrier_id = val;
 	UTI_INFO("DVB control carrier ID set to %u\n", this->ctrl_carrier_id);
 
 	// Get the ID for SOF carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SOF_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION,
+	                          DVB_SOF_CAR,
+	                          this->sof_carrier_id))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SOF_CAR);
 		goto error;
 	}
-	this->sof_carrier_id = val;
 	UTI_INFO("SoF carrier ID set to %u\n", this->sof_carrier_id);
 
 	// Get the ID for data carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_DATA_CAR, val))
+	if(!globalConfig.getValue(DVB_NCC_SECTION,
+	                          DVB_DATA_CAR,
+	                          this->data_carrier_id))
 	{
 		UTI_ERROR("section '%s': missing parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_DATA_CAR);
-	goto error;
+		goto error;
 	}
-	this->data_carrier_id = val;
 	UTI_INFO("Data carrier ID set to %u\n", this->data_carrier_id);
 
 	return true;
