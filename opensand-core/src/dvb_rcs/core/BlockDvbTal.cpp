@@ -1308,7 +1308,8 @@ bool BlockDvbTal::onStartOfFrame(DvbFrame *dvb_frame)
 
 	// if the NCC crashed, we must reinitiate a logon
 	// TODO handle modulo on maximum
-	if(sfn < this->super_frame_counter)
+	if(sfn < this->super_frame_counter &&
+	   (sfn != 0 || (this->super_frame_counter + 1) % 65536 != 0))
 	{
 		UTI_ERROR("SF#%u: it seems NCC rebooted => flush buffer & "
 		          "resend a logon request\n",
