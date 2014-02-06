@@ -44,9 +44,6 @@
 #include <errno.h>
 
 
-// TODO it would be useful to add timer in order to flush UdpStacks
-//      because if traffic stops, some packets may remain unsent
-
 /**
  * Constructor
  *
@@ -73,8 +70,7 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  bool multicast,
                                                  const string local_ip_addr,
                                                  const string ip_addr):
-	sat_carrier_channel(channelID, input, output),
-	is_data(is_data),
+	sat_carrier_channel(channelID, input, output, is_data),
 	sock_channel(-1),
 	m_multicast(multicast),
 	stacked_ip("")
@@ -293,7 +289,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	if(!this->stacked_ip.empty())
 	{
 		UTI_DEBUG("Send content of stack for address %s\n",
-		         this->stacked_ip.c_str());
+		          this->stacked_ip.c_str());
 		if(!this->handleStack(buf, data_len))
 		{
 			goto error;
@@ -398,7 +394,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		current_sequencing = (current_sequencing + 1) % this->max_counter;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))
 		{
-			UTI_ERROR("packet missing: %u\n", current_sequencing);
+			UTI_DEBUG("packet missing: %u\n", current_sequencing);
 			current_sequencing = (current_sequencing + 1) % this->max_counter;
 		}
 		// we should be able to return a packet here
@@ -407,6 +403,34 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		goto stacked;
 	}
 
+end:
+	return 0;
+
+stacked:
+	return 1;
+
+error:
+	return -1;
+}
+
+
+int sat_carrier_udp_channel::receive(unsigned char **buf, size_t &data_len)
+{
+	if(!this->stacked_ip.empty())
+	{
+		UTI_DEBUG("Send content of stack for address %s\n",
+		          this->stacked_ip.c_str());
+		if(!this->handleStack(buf, data_len))
+		{
+			goto error;
+		}
+		if(!this->stacked_ip.empty())
+		{
+			// we still have packets to send
+			goto stacked;
+		}
+		goto end;
+	}
 end:
 	return 0;
 
@@ -617,5 +641,48 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 	return true;
 
  error:
+	return false;
+}
+
+bool sat_carrier_udp_channel::sofReceived(void)
+{
+	if(!this->is_data)
+	{
+		return false;
+	}
+
+	for(map<string, UdpStack *>::iterator it = this->stacks.begin();
+	    it != this->stacks.end(); ++it)
+	{
+		UdpStack *stack = (*it).second;
+		string ip_address = (*it).first;
+		if(stack->onTimer())
+		{
+			uint16_t current_sequencing;
+			map<string , uint16_t>::iterator ip_count_it;
+			// suppose we lost the packet
+			UTI_INFO("Timer on stack, send next available packet, "
+			         "some packets may be lost\n");
+			ip_count_it = this->udp_counters.find(ip_address);
+			if(ip_count_it == this->udp_counters.end())
+			{
+				UTI_ERROR("This should not happend !!\n");
+				return false;
+			}
+
+			current_sequencing = (ip_count_it->second + 1) % this->max_counter;
+			while(!this->stacks[ip_address]->hasNext(current_sequencing))
+			{
+				UTI_DEBUG("packet missing: %u\n", current_sequencing);
+				current_sequencing = (current_sequencing + 1) % this->max_counter;
+			}
+			// we should be able to return a packet next time an event
+			// is triggered on this socket
+			ip_count_it->second = current_sequencing;
+			this->stacked_ip = ip_address;
+			// stop on the first stack that timeout
+			return true;
+		}
+	}
 	return false;
 }

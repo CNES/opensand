@@ -86,7 +86,7 @@ class BlockSatCarrier: public Block
 		string interface_name;
 
 		/**
-		 * @brief Handle a packt received from carrier
+		 * @brief Handle a packet received from carrier
 		 *
 		 * @param carrier_id  The carrier of the packet
 		 * @param data        The data read on socket
@@ -95,6 +95,13 @@ class BlockSatCarrier: public Block
 		void onReceivePktFromCarrier(uint8_t carrier_id,
 		                             unsigned char *data,
 		                             size_t length);
+
+		/**
+		 * @brief Handle packets in timeouted stack
+		 *
+		 * @param channel  The channel for which we need to send content
+		 */
+		void handleStacks(sat_carrier_channel *channel);
 	};
 
 	class Downward: public RtDownward

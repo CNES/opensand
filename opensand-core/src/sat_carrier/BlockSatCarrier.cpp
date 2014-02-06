@@ -180,7 +180,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 
 			UTI_INFO("Listen on fd %d for channel %d\n",
 			         channel->getChannelFd(), channel->getChannelID());
-			name << "Channel_" << channel->getChannelFd();
+			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
 			                        MSG_BBFRAME_SIZE_MAX);
@@ -213,6 +213,21 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 
 	dvb_frame->setCarrierId(carrier_id);
 
+	if(dvb_frame->getMessageType() == MSG_TYPE_SOF)
+	{
+		vector<sat_carrier_channel *>::iterator it;
+
+		// advert channel that we received a SoF
+		for(it = this->in_channel_set.begin(); it != this->in_channel_set.end(); ++it)
+		{
+			sat_carrier_channel *channel = *it;
+			if(channel->sofReceived())
+			{
+				this->handleStacks(channel);
+			}
+		}
+	}
+
 	if(!this->enqueueMessage((void **)(&dvb_frame)))
 	{
 		UTI_ERROR("failed to send frame from carrier %u to upper layer\n",
@@ -228,3 +243,33 @@ release_meta:
 	delete dvb_frame;
 	free(data);
 }
+
+
+void BlockSatCarrier::Upward::handleStacks(sat_carrier_channel *channel)
+{
+	size_t length;
+	unsigned char *buf = NULL;
+
+	unsigned int carrier_id = channel->getChannelID();
+	int ret;
+
+	do
+	{
+		ret = channel->receive(&buf, length);
+		if(ret < 0)
+		{
+			UTI_ERROR("failed to handle stack on channel %u", carrier_id);
+		}
+		else
+		{
+			UTI_DEBUG_L3("%zu bytes of data received on carrier ID %u\n",
+			             length, carrier_id);
+
+			if(length > 0)
+			{
+				this->onReceivePktFromCarrier(carrier_id, buf, length);
+			}
+		}
+	} while(ret > 0);
+}
+

@@ -54,7 +54,7 @@ class sat_carrier_channel
 {
  public:
 
-	sat_carrier_channel(unsigned int channelID, bool input, bool output);
+	sat_carrier_channel(unsigned int channelID, bool input, bool output, bool is_data);
 
 	virtual ~sat_carrier_channel() = 0;
 
@@ -79,6 +79,15 @@ class sat_carrier_channel
 	virtual int receive(NetSocketEvent *const event,
 	                    unsigned char **buf, size_t &data_len) = 0;
 
+	virtual int receive(unsigned char **buf, size_t &data_len) = 0;
+
+	/**
+	 * @brief Signal channel that a SoF was received
+	 *
+	 * @return true if there is a stack timeout, false otherwise
+	 */
+	virtual bool sofReceived(void) {return false;};
+
 	static int getIfIndex(const char *name);
 
  protected:
@@ -92,8 +101,12 @@ class sat_carrier_channel
 	/// if channel accept output
 	bool m_output;
 
+	/// Whether the input channel is a data channel, not used for output
+	bool is_data;
+
 	/// is the channel well initialized
 	bool init_success;
+
 };
 
 #endif

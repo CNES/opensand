@@ -51,6 +51,9 @@
 //#define MAX_DATA_STACK 1000 // for uint16_t
 #define MAX_DATA_STACK 5 // for uint8_t
 
+/// The number of SoF for stack timeout
+#define TIMEOUT_SOF_NBR 2
+
 class UdpStack;
 
 /*
@@ -79,6 +82,11 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);
 
+	int receive(unsigned char **buf, size_t &data_len);
+
+	bool sofReceived(void);
+
+
  protected:
 
 	int receiveSig(NetSocketEvent *const event,
@@ -103,9 +111,6 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	 */
 	void handleStack(unsigned char **buf, size_t &data_len,
 	                 uint16_t counter, UdpStack *stack);
-
-	/// Whether the input channel is a data channel, not used for output
-	bool is_data;
 
 	/// the socket which defines the channel
 	int sock_channel;
@@ -161,7 +166,8 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 *
 	 */
 	UdpStack():
-		counter(0)
+		counter(0),
+		timeout(TIMEOUT_SOF_NBR)
 	{
 		size_t size = 2 << ((COUNTER_SIZE * 8) - 1);
 
@@ -188,6 +194,8 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 */
 	void add(uint16_t udp_counter, unsigned char *data, size_t data_length)
 	{
+		// reset timeout
+		this->timeout = TIMEOUT_SOF_NBR;
 		if(this->at(udp_counter).first)
 		{
 			UTI_ERROR("new data for UDP stack at position %u, erase previous data\n",
@@ -242,6 +250,28 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	};
 
 	/**
+	 * @brief Signal that a SoF was received
+	 *
+	 * @return true if the timer expired, false otherwise
+	 */
+	bool onTimer(void)
+	{
+		if(!this->counter)
+		{
+			// only decrease timeout if there is data in stack
+			return false;
+		}
+		this->timeout--;
+		if(this->timeout == 0)
+		{
+			// Timeout expired
+			this->timeout = TIMEOUT_SOF_NBR;
+			return true;
+		}
+		return false;
+	};
+
+	/**
 	 * @brief Reset the stack
 	 */
 	void reset()
@@ -257,6 +287,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 			}
 			this->counter = 0;
 		}
+		this->timeout = TIMEOUT_SOF_NBR;
 	};
 
  private:
@@ -264,6 +295,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
 	uint16_t counter;
+
+	/// The timeout used to send stack once it expires
+	uint8_t timeout;
 };
 
 
