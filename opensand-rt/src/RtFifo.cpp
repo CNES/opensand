@@ -144,14 +144,6 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		                ret, strerror(ret));
 		return false;
 	}
-	//assert(this->fifo.size() < this->max_size);
-	if(this->fifo.size() >= this->max_size)
-	{
-		Rt::reportError("fifo", pthread_self(), false,
-		                "Size is greater than maximum size (%u > %u), "
-		                "this should not happend\n",
-		                this->fifo.size(), this->max_size);
-	}
 
 	// lock mutex on fifo
 	ret = pthread_mutex_lock(&(this->fifo_mutex));
@@ -161,6 +153,15 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		                "Failed to lock mutex on FIFO [%d: %s]\n",
 		                ret, strerror(ret));
 		return false;
+	}
+
+	//assert(this->fifo.size() < this->max_size);
+	if(this->fifo.size() >= this->max_size)
+	{
+		Rt::reportError("fifo", pthread_self(), false,
+		                "Size is greater than maximum size (%u > %u), "
+		                "this should not happend\n",
+		                this->fifo.size(), this->max_size);
 	}
 
 	msg.data = data;
