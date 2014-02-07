@@ -63,7 +63,8 @@ BlockDvb::BlockDvb(const string &name):
 	frames_per_superframe(-1),
 	super_frame_counter(0),
 	frame_counter(0),
-	fmt_simu(),
+	ret_fmt_simu(),
+	fwd_fmt_simu(),
 	with_phy_layer(false),
 	dvb_scenario_refresh(-1),
 	receptionStd(NULL)
@@ -252,7 +253,7 @@ bool BlockDvb::initForwardModcodFiles()
 	         modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!this->fmt_simu.setForwardModcodDef(modcod_def_file))
+	if(!this->fwd_fmt_simu.setModcodDef(modcod_def_file))
 	{
 		goto error;
 	}
@@ -261,7 +262,7 @@ bool BlockDvb::initForwardModcodFiles()
 	if(!this->with_phy_layer)
 	{
 		// set the MODCOD simulation file
-		if(!this->fmt_simu.setForwardModcodSimu(modcod_simu_file))
+		if(!this->fwd_fmt_simu.setModcodSimu(modcod_simu_file))
 		{
 			goto error;
 		}
@@ -301,7 +302,7 @@ bool BlockDvb::initReturnModcodFiles()
 	          modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!this->fmt_simu.setReturnModcodDef(modcod_def_file))
+	if(!this->ret_fmt_simu.setModcodDef(modcod_def_file))
 	{
 		goto error;
 	}
@@ -310,7 +311,7 @@ bool BlockDvb::initReturnModcodFiles()
 	if(!this->with_phy_layer)
 	{
 		// set the MODCOD simulation file
-		if(!this->fmt_simu.setReturnModcodSimu(modcod_simu_file))
+		if(!this->ret_fmt_simu.setModcodSimu(modcod_simu_file))
 		{
 			goto error;
 		}

@@ -263,7 +263,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 			rate_pktpf_t remaining_capacity_pktpf;
 			const FmtDefinitionTable *modcod_def;
 
-			modcod_def = this->fmt_simu->getRetModcodDefinitions();
+			modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 			// we have only one MODCOD for each carrier so we can convert
 			// directly from bauds to kbits
 			remaining_capacity_kb =

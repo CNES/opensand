@@ -78,8 +78,30 @@ class BlockDvb: public Block
 
 	~BlockDvb();
 
+/*	class DvbUpward: public RtUpward
+	{
+	 public:
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 protected:
+	};
+
+	class DvbDownward: public RtDownward
+	{
+	 public:
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 protected:
+
+	};*/
 
  protected:
+
+	// Common function for parameters reading
+	bool initCommon();
+
 
 	/**
 	 * @brief Create a message with the given burst
@@ -89,9 +111,6 @@ class BlockDvb: public Block
 	 * @return  true on success, false otherwise
 	 */
 	bool SendNewMsgToUpperLayer(NetBurst *burst);
-
-	// Common function for parameters reading
-	bool initCommon();
 
 	/**
 	 * @brief Read configuration for the down/forward link MODCOD
@@ -191,8 +210,11 @@ class BlockDvb: public Block
 	/// the current frame number inside the current super frame
 	time_frame_t frame_counter; // from 1 to frames_per_superframe
 
-	/// The MODCOD simulation elements
-	FmtSimulation fmt_simu;
+	/// The MODCOD simulation elements for return link
+	FmtSimulation ret_fmt_simu;
+
+	/// The MODCOD simulation elements for forward link
+	FmtSimulation fwd_fmt_simu;
 
 	/// Physical layer enable
 	bool with_phy_layer;

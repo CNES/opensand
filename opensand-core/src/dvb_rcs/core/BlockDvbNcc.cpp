@@ -308,7 +308,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				// it's time to update MODCOD IDs
 				UTI_DEBUG_L3("MODCOD scenario timer received\n");
 
-				if(!this->fmt_simu.goNextScenarioStep())
+				if(!this->ret_fmt_simu.goNextScenarioStep(false) ||
+				   !this->fwd_fmt_simu.goNextScenarioStep(true))
 				{
 					UTI_ERROR("SF#%u: failed to update MODCOD IDs\n",
 					          this->super_frame_counter);
@@ -876,8 +877,11 @@ bool BlockDvbNcc::initColumns()
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->fmt_simu.addTerminal(GW_TAL_ID,
-	                               this->column_list[GW_TAL_ID]))
+	// TODO check that we need both
+	if(!this->ret_fmt_simu.addTerminal(GW_TAL_ID,
+	                                   this->column_list[GW_TAL_ID]) ||
+	   !this->fwd_fmt_simu.addTerminal(GW_TAL_ID,
+	                                   this->column_list[GW_TAL_ID]))
 	{
 		UTI_ERROR("failed to define the GW as ST with ID %ld\n",
 		          GW_TAL_ID);
@@ -927,7 +931,7 @@ bool BlockDvbNcc::initMode()
 		this->scheduling = new ForwardSchedulingS2(this->down_forward_pkt_hdl,
 		                                           fifos,
 		                                           this->frames_per_superframe,
-		                                           &this->fmt_simu,
+		                                           &this->fwd_fmt_simu,
 		                                           this->categories.begin()->second);
 	}
 	else if(this->satellite_type == REGENERATIVE)
@@ -956,7 +960,7 @@ bool BlockDvbNcc::initMode()
 		this->scheduling = new UplinkSchedulingRcs(this->up_return_pkt_hdl,
 		                                           fifos,
 		                                           this->frames_per_superframe,
-		                                           &this->fmt_simu,
+		                                           &this->ret_fmt_simu,
 		                                           cat);
 	}
 	else
@@ -1056,7 +1060,8 @@ bool BlockDvbNcc::initFiles()
 	}
 
 	// initialize the MODCOD IDs
-	if(!this->fmt_simu.goNextScenarioStep())
+	if(!this->ret_fmt_simu.goNextScenarioStep(false) ||
+	   !this->fwd_fmt_simu.goNextScenarioStep(true))
 	{
 		UTI_ERROR("failed to initialize MODCOD scheme IDs\n");
 		goto error;
@@ -1168,7 +1173,9 @@ bool BlockDvbNcc::initDama()
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                &this->fmt_simu))
+	                                // TODO only ret would be much more better
+	                                &this->ret_fmt_simu,
+	                                &this->fwd_fmt_simu))
 	{
 		UTI_ERROR("Dama Controller Initialization failed.\n");
 		goto release_dama;
@@ -1316,7 +1323,7 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 					}
 					else
 					{
-						this->fmt_simu.setRetRequiredModcod(tal_id, this->cni);
+						this->ret_fmt_simu.setRequiredModcod(tal_id, this->cni);
 					}
 				}
 			}
@@ -1445,7 +1452,8 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 	                  mac);
 
 	// register the new ST
-	if(this->fmt_simu.doTerminalExist(mac))
+	if(this->ret_fmt_simu.doTerminalExist(mac) &&
+	   this->fwd_fmt_simu.doTerminalExist(mac))
 	{
 		// ST already registered once
 		UTI_ERROR("request to register ST with ID %u that is already "
@@ -1457,7 +1465,8 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 		// ST was not registered yet
 		UTI_INFO("register ST with MAC ID %u\n", mac);
 		if(this->column_list.find(mac) == this->column_list.end() ||
-		   !this->fmt_simu.addTerminal(mac, this->column_list[mac]))
+		   !this->ret_fmt_simu.addTerminal(mac, this->column_list[mac]) ||
+		   !this->fwd_fmt_simu.addTerminal(mac, this->column_list[mac]))
 		{
 			UTI_ERROR("failed to register ST with MAC ID %u\n",
 			          mac);
@@ -1500,7 +1509,8 @@ void BlockDvbNcc::onRcvLogoffReq(DvbFrame *dvb_frame)
 
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->fmt_simu.delTerminal(logoff->getMac()))
+	if(!this->ret_fmt_simu.delTerminal(logoff->getMac()) ||
+	   !this->fwd_fmt_simu.delTerminal(logoff->getMac()))
 	{
 		UTI_ERROR("failed to delete the ST with ID %d\n",
 		          logoff->getMac());
@@ -1624,11 +1634,13 @@ bool BlockDvbNcc::simulateFile()
 			if(this->column_list.find(st_id) == this->column_list.end())
 			{
 				UTI_INFO("no column ID for simulated terminal, use the terminal ID\n");
-				ret = this->fmt_simu.addTerminal(st_id, st_id);
+				ret = this->ret_fmt_simu.addTerminal(st_id, st_id) ||
+				      this->fwd_fmt_simu.addTerminal(st_id, st_id);
 			}
 			else
 			{
-				ret = this->fmt_simu.addTerminal(st_id, this->column_list[st_id]);
+				ret = this->ret_fmt_simu.addTerminal(st_id, this->column_list[st_id]) ||
+				      this->fwd_fmt_simu.addTerminal(st_id, this->column_list[st_id]);
 			}
 			if(!ret)
 			{
@@ -1713,12 +1725,13 @@ void BlockDvbNcc::simulateRandom()
 			if(this->column_list.find(tal_id) == this->column_list.end())
 			{
 				UTI_INFO("no column ID for simulated terminal, use the terminal ID\n");
-				ret = this->fmt_simu.addTerminal(tal_id, tal_id);
+				ret = this->ret_fmt_simu.addTerminal(tal_id, tal_id) ||
+				      this->fwd_fmt_simu.addTerminal(tal_id, tal_id);
 			}
 			else
 			{
-				ret = this->fmt_simu.addTerminal(tal_id,
-				                                 this->column_list[tal_id]);
+				ret = this->ret_fmt_simu.addTerminal(tal_id, this->column_list[tal_id]) ||
+				      this->fwd_fmt_simu.addTerminal(tal_id, this->column_list[tal_id]);
 			}
 			if(!ret)
 			{

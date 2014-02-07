@@ -83,7 +83,8 @@ class DamaCtrl
 	 * @param   terminal_affectation    mapping of terminal Id <-> category
 	 * @param   default_category        default category for non-affected
 	 *                                  terminals
-	 * @param   fmt_simu  The list of simulated FMT
+	 * @param   ret_fmt_simu            The list of simulated up/return FMT
+	 * @param   fwd_fmt_simu            The list of simulated down/forward FMT
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
@@ -96,7 +97,8 @@ class DamaCtrl
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
 	                        TerminalCategory *default_category,
-	                        FmtSimulation *const fmt_simu);
+	                        FmtSimulation *const ret_fmt_simu,
+	                        FmtSimulation *const fwd_fmt_simu);
 
 	// Protocol frames processing
 
@@ -268,8 +270,11 @@ class DamaCtrl
 	 */
 	TerminalCategory *default_category;
 
-	/** FMT simulation information */
-	FmtSimulation *fmt_simu;
+	/** FMT simulation information for up/return link */
+	FmtSimulation *ret_fmt_simu;
+
+	/** FMT simulation information for down/forward */
+	FmtSimulation *fwd_fmt_simu;
 
 	/** Roll-off factor */
 	double roll_off;

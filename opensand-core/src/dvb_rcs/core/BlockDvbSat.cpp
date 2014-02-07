@@ -296,7 +296,7 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG_L3("MODCOD scenario timer expired\n");
 
 				UTI_DEBUG_L3("update modcod table\n");
-				if(!this->fmt_simu.goNextScenarioStep())
+				if(!this->fwd_fmt_simu.goNextScenarioStep(true))
 				{
 					UTI_ERROR("failed to update MODCOD IDs\n");
 					return false;
@@ -574,7 +574,7 @@ bool BlockDvbSat::initSpots()
 		}
 		if(this->satellite_type == REGENERATIVE &&
 		   !new_spot->initScheduling(this->down_forward_pkt_hdl,
-		                             &this->fmt_simu,
+		                             &this->fwd_fmt_simu,
 		                             this->categories.begin()->second,
 		                             this->frames_per_superframe))
 		{
@@ -632,9 +632,9 @@ bool BlockDvbSat::initStList()
 
 		// register a ST only if it did not exist yet
 		// (duplicate because STs are 'defined' in spot table)
-		if(!this->fmt_simu.doTerminalExist(tal_id))
+		if(!this->fwd_fmt_simu.doTerminalExist(tal_id))
 		{
-			if(!this->fmt_simu.addTerminal(tal_id, column_nbr))
+			if(!this->fwd_fmt_simu.addTerminal(tal_id, column_nbr))
 			{
 				UTI_ERROR("failed to register ST "
 				          "with Tal ID %ld\n", tal_id);
@@ -677,7 +677,7 @@ bool  BlockDvbSat::onInit()
 			goto error;
 		}
 		// initialize the MODCOD scheme ID
-		if(!this->fmt_simu.goNextScenarioStep())
+		if(!this->fwd_fmt_simu.goNextScenarioStep(true))
 		{
 			UTI_ERROR("failed to initialize downlink MODCOD IDs\n");
 			goto error;
@@ -1053,7 +1053,7 @@ bool BlockDvbSat::onRcvDvbFrame(DvbFrame *dvb_frame)
 			cni = sac->getCni();
 			UTI_DEBUG("Get SAC from ST%u, with C/N0 = %.2f\n",
 			          tal_id, cni);
-			this->fmt_simu.setFwdRequiredModcod(tal_id, cni);
+			this->fwd_fmt_simu.setRequiredModcod(tal_id, cni);
 			// update ACM parameters with uplink value, thus the GW will
 			// known uplink C/N and thus update uplink MODCOD
 			if(this->cni.find(tal_id) != this->cni.end())

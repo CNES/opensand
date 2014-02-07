@@ -53,7 +53,7 @@ class UplinkSchedulingRcs: public Scheduling
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const map<unsigned int, DvbFifo *> &fifos,
 	                    unsigned int frames_per_superframe,
-	                    const FmtSimulation *const fmt_simu,
+	                    const FmtSimulation *const ret_fmt_simu,
 	                    const TerminalCategory *const category);
 
 	bool schedule(const time_sf_t current_superframe_sf,
@@ -68,7 +68,7 @@ class UplinkSchedulingRcs: public Scheduling
 	unsigned int frames_per_superframe;
 
 	/// The FMT simulated data
-	const FmtSimulation *fmt_simu;
+	const FmtSimulation *ret_fmt_simu;
 
 	///The terminal category
 	const TerminalCategory *category;

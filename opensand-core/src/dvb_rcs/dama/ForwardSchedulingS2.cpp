@@ -87,14 +87,14 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          const unsigned int frames_per_superframe,
-                                         FmtSimulation *const fmt_simu,
+                                         FmtSimulation *const fwd_fmt_simu,
                                          const TerminalCategory *const category):
 	Scheduling(packet_handler, fifos),
 	frames_per_superframe(frames_per_superframe),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
-	fmt_simu(fmt_simu),
+	fwd_fmt_simu(fwd_fmt_simu),
 	category(category)
 {
 }
@@ -264,7 +264,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
 			tal_id =
-				this->fmt_simu->getTalIdWithLowerFwdModcod();
+				this->fwd_fmt_simu->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{
 				UTI_ERROR("SF#%u: frame %u: The scheduling of a multicast "
@@ -474,7 +474,7 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	size_t bbframe_size_bytes;
 	string coding_rate;
 	const FmtDefinitionTable *modcod_definitions;
-	modcod_definitions = this->fmt_simu->getFwdModcodDefinitions();
+	modcod_definitions = this->fwd_fmt_simu->getModcodDefinitions();
 
 	*bbframe = new BBFrame();
 	if(bbframe == NULL)
@@ -517,19 +517,19 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
 
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
-	if(!this->fmt_simu->doTerminalExist(tal_id))
+	if(!this->fwd_fmt_simu->doTerminalExist(tal_id))
 	{
 		UTI_ERROR("encapsulation packet is for ST with ID %u "
 		          "that is not registered\n", tal_id);
 		goto error;
 	}
-	modcod_id = this->fmt_simu->getCurrentFwdModcodId(tal_id);
-	is_advertised = this->fmt_simu->isCurrentFwdModcodAdvertised(tal_id);
+	modcod_id = this->fwd_fmt_simu->getCurrentModcodId(tal_id);
+	is_advertised = this->fwd_fmt_simu->isCurrentModcodAdvertised(tal_id);
 	if(!is_advertised)
 	{
 		// send the most robust MODCOD if not advertised
-		modcod_id = std::min(this->fmt_simu->getCurrentFwdModcodId(tal_id),
-		                     this->fmt_simu->getPreviousFwdModcodId(tal_id));
+		modcod_id = std::min(this->fwd_fmt_simu->getCurrentModcodId(tal_id),
+		                     this->fwd_fmt_simu->getPreviousModcodId(tal_id));
 	}
 
 	UTI_DEBUG_L3("MODCOD for ST ID %u = %u (changed = %s)\n",
@@ -549,7 +549,7 @@ bool ForwardSchedulingS2::getBBFrameSize(size_t bbframe_size_bytes,
 	const FmtDefinitionTable *modcod_definitions;
 	float spectral_efficiency;
 
-	modcod_definitions = this->fmt_simu->getFwdModcodDefinitions();
+	modcod_definitions = this->fwd_fmt_simu->getModcodDefinitions();
 
 	if(!modcod_definitions->doFmtIdExist(modcod_id))
 	{
@@ -654,15 +654,15 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 	}
 
 	// check if some terminals need to be advertised
-	if(!this->fmt_simu->areCurrentFwdModcodsAdvertised())
+	if(!this->fwd_fmt_simu->areCurrentModcodsAdvertised())
 	{
 		// we can create up to MAX_MODCOD_OPTIONS, if we need more, they
 		// will be advertised in next BBFrame
 		for(unsigned int i = 0; i < MAX_MODCOD_OPTIONS; i++)
 		{
 			tal_id_t tal_id;
-			unsigned int modcod;
-			if(!this->fmt_simu->getNextFwdModcodToAdvertise(tal_id, modcod))
+			uint8_t modcod;
+			if(!this->fwd_fmt_simu->getNextModcodToAdvertise(tal_id, modcod))
 			{
 				UTI_DEBUG("%u MODCOD advertised\n", i);
 				break;

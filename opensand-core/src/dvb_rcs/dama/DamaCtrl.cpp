@@ -61,7 +61,9 @@ DamaCtrl::DamaCtrl():
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	fmt_simu(),
+	// TODO ouch, up and down at the same time, be careful !
+	ret_fmt_simu(),
+	fwd_fmt_simu(),
 	roll_off(0.0)
 {
 	this->probe_gw_rbdc_req_num = NULL;
@@ -112,7 +114,8 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           TerminalCategories categories,
                           TerminalMapping terminal_affectation,
                           TerminalCategory *default_category,
-                          FmtSimulation *const fmt_simu)
+                          FmtSimulation *const ret_fmt_simu,
+                          FmtSimulation *const fwd_fmt_simu)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->frames_per_superframe = frames_per_superframe;
@@ -120,7 +123,8 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->cra_decrease = cra_decrease;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
-	this->fmt_simu = fmt_simu;
+	this->ret_fmt_simu = ret_fmt_simu;
+	this->fwd_fmt_simu = fwd_fmt_simu;
 
 	this->converter = new UnitConverter(packet_length_bytes,
 	                                    this->frame_duration_ms);
@@ -323,7 +327,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		// check that CRA is not too high, else print a warning !
 		carriers = category->getCarriersGroups();
-		modcod_def = this->fmt_simu->getRetModcodDefinitions();
+		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		for(carrier_it = carriers.begin();
 		    carrier_it != carriers.end();
 		    ++carrier_it)

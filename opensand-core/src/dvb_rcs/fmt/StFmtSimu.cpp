@@ -36,14 +36,12 @@
 
 StFmtSimu::StFmtSimu(long id,
                      unsigned long simu_column_num,
-                     unsigned int fwd_modcod_id,
-                     unsigned int ret_modcod_id)
+                     uint8_t modcod_id)
 {
 	this->id = id;
 	this->simu_column_num = simu_column_num;
-	this->current_fwd_modcod_id = fwd_modcod_id;
-	this->previous_fwd_modcod_id = this->current_fwd_modcod_id;
-	this->current_ret_modcod_id = ret_modcod_id;
+	this->current_modcod_id = modcod_id;
+	this->previous_modcod_id = this->current_modcod_id;
 
 	// do not advertise at startup because for physical layer scenario we do not
 	// want advertisment
@@ -69,53 +67,45 @@ unsigned long StFmtSimu::getSimuColumnNum() const
 }
 
 
-unsigned int StFmtSimu::getCurrentFwdModcodId() const
+uint8_t StFmtSimu::getCurrentModcodId() const
 {
-	return this->current_fwd_modcod_id;
+	return this->current_modcod_id;
 }
 
-void StFmtSimu::updateFwdModcodId(unsigned int new_id, bool advertise)
+void StFmtSimu::updateModcodId(uint8_t new_id, bool advertise)
 {
-	this->previous_fwd_modcod_id = this->current_fwd_modcod_id;
-	this->current_fwd_modcod_id = new_id;
+	this->previous_modcod_id = this->current_modcod_id;
+	this->current_modcod_id = new_id;
 
-	// mark the down/forward MODCOD as not advertised yet if the MODCOD changed
-	if(this->current_fwd_modcod_id != this->previous_fwd_modcod_id && advertise)
+	// mark the MODCOD as not advertised yet if the MODCOD changed (for down/forward)
+	if(this->current_modcod_id != this->previous_modcod_id && advertise)
 	{
 		this->is_current_modcod_advertised = false;
 	}
 }
 
 
-unsigned int StFmtSimu::getPreviousFwdModcodId() const
+uint8_t StFmtSimu::getPreviousModcodId() const
 {
-	if(this->previous_fwd_modcod_id > this->current_fwd_modcod_id)
+	if(this->previous_modcod_id > this->current_modcod_id)
 	{
 		// will be decoded
-		return this->current_ret_modcod_id;
+		return this->current_modcod_id;
 	}
-	return this->previous_fwd_modcod_id;
+	return this->previous_modcod_id;
 }
 
 
-bool StFmtSimu::isCurrentFwdModcodAdvertised() const
+bool StFmtSimu::isCurrentModcodAdvertised() const
 {
 	return this->is_current_modcod_advertised;
 }
 
 
-void StFmtSimu::setFwdModcodAdvertised(void)
+void StFmtSimu::setModcodAdvertised(void)
 {
 	this->is_current_modcod_advertised = true;
 }
 
 
-unsigned int StFmtSimu::getCurrentRetModcodId() const
-{
-	return this->current_ret_modcod_id;
-}
 
-void StFmtSimu::updateRetModcodId(unsigned int new_id)
-{
-	this->current_ret_modcod_id = new_id;
-}

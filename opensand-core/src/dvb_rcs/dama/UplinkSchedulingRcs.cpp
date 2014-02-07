@@ -47,11 +47,11 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
 			unsigned int frames_per_superframe,
-            const FmtSimulation * const fmt_simu,
+            const FmtSimulation * const ret_fmt_simu,
 			const TerminalCategory *const category):
 	Scheduling(packet_handler, fifos),
 	frames_per_superframe(frames_per_superframe),
-	fmt_simu(fmt_simu),
+	ret_fmt_simu(ret_fmt_simu),
 	category(category)
 {
 }
@@ -89,7 +89,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		}
 		UTI_DEBUG_L3("Available MODCOD for GW = %u\n", modcod_id);
 
-		modcod_def = this->fmt_simu->getRetModcodDefinitions();
+		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		remaining_capacity_kb =
 			modcod_def->symToKbits(modcod_id,
 			                       (*carrier_it)->getTotalCapacity());
@@ -327,7 +327,7 @@ error:
 
 uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
 {
-	uint8_t modcod_id = this->fmt_simu->getCurrentRetModcodId(GW_TAL_ID);
+	uint8_t modcod_id = this->ret_fmt_simu->getCurrentModcodId(GW_TAL_ID);
 	UTI_DEBUG_L3("Simulated MODCOD for GW = %u\n", modcod_id);
 
 	return modcod_id;

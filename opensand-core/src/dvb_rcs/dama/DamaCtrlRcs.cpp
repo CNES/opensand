@@ -179,14 +179,15 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 	{
 		// transparent : the C/N0 of forward link
 		// regenerative : the C/N0 of uplink (updated by sat)
+		// TODO we have to avoid fwd_fmt_simu here !
 		double cni = sac->getCni();
 		if(satellite_type == TRANSPARENT)
 		{
-			this->fmt_simu->setFwdRequiredModcod(tal_id, cni);
+			this->fwd_fmt_simu->setRequiredModcod(tal_id, cni);
 		}
 		else if(satellite_type == REGENERATIVE)
 		{
-			this->fmt_simu->setRetRequiredModcod(tal_id, cni);
+			this->ret_fmt_simu->setRequiredModcod(tal_id, cni);
 		}
 	}
 
@@ -347,7 +348,7 @@ void DamaCtrlRcs::updateFmt()
 			continue;
 		}
 		category = (*category_it).second;
-		simulated_fmt = this->fmt_simu->getCurrentRetModcodId(id);
+		simulated_fmt = this->ret_fmt_simu->getCurrentModcodId(id);
 		UTI_DEBUG_L3("SF#%u: ST%u simulated FMT ID before affectation: %u\n",
 		             this->current_superframe_sf, id, simulated_fmt);
 		// get an available MODCOD id for this terminal among carriers

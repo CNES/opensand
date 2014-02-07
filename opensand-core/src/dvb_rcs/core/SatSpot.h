@@ -116,13 +116,13 @@ class SatSpot
 	 * initialize the scheduling attribute
 	 *
 	 * @param pkt_hdl                The packet handler
-	 * @param fmt_simu               The FMT simulation information
+	 * @param fwd_fmt_simu               The FMT simulation information
 	 * @param category               The related terminal category
 	 * @param frames_per_superframe  The number of frames per superframe
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    FmtSimulation *const fmt_simu,
+	                    FmtSimulation *const fwd_fmt_simu,
 	                    const TerminalCategory *const category,
 	                    unsigned int frames_per_superframe);
 

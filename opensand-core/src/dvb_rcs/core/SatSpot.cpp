@@ -93,7 +93,7 @@ bool SatSpot::initFifos(spot_id_t spot_id,
 }
 
 bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                             FmtSimulation *const fmt_simu,
+                             FmtSimulation *const fwd_fmt_simu,
                              const TerminalCategory *const category,
                              unsigned int frames_per_superframe)
 {
@@ -103,7 +103,7 @@ bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	this->scheduling = new ForwardSchedulingS2(pkt_hdl,
 	                                           fifos,
 	                                           frames_per_superframe,
-	                                           fmt_simu,
+	                                           fwd_fmt_simu,
 	                                           category);
 	if(!this->scheduling)
 	{

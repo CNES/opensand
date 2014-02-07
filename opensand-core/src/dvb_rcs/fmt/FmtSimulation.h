@@ -73,33 +73,20 @@ class FmtSimulation
 	/** The internal map that stores all the STs */
 	map<tal_id_t, StFmtSimu *> sts;
 
-	/** The table of down/forward MODCOD definitions */
-	FmtDefinitionTable fwd_modcod_def;
+	/** The table of MODCOD definitions */
+	FmtDefinitionTable modcod_def;
 
-	/** The file stream for the down/forward MODCOD simulation file
+	/** The file stream for the MODCOD simulation file
 	 *  Need pointer because ifstream is not copyable */
-	ifstream *fwd_modcod_simu;
-
-	/** The table of up/return MODCOD definitions */
-	FmtDefinitionTable ret_modcod_def;
-
-	/** The file stream for the up/return MODCOD simulation file
-	 *  Need pointer because ifstream is not copyable */
-	ifstream *ret_modcod_simu;
+	ifstream *modcod_simu;
 
 	/** Whether the MODCOD simulation file is defined or not */
-	bool is_fwd_modcod_simu_defined;
+	// TODO needed ? bool is_modcod_simu_defined;
 
-	/** Whether the up/return MODCOD simulation file is defined or not */
-	bool is_ret_modcod_simu_defined;
+	/** A list of the current MODCOD */
+	vector<string> modcod_list;
 
-	/** A list of the current down/forward MODCOD */
-	vector<string> fwd_modcod_list;
-
-	/** A list of the current up/return MODCOD */
-	vector<string> ret_modcod_list;
-
-	/** A list of terminal to advertise for down/forward MODCOD */
+	/** A list of terminal to advertise MODCOD (for down/forward) */
 	list<tal_id_t> need_advertise;
 
  public:
@@ -148,51 +135,38 @@ class FmtSimulation
 
 	/**
 	 * @brief Go to next step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list.
 	 *
-	 * Update current MODCODs IDs of all STs in the list.
+	 * @param need_advert  Whether this is a down/forward MODCOD that will need
+	 *                     advertisment process
+	 * @return true on success, false otherwise
 	 */
-	bool goNextScenarioStep();
+	bool goNextScenarioStep(bool need_advert);
 
 	/**
-	 * @brief Was the current down/forward MODCOD IDs of all the STs advertised
-	 *        over the emulated network ?
+	 * @brief Was the current MODCOD IDs of all the STs advertised
+	 *        over the emulated network (for down/forward) ?
 	 *
 	 * @return  true if the current MODCOD IDs of all the STs are already
 	 *          advertised, false if they were not yet
 	 */
-	bool areCurrentFwdModcodsAdvertised();
+	bool areCurrentModcodsAdvertised();
 
 	/**
-	 * @brief Set definition file for down/forward MODCOD
+	 * @brief Set definition file for MODCOD
 	 *
 	 * @param filename The MODCOD definition file
 	 * @return true on success, false otherwise
 	 */
-	bool setForwardModcodDef(const string &filename);
+	bool setModcodDef(const string &filename);
 
 	/**
-	 * @brief Set simulation file for down/forward link MODCOD
+	 * @brief Set simulation file for MODCOD
 	 *
 	 * @param filename  the name of the file in which MODCOD scenario is described
 	 * @return          true if the file exist and is valid, false otherwise
 	 */
-	bool setForwardModcodSimu(const string &filename);
-
-	/**
-	 * @brief Set definition file for up/return MODCOD
-	 *
-	 * @param filename The MODCOD definition file
-	 * @return true on success, false otherwise
-	 */
-	bool setReturnModcodDef(const string &filename);
-
-	/**
-	 * @brief Set simulation file for up/return link MODCOD
-	 *
-	 * @param filename  the name of the file in which MODCOD scenario is described
-	 * @return          true if the file exist and is valid, false otherwise
-	 */
-	bool setReturnModcodSimu(const string &filename);
+	bool setModcodSimu(const string &filename);
 
 	/**
 	 * @brief Get the column # associated to the ST whose ID is given as input
@@ -205,133 +179,96 @@ class FmtSimulation
 	unsigned int getSimuColumnNum(tal_id_t id) const;
 
 	/**
-	 * @brief Get the current down/forward MODCOD ID of the ST whose ID is given as input
+	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
 	 *
 	 * @param id  the ID of the ST
 	 * @return    the current MODCOD ID of the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	unsigned int getCurrentFwdModcodId(tal_id_t id) const;
+	uint8_t getCurrentModcodId(tal_id_t id) const;
 
 	/**
 	 * @brief Get the previous MODCOD ID of the ST whose ID is given as input
+	 *        (for down/forward)
 	 *
 	 * @param id  the ID of the ST
 	 * @return    the previous MODCOD ID of the ST
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	unsigned int getPreviousFwdModcodId(tal_id_t id) const;
+	uint8_t getPreviousModcodId(tal_id_t id) const;
 
 	/**
 	 * @brief Get the higher forward MODCOD ID
 	 *
 	 * @return the highest forward MODCOD ID
 	 */
-	unsigned int getMaxFwdModcod() const;
+	uint8_t getMaxModcod() const;
 
 	/**
-	 * @brief Get the higher return MODCOD ID
-	 *
-	 * @return the highest return MODCOD ID
-	 */
-	unsigned int getMaxRetModcod() const;
-
-	/**
-	 * @brief Was the current down/forward MODCOD ID of the ST whose ID
-	 *        is given as input  advertised over the emulated network ?
+	 * @brief Was the current MODCOD ID of the ST whose ID
+	 *        is given as input  advertised over the emulated network
+	 *        (for down/forward) ?
 	 *
 	 * @return  true if the MODCOD ID was already advertised,
 	 *          false if it was not advertised yet
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	bool isCurrentFwdModcodAdvertised(tal_id_t id) const;
+	bool isCurrentModcodAdvertised(tal_id_t id) const;
 
 	/**
-	 * Get the next terminal to advertise
+	 * @brief Get the next terminal to advertise (for down/forward)
 	 *
 	 * @param tal_id     OUT: The ID of the terminal to advertise
 	 * @param modcod_id  OUT: The MODCOD ID for temrinal advertisement
 	 * @return true if there ise a terminal to advertise, false otherwise
 	 */
-	bool getNextFwdModcodToAdvertise(tal_id_t &id, unsigned int &modcod_id);
+	bool getNextModcodToAdvertise(tal_id_t &id, uint8_t &modcod_id);
 
 	/**
-	 * @brief Get the current up/return MODCOD ID of the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the ST
-	 * @return    the current up/return MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	unsigned int getCurrentRetModcodId(tal_id_t id) const;
-
-	/**
-	 * @brief Get the terminal ID for wich the used down/forward
-	 *        MODCOD is the lower
+	 * @brief Get the terminal ID for wich the used MODCOD is the lower
+	 *        (for down/forward)
 	 *
 	 * @return terminal ID (should be positive, return -1 (255) if an error occurs)
 	 */
-	tal_id_t getTalIdWithLowerFwdModcod() const;
+	tal_id_t getTalIdWithLowerModcod() const;
 
 	/**
-	 * @brief Get the MODCOD definitions for down/forward link
+	 * @brief Get the MODCOD definitions
 	 *
 	 * @return the MODCOD definitions
 	 */
-	const FmtDefinitionTable *getFwdModcodDefinitions() const;
+	const FmtDefinitionTable *getModcodDefinitions() const;
 
 	/**
-	 * @brief Get the MODCOD definitions for up/return link
-	 *
-	 * @return the MODCOD definitions
-	 */
-	const FmtDefinitionTable *getRetModcodDefinitions() const;
-
-	/**
-	 * @brief Set the required up/return MODCOD ID for of the
+	 * @brief Set the required  MODCOD ID for of the
 	 *        ST whid ID is given as input according to the required Es/N0
 	 *
 	 * @param id   the ID of the ST
 	 * @param cni  the required Es/N0 for that terminal
 	 */
-	void setRetRequiredModcod(tal_id_t tal_id, double cni) const;
-
-	/**
-	 * @brief Set the required down/forward MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id   the ID of the ST
-	 * @param cni  the required Es/N0 for that terminal
-	 */
-	void setFwdRequiredModcod(tal_id_t tal_id, double cni);
+	void setRequiredModcod(tal_id_t tal_id, double cni) const;
 
  private:
 
 	/**
-	 * @brief Update the current down/forwardMODCOD IDs of all STs
+	 * @brief Update the current MODCOD IDs of all STs
 	 *        from MODCOD simulation file
 	 *
+	 * @param need_advert  Whether this is a down/forward MODCOD that will need
+	 *                     advertisment process
 	 * @return true on success, false on failure
 	 */
-	bool goNextScenarioStepFwdModcod();
+	bool goNextScenarioStepModcod(bool need_advert=false);
 
 	/**
-	 * @brief Update the current up/return MODCOD IDs of all STs
-	 *        from MODCOD simulation file
-	 *
-	 * @return true on success, false on failure
-	 */
-	bool goNextScenarioStepRetModcod();
-
-	/**
-	 * @brief Set the down/forward MODCOD advertised for terminal
+	 * @brief Set the advertised for terminal (for down/forward)
 	 *
 	 * @param tal_id  The terminal ID
 	 */
-	void setFwdModcodAdvertised(tal_id_t tal_id);
+	void setModcodAdvertised(tal_id_t tal_id);
 
 	/**
 	 * @brief Read a line of a simulation file and fill the MODCOD list

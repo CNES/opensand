@@ -36,6 +36,7 @@
 #ifndef ST_FMT_SIMU_H
 #define ST_FMT_SIMU_H
 
+#include <stdint.h>
 
 /**
  * @class StFmtSimu
@@ -51,20 +52,17 @@ class StFmtSimu
 	/** The column # associated to the ST for down/forward MODCOD simulation files */
 	unsigned long simu_column_num;
 
-	/** The current down/forward MODCOD ID of the ST */
-	unsigned int current_fwd_modcod_id;
+	/** The current MODCOD ID of the ST */
+	uint8_t current_modcod_id;
 
-	/** The previous down/forward MODCOD ID of the ST */
-	unsigned int previous_fwd_modcod_id;
+	/** The previous MODCOD ID of the ST (for down/forward) */
+	uint8_t previous_modcod_id;
 
 	/**
-	 * Whether the current down/forward MODCOD ID was advertised to the ST
-	 * over the emulated satellite network
+	 * Whether the current MODCOD ID was advertised to the ST
+	 * over the emulated satellite network (for down/forward)
 	 */
 	bool is_current_modcod_advertised;
-
-	/** The current up/return MODCOD ID of the ST */
-	unsigned int current_ret_modcod_id;
 
  public:
 
@@ -77,13 +75,11 @@ class StFmtSimu
 	 *                         in the code)
 	 * @param simu_column_num  the column # associated to the ST for MODCOD
 	 *                         simulation files
-	 * @param fwd_modcod_id    the initial down/forward MODCOD ID of the ST
-	 * @param ret_modcod_id    the initial up/return MODCOD ID of the ST
+	 * @param modcod_id        the initial MODCOD ID of the ST
 	 */
 	StFmtSimu(long id,
 	          unsigned long simu_column_num,
-	          unsigned int fwd_modcod_id,
-	          unsigned int ret_modcod_id);
+	          uint8_t modcod_id);
 
 	/* destroy an internal representation of a Satellite Terminal (ST) */
 	~StFmtSimu();
@@ -108,53 +104,41 @@ class StFmtSimu
 	unsigned long getSimuColumnNum() const;
 
 	/**
-	 * @brief Get the current down/forward MODCOD ID of the ST
+	 * @brief Get the current MODCOD ID of the ST
 	 *
-	 * @return  the current down/forward MODCOD ID of the ST
+	 * @return  the current  MODCOD ID of the ST
 	 */
-	unsigned int getCurrentFwdModcodId() const;
+	uint8_t getCurrentModcodId() const;
 
 	/**
-	 * @brief Update the down/forward MODCOD ID of the ST
+	 * @brief Update the MODCOD ID of the ST
 	 *
-	 * @param new_id     the new down/forward MODCOD ID of the ST
+	 * @param new_id     the new MODCOD ID of the ST
 	 * @param advertise  whether we should set advertise if the MODCOD changed
+	 *                   (for down/forward)
 	 */
-	void updateFwdModcodId(unsigned int new_id, bool advertise=true);
+	void updateModcodId(uint8_t new_id, bool advertise=true);
+	// TODO advertise false by default
 
 	/**
-	 * @brief Get the previous down/forward MODCOD ID of the ST
+	 * @brief Get the previous MODCOD ID of the ST (for down/forward)
 	 *
-	 * @return  the previous down/forward MODCOD ID of the ST
+	 * @return  the previous MODCOD ID of the ST
 	 */
-	unsigned int getPreviousFwdModcodId() const;
+	uint8_t getPreviousModcodId() const;
 
 	/**
-	 * @brief Was the current down/forward MODCOD ID advertised to the ST ?
+	 * @brief Was the current MODCOD ID advertised to the ST (for down/forward) ?
 	 *
-	 * @return  true if the current down/forward MODCOD ID was already advertised to the ST,
+	 * @return  true if the current MODCOD ID was already advertised to the ST,
 	 *          false if it was not advertised yet
 	 */
-	bool isCurrentFwdModcodAdvertised() const;
+	bool isCurrentModcodAdvertised() const;
 
 	/**
-	 * @brief Set the down/forward MODCOD ID avertised for the ST
+	 * @brief Set the MODCOD ID avertised for the ST (for down/forward) 
 	 */
-	void setFwdModcodAdvertised(void);
-
-	/**
-	 * @brief Get the current up/return MODCOD ID of the ST
-	 *
-	 * @return  the current up/return MODCOD ID of the ST
-	 */
-	unsigned int getCurrentRetModcodId() const;
-
-	/**
-	 * @brief Update the up/return MODCOD ID of the ST
-	 *
-	 * @param new_id  the new up/return MODCOD ID of the ST
-	 */
-	void updateRetModcodId(unsigned int new_id);
+	void setModcodAdvertised(void);
 
 };
 
