@@ -41,6 +41,7 @@
 #include "Block.h"
 #include "RtChannel.h"
 #include "RtEvent.h"
+#include "RtMutex.h"
 #include "Types.h"
 #include "NetSocketEvent.h"
 #include "MessageEvent.h"

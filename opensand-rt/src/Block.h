@@ -37,6 +37,7 @@
 #define BLOCK_H
 
 #include "RtChannel.h"
+#include "RtMutex.h"
 #include "Types.h"
 
 
@@ -280,7 +281,7 @@ class Block
 	bool chan_mutex;
   
 	/// mutex to separate channel processing
-	pthread_mutex_t block_mutex;
+	RtMutex block_mutex;
 };
 
 // TODO malloc/new hook !!

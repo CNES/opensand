@@ -47,34 +47,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <pthread.h>
 #include <signal.h>
 
 
 Block::Block(const string &name, void *specific):
 	name(name),
 	initialized(false),
-	chan_mutex(false)
+	chan_mutex(false),
+	block_mutex(name)
 {
 	UTI_DEBUG("Block %s: created\n", this->name.c_str());
 }
 
-// TODO create a function that allows locking and unlocking block_mutex
-// if chan_mutex is false
 // TODO add onEvent in channels
 Block::~Block()
 {
-	if(this->chan_mutex)
-	{
-		int ret;
-		ret = pthread_mutex_destroy(&(this->block_mutex));
-		if(ret != 0)
-		{
-			Rt::reportError(this->name, pthread_self(), false,
-			                "Mutex destroy failure [%u: %s]", ret, strerror(ret));
-		}
-	}
-
 	if(this->downward != NULL)
 	{
 		delete this->downward;
@@ -251,14 +238,8 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	bool ret = false;
 	if(this->chan_mutex)
 	{
-		int err;
-		err = pthread_mutex_lock(&(this->block_mutex));
-		if(err != 0)
-		{
-			Rt::reportError(this->name, pthread_self(), false,
-			                "Mutex lock failure [%u: %s]", err, strerror(err));
-			return false;
-		}
+		// lock with RAII method
+		RtLock lock(this->block_mutex);
 	}
 	if(chan == upward_chan)
 	{
@@ -267,17 +248,6 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 	else if(chan == downward_chan)
 	{
 		ret = this->onDownwardEvent(event);
-	}
-	if(this->chan_mutex)
-	{
-		int err;
-		err = pthread_mutex_unlock(&(this->block_mutex));
-		if(err != 0)
-		{
-			Rt::reportError(this->name, pthread_self(), false,
-			                "Mutex unlock failure [%u: %s]", err, strerror(err));
-			return false;
-		}
 	}
 	return ret;
 }
@@ -301,34 +271,6 @@ RtChannel *Block::getDownwardChannel(void) const
 
 void Block::enableChannelMutex(void)
 {
-	int ret;
-
-	pthread_mutexattr_t mutex_attr;
-
-	ret = pthread_mutexattr_init(&mutex_attr);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Failed to initialize mutex attributes [%d: %s]\n",
-		                ret, strerror(ret));
-	}
-	/* choose mutexes depending on what you need:
-	    - PTHREAD_MUTEX_ERRORCHECK for library validation
-	    - PTHREAD_MUTEX_NORMAL for fast mutex */
-	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_NORMAL);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Failed to set mutex attributes [%d: %s]\n",
-		                ret, strerror(ret));
-	}
-
-	ret = pthread_mutex_init(&(this->block_mutex), &mutex_attr);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Mutex initialization failure [%u: %s]", ret, strerror(ret));
-	}
 	this->chan_mutex = true;
-	pthread_mutexattr_destroy(&mutex_attr);
 }
+

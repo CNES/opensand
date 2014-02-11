@@ -37,6 +37,7 @@
 #define RT_FIFO_H
 
 #include "Types.h"
+#include "RtMutex.h"
 
 #include <queue>
 #include <stdint.h>
@@ -58,7 +59,6 @@ class RtFifo
 	friend class RtChannel;
 	friend class MessageEvent;
 	friend class BlockManager;
-
 
 	/**
 	 * @brief Fifo constructor
@@ -113,13 +113,12 @@ class RtFifo
 	int32_t r_sig_pipe;
 	
 	/// The mutex on fifo access
-	pthread_mutex_t fifo_mutex;
+	RtMutex fifo_mutex;
 	
 	/// The mutex for fifo full (we need a semaphore here because it is
 	//  lock and unlocked by different threads
 	//  This semaphore is intialized with the fifo size
 	sem_t fifo_size_sem;
-
 };
 
 #endif

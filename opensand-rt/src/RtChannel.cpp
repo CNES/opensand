@@ -601,14 +601,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	// as we can block on semaphore
 	if(this->block.chan_mutex && this->block.initialized)
 	{
-		int err;
-		err = pthread_mutex_unlock(&(this->block.block_mutex));
-		if(err != 0)
-		{
-			this->reportError(false, "Mutex unlock failure [%u: %s]",
-			                  err, strerror(err));
-			return false;
-		}
+		this->block.block_mutex.releaseLock();
 	}
 	if(!out_fifo->push(*data, size, type))
 	{
@@ -619,14 +612,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	// take the lock again
 	if(this->block.chan_mutex && this->block.initialized)
 	{
-		int err;
-		err = pthread_mutex_lock(&(this->block.block_mutex));
-		if(err != 0)
-		{
-			this->reportError(false, "Mutex lock failure [%u: %s]",
-			                  err, strerror(err));
-			success = false;
-		}
+		this->block.block_mutex.releaseLock();
 	}
 
 	// be sure that the pointer won't be used anymore

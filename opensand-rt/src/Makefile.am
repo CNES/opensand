@@ -12,6 +12,7 @@ libopensand_rt_la_cpp = \
 	Rt.cpp \
 	Block.cpp \
 	RtChannel.cpp \
+	RtMutex.cpp \
 	BlockManager.cpp \
 	RtEvent.cpp \
 	MessageEvent.cpp \
@@ -21,10 +22,10 @@ libopensand_rt_la_cpp = \
 	SignalEvent.cpp \
 	RtFifo.cpp
 
-
 libopensand_rt_la_h = \
 	Rt.h \
 	RtChannel.h \
+	RtMutex.h \
 	Types.h \
 	Block.h \
 	BlockManager.h \
