@@ -73,7 +73,7 @@ class RtChannel
 
 	/// The bloc containing channel
 	// TODO remove
-	Block &block;
+	Block *block;
 
 	/**
 	 * @brief Channel Constructor
@@ -82,7 +82,7 @@ class RtChannel
 	 * @param chan  The channel type
 	 *
 	 */
-	RtChannel(Block &bl, chan_type_t chan);
+	RtChannel(Block *const bl, chan_type_t chan);
 
 	/**
 	 * @brief Channel Constructor
@@ -93,7 +93,7 @@ class RtChannel
 	 *
 	 */
 	template<class T>
-	RtChannel(Block &bl, chan_type_t chan, T specific);
+	RtChannel(Block *const bl, chan_type_t chan, T specific);
 
 	virtual ~RtChannel();
 
@@ -264,6 +264,13 @@ class RtChannel
 	 */
 	static void *startThread(void *pthis);
 
+	/**
+	 * @brief Get the current timeval
+	 *
+	 * @return the current time
+	 */
+	clock_t getCurrentTime(void);
+
   private:
 
 	/// the block direction
@@ -375,11 +382,10 @@ class RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type=0);
-
 };
 
 template<class T>
-RtChannel::RtChannel(Block &bl, chan_type_t chan, T specific):
+RtChannel::RtChannel(Block *const bl, chan_type_t chan, T specific):
 	block(bl),
 	chan(chan),
 	previous_fifo(NULL),

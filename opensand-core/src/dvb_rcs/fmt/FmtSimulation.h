@@ -81,7 +81,7 @@ class FmtSimulation
 	ifstream *modcod_simu;
 
 	/** Whether the MODCOD simulation file is defined or not */
-	// TODO needed ? bool is_modcod_simu_defined;
+	bool is_modcod_simu_defined;
 
 	/** A list of the current MODCOD */
 	vector<string> modcod_list;

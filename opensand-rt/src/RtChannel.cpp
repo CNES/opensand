@@ -55,7 +55,7 @@ using std::ostringstream;
 
 
 // TODO pointer on onEventUp/Down and remove chan and add name
-RtChannel::RtChannel(Block &bl, chan_type_t chan):
+RtChannel::RtChannel(Block *const bl, chan_type_t chan):
 	block(bl),
 	chan(chan),
 	previous_fifo(NULL),
@@ -107,7 +107,7 @@ bool RtChannel::init(void)
 	int32_t pipefd[2];
 
 	UTI_DEBUG("[%s]Channel %u: init",
-	          this->block.getName().c_str(), this->chan);
+	          this->block->getName().c_str(), this->chan);
 
 	// pipe used to break select when a new event is received
 	if(pipe(pipefd) != 0)
@@ -292,7 +292,7 @@ bool RtChannel::addEvent(RtEvent *event)
 	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
 	{
 		UTI_ERROR("[%s]Channel %u: failed to break select upon a new "
-		          "event reception\n", this->block.getName().c_str(), this->chan);
+		          "event reception\n", this->block->getName().c_str(), this->chan);
 	}
 
 	return true;
@@ -306,7 +306,7 @@ void RtChannel::updateEvents(void)
 		iter != this->new_events.end(); ++iter)
 	{
 		UTI_DEBUG("[%s]Channel %u: Add new event \"%s\" in list\n",
-		          this->block.getName().c_str(), this->chan, (*iter)->getName().c_str());
+		          this->block->getName().c_str(), this->chan, (*iter)->getName().c_str());
 		this->addInputFd((*iter)->getFd());
 		this->events[(*iter)->getFd()] = *iter;
 	}
@@ -322,7 +322,7 @@ void RtChannel::updateEvents(void)
 		if(it != this->events.end())
 		{
 			UTI_DEBUG("[%s]Channel %u: remove event \"%s\" from list\n",
-			          this->block.getName().c_str(), this->chan,
+			          this->block->getName().c_str(), this->chan,
 			          (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
@@ -362,7 +362,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	if(it == this->events.end())
 	{
 		UTI_DEBUG_L3("[%s]Channel %u: event not found, search in new events\n",
-		             this->block.getName().c_str(), this->chan);
+		             this->block->getName().c_str(), this->chan);
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -371,7 +371,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 			if(*(*iter) == id)
 			{
 				UTI_DEBUG_L3("[%s]Channel %u: event found in new events\n",
-				             this->block.getName().c_str(), this->chan);
+				             this->block->getName().c_str(), this->chan);
 				found = true;
 				event = *iter;
 				break;
@@ -386,7 +386,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	else
 	{
 		UTI_DEBUG_L3("[%s]Channel %u: Timer found\n",
-		             this->block.getName().c_str(), this->chan);
+		             this->block->getName().c_str(), this->chan);
 		event = (*it).second;
 	}
 	if(event && event->getType() != evt_timer)
@@ -447,12 +447,21 @@ void *RtChannel::startThread(void *pthis)
 	return NULL;
 }
 
+
+clock_t RtChannel::getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
+}
+
+
 bool RtChannel::processEvent(const RtEvent *const event)
 {
 	UTI_DEBUG_L3("[%s]Channel %u: event received (%s)",
-	             this->block.getName().c_str(), this->chan,
+	             this->block->getName().c_str(), this->chan,
 	             event->getName().c_str());
-	return this->block.processEvent(event, this->chan);
+	return this->block->processEvent(event, this->chan);
 };
 
 
@@ -489,7 +498,7 @@ void RtChannel::executeThread(void)
 			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
 			{
 				UTI_ERROR("[%s]Channel %u: failed to read in pipe",
-				          this->block.getName().c_str(), this->chan);
+				          this->block->getName().c_str(), this->chan);
 			}
 			handled++;
 		}
@@ -530,7 +539,7 @@ void RtChannel::executeThread(void)
 			{
 				// we have to stop
 				UTI_DEBUG("[%s]Channel %u: stop signal received",
-				          this->block.getName().c_str(), this->chan);
+				          this->block->getName().c_str(), this->chan);
 				pthread_exit(NULL);
 			}
 		}
@@ -546,7 +555,7 @@ void RtChannel::executeThread(void)
 			if(!this->processEvent(*iter))
 			{
 				UTI_ERROR("[%s]Channel %u: failed to process event %s",
-				          this->block.getName().c_str(), this->chan,
+				          this->block->getName().c_str(), this->chan,
 				          (*iter)->getName().c_str());
 			}
 		}
@@ -563,7 +572,7 @@ void RtChannel::reportError(bool critical, const char *msg_format, ...)
 
 	va_end(args);
 
-	Rt::reportError(this->block.getName(), pthread_self(),
+	Rt::reportError(this->block->getName(), pthread_self(),
 	                critical, msg);
 };
 
@@ -588,7 +597,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	int success = true;
 
 	// check that block is initialized (i.e. we are in event processing)
-	if(!this->block.initialized)
+	if(!this->block->initialized)
 	{
 		UTI_INFO("Be careful, some message are sent while process are not "
 		         "started. If too many messages are sent we may block because "
@@ -599,9 +608,9 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 
 	// release lock in block because we can create interblocking here
 	// as we can block on semaphore
-	if(this->block.chan_mutex && this->block.initialized)
+	if(this->block->chan_mutex && this->block->initialized)
 	{
-		this->block.block_mutex.releaseLock();
+		this->block->block_mutex.releaseLock();
 	}
 	if(!out_fifo->push(*data, size, type))
 	{
@@ -610,9 +619,9 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 		success = false;
 	}
 	// take the lock again
-	if(this->block.chan_mutex && this->block.initialized)
+	if(this->block->chan_mutex && this->block->initialized)
 	{
-		this->block.block_mutex.releaseLock();
+		this->block->block_mutex.releaseLock();
 	}
 
 	// be sure that the pointer won't be used anymore

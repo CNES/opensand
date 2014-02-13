@@ -94,7 +94,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	event_id_t scenario_timer;
 
 	/// a fifo to keep the received packet from encap bloc
-	DvbFifo data_dvb_fifo;
+	DvbFifo *data_dvb_fifo;
 
 	/// The terminal categories for forward band
 	TerminalCategories categories;
@@ -156,7 +156,7 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	// TODO: a specific timer for statistics update
 	/*
 	/// The statistics period
-	unsigned int stats_period_ms;
+	time_ms_t  stats_period_ms;
 
 	/// Statistics timer
 	event_id_t stats_timer;
@@ -282,14 +282,9 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	int l2_to_sat_bytes_before_sched;
 	Probe<int> *probe_gw_l2_to_sat_after_sched;
 	int l2_to_sat_bytes_after_sched;
-			// PHY to SAT
-	Probe<int> *probe_gw_phy_to_sat;
 			// Layer 2 from SAT
 	Probe<int> *probe_gw_l2_from_sat;
 	int l2_from_sat_bytes;
-			// PHY from SAT
-	Probe<int> *probe_gw_phy_from_sat;
-	int phy_from_sat_bytes;
 
 		// Frame interval
 	Probe<float> *probe_frame_interval;

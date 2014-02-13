@@ -71,7 +71,7 @@ FmtSimulation::FmtSimulation():
 	sts(),
 	modcod_def(),
 	modcod_simu(NULL),
-//	is_modcod_simu_defined(false),
+	is_modcod_simu_defined(false),
 	need_advertise()
 {
 }
@@ -104,8 +104,8 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 		return false;
 	}
 
-//	if(this->is_modcod_simu_defined &&
-	if(this->modcod_list.size() <= simu_column_num)
+	if(this->is_modcod_simu_defined &&
+	   this->modcod_list.size() <= simu_column_num)
 	{
 		UTI_ERROR("cannot access modcod  column %lu for ST%u\n",
 		          simu_column_num, id);
@@ -114,10 +114,9 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 	// if scenario are not defined, set less robust modcod at init
 	// in order to authorize any MODCOD
 	new_st = new StFmtSimu(id, simu_column_num,
-	                       atoi(this->modcod_list[simu_column_num].c_str()));
-/*		this->is_modcod_simu_defined ?
+		this->is_modcod_simu_defined ?
 			atoi(this->modcod_list[simu_column_num].c_str()) :
-			this->getMaxModcod());*/
+			this->getMaxModcod());
 	if(new_st == NULL)
 	{
 		UTI_ERROR("failed to create a new ST\n");
@@ -175,12 +174,10 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert)
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 
-/*	if(!this->is_modcod_simu_defined)
+	if(!this->is_modcod_simu_defined)
 	{
-		UTI_ERROR("failed to update MODCOD IDs: "
-		          "MODCOD simulation file not defined yet\n");
-		goto error;
-	}*/
+		return true;
+	}
 
 	// read next line of the modcod simulation file
 	if(!this->setList(this->modcod_simu, this->modcod_list))
@@ -277,11 +274,11 @@ bool FmtSimulation::setModcodDef(const string &filename)
 bool FmtSimulation::setModcodSimu(const string &filename)
 {
 	// we can not redefine the simulation file
-/*	if(this->is_modcod_simu_defined)
+	if(this->is_modcod_simu_defined)
 	{
 		UTI_ERROR("cannot redefine the MODCOD simulation file\n");
 		goto error;
-	}*/
+	}
 
 	if(!fileExists(filename.c_str()))
 	{
@@ -299,7 +296,7 @@ bool FmtSimulation::setModcodSimu(const string &filename)
 
 	// TODO: check values in the file here
 
-//	this->is_modcod_simu_defined = true;
+	this->is_modcod_simu_defined = true;
 
 	return true;
 

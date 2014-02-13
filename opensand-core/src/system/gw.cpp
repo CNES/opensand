@@ -243,8 +243,8 @@ int main(int argc, char **argv)
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbNcc,
-	                            BlockDvbNcc::RtUpward,
-	                            BlockDvbNcc::RtDownward>("DvbNcc", block_encap);
+	                            BlockDvbNcc::DvbUpward,
+	                            BlockDvbNcc::DvbDownward>("DvbNcc", block_encap);
 	if(!block_dvb)
 	{
 		UTI_ERROR("%s: cannot create the DvbNcc block\n", progname);

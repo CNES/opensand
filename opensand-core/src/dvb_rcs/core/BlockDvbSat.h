@@ -51,15 +51,14 @@
 #ifndef BLOC_DVB_RCS_sat_H
 #define BLOC_DVB_RCS_sat_H
 
-#include <linux/param.h>
-
-using namespace std;
 
 #include "BlockDvb.h"
 #include "SatSpot.h"
 
 // output
 #include <opensand_output/Output.h>
+
+#include <linux/param.h>
 
 /**
  * Blocs heritate from mgl_bloc clam_singleSpot.sse
@@ -68,196 +67,230 @@ using namespace std;
 class BlockDvbSat: public BlockDvb
 {
 
- private:
-
-	/// Whether the bloc has been initialized or not
-	bool initOk;
-
-	/// The satellite spots
-	SpotMap spots;
-
-	/// The satellite delay to emulate
-	int m_delay;
-
-
-	/* Timers */
-
-	// Internal event handlers
-	/// frame timer, used to awake the block regurlarly in order to send BBFrames
-	event_id_t frame_timer;
-	/// timer used to awake the block every second in order to retrieve
-	/// the modcods
-	event_id_t scenario_timer;
-
-	/* misc */
-	/// Flag set 1 to activate error generator
-	// TODO remove?
-	int m_useErrorGenerator;
-
-	/// The terminal categories for forward band
-	TerminalCategories categories;
-
-	/// The terminal affectation for forward band
-	TerminalMapping terminal_affectation;
-
-	/// The default terminal category for forward band
-	TerminalCategory *default_category;
-
-	// TODO remove FMT groups from attributes
-	/// FMT groups
-	fmt_groups_t fmt_groups;
-
-	/// The statistics period
-	unsigned int stats_period_ms;
-
-	/// statistic timer
-	event_id_t stats_timer;
-
-	/// The uplink C/N0 per terminal
-	map<tal_id_t, double> cni;
-
  public:
 
 	BlockDvbSat(const string &name);
 	~BlockDvbSat();
+
+	class Upward: public DvbUpward
+	{
+	 public:
+		Upward(Block *const bl):
+			DvbUpward(bl)
+		{
+			this->receptionStd = NULL;
+		};
+		~Upward();
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+		void setSpots(const sat_spots_t &spots);
+
+	 private:
+		/**
+		* Called upon reception event it is another layer (below on event) of demultiplexing
+		* Do the appropriate treatment according to the type of the DVB message
+		*
+		* @param dvb_frame  the DVB or BB frame to forward
+		* @return           true on success, false otherwise
+		*/
+		bool onRcvDvbFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * Forward a frame received by a transparent satellite to the
+		 * given MAC FIFO (\ref BlocDvbSat::sendFrames will extract it later)
+		 *
+		 * @param fifo       The FIFO to put the frame in
+		 * @param dvb_frame  The frame to forward
+		 * @return true on success, false otherwise
+		 */
+		bool forwardDvbFrame(DvbFifo *fifo, DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Initialize the transmission mode
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMode(void);
+
+		/**
+		 * Retrieves switching table entries
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initSwitchTable(void);
+
+		/// The satellite spots
+		sat_spots_t spots;
+
+		/// The uplink C/N0 per terminal
+		map<tal_id_t, double> cni;
+
+		/// The satellite delay to emulate
+		time_ms_t sat_delay;
+
+		/// the satellite type (regenerative o transparent)
+		sat_type_t satellite_type;
+
+		/// Physical layer enable
+		bool with_phy_layer;
+
+		/// The up/return link encapsulation packet
+		EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
+	};
+
+	class Downward: public DvbDownward
+	{
+	 public:
+		Downward(Block *const bl):
+			DvbDownward(bl)
+		{};
+
+		~Downward();
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+		void setSpots(const sat_spots_t &spots);
+
+	 private:
+		/**
+		 * Send the DVB frames stored in the given MAC FIFO
+		 *
+		 * @param fifo          the MAC fifo which contains the DVB frames to send
+		 * @return              true on success, false otherwise
+		 */
+		bool sendFrames(DvbFifo *fifo);
+
+		/**
+		 * @brief Initialize the link
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initSatLink(void);
+
+		/**
+		 * @brief Read configuration for the list of STs
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initStList(void);
+
+		/**
+		 * @brief Read configuration for the different timers
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initTimers(void);
+
+		/**
+		 * @brief Initialize the statistics part
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool initOutput(void);
+
+		/**
+		 * Update the statistics on the satellite
+		 */
+		void updateStats(void);
+
+		/// the satellite type (regenerative o transparent)
+		sat_type_t satellite_type;
+
+		/// Physical layer enable
+		bool with_phy_layer;
+
+		/// The down/forward link encapsulation packet
+		EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
+
+		/// the number of frame per superframe
+		unsigned int frames_per_superframe;
+
+		/// the current super frame number
+		time_sf_t super_frame_counter;
+		/// the current frame number inside the current super frame
+		time_frame_t frame_counter; // from 1 to frames_per_superframe
+
+		/// the frame duration
+		time_ms_t frame_duration_ms;
+
+		/// The satellite delay to emulate
+		time_ms_t sat_delay;
+
+		/// The statistics period
+		time_ms_t stats_period_ms;
+
+		/// frame timer, used to awake the block regurlarly in order to send BBFrames
+		event_id_t frame_timer;
+
+		/// timer used to awake the block every second in order to retrieve
+		/// the modcods
+		event_id_t scenario_timer;
+
+		/// statistic timer
+		event_id_t stats_timer;
+
+		/// The terminal categories for forward band
+		TerminalCategories categories;
+
+		/// The terminal affectation for forward band
+		TerminalMapping terminal_affectation;
+
+		/// The default terminal category for forward band
+		TerminalCategory *default_category;
+
+		// TODO remove FMT groups from attributes
+		/// FMT groups
+		fmt_groups_t fmt_groups;
+
+		/// The satellite spots
+		sat_spots_t spots;
+
+		/// the scenario refresh interval
+		time_ms_t dvb_scenario_refresh;
+
+		/// The MODCOD simulation elements for forward link
+		FmtSimulation fwd_fmt_simu;
+
+		// Output probes and stats
+		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
+
+			// Queue sizes
+		ProbeListPerSpot probe_sat_output_gw_queue_size;
+		ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
+		ProbeListPerSpot probe_sat_output_st_queue_size;
+		ProbeListPerSpot probe_sat_output_st_queue_size_kb;
+			// Rates
+		ProbeListPerSpot probe_sat_l2_from_st;
+		ProbeListPerSpot probe_sat_l2_to_st;
+		ProbeListPerSpot probe_sat_l2_from_gw;
+		ProbeListPerSpot probe_sat_l2_to_gw;
+			// Frame interval
+		Probe<float> *probe_frame_interval;
+	};
+
 
   protected:
 
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
-	bool initOutput();
 
-	// Output probes and stats
-
-	typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
-
-		// Queue sizes
-	ProbeListPerSpot probe_sat_output_gw_queue_size;
-	ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
-	ProbeListPerSpot probe_sat_output_st_queue_size;
-	ProbeListPerSpot probe_sat_output_st_queue_size_kb;
-		// Rates
-	ProbeListPerSpot probe_sat_phy_from_st;
-	map<unsigned int, int> phy_from_st_bytes;
-	Probe<int> * probe_sat_phy_output;
-	ProbeListPerSpot probe_sat_l2_from_st;
-	map<unsigned int, int> l2_from_st_bytes;
-	ProbeListPerSpot probe_sat_l2_to_st;
-	map<unsigned int, int> l2_to_st_bytes;
-	ProbeListPerSpot probe_sat_phy_from_gw;
-	map<unsigned int, int> phy_from_gw_bytes;
-	ProbeListPerSpot probe_sat_l2_from_gw;
-	map<unsigned int, int> l2_from_gw_bytes;
-	ProbeListPerSpot probe_sat_l2_to_gw;
-	map<unsigned int, int> l2_to_gw_bytes;
-		// Frame interval
-	Probe<float> *probe_frame_interval;
 
  private:
 
 	// initialization
 
 	/**
-	 * @brief Initialize the transmission mode
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initMode();
-
-	/**
-	 * @brief Read configuration for the different downward timers
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initDownwardTimers();
-
-	/**
-	 * Retrieves switching table entries
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initSwitchTable();
-
-	/**
 	 * @brief Retrieve the spots description from configuration
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initSpots();
+	bool initSpots(void);
 
-	/**
-	 * @brief Read configuration for the list of STs
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initStList();
+	/// The satellite spots
+	//  We keep them here for release in desctructor,
+	//  they are also used in upward and downward, be careful
+	sat_spots_t spots;
 
-	// event management
-	//
-	/**
-	* Called upon reception event it is another layer (below on event) of demultiplexing
-	* Do the appropriate treatment according to the type of the DVB message
-	*
-	* @param dvb_frame  the DVB or BB frame to forward
-	* @return           true on success, false otherwise
-	*/
-	bool onRcvDvbFrame(DvbFrame *dvb_frame);
-
-	bool sendSigFrames(DvbFifo *sig_fifo);
-
-	/**
-	 * Forward a signaling frame
-	 *
-	 * @param sig_fifo   The correct fifo
-	 * @param dvb_frame  The frame to forward
-	 * @return true on success, false otherwise
-	 */
-	bool forwardDvbFrame(DvbFifo *sig_fifo, DvbFrame *dvb_frame);
-
-	/**
-	 * Send the DVB frames stored in the given MAC FIFO by
-	 * @ref PhysicStd::onForwardFrame
-	 *
-	 * @param fifo          the MAC fifo which contains the DVB frames to send
-	 * @param current_time  the current time
-	 * @return              true on success, false otherwise
-	 */
-	bool onSendFrames(DvbFifo *fifo, long current_time);
-
-	/**
-	 * Forward a frame received by a transparent satellite to the
-	 * given MAC FIFO (ef BlocDVBRcsSat::onSendFrames will extract it later)
-	 *
-	 * @param data_fifo     the MAC fifo to put the DVB frame in
-	 * @param frame         the DVB frame to forward
-	 * @param length        the length (in bytes) of the DVB frame to forward
-	 * @param current_time  the current time
-	 * @param fifo_delay    the minimum delay the DVB frame must stay in
-	 *                      the MAC FIFO (used on SAT to emulate delay)
-	 * @return              true on success, false otherwise
-	 */
-	virtual bool onForwardFrame(DvbFifo *data_fifo,
-	                            DvbFrame *dvb_frame,
-	                            long current_time,
-	                            int fifo_delay);
-
-
-	/**
-	 * Get next random delay provided the two preceeding members
-	 */
-	inline int getNextDelay()
-	{
-		return this->m_delay;
-	}
-
-	/*
-	 * Update the stats on the Sat
-	 */
-	void updateStats();
-
-	/// update the probes
-	void getProbe(NetBurst burst, DvbFifo fifo, spot_stats_t stat_fifo);
 
 };
 #endif

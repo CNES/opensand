@@ -39,6 +39,8 @@
 #include "MacFifoElement.h"
 #include "Sac.h"
 
+#include <opensand_rt/RtMutex.h>
+
 #include <vector>
 #include <map>
 #include <sys/times.h>
@@ -71,8 +73,6 @@ class DvbFifo
 {
  public:
 
-	DvbFifo();
-
 	/**
 	 * @brief Create the DvbFifo
 	 *
@@ -85,6 +85,19 @@ class DvbFifo
 	DvbFifo(unsigned int fifo_priority, string mac_fifo_name,
 	        string cr_type_name, unsigned int pvc,
 	        vol_pkt_t max_size_pkt);
+
+	/**
+	 * @brief Create the Spot DvbFifo
+	 *
+	 * @param carrier_id    the carrier id for the fifo
+	 * @param max_size_pkt  the fifo maximul size
+	 * @param fifo_name     the name of the fifo
+	 */
+	DvbFifo(uint8_t carrier_id,
+	        vol_pkt_t max_size_pkt,
+	        string fifo_name);
+
+
 	virtual ~DvbFifo();
 
 	/**
@@ -115,12 +128,12 @@ class DvbFifo
 	 */
 	unsigned int getPriority() const;
 
-	/**
-	 * @brief Get the carrier_id of the fifo (for SAT and GW configuration)
-	 *
-	 * @return the carrier_id of the fifo
-     */
-	unsigned int getCarrierId() const;
+	/** 
+	* @brief Get the carrier_id of the fifo (for SAT and GW configuration)
+	*
+	* @return the carrier_id of the fifo
+	*/
+	uint8_t getCarrierId() const;
 
 	/**
 	 * @brief Get the fifo current size
@@ -164,15 +177,6 @@ class DvbFifo
 	 * @param cr_type is the CR type for which reset must be done
 	 */
 	void resetNew(const cr_type_t cr_type);
-
-	/**
-	 *  @brief Initialize the FIFO with carrier id and maximum size
-	 *
-	 *  @param carrier_id		the carrier id for the fifo
-	 *	@param max_size_pkt		the fifo maximul size
-	 *	@param fifo_name		the name of the fifo
-	 */
-	void init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name);
 
 	/**
 	 * @brief Add an element at the end of the list
@@ -238,8 +242,10 @@ class DvbFifo
 	vol_bytes_t new_length_bytes; ///< the size of data that filled the fifo
 	                         ///< since previous check
 	vol_pkt_t max_size_pkt;  ///< the maximum size for that FIFO
+	uint8_t carrier_id; ///< the carrier id of the fifo (for SAT and GW purposes)
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
-	unsigned int carrier_id; ///< the carrier id of the fifo (for SAT and GW purposes)
+
+	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
 };
 
 typedef map<unsigned int, DvbFifo *> fifos_t;

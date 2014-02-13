@@ -86,12 +86,12 @@ class Block
 	class RtUpward: public RtChannel
 	{
 	  public:
-		RtUpward(Block &bl):
+		RtUpward(Block *const bl):
 			RtChannel(bl, upward_chan)
 		{};
 
 		template<class T>
-		RtUpward(Block &bl, T specific):
+		RtUpward(Block *const bl, T specific):
 			RtChannel(bl, upward_chan, specific)
 		{};
 
@@ -106,12 +106,12 @@ class Block
 	class RtDownward: public RtChannel
 	{
 	  public:
-		RtDownward(Block &bl):
+		RtDownward(Block *const bl):
 			RtChannel(bl, downward_chan)
 		{};
 
 		template<class T>
-		RtDownward(Block &bl, T specific):
+		RtDownward(Block *const bl, T specific):
 			RtChannel(bl, downward_chan, specific)
 		{};
 
@@ -232,13 +232,6 @@ class Block
 	 */
 	// TODO remove once onEvent will be in channel
 	bool processEvent(const RtEvent *const event, chan_type_t chan);
-
-	/**
-	 * @brief Get the current timeval
-	 *
-	 * @return the current time
-	 */
-	clock_t getCurrentTime(void);
 
 	/**
 	 * @brief Get the upward channel

@@ -119,14 +119,12 @@
 #define DATA_OUT_ST_ID            "data_out_st_id"
 #define LOG_ID                    "log_id"
 
-#define SAT_RAND_SEED             "seed"
-
 #define SAT_SIMU_COL_SECTION      "simulation_column"
 #define COLUMN_LIST               "columns"
 #define COLUMN_NBR                "column_nbr"
 #define SAT_SWITCH_SECTION        "sat_switching_table"
 #define SWITCH_LIST               "switchs"
-#define DEFAULT_SPOT             "default_spot"
+#define DEFAULT_SPOT              "default_spot"
 
 
 //////////////////////

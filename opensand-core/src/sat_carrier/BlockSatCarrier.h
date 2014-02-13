@@ -68,7 +68,7 @@ class BlockSatCarrier: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(Block &bl, struct sc_specific specific):
+		Upward(Block *const bl, struct sc_specific specific):
 			RtUpward(bl),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)
@@ -107,7 +107,7 @@ class BlockSatCarrier: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(Block &bl, struct sc_specific specific):
+		Downward(Block *const bl, struct sc_specific specific):
 			RtDownward(bl),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)

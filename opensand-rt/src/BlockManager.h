@@ -163,8 +163,8 @@ Block *BlockManager::createBlock(const string &name,
 {
 	Block *block = new Bl(name);
 
-	Up *up = new Up(*block);
-	Down *down = new Down(*block);
+	Up *up = new Up(block);
+	Down *down = new Down(block);
 
 	RtFifo *up_opp_fifo = new RtFifo();
 	RtFifo *down_opp_fifo = new RtFifo();
@@ -202,8 +202,8 @@ Block *BlockManager::createBlock(const string &name,
 {
 	Block *block = new Bl(name, specific);
 
-	Up *up = new Up(*block, specific);
-	Down *down = new Down(*block, specific);
+	Up *up = new Up(block, specific);
+	Down *down = new Down(block, specific);
 
 	RtFifo *up_opp_fifo = new RtFifo();
 	RtFifo *down_opp_fifo = new RtFifo();

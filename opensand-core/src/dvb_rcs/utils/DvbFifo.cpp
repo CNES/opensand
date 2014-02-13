@@ -40,21 +40,6 @@
 #include <cstring>
 
 
-/**
- * Constructor
- */
-DvbFifo::DvbFifo():
-	queue(),
-	fifo_priority(0),
-	fifo_name("default"),
-	pvc(0),
-	new_size_pkt(0),
-	carrier_id(0)
-{
-	this->resetStats();
-}
-
-
 DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
                  string cr_type_name, unsigned int pvc,
                  vol_pkt_t max_size_pkt):
@@ -64,7 +49,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	pvc(pvc),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
-	carrier_id(0)
+	carrier_id(0),
+	fifo_mutex(fifo_name)
 {
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
@@ -87,8 +73,23 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 		UTI_ERROR("unknown CR type of FIFO: %s\n",
 		          cr_type_name.c_str());
 	}
-
 }
+
+DvbFifo::DvbFifo(uint8_t carrier_id,
+                 vol_pkt_t max_size_pkt,
+                 string fifo_name):
+	queue(),
+	fifo_priority(0),
+	fifo_name(fifo_name),
+	pvc(0),
+	new_size_pkt(0),
+	max_size_pkt(max_size_pkt),
+	carrier_id(carrier_id),
+	fifo_mutex(fifo_name)
+{
+	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
+}
+
 
 /**
  * Destructor
@@ -121,18 +122,20 @@ unsigned int DvbFifo::getPriority() const
 }
 
 // FIFO Carrier ID for SAT and GW
-unsigned int DvbFifo::getCarrierId() const
+uint8_t DvbFifo::getCarrierId() const
 {
 	return this->carrier_id;
 }
 
 vol_pkt_t DvbFifo::getNewSize() const
 {
+	RtLock lock(this->fifo_mutex);
 	return this->new_size_pkt;
 }
 
 vol_bytes_t DvbFifo::getNewDataLength() const
 {
+	RtLock lock(this->fifo_mutex);
 	return this->new_length_bytes;
 }
 
@@ -140,22 +143,26 @@ void DvbFifo::resetNew(cr_type_t cr_type)
 {
 	if(this->cr_type == cr_type)
 	{
+		RtLock lock(this->fifo_mutex);
 		this->new_size_pkt = 0;
 	}
 }
 
 vol_pkt_t DvbFifo::getCurrentSize() const
 {
+	RtLock lock(this->fifo_mutex);
 	return this->queue.size();
 }
 
 vol_pkt_t DvbFifo::getMaxSize() const
 {
+	RtLock lock(this->fifo_mutex);
 	return this->max_size_pkt;
 }
 
 clock_t DvbFifo::getTickOut() const
 {
+	RtLock lock(this->fifo_mutex);
 	if(queue.size() > 0)
 	{
 		return this->queue.front()->getTickOut();
@@ -166,6 +173,7 @@ clock_t DvbFifo::getTickOut() const
 
 bool DvbFifo::push(MacFifoElement *elem)
 {
+	RtLock lock(this->fifo_mutex);
 	vol_bytes_t length;
 	// insert in top of fifo
 
@@ -189,6 +197,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 
 bool DvbFifo::pushFront(MacFifoElement *elem)
 {
+	RtLock lock(this->fifo_mutex);
 	assert(elem->getType() == 1);
 
 	// insert in head of fifo
@@ -211,6 +220,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 
 MacFifoElement *DvbFifo::pop()
 {
+	RtLock lock(this->fifo_mutex);
 	MacFifoElement *elem;
 	vol_bytes_t length;
 
@@ -237,6 +247,7 @@ MacFifoElement *DvbFifo::pop()
 
 void DvbFifo::flush()
 {
+	RtLock lock(this->fifo_mutex);
 	vector<MacFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it < this->queue.end(); ++it)
 	{
@@ -262,6 +273,7 @@ void DvbFifo::flush()
 
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
+	RtLock lock(this->fifo_mutex);
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
 	stat_info.current_length_bytes = this->stat_context.current_length_bytes;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
@@ -282,18 +294,6 @@ void DvbFifo::resetStats()
 	// Add nbr packet dropped
 }
 
-// for sat spots
-void DvbFifo::init(unsigned int carrier_id, vol_pkt_t max_size, string fifo_name)
-{
-	this->carrier_id = carrier_id;
-	this->max_size_pkt = max_size;
-	this->fifo_name = fifo_name;
-
-	// Initialize stats
-	this->stat_context.current_pkt_nbr = 0;
-	this->stat_context.current_length_bytes = 0;
-	this->resetStats();
-}
 
 
 

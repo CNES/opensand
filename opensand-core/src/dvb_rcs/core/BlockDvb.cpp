@@ -53,9 +53,6 @@ Event *BlockDvb::error_init = NULL;
 Event *BlockDvb::event_login_received = NULL;
 Event *BlockDvb::event_login_response = NULL;
 
-/**
- * Constructor
- */
 BlockDvb::BlockDvb(const string &name):
 	Block(name),
 	satellite_type(),
@@ -66,12 +63,8 @@ BlockDvb::BlockDvb(const string &name):
 	ret_fmt_simu(),
 	fwd_fmt_simu(),
 	with_phy_layer(false),
-	dvb_scenario_refresh(-1),
-	receptionStd(NULL)
+	dvb_scenario_refresh(-1)
 {
-	// TODO we need a mutex here because some parameters are used in upward and downward
-	this->enableChannelMutex();
-
 	if(error_init == NULL)
 	{
 		error_init = Output::registerEvent("bloc_dvb:init", LEVEL_ERROR);
@@ -80,17 +73,20 @@ BlockDvb::BlockDvb(const string &name):
 	}
 }
 
-/**
- * Destructor
- */
+
 BlockDvb::~BlockDvb()
 {
 }
 
-/** brief Read the common configuration parameters
- *
- * @return true on success, false otherwise
- */
+BlockDvb::DvbUpward::~DvbUpward()
+{
+	// release the reception DVB standards
+	if(this->receptionStd != NULL)
+	{
+		delete this->receptionStd;
+	}
+}
+
 bool BlockDvb::initCommon()
 {
 	const char *FUNCNAME = DBG_PREFIX "[initCommon]";
@@ -323,10 +319,10 @@ error:
 	return false;
 }
 
-bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
-                          long carrier_id)
+bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
+                                       uint8_t carrier_id)
 {
-	std::list<DvbFrame *>::iterator frame_it;
+	list<DvbFrame *>::iterator frame_it;
 	bool status = true;
 
 	// send all complete DVB-RCS frames
@@ -349,7 +345,7 @@ bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 
 		// DVB frame is now sent, so delete its content
 		//delete frame;
-		UTI_DEBUG("complete DVB frame sent to carrier %ld\n", carrier_id);
+		UTI_DEBUG("complete DVB frame sent to carrier %u\n", carrier_id);
 	}
 	// clear complete DVB frames
 	complete_frames->clear();
@@ -357,7 +353,7 @@ bool BlockDvb::sendBursts(std::list<DvbFrame *> *complete_frames,
 	return status;
 }
 
-bool BlockDvb::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id)
+bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id)
 {
 	if(!dvb_frame)
 	{
@@ -373,15 +369,9 @@ bool BlockDvb::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id)
 		goto error;
 	}
 
-	if(IS_DATA_FRAME(dvb_frame->getMessageType()))
-	{
-		// Update stats
-		this->phy_to_sat_bytes += dvb_frame->getTotalLength();
-	}
-
 	// send the message to the lower layer
 	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->sendDown((void **)(&dvb_frame)))
+	if(!this->enqueueMessage((void **)(&dvb_frame)))
 	{
 		UTI_ERROR("failed to send DVB frame to lower layer\n");
 		goto release_dvb_frame;
@@ -396,13 +386,14 @@ error:
 	return false;
 }
 
-bool BlockDvb::onRcvEncapPacket(NetPacket *packet,
-                                DvbFifo *fifo,
-                                int fifo_delay)
+
+bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
+                                             DvbFifo *fifo,
+                                             time_ms_t fifo_delay)
 {
 
 	MacFifoElement *elem;
-	long current_time = this->getCurrentTime();
+	time_ms_t current_time = this->getCurrentTime();
 
 	// create a new satellite cell to store the packet
 	elem = new MacFifoElement(packet, current_time, current_time + fifo_delay);
@@ -434,6 +425,7 @@ error:
 }
 
 
+// TODO remove this function
 bool BlockDvb::SendNewMsgToUpperLayer(NetBurst *burst)
 {
 	// send the message to the upper layer

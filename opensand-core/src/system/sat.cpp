@@ -228,8 +228,8 @@ int main(int argc, char **argv)
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbSat,
-	                            BlockDvbSat::RtUpward,
-	                            BlockDvbSat::RtDownward>("DvbSat", block_encap);
+	                            BlockDvbSat::Upward,
+	                            BlockDvbSat::Downward>("DvbSat", block_encap);
 	if(!block_dvb)
 	{
 		UTI_ERROR("%s: cannot create the DvbSat block\n", progname);

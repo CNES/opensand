@@ -92,14 +92,15 @@ BlockDvbTal::BlockDvbTal(const string &name, tal_id_t mac_id):
 	probe_st_l2_to_sat_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
 	probe_st_l2_to_sat_total(NULL),
-	probe_st_phy_to_sat(NULL),
 	probe_st_l2_from_sat(NULL),
-	probe_st_phy_from_sat(NULL),
 	probe_st_real_modcod(NULL),
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
 {
+	// TODO we need a mutex here because some parameters are used in upward and downward
+	this->enableChannelMutex();
+
 	this->l2_to_sat_cells_before_sched = NULL;
 	this->l2_to_sat_cells_after_sched = NULL;
 }
@@ -139,9 +140,9 @@ BlockDvbTal::~BlockDvbTal()
 	}
 
 	// release the reception DVB standard
-	if(this->receptionStd != NULL)
+	if(((DvbUpward *)this->upward)->receptionStd != NULL)
 	{
-		delete this->receptionStd;
+		delete ((DvbUpward *)this->upward)->receptionStd;
 	}
 
 	this->complete_dvb_frames.clear();
@@ -188,9 +189,9 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 
 
 				// store the encapsulation packet in the FIFO
-				if(!this->onRcvEncapPacket(*pkt_it,
-					                       this->dvb_fifos[fifo_priority],
-					                       0))
+				if(!((DvbDownward *)this->downward)->onRcvEncapPacket(*pkt_it,
+										this->dvb_fifos[fifo_priority],
+										0))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -363,8 +364,8 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 //      dedicated to each host ?
 bool BlockDvbTal::initMode()
 {
-	this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
-	if(this->receptionStd == NULL)
+	((DvbUpward *)this->upward)->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+	if(((DvbUpward *)this->upward)->receptionStd == NULL)
 	{
 		UTI_ERROR("failed to create the reception standard\n");
 		goto error;
@@ -803,12 +804,6 @@ bool BlockDvbTal::initOutput()
 	this->probe_st_l2_from_sat =
 		Output::registerProbe<int>("Throughputs.L2_from_SAT",
 		                           "Kbits/s", true, SAMPLE_AVG);
-	this->probe_st_phy_from_sat =
-		Output::registerProbe<int>("Throughputs.PHY_from_SAT",
-		                           "Kbits/s", true, SAMPLE_AVG);
-	this->probe_st_phy_to_sat =
-		Output::registerProbe<int>("Throughputs.PHY_to_SAT",
-		                           "Kbits/s", true, SAMPLE_AVG);
 
 	return true;
 }
@@ -1072,8 +1067,8 @@ bool BlockDvbTal::sendLogonReq()
 	                                           this->max_vbdc_kb);
 
 	// send the message to the lower layer
-	if(!this->sendDvbFrame((DvbFrame *)logon_req,
-		                   this->carrier_id_logon))
+	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)logon_req,
+		                                              this->carrier_id_logon))
 	{
 		UTI_ERROR("Failed to send Logon Request\n");
 		goto error;
@@ -1107,11 +1102,11 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_CORRUPTED:
 		{
 			NetBurst *burst = NULL;
+			DvbS2Std *std = (DvbS2Std *)((DvbUpward *)this->upward)->receptionStd;
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-			this->phy_from_sat_bytes += dvb_frame->getMessageLength();
 
 			if(this->with_phy_layer)
 			{
@@ -1119,7 +1114,7 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 				this->cni = dvb_frame->getCn();
 			}
 
-			if(!this->receptionStd->onRcvFrame(dvb_frame, this->tal_id,
+			if(!((DvbUpward *)this->upward)->receptionStd->onRcvFrame(dvb_frame, this->tal_id,
 			                                   &burst))
 			{
 				UTI_ERROR("failed to handle the reception of "
@@ -1132,16 +1127,13 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 				// update MODCOD probes
 				if(!this->with_phy_layer)
 				{
-					this->probe_st_real_modcod->put(
-							((DvbS2Std *)this->receptionStd)->getRealModcod());
+					this->probe_st_real_modcod->put(std->getRealModcod());
 				}
-				this->probe_st_received_modcod->put(
-						((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+				this->probe_st_received_modcod->put(std->getReceivedModcod());
 			}
 			else
 			{
-				this->probe_st_rejected_modcod->put(
-						((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+				this->probe_st_rejected_modcod->put(std->getReceivedModcod());
 			}
 
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
@@ -1268,7 +1260,8 @@ bool BlockDvbTal::sendSAC()
 
 
 	// Send message
-	if(!this->sendDvbFrame((DvbFrame *)sac, this->carrier_id_ctrl))
+	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)sac,
+	                                                  this->carrier_id_ctrl))
 	{
 		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
 		          this->super_frame_counter, this->frame_counter);
@@ -1435,7 +1428,8 @@ int BlockDvbTal::processOnFrameTick()
 
 	// send on the emulated DVB network the DVB frames that contain
 	// the encapsulation packets scheduled by the DAMA agent algorithm
-	if(!this->sendBursts(&this->complete_dvb_frames, this->carrier_id_data))
+	if(!((DvbDownward *)this->downward)->sendBursts(&this->complete_dvb_frames,
+	                                                this->carrier_id_data))
 	{
 		UTI_ERROR("failed to send bursts in DVB frames\n");
 		goto error;
@@ -1576,10 +1570,6 @@ void BlockDvbTal::updateStatsOnFrame()
 		this->frame_duration_ms);
 	this->probe_st_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8 / this->frame_duration_ms);
-	this->probe_st_phy_from_sat->put(
-		this->phy_from_sat_bytes * 8 / this->frame_duration_ms);
-	this->probe_st_phy_to_sat->put(
-		this->phy_to_sat_bytes * 8 / this->frame_duration_ms);
 
 	// send all probes
 	Output::sendProbes();
@@ -1602,8 +1592,6 @@ void BlockDvbTal::resetStatsCxt()
 	}
 	this->l2_to_sat_total_cells = 0;
 	this->l2_from_sat_bytes = 0;
-	this->phy_from_sat_bytes = 0;
-	this->phy_to_sat_bytes = 0;
 }
 
 
@@ -1619,11 +1607,6 @@ void BlockDvbTal::deletePackets()
 	}
 }
 
-// TODO move all upward initialization here
-bool BlockDvbTal::Upward::onInit(void)
-{
-	return true;
-}
 
 // TODO move all downward initialization here, move attributes and methods also
 bool BlockDvbTal::Downward::onInit(void)
@@ -1633,9 +1616,9 @@ bool BlockDvbTal::Downward::onInit(void)
 	// after all of things have been initialized successfully,
 	// send a logon request
 	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n",
-	          ((BlockDvbTal *)&this->block)->mac_id);
-	((BlockDvbTal *)&this->block)->_state = state_wait_logon_resp;
-	if(!((BlockDvbTal *)&this->block)->sendLogonReq())
+	          ((BlockDvbTal *)this->block)->mac_id);
+	((BlockDvbTal *)this->block)->_state = state_wait_logon_resp;
+	if(!((BlockDvbTal *)this->block)->sendLogonReq())
 	{
 		UTI_ERROR("failed to send the logon request to the NCC");
 		return false;

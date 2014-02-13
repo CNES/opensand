@@ -108,6 +108,8 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	probe_rejected_modcod(NULL),
 	probe_used_modcod(NULL)
 {
+	// TODO we need a mutex here because some parameters are used in upward and downward
+	this->enableChannelMutex();
 }
 
 
@@ -118,8 +120,8 @@ BlockDvbNcc::~BlockDvbNcc()
 {
 	if(this->dama_ctrl)
 		delete this->dama_ctrl;
-	if(this->receptionStd)
-		delete this->receptionStd;
+	if(((DvbUpward *)this->upward)->receptionStd)
+		delete ((DvbUpward *)this->upward)->receptionStd;
 	if(this->scheduling)
 		delete this->scheduling;
 
@@ -162,6 +164,7 @@ BlockDvbNcc::~BlockDvbNcc()
 		this->categories.clear();
 	}
 	// in regenerative mode categories is also owned and released by DAMA
+	delete this->data_dvb_fifo;
 
 	this->terminal_affectation.clear();
 
@@ -190,9 +193,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				UTI_DEBUG("SF#%u: store one encapsulation "
 				          "packet\n", this->super_frame_counter);
 
-				if(!this->onRcvEncapPacket(*pkt_it,
-				                           &this->data_dvb_fifo,
-				                           0))
+				if(!((DvbDownward *)this->downward)->onRcvEncapPacket(
+						*pkt_it, this->data_dvb_fifo, 0))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -264,7 +266,7 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				// TODO loop on categories (see todo in initMode)
 				if(!this->scheduling->schedule(this->super_frame_counter,
 				                               this->frame_counter,
-				                               this->getCurrentTime(),
+				                               ((DvbDownward *)this->downward)->getCurrentTime(),
 				                               &this->complete_dvb_frames,
 				                               remaining_alloc_sym))
 				{
@@ -285,8 +287,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				          this->super_frame_counter, this->frame_counter,
 				          remaining_alloc_sym);
 
-				if(!this->sendBursts(&this->complete_dvb_frames,
-				                     this->data_carrier_id))
+				if(!((DvbDownward *)this->downward)->sendBursts(&this->complete_dvb_frames,
+				                                                this->data_carrier_id))
 				{
 					UTI_ERROR("failed to build and send DVB/BB frames\n");
 					return false;
@@ -520,19 +522,26 @@ bool BlockDvbNcc::onInit()
 		goto error;
 	}
 
-	if(!this->initMode())
-	{
-		UTI_ERROR("failed to complete the mode part of the "
-		          "initialisation");
-		goto error;
-	}
-
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
 		UTI_ERROR("failed to complete the carrier IDs part of the "
 		          "initialisation");
 		goto error_mode;
+	}
+
+	if(!this->initFifo())
+	{
+		UTI_ERROR("failed to complete the FIFO part of the "
+		          "initialisation");
+		goto release_dama;
+	}
+
+	if(!this->initMode())
+	{
+		UTI_ERROR("failed to complete the mode part of the "
+		          "initialisation");
+		goto error;
 	}
 
 	// Get and open the files
@@ -549,13 +558,6 @@ bool BlockDvbNcc::onInit()
 		UTI_ERROR("failed to complete the DAMA part of the "
 		          "initialisation");
 		goto error_mode;
-	}
-
-	if(!this->initFifo())
-	{
-		UTI_ERROR("failed to complete the FIFO part of the "
-		          "initialisation");
-		goto release_dama;
 	}
 
 	// initialize output probes and stats
@@ -618,7 +620,7 @@ bool BlockDvbNcc::onInit()
 release_dama:
 	delete this->dama_ctrl;
 error_mode:
-	delete this->receptionStd;
+	delete ((DvbUpward *)this->upward)->receptionStd;
 error:
 	return false;
 }
@@ -899,7 +901,7 @@ bool BlockDvbNcc::initMode()
 {
 	// TODO remove that once data fifo will be a map
 	fifos_t fifos;
-	fifos[this->data_dvb_fifo.getCarrierId()] = &this->data_dvb_fifo;
+	fifos[this->data_dvb_fifo->getCarrierId()] = this->data_dvb_fifo;
 
 	// initialize the emission and reception standards and scheduling
 	// depending on the satellite type
@@ -927,7 +929,7 @@ bool BlockDvbNcc::initMode()
 			return false;
 		}
 
-		this->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
+		((DvbUpward *)this->upward)->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 		this->scheduling = new ForwardSchedulingS2(this->down_forward_pkt_hdl,
 		                                           fifos,
 		                                           this->frames_per_superframe,
@@ -947,7 +949,7 @@ bool BlockDvbNcc::initMode()
 			return false;
 		}
 
-		this->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
+		((DvbUpward *)this->upward)->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 		// here we need the category to which the GW belongs
 		if(this->terminal_affectation.find(GW_TAL_ID) != this->terminal_affectation.end())
 		{
@@ -969,7 +971,7 @@ bool BlockDvbNcc::initMode()
 		goto error;
 
 	}
-	if(!this->receptionStd)
+	if(!((DvbUpward *)this->upward)->receptionStd)
 	{
 		UTI_ERROR("failed to create the reception standard\n");
 		goto release_standards;
@@ -985,8 +987,8 @@ bool BlockDvbNcc::initMode()
 release_standards:
 	if(this->scheduling)
 		delete this->scheduling;
-	if(this->receptionStd)
-	  delete this->receptionStd;
+	if(((DvbUpward *)this->upward)->receptionStd)
+	  delete ((DvbUpward *)this->upward)->receptionStd;
 error:
 	return false;
 }
@@ -1038,7 +1040,7 @@ bool BlockDvbNcc::initFiles()
 {
 	// we need up/return MODCOD simulation in these cases
 	if((this->satellite_type == TRANSPARENT &&
-	    this->receptionStd->getType() == "DVB-RCS") ||
+	    ((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-RCS") ||
 	   (this->satellite_type == REGENERATIVE)) // DVB-RCS emission in regenerative mode
 	{
 		if(!this->initReturnModcodFiles())
@@ -1206,14 +1208,16 @@ bool BlockDvbNcc::initFifo()
 	{
 		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
 		          DVB_NCC_SECTION, DVB_SIZE_FIFO);
-		goto error;
+		return false;
 	}
-	this->data_dvb_fifo.init(this->data_carrier_id, val, "GW_Fifo");
+	this->data_dvb_fifo = new DvbFifo(this->data_carrier_id, val, "GWFifo");
+	if(!this->data_dvb_fifo)
+	{
+		UTI_ERROR("Cannot create DVB fifo\n");
+		return false;
+	}
 
 	return true;
-
-error:
-	return false;
 }
 
 bool BlockDvbNcc::initOutput(void)
@@ -1235,20 +1239,10 @@ bool BlockDvbNcc::initOutput(void)
 		                           "Kbits/s", true, SAMPLE_AVG);
 	this->l2_to_sat_bytes_after_sched = 0;
 
-	this->probe_gw_phy_to_sat =
-		Output::registerProbe<int>("Throughputs.PHY_to_SAT", "Kbits/s", true,
-		SAMPLE_AVG);
-	this->phy_to_sat_bytes = 0;
-
 	this->probe_gw_l2_from_sat=
 		Output::registerProbe<int>("Throughputs.L2_from_SAT",
 		                           "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
-
-	this->probe_gw_phy_from_sat =
-		Output::registerProbe<int>("Throughputs.PHY_from_SAT", "Kbits/s", true,
-		                           SAMPLE_AVG);
-	this->phy_from_sat_bytes = 0;
 
 	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
 	                                                          "ms", true,
@@ -1289,7 +1283,7 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
-			if(this->receptionStd->getType() == "DVB-RCS") 
+			if(((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-RCS") 
 			{
 				UTI_DEBUG("ignore received BB frame in transparent scenario\n");
 				goto drop;
@@ -1302,7 +1296,6 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getPayloadLength();
-			this->phy_from_sat_bytes += dvb_frame->getMessageLength();
 			if(this->with_phy_layer)
 			{
 				// regenerative case : get downlink ACM parameters to inform
@@ -1311,7 +1304,7 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 				// transparent case : update return modcod for terminal
 				if(this->satellite_type == TRANSPARENT &&
-				   this->receptionStd->getType() == "DVB-RCS")
+				   ((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-RCS")
 				{
 					DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
 					tal_id_t tal_id;
@@ -1328,22 +1321,25 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
-			if(!this->receptionStd->onRcvFrame(dvb_frame, this->macId, &burst))
+			if(!((DvbUpward *)this->upward)->receptionStd->onRcvFrame(dvb_frame,
+			                                                          this->macId,
+			                                                          &burst))
 			{
 				UTI_ERROR("failed to handle DVB frame or BB frame\n");
 				goto error;
 			}
-			if(this->receptionStd->getType() == "DVB-S2")
+			if(((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-S2")
 			{
+				DvbS2Std *std = (DvbS2Std *)((DvbUpward *)this->upward)->receptionStd;
 				if(msg_type != MSG_TYPE_CORRUPTED)
 				{
 					this->probe_received_modcod->put(
-							((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+							std->getReceivedModcod());
 				}
 				else
 				{
 					this->probe_rejected_modcod->put(
-							((DvbS2Std *)this->receptionStd)->getReceivedModcod());
+							std->getReceivedModcod());
 				}
 			}
 
@@ -1419,7 +1415,7 @@ void BlockDvbNcc::sendSOF()
 	Sof *sof = new Sof(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame((DvbFrame *)sof, this->sof_carrier_id))
+	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)sof, this->sof_carrier_id))
 	{
 		UTI_ERROR("Failed to call sendDvbFrame() for SOF\n");
 		return;
@@ -1480,7 +1476,7 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 		LogonResponse *logon_resp = new LogonResponse(mac, 0, mac);
 
 		// Send it
-		if(!sendDvbFrame((DvbFrame *)logon_resp,
+		if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)logon_resp,
 		                 this->ctrl_carrier_id))
 		{
 			UTI_ERROR("Failed send message\n");
@@ -1536,7 +1532,7 @@ void BlockDvbNcc::sendTTP()
 		return;
 	};
 
-	if(!this->sendDvbFrame((DvbFrame *)ttp, this->ctrl_carrier_id))
+	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)ttp, this->ctrl_carrier_id))
 	{
 		delete ttp;
 		UTI_ERROR("Failed to send TTP\n");
@@ -1766,7 +1762,7 @@ void BlockDvbNcc::updateStatsOnFrame()
 
 	// Update common DAMA statistics
 	mac_fifo_stat_context_t fifo_stat;
-	this->data_dvb_fifo.getStatsCxt(fifo_stat);
+	this->data_dvb_fifo->getStatsCxt(fifo_stat);
 	this->l2_to_sat_bytes_after_sched = fifo_stat.out_length_bytes;
 
 	this->probe_gw_l2_to_sat_before_sched->put(
@@ -1777,17 +1773,9 @@ void BlockDvbNcc::updateStatsOnFrame()
 		this->l2_to_sat_bytes_after_sched * 8.0 / this->frame_duration_ms);
 	this->l2_to_sat_bytes_after_sched = 0;
 
-	this->probe_gw_phy_to_sat->put(
-		this->phy_to_sat_bytes * 8 / this->frame_duration_ms);
-	this->phy_to_sat_bytes = 0;
-
 	this->probe_gw_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8.0 / this->frame_duration_ms);
 	this->l2_from_sat_bytes = 0;
-
-	this->probe_gw_phy_from_sat->put(
-		this->phy_from_sat_bytes * 8 / this->frame_duration_ms);
-	this->phy_from_sat_bytes = 0;
 
 	// Mac fifo stats
 	this->probe_gw_queue_size->put(fifo_stat.current_pkt_nbr);
@@ -1805,7 +1793,8 @@ bool BlockDvbNcc::sendAcmParameters()
 	UTI_DEBUG_L3("Send SAC with CNI = %.2f\n", this->cni);
 
 	// Send message
-	if(!this->sendDvbFrame((DvbFrame *)send_sac, this->ctrl_carrier_id))
+	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)send_sac,
+	                                                  this->ctrl_carrier_id))
 	{
 		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
 		          this->super_frame_counter, this->frame_counter);

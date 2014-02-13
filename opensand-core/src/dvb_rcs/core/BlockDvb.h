@@ -64,10 +64,15 @@
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
+class BlockDvbSat;
+class BlockDvbNcc;
+class BlockDvbTal;
 
 class BlockDvb: public Block
 {
-
+	// TODO for protected parameters assignment in channels
+	//      remove when everything will be correctly separated
+	friend class BlockDvbSat;
  public:
 
 	/**
@@ -78,28 +83,78 @@ class BlockDvb: public Block
 
 	~BlockDvb();
 
-/*	class DvbUpward: public RtUpward
+	class DvbUpward: public RtUpward
 	{
+		// TODO REMOVE
+		friend class BlockDvbNcc;
+		friend class BlockDvbTal;
 	 public:
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
+		DvbUpward(Block *const bl):
+			RtUpward(bl)
+		{};
+		~DvbUpward();
 	 protected:
+		/// reception standard (DVB-RCS or DVB-S2)
+		PhysicStd *receptionStd;
 	};
 
 	class DvbDownward: public RtDownward
 	{
+		// TODO REMOVE
+		friend class BlockDvbNcc;
+		friend class BlockDvbTal;
 	 public:
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
+		DvbDownward(Block *const bl):
+			RtDownward(bl)
+		{};
 	 protected:
+		/**
+		 * Receive Packet from upper layer
+		 *
+		 * @param packet        The encapsulation packet received
+		 * @param fifo          The MAC FIFO to put the packet in
+		 * @param fifo_delay    The minimum delay the packet must stay in the
+		 *                      MAC FIFO (used on SAT to emulate delay)
+		 * @return              true on success, false otherwise
+		 */
+		bool onRcvEncapPacket(NetPacket *packet,
+		                      DvbFifo *fifo,
+		                      time_ms_t fifo_delay);
 
-	};*/
+		/**
+		 * Send the complete DVB frames created
+		 * by \ref DvbRcsStd::scheduleEncapPackets or
+		 * \ref DvbRcsDamaAgent::globalSchedule for Terminal
+		 *
+		 * @param complete_frames the list of complete DVB frames
+		 * @param carrier_id      the ID of the carrier where to send the frames
+		 * @return true on success, false otherwise
+		 */
+		bool sendBursts(list<DvbFrame *> *complete_frames,
+		                uint8_t carrier_id);
+
+		/**
+		 * @brief Send message to lower layer with the given DVB frame
+		 *
+		 * @param frame       the DVB frame to put in the message
+		 * @param carrier_id  the carrier ID used to send the message
+		 * @return            true on success, false otherwise
+		 */
+		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
+
+	};
 
  protected:
 
 	// Common function for parameters reading
+	// TODO these functions may be used in both channels,
+	//      create a generic DvbChannel that implement them
+
+	/**
+	 * brief Read the common configuration parameters
+	 *
+	 * @return true on success, false otherwise
+	 */
 	bool initCommon();
 
 
@@ -110,6 +165,7 @@ class BlockDvb: public Block
 	 * @param burst the burst of encapsulated packets
 	 * @return  true on success, false otherwise
 	 */
+	// TODO REMOVE
 	bool SendNewMsgToUpperLayer(NetBurst *burst);
 
 	/**
@@ -162,38 +218,6 @@ class BlockDvb: public Block
 	                     double roll_off,
 	                     TerminalCategories &categories);
 
-	/**
-	 * Send the complete DVB frames created
-	 * by ef DvbRcsStd::scheduleEncapPackets or
-	 * \ ref DvbRcsDamaAgent::globalSchedule for Terminal
-	 *
-	 * @param complete_frames the list of complete DVB frames
-	 * @param carrier_id      the ID of the carrier where to send the frames
-	 * @return true on success, false otherwise
-	 */
-	bool sendBursts(std::list<DvbFrame *> *complete_frames, long carrier_id);
-
-	/**
-	 * @brief Send message to lower layer with the given DVB frame
-	 *
-	 * @param frame       the DVB frame to put in the message
-	 * @param carrier_id  the carrier ID used to send the message
-	 * @return            true on success, false otherwise
-	 */
-	bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-
-	/**
-	 * Receive Packet from upper layer
-	 *
-	 * @param packet        The encapsulation packet received
-	 * @param fifo          The MAC FIFO to put the packet in
-	 * @param fifo_delay    The minimum delay the packet must stay in the
-	 *                      MAC FIFO (used on SAT to emulate delay)
-	 * @return              true on success, false otherwise
-	 */
-	bool onRcvEncapPacket(NetPacket *packet,
-	                      DvbFifo *fifo,
-	                      int fifo_delay);
 
 
 	/// the satellite type (regenerative o transparent)
@@ -211,6 +235,7 @@ class BlockDvb: public Block
 	time_frame_t frame_counter; // from 1 to frames_per_superframe
 
 	/// The MODCOD simulation elements for return link
+	// TODO only in DvbNcc
 	FmtSimulation ret_fmt_simu;
 
 	/// The MODCOD simulation elements for forward link
@@ -220,7 +245,7 @@ class BlockDvb: public Block
 	bool with_phy_layer;
 
 	/// the scenario refresh interval
-	int dvb_scenario_refresh;
+	time_ms_t dvb_scenario_refresh;
 
 	/// The up/return link encapsulation packet
 	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
@@ -228,16 +253,11 @@ class BlockDvb: public Block
 	/// The down/forward link encapsulation packet
 	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
 
-	/// used for stats and probes
-	int phy_to_sat_bytes;
-
 	/// output events
 	static Event *error_init;
 	static Event *event_login_received;
 	static Event *event_login_response;
 
-	/// reception standard (DVB-RCS or DVB-S2)
-	PhysicStd *receptionStd;
 };
 
 #endif

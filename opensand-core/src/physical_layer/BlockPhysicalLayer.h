@@ -55,7 +55,7 @@ class Chan: public RtChannel, PhyChannel
 	friend class BlockPhysicalLayer;
 	friend class BlockPhysicalLayerSat;
  public:
-	Chan(Block &bl, chan_type_t chan_type):
+	Chan(Block *const bl, chan_type_t chan_type):
 		RtChannel(bl, chan_type),
 		PhyChannel()
 	{};
@@ -95,7 +95,7 @@ class BlockPhysicalLayer: public Block
 	class Upward: public Chan
 	{
 	  public:
-		Upward(Block &bl):
+		Upward(Block *const bl):
 			Chan(bl, upward_chan)
 		{};
 
@@ -110,7 +110,7 @@ class BlockPhysicalLayer: public Block
 	class Downward: public Chan
 	{
 	  public:
-		Downward(Block &bl):
+		Downward(Block *const bl):
 			Chan(bl, downward_chan)
 		{};
 
@@ -149,7 +149,7 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:
-		Upward(Block &bl):
+		Upward(Block *const bl):
 			BlockPhysicalLayer::Upward(bl)
 		{};
 
@@ -159,7 +159,7 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	class Downward: public BlockPhysicalLayer::Downward
 	{
 	  public:
-		Downward(Block &bl):
+		Downward(Block *const bl):
 			BlockPhysicalLayer::Downward(bl)
 		{};
 

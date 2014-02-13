@@ -41,12 +41,6 @@
 #include <opensand_conf/uti_debug.h>
 
 #include <errno.h>
-#include <cstring>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <signal.h>
 
 
@@ -250,13 +244,6 @@ bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
 		ret = this->onDownwardEvent(event);
 	}
 	return ret;
-}
-
-clock_t Block::getCurrentTime(void)
-{
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }
 
 RtChannel *Block::getUpwardChannel(void) const

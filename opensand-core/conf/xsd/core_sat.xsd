@@ -128,42 +128,6 @@
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="seed" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Random seed (see srand)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="error_generator" type="xsd:string">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The error generator
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="error_generator_ber" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The BER we want to inject
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="error_generator_mean" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The error mean
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="error_generator_delta" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The error delta
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element ref="spots">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

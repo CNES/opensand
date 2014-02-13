@@ -88,7 +88,7 @@ class BlockLanAdaptation: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(Block &bl, string UNUSED(lan_iface)):
+		Upward(Block *const bl, string UNUSED(lan_iface)):
 			RtUpward(bl),
 			sarp_table(),
 			contexts(),
@@ -154,7 +154,7 @@ class BlockLanAdaptation: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(Block &bl, string UNUSED(lan_iface)):
+		Downward(Block *const bl, string UNUSED(lan_iface)):
 			RtDownward(bl),
 			// TODO load stats_period from configuration
 			stats_period(53),
