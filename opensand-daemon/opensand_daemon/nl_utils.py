@@ -38,6 +38,7 @@ import netlink.route.capi as capi
 import netlink.route.link as link
 import netlink.core as netlink
 import netlink.route.address as address
+from ipaddr import IPNetwork
 
 class NlError(netlink.NetlinkError):
     pass
@@ -131,6 +132,7 @@ class NlInterfaces(object):
             ad = address.Address()
             ad.local = addr
             ad.ifindex = ifidx
+            ad.broadcast = str(IPNetwork(addr).broadcast)
             ret = capi.rtnl_addr_add(self._sock._sock, ad._rtnl_addr, 0)
             if ret == -6:
                 raise NlExists(ret)
