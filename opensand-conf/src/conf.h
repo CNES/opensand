@@ -99,7 +99,6 @@
 #define DVB_CAR_ID_CTRL           "carrier_id_dvb_ctrl"
 #define DVB_CAR_ID_LOGON          "carrier_id_logon"
 #define DVB_CAR_ID_DATA           "carrier_id_data"
-#define DVB_CAR_ID_IN_DATA        "carrier_id_in_data"
 #define DVB_OBR_PERIOD_DATA       "obr_period"
 #define DAMA_ALGO                 "dama_algorithm"
 

@@ -44,18 +44,15 @@
 /**
  * Constructor
  * @param channelID the ID of the new channel
- * @param input     true if the channel accept input
- * @param output    true if channel accept output
- * @param is_data   true is this is an intput data channel
+ * @param input true if the channel accept input
+ * @param output true if channel accept output
  */
 sat_carrier_channel::sat_carrier_channel(unsigned int channelID,
                                          bool input,
-                                         bool output,
-                                         bool is_data):
+                                         bool output):
 	m_channelID(channelID),
 	m_input(input),
 	m_output(output),
-	is_data(is_data),
 	init_success(false)
 {
 }

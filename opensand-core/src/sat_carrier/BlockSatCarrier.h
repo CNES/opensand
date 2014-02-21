@@ -80,13 +80,13 @@ class BlockSatCarrier: public Block
 	 private:
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
-		/// the IP address for emulation network
+		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation network
+		/// the interface name for emulation newtork
 		string interface_name;
 
 		/**
-		 * @brief Handle a packet received from carrier
+		 * @brief Handle a packt received from carrier
 		 *
 		 * @param carrier_id  The carrier of the packet
 		 * @param data        The data read on socket
@@ -95,13 +95,6 @@ class BlockSatCarrier: public Block
 		void onReceivePktFromCarrier(uint8_t carrier_id,
 		                             unsigned char *data,
 		                             size_t length);
-
-		/**
-		 * @brief Handle packets in timeouted stack
-		 *
-		 * @param channel  The channel for which we need to send content
-		 */
-		void handleStacks(sat_carrier_channel *channel);
 	};
 
 	class Downward: public RtDownward
@@ -119,9 +112,9 @@ class BlockSatCarrier: public Block
 	 private:
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
-		/// the IP address for emulation network
+		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation network
+		/// the interface name for emulation newtork
 		string interface_name;
 	};
 

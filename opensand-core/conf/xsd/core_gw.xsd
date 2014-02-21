@@ -221,13 +221,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="carrier_id_in_data" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The receiving carrier id for DVB data frames
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="max_fifo" type="xsd:integer">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
