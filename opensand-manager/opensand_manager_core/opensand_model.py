@@ -246,15 +246,16 @@ class Model:
                 xpath = '/configuration/sarp/ipv6'
                 self._topology.create_line(line, 'terminal_v6', xpath)
                 # Ethernet SARP
-                mac = net_config['mac']
-                # we can have several MAC addresses separated by space
-                macs = mac.split(' ')
-                for mac in macs:
-                    line = {'mac': mac,
-                            'tal_id': instance,
-                           }
-                    xpath = '/configuration/sarp/ethernet'
-                    self._topology.create_line(line, 'terminal_eth', xpath)
+                if 'mac' in net_config:
+                    mac = net_config['mac']
+                    # we can have several MAC addresses separated by space
+                    macs = mac.split(' ')
+                    for mac in macs:
+                        line = {'mac': mac,
+                                'tal_id': instance,
+                               }
+                        xpath = '/configuration/sarp/ethernet'
+                        self._topology.create_line(line, 'terminal_eth', xpath)
 
             self._topology.write()
         except XmlException, msg:
