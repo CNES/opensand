@@ -187,10 +187,11 @@ class ToolEvent(ToolView):
             # reset the tools
             map(lambda x : x.set_selected(False), host.get_tools())
             # mark selected tools
-            if not host_name in self._selected_tools.keys():
+            if not host_name.lower() in self._selected_tools.keys():
                 continue
             for tool in [elt for elt in host.get_tools()
-                         if elt.get_name() in self._selected_tools[host_name]]:
+                         if elt.get_name() in
+                         self._selected_tools[host_name.lower()]]:
                 self._log.debug("tool %s enabled for %s" %
                                 (elt.get_name().upper(), host_name.upper()))
                 tool.set_selected()
@@ -252,9 +253,9 @@ class ToolEvent(ToolView):
 
         tree.set(iterator, ACTIVE, False)
         host_name = tree.get_value(parent, TEXT).lower()
-        if host_name in self._selected_tools:
+        if host_name.lower() in self._selected_tools:
             tool_name = tree.get_value(iterator, TEXT).lower()
-            if tool_name in self._selected_tools[host_name]:
+            if tool_name in self._selected_tools[host_name.lower()]:
                 tree.set(iterator, ACTIVE, True)
 
     def handle_param_changed(self, source=None, event=None):

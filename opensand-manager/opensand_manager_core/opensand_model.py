@@ -303,7 +303,7 @@ class Model:
     def get_host(self, name):
         """ return the host according to its name """
         for host in self.get_all():
-            if name == host.get_name():
+            if name.lower() == host.get_name().lower():
                 return host
         if name == 'global':
             return self

@@ -106,8 +106,8 @@ class ToolView(WindowView):
                      if elt.get_name() not in self._hosts_name]:
             tools = {}
             self._hosts_name.append(host.get_name())
-            self._selected_tools[host.get_name()] = []
-            self._saved_tools[host.get_name()] = []
+            self._selected_tools[host.get_name().lower()] = []
+            self._saved_tools[host.get_name().lower()] = []
             for tool in host.get_tools():
                 tools[tool.get_name().upper()] = tool.get_state()
 
@@ -121,8 +121,8 @@ class ToolView(WindowView):
         old_host_names = set(self._hosts_name) - set(real_names)
         for host_name in old_host_names:
             self._hosts_name.remove(host_name)
-            del self._selected_tools[host_name]
-            del self._saved_tools[host_name]
+            del self._selected_tools[host_name.lower()]
+            del self._saved_tools[host_name.lower()]
             gobject.idle_add(self._tree.del_host, host_name)
 
         self._tool_lock.release()
