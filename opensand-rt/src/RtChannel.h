@@ -54,6 +54,7 @@ using std::list;
 using std::map;
 using std::string;
 
+#define TIME_REPORTS
 
 /**
  * @class RtChannel
@@ -271,6 +272,16 @@ class RtChannel
 	 */
 	clock_t getCurrentTime(void);
 
+#ifdef TIME_REPORTS
+	/// statistics about events durations (in us)
+	map<string, list<double> > durations;
+
+	/**
+	 * @brief print statistics on events durations
+	 */
+	void getDurationsStatistics(void) const;
+#endif
+
   private:
 
 	/// the block direction
@@ -382,6 +393,7 @@ class RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type=0);
+
 };
 
 template<class T>

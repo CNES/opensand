@@ -48,6 +48,10 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdarg.h>
+#ifdef TIME_REPORTS
+	#include <numeric>
+	#include <algorithm>
+#endif
 
 #define SIG_STRUCT_SIZE 128
 
@@ -89,6 +93,9 @@ RtChannel::~RtChannel()
 	}
 	close(this->w_sel_break);
 	close(this->r_sel_break);
+#ifdef TIME_REPORTS
+	this->getDurationsStatistics();
+#endif
 }
 
 bool RtChannel::enqueueMessage(void **data, size_t size, uint8_t type)
@@ -294,6 +301,10 @@ bool RtChannel::addEvent(RtEvent *event)
 		UTI_ERROR("[%s]Channel %u: failed to break select upon a new "
 		          "event reception\n", this->block->getName().c_str(), this->chan);
 	}
+
+#ifdef TIME_REPORTS
+	this->durations[event->getName()] = list<double>();
+#endif
 
 	return true;
 }
@@ -558,6 +569,11 @@ void RtChannel::executeThread(void)
 				          this->block->getName().c_str(), this->chan,
 				          (*iter)->getName().c_str());
 			}
+#ifdef TIME_REPORTS
+			timeval time = (*iter)->getTimeFromTrigger();
+			double val = time.tv_sec * 1000000L + time.tv_usec;
+			this->durations[(*iter)->getName()].push_back(val);
+#endif
 		}
 	}
 }
@@ -629,3 +645,28 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	return success;
 }
 
+#ifdef TIME_REPORTS
+void RtChannel::getDurationsStatistics(void) const
+{
+	map<string, list<double> >::const_iterator it;
+	for(it = this->durations.begin(); it != this->durations.end(); ++it)
+	{
+		list<double> duration = (*it).second;
+		double sum = std::accumulate(duration.begin(),
+		                             duration.end(), 0.0);
+		double max = *std::max_element(duration.begin(),
+		                               duration.end());
+		double min = *std::min_element(duration.begin(),
+		                               duration.end());
+		double mean = 0; 
+		if(!duration.empty())
+		{    
+			mean = sum / duration.size();
+		}    
+		UTI_INFO("[%s:%s] Event %s: mean = %.2fus, max = %dus, min = %dus\n",
+		         this->block->getName().c_str(),
+		         (this->chan == upward_chan) ? "Upward" : "Downward",
+		         (*it).first.c_str(), mean, int(max), int(min));
+	}
+}
+#endif
