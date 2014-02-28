@@ -139,12 +139,6 @@ BlockDvbTal::~BlockDvbTal()
 		close(BlockDvbTal::qos_server_sock);
 	}
 
-	// release the reception DVB standard
-	if(((DvbUpward *)this->upward)->receptionStd != NULL)
-	{
-		delete ((DvbUpward *)this->upward)->receptionStd;
-	}
-
 	this->complete_dvb_frames.clear();
 }
 

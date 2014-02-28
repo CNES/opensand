@@ -120,8 +120,6 @@ BlockDvbNcc::~BlockDvbNcc()
 {
 	if(this->dama_ctrl)
 		delete this->dama_ctrl;
-	if(((DvbUpward *)this->upward)->receptionStd)
-		delete ((DvbUpward *)this->upward)->receptionStd;
 	if(this->scheduling)
 		delete this->scheduling;
 
