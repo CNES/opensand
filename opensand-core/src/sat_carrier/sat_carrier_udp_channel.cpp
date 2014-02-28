@@ -330,8 +330,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	}
 	else
 	{
-		current_sequencing = ip_count_it->second;
-		(++current_sequencing) % 255;
+		current_sequencing = (ip_count_it->second + 1) % 256;
 		UTI_DEBUG_L3("Current UDP sequencing for address %s: %u\n",
 		             ip_address.c_str(), current_sequencing);
 	}
@@ -362,10 +361,10 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		UTI_ERROR("we may have lost UDP packets, check /etc/default/opensand-daemon "
 		          "and adjust UDP buffers");
 		// send the next packets from stack
-		current_sequencing++;
+		current_sequencing = (current_sequencing + 1) % 256;;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))
 		{
-			(++current_sequencing) % 255;
+			current_sequencing = (current_sequencing + 1) % 256;
 		}
 		// we should be able to return a packet here
 		ip_count_it->second = current_sequencing;
@@ -408,8 +407,7 @@ bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
 	if(!this->stacked_ip.empty())
 	{
 		// update counter for next stacked packet
-		(++counter) % 255;
-		(*count_it).second = counter;
+		(*count_it).second = (counter + 1) % 256;
 	}
 	return true;
 }
@@ -421,7 +419,7 @@ void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
 	UTI_DEBUG("transmit UDP packet for source IP %s at counter %d\n",
 	          this->stacked_ip.c_str(), counter);
 	stack->remove(counter, buf, data_len);
-	(++counter) % 255;
+	counter = (counter + 1) % 256;
 	// if we don't have following packets in FIFO reset stacked_ip
 	if(!stack->hasNext(counter))
 	{
@@ -466,10 +464,7 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 	}
 
 	// update of the counter
-	if(this->counter == 255)
-		this->counter = 0;
-	else
-		this->counter++;
+	this->counter = (this->counter + 1) % 256;
 
 	UTI_DEBUG("==> SAT_Channel_Send [%d] (%s:%d): len=%zd, counter: %d\n",
 	          m_channelID, inet_ntoa(this->m_remoteIPAddress.sin_addr),

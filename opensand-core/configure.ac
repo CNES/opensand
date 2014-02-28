@@ -100,6 +100,7 @@ AC_CONFIG_FILES([ \
 	src/lan_adaptation/Makefile \
 	src/lan_adaptation/tests/Makefile \
 	src/sat_carrier/Makefile \
+	src/sat_carrier/tests/Makefile \
 	src/physical_layer/Makefile \
 	src/physical_layer/plugins/Makefile \
 	src/physical_layer/plugins/attenuation/Makefile \

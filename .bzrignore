@@ -62,6 +62,7 @@ opensand-core/src/interfaces/opensand_interfaces
 opensand-core/src/interfaces/tests/test_tap
 opensand-core/src/lan_adaptation/tests/ip_addr
 opensand-core/src/common/tests/test_plugins
+opensand-core/src/sat_carrier/tests/test_sat_carrier
 opensand-core/debian/files
 opensand-core/debian/libopensand-plugin
 opensand-core/debian/libopensand-plugin-dbg

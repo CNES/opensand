@@ -26,14 +26,14 @@
  */
 
 /**
- * @file BlockSatCarrier.h
+ * @file TestSatCarriers.h
  * @brief This bloc implements a satellite carrier emulation
  * @author AQL (ame)
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  */
 
-#ifndef BlockSatCarrier_H
-#define BlockSatCarrier_H
+#ifndef TEST_SAT_CARRIERS_H
+#define TEST_SAT_CARRIERS_H
 
 #include "sat_carrier_channel_set.h"
 
@@ -47,23 +47,20 @@ struct sc_specific
 };
 
 /**
- * @class BlockSatCarrier
+ * @class TestSatCarriers
  * @brief This bloc implements a satellite carrier emulation
  */
-class BlockSatCarrier: public Block
+class TestSatCarriers: public Block
 {
  public:
 
 	/**
 	 * @brief The satellite carrier block
-	 *
-	 * @param name      The block name
-	 * @param specific  Specific block parameters
 	 */
-	BlockSatCarrier(const string &name,
-	                struct sc_specific specific);
+	TestSatCarriers(const string &name,
+	                struct sc_specific UNUSED(specific));
 
-	~BlockSatCarrier();
+	~TestSatCarriers();
 
 	class Upward: public RtUpward
 	{
@@ -74,8 +71,16 @@ class BlockSatCarrier: public Block
 			interface_name(specific.emu_iface)
 		{};
 
+
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
+
+		/**
+		 * @brief Set the network socket file descriptor
+		 *
+		 * @param fd  The socket file descriptor
+		 */
+		void setFd(int fd);
 
 	 private:
 		/// List of input channels
@@ -84,18 +89,6 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
-
-		/**
-		 * @brief Handle a packt received from carrier
-		 *
-		 * @param carrier_id  The carrier of the packet
-		 * @param data        The data read on socket
-		 * @param length      The data length
-		 */
-		void onReceivePktFromCarrier(uint8_t carrier_id,
-		                             unsigned char *data,
-		                             size_t length);
-
 	};
 
 	class Downward: public RtDownward
@@ -110,6 +103,13 @@ class BlockSatCarrier: public Block
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
+		/**
+		 * @brief Set the network socket file descriptor
+		 *
+		 * @param fd  The socket file descriptor
+		 */
+		void setFd(int fd);
+
 	 private:
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
@@ -117,6 +117,8 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
+		/// The tun output file descriptor
+		int fd;
 	};
 
  protected:

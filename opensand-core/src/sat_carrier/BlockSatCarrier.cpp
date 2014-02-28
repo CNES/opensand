@@ -217,14 +217,13 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	{
 		UTI_ERROR("failed to send frame from carrier %u to upper layer\n",
 		          carrier_id);
-		goto release_meta;
+		goto release;
 	}
 
 	UTI_DEBUG("Message from carrier %u sent to upper layer", carrier_id);
 
 	return;
 
-release_meta:
+release:
 	delete dvb_frame;
-	free(data);
 }

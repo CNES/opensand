@@ -1,3 +1,5 @@
+SUBDIRS= . tests
+
 noinst_LTLIBRARIES = libopensand_satcarrier.la
 
 libopensand_satcarrier_la_cpp = \
