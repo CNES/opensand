@@ -167,7 +167,7 @@ bool RtChannel::init(void)
 }
 
 int32_t RtChannel::addTimerEvent(const string &name,
-                                 uint32_t duration_ms,
+                                 double duration_ms,
                                  bool auto_rearm,
                                  bool start,
                                  uint8_t priority)
@@ -652,21 +652,22 @@ void RtChannel::getDurationsStatistics(void) const
 	for(it = this->durations.begin(); it != this->durations.end(); ++it)
 	{
 		list<double> duration = (*it).second;
+		if(duration.empty())
+		{
+			continue;
+		}
 		double sum = std::accumulate(duration.begin(),
 		                             duration.end(), 0.0);
 		double max = *std::max_element(duration.begin(),
 		                               duration.end());
 		double min = *std::min_element(duration.begin(),
 		                               duration.end());
-		double mean = 0; 
-		if(!duration.empty())
-		{    
-			mean = sum / duration.size();
-		}    
-		UTI_INFO("[%s:%s] Event %s: mean = %.2fus, max = %dus, min = %dus\n",
+		double mean = sum / duration.size();
+
+		UTI_INFO("[%s:%s] Event %s: mean = %.2f us, max = %d us, min = %d us, total = %.2f ms\n",
 		         this->block->getName().c_str(),
 		         (this->chan == upward_chan) ? "Upward" : "Downward",
-		         (*it).first.c_str(), mean, int(max), int(min));
+		         (*it).first.c_str(), mean, int(max), int(min), sum / 1000);
 	}
 }
 #endif

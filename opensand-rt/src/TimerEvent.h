@@ -64,7 +64,7 @@ class TimerEvent: public RtEvent
 	 * @param priority           The priority of the event
 	 */
 	TimerEvent(const string &name,
-	           uint32_t timer_duration_ms,
+	           double timer_duration_ms,
 	           bool auto_rearm = false,
 	           bool start = true,
 	           uint8_t priority = 2);
@@ -101,14 +101,14 @@ class TimerEvent: public RtEvent
 	 *
 	 * @return the timer duration (in ms)
 	 */
-	uint32_t getDuration(void) const {return this->duration_ms;};
+	double getDuration(void) const {return this->duration_ms;};
 
 	/**
 	 * @brief Set the timer duration
 	 *
 	 * @param new_duration the timer duration (in ms)
 	 */
-	void setDuration(uint32_t new_duration)
+	void setDuration(double new_duration)
 	{
 		this->duration_ms = new_duration;
 	};
@@ -118,7 +118,7 @@ class TimerEvent: public RtEvent
   protected:
 
 	/// Timer duration in milliseconds
-	uint32_t duration_ms;
+	double duration_ms;
 
 	/// Whether the timer is enabled
 	bool enabled;

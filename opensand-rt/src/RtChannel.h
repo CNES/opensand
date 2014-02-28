@@ -54,7 +54,7 @@ using std::list;
 using std::map;
 using std::string;
 
-#define TIME_REPORTS
+//#define TIME_REPORTS
 
 /**
  * @class RtChannel
@@ -123,7 +123,7 @@ class RtChannel
 	 * @return the event id on success, -1 otherwise
 	 */
 	int32_t addTimerEvent(const string &name,
-	                      uint32_t duration_ms,
+	                      double duration_ms,
 	                      bool auto_rearm = true,
 	                      bool start = true,
 	                      uint8_t priority = 2);

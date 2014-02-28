@@ -41,7 +41,7 @@
 #include <unistd.h>
 
 TimerEvent::TimerEvent(const string &name,
-                       uint32_t timer_duration_ms,
+                       double timer_duration_ms,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
@@ -55,7 +55,7 @@ TimerEvent::TimerEvent(const string &name,
 	if(this->enabled)
 	{
 		UTI_DEBUG("Timer \"%s\" enabled, start it for the first time "
-		          "(duration = %u ms)\n",
+		          "(duration = %.2f ms)\n",
 		          name.c_str(), timer_duration_ms);
 		this->start();
 	}
@@ -84,7 +84,7 @@ void TimerEvent::start(void)
 	}
 	else
 	{
-		timer_value.it_value.tv_nsec = (this->duration_ms % 1000) * 1000000 ;
+		timer_value.it_value.tv_nsec = ((uint32_t)this->duration_ms % 1000) * 1000000 ;
 		timer_value.it_value.tv_sec = this->duration_ms / 1000;
 	}
 	//start timer
