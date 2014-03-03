@@ -142,6 +142,10 @@ class BlockDvb: public Block
 		 */
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
 
+		/**
+		 * Update the statistics
+		 */
+		virtual void updateStats(void) {return;}; //TODO once correctly separated = 0;
 	};
 
  protected:
@@ -189,6 +193,7 @@ class BlockDvb: public Block
 	 *
 	 * @param band                 The section in configuration file
 	 *                             (up/return or down/forward)
+	 * @param duration_ms          The frame duration on this band
 	 * @param categories           OUT: The terminal categories
 	 * @param terminal_affectation OUT: The terminal affectation in categories
 	 * @param default_category     OUT: The default category if terminal is not
@@ -197,6 +202,7 @@ class BlockDvb: public Block
 	 * @return true on success, false otherwise
 	 */
 	bool initBand(const char *band,
+	              time_ms_t duration_ms,
 	              TerminalCategories &categories,
 	              TerminalMapping &terminal_affectation,
 	              TerminalCategory **default_category,
@@ -210,12 +216,14 @@ class BlockDvb: public Block
 	 *
 	 * @param   available_bandplan_khz  available bandplan (in kHz).
 	 * @param   roll_off                roll-off factor
+	 * @param   duration_ms             The frame duration on this band
 	 * @param   categories              pointer to category list.
 	 *
 	 * @return  true on success, false otherwise.
 	 */
 	bool computeBandplan(freq_khz_t available_bandplan_khz,
 	                     double roll_off,
+	                     time_ms_t duration_ms,
 	                     TerminalCategories &categories);
 
 
@@ -225,6 +233,9 @@ class BlockDvb: public Block
 
 	/// the frame duration
 	time_ms_t frame_duration_ms;
+
+	/// the frame duration
+	time_ms_t fwd_timer_ms;
 
 	/// the number of frame per superframe
 	unsigned int frames_per_superframe;
@@ -252,6 +263,12 @@ class BlockDvb: public Block
 
 	/// The down/forward link encapsulation packet
 	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
+
+	/// The statistics period
+	time_ms_t  stats_period_ms;
+
+	/// Statistics timer
+	event_id_t stats_timer;
 
 	/// output events
 	static Event *error_init;

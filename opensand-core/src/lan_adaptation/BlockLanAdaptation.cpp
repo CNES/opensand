@@ -47,10 +47,14 @@ extern "C"
 }
 
 #include <cstdio>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <linux/if_tun.h>
+#include <net/if.h>
+#include <errno.h>
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 
-//TODO add events for initialization failure in all blocks
 
 /**
  * constructor

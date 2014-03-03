@@ -57,13 +57,15 @@ BlockDvb::BlockDvb(const string &name):
 	Block(name),
 	satellite_type(),
 	frame_duration_ms(),
+	fwd_timer_ms(),
 	frames_per_superframe(-1),
 	super_frame_counter(0),
 	frame_counter(0),
 	ret_fmt_simu(),
 	fwd_fmt_simu(),
 	with_phy_layer(false),
-	dvb_scenario_refresh(-1)
+	dvb_scenario_refresh(-1),
+	stats_period_ms()
 {
 	if(error_init == NULL)
 	{
@@ -196,6 +198,16 @@ bool BlockDvb::initCommon()
 	}
 	UTI_INFO("frame duration set to %d\n", this->frame_duration_ms);
 
+	// forward timer
+	if(!globalConfig.getValue(PERF_SECTION, FWD_TIMER,
+	                          this->fwd_timer_ms))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          PERF_SECTION, FWD_TIMER);
+		goto error;
+	}
+	UTI_INFO("forward timer set to %u\n", this->fwd_timer_ms);
+
 	// number of frame per superframe
 	if(!globalConfig.getValue(DVB_MAC_SECTION, DVB_FPF,
 	                          this->frames_per_superframe))
@@ -216,6 +228,19 @@ bool BlockDvb::initCommon()
 		goto error;
 	}
 	UTI_INFO("dvb_scenario_refresh set to %d\n", this->dvb_scenario_refresh);
+
+	// statistics timer
+	if(!globalConfig.getValue(PERF_SECTION, STATS_TIMER,
+	                          this->stats_period_ms))
+	{
+		UTI_ERROR("section '%s': missing parameter '%s'\n",
+		          PERF_SECTION, STATS_TIMER);
+		goto error;
+	}
+	UTI_INFO("statistics_timer set to %d\n", this->stats_period_ms);
+
+	this->stats_timer = this->downward->addTimerEvent("dvb_stats",
+	                                                  this->stats_period_ms);
 
 	return true;
 error:
@@ -444,6 +469,7 @@ release_burst:
 }
 
 bool BlockDvb::initBand(const char *band,
+                        time_ms_t duration_ms,
                         TerminalCategories &categories,
                         TerminalMapping &terminal_affectation,
                         TerminalCategory **default_category,
@@ -689,7 +715,7 @@ bool BlockDvb::initBand(const char *band,
 	}
 
 	// Compute bandplan
-	if(!this->computeBandplan(bandwidth_khz, roll_off, categories))
+	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
 	{
 		UTI_ERROR("Cannot compute band plan for %s\n", band);
 		goto error;
@@ -703,6 +729,7 @@ error:
 
 bool BlockDvb::computeBandplan(freq_khz_t available_bandplan_khz,
                                double roll_off,
+                               time_ms_t duration_ms,
                                TerminalCategories &categories)
 {
 	TerminalCategories::const_iterator category_it;
@@ -745,8 +772,7 @@ bool BlockDvb::computeBandplan(freq_khz_t available_bandplan_khz,
 
 		// set the carrier numbers and capacity in carrier groups
 		category->updateCarriersGroups(carriers_number,
-		                               this->frame_duration_ms *
-		                               this->frames_per_superframe);
+		                               duration_ms);
 	}
 
 	return true;

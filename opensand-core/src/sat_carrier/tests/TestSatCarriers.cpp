@@ -296,7 +296,7 @@ bool TestSatCarriers::Upward::onInit(void)
 		{
 			ostringstream name;
 
-			name << "Channel_" << channel->getChannelFd();
+			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
 			                        9000);

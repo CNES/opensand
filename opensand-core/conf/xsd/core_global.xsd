@@ -22,6 +22,13 @@
 </xsd:simpleType>
 
 <!-- types for global section -->
+<xsd:simpleType name="msTimeFrame">
+    <xsd:restriction base="xsd:double">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="106" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -287,6 +294,7 @@
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
             <xsd:element ref="sat_carrier" />
+            <xsd:element ref="perf" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -311,7 +319,7 @@
             <xsd:element name="delay" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The delay to simulate (ms)
+                        The delay to simulate (in ms)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -350,10 +358,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="frame_duration" type="msTime">
+            <xsd:element name="frame_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The DVB frame duration
+                        The DVB frame duration (in ms)
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -512,5 +520,55 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- perf section description -->
+<xsd:element name="perf">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Some parameters that may influence performances
+            (for advanced users only, do not edit these parameters !)
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="udp_rmem" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP reception buffer in kernel
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="udp_wmem" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP emission buffer in kernel
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="udp_stack" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP stack in satellite carrier
+                        (max 255 but keep it small)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="forward_timer" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The timer used for forward link emission and for
+                        satellite fifo handling (in ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="statistics_timer" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The timer used for statistics (in ms)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
 
 </xsd:schema>

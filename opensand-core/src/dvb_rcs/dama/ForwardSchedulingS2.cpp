@@ -86,11 +86,9 @@ static size_t getPayloadSize(string coding_rate)
 
 ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
-                                         const unsigned int frames_per_superframe,
                                          FmtSimulation *const fwd_fmt_simu,
                                          const TerminalCategory *const category):
 	Scheduling(packet_handler, fifos),
-	frames_per_superframe(frames_per_superframe),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
@@ -116,7 +114,7 @@ ForwardSchedulingS2::~ForwardSchedulingS2()
 
 
 bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
-                                   const time_frame_t current_frame,
+                                   const time_frame_t UNUSED(current_frame),
                                    clock_t current_time,
                                    list<DvbFrame *> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
@@ -133,9 +131,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	{
 		vol_sym_t capacity_sym  = (*carrier_it)->getTotalCapacity() +
 		                          (*carrier_it)->getRemainingCapacity();
-		// this function is called each frame, the total capacity is set for
-		// a superframe, divide the capacity by the number of frames per superframe
-		capacity_sym /= this->frames_per_superframe;
 		(*carrier_it)->setRemainingCapacity(capacity_sym);
 	}
 
@@ -148,7 +143,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		{
 			if(!this->scheduleEncapPackets((*fifo_it).second,
 			                               current_superframe_sf,
-			                               current_frame,
 			                               current_time,
 			                               complete_dvb_frames,
 			                               *carrier_it))
@@ -173,7 +167,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 
 bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_sf_t current_superframe_sf,
-                                               const time_frame_t current_frame,
                                                clock_t current_time,
                                                list<DvbFrame *> *complete_dvb_frames,
                                                CarriersGroup *carriers)
@@ -185,13 +178,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	BBFrame *current_bbframe;
 	list<unsigned int> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
-	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf,
-	                                                       current_frame);
+	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
 	capacity_sym += previous_sym;
 
-	UTI_DEBUG("SF#%u: frame %u: capacity is %u symbols (+ %u previous)\n",
-	          current_superframe_sf, current_frame, capacity_sym, previous_sym);
+	UTI_DEBUG("SF#%u: capacity is %u symbols (+ %u previous)\n",
+	          current_superframe_sf, capacity_sym, previous_sym);
 
 	// first add the pending complete BBFrame in the complete BBframes list
 	// we add previous remaining capacity here because if a BBFrame was
@@ -200,7 +192,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	this->schedulePending(supported_modcods, complete_dvb_frames,
 	                      capacity_sym);
 	// reset previous capacity
-	carriers->setPreviousCapacity(0, 0, 0);
+	carriers->setPreviousCapacity(0, 0);
 	// all the previous capacity was not consumed, remove it as we are not on
 	// pending frames anymore
 	capacity_sym = std::min(init_capa, capacity_sym);
@@ -215,8 +207,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	}
 
 	// there are really packets to send
-	UTI_DEBUG("SF#%u: frame %u: send at most %ld encapsulation packets "
-	          "for %s fifo\n", current_superframe_sf, current_frame,
+	UTI_DEBUG("SF#%u: send at most %ld encapsulation packets "
+	          "for %s fifo\n", current_superframe_sf,
 	          max_to_send, fifo->getName().c_str());
 
 
@@ -231,8 +223,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
 		{
-			UTI_DEBUG("SF#%u: frame %u: packet is not scheduled for the moment, "
-			          "break\n", current_superframe_sf, current_frame);
+			UTI_DEBUG("SF#%u: packet is not scheduled for the moment, "
+			          "break\n", current_superframe_sf);
 			// this is the first MAC FIFO element that is not ready yet,
 			// there is no more work to do, break now
 			break;
@@ -242,8 +234,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// examine the packet to be sent
 		if(elem->getType() != 1)
 		{
-			UTI_ERROR("SF#%u: frame %u: MAC FIFO element does not contain NetPacket\n",
-			          current_superframe_sf, current_frame);
+			UTI_ERROR("SF#%u: MAC FIFO element does not contain NetPacket\n",
+			          current_superframe_sf);
 			goto error_fifo_elem;
 		}
 
@@ -251,8 +243,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// retrieve the encapsulation packet
 		if(encap_packet == NULL)
 		{
-			UTI_ERROR("SF#%u: frame %u: invalid packet #%u in MAC FIFO element\n",
-			          current_superframe_sf, current_frame, sent_packets + 1);
+			UTI_ERROR("SF#%u: invalid packet #%u in MAC FIFO element\n",
+			          current_superframe_sf, sent_packets + 1);
 			goto error_fifo_elem;
 		}
 
@@ -267,15 +259,15 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				this->fwd_fmt_simu->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{
-				UTI_ERROR("SF#%u: frame %u: The scheduling of a multicast "
-				          "frame failed\n", current_superframe_sf, current_frame);
-				UTI_ERROR("SF#%u: frame %u: The Tal_Id corresponding to the "
+				UTI_ERROR("SF#%u: The scheduling of a multicast "
+				          "frame failed\n", current_superframe_sf);
+				UTI_ERROR("SF#%u: The Tal_Id corresponding to the "
 				          "terminal using the lower modcod can not be retrieved\n",
-				          current_superframe_sf, current_frame);
+				          current_superframe_sf);
 				goto error;
 			}
-			UTI_DEBUG("SF#%u: frame %u: TAL_ID corresponding to lower MODCOD = %u\n",
-			          current_superframe_sf, current_frame, tal_id);
+			UTI_DEBUG("SF#%u: TAL_ID corresponding to lower MODCOD = %u\n",
+			          current_superframe_sf, tal_id);
 		}
 
 		if(!this->getIncompleteBBFrame(tal_id, carriers, &current_bbframe))
@@ -292,9 +284,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			continue;
 		}
 
-		UTI_DEBUG_L3("SF#%u: frame %u: Got the BBFrame for packet #%u, "
+		UTI_DEBUG_L3("SF#%u: Got the BBFrame for packet #%u, "
 		             "there is now %zu complete BBFrames and %zu incomplete\n",
-		             current_superframe_sf, current_frame,
+		             current_superframe_sf,
 		             sent_packets + 1, complete_dvb_frames->size(),
 		             this->incomplete_bb_frames.size());
 
@@ -305,8 +297,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// use case 4 (see @ref getChunk)
 		if(!ret)
 		{
-			UTI_ERROR("SF#%u: frame %u: error while processing packet #%u\n",
-			          current_superframe_sf, current_frame, sent_packets + 1);
+			UTI_ERROR("SF#%u: error while processing packet #%u\n",
+			          current_superframe_sf, sent_packets + 1);
 			delete elem;
 		}
 		// use cases 1 (see @ref getChunk)
@@ -314,10 +306,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			if(!current_bbframe->addPacket(data))
 			{
-				UTI_ERROR("SF#%u: frame %u: failed to add encapsulation packet "
+				UTI_ERROR("SF#%u: failed to add encapsulation packet "
 				          "#%u in BB frame with MODCOD ID %u (packet length %zu,"
 				          "  free space %zu",
-				          current_superframe_sf, current_frame,
+				          current_superframe_sf,
 				          sent_packets + 1, current_bbframe->getModcodId(),
 				          data->getTotalLength(),
 				          current_bbframe->getFreeSpace());
@@ -334,10 +326,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			if(!current_bbframe->addPacket(data))
 			{
-				UTI_ERROR("SF#%u: frame %u: failed to add encapsulation packet "
+				UTI_ERROR("SF#%u: failed to add encapsulation packet "
 				          "#%u in BB frame with MODCOD ID %u (packet "
 				          "length %zu, free space %zu",
-				          current_superframe_sf, current_frame,
+				          current_superframe_sf,
 				          sent_packets + 1, current_bbframe->getModcodId(),
 				          data->getTotalLength(),
 				          current_bbframe->getFreeSpace());
@@ -350,9 +342,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			elem->setPacket(remaining_data);
 			fifo->pushFront(elem);
 
-			UTI_DEBUG("SF#%u: frame %u: packet fragmented, there is still "
+			UTI_DEBUG("SF#%u: packet fragmented, there is still "
 			          "%zu bytes of data\n",
-			          current_superframe_sf, current_frame,
+			          current_superframe_sf,
 			          remaining_data->getTotalLength());
 		}
 		// use case 3 (see @ref getChunk)
@@ -363,18 +355,18 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			fifo->pushFront(elem);
 
 			// keep the NetPacket in the fifo
-			UTI_DEBUG("SF#%u: frame %u: not enough free space in BBFrame "
+			UTI_DEBUG("SF#%u: not enough free space in BBFrame "
 			          "(%zu bytes) for %s packet (%zu bytes)\n",
-			          current_superframe_sf, current_frame,
+			          current_superframe_sf,
 			          current_bbframe->getFreeSpace(),
 			          this->packet_handler->getName().c_str(),
 			          encap_packet->getTotalLength());
 		}
 		else
 		{
-			UTI_ERROR("SF#%u: frame %u: bad getChunk function implementation, "
+			UTI_ERROR("SF#%u: bad getChunk function implementation, "
 			          "assert or skip packet #%u\n",
-			          current_superframe_sf, current_frame, sent_packets + 1);
+			          current_superframe_sf, sent_packets + 1);
 			assert(0);
 			delete elem;
 		}
@@ -400,17 +392,11 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				this->incomplete_bb_frames.erase(modcod);
 				if(ret == status_full)
 				{
-					time_sf_t next_sf = current_superframe_sf;
-					time_frame_t next_frame;
-					next_frame = (current_frame + 1) % this->frames_per_superframe;
-					if(next_frame == 0)
-					{
-						next_sf += 1;
-					}
+					time_sf_t next_sf = current_superframe_sf + 1;
 					// we keep the remaining capacity that won't be used for
 					// next frame
 					carriers->setPreviousCapacity(capacity_sym,
-					                              next_sf, next_frame);
+					                              next_sf);
 					capacity_sym = 0;
 					this->pending_bbframes.push_back(current_bbframe);
 					break;
@@ -448,8 +434,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	{
 		unsigned int cpt_frame = complete_dvb_frames->size();
 
-		UTI_DEBUG("SF#%u: frame %u: %u %s been scheduled and %u BB %s completed\n",
-		          current_superframe_sf, current_frame,
+		UTI_DEBUG("SF#%u: %u %s been scheduled and %u BB %s completed\n",
+		          current_superframe_sf,
 		          sent_packets, (sent_packets > 1) ? "packets have" : "packet has",
 		          cpt_frame, (cpt_frame > 1) ? "frames were" : "frame was");
 	}

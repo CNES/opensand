@@ -180,7 +180,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 
 			UTI_INFO("Listen on fd %d for channel %d\n",
 			         channel->getChannelFd(), channel->getChannelID());
-			name << "Channel_" << channel->getChannelFd();
+			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
 			                        MSG_BBFRAME_SIZE_MAX);

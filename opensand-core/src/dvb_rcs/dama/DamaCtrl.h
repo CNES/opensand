@@ -159,8 +159,10 @@ class DamaCtrl
 	/**
 	 * @brief  Update the DAMA statistics
 	 *         Called each frame
+	 *
+	 * @param period_ms  The period of statistics refreshing
 	 */
-	void updateStatistics();
+	void updateStatistics(time_ms_t period_ms);
 
 	/**
 	 * @brief Set the file for simulation statistic and events record

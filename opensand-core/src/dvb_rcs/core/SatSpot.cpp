@@ -84,14 +84,12 @@ SatSpot::~SatSpot()
 
 bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
                              FmtSimulation *const fwd_fmt_simu,
-                             const TerminalCategory *const category,
-                             unsigned int frames_per_superframe)
+                             const TerminalCategory *const category)
 {
 	fifos_t fifos;
 	fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
 	this->scheduling = new ForwardSchedulingS2(pkt_hdl,
 	                                           fifos,
-	                                           frames_per_superframe,
 	                                           fwd_fmt_simu,
 	                                           category);
 	if(!this->scheduling)
@@ -104,7 +102,6 @@ bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 
 
 bool SatSpot::schedule(const time_sf_t current_superframe_sf,
-                       const time_frame_t current_frame,
                        clock_t current_time)
 {
 	// not used by scheduling here
@@ -116,7 +113,7 @@ bool SatSpot::schedule(const time_sf_t current_superframe_sf,
 	}
 
 	return this->scheduling->schedule(current_superframe_sf,
-	                                  current_frame,
+	                                  0,
 	                                  current_time,
 	                                  &this->complete_dvb_frames,
 	                                  remaining_allocation);

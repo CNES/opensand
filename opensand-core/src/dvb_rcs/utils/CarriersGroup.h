@@ -123,19 +123,16 @@ class CarriersGroup
 	 * @param frame          The current frame
 	 * @return  available capacity if this is actually the next frame
 	 */
-	unsigned int getPreviousCapacity(const time_sf_t superframe_sf,
-	                                 const time_frame_t frame) const;
+	unsigned int getPreviousCapacity(const time_sf_t superframe_sf) const;
 
 	/**
 	 * @brief  Set available capacity.
 	 *
 	 * @param superframe_sf  The next superframe
-	 * @param frame          The next frame
 	 * @param previous_capacity  available capacity for next frame
 	 */
 	void setPreviousCapacity(const unsigned int previous_capacity,
-	                         const time_sf_t superframe_sf,
-	                         const time_frame_t frame);
+	                         const time_sf_t superframe_sf);
 
 	/**
 	 * @brief  Get carriers's symbol rate.
@@ -206,9 +203,6 @@ class CarriersGroup
 
 	/** The superframe for which we can get the previous capacity */
 	time_sf_t previous_sf;
-
-	/** The frame for wich we can get the previous capacity */
-	time_frame_t previous_frame;
 
 	/** Symbol rate (symbol per second) */
 	rate_symps_t symbol_rate_symps;

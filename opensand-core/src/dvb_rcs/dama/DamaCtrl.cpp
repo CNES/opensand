@@ -211,7 +211,7 @@ bool DamaCtrl::initOutput()
 		"NCC.FCA allocated", "Kbits/s", true, SAMPLE_LAST);
 	this->gw_fca_alloc_pktpf = 0;
 
-		// Total  and remaining capacity
+		// Total and remaining capacity
 	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
 		"Up/Return capacity.Total.Available", "Kbits/s", true, SAMPLE_LAST);
 	this->gw_return_total_capacity_pktpf = 0;
@@ -469,7 +469,8 @@ void DamaCtrl::setRecordFile(FILE *event_stream, FILE *stat_stream)
 
 
 // TODO disable timers on probes if output is disabled
-void DamaCtrl::updateStatistics()
+// and event to reactivate them ?!
+void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 {
 	// Update probes and stats
 	this->probe_gw_st_num->put(this->gw_st_num);

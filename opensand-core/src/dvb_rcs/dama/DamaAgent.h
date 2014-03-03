@@ -172,8 +172,10 @@ class DamaAgent
 	/**
 	 * @brief  Update the DAMA statistics
 	 *         Called each frame
+	 *
+	 * @param period_ms  The period of statistics refreshing
 	 */
-	virtual void updateStatistics() {};;
+	virtual void updateStatistics(time_ms_t UNUSED(period_ms)) {};
 
 
 protected:

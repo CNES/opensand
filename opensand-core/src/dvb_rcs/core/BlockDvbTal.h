@@ -314,8 +314,8 @@ class BlockDvbTal: public BlockDvb
 
 	void deletePackets();
 
-	// statistics management
-	void updateStatsOnFrame();
+	// statistics update
+	void updateStats();
 	void resetStatsCxt();
 
 	// communication with QoS Server:

@@ -88,6 +88,7 @@
 #define NET_PROTO_ARP     ETH_P_ARP
 
 
+// TODO we may add an option to enable jumbo frames
 
 // Size of a IEEE 802.3 Ethernet frame
 // dmac(6) + smac(6) + etype(2) + max_payload(1500) = 1514 bytes
@@ -105,6 +106,8 @@
 #define ETHERNET_802_1AD_HEADSIZE 22
 
 #define MAX_ETHERNET_SIZE ETHERNET_802_1AD_SIZE
+
+
 /**
  * @class NetPacket
  * @brief Network-layer packet

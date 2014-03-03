@@ -64,7 +64,6 @@ class ForwardSchedulingS2: public Scheduling
 
 	ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    unsigned int frames_per_superframe,
 	                    FmtSimulation *const fwd_fmt_simu,
 	                    const TerminalCategory *const category);
 
@@ -76,9 +75,6 @@ class ForwardSchedulingS2: public Scheduling
 	              list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
   private:
-
-	/** The number of frames per superframe */
-	unsigned int frames_per_superframe;
 
   	/** the BBFrame being built identified by their modcod */
 	map<unsigned int, BBFrame *> incomplete_bb_frames;
@@ -102,14 +98,12 @@ class ForwardSchedulingS2: public Scheduling
 	 *
 	 * @param fifo  The FIFO whee packets are stored
 	 * @param current_superframe_sf  The current superframe number
-	 * @param current_frame          The current frame ID
 	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          const time_frame_t current_frame,
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroup *carriers);

@@ -1189,7 +1189,6 @@ bool Gse::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
 	uint8_t s;
 	uint8_t e;
 
-	uint8_t src_tal_id = BROADCAST_TAL_ID;
 	unsigned char *packet = (unsigned char *)data.c_str();
 
 	status = gse_get_start_indicator(packet, &s);

@@ -46,7 +46,6 @@ CarriersGroup::CarriersGroup(unsigned int carriers_id,
 	remaining_capacity(0),
 	previous_capacity(0),
 	previous_sf(0),
-	previous_frame(0),
 	symbol_rate_symps(symbol_rate_symps)
 {
 }
@@ -87,18 +86,15 @@ unsigned int CarriersGroup::getRemainingCapacity() const
 }
 
 void CarriersGroup::setPreviousCapacity(const unsigned int previous_capacity,
-                                        const time_sf_t superframe_sf,
-                                        const time_frame_t frame)
+                                        const time_sf_t superframe_sf)
 {
 	this->previous_capacity = previous_capacity;
 	this->previous_sf = superframe_sf;
-	this->previous_frame = frame;
 }
 
-unsigned int CarriersGroup::getPreviousCapacity(const time_sf_t superframe_sf,
-                                                const time_frame_t frame) const
+unsigned int CarriersGroup::getPreviousCapacity(const time_sf_t superframe_sf) const
 {
-	if(this->previous_sf != superframe_sf || this->previous_frame != frame)
+	if(this->previous_sf != superframe_sf)
 	{
 		return 0;
 	}

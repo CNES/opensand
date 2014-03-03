@@ -258,6 +258,16 @@
 #define SOCKET_TYPE         "socket_type"
 #define UDP                 "SOCK_DGRAM"
 
+/////////////////////////
+//         perf        //
+/////////////////////////
+#define PERF_SECTION     "perf"
+#define UDP_RMEM         "udp_rmem"
+#define UDP_WMEM         "udp_wmem"
+#define UDP_STACK        "udp_stack"
+#define FWD_TIMER        "forward_timer"
+#define STATS_TIMER      "statistics_timer"
+
 /////////////////
 //    Debug    //
 /////////////////

@@ -66,7 +66,7 @@ class Scheduling
 	 * @brief Schedule packets emission.
 	 *
 	 * @param complete_dvb_frames   created DVB frames.
-	 * @param current_superframe_sf the current superframe (for logging)
+	 * @param current_superframe_sf the current superframe
 	 * @param current_frame         the current frame
 	 * @param current_time          the current time
 	 * @param remaining_allocation  the remaining allocation after scheduling

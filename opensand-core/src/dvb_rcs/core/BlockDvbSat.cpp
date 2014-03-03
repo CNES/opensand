@@ -380,13 +380,13 @@ bool BlockDvbSat::Downward::onInit()
 	//      into Downward::initCommon
 	this->satellite_type = ((BlockDvb *)this->block)->satellite_type;
 	this->with_phy_layer = ((BlockDvb *)this->block)->with_phy_layer;
-	this->frames_per_superframe = ((BlockDvb *)this->block)->frames_per_superframe;
-	this->super_frame_counter = ((BlockDvb *)this->block)->super_frame_counter;
-	this->frame_counter = ((BlockDvb *)this->block)->frame_counter;
-	this->frame_duration_ms = ((BlockDvb *)this->block)->frame_duration_ms;
+	this->fwd_timer_ms = ((BlockDvb *)this->block)->fwd_timer_ms;
 	this->dvb_scenario_refresh = ((BlockDvb *)this->block)->dvb_scenario_refresh;
 	this->fwd_fmt_simu = ((BlockDvb *)this->block)->fwd_fmt_simu;
 	this->down_forward_pkt_hdl = ((BlockDvb *)this->block)->down_forward_pkt_hdl;
+	this->stats_period_ms = ((BlockDvb *)this->block)->stats_period_ms;
+	this->stats_timer = ((BlockDvb *)this->block)->stats_timer;
+	this->down_frame_counter = 0;
 
 	if(!this->initSatLink())
 	{
@@ -448,6 +448,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 	if(this->satellite_type == REGENERATIVE)
 	{
 		if(!((BlockDvb *)this->block)->initBand(DOWN_FORWARD_BAND,
+		                                        this->fwd_timer_ms,
 		                                        this->categories,
 		                                        this->terminal_affectation,
 		                                        &this->default_category,
@@ -472,8 +473,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 
 			if(!spot->initScheduling(this->down_forward_pkt_hdl,
 			                         &this->fwd_fmt_simu,
-			                         this->categories.begin()->second,
-			                         this->frames_per_superframe))
+			                         this->categories.begin()->second))
 			{
 				UTI_ERROR("failed to init the spot scheduling\n");
 				delete spot;
@@ -487,9 +487,9 @@ bool BlockDvbSat::Downward::initSatLink(void)
 
 bool BlockDvbSat::Downward::initTimers(void)
 {
-	// launch frame timer
-	this->frame_timer = this->addTimerEvent("dvb_frame_timer",
-	                                        this->frame_duration_ms);
+	// create frame timer (also used to send packets waiting in fifo)
+	this->fwd_timer = this->addTimerEvent("fwd_timer",
+	                                       this->fwd_timer_ms);
 
 	if(this->satellite_type == REGENERATIVE && !this->with_phy_layer)
 	{
@@ -497,12 +497,6 @@ bool BlockDvbSat::Downward::initTimers(void)
 		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
 		                                           this->dvb_scenario_refresh);
 	}
-
-	// TODO add a parameter for that or use frame timer
-	this->stats_period_ms = 106;
-	// initialize output probe and stats
-	this->stats_timer = this->addTimerEvent("BlockSatStats",
-	                                        this->stats_period_ms);
 
 	return true;
 }
@@ -686,7 +680,6 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 				UTI_ERROR("failed to handle received DVB frame\n");
 				return false;
 			}
-
 		}
 		break;
 
@@ -769,39 +762,26 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 		break;
 
 		case evt_timer:
-			if(*event == this->frame_timer)
+		{
+			if(*event == this->fwd_timer)
 			{
-
 				// Update stats and probes
 				if(this->probe_frame_interval->isEnabled())
 				{
-					timeval time = event->getAndSetCustomTime();
-					float val = time.tv_sec * 1000000L + time.tv_usec;
+					timeval interval = event->getAndSetCustomTime();
+					float val = interval.tv_sec * 1000000L + interval.tv_usec;
 					this->probe_frame_interval->put(val / 1000);
 				}
 
-				// increment counter of frames per superframe
-				this->frame_counter++;
-
-				// if we reached the end of a superframe and the
-				// beginning of a new one, send SOF and run allocation
-				// algorithms (DAMA)
-				if(this->frame_counter == this->frames_per_superframe)
-				{
-					// increase the superframe number and reset
-					// counter of frames per superframe
-					this->super_frame_counter++;
-					this->frame_counter = 0;
-				}
-				UTI_DEBUG_L3("frame timer expired, send DVB frames\n");
+				// increment counter of superframes
+				this->down_frame_counter++;
+				UTI_DEBUG_L3("frame timer expired, send DVB sig\n");
 
 				// send frame for every satellite spot
 				for(sat_spots_t::iterator i_spot = this->spots.begin();
 				    i_spot != this->spots.end(); i_spot++)
 				{
-					SatSpot *current_spot;
-
-					current_spot = i_spot->second;
+					SatSpot *current_spot = i_spot->second;
 
 					UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
 					             i_spot->first);
@@ -821,11 +801,8 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 					if(this->satellite_type == TRANSPARENT)
 					{
+						// send frame for every satellite spot
 						bool status = true;
-						// note: be careful that the reception standard
-						// is also used to send frames because the reception
-						// standard toward ST is the emission standard
-						// toward GW (this should be reworked)
 
 						UTI_DEBUG_L3("send data frames on satellite spot %u\n",
 						             i_spot->first);
@@ -842,10 +819,9 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 							return false;
 						}
 					}
-					else // REGENERATIVE
+					else
 					{
-						if(!current_spot->schedule(this->super_frame_counter,
-						                           this->frame_counter,
+						if(!current_spot->schedule(this->down_frame_counter,
 						                           this->getCurrentTime()))
 						{
 							UTI_ERROR("failed to schedule packets "
@@ -868,7 +844,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 			}
-			else if (*event == this->stats_timer)
+			else if(*event == this->stats_timer)
 			{
 				this->updateStats();
 			}
@@ -882,14 +858,14 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					UTI_ERROR("failed to update MODCOD IDs\n");
 					return false;
 				}
-				break;
 			}
 			else
 			{
 				UTI_ERROR("unknown timer event received %s\n",
 				          event->getName().c_str());
 			}
-			break;
+		}
+		break;
 
 		default:
 			UTI_ERROR("unknown event: %s", event->getName().c_str());

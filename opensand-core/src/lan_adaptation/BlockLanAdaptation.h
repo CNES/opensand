@@ -48,22 +48,6 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
 
-#include <stdlib.h>
-#include <string.h>
-#include <vector>
-#include <map>
-#include <sstream>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <net/if.h>
-#include <linux/if_tun.h>
-#include <netinet/if_ether.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <linux/types.h>
-#include <arpa/inet.h>
-#include <errno.h>
-
 using std::string;
 
 

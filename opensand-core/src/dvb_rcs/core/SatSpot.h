@@ -115,26 +115,22 @@ class SatSpot
 	 * @param pkt_hdl                The packet handler
 	 * @param fwd_fmt_simu               The FMT simulation information
 	 * @param category               The related terminal category
-	 * @param frames_per_superframe  The number of frames per superframe
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategory *const category,
-	                    unsigned int frames_per_superframe);
+	                    const TerminalCategory *const category);
 
 	/**
 	 * @brief Schedule packets emission
 	 *        Call scheduling @ref schedule function
 	 *
 	 * @param current_superframe_sf the current superframe (for logging)
-	 * @param current_frame         the current frame
 	 * @param current_time          the current time
 	 *
 	 * @return true on success, false otherwise
 	 */
 	bool schedule(const time_sf_t current_superframe_sf,
-	              const time_frame_t current_frame,
 	              clock_t current_time);
 
 

@@ -48,8 +48,8 @@
  *
  */
 
-#ifndef BLOC_DVB_RCS_sat_H
-#define BLOC_DVB_RCS_sat_H
+#ifndef BLOC_DVB_SAT_H
+#define BLOC_DVB_SAT_H
 
 
 #include "BlockDvb.h"
@@ -80,6 +80,7 @@ class BlockDvbSat: public BlockDvb
 		{
 			this->receptionStd = NULL;
 		};
+
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -201,16 +202,11 @@ class BlockDvbSat: public BlockDvb
 		/// The down/forward link encapsulation packet
 		EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
 
-		/// the number of frame per superframe
-		unsigned int frames_per_superframe;
-
-		/// the current super frame number
-		time_sf_t super_frame_counter;
-		/// the current frame number inside the current super frame
-		time_frame_t frame_counter; // from 1 to frames_per_superframe
+		/// the counter for downlink frames
+		time_sf_t down_frame_counter;
 
 		/// the frame duration
-		time_ms_t frame_duration_ms;
+		time_ms_t fwd_timer_ms;
 
 		/// The satellite delay to emulate
 		time_ms_t sat_delay;
@@ -218,8 +214,9 @@ class BlockDvbSat: public BlockDvb
 		/// The statistics period
 		time_ms_t stats_period_ms;
 
-		/// frame timer, used to awake the block regurlarly in order to send BBFrames
-		event_id_t frame_timer;
+		/// timer used to awake the block regurlarly in order to send frames
+		//  and schedule in regenerative scenario
+		event_id_t fwd_timer;
 
 		/// timer used to awake the block every second in order to retrieve
 		/// the modcods
@@ -265,6 +262,7 @@ class BlockDvbSat: public BlockDvb
 		ProbeListPerSpot probe_sat_l2_to_gw;
 			// Frame interval
 		Probe<float> *probe_frame_interval;
+
 	};
 
 

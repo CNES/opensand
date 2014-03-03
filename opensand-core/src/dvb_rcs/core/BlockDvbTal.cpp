@@ -260,6 +260,10 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 					this->sendLogonReq();
 				}
 			}
+			else if(*event == this->stats_timer)
+			{
+				this->updateStats();
+			}
 			else if(*event == this->qos_server_timer)
 			{
 				// try to re-connect to QoS Server if not already connected
@@ -1444,10 +1448,6 @@ int BlockDvbTal::processOnFrameTick()
 		}
 	}
 
-	// ---------- Statistics ---------
-	// trace statistics for current frame
-	this->updateStatsOnFrame();
-
 	return ret;
 
 error:
@@ -1524,10 +1524,10 @@ bool BlockDvbTal::onRcvLogonResp(DvbFrame *dvb_frame)
  * These statistics will be updated when the DVB bloc receive a frame tick
  * because they depend on frame duration
  */
-void BlockDvbTal::updateStatsOnFrame()
+void BlockDvbTal::updateStats()
 {
 
-	this->dama_agent->updateStatistics();
+	this->dama_agent->updateStatistics(this->stats_period_ms);
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
@@ -1548,11 +1548,11 @@ void BlockDvbTal::updateStatsOnFrame()
 		this->probe_st_l2_to_sat_before_sched[(*it).first]->put(
 			this->l2_to_sat_cells_before_sched[(*it).first] *
 			this->up_return_pkt_hdl->getFixedLength() * 8 /
-			this->frame_duration_ms);
+			this->stats_period_ms);
 		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
 			this->l2_to_sat_cells_after_sched[(*it).first] *
 			this->up_return_pkt_hdl->getFixedLength() * 8 /
-			this->frame_duration_ms);
+			this->stats_period_ms);
 
 		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
 		this->probe_st_queue_size_kb[(*it).first]->put(

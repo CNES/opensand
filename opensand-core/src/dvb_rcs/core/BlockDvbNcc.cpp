@@ -75,6 +75,8 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	dama_ctrl(NULL),
 	scheduling(NULL),
 	frame_timer(-1),
+	fwd_timer(-1),
+	fwd_frame_counter(0),
 	macId(GW_TAL_ID),
 	complete_dvb_frames(),
 	scenario_timer(-1),
@@ -96,8 +98,6 @@ BlockDvbNcc::BlockDvbNcc(const string &name):
 	simu_interval(-1),
 	event_logon_req(NULL),
 	event_logon_resp(NULL),
-	// TODO add a parameter for that or use frame timer
-	//stats_period_ms(106),
 	probe_gw_l2_to_sat_before_sched(NULL),
 	probe_gw_l2_to_sat_after_sched(NULL),
 	probe_gw_l2_from_sat(NULL),
@@ -221,7 +221,6 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			UTI_DEBUG_L3("timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
-				uint32_t remaining_alloc_sym = 0;
 				if(this->probe_frame_interval->isEnabled())
 				{
 					timeval time = event->getAndSetCustomTime();
@@ -259,11 +258,17 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					// send TTP computed by DAMA
 					this->sendTTP();
 				}
+			}
+			else if(*event == this->fwd_timer)
+			{
+				uint32_t remaining_alloc_sym = 0;
+
+				this->fwd_frame_counter++;
 
 				// schedule encapsulation packets
 				// TODO loop on categories (see todo in initMode)
-				if(!this->scheduling->schedule(this->super_frame_counter,
-				                               this->frame_counter,
+				if(!this->scheduling->schedule(this->fwd_frame_counter,
+				                               0,
 				                               ((DvbDownward *)this->downward)->getCurrentTime(),
 				                               &this->complete_dvb_frames,
 				                               remaining_alloc_sym))
@@ -291,9 +296,6 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					UTI_ERROR("failed to build and send DVB/BB frames\n");
 					return false;
 				}
-
-				//TODO: remove when the new stats timer will be OK
-				this->updateStatsOnFrame();
 			}
 			else if(*event == this->scenario_timer)
 			{
@@ -345,11 +347,10 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					}
 				}
 			}
-			/*TODO: specific timer for stats update
-			 * else if (*event == this->stats_timer)
+			else if(*event == this->stats_timer)
 			{
 				this->updateStats();
-			}*/
+			}
 			else
 			{
 				UTI_ERROR("unknown timer event received %s\n",
@@ -557,10 +558,6 @@ bool BlockDvbNcc::onInit()
 		          "initialisation");
 		goto error_mode;
 	}
-
-	// initialize output probes and stats
-	//this->stats_timer = this->downward->addTimerEvent("BlockNccStats",
-		//this->stats_period_ms);
 
 	if(!this->initOutput())
 	{
@@ -816,6 +813,8 @@ bool BlockDvbNcc::initDownwardTimers()
 	this->super_frame_counter = 0;
 	this->frame_timer = this->downward->addTimerEvent("frame",
 	                                                  this->frame_duration_ms);
+	this->fwd_timer = this->downward->addTimerEvent("fwd_timer",
+	                                                this->fwd_timer_ms);
 
 	// Launch the timer in order to retrieve the modcods if there is no physical layer
 	// or to send SAC with ACM parameters in regenerative mode
@@ -906,6 +905,7 @@ bool BlockDvbNcc::initMode()
 	if(this->satellite_type == TRANSPARENT)
 	{
 		if(!this->initBand(DOWN_FORWARD_BAND,
+		                   this->fwd_timer_ms,
 		                   this->categories,
 		                   this->terminal_affectation,
 		                   &this->default_category,
@@ -930,7 +930,6 @@ bool BlockDvbNcc::initMode()
 		((DvbUpward *)this->upward)->receptionStd = new DvbRcsStd(this->up_return_pkt_hdl);
 		this->scheduling = new ForwardSchedulingS2(this->down_forward_pkt_hdl,
 		                                           fifos,
-		                                           this->frames_per_superframe,
 		                                           &this->fwd_fmt_simu,
 		                                           this->categories.begin()->second);
 	}
@@ -939,6 +938,7 @@ bool BlockDvbNcc::initMode()
 		TerminalCategory *cat;
 
 		if(!this->initBand(UP_RETURN_BAND,
+		                   this->frame_duration_ms * this->frames_per_superframe,
 		                   this->categories,
 		                   this->terminal_affectation,
 		                   &this->default_category,
@@ -1116,6 +1116,7 @@ bool BlockDvbNcc::initDama()
 	if(this->satellite_type == TRANSPARENT)
 	{
 		if(!this->initBand(UP_RETURN_BAND,
+		                   this->frame_duration_ms * this->frames_per_superframe,
 		                   dc_categories,
 		                   dc_terminal_affectation,
 		                   &dc_default_category,
@@ -1752,11 +1753,11 @@ void BlockDvbNcc::simulateRandom()
 	}
 }
 
-void BlockDvbNcc::updateStatsOnFrame()
+void BlockDvbNcc::updateStats()
 {
 
 	// Update stats on the GW
-	this->dama_ctrl->updateStatistics();
+	this->dama_ctrl->updateStatistics(this->stats_period_ms);
 
 	// Update common DAMA statistics
 	mac_fifo_stat_context_t fifo_stat;
@@ -1764,15 +1765,15 @@ void BlockDvbNcc::updateStatsOnFrame()
 	this->l2_to_sat_bytes_after_sched = fifo_stat.out_length_bytes;
 
 	this->probe_gw_l2_to_sat_before_sched->put(
-		this->l2_to_sat_bytes_before_sched * 8.0 / this->frame_duration_ms);
+		this->l2_to_sat_bytes_before_sched * 8.0 / this->stats_period_ms);
 	this->l2_to_sat_bytes_before_sched = 0;
 
 	this->probe_gw_l2_to_sat_after_sched->put(
-		this->l2_to_sat_bytes_after_sched * 8.0 / this->frame_duration_ms);
+		this->l2_to_sat_bytes_after_sched * 8.0 / this->stats_period_ms);
 	this->l2_to_sat_bytes_after_sched = 0;
 
 	this->probe_gw_l2_from_sat->put(
-		this->l2_from_sat_bytes * 8.0 / this->frame_duration_ms);
+		this->l2_from_sat_bytes * 8.0 / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;
 
 	// Mac fifo stats

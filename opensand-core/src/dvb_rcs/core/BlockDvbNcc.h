@@ -80,8 +80,14 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	uint8_t sof_carrier_id;
 	uint8_t data_carrier_id;
 
-	/// frame timer, used to awake the block every frame period
+	/// frame timer for return, used to awake the block every frame period
 	event_id_t frame_timer;
+
+	/// frame timer for forward, used to awake the block every frame period
+	event_id_t fwd_timer;
+
+	/// counter for forward frames
+	time_sf_t fwd_frame_counter;
 
 	/// ST unique mac id (configuration param)
 	tal_id_t macId;
@@ -152,15 +158,6 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	Event *event_logon_resp;
 
 	map<uint16_t, uint16_t> column_list;
-
-	// TODO: a specific timer for statistics update
-	/*
-	/// The statistics period
-	time_ms_t  stats_period_ms;
-
-	/// Statistics timer
-	event_id_t stats_timer;
-	*/
 
  public:
 
@@ -299,10 +296,8 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 
 	/// TODO following
 
-
-
 	// statistics update
-	void updateStatsOnFrame();
+	void updateStats();
 };
 
 #endif
