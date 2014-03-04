@@ -44,8 +44,6 @@
 #include <errno.h>
 
 
-#define MAX_STACK 5
-
 /**
  * Constructor
  *
@@ -59,6 +57,11 @@
  * @param ip_addr             the IP address of the remote host in case of
  *                            output channel or the multicast IP address in
  *                            case of input multicast channel
+ * @param stack               The maximum number of packets buffered in the software
+ *                            stack before sending content
+ * @param rmem                The size of the reception UDP buffers in kernel
+ * @param wmem                The size of the emission UDP buffers in kernel
+
  *
  * @see sat_carrier_channel::sat_carrier_channel()
  */
@@ -69,19 +72,20 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  unsigned short port,
                                                  bool multicast,
                                                  const string local_ip_addr,
-                                                 const string ip_addr):
+                                                 const string ip_addr,
+                                                 unsigned int stack,
+                                                 unsigned int rmem,
+                                                 unsigned int wmem):
 	sat_carrier_channel(channelID, input, output),
 	sock_channel(-1),
 	m_multicast(multicast),
-	stacked_ip("")
+	stacked_ip(""),
+	max_stack(stack)
 {
 	int ifIndex;
 	struct ip_mreq imr;
 	unsigned char ttl = 1;
 	int one = 1;
-	int buffer = 0;
-	socklen_t size = 4;
-
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
@@ -117,6 +121,15 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	// Set destination characteristics to send the datagramms
 	if(this->isOutputOk())
 	{
+		// set UDP socket size
+		if(setsockopt(this->sock_channel, SOL_SOCKET, SO_SNDBUF,
+		              &wmem, sizeof(wmem))<0)
+		{
+			UTI_ERROR("setsockopt : SO_SNDBUF failed\n");
+			goto error;
+		}
+		UTI_INFO("size of socket buffer: %d \n", wmem);
+
 		this->counter = 0;
 		// get the remote IP address
 		if(inet_aton(ip_addr.c_str(), &(m_remoteIPAddress.sin_addr))<0)
@@ -150,14 +163,14 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	}
 	else if(this->isInputOk())
 	{
-		// check if the socket buffer is enough
-		if(getsockopt(this->sock_channel, SOL_SOCKET, SO_RCVBUF,
-		              (char *)&buffer, &size)<0)
+		// set UDP socket size
+		if(setsockopt(this->sock_channel, SOL_SOCKET, SO_RCVBUF,
+		              &rmem, sizeof(rmem))<0)
 		{
-			UTI_ERROR("getsockopt : SO_RCVBUF failed\n");
+			UTI_ERROR("setsockopt : SO_RCVBUF failed\n");
 			goto error;
 		}
-		UTI_INFO("size of socket buffer: %d \n", buffer);
+		UTI_INFO("size of socket buffer: %d \n", rmem);
 
 		if(this->m_multicast)
 		{
@@ -355,7 +368,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		         current_sequencing, ip_address.c_str(), nb_sequencing);
 	}
 	// check that we do not have to much packets in stack
-	if(this->stacks[ip_address]->getCounter() > MAX_STACK)
+	if(this->stacks[ip_address]->getCounter() > this->max_stack)
 	{
 		// suppose we lost the packet
 		UTI_ERROR("we may have lost UDP packets, check /etc/default/opensand-daemon "

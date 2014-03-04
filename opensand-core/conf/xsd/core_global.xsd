@@ -530,14 +530,14 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="udp_rmem" type="xsd:nonNegativeInteger">
+            <xsd:element name="udp_rmem" type="xsd:unsignedLong">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The size of the UDP reception buffer in kernel
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="udp_wmem" type="xsd:nonNegativeInteger">
+            <xsd:element name="udp_wmem" type="xsd:unsignedLong">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The size of the UDP emission buffer in kernel

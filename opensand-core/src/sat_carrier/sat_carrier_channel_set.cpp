@@ -194,6 +194,34 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		{
 			if(this->socket_type == UDP)
 			{
+				unsigned int stack;
+				unsigned int rmem;
+				unsigned int wmem;
+
+				// get UDP stack
+				if(!globalConfig.getValue(PERF_SECTION, UDP_STACK,
+				                          stack))
+				{
+					UTI_ERROR("Section %s, %s missing\n",
+					          PERF_SECTION, UDP_STACK);
+					goto error;
+				}
+				// get rmem
+				if(!globalConfig.getValue(PERF_SECTION, UDP_RMEM,
+				                          rmem))
+				{
+					UTI_ERROR("Section %s, %s missing\n",
+					          PERF_SECTION, UDP_RMEM);
+					goto error;
+				}
+				// get wmem
+				if(!globalConfig.getValue(PERF_SECTION, UDP_WMEM,
+				                          wmem))
+				{
+					UTI_ERROR("Section %s, %s missing\n",
+					          PERF_SECTION, UDP_WMEM);
+					goto error;
+				}
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
 				channel = new sat_carrier_udp_channel(carrier_id,
@@ -203,7 +231,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				                                      carrier_port,
 				                                      carrier_multicast,
 				                                      local_ip_addr,
-				                                      carrier_ip);
+				                                      carrier_ip,
+				                                      stack, rmem, wmem);
 				if(!channel->isInit())
 				{
 					UTI_ERROR("failed to create UDP channel %d\n", i);

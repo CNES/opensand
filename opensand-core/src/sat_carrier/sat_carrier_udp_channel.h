@@ -56,7 +56,10 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	                        unsigned short port,
 	                        bool multicast,
 	                        const string local_ip_addr,
-	                        const string ip_addr);
+	                        const string ip_addr,
+	                        unsigned int stack,
+	                        unsigned int rmem,
+	                        unsigned int wmem);
 
 	~sat_carrier_udp_channel();
 
@@ -124,6 +127,9 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	/// the IP address of the stack for which we need to send a packet or
 	//  empty string if we have nothing to send
 	string stacked_ip;
+
+	/// The maximum number of packets buffered in the software stack before sending content
+	unsigned int max_stack;
 };
 
 /*
