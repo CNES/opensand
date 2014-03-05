@@ -11,12 +11,6 @@ SYSCTL="true"
 IP_FORWARD="1"
 FORWARDING="1"
 
-# UDP buffer size: incresed to support high traffic
-WMEM_MAX="1048580"
-RMEM_MAX="1048580"
-WMEM_DEFAULT="1048580"
-RMEM_DEFAULT="1048580"
-
 # The DHCP client command concatenated with interface name to automatically set
 # up the address when DHCP is enabled
 DHCP_CLIENT_CMD="dhclient"

@@ -39,6 +39,8 @@ import ConfigParser
 import debconf
 
 CONF_FILENAME = '/etc/opensand/daemon.conf'
+# TODO we cannot use this with HOST like that, this should be a parameter !
+HOST=""
 
 if __name__ == "__main__":
     if len(sys.argv) < 3 or sys.argv[1] not in ("add", "remove"):

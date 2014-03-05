@@ -46,11 +46,6 @@ SYSCTL="true"
 IP_FORWARD="1"
 FORWARDING="1"
 
-# UDP buffer size: incresed to support high traffic
-WMEM_MAX="1048580"
-RMEM_MAX="1048580"
-WMEM_DEFAULT="1048580"
-RMEM_DEFAULT="1048580"
 # Source default library
 if [ -f /etc/default/opensand-daemon ]; then
     . /etc/default/opensand-daemon
@@ -131,19 +126,6 @@ set_sysctl(){
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-    set_sysctl_mem
-}
-
-set_sysctl_mem(){
-    # increase UDP buffers
-    echo "Set wmem_max=$WMEM_MAX"
-    evecho /sbin/sysctl -w "net/core/wmem_max"=$WMEM_MAX
-    echo "Set rmem_max=$RMEM_MAX"
-    evecho /sbin/sysctl -w "net/core/rmem_max"=$RMEM_MAX
-    echo "Set wmem_default=$WMEM_DEFAULT"
-    evecho /sbin/sysctl -w "net/core/wmem_default"=$WMEM_DEFAULT
-    echo "Set rmem_default=$RMEM_DEFAULT"
-    evecho /sbin/sysctl -w "net/core/rmem_default"=$RMEM_DEFAULT
 }
 
 set_tun_sysctl(){
@@ -302,17 +284,15 @@ config(){
         return
     fi
 
-    if [ ${SYSCTL} = "true" ]; then
+    if [ ${SYSCTL} = "true" -a ${NAME} != 'SAT' ]; then
         echo "# Configuring sysctl"
         echo "  See /etc/default/opensand-daemon to avoid this modifications"
-        if [ ${NAME} = 'SAT' ]; then
-            set_sysctl_mem
-            return
-        fi
         set_sysctl
     fi
-    echo "# Configuring sysctl for TUN interface"
-    set_tun_sysctl
+    if [ ${NAME} != 'SAT' ]; then
+        echo "# Configuring sysctl for TUN interface"
+        set_tun_sysctl
+    fi
 
     set_dhcp_server
     return

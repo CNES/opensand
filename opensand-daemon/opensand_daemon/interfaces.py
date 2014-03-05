@@ -392,12 +392,6 @@ class OpenSandIfaces(object):
                 if sysctl.read().rstrip('\n') != "1":
                     LOGGER.warning("IPv4 ip_forward is disabled, you should "
                                    "enable it")
-        for val in ["wmem_max", "rmem_max", "wmem_default", "rmem_default"]:
-            with open("/proc/sys/net/core/%s" % val, 'ro') as sysctl:
-                if int(sysctl.read().rstrip('\n')) < 1048580:
-                    LOGGER.warning("%s should be set to a value greater than "
-                                   "1048580 in order to support high bitrates "
-                                   "through OpenSAND" % val)
 
     def get_descr(self):
         """ get the addresses elements """

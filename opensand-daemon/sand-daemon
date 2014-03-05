@@ -280,6 +280,7 @@ def write_pid(pid):
 def start_daemon():
     """ start the daemon """
     # set user id to opensand and only keep CAP_NET_ADMIN capabilities
+    # TODO !
 #    try:
 #        pw = pwd.getpwnam("opensand")
 #        uid = pw.pw_uid
