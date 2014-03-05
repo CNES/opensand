@@ -197,8 +197,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// pending frames anymore
 	capacity_sym = std::min(init_capa, capacity_sym);
 
-	
-
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
 	if(max_to_send <= 0)

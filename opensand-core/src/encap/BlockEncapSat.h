@@ -68,12 +68,16 @@ class BlockEncapSat: public Block
 	class Upward: public RtUpward
 	{
 	 public:
+		Upward(Block *const bl):
+			RtUpward(bl) {};
 		bool onEvent(const RtEvent *const event);
 	};
 
 	class Downward: public RtDownward
 	{
 	 public:
+		Downward(Block *const bl):
+			RtDownward(bl) {};
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 

@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 	if(strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_encap = Rt::createBlock<BlockEncapSat,
-		                              BlockEncapSat::RtUpward,
-		                              BlockEncapSat::RtDownward>("Encap");
+		                              BlockEncapSat::Upward,
+		                              BlockEncapSat::Downward>("Encap");
 		if(!block_encap)
 		{
 			UTI_ERROR("%s: cannot create the Encap block\n", progname);

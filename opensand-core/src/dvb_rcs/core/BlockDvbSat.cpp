@@ -382,7 +382,6 @@ bool BlockDvbSat::Downward::onInit()
 	this->with_phy_layer = ((BlockDvb *)this->block)->with_phy_layer;
 	this->fwd_timer_ms = ((BlockDvb *)this->block)->fwd_timer_ms;
 	this->dvb_scenario_refresh = ((BlockDvb *)this->block)->dvb_scenario_refresh;
-	this->fwd_fmt_simu = ((BlockDvb *)this->block)->fwd_fmt_simu;
 	this->down_forward_pkt_hdl = ((BlockDvb *)this->block)->down_forward_pkt_hdl;
 	this->stats_period_ms = ((BlockDvb *)this->block)->stats_period_ms;
 	this->stats_timer = ((BlockDvb *)this->block)->stats_timer;
@@ -404,6 +403,8 @@ bool BlockDvbSat::Downward::onInit()
  			          "initialisation");
 			return false;
 		}
+		// TODO
+		this->fwd_fmt_simu = ((BlockDvb *)this->block)->fwd_fmt_simu;
 		// initialize the MODCOD scheme ID
 		if(!this->fwd_fmt_simu.goNextScenarioStep(true))
 		{
@@ -711,15 +712,16 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				delete info;
 				break;
 			}
-			NetBurst *burst;
-			uint8_t spot_id;
-			NetBurst::iterator pkt_it;
-
 			if(this->satellite_type != REGENERATIVE)
 			{
 				UTI_ERROR("message event while satellite is transparent");
 				return false;
 			}
+
+			NetBurst *burst;
+			uint8_t spot_id;
+			NetBurst::iterator pkt_it;
+
 			// message from upper layer: burst of encapsulation packets
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
@@ -997,6 +999,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				UTI_ERROR("failed to handle received DVB frame "
 				          "(regenerative satellite)\n");
 				status = false;
+				burst = NULL;
 			}
 
 			// send the message to the upper layer
@@ -1156,8 +1159,8 @@ void BlockDvbSat::Downward::updateStats(void)
 		// Queue sizes
 		mac_fifo_stat_context_t output_gw_fifo_stat;
 		mac_fifo_stat_context_t output_st_fifo_stat;
-		spot->getDataOutStFifo()->getStatsCxt(output_gw_fifo_stat);
-		spot->getDataOutGwFifo()->getStatsCxt(output_st_fifo_stat);
+		spot->getDataOutStFifo()->getStatsCxt(output_st_fifo_stat);
+		spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
 		this->probe_sat_output_gw_queue_size[spot_id]->put(
 			output_gw_fifo_stat.current_pkt_nbr);
 		this->probe_sat_output_gw_queue_size_kb[spot_id]->put(

@@ -351,7 +351,7 @@ bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
 	bool status = true;
 
 	// send all complete DVB-RCS frames
-	UTI_DEBUG_L3("send all %zu complete DVB-RCS frames...\n",
+	UTI_DEBUG_L3("send all %zu complete DVB frames...\n",
 	             complete_frames->size());
 	for(frame_it = complete_frames->begin();
 	    frame_it != complete_frames->end();
@@ -418,7 +418,7 @@ bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
 {
 
 	MacFifoElement *elem;
-	time_ms_t current_time = this->getCurrentTime();
+	clock_t current_time = this->getCurrentTime();
 
 	// create a new satellite cell to store the packet
 	elem = new MacFifoElement(packet, current_time, current_time + fifo_delay);

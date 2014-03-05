@@ -165,7 +165,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			UTI_ERROR("cannot get component type\n");
 			goto error;
 		}
-		UTI_INFO("host type = %s\n", compo_name.c_str());
+		UTI_DEBUG("host type = %s\n", compo_name.c_str());
 		host = getComponentType(compo_name);
 
 		if(carrier_disabled == compo_name)
