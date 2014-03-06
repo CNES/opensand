@@ -42,8 +42,12 @@ import time
 sys.path.append('../../.lib')
 from opensand_tests import Service
 
+# TODO we cannot get a correct output with bidirectionnal
+#      test and binding... if possible, do bidir and use
+#      GW as a server instead of client
+#COMMAND = '/usr/bin/iperf -y c -d -t '
 COMMAND = '/usr/bin/iperf -y c -t '
-SERVER = 'st3'
+SERVER = ['st3'] #, 'gw']
 TIME = 30
 
 class IperfClient():
@@ -66,28 +70,29 @@ class IperfClient():
 
         address_v4 = ''
         address_v6 = ''
-        if not SERVER in services:
-            self.print_error("cannot find iperf server: %s" % SERVER)
-            return
+        for serv in SERVER:
+            if not serv in services:
+                self.print_error("cannot find iperf server: %s" % serv)
+                return
 
-        info = services[SERVER]
+            info = services[serv]
 
-        # wait 10 second because for ethernet tests we wait for bridge to be
-        # ready        
-        time.sleep(12)
+            # wait 10 second because for ethernet tests we wait for bridge to be
+            # ready        
+            time.sleep(12)
 
-        if not v6 and not 'lan_ipv4' in info:
-            self.print_error('no IPv4 lan address for %s' % SERVER)
-        elif not v6:
-            address_v4 = info['lan_ipv4']
-            address_v4 = address_v4.split("/")[0]
-            self.iperf(address_v4)
-        if v6 and not 'lan_ipv6' in info:
-            self.print_error('no IPv6 lan address for %s' % SERVER)
-        elif v6:
-            address_v6 = info['lan_ipv6']
-            address_v6 = address_v6.split("/")[0]
-            self.iperf(address_v6, True)
+            if not v6 and not 'lan_ipv4' in info:
+                self.print_error('no IPv4 lan address for %s' % serv)
+            elif not v6:
+                address_v4 = info['lan_ipv4']
+                address_v4 = address_v4.split("/")[0]
+                self.iperf(address_v4)
+            if v6 and not 'lan_ipv6' in info:
+                self.print_error('no IPv6 lan address for %s' % serv)
+            elif v6:
+                address_v6 = info['lan_ipv6']
+                address_v6 = address_v6.split("/")[0]
+                self.iperf(address_v6, True)
 
     def iperf(self, address, v6=False):
         """ launch an iperf """
@@ -104,30 +109,36 @@ class IperfClient():
         if err != '':
             self.print_error(err + '\n')
 
-        bw = self.get_bandwidth(out)
-        if bw is None or bw == '':
-            return
-        bandwidth = float(bw)
-        if bandwidth < 800000:
-            self.print_error("not enough throughput: %s" % bandwidth)
-            self.returncode = 1
-        else:
-            print "OK"
-
-    def get_bandwidth(self, msg):
+        self.check_params(out, 8, 'bandwidth', 880000, 930000)
+        self.check_params(out, 10, 'packet loss', 0, 0)
+                
+    def check_params(self, msg, pos, name, min_val, max_val):
         """ read the bandwidth from iperf output """
         # the -y option allow to get the iperf result in the following format:
         # date,ip source,port source,ip dest,port dest,id,interval,transfer,
-        # bandwidth(bits/s)
-        bdw = 0
-        try:
-            bdw = msg.split('\n')[1]
-            bdw = bdw.split(',')[8]
-        except IndexError:
-            self.print_error("cannot parse iperf output (%s)" % msg)
-            return None
+        # bandwidth(bits/s),jitter(ms),pkt_loss,pkt_sent,ratio_lost,err
+        # as we made a bidirectionnal test we expect 2 reports
+        for nbr in [1]:#, 2]: TODO if bidir
+            try:
+                report = msg.split('\n')[nbr]
+                val = int(report.split(',')[pos])
+                # src, dst of the report, not of the flow
+                src = report.split(',')[1]
+                dst = report.split(',')[3]
+            except IndexError:
+                self.print_error("cannot parse iperf output (%s)" % msg)
+                return False
 
-        return bdw
+            print "Analyse %s from %s to %s:" % (name, dst, src)
+            if min_val > val:
+                self.print_error("Value is too low %s, expected at least %s" %
+                                 (val, min_val))
+                return False
+            if val > max_val:
+                self.print_error("Value is too high %s, expected at most %s" %
+                                 (val, max_val))
+                return False
+            print "\tOK"
 
     def print_error(self, *args):
         """ error handler """

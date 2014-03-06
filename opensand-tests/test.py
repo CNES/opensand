@@ -362,7 +362,9 @@ help="specify the root folder for tests configurations\n"
                         break
                 if not found:
                     raise TestError("Initialization", "test '%s' is not "
-                                    "available, found %s" % (self._test, test_names))
+                                    "available, found %s" % (self._test,
+                                    map(lambda x: os.path.basename(x),
+                                        test_names)))
 
             # iter on tests 
             for test_name in test_names:

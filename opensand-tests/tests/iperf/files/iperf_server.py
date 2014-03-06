@@ -41,7 +41,7 @@ import shlex
 import time
 import ConfigParser
 
-COMMAND = '/usr/bin/iperf -s -u -B '
+COMMAND = '/usr/bin/iperf -su -B '
 CONF_FILE = "/etc/opensand/daemon.conf"
 
 if __name__ == '__main__':
