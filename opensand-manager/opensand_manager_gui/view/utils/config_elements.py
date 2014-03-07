@@ -42,6 +42,7 @@ from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
+(DISPLAYED, NAME, ID, SIZE) = range(4)
 
 
 class ProbeSelectionController(object):
@@ -73,8 +74,10 @@ class ProbeSelectionController(object):
         #         keeping the alignment)
         # The tree view itself uses one column, with two renderers (checkbox
         # and text)
-        # TODO use macros for columns ID as in following class
-        self._probe_store = gtk.TreeStore(bool, str, int, int)
+        self._probe_store = gtk.TreeStore(gobject.TYPE_BOOLEAN,
+                                          gobject.TYPE_STRING,
+                                          gobject.TYPE_INT,
+                                          gobject.TYPE_INT)
 
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
         probe_listview.set_model(self._probe_store)
@@ -83,18 +86,18 @@ class ProbeSelectionController(object):
 
 
         column = gtk.TreeViewColumn("Probe")
-        column.set_sort_column_id(1) # Sort on the probe/section name
+        column.set_sort_column_id(NAME) # Sort on the probe/section name
         probe_listview.append_column(column)
 
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
-        column.add_attribute(cell_renderer, "active", 0)
-        column.add_attribute(cell_renderer, "indicator-size", 3)
+        column.add_attribute(cell_renderer, "active", DISPLAYED)
+        column.add_attribute(cell_renderer, "indicator-size", SIZE)
         cell_renderer.connect("toggled", self._probe_toggled)
 
         cell_renderer = gtk.CellRendererText()
         column.pack_start(cell_renderer, True)
-        column.add_attribute(cell_renderer, "text", 1)
+        column.add_attribute(cell_renderer, "text", NAME)
 
     def clear_selection(self):
         """ clear selection """
@@ -110,7 +113,7 @@ class ProbeSelectionController(object):
 
     def unselect(self, model, path, iter):
         """ unselect a statistic """
-        self._probe_store.set_value(iter, 0, False)
+        self._probe_store.set_value(iter, DISPLAYED, False)
 
     def register_collection_dialog(self, collection_dialog):
         """ register a collection dialog """
@@ -174,7 +177,7 @@ class ProbeSelectionController(object):
             return
 
         it = self._program_store.get_iter(selection[0])
-        prog_ident = self._program_store.get_value(it, 1)
+        prog_ident = self._program_store.get_value(it, NAME)
 
         self._current_program = self._program_list[prog_ident]
 
@@ -217,8 +220,8 @@ class ProbeSelectionController(object):
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
         it = self._probe_store.get_iter(path)
-        probe_ident = self._probe_store.get_value(it, 2)
-        new_value = not self._probe_store.get_value(it, 0)
+        probe_ident = self._probe_store.get_value(it, ID)
+        new_value = not self._probe_store.get_value(it, DISPLAYED)
         # this is a parent, expand or collapse it
         if self._probe_store.iter_has_child(it):
             if self._probe_listview.row_expanded(path):
@@ -241,7 +244,7 @@ class ProbeSelectionController(object):
         except ValueError, msg:
             error_popup(str(msg))
 
-        self._probe_store.set(it, 0, new_value)
+        self._probe_store.set(it, DISPLAYED, new_value)
 
         self.probe_displayed_change()
 
@@ -275,9 +278,10 @@ class ConfigurationTree(gtk.TreeStore):
         # - visible: is the check box of the 2nd column visible
         # - active: is the check box of the 2nd column active
         # - activatable: can we activate the check box of the 2nd column
-        gtk.TreeStore.__init__(self, str, gobject.TYPE_BOOLEAN,
-                                          gobject.TYPE_BOOLEAN,
-                                          gobject.TYPE_BOOLEAN)
+        gtk.TreeStore.__init__(self, gobject.TYPE_STRING,
+                                     gobject.TYPE_BOOLEAN,
+                                     gobject.TYPE_BOOLEAN,
+                                     gobject.TYPE_BOOLEAN)
 
         self._treeselection = None
         self._cell_renderer_toggle = None

@@ -36,10 +36,11 @@ config_collection_dialog.py - Dialog allowing to enable and disable probes
 """
 
 import gtk
+import gobject
 
 from opensand_manager_gui.view.window_view import WindowView
 
-(TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
+(ACTIVE, NAME, PROG_ID, ID) = range(4)
 
 class ConfigCollectionDialog(WindowView):
     """ an advanced configuration window """
@@ -47,30 +48,33 @@ class ConfigCollectionDialog(WindowView):
         WindowView.__init__(self, None, 'config_collection_window')
 
         self._dlg = self._ui.get_widget('config_collection_window')
-        self._dlg.set_title("Configure collection - OpenSAND Manager")
+        self._dlg.set_title("Configure probes collection - OpenSAND Manager")
         self._listview = self._ui.get_widget('config_collection_view')
         self._sel_controller = sel_controller
         self._model = model
         self._log = manager_log
         self._shown = False
         self._programs = {}
-        
-        self._probe_store = gtk.ListStore(bool, str, int, int)
+
+        self._probe_store = gtk.TreeStore(gobject.TYPE_BOOLEAN,
+                                          gobject.TYPE_STRING,
+                                          gobject.TYPE_INT,
+                                          gobject.TYPE_INT)
         self._listview.set_model(self._probe_store)
         self._listview.get_selection().set_mode(gtk.SELECTION_NONE)
-        
+
         column_text = gtk.TreeViewColumn("Probe")
         self._listview.append_column(column_text)
-        
+
         cellrenderer_toggle = gtk.CellRendererToggle()
         column_text.pack_start(cellrenderer_toggle, False)
-        column_text.add_attribute(cellrenderer_toggle, "active", 0)
+        column_text.add_attribute(cellrenderer_toggle, "active", ACTIVE)
         cellrenderer_toggle.connect("toggled", self._cell_toggled)
-        
+
         cellrenderer_text = gtk.CellRendererText()
         column_text.pack_start(cellrenderer_text, True)
-        column_text.add_attribute(cellrenderer_text, "text", 1)
-        
+        column_text.add_attribute(cellrenderer_text, "text", NAME)
+
         self._dlg.connect('delete-event', self._delete)
 
     def show(self):
@@ -78,56 +82,94 @@ class ConfigCollectionDialog(WindowView):
         if self._shown:
             self._dlg.present()
             return
-        
+
         self._shown = True
-        
+
         self._sel_controller.register_collection_dialog(self)
-        
+
         self._dlg.set_icon_name('gtk-properties')
         self._dlg.show()
-    
+
     def hide(self):
         """ hide the window """
         if not self._shown:
             return
-        
+
         self._sel_controller.register_collection_dialog(None)
         self._shown = False
         self._dlg.hide()
 
     def update_list(self, program_dict):
         """ update the probe list shown by the window """
-    
+
         self._programs = program_dict
-        
+
         self._probe_store.clear()
-        
+
         for program in self._programs.itervalues():
+            parent = self._probe_store.append(None, [True, program.name,
+                                                     program.ident, -1])
             for probe in program.get_probes():
-                self._probe_store.append([probe.enabled, probe.full_name,
-                                          probe.program.ident, probe.ident])
-    
+                if not probe.enabled:
+                    # probes are not all active, untick box
+                    self._probe_store.set_value(parent, ACTIVE, False)
+                self._probe_store.append(parent, [probe.enabled,
+                                                  probe.full_name.split('.', 1)[1],
+                                                  probe.program.ident,
+                                                  probe.ident])
+
+
     def _cell_toggled(self, _, path):
         """ a window cell has been toggled """
-    
         it = self._probe_store.get_iter(path)
-        new_value = not self._probe_store.get_value(it, 0)
-        prog_id = self._probe_store.get_value(it, 2)
-        probe_id = self._probe_store.get_value(it, 3)
+        parent = self._probe_store.iter_parent(it)
+        if parent is None:
+            # program name, get the active value
+            val = not self._probe_store.get_value(it, ACTIVE)
+            self._probe_store.set_value(it, ACTIVE, val)
+            for idx in range(self._probe_store.iter_n_children(it)):
+                child = self._probe_store.iter_nth_child(it, idx)
+                self._probe_toggled(child, it, val)
+            return
+        self._probe_toggled(it, parent)
         
+
+    def _probe_toggled(self, it, parent, val=None):
+        """ a probe has been toggled """
+        new_value = val
+        if val is None:
+            new_value = not self._probe_store.get_value(it, ACTIVE)
+        prog_id = self._probe_store.get_value(it, PROG_ID)
+        probe_id = self._probe_store.get_value(it, ID)
+
         probe = self._programs[prog_id].get_probe(probe_id)
         was_hidden = False
         if probe.displayed:
             was_hidden = True
             probe.displayed = False
-        
+
         probe.enabled = new_value
-        self._probe_store.set(it, 0, new_value)
-        
+        self._probe_store.set(it, ACTIVE, new_value)
+
+        # update parent box
+        # if this one is False untick
+        # TODO see gtk.TreeModel.row_has_child_toggled !!
+        if new_value is False:
+            self._probe_store.set_value(parent, ACTIVE, False)
+        else: # we need to check if there is a child that is not activated
+            # first set active
+            self._probe_store.set_value(parent, ACTIVE, True)
+            for idx in range(self._probe_store.iter_n_children(parent)):
+                child = self._probe_store.iter_nth_child(parent, idx)
+                if not self._probe_store.get_value(child, ACTIVE):
+                    # one is not active, untick box
+                    self._probe_store.set_value(parent, ACTIVE, False)
+
         self._sel_controller.probe_enabled_changed(probe, was_hidden)
+
 
     def _delete(self, _widget, _event):
         """ the window close button was clicked """
-        
+
         self.hide()
-        return True        
+        return True

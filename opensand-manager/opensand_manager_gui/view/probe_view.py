@@ -43,8 +43,6 @@ from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.config_collection_dialog import ConfigCollectionDialog
 from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
 
-(TEXT, VISIBLE, ACTIVE) = range(3)
-
 class ProbeView(WindowView):
     """ Elements of the probe tab """
     def __init__(self, parent, model, manager_log):

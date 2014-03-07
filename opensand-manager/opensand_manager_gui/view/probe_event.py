@@ -40,8 +40,6 @@ import os
 from opensand_manager_gui.view.probe_view import ProbeView
 from opensand_manager_gui.view.popup.run_dialog import RunDialog
 
-(TEXT, VISIBLE, ACTIVE) = range(3)
-
 class ProbeEvent(ProbeView):
     """ Events for the probe tab """
     def __init__(self, parent, model, manager_log):
