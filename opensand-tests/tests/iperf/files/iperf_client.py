@@ -79,20 +79,48 @@ class IperfClient():
 
             # wait 10 second because for ethernet tests we wait for bridge to be
             # ready        
-            time.sleep(12)
+            time.sleep(10)
 
             if not v6 and not 'lan_ipv4' in info:
                 self.print_error('no IPv4 lan address for %s' % serv)
             elif not v6:
                 address_v4 = info['lan_ipv4']
                 address_v4 = address_v4.split("/")[0]
+                # first ping to initialize ARP in Ethernet mode
+                # else we have loss
+                if not self.ping(address_v4):
+                    return
                 self.iperf(address_v4)
             if v6 and not 'lan_ipv6' in info:
                 self.print_error('no IPv6 lan address for %s' % serv)
             elif v6:
                 address_v6 = info['lan_ipv6']
                 address_v6 = address_v6.split("/")[0]
+                # first ping to initialize ARP in Ethernet mode
+                # else we have loss
+                if not self.ping(address_v6, True):
+                    return
                 self.iperf(address_v6, True)
+                
+    def ping(self, address, v6=False):
+        """ ping a st or ws """
+        cmd = 'ping'
+        if v6:
+            cmd = 'ping6'
+        # 3 pings because for Ethernet, the first is for ARP
+        # and the second if often too long
+        ping = subprocess.Popen([cmd, "-c", "2", address],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = ping.communicate()
+        print out
+        if err != '':
+            print err + '\n'
+        if ping.returncode != 0:
+            self.print_error("ping returned %s\n" % str(ping.returncode))
+            self.returncode = ping.returncode
+            return False
+        return True
 
     def iperf(self, address, v6=False):
         """ launch an iperf """
