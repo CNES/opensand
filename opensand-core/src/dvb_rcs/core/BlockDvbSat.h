@@ -161,6 +161,15 @@ class BlockDvbSat: public BlockDvb
 		bool sendFrames(DvbFifo *fifo);
 
 		/**
+		 * Send the DVB sig frames
+		 *
+		 * @param frame  the sig frame
+		 * @param spot   the spot on which the frame is sent
+		 * @return       true on success, false otherwise
+		 */
+		bool sendSigFrame(DvbFrame *frame, const SatSpot *const spot);
+
+		/**
 		 * @brief Initialize the link
 		 *
 		 * @return  true on success, false otherwise

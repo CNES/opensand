@@ -60,6 +60,7 @@
 
 // elements for CNI sharing
 #define MSG_TYPE_CNI 0x17
+#define MSG_TYPE_SIG 0x18
 typedef struct
 {
 	tal_id_t tal_id;
@@ -712,6 +713,29 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				delete info;
 				break;
 			}
+			if(((MessageEvent *)event)->getMessageType() == MSG_TYPE_SIG)
+			{
+				bool status = true;
+				DvbFrame *dvb_frame;
+
+				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
+				// send frame for every satellite spot
+				for(sat_spots_t::iterator i_spot = this->spots.begin();
+				    i_spot != this->spots.end(); i_spot++)
+				{
+					SatSpot *current_spot = i_spot->second;
+					// copy the frame because it will be sent on other spots
+					DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
+
+					if(!this->sendSigFrame(dvb_frame_copy, current_spot))
+					{
+						status = false;
+					}
+				}
+				delete dvb_frame;
+				return status;
+			}
+
 			if(this->satellite_type != REGENERATIVE)
 			{
 				UTI_ERROR("message event while satellite is transparent");
@@ -777,29 +801,13 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 				// increment counter of superframes
 				this->down_frame_counter++;
-				UTI_DEBUG_L3("frame timer expired, send DVB sig\n");
+				UTI_DEBUG_L3("frame timer expired, send DVB frames\n");
 
 				// send frame for every satellite spot
 				for(sat_spots_t::iterator i_spot = this->spots.begin();
 				    i_spot != this->spots.end(); i_spot++)
 				{
 					SatSpot *current_spot = i_spot->second;
-
-					UTI_DEBUG_L3("send logon frames on satellite spot %u\n",
-					             i_spot->first);
-					if(!this->sendFrames(current_spot->getLogonFifo()))
-					{
-						UTI_ERROR("Failed to send logon frames on spot %u\n",
-						          i_spot->first);
-					}
-
-					UTI_DEBUG_L3("send control frames on satellite spot %u\n",
-					             i_spot->first);
-					if(!this->sendFrames(current_spot->getControlFifo()))
-					{
-						UTI_ERROR("Failed to send contol frames on spot %u\n",
-						          i_spot->first);
-					}
 
 					if(this->satellite_type == TRANSPARENT)
 					{
@@ -1094,44 +1102,19 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	case MSG_TYPE_TTP:
 	case MSG_TYPE_SYNC:
 	case MSG_TYPE_SESSION_LOGON_RESP:
+	case MSG_TYPE_SESSION_LOGON_REQ:
 	{
 		UTI_DEBUG_L3("control frame (type = %u) received, "
 		             "forward it on all satellite spots\n",
 		             dvb_frame->getMessageType());
-
-		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
+		// the message should not be stored in fifo, especially SOF because it
+		// would be kept a random amount of time between [0, fwd_timer]
+		// and we need a perfect synchronization
+		if(!this->shareMessage((void **)&dvb_frame, sizeof(dvb_frame),
+		                       MSG_TYPE_SIG))
 		{
-			DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
-
-			// forward the frame copy
-			if(!this->forwardDvbFrame(spot->second->getControlFifo(),
-			                          dvb_frame_copy))
-			{
-				status = false;
-			}
+			UTI_ERROR("Unable to transmit sig to downward channel\n");
 		}
-		delete dvb_frame;
-	}
-	break;
-
-	// Special case of logon frame with dedicated channel
-	case MSG_TYPE_SESSION_LOGON_REQ:
-	{
-		UTI_DEBUG("ST logon request received, "
-		          "forward it on all satellite spots\n");
-
-		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
-		{
-			DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
-
-			// forward the frame copy
-			if(!this->forwardDvbFrame(spot->second->getLogonFifo(),
-			                          dvb_frame_copy))
-			{
-				status = false;
-			}
-		}
-		delete dvb_frame;
 	}
 	break;
 
@@ -1280,4 +1263,45 @@ error:
 	return false;
 }
 
+
+bool BlockDvbSat::Downward::sendSigFrame(DvbFrame *frame, const SatSpot *const spot)
+{
+	uint8_t carrier_id;
+
+	switch(frame->getMessageType())
+	{
+		case MSG_TYPE_SAC:
+		case MSG_TYPE_SOF:
+		case MSG_TYPE_TTP:
+		case MSG_TYPE_SYNC:
+		case MSG_TYPE_SESSION_LOGON_RESP:
+			carrier_id = spot->getControlCarrierId();
+			break;
+
+		case MSG_TYPE_SESSION_LOGON_REQ:
+			carrier_id = spot->getLogonCarrierId();
+			break;
+
+		default:
+			UTI_ERROR("Frame is not a sig frame\n");
+			goto error;
+	}
+
+	// create a message for the DVB frame
+	if(!this->sendDvbFrame(frame, carrier_id))
+	{
+		UTI_ERROR("failed to send sig frame to lower layer, drop it\n");
+		goto error;
+	}
+
+	UTI_DEBUG("Sig frame sent with a size of %zu\n",
+	          frame->getTotalLength());
+
+
+	return true;
+
+error:
+	delete frame;
+	return false;
+}
 

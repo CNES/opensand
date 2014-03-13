@@ -54,6 +54,8 @@ SatSpot::SatSpot(spot_id_t spot_id,
                  size_t fifo_size):
 	spot_id(spot_id),
 	data_in_carrier_id(data_in_carrier_id),
+	logon_carrier_id(log_id),
+	ctrl_carrier_id(ctrl_id),
 	complete_dvb_frames(),
 	scheduling(NULL),
 	l2_from_st_bytes(0),
@@ -61,9 +63,6 @@ SatSpot::SatSpot(spot_id_t spot_id,
 	spot_mutex("Spot")
 {
 	// initialize MAC FIFOs
-#define SIG_FIFO_SIZE 1000
-	this->logon_fifo = new DvbFifo(log_id, SIG_FIFO_SIZE, "logon_fifo");
-	this->control_fifo = new DvbFifo(ctrl_id, SIG_FIFO_SIZE, "control_fifo");
 	this->data_out_st_fifo = new DvbFifo(data_out_st_id, fifo_size, "data_out_st");
 	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size, "data_out_gw");
 }
@@ -76,8 +75,6 @@ SatSpot::~SatSpot()
 	if(scheduling)
 		delete this->scheduling;
 
-	delete this->logon_fifo;
-	delete this->control_fifo;
 	delete this->data_out_st_fifo;
 	delete this->data_out_gw_fifo;
 }
@@ -139,14 +136,14 @@ DvbFifo *SatSpot::getDataOutGwFifo(void) const
 	return this->data_out_gw_fifo;
 }
 
-DvbFifo *SatSpot::getControlFifo(void) const
+uint8_t SatSpot::getControlCarrierId(void) const
 {
-	return this->control_fifo;
+	return this->ctrl_carrier_id;
 }
 
-DvbFifo *SatSpot::getLogonFifo(void) const
+uint8_t SatSpot::getLogonCarrierId(void) const
 {
-	return this->logon_fifo;
+	return this->logon_carrier_id;
 }
 
 list<DvbFrame *> &SatSpot::getCompleteDvbFrames(void)
