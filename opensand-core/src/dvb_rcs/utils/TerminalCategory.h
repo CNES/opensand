@@ -39,6 +39,8 @@
 #include "TerminalContext.h"
 #include "CarriersGroup.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <string>
 #include <map>
 #include <vector>
@@ -155,6 +157,10 @@ class TerminalCategory
 	template<class T>
 	vector<T *> getTerminalsInCarriersGroup(
 	                             unsigned int carrier_id) const;
+
+ protected:
+	// Output Log
+	OutputLog *log_terminal_category;
 
  private:
 

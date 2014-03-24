@@ -214,6 +214,16 @@ class DamaCtrl
 	 */
 	virtual bool runDamaFca() = 0;
 
+	// Output Log
+	OutputLog *log_init;
+	OutputLog *log_logon;
+	OutputLog *log_super_frame_tick;
+	OutputLog *log_run_dama;
+	OutputLog *log_sac;
+	OutputLog *log_ttp;
+	OutputLog *log_pep;
+	OutputLog *log_fmt;
+
 	/** Flag if init of THIS DAMA class (DamaCtrl) has been done */
 	bool is_parent_init;
 

@@ -39,6 +39,7 @@
 #include "DvbFrame.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_output/OutputLog.h>
 
 #include <string>
 
@@ -52,6 +53,9 @@ using std::string;
 class PhyChannel
 {
  protected:
+
+	/// Output logs
+	OutputLog *log_channel;
 
 	/// The channel status
 	bool status;

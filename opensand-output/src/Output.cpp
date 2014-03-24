@@ -30,74 +30,72 @@
  * @brief Methods of the Output static class, used by the application to
  *        interact with the output.
  * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Fabrice Hobaya <fhobaya@toulouse.viveris.com>
  */
 
 #include "Output.h"
 
-#include <opensand_conf/uti_debug.h>
-
 
 OutputInternal Output::instance;
-pthread_mutex_t Output::mutex;
 
-void Output::init(bool enabled, event_level_t min_level,
-                  const char *sock_prefix)
+bool Output::init(bool enabled, const char *sock_prefix)
 {
-	Output::acquireLock();
-	instance.init(enabled, min_level, sock_prefix);
-	Output::releaseLock();
+	return instance.init(enabled, sock_prefix);
 }
 
-Event *Output::registerEvent(const std::string &identifier,
-                             event_level_t level)
+OutputEvent *Output::registerEvent(const string &identifier)
 {
-	Event *evt;
-
-	Output::acquireLock();
-	evt = instance.registerEvent(identifier, level);
-	Output::releaseLock();
-
-	return evt;
+	return instance.registerEvent(identifier);
 }
 
-Event *Output::registerEvent(event_level_t level,
-                             const char *identifier, ...)
+OutputLog *Output::registerLog(log_level_t display_level,
+                               const string &name)
 {
-	Event *evt;
+	return instance.registerLog(display_level, name);
+}
+
+
+OutputEvent *Output::registerEvent(const char *identifier, ...)
+{
 	char buf[1024];
 	va_list args;
-	
+
 	va_start(args, identifier);
 
 	vsnprintf(buf, sizeof(buf), identifier, args);
 
 	va_end(args);
 
-	evt = Output::registerEvent(buf, level);
-
-	return evt;
+	return Output::registerEvent(string(buf));
 }
 
-
-bool Output::finishInit()
+OutputLog *Output::registerLog(log_level_t default_display_level,
+                               const char* name, ...)
 {
-	bool ret;
+	char buf[1024];
+	va_list args;
 
-	Output::acquireLock();
-	ret = instance.finishInit();
-	Output::releaseLock();
+	va_start(args, name);
 
-	return ret;
+	vsnprintf(buf, sizeof(buf), name, args);
+
+	va_end(args);
+
+	return Output::registerLog(default_display_level, string(buf));
 }
 
-void Output::sendProbes()
+bool Output::finishInit(void)
 {
-	Output::acquireLock();
+	return instance.finishInit();
+}
+
+void Output::sendProbes(void)
+{
 	instance.sendProbes();
-	Output::releaseLock();
 }
 
-void Output::sendEvent(Event* event, const char* msg_format, ...)
+void Output::sendEvent(OutputEvent* event,
+                       const char* msg_format, ...)
 {
 	char buf[1024];
 	va_list args;
@@ -107,64 +105,88 @@ void Output::sendEvent(Event* event, const char* msg_format, ...)
 
 	va_end(args);
 
-	Output::acquireLock();
-	instance.sendEvent(event, buf);
-	Output::releaseLock();
+	instance.sendLog(event, LEVEL_EVENT, string(buf));
+}
+
+
+void Output::sendLog(OutputLog *log, log_level_t log_level,
+                     const char *msg_format, ...)
+{
+	char buf[1024];
+	va_list args;
+	va_start(args, msg_format);
+
+	vsnprintf(buf, sizeof(buf), msg_format, args);
+
+	va_end(args);
+
+	instance.sendLog(log, log_level, buf);
+}
+
+void Output::sendLog(log_level_t log_level,
+                     const char *msg_format, ...)
+{
+	char buf[1024];
+	va_list args;
+	va_start(args, msg_format);
+
+	vsnprintf(buf, sizeof(buf), msg_format, args);
+
+	va_end(args);
+
+	instance.sendLog(NULL, log_level, string(buf));
 }
 
 Output::Output()
 {
-	if(pthread_mutex_init(&this->mutex, NULL) != 0)
-	{
-		UTI_ERROR("cannot initialize mutex\n");
-		assert(0);
-	}
 }
 
 Output::~Output()
 {
-	if(pthread_mutex_destroy(&this->mutex) != 0)
-	{
-		UTI_ERROR("cannot destroy mutex\n");
-	}
 }
 
 void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
-	Output::acquireLock();
 	instance.setProbeState(probe_id, enabled);
-	Output::releaseLock();
 }
 
-void Output::disable()
+void Output::setLogLevel(uint8_t log_id, log_level_t level)
 {
-	Output::acquireLock();
-	instance.disable();
-	Output::releaseLock();
+	instance.setLogLevel(log_id, level);
 }
 
-void Output::enable()
+void Output::disableCollector(void)
 {
-	Output::acquireLock();
-	instance.enable();
-	Output::releaseLock();
+	instance.disableCollector();
 }
 
-void Output::acquireLock()
+void Output::enableCollector(void)
 {
-	if(pthread_mutex_lock(&(mutex)) != 0)
-	{
-		UTI_ERROR("cannot acquire lock on output\n");
-		assert(0);
-	}
+	instance.enableCollector();
 }
 
-void Output::releaseLock()
+void Output::disableLogs(void)
 {
-	if(pthread_mutex_unlock(&(mutex)) != 0)
-	{
-		UTI_ERROR("cannot release lock on output\n");
-		assert(0);
-	}
+	instance.disableLogs();
+}
+
+void Output::enableLogs(void)
+{
+	instance.enableLogs();
+}
+
+void Output::disableSyslog(void)
+{
+	instance.disableSyslog();
+}
+
+void Output::enableSyslog(void)
+{
+	instance.enableSyslog();
+}
+
+void Output::enableStdlog(void)
+{
+	instance.enableStdlog();
 }
 

@@ -34,10 +34,6 @@
 
 #include "NetPacket.h"
 
-// debug
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
-
 
 NetPacket::NetPacket(const unsigned char *data, size_t length):
 	NetContainer(data, length),

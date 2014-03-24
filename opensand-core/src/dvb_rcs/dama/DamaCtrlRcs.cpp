@@ -32,27 +32,16 @@
  */
 
 
-// FIXME we need to include uti_debug.h before...
-#define DC_DBG_PREFIX "[Generic]"
-#undef DBG_PACKAGE
-#define DBG_PACKAGE PKG_DAMA_DC
-#include <opensand_conf/uti_debug.h>
-
 #include "DamaCtrlRcs.h"
 #include "TerminalContextRcs.h"
 
 #include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
 
 #include <math.h>
 
 
 using namespace std;
-
-
-// TODO
-// Static output events and probes
-Event* DamaCtrlRcs::error_alloc = NULL;
-Event* DamaCtrlRcs::error_ncc_req = NULL;
 
 /**
  * Constructor
@@ -75,7 +64,8 @@ bool DamaCtrlRcs::init()
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
 	{
-		UTI_ERROR("Parent 'init()' method must be called first.\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR, 
+		                "Parent 'init()' method must be called first.\n");
 		goto error;
 	}
 
@@ -100,8 +90,9 @@ bool DamaCtrlRcs::createTerminal(TerminalContext **terminal,
 	                                   this->converter);
 	if(!(*terminal))
 	{
-		UTI_ERROR("SF#%u: cannot allocate terminal %u\n",
-		          this->current_superframe_sf, tal_id);
+		Output::sendLog(this->log_logon, LEVEL_ERROR,
+		                "SF#%u: cannot allocate terminal %u\n",
+		                this->current_superframe_sf, tal_id);
 		return false;
 	}
 	return true;
@@ -126,8 +117,9 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 	st = this->terminals.find(tal_id);
 	if(st == this->terminals.end() && tal_id != GW_TAL_ID)
 	{
-		UTI_ERROR("SF#%u: CR for an unknown st (logon_id=%u). Discarded.\n" ,
-		          this->current_superframe_sf, tal_id);
+		Output::sendLog(this->log_sac, LEVEL_ERROR, 
+		                "SF#%u: CR for an unknown st (logon_id=%u). "
+		                "Discarded.\n" , this->current_superframe_sf, tal_id);
 /*		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
 		                  "Discarded.\n", tal_id);*/
 		goto error;
@@ -142,11 +134,11 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 
 		// retrieve the requested capacity
 		xbdc = (*it).value;
-		UTI_DEBUG("SF#%u: ST%u requests %u %s\n",
-		          this->current_superframe_sf,
-		          tal_id, xbdc,
-		          ((*it).type == cr_vbdc) ?
-		           "slots in VBDC" : "kbits/s in RBDC");
+		Output::sendLog(this->log_sac, LEVEL_INFO,
+		                "SF#%u: ST%u requests %u %s\n",
+		                this->current_superframe_sf, tal_id, xbdc,
+		                ((*it).type == cr_vbdc) ?
+		                "slots in VBDC" : "kbits/s in RBDC");
 
 		// take into account the new request
 		switch((*it).type)
@@ -209,9 +201,11 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 		const std::vector<TerminalContext *> &terminals =
 							(*category_it).second->getTerminals();
 
-		UTI_DEBUG_L3("SF#%u: Category %s has %zu terminals\n",
-		             this->current_superframe_sf,
-		             (*category_it).first.c_str(), terminals.size());
+
+		Output::sendLog(this->log_ttp, LEVEL_DEBUG,
+		                "SF#%u: Category %s has %zu terminals\n",
+		                this->current_superframe_sf,
+		                (*category_it).first.c_str(), terminals.size());
 		for(unsigned int terminal_index = 0;
 			terminal_index < terminals.size();
 			terminal_index++)
@@ -230,8 +224,9 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 			                     terminal->getFmtId(),
 			                     0))
 			{
-				UTI_ERROR("SF#%u: cannot add TimePlan for terminal %u\n",
-				          this->current_superframe_sf, terminal->getTerminalId());
+				Output::sendLog(this->log_ttp, LEVEL_ERROR,
+				                "SF#%u: cannot add TimePlan for terminal %u\n",
+				                this->current_superframe_sf, terminal->getTerminalId());
 				continue;
 			}
 		}
@@ -255,10 +250,11 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 	it = this->terminals.find(request->getStId());
 	if(it == this->terminals.end())
 	{
-		UTI_ERROR("SF#%u: ST%d is not logged on, ignore %s request\n",
-		          this->current_superframe_sf, request->getStId(),
-		          request->getType() == PEP_REQUEST_ALLOCATION ?
-		          "allocation" : "release");
+		Output::sendLog(this->log_pep, LEVEL_ERROR, 
+		                "SF#%u: ST%d is not logged on, ignore %s request\n",
+		                this->current_superframe_sf, request->getStId(),
+		                request->getType() == PEP_REQUEST_ALLOCATION ?
+		                "allocation" : "release");
 		goto abort;
 	}
 	terminal = (TerminalContextRcs*)(it->second);
@@ -271,9 +267,10 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 		this->gw_cra_alloc_kbps -= terminal->getCra();
 
 		terminal->setCra(cra_kbps);
-		UTI_INFO("SF#%u: ST%u: update the CRA value to %u kbits/s\n",
-		         this->current_superframe_sf,
-		         request->getStId(), request->getCra());
+		Output::sendLog(this->log_pep, LEVEL_NOTICE,
+		                "SF#%u: ST%u: update the CRA value to %u kbits/s\n",
+		                this->current_superframe_sf,
+		                request->getStId(), request->getCra());
 
 		// Output probes and stats
 		this->gw_cra_alloc_kbps += cra_kbps;
@@ -290,9 +287,10 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 		this->gw_rbdc_max_kbps -= terminal->getMaxRbdc();
 
 		terminal->setMaxRbdc(max_rbdc_kbps);
-		UTI_INFO("SF#%u: ST%u: update RBDC std::max to %u kbits/s\n",
-		         this->current_superframe_sf,
-		         request->getStId(), request->getRbdcMax());
+		Output::sendLog(this->log_pep, LEVEL_NOTICE,
+		                "SF#%u: ST%u: update RBDC std::max to %u kbits/s\n",
+		                this->current_superframe_sf,
+		                request->getStId(), request->getRbdcMax());
 
 		// Output probes and stats
 		this->gw_rbdc_max_kbps += max_rbdc_kbps;
@@ -309,9 +307,10 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 		terminal->setRbdcTimeout(100);
 
 		terminal->setRequiredRbdc(this->converter->kbpsToPktpf(rbdc_kbps));
-		UTI_INFO("SF#%u: ST%u: inject RDBC request of %u kbits/s\n",
-		         this->current_superframe_sf,
-		         request->getStId(), request->getRbdc());
+		Output::sendLog(this->log_pep, LEVEL_NOTICE,
+		                "SF#%u: ST%u: inject RDBC request of %u kbits/s\n",
+		                this->current_superframe_sf,
+		                request->getStId(), request->getRbdc());
 
 		// change back RDBC timeout
 		terminal->setRbdcTimeout(this->rbdc_timeout_sf);
@@ -343,14 +342,16 @@ void DamaCtrlRcs::updateFmt()
 		category_it = this->categories.find(terminal->getCurrentCategory());
 		if(category_it == this->categories.end())
 		{
-			UTI_ERROR("SF#%u: unable to find category associated with terminal %u\n",
-			          this->current_superframe_sf, id);
+			Output::sendLog(this->log_fmt, LEVEL_ERROR,
+			                "SF#%u: unable to find category associated with "
+			                "terminal %u\n", this->current_superframe_sf, id);
 			continue;
 		}
 		category = (*category_it).second;
 		simulated_fmt = this->ret_fmt_simu->getCurrentModcodId(id);
-		UTI_DEBUG_L3("SF#%u: ST%u simulated FMT ID before affectation: %u\n",
-		             this->current_superframe_sf, id, simulated_fmt);
+		Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+		                "SF#%u: ST%u simulated FMT ID before affectation: %u\n",
+		                this->current_superframe_sf, id, simulated_fmt);
 		// get an available MODCOD id for this terminal among carriers
 		carriers = category->getCarriersGroups();
 		for(vector<CarriersGroup *>::const_iterator it = carriers.begin();
@@ -360,9 +361,10 @@ void DamaCtrlRcs::updateFmt()
 			// return the FMT id of the carrier
 			if((*it)->getNearestFmtId(simulated_fmt) == simulated_fmt)
 			{
-				UTI_DEBUG_L3("SF#%u: ST%u will  served with the required MODCOD (%u)\n",
-				             this->current_superframe_sf,
-				             terminal->getTerminalId(), available_fmt);
+				Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+				                "SF#%u: ST%u will  served with the required "
+				                "MODCOD (%u)\n", this->current_superframe_sf,
+				                terminal->getTerminalId(), available_fmt);
 				// we have a carrier with the corresponding MODCOD
 				terminal->setCarrierId((*it)->getCarriersId());
 				available_fmt = simulated_fmt;
@@ -381,14 +383,17 @@ void DamaCtrlRcs::updateFmt()
 
 		if(available_fmt == 0)
 		{
-			UTI_INFO("SF#%u: cannot serve terminal %u with simulated MODCOD %u "
-			         "after affectation\n", this->current_superframe_sf, id, simulated_fmt);
+			Output::sendLog(this->log_fmt, LEVEL_NOTICE,
+			                "SF#%u: cannot serve terminal %u with simulated "
+			                "MODCOD %u after affectation\n",
+			                this->current_superframe_sf, id, simulated_fmt);
 		}
 		else
 		{
-			UTI_DEBUG("SF#%u: ST%u will be served with the MODCOD %u\n",
-			          this->current_superframe_sf,
-			          terminal->getTerminalId(), available_fmt);
+			Output::sendLog(this->log_fmt, LEVEL_INFO,
+			                "SF#%u: ST%u will be served with the MODCOD %u\n",
+			                this->current_superframe_sf,
+			                terminal->getTerminalId(), available_fmt);
 		}
 		// it will be 0 if the terminal cannot be served
 		terminal->setFmtId(available_fmt);

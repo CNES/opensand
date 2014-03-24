@@ -37,17 +37,14 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <opensand_conf/uti_debug.h>
-
 #define PUT_IN_PROBE(probe, val) do \
 { if(val != 0) { probe->put(val); } } while(0)
 
-unsigned char dbgLevel_default = 4;
 
 int main(int argc, char* argv[])
 {
 	bool output_enabled = true;
-	event_level_t min_level = LEVEL_DEBUG;
+	log_level_t min_level = LEVEL_DEBUG;
 
 	if(argc < 2)
 	{
@@ -60,7 +57,8 @@ int main(int argc, char* argv[])
 		if(strcmp(argv[2], "disable") == 0)
 		{
 			output_enabled = false;
-		} else if(strcmp(argv[2], "nodebug") == 0)
+		}
+		if(strcmp(argv[2], "nodebug") == 0)
 		{
 			min_level = LEVEL_INFO;
 		}
@@ -69,7 +67,7 @@ int main(int argc, char* argv[])
 	puts("init");
 	fflush(stdout);
 
-	Output::init(output_enabled, min_level, argv[1]);
+	Output::init(output_enabled, argv[1]);
 
 	Probe<int32_t> *int32_last_probe =
 		Output::registerProbe<int32_t>("int32_last_probe", "µF", true, SAMPLE_LAST);
@@ -82,20 +80,22 @@ int main(int argc, char* argv[])
 	Probe<int32_t> *int32_sum_probe =
 		Output::registerProbe<int32_t>("int32_sum_probe", true, SAMPLE_SUM);
 	Probe<int32_t> *int32_dis_probe =
-		Output::registerProbe<int32_t>("int32_dis_probe", false, SAMPLE_LAST);
+		Output::registerProbe<int32_t>(false, SAMPLE_LAST, "int32_%s_probe", "dis");
 
 	Probe<float> *float_probe =
 		Output::registerProbe<float>("float_probe", true, SAMPLE_LAST);
 	Probe<double> *double_probe =
 		Output::registerProbe<double>("double_probe", true, SAMPLE_LAST);
 
-	Event* debug_event = Output::registerEvent("debug_event", LEVEL_DEBUG);
-	Event* info_event = Output::registerEvent("info_event", LEVEL_INFO);
-
 	puts("fin_init");
 	fflush(stdout);
+
 	if(!Output::finishInit())
 		return 1;
+		
+	OutputLog *info = Output::registerLog(LEVEL_INFO, "info");
+	OutputLog *debug = Output::registerLog(min_level, "debug");
+
 
 	puts("start");
 	fflush(stdout);
@@ -136,15 +136,22 @@ int main(int argc, char* argv[])
 			case 'd':
 				puts("debug");
 				fflush(stdout);
-				Output::sendEvent(debug_event, "This is the debug %s message.",
-				                  "event");
+				Output::sendLog(debug, LEVEL_DEBUG, "This is a debug %s message.",
+				                "log");
 			break;
 
 			case 'i':
 				puts("info");
 				fflush(stdout);
-				Output::sendEvent(info_event, "This is %s info event message.",
-				                  "the");
+				Output::sendLog(info, LEVEL_INFO, "This is %s info log message.",
+				                "the");
+			break;
+				
+			case 't':
+				puts("default log");
+				fflush(stdout);
+				Output::sendLog(LEVEL_ERROR, "This is a default log message%s",
+				                ".");
 			break;
 		}
 	}

@@ -38,6 +38,8 @@
 #include "Data.h"
 #include "NetPacket.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <list>
 #include <string>
 
@@ -52,6 +54,9 @@ class NetBurst: public std::list<NetPacket *>
 	/// The maximum number of network packets in the burst
 	/// (0 for unlimited length)
 	unsigned int max_packets;
+
+	// Output log
+	OutputLog *log_net_burst;
 
  public:
 

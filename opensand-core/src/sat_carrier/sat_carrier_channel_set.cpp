@@ -31,11 +31,10 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include <opensand_conf/uti_debug.h>
 
 #include "sat_carrier_channel_set.h"
+
+#include <opensand_output/Output.h>
 
 
 /**
@@ -44,6 +43,9 @@
 sat_carrier_channel_set::sat_carrier_channel_set():
 	std::vector < sat_carrier_channel * >()
 {
+	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
+	                                            "SatCarrier.Channel");
 }
 
 sat_carrier_channel_set::~sat_carrier_channel_set()
@@ -67,16 +69,18 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	if(!globalConfig.getValue(SATCAR_SECTION, SOCKET_TYPE,
 	                          this->socket_type))
 	{
-		UTI_ERROR("Can't get socket type from section %s, %s\n",
-		          SATCAR_SECTION, SOCKET_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Can't get socket type from section %s, %s\n",
+		                SATCAR_SECTION, SOCKET_TYPE);
 		goto error;
 	}
 
 	// get satellite channels from configuration
 	if(!globalConfig.getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 	{
-		UTI_ERROR("section '%s, %s': missing satellite channels\n",
-		          SATCAR_SECTION, CARRIER_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s, %s': missing satellite channels\n",
+		                SATCAR_SECTION, CARRIER_LIST);
 		goto error;
 	}
 
@@ -101,60 +105,67 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		// get carrier ID
 		if(!globalConfig.getAttributeValue(iter, CARRIER_ID, carrier_id))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_ID, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_ID, i);
 			goto error;
 		}
 		// get IP address
 		if(!globalConfig.getAttributeValue(iter, CARRIER_IP, carrier_ip))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_IP, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_IP, i);
 			goto error;
 		}
 
 		// get port
 		if(!globalConfig.getAttributeValue(iter, CARRIER_PORT, carrier_port))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_PORT, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_PORT, i);
 			goto error;
 		}
 		// get up
 		if(!globalConfig.getAttributeValue(iter, CARRIER_UP, carrier_up))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_UP, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_UP, i);
 			goto error;
 		}
 		// get down
 		if(!globalConfig.getAttributeValue(iter, CARRIER_DOWN, carrier_down))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_DOWN, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_DOWN, i);
 			goto error;
 		}
 		// get multicast
 		if(!globalConfig.getAttributeValue(iter, CARRIER_MULTICAST,
 		                                   carrier_multicast))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_MULTICAST, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_MULTICAST, i);
 			goto error;
 		}
 		// get disabled_on
 		if(!globalConfig.getAttributeValue(iter, CARRIER_DISABLED,
 		                                   carrier_disabled))
 		{
-			UTI_ERROR("section '%s, %s': failed to retrieve %s at "
-			          "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			          CARRIER_DISABLED, i);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "section '%s, %s': failed to retrieve %s at "
+			                "line %d\n", SATCAR_SECTION, CARRIER_LIST,
+			                CARRIER_DISABLED, i);
 			goto error;
 		}
 
@@ -162,10 +173,12 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		compo_name = "";
 		if(!globalConfig.getComponent(compo_name))
 		{
-			UTI_ERROR("cannot get component type\n");
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get component type\n");
 			goto error;
 		}
-		UTI_DEBUG("host type = %s\n", compo_name.c_str());
+		Output::sendLog(this->log_init, LEVEL_INFO,
+		                "host type = %s\n", compo_name.c_str());
 		host = getComponentType(compo_name);
 
 		if(carrier_disabled == compo_name)
@@ -180,14 +193,15 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			continue;
 		}
 
-		UTI_DEBUG("Line: %d, Carrier ID: %u, IP address: %s, "
-		          "port: %ld, up: %s, down: %s, multicast: %s, "
-		          "disabled on: %s\n",
-		          i, carrier_id, carrier_ip.c_str(),
-		          carrier_port, (carrier_up ? "true" : "false"),
-		          (carrier_down ? "true" : "false"),
-		          (carrier_multicast ? "true" : "false"),
-		          carrier_disabled.c_str());
+		Output::sendLog(this->log_init, LEVEL_INFO,
+		                "Line: %d, Carrier ID: %u, IP address: %s, "
+		                "port: %ld, up: %s, down: %s, multicast: %s, "
+		                "disabled on: %s\n",
+		                i, carrier_id, carrier_ip.c_str(),
+		                carrier_port, (carrier_up ? "true" : "false"),
+		                (carrier_down ? "true" : "false"),
+		                (carrier_multicast ? "true" : "false"),
+		                carrier_disabled.c_str());
 
 		// if for a a channel in=false and out=false channel is not active
 		if(is_input || is_output)
@@ -202,24 +216,27 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				if(!globalConfig.getValue(PERF_SECTION, UDP_STACK,
 				                          stack))
 				{
-					UTI_ERROR("Section %s, %s missing\n",
-					          PERF_SECTION, UDP_STACK);
+					Output::sendLog(this->log_init, LEVEL_ERROR,
+					                "Section %s, %s missing\n",
+					                PERF_SECTION, UDP_STACK);
 					goto error;
 				}
 				// get rmem
 				if(!globalConfig.getValue(PERF_SECTION, UDP_RMEM,
 				                          rmem))
 				{
-					UTI_ERROR("Section %s, %s missing\n",
-					          PERF_SECTION, UDP_RMEM);
+					Output::sendLog(this->log_init, LEVEL_ERROR,
+					                "Section %s, %s missing\n",
+					                PERF_SECTION, UDP_RMEM);
 					goto error;
 				}
 				// get wmem
 				if(!globalConfig.getValue(PERF_SECTION, UDP_WMEM,
 				                          wmem))
 				{
-					UTI_ERROR("Section %s, %s missing\n",
-					          PERF_SECTION, UDP_WMEM);
+					Output::sendLog(this->log_init, LEVEL_ERROR,
+					                "Section %s, %s missing\n",
+					                PERF_SECTION, UDP_WMEM);
 					goto error;
 				}
 				// create a new udp channel configure it, with information from file
@@ -235,14 +252,17 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				                                      stack, rmem, wmem);
 				if(!channel->isInit())
 				{
-					UTI_ERROR("failed to create UDP channel %d\n", i);
+					Output::sendLog(this->log_init, LEVEL_ERROR,
+					                "failed to create UDP channel %d\n", i);
 					goto error;
 				}
 				this->push_back(channel);
 			}
 			else
 			{
-				UTI_ERROR("Wrong socket type: %s\n", this->socket_type.c_str());
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "Wrong socket type: %s\n",
+				                this->socket_type.c_str());
 				goto error;
 			}
 		}
@@ -287,8 +307,9 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
 
 	if(it == this->end())
 	{
-		UTI_ERROR("failed to send %zu bytes of data through channel %u: "
-		          "channel not found\n", length, carrier_id);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "failed to send %zu bytes of data through channel %u: "
+		                "channel not found\n", length, carrier_id);
 	}
 
 	return status;
@@ -305,8 +326,9 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 
 	op_len = 0;
 
-	UTI_DEBUG_L3("try to receive a packet from satellite channel "
-	             "associated with the file descriptor %d\n", event->getFd());
+	Output::sendLog(this->log_sat_carrier, LEVEL_DEBUG,
+	                "try to receive a packet from satellite channel "
+	                "associated with the file descriptor %d\n", event->getFd());
 
 	for(it = this->begin(); it != this->end(); it++)
 	{
@@ -320,14 +342,17 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 			// Stop the task on data or error
 			if(op_len != 0 || ret < 0)
 			{
-				UTI_DEBUG_L3("data/error received, set op_carrier to %d\n",
-				             (*it)->getChannelID());
+				Output::sendLog(this->log_sat_carrier, LEVEL_DEBUG,
+				                "data/error received, set op_carrier to %d\n",
+				                (*it)->getChannelID());
 				op_carrier = (*it)->getChannelID();
 				break;
 			}
 		}
 	}
-	UTI_DEBUG_L3("Receive packet: size %zu, carrier %d\n", op_len, op_carrier);
+	Output::sendLog(this->log_sat_carrier, LEVEL_DEBUG,
+	                "Receive packet: size %zu, carrier %d\n", op_len,
+	                op_carrier);
 
 /*	if(it == this->end())
 		ret = 0;*/
@@ -357,8 +382,9 @@ int sat_carrier_channel_set::getChannelFdByChannelId(unsigned int i_channel)
 
 	if(ret < 0)
 	{
-		UTI_ERROR("SAT_Carrier_Get_Channel_Fd : Channel not found (%d) \n",
-		          i_channel);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "SAT_Carrier_Get_Channel_Fd : Channel not "
+		                "found (%d) \n", i_channel);
 	}
 
 	return (ret);

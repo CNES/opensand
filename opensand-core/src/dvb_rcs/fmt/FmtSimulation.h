@@ -38,6 +38,8 @@
 #include "OpenSandCore.h"
 #include "FmtDefinitionTable.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <vector>
 #include <map>
 #include <list>
@@ -88,6 +90,11 @@ class FmtSimulation
 
 	/** A list of terminal to advertise MODCOD (for down/forward) */
 	list<tal_id_t> need_advertise;
+
+ protected:
+
+	// Output log
+	OutputLog *log_fmt;
 
  public:
 

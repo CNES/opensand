@@ -32,11 +32,9 @@
  */
 
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include <opensand_conf/uti_debug.h>
-
 #include "BlockSatCarrier.h"
+
+#include <opensand_output/Output.h>
 
 #include "DvbFrame.h"
 #include "OpenSandFrames.h"
@@ -70,22 +68,26 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			UTI_DEBUG_L3("%u-bytes %s message event received\n",
-			              dvb_frame->getMessageLength(),
-			              event->getName().c_str());
+			Output::sendLog(this->log_receive, LEVEL_DEBUG,
+			                "%u-bytes %s message event received\n",
+			                dvb_frame->getMessageLength(),
+			                event->getName().c_str());
 
 			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
 			                               dvb_frame->getData().c_str(),
 			                               dvb_frame->getTotalLength()))
 			{
-				UTI_ERROR("error when sending data\n");
+				Output::sendLog(this->log_receive, LEVEL_ERROR,
+				                "error when sending data\n");
 			}
 			delete dvb_frame;
 		}
 		break;
 
 		default:
-			UTI_ERROR("unknown event received %s", event->getName().c_str());
+			Output::sendLog(this->log_receive, LEVEL_ERROR,
+			                "unknown event received %s",
+			                event->getName().c_str());
 			return false;
 	}
 	return true;
@@ -112,7 +114,8 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 			unsigned int carrier_id;
 			int ret;
 
-			UTI_DEBUG_L3("FD event received\n");
+			Output::sendLog(this->log_receive, LEVEL_DEBUG,
+			                "FD event received\n");
 
 			// for UDP we need to retrieve potentially desynchronized
 			// datagrams => loop on receive function
@@ -123,14 +126,16 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 				                                    &buf, length);
 				if(ret < 0)
 				{
-					UTI_ERROR("failed to receive data on any "
-					          "input channel (code = %zu)\n", length);
+					Output::sendLog(this->log_receive, LEVEL_ERROR,
+					                "failed to receive data on any "
+					                "input channel (code = %zu)\n", length);
 					status = false;
 				}
 				else
 				{
-					UTI_DEBUG_L3("%zu bytes of data received on carrier ID %u\n",
-					             length, carrier_id);
+					Output::sendLog(this->log_receive, LEVEL_DEBUG,
+					                "%zu bytes of data received on carrier ID %u\n",
+					                length, carrier_id);
 
 					if(length > 0)
 					{
@@ -142,7 +147,8 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 		break;
 
 		default:
-			UTI_ERROR("unknown event received %s", event->getName().c_str());
+			Output::sendLog(this->log_receive, LEVEL_ERROR,
+			                "unknown event received %s", event->getName().c_str());
 			return false;
 	}
 
@@ -164,7 +170,8 @@ bool BlockSatCarrier::Upward::onInit(void)
 	if(!this->in_channel_set.readInConfig(this->ip_addr,
 	                                      this->interface_name))
 	{
-		UTI_ERROR("Wrong channel set configuration\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Wrong channel set configuration\n");
 		return false;
 	}
 
@@ -178,8 +185,9 @@ bool BlockSatCarrier::Upward::onInit(void)
 		{
 			ostringstream name;
 
-			UTI_INFO("Listen on fd %d for channel %d\n",
-			         channel->getChannelFd(), channel->getChannelID());
+			Output::sendLog(this->log_init, LEVEL_NOTICE,
+			                "Listen on fd %d for channel %d\n",
+			                channel->getChannelFd(), channel->getChannelID());
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
@@ -196,7 +204,8 @@ bool BlockSatCarrier::Downward::onInit()
 	if(!this->out_channel_set.readOutConfig(this->ip_addr,
 	                                        this->interface_name))
 	{
-		UTI_ERROR("Wrong channel set configuration\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Wrong channel set configuration\n");
 		return false;
 	}
 
@@ -215,12 +224,14 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 
 	if(!this->enqueueMessage((void **)(&dvb_frame)))
 	{
-		UTI_ERROR("failed to send frame from carrier %u to upper layer\n",
-		          carrier_id);
+		Output::sendLog(this->log_receive, LEVEL_ERROR,
+		                "failed to send frame from carrier %u to upper layer\n",
+		                carrier_id);
 		goto release;
 	}
 
-	UTI_DEBUG("Message from carrier %u sent to upper layer", carrier_id);
+	Output::sendLog(this->log_receive, LEVEL_DEBUG,
+	                "Message from carrier %u sent to upper layer", carrier_id);
 
 	return;
 

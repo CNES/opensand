@@ -69,7 +69,8 @@ class BlockEncapSat: public Block
 	{
 	 public:
 		Upward(Block *const bl):
-			RtUpward(bl) {};
+			RtUpward(bl)
+		{};
 		bool onEvent(const RtEvent *const event);
 	};
 
@@ -77,7 +78,8 @@ class BlockEncapSat: public Block
 	{
 	 public:
 		Downward(Block *const bl):
-			RtDownward(bl) {};
+			RtDownward(bl)
+		{};
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 

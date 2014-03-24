@@ -43,7 +43,7 @@ class WindowView:
 
     _gladefile = ''
 
-    def __init__(self, parent = None, balise = 'window', gladefile = ''):
+    def __init__(self, parent=None, balise='window', gladefile=''):
         self._initok = False
 
         if WindowView._gladefile == '' and gladefile == '':

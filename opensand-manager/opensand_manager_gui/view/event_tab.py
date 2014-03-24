@@ -35,41 +35,53 @@
 event_tab.py - Used to handles event tabs
 """
 
-from opensand_manager_core.model.environment_plane import EventLevel
+from opensand_manager_core.loggers.levels import LOG_LEVELS, LEVEL_EVENT
 import gobject
 import gtk
 import time
+import pango
 
 
 class EventTab(object):
     """
     Handler for a tab used to display events
     """
-
-    def __init__(self, notebook, title):
+    def __init__(self, notebook, label, program=None):
         self._notebook = notebook
-        self._icon_level = -1
+        self._program = program
+        self._icon_level = 100
 
         # Tab
         self._act_image = gtk.Image()
         self._act_image.hide()
 
-        tab_label = gtk.Label(title)
+        tab_label = gtk.Label(label)
         tab_label.show()
 
         tab_hbox = gtk.HBox()
         tab_hbox.pack_start(self._act_image)
         tab_hbox.pack_start(tab_label)
+        # set the label for hbox name to retrieve the tab name easily
+        tab_hbox.set_name(label)
         tab_hbox.show()
 
         # Content
         self._buff = gtk.TextBuffer()
-        red = self._buff.create_tag('red')
-        red.set_property('foreground', 'red')
-        orange = self._buff.create_tag('orange')
-        orange.set_property('foreground', 'orange')
-        green = self._buff.create_tag('green')
-        green.set_property('foreground', 'green')
+        bold = self._buff.create_tag('bold')
+        bold.set_property('weight', pango.WEIGHT_BOLD)
+        color = self._buff.create_tag('bg_green')
+        color.set_property('background', 'green')
+        for level in LOG_LEVELS.values():
+            try:
+                if level.color != '':
+                    color = self._buff.create_tag(level.color)
+                    color.set_property('foreground', level.color)
+                if level.bg != '':
+                    color = self._buff.create_tag('bg_' + level.bg)
+                    color.set_property('background', level.bg)
+            except TypeError:
+                # the tag is duplicated
+                continue
 
         self._text = gtk.TextView()
         self._text.set_editable(False)
@@ -107,41 +119,37 @@ class EventTab(object):
         """
         at_end = self._buff.get_end_iter
 
-        if severity == EventLevel.ERROR:
-            color = 'red'
-            sev_text = "ERROR"
-            image = gtk.STOCK_DIALOG_ERROR
-
-        elif severity == EventLevel.WARNING:
-            color = 'orange'
-            sev_text = "WARNING"
-            image = gtk.STOCK_DIALOG_WARNING
-
-        elif severity == EventLevel.INFO:
-            color = 'green'
-            sev_text = "INFO"
-            image = gtk.STOCK_DIALOG_INFO
-
-        elif severity is not None:
-            color = 'green'
-            sev_text = "DEBUG"
-            image = gtk.STOCK_DIALOG_INFO
+        color = 'black'
+        bg = 'bg_white'
+        sev_text = ''
+        image = gtk.STOCK_DIALOG_INFO
+        if severity is not None and severity in LOG_LEVELS:
+            color = LOG_LEVELS[severity].color
+            bg = "bg_" + LOG_LEVELS[severity].bg
+            sev_text = LOG_LEVELS[severity].msg
+            image = LOG_LEVELS[severity].icon
+        elif severity == LEVEL_EVENT:
+            #   TODO
+            sev_text = 'EVENT'
+            color = 'white'
+            bg = 'bg_green'
 
         if new_line:
             self._buff.insert(at_end(), "\n")
 
         self._buff.insert(at_end(), time.strftime("%H:%M:%S ", date))
         if identifier:
-            self._buff.insert(at_end(), "%s: " % identifier)
-        if severity is not None:
+            self._buff.insert_with_tags_by_name(at_end(), "%s: " % identifier,
+                                                'bold')
+        if severity is not None and sev_text != '':
             self._buff.insert_with_tags_by_name(at_end(), "[%s]: " % sev_text,
-                                                color)
+                                                color, bg)
         self._buff.insert(at_end(), text.rstrip() + "\n")
         self._buff.place_cursor(at_end())
         self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 
         if self._notebook.get_current_page() != self._page_num:
-            if severity is not None and self._icon_level < severity:
+            if severity is not None and self._icon_level > severity:
                 self._icon_level = severity
                 self._act_image.set_from_stock(image, gtk.ICON_SIZE_MENU)
 
@@ -150,11 +158,16 @@ class EventTab(object):
         return False
 
     def _check_switch_page(self, _notebook, _page, page_num):
-        """
-        Called when the notebook page is changed
-        """
+        """ Called when the notebook page is changed """
         if page_num == self._page_num:
             self._act_image.hide()
             self._icon_level = -1
             self._act_image.hide()
 
+    def get_program(self):
+        """ get the associated program """
+        return self._program
+
+    def update(self, program):
+        """ update the event tab """
+        self._program = program

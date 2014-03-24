@@ -41,22 +41,13 @@ import os
 import struct
 
 
-class EventLevel(object):
-    """
-    Event level constants
-    """
-    DEBUG = 0
-    INFO = 1
-    WARNING = 2
-    ERROR = 3
-    CRITICAL = 4
 
 class Program(object):
     """
     Represents a running program.
     """
 
-    def __init__(self, controller, ident, name, probes, events, host_model=None):
+    def __init__(self, controller, ident, name, probes, logs, host_model=None):
         self._ident = ident
         host_name, prog_name = name.split(".", 1)
         self._controller = controller
@@ -64,14 +55,17 @@ class Program(object):
             name = host_name
 
         self._name = name
-        self._probes = []
+        self._probes = {}
         self.add_probes(probes)
-        self._events = events
+        self._logs = {}
+        self.add_logs(logs)
         self._host_model = host_model
+        self._syslog_enabled = True
+        self._logs_enabled = True
 
-    def handle_critical_event(self):
+    def handle_critical_log(self):
         """
-        critical event received for this host, set host status
+        critical log received for this host, set host status
         """
         if self._host_model is None:
             return
@@ -81,7 +75,7 @@ class Program(object):
         """
         Returns a list of the probe objects associated with this program
         """
-        return self._probes
+        return self._probes.values()
 
     def get_probe(self, ident):
         """
@@ -89,21 +83,55 @@ class Program(object):
         """
         return self._probes[ident]
 
-    def get_event(self, ident):
+    def get_logs(self):
         """
-        Returns the event identified by ident as a (name, level) tuple
+        Returns a list of the log objects associated with this program
         """
-        return self._events[ident]
+        return self._logs.values()
+
+    def get_log(self, ident):
+        """
+        Returns the log identified by ident as a (name, level) tuple
+        """
+        return self._logs[ident]
 
     def add_probes(self, probes):
         """
         Add probes in the list
         """
-        for i, (p_name, unit, storage_type, enabled, disp) in enumerate(probes):
-            if not p_name in map(lambda x: x.name, self._probes):
-                probe = Probe(self._controller, self, i, p_name, unit, storage_type,
-                              enabled, disp)
-                self._probes.append(probe)
+        for (probe_id, p_name, unit, storage_type, enabled, disp) in probes:
+#            if not probe_id in self._probes:
+            probe = Probe(self._controller, self, probe_id, p_name, unit,
+                          storage_type, enabled, disp)
+            self._probes[probe_id] = probe
+
+    def add_logs(self, logs):
+        """
+        Add logs in the list
+        """
+        for (log_id, name, level) in logs:
+#            if not log_id in self._logs:
+            log = Log(self._controller, self, log_id, name, level)
+            self._logs[log_id] = log
+
+    def enable_syslog(self, value):
+        """ Enable/disable syslog """
+        self._controller.enable_syslog(value, self)
+        self._syslog_enabled = value
+
+    def enable_logs(self, value):
+        """ Enable/disable logging """
+        self._controller.enable_logs(value, self)
+        self._logs_enabled = value
+
+    def syslog_enabled(self):
+        """ Check if syslog is enabled or not """
+        return self._syslog_enabled
+
+    def logs_enabled(self):
+        """ Check if logging is enabled or not """
+        return self._logs_enabled
+
 
     @property
     def name(self):
@@ -132,7 +160,7 @@ class Probe(object):
     Represents a probe
     """
     def __init__(self, controller, program, ident, name, unit, storage_type,
-        enabled, displayed):
+                 enabled, displayed):
         self._controller = controller
         self._program = program
         self._ident = ident
@@ -249,6 +277,71 @@ class Probe(object):
     def __repr__(self):
         return "<Probe: %s [%d]>" % (self._name, self._ident)
 
+
+class Log(object):
+    """
+    Represents a log
+    """
+    def __init__(self, controller, program, ident, name, level):
+        self._controller = controller
+        self._program = program
+        self._ident = ident
+        self._name = name
+        self._display_level = level
+
+    @property
+    def ident(self):
+        """
+        Get the log ident
+        """
+        return self._ident
+
+    @property
+    def name(self):
+        """
+        Get the log name
+        """
+        return self._name
+
+    @property
+    def display_level(self):
+        """
+        Indicates the log level
+        """
+        return self._display_level
+
+    @property
+    def program(self):
+        """
+        The program associated to the log
+        """
+        return self._program
+
+    @display_level.setter
+    def display_level(self, value):
+        """
+        Set the log level
+        """
+        if value == self._display_level:
+            return
+
+        self._display_level = value
+        self._controller.update_log_status(self)
+
+    @property
+    def global_ident(self):
+        return self._ident | (self._program.ident << 8)
+
+    @property
+    def full_name(self):
+        return "%s.%s" % (self._program.name, self._name)
+
+    def __str__(self):
+        return self._name
+
+    def __repr__(self):
+        return "<Log: %s [%d]>" % (self._name, self._ident)
+
 class SavedProbeLoader(object):
     """
     This objects reconstructs a program/probe hierarchy from a saved run
@@ -284,12 +377,14 @@ class SavedProbeLoader(object):
                 else:
                     prog_full_name = "%s.%s" % (host_name, prog_name)
 
+                probe_id = 0
                 for probe_name in os.listdir(prog_path):
                     probe_path = os.path.join(prog_path, probe_name)
                     probe_name, ext = os.path.splitext(probe_name)
                     probe_full_name = "%s.%s" % (prog_full_name, probe_name)
 
-                    if not os.path.isfile(probe_path) or ext != '.log':
+                    if not os.path.isfile(probe_path) or ext not in ['.csv',
+                                                                     '.log']:
                         continue
 
                     probe_times = []
@@ -305,7 +400,8 @@ class SavedProbeLoader(object):
                             probe_values.append(value)
 
                     self._data[probe_full_name] = (probe_times, probe_values)
-                    probes.append((probe_name, unit, None, True, False))
+                    probes.append((probe_id, probe_name, unit, None, True, False))
+                    probe_id += 1
 
                 full_prog_name = "%s.%s" % (host_name, prog_name)
                 self._programs[prog_id] = Program(self, prog_id, full_prog_name,

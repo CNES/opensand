@@ -38,6 +38,8 @@
 #include "MacAddress.h"
 #include "OpenSandCore.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <list>
 #include <vector>
 
@@ -75,6 +77,10 @@ class SarpTable
 	list<sarpIpEntry *> ip_sarp;   ///< The IP entries in SARP table
 	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
+
+ protected:
+	// Output Log
+	OutputLog *log_sarp;	
 
  public:
 

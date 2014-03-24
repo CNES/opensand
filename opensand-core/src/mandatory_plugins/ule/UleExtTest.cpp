@@ -33,8 +33,7 @@
 
 #include "UleExtTest.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 /** unused macro to avoid compilation warning with unused parameters.
  */
@@ -77,8 +76,9 @@ ule_ext_status UleExtTest::decode(uint8_t hlen, Data UNUSED(payload))
 	// extension is mandatory, hlen must be 0
 	if(hlen != 0)
 	{
-		UTI_ERROR("%s mandatory extension, but hlen (0x%x) != 0\n",
-		          FUNCNAME, hlen);
+		Output::sendLog(LEVEL_ERROR,
+		                "%s mandatory extension, but hlen (0x%x) != 0\n",
+		                FUNCNAME, hlen);
 		goto error;
 	}
 

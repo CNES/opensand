@@ -34,9 +34,6 @@
 
 #include "RohcPacket.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
-
 
 RohcPacket::RohcPacket(const unsigned char *data, size_t length, uint16_t type):
 	NetPacket(data, length)

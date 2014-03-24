@@ -226,6 +226,13 @@ protected:
 	/** If true, compute only output FIFO size for CR generation */
 	bool cr_output_only;
 
+	// Output Log
+	OutputLog *log_init;
+	OutputLog *log_frame_tick;
+	OutputLog *log_schedule;
+	OutputLog *log_ttp;
+	OutputLog *log_sac;
+	OutputLog *log_request;
 
 	/** Output probes and stats */
 		// Requests sizes

@@ -70,6 +70,8 @@ class GseEncapCtx
 	bool is_full;
 	/// The destination spot ID
 	uint16_t dest_spot;
+	/// The output log
+	OutputLog *log;
 
  public:
 

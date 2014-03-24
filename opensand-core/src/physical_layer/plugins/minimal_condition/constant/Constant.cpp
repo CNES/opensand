@@ -32,14 +32,11 @@
  */
 
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
-
 #include "Constant.h"
 
 #include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
 
 #include <sstream>
 
@@ -62,14 +59,16 @@ bool Constant::init(void)
 
 	if(config.loadConfig(CONF_CST_FILE) < 0)
 	{   
-		UTI_ERROR("failed to load config file '%s'",
-		          CONF_CST_FILE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to load config file '%s'", CONF_CST_FILE);
 		goto error;
 	}
 
 	if(!config.getValue(CONSTANT_SECTION, THRESHOLD, this->minimal_cn))
 	{
-		UTI_ERROR("Constant minimal conditions: cannot get %s", THRESHOLD);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Constant minimal conditions: cannot get %s",
+		                THRESHOLD);
 		goto error;
 	}
 	return true;

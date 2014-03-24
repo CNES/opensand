@@ -39,6 +39,8 @@
 #include "Types.h"
 #include "TimerEvent.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <stdlib.h>
 #include <string>
 #include <map>
@@ -71,6 +73,12 @@ class RtChannel
 	friend class BlockManager;
 
   protected:
+
+	/// Output Log
+	OutputLog *log_init;
+	OutputLog *log_receive;
+	OutputLog *log_send;
+	OutputLog *log_rt;
 
 	/// The bloc containing channel
 	// TODO remove

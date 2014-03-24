@@ -228,6 +228,18 @@ class BlockDvb: public Block
 
 
 
+	// Output log and debug
+	OutputLog *log_send_up;
+	OutputLog *log_band;
+	OutputLog *log_request_simulation;
+	OutputLog *log_qos_server;
+	OutputLog *log_frame_tick;
+	// TODO REMOVE
+	OutputLog *log_send_down;
+	OutputLog *log_rcv_from_up;
+	OutputLog *log_rcv_from_down;
+
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -271,9 +283,9 @@ class BlockDvb: public Block
 	event_id_t stats_timer;
 
 	/// output events
-	static Event *error_init;
-	static Event *event_login_received;
-	static Event *event_login_response;
+	// TODO these events here and some other in DvbNcc
+	OutputEvent *event_login_received;
+	OutputEvent *event_login_response;
 
 };
 

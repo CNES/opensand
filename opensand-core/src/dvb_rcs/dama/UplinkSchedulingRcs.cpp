@@ -34,20 +34,19 @@
  */
 
 
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
-
 #include "UplinkSchedulingRcs.h"
 #include "MacFifoElement.h"
 #include "OpenSandFrames.h"
 #include "FmtDefinitionTable.h"
+
+#include <opensand_output/Output.h>
 
 
 UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
 			unsigned int frames_per_superframe,
-            const FmtSimulation * const ret_fmt_simu,
+			const FmtSimulation * const ret_fmt_simu,
 			const TerminalCategory *const category):
 	Scheduling(packet_handler, fifos),
 	frames_per_superframe(frames_per_superframe),
@@ -83,11 +82,14 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		modcod_id = (*carrier_it)->getNearestFmtId(desired_modcod);
 		if(modcod_id == 0)
 		{
-			UTI_DEBUG("cannot serve GW with any modcod (desired %u) on carrier %u\n",
-			         desired_modcod, (*carrier_it)->getCarriersId());
+			Output::sendLog(this->log_scheduling, LEVEL_INFO,
+			                "cannot serve GW with any modcod (desired %u) "
+			                "on carrier %u\n", desired_modcod,
+			                (*carrier_it)->getCarriersId());
 			continue;
 		}
-		UTI_DEBUG_L3("Available MODCOD for GW = %u\n", modcod_id);
+		Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+		                "Available MODCOD for GW = %u\n", modcod_id);
 
 		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		remaining_capacity_kb =
@@ -105,12 +107,13 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		// initialize remaining capacity with total capacity in
 		// packet per superframe as it is the unit used in DAMA computations
 		(*carrier_it)->setRemainingCapacity(remaining_capacity_pktpf);
-		UTI_DEBUG("SF#%u: capacity before scheduling on GW uplink %u: "
-		          "%u packet (per frame) (%u kb)",
-		          current_superframe_sf,
-		          (*carrier_it)->getCarriersId(),
-		          remaining_capacity_pktpf,
-		          remaining_capacity_kb / this->frames_per_superframe);
+		Output::sendLog(this->log_scheduling, LEVEL_INFO,
+		                "SF#%u: capacity before scheduling on GW uplink %u: "
+		                "%u packet (per frame) (%u kb)",
+		                current_superframe_sf,
+		                (*carrier_it)->getCarriersId(),
+		                remaining_capacity_pktpf,
+		                remaining_capacity_kb / this->frames_per_superframe);
 	}
 
 	for(fifo_it = this->dvb_fifos.begin();
@@ -156,8 +159,10 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		goto skip;
 	}
 
-	UTI_DEBUG("SF#%u: frame %u: send at most %ld encapsulation packet(s)\n",
-	          current_superframe_sf, current_frame, max_to_send);
+	Output::sendLog(this->log_scheduling, LEVEL_INFO,
+	                "SF#%u: frame %u: send at most %ld encapsulation "
+	                "packet(s)\n", current_superframe_sf, current_frame,
+	                max_to_send);
 
 	// create an incomplete DVB-RCS frame
 	if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame,
@@ -177,8 +182,10 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
 		{
-			UTI_DEBUG("SF#%u: frame %u: packet is not scheduled for the moment, "
-			          "break\n", current_superframe_sf, current_frame);
+			Output::sendLog(this->log_scheduling, LEVEL_INFO,
+			                "SF#%u: frame %u: packet is not scheduled for "
+			                "the moment, break\n", current_superframe_sf,
+			                current_frame);
 			// this is the first MAC FIFO element that is not ready yet,
 			// there is no more work to do, break now
 			break;
@@ -188,8 +195,10 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		// examine the packet to be sent
 		if(elem->getType() != 1)
 		{
-			UTI_ERROR("SF#%u: frame %u: MAC FIFO element does not contain NetPacket\n",
-			          current_superframe_sf, current_frame);
+			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+			                "SF#%u: frame %u: MAC FIFO element does not "
+			                "contain NetPacket\n", current_superframe_sf,
+			                current_frame);
 			goto error;
 		}
 
@@ -200,8 +209,10 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		// check the validity of the encapsulation packet
 		if(encap_packet == NULL)
 		{
-			UTI_ERROR("SF#%u: frame %u: invalid packet #%u\n",
-			          current_superframe_sf, current_frame, sent_packets + 1);
+			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+			                "SF#%u: frame %u: invalid packet #%u\n",
+			                current_superframe_sf, current_frame,
+			                sent_packets + 1);
 			goto error;
 		}
 
@@ -219,12 +230,14 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 			//  - use the next DVB-RCS frame
 			//  - put the encapsulation packet in this next DVB-RCS frame
 
-			UTI_DEBUG("SF#%u: frame %u: DVB-RCS frame #%u does not contain enough "
-			          "free space (%zu bytes) for the encapsulation "
-			          "packet (%zu bytes), pad the DVB-RCS frame "
-			          "and send it\n", current_superframe_sf, current_frame,
-			          cpt_frame, incomplete_dvb_frame->getFreeSpace(),
-			          encap_packet->getTotalLength());
+			Output::sendLog(this->log_scheduling, LEVEL_INFO,
+			                "SF#%u: frame %u: DVB-RCS frame #%u does not "
+			                "contain enough free space (%zu bytes) for the "
+			                "encapsulation packet (%zu bytes), pad the "
+			                "DVB-RCS frame and send it\n",
+			                current_superframe_sf, current_frame,
+			                cpt_frame, incomplete_dvb_frame->getFreeSpace(),
+			                encap_packet->getTotalLength());
 
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
@@ -242,9 +255,11 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 			if(encap_packet->getTotalLength() >
 			   incomplete_dvb_frame->getFreeSpace())
 			{
-				UTI_ERROR("SF#%u: frame %u: DVB-RCS frame #%u got no enough "
-				          "free space, this should never append\n",
-				          current_superframe_sf, current_frame, cpt_frame);
+				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+				                "SF#%u: frame %u: DVB-RCS frame #%u got no "
+				                "enough free space, this should never append\n",
+				                current_superframe_sf, current_frame,
+				                cpt_frame);
 				delete encap_packet;
 				goto error;
 			}
@@ -253,9 +268,11 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		// add the encapsulation packet to the current DVB-RCS frame
 		if(!incomplete_dvb_frame->addPacket(encap_packet))
 		{
-			UTI_ERROR("SF#%u: frame %u: failed to add encapsulation packet #%u "
-			          "in DVB-RCS frame #%u", current_superframe_sf, current_frame,
-			          sent_packets + 1, cpt_frame);
+			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+			                "SF#%u: frame %u: failed to add encapsulation "
+			                "packet #%u in DVB-RCS frame #%u",
+			                current_superframe_sf, current_frame,
+			                sent_packets + 1, cpt_frame);
 			delete encap_packet;
 			goto error;
 		}
@@ -283,9 +300,10 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 
 	carriers->setRemainingCapacity(remaining_capacity_pkt);
 
-	UTI_DEBUG("SF#%u: frame %u: %u packet(s) have been scheduled in %u DVB-RCS "
-	          "frames \n", current_superframe_sf, current_frame,
-	          sent_packets, cpt_frame);
+	Output::sendLog(this->log_scheduling, LEVEL_INFO,
+	                "SF#%u: frame %u: %u packet(s) have been scheduled in "
+	                "%u DVB-RCS frames \n", current_superframe_sf, 
+	                current_frame, sent_packets, cpt_frame);
 
 skip:
 	return true;
@@ -300,14 +318,16 @@ bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_d
 {
 	if(!this->packet_handler)
 	{
-		UTI_ERROR("packet handler is NULL\n");
+		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+		                "packet handler is NULL\n");
 		goto error;
 	}
 
 	*incomplete_dvb_frame = new DvbRcsFrame();
 	if(*incomplete_dvb_frame == NULL)
 	{
-		UTI_ERROR("failed to create DVB-RCS frame\n");
+		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+		                "failed to create DVB-RCS frame\n");
 		goto error;
 	}
 
@@ -328,7 +348,8 @@ error:
 uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
 {
 	uint8_t modcod_id = this->ret_fmt_simu->getCurrentModcodId(GW_TAL_ID);
-	UTI_DEBUG_L3("Simulated MODCOD for GW = %u\n", modcod_id);
+	Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+	                "Simulated MODCOD for GW = %u\n", modcod_id);
 
 	return modcod_id;
 }

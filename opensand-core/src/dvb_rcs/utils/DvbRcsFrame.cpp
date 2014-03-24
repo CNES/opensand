@@ -36,8 +36,7 @@
 #include "DvbRcsFrame.h"
 #include "OpenSandFrames.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <string.h>
 

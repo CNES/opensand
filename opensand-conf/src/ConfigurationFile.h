@@ -42,6 +42,8 @@
 
 #include "ConfigurationList.h"
 
+#include <opensand_output/OutputLog.h>
+
 using namespace std;
 
 /** unused macro to avoid compilation warning with unused parameters */
@@ -135,6 +137,10 @@ class ConfigurationFile
 	                    T &value);
 
  private:
+
+	/// Output Log
+	OutputLog *log_conf;
+
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;
 

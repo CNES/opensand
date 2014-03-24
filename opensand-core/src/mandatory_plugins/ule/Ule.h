@@ -100,7 +100,6 @@ class Ule: public EncapPlugin
 		NetBurst *flushAll() {return NULL;};
 
 	  private:
-
 		bool encapUle(NetPacket *packet, NetBurst *ule_packets);
 		bool deencapUle(NetPacket *packet, NetBurst *net_packets);
 	};

@@ -40,6 +40,8 @@
 #include "ReturnSchedulingRcs.h"
 #include "CircularBuffer.h"
 
+#include <opensand_output/OutputLog.h>
+
 class DamaAgentRcs : public DamaAgent
 {
  public:

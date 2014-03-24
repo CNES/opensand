@@ -37,25 +37,25 @@
 #include "RtFifo.h"
 #include "Rt.h"
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <signal.h>
 #include <cstdio>
 #include <cstring>
 #include <sys/signalfd.h>
 #include <sys/resource.h>
-
+#include <syslog.h>
 
 static void crash_handler(int sig)
 {
-	UTI_ERROR("Crash with signal %d: %s\n", sig, sys_siglist[sig]);
+	syslog(LEVEL_CRITICAL, "Crash with signal %d: %s\n", sig,
+	       sys_siglist[sig]);
 	signal(sig, SIG_DFL);
 	// raise signal to get a core dump
 	kill(getpid(), sig);
+	closelog();
 	exit(-1);
 }
-
-Event *BlockManager::critical_evt = NULL;
 
 BlockManager::BlockManager():
 	stopped(false),
@@ -77,7 +77,8 @@ void BlockManager::stop(int signal)
 {
 	if(this->stopped)
 	{
-		UTI_DEBUG("already tried to stop process\n");
+		Output::sendLog(this->log_rt, LEVEL_INFO,
+		                "already tried to stop process\n");
 		return;
 	}
 	for(list<Block *>::iterator iter = this->block_list.begin();
@@ -103,14 +104,17 @@ bool BlockManager::init(void)
 	//core_limits.rlim_cur = core_limits.rlim_max = RLIM_INFINITY;
 	//setrlimit(RLIMIT_CORE, &core_limits);
 
-	BlockManager::critical_evt = Output::registerEvent("rt:critical", LEVEL_ERROR);
+	// Output log
+	this->log_rt = Output::registerLog(LEVEL_WARNING, "Rt");
+
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{
 		if((*iter)->isInitialized())
 		{
-			UTI_INFO("Block %s already initialized...",
-			         (*iter)->getName().c_str());
+			Output::sendLog(this->log_rt, LEVEL_NOTICE,
+			                "Block %s already initialized...",
+			               (*iter)->getName().c_str());
 			continue;
 		}
 		if(!(*iter)->init())
@@ -125,8 +129,9 @@ bool BlockManager::init(void)
 	{
 		if((*iter)->isInitialized())
 		{
-			UTI_INFO("Block %s already initialized...",
-			         (*iter)->getName().c_str());
+			Output::sendLog(this->log_rt, LEVEL_NOTICE,
+			                "Block %s already initialized...",
+			                (*iter)->getName().c_str());
 		}
 		if(!(*iter)->initSpecific())
 		{
@@ -142,16 +147,17 @@ bool BlockManager::init(void)
 
 void BlockManager::reportError(const char *msg, bool critical)
 {
-	UTI_ERROR("%s", msg);
-
 	if(critical == true)
 	{
-		Output::sendEvent(BlockManager::critical_evt, "CRITICAL: %s", msg);
-		std::cerr << msg << std::endl;
-		std::cerr << "FATAL: stop process" << std::endl;
+		Output::sendLog(this->log_rt, LEVEL_CRITICAL, "%s", msg);
 		// stop process to signal something goes wrong
 		this->status = false;
 		kill(getpid(), SIGTERM);
+	}
+	else
+	{
+		Output::sendLog(this->log_rt, LEVEL_ERROR,
+		                "%s", msg);
 	}
 }
 
@@ -226,7 +232,8 @@ void BlockManager::wait(void)
 			                true, "cannot read signal");
 			this->status = false;
 		}
-		UTI_DEBUG("signal received: %d\n", fdsi.ssi_signo);
+		Output::sendLog(this->log_rt, LEVEL_INFO,
+		                "signal received: %d\n", fdsi.ssi_signo);
 		this->stop(fdsi.ssi_signo);
 	}
 }

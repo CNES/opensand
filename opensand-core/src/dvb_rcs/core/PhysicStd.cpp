@@ -33,10 +33,6 @@
  */
 
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS
-#include "opensand_conf/uti_debug.h"
-
 #include "PhysicStd.h"
 
 

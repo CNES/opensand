@@ -37,7 +37,7 @@
 
 #include "Rt.h"
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <errno.h>
 #include <cstring>
@@ -70,6 +70,21 @@ RtChannel::RtChannel(Block *const bl, chan_type_t chan):
 	r_sel_break(-1)
 {
 	FD_ZERO(&(this->input_fd_set));
+	string channel = (chan == upward_chan) ? "Upward": "Downward";
+
+	// Output Log
+	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.%s.rt",
+	                                   block->name.c_str(),
+	                                   channel.c_str());
+	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.%s.init",
+	                                     block->name.c_str(),
+	                                     channel.c_str());
+	this->log_receive = Output::registerLog(LEVEL_WARNING, "%s.%s.receive",
+	                                        block->name.c_str(),
+	                                        channel.c_str());
+	this->log_send = Output::registerLog(LEVEL_WARNING, "%s.%s.send",
+	                                     block->name.c_str(),
+	                                     channel.c_str());
 }
 
 RtChannel::~RtChannel()
@@ -113,14 +128,14 @@ bool RtChannel::init(void)
 	sigset_t signal_mask;
 	int32_t pipefd[2];
 
-	UTI_DEBUG("[%s]Channel %u: init",
-	          this->block->getName().c_str(), this->chan);
+	Output::sendLog(this->log_init, LEVEL_INFO,
+	                "Starting initialization\n");
 
 	// pipe used to break select when a new event is received
 	if(pipe(pipefd) != 0)
 	{
 		this->reportError(true,
-		                  "cannot initialize pipe");
+		                  "cannot initialize pipe\n");
 		return false;
 	}
 	this->r_sel_break = pipefd[0];
@@ -138,13 +153,13 @@ bool RtChannel::init(void)
 	if(!this->in_opp_fifo->init())
 	{
 		this->reportError(true,
-		                  "cannot initialize opposite fifo");
+		                  "cannot initialize opposite fifo\n");
 		return false;
 	}
 	if(this->addMessageEvent(this->in_opp_fifo, 4, true) < 0)
 	{
 		this->reportError(true,
-		                  "cannot create opposite message event");
+		                  "cannot create opposite message event\n");
 		return false;
 	}
 	if(this->previous_fifo)
@@ -152,13 +167,13 @@ bool RtChannel::init(void)
 		if(!this->previous_fifo->init())
 		{
 			this->reportError(true,
-			                  "cannot initialize previous fifo");
+			                  "cannot initialize previous fifo\n");
 			return false;
 		}
 		if(this->addMessageEvent(this->previous_fifo) < 0)
 		{
 			this->reportError(true,
-			                  "cannot create previous message event");
+			                  "cannot create previous message event\n");
 			return false;
 		}
 	}
@@ -177,7 +192,7 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	                                   priority);
 	if(!event)
 	{
-		this->reportError(true, "cannot create timer event");
+		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -199,7 +214,7 @@ int32_t RtChannel::addFileEvent(const string &name,
 	                                 priority);
 	if(!event)
 	{
-		this->reportError(true, "cannot create file event");
+		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -221,7 +236,7 @@ int32_t RtChannel::addNetSocketEvent(const string &name,
 	                                           priority);
 	if(!event)
 	{
-		this->reportError(true, "cannot create net socket event");
+		this->reportError(true, "cannot create net socket event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -239,7 +254,7 @@ int32_t RtChannel::addSignalEvent(const string &name,
 	SignalEvent *event = new SignalEvent(name, signal_mask, priority);
 	if(!event)
 	{
-		this->reportError(true, "cannot create signal event");
+		this->reportError(true, "cannot create signal event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -271,7 +286,7 @@ bool RtChannel::addMessageEvent(RtFifo *out_fifo,
 	                         priority);
 	if(!event)
 	{
-		this->reportError(true, "cannot create message event");
+		this->reportError(true, "cannot create message event\n");
 		return false;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -288,7 +303,7 @@ bool RtChannel::addEvent(RtEvent *event)
 	it = this->events.find(event->getFd());
 	if(it != this->events.end())
 	{
-		this->reportError(true, "duplicated fd");
+		this->reportError(true, "duplicated fd\n");
 		return false;
 	}
 	this->new_events.push_back(event);
@@ -298,8 +313,10 @@ bool RtChannel::addEvent(RtEvent *event)
 	         MAGIC_WORD,
 	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
 	{
-		UTI_ERROR("[%s]Channel %u: failed to break select upon a new "
-		          "event reception\n", this->block->getName().c_str(), this->chan);
+		Output::sendLog(this->log_rt, LEVEL_ERROR,
+		                "[%s]Channel %u: failed to break select upon a new "
+		                "event reception\n", this->block->getName().c_str(),
+		                this->chan);
 	}
 
 #ifdef TIME_REPORTS
@@ -316,8 +333,10 @@ void RtChannel::updateEvents(void)
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
 	{
-		UTI_DEBUG("[%s]Channel %u: Add new event \"%s\" in list\n",
-		          this->block->getName().c_str(), this->chan, (*iter)->getName().c_str());
+		Output::sendLog(this->log_rt, LEVEL_INFO,
+		                "[%s]Channel %u: Add new event \"%s\" in list\n",
+		                this->block->getName().c_str(), this->chan,
+		                (*iter)->getName().c_str());
 		this->addInputFd((*iter)->getFd());
 		this->events[(*iter)->getFd()] = *iter;
 	}
@@ -332,9 +351,10 @@ void RtChannel::updateEvents(void)
 		it = this->events.find(*iter);
 		if(it != this->events.end())
 		{
-			UTI_DEBUG("[%s]Channel %u: remove event \"%s\" from list\n",
-			          this->block->getName().c_str(), this->chan,
-			          (*it).second->getName().c_str());
+			Output::sendLog(this->log_rt, LEVEL_INFO,
+			                "[%s]Channel %u: remove event \"%s\" from list\n",
+			                this->block->getName().c_str(), this->chan,
+			                (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
 			if((*it).first == this->max_input_fd)
@@ -372,8 +392,9 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	it = this->events.find(id);
 	if(it == this->events.end())
 	{
-		UTI_DEBUG_L3("[%s]Channel %u: event not found, search in new events\n",
-		             this->block->getName().c_str(), this->chan);
+		Output::sendLog(this->log_rt, LEVEL_DEBUG,
+		                "[%s]Channel %u: event not found, search in new events\n",
+		                this->block->getName().c_str(), this->chan);
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -381,8 +402,9 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 		{
 			if(*(*iter) == id)
 			{
-				UTI_DEBUG_L3("[%s]Channel %u: event found in new events\n",
-				             this->block->getName().c_str(), this->chan);
+				Output::sendLog(this->log_rt, LEVEL_DEBUG,
+				                "[%s]Channel %u: event found in new events\n",
+				                this->block->getName().c_str(), this->chan);
 				found = true;
 				event = *iter;
 				break;
@@ -390,19 +412,20 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 		}
 		if(!found)
 		{
-			this->reportError(false, "cannot find timer");
+			this->reportError(false, "cannot find timer\n");
 			return NULL;
 		}
 	}
 	else
 	{
-		UTI_DEBUG_L3("[%s]Channel %u: Timer found\n",
-		             this->block->getName().c_str(), this->chan);
+		Output::sendLog(this->log_rt, LEVEL_DEBUG,
+		                "[%s]Channel %u: Timer found\n",
+		                this->block->getName().c_str(), this->chan);
 		event = (*it).second;
 	}
 	if(event && event->getType() != evt_timer)
 	{
-		this->reportError(false, "cannot start event that is not a timer");
+		this->reportError(false, "cannot start event that is not a timer\n");
 		return NULL;
 	}
 
@@ -414,7 +437,7 @@ bool RtChannel::startTimer(event_id_t id)
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
-		this->reportError(false, "cannot find timer: should not happend here");
+		this->reportError(false, "cannot find timer: should not happend here\n");
 		return false;
 	}
 
@@ -428,7 +451,7 @@ bool RtChannel::raiseTimer(event_id_t id)
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
-		this->reportError(false, "cannot find timer: should not happend here");
+		this->reportError(false, "cannot find timer: should not happend here\n");
 		return false;
 	}
 
@@ -469,9 +492,10 @@ clock_t RtChannel::getCurrentTime(void)
 
 bool RtChannel::processEvent(const RtEvent *const event)
 {
-	UTI_DEBUG_L3("[%s]Channel %u: event received (%s)",
-	             this->block->getName().c_str(), this->chan,
-	             event->getName().c_str());
+	Output::sendLog(this->log_rt, LEVEL_DEBUG,
+	                "[%s]Channel %u: event received (%s)",
+	                this->block->getName().c_str(), this->chan,
+	                event->getName().c_str());
 	return this->block->processEvent(event, this->chan);
 };
 
@@ -497,7 +521,7 @@ void RtChannel::executeThread(void)
 		number_fd = select(this->max_input_fd + 1, &readfds, NULL, NULL, NULL);
 		if(number_fd < 0)
 		{
-			this->reportError(true, "select failed: [%u: %s]", errno, strerror(errno));
+			this->reportError(true, "select failed: [%u: %s]\n", errno, strerror(errno));
 		}
 		// unfortunately, FD_ISSET is the only usable thing
 		priority_sorted_events.clear();
@@ -508,8 +532,9 @@ void RtChannel::executeThread(void)
 			unsigned char data[strlen(MAGIC_WORD)];
 			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
 			{
-				UTI_ERROR("[%s]Channel %u: failed to read in pipe",
-				          this->block->getName().c_str(), this->chan);
+				Output::sendLog(this->log_rt, LEVEL_ERROR,
+				                "[%s]Channel %u: failed to read in pipe",
+				                this->block->getName().c_str(), this->chan);
 			}
 			handled++;
 		}
@@ -538,10 +563,10 @@ void RtChannel::executeThread(void)
 				{
 					// this is the only case where it is critical as
 					// stop event is a signal
-					this->reportError(true, "unable to handle signal event");
+					this->reportError(true, "unable to handle signal event\n");
 					pthread_exit(NULL);
 				}
-				this->reportError(false, "unable to handle event");
+				this->reportError(false, "unable to handle event\n");
 				// ignore this event
 				continue;
 			}
@@ -549,8 +574,9 @@ void RtChannel::executeThread(void)
 			if(*event == this->stop_fd)
 			{
 				// we have to stop
-				UTI_DEBUG("[%s]Channel %u: stop signal received",
-				          this->block->getName().c_str(), this->chan);
+				Output::sendLog(this->log_rt, LEVEL_INFO,
+				                "[%s]Channel %u: stop signal received\n",
+				                this->block->getName().c_str(), this->chan);
 				pthread_exit(NULL);
 			}
 		}
@@ -565,9 +591,10 @@ void RtChannel::executeThread(void)
 			(*iter)->setTriggerTime();
 			if(!this->processEvent(*iter))
 			{
-				UTI_ERROR("[%s]Channel %u: failed to process event %s",
-				          this->block->getName().c_str(), this->chan,
-				          (*iter)->getName().c_str());
+				Output::sendLog(this->log_rt, LEVEL_ERROR,
+				                "[%s]Channel %u: failed to process event %s\n",
+				                this->block->getName().c_str(), this->chan,
+				                (*iter)->getName().c_str());
 			}
 #ifdef TIME_REPORTS
 			timeval time = (*iter)->getTimeFromTrigger();
@@ -610,34 +637,39 @@ void RtChannel::setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo)
 
 bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t type)
 {
-	int success = true;
+	bool success = true;
+	bool locked = false;
 
 	// check that block is initialized (i.e. we are in event processing)
 	if(!this->block->initialized)
 	{
-		UTI_INFO("Be careful, some message are sent while process are not "
-		         "started. If too many messages are sent we may block because "
-		         "fifo is full");
+		Output::sendLog(this->log_send, LEVEL_NOTICE,
+		                "Be careful, some message are sent while process are not "
+		                "started. If too many messages are sent we may block because "
+		                "fifo is full\n");
 		// FIXME we could separate onInit into a static initialization and an
 		//       initialization when threads are started
 	}
 
 	// release lock in block because we can create interblocking here
 	// as we can block on semaphore
-	if(this->block->chan_mutex && this->block->initialized)
+	if(this->block->chan_mutex && this->block->block_mutex.isLocked() &&
+	   this->block->initialized)
 	{
+		printf("ICI\n");
 		this->block->block_mutex.releaseLock();
+		locked = true;
 	}
 	if(!out_fifo->push(*data, size, type))
 	{
 		this->reportError(false,
-		                  "cannot push data in fifo for next block");
+		                  "cannot push data in fifo for next block\n");
 		success = false;
 	}
 	// take the lock again
-	if(this->block->chan_mutex && this->block->initialized)
+	if(locked)
 	{
-		this->block->block_mutex.releaseLock();
+		this->block->block_mutex.acquireLock();
 	}
 
 	// be sure that the pointer won't be used anymore
@@ -648,6 +680,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 #ifdef TIME_REPORTS
 void RtChannel::getDurationsStatistics(void) const
 {
+	OutputEvent *event = Output::registerEvent("Time Report");
 	map<string, list<double> >::const_iterator it;
 	for(it = this->durations.begin(); it != this->durations.end(); ++it)
 	{
@@ -664,10 +697,12 @@ void RtChannel::getDurationsStatistics(void) const
 		                               duration.end());
 		double mean = sum / duration.size();
 
-		UTI_INFO("[%s:%s] Event %s: mean = %.2f us, max = %d us, min = %d us, total = %.2f ms\n",
-		         this->block->getName().c_str(),
-		         (this->chan == upward_chan) ? "Upward" : "Downward",
-		         (*it).first.c_str(), mean, int(max), int(min), sum / 1000);
+		Output::sendEvent(event,
+		                  "[%s:%s] Event %s: mean = %.2f us, max = %d us, "
+		                  "min = %d us, total = %.2f ms\n",
+		                  this->block->getName().c_str(),
+		                  (this->chan == upward_chan) ? "Upward" : "Downward",
+		                  (*it).first.c_str(), mean, int(max), int(min), sum / 1000);
 	}
 }
 #endif

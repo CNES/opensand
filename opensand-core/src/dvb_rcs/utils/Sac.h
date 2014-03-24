@@ -40,6 +40,8 @@
 #include "OpenSandFrames.h"
 #include "DvbFrame.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <vector>
 #include <endian.h>
 
@@ -201,8 +203,6 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 * @return the CNI value
 	 */
 	double getCni() const;
-
-void toto();
 
  private:
 

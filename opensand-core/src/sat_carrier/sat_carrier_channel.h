@@ -38,6 +38,7 @@
 
 #include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
+#include <opensand_output/OutputLog.h>
 
 #include <vector>
 #include <linux/if_packet.h>
@@ -79,9 +80,13 @@ class sat_carrier_channel
 	virtual int receive(NetSocketEvent *const event,
 	                    unsigned char **buf, size_t &data_len) = 0;
 
-	static int getIfIndex(const char *name);
+	int getIfIndex(const char *name);
 
  protected:
+
+	/// Output Log
+	OutputLog *log_sat_carrier;
+	OutputLog *log_init;
 
 	/// the ID of the channel
 	int m_channelID;

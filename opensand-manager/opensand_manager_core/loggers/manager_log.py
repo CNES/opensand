@@ -44,30 +44,25 @@ import logging
 import syslog
 import sys
 
-from opensand_manager_core.model.environment_plane import EventLevel
 from opensand_manager_core.loggers.syslog_handler import SysLogHandler
+from opensand_manager_core.loggers.levels import LOG_LEVELS, MGR_ERROR, \
+                                                 MGR_WARNING, MGR_NOTICE, \
+                                                 MGR_INFO, MGR_DEBUG
 
 class ManagerLog():
     """ logger for OpenSAND manager that print messages in GUI
         and with a syslog logger """
-    def __init__(self, level='debug',
+    def __init__(self, level=0,
                  enable_std=True, enable_gui=False,
                  enable_syslog=False,
                  logger_name='sand-manager'):
         """ constructor, initialization """
-        levels = {
-                    'debug'  : 0,
-                    'info'   : 1,
-                    'warning': 2,
-                    'error'  : 3,
-                  }
-
         self._gui = enable_gui
         if self._gui and not GUI:
             print "Warning: cannot enable GUI because gtk is not installed"
             self._gui = False
         self._log = enable_std or enable_syslog
-        self._level = levels[level]
+        self._level = LOG_LEVELS[level].level
 
         self._buff = None
         self._event_tab = None
@@ -104,37 +99,37 @@ class ManagerLog():
             self._logger.error(text)
 
         if self._event_tab:
-            self._event_tab.message(EventLevel.ERROR, None, text)
+            self._event_tab.message(MGR_ERROR, None, text)
 
     def info(self, text, mandatory=False, new_line=False):
         """ print an information in text view and/or in logger """
-        if self._level > 1 and not mandatory:
+        if self._level < MGR_NOTICE and not mandatory:
             return
 
         if self._log:
             self._logger.info(text)
 
         if self._event_tab:
-            self._event_tab.message(EventLevel.INFO, None, text, new_line)
+            self._event_tab.message(MGR_INFO, None, text, new_line)
 
     def warning(self, text):
         """ print a warning  in text view and/or in logger """
-        if self._level > 2:
+        if self._level < MGR_WARNING:
             return
 
         if self._log:
             self._logger.warning(text)
 
         if self._event_tab:
-            self._event_tab.message(EventLevel.WARNING, None, text)
+            self._event_tab.message(MGR_WARNING, None, text)
 
     def debug(self, text):
         """ print a debug message in logger """
-        if self._level > 0:
+        if self._level < MGR_DEBUG:
             return
 
         if self._log:
             self._logger.debug(text)
 
 #        if self._event_tab:
-#            self._event_tab.message(EventLevel.DEBUG, None, text)
+#            self._event_tab.message(MGR_DEBUG, None, text)

@@ -30,6 +30,7 @@
  * @brief Definition of the Output static class, used by the application to
  *        interact with the output library.
  * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Fabrice Hobaya <fhobaya@toulouse.viveris.com>
  */
 
 
@@ -38,8 +39,10 @@
 
 
 #include "Probe.h"
-#include "Event.h"
+#include "OutputEvent.h"
+#include "OutputLog.h"
 #include "OutputInternal.h"
+#include "OutputMutex.h"
 
 #include <vector>
 #include <assert.h>
@@ -48,6 +51,25 @@
 #include <stdarg.h>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
+
+#define DFLTLOG(level, fmt, args...) \
+	do \
+	{ \
+		Output::sendLog(level, \
+		                " [%s:%s():%d] " fmt, \
+		                __FILE__, __FUNCTION__, __LINE__, ##args); \
+	} \
+	while(0)
+
+#define LOG(log, level, fmt, args...) \
+	do \
+	{ \
+		Output::sendLog(log, level, \
+		                " [%s:%s():%d] " fmt, \
+		                __FILE__, __FUNCTION__, __LINE__, ##args); \
+	} \
+	while(0)
+
 
 class Output
 {
@@ -58,13 +80,13 @@ public:
 
 	/**
 	 * @brief Initialize the output library
-	 *        Prepares the library for registering probes and events
+	 *        Prepares the library for registering probes and logs
 	 *
 	 * @param enabled      Set to false to disable the output library
-	 * @param min_level    The minimum event level which will be reported
 	 * @param sock_prefix  Custom socket path prefix (for testing purposes)
+	 * @return true on success, false otherwise
 	 */
-	static void init(bool enabled, event_level_t min_level,
+	static bool init(bool enabled,
 	                 const char *sock_prefix = NULL);
 
 	/**
@@ -77,7 +99,7 @@ public:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	static Probe<T> *registerProbe(const std::string &name,
+	static Probe<T> *registerProbe(const string &name,
 	                               bool enabled,
 	                               sample_type_t type);
 
@@ -92,8 +114,8 @@ public:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	static Probe<T> *registerProbe(const std::string &name,
-	                               const std::string &unit,
+	static Probe<T> *registerProbe(const string &name,
+	                               const string &unit,
 	                               bool enabled, sample_type_t type);
 
 	/**
@@ -123,33 +145,51 @@ public:
 	 * @return the probe object
 	 **/
 	template<typename T>
-	static Probe<T> *registerProbe(const std::string &unit,
+	static Probe<T> *registerProbe(const string &unit,
 	                               bool enabled, sample_type_t type,
 	                               const char *name, ...);
-
 	/**
 	 * @brief Register an event in the output library
 	 *
 	 * @param identifier   The event name
-	 * @param level        The event severity
 	 *
 	 * @return the event object
 	 **/
-	static Event *registerEvent(const std::string &identifier,
-	                            event_level_t level);
+	static OutputEvent *registerEvent(const string &identifier);
+	
+	/**
+	 * @brief Register a log with the level Warning in the output library
+	 *
+	 * @param display_level The minimum display level
+	 * @param name          The log name
+	 *
+	 * @return the log object
+	 **/
+	static OutputLog *registerLog(log_level_t display_level, 
+	                              const string &name);
 
 	/**
 	 * @brief Register an event in the output library
 	 *        with variable arguments
 	 *
-	 * @param level        The event severity
 	 * @param identifier   The event name with variable arguments
 	 *
 	 * @return the event object
 	 **/
-	static Event *registerEvent(event_level_t level,
-	                            const char *identifier, ...);
-
+	static OutputEvent *registerEvent(const char *identifier, ...);
+	
+	/**
+	 * @brief Register a log with the level Warning in the output library
+	 *
+	 * @param default_display_level  The default minimum display level for 
+	 *                               this log
+	 * @param name The log name
+	 *
+	 * @return the log object
+	 **/
+	static OutputLog *registerLog(log_level_t default_display_level,
+	                              const char* name, ...);
+	
 	/**
 	 * @brief Finish the output library initialization
 	 *       Performs the library registration on the OpenSAND daemon.
@@ -170,8 +210,36 @@ public:
 	 * @param event       The event
 	 * @param msg_format  The message format
 	 **/
-	static void sendEvent(Event *event, const char *msg_format, ...)
+	static void sendEvent(OutputEvent *event, const char *msg_format, ...)
 		PRINTFLIKE(2, 3);
+
+	/**
+	 * @brief Sent the specified log (debug level) with the specified message
+	 *        format
+	 *
+	 * @param log         The log
+	 * @param log_level   The log level to send
+	 * @param msg_format  The message format
+	 **/
+	static void sendLog(OutputLog *log, log_level_t log_level, 
+	                    const char *msg_format, ...)
+		PRINTFLIKE(3, 4);
+	
+	/**
+	 * @brief Sent a message (with no level specified) with the specified
+	 *        message format
+	 *
+	 * @param log_level   The log level to send
+	 * @param msg_format  The message format
+	 **/
+	static void sendLog(log_level_t log_level, 
+	                    const char *msg_format, ...)
+		PRINTFLIKE(2, 3);
+
+	/**
+	 * @brief Enable output on stdout/stdin
+	 */
+	static void enableStdlog(void);
 
 private:
 	/**
@@ -206,49 +274,63 @@ private:
 	static void setProbeState(uint8_t probe_id, bool enabled);
 
 	/**
-	 * @brief disable all stats
+	 * @brief Set the log level
+	 *
+	 * @param log_id  The log id
+	 * @param level   The log level
 	 */
-	static void disable();
+	static void setLogLevel(uint8_t log_id, log_level_t level);
+
+	/**
+	 * @brief disable all stats and logs
+	 */
+	static void disableCollector(void);
 
 	/**
 	 * @brief Enable output
 	 */
-	static void enable();
+	static void enableCollector(void);
 
 	/**
-	 * @brief Acquire lock on output
+	 * @brief disable logs output toward collector
 	 */
-	static void acquireLock();
+	static void disableLogs(void);
 
 	/**
-	 * @brief Release lock on output
+	 * @brief Enable log output toward collector
 	 */
-	static void releaseLock();
+	static void enableLogs(void);
+	
+	/**
+	 * @brief disable syslog output
+	 */
+	static void disableSyslog(void);
+
+	/**
+	 * @brief Enable syslog output
+	 */
+	static void enableSyslog(void);
 
 	/// The output instance
 	static OutputInternal instance;
 
-	/// The mutex on Output
-	static pthread_mutex_t mutex;
 };
 
 template<typename T>
-Probe<T> *Output::registerProbe(const std::string &name, bool enabled,
+Probe<T> *Output::registerProbe(const string &name, bool enabled,
                                 sample_type_t type)
 {
 	return Output::registerProbe<T>(name, "", enabled, type);
 }
 
 template<typename T>
-Probe<T> *Output::registerProbe(const std::string &name,
-                                const std::string &unit,
+Probe<T> *Output::registerProbe(const string &name,
+                                const string &unit,
                                 bool enabled, sample_type_t type)
 {
 	Probe<T> *probe;
 
-	Output::acquireLock();
 	probe = Output::instance.registerProbe<T>(name, unit, enabled, type);
-	Output::releaseLock();
 
 	return probe;
 }
@@ -271,7 +353,7 @@ Probe<T> *Output::registerProbe(bool enabled,
 }
 
 template<typename T>
-Probe<T> *Output::registerProbe(const std::string &unit,
+Probe<T> *Output::registerProbe(const string &unit,
                                 bool enabled,
                                 sample_type_t type,
                                 const char *name, ...)

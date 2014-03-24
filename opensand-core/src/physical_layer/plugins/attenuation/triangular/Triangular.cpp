@@ -34,11 +34,6 @@
  */
 
 
-
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
-
 #include "Triangular.h"
 
 #include <opensand_conf/ConfigurationFile.h>
@@ -71,28 +66,29 @@ bool Triangular::init(int granularity, string link)
 
 	if(config.loadConfig(CONF_TRIANGULAR_FILE) < 0)
 	{   
-		UTI_ERROR("failed to load config file '%s'",
-		          CONF_TRIANGULAR_FILE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to load config file '%s'", 
+		                CONF_TRIANGULAR_FILE);
 		goto error;
 	}
 
 	this->granularity = granularity;
 
 	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
-	                          LINK, link,
-	                          PERIOD, this->period))
+	                          LINK, link, PERIOD, this->period))
 	{
-		UTI_ERROR("Triangular attenuation %slink: cannot get %s",
-		          link.c_str(), PERIOD);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Triangular attenuation %slink: cannot get %s",
+		                link.c_str(), PERIOD);
 		goto error;
 	}
 
 	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
-	                          LINK, link,
-	                          SLOPE, this->slope))
+	                          LINK, link, SLOPE, this->slope))
 	{
-		UTI_ERROR("Triangular attenuation %slink: cannot get %s",
-		          link.c_str(), SLOPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Triangular attenuation %slink: cannot get %s",
+		                link.c_str(), SLOPE);
 		goto error;
 	}
 
@@ -119,7 +115,8 @@ bool Triangular::updateAttenuationModel()
 		this->setAttenuation(max - time * this->slope);
 	}
 
-	UTI_DEBUG("On/Off Attenuation %.2f dB\n", this->getAttenuation());
+	Output::sendLog(this->log_attenuation, LEVEL_INFO,
+	                "On/Off Attenuation %.2f dB\n", this->getAttenuation());
 
 	return true;
 }

@@ -34,9 +34,8 @@
 
 #include "Ule.h"
 
-#undef DBG_PACKAGE
-#define DBG_PACKAGE PKG_ENCAP
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
+
 #include <vector>
 #include <map>
 
@@ -74,14 +73,18 @@ Ule::Context::Context(EncapPlugin &plugin):
 		ext = new UleExtTest();
 		if(ext == NULL)
 		{
-			UTI_ERROR("%s failed to create Test SNDU ULE extension\n", FUNCNAME);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s failed to create Test SNDU ULE extension\n",
+			                FUNCNAME);
 		}
 		else
 		{
 			// add Test SNDU ULE extension but do not enable it
 			if(!this->addExt(ext, false))
 			{
-				UTI_ERROR("%s failed to add Test SNDU ULE extension\n", FUNCNAME);
+				Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s failed to add Test SNDU ULE extension\n",
+			                FUNCNAME);
 				delete ext;
 			}
 		}
@@ -89,14 +92,18 @@ Ule::Context::Context(EncapPlugin &plugin):
 		ext = new UleExtSecurity();
 		if(ext == NULL)
 		{
-			UTI_ERROR("%s failed to create Padding ULE extension\n", FUNCNAME);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s failed to create Padding ULE extension\n",
+			                FUNCNAME);
 		}
 		else
 		{
 			// add Security ULE extension and enable it
 			if(!this->addExt(ext, true))
 			{
-				UTI_ERROR("%s failed to add Padding ULE extension\n", FUNCNAME);
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "%s failed to add Padding ULE extension\n",
+				                FUNCNAME);
 				delete ext;
 			}
 		}
@@ -131,8 +138,9 @@ NetBurst *Ule::Context::encapsulate(NetBurst *burst,
 	ule_packets = new NetBurst();
 	if(ule_packets == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for burst of ULE packets\n",
-		          FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot allocate memory for burst of ULE packets\n",
+		                FUNCNAME);
 		delete burst;
 		return NULL;
 	}
@@ -141,7 +149,9 @@ NetBurst *Ule::Context::encapsulate(NetBurst *burst,
 	{
 		if(!this->encapUle(*packet, ule_packets))
 		{
-			UTI_ERROR("%s ULE encapsulation failed, drop packet\n", FUNCNAME);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s ULE encapsulation failed, drop packet\n",
+			                FUNCNAME);
 			continue;
 		}
 	}
@@ -163,8 +173,9 @@ NetBurst *Ule::Context::deencapsulate(NetBurst *burst)
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
 	{
-		UTI_ERROR("%s cannot allocate memory for burst of network packets\n",
-		          FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot allocate memory for burst of network "
+		                "packets\n", FUNCNAME);
 		delete burst;
 		return false;
 	}
@@ -174,17 +185,19 @@ NetBurst *Ule::Context::deencapsulate(NetBurst *burst)
 		// packet must be valid
 		if(*packet == NULL)
 		{
-			UTI_ERROR("%s encapsulation packet is not valid, drop the packet\n",
-			          FUNCNAME);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s encapsulation packet is not valid, drop "
+			                "the packet\n", FUNCNAME);
 			continue;
 		}
 
 		// packet must be an ULE packet
 		if((*packet)->getType() != this->getEtherType())
 		{
-			UTI_ERROR("%s encapsulation packet is not an ULE packet "
-			          "(type = 0x%04x), drop the packet\n",
-			          FUNCNAME, (*packet)->getType());
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s encapsulation packet is not an ULE packet "
+			                "(type = 0x%04x), drop the packet\n",
+			                FUNCNAME, (*packet)->getType());
 			continue;
 		}
 
@@ -192,7 +205,9 @@ NetBurst *Ule::Context::deencapsulate(NetBurst *burst)
 
 		if(!this->deencapUle(*packet, net_packets))
 		{
-			UTI_ERROR("%s cannot create a burst of packets, drop packet\n", FUNCNAME);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s cannot create a burst of packets, drop "
+			                "packet\n", FUNCNAME);
 			continue;
 		}
 	}
@@ -221,8 +236,9 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	UTI_DEBUG("%s encapsulate a %zu-byte packet of type 0x%04x\n", FUNCNAME,
-	          packet->getTotalLength(), packet->getType());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "%s encapsulate a %zu-byte packet of type 0x%04x\n",
+	                FUNCNAME, packet->getTotalLength(), packet->getType());
 
 	// add ULE extension headers if asked
 	ptype = packet->getType();
@@ -232,24 +248,29 @@ bool Ule::Context::encapUle(NetPacket *packet,
 		switch((*it)->build(ptype, payload))
 		{
 			case ULE_EXT_OK:
-				UTI_DEBUG("%s %s ULE extension 0x%02x successfully built\n",
-				          FUNCNAME, ((*it)->isMandatory() ? "mandatory" :
-				          "optional"), (*it)->type());
+				Output::sendLog(this->log, LEVEL_INFO,
+				                "%s %s ULE extension 0x%02x successfully "
+				                "built\n", FUNCNAME,
+				                ((*it)->isMandatory() ? "mandatory" :
+				                "optional"), (*it)->type());
 				break;
 
 			case ULE_EXT_DISCARD:
 			case ULE_EXT_ERROR:
-				UTI_ERROR("%s %s ULE extension 0x%02x build failed\n", FUNCNAME,
-				          ((*it)->isMandatory() ? "mandatory" : "optional"),
-				          (*it)->type());
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "%s %s ULE extension 0x%02x build failed\n",
+				                FUNCNAME,
+				                ((*it)->isMandatory() ? "mandatory" : "optional"),
+				                (*it)->type());
 				goto drop;
 		}
 
 		ptype = (*it)->payloadType();
 		payload = (*it)->payload();
 
-		UTI_DEBUG("%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
-		          payload.length(), ptype);
+		Output::sendLog(this->log, LEVEL_INFO,
+		                "%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
+		                payload.length(), ptype);
 	}
 
 	// create ULE packet with network packet (and extension headers) as payload
@@ -258,8 +279,9 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	ule_packet =  new UlePacket(ptype, NULL, payload, this->enable_crc);
 	if(ule_packet == NULL)
 	{
-		UTI_ERROR("%s cannot create ULE packet, drop the network packet\n",
-		          FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot create ULE packet, drop the network "
+		                "packet\n", FUNCNAME);
 		goto drop;
 	}
 	ule_packet->setSrcTalId(packet->getSrcTalId());
@@ -271,9 +293,11 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	// add ULE packet to burst
 	ule_packets->add(ule_packet);
 
-	UTI_DEBUG("%s %zu-byte %s packet/frame => %zu-byte ULE packet\n", FUNCNAME,
-	          packet->getTotalLength(), packet->getName().c_str(),
-	          ule_packet->getTotalLength());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "%s %zu-byte %s packet/frame => %zu-byte ULE packet\n",
+	                FUNCNAME,
+	                packet->getTotalLength(), packet->getName().c_str(),
+	                ule_packet->getTotalLength());
 
 	return true;
 
@@ -294,8 +318,9 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	// packet must be an ULE packet
 	if(packet->getType() != NET_PROTO_ULE)
 	{
-		UTI_ERROR("%s encapsulation packet is not an ULE packet, "
-		          "drop the packet\n", FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s encapsulation packet is not an ULE packet, "
+		                "drop the packet\n", FUNCNAME);
 		goto error;
 	}
 
@@ -303,12 +328,15 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	ule_packet = new UlePacket(packet->getData());
 	if(ule_packet == NULL)
 	{
-		UTI_ERROR("%s cannot create UlePacket from NetPacket\n", FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot create UlePacket from NetPacket\n",
+		                FUNCNAME);
 		goto error;
 	}
 	if(!ule_packet->isValid(this->enable_crc))
 	{
-		UTI_ERROR("ULE packet is invalid\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "ULE packet is invalid\n");
 		goto discard;
 	}
 
@@ -333,8 +361,9 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 			exts = &(this->mandatory_exts);
 		if(hlen >= 6)
 		{
-			UTI_ERROR("%s bad length (0x%x) for ULE extension, drop packet\n",
-			          FUNCNAME, hlen);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s bad length (0x%x) for ULE extension, drop "
+			                "packet\n", FUNCNAME, hlen);
 			goto discard;
 		}
 		else
@@ -344,8 +373,10 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		it = exts->find(htype);
 		if(it == exts->end())
 		{
-			UTI_ERROR("%s %s ULE extension 0x%02x is not supported, drop packet\n",
-			          FUNCNAME, (hlen == 0 ? "mandatory" : "optional"), htype);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "%s %s ULE extension 0x%02x is not supported, "
+			                "drop packet\n", FUNCNAME,
+			                (hlen == 0 ? "mandatory" : "optional"), htype);
 			goto discard;
 		}
 		ext = (*it).second;
@@ -354,20 +385,25 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		switch(ext->decode(hlen, payload))
 		{
 			case ULE_EXT_OK:
-				UTI_DEBUG("%s %s ULE extension 0x%02x successfully decoded\n",
-				          FUNCNAME, (hlen == 0 ? "mandatory" : "optional"), htype);
+				Output::sendLog(this->log, LEVEL_INFO,
+				                "%s %s ULE extension 0x%02x successfully "
+				                "decoded\n", FUNCNAME, 
+				                (hlen == 0 ? "mandatory" : "optional"), htype);
 				break;
 
 			case ULE_EXT_DISCARD:
-				UTI_DEBUG("%s %s ULE extension 0x%02x successfully decoded, but "
-				          "ULE packet must be discarded\n", FUNCNAME, (hlen == 0 ?
-				          "mandatory" : "optional"), htype);
+				Output::sendLog(this->log, LEVEL_INFO,
+				                "%s %s ULE extension 0x%02x successfully "
+				                "decoded, but ULE packet must be discarded\n",
+				                FUNCNAME,
+				                (hlen == 0 ? "mandatory" : "optional"), htype);
 				goto discard;
 
 			case ULE_EXT_ERROR:
-				UTI_ERROR("%s analysis of %s ULE extension 0x%02x failed, drop "
-				          "packet\n", FUNCNAME, (hlen == 0 ? "mandatory" :
-				          "optional"), htype);
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "%s analysis of %s ULE extension 0x%02x "
+				                "failed, drop packet\n", FUNCNAME,
+				                (hlen == 0 ? "mandatory" : "optional"), htype);
 				goto discard;
 		}
 
@@ -375,11 +411,13 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 		payload = ext->payload();
 		ptype = ext->payloadType();
 
-		UTI_DEBUG("%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
-		          payload.length(), ptype);
+		Output::sendLog(this->log, LEVEL_INFO,
+		                "%s next header: size = %zu, type = 0x%04x\n", FUNCNAME,
+		                payload.length(), ptype);
 	}
 
-	UTI_DEBUG("received a packet with type 0x%.4x\n", ptype);
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "received a packet with type 0x%.4x\n", ptype);
 
 	net_packet = this->current_upper->build(payload,
 	                                        payload.length(),
@@ -387,8 +425,9 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	                                        packet->getSrcTalId(), packet->getDstTalId());
 	if(net_packet == NULL)
 	{
-		UTI_ERROR("%s cannot create a %s packet, drop the ULE packet\n",
-		          FUNCNAME, this->current_upper->getName().c_str());
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot create a %s packet, drop the ULE packet\n",
+		                FUNCNAME, this->current_upper->getName().c_str());
 		goto discard;
 	}
 
@@ -397,9 +436,11 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	// add network packet to burst
 	net_packets->add(net_packet);
 
-	UTI_DEBUG("%s %zu-byte ULE packet => %zu-byte %s packet/frame\n", FUNCNAME,
-	          ule_packet->getTotalLength(), net_packet->getTotalLength(),
-	          net_packet->getName().c_str());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "%s %zu-byte ULE packet => %zu-byte %s packet/frame\n",
+	                FUNCNAME, ule_packet->getTotalLength(),
+	                net_packet->getTotalLength(),
+	                net_packet->getName().c_str());
 
 	delete ule_packet;
 	return true;
@@ -421,7 +462,8 @@ bool Ule::Context::addExt(UleExt *ext, bool activated)
 	// check extension validity
 	if(ext == NULL)
 	{
-		UTI_ERROR("%s invalid extension\n", FUNCNAME);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s invalid extension\n", FUNCNAME);
 		goto bad;
 	}
 
@@ -435,8 +477,10 @@ bool Ule::Context::addExt(UleExt *ext, bool activated)
 	it = exts->find(ext->type());
 	if(it != exts->end())
 	{
-		UTI_ERROR("%s %s extension 0x%02x already registered\n", FUNCNAME,
-		          ext->isMandatory() ? "mandatory" : "optional", ext->type());
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s %s extension 0x%02x already registered\n", FUNCNAME,
+		                ext->isMandatory() ? "mandatory" : "optional",
+		                ext->type());
 		goto bad;
 	}
 
@@ -444,8 +488,10 @@ bool Ule::Context::addExt(UleExt *ext, bool activated)
 	infos = exts->insert(std::make_pair(ext->type(), ext));
 	if(!infos.second)
 	{
-		UTI_ERROR("%s cannot add %s extension 0x%02x\n", FUNCNAME,
-		          ext->isMandatory() ? "mandatory" : "optional", ext->type());
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "%s cannot add %s extension 0x%02x\n", FUNCNAME,
+		                ext->isMandatory() ? "mandatory" : "optional",
+		                ext->type());
 		goto bad;
 	}
 

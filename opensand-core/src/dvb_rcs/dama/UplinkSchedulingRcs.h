@@ -42,6 +42,8 @@
 #include "TerminalCategory.h"
 #include "FmtSimulation.h"
 
+#include <opensand_output/OutputLog.h>
+
 /**
  * @class UplinkSchedulingRcs
  * @brief Scheduling functions for MAC FIFOs with DVB-RCS uplink

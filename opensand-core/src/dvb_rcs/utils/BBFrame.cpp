@@ -36,8 +36,7 @@
 #include "BBFrame.h"
 #include "OpenSandFrames.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <string.h>
 
@@ -157,8 +156,9 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
 		{
-			UTI_DEBUG("update real MODCOD to %d\n",
-			          real_modcod_option->real_modcod);
+			Output::sendLog(LEVEL_INFO,
+			                "update real MODCOD to %d\n",
+			                real_modcod_option->real_modcod);
 			// check if the value is not outside the values of the file
 			modcod_id = real_modcod_option->real_modcod;
 			return;

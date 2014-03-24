@@ -32,14 +32,12 @@
  */
 
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
 
 #include "AcmLoop.h"
 
 #include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
 
 #include <errno.h>
 #include <string.h>
@@ -66,20 +64,24 @@ bool AcmLoop::init(void)
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          val))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, SATELLITE_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_INFO("satellite type = %s\n", val.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "satellite type = %s\n", val.c_str());
 	sat_type = strToSatType(val);
 
 	val = "";
 	if(!globalConfig.getComponent(val))
 	{
-		UTI_ERROR("cannot get component type\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot get component type\n");
 		goto error;
 	}
-	UTI_INFO("host type = %s\n", val.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "host type = %s\n", val.c_str());
 	compo = getComponentType(val);
 
 	if(compo == terminal ||
@@ -95,24 +97,28 @@ bool AcmLoop::init(void)
 	if(!globalConfig.getValue(GLOBAL_SECTION, modcod_key.c_str(),
 	                          filename))
 	{
-		UTI_ERROR("section '%s', missing parameter '%s'\n",
-		          GLOBAL_SECTION, modcod_key.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s', missing parameter '%s'\n",
+		                GLOBAL_SECTION, modcod_key.c_str());
 		goto error;
 	}
 
 	if(access(filename.c_str(), R_OK) < 0)
 	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		          filename.c_str(), strerror(errno));
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot access '%s' file (%s)\n",
+		                filename.c_str(), strerror(errno));
 		goto error;
 	}
-	UTI_INFO("ACM loop definition file for minimal condition = '%s'\n",
-	         filename.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "ACM loop definition file for minimal condition = '%s'\n",
+	                filename.c_str());
 
 	// load all the ACM_LOOP definitions from file
 	if(!(this->modcod_table).load(filename))
 	{
-		UTI_ERROR("unable to load the acm_loop definition table");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "unable to load the acm_loop definition table");
 		goto error;
 	}
 
@@ -128,9 +134,10 @@ bool AcmLoop::updateThreshold(uint8_t modcod_id)
 	// Init variables
 	threshold = this->minimal_cn; // Default, keep previous threshold
 	threshold = (double)(this->modcod_table.getRequiredEsN0(modcod_id));
-	UTI_DEBUG("Required Es/N0 for ACM loop %u --> %.2f dB\n",
-	          modcod_id,
-	          this->modcod_table.getRequiredEsN0(modcod_id));
+	Output::sendLog(this->log_minimal, LEVEL_DEBUG, 
+	                "Required Es/N0 for ACM loop %u --> %.2f dB\n",
+	                modcod_id,
+	                this->modcod_table.getRequiredEsN0(modcod_id));
 
 	this->minimal_cn = threshold;
 	return true;

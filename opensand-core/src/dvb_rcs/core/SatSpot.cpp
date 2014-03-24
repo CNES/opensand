@@ -32,13 +32,13 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-#define DBG_PACKAGE PKG_DVB_RCS_SAT
-#include <opensand_conf/uti_debug.h>
 
 #include "SatSpot.h"
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
 #include "ForwardSchedulingS2.h"
+
+#include <opensand_output/Output.h>
 
 #include <stdlib.h>
 
@@ -65,6 +65,9 @@ SatSpot::SatSpot(spot_id_t spot_id,
 	// initialize MAC FIFOs
 	this->data_out_st_fifo = new DvbFifo(data_out_st_id, fifo_size, "data_out_st");
 	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size, "data_out_gw");
+
+	// Output Log
+	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
 }
 
 SatSpot::~SatSpot()
@@ -91,7 +94,9 @@ bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                                           category);
 	if(!this->scheduling)
 	{
-		UTI_ERROR("cannot create down scheduling for spot %u\n", this->spot_id);
+		Output::sendLog(this->log_init, LEVEL_ERROR, 
+		                "cannot create down scheduling for spot %u\n",
+		                this->spot_id);
 		return false;
 	}
 	return true;

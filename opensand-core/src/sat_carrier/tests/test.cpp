@@ -38,7 +38,6 @@
 #include "TestSatCarriers.h"
 
 #include <opensand_conf/conf.h>
-#include <opensand_conf/uti_debug.h>
 #include <opensand_rt/Rt.h>
 
 #include <stdlib.h>
@@ -158,8 +157,5 @@ int main(int argc, char **argv)
 unload_config:
 	globalConfig.unloadConfig();
 quit:
-	UTI_PRINT(LOG_INFO, "%s: SAT process stopped with exit code %d\n",
-	          progname, is_failure);
-	closelog();
 	return is_failure;
 }

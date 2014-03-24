@@ -64,7 +64,8 @@ bool DamaAgentRcsLegacy::init()
 {
 	if(!DamaAgentRcs::init())
 	{
-		UTI_ERROR("Cannot call DamaAgentRcs::init()");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Cannot call DamaAgentRcs::init()");
 		return false;
 	}
 
@@ -76,8 +77,9 @@ bool DamaAgentRcsLegacy::hereIsSOF(time_sf_t superframe_number_sf)
 	// Call parent method
 	if(!DamaAgentRcs::hereIsSOF(superframe_number_sf))
 	 {
-		UTI_ERROR("SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 
@@ -136,17 +138,19 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 		rbdc_request_kbps = max(0, (int)req_kbps);
 	}
 
-	UTI_DEBUG_L3("SF#%u: frame %u: RBDC Timer = %u, RBDC Length = %u bytes, "
-	             "RBDC packet arrival = %u, previous RBDC request in "
-	             "MSL = %u kb/s, rate need = %u kb/s\n",
-	             this->current_superframe_sf, this->current_frame,
-	             this->rbdc_timer_sf, rbdc_length_b,
-	             rbdc_pkt_arrival_b, rbdc_req_in_previous_msl_kbps,
-	             rbdc_request_kbps);
-
-	UTI_DEBUG("SF#%u: frame %u: theoretical RBDC request = %u kbits/s",
-	          this->current_superframe_sf, this->current_frame,
-	          rbdc_request_kbps);
+	Output::sendLog(this->log_request, LEVEL_DEBUG,
+	                "SF#%u: frame %u: RBDC Timer = %u, RBDC Length = %u bytes"
+	                ", RBDC packet arrival = %u, previous RBDC request in "
+	                "MSL = %u kb/s, rate need = %u kb/s\n",
+	                this->current_superframe_sf, this->current_frame,
+	                this->rbdc_timer_sf, rbdc_length_b,
+	                rbdc_pkt_arrival_b, rbdc_req_in_previous_msl_kbps,
+	                rbdc_request_kbps);
+  
+	Output::sendLog(this->log_request, LEVEL_INFO,
+	                "SF#%u: frame %u: theoretical RBDC request = %u kbits/s",
+	                this->current_superframe_sf, this->current_frame,
+	                rbdc_request_kbps);
 
 	/* adjust request in function of max RBDC and fixed allocation */
 	if(!this->cra_in_cr)
@@ -158,15 +162,17 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 		rbdc_limit_kbps = this->max_rbdc_kbps;
 	}
 	rbdc_request_kbps = min(rbdc_request_kbps, rbdc_limit_kbps);
-	UTI_DEBUG_L3("updated RBDC request = %u kbits/s "
-	             "(in fonction of max RBDC and CRA)\n", rbdc_request_kbps);
+	Output::sendLog(this->log_request, LEVEL_DEBUG,
+	                "updated RBDC request = %u kbits/s (in fonction of max "
+	                "RBDC and CRA)\n", rbdc_request_kbps);
 
 	/* reduce the request value to the maximum theorical value if required */
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
 
-	UTI_DEBUG_L3("SF#%u: frame %u: updated RBDC request = %u kbits/s in SAC\n",
-	             this->current_superframe_sf, this->current_frame,
-	             rbdc_request_kbps);
+	Output::sendLog(this->log_request, LEVEL_DEBUG,
+	                "SF#%u: frame %u: updated RBDC request = %u kbits/s in "
+	                "SAC\n", this->current_superframe_sf, this->current_frame,
+	                rbdc_request_kbps);
 
 	return rbdc_request_kbps;
 }
@@ -187,29 +193,33 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
-	UTI_ERROR("SF#%u: frame %u: MAC buffer length = %d, VBDC credit = %u\n",
-	             this->current_superframe_sf, this->current_frame,
-	             vbdc_need_pkt, this->vbdc_credit_pkt);
+	Output::sendLog(this->log_request, LEVEL_ERROR,		
+	                "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
+	                "%u\n", this->current_superframe_sf, this->current_frame,
+	                vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
-	UTI_ERROR("SF#%u: frame %u: theoretical VBDC request = %u packets",
-	             this->current_superframe_sf, this->current_frame,
-	             vbdc_request_pkt);
+	Output::sendLog(this->log_request, LEVEL_ERROR,
+	                "SF#%u: frame %u: theoretical VBDC request = %u packets",
+	                this->current_superframe_sf, this->current_frame,
+	                vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */
 	vbdc_request_pkt = min(vbdc_request_pkt, max_vbdc_pkt);
 
 	// Ensure VBDC request value is not greater than SAC field
 	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
-	UTI_ERROR("updated VBDC request = %d packets in fonction of "
-	             "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
+	Output::sendLog(this->log_request, LEVEL_ERROR,
+	                "updated VBDC request = %d packets in fonction of "
+	                "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
 	this->vbdc_credit_pkt += vbdc_request_pkt;
-	UTI_ERROR("updated VBDC request = %d packets in SAC, VBDC credit = %u\n",
-	             vbdc_request_pkt, this->vbdc_credit_pkt);
+	Output::sendLog(this->log_request, LEVEL_ERROR,
+	                "updated VBDC request = %d packets in SAC, VBDC credit = "
+	                "%u\n", vbdc_request_pkt, this->vbdc_credit_pkt);
 
 	return vbdc_request_pkt;
 }

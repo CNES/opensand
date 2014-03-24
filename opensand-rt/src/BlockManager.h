@@ -41,7 +41,7 @@
 #include "MessageEvent.h"
 #include "RtFifo.h"
 
-#include <opensand_output/Output.h>
+#include <opensand_output/OutputLog.h>
 
 #include <list>
 #include <string>
@@ -140,6 +140,8 @@ class BlockManager
 	 */
 	bool getStatus(void);
 
+	/// Output Log
+	OutputLog *log_rt;
 
    private:
 
@@ -151,10 +153,6 @@ class BlockManager
 
 	/// whether a critical error was raised
 	bool status;
-
-	/// event for critical errors
-	static Event *critical_evt;
-
 };
 
 template<class Bl, class Up, class Down>

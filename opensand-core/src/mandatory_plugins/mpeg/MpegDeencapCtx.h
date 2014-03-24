@@ -64,6 +64,9 @@ class MpegDeencapCtx
 	/// The destination spot ID
 	uint16_t _dest_spot;
 
+	/// The output log
+	OutputLog *log;
+
  public:
 
 	/*

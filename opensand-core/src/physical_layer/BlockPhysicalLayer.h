@@ -62,7 +62,6 @@ class Chan: public RtChannel, PhyChannel
 
  protected:
 	virtual bool forwardFrame(DvbFrame *dvb_frame) = 0;
-
 };
 
 /**
@@ -97,7 +96,8 @@ class BlockPhysicalLayer: public Block
 	  public:
 		Upward(Block *const bl):
 			Chan(bl, upward_chan)
-		{};
+		{
+		};
 
 		virtual bool onInit(void);
 
@@ -112,7 +112,8 @@ class BlockPhysicalLayer: public Block
 	  public:
 		Downward(Block *const bl):
 			Chan(bl, downward_chan)
-		{};
+		{
+		};
 
 		virtual bool onInit(void);
 
@@ -130,10 +131,9 @@ class BlockPhysicalLayer: public Block
 	 * @param chan   The channel
 	 */
 	bool onEvent(const RtEvent *const event, Chan *chan);
-
-	/// output events
-	static Event *error_init;
-	static Event *init_done;
+	
+	// Output logs
+	OutputLog *log_event;
 };
 
 /**
@@ -176,9 +176,8 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	 */
 	bool onEvent(const RtEvent *const event, Chan *chan);
 
-	/// output events
-	static Event *error_init;
-	static Event *init_done;
+	// Output logs
+	OutputLog *log_event;
 };
 
 #endif

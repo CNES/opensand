@@ -45,30 +45,45 @@ import threading
 LOGGER = logging.getLogger('sand-collector')
 
 MAGIC_NUMBER = 0x5A7D0001
-MSG_CMD_REGISTER = 1
-MSG_CMD_ACK = 2
-MSG_CMD_SEND_PROBES = 3
-MSG_CMD_SEND_EVENT = 4
-MSG_CMD_ENABLE_PROBE = 5
-MSG_CMD_DISABLE_PROBE = 6
-MSG_CMD_UNREGISTER = 7
-MSG_CMD_RELAY = 10
-MSG_CMD_REGISTER_LIVE = 12
-MSG_MGR_REGISTER = 21
-MSG_MGR_REGISTER_PROGRAM = 22
-MSG_MGR_UNREGISTER_PROGRAM = 23
-MSG_MGR_SET_PROBE_STATUS = 24
-MSG_MGR_SEND_PROBES = 25
-MSG_MGR_SEND_EVENT = 26
-MSG_MGR_UNREGISTER = 27
-MSG_MGR_REGISTER_ACK = 28
-MSG_MGR_STATUS = 30
+MSG_CMD_REGISTER_INIT = 1
+MSG_CMD_REGISTER_END = 2
+MSG_CMD_REGISTER_LIVE = 3
+MSG_CMD_UNREGISTER = 4
+MSG_CMD_ACK = 5
+MSG_CMD_RELAY = 7
+
+MSG_CMD_SEND_PROBES = 10
+MSG_CMD_SEND_LOG = 20
+
+MSG_CMD_ENABLE_PROBE = 11
+MSG_CMD_DISABLE_PROBE = 12
+
+MSG_CMD_SET_LOG_LEVEL = 22
+MSG_CMD_ENABLE_LOGS = 23
+MSG_CMD_DISABLE_LOGS = 24
+MSG_CMD_ENABLE_SYSLOG = 25
+MSG_CMD_DISABLE_SYSLOG = 26
+
+MSG_MGR_REGISTER = 40
+MSG_MGR_REGISTER_PROGRAM = 41
+MSG_MGR_UNREGISTER_PROGRAM = 42
+MSG_MGR_UNREGISTER = 43
+MSG_MGR_REGISTER_ACK = 44
+MSG_MGR_STATUS = 45
+
+MSG_MGR_SEND_PROBES = 50
+MSG_MGR_SET_PROBE_STATUS = 51
+
+MSG_MGR_SEND_LOG = 60
+MSG_MGR_SET_LOG_LEVEL = 61
+MSG_MGR_SET_LOGS_STATUS = 62
+MSG_MGR_SET_SYSLOG_STATUS = 63
+
 
 class MessagesHandler(object):
     """
     UDP messages handler class
     """
-
     def __init__(self, host_manager):
         self._host_manager = host_manager
         self._manager_addr = None
@@ -79,6 +94,7 @@ class MessagesHandler(object):
         self._stop = threading.Event()
         self._mgr_ok = threading.Event()
         self._mgr_status = None
+        self._init_done = False
 
     def get_port(self):
         """
@@ -156,13 +172,14 @@ class MessagesHandler(object):
         Handles a received message. Interprets the message, and calls the
         probes manager to perform the appropriate action.
         """
-        if cmd == MSG_CMD_REGISTER or cmd == MSG_CMD_REGISTER_LIVE:
+        if cmd in [MSG_CMD_REGISTER_LIVE, MSG_CMD_REGISTER_INIT,
+                   MSG_CMD_REGISTER_END]:
             try:
-                success = self._handle_cmd_register(host, addr, data,
-                                                    cmd ==
+                success = self._handle_cmd_register(host, addr, data, cmd ==
                                                     MSG_CMD_REGISTER_LIVE)
             except struct.error:
                 success = False
+            self._init_done = True
 
             if not success:
                 LOGGER.error("Bad data received for '%s' REGISTER command",
@@ -195,8 +212,8 @@ class MessagesHandler(object):
         """
         Handles a registration command.
         """
-        prog_id, num_probes, num_events, name_length = struct.unpack("!BBBB",
-                                                                     data[0:4])
+        prog_id, num_probes, num_logs, name_length = \
+                                      struct.unpack("!BBBB", data[0:4])
         prog_name = data[4:4 + name_length]
 
         if len(prog_name) != name_length:
@@ -206,11 +223,11 @@ class MessagesHandler(object):
 
         probe_list = []
         for _ in xrange(num_probes):
-            storage_type, name_length, unit_length = struct.unpack("!BBB",
-                                                     data[pos:pos + 3])
+            probe_id, storage_type, name_length, unit_length = \
+                                  struct.unpack("!BBBB", data[pos:pos + 4])
             enabled = bool(storage_type >> 7)
             storage_type = storage_type & ~(1 << 7)
-            pos += 3
+            pos += 4
 
             name = data[pos:pos + name_length]
             if len(name) != name_length:
@@ -224,23 +241,24 @@ class MessagesHandler(object):
 
             pos += unit_length
 
-            probe_list.append((name, unit, storage_type, enabled))
+            probe_list.append((probe_id, name, unit, storage_type, enabled))
 
-        event_list = []
-        for _ in xrange(num_events):
-            level, ident_length = struct.unpack("!BB", data[pos:pos+2])
-            pos += 2
+        log_list = []
+        for _ in xrange(num_logs):
+            log_id, level, ident_length = struct.unpack("!BBB",
+                                                        data[pos:pos + 3])
+            pos += 3
 
             name = data[pos:pos + ident_length]
             if len(name) != ident_length:
                 return False
-            event_list.append((name, level))
+            log_list.append((log_id, name, level))
             pos += ident_length
 
         if data[pos:] != "":
             return False
 
-        program = host.add_program(prog_id, prog_name, probe_list, event_list)
+        program = host.add_program(prog_id, prog_name, probe_list, log_list)
 
         if not live:
             self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK), addr)
@@ -266,8 +284,8 @@ class MessagesHandler(object):
         if sub_cmd == MSG_CMD_SEND_PROBES:
             return self._handle_cmd_send_probes(host, prog, data[2:])
 
-        if sub_cmd == MSG_CMD_SEND_EVENT:
-            return self._handle_cmd_send_event(host, prog, data[2:])
+        if sub_cmd == MSG_CMD_SEND_LOG:
+            return self._handle_cmd_send_log(host, prog, data[2:])
 
     def _handle_cmd_send_probes(self, host, prog, data):
         """
@@ -285,12 +303,12 @@ class MessagesHandler(object):
 
             try:
                 probe = prog.get_probe(probe_id)
-            except IndexError:
+            except KeyError:
                 LOGGER.error("Unknown probe ID %d", probe_id)
                 return False
 
             value, pos = probe.read_value(data, pos)
-            probe.log_value(timestamp, value)
+            probe.save_value(timestamp, value)
 
             if probe.displayed:
                 displayed_values.append((probe_id, probe, value))
@@ -301,24 +319,25 @@ class MessagesHandler(object):
 
         return True
 
-    def _handle_cmd_send_event(self, host, prog, data):
+    def _handle_cmd_send_log(self, host, prog, data):
         """
-        Handles a SEND_EVENT command from a daemon
+        Handles a SEND_LOG command from a daemon
         """
-        event_id = struct.unpack("!B", data[0])[0]
+        log_id = struct.unpack("!B", data[0])[0]
+        log_level = struct.unpack("!B", data[1])[0]
 
         try:
-            event = prog.get_event(event_id)
-        except IndexError:
-            LOGGER.error("Unknown event ID %d", event_id)
+            log = prog.get_log(log_id)
+        except KeyError:
+            LOGGER.error("Unknown log ID %d", log_id)
             return False
 
-        text = data[1:]
-        event.log(self._time, text)
+        text = data[2:]
+        log.save(self._time, log_level, text)
 
-        LOGGER.debug("Event %s: %s", event, text)
+        LOGGER.debug("Log %s: %s", log, text)
 
-        self._notify_manager_event(host, prog, event_id, text)
+        self._notify_manager_log(host, prog, log_id, log_level, text)
 
         return True
 
@@ -372,6 +391,10 @@ class MessagesHandler(object):
                          "address %s:%d", cmd, addr[0], addr[1])
             return
 
+        # for next commands the process should be initialized
+        if not self._init_done:
+            return
+
         if cmd == MSG_MGR_SET_PROBE_STATUS:
             host_id, program_id, probe_id, status = struct.unpack("!BBBB", data)
 
@@ -396,6 +419,58 @@ class MessagesHandler(object):
                                               MSG_CMD_RELAY, program_id, cmd,
                                               probe_id), host.address)
 
+        elif cmd == MSG_MGR_SET_LOG_LEVEL:
+            host_id, program_id, log_id, level = struct.unpack("!BBBB", data)
+
+            LOGGER.info("New log level set from manager for log %d of "
+                        "program %d:%d: new level = %s", log_id,
+                        host_id, program_id, level)
+
+            host = self._host_manager.set_log_display_level(host_id,
+                                                            program_id,
+                                                            log_id,
+                                                            level)
+
+            if host:  # Need to propagate the new enabled state upstream
+                LOGGER.debug("The enabled of the above probe has been relayed.")
+                self._sock.sendto(struct.pack("!LBBBBB", MAGIC_NUMBER,
+                                              MSG_CMD_RELAY, program_id,
+                                              MSG_CMD_SET_LOG_LEVEL,
+                                              log_id, level), host.address)
+
+        elif cmd == MSG_MGR_SET_LOGS_STATUS:
+            host_id, program_id, status = struct.unpack("!BBB", data)
+
+            LOGGER.info("New logs status set from manager for "
+                        "program %d:%d: enabled = %s", host_id,
+                        program_id, status)
+
+            cmd = MSG_CMD_ENABLE_LOGS if status else MSG_CMD_DISABLE_LOGS
+            
+            address = self._host_manager.get_host_address(host_id)
+
+            if address:
+                LOGGER.debug("The enabled of the logs has been relayed.")
+                self._sock.sendto(struct.pack("!LBBB", MAGIC_NUMBER,
+                                              MSG_CMD_RELAY, program_id, cmd),
+                                  address)
+
+        elif cmd == MSG_MGR_SET_SYSLOG_STATUS:
+            host_id, program_id, status = struct.unpack("!BBB", data)
+
+            LOGGER.info("New syslog status set from manager for "
+                        "program %d:%d: enabled = %s", host_id,
+                        program_id, status)
+
+            cmd = MSG_CMD_ENABLE_SYSLOG if status else MSG_CMD_DISABLE_SYSLOG
+
+            address = self._host_manager.get_host_address(host_id)
+
+            if address:
+                LOGGER.debug("The enabled of syslog has been relayed.")
+                self._sock.sendto(struct.pack("!LBBB", MAGIC_NUMBER,
+                                              MSG_CMD_RELAY, program_id, cmd),
+                                  address)
         else:
             LOGGER.error("Unknown command id %d received from manager %s:%d",
                          cmd, addr[0], addr[1])
@@ -418,7 +493,7 @@ class MessagesHandler(object):
         if not self._manager_addr:
             return
 
-        name, host_ident, prog_ident, probes, events = program.attributes()
+        name, host_ident, prog_ident, probes, logs = program.attributes()
         if type(name) == unicode:
             name = name.encode('utf8')
 
@@ -428,18 +503,18 @@ class MessagesHandler(object):
 
         message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
                               host_ident, prog_ident, len(probes),
-                              len(events), len(name)) + name
+                              len(logs), len(name)) + name
 
-        for name, unit, storage_type, enabled, displayed in probes:
+        for probe_id, name, unit, storage_type, enabled, displayed in probes:
             storage_type |= enabled << 7
             storage_type |= displayed << 6
 
-            message += struct.pack("!BBB", storage_type, len(name), len(unit))
+            message += struct.pack("!BBBB", probe_id, storage_type, len(name), len(unit))
             message += name
             message += unit
 
-        for ident, level in events:
-            message += struct.pack("!BB", level, len(ident))
+        for log_id, ident, level in logs:
+            message += struct.pack("!BBB", log_id, level, len(ident))
             message += ident
 
         if self._manager_addr:
@@ -474,16 +549,16 @@ class MessagesHandler(object):
         if self._manager_addr:
             self._sock.sendto(message, self._manager_addr)
 
-    def _notify_manager_event(self, host, prog, event_id, text):
+    def _notify_manager_log(self, host, prog, log_id, log_level, text):
         """
-        Sends a MSG_MGR_SEND_EVENT to the manager with the relayed event.
+        Sends a MSG_MGR_SEND_LOG to the manager with the relayed log.
         """
-        message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SEND_EVENT,
-                              host.ident, prog.ident, event_id)
+        message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SEND_LOG,
+                              host.ident, prog.ident, log_id, log_level)
         message += text
 
         if self._manager_addr:
-            LOGGER.debug("Transmit event to manager")
+            LOGGER.debug("Transmit log to manager")
             self._sock.sendto(message, self._manager_addr)
 
     def _check_manager_status(self):

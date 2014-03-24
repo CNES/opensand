@@ -34,9 +34,7 @@
 
 #include "GseEncapCtx.h"
 
-#undef DBG_PACKAGE
-#define DBG_PACKAGE PKG_ENCAP
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 
 GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
@@ -49,6 +47,8 @@ GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
 	this->protocol = 0;
 	this->name = "unknown";
 	this->dest_spot = spot_id;
+	this->log = Output::registerLog(LEVEL_WARNING,
+	                                "Encap.GSE");
 }
 
 GseEncapCtx::~GseEncapCtx()
@@ -82,8 +82,9 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	else if(this->isFull())
 	{
 		status = GSE_STATUS_DATA_TOO_LONG;
-		UTI_ERROR("failed to encapsulate packet because its size "
-		          "is greater that GSE fragment free space\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "failed to encapsulate packet because its size "
+		                "is greater that GSE fragment free space\n");
 		goto error;
 	}
 	else
@@ -99,7 +100,8 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	                              packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
-		UTI_ERROR("failed to set the new vfrag length\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "failed to set the new vfrag length\n");
 		goto error;
 	}
 

@@ -67,6 +67,8 @@
 
 #include "Rt.h"
 
+#include <opensand_output/Output.h>
+
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -369,6 +371,8 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_multi_blocks");
 {
 #endif
+	Output::init(false);
+	Output::enableStdlog();
 	Block *top;
 	Block *middle;
 	string error;
@@ -417,6 +421,7 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	                BottomBlock::RtDownward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
+	Output::finishInit();
 	if(!Rt::run(true))
 	{
 		ret = 1;

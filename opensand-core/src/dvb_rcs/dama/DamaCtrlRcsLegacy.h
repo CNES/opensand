@@ -54,7 +54,6 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	DamaCtrlRcsLegacy();
 	virtual ~DamaCtrlRcsLegacy();
 
-
  private:
 	///RBDC allocation
 	bool runDamaRbdc();

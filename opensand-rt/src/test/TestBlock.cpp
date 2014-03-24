@@ -60,6 +60,8 @@
 #include "TimerEvent.h"
 #include "NetSocketEvent.h"
 
+#include <opensand_output/Output.h>
+
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -206,6 +208,8 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
+	Output::init(false);
+	Output::enableStdlog();
 	string error;
 
 	std::cout << "Launch test" << std::endl;
@@ -214,6 +218,7 @@ HeapLeakChecker heap_checker("test_block");
 	                TestBlock::RtDownward>("test");
 
 	std::cout << "Start loop, please wait..." << std::endl;
+	Output::finishInit();
 	if(!Rt::run(true))
 	{
 		ret = 1;

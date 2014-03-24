@@ -38,6 +38,8 @@
 
 #include "FmtDefinition.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <map>
 #include <string>
 
@@ -65,6 +67,11 @@ class FmtDefinitionTable
 	 * @return  the definition
 	 */
 	FmtDefinition *getFmtDef(unsigned int id) const;
+
+ protected:
+
+	// Output Log
+	OutputLog *log_fmt;
 
  public:
 

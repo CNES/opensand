@@ -45,15 +45,20 @@ import struct
 import select
 
 MAGIC_NUMBER = 0x5A7D0001
-MSG_MGR_REGISTER = 21
-MSG_MGR_REGISTER_PROGRAM = 22
-MSG_MGR_UNREGISTER_PROGRAM = 23
-MSG_MGR_SET_PROBE_STATUS = 24
-MSG_MGR_SEND_PROBES = 25
-MSG_MGR_SEND_EVENT = 26
-MSG_MGR_UNREGISTER = 27
-MSG_MGR_REGISTER_ACK = 28
-MSG_MGR_STATUS = 30
+MSG_MGR_REGISTER = 40
+MSG_MGR_REGISTER_PROGRAM = 41
+MSG_MGR_UNREGISTER_PROGRAM = 42
+MSG_MGR_UNREGISTER = 43
+MSG_MGR_REGISTER_ACK = 44
+MSG_MGR_STATUS = 45
+
+MSG_MGR_SEND_PROBES = 50
+MSG_MGR_SET_PROBE_STATUS = 51
+
+MSG_MGR_SEND_LOG = 60
+MSG_MGR_SET_LOG_LEVEL = 61
+MSG_MGR_SET_LOGS_STATUS = 62
+MSG_MGR_SET_SYSLOG_STATUS = 63
 
 
 class EnvironmentPlaneController(object):
@@ -309,14 +314,14 @@ class EnvironmentPlaneController(object):
 
             return True
 
-        if cmd == MSG_MGR_SEND_EVENT:
+        if cmd == MSG_MGR_SEND_LOG:
             try:
-                success = self._handle_send_event(packet[5:])
+                success = self._handle_send_log(packet[5:])
             except struct.error:
                 success = False
 
             if not success:
-                self._log.error("Bad data received for SEND_EVENT command.")
+                self._log.error("Bad data received for SEND_LOG command.")
 
             return True
 
@@ -329,7 +334,7 @@ class EnvironmentPlaneController(object):
         """
         Handles a registration message.
         """
-        host_id, prog_id, num_probes, num_events, name_length = \
+        host_id, prog_id, num_probes, num_logs, name_length = \
             struct.unpack("!BBBBB", data[0:5])
         prog_name = data[5:5 + name_length]
         full_prog_id = (host_id << 8) | prog_id
@@ -341,12 +346,12 @@ class EnvironmentPlaneController(object):
 
         probe_list = []
         for _ in xrange(num_probes):
-            storage_type, name_length, unit_length = \
-                    struct.unpack("!BBB", data[pos:pos + 3])
+            probe_id, storage_type, name_length, unit_length = \
+                    struct.unpack("!BBBB", data[pos:pos + 4])
             enabled = bool(storage_type & (1 << 7))
             displayed = bool(storage_type & (1 << 6))
             storage_type = storage_type & ~(3 << 6)
-            pos += 3
+            pos += 4
 
             name = data[pos:pos + name_length]
             if len(name) != name_length:
@@ -360,18 +365,19 @@ class EnvironmentPlaneController(object):
 
             pos += unit_length
 
-            probe_list.append((name, unit, storage_type, enabled, displayed))
+            probe_list.append((probe_id, name, unit, storage_type, enabled,
+                               displayed))
 
-        event_list = []
-        for _ in xrange(num_events):
-            level, ident_length = struct.unpack("!BB", data[pos:pos+2])
-            pos += 2
+        log_list = []
+        for _ in xrange(num_logs):
+            log_id, level, ident_length = struct.unpack("!BBB", data[pos:pos+3])
+            pos += 3
 
             ident = data[pos:pos + ident_length]
             if len(ident) != ident_length:
                 return False
 
-            event_list.append((ident, level))
+            log_list.append((log_id, ident, level))
             pos += ident_length
 
         if data[pos:] != "":
@@ -380,7 +386,7 @@ class EnvironmentPlaneController(object):
         self._log.debug("Registration of [%d:%d] %s %r %r" % (host_id, prog_id,
                                                               prog_name,
                                                               probe_list,
-                                                              event_list))
+                                                              log_list))
 
         # try to get host model
         splitted = prog_name.split('.', 1)
@@ -396,8 +402,9 @@ class EnvironmentPlaneController(object):
         if full_prog_id in self._programs:
             self._log.debug("Update probes for program %s" % (prog_name))
             self._programs[full_prog_id].add_probes(probe_list)
+            self._programs[full_prog_id].add_logs(log_list)
         else:
-            program = Program(self, full_prog_id, prog_name, probe_list, event_list,
+            program = Program(self, full_prog_id, prog_name, probe_list, log_list,
                               host_model)
             self._programs[full_prog_id] = program
 
@@ -460,30 +467,30 @@ class EnvironmentPlaneController(object):
 
         return True
 
-    def _handle_send_event(self, data):
+    def _handle_send_log(self, data):
         """
-        Handles events transmission.
+        Handles logs transmission.
         """
-        host_id, prog_id, event_id = struct.unpack("!BBB", data[0:3])
-        message = data[3:]
+        host_id, prog_id, log_id, log_level = struct.unpack("!BBBB", data[0:4])
+        message = data[4:]
         full_prog_id = (host_id << 8) | prog_id
 
         try:
             program = self._programs[full_prog_id]
         except KeyError:
-            self._log.error("Program [%d:%d] which sent event data is not "
-                "found" % (host_id, prog_id))
+            self._log.error("Program [%d:%d] which sent log data is not "
+                            "found" % (host_id, prog_id))
             return False
 
         try:
-            name, level = program.get_event(event_id)
+            log = program.get_log(log_id)
         except IndexError:
-            self._log.error("Incorrect event ID %d for program [%d:%d] "
-                            "received" % (event_id, host_id, prog_id))
+            self._log.error("Incorrect log ID %d for program [%d:%d] "
+                            "received" % (log_id, host_id, prog_id))
             return False
 
         if self._observer:
-            self._observer.new_event(program, name, level, message)
+            self._observer.new_log(program, log.name, log_level, message)
 
         return True
 
@@ -510,6 +517,71 @@ class EnvironmentPlaneController(object):
                               host_id, program_id, probe_id, state)
 
         self._sock.sendto(message, self._collector_addr)
+
+    def update_log_status(self, log):
+        """
+        Notifies the collector that the status of a given log has changed.
+        """
+        if not self._collector_addr:
+            return
+
+        host_id = (log.program.ident >> 8) & 0xFF
+        program_id = log.program.ident & 0xFF
+        log_id = log.ident
+
+        self._log.debug("Updating status of log %d on program %d:%d: level = %s"
+                        % (log_id, host_id, program_id, log.display_level))
+
+        message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SET_LOG_LEVEL,
+                              host_id, program_id, log_id, log.display_level)
+
+        self._sock.sendto(message, self._collector_addr)
+        
+    def enable_syslog(self, value, program):
+        """
+        Notifies the collector that syslog is enabled/disabled on host
+        """
+        if not self._collector_addr:
+            return
+
+        host_id = (program.ident >> 8) & 0xFF
+        program_id = program.ident & 0xFF
+
+        if value:
+            msg = 'enable'
+        else:
+            msg = 'disable'
+        self._log.debug("%s syslog on program %d:%d" %
+                        (msg, host_id, program_id))
+
+        message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SET_SYSLOG_STATUS,
+                              host_id, program_id, value)
+
+        self._sock.sendto(message, self._collector_addr)
+
+    def enable_logs(self, value, program):
+        """
+        Notifies the collector that logs are enabled/disabled on host
+        """
+        if not self._collector_addr:
+            return
+
+        host_id = (program.ident >> 8) & 0xFF
+        program_id = program.ident & 0xFF
+
+        if value:
+            msg = 'enable'
+        else:
+            msg = 'disable'
+        self._log.debug("%s logs collecting on program %d:%d" %
+                        (msg, host_id, program_id))
+
+        message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SET_LOGS_STATUS,
+                              host_id, program_id, value)
+
+        self._sock.sendto(message, self._collector_addr)
+
+
 
 if __name__ == '__main__':
     import logging

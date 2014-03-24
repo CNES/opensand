@@ -32,10 +32,10 @@
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#define DBG_PACKAGE PKG_DAMA_DC
-#include <opensand_conf/uti_debug.h>
 
 #include "DamaCtrl.h"
+
+#include <opensand_output/Output.h>
 
 #include <assert.h>
 #include <math.h>
@@ -66,6 +66,20 @@ DamaCtrl::DamaCtrl():
 	fwd_fmt_simu(),
 	roll_off(0.0)
 {
+	// Output Log
+	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+	this->log_logon = Output::registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Logon");
+	this->log_super_frame_tick = Output::registerLog(LEVEL_WARNING,
+	                                                 "Dvb.DamaCtrl."
+	                                                 "SuperFrameTick");
+	this->log_run_dama = Output::registerLog(LEVEL_WARNING,
+	                                         "Dvb.DamaCtrl.RunDama");
+	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Sac");
+	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Ttp");
+	this->log_pep = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Pep");
+	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Update");
+
+	// Output probes and stats
 	this->probe_gw_rbdc_req_num = NULL;
 	this->probe_gw_rbdc_req_size = NULL;
 	this->probe_gw_vbdc_req_num = NULL;
@@ -130,13 +144,15 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	                                    this->frame_duration_ms);
 	if(converter == NULL)
 	{
-		UTI_ERROR("Cannot create the Unit Converter\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Cannot create the Unit Converter\n");
 		goto error;
 	}
 
 	if(categories.size() == 0)
 	{
-		UTI_ERROR("No category defined\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "No category defined\n");
 		return false;
 	}
 	this->categories = categories;
@@ -145,7 +161,8 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	if(default_category == NULL)
 	{
-		UTI_ERROR("No default terminal affectation defined\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "No default terminal affectation defined\n");
 		return false;
 	}
 	this->default_category = default_category;
@@ -154,7 +171,9 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	if (!this->initOutput())
 	{
-		UTI_ERROR("the output probes and stats initialization have failed\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "the output probes and stats initialization have "
+		                "failed\n");
 		return false;
 	}
 
@@ -233,7 +252,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 	rate_kbps_t cra_kbps = logon->getRtBandwidth();
 	rate_kbps_t max_rbdc_kbps = logon->getMaxRbdc();
 	vol_kb_t max_vbdc_kb = logon->getMaxVbdc();
-	UTI_DEBUG("New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
+	Output::sendLog(this->log_logon, LEVEL_INFO,
+	                "New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
 	DamaTerminalList::iterator it;
 	it = this->terminals.find(tal_id);
@@ -262,8 +282,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		                         this->rbdc_timeout_sf,
 		                         max_vbdc_kb))
 		{
-			UTI_ERROR("Cannot create terminal context for ST #%d\n",
-			          tal_id);
+			Output::sendLog(this->log_logon, LEVEL_ERROR,
+			                "Cannot create terminal context for ST #%d\n",
+							tal_id);
 			return false;
 		}
 
@@ -302,8 +323,10 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		it = this->terminal_affectation.find(tal_id);
 		if(it == this->terminal_affectation.end())
 		{
-			UTI_DEBUG("ST #%d is not affected to a category, using default: %s\n",
-					  tal_id, this->default_category->getLabel().c_str());
+			Output::sendLog(this->log_logon, LEVEL_INFO,
+			                "ST #%d is not affected to a category, using "
+			                "default: %s\n", tal_id, 
+			                this->default_category->getLabel().c_str());
 			category = this->default_category;
 		}
 		else
@@ -313,8 +336,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);
 		terminal->setCurrentCategory(category->getLabel());
-		UTI_INFO("Add terminal %u in category %s\n",
-		         tal_id, category->getLabel().c_str());
+		Output::sendLog(this->log_logon, LEVEL_NOTICE,
+		                "Add terminal %u in category %s\n",
+		                tal_id, category->getLabel().c_str());
 		DC_RECORD_EVENT("LOGON st%d rt = %u", logon->getMac(),
 		                logon->getRtBandwidth());
 
@@ -345,17 +369,18 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		if(cra_kbps > max_capa_kbps)
 		{
-			// TODO WARNING
-			UTI_INFO("The CRA value for ST%u is too high compared to the "
-			         "maximum carrier capacity (%u > %u)\n",
-			         tal_id, cra_kbps, max_capa_kbps);
+			Output::sendLog(this->log_logon, LEVEL_WARNING,
+			                "The CRA value for ST%u is too high compared to "
+			                "the maximum carrier capacity (%u > %u)\n",
+			                tal_id, cra_kbps, max_capa_kbps);
 			// TODO OUTPUT::EVENT
-	}
+		}
 
 	}
 	else
 	{
-		UTI_INFO("Duplicate logon received for ST #%u\n", tal_id);
+		Output::sendLog(this->log_logon, LEVEL_NOTICE,
+		                "Duplicate logon received for ST #%u\n", tal_id);
 	}
 
 
@@ -373,7 +398,8 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		UTI_DEBUG("No ST found for id %u\n", tal_id);
+		Output::sendLog(this->log_logon, LEVEL_INFO,
+		                "No ST found for id %u\n", tal_id);
 		return false;
 	}
 
@@ -420,7 +446,8 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 
 	if(!this->runDama())
 	{
-		UTI_ERROR("Error during DAMA computation.\n");
+		Output::sendLog(this->log_super_frame_tick, LEVEL_ERROR,
+		                "Error during DAMA computation.\n");
 		return false;
 	}
 
@@ -433,26 +460,31 @@ bool DamaCtrl::runDama()
 	// reset the DAMA settings
 	if(!this->resetDama())
 	{
-		UTI_ERROR("SF#%u: Cannot reset DAMA\n", this->current_superframe_sf);
+		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
+		                "SF#%u: Cannot reset DAMA\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 
 	if(this->enable_rbdc && !this->runDamaRbdc())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
+		                "SF#%u: Error while computing RBDC allocation\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 	if(this->enable_vbdc && !this->runDamaVbdc())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
+		                "SF#%u: Error while computing RBDC allocation\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 	if(!this->runDamaFca())
 	{
-		UTI_ERROR("SF#%u: Error while computing RBDC allocation\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
+		                "SF#%u: Error while computing RBDC allocation\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 	return true;

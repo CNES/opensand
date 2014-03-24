@@ -38,6 +38,7 @@
 #include "Data.h"
 #include "NetContainer.h"
 
+#include <opensand_output/OutputLog.h>
 #include <linux/if_ether.h>
 
 #include <string>
@@ -126,7 +127,6 @@ class NetPacket: public NetContainer
 	uint8_t dst_tal_id;
 	/// The destination spot ID
 	uint8_t dst_spot;
-
 
  public:
 #if 0

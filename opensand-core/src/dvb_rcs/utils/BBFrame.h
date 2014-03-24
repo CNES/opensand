@@ -38,6 +38,7 @@
 
 #include "DvbFrame.h"
 
+#include <opensand_output/OutputLog.h>
 
 /**
  * @class BBFrame
@@ -45,7 +46,6 @@
  */
 class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 {
-
  public:
 
 	/**

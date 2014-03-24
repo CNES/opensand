@@ -109,7 +109,7 @@ class ServiceHandler(object):
 
         disco_browser = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
             self._disco_server.ServiceBrowserNew(avahi.IF_UNSPEC,
-                avahi.PROTO_UNSPEC, self._service_type, 'local',
+                avahi.PROTO_INET, self._service_type, 'local',
                 dbus.UInt32(0))), avahi.DBUS_INTERFACE_SERVICE_BROWSER)
 
         disco_browser.connect_to_signal("ItemNew", self._handle_new)
@@ -143,7 +143,7 @@ class ServiceHandler(object):
             return
 
         self._disco_server.ResolveService(interface, protocol, name, stype,
-            domain, avahi.PROTO_UNSPEC, dbus.UInt32(0),
+            domain, avahi.PROTO_INET, dbus.UInt32(0),
             reply_handler=self._handle_resolve, error_handler=error_handler)
 
     def _handle_resolve(self, *args):

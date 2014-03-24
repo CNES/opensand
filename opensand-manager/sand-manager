@@ -43,6 +43,7 @@ from optparse import OptionParser
 from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.loggers.manager_log import ManagerLog
+from opensand_manager_core.loggers.levels import MGR_INFO, MGR_DEBUG
 from opensand_manager_gui.opensand_view import View
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.env_plane_dispatcher import EnvPlaneDispatcher
@@ -99,9 +100,9 @@ class OpenSandManager:
 
         # Create the log View that logs manager events in main window
         # Also enable printing in standard output and or in syslog file
-        lvl = 'info'
+        lvl = MGR_INFO
         if options.debug:
-            lvl = 'debug'
+            lvl = MGR_DEBUG
         self._manager_log = ManagerLog(lvl, options.std, True, options.syslog)
 
         ### create the MVC

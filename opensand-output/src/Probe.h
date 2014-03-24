@@ -36,9 +36,7 @@
 #define _PROBE_H
 
 #include "BaseProbe.h"
-
-// FIXME
-//#include <opensand_conf/uti_debug.h>
+#include "OutputMutex.h"
 
 #include <algorithm>
 #include <string>
@@ -80,40 +78,28 @@ private:
 	/// the concatenation of all values
 	T accumulator;
 
-	/// mutex on probe
-	pthread_mutex_t mutex;
+	/// mutex on probe (is it necessary ?)
+	OutputMutex mutex;
 };
 
 template<typename T>
 Probe<T>::Probe(uint8_t id, const string &name,
                 const string &unit,
                 bool enabled, sample_type_t type):
-	BaseProbe(id, name, unit, enabled, type)
+	BaseProbe(id, name, unit, enabled, type),
+	mutex("probe")
 {
-	if(pthread_mutex_init(&this->mutex, NULL) != 0)
-	{
-		//UTI_ERROR("cannot initialize mutex\n");
-		assert(0);
-	}
 }
 
 template<typename T>
 Probe<T>::~Probe()
 {
-	if(pthread_mutex_destroy(&this->mutex) != 0)
-	{
-		//UTI_ERROR("cannot destroy mutex\n");
-	}
 }
 
 template<typename T>
 void Probe<T>::put(T value)
 {
-	if(pthread_mutex_lock(&(this->mutex)) != 0)
-	{
-		//UTI_ERROR("cannot acquire lock on probe\n");
-		assert(0);
-	}
+	OutputLock lock(mutex);
 
 	if(this->values_count == 0)
 	{
@@ -144,11 +130,6 @@ void Probe<T>::put(T value)
 	}
 	
 	this->values_count++;
-	if(pthread_mutex_unlock(&(this->mutex)) != 0)
-	{
-		//UTI_ERROR("cannot release lock on probe\n");
-		assert(0);
-	}
 }
 
 #endif

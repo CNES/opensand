@@ -44,6 +44,8 @@
 #include "FmtSimulation.h"
 #include "TerminalCategory.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <sys/times.h>
 #include <map>
 #include <list>
@@ -86,6 +88,9 @@ class SatSpot
 
 	/// Mutex to protect access to spot element
 	RtMutex spot_mutex;
+
+	// Output Log
+	OutputLog *log_init;
 
  public:
 

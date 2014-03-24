@@ -35,12 +35,12 @@
 #include "Messages.h"
 
 #include "Output.h"
-#include <opensand_conf/uti_debug.h>
 
 #include <errno.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <sys/un.h>
+#include <Output.h>
 
 
 static const uint32_t MAGIC_NUMBER = 0x5A7D0001;
@@ -63,7 +63,7 @@ struct msg_register_t
 	uint8_t cmd_type;    ///< command type
 	uint32_t pid;        ///< process ID
 	uint8_t num_probes;  ///< number of probes
-	uint8_t num_events;  ///< number of events
+	uint8_t num_logs;    ///< number of logs
 } PACKED;
 
 /// probe header
@@ -74,58 +74,70 @@ struct msg_send_probes_t
 	uint32_t timestamp;  ///< the time elapsed since startup
 } PACKED;
 
-/// event header
-struct msg_send_event_t
+/// log header
+struct msg_send_log_t
 {
 	uint32_t magic;      ///< magic number
 	uint8_t cmd_type;    ///< command type
-	uint8_t event_id;    ///< event ID
+	uint8_t log_id;      ///< log ID
+	uint8_t level;       ///< the level
 } PACKED;
 
-void msgHeaderRegister(std::string& message, pid_t pid,
-                       uint8_t num_probes, uint8_t num_events)
+
+void msgHeaderRegisterEnd(string &message, pid_t pid,
+                          uint8_t num_probes, uint8_t num_logs)
+{
+	return msgHeaderRegisterAll(message, pid, num_probes, num_logs,
+	                            MSG_CMD_REGISTER_END);
+}
+
+void msgHeaderRegister(string &message, pid_t pid,
+                       uint8_t num_probes, uint8_t num_logs)
+{
+	return msgHeaderRegisterAll(message, pid, num_probes, num_logs,
+	                            MSG_CMD_REGISTER_INIT);
+}
+
+void msgHeaderRegisterLive(string &message, pid_t pid,
+                           uint8_t num_probes, uint8_t num_logs)
+{
+	return msgHeaderRegisterAll(message, pid, num_probes, num_logs,
+	                            MSG_CMD_REGISTER_LIVE);
+}
+
+void msgHeaderRegisterAll(string &message, pid_t pid,
+                          uint8_t num_probes, uint8_t num_logs,
+                          uint8_t command)
 {
 	msg_register_t header;
 	header.magic = htonl(MAGIC_NUMBER);
-	header.cmd_type = MSG_CMD_REGISTER;
+	header.cmd_type = command;
 	header.pid = htonl(pid);
 	header.num_probes = num_probes;
-	header.num_events = num_events;
+	header.num_logs = num_logs;
 
-	message.append((const char*)&header, sizeof(header));
+	message.append((const char *)&header, sizeof(header));
 }
 
-void msgHeaderRegisterLive(std::string& message, pid_t pid,
-                           uint8_t num_probes, uint8_t num_events)
-{
-	msg_register_t header;
-	header.magic = htonl(MAGIC_NUMBER);
-	header.cmd_type = MSG_CMD_REGISTER_LIVE;
-	header.pid = htonl(pid);
-	header.num_probes = num_probes;
-	header.num_events = num_events;
-
-	message.append((const char*)&header, sizeof(header));
-}
-
-void msgHeaderSendProbes(std::string& message, uint32_t timestamp)
+void msgHeaderSendProbes(string &message, uint32_t timestamp)
 {
 	msg_send_probes_t header;
 	header.magic = htonl(MAGIC_NUMBER);
 	header.cmd_type = MSG_CMD_SEND_PROBES;
 	header.timestamp = htonl(timestamp);
 
-	message.append((const char*)&header, sizeof(header));
+	message.append((const char *)&header, sizeof(header));
 }
 
-void msgHeaderSendEvent(std::string& message, uint8_t event_id)
+void msgHeaderSendLog(string &message, uint8_t log_id, log_level_t level)
 {
-	msg_send_event_t header;
+	msg_send_log_t header;
 	header.magic = htonl(MAGIC_NUMBER);
-	header.cmd_type = MSG_CMD_SEND_EVENT;
-	header.event_id = event_id;
+	header.cmd_type = MSG_CMD_SEND_LOG;
+	header.log_id = log_id;
+	header.level = level;
 
-	message.append((const char*)&header, sizeof(header));
+	message.append((const char *)&header, sizeof(header));
 }
 
 uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
@@ -133,11 +145,11 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 	sockaddr_un address;
 	socklen_t address_len = sizeof(address);
 	ssize_t got = recvfrom(sock_fd, message_data, max_length, 0,
-	                       (struct sockaddr*)&address, &address_len);
+	                       (struct sockaddr *)&address, &address_len);
 
 	if(got == 0)
 	{
-		UTI_NOTICE("Socket closed");
+		Output::sendLog(LEVEL_WARNING, "Socket closed");
 		// The socket was probably closed
 		return 0;
 	}
@@ -146,34 +158,40 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 	   strncmp(address.sun_path, Output::daemonSockAddr()->sun_path,
 	           sizeof(address.sun_path)) != 0)
 	{
-		UTI_NOTICE("Got unexpected message from “%s”\n", address.sun_path);
+		Output::sendLog(LEVEL_WARNING,
+		                "Got unexpected message from “%s”\n",
+		                address.sun_path);
 		return 0;
 	}
 
 	if(got < 0)
 	{
-		UTI_ERROR("Error during message reception: %s\n", strerror(errno));
+		Output::sendLog(LEVEL_ERROR,
+		                "Error during message reception: %s\n",
+		                strerror(errno));
 		return 0;
 	}
 
 	if(got < (signed)sizeof(msg_base_header_t))
 	{
-		UTI_ERROR("Got too short message from daemon!\n");
+		Output::sendLog(LEVEL_ERROR, "Got too short message from daemon!\n");
 		return 0;
 	}
 
 	if(got > (signed)max_length)
 	{
-		UTI_ERROR("Message length overflow (%zd > %zu), please increase "
-		          "the message buffer size.", got, max_length);
+		Output::sendLog(LEVEL_ERROR,
+		                "Message length overflow (%zd > %zu), please increase "
+		                "the message buffer size.", got, max_length);
 		return 0;
 	}
 
 	const msg_base_header_t *head = (const msg_base_header_t *)message_data;
 	if(head->magic != htonl(MAGIC_NUMBER))
 	{
-		UTI_ERROR("Got message with bad magic number %08x\n",
-		          ntohl(head->magic));
+		Output::sendLog(LEVEL_ERROR,
+		                "Got message with bad magic number %08x\n",
+		                ntohl(head->magic));
 		return 0;
 	}
 

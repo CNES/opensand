@@ -63,7 +63,6 @@
 #include "Plugin.h"
 
 #include <opensand_conf/ConfigurationFile.h>
-#include <opensand_conf/uti_debug.h>
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
@@ -82,7 +81,7 @@ bool init_process(int argc, char **argv, string &ip_addr,
 	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
 	bool output_enabled = true;
-	event_level_t output_event_level = LEVEL_INFO;
+	bool output_stdout = false;
 
 	/* setting environment agent parameters */
 	while((opt = getopt(argc, argv, "-hqda:n:l:")) != EOF)
@@ -95,7 +94,8 @@ bool init_process(int argc, char **argv, string &ip_addr,
 			break;
 		case 'd':
 			// enable output debug
-			output_event_level = LEVEL_DEBUG;
+			output_stdout = true;;
+			break;
 		case 'a':
 			// get local IP address
 			ip_addr = optarg;
@@ -119,32 +119,40 @@ bool init_process(int argc, char **argv, string &ip_addr,
 			fprintf(stderr, "\t-a <ip_address>      set the IP address for emulation\n");
 			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
 			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
-
-			UTI_ERROR("usage printed on stderr\n");
+			Output::init(true);
+			Output::enableStdlog();
 			return false;
 		}
 	}
 
-	UTI_PRINT(LOG_INFO, "starting output\n");
-
 	// output initialisation
-	Output::init(output_enabled, output_event_level);
+	Output::init(output_enabled);
+	if(output_stdout)
+	{
+		Output::enableStdlog();
+	}
+
+	Output::sendLog(LEVEL_NOTICE,
+	                "starting output\n");
 
 	if(ip_addr.size() == 0)
 	{
-		UTI_ERROR("missing mandatory IP address option");
+		Output::sendLog(LEVEL_CRITICAL,
+		                "missing mandatory IP address option");
 		return false;
 	}
 
 	if(emu_iface.size() == 0)
 	{
-		UTI_ERROR("missing mandatory emulation interface name option");
+		Output::sendLog(LEVEL_CRITICAL,
+		                "missing mandatory emulation interface name option");
 		return false;
 	}
-	
+
 	if(lan_iface.size() == 0)
 	{
-		UTI_ERROR("missing mandatory lan interface name option");
+		Output::sendLog(LEVEL_CRITICAL,
+		                "missing mandatory lan interface name option");
 		return false;
 	}
 	return true;
@@ -154,8 +162,9 @@ bool init_process(int argc, char **argv, string &ip_addr,
 int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
- 	struct sched_param param;
+	struct sched_param param;
 	bool with_phy_layer = false;
+	bool init_ok;
 	string ip_addr;
 	string emu_iface;
 	string lan_iface;
@@ -170,20 +179,20 @@ int main(int argc, char **argv)
 
 	vector<string> conf_files;
 
+	OutputEvent *status;
+
 	int is_failure = 1;
 
-	Event *status = NULL;
-	Event *failure = NULL;
-
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr, emu_iface, lan_iface) == false)
+	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface);
+
+	status = Output::registerEvent("Status");
+	if(!init_ok)
 	{
-		UTI_ERROR("%s: failed to init the process\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: failed to init the process\n", progname);
 		goto quit;
 	}
-
-	failure = Output::registerEvent("failure", LEVEL_ERROR);
-	status = Output::registerEvent("status", LEVEL_INFO);
 
 	// increase the realtime responsiveness of the process
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -195,30 +204,33 @@ int main(int argc, char **argv)
 	// Load configuration files content
 	if(!globalConfig.loadConfig(conf_files))
 	{
-		UTI_ERROR("%s: cannot load configuration files, quit\n",
-		          progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot load configuration files, quit\n",
+		                progname);
 		goto unload_config;
 	}
 
 	// read all packages debug levels
-	UTI_readDebugLevels();
+//	Output::sendLog(LEVEL_CRITICAL, "readDebugLevels:TODO\n");
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
 	                          with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot  check if physical layer is enabled\n",
-		          progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot  check if physical layer is enabled\n",
+		                progname);
 		goto unload_config;
 	}
-	UTI_PRINT(LOG_INFO, "%s: physical layer is %s\n",
-	          progname, with_phy_layer ? "enabled" : "disabled");
-
+	Output::sendLog(LEVEL_NOTICE,
+	                "%s: physical layer is %s\n",
+	                progname, with_phy_layer ? "enabled" : "disabled");
 
 	// load the plugins
 	if(!Plugin::loadPlugins(with_phy_layer))
 	{
-		UTI_ERROR("%s: cannot load the plugins\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot load the plugins\n", progname);
 		goto unload_config;
 	}
 
@@ -229,7 +241,9 @@ int main(int argc, char **argv)
 	                                       string>("LanAdaptation", NULL, lan_iface);
 	if(!block_lan_adaptation)
 	{
-		UTI_ERROR("%s: cannot create the LanAdaptation block\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot create the LanAdaptation block\n",
+		                progname);
 		goto release_plugins;
 	}
 
@@ -238,16 +252,18 @@ int main(int argc, char **argv)
 	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
 	if(!block_encap)
 	{
-		UTI_ERROR("%s: cannot create the Encap block\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot create the Encap block\n", progname);
 		goto release_plugins;
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbNcc,
 	                            BlockDvbNcc::DvbUpward,
-	                            BlockDvbNcc::DvbDownward>("DvbNcc", block_encap);
+	                            BlockDvbNcc::DvbDownward>("Dvb", block_encap);
 	if(!block_dvb)
 	{
-		UTI_ERROR("%s: cannot create the DvbNcc block\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot create the DvbNcc block\n", progname);
 		goto release_plugins;
 	}
 
@@ -260,7 +276,9 @@ int main(int argc, char **argv)
 		                                                                block_dvb);
 		if(block_phy_layer == NULL)
 		{
-			UTI_ERROR("%s: cannot create the PhysicalLayer block\n", progname);
+			Output::sendLog(LEVEL_CRITICAL,
+			                "%s: cannot create the PhysicalLayer block\n",
+			                progname);
 			goto release_plugins;
 		}
 		up_sat_carrier = block_phy_layer;
@@ -276,9 +294,13 @@ int main(int argc, char **argv)
 	                                                        specific);
 	if(!block_sat_carrier)
 	{
-		UTI_ERROR("%s: cannot create the SatCarrier block\n", progname);
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
+
+	Output::sendLog(LEVEL_DEBUG,
+	                "All blocks are created, start\n");
 
 	// make the GW alive
 	if(!Rt::init())
@@ -288,16 +310,18 @@ int main(int argc, char **argv)
     // TODO for errors in init we may use a string that would report last error
 	if(!Output::finishInit())
 	{
-		UTI_PRINT(LOG_INFO,
-		          "%s: failed to init the output => disable it\n",
-		         progname);
+		Output::sendLog(LEVEL_NOTICE,
+		                "%s: failed to init the output => disable it\n",
+		                progname);
 	}
 
 	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())
 	{
-		Output::sendEvent(failure, "cannot run process loop\n");
-    }	
+		Output::sendLog(LEVEL_CRITICAL,
+		                "%s: cannot run process loop\n",
+		                progname);
+	}
 
 	Output::sendEvent(status, "Simulation stopped");
 
@@ -308,15 +332,10 @@ int main(int argc, char **argv)
 release_plugins:
 	Plugin::releasePlugins();
 unload_config:
-	if(is_failure)
-	{
-		Output::finishInit();
-		Output::sendEvent(failure, "Failure while launching component\n");
-	}
 	globalConfig.unloadConfig();
 quit:
-	UTI_PRINT(LOG_INFO, "%s: GW process stopped with exit code %d\n",
-	          progname, is_failure);
-	closelog();
+	Output::sendLog(LEVEL_NOTICE,
+	                "%s: GW process stopped with exit code %d\n",
+	                progname, is_failure);
 	return is_failure;
 }

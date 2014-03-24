@@ -90,6 +90,14 @@ class BlockEncap: public Block
 
  protected:
 
+	// Log and debug
+	OutputLog *log_rcv_from_up;
+	OutputLog *log_rcv_from_down;
+	OutputLog *log_send_down;
+
+	// Init output (log, debug, probes, stats)
+	bool initOutput();
+
 	// event handlers
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
@@ -123,9 +131,6 @@ class BlockEncap: public Block
 	 * @return       Whether the burst was successful handled or not
 	 */
 	bool onRcvBurstFromDown(NetBurst *burst);
-
-	/// output events
-	static Event *error_init;
 };
 
 

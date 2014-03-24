@@ -33,14 +33,12 @@
  * @author Santiago PENA <santiago.penaluque@cnes.fr>
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
 
 #include "OnOff.h"
 
 #include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
 
 #include <fstream>
 #include <sstream>
@@ -70,8 +68,9 @@ bool OnOff::init(int granularity, string link)
 
 	if(config.loadConfig(CONF_ON_OFF_FILE) < 0)
 	{   
-		UTI_ERROR("failed to load config file '%s'",
-		          CONF_ON_OFF_FILE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to load config file '%s'",
+		                CONF_ON_OFF_FILE);
 		goto error;
 	}
 
@@ -81,8 +80,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          PERIOD_ON, this->on_duration))
 	{
-		UTI_ERROR("On/Off attenuation %slink: cannot get %s",
-		          link.c_str(), PERIOD_ON);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "On/Off attenuation %slink: cannot get %s",
+		                link.c_str(), PERIOD_ON);
 		goto error;
 	}
 
@@ -90,8 +90,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          PERIOD_OFF, this->off_duration))
 	{
-		UTI_ERROR("On/Off attenuation %slink: cannot get %s",
-		          link.c_str(), PERIOD_OFF);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "On/Off attenuation %slink: cannot get %s",
+		                link.c_str(), PERIOD_OFF);
 		goto error;
 	}
 
@@ -99,8 +100,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          AMPLITUDE, this->amplitude))
 	{
-		UTI_ERROR("On/Off attenuation %slink: cannot get %s",
-		          link.c_str(), AMPLITUDE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "On/Off attenuation %slink: cannot get %s",
+		                link.c_str(), AMPLITUDE);
 		goto error;
 	}
 
@@ -114,7 +116,8 @@ bool OnOff::updateAttenuationModel()
 	this->duration_counter = (this->duration_counter + 1) %
 	                         (this->on_duration + this->off_duration);
 
-	UTI_DEBUG("Attenuation model counter %d\n", this->duration_counter);
+	Output::sendLog(this->log_attenuation, LEVEL_INFO,
+	                "Attenuation model counter %d\n", this->duration_counter);
 	if(this->duration_counter <= this->off_duration)
 	{
 		this->setAttenuation(0);
@@ -124,7 +127,8 @@ bool OnOff::updateAttenuationModel()
 		this->setAttenuation(this->amplitude);
 	}
 
-	UTI_DEBUG("On/Off Attenuation %.2f dB\n", this->getAttenuation());
+	Output::sendLog(this->log_attenuation, LEVEL_INFO,
+	                "On/Off Attenuation %.2f dB\n", this->getAttenuation());
 	return true;
 }
 

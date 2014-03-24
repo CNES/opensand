@@ -36,7 +36,7 @@
 #include "NetSocketEvent.h"
 #include "Rt.h"
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <cstring>
 #include <unistd.h>
@@ -92,8 +92,9 @@ bool NetSocketEvent::handle(void)
 		goto error;
 	}
 	this->size = ret;
-	UTI_DEBUG_L3("event %s: received %zu bytes\n",
-	             this->name.c_str(), this->size);
+	Output::sendLog(LEVEL_DEBUG,
+	                "event %s: received %zu bytes\n",
+	                this->name.c_str(), this->size);
 
 	return true;
 error:

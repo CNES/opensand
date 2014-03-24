@@ -34,9 +34,7 @@
 
 #include "NetBurst.h"
 
-// debug
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 
 // max_packets = 0 => unlimited length
@@ -44,8 +42,12 @@ NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
 {
 	this->max_packets = max_packets;
 
-	UTI_DEBUG("[NetBurst::NetBurst] burst created (max length = %d)\n",
-	          this->max_packets);
+	// Register output log
+	this->log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
+
+	Output::sendLog(this->log_net_burst, LEVEL_INFO,
+	                "burst created (max length = %d)\n",
+	                this->max_packets);
 }
 
 NetBurst::~NetBurst()
@@ -76,15 +78,17 @@ bool NetBurst::add(NetPacket *packet)
 
 	if(this->isFull() || packet == NULL)
 	{
-		UTI_DEBUG("[NetBurst::add] cannot add packet to burst (%d/%d)\n",
-		          this->length(), this->max_packets);
+		Output::sendLog(this->log_net_burst, LEVEL_INFO,
+		                "[NetBurst::add] cannot add packet to burst (%d/%d)\n",
+		                this->length(), this->max_packets);
 		success = false;
 	}
 	else
 	{
 		this->push_back(packet);
-		UTI_DEBUG("[NetBurst::add] packet added to burst (%d/%d)\n",
-		          this->length(), this->max_packets);
+		Output::sendLog(this->log_net_burst, LEVEL_INFO,
+		                "[NetBurst::add] packet added to burst (%d/%d)\n",
+		                this->length(), this->max_packets);
 	}
 
 	return success;
@@ -137,8 +141,9 @@ uint16_t NetBurst::type()
 	if(this->length() <= 0)
 	{
 		// no packet in the burst, impossible to get the packet type
-		UTI_ERROR("failed to determine the burst type: "
-		          "burst is empty\n");
+		Output::sendLog(this->log_net_burst, LEVEL_ERROR,
+		                "failed to determine the burst type: "
+		                "burst is empty\n");
 		return NET_PROTO_ERROR;
 	}
 	else

@@ -39,6 +39,8 @@
 #include <string>
 #include <map>
 
+#include <opensand_output/OutputLog.h>
+
 using std::list;
 using std::string;
 using std::map;
@@ -55,6 +57,10 @@ class FmtGroup
 	unsigned int id;
 
 	list<unsigned int> fmt_ids;
+
+ protected:
+	// Output log
+	OutputLog *log_fmt;
 
  public:
 

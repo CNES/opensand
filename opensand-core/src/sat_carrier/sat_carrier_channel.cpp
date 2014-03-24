@@ -31,11 +31,9 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include <opensand_conf/uti_debug.h>
-
 #include "sat_carrier_channel.h"
+
+#include <opensand_output/Output.h>
 
 #include <netinet/in.h>
 #include <cstring>
@@ -55,6 +53,10 @@ sat_carrier_channel::sat_carrier_channel(unsigned int channelID,
 	m_output(output),
 	init_success(false)
 {
+	// Output log
+	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
+	                                            "SatCarrier.Channel");
 }
 
 /**
@@ -115,8 +117,9 @@ int sat_carrier_channel::getIfIndex(const char *name)
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
 	if(sock < 0)
 	{
-		UTI_ERROR("%s cannot create an INET socket: %s (%d)\n", FUNCNAME,
-		strerror(errno), errno);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "%s cannot create an INET socket: "
+		                "%s (%d)\n", FUNCNAME, strerror(errno), errno);
 		goto exit;
 	}
 
@@ -125,8 +128,9 @@ int sat_carrier_channel::getIfIndex(const char *name)
 	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name) - 1);
 	if(ioctl(sock, SIOGIFINDEX, &ifr) < 0)
 	{
-		UTI_ERROR("%s cannot get the network interface index: %s (%d)\n",
-			   FUNCNAME, strerror(errno), errno);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "%s cannot get the network interface "
+		                "index: %s (%d)\n", FUNCNAME, strerror(errno), errno);
 		goto close;
 	}
 

@@ -34,6 +34,8 @@
 
 #include "DvbFifo.h"
 
+#include <opensand_output/Output.h>
+
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -52,6 +54,9 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	carrier_id(0),
 	fifo_mutex(fifo_name)
 {
+	// Output log
+	this->log_dvb_fifo = Output::registerLog(LEVEL_WARNING, "Dvb.Fifo");
+
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
 	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
@@ -70,8 +75,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	}
 	else
 	{
-		UTI_ERROR("unknown CR type of FIFO: %s\n",
-		          cr_type_name.c_str());
+		Output::sendLog(this->log_dvb_fifo, LEVEL_ERROR,
+		                "unknown CR type of FIFO: %s\n", cr_type_name.c_str());
 	}
 }
 

@@ -38,7 +38,6 @@
 #include "NetPacket.h"
 #include "AtmCell.h"
 
-
 /**
  * @class Aal5Packet
  * @brief AAL5 packet

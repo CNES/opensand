@@ -32,7 +32,6 @@
  * @author  Audric Schiltknecht / Viveris Technologies
  */
 
-#include <opensand_conf/uti_debug.h>
 
 #include "Logoff.h"
 

@@ -39,6 +39,8 @@
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <map>
 #include <vector>
 #include <string>

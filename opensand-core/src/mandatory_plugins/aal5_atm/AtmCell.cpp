@@ -34,8 +34,7 @@
 
 #include "AtmCell.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 
 AtmCell::AtmCell(const unsigned char *data, size_t length):
@@ -97,8 +96,9 @@ bool AtmCell::isValid()
 
 	if(this->getTotalLength() != AtmCell::getLength())
 	{
-		UTI_NOTICE("total length (%u) != ATM cell length (%u)\n",
-		           this->getTotalLength(), AtmCell::getLength());
+		Output::sendLog(LEVEL_WARNING,
+		                "total length (%u) != ATM cell length (%u)\n",
+		                this->getTotalLength(), AtmCell::getLength());
 		is_ok = false;
 	}
 
@@ -119,7 +119,8 @@ Data AtmCell::getPayload()
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("invalid ATM cell\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid ATM cell\n");
 		return Data();
 	}
 
@@ -131,7 +132,8 @@ uint8_t AtmCell::getVpi()
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[AtmCell::getVpi] invalid ATM cell\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -144,7 +146,8 @@ uint16_t AtmCell::getVci()
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[AtmCell::getVci] invalid ATM cell\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -158,7 +161,8 @@ uint8_t AtmCell::getPt()
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[AtmCell::getPt] invalid ATM cell\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid ATM cell\n");
 		return 0;
 	}
 

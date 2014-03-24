@@ -444,7 +444,6 @@ class Model:
         if self._run_id == "":
             self._run_id = "default"
 
-
     def get_run(self):
         """ get the scenario id """
         return self._run_id
@@ -694,15 +693,19 @@ class Model:
 
     def get_saved_probes(self, run_id=None):
         """ get a SavedProbeLoader object with the saved probes objects """
-        
         if run_id is None:
             run_id = self.get_run()
+        if run_id == "default":
+            # default is the equivalent of empty run_id
+            return
         
         run_path = os.path.join(self.get_scenario(), run_id)
         
         try:
             return SavedProbeLoader(run_path)
-        except ValueError:
+        except ValueError, msg:
+            error_popup("cannot parse saved probes files '%s'" %
+                        msg)
             return None
 
     # functions for global host

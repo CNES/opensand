@@ -160,6 +160,15 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool getChunk(NetPacket *packet, size_t remaining_length,
 		                      NetPacket **data, NetPacket **remaining_data) const = 0;
 
+		/** 
+		 * @brief perform some plugin initialization
+		 */
+		virtual void init() = 0;
+
+	  protected:
+
+		/// Output Logs
+		OutputLog *log;
 
 	  private:
 
@@ -172,6 +181,7 @@ class StackPlugin: public OpenSandPlugin
 	 */
 	class StackContext
 	{
+
 	  public:
 
 		/* Allow context to access StackPlugin members */
@@ -312,11 +322,18 @@ class StackPlugin: public OpenSandPlugin
 			                                    dst_tal_id);
 		}
 
+		/** 
+		 * @brief perform some plugin initialization
+		 */
+		virtual void init() = 0;
 
 	  protected:
 
 		/// the current upper encapsulation protocol EtherType
 		StackPlugin::StackPacketHandler *current_upper;
+
+		/// Output Logs
+		OutputLog *log;
 
 	  private:
 
@@ -385,8 +402,16 @@ class StackPlugin: public OpenSandPlugin
 		plugin->context = context;
 		plugin->packet_handler = handler;
 		plugin->name = name;
+		plugin->init();
+		context->init();
+		handler->init();
 		return plugin;
 	};
+
+	/** 
+	 * @brief perform some plugin initialization
+	 */
+	virtual void init() = 0;
 
  protected:
 
@@ -403,6 +428,8 @@ class StackPlugin: public OpenSandPlugin
 	/// The packet handler
 	StackPacketHandler *packet_handler;
 
+	/// Output Logs
+	OutputLog *log;
 };
 
 typedef vector<StackPlugin::StackContext *> stack_contexts_t;

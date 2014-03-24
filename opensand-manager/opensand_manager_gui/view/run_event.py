@@ -167,8 +167,7 @@ class RunEvent(RunView):
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
 
-            self._opensand_view.global_event("***** New run: %s *****" %
-                                             self._model.get_run())
+            self._opensand_view.on_start(self._model.get_run())
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -180,6 +179,8 @@ class RunEvent(RunView):
             # (stop will be finished when we will receive a
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
+            self._opensand_view.on_stop()
+            # TODO if all process crashed we should also cal on_stop
 
 
     def on_dev_mode_button_toggled(self, source=None, event=None):

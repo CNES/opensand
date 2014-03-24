@@ -12,8 +12,9 @@ libopensand_output_la_cpp = \
 	CommandThread.cpp \
 	Output.cpp \
 	BaseProbe.cpp \
-	Event.cpp \
 	OutputInternal.cpp \
+	OutputMutex.cpp \
+	OutputLog.cpp \
 	Probe.cpp
 
 libopensand_output_la_h = \
@@ -21,8 +22,10 @@ libopensand_output_la_h = \
 	CommandThread.h \
 	Output.h \
 	OutputInternal.h \
-	Event.h \
+	OutputMutex.h \
 	Messages.h \
+	OutputLog.h \
+	OutputEvent.h \
 	Probe.h
 
 libopensand_output_la_SOURCES = \
@@ -40,6 +43,8 @@ libopensand_output_include_HEADERS = \
 	BaseProbe.h \
 	Output.h \
 	OutputInternal.h \
-	Event.h \
+	OutputMutex.h \
+	OutputLog.h \
+	OutputEvent.h \
 	Probe.h
 

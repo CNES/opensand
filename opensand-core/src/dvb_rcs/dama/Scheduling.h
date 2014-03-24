@@ -60,7 +60,11 @@ class Scheduling
 	           const fifos_t &fifos):
 		packet_handler(packet_handler),
 		dvb_fifos(fifos)
-	{};
+	{
+		// Output log
+		this->log_scheduling = Output::registerLog(LEVEL_WARNING,
+		                                           "Dvb.Scheduling"); 
+	};
 
 	/**
 	 * @brief Schedule packets emission.
@@ -87,6 +91,8 @@ class Scheduling
 	/** The MAC FIFOs */
     const fifos_t dvb_fifos;
 
+	// Output Log
+	OutputLog *log_scheduling;
 };
 
 #endif

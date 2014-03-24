@@ -34,9 +34,7 @@
 
 #include "Ipv6Packet.h"
 
-// debug
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 
 // TODO for all packets : better link with NetContainer and NetPacket (header_length, ...)
@@ -83,7 +81,8 @@ size_t Ipv6Packet::getTotalLength() const
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::totalLength] invalid IPv6 packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -94,7 +93,8 @@ size_t Ipv6Packet::getPayloadLength() const
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::payloadLength] invalid IPv6 packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -108,7 +108,8 @@ IpAddress *Ipv6Packet::srcAddr()
 	{
 		if(!this->isValid())
 		{
-			UTI_ERROR("[Ipv6Packet::srcAddr] invalid IPv6 packet\n");
+			Output::sendLog(LEVEL_ERROR,
+			                "invalid IPv6 packet\n");
 			return NULL;
 		}
 
@@ -132,7 +133,8 @@ IpAddress *Ipv6Packet::dstAddr()
 	{
 		if(!this->isValid())
 		{
-			UTI_ERROR("[Ipv6Packet::dstAddr] invalid IPv6 packet\n");
+			Output::sendLog(LEVEL_ERROR,
+			                "invalid IPv6 packet\n");
 			return NULL;
 		}
 
@@ -156,7 +158,8 @@ uint8_t Ipv6Packet::diffServField() const
 
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::diffServField] invalid IPv6 packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -171,7 +174,8 @@ uint8_t Ipv6Packet::diffServCodePoint() const
 
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::diffServCodePoint] invalid IPv6 packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -186,7 +190,8 @@ uint8_t Ipv6Packet::explicitCongestionNotification() const
 
 	if(!this->isValid())
 	{
-		UTI_ERROR("[Ipv6Packet::explicitCongestionNoticiation] invalid IPv6 packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IPv6 packet\n");
 		return 0;
 	}
 

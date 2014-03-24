@@ -32,18 +32,15 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_ENCAP
-#include <opensand_conf/uti_debug.h>
-
 
 #include "BlockEncap.h"
+
 #include "Plugin.h"
+
+#include <opensand_output/Output.h>
 
 #include <algorithm>
 #include <stdint.h>
-
-Event* BlockEncap::error_init = NULL;
 
 
 BlockEncap::BlockEncap(const string &name):
@@ -54,11 +51,6 @@ BlockEncap::BlockEncap(const string &name):
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
-
-	if(error_init == NULL)
-	{
-		error_init = Output::registerEvent("BlockEncap:init", LEVEL_ERROR);
-	}
 }
 
 BlockEncap::~BlockEncap()
@@ -73,7 +65,8 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		case evt_timer:
 		{
 			// timer event, flush corresponding encapsulation context
-			UTI_DEBUG("Timer received %s\n", event->getName().c_str());
+			Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+			                "Timer received %s\n", event->getName().c_str());
 			return this->onTimer(event->getFd());
 		}
 		break;
@@ -81,7 +74,8 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			// message received from another bloc
-			UTI_DEBUG("message received from the upper-layer bloc\n");
+			Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+			                "message received from the upper-layer bloc\n");
 			NetBurst *burst;
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 			return this->onRcvBurstFromUp(burst);
@@ -89,8 +83,9 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		break;
 
 		default:
-			UTI_ERROR("unknown event received %s",
-			          event->getName().c_str());
+			Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+			                "unknown event received %s",
+			                event->getName().c_str());
 			return false;
 	}
 
@@ -104,7 +99,8 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			UTI_DEBUG("message received from the lower layer\n");
+			Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+			                "message received from the lower layer\n");
 
 			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
@@ -112,12 +108,14 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 				vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
 				// 'link up' message received => forward it to upper layer
-				UTI_DEBUG("'link up' message received, forward it\n");
+				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+				                "'link up' message received, forward it\n");
 
 				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
 				if(this->state == link_up)
 				{
-					UTI_INFO("duplicate link up msg\n");
+					Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
+					                "duplicate link up msg\n");
 					delete link_up_msg;
 					return false;
 				}
@@ -131,12 +129,14 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 				if(!this->sendUp((void **)&link_up_msg,
 					             sizeof(T_LINK_UP), msg_link_up))
 				{
-					UTI_ERROR("cannot forward 'link up' message\n");
+					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+					                "cannot forward 'link up' message\n");
 					delete link_up_msg;
 					return false;
 				}
 
-				UTI_DEBUG("'link up' message sent to the upper layer\n");
+				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+				                "'link up' message sent to the upper layer\n");
 
 				// Set tal_id 'filter' for reception context
 				for(encap_it = this->reception_ctx.begin();
@@ -155,8 +155,9 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 		}
 
 		default:
-			UTI_ERROR("unknown event received %s",
-			          event->getName().c_str());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+			                "unknown event received %s",
+			                event->getName().c_str());
 			return false;
 	}
 
@@ -181,46 +182,61 @@ bool BlockEncap::onInit()
 	string compo_name;
 	component_t host;
 
+	if(!this->initOutput())
+	{
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to init output\n");
+		goto error;
+	}
+
 	// satellite type: regenerative or transparent ?
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          satellite_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, SATELLITE_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_DEBUG("satellite type = %s\n", satellite_type.c_str());
+	Output::sendLog(this->log_init, LEVEL_INFO,
+	                "satellite type = %s\n", satellite_type.c_str());
 
 	// Retrieve last packet handler in lan adaptation layer
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
 	                                lan_nbr))
 	{
-		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
-		          LAN_ADAPTATION_SCHEME_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Section %s, %s missing\n", GLOBAL_SECTION,
+		                LAN_ADAPTATION_SCHEME_LIST);
 		goto error;
 	}
 	if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
 	                                POSITION, toString(lan_nbr - 1),
 	                                PROTO, lan_name))
 	{
-		UTI_ERROR("Section %s, invalid value %d for parameter '%s' in %s\n",
-				  GLOBAL_SECTION, i, POSITION, LAN_ADAPTATION_SCHEME_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Section %s, invalid value %d for parameter "
+		                "'%s' in %s\n", GLOBAL_SECTION, i, POSITION,
+		                LAN_ADAPTATION_SCHEME_LIST);
 		goto error;
 	}
 	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
 	{
-		UTI_ERROR("cannot get plugin for %s lan adaptation",
-		          lan_name.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot get plugin for %s lan adaptation",
+		                lan_name.c_str());
 		goto error;
 	}
-	UTI_INFO("lan adaptation upper layer is %s\n", lan_name.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "lan adaptation upper layer is %s\n", lan_name.c_str());
 
 	// get the number of encapsulation context to use for up/return link
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR("Section %s, %s missing\n", GLOBAL_SECTION,
-		          UP_RETURN_ENCAP_SCHEME_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Section %s, %s missing\n", GLOBAL_SECTION,
+		                UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -234,15 +250,17 @@ bool BlockEncap::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
-			          GLOBAL_SECTION, i, POSITION);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "Section %s, invalid value %d for parameter '%s'\n",
+			                GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
-			UTI_ERROR("cannot get plugin for %s encapsulation",
-			          encap_name.c_str());
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get plugin for %s encapsulation",
+			                encap_name.c_str());
 			goto error;
 		}
 
@@ -252,22 +270,26 @@ bool BlockEncap::onInit()
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("upper encapsulation type %s is not supported for %s "
-			          "encapsulation", upper_encap->getName().c_str(),
-			          context->getName().c_str());
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "upper encapsulation type %s is not supported "
+			                "for %s encapsulation",
+			                upper_encap->getName().c_str(),
+			                context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		UTI_DEBUG("add up/return encapsulation layer: %s\n",
-		          upper_encap->getName().c_str());
+		Output::sendLog(this->log_init, LEVEL_INFO,
+		                "add up/return encapsulation layer: %s\n",
+		                upper_encap->getName().c_str());
 	}
 
 	// get the number of encapsulation context to use for down/forward link
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		UTI_ERROR(" Section %s, %s missing\n", GLOBAL_SECTION,
-		          UP_RETURN_ENCAP_SCHEME_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                " Section %s, %s missing\n", GLOBAL_SECTION,
+		                UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -281,15 +303,17 @@ bool BlockEncap::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			UTI_ERROR("Section %s, invalid value %d for parameter '%s'\n",
-			          GLOBAL_SECTION, i, POSITION);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "Section %s, invalid value %d for parameter '%s'\n",
+			                GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
-			UTI_ERROR("cannot get plugin for %s encapsulation",
-			          encap_name.c_str());
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get plugin for %s encapsulation",
+			                encap_name.c_str());
 			goto error;
 		}
 
@@ -299,24 +323,29 @@ bool BlockEncap::onInit()
 					upper_encap->getPacketHandler(),
 					strToSatType(satellite_type)))
 		{
-			UTI_ERROR("upper encapsulation type %s is not supported for %s "
-			          "encapsulation", upper_encap->getName().c_str(),
-			          context->getName().c_str());
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "upper encapsulation type %s is not supported "
+			                "for %s encapsulation",
+			                upper_encap->getName().c_str(),
+			                context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		UTI_DEBUG("add down/forward encapsulation layer: %s\n",
-		          upper_encap->getName().c_str());
+		Output::sendLog(this->log_init, LEVEL_INFO,
+		                "add down/forward encapsulation layer: %s\n",
+		                upper_encap->getName().c_str());
 	}
 
 	// get host type
 	compo_name = "";
 	if(!globalConfig.getComponent(compo_name))
 	{
-		UTI_ERROR("cannot get component type\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot get component type\n");
 		goto error;
 	}
-	UTI_INFO("host type = %s\n", compo_name.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE, "host type = %s\n",
+	                compo_name.c_str());
 	host = getComponentType(compo_name);
 
 	if(host == terminal || satellite_type == "regenerative")
@@ -338,6 +367,15 @@ error:
 	return false;
 }
 
+bool BlockEncap::initOutput()
+{
+	this->log_init = Output::registerLog(LEVEL_WARNING, "Encap.init");
+	this->log_rcv_from_up = Output::registerLog(LEVEL_WARNING, "Encap.Downward.receive");
+	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING, "Encap.Upward.receive");
+	this->log_send_down = Output::registerLog(LEVEL_WARNING, "Encap.Downward.send");
+	return true;
+}
+
 bool BlockEncap::onTimer(event_id_t timer_id)
 {
 	const char *FUNCNAME = "[BlockEncap::onTimer]";
@@ -346,21 +384,24 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	NetBurst *burst;
 	bool status = false;
 
-	UTI_DEBUG("%s emission timer received, flush corresponding emission "
-	          "context\n", FUNCNAME);
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%s emission timer received, flush corresponding emission "
+	                "context\n", FUNCNAME);
 
 	// find encapsulation context to flush
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
-		UTI_ERROR("%s timer not found\n", FUNCNAME);
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "%s timer not found\n", FUNCNAME);
 		goto error;
 	}
 
 	// context found
 	id = (*it).second;
-	UTI_DEBUG("%s corresponding emission context found (ID = %d)\n",
-	          FUNCNAME, id);
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%s corresponding emission context found (ID = %d)\n",
+	                FUNCNAME, id);
 
 	// remove emission timer from the list
 	this->downward->removeEvent((*it).first);
@@ -370,11 +411,14 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	burst = (this->emission_ctx.back())->flush(id);
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s flushing context %d failed\n", FUNCNAME, id);
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "%s flushing context %d failed\n", FUNCNAME, id);
 		goto error;
 	}
 
-	UTI_DEBUG("%s %zu encapsulation packets flushed\n", FUNCNAME, burst->size());
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%s %zu encapsulation packets flushed\n",
+	                FUNCNAME, burst->size());
 
 	if(burst->size() <= 0)
 	{
@@ -385,11 +429,14 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	// send the message to the lower layer
 	if(!this->sendDown((void **)&burst))
 	{
-		UTI_ERROR("%s cannot send burst to lower layer failed\n", FUNCNAME);
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "%s cannot send burst to lower layer failed\n",
+		                FUNCNAME);
 		goto clean;
 	}
 
-	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "encapsulation burst sent to the lower layer\n");
 
 	return true;
 
@@ -411,14 +458,16 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	// check packet validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "%s burst is not valid\n", FUNCNAME);
 		goto error;
 	}
 
 	name = burst->name();
 	size = burst->size();
-	UTI_DEBUG("%s encapsulate %zu %s packet(s)\n",
-	          FUNCNAME, size, name.c_str());
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%s encapsulate %zu %s packet(s)\n",
+	                FUNCNAME, size, name.c_str());
 
 	// encapsulate packet
 	for(iter = this->emission_ctx.begin(); iter != this->emission_ctx.end();
@@ -427,8 +476,9 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 		burst = (*iter)->encapsulate(burst, time_contexts);
 		if(burst == NULL)
 		{
-			UTI_ERROR("%s encapsulation failed in %s context\n",
-			          FUNCNAME, (*iter)->getName().c_str());
+			Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+			                "%s encapsulation failed in %s context\n",
+			                FUNCNAME, (*iter)->getName().c_str());
 			goto error;
 		}
 	}
@@ -456,31 +506,37 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 			                                      false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
-			UTI_DEBUG("%s timer for context ID %d armed with %ld ms\n",
-			          FUNCNAME, (*time_iter).second, (*time_iter).first);
+			Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+			                "%s timer for context ID %d armed with %ld ms\n",
+			                FUNCNAME, (*time_iter).second, (*time_iter).first);
 		}
 		else
 		{
-			UTI_DEBUG("%s timer already set for context ID %d\n",
-			          FUNCNAME, (*time_iter).second);
+			Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+			                "%s timer already set for context ID %d\n",
+			                FUNCNAME, (*time_iter).second);
 		}
 	}
 
 	// check burst validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s encapsulation failed\n", FUNCNAME);
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "%s encapsulation failed\n", FUNCNAME);
 		goto error;
 	}
 
 	if(burst->size() > 0)
 	{
-		UTI_DEBUG("encapsulation packet of type %s (QoS = %d)\n",
-		          burst->front()->getName().c_str(), burst->front()->getQos());
+		Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+		                "encapsulation packet of type %s (QoS = %d)\n",
+		                burst->front()->getName().c_str(),
+		                burst->front()->getQos());
 	}
 
-	UTI_DEBUG("%zu %s packet => %zu encapsulation packet(s)\n",
-	          size, name.c_str(), burst->size());
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%zu %s packet => %zu encapsulation packet(s)\n",
+	                size, name.c_str(), burst->size());
 
 	// if no encapsulation packet was created, avoid sending a message
 	if(burst->size() <= 0)
@@ -493,11 +549,14 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	// send the message to the lower layer
 	if(!this->sendDown((void **)&burst))
 	{
-		UTI_ERROR("failed to send burst to lower layer\n");
+		Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+		                "failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	UTI_DEBUG("%s encapsulation burst sent to the lower layer\n", FUNCNAME);
+	Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+	                "%s encapsulation burst sent to the lower layer\n",
+	                FUNCNAME);
 
 	// everything is fine
 	return true;
@@ -518,13 +577,15 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		UTI_ERROR("%s burst is not valid\n", FUNCNAME);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "%s burst is not valid\n", FUNCNAME);
 		goto error;
 	}
 
 	nb_bursts = burst->size();
-	UTI_DEBUG("%s message contains a burst of %d %s packet(s)\n",
-	          FUNCNAME, nb_bursts, burst->name().c_str());
+	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+	                "%s message contains a burst of %d %s packet(s)\n",
+	                FUNCNAME, nb_bursts, burst->name().c_str());
 
 	// iterate on all the deencapsulation contexts to get the ip packets
 	for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
@@ -533,15 +594,17 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 		burst = (*iter)->deencapsulate(burst);
 		if(burst == NULL)
 		{
-			UTI_ERROR("%s deencapsulation failed in %s context\n",
-			          FUNCNAME, (*iter)->getName().c_str());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+			                "%s deencapsulation failed in %s context\n",
+		                    FUNCNAME, (*iter)->getName().c_str());
 			goto error;
 		}
 	}
 
-	UTI_DEBUG("%s %d %s packet => %zu %s packet(s)\n", FUNCNAME,
-	          nb_bursts, this->reception_ctx[0]->getName().c_str(),
-	          burst->size(), burst->name().c_str());
+	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+	                "%s %d %s packet => %zu %s packet(s)\n", FUNCNAME,
+	                nb_bursts, this->reception_ctx[0]->getName().c_str(),
+	                burst->size(), burst->name().c_str());
 	if(burst->size() == 0)
 	{
 		delete burst;
@@ -551,12 +614,14 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	// send the burst to the upper layer
 	if(!this->sendUp((void **)&burst))
 	{
-		UTI_ERROR("failed to send burst to upper layer\n");
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "failed to send burst to upper layer\n");
 		delete burst;
 	}
 
-	UTI_DEBUG("%s burst of deencapsulated packets sent to the upper layer\n",
-	          FUNCNAME);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+	                "%s burst of deencapsulated packets sent to the upper "
+	                "layer\n", FUNCNAME);
 
 	// everthing is fine
 	return true;

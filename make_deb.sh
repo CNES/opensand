@@ -38,7 +38,7 @@ function build_pkg()
 
 function opensand()
 {
-    for dir in opensand-conf opensand-output opensand-rt opensand-collector opensand-core opensand-daemon opensand-manager; do
+    for dir in opensand-output opensand-conf opensand-rt opensand-collector opensand-core opensand-daemon opensand-manager; do
         build_pkg $dir
         if [ $dir == "opensand-daemon" ]; then
             rm -rf $dir/build

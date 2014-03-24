@@ -39,6 +39,8 @@
 #include "OpenSandFrames.h"
 #include "DvbFrame.h"
 
+#include <opensand_output/OutputLog.h>
+
 #include <map>
 #include <vector>
 #include <stdint.h>

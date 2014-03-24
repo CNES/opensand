@@ -39,6 +39,11 @@ AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
 
+# check for opensand-output library
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = trunk])
+LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
+
 # check if -Werror must be appended to CFLAGS
 WERROR=""
 AC_ARG_ENABLE(fail_on_warning,

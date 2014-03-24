@@ -1,4 +1,4 @@
- /*
+/*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
@@ -36,9 +36,7 @@
 
 
 // FIXME we need to include uti_debug.h before...
-#define DBG_PACKAGE PKG_DVB_RCS_TAL
-#include <opensand_conf/uti_debug.h>
-#define DVB_DBG_PREFIX "[Tal]"
+#include <opensand_output/Output.h>
 
 #include "BlockDvbTal.h"
 
@@ -159,15 +157,19 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
-			UTI_DEBUG("SF#%u: encapsulation burst received (%d packets)\n",
-			          this->super_frame_counter, burst->length());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+			                "SF#%u: encapsulation burst received (%d "
+			                "packets)\n", this->super_frame_counter,
+			                burst->length());
 
 			// set each packet of the burst in MAC FIFO
 
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
-				UTI_DEBUG_L3("SF#%u: encapsulation packet has QoS value %d\n",
-				             this->super_frame_counter, (*pkt_it)->getQos());
+				Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
+				                "SF#%u: encapsulation packet has QoS value "
+				                "%d\n", this->super_frame_counter,
+				                (*pkt_it)->getQos());
 
 				fifo_priority = (*pkt_it)->getQos();
 				// find the FIFO associated to the IP QoS (= MAC FIFO id)
@@ -178,8 +180,10 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 					fifo_priority = this->default_fifo_id;
 				}
 
-				UTI_DEBUG("SF#%u: store one encapsulation packet (QoS = %d)\n",
-				          this->super_frame_counter, fifo_priority);
+				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+				                "SF#%u: store one encapsulation packet "
+				                "(QoS = %d)\n", this->super_frame_counter,
+				                fifo_priority);
 
 
 				// store the encapsulation packet in the FIFO
@@ -190,11 +194,12 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
 					// call to onDownwardEvent => return
-					UTI_ERROR("SF#%u: frame %u: unable to "
-					          "store received encapsulation "
-					          "packet (see previous errors)\n",
-					          this->super_frame_counter,
-					          this->frame_counter);
+					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+					                "SF#%u: frame %u: unable to "
+					                "store received encapsulation "
+					                "packet (see previous errors)\n",
+					                this->super_frame_counter,
+					                this->frame_counter);
 					burst->clear();
 					delete burst;
 					return false;
@@ -240,8 +245,9 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 			ret = write(BlockDvbTal::qos_server_sock, message.c_str(), message.length());
 			if(ret == -1)
 			{
-				UTI_NOTICE("failed to send message to QoS Server: %s (%d)\n",
-				           strerror(errno), errno);
+				Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
+				                "failed to send message to QoS Server: %s "
+				                "(%d)\n", strerror(errno), errno);
 			}
 		}
 		break;
@@ -253,10 +259,11 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				{
 					// send another logon_req and raise timer
 					// only if we are in the good state
-					UTI_INFO("still no answer from NCC to the "
-					         "logon request we sent for MAC ID %d, "
-					         "send a new logon request\n",
-					         this->mac_id);
+					Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
+					                "still no answer from NCC to the "
+					                "logon request we sent for MAC ID %d, "
+					                "send a new logon request\n",
+					                this->mac_id);
 					this->sendLogonReq();
 				}
 			}
@@ -271,22 +278,26 @@ bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
 				{
 					if(!this->connectToQoSServer())
 					{
-						UTI_DEBUG("failed to connect with QoS Server, cannot "
-						          "send cross layer information");
+						Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+						                "failed to connect with QoS Server, "
+						                "cannot send cross layer information");
 					}
 				}
 			}
 			else
 			{
-				UTI_ERROR("SF#%u: unknown timer event received %s",
-				          this->super_frame_counter, event->getName().c_str());
+				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+				                "SF#%u: unknown timer event received %s",
+				                this->super_frame_counter, event->getName().c_str());
 				return false;
 			}
 			break;
 
 		default:
-			UTI_ERROR("SF#%u: unknown event received %s",
-			          this->super_frame_counter, event->getName().c_str());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+			                "SF#%u: unknown event received %s",
+			                this->super_frame_counter,
+			                event->getName().c_str());
 			return false;
 	}
 
@@ -311,14 +322,16 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			}
 
 			// message from lower layer: DL dvb frame
-			UTI_DEBUG_L3("SF#%u DVB frame received (len %u)\n",
-				         this->super_frame_counter,
-				         dvb_frame->getMessageLength());
+			Output::sendLog(this->log_rcv_from_up, LEVEL_DEBUG,
+			                "SF#%u DVB frame received (len %u)\n",
+				            this->super_frame_counter,
+				            dvb_frame->getMessageLength());
 
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
-				UTI_DEBUG_L3("SF#%u: failed to handle received DVB frame\n",
-				             this->super_frame_counter);
+				Output::sendLog(this->log_rcv_from_up, LEVEL_DEBUG,
+				                "SF#%u: failed to handle received DVB frame\n",
+				                this->super_frame_counter);
 				// a problem occured, trace is made in onRcvDVBFrame()
 				// carry on simulation
 				return false;
@@ -332,16 +345,21 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 				// beginning of a new frame
 				if(this->_state == state_running)
 				{
-					UTI_DEBUG("SF#%u: send encap bursts on timer basis\n",
-					          this->super_frame_counter);
+					Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
+					                "SF#%u: send encap bursts on timer "
+					                "basis\n", this->super_frame_counter);
 
 					if(this->processOnFrameTick() < 0)
 					{
 						// exit because the bloc is unable to continue
-						UTI_ERROR("SF#%u: treatments failed at frame %u",
-						          this->super_frame_counter, this->frame_counter);
+						Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+						                "SF#%u: treatments failed at frame %u",
+						                this->super_frame_counter,
+						                this->frame_counter);
 						// Fatal error
-						this->upward->reportError(true, "superframe treatment failed");
+						this->upward->reportError(true, 
+						                          "superframe treatment "
+						                          "failed");
 						return false;
 					}
 				}
@@ -349,8 +367,10 @@ bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
 			break;
 
 		default:
-			UTI_ERROR("SF#%u: unknown event received %s",
-			          this->super_frame_counter, event->getName().c_str());
+			Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
+			                "SF#%u: unknown event received %s",
+			                this->super_frame_counter,
+			                event->getName().c_str());
 			return false;
 	}
 
@@ -365,7 +385,8 @@ bool BlockDvbTal::initMode()
 	((DvbUpward *)this->upward)->receptionStd = new DvbS2Std(this->down_forward_pkt_hdl);
 	if(((DvbUpward *)this->upward)->receptionStd == NULL)
 	{
-		UTI_ERROR("failed to create the reception standard\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to create the reception standard\n");
 		goto error;
 	}
 
@@ -382,10 +403,12 @@ bool BlockDvbTal::initParameters()
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
 	                          this->fixed_bandwidth))
 	{
-		UTI_ERROR("Missing %s", DVB_RT_BANDWIDTH);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s", DVB_RT_BANDWIDTH);
 		goto error;
 	}
-	UTI_INFO("fixed_bandwidth = %d kbits/s\n", this->fixed_bandwidth);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "fixed_bandwidth = %d kbits/s\n", this->fixed_bandwidth);
 
 	return true;
 
@@ -403,7 +426,8 @@ bool BlockDvbTal::initCarrierId()
 	                          DVB_CAR_ID_CTRL,
 	                          this->carrier_id_ctrl))
 	{
-		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                FMT_KEY_MISSING, DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
 		goto error;
 	}
 
@@ -412,7 +436,8 @@ bool BlockDvbTal::initCarrierId()
 	                          DVB_CAR_ID_LOGON,
 	                          this->carrier_id_logon))
 	{
-		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                FMT_KEY_MISSING, DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
 		goto error;
 	}
 
@@ -421,13 +446,16 @@ bool BlockDvbTal::initCarrierId()
 	                          DVB_CAR_ID_DATA,
 	                          this->carrier_id_data))
 	{
-		UTI_ERROR(FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                FMT_KEY_MISSING, DVB_CAR_ID_DATA, DVB_TAL_SECTION);
 		goto error;
 	}
 
-	UTI_INFO("SF#%u: carrier IDs for Ctrl = %u, Logon = %u, Data = %u\n",
-	         this->super_frame_counter, this->carrier_id_ctrl,
-	         this->carrier_id_logon, this->carrier_id_data);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "SF#%u: carrier IDs for Ctrl = %u, Logon = %u, "
+	                "Data = %u\n", this->super_frame_counter,
+	                this->carrier_id_ctrl,
+	                this->carrier_id_logon, this->carrier_id_data);
 
 	return true;
 error:
@@ -436,7 +464,6 @@ error:
 
 bool BlockDvbTal::initMacFifo()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
 
@@ -446,8 +473,9 @@ bool BlockDvbTal::initMacFifo()
 	*/
 	if(!globalConfig.getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
 	{
-		UTI_ERROR("section '%s, %s': missing fifo list", DVB_TAL_SECTION,
-		          FIFO_LIST);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
+		                FIFO_LIST);
 		goto err_fifo_release;
 	}
 
@@ -463,49 +491,56 @@ bool BlockDvbTal::initMacFifo()
 		// get fifo_id --> fifo_priority
 		if(!globalConfig.getAttributeValue(iter, FIFO_PRIO, fifo_priority))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_PRIO, DVB_TAL_SECTION, FIFO_LIST);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get %s from section '%s, %s'\n",
+			                FIFO_PRIO, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_mac_prio
 		if(!globalConfig.getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get %s from section '%s, %s'\n",
+			                FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_size
 		if(!globalConfig.getAttributeValue(iter, FIFO_SIZE, fifo_size))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get %s from section '%s, %s'\n",
+			                FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get pvc
 		if(!globalConfig.getAttributeValue(iter, FIFO_PVC, pvc))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get %s from section '%s, %s'\n",
+			                FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get the fifo CR type
 		if(!globalConfig.getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
-			UTI_ERROR("%s: cannot get %s from section '%s, %s'\n",
-			          FUNCNAME, FIFO_CR_TYPE, DVB_TAL_SECTION, FIFO_LIST);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get %s from section '%s, %s'\n",
+			                FIFO_CR_TYPE, DVB_TAL_SECTION,
+			                FIFO_LIST);
 			goto err_fifo_release;
 		}
 
 		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
 		                   fifo_cr_type, pvc, fifo_size);
 
-		UTI_INFO("%s: Fifo priority = %u, FIFO name %s, size %u, pvc %u, "
-		         "CR type %d\n", FUNCNAME,
-		         fifo->getPriority(),
-		         fifo->getName().c_str(),
-		         fifo->getMaxSize(),
-		         fifo->getPvc(),
-		         fifo->getCrType());
+		Output::sendLog(this->log_init, LEVEL_NOTICE,
+		                "Fifo priority = %u, FIFO name %s, size %u, "
+		                "pvc %u, CR type %d\n",
+		                fifo->getPriority(),
+		                fifo->getName().c_str(),
+		                fifo->getMaxSize(),
+		                fifo->getPvc(),
+		                fifo->getCrType());
 
 		// update the number of PVC = the maximum PVC
 		this->nbr_pvc = std::max(this->nbr_pvc, pvc);
@@ -557,7 +592,8 @@ bool BlockDvbTal::initObr()
 	// get the OBR period - in number of frames
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA, m_obrPeriod))
 	{
-		UTI_ERROR("Missing %s", DVB_OBR_PERIOD_DATA);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s", DVB_OBR_PERIOD_DATA);
 		goto error;
 	}
 
@@ -566,9 +602,10 @@ bool BlockDvbTal::initObr()
 	// ObrSlotFrame= MacAddress 'modulo' Obr Period
 	// NB : ObrSlotFrame is within [0, Obr Period -1]
 	m_obrSlotFrame = this->mac_id % m_obrPeriod;
-	UTI_INFO("SF#%u: MAC adress = %d, OBR period = %d, "
-	         "OBR slot frame = %d\n", this->super_frame_counter,
-	         this->mac_id, m_obrPeriod, m_obrSlotFrame);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "SF#%u: MAC adress = %d, OBR period = %d, "
+	                "OBR slot frame = %d\n", this->super_frame_counter,
+	                this->mac_id, m_obrPeriod, m_obrSlotFrame);
 
 	return true;
 error:
@@ -578,7 +615,6 @@ error:
 
 bool BlockDvbTal::initDama()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[onInit]";
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
 	string dama_algo;
@@ -588,16 +624,18 @@ bool BlockDvbTal::initDama()
 	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA,
 	                                          this->max_rbdc_kbps))
 	{
-		UTI_ERROR("%s Missing %s\n",
-		          FUNCNAME, DA_MAX_RBDC_DATA);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s\n",
+		                DA_MAX_RBDC_DATA);
 		goto error;
 	}
 
 	if(!globalConfig.getValue(DA_TAL_SECTION,
 	                          DA_RBDC_TIMEOUT_DATA, rbdc_timeout_sf))
 	{
-		UTI_ERROR("%s Missing %s\n",
-		          FUNCNAME, DA_RBDC_TIMEOUT_DATA);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s\n",
+		                DA_RBDC_TIMEOUT_DATA);
 		goto error;
 	}
 
@@ -605,69 +643,74 @@ bool BlockDvbTal::initDama()
 	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA,
 	                          this->max_vbdc_kb))
 	{
-		UTI_ERROR("%s Missing %s\n",
-		          FUNCNAME, DA_MAX_VBDC_DATA);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s\n", DA_MAX_VBDC_DATA);
 		goto error;
 	}
 
 	// MSL duration -- in frames number
 	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MSL_DURATION, msl_sf))
 	{
-		UTI_ERROR("%s Missing %s\n",
-		          FUNCNAME, DA_MSL_DURATION);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s\n", DA_MSL_DURATION);
 		goto error;
 	}
 
 	// CR computation rule
 	if(!globalConfig.getValue(DA_TAL_SECTION, DA_CR_RULE, cr_output_only))
 	{
-		UTI_ERROR("%s Missing %s\n",
-		          FUNCNAME, DA_CR_RULE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Missing %s\n", DA_CR_RULE);
 		goto error;
 	}
 
-	UTI_INFO("%s ULCarrierBw %d kbits/s, "
-	         "RBDC max %d kbits/s, RBDC Timeout %d frame, "
-	         "VBDC max %d kbits, mslDuration %d frames, "
-	         "getIpOutputFifoSizeOnly %d\n",
-	         FUNCNAME,
-	         this->fixed_bandwidth, this->max_rbdc_kbps,
-	         rbdc_timeout_sf, this->max_vbdc_kb, msl_sf,
-	         cr_output_only);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "ULCarrierBw %d kbits/s, "
+	                "RBDC max %d kbits/s, RBDC Timeout %d frame, "
+	                "VBDC max %d kbits, mslDuration %d frames, "
+	                "getIpOutputFifoSizeOnly %d\n",
+	                this->fixed_bandwidth, this->max_rbdc_kbps,
+	                rbdc_timeout_sf, this->max_vbdc_kb, msl_sf,
+	                cr_output_only);
 
 	// dama algorithm
 	if(!globalConfig.getValue(DVB_TAL_SECTION, DAMA_ALGO,
 	                          dama_algo))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DVB_TAL_SECTION, DAMA_ALGO);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                DVB_TAL_SECTION, DAMA_ALGO);
 		goto error;
 	}
 
 	if(dama_algo == "Legacy")
 	{
-		UTI_INFO("%s SF#%u: create Legacy DAMA agent\n", FUNCNAME,
-		         this->super_frame_counter);
+		Output::sendLog(this->log_init, LEVEL_NOTICE,
+		                "SF#%u: create Legacy DAMA agent\n",
+		                this->super_frame_counter);
 
 		this->dama_agent = new DamaAgentRcsLegacy();
 	}
 	else if(dama_algo == "RrmQos")
 	{
-		UTI_INFO("%s SF#%u: create RrmQos DAMA agent\n", FUNCNAME,
-		         this->super_frame_counter);
+		Output::sendLog(this->log_init, LEVEL_NOTICE,
+		                "SF#%u: create RrmQos DAMA agent\n",
+		                this->super_frame_counter);
 
 		this->dama_agent = new DamaAgentRcsRrmQos();
 	}
 	else
 	{
-		UTI_ERROR("cannot create DAMA agent: algo named '%s' is not "
-		          "managed by current MAC layer\n", dama_algo.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot create DAMA agent: algo named '%s' is not "
+		                "managed by current MAC layer\n", dama_algo.c_str());
 		goto error;
 	}
 
 	if(this->dama_agent == NULL)
 	{
-		UTI_ERROR("failed to create DAMA agent\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to create DAMA agent\n");
 		goto error;
 	}
 
@@ -684,15 +727,17 @@ bool BlockDvbTal::initDama()
 	                                 this->dvb_fifos))
 	{
 
-		UTI_ERROR("%s SF#%u Dama Agent Initialization failed.\n", FUNCNAME,
-		          this->super_frame_counter);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "SF#%u Dama Agent Initialization failed.\n",
+		                this->super_frame_counter);
 		goto err_agent_release;
 	}
 
 	// Initialize the DamaAgentRcsXXX class
 	if(!this->dama_agent->init())
 	{
-		UTI_ERROR("%s Dama Agent initialization failed.\n", FUNCNAME);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Dama Agent initialization failed.\n");
 		goto err_agent_release;
 	}
 
@@ -707,28 +752,29 @@ error:
 
 bool BlockDvbTal::initQoSServer()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[initQoSServer]";
-
 	// QoS Server: read hostname and port from configuration
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
 	                          this->qos_server_host))
 	{
-		UTI_ERROR("%s section %s, %s missing",
-		          FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_HOST);
+		Output::sendLog(this->log_qos_server, LEVEL_ERROR,
+		                "section %s, %s missing",
+		                SECTION_QOS_AGENT, QOS_SERVER_HOST);
 		goto error;
 	}
 
 	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
 	                          this->qos_server_port))
 	{
-		UTI_ERROR("%s section %s, %s missing\n",
-		          FUNCNAME, SECTION_QOS_AGENT, QOS_SERVER_PORT);
+		Output::sendLog(this->log_qos_server, LEVEL_ERROR,
+		                "section %s, %s missing\n",
+		                SECTION_QOS_AGENT, QOS_SERVER_PORT);
 		goto error;
 	}
 	else if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
 	{
-		UTI_ERROR("%s QoS Server port (%d) not valid\n",
-		          FUNCNAME, this->qos_server_port);
+		Output::sendLog(this->log_qos_server, LEVEL_ERROR,
+		                "QoS Server port (%d) not valid\n",
+		                this->qos_server_port);
 		goto error;
 	}
 
@@ -736,7 +782,8 @@ bool BlockDvbTal::initQoSServer()
 	// when QoS Server kills the TCP connection
 	if(signal(SIGPIPE, BlockDvbTal::closeQosSocket) == SIG_ERR)
 	{
-		UTI_ERROR("cannot catch signal SIGPIPE\n");
+		Output::sendLog(this->log_qos_server, LEVEL_ERROR,
+		                "cannot catch signal SIGPIPE\n");
 		goto error;
 	}
 
@@ -753,10 +800,8 @@ error:
 
 bool BlockDvbTal::initOutput()
 {
-	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent",
-	                                               LEVEL_INFO);
-	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete",
-	                                                   LEVEL_INFO);
+	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent");
+	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete");
 	if(!this->with_phy_layer)
 	{
 		// maximum modcod if physical layer is enabled => not useful
@@ -827,69 +872,80 @@ bool BlockDvbTal::onInit(void)
 	// get the common parameters
 	if(!this->initCommon())
 	{
-		UTI_ERROR("failed to complete the common part of the initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the common part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initMode())
 	{
-		UTI_ERROR("failed to complete the mode part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the mode part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initParameters())
 	{
-		UTI_ERROR("failed to complete the 'parameters' part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the 'parameters' part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initCarrierId())
 	{
-		UTI_ERROR("failed to complete the carrier IDs part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the carrier IDs part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initMacFifo())
 	{
-		UTI_ERROR("failed to complete the MAC FIFO part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the MAC FIFO part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initObr())
 	{
-		UTI_ERROR("failed to complete the OBR part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the OBR part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initDama())
 	{
-		UTI_ERROR("failed to complete the DAMA part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the DAMA part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	if(!this->initQoSServer())
 	{
-		UTI_ERROR("failed to complete the QoS Server part of the "
-		          "initialisation");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the QoS Server part of the "
+		                "initialisation");
 		goto error;
 	}
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
 	{
-		UTI_ERROR("failed to complete the initialisation of output");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the initialisation of output");
 		goto error;
 	}
 
 	if(!this->initTimers())
 	{
-		UTI_ERROR("failed to complete the initialization of timers");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to complete the initialization of timers");
 		goto error;
 	}
 
@@ -910,8 +966,9 @@ error:
  */
 void BlockDvbTal::closeQosSocket(int UNUSED(sig))
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[BlockDvbTal::closeQosSocket]";
-	UTI_NOTICE("%s TCP connection broken, close socket\n", FUNCNAME);
+	// TODO static function, no this->
+	Output::sendLog(LEVEL_NOTICE,
+	                "QoSServer: TCP connection broken, close socket\n");
 	close(BlockDvbTal::qos_server_sock);
 	BlockDvbTal::qos_server_sock = -1;
 }
@@ -929,7 +986,6 @@ void BlockDvbTal::closeQosSocket(int UNUSED(sig))
  */
 bool BlockDvbTal::connectToQoSServer()
 {
-	const char *FUNCNAME = DVB_DBG_PREFIX "[BlockDvbTal::connectToQoSServer]";
 	struct addrinfo hints;
 	struct protoent *tcp_proto;
 	struct servent *serv;
@@ -940,8 +996,9 @@ bool BlockDvbTal::connectToQoSServer()
 
 	if(BlockDvbTal::qos_server_sock != -1)
 	{
-		UTI_NOTICE("%s already connected to QoS Server, do not call this "
-		           "function when already connected\n", FUNCNAME);
+		Output::sendLog(this->log_qos_server, LEVEL_NOTICE,
+		                "already connected to QoS Server, do not call this "
+		                "function when already connected\n");
 		goto skip;
 	}
 
@@ -954,7 +1011,8 @@ bool BlockDvbTal::connectToQoSServer()
 	tcp_proto = getprotobyname("TCP");
 	if(tcp_proto == NULL)
 	{
-		UTI_NOTICE("%s TCP is not available on the system\n", FUNCNAME);
+		Output::sendLog(this->log_qos_server, LEVEL_NOTICE,
+		                "TCP is not available on the system\n");
 		goto error;
 	}
 	hints.ai_protocol = tcp_proto->p_proto;
@@ -963,8 +1021,9 @@ bool BlockDvbTal::connectToQoSServer()
 	serv = getservbyport(htons(this->qos_server_port), "tcp");
 	if(serv == NULL)
 	{
-		UTI_DEBUG("%s service on TCP/%d is not available\n", FUNCNAME,
-		          this->qos_server_port);
+		Output::sendLog(this->log_qos_server, LEVEL_INFO,
+		                "service on TCP/%d is not available\n",
+		                this->qos_server_port);
 		goto error;
 	}
 
@@ -972,8 +1031,10 @@ bool BlockDvbTal::connectToQoSServer()
 	ret = getaddrinfo(this->qos_server_host.c_str(), serv->s_name, &hints, &addresses);
 	if(ret != 0)
 	{
-		UTI_NOTICE("%s cannot resolve hostname '%s': %s (%d)\n",
-		           FUNCNAME, this->qos_server_host.c_str(), gai_strerror(ret), ret);
+		Output::sendLog(this->log_qos_server, LEVEL_NOTICE,
+		                "cannot resolve hostname '%s': %s (%d)\n",
+		                 this->qos_server_host.c_str(),
+		                 gai_strerror(ret), ret);
 		goto error;
 	}
 
@@ -997,11 +1058,15 @@ bool BlockDvbTal::connectToQoSServer()
 		                   sizeof(straddr));
 		if(retptr != NULL)
 		{
-			UTI_DEBUG("%s try IPv%d address %s\n", FUNCNAME, is_ipv4 ? 4 : 6, straddr);
+			Output::sendLog(this->log_qos_server, LEVEL_INFO,
+			                "try IPv%d address %s\n",
+			                is_ipv4 ? 4 : 6, straddr);
 		}
 		else
 		{
-			UTI_DEBUG("%s try an IPv%d address\n", FUNCNAME, is_ipv4 ? 4 : 6);
+			Output::sendLog(this->log_qos_server, LEVEL_INFO,
+			                "try an IPv%d address\n",
+			                is_ipv4 ? 4 : 6);
 		}
 
 		BlockDvbTal::qos_server_sock = socket(address->ai_family,
@@ -1009,37 +1074,48 @@ bool BlockDvbTal::connectToQoSServer()
 		                                      address->ai_protocol);
 		if(BlockDvbTal::qos_server_sock == -1)
 		{
-			UTI_DEBUG("%s cannot create socket (%s) with address %s\n",
-			           FUNCNAME, strerror(errno), straddr);
+			Output::sendLog(this->log_qos_server, LEVEL_INFO,
+			                "cannot create socket (%s) with address %s\n",
+			                strerror(errno), straddr);
 			address = address->ai_next;
 			continue;
 		}
 
-		UTI_DEBUG("%s socket created for address %s\n", FUNCNAME, straddr);
+		Output::sendLog(this->log_qos_server, LEVEL_INFO,
+		                "socket created for address %s\n",
+		                straddr);
 	}
 
 	if(BlockDvbTal::qos_server_sock == -1)
 	{
-		UTI_NOTICE("%s no valid address found for hostname %s\n", FUNCNAME,
-		           this->qos_server_host.c_str());
+		Output::sendLog(this->log_qos_server, LEVEL_NOTICE,
+		                "no valid address found for hostname %s\n",
+		                this->qos_server_host.c_str());
 		goto free_dns;
 	}
 
-	UTI_DEBUG("%s try to connect with QoS Server at %s[%s]:%d\n", FUNCNAME,
-	this->qos_server_host.c_str(), straddr, this->qos_server_port);
+	Output::sendLog(this->log_qos_server, LEVEL_INFO,
+	                "try to connect with QoS Server at %s[%s]:%d\n",
+	                this->qos_server_host.c_str(), straddr,
+	                this->qos_server_port);
 
 	// try to connect with the socket
 	ret = connect(BlockDvbTal::qos_server_sock,
 	              address->ai_addr, address->ai_addrlen);
 	if(ret == -1)
 	{
-		UTI_DEBUG("%s connect() failed: %s (%d)\n", FUNCNAME, strerror(errno), errno);
-		UTI_DEBUG("%s will retry to connect later\n", FUNCNAME);
+		Output::sendLog(this->log_qos_server, LEVEL_INFO,
+		                "connect() failed: %s (%d)\n",
+		                strerror(errno), errno);
+		Output::sendLog(this->log_qos_server, LEVEL_INFO,
+		                "will retry to connect later\n");
 		goto close_socket;
 	}
 
-	UTI_INFO("%s connected with QoS Server at %s[%s]:%d\n", FUNCNAME,
-	         this->qos_server_host.c_str(), straddr, this->qos_server_port);
+	Output::sendLog(this->log_qos_server, LEVEL_NOTICE,
+	                "connected with QoS Server at %s[%s]:%d\n",
+	                this->qos_server_host.c_str(), straddr,
+	                this->qos_server_port);
 
 	// clean allocated addresses
 	freeaddrinfo(addresses);
@@ -1068,21 +1144,23 @@ bool BlockDvbTal::sendLogonReq()
 	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)logon_req,
 		                                              this->carrier_id_logon))
 	{
-		UTI_ERROR("Failed to send Logon Request\n");
+		Output::sendLog(this->log_send_down, LEVEL_ERROR,
+		                "Failed to send Logon Request\n");
 		goto error;
 	}
-	UTI_DEBUG_L3("SF#%u Logon Req. sent to lower layer\n",
-	             this->super_frame_counter);
+	Output::sendLog(this->log_send_down, LEVEL_DEBUG,
+	                "SF#%u Logon Req. sent to lower layer\n",
+	                this->super_frame_counter);
 
 	if(!this->downward->startTimer(this->logon_timer))
 	{
-		UTI_ERROR("cannot start logon timer");
+		Output::sendLog(this->log_send_down, LEVEL_ERROR,
+		                "cannot start logon timer");
 		goto error;
 	}
 
 	// send the corresponding event
-	Output::sendEvent(event_login_sent, "Login sent to %d",
-	                  this->mac_id);
+	Output::sendEvent(this->event_login_sent, "Login sent to GW");
 
 	return true;
 
@@ -1112,12 +1190,14 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 				this->cni = dvb_frame->getCn();
 			}
 
-			if(!((DvbUpward *)this->upward)->receptionStd->onRcvFrame(dvb_frame, this->tal_id,
-			                                   &burst))
+			if(!((DvbUpward *)this->upward)->receptionStd->onRcvFrame(dvb_frame,
+			                                                          this->tal_id,
+			                                                          &burst))
 			{
-				UTI_ERROR("failed to handle the reception of "
-				          "BB frame (len = %u)\n",
-				          dvb_frame->getMessageLength());
+				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+				                "failed to handle the reception of "
+				                "BB frame (len = %u)\n",
+				                dvb_frame->getMessageLength());
 				goto error;
 			}
 			if(msg_type != MSG_TYPE_CORRUPTED)
@@ -1136,7 +1216,8 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
-				UTI_ERROR("failed to send burst to upper layer\n");
+				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+				                "failed to send burst to upper layer\n");
 				goto error;
 			}
 
@@ -1156,14 +1237,16 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 			else
 				state_descr = "other";
 
-			UTI_DEBUG("SF#%u: received SOF in state %s\n",
-			          this->super_frame_counter, state_descr);
+			Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+			                "SF#%u: received SOF in state %s\n",
+			                this->super_frame_counter, state_descr);
 
 			if(this->_state == state_running)
 			{
 				if(!this->onStartOfFrame(dvb_frame))
 				{
-					UTI_ERROR("Cannot handle SoF");
+					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+					                "Cannot handle SoF");
 					goto error;
 				}
 			}
@@ -1204,8 +1287,10 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 			break;
 
 		default:
-			UTI_ERROR("SF#%u: unknown type of DVB frame (%u), ignore\n",
-			          this->super_frame_counter, dvb_frame->getMessageType());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+			                "SF#%u: unknown type of DVB frame (%u), ignore\n",
+			                this->super_frame_counter,
+			                dvb_frame->getMessageType());
 			delete dvb_frame;
 			goto error;
 	}
@@ -1213,13 +1298,15 @@ bool BlockDvbTal::onRcvDvbFrame(DvbFrame *dvb_frame)
 	return true;
 
 error_on_TTP:
-	UTI_ERROR("TTP Treatments failed at SF#%u, frame %u",
-	          this->super_frame_counter, this->frame_counter);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+	                "TTP Treatments failed at SF#%u, frame %u",
+	                this->super_frame_counter, this->frame_counter);
 	return false;
 
 error:
-	UTI_ERROR("Treatments failed at SF#%u, frame %u",
-	          this->super_frame_counter, this->frame_counter);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+	                "Treatments failed at SF#%u, frame %u",
+	                this->super_frame_counter, this->frame_counter);
 	return false;
 }
 
@@ -1239,8 +1326,9 @@ bool BlockDvbTal::sendSAC()
 	                               sac,
 	                               empty))
 	{
-		UTI_ERROR("SF#%u frame %u: DAMA cannot build CR\n",
-		          this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "SF#%u frame %u: DAMA cannot build CR\n",
+		                this->super_frame_counter, this->frame_counter);
 		goto error;
 	}
 	// Set the ACM parameters
@@ -1251,8 +1339,9 @@ bool BlockDvbTal::sendSAC()
 
 	if(empty)
 	{
-		UTI_DEBUG_L3("SF#%u frame %u: Empty CR\n",
-		             this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
+		                "SF#%u frame %u: Empty CR\n",
+		                this->super_frame_counter, this->frame_counter);
 		// keep going as we can send ACM parameters
 	}
 
@@ -1261,14 +1350,16 @@ bool BlockDvbTal::sendSAC()
 	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)sac,
 	                                                  this->carrier_id_ctrl))
 	{
-		UTI_ERROR("SF#%u frame %u: failed to send SAC\n",
-		          this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "SF#%u frame %u: failed to send SAC\n",
+		                this->super_frame_counter, this->frame_counter);
 		delete sac;
 		goto error;
 	}
 
-	UTI_DEBUG("SF#%u frame %u: SAC sent\n", this->super_frame_counter,
-	          this->frame_counter);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+	                "SF#%u frame %u: SAC sent\n", this->super_frame_counter,
+	                this->frame_counter);
 
 	return true;
 
@@ -1292,19 +1383,22 @@ bool BlockDvbTal::onStartOfFrame(DvbFrame *dvb_frame)
 
 	sfn = sof->getSuperFrameNumber();
 
-	UTI_DEBUG_L3("SOF reception SFN #%u super frame nb %u frame "
-	             "counter %u\n", sfn, this->super_frame_counter,
-	             this->frame_counter);
-	UTI_DEBUG("superframe number: %u", sfn);
+	Output::sendLog(this->log_frame_tick, LEVEL_DEBUG,
+	                "SOF reception SFN #%u super frame nb %u frame "
+	                "counter %u\n", sfn, this->super_frame_counter,
+	                this->frame_counter);
+	Output::sendLog(this->log_frame_tick, LEVEL_INFO,
+	                "superframe number: %u", sfn);
 
 	// if the NCC crashed, we must reinitiate a logon
 	// TODO handle modulo on maximum
 	if(sfn < this->super_frame_counter &&
 	   (sfn != 0 || (this->super_frame_counter + 1) % 65536 != 0))
 	{
-		UTI_ERROR("SF#%u: it seems NCC rebooted => flush buffer & "
-		          "resend a logon request\n",
-		          this->super_frame_counter);
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "SF#%u: it seems NCC rebooted => flush buffer & "
+		                "resend a logon request\n",
+		                this->super_frame_counter);
 
 		this->deletePackets();
 		if(!this->sendLogonReq())
@@ -1335,9 +1429,10 @@ bool BlockDvbTal::onStartOfFrame(DvbFrame *dvb_frame)
 	if(this->frame_counter == this->frames_per_superframe ||
 	   this->first)
 	{
-		UTI_DEBUG("SF#%u frame %u: all frames from previous SF are "
-		          "consumed or it is the first frame\n",
-		          this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_frame_tick, LEVEL_INFO,
+		                "SF#%u frame %u: all frames from previous SF are "
+		                "consumed or it is the first frame\n",
+		                this->super_frame_counter, this->frame_counter);
 
 		// reset frame counter: it will be init to 1 (1st frame number)
 		// at the beginning of processOnFrameTick()
@@ -1348,8 +1443,9 @@ bool BlockDvbTal::onStartOfFrame(DvbFrame *dvb_frame)
 		if(this->processOnFrameTick() < 0)
 		{
 			// exit because the bloc is unable to continue
-			UTI_ERROR("SF#%u frame %u: treatments failed\n",
-			          this->super_frame_counter, this->frame_counter);
+			Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+			                "SF#%u frame %u: treatments failed\n",
+			                this->super_frame_counter, this->frame_counter);
 			goto error;
 		}
 	}
@@ -1389,8 +1485,9 @@ int BlockDvbTal::processOnFrameTick()
 
 	// update frame counter for current SF - 1st frame within SF is 1 -
 	this->frame_counter++;
-	UTI_DEBUG("SF#%u: frame %u: start processOnFrameTick\n",
-	          this->super_frame_counter, this->frame_counter);
+	Output::sendLog(this->log_frame_tick, LEVEL_INFO,
+	                "SF#%u: frame %u: start processOnFrameTick\n",
+	                this->super_frame_counter, this->frame_counter);
 
 	// ------------ arm timer for next frame -----------
 	// this is done at the beginning in order not to increase next frame
@@ -1399,7 +1496,8 @@ int BlockDvbTal::processOnFrameTick()
 	{
 		if(!this->upward->startTimer(this->frame_timer))
 		{
-			UTI_ERROR("cannot start frame timer");
+			Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+			                "cannot start frame timer");
 			goto error;
 		}
 	}
@@ -1409,8 +1507,9 @@ int BlockDvbTal::processOnFrameTick()
 	// for current frame
 	if(!this->dama_agent->processOnFrameTick())
 	{
-		UTI_ERROR("SF#%u: frame %u: failed to process frame tick\n",
-	          this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "SF#%u: frame %u: failed to process frame tick\n",
+	                    this->super_frame_counter, this->frame_counter);
 	    goto error;
 	}
 
@@ -1419,8 +1518,10 @@ int BlockDvbTal::processOnFrameTick()
 	// the algorithm defined in DAMA agent
 	if(!this->dama_agent->returnSchedule(&this->complete_dvb_frames))
 	{
-		UTI_ERROR("SF#%u: frame %u: failed to schedule packets from DVB FIFOs\n",
-		          this->super_frame_counter, this->frame_counter);
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "SF#%u: frame %u: failed to schedule packets from DVB "
+		                "FIFOs\n", this->super_frame_counter,
+		                this->frame_counter);
 		goto error;
 	}
 
@@ -1429,7 +1530,8 @@ int BlockDvbTal::processOnFrameTick()
 	if(!((DvbDownward *)this->downward)->sendBursts(&this->complete_dvb_frames,
 	                                                this->carrier_id_data))
 	{
-		UTI_ERROR("failed to send bursts in DVB frames\n");
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "failed to send bursts in DVB frames\n");
 		goto error;
 	}
 
@@ -1443,7 +1545,8 @@ int BlockDvbTal::processOnFrameTick()
 	{
 		if(!this->sendSAC())
 		{
-			UTI_ERROR("failed to send SAC\n");
+			Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+			                "failed to send SAC\n");
 			goto error;
 		}
 	}
@@ -1465,9 +1568,10 @@ bool BlockDvbTal::onRcvLogonResp(DvbFrame *dvb_frame)
 	// Retrieve the Logon Response frame
 	if(logon_resp->getMac() != this->mac_id)
 	{
-		UTI_DEBUG("SF#%u Loggon_resp for mac=%d, not %d\n",
-		          this->super_frame_counter, logon_resp->getMac(),
-		          this->mac_id);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+		                "SF#%u Loggon_resp for mac=%d, not %d\n",
+		                this->super_frame_counter, logon_resp->getMac(),
+		                this->mac_id);
 		goto ok;
 	}
 
@@ -1483,8 +1587,9 @@ bool BlockDvbTal::onRcvLogonResp(DvbFrame *dvb_frame)
 	link_is_up = new T_LINK_UP;
 	if(link_is_up == 0)
 	{
-		UTI_ERROR("SF#%u Memory allocation error on link_is_up\n",
-		          this->super_frame_counter);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "SF#%u Memory allocation error on link_is_up\n",
+		                this->super_frame_counter);
 		goto error;
 	}
 	link_is_up->group_id = this->group_id;
@@ -1492,18 +1597,22 @@ bool BlockDvbTal::onRcvLogonResp(DvbFrame *dvb_frame)
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
-		UTI_ERROR("SF#%u: failed to send link up message to upper layer",
-		          this->super_frame_counter);
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "SF#%u: failed to send link up message to upper layer",
+		                this->super_frame_counter);
 		delete link_is_up;
 		goto error;
 	}
-	UTI_DEBUG_L3("SF#%u Link is up msg sent to upper layer\n",
-	             this->super_frame_counter);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
+	                "SF#%u Link is up msg sent to upper layer\n",
+	                this->super_frame_counter);
 
 	// Set the state to "running"
 	this->_state = state_running;
-	UTI_INFO("SF#%u: logon succeeded, running as group %u and logon %u\n",
-	         this->super_frame_counter, this->group_id, this->tal_id);
+	Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
+	                "SF#%u: logon succeeded, running as group %u and logon"
+	                " %u\n", this->super_frame_counter, this->group_id, 
+	                this->tal_id);
 
 	// send the corresponding event
 
@@ -1609,12 +1718,14 @@ bool BlockDvbTal::Downward::onInit(void)
 
 	// after all of things have been initialized successfully,
 	// send a logon request
-	UTI_DEBUG("send a logon request with MAC ID %d to NCC\n",
-	          ((BlockDvbTal *)this->block)->mac_id);
+	Output::sendLog(this->log_init, LEVEL_DEBUG,
+	                "send a logon request with MAC ID %d to NCC\n",
+	                ((BlockDvbTal *)this->block)->mac_id);
 	((BlockDvbTal *)this->block)->_state = state_wait_logon_resp;
 	if(!((BlockDvbTal *)this->block)->sendLogonReq())
 	{
-		UTI_ERROR("failed to send the logon request to the NCC");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "failed to send the logon request to the NCC");
 		return false;
 	}
 

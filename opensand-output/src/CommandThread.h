@@ -35,6 +35,8 @@
 #ifndef _COMMAND_THREAD_H
 #define _COMMAND_THREAD_H
 
+#include "OutputLog.h"
+
 /**
  * @class thread that while receive an parse incoming messages
  */
@@ -66,6 +68,9 @@ class CommandThread
 
 	/// The socket for command thread
 	int sock_fd;
+
+	/// output log
+	OutputLog *log;
 };
 
 #endif

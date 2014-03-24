@@ -31,30 +31,21 @@
  * @author   Santiago PENA <santiago.penaluque@cnes.fr>
  */
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
-
 #include "BlockPhysicalLayer.h"
 
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "PhyChannel.h"
 
-
+#include <opensand_output/Output.h>
 #include <opensand_conf/conf.h>
 
-
-// output events
-Event *BlockPhysicalLayer::error_init = NULL;
-Event *BlockPhysicalLayer::init_done = NULL;
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name):
 	Block(name)
 {
-	error_init = Output::registerEvent("BlockPhysicalLayer::init", LEVEL_ERROR);
-	init_done = Output::registerEvent("BlockPhysicalLayer::init_done", LEVEL_INFO);
+	// Output Log
+	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Event");
 }
 
 
@@ -89,18 +80,21 @@ bool BlockPhysicalLayer::onEvent(const RtEvent *const event,
 				return false;
 			}
 			//Event handler for Channel(s) state update
-			UTI_DEBUG_L3("channel timer expired\n");
+			Output::sendLog(this->log_event, LEVEL_DEBUG,
+			                "channel timer expired\n");
 			if(!chan->update())
 			{
-				UTI_ERROR("one of both channels updating failed, do not "
-				          "update channels anymore\n");
+				Output::sendLog(this->log_event, LEVEL_ERROR,
+				                "one of both channels updating failed, do not "
+				                "update channels anymore\n");
 				return false;
 			}
 			break;
 
 		default:
-			UTI_ERROR("unknown event received %s",
-			          event->getName().c_str());
+			Output::sendLog(this->log_event, LEVEL_ERROR,
+			                "unknown event received %s",
+			                event->getName().c_str());
 			return false;
 	}
 
@@ -135,20 +129,24 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          val))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          GLOBAL_SECTION, SATELLITE_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	UTI_INFO("satellite type = %s\n", val.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "satellite type = %s\n", val.c_str());
 	sat_type = strToSatType(val);
 
 	val = "";
 	if(!globalConfig.getComponent(val))
 	{
-		UTI_ERROR("cannot get component type\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot get component type\n");
 		goto error;
 	}
-	UTI_INFO("host type = %s\n", val.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "host type = %s\n", val.c_str());
 	compo = getComponentType(val);
 
 	if(compo == terminal ||
@@ -165,19 +163,23 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
 	                          this->granularity))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          PHYSICAL_LAYER_SECTION, GRANULARITY);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                PHYSICAL_LAYER_SECTION, GRANULARITY);
 		goto error;
 	}
-	UTI_INFO("granularity = %d\n", this->granularity);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "granularity = %d\n", this->granularity);
 
 	// Initiate Attenuation model
 	if(!globalConfig.getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
 	                          ATTENUATION_MODEL_TYPE,
 	                          attenuation_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWNLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                DOWNLINK_PHYSICAL_LAYER_SECTION,
+		                ATTENUATION_MODEL_TYPE);
 		goto error;
 	}
 
@@ -186,8 +188,10 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                          NOMINAL_CONDITION,
 	                          this->nominal_condition))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWNLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                DOWNLINK_PHYSICAL_LAYER_SECTION,
+		                ATTENUATION_MODEL_TYPE);
 		goto error;
 	}
 
@@ -196,8 +200,10 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                          MINIMAL_CONDITION_TYPE,
 	                          minimal_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWNLINK_PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                DOWNLINK_PHYSICAL_LAYER_SECTION,
+		                MINIMAL_CONDITION_TYPE);
 		goto error;
 	}
 
@@ -206,8 +212,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                          ERROR_INSERTION_TYPE,
 	                          error_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          DOWNLINK_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                DOWNLINK_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
 		goto error;
 	}
 
@@ -219,32 +226,38 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                                    &this->minimal_condition,
 	                                    &this->error_insertion))
 	{
-		UTI_ERROR("error when getting physical layer plugins");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "error when getting physical layer plugins");
 		goto error;
 	}
 	if(!this->attenuation_model->init(this->granularity, link))
 	{
-		UTI_ERROR("cannot initialize attenuation model plugin %s",
-		           attenuation_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize attenuation model plugin %s",
+		                attenuation_type.c_str());
 		goto error;
 	}
 
-	UTI_INFO("%slink: attenuation model = %s, nominal condition = %u, "
-	         "minimal condition type = %s, error insertion type = %s",
-	         link.c_str(), attenuation_type.c_str(), this->nominal_condition,
-	         minimal_type.c_str(), error_type.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "%slink: attenuation model = %s, nominal condition = %u, "
+	                "minimal condition type = %s, error insertion type = %s",
+	                link.c_str(), attenuation_type.c_str(),
+	                this->nominal_condition,
+	                minimal_type.c_str(), error_type.c_str());
 
 	if(!this->minimal_condition->init())
 	{
-		UTI_ERROR("cannot initialize minimal condition plugin %s",
-		          minimal_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize minimal condition plugin %s",
+		                minimal_type.c_str());
 		goto error;
 	}
 
 	if(!this->error_insertion->init())
 	{
-		UTI_ERROR("cannot initialize error insertion plugin %s",
-		          error_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize error insertion plugin %s",
+		                error_type.c_str());
 		goto error;
 	}
 
@@ -290,19 +303,22 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
 	                          this->granularity))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          PHYSICAL_LAYER_SECTION, GRANULARITY);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                PHYSICAL_LAYER_SECTION, GRANULARITY);
 		goto error;
 	}
-	UTI_INFO("granularity = %d\n", this->granularity);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "granularity = %d\n", this->granularity);
 
 	// Initiate Attenuation model
 	if(!globalConfig.getValue(UPLINK_PHYSICAL_LAYER_SECTION,
 	                          ATTENUATION_MODEL_TYPE,
 	                          attenuation_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
 		goto error;
 	}
 
@@ -311,8 +327,9 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	                          NOMINAL_CONDITION,
 	                          this->nominal_condition))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                UPLINK_PHYSICAL_LAYER_SECTION, ATTENUATION_MODEL_TYPE);
 		goto error;
 	}
 
@@ -322,18 +339,22 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	                                    &this->attenuation_model,
 	                                    NULL, NULL))
 	{
-		UTI_ERROR("error when getting physical layer plugins");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "error when getting physical layer plugins");
 		goto error;
 	}
 	if(!this->attenuation_model->init(this->granularity, link))
 	{
-		UTI_ERROR("cannot initialize attenuation model plugin %s",
-		           attenuation_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize attenuation model plugin %s",
+		                attenuation_type.c_str());
 		goto error;
 	}
 
-	UTI_INFO("%slink: attenuation model = %s, nominal condition = %u",
-	         link.c_str(), attenuation_type.c_str(), this->nominal_condition);
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "%slink: attenuation model = %s, nominal condition = %u",
+	                link.c_str(), attenuation_type.c_str(),
+	                this->nominal_condition);
 
 	name << "attenuation_" << link;
 	this->att_timer = this->addTimerEvent(name.str(), this->granularity);
@@ -370,7 +391,8 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 		// reject wrong frames, we need this because
 		// GW receives its own traffic that does not need to be handled
 		// we may forward it bu it will be rejected at DVB layer
-		UTI_DEBUG_L3("unsupported frame rejected at physical layer\n");
+		Output::sendLog(this->log_send, LEVEL_DEBUG,
+		                "unsupported frame rejected at physical layer\n");
 		delete dvb_frame;
 		return true;
 	}
@@ -381,13 +403,15 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 	if(!this->updateMinimalCondition(dvb_frame))
 	{
 		// debug because it will be very verbose
-		UTI_DEBUG("Error in Update of Minimal Condition\n");
+		Output::sendLog(this->log_send, LEVEL_INFO,
+		                "Error in Update of Minimal Condition\n");
 		goto error;
 	}
 
-	UTI_DEBUG_L3("Received DVB frame on carrier %u: C/N  = %.2f\n",
-	             dvb_frame->getCarrierId(),
-	             dvb_frame->getCn());
+	Output::sendLog(this->log_send, LEVEL_DEBUG,
+	                "Received DVB frame on carrier %u: C/N  = %.2f\n",
+	                dvb_frame->getCarrierId(),
+	                dvb_frame->getCn());
 
 	if(this->is_sat)
 	{
@@ -397,7 +421,8 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 	{
 		cn_total = this->getTotalCN(dvb_frame);
 	}
-	UTI_DEBUG("Total C/N: %.2f dB\n", cn_total);
+	Output::sendLog(this->log_send, LEVEL_INFO,
+	                "Total C/N: %.2f dB\n", cn_total);
 	// Checking if the received frame must be affected by errors
 	if(this->isToBeModifiedPacket(cn_total))
 	{
@@ -410,7 +435,8 @@ forward:
 	// transmit the physical parameters as they will be used by DVB layer
 	if(!this->enqueueMessage((void **)&dvb_frame))
 	{
-		UTI_ERROR("failed to send burst of packets to upper layer\n");
+		Output::sendLog(this->log_send, LEVEL_ERROR,
+		                "failed to send burst of packets to upper layer\n");
 		goto error;
 	}
 
@@ -443,15 +469,17 @@ bool BlockPhysicalLayer::Downward::forwardFrame(DvbFrame *dvb_frame)
 		this->addSegmentCN(dvb_frame);
 	}
 
-	UTI_DEBUG_L3("Send DVB frame on carrier %u: C/N  = %.2f\n",
-	             dvb_frame->getCarrierId(),
-	             dvb_frame->getCn());
+	Output::sendLog(this->log_send, LEVEL_DEBUG, 
+	                "Send DVB frame on carrier %u: C/N  = %.2f\n",
+	                dvb_frame->getCarrierId(),
+	                dvb_frame->getCn());
 
 forward:
 	// message successfully created, send the message to lower block
 	if(!this->enqueueMessage((void **)&dvb_frame))
 	{
-		UTI_ERROR("failed to send burst of packets to lower layer\n");
+		Output::sendLog(this->log_send, LEVEL_ERROR, 
+		                "failed to send burst of packets to lower layer\n");
 		goto error;
 	}
 
@@ -478,8 +506,9 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	                          MINIMAL_CONDITION_TYPE,
 	                          minimal_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
 		goto error;
 	}
 
@@ -488,8 +517,9 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	                          ERROR_INSERTION_TYPE,
 	                          error_type))
 	{
-		UTI_ERROR("section '%s': missing parameter '%s'\n",
-		          PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "section '%s': missing parameter '%s'\n",
+		                PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
 		goto error;
 	}
 
@@ -501,24 +531,28 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	                                    &this->minimal_condition,
 	                                    &this->error_insertion))
 	{
-		UTI_ERROR("error when getting physical layer plugins");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "error when getting physical layer plugins");
 		goto error;
 	}
 	
-	UTI_INFO("uplink: minimal condition type = %s, error insertion type = %s",
-	         minimal_type.c_str(), error_type.c_str());
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "uplink: minimal condition type = %s, error insertion "
+	                "type = %s", minimal_type.c_str(), error_type.c_str());
 
 	if(!this->minimal_condition->init())
 	{
-		UTI_ERROR("cannot initialize minimal condition plugin %s",
-		          minimal_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize minimal condition plugin %s",
+		                minimal_type.c_str());
 		goto error;
 	}
 
 	if(!this->error_insertion->init())
 	{
-		UTI_ERROR("cannot initialize error insertion plugin %s",
-		          error_type.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot initialize error insertion plugin %s",
+		                error_type.c_str());
 		goto error;
 	}
 

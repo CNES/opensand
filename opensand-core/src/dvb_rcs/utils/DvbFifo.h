@@ -40,6 +40,7 @@
 #include "Sac.h"
 
 #include <opensand_rt/RtMutex.h>
+#include <opensand_output/OutputLog.h>
 
 #include <vector>
 #include <map>
@@ -246,6 +247,9 @@ class DvbFifo
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
+
+	// Output log
+	OutputLog *log_dvb_fifo;
 };
 
 typedef map<unsigned int, DvbFifo *> fifos_t;

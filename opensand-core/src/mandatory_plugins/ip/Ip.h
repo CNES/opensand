@@ -116,7 +116,8 @@ class Ip: public LanAdaptationPlugin
 
 		PacketHandler(LanAdaptationPlugin &plugin):
 			LanAdaptationPlugin::LanAdaptationPacketHandler(plugin)
-		{};
+		{
+		};
 
 		size_t getFixedLength() const {return 0;};
 

@@ -26,19 +26,22 @@
  */
 
 /**
- * @file   RtMutex.cpp
+ * @file   OutputMutex.cpp
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  Wrapper for using a mutex with RAII method
  */
 
-// TODO REMOVE FILE
-#if 0
-#include "RtMutex.h"
-#include "Rt.h"
+#include "OutputMutex.h"
 
+#include "Output.h"
 
-RtMutex::RtMutex(string name):
-	name(name)
+#include <errno.h>
+#include <string.h>
+#include <syslog.h>
+
+OutputMutex::OutputMutex(string name):
+	name(name),
+	locked(false)
 {
 	int ret;
 	pthread_mutexattr_t mutex_attr;
@@ -46,9 +49,10 @@ RtMutex::RtMutex(string name):
 	ret = pthread_mutexattr_init(&mutex_attr);
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Failed to initialize mutex attributes [%d: %s]\n",
-		                ret, strerror(ret));
+		syslog(LEVEL_ERROR,
+		       "Failed to initialize mutex '%s' attributes [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+		return;
 	}
 	/* choose mutexes depending on what you need:
 	    - PTHREAD_MUTEX_ERRORCHECK for library validation
@@ -56,57 +60,65 @@ RtMutex::RtMutex(string name):
 	ret = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_NORMAL);
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Failed to set mutex attributes [%d: %s]\n",
-		                ret, strerror(ret));
+
+		syslog(LEVEL_ERROR,
+		       "Failed to set mutex '%s' attributes [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+		return;
 	}
 
 	ret = pthread_mutex_init(&(this->mutex), &mutex_attr);
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Mutex initialization failure [%u: %s]",
-		                ret, strerror(ret));
+		syslog(LEVEL_ERROR,
+		       "Mutex '%s' initialization failure [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
 	}
 }
 
-RtMutex::~RtMutex()
+OutputMutex::~OutputMutex()
 {
 	int ret;
 
 	ret = pthread_mutex_destroy(&(this->mutex));
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Mutex destroy failure [%u: %s]",
-		                ret, strerror(ret));
+		syslog(LEVEL_ERROR,
+		       "Failed to destroy mutex '%s' [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
 	}
+
 }
 
-void RtMutex::acquireLock(void)
+void OutputMutex::acquireLock(void)
 {
 	int ret;
 
 	ret = pthread_mutex_lock(&(this->mutex));
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Failed to lock mutex [%d: %s]\n",
-		                ret, strerror(ret));
+		syslog(LEVEL_ERROR,
+		       "Failed to lock mutex '%s' [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
 	}
+	this->locked = true;
 }
 	
-void RtMutex::releaseLock(void)
+void OutputMutex::releaseLock(void)
 {
 	int ret;
 
+	this->locked = false;
 	ret = pthread_mutex_unlock(&(this->mutex));
 	if(ret != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "Failed to unlock mutex [%d: %s]\n",
-		                ret, strerror(ret));
+		syslog(LEVEL_ERROR,
+		       "Failed to unlock mutex '%s' [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
 	}
 }
 
-#endif
+bool OutputMutex::isLocked(void) const
+{
+	return this->locked;
+}

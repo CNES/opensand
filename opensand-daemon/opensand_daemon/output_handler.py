@@ -32,7 +32,7 @@
 
 
 """
-stats_handler.py - handler for environment plane stats management
+output_handler.py - handler for environment plane stats and logs management
 """
 
 import logging
@@ -50,29 +50,38 @@ LOGGER = logging.getLogger('sand-daemon')
 MAGIC_NUMBER = 0x5A7D0001
 DAEMON_SOCK_PATH = "/var/run/sand-daemon/sand-daemon.socket"
 
-MSG_CMD_REGISTER = 1
-MSG_CMD_ACK = 2
-MSG_CMD_SEND_PROBES = 3
-MSG_CMD_SEND_EVENT = 4
-MSG_CMD_ENABLE_PROBE = 5
-MSG_CMD_DISABLE_PROBE = 6
-MSG_CMD_UNREGISTER = 7
+MSG_CMD_REGISTER_INIT = 1
+MSG_CMD_REGISTER_END = 2
+MSG_CMD_REGISTER_LIVE = 3
+MSG_CMD_UNREGISTER = 4
+MSG_CMD_ACK = 5
+MSG_CMD_NACK = 6
+MSG_CMD_RELAY = 7
 MSG_CMD_DISABLE = 8
 MSG_CMD_ENABLE = 9
-MSG_CMD_RELAY = 10
-MSG_CMD_NACK = 11
-MSG_CMD_REGISTER_LIVE = 12
 
-REL_MSGS_PROG_TO_COL = frozenset([MSG_CMD_SEND_PROBES, MSG_CMD_SEND_EVENT])
+MSG_CMD_SEND_PROBES = 10
+MSG_CMD_SEND_LOG = 20
+
+MSG_CMD_ENABLE_PROBE = 11
+MSG_CMD_DISABLE_PROBE = 12
+
+MSG_CMD_SET_LOG_LEVEL = 22
+MSG_CMD_ENABLE_LOGS = 23
+MSG_CMD_DISABLE_LOGS = 24
+MSG_CMD_ENABLE_SYSLOG = 25
+MSG_CMD_DISABLE_SYSLOG = 26
 
 
-class StatsHandler(threading.Thread):
+REL_MSGS_PROG_TO_COL = frozenset([MSG_CMD_SEND_PROBES, MSG_CMD_SEND_LOG])
+
+class OutputHandler(threading.Thread):
     """
-    Stats handler class.
+    Output handler class.
     """
 
     def __init__(self, uid):
-        super(StatsHandler, self).__init__()
+        super(OutputHandler, self).__init__()
 
         self._process_list = ProcessList()
         self._process_list.register_end_callback(self._proc_stopped)
@@ -100,13 +109,13 @@ class StatsHandler(threading.Thread):
 
     def cleanup(self):
         """
-        Closes the sockets used by the stats handler. This will automatically
+        Closes the sockets used by the output handler. This will automatically
         tear down the listener thread if it is running.
         """
         if self._stopped:
             return
 
-        LOGGER.debug("clean stats sockets")
+        LOGGER.debug("clean output sockets")
 
         self._enable_output(False)
 
@@ -135,7 +144,7 @@ class StatsHandler(threading.Thread):
 
     def get_external_port(self):
         """
-        Returns the UDP port opened by the stats handler for communication with
+        Returns the UDP port opened by the output handler for communication with
         the collector.
         """
         return self._ext_socket.getsockname()[1]
@@ -181,15 +190,15 @@ class StatsHandler(threading.Thread):
         """
         self._running = True
 
-        LOGGER.info("Starting the stats handler")
+        LOGGER.info("Starting the output handler")
 
         try:
             while self._running:
                 self._handle()
         except Exception, msg:
-            LOGGER.exception("exception in stats handler: ")
+            LOGGER.exception("exception in output handler: ")
 
-        LOGGER.debug("Stats handler exiting...")
+        LOGGER.debug("Output handler exiting...")
         self.cleanup()
 
     def _handle(self):
@@ -218,15 +227,15 @@ class StatsHandler(threading.Thread):
 
         msg_len = len(msg) if msg is not None else 0
 
-        if (cmd == MSG_CMD_REGISTER or cmd == MSG_CMD_REGISTER_LIVE) and \
-           msg_len >= 6:
-            pid, num_probes, num_events = struct.unpack("!LBB", msg[0:6])
-            LOGGER.debug("REGISTER from PID %d (%d probes, %d events)", pid,
-                         num_probes, num_events)
+        if (cmd in [MSG_CMD_REGISTER_INIT, MSG_CMD_REGISTER_END,
+                    MSG_CMD_REGISTER_LIVE]) and msg_len >= 6:
+            pid, num_probes, num_logs = struct.unpack("!LBB", msg[0:6])
+            LOGGER.debug("REGISTER from PID %d (%d probes, %d logs)",
+                         pid, num_probes, num_logs)
 
             process = self._process_list.find_process('pid', pid)
 
-            if not process:
+            if not process and cmd != MSG_CMD_REGISTER_LIVE:
                 # TODO enable non registered process ?
                 LOGGER.error("PID %d tried to register but is unknown, sending "
                              "NACK", pid)
@@ -234,78 +243,64 @@ class StatsHandler(threading.Thread):
                                                          MSG_CMD_NACK), addr)
                 return
 
-            if cmd == MSG_CMD_REGISTER_LIVE:
-                try:
-                    prog_id = process.prog_id
-                except AttributeError:
-                    LOGGER.error("Register live for unknown program with pid %d",
-                                 pid)
-                    return
-                header = struct.pack("!LBBBBB", MAGIC_NUMBER,
-                                     MSG_CMD_REGISTER, prog_id, num_probes, num_events,
-                                     len(process.prog_name))
+            try:
+                prog_id = process.prog_id
+                prog_name = process.prog_name
+            except AttributeError:
+                used_ids = self._process_list.get_processes_attr('prog_id')
+                prog_id = 1
+                while prog_id in used_ids:
+                    prog_id += 1
 
-                if self._collector_addr:
-                    # Send REGISTER_LIVE to the collector
-                    sendtosock(self._ext_socket,
-                               header + process.prog_name + msg[6:],
-                               self._collector_addr)
-                else:
-                    # Add REGISTER_LIVE message to the list of REGISTER message
-                    self._register_msg[prog_id].append(header + prog_name +
-                                                       msg[6:])
-                return
- 
-            used_ids = self._process_list.get_processes_attr('prog_id')
-            prog_id = 1
-            while prog_id in used_ids:
-                prog_id += 1
+                process.prog_addr = addr
+                process.prog_id = prog_id
+                self._register_msg[prog_id] = []
 
-            process.prog_addr = addr
-            process.prog_id = prog_id
+                prog_name = process.prog_name
 
-            prog_name = process.prog_name
-
-            LOGGER.info("Registering program ‘%s’ with program ID %d.",
-                        process.prog_name, prog_id)
+                LOGGER.info("Registering program ‘%s’ with program ID %d.",
+                            prog_name, prog_id)
 
             resp = MSG_CMD_ACK
             header = struct.pack("!LBBBBB", MAGIC_NUMBER,
-                                 MSG_CMD_REGISTER, prog_id, num_probes, num_events,
-                                 len(process.prog_name))
+                                 cmd, prog_id, num_probes,
+                                 num_logs, len(prog_name))
 
             if self._collector_addr:
                 # Send REGISTER to the collector
                 sendtosock(self._ext_socket, header + prog_name + msg[6:],
                            self._collector_addr)
 
-                # Wait for ACK
-                # We do not need to read on pipe because we are blocking the
-                # _handle function 
-                rlist, _, _ = select.select([self._ext_socket], [], [], 5)
-                if not rlist:
-                    LOGGER.error("No ACK message from collector")
-                    resp = MSG_CMD_NACK
-                else:
-                    cmd, _, _ = self._get_message(self._ext_socket,
-                                                  self._collector_addr)
-                    if cmd != MSG_CMD_ACK:
+                if cmd != MSG_CMD_REGISTER_LIVE:
+                    # Wait for ACK
+                    # We do not need to read on pipe because we are blocking the
+                    # _handle function
+                    rlist, _, _ = select.select([self._ext_socket], [], [], 5)
+                    if not rlist:
+                        LOGGER.error("No ACK message from collector")
                         resp = MSG_CMD_NACK
-                        LOGGER.error("Bad ACK message from collector (%s)" % cmd)
                     else:
-                        # store the register message to send it back if
-                        # collector is restarted or moved
-                        self._register_msg[prog_id] = [header + prog_name +
-                                                       msg[6:]]
+                        cmd, _, _ = self._get_message(self._ext_socket,
+                                                      self._collector_addr)
+                        if cmd != MSG_CMD_ACK:
+                            resp = MSG_CMD_NACK
+                            LOGGER.error("Bad ACK message from collector (%s)" % cmd)
+                        else:
+                            # store the register message to send it back if
+                            # collector is restarted or moved
+                            self._register_msg[prog_id].append(header + prog_name +
+                                                               msg[6:])
             else:
                 # store the register message to send it if
                 # collector is started
-                self._register_msg[prog_id] = [header + prog_name + msg[6:]]
+                self._register_msg[prog_id].append(header + prog_name +
+                                                   msg[6:])
                 resp = MSG_CMD_NACK
                 LOGGER.error("Collector not known, not relaying REGISTER")
 
-            sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
-                                                     resp), addr)
+            if cmd != MSG_CMD_REGISTER_LIVE: 
+                sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
+                                                         resp), addr)
 
             return
 
@@ -420,19 +415,21 @@ class StatsHandler(threading.Thread):
         return cmd, packet[5:], addr
 
     def _resend_register(self):
-        """ send the stored REGISTER and RESITER_LIVE messages because the
+        """ send the stored REGISTER and REGITER_LIVE messages because the
             collector was restarted """
         LOGGER.info("Resend register messages because collector was restarted")
         for msg_list in self._register_msg.values():
             for msg in msg_list:
                 sendtosock(self._ext_socket, msg, self._collector_addr)
-                # Wait for ACK
-                rlist, _, _ = select.select([self._rack], [], [], 5)
-                # TODO enable/disable on programs according to collector response
-                if not rlist or not self._rack in rlist:
-                    LOGGER.error("no ACK from collector after new register")
-                    return
-                LOGGER.debug(os.read(self._rack, 4))
+                magic, cmd = struct.unpack("!LB", msg[0])
+                if cmd != MSG_CMD_REGISTER_LIVE:
+                    # Wait for ACK
+                    rlist, _, _ = select.select([self._rack], [], [], 5)
+                    # TODO enable/disable on programs according to collector response
+                    if not rlist or not self._rack in rlist:
+                        LOGGER.error("no ACK from collector after new register")
+                        continue
+                    LOGGER.debug(os.read(self._rack, 4))
 
     def _enable_output(self, value=True):
         """

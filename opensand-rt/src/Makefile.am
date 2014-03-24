@@ -12,7 +12,6 @@ libopensand_rt_la_cpp = \
 	Rt.cpp \
 	Block.cpp \
 	RtChannel.cpp \
-	RtMutex.cpp \
 	BlockManager.cpp \
 	RtEvent.cpp \
 	MessageEvent.cpp \

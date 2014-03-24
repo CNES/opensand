@@ -323,9 +323,22 @@ class BlockDvbTal: public BlockDvb
 	static void closeQosSocket(int sig);
 
 	// Output events
-	Event *event_login_sent;
-	Event *event_login_complete;
+	OutputEvent *event_login_sent;
+	OutputEvent *event_login_complete;
 
+	// Output Logs
+	// TODO too many logs here
+	OutputLog *log_on_downward_event; 
+	OutputLog *log_on_upward_event; 
+	OutputLog *log_close_qos_socket;
+	OutputLog *log_connect_to_qos_server;
+	OutputLog *log_send_logon_req;
+	OutputLog *log_send_sac;
+	OutputLog *log_on_rcv_dvb_frame;
+	OutputLog *log_on_rcv_logon_resp;
+	OutputLog *log_on_start_of_frame;
+	OutputLog *log_process_on_frame_tick;
+	
 	// Output probes and stats
 
 		// Queue sizes

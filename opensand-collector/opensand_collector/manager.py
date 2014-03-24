@@ -50,14 +50,15 @@ class Probe(object):
     Class representing a probe
     """
 
-    def __init__(self, program, name, unit, storage_type, enabled):
+    def __init__(self, program, probe_id, name, unit, storage_type, enabled):
         self._program = program
+        self._id = probe_id
         self._name = name
         self._unit = unit
         self._storage_type = storage_type
         self._enabled = enabled
         self._displayed = False
-        self._log_file = None
+        self._save_file = None
         self._create_file()
 
     def read_value(self, data, pos):
@@ -99,17 +100,17 @@ class Probe(object):
         """
         Handle the switch of storage folder.
         """
-        self.cleanup()  # Close the opened log file
+        self.cleanup()  # Close the opened file
         self._create_file()
 
     def cleanup(self):
         """
-        Close the log file (should be used when the probe object is to be
+        Close the file (should be used when the probe object is to be
         released)
         """
-        if self._log_file:
-            self._log_file.close()
-        self._log_file = None
+        if self._save_file:
+            self._save_file.close()
+        self._save_file = None
 
     def restore(self):
         """
@@ -117,33 +118,33 @@ class Probe(object):
         """
         self._create_file(mode='a')
 
-    def log_value(self, time, value):
+    def save_value(self, time, value):
         """
-        Writes the specified value to the log.
+        Writes the specified value to the file.
         """
-        self._log_file.write("%d %s\n" % (time, value))
+        self._save_file.write("%d %s\n" % (time, value))
 
     def attributes(self):
         """
         Returns the probe’s properties as a tuple.
         """
-        return (self._name, self._unit, self._storage_type, self._enabled,
-                self._displayed)
+        return (self._id, self._name, self._unit, self._storage_type,
+                self._enabled, self._displayed)
 
     def _create_file(self, mode='w'):
         """
-        Create the probe log file in the program’s storage folder.
+        Create the probe file in the program’s storage folder.
         """
-        path = self._program.get_storage_path(self._name + ".log")
+        path = self._program.get_storage_path(self._name + ".csv")
         try:
-            self._log_file = open(path, mode)
+            self._save_file = open(path, mode)
         except (IOError, OSError), err:
-            LOGGER.error("cannot open probe log file: %s", err)
+            LOGGER.error("cannot open probe file: %s", err)
         if mode != 'a':
-            LOGGER.debug("Creating probe log file %s", path)
-            self._log_file.write("%s\n" % self._unit)
+            LOGGER.debug("Creating probe file %s", path)
+            self._save_file.write("%s\n" % self._unit)
         else:
-            LOGGER.debug("Opening probe log file %s", path)
+            LOGGER.debug("Opening probe file %s", path)
 
     @property
     def enabled(self):
@@ -177,56 +178,74 @@ class Probe(object):
         return self._name
 
     def __repr__(self):
-        return "<Probe %s: storage = %d, enabled = %s>" % (self,
-                                                           self._storage_type,
-                                                           self._enabled)
+        return "<Probe %s (%s): storage = %d, enabled = %s>" % (self, self._id,
+                                                            self._storage_type,
+                                                            self._enabled)
 
 
-class Event(object):
+class Log(object):
     """
-    Class representing an event
+    Class representing an log
     """
 
-    def __init__(self, program, ident, level):
+    def __init__(self, program, log_id, ident, display_level):
         self._program = program
+        self._id = log_id
         self._ident = ident
-        self._level = level
-        self._log_file = None
+        self._display_level = int(display_level)
+        self._save_file = None
 
-    def log(self, time, text):
+    def save(self, time, level, text):
         """
-        Writes the specified value to the log.
+        Writes the specified value to the file.
         """
-        self._program.write_event("%.6f %s %s\n" % (time, self._ident, text))
+        # TODO LEVEL !!!
+        self._program.write_log("%.6f %s %s\n" % (time, self._ident, text))
+
+    @property
+    def display_level(self):
+        """
+        Get the log display level
+        """
+        return self._display_level
+
+    @display_level.setter
+    def display_level(self, value):
+        """
+        Set the display level value
+        """
+        self._display_level = value
 
     def attributes(self):
         """
-        Returns the event’s properties as a tuple.
+        Returns the log’s properties as a tuple.
         """
-        return (self._ident, self._level)
+        return (self._id, self._ident, self._display_level)
 
     def __str__(self):
         return self._ident
 
     def __repr__(self):
-        return "<Event %s>" % self
-
+        return "<Log %s (%s): display level = %d>" % (self, self._id,
+                                                      self._display_level)
 
 class Program(object):
     """
     Class representing a program
     """
 
-    def __init__(self, host, ident, name, probe_list, event_list):
+    def __init__(self, host, ident, name, probe_list, log_list):
         self._host = host
         self._ident = ident
         self._name = name
 
-        self._event_log_file = None
+        self._log_file = None
         self._setup_storage()
+        self._probes = {}
+        self._logs = {}
 
-        self._probes = [Probe(self, *args) for args in probe_list]
-        self._events = [Event(self, *args) for args in event_list]
+        self.add_probe(probe_list)
+        self.add_log(log_list)
 
     def get_probe(self, probe_id):
         """
@@ -234,18 +253,18 @@ class Program(object):
         """
         return self._probes[probe_id]
 
-    def get_event(self, event_id):
+    def get_log(self, log_id):
         """
-        Get the specified event
+        Get the specified log
         """
-        return self._events[event_id]
+        return self._logs[log_id]
 
     def switch_storage(self):
         """
         Handle the switch of storage folder.
         """
-        if self._event_log_file:
-            self._event_log_file.close()
+        if self._log_file:
+            self._log_file.close()
 
         self._setup_storage()
 
@@ -257,10 +276,10 @@ class Program(object):
         Ensure proper resource release (close files, ...) before deleting
         this program object.
         """
-        if self._event_log_file:
-            self._event_log_file.close()
+        if self._log_file:
+            self._log_file.close()
 
-        for probe in self._probes:
+        for probe in self._probes.values():
             probe.cleanup()
 
     def restore(self):
@@ -269,7 +288,7 @@ class Program(object):
         """
         self._setup_storage(mode='a')
 
-        for probe in self._probes:
+        for probe in self._probes.values():
             probe.restore()
 
     def get_storage_path(self, name):
@@ -285,44 +304,58 @@ class Program(object):
         """
         Returns a tuple containing the full program name (host.program), the
         host and program identifiers, a list of probe attributes, and a list
-        of event attributes.
+        of log attributes.
         """
         return ("%s.%s" % (self._host.name, self._name),
                 self._host.ident, self._ident,
-                [probe.attributes() for probe in self._probes],
-                [event.attributes() for event in self._events])
+                [probe.attributes() for probe in self._probes.values()],
+                [log.attributes() for log in self._logs.values()])
 
-    def write_event(self, text):
+    def write_log(self, text):
         """
-        Write an event to the log.
+        Write an log to the file.
         """
-        self._event_log_file.write(text)
+        self._log_file.write(text)
 
     def add_probe(self, probe_list):
         """
         Add a new probe in the list
         """
-        self._probes.extend([Probe(self, *args) for args in probe_list])
+        for (probe_id, p_name, unit, storage_type, enabled) in probe_list:
+            if not probe_id in self._probes:
+                LOGGER.debug("Add probe %s with id %s\n", p_name, probe_id)
+                probe = Probe(self, probe_id, p_name, unit, storage_type, enabled)
+                self._probes[probe_id] = probe
 
+
+    def add_log(self, log_list):
+        """
+        Add a new log in the list
+        """
+        for (log_id, name, level) in log_list:
+            if not log_id in self._logs:
+                LOGGER.debug("Add log %s with id %s\n", name, log_id)
+                log = Log(self, log_id, name, level)
+                self._logs[log_id] = log
 
     def _setup_storage(self, mode='w'):
         """
-        Creates the storage folder for the program, and the events log file.
+        Creates the storage folder for the program, and the logs file.
         """
         path = self._host.get_storage_path(self._name)
         if not isdir(path):
             LOGGER.debug("Creating program folder %s", path)
             mkdir(path)
 
-        path = join(path, "event_log.txt")
+        path = join(path, "log.txt")
         if mode != 'a':
-            LOGGER.debug("Creating event log file %s", path)
+            LOGGER.debug("Creating log file %s", path)
         else:
-            LOGGER.debug("Opening event log file %s", path)
+            LOGGER.debug("Opening log file %s", path)
         try:
-            self._event_log_file = open(path, mode)
+            self._log_file = open(path, mode)
         except (IOError, OSError), err:
-            LOGGER.error("cannot open event log file: %s", err)
+            LOGGER.error("cannot open log file: %s", err)
 
     @property
     def name(self):
@@ -343,20 +376,20 @@ class Program(object):
         """
         Get the probes
         """
-        return self._probes
+        return self._probes.values()
 
     @property
-    def events(self):
+    def logs(self):
         """
-        Get the events
+        Get the logs
         """
-        return self._events
+        return self._logs.values()
 
     def __str__(self):
         return self._name
 
     def __repr__(self):
-        return "<Program %s: %r, %r>" % (self._name, self._probes, self._events)
+        return "<Program %s: %r, %r>" % (self._name, self._probes, self._logs)
 
 
 class Host(object):
@@ -373,22 +406,24 @@ class Host(object):
         self._programs = {}
         self._create_host_folder()
 
-    def add_program(self, ident, name, probe_list, event_list):
+    def add_program(self, ident, name, probe_list, log_list):
         """
-        Add a program with a specified probe/event list to the list of
+        Add a program with a specified probe/log list to the list of
         programs running on the host.
         """
         if ident in self._programs:
             # this is a new probe
             prog = self._programs[ident]
             prog.add_probe(probe_list)
-            LOGGER.debug("New probe added to program %s for host %s", name, self)
+            prog.add_log(log_list)
+            LOGGER.debug("New probe or log added to program %s for host %s",
+                         name, self)
             return prog
 
-        prog = Program(self, ident, name, probe_list, event_list)
+        prog = Program(self, ident, name, probe_list, log_list)
         self._programs[ident] = prog
-        LOGGER.info("Program %s was added to host %s. Probes: %r, events: %r",
-                    name, self, prog.probes, prog.events)
+        LOGGER.info("Program %s was added to host %s. Probes: %r, logs: %r",
+                    name, self, prog.probes, prog.logs)
 
         return prog
 
@@ -624,6 +659,16 @@ class HostManager(object):
         host.cleanup()
         LOGGER.info("Host %s is unregistered.", name)
 
+    def get_host_address(self, host_id):
+        """ get the host address according to its id """
+        try:
+            host = self._host_by_id[host_id]
+        except KeyError:
+            LOGGER.error("Host with ID %d not found in get_host_address",
+                         host_id)
+            return None
+        return host.address
+
     def get_host(self, address):
         """
         Returns the host corresponding to a given address
@@ -653,7 +698,7 @@ class HostManager(object):
 
         try:
             probe = program.get_probe(probe_id)
-        except IndexError:
+        except KeyError:
             LOGGER.error("Probe with id %d not found in set_probe_status",
                          probe_id)
             return None
@@ -664,6 +709,42 @@ class HostManager(object):
         probe.displayed = new_displayed
 
         if enabled_changed:
+            return host
+
+        return None
+
+    def set_log_display_level(self, host_id, program_id, log_id, display_level):
+        """
+        Sets the display level of a given log.
+        Returns the host object corresponding to the ID if an update to the
+        display level of log is needed.
+        """
+        try:
+            host = self._host_by_id[host_id]
+        except KeyError:
+            LOGGER.error("Host with ID %d not found in set_probe_status",
+                         host_id)
+            return None
+
+        try:
+            program = host.get_program(program_id)
+        except KeyError:
+            LOGGER.error("Program with ID %d not found in set_probe_status",
+                         program_id)
+            return None
+
+        try:
+            log = program.get_log(log_id)
+        except KeyError:
+            LOGGER.error("Log with id %d not found in set_log_display_level",
+                         log_id)
+            return None
+
+        level_changed = (int(display_level) != log.display_level)
+
+        log.displayed = display_level
+
+        if level_changed:
             return host
 
         return None

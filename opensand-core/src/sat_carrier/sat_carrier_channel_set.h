@@ -122,6 +122,10 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	                const string interface_name,
 	                bool in);
 
+	// Output Log
+	OutputLog *log_init;
+	OutputLog *log_sat_carrier;
+
 	// type of the socket (udp or ethernet)
 	std::string socket_type;
 };

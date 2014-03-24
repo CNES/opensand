@@ -35,7 +35,7 @@
 #include "Rt.h"
 #include "RtFifo.h"
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -70,7 +70,7 @@ bool RtFifo::init()
 	int32_t pipefd[2];
 	int ret;
 
-	UTI_DEBUG("Initialize fifo\n");
+	Output::sendLog(LEVEL_DEBUG, "Initialize fifo\n");
 
 	ret = sem_init(&(this->fifo_size_sem), 0, this->max_size);
 	if(ret != 0)
@@ -102,7 +102,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	rt_msg_t msg;
 	int ret;
 	
-	UTI_DEBUG_L3("push message in fifo\n");
+	Output::sendLog(LEVEL_DEBUG, "push message in fifo\n");
 
 	// we need a semaphore here to block while fifo is full
 	ret = sem_wait(&(this->fifo_size_sem));

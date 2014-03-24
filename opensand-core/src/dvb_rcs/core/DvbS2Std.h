@@ -40,6 +40,7 @@
 #include "BBFrame.h"
 #include "FmtDefinitionTable.h"
 
+#include <opensand_output/OutputLog.h>
 
 
 /**
@@ -57,6 +58,11 @@ class DvbS2Std: public PhysicStd
 
 	/** The received MODCOD */
 	uint8_t received_modcod;
+
+ protected:
+
+	// Output Log
+	OutputLog* log_rcv_from_down;
 
  public:
 

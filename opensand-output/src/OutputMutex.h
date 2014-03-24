@@ -26,79 +26,40 @@
  */
 
 /**
- * @file RtMutex.h
+ * @file OutputMutex.h
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Wrapper for using a mutex with RAII metho
+ * @brief  Wrapper for using a mutex with RAII method
  *
  */
 
 
 
-#ifndef RT_MUTEX_H
-#define RT_MUTEX_H
+#ifndef OUTPUT_MUTEX_H
+#define OUTPUT_MUTEX_H
 
-
-#include <opensand_output/OutputMutex.h>
-
-/**
- * @class RtMutex
- * @brief Mutex for OpenSAND process using opensand-rt
- *        This is only a class inheriting from the mutex
- *        defined in Output in order to get a mutex
- *        in opensand-rt.
- *        We have the dependency on output due to logs
- */
-class RtMutex: public OutputMutex
-{
- public:
-
-	/**
-	 * Create RtMutex
-	 *
-	 * @param name  The name of the caller for debug
-	 */
-	RtMutex(string name):
-		OutputMutex(name)
-	{};
-};
-
-
-/**
- * @class RtLock
- * @brief Wrapper for using a mutex with RAII method
- */
-class RtLock: public OutputLock
-{
- public:
-	RtLock(RtMutex &mutex):
-		OutputLock(mutex)
-	{};
-};
-
-
-
-#if 0
 #include <pthread.h>
 #include <string>
 
 using std::string;
 
-class RtMutex
+class OutputMutex
 {
  public:
 
 	/**
-	 * Create RtMutex
+	 * Create OutputMutex
 	 *
 	 * @param name  The name of the caller for debug
 	 */
-	RtMutex(string name);
+	OutputMutex(string name);
 
-	~RtMutex();
+	~OutputMutex();
 
 	void acquireLock(void);
 	
 	void releaseLock(void);
+
+	bool isLocked(void) const;
 
  private:
  
@@ -107,38 +68,40 @@ class RtMutex
 	
 	/// The name of the caller for debug messages
 	string name;
+
+	/// Whether the mutex is locked or not
+	bool locked;
 };
 
 /**
- * @class RtLock
+ * @class OutputLock
  * @brief Wrapper for using a mutex with RAII method
  */
-class RtLock
+class OutputLock
 {
  public:
 
 	/**
 	 * Create Lock
 	 *
-	 * @param mutex  The RtMutex on which we want to take lock
+	 * @param mutex  The OutputMutex on which we want to take lock
 	 */
-	RtLock(RtMutex &mutex):
+	OutputLock(OutputMutex &mutex):
 		mutex(mutex)
 	{
 		this->mutex.acquireLock();
 	};
 
-	~RtLock()
+	~OutputLock()
 	{
 		this->mutex.releaseLock();
 	};
 
  private:
 
-	/// The RtMutex
-	RtMutex &mutex;
+	/// The OutputMutex
+	OutputMutex &mutex;
 };
 
-#endif
 
 #endif

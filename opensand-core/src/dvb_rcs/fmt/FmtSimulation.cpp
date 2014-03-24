@@ -33,11 +33,9 @@
  */
 
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
-
 #include "FmtSimulation.h"
+
+#include <opensand_output/Output.h>
 
 #include <sstream>
 #include <cstdlib>
@@ -59,8 +57,9 @@ inline bool fileExists(const string &filename)
 {
 	if(access(filename.c_str(), R_OK) < 0)
 	{
-		UTI_ERROR("cannot access '%s' file (%s)\n",
-		           filename.c_str(), strerror(errno));
+		Output::sendLog(LEVEL_ERROR,
+		                "cannot access '%s' file (%s)\n",
+		                filename.c_str(), strerror(errno));
 		return false;
 	}
 	return true;
@@ -74,6 +73,7 @@ FmtSimulation::FmtSimulation():
 	is_modcod_simu_defined(false),
 	need_advertise()
 {
+	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Simulation");
 }
 
 
@@ -100,15 +100,17 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 	// with the same identifier
 	if(this->doTerminalExist(id))
 	{
-		UTI_ERROR("one ST with ID %u already exist in list\n", id);
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "one ST with ID %u already exist in list\n", id);
 		return false;
 	}
 
 	if(this->is_modcod_simu_defined &&
 	   this->modcod_list.size() <= simu_column_num)
 	{
-		UTI_ERROR("cannot access modcod  column %lu for ST%u\n",
-		          simu_column_num, id);
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "cannot access modcod  column %lu for ST%u\n",
+		                simu_column_num, id);
 		return false;
 	}
 	// if scenario are not defined, set less robust modcod at init
@@ -119,7 +121,8 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 			this->getMaxModcod());
 	if(new_st == NULL)
 	{
-		UTI_ERROR("failed to create a new ST\n");
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "failed to create a new ST\n");
 		return false;
 	}
 
@@ -137,7 +140,8 @@ bool FmtSimulation::delTerminal(tal_id_t id)
 	it = this->sts.find(id);
 	if(it == this->sts.end())
 	{
-		UTI_ERROR("ST with ID %u not found in list of STs\n", id);
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "ST with ID %u not found in list of STs\n", id);
 		return false;
 	}
 
@@ -182,8 +186,9 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert)
 	// read next line of the modcod simulation file
 	if(!this->setList(this->modcod_simu, this->modcod_list))
 	{
-		UTI_ERROR("failed to get the next line in the MODCOD "
-		          "simulation file\n");
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "failed to get the next line in the MODCOD "
+		                "simulation file\n");
 		goto error;
 	}
 
@@ -198,13 +203,15 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert)
 		st_id = st->getId();
 		column = st->getSimuColumnNum();
 
-		UTI_DEBUG_L3("ST with ID %u uses MODCOD ID at column %lu\n",
-		             st_id, column);
+		Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+		                "ST with ID %u uses MODCOD ID at column %lu\n",
+		                st_id, column);
 
 		if(this->modcod_list.size() <= column)
 		{
-			UTI_ERROR("cannot access MODCOD column %lu for ST%u\n",
-			          column, st_id);
+			Output::sendLog(this->log_fmt, LEVEL_ERROR,
+			                "cannot access MODCOD column %lu for ST%u\n",
+				            column, st_id);
 			goto error;
 		}
 		// replace the current MODCOD ID by the new one
@@ -222,8 +229,9 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert)
 			}
 		}
 
-		UTI_DEBUG_L3("new MODCOD ID of ST with ID %u = %u\n", st_id,
-		             atoi(this->modcod_list[column].c_str()));
+		Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+		                "new MODCOD ID of ST with ID %u = %u\n", st_id,
+		                atoi(this->modcod_list[column].c_str()));
 	}
 
 	return true;
@@ -263,8 +271,9 @@ bool FmtSimulation::setModcodDef(const string &filename)
 	// load all the MODCOD definitions from file
 	if(!this->modcod_def.load(filename))
 	{
-		UTI_ERROR("failed to load the MODCOD definitions from file '%s'\n",
-		          filename.c_str());
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "failed to load the MODCOD definitions from file "
+		                "'%s'\n", filename.c_str());
 		return false;
 	}
 	return true;
@@ -276,7 +285,8 @@ bool FmtSimulation::setModcodSimu(const string &filename)
 	// we can not redefine the simulation file
 	if(this->is_modcod_simu_defined)
 	{
-		UTI_ERROR("cannot redefine the MODCOD simulation file\n");
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "cannot redefine the MODCOD simulation file\n");
 		goto error;
 	}
 
@@ -289,8 +299,9 @@ bool FmtSimulation::setModcodSimu(const string &filename)
 	this->modcod_simu = new ifstream(filename.c_str());
 	if(!this->modcod_simu->is_open())
 	{
-		UTI_ERROR("failed to open MODCOD simulation file '%s'\n",
-		          filename.c_str());
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "failed to open MODCOD simulation file '%s'\n",
+		                filename.c_str());
 		goto error;
 	}
 
@@ -331,9 +342,10 @@ tal_id_t FmtSimulation::getTalIdWithLowerModcod() const
 		{
 			modcod_id = this->getPreviousModcodId(tal_id);
 		}
-		UTI_DEBUG_L3("MODCOD for ST ID %u = %u (changed = %s)\n",
-	                 tal_id, modcod_id,
-	                 advertised_modcod ? "yes" : "no");
+		Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+		                "MODCOD for ST ID %u = %u (changed = %s)\n",
+		                tal_id, modcod_id,
+		                advertised_modcod ? "yes" : "no");
 
 		if((st_iterator == this->sts.begin()) || (modcod_id < lower_modcod_id))
 		{
@@ -342,7 +354,8 @@ tal_id_t FmtSimulation::getTalIdWithLowerModcod() const
 		}
 	}
 
-	UTI_DEBUG_L3("TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
+	Output::sendLog(this->log_fmt, LEVEL_DEBUG,
+	                "TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
 
 	return lower_tal_id;
 }
@@ -428,8 +441,9 @@ void FmtSimulation::setRequiredModcod(tal_id_t id, double cni) const
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 
 	modcod_id = this->modcod_def.getRequiredModcod(cni);
-	UTI_DEBUG("Terminal %u required %.2f dB, will receive allocation with MODCOD %u\n",
-	          id, cni, modcod_id);
+	Output::sendLog(this->log_fmt, LEVEL_INFO,
+	                "Terminal %u required %.2f dB, will receive allocation "
+	                "with MODCOD %u\n", id, cni, modcod_id);
 	st_iter = this->sts.find(id);
 	if(st_iter != this->sts.end())
 	{
@@ -479,11 +493,14 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 	{
 		// reset the error flags
 		simu_file->clear();
-		UTI_DEBUG("end of simulation file reached, restart at beginning...\n");
+		Output::sendLog(this->log_fmt, LEVEL_INFO,
+		                "end of simulation file reached, restart at beginning...\n");
 		simu_file->seekg(0, std::ios::beg);
 		if(simu_file->fail())
 		{
-			UTI_ERROR("Error when going to the begining of the simulation file\n");
+			Output::sendLog(this->log_fmt, LEVEL_ERROR,
+			                "Error when going to the begining of the "
+			                "simulation file\n");
 			goto error;
 		}
 		else
@@ -509,7 +526,9 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 	// check if getline returned an error
 	if(simu_file->fail())
 	{
-		UTI_ERROR("Error when getting next line of the simulation file\n");
+		Output::sendLog(this->log_fmt, LEVEL_ERROR,
+		                "Error when getting next line of the simulation "
+		                "file\n");
 		goto error;
 	}
 

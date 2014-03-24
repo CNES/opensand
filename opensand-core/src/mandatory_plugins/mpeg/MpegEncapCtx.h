@@ -62,6 +62,9 @@ class MpegEncapCtx
 	 */
 	void initFrame();
 
+	/// The output log
+	OutputLog *log;
+
  public:
 
 	/*

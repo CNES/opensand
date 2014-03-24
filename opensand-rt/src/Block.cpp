@@ -38,7 +38,7 @@
 #include "RtChannel.h"
 #include "Rt.h"
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -50,7 +50,13 @@ Block::Block(const string &name, void *specific):
 	chan_mutex(false),
 	block_mutex(name)
 {
-	UTI_DEBUG("Block %s: created\n", this->name.c_str());
+	// Output logs
+	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.rt",
+	                                   this->name.c_str());
+	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.init",
+	                                     this->name.c_str());
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s created\n", this->name.c_str());
 }
 
 // TODO add onEvent in channels
@@ -99,7 +105,7 @@ bool Block::initSpecific(void)
 	// specific block initialization
 	if(!this->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, pthread_self(), true,
 		                "Block onInit failed");
 		return false;
 	}
@@ -107,17 +113,19 @@ bool Block::initSpecific(void)
 	// initialize channels
 	if(!this->upward->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, pthread_self(), true,
 		                "Upward onInit failed");
 		return false;
 	}
 	if(!this->downward->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, pthread_self(), true,
 		                "Downward onInit failed");
 		return false;
 	}
 	this->initialized = true;
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "Block initialization complete\n");
 
 	return true;
 }
@@ -150,7 +158,8 @@ bool Block::start(void)
 		goto error;
 	}
 
-	UTI_DEBUG("Block %s: start upward channel\n", this->name.c_str());
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: start upward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->up_thread_id), &attr,
 	                     &RtUpward::startThread, this->upward);
@@ -160,10 +169,12 @@ bool Block::start(void)
 		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
 		goto error;
 	}
-	UTI_DEBUG("Block %s: upward channel thread id %lu\n",
-	          this->name.c_str(), this->up_thread_id);
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: upward channel thread id %lu\n",
+	                this->name.c_str(), this->up_thread_id);
 
-	UTI_DEBUG("Block %s: start downward channel\n", this->name.c_str());
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: start downward channel\n", this->name.c_str());
 	//create upward thread
 	ret = pthread_create(&(this->down_thread_id), &attr,
 	                     &RtDownward::startThread, this->downward);
@@ -173,8 +184,9 @@ bool Block::start(void)
 		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
 		goto error;
 	}
-	UTI_DEBUG("Block %s: downward channel thread id: %lu\n",
-	          this->name.c_str(), this->up_thread_id);
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: downward channel thread id: %lu\n",
+	                this->name.c_str(), this->up_thread_id);
 
 	pthread_attr_destroy(&attr);
 	return true;
@@ -189,7 +201,8 @@ bool Block::stop(int signal)
 	bool status = true;
 	int ret;
 
-	UTI_DEBUG("Block %s: stop channels\n", this->name.c_str());
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: stop channels\n", this->name.c_str());
 	// the process may be already killed as the may have catch the stop signal first
 	// So, do not report an error
 	ret = pthread_kill(this->up_thread_id, signal);
@@ -208,7 +221,8 @@ bool Block::stop(int signal)
 		status = false;
 	}
 
-	UTI_DEBUG("Block %s: join channels\n", this->name.c_str());
+	Output::sendLog(this->log_rt, LEVEL_INFO,
+	                "Block %s: join channels\n", this->name.c_str());
 	ret = pthread_join(this->up_thread_id, NULL);
 	if(ret != 0 && ret != ESRCH)
 	{

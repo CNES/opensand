@@ -40,6 +40,7 @@
 #include "DvbRcsFrame.h"
 #include "GenericSwitch.h"
 
+#include <opensand_output/OutputLog.h>
 
 /**
  * @class DvbRcsStd
@@ -68,6 +69,10 @@ class DvbRcsStd: public PhysicStd
 
 	/* function for regenerative satellite */
 	bool setSwitch(GenericSwitch *generic_switch);
+
+ protected:
+	// Output log and debug
+	OutputLog* log_rcv_from_down;
 
  private:
 

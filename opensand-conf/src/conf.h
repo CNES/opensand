@@ -271,6 +271,16 @@
 /////////////////
 //    Debug    //
 /////////////////
-#define SECTION_DEBUG "debug"
+#define SECTION_DEBUG  "debug"
+#define INIT           "init"
+#define DEFAULT        "default"
+#define RT             "rt"
+#define OUTPUT         "output"
+#define CONF           "conf"
+#define LAN_ADAPTATION "lan_adaptation"
+#define ENCAP          "encap"
+#define DVB            "dvb"
+#define SAT_CARRIER    "sat_carrier"
+#define PHYS           "physical_layer"
 
 #endif

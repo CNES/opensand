@@ -31,14 +31,11 @@
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
  */
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
-
 #include "PhyChannel.h"
 #include "BBFrame.h"
 #include "DvbRcsFrame.h"
+
+#include <opensand_output/Output.h>
 
 #include <math.h>
 
@@ -56,6 +53,9 @@ PhyChannel::PhyChannel():
 	probe_total_cn(NULL),
 	probe_drops(NULL)
 {
+	// Output logs
+	this->log_channel = Output::registerLog(LEVEL_WARNING,
+	                                        "PhysicalLayer.Channel");
 }
 
 PhyChannel::~PhyChannel()
@@ -68,19 +68,23 @@ bool PhyChannel::update()
 
 	if(!this->status)
 	{
-		UTI_DEBUG_L3("channel is broken, do not update it");
+		Output::sendLog(this->log_channel, LEVEL_DEBUG,
+		                "channel is broken, do not update it");
 		goto error;
 	}
 
-	UTI_DEBUG("%s Channel updated\n", FUNCNAME);
+	Output::sendLog(this->log_channel, LEVEL_INFO,
+	                "%s Channel updated\n", FUNCNAME);
 	if(this->attenuation_model->updateAttenuationModel())
 	{
-		UTI_DEBUG("%s New attenuation: %.2f dB\n",
-		          FUNCNAME, this->attenuation_model->getAttenuation());
+		Output::sendLog(this->log_channel, LEVEL_INFO,
+		                "%s New attenuation: %.2f dB\n",
+		                FUNCNAME, this->attenuation_model->getAttenuation());
 	}
 	else
 	{
-		UTI_ERROR("channel updating failed, disable it");
+		Output::sendLog(this->log_channel, LEVEL_ERROR,
+		                "channel updating failed, disable it");
 		this->status = false;
 	}
 
@@ -113,8 +117,9 @@ double PhyChannel::getTotalCN(DvbFrame *dvb_frame)
 	// update CN in frame for DVB block transmission
 	dvb_frame->setCn(cn_total);
 
-	UTI_DEBUG_L3("Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
-	             "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
+	Output::sendLog(this->log_channel, LEVEL_DEBUG,
+	                "Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
+	                "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
 	this->probe_total_cn->put(cn_total);
 
 	return cn_total;
@@ -129,7 +134,8 @@ void PhyChannel::addSegmentCN(DvbFrame *dvb_frame)
 	   the Attenuation for this segment(uplink) */
 
 	val = this->nominal_condition - this->attenuation_model->getAttenuation();
-	UTI_DEBUG("Calculation of C/N: %.2f dB\n", val);
+	Output::sendLog(this->log_channel, LEVEL_INFO,
+	                "Calculation of C/N: %.2f dB\n", val);
 
 	dvb_frame->setCn(val);
 }
@@ -173,11 +179,13 @@ void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 {
 	uint8_t modcod_id = 0;
-	UTI_DEBUG_L3("Trace update minimal condition\n");
+	Output::sendLog(this->log_channel, LEVEL_DEBUG,
+	                "Trace update minimal condition\n");
 
 	if(!this->status)
 	{
-		UTI_DEBUG("channel is broken, do not update minimal condition");
+		Output::sendLog(this->log_channel, LEVEL_INFO,
+		                "channel is broken, do not update minimal condition");
 		goto error;
 	}
 
@@ -196,11 +204,14 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 
 		modcod_id = dvb_rcs_frame->getModcodId();
 	}
-	UTI_DEBUG("Receive frame with MODCOD %u\n", modcod_id);
+	Output::sendLog(this->log_channel, LEVEL_INFO,
+	                "Receive frame with MODCOD %u\n", modcod_id);
 
 	if(!this->minimal_condition->updateThreshold(modcod_id))
 	{
-		UTI_ERROR("Threshold update failed, the channel will be disabled\n");
+		Output::sendLog(this->log_channel, LEVEL_ERROR,
+		                "Threshold update failed, the channel will "
+		                "be disabled\n");
 		this->status = false;
 		goto error;     
 	}
@@ -214,8 +225,9 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 	//      With physcal layer ACM loop, these frame would be mark as corrupted
 	this->probe_minimal_condition->put(this->minimal_condition->getMinimalCN());
 
-	UTI_DEBUG("Update minimal condition: %.2f dB\n",
-	          this->minimal_condition->getMinimalCN());
+	Output::sendLog(this->log_channel, LEVEL_INFO,
+	                "Update minimal condition: %.2f dB\n",
+	                this->minimal_condition->getMinimalCN());
 error:
 	return this->status;
 }

@@ -32,8 +32,9 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include <MpegEncapCtx.h>
+#include "MpegEncapCtx.h"
 
+#include <opensand_output/Output.h>
 
 MpegEncapCtx::MpegEncapCtx(uint16_t pid, uint16_t spot_id)
 {
@@ -41,6 +42,9 @@ MpegEncapCtx::MpegEncapCtx(uint16_t pid, uint16_t spot_id)
 	this->_pid = pid;
 	this->_cc = 0;
 	this->_dst_spot = spot_id;
+
+	this->log = Output::registerLog(LEVEL_WARNING,
+	                                "Encap.MPEG");
 
 	this->initFrame();
 }

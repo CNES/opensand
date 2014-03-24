@@ -74,6 +74,7 @@ class ForwardSchedulingS2: public Scheduling
 	              clock_t current_time,
 	              list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
+  
   private:
 
   	/** the BBFrame being built identified by their modcod */

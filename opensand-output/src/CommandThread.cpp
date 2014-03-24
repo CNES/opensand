@@ -33,6 +33,8 @@
 
 
 #include "CommandThread.h"
+#include "Messages.h"
+#include "Output.h"
 
 #include <errno.h>
 #include <pthread.h>
@@ -41,10 +43,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <opensand_conf/uti_debug.h>
-
-#include "Output.h"
-#include "Messages.h"
 
 CommandThread::CommandThread(int sock_fd):
 	sock_fd(sock_fd)
@@ -54,10 +52,13 @@ CommandThread::CommandThread(int sock_fd):
 bool CommandThread::start()
 {
 	pthread_t thread;
+
+	this->log = Output::registerLog(LEVEL_WARNING, "output");
 	if(pthread_create(&thread, NULL, CommandThread::_run, this) < 0)
 	{
-		UTI_ERROR("Unable to start the command listener thread : %s",
-		          strerror(errno));
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "Unable to start the command listener thread : %s",
+		                 strerror(errno));
 		return false;
 	}
 
@@ -96,16 +97,43 @@ void CommandThread::run()
 			}
 			break;
 
+			case MSG_CMD_SET_LOG_LEVEL:
+			{
+				uint8_t log_id = buffer[5];
+				log_level_t level = (log_level_t)buffer[6];
+
+				Output::setLogLevel(log_id, level);
+			}
+			break;
+
 			case MSG_CMD_ENABLE:
-				Output::enable();
+				Output::enableCollector();
 				break;
 
 			case MSG_CMD_DISABLE:
-				Output::disable();
+				Output::disableCollector();
+				break;
+
+			case MSG_CMD_ENABLE_LOGS:
+				Output::enableLogs();
+				break;
+
+			case MSG_CMD_DISABLE_LOGS:
+				Output::disableLogs();
+				break;
+
+			case MSG_CMD_ENABLE_SYSLOG:
+				Output::enableSyslog();
+				break;
+
+			case MSG_CMD_DISABLE_SYSLOG:
+				Output::disableSyslog();
 				break;
 
 			default:
-				UTI_ERROR("Received a message with unknown command ID %d\n", command_id);
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "Received a message with unknown command ID %d\n",
+				                command_id);
 		}
 	}
 }

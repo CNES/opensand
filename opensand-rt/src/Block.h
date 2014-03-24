@@ -47,6 +47,9 @@
 #include <vector>
 #include <sys/select.h>
 
+#include <opensand_output/OutputLog.h>
+#include <opensand_output/OutputEvent.h>
+
 class RtEvent;
 
 using std::string;
@@ -252,6 +255,10 @@ class Block
 	 */
 	void enableChannelMutex(void);
 
+	/// Output Log
+	OutputLog *log_rt;
+	OutputLog *log_init;
+
 	/// The upward channel
 	RtChannel *upward;
 	/// The downward channel
@@ -272,6 +279,9 @@ class Block
 
 	/// Whether the channel processing are protected with a mutex
 	bool chan_mutex;
+
+	/// The event for block initialization
+	OutputEvent *event_init;
   
 	/// mutex to separate channel processing
 	RtMutex block_mutex;

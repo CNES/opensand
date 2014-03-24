@@ -37,9 +37,9 @@ Viveris technologies
     www.viveris.fr</property>
     <property name="logo">opensand-manager48.png</property>
     <property name="logo_icon_name">OpenSAND logo</property>
-    <signal name="on_about_activate" handler="gtk_widget_show"/>
-    <signal name="close" handler="on_about_dialog_close"/>
-    <signal name="response" handler="on_about_dialog_close"/>
+    <signal name="on_about_activate" handler="gtk_widget_show" />
+    <signal name="close" handler="on_about_dialog_close" />
+    <signal name="response" handler="on_about_dialog_close" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -63,7 +63,7 @@ Viveris technologies
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
-    <signal name="delete_event" handler="on_advanced_dialog_delete_event"/>
+    <signal name="delete_event" handler="on_advanced_dialog_delete_event" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox7">
         <property name="visible">True</property>
@@ -192,7 +192,7 @@ Viveris technologies
                 <property name="receives_default">False</property>
                 <property name="use_action_appearance">False</property>
                 <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="on_plugins_checkbutton_toggled"/>
+                <signal name="toggled" handler="on_plugins_checkbutton_toggled" />
               </widget>
               <packing>
                 <property name="expand">True</property>
@@ -209,7 +209,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_apply_advanced_conf_clicked"/>
+                <signal name="clicked" handler="on_apply_advanced_conf_clicked" />
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -225,7 +225,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_undo_advanced_conf_clicked"/>
+                <signal name="clicked" handler="on_undo_advanced_conf_clicked" />
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -241,7 +241,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_advanced_conf_clicked"/>
+                <signal name="clicked" handler="on_save_advanced_conf_clicked" />
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -261,6 +261,7 @@ Viveris technologies
     </child>
   </widget>
   <widget class="GtkWindow" id="config_collection_window">
+    <property name="width_request">500</property>
     <property name="height_request">300</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Configure collection</property>
@@ -311,7 +312,7 @@ Viveris technologies
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="on_get_default_file_clicked"/>
+                <signal name="clicked" handler="on_get_default_file_clicked" />
                 <child>
                   <widget class="GtkHBox" id="hbox1">
                     <property name="visible">True</property>
@@ -357,7 +358,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_cancel_deploy_edit_clicked"/>
+                <signal name="clicked" handler="on_cancel_deploy_edit_clicked" />
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -373,7 +374,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_deploy_edit_clicked"/>
+                <signal name="clicked" handler="on_save_deploy_edit_clicked" />
                 <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
               </widget>
               <packing>
@@ -436,7 +437,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_cancel_install_edit_clicked"/>
+                <signal name="clicked" handler="on_cancel_install_edit_clicked" />
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -452,7 +453,7 @@ Viveris technologies
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_deploy_edit_clicked"/>
+                <signal name="clicked" handler="on_save_deploy_edit_clicked" />
                 <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
               </widget>
               <packing>
@@ -628,8 +629,8 @@ Viveris technologies
     <property name="can_focus">False</property>
     <property name="title">OpenSAND Manager</property>
     <property name="icon">/usr/share/pixmaps/opensand-manager.png</property>
-    <signal name="destroy" handler="on_quit"/>
-    <signal name="key_press_event" handler="on_window_key_press_event"/>
+    <signal name="destroy" handler="on_quit" />
+    <signal name="key_press_event" handler="on_window_key_press_event" />
     <child>
       <widget class="GtkVBox" id="vbox2">
         <property name="visible">True</property>
@@ -656,7 +657,7 @@ Viveris technologies
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_new_activate"/>
+                        <signal name="activate" handler="on_new_activate" />
                         <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
@@ -669,7 +670,7 @@ Viveris technologies
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_open_activate"/>
+                        <signal name="activate" handler="on_open_activate" />
                         <accelerator key="o" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
@@ -696,7 +697,7 @@ Viveris technologies
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_save_as_activate"/>
+                        <signal name="activate" handler="on_save_as_activate" />
                         <accelerator key="s" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
@@ -714,7 +715,7 @@ Viveris technologies
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_close_activate"/>
+                        <signal name="activate" handler="on_close_activate" />
                         <accelerator key="w" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
@@ -726,7 +727,7 @@ Viveris technologies
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_quit"/>
+                        <signal name="activate" handler="on_quit" />
                         <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
@@ -751,7 +752,14 @@ Viveris technologies
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_start_stop_activate"/>
+                        <signal name="activate" handler="on_start_stop_activate" />
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="stock">gtk-execute</property>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
@@ -770,9 +778,9 @@ Viveris technologies
 You can choose the sources with the button below and  the destination in advanced configuration</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_install_activate"/>
+                        <signal name="activate" handler="on_install_activate" />
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image1">
+                          <widget class="GtkImage" id="image2">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="stock">gtk-sort-descending</property>
@@ -790,7 +798,7 @@ You can choose the sources with the button below and  the destination in advance
 For destionations, see the advance configuration.</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_edit_install_activate"/>
+                        <signal name="activate" handler="on_edit_install_activate" />
                         <child internal-child="image">
                           <widget class="GtkImage" id="image3">
                             <property name="visible">True</property>
@@ -822,7 +830,7 @@ For destionations, see the advance configuration.</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_option_deploy_clicked"/>
+                        <signal name="activate" handler="on_option_deploy_clicked" />
                         <child internal-child="image">
                           <widget class="GtkImage" id="image4">
                             <property name="visible">True</property>
@@ -839,7 +847,7 @@ For destionations, see the advance configuration.</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_option_edit_clicked"/>
+                        <signal name="activate" handler="on_option_edit_clicked" />
                         <child internal-child="image">
                           <widget class="GtkImage" id="image8">
                             <property name="visible">True</property>
@@ -856,7 +864,7 @@ For destionations, see the advance configuration.</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_option_disable_clicked"/>
+                        <signal name="activate" handler="on_option_disable_clicked" />
                         <child internal-child="image">
                           <widget class="GtkImage" id="image9">
                             <property name="visible">True</property>
@@ -887,7 +895,7 @@ For destionations, see the advance configuration.</property>
                         <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_About</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_about_activate"/>
+                        <signal name="activate" handler="on_about_activate" />
                       </widget>
                     </child>
                   </widget>
@@ -921,7 +929,7 @@ For destionations, see the advance configuration.</property>
           <widget class="GtkNotebook" id="notebook">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <signal name="switch_page" handler="on_notebook_switch_page"/>
+            <signal name="switch_page" handler="on_notebook_switch_page" />
             <child>
               <widget class="GtkVBox" id="run_tab">
                 <property name="visible">True</property>
@@ -945,7 +953,7 @@ For destionations, see the advance configuration.</property>
                             <property name="label" translatable="yes">Start OpenSAND</property>
                             <property name="use_underline">True</property>
                             <property name="stock_id">gtk-execute</property>
-                            <signal name="clicked" handler="on_start_opensand_button_clicked"/>
+                            <signal name="clicked" handler="on_start_opensand_button_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -962,7 +970,7 @@ For destionations, see the advance configuration.</property>
                             <property name="label" translatable="yes">Deploy OpenSAND</property>
                             <property name="use_underline">True</property>
                             <property name="stock_id">gtk-cdrom</property>
-                            <signal name="clicked" handler="on_deploy_opensand_button_clicked"/>
+                            <signal name="clicked" handler="on_deploy_opensand_button_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -989,7 +997,7 @@ For destionations, see the advance configuration.</property>
                             <property name="label" translatable="yes">Developer Mode</property>
                             <property name="use_underline">True</property>
                             <property name="stock_id">gtk-properties</property>
-                            <signal name="toggled" handler="on_dev_mode_button_toggled"/>
+                            <signal name="toggled" handler="on_dev_mode_button_toggled" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -1072,30 +1080,102 @@ This is the name used when loading probes.</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkNotebook" id="event_notebook">
+                      <widget class="GtkHBox" id="hbox3">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
+                          <widget class="GtkNotebook" id="event_notebook">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <signal name="switch_page" handler="on_event_notebook_switch_page" />
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
+                              <packing>
+                                <property name="type">tab</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
+                              <packing>
+                                <property name="type">tab</property>
+                              </packing>
+                            </child>
+                          </widget>
                           <packing>
-                            <property name="type">tab</property>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
+                          <widget class="GtkToolbar" id="logging_toolbar">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <widget class="GtkToolButton" id="configure_logging">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">Configure logging</property>
+                                <property name="use_underline">True</property>
+                                <property name="stock_id">gtk-preferences</property>
+                                <signal name="clicked" handler="on_configure_logging_clicked" />
+                              </widget>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkToggleToolButton" id="enable_syslog">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip" translatable="yes">Also print logs on syslog in current remote host</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">Enable Syslog</property>
+                                <property name="use_underline">True</property>
+                                <property name="stock_id">gtk-edit</property>
+                                <property name="active">True</property>
+                              </widget>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkToggleToolButton" id="enable_logs">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip" translatable="yes">Get the logs on Manager for the current host</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">Get logs</property>
+                                <property name="use_underline">True</property>
+                                <property name="stock_id">gtk-sort-ascending</property>
+                                <property name="active">True</property>
+                              </widget>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                          </widget>
                           <packing>
-                            <property name="type">tab</property>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="pack_type">end</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                       </widget>
                       <packing>
-                        <property name="resize">False</property>
+                        <property name="resize">True</property>
                         <property name="shrink">True</property>
                       </packing>
                     </child>
@@ -1159,7 +1239,7 @@ This is the name used when loading probes.</property>
                                         <property name="use_underline">True</property>
                                         <property name="active">True</property>
                                         <property name="draw_indicator">True</property>
-                                        <signal name="clicked" handler="on_transparent_button_clicked"/>
+                                        <signal name="clicked" handler="on_transparent_button_clicked" />
                                       </widget>
                                       <packing>
                                         <property name="expand">False</property>
@@ -1179,7 +1259,7 @@ This is the name used when loading probes.</property>
                                         <property name="use_underline">True</property>
                                         <property name="draw_indicator">True</property>
                                         <property name="group">transparent</property>
-                                        <signal name="clicked" handler="on_regenerative_button_clicked"/>
+                                        <signal name="clicked" handler="on_regenerative_button_clicked" />
                                       </widget>
                                       <packing>
                                         <property name="expand">False</property>
@@ -1592,7 +1672,7 @@ This is the name used when loading probes.</property>
                                               <widget class="GtkComboBox" id="dama_box">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <signal name="changed" handler="on_dama_box_changed"/>
+                                                <signal name="changed" handler="on_dama_box_changed" />
                                               </widget>
                                               <packing>
                                                 <property name="left_attach">1</property>
@@ -1666,7 +1746,7 @@ This is the name used when loading probes.</property>
                                     <property name="receives_default">False</property>
                                     <property name="use_action_appearance">False</property>
                                     <property name="draw_indicator">True</property>
-                                    <signal name="toggled" handler="on_enable_physical_layer_toggled"/>
+                                    <signal name="toggled" handler="on_enable_physical_layer_toggled" />
                                   </widget>
                                 </child>
                               </widget>
@@ -2361,7 +2441,7 @@ This is the name used when loading probes.</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="use_action_appearance">False</property>
-                            <signal name="clicked" handler="on_advanced_conf_clicked"/>
+                            <signal name="clicked" handler="on_advanced_conf_clicked" />
                             <child>
                               <widget class="GtkHBox" id="hbox10">
                                 <property name="visible">True</property>
@@ -2409,7 +2489,7 @@ This is the name used when loading probes.</property>
                             <property name="receives_default">True</property>
                             <property name="use_action_appearance">False</property>
                             <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_undo_conf_clicked"/>
+                            <signal name="clicked" handler="on_undo_conf_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -2425,7 +2505,7 @@ This is the name used when loading probes.</property>
                             <property name="receives_default">True</property>
                             <property name="use_action_appearance">False</property>
                             <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_save_conf_clicked"/>
+                            <signal name="clicked" handler="on_save_conf_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -2583,7 +2663,7 @@ This is the name used when loading probes.</property>
                             <property name="receives_default">True</property>
                             <property name="use_action_appearance">False</property>
                             <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_undo_tool_conf_clicked"/>
+                            <signal name="clicked" handler="on_undo_tool_conf_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -2599,7 +2679,7 @@ This is the name used when loading probes.</property>
                             <property name="receives_default">True</property>
                             <property name="use_action_appearance">False</property>
                             <property name="use_stock">True</property>
-                            <signal name="clicked" handler="on_save_tool_conf_clicked"/>
+                            <signal name="clicked" handler="on_save_tool_conf_clicked" />
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -2703,7 +2783,7 @@ This is the name used when loading probes.</property>
                         <property name="label" translatable="yes">Load run…</property>
                         <property name="use_underline">True</property>
                         <property name="stock_id">gtk-add</property>
-                        <signal name="clicked" handler="on_load_run_button_clicked"/>
+                        <signal name="clicked" handler="on_load_run_button_clicked" />
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -2718,7 +2798,7 @@ This is the name used when loading probes.</property>
                         <property name="label" translatable="yes">Clear selection</property>
                         <property name="use_underline">True</property>
                         <property name="stock_id">gtk-cancel</property>
-                        <signal name="clicked" handler="on_clear_probes_clicked"/>
+                        <signal name="clicked" handler="on_clear_probes_clicked" />
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -2732,7 +2812,7 @@ This is the name used when loading probes.</property>
                         <property name="label" translatable="yes">Configure collection...</property>
                         <property name="use_underline">True</property>
                         <property name="stock_id">gtk-properties</property>
-                        <signal name="clicked" handler="on_conf_collection_button_clicked"/>
+                        <signal name="clicked" handler="on_conf_collection_button_clicked" />
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -2748,7 +2828,7 @@ This is the name used when loading probes.</property>
                         <property name="label" translatable="yes">Save figure</property>
                         <property name="use_underline">True</property>
                         <property name="stock_id">gtk-save</property>
-                        <signal name="clicked" handler="on_save_figure_button_clicked"/>
+                        <signal name="clicked" handler="on_save_figure_button_clicked" />
                       </widget>
                       <packing>
                         <property name="expand">False</property>

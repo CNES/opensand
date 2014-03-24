@@ -40,6 +40,8 @@
 #include "Scheduling.h"
 #include "DvbRcsFrame.h"
 
+#include <opensand_output/OutputLog.h>
+
 /**
  * @class ReturnSchedulingRcs
  * @brief Scheduling functions for MAC FIFOs with DVB-RCS return link

@@ -226,7 +226,8 @@ static bool test_lan_adapt(string src_filename,
 	unsigned int nbr_tests = 0;
 	bool success = false;
 
-	Output::init(false, LEVEL_ERROR);
+	Output::init(false);
+	Output::enableStdlog();
 
 	// load the plugins
 	if(!Plugin::loadPlugins(false))

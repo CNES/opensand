@@ -32,11 +32,10 @@
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
-#define DA_DBG_PREFIX "[RCS]"
 
 #include "DamaAgentRcs.h"
+
+#include <opensand_output/Output.h>
 
 
 DamaAgentRcs::DamaAgentRcs():
@@ -74,8 +73,9 @@ bool DamaAgentRcs::init()
 			new CircularBuffer((size_t) this->msl_sf / this->obr_period_sf);
 		if(this->rbdc_request_buffer == NULL)
 		{
-			UTI_ERROR("Cannot create circular buffer to save "
-			          "the last RBDC requests\n");
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "Cannot create circular buffer to save "
+			                "the last RBDC requests\n");
 			return false;
 		}
 	}
@@ -109,8 +109,9 @@ bool DamaAgentRcs::processOnFrameTick()
 	// Call parent method
 	if(!DamaAgent::processOnFrameTick())
 	{
-		UTI_ERROR("SF#%u: cannot call DamaAgent::processOnFrameTick()\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "SF#%u: cannot call DamaAgent::processOnFrameTick()\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 
@@ -125,17 +126,19 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	rate_kbps_t remaining_alloc_kbps;
 	uint32_t remaining_alloc_pktpf = this->remaining_allocation_pktpf;
 
-	UTI_DEBUG_L3("SF#%u: frame %u: allocation before scheduling %u\n",
-	             this->current_superframe_sf, this->current_frame,
-	             remaining_alloc_pktpf);
+	Output::sendLog(this->log_schedule, LEVEL_DEBUG,
+	                "SF#%u: frame %u: allocation before scheduling %u\n",
+	                this->current_superframe_sf, this->current_frame,
+	                remaining_alloc_pktpf);
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
 	                                 this->current_frame,
 	                                 0,
 	                                 complete_dvb_frames,
 	                                 remaining_alloc_pktpf))
 	{
-		UTI_ERROR("SF#%u: frame %u: Uplink Scheduling failed",
-		          this->current_superframe_sf, this->current_frame);
+		Output::sendLog(this->log_schedule, LEVEL_ERROR,
+		                "SF#%u: frame %u: Uplink Scheduling failed",
+		                this->current_superframe_sf, this->current_frame);
 		return false;
 	}
 	// add modcod id in frames
@@ -148,9 +151,10 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	}
 	this->probe_st_used_modcod->put(this->modcod_id);
 
-	UTI_DEBUG_L3("SF#%u: frame %u: remaining allocation after scheduling %u\n",
-	             this->current_superframe_sf, this->current_frame,
-	             remaining_alloc_pktpf);
+	Output::sendLog(this->log_schedule, LEVEL_DEBUG,
+	                "SF#%u: frame %u: remaining allocation after scheduling "
+	                "%u\n", this->current_superframe_sf,
+	                this->current_frame, remaining_alloc_pktpf);
 	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
 
 	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
@@ -166,8 +170,9 @@ bool DamaAgentRcs::hereIsSOF(time_sf_t superframe_number_sf)
 	// Call parent method
 	if(!DamaAgent::hereIsSOF(superframe_number_sf))
 	{
-		UTI_ERROR("SF#%u: cannot call DamaAgent::hereIsSOF()\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
+		                "SF#%u: cannot call DamaAgent::hereIsSOF()\n",
+		                this->current_superframe_sf);
 		return false;
 	}
 	this->current_frame = 0;
@@ -182,8 +187,9 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 
 	if(this->group_id != ttp->getGroupId())
 	{
-		UTI_ERROR("SF#%u: TTP with different group_id (%d).\n",
-		             this->current_superframe_sf, ttp->getGroupId());
+		Output::sendLog(this->log_ttp, LEVEL_ERROR,
+		                "SF#%u: TTP with different group_id (%d).\n",
+		                this->current_superframe_sf, ttp->getGroupId());
 		return true;
 	}
 
@@ -196,9 +202,10 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 	if(tp.size() > 1)
 	{
 		// TODO WARNING
-		UTI_ERROR("Received more than one TP in TTP, "
-		          "allocation will be correctly handled but not "
-		          "modcod for physical layer emulation\n");
+		Output::sendLog(this->log_ttp, LEVEL_ERROR,
+		                "Received more than one TP in TTP, "
+		                "allocation will be correctly handled but not "
+		                "modcod for physical layer emulation\n");
 	}
 
 	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
@@ -211,23 +218,20 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 		// we can directly assign here because we should have
 		// received only one TTP
 		this->modcod_id = (*it).second.fmt_id;
-		UTI_DEBUG_L3("SF#%u: frame#%u: "
-		             "offset:%u, assignment_count:%u, "
-		             "fmt_id:%u priority:%u\n",
-		             ttp->getSuperframeCount(),
-		             (*it).first,
-		             (*it).second.offset,
-		             assign_pkt,
-		             (*it).second.fmt_id,
-		             (*it).second.priority);
+		Output::sendLog(this->log_ttp, LEVEL_DEBUG,
+		                "SF#%u: frame#%u: offset:%u, assignment_count:%u, "
+		                "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
+		                (*it).first, (*it).second.offset, assign_pkt,
+		                (*it).second.fmt_id, (*it).second.priority);
 	}
 
 	// Update stats and probes
 	this->probe_st_total_allocation->put(
 		this->converter->pktpfToKbps(this->allocated_pkt));
 
-	UTI_DEBUG("SF#%u: allocated TS=%u\n",
-	          ttp->getSuperframeCount(), this->allocated_pkt);
+	Output::sendLog(this->log_ttp, LEVEL_INFO,
+	                "SF#%u: allocated TS=%u\n",
+	                ttp->getSuperframeCount(), this->allocated_pkt);
 	return true;
 }
 
@@ -244,8 +248,9 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	// Compute RBDC request if needed
 	if(this->rbdc_enabled)
 	{
-		UTI_DEBUG("SF#%u: compute RBDC request\n",
-		          this->current_superframe_sf);
+		Output::sendLog(this->log_sac, LEVEL_INFO,
+		                "SF#%u: compute RBDC request\n",
+		                this->current_superframe_sf);
 		rbdc_request_kbps = this->computeRbdcRequest();
 
 		// Send the request only if current RBDC timer > RBDC timeout / 2
@@ -277,7 +282,9 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	// Compute VBDC request if required
 	if(this->vbdc_enabled)
 	{
-		UTI_DEBUG("SF#%u: Compute VBDC request\n", this->current_superframe_sf);
+		Output::sendLog(this->log_sac, LEVEL_INFO,
+		                "SF#%u: Compute VBDC request\n",
+		                this->current_superframe_sf);
 		vbdc_request_pkt = this->computeVbdcRequest();
 
 		// Send the request only if it is not null
@@ -290,9 +297,10 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	// if no valid CR is built: skipping it
 	if(!send_rbdc_request && !send_vbdc_request)
 	{
-		UTI_DEBUG_L3("SF#%u: RBDC CR = %d, VBDC CR = %d, no CR built.\n",
-		             this->current_superframe_sf, rbdc_request_kbps,
-		             vbdc_request_pkt);
+		Output::sendLog(this->log_sac, LEVEL_DEBUG,
+		                "SF#%u: RBDC CR = %d, VBDC CR = %d, no CR built.\n",
+		                this->current_superframe_sf, rbdc_request_kbps,
+		                vbdc_request_pkt);
 		empty = true;
 		this->probe_st_rbdc_req_size->put(0);
 		this->probe_st_vbdc_req_size->put(0);
@@ -339,8 +347,10 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 		this->probe_st_vbdc_req_size->put(0);
 	}
 
-	UTI_DEBUG("SF#%u: build CR with %u kb/s in RBDC and %u packets in VBDC",
-	          this->current_superframe_sf, rbdc_request_kbps, vbdc_request_pkt);
+	Output::sendLog(this->log_sac, LEVEL_INFO,
+	                "SF#%u: build CR with %u kb/s in RBDC and %u packets in "
+	                "VBDC", this->current_superframe_sf, rbdc_request_kbps,
+	                vbdc_request_pkt);
 
  end:
 	return true;

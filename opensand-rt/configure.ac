@@ -37,11 +37,6 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
 
-# check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = trunk])
-LIBS="$OPENSAND_CONF_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
-
 # check for opensand-output library
 PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = trunk])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"

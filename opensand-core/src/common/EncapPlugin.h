@@ -43,6 +43,7 @@
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
 
+#include <opensand_output/Output.h>
 
 /**
  * @class EncapPlugin
@@ -64,7 +65,7 @@ class EncapPlugin: public StackPlugin
 	class EncapPacketHandler: public StackPacketHandler
 	{
 
-	  public:
+	 public:
 
 		/**
 		 * @brief EncapPacketHandler constructor
@@ -72,7 +73,8 @@ class EncapPlugin: public StackPlugin
 		/* Allow packets to access EncapPlugin members */
 		EncapPacketHandler(EncapPlugin &pl):
 			StackPacketHandler(pl)
-		{};
+		{
+		};
 
 		/**
 		 * @brief Get the source terminal ID of a packet
@@ -82,6 +84,19 @@ class EncapPlugin: public StackPlugin
 		 * @return true on success, false otherwise
 		 */
 		virtual bool getSrc(const Data &data, tal_id_t &tal_id) const = 0;
+
+
+		void init()
+		{
+			this->log = Output::registerLog(LEVEL_WARNING,
+			                                "Encap.%s",
+			                                this->getName().c_str());
+		};
+
+	 protected:
+
+		/// Output Logs
+		OutputLog *log;
 	};
 
 	/**
@@ -131,13 +146,28 @@ class EncapPlugin: public StackPlugin
 			this->dst_tal_id = tal_id;
 		}
 
+		void init()
+		{
+			this->log = Output::registerLog(LEVEL_WARNING,
+			                                "Encap.%s",
+			                                this->getName().c_str());
+		};
+
 	  protected:
 
 		/// The destination TAL Id to filter received packet on
 		uint8_t dst_tal_id;
+
+		/// Output Logs
+		OutputLog *log;
 	};
 
-	
+	void init()
+	{
+		this->log = Output::registerLog(LEVEL_WARNING,
+		                                "Encap.%s",
+		                                this->getName().c_str());
+	};
 
 	/* for the following functions we use "covariant return type" */
 

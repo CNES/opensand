@@ -65,6 +65,11 @@ class NccPepInterface
 	/** The list of commands received from the PEP component */
 	std::vector<PepRequest *> requests_list;
 
+ protected:
+	
+	// Output Log
+	OutputLog *log_pep;
+
  public:
 
 	/**** constructor/destructor ****/
@@ -111,9 +116,6 @@ class NccPepInterface
 
  private:
  
-	/* error event to report an already opened socket */
-	static Event *error_sock_open;
-
 	/* parse a message sent by the PEP component */
 	bool parsePepMessage(const char *message);
 

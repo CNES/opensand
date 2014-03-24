@@ -37,6 +37,7 @@
 
 #include "OpenSandCore.h"
 
+#include <opensand_output/OutputLog.h>
 
 /**
  * @class CircularBuffer
@@ -56,6 +57,11 @@ class CircularBuffer
 	rate_kbps_t sum;    ///< sum of all values contained in the circular buffer
 	rate_kbps_t min_value;    ///< min value contained in the circular buffer
 	rate_kbps_t *values; ///< circular buffer array
+
+ protected:
+
+	// Output Log
+	OutputLog *log_circular_buffer;
 
  public:
 

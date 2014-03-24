@@ -34,9 +34,7 @@
 
 #include "IpPacket.h"
 
-// debug
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 IpPacket::IpPacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)
@@ -87,7 +85,8 @@ Data IpPacket::getPayload() const
 
 	if(!this->isValid())
 	{
-		UTI_ERROR("[IpPacket::payload] invalid IP packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IP packet\n");
 		return Data();
 	}
 
@@ -96,7 +95,8 @@ Data IpPacket::getPayload() const
 
 	if(header_len <= 0 || payload_len <= 0)
 	{
-		UTI_ERROR("[IpPacket::payload] IP packet has a 0 length payload\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "IP packet has a 0 length payload\n");
 		return Data();
 	}
 
@@ -108,7 +108,8 @@ int IpPacket::version(Data data)
 {
 	if(data.length() < 4 * 5)
 	{
-		UTI_ERROR("[IpPacket::version(data)] invalid IP packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IP packet\n");
 		return 0;
 	}
 
@@ -120,7 +121,8 @@ int IpPacket::version(Data data)
 {
 	if(length < 4 * 5)
 	{
-		UTI_ERROR("[IpPacket::version(data, length)] invalid IP packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IP packet\n");
 		return 0;
 	}
 
@@ -131,7 +133,8 @@ int IpPacket::version() const
 {
 	if(!this->isValid())
 	{
-		UTI_ERROR("[IpPacket::version] invalid IP packet\n");
+		Output::sendLog(LEVEL_ERROR,
+		                "invalid IP packet\n");
 		return 0;
 	}
 

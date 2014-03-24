@@ -54,36 +54,46 @@ PROG_SOCK_PATH_FMT = BASE_PATH + "/program-%d.socket"
 COMMAND = "./test_output"
 MAGIC_NUMBER = 0x5A7D0001
 
-MSG_CMD_REGISTER = 1
-MSG_CMD_ACK = 2
-MSG_CMD_SEND_PROBES = 3
-MSG_CMD_SEND_EVENT = 4
-MSG_CMD_ENABLE_PROBE = 5
-MSG_CMD_DISABLE_PROBE = 6
+MSG_CMD_REGISTER_INIT = 1
+MSG_CMD_REGISTER_END = 2
+MSG_CMD_REGISTER_LIVE = 3
+MSG_CMD_ACK = 5
+
+MSG_CMD_SEND_PROBES = 10
+MSG_CMD_SEND_LOG = 20
+
+MSG_CMD_ENABLE_PROBE = 11
+MSG_CMD_DISABLE_PROBE = 12
+
+# TODO test these
+MSG_CMD_SET_LOG_LEVEL = 22
+MSG_CMD_ENABLE_LOGS = 23
+MSG_CMD_DISABLE_LOGS = 24
+MSG_CMD_ENABLE_SYSLOG = 25
+MSG_CMD_DISABLE_SYSLOG = 26
+
 
 TYPE_INT = 0
 TYPE_FLOAT = 1
 TYPE_DOUBLE = 2
 
-LEVEL_DEBUG = 0
-LEVEL_INFO = 1
-LEVEL_WARNING = 2
+LEVEL_DEBUG = 7
+LEVEL_INFO = 6
+LEVEL_WARNING = 4
 LEVEL_ERROR = 3
 
 class MessageRegister(object):
     def __init__(self, data):
-        self.pid, num_probes, num_events = struct.unpack("!LBB", data[0:6])
-        assert num_probes, "Got 0 probes"
-        assert num_events, "Got 0 events"
+        self.pid, num_probes, num_logs = struct.unpack("!LBB", data[0:6])
 
         self.probes = []
-        self.events = []
+        self.logs = []
 
         pos = 6
         for _ in xrange(num_probes):
-            storage_type, name_length, unit_length = \
-                    struct.unpack("!BBB", data[pos:pos + 3])
-            pos += 3
+            probe_id, storage_type, name_length, unit_length = \
+                    struct.unpack("!BBBB", data[pos:pos + 4])
+            pos += 4
             enabled = bool(storage_type & (1 << 7))
             storage_type = (storage_type & ~(1 << 7))
             name = data[pos:pos + name_length]
@@ -98,20 +108,20 @@ class MessageRegister(object):
 
             self.probes.append((name, unit, enabled, storage_type))
 
-        for _ in xrange(num_events):
-            level, length = struct.unpack("!BB", data[pos:pos + 2])
-            pos += 2
+        for _ in xrange(num_logs):
+            log_id, level, length = struct.unpack("!BBB", data[pos:pos + 3])
+            pos += 3
             ident = data[pos:pos + length]
             assert len(ident) == length, \
                    "Incorrect length during string unpacking"
             pos += length
 
-            self.events.append((ident, level))
+            self.logs.append((ident, level))
 
         assert data[pos:] == "", "Garbage data found after string unpacking"
 
     def __repr__(self):
-        return "<MessageRegister: %r, %r (PID %d)>" % (self.probes, self.events,
+        return "<MessageRegister: %r, %r (PID %d)>" % (self.probes, self.logs,
                                                        self.pid)
 
 
@@ -148,14 +158,16 @@ class MessageSendProbes(object):
         return "<MessageSendProbes: %r>" % self.values
 
 
-class MessageSendEvent(object):
+class MessageSendLog(object):
     def __init__(self, data):
-        self.event_id = struct.unpack("!B", data[0:1])[0]
-        self.event_message = data[1:]
+        self.log_id = struct.unpack("!B", data[0:1])[0]
+        self.log_level = struct.unpack("!B", data[1:2])[0]
+        self.log_message = data[2:]
 
     def __repr__(self):
-        return "<MessageSendEvent: %d - %r>" % (self.event_id,
-                                                self.event_message)
+        return "<MessageSendLog: %d (%d) - %r>" % (self.log_id,
+                                                   self.log_level,
+                                                   self.log_message)
 
 
 class EnvironmentPlaneBaseTester(object):
@@ -219,8 +231,9 @@ class EnvironmentPlaneBaseTester(object):
         if not self.proc.stdout in rlist:
             return "<timeout>"
 
-        toto = self.proc.stdout.readline()
-        return toto
+        read = self.proc.stdout.readline()
+#        print "get_line:", read
+        return read
 
     def send_cmd(self, vlast, vmin, vmax, vavg, vsum, vdis,
                  vfloat, vdouble, cmd):
@@ -244,14 +257,15 @@ class EnvironmentPlaneBaseTester(object):
         magic, cmd = struct.unpack("!LB", packet[0:5])
         assert magic == MAGIC_NUMBER, "Received message with bad magic number"
 
-        if cmd == MSG_CMD_REGISTER:
+        if cmd in [MSG_CMD_REGISTER_LIVE, MSG_CMD_REGISTER_INIT,
+                   MSG_CMD_REGISTER_END]:
             return MessageRegister(packet[5:])
 
         if cmd == MSG_CMD_SEND_PROBES:
             return MessageSendProbes(self.probe_types, packet[5:])
 
-        if cmd == MSG_CMD_SEND_EVENT:
-            return MessageSendEvent(packet[5:])
+        if cmd == MSG_CMD_SEND_LOG:
+            return MessageSendLog(packet[5:])
 
         raise Exception("Unknown command ID %d" % cmd)
 
@@ -259,9 +273,29 @@ class EnvironmentPlaneBaseTester(object):
         rlist, _, _ = select.select([self.socket], [], [], .5)
         assert not rlist, "Unexpected message received"
 
-    def check_startup(self):
+    def check_startup(self, min_level=7):
         print "Test: Startup"
+        
         assert self.get_line() == "init\n"
+
+        # two logs registration during init
+        msg = self.get_message()
+        assert isinstance(msg, MessageRegister)
+        assert msg.pid == self.proc.pid
+        assert msg.logs == [
+            ("output", LEVEL_WARNING),
+        ]
+        self.socket.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK),
+                           self.program_sock_path)
+        msg = self.get_message()
+        assert isinstance(msg, MessageRegister)
+        assert msg.pid == self.proc.pid
+        assert msg.logs == [
+            ("default", LEVEL_WARNING),
+        ]
+        self.socket.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK),
+                           self.program_sock_path)
+
         assert self.get_line() == "fin_init\n"
         msg = self.get_message()
         assert isinstance(msg, MessageRegister)
@@ -277,15 +311,28 @@ class EnvironmentPlaneBaseTester(object):
             ("float_probe", "", True, TYPE_FLOAT),
             ("double_probe", "", True, TYPE_DOUBLE),
         ]
-        assert msg.events == [
-            ("debug_event", LEVEL_DEBUG),
-            ("info_event", LEVEL_INFO),
-        ]
 
         self.probe_types = [t for _, _, _, t in msg.probes]
 
         self.socket.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK),
                            self.program_sock_path)
+
+        # register of debug and info
+        msg = self.get_message()
+        assert isinstance(msg, MessageRegister)
+        assert msg.pid == self.proc.pid
+        assert msg.logs == [
+            ("info", LEVEL_INFO),
+        ]
+        # init done, no answer
+        msg = self.get_message()
+        assert isinstance(msg, MessageRegister)
+        assert msg.pid == self.proc.pid
+        assert msg.logs == [
+            ("debug", min_level),
+        ]
+        # init done, no answer
+
 
         line = self.get_line()
         assert line == "start\n", "Unexpected line %r" % line
@@ -298,6 +345,30 @@ class EnvironmentPlaneBaseTester(object):
         signal.alarm(2)
         self.proc.wait()
         signal.alarm(0)
+
+    def check_info_log(self):
+        print "Test: Info log"
+
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
+        assert self.get_line() == "info\n"
+        msg = self.get_message()
+        assert isinstance(msg, MessageSendLog)
+        assert msg.log_id == 2
+        assert msg.log_level == 6
+        assert msg.log_message == "This is the info log message."
+
+    def check_default_log(self):
+        print "Test: default log"
+
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "t")
+        assert self.get_line() == "default log\n"
+        msg = self.get_message()
+        assert isinstance(msg, MessageSendLog)
+        assert msg.log_id == 1
+        assert msg.log_level == 3
+        assert msg.log_message == "This is a default log message."
+
+
 
 class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
     def __init__(self):
@@ -381,25 +452,16 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         assert self.get_line() == "send\n"
         self.get_message()
 
-    def check_debug_event(self):
-        print "Test: Debug event"
+    def check_debug_log(self):
+        print "Test: Debug log"
 
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "d")
         assert self.get_line() == "debug\n"
         msg = self.get_message()
-        assert isinstance(msg, MessageSendEvent)
-        assert msg.event_id == 0
-        assert msg.event_message == "This is the debug event message."
-
-    def check_info_event(self):
-        print "Test: Info event"
-
-        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
-        assert self.get_line() == "info\n"
-        msg = self.get_message()
-        assert isinstance(msg, MessageSendEvent)
-        assert msg.event_id == 1
-        assert msg.event_message == "This is the info event message."
+        assert isinstance(msg, MessageSendLog)
+        assert msg.log_id == 3
+        assert msg.log_level == 7
+        assert msg.log_message == "This is a debug log message."
 
     def run(self):
         self.check_startup()
@@ -407,8 +469,9 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         self.check_one_probe()
         self.check_all_probes()
         self.check_disabling_probes()
-        self.check_debug_event()
-        self.check_info_event()
+        self.check_debug_log()
+        self.check_info_log()
+        self.check_default_log()
         self.check_quit()
 
 class EnvironmentPlaneDisabledTester(EnvironmentPlaneBaseTester):
@@ -434,25 +497,33 @@ class EnvironmentPlaneDisabledTester(EnvironmentPlaneBaseTester):
 
         self.assert_no_msg()
 
-    def check_debug_event(self):
-        print "Test: Debug event"
+    def check_debug_log(self):
+        print "Test: Debug log"
 
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "d")
         assert self.get_line() == "debug\n"
         self.assert_no_msg()
 
-    def check_info_event(self):
-        print "Test: Info event"
+    def check_info_log(self):
+        print "Test: Info log"
 
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
         assert self.get_line() == "info\n"
         self.assert_no_msg()
 
+    def check_default_log(self):
+        print "Test: default log"
+
+        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "t")
+        assert self.get_line() == "default log\n"
+        self.assert_no_msg()
+
     def run(self):
         self.check_startup()
         self.check_all_probes()
-        self.check_debug_event()
-        self.check_info_event()
+        self.check_debug_log()
+        self.check_info_log()
+        self.check_default_log()
         self.check_quit()
 
 class EnvironmentPlaneNoDebugTester(EnvironmentPlaneBaseTester):
@@ -470,27 +541,18 @@ class EnvironmentPlaneNoDebugTester(EnvironmentPlaneBaseTester):
 
         self.assert_no_msg()
 
-    def check_debug_event(self):
-        print "Test: Debug event"
+    def check_debug_log(self):
+        print "Test: Debug log"
 
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "d")
         assert self.get_line() == "debug\n"
         self.assert_no_msg()
 
-    def check_info_event(self):
-        print "Test: Info event"
-
-        self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
-        assert self.get_line() == "info\n"
-        msg = self.get_message()
-        assert isinstance(msg, MessageSendEvent)
-        assert msg.event_id == 1
-        assert msg.event_message == "This is the info event message."
-
     def run(self):
-        self.check_startup()
-        self.check_debug_event()
-        self.check_info_event()
+        self.check_startup(6)
+        self.check_debug_log()
+        self.check_info_log()
+        self.check_default_log()
         self.check_quit()
 
 if __name__ == '__main__':

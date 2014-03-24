@@ -36,11 +36,10 @@
  */
 
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_PHY_LAYER
-#include <opensand_conf/uti_debug.h>
 
 #include "Gate.h"
+
+#include <opensand_output/Output.h>
 
 #include <strings.h>
 #include <cstring>
@@ -67,12 +66,12 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 	// Comparison between current and required C/N values
 	if(cn_total >= threshold_qef)
 	{
-		UTI_DEBUG_L3("Packet should not be modified \n");
+		Output::sendLog(LEVEL_DEBUG, "Packet should not be modified \n");
 		do_modify = false;
 	}
 	else
 	{
-		UTI_DEBUG_L3("Packet should be modified\n");
+		Output::sendLog(LEVEL_DEBUG, "Packet should be modified\n");
 		do_modify = true;
 	}
 	return do_modify;
@@ -80,7 +79,7 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 
 bool Gate::modifyPacket(const Data &UNUSED(payload))
 {
-	UTI_DEBUG_L3("Payload is modified\n");
+	Output::sendLog(LEVEL_DEBUG, "Payload is modified\n");
 	// not needed, we will reject frame in DVB layer as we return true
 	// memset(payload, '\0', length);
 	return true;

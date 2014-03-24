@@ -33,14 +33,11 @@
  */
 
 
-#undef DBG_PACKAGE
-#define DBG_PACKAGE PKG_QOS_DATA
-#include <opensand_conf/uti_debug.h>
-
 #include "Rohc.h"
 
 #include <NetPacket.h>
 #include <opensand_conf/ConfigurationFile.h>
+#include <opensand_output/Output.h>
 
 #include <vector>
 #include <map>
@@ -73,23 +70,27 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 
 	if(config.loadConfig(CONF_ROHC_FILE) < 0)
 	{
-		UTI_ERROR("failed to load config file '%s'",
-		          CONF_ROHC_FILE);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "failed to load config file '%s'",
+		                CONF_ROHC_FILE);
 		goto error;
 	}
 	// Retrieving the QoS number
 	if(!config.getValue(ROHC_SECTION, MAX_CID, max_cid))
 	{
-		UTI_ERROR("missing %s parameter\n", MAX_CID);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "missing %s parameter\n", MAX_CID);
 		goto unload;
 	}
-	UTI_DEBUG("Max CID: %d\n", max_cid);
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "Max CID: %d\n", max_cid);
 
 	// create the ROHC compressor
 	this->comp = rohc_alloc_compressor(max_cid, 0, 0, 0);
 	if(this->comp == NULL)
 	{
-		UTI_ERROR("cannot create ROHC compressor\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot create ROHC compressor\n");
 		goto unload;
 	}
 
@@ -102,7 +103,8 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 		this->decompressors[tal_id] = rohc_alloc_decompressor(this->comp);
 		if(this->decompressors[tal_id] == NULL)
 		{
-			UTI_ERROR("cannot create ROHC decompressor\n");
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "cannot create ROHC decompressor\n");
 			for(uint8_t i = 0; i < tal_id; ++i)
 			{
 				rohc_free_decompressor(this->decompressors[i]);
@@ -147,14 +149,16 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 
 	if(burst == NULL)
 	{
-		UTI_ERROR("input burst is NULL\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "input burst is NULL\n");
 		return NULL;
 	}
 	// create an empty burst of ROHC packets
 	rohc_packets = new NetBurst();
 	if(rohc_packets == NULL)
 	{
-		UTI_ERROR("cannot allocate memory for burst of ROHC packets\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot allocate memory for burst of ROHC packets\n");
 		delete burst;
 		return NULL;
 	}
@@ -167,7 +171,8 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 		unsigned char head_buffer[MAX_ETHERNET_SIZE];
 		NetPacket *payload;
 
-		UTI_DEBUG("received a packet with type 0x%.4x\n", (*packet)->getType());
+		Output::sendLog(this->log, LEVEL_INFO,
+		                "received a packet with type 0x%.4x\n", (*packet)->getType());
 		// handle Ethernet packets
 		if(IS_ETHERNET(this->current_upper->getEtherType()))
 		{
@@ -186,7 +191,8 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 		}
 		if(!this->compressRohc(payload, &comp_packet))
 		{
-			UTI_ERROR("ROHC compression failed, drop packet\n");
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "ROHC compression failed, drop packet\n");
 			continue;
 		}
 		if(is_eth)
@@ -201,14 +207,16 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 			                       (unsigned char *)head_buffer,
 			                       &comp_packet))
 			{
-				UTI_ERROR("cannot create Ethernet frame");
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "cannot create Ethernet frame");
 				delete rohc_packet;
 				continue;
 			}
 			delete rohc_packet;
 			if(comp_packet == NULL)
 			{
-				UTI_ERROR("cannot create ETHERNET frame");
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "cannot create ETHERNET frame");
 				continue;
 			}
 		}
@@ -231,7 +239,8 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
 	{
-		UTI_ERROR("cannot allocate memory for burst of network packets\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot allocate memory for burst of network packets\n");
 		delete burst;
 		return false;
 	}
@@ -247,7 +256,8 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 		// packet must be valid
 		if(*packet == NULL)
 		{
-			UTI_ERROR("encapsulation packet is not valid, drop the packet\n");
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "encapsulation packet is not valid, drop the packet\n");
 			continue;
 		}
 		// handle Ethernet packets
@@ -258,7 +268,8 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 			if(!extractPacketFromEth(*packet, head_length,
 			                         head_buffer, &payload))
 			{
-				UTI_ERROR("cannot get IP packet from Ethernet frame\n");
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "cannot get IP packet from Ethernet frame\n");
 				continue;
 			}
 		}
@@ -269,23 +280,26 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 		// payload must be a ROHC packet
 		if(payload->getType() != this->getEtherType())
 		{
-			UTI_ERROR("payload is not a ROHC packet "
-			          "(type = 0x%04x), drop the packet\n",
-			          payload->getType());
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "payload is not a ROHC packet "
+			                "(type = 0x%04x), drop the packet\n",
+			                payload->getType());
 			continue;
 		}
 
 		tal_id = payload->getSrcTalId();
 		if(this->decompressors.find(tal_id) == this->decompressors.end())
 		{
-			UTI_ERROR("Could not find decompressor associated with "
-			          "SRC Tal Id %u\n", tal_id);
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "Could not find decompressor associated with "
+			                "SRC Tal Id %u\n", tal_id);
 			continue;
 		}
 
 		if(!this->decompressRohc(payload, &dec_packet))
 		{
-			UTI_ERROR("ROHC decompression failed, drop packet\n");
+			Output::sendLog(this->log, LEVEL_ERROR,
+			                "ROHC decompression failed, drop packet\n");
 			continue;
 		}
 		if(is_eth)
@@ -296,14 +310,16 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 			                       (unsigned char *)head_buffer,
 			                       &dec_packet))
 			{
-				UTI_ERROR("cannot create Ethernet frame");
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "cannot create Ethernet frame");
 				delete rohc_packet;
 				continue;
 			}
 			delete rohc_packet;
 			if(dec_packet == NULL)
 			{
-				UTI_ERROR("cannot create Ethernet frame");
+				Output::sendLog(this->log, LEVEL_ERROR,
+				                "cannot create Ethernet frame");
 				continue;
 			}
 		}
@@ -324,14 +340,15 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
 
-	UTI_DEBUG("compress a %zu-byte packet of type 0x%04x\n",
-	          packet->getTotalLength(), packet->getType());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "compress a %zu-byte packet of type 0x%04x\n",
+	                packet->getTotalLength(), packet->getType());
 
 	// the ROHC compressor must be ready
 	if(this->comp == NULL)
 	{
-		UTI_ERROR("ROHC compressor not ready, "
-		          "drop packet\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "ROHC compressor not ready, drop packet\n");
 		goto drop;
 	}
 
@@ -341,7 +358,8 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	                  packet->getTotalLength(),
 	                  rohc_data, MAX_ROHC_SIZE, &rohc_len) != ROHC_OK)
 	{
-		UTI_ERROR("ROHC compression failed, drop packet\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "ROHC compression failed, drop packet\n");
 		goto drop;
 	}
 
@@ -349,8 +367,9 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	rohc_packet =  new RohcPacket(rohc_data, rohc_len, packet->getType());
 	if(rohc_packet == NULL)
 	{
-		UTI_ERROR("cannot create ROHC packet, "
-		          "drop the network packet\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot create ROHC packet, "
+		                "drop the network packet\n");
 		goto drop;
 	}
 	rohc_packet->setSrcTalId(packet->getSrcTalId());
@@ -362,9 +381,10 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	// set OUT parameter with compressed packet
 	*comp_packet = rohc_packet;
 
-	UTI_DEBUG("%zu-byte %s packet/frame => %zu-byte ROHC packet\n",
-	          packet->getTotalLength(), packet->getName().c_str(),
-	          rohc_packet->getTotalLength());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "%zu-byte %s packet/frame => %zu-byte ROHC packet\n",
+	                packet->getTotalLength(), packet->getName().c_str(),
+	                rohc_packet->getTotalLength());
 
 	return true;
 
@@ -387,7 +407,8 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	rohc_packet = new RohcPacket(packet->getData(), NET_PROTO_ROHC);
 	if(rohc_packet == NULL)
 	{
-		UTI_ERROR("cannot create RohcPacket from NetPacket\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot create RohcPacket from NetPacket\n");
 		goto drop;
 	}
 
@@ -398,8 +419,8 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	                         ip_data, MAX_ROHC_SIZE);
 	if(ip_len <= 0)
 	{
-		UTI_ERROR("ROHC decompression failed, "
-		          "drop packet\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "ROHC decompression failed, drop packet\n");
 		goto drop;
 	}
 
@@ -410,8 +431,8 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	                                        packet->getDstTalId());
 	if(net_packet == NULL)
 	{
-		UTI_ERROR("cannot create IP packet, "
-		          "drop the ROHC packet\n");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot create IP packet, drop the ROHC packet\n");
 		goto drop;
 	}
 
@@ -420,9 +441,11 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	// set OUT parameter with decompressed packet
 	*dec_packet = net_packet;
 
-	UTI_DEBUG("%zu-byte ROHC packet => %zu-byte %s packet/frame\n",
-	          rohc_packet->getTotalLength(),
-	          net_packet->getTotalLength(), net_packet->getName().c_str());
+	Output::sendLog(this->log, LEVEL_INFO,
+	                "%zu-byte ROHC packet => %zu-byte %s packet/frame\n",
+	                rohc_packet->getTotalLength(),
+	                net_packet->getTotalLength(),
+	                net_packet->getName().c_str());
 
 	delete rohc_packet;
 
@@ -448,7 +471,8 @@ bool Rohc::Context::extractPacketFromEth(NetPacket *frame,
 		                           frame->getDstTalId());
 	if(eth_frame == NULL)
 	{
-		UTI_ERROR("cannot create Ethernet packet");
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "cannot create Ethernet packet");
 		return false;
 	}
 	head_length = eth_frame->getHeaderLength();
@@ -477,8 +501,9 @@ bool Rohc::Context::buildEthFromPacket(NetPacket *packet,
 
 /*	if(new_eth_size > MAX_ETHERNET_SIZE)
 	{
-		UTI_ERROR("ethernet frame length (%zu) exceeds maximum length (%d)\n",
-		          new_eth_size, MAX_ETHERNET_SIZE);
+		Output::sendLog(this->log, LEVEL_ERROR,
+		                "ethernet frame length (%zu) exceeds maximum length (%d)\n",
+		                new_eth_size, MAX_ETHERNET_SIZE);
 		return false;
 	}*/
 	// ethernet frame << eth header << rohc packet data

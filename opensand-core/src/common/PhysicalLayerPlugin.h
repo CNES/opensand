@@ -39,6 +39,8 @@
 #include "OpenSandCore.h"
 #include "Data.h"
 
+#include <opensand_output/Output.h>
+
 #include <string>
 #include <map>
 #include <stdint.h>
@@ -53,59 +55,66 @@ using std::string;
  */
 class AttenuationModelPlugin: public OpenSandPlugin
 {
+ protected:
+	/* Output log */
+	OutputLog *log_init;
+	OutputLog *log_attenuation;
 
-	protected:
+	/* The model current attenuation */
+	double attenuation;
 
-		/* The model current attenuation */
-		double attenuation;
+	/* Granularity*/
+	int granularity;
 
-		/* Granularity*/
-		int granularity;
+ public:
 
-	public:
+	/**
+	 * @brief AttenuationModelPlugin constructor
+	 *
+	 * @param granularity  the attenuation model granularity
+	 */
+	AttenuationModelPlugin(): OpenSandPlugin() 
+	{
+		this->log_init = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
+		this->log_attenuation = Output::registerLog(LEVEL_WARNING,
+		                                            "PhysicalLayer.Attenuation");
+	};
 
-		/**
-		 * @brief AttenuationModelPlugin constructor
-		 *
-		 * @param granularity  the attenuation model granularity
-		 */
-		AttenuationModelPlugin(): OpenSandPlugin() {};
+	/**
+	 * @brief AttenuationModelPlugin destructor
+	 */
+	virtual ~AttenuationModelPlugin() {};
 
-		/**
-		 * @brief AttenuationModelPlugin destructor
-		 */
-		virtual ~AttenuationModelPlugin() {};
+	/**
+	 * @brief initialize the attenuation model
+	 *
+	 * @param granularity the attenuation granularity
+	 * @param link        the link
+	 * @return true on success, false otherwise
+	 */
+	virtual bool init(int granularity, string link) = 0;
 
-		/**
-		 * @brief initialize the attenuation model
-		 *
-		 * @param granularity the attenuation granularity
-		 * @param link        the link
-		 * @return true on success, false otherwise
-		 */
-		virtual bool init(int granularity, string link) = 0;
+	/**
+	 * @brief Get the model current attenuation
+	 */
+	double getAttenuation() {return this->attenuation;};
 
-		/**
-		 * @brief Get the model current attenuation
-		 */
-		double getAttenuation() {return this->attenuation;};
+	/**
+	 * @brief Set the attenuation model current attenuation
+	 *
+	 * @param attenuation the model attenuation
+	 */
+	void setAttenuation(double attenuation)
+	{
+		this->attenuation = attenuation;
+	};
 
-		/**
-		 * @brief Set the attenuation model current attenuation
-		 *
-		 * @param attenuation the model attenuation
-		 */
-		void setAttenuation(double attenuation)
-		{
-			this->attenuation = attenuation;
-		};
-
-		/**
-		 * @brief update the attenuation model current attenuation
-		 *
-		 * @return true on success, false otherwise
-		 */
-		virtual bool updateAttenuationModel() = 0;
+	/**
+	 * @brief update the attenuation model current attenuation
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool updateAttenuationModel() = 0;
 
 };
 
@@ -117,94 +126,114 @@ class AttenuationModelPlugin: public OpenSandPlugin
 class MinimalConditionPlugin: public OpenSandPlugin
 {
 
-	protected:
+protected:
+	/* Output log */
+	OutputLog *log_init;
+	OutputLog *log_minimal;
 
-		/// MinimalCondition C/N in clear sky conditions
-		double minimal_cn;
+	/// MinimalCondition C/N in clear sky conditions
+	double minimal_cn;
 
-	public:
+public:
 
-		/**
-		 * @brief MinimalConditionPlugin constructor
-		 */
-		MinimalConditionPlugin(): OpenSandPlugin() {};
+	/**
+	 * @brief MinimalConditionPlugin constructor
+	 */
+	MinimalConditionPlugin(): OpenSandPlugin() 
+	{
+		this->log_init = Output::registerLog(LEVEL_WARNING,
+		                                     "PhysicalLayer.Init");
+		this->log_minimal = Output::registerLog(LEVEL_WARNING,
+		                                        "PhysicalLayer.MinimalCondition");
+	};
 
-		/**
-		 * @brief MinimalConditionPlugin destructor
-		 */
-		virtual ~MinimalConditionPlugin() {};
+	/**
+	 * @brief MinimalConditionPlugin destructor
+	 */
+	virtual ~MinimalConditionPlugin() {};
 
-		/**
-		 * @brief initialize the minimal condition
-		 *
-		 * @return true on success, false otherwise
-		 */
-		virtual bool init(void) = 0;
+	/**
+	 * @brief initialize the minimal condition
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool init(void) = 0;
 
-		/**
-		 * @brief Set the minimalCondition current Carrier to Noise ratio
-		 *        according to time
-		 *
-		 * @param time the current time
-		 */
-		virtual double getMinimalCN() {return this->minimal_cn;};
+	/**
+	 * @brief Set the minimalCondition current Carrier to Noise ratio
+	 *        according to time
+	 *
+	 * @param time the current time
+	 */
+	virtual double getMinimalCN() {return this->minimal_cn;};
 
-		/**
-		 * @brief Updates Thresold when a msg arrives to Channel
-		 *
-		 * @param modcod_id  The MODCOD id carried by the BBFrame
-		 * @return true on success, false otherwise
-		 */
-		virtual bool updateThreshold(uint8_t modcod_id) = 0;
+	/**
+	 * @brief Updates Thresold when a msg arrives to Channel
+	 *
+	 * @param modcod_id  The MODCOD id carried by the BBFrame
+	 * @return true on success, false otherwise
+	 */
+	virtual bool updateThreshold(uint8_t modcod_id) = 0;
 };
 
 /**
- * @class ErrorInsertion
- * @brief ErrorInsertion
- */
+* @class ErrorInsertion
+* @brief ErrorInsertion
+*/
 class ErrorInsertionPlugin: public OpenSandPlugin 
 {
-	public:
+ public:
 
-		/**
-		 * @brief ErrorInsertionPlugin constructor
-		 */
-		ErrorInsertionPlugin(): OpenSandPlugin() {};
+	/**
+	 * @brief ErrorInsertionPlugin constructor
+	 */
+	ErrorInsertionPlugin(): OpenSandPlugin()
+	{
+		this->log_init = Output::registerLog(LEVEL_WARNING,
+		                                     "PhysicalLayer.Init");
+		this->log_error = Output::registerLog(LEVEL_WARNING,
+		                                      "PhysicalLayer.ErrorInsertion");
+	};
 
-		/**
-		 * @brief ErrorInsertionPlugin destructor
-		 */
-		virtual ~ErrorInsertionPlugin() {};
+	/**
+	 * @brief ErrorInsertionPlugin destructor
+	 */
+	virtual ~ErrorInsertionPlugin() {};
 
-		/**
-		 * @brief initialize the error insertion
-		 *
-		 * @return true on success, false otherwise
-		 */
-		virtual bool init() = 0;
+	/**
+	 * @brief initialize the error insertion
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool init() = 0;
 
-		/**
-		 * @brief Determine if a Packet shall be corrupted or not depending on
-		 *        the attenuationModel conditions 
-		 *
-		 * @param cn_total       The total C/N of the link
-		 * @param threshold_qef  The minimal C/N of the link
-		 *
-		 * @return true if it must be corrupted, false otherwise 
-		 */
-		virtual bool isToBeModifiedPacket(double cn_total,
-		                                  double threshold_qef) = 0;
+	/**
+	 * @brief Determine if a Packet shall be corrupted or not depending on
+	 *        the attenuationModel conditions 
+	 *
+	 * @param cn_total       The total C/N of the link
+	 * @param threshold_qef  The minimal C/N of the link
+	 *
+	 * @return true if it must be corrupted, false otherwise 
+	 */
+	virtual bool isToBeModifiedPacket(double cn_total,
+	                                  double threshold_qef) = 0;
 
-		/**
-		 * @brief Corrupt a package with error bits 
-		 *
-		 * @param payload the payload to the frame that should be modified 
-		 * @return true if DVB header should be tagged as corrupted,
-		 *         false otherwise
-		 *         If packet is modified by the function but should be forwarded
-		 *         to other layers return false else it will be discarded
-		 */
-		virtual bool modifyPacket(const Data &payload) = 0;
+	/**
+	 * @brief Corrupt a package with error bits 
+	 *
+	 * @param payload the payload to the frame that should be modified 
+	 * @return true if DVB header should be tagged as corrupted,
+	 *         false otherwise
+	 *         If packet is modified by the function but should be forwarded
+	 *         to other layers return false else it will be discarded
+	 */
+	virtual bool modifyPacket(const Data &payload) = 0;
+
+ protected:
+	/* Output log */
+	OutputLog *log_init;
+	OutputLog *log_error;
 
 };
 

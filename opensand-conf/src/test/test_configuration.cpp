@@ -33,6 +33,8 @@
 
 #include "ConfigurationFile.h"
 
+#include <opensand_output/Output.h>
+
 #include <fstream>
 #include <cstring>
 
@@ -76,7 +78,7 @@ int main(int argc, char **argv)
     ifstream comp_ifile;
     vector<string> input_files;
     string result_filename;
-
+   
 	/* parse program arguments, print the help message in case of failure */
 	if(argc <= 1)
 	{
@@ -151,9 +153,12 @@ int main(int argc, char **argv)
     vec.push_back("dupkey2");
     config["dup"] = vec;
 
-    // be careful the maps are ordered, the output will not be ordered like above
+    Output::enableStdlog();
+    Output::init(true);
+    Output::finishInit();
 
     // load the configuration files
+    // be careful the maps are ordered, the output will not be ordered like above
     if(!globalConfig.loadConfig(input_files))
     {
         cerr << "cannot load configuration files" << endl;

@@ -33,9 +33,6 @@
  */
 
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
-
 #include "DamaAgent.h"
 
 #include "OpenSandFrames.h"
@@ -102,8 +99,9 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			case cr_none:
 				break;
 			default:
-				UTI_ERROR("Unknown CR type for FIFO %s: %d\n",
-				          (*it).second->getName().c_str(), cr_type);
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "Unknown CR type for FIFO %s: %d\n",
+				                (*it).second->getName().c_str(), cr_type);
 			goto error;
 		}
 	}
@@ -112,7 +110,9 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 	if (!this->initOutput())
 	{
-		UTI_ERROR("the output probes and stats initialization have failed\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "the output probes and stats initialization have "
+		                "failed\n");
 		return false;
 	}
 
@@ -124,6 +124,19 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 bool DamaAgent::initOutput()
 {
+
+	// Output Log
+	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+	this->log_frame_tick = Output::registerLog(LEVEL_WARNING,
+	                                           "Dvb.DamaAgent.frameTick");
+	
+	this->log_schedule = Output::registerLog(LEVEL_WARNING,
+	                                           "Dvb.DamaAgent.Schedule");
+	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Ttp");
+	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Sac");
+	this->log_request = Output::registerLog(LEVEL_WARNING,
+	                                        "Dvb.DamaAgent.Request");
+
 	// RBDC request size
 	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
 		"Request.RBDC", "Kbps", true, SAMPLE_LAST);

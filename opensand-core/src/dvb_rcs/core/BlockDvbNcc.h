@@ -63,7 +63,6 @@
 #include "NccPepInterface.h"
 #include "Scheduling.h"
 
-
 class BlockDvbNcc: public BlockDvb, NccPepInterface
 {
 
@@ -153,9 +152,9 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	//events
 
 	/// logon request reveived
-	Event *event_logon_req;
+	OutputEvent *event_logon_req;
 	/// logon response sent
-	Event *event_logon_resp;
+	OutputEvent *event_logon_resp;
 
 	map<uint16_t, uint16_t> column_list;
 

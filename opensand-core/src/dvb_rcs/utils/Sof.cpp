@@ -32,7 +32,7 @@
  * @author  Audric Schiltknecht / Viveris Technologies
  */
 
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 #include "Sof.h"
 

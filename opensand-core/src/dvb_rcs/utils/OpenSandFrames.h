@@ -40,7 +40,8 @@
 //      move other content into DvbFrames
 // MSG_TYPES should be in these classes as for NET_PROTO in NetPacket
 
-#include <opensand_conf/uti_debug.h>
+
+#include <opensand_output/Output.h>
 
 #include "OpenSandCore.h"
 

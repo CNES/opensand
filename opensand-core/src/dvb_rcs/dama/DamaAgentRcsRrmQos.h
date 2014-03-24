@@ -65,16 +65,15 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 
 	// UL allocation in number of time-slots per frame
 	CircularBuffer *dyn_alloc; ///< dynamic bandwith allocated in nb of
-	                            ///  time-slots/frame for the last frames
-	                            ///  (its also contains allocated CRA)
-	CircularBuffer *rin;		    ///< circular buffer used to save the
-   									///	incoming rates wieghted with a 
-									/// coefficient for each 
-									/// frame of the last OBR period
-	double *rin_coeff;		///< coefficient array to balance the incoming
-							/// rate (Rin) of each frame
-	
-
+	                           ///  time-slots/frame for the last frames
+	                           ///  (its also contains allocated CRA)
+	CircularBuffer *rin;       ///< circular buffer used to save the
+	                           ///  incoming rates wieghted with a 
+	                           ///  coefficient for each 
+	                           ///  frame of the last OBR period
+	double *rin_coeff;         ///< coefficient array to balance the incoming
+	                           ///  rate (Rin) of each frame
+ 
  private:
 
 	rate_kbps_t computeRbdcRequest();

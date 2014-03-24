@@ -32,11 +32,10 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
 
 #include "DvbRcsStd.h"
+
+#include <opensand_output/Output.h>
 
 #include <cassert>
 
@@ -45,6 +44,9 @@ DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler * pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl)
 {
 	this->generic_switch = NULL;
+
+	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
+	                                              "Dvb.Upward.receive");
 }
 
 
@@ -70,43 +72,52 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	if(dvb_rcs_frame->getMessageType() == MSG_TYPE_CORRUPTED)
 	{
 		// corrupted, nothing more to do
-		UTI_DEBUG("The Frame was corrupted by physical layer, drop it\n");
+
+		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+		                "The Frame was corrupted by physical layer, "
+		                "drop it\n");
 		goto skip;
 	}
 
 	if(dvb_rcs_frame->getMessageType() != MSG_TYPE_DVB_BURST)
 	{
-		UTI_ERROR("the message received is not a DVB burst\n");
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "the message received is not a DVB burst\n");
 		goto error;
 	}
 
 	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
-		UTI_DEBUG("skip DVB-RCS frame with no encapsulation packet\n");
+		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+		                "skip DVB-RCS frame with no encapsulation packet\n");
 		goto skip;
 	}
 	if(!this->packet_handler)
 	{
-		UTI_ERROR("packet handler is NULL\n");
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "packet handler is NULL\n");
 		goto error;
 	}
 	if(this->packet_handler->getFixedLength() == 0)
 	{
-		UTI_ERROR("encapsulated packets length is not fixed on "
-		          "a DVB-RCS emission link (packet type is %s)\n",
-		          this->packet_handler->getName().c_str());
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "encapsulated packets length is not fixed on "
+		                "a DVB-RCS emission link (packet type is %s)\n",
+		    this->packet_handler->getName().c_str());
 		return false;
 	}
 
-	UTI_DEBUG("%s burst received (%u packet(s))\n",
-	          this->packet_handler->getName().c_str(),
-	          dvb_rcs_frame->getNumPackets());
+	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+	                "%s burst received (%u packet(s))\n",
+	                this->packet_handler->getName().c_str(),
+	                dvb_rcs_frame->getNumPackets());
 
 	// create an empty burst of encapsulation packets
 	*burst = new NetBurst();
 	if(*burst == NULL)
 	{
-		UTI_ERROR("failed to create a burst of packets\n");
+		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+		                "failed to create a burst of packets\n");
 		goto error;
 	}
 
@@ -129,8 +140,9 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{
-			UTI_ERROR("cannot create one %s packet\n",
-			          this->packet_handler->getName().c_str());
+			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+			                "cannot create one %s packet\n",
+			                this->packet_handler->getName().c_str());
 			goto release_burst;
 		}
 
@@ -144,8 +156,9 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 			spot_id = this->generic_switch->find(encap_packet);
 			if(spot_id == 0)
 			{
-				UTI_ERROR("unable to find destination spot, drop the "
-				          "packet\n");
+				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
+				                "unable to find destination spot, drop the "
+				                "packet\n");
 				delete encap_packet;
 				continue;
 			}
@@ -156,9 +169,10 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
-		UTI_DEBUG("%s packet (%zu bytes) added to burst\n",
-		          this->packet_handler->getName().c_str(),
-		          encap_packet->getTotalLength());
+		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
+		                "%s packet (%zu bytes) added to burst\n",
+		                this->packet_handler->getName().c_str(),
+		                encap_packet->getTotalLength());
 	}
 
 skip:

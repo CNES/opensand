@@ -33,10 +33,8 @@
 
 #include "NccPepInterface.h"
 
-
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
-#include "opensand_conf/conf.h"
+#include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -50,10 +48,6 @@
 #include <sstream>
 
 
-
-/* static */
-Event* NccPepInterface::error_sock_open = NULL;
-
 /**
  * @brief Initialize the interface between NCC and PEP components
  */
@@ -63,11 +57,9 @@ NccPepInterface::NccPepInterface(): requests_list()
 	this->socket_client = -1;
 	this->is_connected = false;
 
-	if(error_sock_open == NULL)
-	{
-		error_sock_open = Output::registerEvent("ncc_pep_interface",
-		                                           LEVEL_ERROR);
-	}
+	// Output log
+	this->log_pep = Output::registerLog(LEVEL_WARNING,
+	                                    "Dvb.Ncc.Pep");
 }
 
 
@@ -190,29 +182,30 @@ bool NccPepInterface::listenForPepConnections()
     // TODO move configuration reading in bloc
 	if(!globalConfig.getValue(NCC_SECTION_PEP, PEP_DAMA_PORT, tcp_port))
 	{
-		UTI_INFO("section '%s': missing parameter '%s'\n",
-		         NCC_SECTION_PEP, PEP_DAMA_PORT);
+		Output::sendLog(this->log_pep, LEVEL_NOTICE,
+		                "section '%s': missing parameter '%s'\n",
+		                NCC_SECTION_PEP, PEP_DAMA_PORT);
 		goto error;
 	}
 
 	if(tcp_port <= 0 && tcp_port >= 0xffff)
 	{
-		UTI_ERROR("section '%s': bad value for parameter '%s'\n",
-		          NCC_SECTION_PEP, PEP_DAMA_PORT);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "section '%s': bad value for parameter '%s'\n",
+		                NCC_SECTION_PEP, PEP_DAMA_PORT);
 		goto error;
 	}
 
-	UTI_INFO("TCP port to listen for PEP connections = %d\n", tcp_port);
+	Output::sendLog(this->log_pep, LEVEL_NOTICE,
+	                "TCP port to listen for PEP connections = %d\n", tcp_port);
 
 	// create socket for incoming connections
 	this->socket_listen = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(this->socket_listen < 0)
 	{
-		UTI_ERROR("failed to create socket to listen for PEP "
-		          "connections: %s (%d)\n", strerror(errno), errno);
-		Output::sendEvent(error_sock_open, "failed to create socket"
-		                     " to listen for PEP connections: %s (%d)\n",
-		                     strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to create socket to listen for PEP "
+		                "connections: %s (%d)\n", strerror(errno), errno);
 		goto error;
 	}
 
@@ -220,8 +213,9 @@ bool NccPepInterface::listenForPepConnections()
 	ret = fcntl(this->socket_listen, F_SETFL, O_NONBLOCK);
 	if(ret != 0)
 	{
-		UTI_ERROR("failed to set the PEP socket in non blocking mode: "
-		          "%s (%d)\n", strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to set the PEP socket in non blocking mode: "
+		                "%s (%d)\n", strerror(errno), errno);
 		goto close_socket;
 	}
 
@@ -234,8 +228,9 @@ bool NccPepInterface::listenForPepConnections()
 	           sizeof(struct sockaddr_in));
 	if(ret != 0)
 	{
-		UTI_ERROR("failed to bind PEP socket on TCP port %d: "
-		          "%s (%d)\n", tcp_port, strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to bind PEP socket on TCP port %d: "
+		                "%s (%d)\n", tcp_port, strerror(errno), errno);
 		goto close_socket;
 	}
 
@@ -243,8 +238,9 @@ bool NccPepInterface::listenForPepConnections()
 	ret = listen(this->socket_listen, 1);
 	if(ret != 0)
 	{
-		UTI_ERROR("failed to listen on PEP socket: %s (%d)\n",
-		          strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to listen on PEP socket: %s (%d)\n",
+		                strerror(errno), errno);
 		goto close_socket;
 	}
 
@@ -290,8 +286,9 @@ int NccPepInterface::acceptPepConnection()
 	                             &addr_length);
 	if(this->socket_client < 0)
 	{
-		UTI_ERROR("failed to accept new connection on PEP socket: "
-		          "%s (%d)\n", strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to accept new connection on PEP socket: "
+		                "%s (%d)\n", strerror(errno), errno);
 		goto error;
 	}
 
@@ -299,15 +296,17 @@ int NccPepInterface::acceptPepConnection()
 	option = O_NONBLOCK;
 	if(fcntl(this->socket_client, F_SETFL, option) != 0)
 	{
-		UTI_ERROR("set PEP socket in non blocking mode failed: %s (%d)\n",
-		          strerror(errno), errno);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "set PEP socket in non blocking mode failed: %s (%d)\n",
+		                strerror(errno), errno);
 		goto close;
 	}
 
 	// the new socket is now connected to a client!
 	this->is_connected = true;
-	UTI_INFO("NCC is now connected to PEP %s\n",
-	         inet_ntoa(pep_addr.sin_addr));
+	Output::sendLog(this->log_pep, LEVEL_NOTICE,
+	                "NCC is now connected to PEP %s\n",
+	                inet_ntoa(pep_addr.sin_addr));
 
 	return 0;
 
@@ -327,8 +326,9 @@ bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 	// a PEP must be connected to read a message from it!
 	if(!this->is_connected)
 	{
-		UTI_ERROR("trying to read on PEP socket while no PEP "
-		          "component is connected yet\n");
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "trying to read on PEP socket while no PEP "
+		                "component is connected yet\n");
 		goto error;
 	}
 
@@ -338,14 +338,17 @@ bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 	if(this->parsePepMessage(recv_buffer) != true)
 	{
 		// an error occured when parsing the PEP message
-		UTI_ERROR("failed to parse message received from PEP component\n");
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "failed to parse message received from PEP "
+		                "component\n");
 		goto close;
 	}
 
 	return true;
 
 close:
-	UTI_ERROR("close PEP client socket because of previous errors\n");
+	Output::sendLog(this->log_pep, LEVEL_ERROR,
+	                "close PEP client socket because of previous errors\n");
 	this->is_connected = false;
 error:
 	return false;
@@ -382,8 +385,9 @@ bool NccPepInterface::parsePepMessage(const char *message)
 		request = this->parsePepCommand(cmd);
 		if(request == NULL)
 		{
-			UTI_ERROR("failed to parse command #%d in PEP message, "
-			          "skip the command\n", nb_cmds + 1);
+			Output::sendLog(this->log_pep, LEVEL_ERROR,
+			                "failed to parse command #%d in PEP message, "
+			                "skip the command\n", nb_cmds + 1);
 			continue;
 		}
 
@@ -396,9 +400,10 @@ bool NccPepInterface::parsePepMessage(const char *message)
 		}
 		else if(request->getType() != all_cmds_type)
 		{
-			UTI_ERROR("command #%d is not of the same type "
-			          "as command #1, this is not accepted, "
-			          "so ignore the command\n", nb_cmds);
+			Output::sendLog(this->log_pep, LEVEL_ERROR,
+			                "command #%d is not of the same type "
+			                "as command #1, this is not accepted, "
+			                "so ignore the command\n", nb_cmds);
 			delete request;
 			continue;
 		}
@@ -439,25 +444,27 @@ PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
 	ret = sscanf(cmd, "%u:%u:%u:%u:%u", &type, &st_id, &cra, &rbdc, &rbdc_max);
 	if(ret != 5)
 	{
-		UTI_ERROR("bad formated PEP command received: '%s'\n", cmd);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "bad formated PEP command received: '%s'\n", cmd);
 		goto error;
 	}
 
 	// request type must be 1 for allocation or 0 for de-allocation
 	if(type != PEP_REQUEST_ALLOCATION && type != PEP_REQUEST_RELEASE)
 	{
-		UTI_ERROR("bad request type in PEP command '%s', "
-		          "should be %u or %u\n", cmd,
-		          PEP_REQUEST_ALLOCATION, PEP_REQUEST_RELEASE);
+		Output::sendLog(this->log_pep, LEVEL_ERROR,
+		                "bad request type in PEP command '%s', "
+		                "should be %u or %u\n", cmd,
+		                PEP_REQUEST_ALLOCATION, PEP_REQUEST_RELEASE);
 		goto error;
 	}
 
-	UTI_INFO("PEP %s received for ST #%u: "
-	         "new CRA = %u kbits/s, "
-	         "new RBDC = %u kbits/s, "
-	         "new RBDC Max = %u kbits/s ",
-	         ((type == PEP_REQUEST_ALLOCATION) ? "allocation" : "release"),
-	         st_id, cra, rbdc, rbdc_max);
+	Output::sendLog(this->log_pep, LEVEL_ERROR,
+	                "PEP %s received for ST #%u: new CRA = %u kbits/s, "
+	                "new RBDC = %u kbits/s, new RBDC Max = %u kbits/s ",
+	                ((type == PEP_REQUEST_ALLOCATION) ?
+	                                "allocation" : "release"),
+	                st_id, cra, rbdc, rbdc_max);
 
 	// build PEP request object
 	return new PepRequest((pep_request_type_t) type, st_id, cra, rbdc, rbdc_max);

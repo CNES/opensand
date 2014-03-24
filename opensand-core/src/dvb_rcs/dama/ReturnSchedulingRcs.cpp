@@ -34,13 +34,11 @@
  */
 
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
-
 #include "ReturnSchedulingRcs.h"
 #include "MacFifoElement.h"
 #include "OpenSandFrames.h"
 
+#include <opensand_output/Output.h>
 
 ReturnSchedulingRcs::ReturnSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
@@ -68,8 +66,9 @@ bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	{
 		if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(rate_pktpf_t)))
 		{
-			UTI_INFO("Remaining allocation (%u) is too long and will be truncated\n",
-			         remaining_allocation);
+			Output::sendLog(this->log_scheduling, LEVEL_NOTICE,
+			                "Remaining allocation (%u) is too long and will be "
+			                "truncated\n", remaining_allocation);
 		}
 		// extract and send encap packets from MAC FIFOs, in function of
 		// UL allocation
@@ -79,7 +78,9 @@ bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		                      complete_dvb_frames,
 		                      (rate_pktpf_t &)remaining_allocation))
 		{
-			UTI_ERROR("SF#%u: MAC scheduling failed\n", current_superframe_sf);
+			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+			                "SF#%u: MAC scheduling failed\n",
+			                current_superframe_sf);
 			return false;
 		}
 	}
@@ -100,10 +101,11 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 	rate_pktpf_t init_alloc_pktpf = remaining_allocation_pktpf;
 	fifos_t::const_iterator fifo_it;
 
-	UTI_DEBUG("SF#%u: frame %u: attempt to extract encap packets from "
-	          "MAC FIFOs for PVC %d (remaining allocation = %d packets)\n",
-	          current_superframe_sf, current_frame,
-	          pvc, remaining_allocation_pktpf);
+	Output::sendLog(this->log_scheduling, LEVEL_INFO,
+	                "SF#%u: frame %u: attempt to extract encap packets from MAC"
+	                " FIFOs for PVC %d (remaining allocation = %d packets)\n",
+	                current_superframe_sf, current_frame,
+	                pvc, remaining_allocation_pktpf);
 
 	// create an incomplete DVB-RCS frame
 	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -125,40 +127,38 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 
 		if(fifo->getPvc() != pvc)
 		{
-			// ignore FIFO with a different PVC
-			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
-			             "with ID %d: PVC is %d not %d\n",
-			             current_superframe_sf, current_frame,
-			             fifo->getPriority(),
-			             fifo->getPvc(),
-			             pvc);
+		  	// ignore FIFO with a different PVC
+			Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+			                "SF#%u: frame %u: ignore MAC FIFO "
+			                "with ID %d: PVC is %d not %d\n",
+			                current_superframe_sf, current_frame,
+			                fifo->getPriority(), fifo->getPvc(), pvc);
 			// pass to next fifo
 			++fifo_it;
 		}
 		else if(fifo->getCurrentSize() <= 0)
 		{
 			// FIFO is on correct PVC but got no data
-			UTI_DEBUG_L3("SF#%u: frame %u: ignore MAC FIFO "
-			             "with ID %d: correct PVC %d but no data "
-			             "(left) to schedule\n",
-			             current_superframe_sf, current_frame,
-			             fifo->getPriority(),
-			             fifo->getPvc());
+			Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+			                "SF#%u: frame %u: ignore MAC FIFO "
+			                "with ID %d: correct PVC %d but no data "
+			                "(left) to schedule\n",
+			                current_superframe_sf, current_frame,
+			                fifo->getPriority(), fifo->getPvc());
 			// pass to next fifo
 			++fifo_it;
 		}
 		else
 		{
 			// FIFO with correct PVC and awaiting data
-			UTI_DEBUG_L3("SF#%u: frame %u: extract packet from "
-			             "MAC FIFO with ID %d: correct PVC %d and "
-			             "%u awaiting packets (remaining "
-			             "allocation = %d)\n",
-			             current_superframe_sf, current_frame,
-			             fifo->getPriority(),
-			             fifo->getPvc(),
-			             fifo->getCurrentSize(),
-			             remaining_allocation_pktpf);
+			Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+			                "SF#%u: frame %u: extract packet from "
+			                "MAC FIFO with ID %d: correct PVC %d and "
+			                "%u awaiting packets (remaining "
+			                "allocation = %d)\n",
+			                current_superframe_sf, current_frame,
+			                fifo->getPriority(), fifo->getPvc(),
+			                fifo->getCurrentSize(), remaining_allocation_pktpf);
 
 			// extract next encap packet context from MAC fifo
 			elem = fifo->pop();
@@ -172,10 +172,11 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 			if(encap_packet->getTotalLength() >
 			   incomplete_dvb_frame->getFreeSpace())
 			{
-				UTI_DEBUG_L3("SF#%u: frame %u: DVB frame #%u "
-				             "is full, change for next one\n",
-				             current_superframe_sf, current_frame,
-				             complete_frames_count + 1);
+				Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+				                "SF#%u: frame %u: DVB frame #%u "
+				                "is full, change for next one\n",
+				                current_superframe_sf, current_frame,
+				                complete_frames_count + 1);
 
 				complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
@@ -191,9 +192,10 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 				if(encap_packet->getTotalLength() >
 				   incomplete_dvb_frame->getFreeSpace())
 				{
-					UTI_ERROR("DVB-RCS frame #%u got no enough "
-					          "free space, this should never "
-					          "append\n", complete_frames_count + 1);
+					Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+					                "DVB-RCS frame #%u got no enough "
+					                "free space, this should never "
+					                "append\n", complete_frames_count + 1);
 					delete encap_packet;
 					continue;
 				}
@@ -202,20 +204,21 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 			// add the encapsulation packet to the current DVB-RCS frame
 			if(!incomplete_dvb_frame->addPacket(encap_packet))
 			{
-				UTI_ERROR("SF#%u: frame %u: cannot add "
-				          "extracted MAC packet in "
-				          "DVB frame #%u\n",
-				          current_superframe_sf, current_frame,
-				          complete_frames_count + 1);
+				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+				                "SF#%u: frame %u: cannot add "
+				                "extracted MAC packet in DVB frame #%u\n",
+				                current_superframe_sf, current_frame,
+				                complete_frames_count + 1);
 				delete encap_packet;
 				ret = false;
 				continue;
 			}
 
-			UTI_DEBUG_L3("SF#%u: frame %u: extracted packet added "
-			             "to DVB frame #%u\n",
-			             current_superframe_sf, current_frame,
-			             complete_frames_count + 1);
+			Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
+			                "SF#%u: frame %u: extracted packet added "
+			                "to DVB frame #%u\n",
+			                current_superframe_sf, current_frame,
+			                complete_frames_count + 1);
 			delete encap_packet;
 
 			// update allocation
@@ -241,13 +244,13 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 	}
 
 	// print status
-	UTI_DEBUG("SF#%u: frame %u: %d packets extracted from MAC FIFOs "
-	          "for PVC %d, %u DVB frame(s) were built (remaining allocation "
-	          "= %d packets)\n",
-	          current_superframe_sf, current_frame,
-	          init_alloc_pktpf - remaining_allocation_pktpf,
-	          pvc, complete_frames_count,
-	          remaining_allocation_pktpf);
+	Output::sendLog(this->log_scheduling, LEVEL_INFO,
+	                "SF#%u: frame %u: %d packets extracted from MAC FIFOs "
+	                "for PVC %d, %u DVB frame(s) were built (remaining "
+	                "allocation = %d packets)\n", current_superframe_sf,
+	                current_frame,
+	                init_alloc_pktpf - remaining_allocation_pktpf, pvc,
+	                complete_frames_count, remaining_allocation_pktpf);
 
 	return ret;
 error:
@@ -259,8 +262,9 @@ bool ReturnSchedulingRcs::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame
 {
 	*incomplete_dvb_frame = new DvbRcsFrame();
 	if(*incomplete_dvb_frame == NULL)
-	{
-		UTI_ERROR("failed to create DVB-RCS frame\n");
+	{ 
+		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
+		                "failed to create DVB-RCS frame\n");
 		goto error;
 	}
 

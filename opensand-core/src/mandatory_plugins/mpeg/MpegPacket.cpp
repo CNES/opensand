@@ -34,8 +34,7 @@
 
 #include "MpegPacket.h"
 
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 
 MpegPacket::MpegPacket(const unsigned char *data, size_t length):
@@ -107,38 +106,43 @@ bool MpegPacket::isValid() const
 	/* check length */
 	if(this->getTotalLength() != TS_PACKETSIZE)
 	{
-		UTI_ERROR("%s bad length (%zu bytes)\n",
-		          FUNCNAME, this->getTotalLength());
+		Output::sendLog(LEVEL_ERROR,
+		                "%s bad length (%zu bytes)\n",
+		                FUNCNAME, this->getTotalLength());
 		goto bad;
 	}
 
 	/* check Synchonization byte */
 	if(this->sync() != 0x47)
 	{
-		UTI_ERROR("%s bad sync byte (0x%02x)\n",
-		          FUNCNAME, this->sync());
+		Output::sendLog(LEVEL_ERROR,
+		                "%s bad sync byte (0x%02x)\n",
+		                FUNCNAME, this->sync());
 		goto bad;
 	}
 
 	/* check the Transport Error Indicator (TEI) bit */
 	if(this->tei())
 	{
-		UTI_ERROR("%s TEI is on\n", FUNCNAME);
+		Output::sendLog(LEVEL_ERROR,
+		                "%s TEI is on\n", FUNCNAME);
 		goto bad;
 	}
 
 	/* check Transport Scrambling Control (TSC) bits */
 	if(this->tsc() != 0)
 	{
-		UTI_ERROR("%s TSC is on\n", FUNCNAME);
+		Output::sendLog(LEVEL_ERROR,
+		                "%s TSC is on\n", FUNCNAME);
 		goto bad;
 	}
 
 	/* check Payload Pointer validity (if present) */
 	if(this->pusi() && this->pp() >= (TS_DATASIZE - 1))
 	{
-		UTI_ERROR("%s bad payload pointer (PUSI set and PP = 0x%02x)\n",
-		          FUNCNAME, this->pp());
+		Output::sendLog(LEVEL_ERROR,
+		                "%s bad payload pointer (PUSI set and PP = 0x%02x)\n",
+		                FUNCNAME, this->pp());
 		goto bad;
 	}
 

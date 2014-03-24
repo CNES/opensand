@@ -51,7 +51,7 @@ from optparse import OptionParser
 from opensand_daemon.tcp_server import Plop
 from opensand_daemon.command_handler import CommandHandler
 from opensand_daemon.state_handler import StateHandler
-from opensand_daemon.stats_handler import StatsHandler
+from opensand_daemon.output_handler import OutputHandler
 from opensand_daemon.service import OpenSandService
 from opensand_daemon.syslog_handler import SysLogHandler, syslog
 from opensand_daemon.process_list import ProcessList
@@ -80,10 +80,10 @@ def sig_handler(signum, frame):
         SERVICE_THREAD.join()
         LOGGER.debug("service thread joined")
     # should be stopped before command and state
-    if STATS_HANDLER.is_alive():
-        STATS_HANDLER.cleanup()
-        STATS_HANDLER.join()
-        LOGGER.debug("stats thread joined")
+    if OUTPUT_HANDLER.is_alive():
+        OUTPUT_HANDLER.cleanup()
+        OUTPUT_HANDLER.join()
+        LOGGER.debug("output thread joined")
     if COMMAND_THREAD.is_alive():
         LOGGER.debug("stop command thread")
         stop_command()
@@ -110,7 +110,7 @@ def sig_handler(signum, frame):
         else:
             sys.exit(1)
 
-def publish_service(stats_handler):
+def publish_service(output_handler):
     """ publish the OpenSAND service """
     global SERVICE
 
@@ -166,7 +166,7 @@ def publish_service(stats_handler):
         descr['modules'] = tools.replace(',', ' ').replace(';', ' ').replace(':', ' ')
 
     # add UDP port for exchanging message with the collector
-    descr['ext_port'] = STATS_HANDLER.get_external_port()
+    descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
     if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
@@ -179,7 +179,7 @@ def publish_service(stats_handler):
     except ConfigParser.Error:
         pass
     SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
-                              name, instance, port, descr, stats_handler)
+                              name, instance, port, descr, output_handler)
 
     try:
         SERVICE.run()
@@ -309,8 +309,8 @@ def start_daemon():
         COMMAND_THREAD.start()
         LOGGER.debug("start state thread")
         STATE_THREAD.start()
-        LOGGER.debug("start stats handler")
-        STATS_HANDLER.start()
+        LOGGER.debug("start output handler")
+        OUTPUT_HANDLER.start()
     except thread.error, msg:
         LOGGER.error("exception when starting the threads: " + msg)
         if(os.path.exists(PID_FILE) == True):
@@ -437,12 +437,12 @@ if __name__ == "__main__":
         LOGGER.error("unable to parse configuration file: %s" % error)
         sys.exit(1)
 
-    # create the stats handler
-    STATS_HANDLER = StatsHandler(uid)
+    # create the output handler
+    OUTPUT_HANDLER = OutputHandler(uid)
 
     # create the OpenSAND service thread
     SERVICE_THREAD = threading.Thread(None, publish_service, None,
-                                      (STATS_HANDLER,), {})
+                                      (OUTPUT_HANDLER,), {})
 
     # create the server which receives OpenSAND manager commands
     COMMAND_THREAD = threading.Thread(None, start_command, None, (), {})

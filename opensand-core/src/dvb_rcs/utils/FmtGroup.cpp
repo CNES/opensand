@@ -32,14 +32,11 @@
  */
 
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DVB_RCS
-#include <opensand_conf/uti_debug.h>
-
 #include "FmtGroup.h"
 
 #include "OpenSandCore.h"
+
+#include <opensand_output/Output.h>
 
 #include <vector>
 #include <sstream>
@@ -50,6 +47,9 @@ using std::stringstream;
 FmtGroup::FmtGroup(unsigned int group_id, string fmt_ids):
 	id(group_id)
 {
+	// Output log
+	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Group");
+
 	this->parse(fmt_ids);
 };
 
@@ -100,7 +100,8 @@ void FmtGroup::parse(string ids)
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
 				this->fmt_ids.push_back(val);
-				UTI_DEBUG("Add ID %u in FMT group %u\n", val, this->id);
+				Output::sendLog(this->log_fmt, LEVEL_INFO,
+				                "Add ID %u in FMT group %u\n", val, this->id);
 			}
 			if(previous_id == 0)
 			{
@@ -116,7 +117,8 @@ void FmtGroup::parse(string ids)
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
 					this->fmt_ids.push_back(i);
-					UTI_DEBUG("Add ID %u in FMT group %u\n", i, this->id);
+					Output::sendLog(this->log_fmt, LEVEL_INFO,
+					                "Add ID %u in FMT group %u\n", i, this->id);
 				}
 			}
 

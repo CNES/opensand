@@ -32,11 +32,10 @@
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#define DBG_PREFIX
-#define DBG_PACKAGE PKG_DAMA_DC
-#include <opensand_conf/uti_debug.h>
 
 #include "TerminalCategory.h"
+
+#include <opensand_output/Output.h>
 
 #include <algorithm>
 
@@ -46,6 +45,9 @@ TerminalCategory::TerminalCategory(string label):
 	carriers_groups(),
 	label(label)
 {
+	// Output log
+	this->log_terminal_category = Output::registerLog(LEVEL_WARNING,
+	                                                  "Dvb.Ncc.Band");
 }
 
 TerminalCategory::~TerminalCategory()
@@ -96,9 +98,11 @@ void TerminalCategory::updateCarriersGroups(unsigned int carriers_number,
 	unsigned int total_ratio = this->getRatio();
 	if(carriers_number < this->carriers_groups.size())
 	{
-		UTI_INFO("Not enough carriers for category %s that contains %zu groups. "
-		         "Increase carriers number to the number of groups\n",
-		         this->label.c_str(), this->carriers_groups.size());
+		Output::sendLog(this->log_terminal_category, LEVEL_NOTICE, 
+		                "Not enough carriers for category %s that contains %zu "
+		                "groups. Increase carriers number to the number of "
+		                "groups\n",
+		    this->label.c_str(), this->carriers_groups.size());
 		carriers_number = this->carriers_groups.size();
 	}
 	for(vector<CarriersGroup *>::const_iterator it = this->carriers_groups.begin();
@@ -110,14 +114,17 @@ void TerminalCategory::updateCarriersGroups(unsigned int carriers_number,
 		// get number per carriers from total number in category
 		number = ceil(carriers_number * (*it)->getRatio() / total_ratio);
 		(*it)->setCarriersNumber(number);
-		UTI_INFO("Carrier group %u: number of carriers %u\n",
-		         (*it)->getCarriersId(), number);
+		Output::sendLog(this->log_terminal_category, LEVEL_NOTICE, 
+		                "Carrier group %u: number of carriers %u\n",
+		                (*it)->getCarriersId(), number);
 
 		// get the capacity of the carriers
 		capacity_sym = floor((*it)->getSymbolRate() * superframe_duration_ms / 1000);
 		(*it)->setCapacity(capacity_sym);
-		UTI_INFO("Carrier group %u: capacity for Symbol Rate %.2E: %u symbols\n",
-		         (*it)->getCarriersId(), (*it)->getSymbolRate(), capacity_sym);
+		Output::sendLog(this->log_terminal_category, LEVEL_NOTICE, 
+		                "Carrier group %u: capacity for Symbol Rate %.2E: %u "
+		                "symbols\n", (*it)->getCarriersId(),
+		                (*it)->getSymbolRate(), capacity_sym);
 	}
 }
 
@@ -144,8 +151,9 @@ bool TerminalCategory::removeTerminal(TerminalContext *terminal)
 	}
 	else
 	{
-		UTI_ERROR("ST#%u not registered on category %s",
-		          tal_id, this->label.c_str());
+		Output::sendLog(this->log_terminal_category, LEVEL_ERROR, 
+		                "ST#%u not registered on category %s",
+		                tal_id, this->label.c_str());
 		return false;
 	}
 	return true;

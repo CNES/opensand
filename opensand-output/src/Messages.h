@@ -35,35 +35,47 @@
 #ifndef _MESSAGES_H
 #define _MESSAGES_H
 
+#include "OutputLog.h"
+
 #include <string>
 #include <vector>
-
 #include <stdint.h>
 
-#define MSG_CMD_REGISTER 1
-#define MSG_CMD_ACK 2
-#define MSG_CMD_SEND_PROBES 3
-#define MSG_CMD_SEND_EVENT 4
-#define MSG_CMD_ENABLE_PROBE 5
-#define MSG_CMD_DISABLE_PROBE 6
+using std::string;
+
+#define MSG_CMD_REGISTER_INIT 1
+#define MSG_CMD_REGISTER_END 2
+#define MSG_CMD_REGISTER_LIVE 3
+#define MSG_CMD_ACK 5
+#define MSG_CMD_NACK 6
 #define MSG_CMD_DISABLE 8
 #define MSG_CMD_ENABLE 9
-#define MSG_CMD_NACK 11
-#define MSG_CMD_REGISTER_LIVE 12
+
+#define MSG_CMD_SEND_PROBES 10
+#define MSG_CMD_SEND_LOG 20
+
+#define MSG_CMD_ENABLE_PROBE 11
+#define MSG_CMD_DISABLE_PROBE 12
+
+#define MSG_CMD_SET_LOG_LEVEL 22
+#define MSG_CMD_ENABLE_LOGS 23
+#define MSG_CMD_DISABLE_LOGS 24
+#define MSG_CMD_ENABLE_SYSLOG 25
+#define MSG_CMD_DISABLE_SYSLOG 26
 
 #define DAEMON_SOCK_NAME "sand-daemon.socket"
 #define SELF_SOCK_NAME "program-%d.socket"
 
 /**
- * @brief Register a message
+ * @brief Register a message in initialization
  *
  * @param message    The message
  * @param pid        The process ID
  * @param num_probes The number of probes
- * @param num_events The number of events
+ * @param num_logs	 The number of logs
  */
-void msgHeaderRegister(std::string &message, pid_t pid, uint8_t num_probes,
-                       uint8_t num_events);
+void msgHeaderRegister(string &message, pid_t pid, uint8_t num_probes,
+                       uint8_t num_logs);
 
 /**
  * @brief Register a message while initialization is already done
@@ -71,10 +83,33 @@ void msgHeaderRegister(std::string &message, pid_t pid, uint8_t num_probes,
  * @param message    The message
  * @param pid        The process ID
  * @param num_probes The number of probes
- * @param num_events The number of events
+ * @param num_logs	 The number of logs
  */
-void msgHeaderRegisterLive(std::string &message, pid_t pid, uint8_t num_probes,
-                           uint8_t num_events);
+void msgHeaderRegisterLive(string &message, pid_t pid, uint8_t num_probes,
+                           uint8_t num_logs);
+
+/**
+ * @brief Register a message and signal the end of initialization
+ *
+ * @param message    The message
+ * @param pid        The process ID
+ * @param num_probes The number of probes
+ * @param num_logs	 The number of logs
+ */
+void msgHeaderRegisterEnd(string &message, pid_t pid, uint8_t num_probes,
+                          uint8_t num_logs);
+
+/**
+ * @brief Common function to register a message
+ *
+ * @param message    The message
+ * @param pid        The process ID
+ * @param num_probes The number of probes
+ * @param num_logs	 The number of logs
+ * @param command    The register command
+ */
+void msgHeaderRegisterAll(string &message, pid_t pid, uint8_t num_probes,
+                          uint8_t num_logs, uint8_t command);
 
 /**
  * @brief send probes
@@ -82,15 +117,16 @@ void msgHeaderRegisterLive(std::string &message, pid_t pid, uint8_t num_probes,
  * @param message    The message
  * @param timestamp  The time ellapsed since startup (ms)
  */
-void msgHeaderSendProbes(std::string &message, uint32_t timestamp);
+void msgHeaderSendProbes(string &message, uint32_t timestamp);
 
 /**
- * @brief send event
+ * @brief send log
  *
- * @param message   The message
- * @param event_id  The ID of the event
+ * @param message  The message
+ * @param log_id   The ID of the log
+ * @param level    The log level
  */
-void msgHeaderSendEvent(std::string &message, uint8_t event_id);
+void msgHeaderSendLog(string &message, uint8_t log_id, log_level_t level);
 
 /**
  *  @brief receive a message

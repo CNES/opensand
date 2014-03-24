@@ -36,6 +36,8 @@
 
 #include "sat_carrier_channel.h"
 
+#include <opensand_output/Output.h>
+
 #include <sys/types.h>
 #include <netinet/in.h>
 
@@ -147,6 +149,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 */
 	UdpStack()
 	{
+		// Output log
+		this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
+		                                            "SatCarrier.Channel");
 		// reserve space for all UDP counters
 		this->reserve(256);
 		for(unsigned int i = 0; i < 256; i++)
@@ -173,8 +178,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	{
 		if(this->at(udp_counter).first)
 		{
-			UTI_ERROR("new data for UDP stack at position %u, erase previous data\n",
-			          udp_counter);
+			Output::sendLog(this->log_sat_carrier, LEVEL_ERROR, 
+			                "new data for UDP stack at position %u, erase "
+			                "previous data\n", udp_counter);
 			this->counter--;
 			delete (this->at(udp_counter).first);
 		}
@@ -247,6 +253,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
 	uint8_t counter;
+
+	// Output log
+	OutputLog *log_sat_carrier;
 };
 
 

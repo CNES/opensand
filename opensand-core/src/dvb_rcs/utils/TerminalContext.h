@@ -38,6 +38,8 @@
 
 #include "OpenSandCore.h"
 
+#include <opensand_output/OutputLog.h>
+
 /**
  * @class TerminalContext
  * @brief Interface for a terminal context to be used in a DAMA controller.
@@ -155,6 +157,10 @@ class TerminalContext
 	string getCurrentCategory() const;
 
   protected:
+
+	/** Output Log*/
+	OutputLog *log_band;
+
 	/** Terminal id */
 	tal_id_t tal_id;
 

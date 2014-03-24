@@ -42,6 +42,8 @@
 #include "StackPlugin.h"
 #include "SarpTable.h"
 
+#include <opensand_output/Output.h>
+
 #include <cassert>
 
 /**
@@ -79,7 +81,8 @@ class LanAdaptationPlugin: public StackPlugin
 		/* Allow packets to access LanAdaptationPlugin members */
 		LanAdaptationPacketHandler(LanAdaptationPlugin &pl):
 			StackPacketHandler(pl)
-		{};
+		{
+		};
 
 		/* the following functions should not be called */
 
@@ -91,6 +94,16 @@ class LanAdaptationPlugin: public StackPlugin
 		{
 			assert(0);
 		};
+
+
+		void init()
+		{
+			this->log = Output::registerLog(LEVEL_WARNING,
+			                                "LanAdaptation.%s",
+			                                this->getName().c_str());
+		};
+
+
 	};
 
 	/**
@@ -158,6 +171,13 @@ class LanAdaptationPlugin: public StackPlugin
 			                                                        sat_type);
 		}
 
+		void init()
+		{
+			this->log = Output::registerLog(LEVEL_WARNING,
+			                                "LanAdaptation.%s",
+			                                this->getName().c_str());
+		};
+
 	  protected:
 
 		/// Can we handle packet read from TUN or TAP interface
@@ -171,10 +191,11 @@ class LanAdaptationPlugin: public StackPlugin
 
 		/// The SARP table
 		const SarpTable *sarp_table;
-
 	};
 
-	LanAdaptationPlugin(uint16_t ether_type): StackPlugin(ether_type) {};
+	LanAdaptationPlugin(uint16_t ether_type): StackPlugin(ether_type)
+	{
+	};
 
 	/**
 	 * @brief Get the context
@@ -194,6 +215,13 @@ class LanAdaptationPlugin: public StackPlugin
 	LanAdaptationPacketHandler *getPacketHandler() const
 	{
 		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
+	};
+
+	void init()
+	{
+		this->log = Output::registerLog(LEVEL_WARNING,
+		                                "LanAdaptation.%s",
+		                                this->getName().c_str());
 	};
 
 };

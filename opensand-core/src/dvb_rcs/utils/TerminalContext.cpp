@@ -34,8 +34,7 @@
 
 #include "TerminalContext.h"
 
-#define DBG_PACKAGE PKG_DAMA_DC
-#include "opensand_conf/uti_debug.h"
+#include <opensand_output/Output.h>
 
 #define DEFAULT_PRIO 1
 
@@ -53,6 +52,7 @@ TerminalContext::TerminalContext(tal_id_t tal_id,
 	fmt_id(1), // at beginning the terminal need to be served whlie FMT ID is unknown
 	carrier_id()
 {
+	this->log_band = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
 }
 
 TerminalContext::~TerminalContext()

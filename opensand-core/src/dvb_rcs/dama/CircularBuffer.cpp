@@ -37,8 +37,7 @@
 
 #include "CircularBuffer.h"
 
-#define DBG_PACKAGE PKG_DAMA_DA
-#include <opensand_conf/uti_debug.h>
+#include <opensand_output/Output.h>
 
 
 /**
@@ -51,13 +50,18 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 	sum(0),
 	min_value(0)
 {
+	// Output Log
+	this->log_circular_buffer = Output::registerLog(LEVEL_WARNING,
+	                                                "CircularBuffer");
+
 	if(buffer_size == 0)
 	{
 		this->save_only_last_value = true;
 		this->size = 1;
-		UTI_INFO("Circular buffer size was %zu --> set to %zu, with only "
-		         "saving last value option (sum = 0)\n",
-		         buffer_size, this->size);
+		Output::sendLog(this->log_circular_buffer, LEVEL_NOTICE,
+		                "Circular buffer size was %zu --> set to %zu, with "
+		                " only saving last value option (sum = 0)\n",
+		                buffer_size, this->size);
 	}
 	else
 	{
@@ -70,7 +74,8 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 	this->values = (rate_kbps_t *) calloc(this->size, sizeof(rate_kbps_t));
 	if(this->values == NULL)
 	{
-		UTI_ERROR("cannot allocate memory for circular buffer\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "cannot allocate memory for circular buffer\n");
 		goto err_alloc;
 	}
 
@@ -100,7 +105,8 @@ void CircularBuffer::Update(rate_kbps_t value)
 
 	if(this->values == NULL)
 	{
-		UTI_ERROR("circular buffer not initialized\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "circular buffer not initialized\n");
 		return;
 	}
 
@@ -153,7 +159,8 @@ rate_kbps_t CircularBuffer::GetLastValue()
 
 	if(this->values == NULL)
 	{
-		UTI_ERROR("circular buffer not initialized\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "circular buffer not initialized\n");
 		last_value = 0;
 	}
 	else
@@ -174,7 +181,8 @@ rate_kbps_t CircularBuffer::GetPreviousValue()
 
 	if(this->values == NULL)
 	{
-		UTI_ERROR("circular buffer not initialized\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "circular buffer not initialized\n");
 		previous_value = 0;
 	}
 	else
@@ -226,8 +234,8 @@ rate_kbps_t CircularBuffer::GetPartialSumFromPrevious(int value_number)
 {
 	rate_kbps_t partial_sum_kbps = 0;
 	if (this->values == NULL)
-		UTI_ERROR("[CircularBuffer::GetPreviousValue] circular buffer not "
-			"initialized\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "circular buffer not initialized\n");
 	else
 	{   
 		for(int i = 0; i < value_number; i++) 
@@ -246,8 +254,8 @@ rate_kbps_t CircularBuffer::GetValueIndex(int i)
 	double value;
 	if(this->values == NULL)
 	{
-		UTI_ERROR("[CircularBuffer::GetPreviousValue] circular buffer not "
-		          "initialized\n");
+		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
+		                "circular buffer not initialized\n");
 		value = 0;
 	}     
 	else

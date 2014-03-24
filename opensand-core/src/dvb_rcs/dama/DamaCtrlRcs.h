@@ -55,13 +55,6 @@
  */
 class DamaCtrlRcs: public DamaCtrl
 {
-
- protected:
-
- 	// output events
-	static Event *error_alloc;
-	static Event *error_ncc_req;
-
  public:
 
 	DamaCtrlRcs();

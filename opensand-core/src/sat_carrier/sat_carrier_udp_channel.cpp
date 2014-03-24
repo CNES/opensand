@@ -31,11 +31,10 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-// FIXME we need to include uti_debug.h before...
-#define DBG_PACKAGE PKG_SAT_CARRIER
-#include <opensand_conf/uti_debug.h>
 
 #include "sat_carrier_udp_channel.h"
+
+#include <opensand_output/Output.h>
 
 #include <cstring>
 #include <stdlib.h>
@@ -97,15 +96,17 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	this->sock_channel = socket(AF_INET, SOCK_DGRAM, 0);
 	if(this->sock_channel < 0)
 	{
-		UTI_ERROR("Can't open the receive socket, errno %d (%s)\n",
-		          errno, strerror(errno));
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Can't open the receive socket, errno %d (%s)\n",
+		                errno, strerror(errno));
 		goto error;
 	}
 
 	if(setsockopt(this->sock_channel, SOL_SOCKET, SO_REUSEADDR,
 	              (char *)&one, sizeof(one))<0)
 	{
-		UTI_ERROR("Error in reusing addr\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "Error in reusing addr\n");
 		goto error;
 	}
 
@@ -114,7 +115,9 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 
 	if(ifIndex < 0)
 	{
-		UTI_ERROR("cannot get the index for %s\n", local_interface_name.c_str());
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "cannot get the index for %s\n",
+		                local_interface_name.c_str());
 		goto error;
 	}
 
@@ -125,17 +128,20 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		if(setsockopt(this->sock_channel, SOL_SOCKET, SO_SNDBUF,
 		              &wmem, sizeof(wmem))<0)
 		{
-			UTI_ERROR("setsockopt : SO_SNDBUF failed\n");
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "setsockopt : SO_SNDBUF failed\n");
 			goto error;
 		}
-		UTI_INFO("size of socket buffer: %d \n", wmem);
+		Output::sendLog(this->log_init, LEVEL_NOTICE,
+		                "size of socket buffer: %d \n", wmem);
 
 		this->counter = 0;
 		// get the remote IP address
 		if(inet_aton(ip_addr.c_str(), &(m_remoteIPAddress.sin_addr))<0)
 		{
-			UTI_ERROR("cannot get the remote IP address for %s \n",
-			          ip_addr.c_str());
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "cannot get the remote IP address for %s \n",
+			                ip_addr.c_str());
 			goto error;
 		}
 		m_remoteIPAddress.sin_family = AF_INET;
@@ -146,8 +152,9 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		if(bind(this->sock_channel, (struct sockaddr *) &this->m_socketAddr,
 		         sizeof(this->m_socketAddr)) < 0)
 		{
-			UTI_ERROR("failed to bind to UDP socket: %s (%d)\n",
-			          strerror(errno), errno);
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "failed to bind to UDP socket: %s (%d)\n",
+			                strerror(errno), errno);
 			goto error;
 		}
 
@@ -156,7 +163,8 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 			if(setsockopt(sock_channel, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
 			              sizeof(ttl)) < 0)
 			{
-				UTI_ERROR("setsockopt: IP_MULTICAST_TTL activation failed\n");
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "setsockopt: IP_MULTICAST_TTL activation failed\n");
 				goto error;
 			}
 		}
@@ -167,16 +175,19 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 		if(setsockopt(this->sock_channel, SOL_SOCKET, SO_RCVBUF,
 		              &rmem, sizeof(rmem))<0)
 		{
-			UTI_ERROR("setsockopt : SO_RCVBUF failed\n");
+			Output::sendLog(this->log_init, LEVEL_ERROR,
+			                "setsockopt : SO_RCVBUF failed\n");
 			goto error;
 		}
-		UTI_INFO("size of socket buffer: %d \n", rmem);
+		Output::sendLog(this->log_init, LEVEL_NOTICE,
+		                "size of socket buffer: %d \n", rmem);
 
 		if(this->m_multicast)
 		{
 			if(inet_aton(ip_addr.c_str(), &this->m_socketAddr.sin_addr) < 0)
 			{
-				UTI_ERROR("error with inet_aton: %s", strerror(errno));
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "error with inet_aton: %s", strerror(errno));
 				goto error;
 			}
 
@@ -184,8 +195,9 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 			if(bind(this->sock_channel, (struct sockaddr *) &this->m_socketAddr,
 			        sizeof(this->m_socketAddr)) < 0)
 			{
-				UTI_ERROR("failed to bind to multicast UDP socket: %s (%d)\n",
-				          strerror(errno), errno);
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "failed to bind to multicast UDP "
+				                "socket: %s (%d)\n", strerror(errno), errno);
 				goto error;
 			}
 
@@ -196,9 +208,11 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 			if(setsockopt(this->sock_channel, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 			              (void *) &imr, sizeof(struct ip_mreq)) < 0)
 			{
-				UTI_ERROR("failed to join multicast group with multicast address "
-				          "%s and interface address %s: %s (%d)\n",
-				          ip_addr.c_str(), local_ip_addr.c_str(), strerror(errno), errno);
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "failed to join multicast group with multicast"
+				                " address %s and interface address %s: "
+				                "%s (%d)\n", ip_addr.c_str(),
+				                local_ip_addr.c_str(), strerror(errno), errno);
 				goto error;
 			}
 		}
@@ -209,28 +223,33 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 			if(bind(this->sock_channel, (struct sockaddr *) &this->m_socketAddr,
 			        sizeof(this->m_socketAddr)) < 0)
 			{
-				UTI_ERROR("failed to bind unicast UDP socket: %s (%d)\n",
-				          strerror(errno), errno);
+				Output::sendLog(this->log_init, LEVEL_ERROR,
+				                "failed to bind unicast UDP socket: %s (%d)\n",
+				                strerror(errno), errno);
 				goto error;
 			}
 		}
 	}
 	else
 	{
-		UTI_ERROR("channel doesn't receive and doesn't send data\n");
+		Output::sendLog(this->log_init, LEVEL_ERROR,
+		                "channel doesn't receive and doesn't send data\n");
 		goto error;
 	}
 	bzero(this->send_buffer, sizeof(this->send_buffer));
 
-	UTI_INFO("UDP channel %u created with local IP %s and local port %u\n",
-	         getChannelID(), inet_ntoa(m_socketAddr.sin_addr),
-			 ntohs(m_socketAddr.sin_port));
+	Output::sendLog(this->log_init, LEVEL_NOTICE,
+	                "UDP channel %u created with local IP %s and local "
+	                "port %u\n", getChannelID(),
+	                inet_ntoa(m_socketAddr.sin_addr),
+	                ntohs(m_socketAddr.sin_port));
 
 	this->init_success = true;
 	return;
 
 error:
-	UTI_ERROR("Can't create channel\n");
+	Output::sendLog(this->log_init, LEVEL_ERROR,
+	                "Can't create channel\n");
 }
 
 /**
@@ -281,8 +300,9 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 
 	if(!this->stacked_ip.empty())
 	{
-		UTI_INFO("Send content of stack for address %s\n",
-		         this->stacked_ip.c_str());
+		Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+		                "Send content of stack for address %s\n",
+		                this->stacked_ip.c_str());
 		if(!this->handleStack(buf, data_len))
 		{
 			goto error;
@@ -295,21 +315,24 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		goto end;
 	}
 
-	UTI_DEBUG("try to receive a packet from satellite channel %d\n",
-	          this->getChannelID());
+	Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+	                "try to receive a packet from satellite channel %d\n",
+	                this->getChannelID());
 
 	// the channel file descriptor must be valid
 	if(this->getChannelFd() < 0)
 	{
-		UTI_ERROR("socket not opened !\n");
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "socket not opened !\n");
 		goto error;
 	}
 
 	// error if channel doesn't accept incoming data
 	if(!this->isInputOk())
 	{
-		UTI_ERROR("channel %d does not accept data\n",
-		          this->getChannelID());
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "channel %d does not accept data\n",
+		                this->getChannelID());
 		goto error;
 	}
 
@@ -332,11 +355,12 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		this->udp_counters[ip_address] = nb_sequencing;
 		if(nb_sequencing != 0)
 		{
-			UTI_NOTICE("force synchronisation on UDP channel %d "
-			           "from %s at startup: received counter is %d "
-			           "while it should have been 0\n",
-			           this->getChannelID(), ip_address.c_str(),
-			           nb_sequencing);
+			Output::sendLog(this->log_sat_carrier, LEVEL_WARNING,
+			                "force synchronisation on UDP channel %d "
+			                "from %s at startup: received counter is %d "
+			                "while it should have been 0\n",
+			                this->getChannelID(), ip_address.c_str(),
+			                nb_sequencing);
 		}
 		this->stacks[ip_address] = new UdpStack();
 		current_sequencing = nb_sequencing;
@@ -344,16 +368,19 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	else
 	{
 		current_sequencing = (ip_count_it->second + 1) % 256;
-		UTI_DEBUG_L3("Current UDP sequencing for address %s: %u\n",
-		             ip_address.c_str(), current_sequencing);
+		Output::sendLog(this->log_sat_carrier, LEVEL_DEBUG,
+		                "Current UDP sequencing for address %s: %u\n",
+		                ip_address.c_str(), current_sequencing);
 	}
 	// add the new packet in stack
 	this->stacks[ip_address]->add(nb_sequencing, recv_data, recv_len);
 	// send the current packet
 	if(this->stacks[ip_address]->hasNext(current_sequencing))
 	{
-		UTI_DEBUG_L3("Next UDP packet is in stack\n");
-		this->handleStack(buf, data_len, current_sequencing, this->stacks[ip_address]);
+		Output::sendLog(this->log_sat_carrier, LEVEL_DEBUG,
+		                "Next UDP packet is in stack\n");
+		this->handleStack(buf, data_len, current_sequencing,
+		                  this->stacks[ip_address]);
 		if(!this->stacked_ip.empty())
 		{
 			// we still have packets to send
@@ -363,20 +390,24 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	}
 	else
 	{
-		UTI_INFO("No UDP packet for current sequencing (%u) at IP %s "
-		         "wait for next packets (last received %u)\n",
-		         current_sequencing, ip_address.c_str(), nb_sequencing);
+		Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+		                "No UDP packet for current sequencing (%u) at IP %s "
+		                "wait for next packets (last received %u)\n",
+		                current_sequencing, ip_address.c_str(), nb_sequencing);
 	}
 	// check that we do not have to much packets in stack
 	if(this->stacks[ip_address]->getCounter() > this->max_stack)
 	{
 		// suppose we lost the packet
-		UTI_ERROR("we may have lost UDP packets, check /etc/default/opensand-daemon "
-		          "and adjust UDP buffers");
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "we may have lost UDP packets, check "
+		                "/etc/default/opensand-daemon and adjust UDP buffers");
 		// send the next packets from stack
 		current_sequencing = (current_sequencing + 1) % 256;;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))
 		{
+			Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+			                "packet missing: %u\n", current_sequencing);
 			current_sequencing = (current_sequencing + 1) % 256;
 		}
 		// we should be able to return a packet here
@@ -404,12 +435,16 @@ bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
 	
 	if(count_it == this->udp_counters.end())
 	{
-		UTI_ERROR("cannot find UDP counter for IP %s\n", this->stacked_ip.c_str());
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "cannot find UDP counter for IP %s\n",
+		                this->stacked_ip.c_str());
 		return false;
 	}
 	if(stack_it == this->stacks.end())
 	{
-		UTI_ERROR("cannot find UDP stack for IP %s\n", this->stacked_ip.c_str());
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "cannot find UDP stack for IP %s\n",
+		                this->stacked_ip.c_str());
 		return false;
 	}
 
@@ -429,8 +464,9 @@ bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
 void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
                                           uint8_t counter, UdpStack *stack)
 {
-	UTI_DEBUG("transmit UDP packet for source IP %s at counter %d\n",
-	          this->stacked_ip.c_str(), counter);
+	Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+	                "transmit UDP packet for source IP %s at counter %d\n",
+	                this->stacked_ip.c_str(), counter);
 	stack->remove(counter, buf, data_len);
 	counter = (counter + 1) % 256;
 	// if we don't have following packets in FIFO reset stacked_ip
@@ -445,19 +481,23 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 {
 	ssize_t slen;
 
-	UTI_DEBUG("data are trying to be send on channel %d\n",m_channelID);
+	Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+	                "data are trying to be send on channel %d\n", m_channelID);
 
 	// check that the channel sends data
 	if(!this->isOutputOk())
 	{
-		UTI_ERROR("Channel %d is not configure to send data\n", m_channelID);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "Channel %d is not configure to send data\n",
+		                m_channelID);
 		goto error;
 	}
 
 	// check if the socket is open
 	if(this->getChannelFd() < 0)
 	{
-		UTI_ERROR("Socket not open !\n");
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "Socket not open !\n");
 		goto error;
 	}
 
@@ -471,20 +511,24 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 	          (struct sockaddr *) &this->m_remoteIPAddress,
 	          sizeof(this->m_remoteIPAddress)) < slen)
 	{
-		UTI_ERROR("Error:  sendto(..,0,..) errno %s (%d)\n",
-		          strerror(errno),errno);
+		Output::sendLog(this->log_sat_carrier, LEVEL_ERROR,
+		                "Error:  sendto(..,0,..) errno %s (%d)\n",
+		                strerror(errno), errno);
 		goto error;
 	}
 
 	// update of the counter
 	this->counter = (this->counter + 1) % 256;
 
-	UTI_DEBUG("==> SAT_Channel_Send [%d] (%s:%d): len=%zd, counter: %d\n",
-	          m_channelID, inet_ntoa(this->m_remoteIPAddress.sin_addr),
-	          ntohs(this->m_remoteIPAddress.sin_port), slen, this->counter);
+	Output::sendLog(this->log_sat_carrier, LEVEL_INFO,
+	                "==> SAT_Channel_Send [%d] (%s:%d): len=%zd, counter: %d\n",
+	                m_channelID, inet_ntoa(this->m_remoteIPAddress.sin_addr),
+	                ntohs(this->m_remoteIPAddress.sin_port), slen,
+	                      this->counter);
 
 	return true;
 
  error:
 	return false;
 }
+

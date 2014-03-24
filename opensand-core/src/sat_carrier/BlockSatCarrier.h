@@ -95,7 +95,6 @@ class BlockSatCarrier: public Block
 		void onReceivePktFromCarrier(uint8_t carrier_id,
 		                             unsigned char *data,
 		                             size_t length);
-
 	};
 
 	class Downward: public RtDownward
@@ -120,6 +119,7 @@ class BlockSatCarrier: public Block
 	};
 
  protected:
+
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);

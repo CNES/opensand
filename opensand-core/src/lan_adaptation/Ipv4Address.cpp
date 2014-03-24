@@ -33,9 +33,6 @@
 
 #include "Ipv4Address.h"
 
-// debug
-#define DBG_PACKAGE PKG_DEFAULT
-#include "opensand_conf/uti_debug.h"
 #include <cstdio>
 
 

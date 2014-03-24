@@ -48,6 +48,7 @@ from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
 from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
+from opensand_manager_gui.view.popup.config_logs_dialog import ConfigLogsDialog
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
 from opensand_manager_core.utils import copytree
@@ -72,9 +73,10 @@ class View(WindowView):
 
         self._model = model
         
+        self._event_tabs = {} # For the individudual program event tabs
+        self._conf_logs_dialog = ConfigLogsDialog(self._model, self._log)
         self._event_notebook = self._ui.get_widget('event_notebook')
         mgr_event_tab = EventTab(self._event_notebook, "Manager events")
-        self._event_tabs = {} # For the individudual program event tabs
         self._log.run(mgr_event_tab)
 
         self._info_label = self._ui.get_widget('info_label')
@@ -86,6 +88,12 @@ class View(WindowView):
 
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
+
+        widget = self._ui.get_widget('enable_logs')
+        self._logs_hdl = widget.connect('toggled', self.on_enable_logs_toggled)
+        widget = self._ui.get_widget('enable_syslog')
+        self._syslog_hdl = widget.connect('toggled', self.on_enable_syslog_toggled)
+
 
         # initialize each tab
         try:
@@ -255,10 +263,6 @@ class View(WindowView):
                 self._eventtool.activate(False)
             if self._eventprobe is not None:
                 self._eventprobe.activate(True)
-
-    def switchpage(self, pagenum):
-        """ modify the current page """
-        self._ui.get_widget('notebook').set_current_page(pagenum)
 
     def show_about(self):
         """ show about dialog """
@@ -489,12 +493,14 @@ class View(WindowView):
         for program in programs_dict.itervalues():
             if program.name not in self._event_tabs:
                 self._event_tabs[program.name] = \
-                    EventTab(self._event_notebook, program.name)
+                    EventTab(self._event_notebook, program.name, program)
+            else:
+                self._event_tabs[program.name].update(program)
         
         self._eventprobe.simu_program_list_changed(programs_dict)
     
-    def on_new_program_event(self, program, name, level, message):
-        """ called when an environment plane event is received """
+    def on_new_program_log(self, program, name, level, message):
+        """ called when an environment plane log is received """
         self._event_tabs[program.name].message(level, name, message)
 
     def global_event(self, message):
@@ -534,6 +540,104 @@ class View(WindowView):
             return True
         self._counter = (self._counter + 1) % len(infos)
         return True
+
+    def on_event_notebook_switch_page(self, notebook, page, page_num):
+        """ page switched on event notebook """
+        program = self.get_program_for_active_tab(page_num)
+        if program == None:
+            self._ui.get_widget("logging_toolbar").hide()
+            gobject.idle_add(self._conf_logs_dialog.hide)
+            return
+        self._ui.get_widget("logging_toolbar").show()
+        gobject.idle_add(self._conf_logs_dialog.update_list, program)
+        logs_enabled = program.logs_enabled()
+        syslog_enabled = program.syslog_enabled()
+        widget = self._ui.get_widget('enable_logs')
+        # block toggle signal when modifying state from here
+        widget.handler_block(self._logs_hdl)
+        widget.set_active(logs_enabled)
+        widget.handler_unblock(self._logs_hdl)
+        widget = self._ui.get_widget('enable_syslog')
+        widget.handler_block(self._syslog_hdl)
+        widget.set_active(syslog_enabled)
+        widget.handler_unblock(self._syslog_hdl)
+        pass
+
+    def on_configure_logging_clicked(self, source=None, event=None):
+        """ event handler for logging configuration """ 
+        page = self._event_notebook.get_current_page()
+        program = self.get_program_for_active_tab(page)
+        if program == None:
+            self._ui.get_widget("logging_toolbar").hide()
+            gobject.idle_add(self._conf_logs_dialog.hide)
+            return
+        gobject.idle_add(self._conf_logs_dialog.update_list, program)
+        self._conf_logs_dialog.show()
+
+    def on_enable_syslog_toggled(self, source=None, event=None):
+        """ event handler for syslog activation on remote program """ 
+        page = self._event_notebook.get_current_page()
+        program = self.get_program_for_active_tab(page)
+        if program is not None:
+            widget = self._ui.get_widget('enable_syslog')
+            program.enable_syslog(widget.get_active())
+
+    def on_enable_logs_toggled(self, source=None, event=None):
+        """ event handler for logging  activation """ 
+        page = self._event_notebook.get_current_page()
+        program = self.get_program_for_active_tab(page)
+        if program is not None:
+            widget = self._ui.get_widget('enable_logs')
+            active = widget.get_active()
+            program.enable_logs(active)
+            self._ui.get_widget('configure_logging').set_sensitive(active)
+
+    def get_program_for_active_tab(self, page_num):
+        """ get the label of the active event notebook page """
+        child = self._event_notebook.get_nth_page(page_num)
+        progname = self._event_notebook.get_tab_label(child).get_name()
+        if not progname in self._event_tabs:
+            return None
+        program = self._event_tabs[progname].get_program()
+        return program
+
+    def on_start(self, run):
+        """ the start button has been pressed
+            (should be used with gobject.idle_add outside gtk handlers) """
+        self.global_event("***** New run: %s *****" % run)
+        widget = self._ui.get_widget('enable_logs')
+        widget.set_sensitive(True)
+        widget = self._ui.get_widget('enable_syslog')
+        widget.set_sensitive(True)
+        widget = self._ui.get_widget('configure_logging')
+        widget.set_sensitive(True)
+        page = self._event_notebook.get_current_page()
+        program = self.get_program_for_active_tab(page)
+        if program == None:
+            self._ui.get_widget("logging_toolbar").hide()
+            gobject.idle_add(self._conf_logs_dialog.hide)
+            return
+        gobject.idle_add(self._conf_logs_dialog.update_list, program)
+
+    def on_stop(self):
+        """ the stop button has been pressed """
+        widget = self._ui.get_widget('enable_logs')
+        widget.set_sensitive(False)
+        widget = self._ui.get_widget('enable_syslog')
+        widget.set_sensitive(False)
+        widget = self._ui.get_widget('configure_logging')
+        widget.set_sensitive(False)
+        gobject.idle_add(self._conf_logs_dialog.hide)
+        for page_num in range(self._event_notebook.get_n_pages()):
+            program = self.get_program_for_active_tab(page_num)
+            if program is None:
+                continue
+            # set default values for next run
+            # TODO maybe output should send syslog and logs state
+            #      instead of using default values...
+            program.enable_logs(True)
+            program.enable_syslog(True)
+
 
 
 ##### TEST #####

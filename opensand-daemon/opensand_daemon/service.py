@@ -73,7 +73,7 @@ class OpenSandService(object):
     _publisher = None
 
     def __init__(self, cache_dir, iface, service_type, name,
-                 instance, port, descr=None, stats_handler=None):
+                 instance, port, descr=None, output_handler=None):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -96,7 +96,7 @@ class OpenSandService(object):
             OpenSandService._routes.set_unused()
 
         OpenSandService._listener = self.Listener(iface, service_type,
-                                                  name, instance, stats_handler)
+                                                  name, instance, output_handler)
         OpenSandService._publisher = self.Publisher(iface, service_type,
                                                     name, port, descr)
 
@@ -111,12 +111,12 @@ class OpenSandService(object):
     class Listener(object):
         """ listen for OpenSAND service with avahi """
         def __init__(self, iface, service_type, compo, instance,
-                     stats_handler=None):
+                     output_handler=None):
             self._interface = iface
             self._compo = compo.lower()
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
-            self._stats_handler = stats_handler
+            self._output_handler = output_handler
             # add name in _names to avoid adding route for the current host
             if compo != "gw":
                 self._names = [compo + instance]
@@ -161,8 +161,8 @@ class OpenSandService(object):
                     LOGGER.debug("Ignoring collector IPv6 address")
                     return
                 LOGGER.debug("found collector at %s:%d", address, port)
-                if self._stats_handler is not None:
-                    self._stats_handler.set_collector_addr(address, port)
+                if self._output_handler is not None:
+                    self._output_handler.set_collector_addr(address, port)
                 return
             elif self._compo == 'sat':
                 # nothing to do for other hosts no sat
@@ -258,8 +258,8 @@ class OpenSandService(object):
 
             if name == 'collector':
                 LOGGER.debug("Collector service disconnected")
-                if self._stats_handler is not None:
-                    self._stats_handler.unset_collector_addr()
+                if self._output_handler is not None:
+                    self._output_handler.unset_collector_addr()
                 return
             elif self._compo == 'sat':
                 # nothing to do for other hosts no sat

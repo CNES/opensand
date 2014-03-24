@@ -37,15 +37,16 @@
 
 
 #include "Probe.h"
-#include "Event.h"
-
-#include <opensand_conf/uti_debug.h>
+#include "OutputLog.h"
+#include "OutputEvent.h"
+#include "OutputMutex.h"
 
 #include <assert.h>
 #include <sys/un.h>
 #include <vector>
 
 using std::vector;
+
 
 /**
  * @class hold internal output library variables and methods
@@ -62,11 +63,12 @@ private:
 	/**
 	 * @brief initialize the output element
 	 *
-	 * @param enabled      Whether the element is enabled
-	 * @param min_level    The minimum event level
-	 * @param sock_prefix  The socket prefix
+	 * @param enable_collector  Whether the element is enabled
+	 * @param sock_prefix        The socket prefix
+	 * @return true on success, false otherwise
 	 */
-	void init(bool enabled, event_level_t min_level, const char *sock_prefix);
+	bool init(bool enable_collector, 
+	          const char *sock_prefix);
 
 	/**
 	 * @brief Register a probe for the element
@@ -87,12 +89,21 @@ private:
 	 * @brief Register an event for the element
 	 *
 	 * @param identifier   The event name
-	 * @param event_level_t  The event severity
 	 *
 	 * @return the event object
 	 **/
-	Event *registerEvent(const string &identifier,
-	                     event_level_t level);
+	OutputEvent *registerEvent(const string &identifier);
+
+	/** 
+	 * @brief Register a log with the desired maximum level
+	 *
+	 * @param display_level  The maximum level to display
+	 * @param name           The log name
+	 *
+	 * @return the log object
+	 **/
+	OutputLog *registerLog(log_level_t log_level,
+	                       const string &name);
 
 	/**
 	 * @brief Finish the element initialization
@@ -105,12 +116,24 @@ private:
 	void sendProbes(void);
 
 	/**
-	 * @brief Send the specified event with the specified message format.
+	 * @brief Send the specified log with the specified message
 	 *
-	 * @param event       The event
-	 * @param msg_format  The message format
+	 * @param log		The log
+	 * @param log_level	The log level
+	 * @param message	The message
 	 **/
-	void sendEvent(Event *event, const string &message);
+	void sendLog(OutputLog *log, log_level_t log_level,
+	             const string &message_text);
+
+	/**
+	 * @brief Send a log (for OutputInternal logging)
+	 *
+	 * @param log		The log
+	 * @param log_level	The log level
+	 * @param message	The message
+	 **/
+	void sendLog(OutputLog *log, log_level_t log_level,
+	             const char *msg_format, ...);
 
 	/**
 	 * @brief Set the probe state
@@ -121,14 +144,47 @@ private:
 	void setProbeState(uint8_t probe_id, bool enabled);
 
 	/**
+	 * @brief Set the log level
+	 *
+	 * @param log_id  The log ID
+	 * @param level   The log level
+	 */
+	void setLogLevel(uint8_t log_id, log_level_t level);
+
+	/**
 	 * @brief disable all stats
 	 */
-	void disable();
+	void disableCollector(void);
 
 	/**
 	 * @brief Enable output
 	 */
-	void enable();
+	void enableCollector(void);
+
+	/**
+	 * @brief disable syslog output
+	 */
+	void disableSyslog(void);
+
+	/**
+	 * @brief Enable syslog output
+	 */
+	void enableSyslog(void);
+
+	/**
+	 * @brief disable logs output toward collector
+	 */
+	void disableLogs(void);
+
+	/**
+	 * @brief Enable log output toward collector
+	 */
+	void enableLogs(void);
+	
+	/**
+	 * @brief Enable output on stdout/stdin
+	 */
+	void enableStdlog(void);
 
 	/**
 	 * @brief  Send registration for a probe outside initialization
@@ -138,21 +194,82 @@ private:
 	 */
 	bool sendRegister(BaseProbe *probe);
 
+	/**
+	 * @brief  Send registration for a log outside initialization
+	 *
+	 * @param probe  The new log to register
+	 * @return true on success, false otherwise
+	 */
+	bool sendRegister(OutputLog *log);
+
+	/**
+	 * @brief  Send a message to the daemon
+	 *
+	 * @param message  The message
+	 */
+	bool sendMessage(const string &message) const;
+
+	/**
+	 * @brief receive a message from the daemon
+	 *
+	 * @return the command type on success, 0 on failure
+	 */
+	uint8_t rcvMessage(void) const;
+
+	/**
+	 * @brief whether the collector is enabled
+	 */
+	bool collectorEnabled(void) const;
+
+	/**
+	 * @brief Whether the logs are enabled
+	 */
+	bool logsEnabled(void) const;
+
+	/**
+	 * @brief Whether syslog is enabled
+	 */
+	bool syslogEnabled(void) const;
+
+	/**
+	 * @brief Whether the stdout/stderr are enabled
+	 */
+	bool stdlogEnabled(void) const;
+
+	/**
+	 * @brief Check if output is initializing
+	 *
+	 * @return initializing state
+	 */
+	bool isInitializing(void) const;
+
+	/**
+	 * @brief Set initializing state
+	 *
+	 * @param val the initializing state
+	 */
+	void setInitializing(bool val);
 
 	/// whether the element is enabled
-	bool enabled;
+	bool enable_collector;
 
 	/// whether the element is in the initializing phase
 	bool initializing;
 
-	/// the minimum event level
-	event_level_t min_level;
+	/// whether the logs are sent to the collector
+	bool enable_logs;
+
+	/// wether the syslog is enabled;
+	bool enable_syslog;
+
+	/// whether the logs are printed on stdout/stderr
+	bool enable_stdlog;
 
 	/// the probes
-	vector<BaseProbe*> probes;
+	vector<BaseProbe *> probes;
 
-	/// the events
-	vector<Event*> events;
+	/// the logs
+	vector<OutputLog *> logs;
 
 	/// the socket for communication with daemon
 	int sock;
@@ -165,36 +282,40 @@ private:
 
 	/// the element socket address
 	sockaddr_un self_sock_addr;
+
+	/// a default log
+	OutputLog *default_log;
+	
+	/// a output log
+	OutputLog *log;
+
+	/// The mutex on Output
+	mutable OutputMutex mutex;
 };
 
 
-// TODO never return NULL because in core we never check before using put
+// TODO check if NULL in core, also for logs and events
 template<typename T>
-Probe<T>* OutputInternal::registerProbe(const string &name,
+Probe<T> *OutputInternal::registerProbe(const string &name,
                                         const string &unit,
                                         bool enabled, sample_type_t type)
 {
-/*	if(!this->enabled)
-	{
-		return NULL;
-	}*/
-
-/*	if(!this->initializing)
-	{
-		UTI_ERROR("cannot register probe %s outside initialization, exit\n",
-		          name.c_str());
-		return NULL;
-	}*/
-
-	UTI_DEBUG("Registering probe %s with type %d\n", name.c_str(), type);
-
+	this->mutex.acquireLock();
 	uint8_t new_id = this->probes.size();
 	Probe<T> *probe = new Probe<T>(new_id, name, unit, enabled, type);
 	this->probes.push_back(probe);
+	this->mutex.releaseLock();
+
+	this->sendLog(this->log, LEVEL_INFO,
+	              "Registering probe %s with type %d\n",
+	              name.c_str(), type);
+
 	// single registration if process is already started
-	if(!this->initializing && !this->sendRegister(probe))
+	if(!this->isInitializing() && !this->sendRegister(probe))
 	{
-		UTI_ERROR("Failed to register new probe %s\n", name.c_str());
+		this->sendLog(this->log, LEVEL_ERROR,
+		              "Failed to register new probe %s\n", 
+		              name.c_str());
 	}
 
 	return probe;
