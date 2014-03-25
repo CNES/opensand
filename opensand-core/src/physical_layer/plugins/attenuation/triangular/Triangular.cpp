@@ -66,9 +66,9 @@ bool Triangular::init(int granularity, string link)
 
 	if(config.loadConfig(CONF_TRIANGULAR_FILE) < 0)
 	{   
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to load config file '%s'", 
-		                CONF_TRIANGULAR_FILE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to load config file '%s'", 
+		    CONF_TRIANGULAR_FILE);
 		goto error;
 	}
 
@@ -77,18 +77,18 @@ bool Triangular::init(int granularity, string link)
 	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
 	                          LINK, link, PERIOD, this->period))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Triangular attenuation %slink: cannot get %s",
-		                link.c_str(), PERIOD);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Triangular attenuation %slink: cannot get %s",
+		    link.c_str(), PERIOD);
 		goto error;
 	}
 
 	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
 	                          LINK, link, SLOPE, this->slope))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Triangular attenuation %slink: cannot get %s",
-		                link.c_str(), SLOPE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Triangular attenuation %slink: cannot get %s",
+		    link.c_str(), SLOPE);
 		goto error;
 	}
 
@@ -115,8 +115,8 @@ bool Triangular::updateAttenuationModel()
 		this->setAttenuation(max - time * this->slope);
 	}
 
-	Output::sendLog(this->log_attenuation, LEVEL_INFO,
-	                "On/Off Attenuation %.2f dB\n", this->getAttenuation());
+	LOG(this->log_attenuation, LEVEL_INFO,
+	    "On/Off Attenuation %.2f dB\n", this->getAttenuation());
 
 	return true;
 }

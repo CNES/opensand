@@ -174,10 +174,10 @@ bool UlePacket::isValid(bool crc_enabled) const
 	// check minimal length to read the Length field
 	if(this->getTotalLength() < 2)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s packet too short to contain a "
-		                "length field (%zu bytes)\n",
-		                FUNCNAME, this->getTotalLength());
+		DFLTLOG(LEVEL_ERROR,
+		        "%s packet too short to contain a "
+		        "length field (%zu bytes)\n",
+		        FUNCNAME, this->getTotalLength());
 		goto bad;
 	}
 
@@ -189,10 +189,10 @@ bool UlePacket::isValid(bool crc_enabled) const
 	// check length
 	if(this->getTotalLength() != length)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s bad packet length (%zu bytes of data for "
-		                "a %u-byte ULE packet)\n",
-		                FUNCNAME, this->getTotalLength(), length);
+		DFLTLOG(LEVEL_ERROR,
+		        "%s bad packet length (%zu bytes of data for "
+		        "a %u-byte ULE packet)\n",
+		        FUNCNAME, this->getTotalLength(), length);
 		goto bad;
 	}
 
@@ -200,9 +200,9 @@ bool UlePacket::isValid(bool crc_enabled) const
 	crc = this->calcCrc(crc_enabled);
 	if(this->crc() != crc)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s bad CRC (0x%08x != 0x%08x)\n",
-		                FUNCNAME, this->crc(), crc);
+		DFLTLOG(LEVEL_ERROR,
+		        "%s bad CRC (0x%08x != 0x%08x)\n",
+		        FUNCNAME, this->crc(), crc);
 		goto bad;
 	}
 

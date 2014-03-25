@@ -80,8 +80,8 @@ bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 
 	if(this->request_nbr + 1 >= NBR_MAX_CR)
 	{
-		Output::sendLog(LEVEL_ERROR, 
-		                "Cannot add more request\n");
+		DFLTLOG(LEVEL_ERROR, 
+		        "Cannot add more request\n");
 		return false;
 	}
 	this->request_nbr++;

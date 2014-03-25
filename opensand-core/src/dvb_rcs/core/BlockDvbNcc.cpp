@@ -175,17 +175,17 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
-			Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-			                "SF#%u: encapsulation burst received "
-			                "(%d packet(s))\n", this->super_frame_counter,
-			                burst->length());
+			LOG(this->log_rcv_from_down, LEVEL_INFO,
+			    "SF#%u: encapsulation burst received "
+			    "(%d packet(s))\n", this->super_frame_counter,
+			    burst->length());
 
 			// set each packet of the burst in MAC FIFO
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-				                "SF#%u: store one encapsulation "
-				                "packet\n", this->super_frame_counter);
+				LOG(this->log_rcv_from_down, LEVEL_INFO,
+				    "SF#%u: store one encapsulation "
+				    "packet\n", this->super_frame_counter);
 
 				if(!((DvbDownward *)this->downward)->onRcvEncapPacket(
 										*pkt_it, this->data_dvb_fifo, 0))
@@ -193,20 +193,19 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
 					// call to onDownwardEvent => return
-					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-					                "SF#%u: unable to store received "
-					                "encapsulation packet "
-					                "(see previous errors)\n",
-					                this->super_frame_counter);
+					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+					    "SF#%u: unable to store received "
+					    "encapsulation packet (see previous errors)\n",
+					    this->super_frame_counter);
 					burst->clear();
 					delete burst;
 					return false;
 				}
 
-				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-				                "SF#%u: encapsulation packet is "
-				                "successfully stored\n",
-				                this->super_frame_counter);
+				LOG(this->log_rcv_from_down, LEVEL_INFO,
+				    "SF#%u: encapsulation packet is "
+				    "successfully stored\n",
+				    this->super_frame_counter);
 				this->l2_to_sat_bytes_before_sched += (*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
@@ -216,8 +215,8 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 		case evt_timer:
 			// receive the frame Timer event
-			Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-			                "timer event received on downward channel");
+			LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+			    "timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
 				if(this->probe_frame_interval->isEnabled())
@@ -272,9 +271,9 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				                               &this->complete_dvb_frames,
 				                               remaining_alloc_sym))
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-					                "failed to schedule encapsulation "
-					                "packets stored in DVB FIFO\n");
+					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+					    "failed to schedule encapsulation "
+					    "packets stored in DVB FIFO\n");
 					return false;
 				}
 				if(this->satellite_type == REGENERATIVE &&
@@ -287,16 +286,16 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 						((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();
 					this->probe_used_modcod->put(modcod_id);
 				}
-				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-				                "SF#%u: frame %u: %u symbols remaining after "
-				                "scheduling\n", this->super_frame_counter,
-				                this->frame_counter, remaining_alloc_sym);
+				LOG(this->log_rcv_from_down, LEVEL_INFO,
+				    "SF#%u: frame %u: %u symbols remaining after "
+				    "scheduling\n", this->super_frame_counter,
+				    this->frame_counter, remaining_alloc_sym);
 				if(!((DvbDownward *)this->downward)->sendBursts(&this->complete_dvb_frames,
 				                                                this->data_carrier_id))
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-					                "failed to build and send DVB/BB "
-					                "frames\n");
+					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+					    "failed to build and send DVB/BB "
+					    "frames\n");
 					return false;
 				}
 			}
@@ -311,21 +310,21 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				}
 
 				// it's time to update MODCOD IDs
-				Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-				                "MODCOD scenario timer received\n");
+				LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+				    "MODCOD scenario timer received\n");
 
 				if(!this->ret_fmt_simu.goNextScenarioStep(false) ||
 				   !this->fwd_fmt_simu.goNextScenarioStep(true))
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-					                "SF#%u: failed to update MODCOD IDs\n",
-					                this->super_frame_counter);
+					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+					    "SF#%u: failed to update MODCOD IDs\n",
+					    this->super_frame_counter);
 				}
 				else
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-					                "SF#%u: MODCOD IDs successfully updated\n",
-					                this->super_frame_counter);
+					LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+					    "SF#%u: MODCOD IDs successfully updated\n",
+					    this->super_frame_counter);
 				}
 				// for each terminal in DamaCtrl update FMT
 				this->dama_ctrl->updateFmt();
@@ -337,21 +336,21 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 
 				PepRequest *pep_request;
 
-				Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-				                "apply PEP requests now\n");
+				LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+				    "apply PEP requests now\n");
 				while((pep_request = this->getNextPepRequest()) != NULL)
 				{
 					if(this->dama_ctrl->applyPepCommand(pep_request))
 					{
-						Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-						                "PEP request successfully "
-						                "applied in DAMA\n");
+						LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+						    "PEP request successfully "
+						    "applied in DAMA\n");
 					}
 					else
 					{
-						Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-						                "failed to apply PEP request "
-						                "in DAMA\n");
+						LOG(this->log_rcv_from_down, LEVEL_ERROR,
+						    "failed to apply PEP request "
+						    "in DAMA\n");
 						return false;
 					}
 				}
@@ -362,9 +361,9 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 			}
 			else
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-				                "unknown timer event received %s\n",
-				                event->getName().c_str());
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "unknown timer event received %s\n",
+				    event->getName().c_str());
 				return false;
 			}
 			break;
@@ -375,15 +374,15 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				int ret;
 
 				// event received on PEP listen socket
-				Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-				                "event received on PEP listen socket\n");
+				LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+				    "event received on PEP listen socket\n");
 
 				// create the client socket to receive messages
 				ret = acceptPepConnection();
 				if(ret == 0)
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-					                "NCC is now connected to PEP\n");
+					LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+					    "NCC is now connected to PEP\n");
 					// add a fd to handle events on the client socket
 					this->downward->addNetSocketEvent("pep_client",
 					                                  this->getPepClientSocket(),
@@ -391,29 +390,29 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 				}
 				else if(ret == -1)
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_WARNING,
-					                "failed to accept new connection "
-					                "request from PEP\n");
+					LOG(this->log_rcv_from_down, LEVEL_WARNING,
+					    "failed to accept new connection "
+					    "request from PEP\n");
 				}
 				else if(ret == -2)
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_WARNING,
-					                "one PEP already connected: "
-					                "reject new connection request\n");
+					LOG(this->log_rcv_from_down, LEVEL_WARNING,
+					    "one PEP already connected: "
+					    "reject new connection request\n");
 				}
 				else
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-					                "unknown status %d from "
-					                "acceptPepConnection()\n", ret);
+					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+					    "unknown status %d from "
+					    "acceptPepConnection()\n", ret);
 					return false;
 				}
 			}
 			else if(*event == this->getPepClientSocket())
 			{
 				// event received on PEP client socket
-				Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-				                "event received on PEP client socket\n");
+				LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+				    "event received on PEP client socket\n");
 
 				// read the message sent by PEP or delete socket
 				// if connection is dead
@@ -428,41 +427,41 @@ bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
 					{
 						if(!this->downward->startTimer(this->pep_cmd_apply_timer))
 						{
-							Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-							                "cannot start pep timer");
+							LOG(this->log_rcv_from_down, LEVEL_ERROR,
+							    "cannot start pep timer");
 							return false;
 						}
-						Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-						                "PEP Allocation request, apply a %dms"
-						                " delay\n", pepAllocDelay);
+						LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+						    "PEP Allocation request, apply a %dms"
+						    " delay\n", pepAllocDelay);
 					}
 					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
 					{
 						this->downward->raiseTimer(this->pep_cmd_apply_timer);
-						Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-						                "PEP Release request, no delay to "
-						                "apply\n");
+						LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+						    "PEP Release request, no delay to "
+						    "apply\n");
 					}
 					else
 					{
-						Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-						                "cannot determine request type!\n");
+						LOG(this->log_rcv_from_down, LEVEL_ERROR,
+						    "cannot determine request type!\n");
 						return false;
 					}
 				}
 				else
 				{
-					Output::sendLog(this->log_rcv_from_down, LEVEL_WARNING,
-					                "network problem encountered with PEP, "
-					                "connection was therefore closed\n");
+					LOG(this->log_rcv_from_down, LEVEL_WARNING,
+					    "network problem encountered with PEP, "
+					    "connection was therefore closed\n");
 					this->downward->removeEvent(this->pep_cmd_apply_timer);
 					return false;
 				}
 			}
 		default:
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "unknown event received %s",
-			                event->getName().c_str());
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -477,8 +476,8 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			Output::sendLog(this->log_rcv_from_up, LEVEL_INFO,
-			                "[onEvent] DVB frame received\n");
+			LOG(this->log_rcv_from_up, LEVEL_INFO,
+			    "DVB frame received\n");
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				delete dvb_frame;
@@ -495,8 +494,8 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 					case file_simu:
 						if(!this->simulateFile())
 						{
-							Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
-							                "file simulation failed");
+							LOG(this->log_rcv_from_up, LEVEL_ERROR,
+							    "file simulation failed");
 							fclose(this->simu_file);
 							this->simu_file = NULL;
 							this->simulate = none_simu;
@@ -515,17 +514,17 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 			}
 			else
 			{
-				Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
-				                "unknown timer event received %s\n",
-				                 event->getName().c_str());
+				LOG(this->log_rcv_from_up, LEVEL_ERROR,
+				    "unknown timer event received %s\n",
+				    event->getName().c_str());
 				return false;
 			}
 			break;
 
 		default:
-			Output::sendLog(this->log_rcv_from_up, LEVEL_ERROR,
-			                "unknown event received %s",
-			                event->getName().c_str());
+			LOG(this->log_rcv_from_up, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 	return true;
@@ -539,86 +538,86 @@ bool BlockDvbNcc::onInit()
 	// get the common parameters
 	if(!this->initCommon())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the common part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the common part of the "
+		    "initialisation");
 		goto error;
 	}
 
 	if(!this->initRequestSimulation())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the request simulation part of "
-		                "the initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the request simulation part of "
+		    "the initialisation");
 		goto error;
 	}
 
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the carrier IDs part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the carrier IDs part of the "
+		    "initialisation");
 		goto error_mode;
 	}
 
 	if(!this->initFifo())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the FIFO part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the FIFO part of the "
+		    "initialisation");
 		goto release_dama;
 	}
 
 	if(!this->initMode())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the mode part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the mode part of the "
+		    "initialisation");
 		goto error;
 	}
 
 	// Get and open the files
 	if(!this->initFiles())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the files part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation");
 		goto error_mode;
 	}
 
 	// get and launch the dama algorithm
 	if(!this->initDama())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the DAMA part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the DAMA part of the "
+		    "initialisation");
 		goto error_mode;
 	}
 
 	if(!this->initOutput())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the initialization of "
-		                "statistics\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialization of "
+		    "statistics\n");
 		goto release_dama;
 	}
 
 	// initialize the timers
 	if(!this->initDownwardTimers())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to complete the timers part of the "
-		                "initialisation");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the timers part of the "
+		    "initialisation");
 		goto release_dama;
 	}
 
 	// initialize the column ID for FMT simulation
 	if(!this->initColumns())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to initialize the columns ID for FMT "
-		                "simulation\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the columns ID for FMT "
+		    "simulation\n");
 		goto release_dama;
 	}
 
@@ -626,9 +625,9 @@ bool BlockDvbNcc::onInit()
 	link_is_up = new T_LINK_UP;
 	if(link_is_up == NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "SF#%u: failed to allocate memory for link_is_up "
-		                "message\n", this->super_frame_counter);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "SF#%u: failed to allocate memory for link_is_up "
+		    "message\n", this->super_frame_counter);
 		goto release_dama;
 	}
 	link_is_up->group_id = 0;
@@ -636,21 +635,21 @@ bool BlockDvbNcc::onInit()
 
 	if(!this->sendUp((void **)(&link_is_up), sizeof(T_LINK_UP), msg_link_up))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "SF#%u: failed to send link up message to upper layer",
-		                this->super_frame_counter);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "SF#%u: failed to send link up message to upper layer",
+		    this->super_frame_counter);
 		delete link_is_up;
 		goto release_dama;
 	}
-	Output::sendLog(this->log_init, LEVEL_DEBUG,
-	                "SF#%u Link is up msg sent to upper layer\n",
-	                this->super_frame_counter);
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "SF#%u Link is up msg sent to upper layer\n",
+	    this->super_frame_counter);
 
 	// listen for connections from external PEP components
 	if(!this->listenForPepConnections())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to listen for PEP connections\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to listen for PEP connections\n");
 		goto release_dama;
 	}
 	this->downward->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
@@ -674,17 +673,17 @@ bool BlockDvbNcc::initRequestSimulation()
 	// Get and open the event file
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot load parameter %s from section %s\n",
-		                DVB_EVENT_FILE, DVB_NCC_SECTION);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot load parameter %s from section %s\n",
+		    DVB_EVENT_FILE, DVB_NCC_SECTION);
 		goto error;
 	}
 	if(str_config != "none" && this->with_phy_layer)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot use simulated request with physical layer "
-		                "because we need to add cni parameters in SAC "
-		                "(TBD!)\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot use simulated request with physical layer "
+		    "because we need to add cni parameters in SAC "
+		    "(TBD!)\n");
 		goto error;
 	}
 
@@ -701,19 +700,19 @@ bool BlockDvbNcc::initRequestSimulation()
 		this->event_file = fopen(str_config.c_str(), "a");
 		if(this->event_file == NULL)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "%s\n", strerror(errno));
+			LOG(this->log_init, LEVEL_ERROR,
+			    "%s\n", strerror(errno));
 		}
 	}
 	if(this->event_file == NULL && str_config != "none")
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "no record file will be used for event\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "no record file will be used for event\n");
 	}
 	else if(this->event_file != NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_NOTICE,
-		                "events recorded in %s.\n", str_config.c_str());
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "events recorded in %s.\n", str_config.c_str());
 	}
 
 	// Get and open the stat file
@@ -722,9 +721,9 @@ bool BlockDvbNcc::initRequestSimulation()
 	this->stat_file = NULL;
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_STAT_FILE, str_config))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot load parameter %s from section %s\n",
-		                DVB_STAT_FILE, DVB_NCC_SECTION);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot load parameter %s from section %s\n",
+		    DVB_STAT_FILE, DVB_NCC_SECTION);
 		goto error;
 	}
 	if(str_config == "stdout")
@@ -740,19 +739,19 @@ bool BlockDvbNcc::initRequestSimulation()
 		this->stat_file = fopen(str_config.c_str(), "a");
 		if(this->stat_file == NULL)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "%s\n", strerror(errno));
+			LOG(this->log_init, LEVEL_ERROR,
+			    "%s\n", strerror(errno));
 		}
 	}
 	if(this->stat_file == NULL && str_config != "none")
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "no record file will be used for statistics\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "no record file will be used for statistics\n");
 	}
 	else if(this->stat_file != NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_NOTICE,
-		                "statistics recorded in %s.\n", str_config.c_str());
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "statistics recorded in %s.\n", str_config.c_str());
 	}
 
 	// Get and set simulation parameter
@@ -760,9 +759,9 @@ bool BlockDvbNcc::initRequestSimulation()
 	this->simulate = none_simu;
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_MODE, str_config))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot load parameter %s from section %s\n",
-		                DVB_SIMU_MODE, DVB_NCC_SECTION);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot load parameter %s from section %s\n",
+		    DVB_SIMU_MODE, DVB_NCC_SECTION);
 		goto error;
 	}
 
@@ -774,9 +773,9 @@ bool BlockDvbNcc::initRequestSimulation()
 	{
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot load parameter %s from section %s\n",
-			                DVB_SIMU_FILE, DVB_NCC_SECTION);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load parameter %s from section %s\n",
+			    DVB_SIMU_FILE, DVB_NCC_SECTION);
 			goto error;
 		}
 		if(str_config == "stdin")
@@ -789,16 +788,16 @@ bool BlockDvbNcc::initRequestSimulation()
 		}
 		if(this->simu_file == NULL && str_config != "none")
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "%s\n", strerror(errno));
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "no simulation file will be used.\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "%s\n", strerror(errno));
+			LOG(this->log_init, LEVEL_ERROR,
+			    "no simulation file will be used.\n");
 		}
 		else
 		{
-			Output::sendLog(this->log_init, LEVEL_NOTICE,
-			                "events simulated from %s.\n",
-			                str_config.c_str());
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "events simulated from %s.\n",
+			    str_config.c_str());
 			this->simulate = file_simu;
 			this->simu_timer = this->upward->addTimerEvent("simu_file",
 			                                               this->frame_duration_ms);
@@ -810,9 +809,9 @@ bool BlockDvbNcc::initRequestSimulation()
 
 		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_RANDOM, str_config))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot load parameter %s from section %s\n",
-			                DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load parameter %s from section %s\n",
+			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
             goto error;
 		}
 		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld:%ld:%ld",
@@ -820,21 +819,21 @@ bool BlockDvbNcc::initRequestSimulation()
 		             &this->simu_max_vbdc, &this->simu_cr, &this->simu_interval);
 		if(val < 4)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot load parameter %s from section %s\n",
-			                DVB_SIMU_RANDOM, DVB_NCC_SECTION);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load parameter %s from section %s\n",
+			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
 			goto error;
 		}
 		else
 		{
-			Output::sendLog(this->log_init, LEVEL_NOTICE,
-			                "random events simulated for %ld terminals with "
-			                "%ld kb/s bandwidth, %ld kb/s max RBDC, "
-			                "%ld kb max VBDC, a mean request of %ld kb/s "
-			                "and a request amplitude of %ld kb/s)",
-			                this->simu_st, this->simu_rt, this->simu_max_rbdc,
-			                this->simu_max_vbdc, this->simu_cr,
-			                this->simu_interval);
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "random events simulated for %ld terminals with "
+			    "%ld kb/s bandwidth, %ld kb/s max RBDC, "
+			    "%ld kb max VBDC, a mean request of %ld kb/s "
+			    "and a request amplitude of %ld kb/s)",
+			    this->simu_st, this->simu_rt, this->simu_max_rbdc,
+			    this->simu_max_vbdc, this->simu_cr,
+			    this->simu_interval);
 		}
 		this->simulate = random_simu;
 		this->simu_timer = this->upward->addTimerEvent("simu_random",
@@ -843,8 +842,8 @@ bool BlockDvbNcc::initRequestSimulation()
 	}
 	else
 	{
-		Output::sendLog(this->log_init, LEVEL_NOTICE,
-		                "no event simulation\n");
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "no event simulation\n");
 	}
 
     return true;
@@ -862,14 +861,14 @@ bool BlockDvbNcc::initDownwardTimers()
 	// read the pep allocation delay
 	if(!globalConfig.getValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY, val))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
 		goto error;
 	}
 	this->pepAllocDelay = val;
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "pepAllocDelay set to %d ms\n", this->pepAllocDelay);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "pepAllocDelay set to %d ms\n", this->pepAllocDelay);
 	// create timer
 	this->pep_cmd_apply_timer = this->downward->addTimerEvent("pep_request",
 	                                                          pepAllocDelay,
@@ -908,9 +907,9 @@ bool BlockDvbNcc::initColumns()
 	if(!globalConfig.getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
 	                              columns))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s, %s': problem retrieving simulation "
-		                "column list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s, %s': problem retrieving simulation "
+		    "column list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
 		goto error;
 	}
 
@@ -923,17 +922,17 @@ bool BlockDvbNcc::initColumns()
 		// Get the Tal ID
 		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "problem retrieving %s in simulation column "
-			                "entry %d\n", TAL_ID, i);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "problem retrieving %s in simulation column "
+			    "entry %d\n", TAL_ID, i);
 			goto error;
 		}
 		// Get the column nbr
 		if(!globalConfig.getAttributeValue(iter, COLUMN_NBR, column_nbr))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "problem retrieving %s in simulation column "
-			                "entry %d\n", COLUMN_NBR, i);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "problem retrieving %s in simulation column "
+			    "entry %d\n", COLUMN_NBR, i);
 			goto error;
 		}
 
@@ -942,8 +941,8 @@ bool BlockDvbNcc::initColumns()
 
 	if(this->column_list.find(GW_TAL_ID) == this->column_list.end())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		        "GW is not declared in column IDs\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "GW is not declared in column IDs\n");
 		goto error;
 	}
 
@@ -954,9 +953,9 @@ bool BlockDvbNcc::initColumns()
 	   !this->fwd_fmt_simu.addTerminal(GW_TAL_ID,
 	                                   this->column_list[GW_TAL_ID]))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to define the GW as ST with ID %ld\n",
-		                GW_TAL_ID);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to define the GW as ST with ID %ld\n",
+		    GW_TAL_ID);
 		goto error;
 	}
 
@@ -996,9 +995,9 @@ bool BlockDvbNcc::initMode()
 			// the category the destination terminal ID belongs
 			// this is why we have categories, terminal_affectation and default_category
 			// as attributes
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot support more than one category for "
-			                "down/forward band\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot support more than one category for "
+			    "down/forward band\n");
 			return false;
 		}
 
@@ -1040,22 +1039,22 @@ bool BlockDvbNcc::initMode()
 	}
 	else
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "unknown value '%u' for satellite type ",
-		                this->satellite_type);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unknown value '%u' for satellite type ",
+		    this->satellite_type);
 		goto error;
 
 	}
 	if(!((DvbUpward *)this->upward)->receptionStd)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to create the reception standard\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create the reception standard\n");
 		goto release_standards;
 	}
 	if(!this->scheduling)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to create the scheduling\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create the scheduling\n");
 		goto release_standards;
 	}
 
@@ -1078,40 +1077,40 @@ bool BlockDvbNcc::initCarrierIds()
 	                          DVB_CTRL_CAR,
 	                          this->ctrl_carrier_id))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_CTRL_CAR);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_CTRL_CAR);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "DVB control carrier ID set to %u\n",
-	                this->ctrl_carrier_id);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "DVB control carrier ID set to %u\n",
+	    this->ctrl_carrier_id);
 
 	// Get the ID for SOF carrier
 	if(!globalConfig.getValue(DVB_NCC_SECTION,
 	                          DVB_SOF_CAR,
 	                          this->sof_carrier_id))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_SOF_CAR);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_SOF_CAR);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "SoF carrier ID set to %u\n", this->sof_carrier_id);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "SoF carrier ID set to %u\n", this->sof_carrier_id);
 
 	// Get the ID for data carrier
 	if(!globalConfig.getValue(DVB_NCC_SECTION,
 	                          DVB_DATA_CAR,
 	                          this->data_carrier_id))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_DATA_CAR);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_DATA_CAR);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "Data carrier ID set to %u\n", this->data_carrier_id);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "Data carrier ID set to %u\n", this->data_carrier_id);
 
 	return true;
 
@@ -1129,9 +1128,9 @@ bool BlockDvbNcc::initFiles()
 	{
 		if(!this->initReturnModcodFiles())
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "failed to initialize the up/return MODCOD "
-			                "files\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to initialize the up/return MODCOD "
+			    "files\n");
 			goto error;
 		}
 	}
@@ -1142,8 +1141,8 @@ bool BlockDvbNcc::initFiles()
 	{
 		if(!this->initForwardModcodFiles())
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "failed to initialize the forward MODCOD files\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to initialize the forward MODCOD files\n");
 			goto error;
 		}
 	}
@@ -1152,8 +1151,8 @@ bool BlockDvbNcc::initFiles()
 	if(!this->ret_fmt_simu.goNextScenarioStep(false) ||
 	   !this->fwd_fmt_simu.goNextScenarioStep(true))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to initialize MODCOD scheme IDs\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize MODCOD scheme IDs\n");
 		goto error;
 	}
 
@@ -1182,32 +1181,32 @@ bool BlockDvbNcc::initDama()
 	// Retrieving the cra decrease parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "missing %s parameter", DC_CRA_DECREASE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "missing %s parameter", DC_CRA_DECREASE);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE, "cra_decrease = %s\n",
-	                cra_decrease == true ? "true" : "false");
+	LOG(this->log_init, LEVEL_NOTICE, "cra_decrease = %s\n",
+	    cra_decrease == true ? "true" : "false");
 
 	// Retrieving the free capacity assignement parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_FREE_CAP, fca_kbps))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "missing %s parameter", DC_FREE_CAP);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "missing %s parameter", DC_FREE_CAP);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "fca = %d kb/s\n", fca_kbps);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "fca = %d kb/s\n", fca_kbps);
 
 	// Retrieving the rbdc timeout parameter
 	if(!globalConfig.getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "missing %s parameter", DC_RBDC_TIMEOUT);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "missing %s parameter", DC_RBDC_TIMEOUT);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "rbdc_timeout = %d superframes\n", rbdc_timeout_sf);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "rbdc_timeout = %d superframes\n", rbdc_timeout_sf);
 
 	if(this->satellite_type == TRANSPARENT)
 	{
@@ -1233,9 +1232,9 @@ bool BlockDvbNcc::initDama()
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO,
 	                          dama_algo))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
 		goto error;
 	}
 
@@ -1243,23 +1242,23 @@ bool BlockDvbNcc::initDama()
 	// TODO create one DAMA per spot and add spot_id as param ?
 	if(dama_algo == "Legacy")
 	{
-		Output::sendLog(this->log_init, LEVEL_NOTICE,
-		                "creating Legacy DAMA controller\n");
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "creating Legacy DAMA controller\n");
 		                this->dama_ctrl = new DamaCtrlRcsLegacy();
 
 	}
 	else
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': bad value for parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': bad value for parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
 		goto error;
 	}
 
 	if(this->dama_ctrl == NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to create the DAMA controller\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create the DAMA controller\n");
 		goto error;
 	}
 
@@ -1278,15 +1277,15 @@ bool BlockDvbNcc::initDama()
 	                                &this->ret_fmt_simu,
 	                                &this->fwd_fmt_simu))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Dama Controller Initialization failed.\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Dama Controller Initialization failed.\n");
 		goto release_dama;
 	}
 
 	if(!this->dama_ctrl->init())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to initialize the DAMA controller\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the DAMA controller\n");
 		goto release_dama;
 	}
 	this->dama_ctrl->setRecordFile(this->event_file, this->stat_file);
@@ -1307,16 +1306,16 @@ bool BlockDvbNcc::initFifo()
 	// retrieve and set FIFO size
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': bad value for parameter '%s'\n",
-		                DVB_NCC_SECTION, DVB_SIZE_FIFO);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': bad value for parameter '%s'\n",
+		    DVB_NCC_SECTION, DVB_SIZE_FIFO);
 		return false;
 	}
 	this->data_dvb_fifo = new DvbFifo(this->data_carrier_id, val, "GWFifo");
 	if(!this->data_dvb_fifo)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Cannot create DVB fifo\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot create DVB fifo\n");
 		return false;
 	}
 
@@ -1386,9 +1385,9 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 			//  in transparent scenario due to carrier emulation)
 			if(((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-RCS") 
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-				                "ignore received BB frame in transparent "
-				                "scenario\n");
+				LOG(this->log_rcv_from_down, LEVEL_INFO,
+				    "ignore received BB frame in transparent "
+				    "scenario\n");
 				goto drop;
 			}
 			// breakthrough
@@ -1414,10 +1413,10 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 					// decode the first packet in frame to be able to get source terminal ID
 					if(!this->up_return_pkt_hdl->getSrc(frame->getPayload(), tal_id))
 					{
-						Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-						                "unable to read source terminal ID in"
-						                " frame, won't be able to update C/N"
-						                " value\n");
+						LOG(this->log_rcv_from_down, LEVEL_ERROR,
+						    "unable to read source terminal ID in"
+						    " frame, won't be able to update C/N"
+						    " value\n");
 					}
 					else
 					{
@@ -1430,8 +1429,8 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 			                                                          this->macId,
 			                                                          &burst))
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-				                "failed to handle DVB frame or BB frame\n");
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "failed to handle DVB frame or BB frame\n");
 				goto error;
 			}
 			if(((DvbUpward *)this->upward)->receptionStd->getType() == "DVB-S2")
@@ -1452,8 +1451,8 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(burst && !this->SendNewMsgToUpperLayer(burst))
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-				                "failed to send burst to upper layer\n");
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "failed to send burst to upper layer\n");
 				goto error;
 			}
 		}
@@ -1464,13 +1463,13 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// TODOSac *sac = dynamic_cast<Sac *>(dvb_frame);
 			Sac *sac = (Sac *)dvb_frame;
 
-			Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-			                "handle received SAC\n");
+			LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+			    "handle received SAC\n");
 
 			if(!this->dama_ctrl->hereIsSAC(sac, this->satellite_type))
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-				                "failed to handle SAC frame\n");
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "failed to handle SAC frame\n");
 				goto error;
 			}
 			delete dvb_frame;
@@ -1478,14 +1477,14 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 		break;
 
 		case MSG_TYPE_SESSION_LOGON_REQ:
-			Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-			                "Logon Req\n");
+			LOG(this->log_rcv_from_down, LEVEL_INFO,
+			    "Logon Req\n");
 			this->onRcvLogonReq(dvb_frame);
 			break;
 
 		case MSG_TYPE_SESSION_LOGOFF:
-			Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-			                "Logoff Req\n");
+			LOG(this->log_rcv_from_down, LEVEL_INFO,
+			    "Logoff Req\n");
 			this->onRcvLogoffReq(dvb_frame);
 			break;
 
@@ -1493,16 +1492,16 @@ bool BlockDvbNcc::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SESSION_LOGON_RESP:
 		case MSG_TYPE_SOF:
 			// nothing to do in this case
-			Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-			                "ignore TTP, logon response or SOF frame "
-			                "(type = %d)\n", dvb_frame->getMessageType());
+			LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+			    "ignore TTP, logon response or SOF frame "
+			    "(type = %d)\n", dvb_frame->getMessageType());
 			delete dvb_frame;
 			break;
 
 		default:
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "unknown type (%d) of DVB frame\n",
-			                dvb_frame->getMessageType());
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "unknown type (%d) of DVB frame\n",
+			    dvb_frame->getMessageType());
 			delete dvb_frame;
 			break;
 	}
@@ -1514,9 +1513,9 @@ drop:
 	return true;
 
 error:
-	Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-	                "Treatments failed at SF#%u\n",
-	                this->super_frame_counter);
+	LOG(this->log_rcv_from_down, LEVEL_ERROR,
+	    "Treatments failed at SF#%u\n",
+	    this->super_frame_counter);
 	return false;
 }
 
@@ -1531,13 +1530,13 @@ void BlockDvbNcc::sendSOF()
 	// Send it
 	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)sof, this->sof_carrier_id))
 	{
-		Output::sendLog(this->log_send_down, LEVEL_ERROR,
-		                "Failed to call sendDvbFrame() for SOF\n");
+		LOG(this->log_send_down, LEVEL_ERROR,
+		    "Failed to call sendDvbFrame() for SOF\n");
 		return;
 	}
 
-	Output::sendLog(this->log_send_down, LEVEL_DEBUG,
-	                "SF#%u: SOF sent\n", this->super_frame_counter);
+	LOG(this->log_send_down, LEVEL_DEBUG,
+	    "SF#%u: SOF sent\n", this->super_frame_counter);
 }
 
 
@@ -1549,15 +1548,15 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 	uint16_t mac = logon_req->getMac();
 	std::list<long>::iterator list_it;
 
-	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-	                "Logon request from ST%u\n", mac);
+	LOG(this->log_rcv_from_down, LEVEL_INFO,
+	    "Logon request from ST%u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
 	if(mac == this->macId)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "a ST wants to register with the MAC ID of the NCC "
-		                "(%d), reject its request!\n", mac);
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "a ST wants to register with the MAC ID of the NCC "
+		    "(%d), reject its request!\n", mac);
 		goto release;
 	}
 
@@ -1570,21 +1569,21 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 	   this->fwd_fmt_simu.doTerminalExist(mac))
 	{
 		// ST already registered once
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "request to register ST with ID %u that is already "
-		                "registered, resend logon response\n", mac);
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "request to register ST with ID %u that is already "
+		    "registered, resend logon response\n", mac);
 	}
 	else
 	{
 		// ST was not registered yet
-		Output::sendLog(this->log_rcv_from_down, LEVEL_NOTICE,
-		                "register ST with MAC ID %u\n", mac);
+		LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+		    "register ST with MAC ID %u\n", mac);
 		if(this->column_list.find(mac) == this->column_list.end() ||
 		   !this->ret_fmt_simu.addTerminal(mac, this->column_list[mac]) ||
 		   !this->fwd_fmt_simu.addTerminal(mac, this->column_list[mac]))
 		{
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "failed to register ST with MAC ID %u\n", mac);
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "failed to register ST with MAC ID %u\n", mac);
 			goto release;
 		}
 	}
@@ -1598,14 +1597,14 @@ void BlockDvbNcc::onRcvLogonReq(DvbFrame *dvb_frame)
 		if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)logon_resp,
 		                 this->ctrl_carrier_id))
 		{
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "Failed send message\n");
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "Failed send message\n");
 			goto release;
 		}
 
-		Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-		                "SF#%u: logon response sent to lower layer\n",
-		                this->super_frame_counter);
+		LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+		    "SF#%u: logon response sent to lower layer\n",
+		    this->super_frame_counter);
 
 
 		// send the corresponding event
@@ -1629,16 +1628,16 @@ void BlockDvbNcc::onRcvLogoffReq(DvbFrame *dvb_frame)
 	if(!this->ret_fmt_simu.delTerminal(logoff->getMac()) ||
 	   !this->fwd_fmt_simu.delTerminal(logoff->getMac()))
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "failed to delete the ST with ID %d\n",
-		                logoff->getMac());
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "failed to delete the ST with ID %d\n",
+		    logoff->getMac());
 		goto release;
 	}
 
 	this->dama_ctrl->hereIsLogoff(logoff);
-	Output::sendLog(this->log_rcv_from_down, LEVEL_DEBUG,
-	                "SF#%u: logoff request from %d\n",
-	                this->super_frame_counter, logoff->getMac());
+	LOG(this->log_rcv_from_down, LEVEL_DEBUG,
+	    "SF#%u: logoff request from %d\n",
+	    this->super_frame_counter, logoff->getMac());
 
 release:
 	delete dvb_frame;
@@ -1651,21 +1650,21 @@ void BlockDvbNcc::sendTTP()
 	if(!this->dama_ctrl->buildTTP(ttp))
 	{
 		delete ttp;
-		Output::sendLog(this->log_send_down, LEVEL_DEBUG,
-		                "Dama didn't build TTP\bn");
+		LOG(this->log_send_down, LEVEL_DEBUG,
+		    "Dama didn't build TTP\bn");
 		return;
 	};
 
 	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)ttp, this->ctrl_carrier_id))
 	{
 		delete ttp;
-		Output::sendLog(this->log_send_down, LEVEL_ERROR,
-		                "Failed to send TTP\n");
+		LOG(this->log_send_down, LEVEL_ERROR,
+		    "Failed to send TTP\n");
 		return;
 	}
 
-	Output::sendLog(this->log_send_down, LEVEL_DEBUG,
-	                "SF#%u: TTP sent\n", this->super_frame_counter);
+	LOG(this->log_send_down, LEVEL_DEBUG,
+	    "SF#%u: TTP sent\n", this->super_frame_counter);
 }
 
 bool BlockDvbNcc::simulateFile()
@@ -1686,8 +1685,8 @@ bool BlockDvbNcc::simulateFile()
 
 	if(simu_eof)
 	{
-		Output::sendLog(this->log_request_simulation, LEVEL_DEBUG,
-		                "End of file\n");
+		LOG(this->log_request_simulation, LEVEL_DEBUG,
+		    "End of file\n");
 		goto error;
 	}
 
@@ -1716,10 +1715,10 @@ bool BlockDvbNcc::simulateFile()
 		}
 		if(st_id <= BROADCAST_TAL_ID)
 		{
-			Output::sendLog(this->log_request_simulation, LEVEL_ERROR,
-			                "Simulated ST%u ignored, IDs smaller than %u "
-			                "reserved for emulated terminals\n",
-			                st_id, BROADCAST_TAL_ID);
+			LOG(this->log_request_simulation, LEVEL_ERROR,
+			    "Simulated ST%u ignored, IDs smaller than %u "
+			    "reserved for emulated terminals\n",
+			    st_id, BROADCAST_TAL_ID);
 			goto loop_step;
 		}
 		if(event_selected == none)
@@ -1735,11 +1734,11 @@ bool BlockDvbNcc::simulateFile()
 			Sac *sac = new Sac(st_id);
 
 			sac->addRequest(0, cr_type, st_request);
-			Output::sendLog(this->log_request_simulation, LEVEL_INFO,
-			                "SF#%u: send a simulated CR of type %u with "
-			                "value = %u for ST %hu\n",
-			                this->super_frame_counter, cr_type,
-			                st_request, st_id);
+			LOG(this->log_request_simulation, LEVEL_INFO,
+			    "SF#%u: send a simulated CR of type %u with "
+			    "value = %u for ST %hu\n",
+			    this->super_frame_counter, cr_type,
+			    st_request, st_id);
 			if(!this->dama_ctrl->hereIsSAC(sac))
 			{
 				goto error;
@@ -1754,15 +1753,15 @@ bool BlockDvbNcc::simulateFile()
 			                                               st_vbdc);
 			bool ret = false;
 
-			Output::sendLog(this->log_request_simulation, LEVEL_INFO,
-			                "SF#%u: send a simulated logon for ST %d\n",
-			                this->super_frame_counter, st_id);
+			LOG(this->log_request_simulation, LEVEL_INFO,
+			    "SF#%u: send a simulated logon for ST %d\n",
+			    this->super_frame_counter, st_id);
 			// check for column in FMT simulation list
 			if(this->column_list.find(st_id) == this->column_list.end())
 			{
-				Output::sendLog(this->log_request_simulation, LEVEL_NOTICE,
-				                "no column ID for simulated terminal, use the"
-				                " terminal ID\n");
+				LOG(this->log_request_simulation, LEVEL_NOTICE,
+				    "no column ID for simulated terminal, use the"
+				    " terminal ID\n");
 				ret = this->ret_fmt_simu.addTerminal(st_id, st_id) ||
 				      this->fwd_fmt_simu.addTerminal(st_id, st_id);
 			}
@@ -1773,9 +1772,9 @@ bool BlockDvbNcc::simulateFile()
 			}
 			if(!ret)
 			{
-				Output::sendLog(this->log_request_simulation, LEVEL_ERROR,
-				                "failed to register simulated ST with MAC "
-				                "ID %u\n", st_id);
+				LOG(this->log_request_simulation, LEVEL_ERROR,
+				    "failed to register simulated ST with MAC "
+				    "ID %u\n", st_id);
 				goto error;
 			}
 
@@ -1788,9 +1787,9 @@ bool BlockDvbNcc::simulateFile()
 		case logoff:
 		{
 			Logoff *sim_logoff = new Logoff(st_id);
-			Output::sendLog(this->log_request_simulation, LEVEL_INFO,
-			                "SF#%u: send a simulated logoff for ST %d\n",
-			                this->super_frame_counter, st_id);
+			LOG(this->log_request_simulation, LEVEL_INFO,
+			    "SF#%u: send a simulated logoff for ST %d\n",
+			    this->super_frame_counter, st_id);
 			if(!this->dama_ctrl->hereIsLogoff(sim_logoff))
 			{
 				goto error;
@@ -1815,16 +1814,16 @@ bool BlockDvbNcc::simulateFile()
 					goto error;
 				}
 			}
-			Output::sendLog(this->log_request_simulation, LEVEL_DEBUG,
-			                "fscanf resul=%d: %s", resul, buffer);
+			LOG(this->log_request_simulation, LEVEL_DEBUG,
+			    "fscanf resul=%d: %s", resul, buffer);
 			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
-			Output::sendLog(this->log_request_simulation, LEVEL_DEBUG,
-			                "frame %u\n", this->super_frame_counter);
+			LOG(this->log_request_simulation, LEVEL_DEBUG,
+			    "frame %u\n", this->super_frame_counter);
 			if(resul == -1)
 			{
 				simu_eof = true;
-				Output::sendLog(this->log_request_simulation, LEVEL_DEBUG,
-				                "End of file.\n");
+				LOG(this->log_request_simulation, LEVEL_DEBUG,
+				    "End of file.\n");
 				goto error;
 			}
 		}
@@ -1858,9 +1857,9 @@ void BlockDvbNcc::simulateRandom()
 			// check for column in FMT simulation list
 			if(this->column_list.find(tal_id) == this->column_list.end())
 			{
-				Output::sendLog(this->log_request_simulation, LEVEL_NOTICE,
-				                "no column ID for simulated terminal, use the"
-				                " terminal ID\n");
+				LOG(this->log_request_simulation, LEVEL_NOTICE,
+				    "no column ID for simulated terminal, use the"
+				    " terminal ID\n");
 				ret = this->ret_fmt_simu.addTerminal(tal_id, tal_id) ||
 				      this->fwd_fmt_simu.addTerminal(tal_id, tal_id);
 			}
@@ -1871,9 +1870,9 @@ void BlockDvbNcc::simulateRandom()
 			}
 			if(!ret)
 			{
-				Output::sendLog(this->log_request_simulation, LEVEL_ERROR,
-				                "failed to register simulated ST with MAC"
-				                " ID %u\n", tal_id);
+				LOG(this->log_request_simulation, LEVEL_ERROR,
+				    "failed to register simulated ST with MAC"
+				    " ID %u\n", tal_id);
 				return;
 			}
 
@@ -1931,16 +1930,16 @@ bool BlockDvbNcc::sendAcmParameters()
 {
 	Sac *send_sac = new Sac(GW_TAL_ID);
 	send_sac->setAcm(this->cni);
-	Output::sendLog(this->log_send_down, LEVEL_DEBUG,
-	                "Send SAC with CNI = %.2f\n", this->cni);
+	LOG(this->log_send_down, LEVEL_DEBUG,
+	    "Send SAC with CNI = %.2f\n", this->cni);
 
 	// Send message
 	if(!((DvbDownward *)this->downward)->sendDvbFrame((DvbFrame *)send_sac,
 	                                                  this->ctrl_carrier_id))
 	{
-		Output::sendLog(this->log_send_down, LEVEL_ERROR,
-		                "SF#%u frame %u: failed to send SAC\n",
-		                this->super_frame_counter, this->frame_counter);
+		LOG(this->log_send_down, LEVEL_ERROR,
+		    "SF#%u frame %u: failed to send SAC\n",
+		    this->super_frame_counter, this->frame_counter);
 		delete send_sac;
 		return false;
 	}

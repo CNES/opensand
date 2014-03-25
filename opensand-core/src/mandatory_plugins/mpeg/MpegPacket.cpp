@@ -106,43 +106,43 @@ bool MpegPacket::isValid() const
 	/* check length */
 	if(this->getTotalLength() != TS_PACKETSIZE)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s bad length (%zu bytes)\n",
-		                FUNCNAME, this->getTotalLength());
+		DFLTLOG(LEVEL_ERROR,
+		        "%s bad length (%zu bytes)\n",
+		        FUNCNAME, this->getTotalLength());
 		goto bad;
 	}
 
 	/* check Synchonization byte */
 	if(this->sync() != 0x47)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s bad sync byte (0x%02x)\n",
-		                FUNCNAME, this->sync());
+		DFLTLOG(LEVEL_ERROR,
+		        "%s bad sync byte (0x%02x)\n",
+		        FUNCNAME, this->sync());
 		goto bad;
 	}
 
 	/* check the Transport Error Indicator (TEI) bit */
 	if(this->tei())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s TEI is on\n", FUNCNAME);
+		DFLTLOG(LEVEL_ERROR,
+		        "%s TEI is on\n", FUNCNAME);
 		goto bad;
 	}
 
 	/* check Transport Scrambling Control (TSC) bits */
 	if(this->tsc() != 0)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s TSC is on\n", FUNCNAME);
+		DFLTLOG(LEVEL_ERROR,
+		        "%s TSC is on\n", FUNCNAME);
 		goto bad;
 	}
 
 	/* check Payload Pointer validity (if present) */
 	if(this->pusi() && this->pp() >= (TS_DATASIZE - 1))
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "%s bad payload pointer (PUSI set and PP = 0x%02x)\n",
-		                FUNCNAME, this->pp());
+		DFLTLOG(LEVEL_ERROR,
+		        "%s bad payload pointer (PUSI set and PP = 0x%02x)\n",
+		        FUNCNAME, this->pp());
 		goto bad;
 	}
 

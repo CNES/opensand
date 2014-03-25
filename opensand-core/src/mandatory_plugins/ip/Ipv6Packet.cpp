@@ -81,8 +81,8 @@ size_t Ipv6Packet::getTotalLength() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv6 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -93,8 +93,8 @@ size_t Ipv6Packet::getPayloadLength() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv6 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -108,8 +108,8 @@ IpAddress *Ipv6Packet::srcAddr()
 	{
 		if(!this->isValid())
 		{
-			Output::sendLog(LEVEL_ERROR,
-			                "invalid IPv6 packet\n");
+			DFLTLOG(LEVEL_ERROR,
+			        "invalid IPv6 packet\n");
 			return NULL;
 		}
 
@@ -133,8 +133,8 @@ IpAddress *Ipv6Packet::dstAddr()
 	{
 		if(!this->isValid())
 		{
-			Output::sendLog(LEVEL_ERROR,
-			                "invalid IPv6 packet\n");
+			DFLTLOG(LEVEL_ERROR,
+			        "invalid IPv6 packet\n");
 			return NULL;
 		}
 
@@ -158,8 +158,8 @@ uint8_t Ipv6Packet::diffServField() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv6 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -174,8 +174,8 @@ uint8_t Ipv6Packet::diffServCodePoint() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv6 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv6 packet\n");
 		return 0;
 	}
 
@@ -190,8 +190,8 @@ uint8_t Ipv6Packet::explicitCongestionNotification() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv6 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv6 packet\n");
 		return 0;
 	}
 

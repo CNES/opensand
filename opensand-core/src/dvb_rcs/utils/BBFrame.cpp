@@ -156,9 +156,9 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
 		{
-			Output::sendLog(LEVEL_INFO,
-			                "update real MODCOD to %d\n",
-			                real_modcod_option->real_modcod);
+			DFLTLOG(LEVEL_INFO,
+			        "update real MODCOD to %d\n",
+			        real_modcod_option->real_modcod);
 			// check if the value is not outside the values of the file
 			modcod_id = real_modcod_option->real_modcod;
 			return;

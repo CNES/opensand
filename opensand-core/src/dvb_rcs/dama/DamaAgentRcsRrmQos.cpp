@@ -111,8 +111,8 @@ bool DamaAgentRcsRrmQos::init()
 {
 	if(!DamaAgentRcs::init())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Cannot call DamaAgentRcs::init()");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot call DamaAgentRcs::init()");
 		return false;
 	}
 
@@ -127,19 +127,19 @@ bool DamaAgentRcsRrmQos::init()
 		else
 		{
 			this->dyn_alloc = new CircularBuffer(this->obr_period_sf);
-			Output::sendLog(this->log_init, LEVEL_INFO,
-			                "the time between two requests (obrPeriod) is "
-			                "inferior to the Minimum Scheduling Latency (MSL), "
-			                "this case should not be used in the context of "
-			                "the RRM-QoS. However, the simulation is able to "
-			                "continue with some simplifications of the request "
-			                "computation algorithm (alpha =0)");
+			LOG(this->log_init, LEVEL_INFO,
+			    "the time between two requests (obrPeriod) is "
+			    "inferior to the Minimum Scheduling Latency (MSL), "
+			    "this case should not be used in the context of "
+			    "the RRM-QoS. However, the simulation is able to "
+			    "continue with some simplifications of the request "
+			    "computation algorithm (alpha =0)");
 		}
 		if (this->dyn_alloc == NULL)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot create circular buffer to save "
-			                "the last allocations\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create circular buffer to save "
+			    "the last allocations\n");
 			goto error;
 		}
 
@@ -148,9 +148,9 @@ bool DamaAgentRcsRrmQos::init()
 		this->rin = new CircularBuffer(this->obr_period_sf);
 		if(this->rin == NULL)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot create circular buffer to save "
-			                "the incoming rates\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create circular buffer to save "
+			    "the incoming rates\n");
 			goto error;
 		}
 
@@ -159,9 +159,9 @@ bool DamaAgentRcsRrmQos::init()
 		this->rin_coeff = (double *) malloc(this->obr_period_sf * sizeof(double));
 		if(this->rin_coeff == NULL)
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot allocate memory to save "
-			                "the incoming rate coefficients\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot allocate memory to save "
+			    "the incoming rate coefficients\n");
 			goto error;
 		}
 		for (int i = 0; i < this->obr_period_sf; i++)
@@ -171,10 +171,10 @@ bool DamaAgentRcsRrmQos::init()
 			sum_rin_coeff += this->rin_coeff[i];
 		}
 		if (sum_rin_coeff != 1.0)
-			Output::sendLog(this->log_init, LEVEL_NOTICE,
-			                "the sum of the coefficient is not equal to 1.0. "
-			                "It is not a problem for the simulation run but "
-			                "the computation request algorithm has no sense\n");
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "the sum of the coefficient is not equal to 1.0. "
+			    "It is not a problem for the simulation run but "
+			    "the computation request algorithm has no sense\n");
 	}
 
 	return true;
@@ -188,9 +188,9 @@ bool DamaAgentRcsRrmQos::hereIsSOF(time_sf_t superframe_number_sf)
 	// Call parent method
 	if(!DamaAgentRcs::hereIsSOF(superframe_number_sf))
 	 {
-		Output::sendLog(this->log_frame_tick, LEVEL_ERROR,
-		                "SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
-		                this->current_superframe_sf);
+		LOG(this->log_frame_tick, LEVEL_ERROR,
+		    "SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 
@@ -286,33 +286,33 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	}
 	else // Unknown value for the beta parameter
 	{
-		Output::sendLog(this->log_request, LEVEL_WARNING,
-		                "WARNING: Unknown value for the beta parameter\n");
-		Output::sendLog(this->log_request, LEVEL_WARNING, 
-		                "WARNING; beta is set to 0\n");
+		LOG(this->log_request, LEVEL_WARNING,
+		    "WARNING: Unknown value for the beta parameter\n");
+		LOG(this->log_request, LEVEL_WARNING, 
+		    "WARNING: beta is set to 0\n");
 		beta = 0.0;
 	}
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "beta = %f\n", beta);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "beta = %f\n", beta);
 
-   // Compute alpha
-   /*** TO DO: Add a parameter in conf to choose between alpha = 1, alpha = 0
-    *** and alpha = dynamic ***/
-    if (ALPHA == 2) // alpha computed dynamically
+	// Compute alpha
+	/*** TO DO: Add a parameter in conf to choose between alpha = 1, alpha = 0
+	 *** and alpha = dynamic ***/
+	if (ALPHA == 2) // alpha computed dynamically
 	{
 		if (t_sync_ms > t_loop_ms)
 		{
 			// Usual case (in the context of the R&T RRM-QoS)
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "this->dyn_alloc_PartialSum = %d pkt\n",
-			                this->dyn_alloc->GetPartialSumFromPrevious(
-			                this->obr_period_sf - this->msl_sf));
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "this->dyn_alloc_Sum = %d pkt\n",
-			                this->dyn_alloc->GetSum());
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "t_sync_ms - t_loop_ms = %u sec\n",
-			                (t_sync_ms - t_loop_ms));
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "this->dyn_alloc_PartialSum = %d pkt\n",
+			    this->dyn_alloc->GetPartialSumFromPrevious(
+			    this->obr_period_sf - this->msl_sf));
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "this->dyn_alloc_Sum = %d pkt\n",
+			    this->dyn_alloc->GetSum());
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "t_sync_ms - t_loop_ms = %u sec\n",
+			    (t_sync_ms - t_loop_ms));
 			if (last_rbdc_req_kbps > 0)
 			{
 				alpha =
@@ -341,12 +341,12 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 		else
 		{
 			// Nonused case in the R&T RRM-QoS
-			Output::sendLog(this->log_request, LEVEL_NOTICE,
-			                "the time between two requests (obrPeriod) is "
-			                "inferior to the Minimum Scheduling Latency (MSL), "
-			                "this case should not be used in the context of "
-			                "the RRM-QoS. However, the simulation is able to "
-			                "continue with alpha = 1\n");
+			LOG(this->log_request, LEVEL_NOTICE,
+			    "the time between two requests (obrPeriod) is "
+			    "inferior to the Minimum Scheduling Latency (MSL), "
+			    "this case should not be used in the context of "
+			    "the RRM-QoS. However, the simulation is able to "
+			    "continue with alpha = 1\n");
 			alpha = 1.0;
 		}
 		if (alpha > 1.0)
@@ -364,13 +364,14 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	}
 	else // Unknown value for the alpha parameter
 	{
-		Output::sendLog(this->log_request, LEVEL_WARNING,
-		                "WARNING: Unknown value for the alpha parameter\n");
-		Output::sendLog(this->log_request, LEVEL_WARNING,
-		                "WARNING: alpha is set to 1\n");
+		LOG(this->log_request, LEVEL_WARNING,
+		    "WARNING: Unknown value for the alpha parameter\n");
+		LOG(this->log_request, LEVEL_WARNING,
+		    "WARNING: alpha is set to 1\n");
 		alpha = 1.0;
 	}
-	Output::sendLog(this->log_request, LEVEL_DEBUG, "alpha = %f\n", alpha);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "alpha = %f\n", alpha);
 
 	// Compute Rin in cell/sec
 	rin_weighted_kbps = 0;
@@ -378,20 +379,20 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	{
 		rin_weighted_kbps += (this->rin->GetValueIndex(i+1)) * 
 			(this->rin_coeff[i]); // in cell/frame
-		Output::sendLog(this->log_request, LEVEL_DEBUG,
-		                "Rin to add = %d cell/frame\n", 
-			            this->rin->GetValueIndex(i + 1));
-		Output::sendLog(this->log_request, LEVEL_DEBUG,
-		                "RinCoeff = %f\n", this->rin_coeff[i]);
-		Output::sendLog(this->log_request, LEVEL_DEBUG,
-		                "rin_weighted_kbps to add = %f cell/frame\n", 
-		                (this->rin->GetValueIndex(i + 1)) * (this->rin_coeff[i]));
+		LOG(this->log_request, LEVEL_DEBUG,
+		    "Rin to add = %d cell/frame\n", 
+		    this->rin->GetValueIndex(i + 1));
+		LOG(this->log_request, LEVEL_DEBUG,
+		    "RinCoeff = %f\n", this->rin_coeff[i]);
+		LOG(this->log_request, LEVEL_DEBUG,
+		    "rin_weighted_kbps to add = %f cell/frame\n", 
+		    (this->rin->GetValueIndex(i + 1)) * (this->rin_coeff[i]));
 	}
 	rin_weighted_kbps /= this->frame_duration_ms; // in cell/sec
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "FrameDuration = %ums?\n", this->frame_duration_ms);
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "rin_weigthed = %d kbps\n", rin_weighted_kbps);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "FrameDuration = %ums?\n", this->frame_duration_ms);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "rin_weigthed = %d kbps\n", rin_weighted_kbps);
 
 	// Compute rate_need_kbps : estimation of the need of bandwith for traffic
 	// in cell/sec (core of the algorithm)
@@ -411,12 +412,12 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 		else // RRM-QoS: Modification 6 - Option 2
 		{
 			rate_need_kbps = alpha * rin_weighted_kbps;
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "alpha = %f\n", alpha);
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "rin_weighted_kbps = %d\n", rin_weighted_kbps);
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "rate_need_kbps = %f\n", rate_need_kbps);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "alpha = %f\n", alpha);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "rin_weighted_kbps = %d\n", rin_weighted_kbps);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "rate_need_kbps = %f\n", rate_need_kbps);
 		}
 	} 
 	else // last_rbdc_req_kbps >= alloc_since_last_request
@@ -432,12 +433,12 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 		else // RRM-QoS: Modification 6 - Option 2
 		{
 			rate_need_kbps = alpha * rin_weighted_kbps; 
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "alpha = %f\n", alpha);
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "rin_weighted_kbps = %d\n", rin_weighted_kbps);
-			Output::sendLog(this->log_request, LEVEL_DEBUG,
-			                "rate_need_kbps = %f\n", rate_need_kbps);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "alpha = %f\n", alpha);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "rin_weighted_kbps = %d\n", rin_weighted_kbps);
+			LOG(this->log_request, LEVEL_DEBUG,
+			    "rate_need_kbps = %f\n", rate_need_kbps);
 		}
 	}
 	if(rate_need_kbps < 0)
@@ -445,9 +446,9 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 		rate_need_kbps = 0;
 	}
 
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "frame = %d, rate_need_kbps = %3.f cell/s\n", 
-	                this->current_superframe_sf, rate_need_kbps);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "frame = %d, rate_need_kbps = %3.f cell/s\n", 
+	    this->current_superframe_sf, rate_need_kbps);
 
 Legacy:
 	if (LEGACY == 1)
@@ -471,9 +472,9 @@ Legacy:
 	
 	// Compute actual RBDC request to be sent in Kbit/sec
 	rbdc_request_kbps = (int) rate_need_kbps; 
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "frame=%d,  theoretical rbdc_request_kbps = %d kbits/s",  
-	                this->current_superframe_sf, rbdc_request_kbps);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "frame=%d,  theoretical rbdc_request_kbps = %d kbits/s",  
+	    this->current_superframe_sf, rbdc_request_kbps);
 
 
 	// Check if the RBDCmax is not reached
@@ -496,11 +497,12 @@ Legacy:
 	// in order to observe the DVB-RCS standard
 	// RRM-QoS: Modification 7
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "frame=%d,  updated rbdc_request_kbps = %d kbits/s in "
-	                "SAC\n", this->current_superframe_sf, rbdc_request_kbps);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "frame=%d,  updated rbdc_request_kbps = %d kbits/s in "
+	    "SAC\n", this->current_superframe_sf, rbdc_request_kbps);
 
-	Output::sendLog(this->log_request, LEVEL_DEBUG, "Sending request *** \n");
+	LOG(this->log_request, LEVEL_DEBUG, "Sending request *** \n");
+	    
 	return rbdc_request_kbps;
 }
 
@@ -520,33 +522,33 @@ vol_pkt_t DamaAgentRcsRrmQos::computeVbdcRequest()
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
-	                "%u\n", this->current_superframe_sf, this->current_frame,
-	                vbdc_need_pkt, this->vbdc_credit_pkt);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
+	    "%u\n", this->current_superframe_sf, this->current_frame,
+	    vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "SF#%u: frame %u: theoretical VBDC request = %u packets",
-	                this->current_superframe_sf, this->current_frame,
-	                vbdc_request_pkt);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "SF#%u: frame %u: theoretical VBDC request = %u packets",
+	    this->current_superframe_sf, this->current_frame,
+	    vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */
 	vbdc_request_pkt = min(vbdc_request_pkt, max_vbdc_pkt);
 
 	// Ensure VBDC request value is not greater than SAC field
 	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "updated VBDC request = %d packets in fonction of "
-	                "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "updated VBDC request = %d packets in fonction of "
+	    "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
 	this->vbdc_credit_pkt += vbdc_request_pkt;
-	Output::sendLog(this->log_request, LEVEL_DEBUG,
-	                "updated VBDC request = %d packets in SAC, VBDC credit = "
-	                "%u\n", vbdc_request_pkt, this->vbdc_credit_pkt);
+	LOG(this->log_request, LEVEL_DEBUG,
+	    "updated VBDC request = %d packets in SAC, VBDC credit = "
+	    "%u\n", vbdc_request_pkt, this->vbdc_credit_pkt);
 
 	return vbdc_request_pkt;
 }

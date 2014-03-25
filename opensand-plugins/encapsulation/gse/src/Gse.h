@@ -96,6 +96,7 @@ class Gse: public EncapPlugin
 		 */
 		~Context();
 
+		void init();
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &time_contexts);
 		NetBurst *deencapsulate(NetBurst *burst);
 		NetBurst *flush(int context_id);

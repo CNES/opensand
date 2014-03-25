@@ -74,6 +74,7 @@ class Ip: public LanAdaptationPlugin
 		 */
 		~Context();
 
+		void init();
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
 		NetBurst *deencapsulate(NetBurst *burst);
 		char getLanHeader(unsigned int pos, NetPacket *packet);

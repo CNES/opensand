@@ -167,8 +167,8 @@ bool Aal5Packet::isValid() const
 	// data must be at least 8 bytes long (= AAL5 trailer length)
 	if(this->data.length() < 8)
 	{
-		Output::sendLog(LEVEL_NOTICE,
-		                "%s data length < 0\n", FUNCNAME);
+		DFLTLOG(LEVEL_NOTICE,
+		        "%s data length < 0\n", FUNCNAME);
 		goto invalid;
 	}
 
@@ -176,19 +176,19 @@ bool Aal5Packet::isValid() const
 	// => we must have (AAL5 payload len + AAL5 trailer len) <= buffer length
 	if((this->getPayloadLength() + 8) > (int) this->data.length())
 	{
-		Output::sendLog(LEVEL_NOTICE,
-		                "%s payload (%zu) + trailer (8) > total length (%zu)\n",
-		                FUNCNAME, this->getPayloadLength(),
-		                this->data.length());
+		DFLTLOG(LEVEL_NOTICE,
+		        "%s payload (%zu) + trailer (8) > total length (%zu)\n",
+		        FUNCNAME, this->getPayloadLength(),
+		        this->data.length());
 		goto invalid;
 	}
 
 	// AAL5 packet length must be multiple of 48 (= ATM payload length)
 	if(this->data.length() % 48 != 0)
 	{
-		Output::sendLog(LEVEL_NOTICE,
-		                "%s total length (%zu) is not a multiple of 48\n",
-		                FUNCNAME, this->data.length());
+		DFLTLOG(LEVEL_NOTICE,
+		        "%s total length (%zu) is not a multiple of 48\n",
+		        FUNCNAME, this->data.length());
 		goto invalid;
 	}
 
@@ -198,9 +198,9 @@ bool Aal5Packet::isValid() const
 
 	if(crc != cur_crc)
 	{
-		Output::sendLog(LEVEL_NOTICE,
-		                "%s CRC = %08x, should be %08x\n", FUNCNAME, cur_crc,
-		                crc);
+		DFLTLOG(LEVEL_NOTICE,
+		        "%s CRC = %08x, should be %08x\n", FUNCNAME, cur_crc,
+		        crc);
 		goto invalid;
 	}
 
@@ -220,8 +220,8 @@ size_t Aal5Packet::getPayloadLength() const
 	// data must be at least 8 bytes long (= AAL5 trailer length)
 	if(this->data.length() < 8)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid AAL5 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid AAL5 packet\n");
 		return 0;
 	}
 
@@ -234,8 +234,8 @@ Data Aal5Packet::getPayload() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid AAL5 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid AAL5 packet\n");
 		return Data();
 	}
 
@@ -243,8 +243,8 @@ Data Aal5Packet::getPayload() const
 
 	if(payload_len <= 0)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "AAL5 packet has a 0 length payload\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "AAL5 packet has a 0 length payload\n");
 		return Data();
 	}
 
@@ -278,10 +278,10 @@ Aal5Packet *Aal5Packet::createFromPayload(Data payload)
 	data.push_back((crc & 0x0000ff00) >> 8);
 	data.push_back((crc & 0x000000ff) >> 0);
 
-	Output::sendLog(LEVEL_INFO,
-	                "AAL5 packet created (payload = %d bytes, "
-	                "padding = %d bytes, CRC = %08x)\n",
-	                len, padding_len, crc);
+	DFLTLOG(LEVEL_INFO,
+	        "AAL5 packet created (payload = %d bytes, "
+	        "padding = %d bytes, CRC = %08x)\n",
+	        len, padding_len, crc);
 
 	return new Aal5Packet(data);
 }
@@ -307,8 +307,8 @@ uint32_t Aal5Packet::crc() const
 	// data must be at least 8 bytes long (= AAL5 trailer length)
 	if(this->data.length() < 8)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid AAL5 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid AAL5 packet\n");
 		return 0;
 	}
 

@@ -97,16 +97,16 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	}
 	if(this->frames[frame_id].size() > BROADCAST_TAL_ID)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "Too many time plans for frame id %u\n", frame_id);
+		DFLTLOG(LEVEL_ERROR,
+		        "Too many time plans for frame id %u\n", frame_id);
 		this->frames[frame_id].pop_back();
 		return false;
 	}
-	Output::sendLog(LEVEL_DEBUG,
-	                "Add TP for ST%u at frame %u with offset=%u, "
-	                "assignment_count=%u, FMT=%u, priority=%u\n",
-	                tal_id, frame_id, offset, assignment_count,
-	                fmt_id, priority);
+	DFLTLOG(LEVEL_DEBUG,
+	        "Add TP for ST%u at frame %u with offset=%u, "
+	        "assignment_count=%u, FMT=%u, priority=%u\n",
+	        tal_id, frame_id, offset, assignment_count,
+	        fmt_id, priority);
 	return true;
 }
 
@@ -162,17 +162,17 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 	 * frame_loop_count */
 	if(length < sizeof(T_DVB_TTP))
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "Length is to small for a TTP\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "Length is to small for a TTP\n");
 		return false;
 	}
 	length -= sizeof(T_DVB_HDR);
 
 	ttp = &(this->frame()->ttp);
-	Output::sendLog(LEVEL_DEBUG,
-	                "SF#%u: ttp->frame_loop_count=%u\n",
-	                this->getSuperframeCount(),
-	                ttp->ttp_info.frame_loop_count);
+	DFLTLOG(LEVEL_DEBUG,
+	        "SF#%u: ttp->frame_loop_count=%u\n",
+	        this->getSuperframeCount(),
+	        ttp->ttp_info.frame_loop_count);
 
 	length -= sizeof(ttp_info_t);
 	frame_start = (unsigned char *)(&ttp->frames);
@@ -183,16 +183,16 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 
 		if(length < sizeof(frame_info_t) + emu_frame->frame_info.tp_loop_count * sizeof(emu_tp_t))
 		{
-			Output::sendLog(LEVEL_ERROR,
-			                "Length is too small for the given tp number\n");
+			DFLTLOG(LEVEL_ERROR,
+			        "Length is too small for the given tp number\n");
 			return false;
 		}
 		// update length
 		length -= sizeof(frame_info_t);
-		Output::sendLog(LEVEL_DEBUG,
-		                "SF#%u: frame #%u btp_loop_count=%u\n",
-		                this->getSuperframeCount(), i,
-		                emu_frame->frame_info.tp_loop_count);
+		DFLTLOG(LEVEL_DEBUG,
+		        "SF#%u: frame #%u btp_loop_count=%u\n",
+		        this->getSuperframeCount(), i,
+		        emu_frame->frame_info.tp_loop_count);
 		// get the first TP
 		// increase from 1 * sizeof(tp)
 		tp = (emu_tp_t *)(&emu_frame->tp);
@@ -201,22 +201,22 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 			length -= sizeof(emu_tp_t);
 			if(ntohs(tp->tal_id) != tal_id)
 			{
-				Output::sendLog(LEVEL_DEBUG,
-				                "SF#%u: TP for ST%u ignored\n",
-				                this->getSuperframeCount(),
-				                ntohs(tp->tal_id));
+				DFLTLOG(LEVEL_DEBUG,
+				        "SF#%u: TP for ST%u ignored\n",
+				        this->getSuperframeCount(),
+				        ntohs(tp->tal_id));
 				tp = tp + 1;
 				continue;
 			}
 			tp->offset = ntohl(tp->offset);
 			tp->assignment_count = ntohs(tp->assignment_count);
 			tps[emu_frame->frame_info.frame_number] = *tp;
-			Output::sendLog(LEVEL_DEBUG,
-			                "SF#%u: frame#%u btp#%u: tal_id:%u, "
-			                "offset:%u, assignment_count:%u, "
-			                "fmt_id:%u priority:%u\n",
-			                this->getSuperframeCount(), i, j,
-			                tal_id, tp->offset, tp->assignment_count,
+			DFLTLOG(LEVEL_DEBUG,
+			        "SF#%u: frame#%u btp#%u: tal_id:%u, "
+			        "offset:%u, assignment_count:%u, "
+			        "fmt_id:%u priority:%u\n",
+			        this->getSuperframeCount(), i, j,
+			        tal_id, tp->offset, tp->assignment_count,
 			                tp->fmt_id, tp->priority);
 			// increase from 1 * sizeof(tp), we do not need to
 			// use an unsigned char * for arithmetic operation here

@@ -70,7 +70,8 @@ bool RtFifo::init()
 	int32_t pipefd[2];
 	int ret;
 
-	Output::sendLog(LEVEL_DEBUG, "Initialize fifo\n");
+	DFLTLOG(LEVEL_DEBUG, "Initialize fifo\n");
+	
 
 	ret = sem_init(&(this->fifo_size_sem), 0, this->max_size);
 	if(ret != 0)
@@ -102,7 +103,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	rt_msg_t msg;
 	int ret;
 	
-	Output::sendLog(LEVEL_DEBUG, "push message in fifo\n");
+	DFLTLOG(LEVEL_DEBUG, "push message in fifo\n");
 
 	// we need a semaphore here to block while fifo is full
 	ret = sem_wait(&(this->fifo_size_sem));

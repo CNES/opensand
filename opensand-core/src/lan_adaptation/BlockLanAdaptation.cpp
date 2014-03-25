@@ -100,14 +100,14 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 			}
 
 			// this is not a link up message, this should be a forward burst
-			Output::sendLog(this->log_receive, LEVEL_DEBUG,
-			                "Get a forward burst from opposite channel\n");
+			LOG(this->log_receive, LEVEL_DEBUG,
+			    "Get a forward burst from opposite channel\n");
 			NetBurst *forward_burst;
 			forward_burst = (NetBurst *)((MessageEvent *)event)->getData();
 			if(!this->enqueueMessage((void **)&forward_burst))
 			{
-				Output::sendLog(this->log_receive, LEVEL_ERROR,
-		 		               "failed to forward burst to lower layer\n");
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to forward burst to lower layer\n");
 				delete forward_burst;
 				return false;
 			}
@@ -130,17 +130,17 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 			}
 			else
 			{
-				Output::sendLog(this->log_receive, LEVEL_ERROR,
-				                "unknown timer event received %s\n",
-				                event->getName().c_str());
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "unknown timer event received %s\n",
+				    event->getName().c_str());
 				return false;
 			}
 			break;
 
 		default:
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "unknown event received %s",
-				            event->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -167,15 +167,15 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 				// 'link is up' message advertised
 
 				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
-				Output::sendLog(this->log_receive, LEVEL_INFO,
-				                "link up message received (group = %u, "
-				                "tal = %u)\n", link_up_msg->group_id,
-				                link_up_msg->tal_id);
+				LOG(this->log_receive, LEVEL_INFO,
+				    "link up message received (group = %u, "
+				    "tal = %u)\n", link_up_msg->group_id,
+				    link_up_msg->tal_id);
 
 				if(this->state == link_up)
 				{
-					Output::sendLog(this->log_receive, LEVEL_NOTICE,
-					                "duplicate link up msg\n");
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "duplicate link up msg\n");
 					delete link_up_msg;
 					return false;
 				}
@@ -192,9 +192,9 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 						                                          this->satellite_type,
 						                                          &this->sarp_table))
 						{
-							Output::sendLog(this->log_receive, LEVEL_ERROR,
-						                    "cannot initialize %s context\n",
-							                (*ctx_iter)->getName().c_str());
+							LOG(this->log_receive, LEVEL_ERROR,
+							    "cannot initialize %s context\n",
+							    (*ctx_iter)->getName().c_str());
 							delete link_up_msg;
 							return false;
 						}
@@ -205,9 +205,9 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					                       ((MessageEvent *)event)->getLength(),
 					                       ((MessageEvent *)event)->getMessageType()))
 					{
-						Output::sendLog(this->log_receive, LEVEL_ERROR,
-						                "failed to transmit link up message to "
-						                "opposite channel\n");
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "failed to transmit link up message to "
+						    "opposite channel\n");
 						return false;
 					}
 				}
@@ -215,16 +215,16 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 			}
 			// not a link up message
 			NetBurst *burst;
-			Output::sendLog(this->log_receive, LEVEL_INFO,
-			                "packet received from lower layer\n");
+			LOG(this->log_receive, LEVEL_INFO,
+			    "packet received from lower layer\n");
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 			if(this->state != link_up)
 			{
-				Output::sendLog(this->log_receive, LEVEL_NOTICE,
-				                "packets received from lower layer, but "
-				                "link is down => drop packets\n");
+				LOG(this->log_receive, LEVEL_NOTICE,
+				    "packets received from lower layer, but "
+				    "link is down => drop packets\n");
 				delete burst;
 				return false;
 			}
@@ -236,9 +236,9 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 		break;
 
 		default:
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "unknown event received %s",
-			                event->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -253,8 +253,8 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 
 	if(burst == NULL)
 	{
-		Output::sendLog(this->log_receive, LEVEL_ERROR,
-		                "burst is not valid\n");
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "burst is not valid\n");
 		return false;
 	}
 
@@ -264,9 +264,9 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		burst = (*ctx_iter)->deencapsulate(burst);
 		if(burst == NULL)
 		{
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "failed to handle packet in %s context\n",
-			                (*ctx_iter)->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to handle packet in %s context\n",
+			    (*ctx_iter)->getName().c_str());
 			return false;
 		}
 	}
@@ -275,15 +275,15 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 	while(burst_it != burst->end())
 	{
 		tal_id_t pkt_tal_id = (*burst_it)->getDstTalId();
-		Output::sendLog(this->log_receive, LEVEL_INFO,
-		                "packet from lower layer has terminal ID %u\n",
-		                pkt_tal_id);
+		LOG(this->log_receive, LEVEL_INFO,
+		    "packet from lower layer has terminal ID %u\n",
+		    pkt_tal_id);
 
 		if(pkt_tal_id == BROADCAST_TAL_ID || pkt_tal_id == this->tal_id)
 		{
-			Output::sendLog(this->log_receive, LEVEL_INFO,
-			                "%s packet received from lower layer & should "
-			                "be read\n", (*burst_it)->getName().c_str());
+			LOG(this->log_receive, LEVEL_INFO,
+			    "%s packet received from lower layer & should "
+			    "be read\n", (*burst_it)->getName().c_str());
 			
 			Data packet = (*burst_it)->getData();
 			unsigned char head[TUNTAP_FLAGS_LEN];
@@ -291,26 +291,26 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			{
 				// add the protocol flag in the header
 				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
-				Output::sendLog(this->log_receive, LEVEL_DEBUG,
-				                "Add 0x%2x for bit %u in TUN/TAP header\n",
-				                head[i], i);
+				LOG(this->log_receive, LEVEL_DEBUG,
+				    "Add 0x%2x for bit %u in TUN/TAP header\n",
+				    head[i], i);
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
 			if(write(this->fd, packet.data(), packet.length()) < 0)
 			{
-				Output::sendLog(this->log_receive, LEVEL_ERROR,
-				                "Unable to write data on tun or tap "
-				                "interface: %s\n", strerror(errno));
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "Unable to write data on tun or tap "
+				    "interface: %s\n", strerror(errno));
 				success = false;
 				++burst_it;
 				continue;
 			}
 
-			Output::sendLog(this->log_receive, LEVEL_INFO,
-			                "%s packet received from lower layer & forwarded "
-			                "to network layer\n",
-			                (*burst_it)->getName().c_str());
+			LOG(this->log_receive, LEVEL_INFO,
+			    "%s packet received from lower layer & forwarded "
+			    "to network layer\n",
+			    (*burst_it)->getName().c_str());
 		}
 
 		if(this->tal_id == GW_TAL_ID &&
@@ -325,9 +325,9 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 				forward_burst = new NetBurst();
 				if(!forward_burst)
 				{
-					Output::sendLog(this->log_receive, LEVEL_ERROR,
-					                "cannot create the burst for forward "
-					                "packets\n");
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "cannot create the burst for forward "
+					    "packets\n");
 					++burst_it;
 					continue;
 				}
@@ -352,24 +352,24 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			forward_burst = (*iter)->encapsulate(forward_burst);
 			if(forward_burst == NULL)
 			{
-				Output::sendLog(this->log_receive, LEVEL_ERROR,
-				                "failed to handle packet in %s context\n",
-				                (*iter)->getName().c_str());
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to handle packet in %s context\n",
+				    (*iter)->getName().c_str());
 				return false;
 			}
 		}
 
-		Output::sendLog(this->log_receive, LEVEL_INFO,
-		                "%d packet should be forwarded (multicast/broadcast or "
-		                "unicast not for GW)\n", forward_burst->length());
+		LOG(this->log_receive, LEVEL_INFO,
+		    "%d packet should be forwarded (multicast/broadcast or "
+		    "unicast not for GW)\n", forward_burst->length());
 
 		// transmit message to the opposite channel that will
 		// send it to lower layer 
 		if(!this->shareMessage((void **)&forward_burst))
 		{
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-		                    "failed to transmit forward burst to opposite "
-		                    "channel\n");
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to transmit forward burst to opposite "
+			    "channel\n");
 			delete forward_burst;
 			success = false;
 		}
@@ -394,15 +394,15 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 
 	if(this->state != link_up)
 	{
-		Output::sendLog(this->log_receive, LEVEL_NOTICE,
-		                "packets received from TUN/TAP, but link is down "
-		                "=> drop packets\n");
+		LOG(this->log_receive, LEVEL_NOTICE,
+		    "packets received from TUN/TAP, but link is down "
+		    "=> drop packets\n");
 		free(read_data);
 		return false;
 	}
 
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "new %u-bytes packet received from network\n", length);
+	LOG(this->log_receive, LEVEL_INFO,
+	    "new %u-bytes packet received from network\n", length);
 	packet = new NetPacket(data, length);
 	burst = new NetBurst();
 	burst->add(packet);
@@ -413,17 +413,17 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 		burst = (*iter)->encapsulate(burst);
 		if(burst == NULL)
 		{
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "failed to handle packet in %s context\n",
-			                (*iter)->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "failed to handle packet in %s context\n",
+			    (*iter)->getName().c_str());
 			return false;
 		}
 	}
 
 	if(!this->enqueueMessage((void **)&burst))
 	{
-		Output::sendLog(this->log_receive, LEVEL_ERROR,
-		                "failed to send burst to lower layer\n");
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to send burst to lower layer\n");
 		delete burst;
 		return false;
 	}
@@ -439,9 +439,9 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 	fd = open("/dev/net/tun", O_RDWR);
 	if(fd < 0)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot open '/dev/net/tun': %s\n",
-		                strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot open '/dev/net/tun': %s\n",
+		    strerror(errno));
 		return false;
 	}
 
@@ -453,9 +453,9 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 	 */
 
 	/* create TUN or TAP interface */
-	Output::sendLog(this->log_init, LEVEL_INFO,
-	                "create interface opensand_%s",
-	                (this->is_tap ? "tap" : "tun"));
+	LOG(this->log_init, LEVEL_INFO,
+	    "create interface opensand_%s",
+	    (this->is_tap ? "tap" : "tun"));
 	snprintf(ifr.ifr_name, IFNAMSIZ, "opensand_%s",
 	        (this->is_tap ? "tap" : "tun"));
 	ifr.ifr_flags = (this->is_tap ? IFF_TAP : IFF_TUN);
@@ -467,15 +467,15 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 	err = ioctl(fd, TUNSETIFF, (void *) &ifr);
 	if(err < 0)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot set flags on file descriptor %s\n",
-		                strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot set flags on file descriptor %s\n",
+		    strerror(errno));
 		close(fd);
 		return false;
 	}
 
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "TUN/TAP handle with fd %d initialized\n", fd);
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "TUN/TAP handle with fd %d initialized\n", fd);
 
 	return true;
 }
@@ -493,8 +493,8 @@ bool BlockLanAdaptation::addInBridge()
 	err = br_init();
 	if(err)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Failed to init bridge: %s\n", strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to init bridge: %s\n", strerror(errno));
 		return false;
 	}
 
@@ -503,17 +503,17 @@ bool BlockLanAdaptation::addInBridge()
 	err = br_add_interface(br, this->lan_iface.c_str());
 	if(err)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Failed to add %s interface in bridge: %s\n",
-		                this->lan_iface.c_str(), strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to add %s interface in bridge: %s\n",
+		    this->lan_iface.c_str(), strerror(errno));
 		br_shutdown();
 		return false;
 	}
 	br_shutdown();
 
 	// wait for bridge to be ready
-	Output::sendLog(this->log_init, LEVEL_INFO,
-	                "Wait for bridge to be ready\n");
+	LOG(this->log_init, LEVEL_INFO,
+	    "Wait for bridge to be ready\n");
 	sleep(10);
 	
 	return true;
@@ -531,17 +531,17 @@ bool BlockLanAdaptation::delFromBridge()
 	err = br_init();
 	if(err)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Failed to init bridge: %s\n", strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to init bridge: %s\n", strerror(errno));
 		return false;
 	}
 
 	err = br_del_interface(br, this->lan_iface.c_str());
 	if(err)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Failed to remove %s interface from bridge: %s\n",
-		                this->lan_iface.c_str(), strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to remove %s interface from bridge: %s\n",
+		    this->lan_iface.c_str(), strerror(errno));
 		br_shutdown();
 		return false;
 	}

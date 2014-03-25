@@ -64,24 +64,24 @@ bool AcmLoop::init(void)
 	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                          val))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s': missing parameter '%s'\n",
-		                GLOBAL_SECTION, SATELLITE_TYPE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "satellite type = %s\n", val.c_str());
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "satellite type = %s\n", val.c_str());
 	sat_type = strToSatType(val);
 
 	val = "";
 	if(!globalConfig.getComponent(val))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot get component type\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get component type\n");
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "host type = %s\n", val.c_str());
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "host type = %s\n", val.c_str());
 	compo = getComponentType(val);
 
 	if(compo == terminal ||
@@ -97,28 +97,28 @@ bool AcmLoop::init(void)
 	if(!globalConfig.getValue(GLOBAL_SECTION, modcod_key.c_str(),
 	                          filename))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "section '%s', missing parameter '%s'\n",
-		                GLOBAL_SECTION, modcod_key.c_str());
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    GLOBAL_SECTION, modcod_key.c_str());
 		goto error;
 	}
 
 	if(access(filename.c_str(), R_OK) < 0)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "cannot access '%s' file (%s)\n",
-		                filename.c_str(), strerror(errno));
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot access '%s' file (%s)\n",
+		    filename.c_str(), strerror(errno));
 		goto error;
 	}
-	Output::sendLog(this->log_init, LEVEL_NOTICE,
-	                "ACM loop definition file for minimal condition = '%s'\n",
-	                filename.c_str());
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "ACM loop definition file for minimal condition = '%s'\n",
+	    filename.c_str());
 
 	// load all the ACM_LOOP definitions from file
 	if(!(this->modcod_table).load(filename))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "unable to load the acm_loop definition table");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unable to load the acm_loop definition table");
 		goto error;
 	}
 
@@ -134,10 +134,9 @@ bool AcmLoop::updateThreshold(uint8_t modcod_id)
 	// Init variables
 	threshold = this->minimal_cn; // Default, keep previous threshold
 	threshold = (double)(this->modcod_table.getRequiredEsN0(modcod_id));
-	Output::sendLog(this->log_minimal, LEVEL_DEBUG, 
-	                "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-	                modcod_id,
-	                this->modcod_table.getRequiredEsN0(modcod_id));
+	LOG(this->log_minimal, LEVEL_DEBUG, 
+	    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
+	    modcod_id, this->modcod_table.getRequiredEsN0(modcod_id));
 
 	this->minimal_cn = threshold;
 	return true;

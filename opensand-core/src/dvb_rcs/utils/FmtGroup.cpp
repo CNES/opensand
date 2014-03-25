@@ -100,8 +100,8 @@ void FmtGroup::parse(string ids)
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
 				this->fmt_ids.push_back(val);
-				Output::sendLog(this->log_fmt, LEVEL_INFO,
-				                "Add ID %u in FMT group %u\n", val, this->id);
+				LOG(this->log_fmt, LEVEL_INFO,
+				    "Add ID %u in FMT group %u\n", val, this->id);
 			}
 			if(previous_id == 0)
 			{
@@ -117,8 +117,8 @@ void FmtGroup::parse(string ids)
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
 					this->fmt_ids.push_back(i);
-					Output::sendLog(this->log_fmt, LEVEL_INFO,
-					                "Add ID %u in FMT group %u\n", i, this->id);
+					LOG(this->log_fmt, LEVEL_INFO,
+					    "Add ID %u in FMT group %u\n", i, this->id);
 				}
 			}
 

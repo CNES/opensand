@@ -58,10 +58,10 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 	{
 		this->save_only_last_value = true;
 		this->size = 1;
-		Output::sendLog(this->log_circular_buffer, LEVEL_NOTICE,
-		                "Circular buffer size was %zu --> set to %zu, with "
-		                " only saving last value option (sum = 0)\n",
-		                buffer_size, this->size);
+		LOG(this->log_circular_buffer, LEVEL_NOTICE,
+		    "Circular buffer size was %zu --> set to %zu, with "
+		    " only saving last value option (sum = 0)\n",
+		    buffer_size, this->size);
 	}
 	else
 	{
@@ -74,8 +74,8 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 	this->values = (rate_kbps_t *) calloc(this->size, sizeof(rate_kbps_t));
 	if(this->values == NULL)
 	{
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "cannot allocate memory for circular buffer\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "cannot allocate memory for circular buffer\n");
 		goto err_alloc;
 	}
 
@@ -105,8 +105,8 @@ void CircularBuffer::Update(rate_kbps_t value)
 
 	if(this->values == NULL)
 	{
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "circular buffer not initialized\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "circular buffer not initialized\n");
 		return;
 	}
 
@@ -159,8 +159,8 @@ rate_kbps_t CircularBuffer::GetLastValue()
 
 	if(this->values == NULL)
 	{
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "circular buffer not initialized\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "circular buffer not initialized\n");
 		last_value = 0;
 	}
 	else
@@ -181,8 +181,8 @@ rate_kbps_t CircularBuffer::GetPreviousValue()
 
 	if(this->values == NULL)
 	{
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "circular buffer not initialized\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "circular buffer not initialized\n");
 		previous_value = 0;
 	}
 	else
@@ -234,8 +234,8 @@ rate_kbps_t CircularBuffer::GetPartialSumFromPrevious(int value_number)
 {
 	rate_kbps_t partial_sum_kbps = 0;
 	if (this->values == NULL)
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "circular buffer not initialized\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "circular buffer not initialized\n");
 	else
 	{   
 		for(int i = 0; i < value_number; i++) 
@@ -254,8 +254,8 @@ rate_kbps_t CircularBuffer::GetValueIndex(int i)
 	double value;
 	if(this->values == NULL)
 	{
-		Output::sendLog(this->log_circular_buffer, LEVEL_ERROR,
-		                "circular buffer not initialized\n");
+		LOG(this->log_circular_buffer, LEVEL_ERROR,
+		    "circular buffer not initialized\n");
 		value = 0;
 	}     
 	else

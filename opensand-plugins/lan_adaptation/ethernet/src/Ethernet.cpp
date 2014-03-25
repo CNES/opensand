@@ -70,6 +70,11 @@
 Ethernet::Ethernet():
 	LanAdaptationPlugin(NET_PROTO_ETH)
 {
+}
+
+void Ethernet::init()
+{
+	LanAdaptationPlugin::init();
 	ConfigurationFile config;
 	string sat_eth;
 
@@ -82,14 +87,14 @@ Ethernet::Ethernet():
 	// here we need frame type on satellite for lower layers
 	if(config.loadConfig(CONF_ETH_FILE) < 0)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to load config file '%s'", CONF_ETH_FILE);
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to load config file '%s'", CONF_ETH_FILE);
 		return;
 	}
 	if(!config.getValue(CONF_ETH_SECTION, CONF_SAT_FRAME_TYPE, sat_eth))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
 	}
 
 	config.unloadConfig();
@@ -108,8 +113,8 @@ Ethernet::Ethernet():
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "unknown type of Ethernet frames\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "unknown type of Ethernet frames\n");
 		this->ether_type = NET_PROTO_ERROR;
 	}
 }
@@ -117,6 +122,11 @@ Ethernet::Ethernet():
 Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 	LanAdaptationContext(plugin)
 {
+}
+
+void Ethernet::Context::init()
+{
+	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
 	string lan_eth;
 	string sat_eth;
@@ -125,27 +135,27 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 
 	if(config.loadConfig(CONF_ETH_FILE) < 0)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to load config file '%s'",
-		                CONF_ETH_FILE);
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to load config file '%s'",
+		    CONF_ETH_FILE);
 		return;
 	}
 
 	if(!config.getValue(CONF_ETH_SECTION, CONF_LAN_FRAME_TYPE, lan_eth))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing %s parameter\n", CONF_LAN_FRAME_TYPE);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing %s parameter\n", CONF_LAN_FRAME_TYPE);
 	}
 	if(!config.getValue(CONF_ETH_SECTION, CONF_SAT_FRAME_TYPE, sat_eth))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
 	}
 
 	if(!this->initEvc(config))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to Initialize EVC\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to Initialize EVC\n");
 	}
 	// TODO move initStats here ?
 	// this will help removingfinishInit from block to main
@@ -153,66 +163,66 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 
 	if(lan_eth == "Ethernet")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
- 		                "Ethernet layer without extension on network\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer without extension on network\n");
 		this->lan_frame_type = NET_PROTO_ETH;
 	}
 	else if(lan_eth == "802.1Q")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet layer support 802.1Q extension on network\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1Q extension on network\n");
 		this->lan_frame_type = NET_PROTO_802_1Q;
 	}
 	else if(lan_eth == "802.1ad")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet layer support 802.1ad extension on network\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1ad extension on network\n");
 		this->lan_frame_type = NET_PROTO_802_1AD;
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "unknown type of Ethernet layer on network\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "unknown type of Ethernet layer on network\n");
 		this->lan_frame_type = NET_PROTO_ERROR;
 	}
 
 	if(sat_eth == "Ethernet")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet layer without extension on satellite\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer without extension on satellite\n");
 		this->sat_frame_type = NET_PROTO_ETH;
 	}
 	else if(sat_eth == "802.1Q")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet layer support 802.1Q extension on satellite\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1Q extension on satellite\n");
 		this->sat_frame_type = NET_PROTO_802_1Q;
 	}
 	else if(sat_eth == "802.1ad")
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet layer support 802.1ad extension on satellite\n");
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet layer support 802.1ad extension on satellite\n");
 		this->sat_frame_type = NET_PROTO_802_1AD;
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "unknown type of Ethernet layer on satellite\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "unknown type of Ethernet layer on satellite\n");
 		this->sat_frame_type = NET_PROTO_ERROR;
 	}
 
 	// TODO remove, use something else
 	if(config.loadConfig(CONF_IP_FILE) < 0)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to load config file '%s'", CONF_IP_FILE);
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to load config file '%s'", CONF_IP_FILE);
 		return;
 	}
 
 	if(!this->initTrafficCategories(config))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot Initialize traffic categories\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot Initialize traffic categories\n");
 	}
 
 	config.unloadConfig();
@@ -246,9 +256,9 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 
 	if(!config.getListItems(CONF_ETH_SECTION, CONNECTION_LIST, evc_list))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing or empty section [%s, %s]\n",
-		                CONF_ETH_SECTION, CONNECTION_LIST);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing or empty section [%s, %s]\n",
+		    CONF_ETH_SECTION, CONNECTION_LIST);
 		return false;
 	}
 
@@ -270,30 +280,30 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		// get ID
 		if(!config.getAttributeValue(iter, EVC_ID, id))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                EVC_ID,  i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    EVC_ID,  i);
 			return false;
 		}
 
 		// get source MAC address
 		if(!config.getAttributeValue(iter, MAC_SRC, src))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                MAC_SRC, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    MAC_SRC, i);
 			return false;
 		}
 		mac_src = new MacAddress(src);
 		// get destination MAC address
 		if(!config.getAttributeValue(iter, MAC_DST, dst))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                MAC_DST, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    MAC_DST, i);
 			return false;
 		}
 		mac_dst = new MacAddress(dst);
@@ -301,44 +311,44 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		// get 802.1Q tag
 		if(!config.getAttributeValue(iter, Q_TAG, q_tag))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                Q_TAG,  i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    Q_TAG,  i);
 			return false;
 		}
 		// get 802.1ad tag
 		if(!config.getAttributeValue(iter, AD_TAG, ad_tag))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                AD_TAG, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    AD_TAG, i);
 			return false;
 		}
 		// get source protocol type
 		if(!config.getAttributeValue(iter, PROTOCOL_TYPE, proto))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			                PROTOCOL_TYPE, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
+			    PROTOCOL_TYPE, i);
 			return false;
 		}
 		proto >> std::hex >> pt;
 
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "New EVC: MAC source = %s, MAC destination = %s, "
-		                "tag Q = %u, tag AD = %u, payload_type = %#2X\n",
-		                mac_src->str().c_str(), mac_dst->str().c_str(),
-		                q_tag, ad_tag, pt);
+		LOG(this->log, LEVEL_INFO,
+		    "New EVC: MAC source = %s, MAC destination = %s, "
+		    "tag Q = %u, tag AD = %u, payload_type = %#2X\n",
+		    mac_src->str().c_str(), mac_dst->str().c_str(),
+		    q_tag, ad_tag, pt);
 
 		evc = new Evc(mac_src, mac_dst, q_tag, ad_tag, pt);
 
 		if(this->evc_map.find(id) != this->evc_map.end())
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "Duplicated ID %u in Ethernet Virtual Connections\n", id);
+			LOG(this->log, LEVEL_ERROR,
+			    "Duplicated ID %u in Ethernet Virtual Connections\n", id);
 			return false;
 		}
 		this->evc_map[id] = evc;
@@ -361,9 +371,9 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
 	                        category_list))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing or empty section [%s, %s]\n",
-		                SECTION_MAPPING, MAPPING_LIST);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing or empty section [%s, %s]\n",
+		    SECTION_MAPPING, MAPPING_LIST);
 		return false;
 	}
 
@@ -377,39 +387,39 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 		// get category id
 		if(!config.getAttributeValue(iter, MAPPING_IP_DSCP, dscp_value))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_IP_DSCP, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_IP_DSCP, i);
 			return false;
 		}
 		// get category name
 		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_MAC_NAME, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_MAC_NAME, i);
 			return false;
 		}
 		// get service class
 		if(!config.getAttributeValue(iter, MAPPING_MAC_PRIO,
 		                             mac_queue_prio))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_MAC_PRIO, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_MAC_PRIO, i);
 			return false;
 		}
 
 		if(this->category_map.count(dscp_value))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "Traffic category %ld - [%s] rejected: identifier "
-			                "already exists for [%s]\n", dscp_value,
-			                mac_queue_name.c_str(),
-			                this->category_map[dscp_value]->getName().c_str());
+			LOG(this->log, LEVEL_ERROR,
+			    "Traffic category %ld - [%s] rejected: identifier "
+			    "already exists for [%s]\n", dscp_value,
+			    mac_queue_name.c_str(),
+			    this->category_map[dscp_value]->getName().c_str());
 			return false;
 		}
 
@@ -424,8 +434,8 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot find default MAC traffic category\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot find default MAC traffic category\n");
 		return false;
 	}
 
@@ -455,22 +465,22 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 	if(this->current_upper)
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "got a burst of %s packets to encapsulate\n",
-		                this->current_upper->getName().c_str());
+		LOG(this->log, LEVEL_INFO,
+		    "got a burst of %s packets to encapsulate\n",
+		    this->current_upper->getName().c_str());
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "got a network packet to encapsulate\n");
+		LOG(this->log, LEVEL_INFO,
+		    "got a network packet to encapsulate\n");
 	}
 
 	// create an empty burst of ETH frames
 	eth_frames = new NetBurst();
 	if(eth_frames == NULL)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot allocate memory for burst of ETH frames\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot allocate memory for burst of ETH frames\n");
 		delete burst;
 		return NULL;
 	}
@@ -508,9 +518,9 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			if(!this->sarp_table->getTalByMac(src_mac, src))
 			{
 				// do not use default here, default is for destination !
-				Output::sendLog(this->log, LEVEL_NOTICE,
-				                "cannot find source MAC address %s in sarp table\n",
-				                src_mac.str().c_str());
+				LOG(this->log, LEVEL_NOTICE,
+				    "cannot find source MAC address %s in sarp table\n",
+				    src_mac.str().c_str());
 				continue;
 			}
 			if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
@@ -525,23 +535,23 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
 				{
-					Output::sendLog(this->log, LEVEL_NOTICE,
-					                "cannot find destination MAC address %s in sarp table\n",
-					                dst_mac.str().c_str());
+					LOG(this->log, LEVEL_NOTICE,
+					    "cannot find destination MAC address %s in sarp table\n",
+					    dst_mac.str().c_str());
 					continue;
 				}
 				else
 				{
-					Output::sendLog(this->log, LEVEL_NOTICE,
-					                "cannot find destination tal ID, use default (%u)\n",
-					          dst);
+					LOG(this->log, LEVEL_NOTICE,
+					    "cannot find destination tal ID, use default (%u)\n",
+					    dst);
 				}
 			}
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "build Ethernet frame with source MAC %s corresponding "
-			                " to terminal ID %d and destination MAC %s corresponding "
-			                "to terminal ID %d\n",
-			                src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
+			LOG(this->log, LEVEL_INFO,
+			    "build Ethernet frame with source MAC %s corresponding "
+			    " to terminal ID %d and destination MAC %s corresponding "
+			    "to terminal ID %d\n",
+			    src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
 
 			switch(frame_type)
 			{
@@ -558,22 +568,22 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					evc = this->getEvc(src_mac, dst_mac, q_tag, ad_tag, ether_type, evc_id);
 					break;
 				default:
-					Output::sendLog(this->log, LEVEL_ERROR,
-					                "wrong Ethernet frame type 0x%.4x\n", frame_type);
+					LOG(this->log, LEVEL_ERROR,
+					    "wrong Ethernet frame type 0x%.4x\n", frame_type);
 					continue;
 			}
 			if(!evc)
 			{
-				Output::sendLog(this->log, LEVEL_INFO,
-				                "cannot find EVC for this flow, use the default values\n");
+				LOG(this->log, LEVEL_INFO,
+				    "cannot find EVC for this flow, use the default values\n");
 			}
 
 			// get default QoS value
 			default_category = this->category_map.find(this->default_category);
 			if(default_category == this->category_map.end())
 			{
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "Unable to find default category for QoS");
+				LOG(this->log, LEVEL_ERROR,
+				    "Unable to find default category for QoS");
 				continue;
 			}
 			qos = default_category->second->getId();
@@ -595,9 +605,9 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 							continue;
 					}
 					qos = found_category->second->getId();
-					Output::sendLog(this->log, LEVEL_INFO,
-					                "Use the ad-tag to get the QoS value (%u) for DVB layer\n",
-					                qos);
+					LOG(this->log, LEVEL_INFO,
+					    "Use the ad-tag to get the QoS value (%u) for DVB layer\n",
+					    qos);
 				}
 				// TODO we should cast to an EthernetPacket and use getPayload instead
 				eth_frame = this->createEthFrameData((*packet)->getData().substr(header_length),
@@ -615,8 +625,8 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 			if(eth_frame == NULL)
 			{
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "cannot create the Ethernet frame\n");
+				LOG(this->log, LEVEL_ERROR,
+				    "cannot create the Ethernet frame\n");
 				continue;
 			}
 		}
@@ -629,8 +639,8 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 		this->evc_data_size[evc_id] += eth_frame->getTotalLength();
 		eth_frames->add(eth_frame);
 	}
-	Output::sendLog(this->log, LEVEL_INFO,
-	                "encapsulate %zu Ethernet frames\n", eth_frames->size());
+	LOG(this->log, LEVEL_INFO,
+	    "encapsulate %zu Ethernet frames\n", eth_frames->size());
 
 	// delete the burst and all frames in it
 	delete burst;
@@ -650,24 +660,24 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 	if(burst == NULL || burst->front() == NULL)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "empty burst received\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "empty burst received\n");
 		if(burst)
 		{
 			delete burst;
 		}
 		return NULL;
 	}
-	Output::sendLog(this->log, LEVEL_INFO,
-	                "got a burst of %s packets to deencapsulate\n",
-	                (burst->front())->getName().c_str());
+	LOG(this->log, LEVEL_INFO,
+	    "got a burst of %s packets to deencapsulate\n",
+	    (burst->front())->getName().c_str());
 
 	// create an empty burst of network frames
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot allocate memory for burst of network frames\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot allocate memory for burst of network frames\n");
 		delete burst;
 		return NULL;
 	}
@@ -701,8 +711,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 				evc = this->getEvc(src_mac, dst_mac, q_tag, ad_tag, ether_type, evc_id);
 				break;
 			default:
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "wrong Ethernet frame type 0x%.4x\n", frame_type);
+				LOG(this->log, LEVEL_ERROR,
+				    "wrong Ethernet frame type 0x%.4x\n", frame_type);
 				evc_id = 0;
 				continue;
 		}
@@ -713,18 +723,18 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		}
 		this->evc_data_size[evc_id] += data_length;
 
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "Ethernet frame received: src: %s, dst %s, Q-tag: %u, "
-		                "ad-tag: %u, EtherType: 0x%.4x\n",
-		                src_mac.str().c_str(), dst_mac.str().c_str(),
-		                q_tag, ad_tag, ether_type);
+		LOG(this->log, LEVEL_INFO,
+		    "Ethernet frame received: src: %s, dst %s, Q-tag: %u, "
+		    "ad-tag: %u, EtherType: 0x%.4x\n",
+		    src_mac.str().c_str(), dst_mac.str().c_str(),
+		    q_tag, ad_tag, ether_type);
 
 		if(this->current_upper)
 		{
 			if(ether_type == NET_PROTO_ARP && this->current_upper->getName() == "IP")
 			{
-				Output::sendLog(this->log, LEVEL_WARNING,
-				                "ARP is not supported on IP layer at the moment, drop it\n");
+				LOG(this->log, LEVEL_WARNING,
+				    "ARP is not supported on IP layer at the moment, drop it\n");
 				continue;
 			}
 
@@ -747,17 +757,17 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
 				{
-					Output::sendLog(this->log, LEVEL_ERROR,
-					                "cannot find destination MAC address %s in sarp table\n",
-					                dst_mac.str().c_str());
+					LOG(this->log, LEVEL_ERROR,
+					    "cannot find destination MAC address %s in sarp table\n",
+					    dst_mac.str().c_str());
 					delete deenc_packet;
 					continue;
 				}
 				else
 				{
-					Output::sendLog(this->log, LEVEL_NOTICE,
-					                "cannot find destination tal ID, use default (%u)\n",
-					                dst);
+					LOG(this->log, LEVEL_NOTICE,
+					    "cannot find destination tal ID, use default (%u)\n",
+					    dst);
 				}
 			}
 
@@ -790,16 +800,16 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		}
 		if(!deenc_packet)
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "failed to deencapsulated Ethernet frame\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "failed to deencapsulated Ethernet frame\n");
 			continue;
 		}
 
 		net_packets->add(deenc_packet);
 	}
-	Output::sendLog(this->log, LEVEL_INFO,
-	                "deencapsulate %zu ethernet frames\n",
-	                net_packets->size());
+	LOG(this->log, LEVEL_INFO,
+	    "deencapsulate %zu ethernet frames\n",
+	    net_packets->size());
 
 	// delete the burst and all frames in it
 	delete burst;
@@ -836,16 +846,16 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	//      the qos at layer 3 is independant
 	if(!this->sarp_table->getMacByTal(src_tal, src_macs))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "unable to find MAC address associated with terminal with ID %u\n",
-		                src_tal);
+		LOG(this->log, LEVEL_ERROR,
+		    "unable to find MAC address associated with terminal with ID %u\n",
+		    src_tal);
 		return NULL;
 	}
 	if(!this->sarp_table->getMacByTal(dst_tal, dst_macs))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
- 		                "unable to find MAC address associated with terminal with ID %u\n",
- 		                dst_tal);
+		LOG(this->log, LEVEL_ERROR,
+		    "unable to find MAC address associated with terminal with ID %u\n",
+		    dst_tal);
 		return NULL;
 	}
 	for(vector<MacAddress>::iterator it1 = src_macs.begin();
@@ -869,8 +879,8 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	if(!evc)
 	{
 		map<qos_t, TrafficCategory *>::const_iterator default_category;
-		Output::sendLog(this->log, LEVEL_NOTICE,
-		                "no EVC for this flow, use default values");
+		LOG(this->log, LEVEL_NOTICE,
+		    "no EVC for this flow, use default values");
 		src_mac = src_macs.front();
 		dst_mac = dst_macs.front();
 		// get default QoS value
@@ -919,9 +929,9 @@ NetPacket *Ethernet::Context::createEthFrameData(Data data,
 		case NET_PROTO_ETH:
 			eth_2_hdr->ether_type = htons(ether_type);
 			data.insert(0, header, ETHERNET_2_HEADSIZE);
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "create an Ethernet frame with src = %s, "
-			                "dst = %s\n", src_mac.str().c_str(), dst_mac.str().c_str());
+			LOG(this->log, LEVEL_INFO,
+			    "create an Ethernet frame with src = %s, "
+			    "dst = %s\n", src_mac.str().c_str(), dst_mac.str().c_str());
 			break;
 		case NET_PROTO_802_1Q:
 			eth_1q_hdr = (eth_1q_header_t *) header;
@@ -929,10 +939,10 @@ NetPacket *Ethernet::Context::createEthFrameData(Data data,
 			eth_1q_hdr->TCI = htons(q_tag);
 			eth_1q_hdr->ether_type = htons(ether_type);
 			data.insert(0, header, ETHERNET_802_1Q_HEADSIZE);
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "create a 802.1Q frame with src = %s, "
-			                "dst = %s, VLAN ID = %d\n", src_mac.str().c_str(),
-			                dst_mac.str().c_str(), q_tag);
+			LOG(this->log, LEVEL_INFO,
+			    "create a 802.1Q frame with src = %s, "
+			    "dst = %s, VLAN ID = %d\n", src_mac.str().c_str(),
+			    dst_mac.str().c_str(), q_tag);
 			break;
 		case NET_PROTO_802_1AD:
 			eth_1ad_hdr = (eth_1ad_header_t *) header;
@@ -944,15 +954,15 @@ NetPacket *Ethernet::Context::createEthFrameData(Data data,
 			eth_1ad_hdr->inner_TCI = htons(q_tag);
 			eth_1ad_hdr->ether_type = htons(ether_type);
 			data.insert(0, header, ETHERNET_802_1AD_HEADSIZE);
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "create a 802.1AD frame with src = %s, "
-			                "dst = %s, q-tag = %u, ad-tag = %u\n",
-			                src_mac.str().c_str(), dst_mac.str().c_str(), q_tag, ad_tag);
+			LOG(this->log, LEVEL_INFO,
+			    "create a 802.1AD frame with src = %s, "
+			    "dst = %s, q-tag = %u, ad-tag = %u\n",
+			    src_mac.str().c_str(), dst_mac.str().c_str(), q_tag, ad_tag);
 			break;
 		default:
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "Bad protocol value (0x%.4x) for Ethernet plugin\n",
-			                desired_frame_type);
+			LOG(this->log, LEVEL_ERROR,
+			    "Bad protocol value (0x%.4x) for Ethernet plugin\n",
+			    desired_frame_type);
 			return NULL;
 	}
 	return this->createPacket(data, data.length(), qos,
@@ -1122,8 +1132,8 @@ uint16_t Ethernet::getFrameType(const Data &data)
 	uint16_t ether_type2 = NET_PROTO_ERROR;
 	if(data.length() < 13)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve EtherType in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve EtherType in Ethernet header\n");
 		return NET_PROTO_ERROR;
 	}
 	// read ethertype: 2 bytes at a 12 bytes offset
@@ -1146,8 +1156,8 @@ uint16_t Ethernet::getPayloadEtherType(const Data &data)
 	uint16_t ether_type = NET_PROTO_ERROR;
 	if(data.length() < 13)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve EtherType in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve EtherType in Ethernet header\n");
 		return NET_PROTO_ERROR;
 	}
 	// read ethertype: 2 bytes at a 12 bytes offset
@@ -1157,8 +1167,8 @@ uint16_t Ethernet::getPayloadEtherType(const Data &data)
 		case NET_PROTO_802_1Q:
 			if(data.length() < 17)
 			{
-				Output::sendLog(LEVEL_ERROR,
-				                "cannot retrieve EtherType in Ethernet header\n");
+				DFLTLOG(LEVEL_ERROR,
+				        "cannot retrieve EtherType in Ethernet header\n");
 				return NET_PROTO_ERROR;
 			}
 			ether_type = (data.at(16) << 8) | data.at(17);
@@ -1172,8 +1182,8 @@ uint16_t Ethernet::getPayloadEtherType(const Data &data)
 		case NET_PROTO_802_1AD:
 			if(data.length() < 21)
 			{
-				Output::sendLog(LEVEL_ERROR,
-				                "cannot retrieve EtherType in Ethernet header\n");
+				DFLTLOG(LEVEL_ERROR,
+				        "cannot retrieve EtherType in Ethernet header\n");
 				return NET_PROTO_ERROR;
 			}
 			ether_type = (data.at(20) << 8) | data.at(21);
@@ -1189,8 +1199,8 @@ uint16_t Ethernet::getQTag(const Data &data)
 	uint16_t ether_type;
 	if(data.length() < 17)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve vlan id in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve vlan id in Ethernet header\n");
 		return 0;
 	}
 	ether_type = (data.at(12) << 8) | data.at(13);
@@ -1220,8 +1230,8 @@ uint16_t Ethernet::getAdTag(const Data &data)
 	uint16_t ether_type2;
 	if(data.length() < 17)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve vlan id in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve vlan id in Ethernet header\n");
 		return 0;
 	}
 	ether_type = (data.at(12) << 8) | data.at(13);
@@ -1246,8 +1256,8 @@ MacAddress Ethernet::getDstMac(const Data &data)
 {
 	if(data.length() < 6)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve destination MAC in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve destination MAC in Ethernet header\n");
 		return MacAddress(0, 0, 0, 0, 0, 0);
 	}
 
@@ -1259,8 +1269,8 @@ MacAddress Ethernet::getSrcMac(const Data &data)
 {
 	if(data.length() < 12)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "cannot retrieve source MAC in Ethernet header\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot retrieve source MAC in Ethernet header\n");
 		return MacAddress(0, 0, 0, 0, 0, 0);
 	}
 	return MacAddress(data.at(6), data.at(7), data.at(8),

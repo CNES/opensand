@@ -56,9 +56,9 @@ bool CommandThread::start()
 	this->log = Output::registerLog(LEVEL_WARNING, "output");
 	if(pthread_create(&thread, NULL, CommandThread::_run, this) < 0)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "Unable to start the command listener thread : %s",
-		                 strerror(errno));
+		LOG(this->log, LEVEL_ERROR,
+		    "Unable to start the command listener thread : %s",
+		    strerror(errno));
 		return false;
 	}
 
@@ -131,9 +131,9 @@ void CommandThread::run()
 				break;
 
 			default:
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "Received a message with unknown command ID %d\n",
-				                command_id);
+				LOG(this->log, LEVEL_ERROR,
+				    "Received a message with unknown command ID %d\n",
+				    command_id);
 		}
 	}
 }

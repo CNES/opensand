@@ -77,8 +77,8 @@ void BlockManager::stop(int signal)
 {
 	if(this->stopped)
 	{
-		Output::sendLog(this->log_rt, LEVEL_INFO,
-		                "already tried to stop process\n");
+		LOG(this->log_rt, LEVEL_INFO,
+		    "already tried to stop process\n");
 		return;
 	}
 	for(list<Block *>::iterator iter = this->block_list.begin();
@@ -112,9 +112,9 @@ bool BlockManager::init(void)
 	{
 		if((*iter)->isInitialized())
 		{
-			Output::sendLog(this->log_rt, LEVEL_NOTICE,
-			                "Block %s already initialized...",
-			               (*iter)->getName().c_str());
+			LOG(this->log_rt, LEVEL_NOTICE,
+			    "Block %s already initialized...",
+			    (*iter)->getName().c_str());
 			continue;
 		}
 		if(!(*iter)->init())
@@ -129,9 +129,9 @@ bool BlockManager::init(void)
 	{
 		if((*iter)->isInitialized())
 		{
-			Output::sendLog(this->log_rt, LEVEL_NOTICE,
-			                "Block %s already initialized...",
-			                (*iter)->getName().c_str());
+			LOG(this->log_rt, LEVEL_NOTICE,
+			    "Block %s already initialized...",
+			    (*iter)->getName().c_str());
 		}
 		if(!(*iter)->initSpecific())
 		{
@@ -149,15 +149,15 @@ void BlockManager::reportError(const char *msg, bool critical)
 {
 	if(critical == true)
 	{
-		Output::sendLog(this->log_rt, LEVEL_CRITICAL, "%s", msg);
+		LOG(this->log_rt, LEVEL_CRITICAL, "%s", msg);
 		// stop process to signal something goes wrong
 		this->status = false;
 		kill(getpid(), SIGTERM);
 	}
 	else
 	{
-		Output::sendLog(this->log_rt, LEVEL_ERROR,
-		                "%s", msg);
+		LOG(this->log_rt, LEVEL_ERROR,
+		    "%s", msg);
 	}
 }
 
@@ -232,8 +232,8 @@ void BlockManager::wait(void)
 			                true, "cannot read signal");
 			this->status = false;
 		}
-		Output::sendLog(this->log_rt, LEVEL_INFO,
-		                "signal received: %d\n", fdsi.ssi_signo);
+		LOG(this->log_rt, LEVEL_INFO,
+		    "signal received: %d\n", fdsi.ssi_signo);
 		this->stop(fdsi.ssi_signo);
 	}
 }

@@ -76,15 +76,15 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	// sanity check
 	if(dvb_frame == NULL)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "invalid frame received\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "invalid frame received\n");
 		goto error;
 	}
 
 	if(!this->packet_handler)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "packet handler is NULL\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "packet handler is NULL\n");
 		goto error;
 	}
 
@@ -93,17 +93,17 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME &&
 	   dvb_frame->getMessageType() != MSG_TYPE_CORRUPTED)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "the message received is not a BB frame\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "the message received is not a BB frame\n");
 		goto error;
 	}
 
 	// TODO bbframe_burst = static_cast<BBFrame *>(dvb_frame);
 	bbframe_burst = dvb_frame->operator BBFrame*();
-	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-	                "BB frame received (%d %s packet(s)\n",
-	                bbframe_burst->getDataLength(),
-	                this->packet_handler->getName().c_str());
+	LOG(this->log_rcv_from_down, LEVEL_INFO,
+	    "BB frame received (%d %s packet(s)\n",
+	    bbframe_burst->getDataLength(),
+	    this->packet_handler->getName().c_str());
 
 	// retrieve the current real MODCOD of the receiver
 	// (do this before any MODCOD update occurs)
@@ -119,9 +119,9 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	if(bbframe_burst->getMessageType() == MSG_TYPE_CORRUPTED)
 	{
 		// corrupted, nothing more to do
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "The BBFrame was corrupted by physical layer, drop "
-		                "it\n");
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "The BBFrame was corrupted by physical layer, drop "
+		    "it\n");
 		goto drop;
 	}
 
@@ -129,18 +129,18 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	if(this->received_modcod > real_mod)
 	{
 		// the BB frame is not robust enough to be decoded, drop it
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "received BB frame is encoded with MODCOD %d and "
-		                "the real MODCOD of the BB frame (%d) is not "
-		                "robust enough, so emulate a lost BB frame\n",
-		                this->received_modcod, real_mod);
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "received BB frame is encoded with MODCOD %d and "
+		    "the real MODCOD of the BB frame (%d) is not "
+		    "robust enough, so emulate a lost BB frame\n",
+		    this->received_modcod, real_mod);
 		goto drop;
 	}
 
 	if(bbframe_burst->getDataLength() <= 0)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "skip BB frame with no encapsulation packet\n");
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "skip BB frame with no encapsulation packet\n");
 		goto skip;
 	}
 
@@ -150,8 +150,8 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	*burst = new NetBurst();
 	if(*burst == NULL)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "failed to create a burst of packets\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "failed to create a burst of packets\n");
 		goto error;
 	}
 
@@ -173,18 +173,18 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "cannot create one %s packet\n",
-			                this->packet_handler->getName().c_str());
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "cannot create one %s packet\n",
+			    this->packet_handler->getName().c_str());
 			goto release_burst;
 		}
 
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "%s packet (%zu bytes) added to burst\n",
-		                this->packet_handler->getName().c_str(),
-		                encap_packet->getTotalLength());
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "%s packet (%zu bytes) added to burst\n",
+		    this->packet_handler->getName().c_str(),
+		    encap_packet->getTotalLength());
 	}
 
 drop:

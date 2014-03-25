@@ -86,10 +86,10 @@ void TerminalContextRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
 {
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->max_rbdc_pktpf = this->converter->kbpsToPktpf(max_rbdc_kbps);
-	Output::sendLog(this->log_band, LEVEL_INFO,
-	                "max RBDC is %u kbits/s (%u packet per superframe for "
-	                "ST%u)\n", this->max_rbdc_kbps, 
-	                this->max_rbdc_pktpf, this->tal_id);
+	LOG(this->log_band, LEVEL_INFO,
+	    "max RBDC is %u kbits/s (%u packet per superframe for "
+	    "ST%u)\n", this->max_rbdc_kbps, 
+	    this->max_rbdc_pktpf, this->tal_id);
 }
 
 rate_kbps_t TerminalContextRcs::getMaxRbdc()
@@ -111,10 +111,10 @@ void TerminalContextRcs::setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf)
 	this->rbdc_request_pktpf = rbdc_request_pktpf;
 	this->rbdc_credit_pktpf = 0;
 	this->timer_sf = this->rbdc_timeout_sf;
-	Output::sendLog(this->log_band, LEVEL_DEBUG,
-	                "new RBDC request %d credit %.2f timer %d for ST%u.\n",
-	                this->rbdc_request_pktpf, this->rbdc_credit_pktpf,
-	                this->timer_sf, this->tal_id);
+	LOG(this->log_band, LEVEL_DEBUG,
+	    "new RBDC request %d credit %.2f timer %d for ST%u.\n",
+	    this->rbdc_request_pktpf, this->rbdc_credit_pktpf,
+	    this->timer_sf, this->tal_id);
 }
 
 rate_pktpf_t TerminalContextRcs::getRequiredRbdc() const
@@ -141,9 +141,9 @@ void TerminalContextRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
 {
 	this->vbdc_request_pkt += vbdc_request_pkt;
 	this->vbdc_request_pkt = std::min(this->vbdc_request_pkt, this->max_vbdc_pkt);
-	Output::sendLog(this->log_band, LEVEL_DEBUG,
-	                "new VBDC request %u for ST%u\n",
-	                vbdc_request_pkt, this->tal_id);
+	LOG(this->log_band, LEVEL_DEBUG,
+	    "new VBDC request %u for ST%u\n",
+	    vbdc_request_pkt, this->tal_id);
 }
 
 void TerminalContextRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
@@ -183,10 +183,10 @@ rate_pktpf_t TerminalContextRcs::getFcaAllocation()
 
 rate_pktpf_t TerminalContextRcs::getTotalRateAllocation()
 {
-	Output::sendLog(this->log_band, LEVEL_DEBUG,
-	                "Rate allocation: RBDC %u packets, FCA %u packets, "
-	                "CRA %u packets for ST%u\n", this->rbdc_alloc_pktpf,
-	                this->fca_alloc_pktpf, this->cra_pktpf, this->tal_id);
+	LOG(this->log_band, LEVEL_DEBUG,
+	    "Rate allocation: RBDC %u packets, FCA %u packets, "
+	    "CRA %u packets for ST%u\n", this->rbdc_alloc_pktpf,
+	    this->fca_alloc_pktpf, this->cra_pktpf, this->tal_id);
 	return this->rbdc_alloc_pktpf + this->fca_alloc_pktpf + this->cra_pktpf;
 }
 

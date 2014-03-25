@@ -71,17 +71,17 @@ bool BlockEncapSat::Downward::onEvent(const RtEvent *const event)
 		{
 			NetBurst *burst;
 
-			Output::sendLog(this->log_receive, LEVEL_INFO,
-			                "message received from the lower layer\n");
+			LOG(this->log_receive, LEVEL_INFO,
+			    "message received from the lower layer\n");
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 			return this->onRcvBurst(burst);
 		}
 		break;
 
 		default:
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "unknown event received %s",
-			                event->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -101,14 +101,14 @@ bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)
 		{
 			NetBurst *burst;
 
-			Output::sendLog(this->log_receive, LEVEL_INFO,
-			                "message received from the lower layer\n");
+			LOG(this->log_receive, LEVEL_INFO,
+			    "message received from the lower layer\n");
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 			if(!this->shareMessage((void **)&burst))
 			{   
-				Output::sendLog(this->log_receive, LEVEL_ERROR,
-				                "failed to transmist burst to opposite "
-				                "block\n");
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to transmist burst to opposite "
+				    "block\n");
 				delete burst;
 				return false;
 			}
@@ -116,9 +116,9 @@ bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)
 		break;
 
 		default:
-			Output::sendLog(this->log_receive, LEVEL_ERROR,
-			                "unknown event received %s",
-			                event->getName().c_str());
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -144,9 +144,9 @@ bool BlockEncapSat::Downward::onInit()
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Section %s, %s missing\n", GLOBAL_SECTION,
-		                UP_RETURN_ENCAP_SCHEME_LIST);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -158,9 +158,9 @@ bool BlockEncapSat::Downward::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "Section %s, invalid value %d for parameter '%s'\n",
-			                GLOBAL_SECTION, i, POSITION);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, invalid value %d for parameter '%s'\n",
+			    GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
@@ -171,9 +171,9 @@ bool BlockEncapSat::Downward::onInit()
 	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 	                                encap_nbr))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Section %s, %s missing\n", GLOBAL_SECTION,
-		                UP_RETURN_ENCAP_SCHEME_LIST);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    UP_RETURN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -190,17 +190,17 @@ bool BlockEncapSat::Downward::onInit()
 		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
 		                                POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "Section %s, invalid value %d for parameter '%s'\n",
-			                GLOBAL_SECTION, i, POSITION);
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, invalid value %d for parameter '%s'\n",
+			    GLOBAL_SECTION, i, POSITION);
 			goto error;
 		}
 
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "cannot get plugin for %s encapsulation",
-			                encap_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get plugin for %s encapsulation",
+			    encap_name.c_str());
 			goto error;
 		}
 
@@ -227,16 +227,16 @@ bool BlockEncapSat::Downward::onInit()
 					upper_encap->getPacketHandler(),
 					REGENERATIVE))
 		{
-			Output::sendLog(this->log_init, LEVEL_ERROR,
-			                "upper encapsulation type %s not supported for %s "
-			                "encapsulation", upper_encap->getName().c_str(),
-			                context->getName().c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "upper encapsulation type %s not supported for %s "
+			    "encapsulation", upper_encap->getName().c_str(),
+			    context->getName().c_str());
 			goto error;
 		}
 		upper_encap = plugin;
-		Output::sendLog(this->log_init, LEVEL_INFO,
-		                "add downlink encapsulation layer: %s\n",
-		                upper_encap->getName().c_str());
+		LOG(this->log_init, LEVEL_INFO,
+		    "add downlink encapsulation layer: %s\n",
+		    upper_encap->getName().c_str());
 	}
 
 	return true;
@@ -251,22 +251,22 @@ bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
 	int id;
 	NetBurst *burst;
 
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "emission timer received, flush corresponding emission "
-	                "context\n");
+	LOG(this->log_receive, LEVEL_INFO,
+	    "emission timer received, flush corresponding emission "
+	    "context\n");
 
 	// find encapsulation context to flush
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
-		Output::sendLog(this->log_receive, LEVEL_ERROR, "timer not found\n");
+		LOG(this->log_receive, LEVEL_ERROR, "timer not found\n"); 
 		goto error;
 	}
 
 	// context found
 	id = (*it).second;
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "corresponding emission context found (ID = %d)\n", id);
+	LOG(this->log_receive, LEVEL_INFO,
+	    "corresponding emission context found (ID = %d)\n", id);
 
 	// remove emission timer from the list
 	this->removeEvent((*it).first);
@@ -276,13 +276,13 @@ bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
 	burst = this->downlink_ctx.back()->flush(id);
 	if(burst == NULL)
 	{
-		Output::sendLog(this->log_receive, LEVEL_INFO,
-		                "flushing context %d failed\n", id);
+		LOG(this->log_receive, LEVEL_INFO,
+		    "flushing context %d failed\n", id);
 		goto error;
 	}
 
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "%zu encapsulation packet(s) flushed\n", burst->size());
+	LOG(this->log_receive, LEVEL_INFO,
+	    "%zu encapsulation packet(s) flushed\n", burst->size());
 
 	if(burst->size() <= 0)
 		goto clean;
@@ -290,13 +290,13 @@ bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
 	// send the message to the lower layer
 	if(!this->enqueueMessage((void **)&burst))
 	{
-		Output::sendLog(this->log_receive, LEVEL_ERROR,
-		                "failed to send burst to lower layer\n");
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "encapsulation burst sent to the lower layer\n");
+	LOG(this->log_receive, LEVEL_INFO,
+	    "encapsulation burst sent to the lower layer\n");
 
 	return true;
 
@@ -313,14 +313,14 @@ bool BlockEncapSat::Downward::onRcvBurst(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		Output::sendLog(this->log_receive, LEVEL_ERROR,
-		                "burst is not valid\n");
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "burst is not valid\n");
 		goto error;
 	}
 
-	Output::sendLog(this->log_receive, LEVEL_INFO,
-	                "message contains a burst of %d %s packet(s)\n",
-	                burst->length(), burst->name().c_str());
+	LOG(this->log_receive, LEVEL_INFO,
+	    "message contains a burst of %d %s packet(s)\n",
+	    burst->length(), burst->name().c_str());
 
 	if(this->downlink_ctx.size() > 0)
 	{
@@ -342,20 +342,20 @@ bool BlockEncapSat::Downward::ForwardPackets(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		Output::sendLog(this->log_send, LEVEL_ERROR, "burst is not valid\n");
+		LOG(this->log_send, LEVEL_ERROR, "burst is not valid\n");
 		goto error;
 	}
 
 	// send the message to the lower layer
 	if(!this->enqueueMessage((void **)&burst))
 	{
-		Output::sendLog(this->log_send, LEVEL_ERROR,
-		                "failed to send burst to lower layer\n");
+		LOG(this->log_send, LEVEL_ERROR,
+		    "failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	Output::sendLog(this->log_send, LEVEL_INFO,
-	                "burst sent to the lower layer\n");
+	LOG(this->log_send, LEVEL_INFO,
+	    "burst sent to the lower layer\n");
 
 	// everthing is fine
 	return true;
@@ -377,8 +377,8 @@ bool BlockEncapSat::Downward::EncapsulatePackets(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		Output::sendLog(this->log_send, LEVEL_ERROR,
-		                "burst is not valid\n");
+		LOG(this->log_send, LEVEL_ERROR,
+		    "burst is not valid\n");
 		goto error;
 	}
 
@@ -389,9 +389,9 @@ bool BlockEncapSat::Downward::EncapsulatePackets(NetBurst *burst)
 		packets = (*iter)->encapsulate(packets, time_contexts);
 		if(packets == NULL)
 		{
-			Output::sendLog(this->log_send, 
-			                LEVEL_ERROR, "encapsulation failed in %s context\n",
-			                (*iter)->getName().c_str());
+			LOG(this->log_send, LEVEL_ERROR,
+			    "encapsulation failed in %s context\n",
+			    (*iter)->getName().c_str());
 			goto clean;
 		}
 	}
@@ -419,16 +419,16 @@ bool BlockEncapSat::Downward::EncapsulatePackets(NetBurst *burst)
 			                            false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
-			Output::sendLog(this->log_send, 
-			                LEVEL_INFO, "timer for context ID %d armed with "
-			                "%ld ms\n", (*time_iter).second,
-			                (*time_iter).first);
+			LOG(this->log_send, LEVEL_INFO,
+			    "timer for context ID %d armed with "
+			    "%ld ms\n", (*time_iter).second,
+			    (*time_iter).first);
 		}
 		else
 		{
-			Output::sendLog(this->log_send, LEVEL_INFO,
-			                "timer already set for context ID %d\n",
-			                (*time_iter).second);
+			LOG(this->log_send, LEVEL_INFO,
+			    "timer already set for context ID %d\n",
+			    (*time_iter).second);
 		}
 	}
 
@@ -442,14 +442,14 @@ bool BlockEncapSat::Downward::EncapsulatePackets(NetBurst *burst)
 	// send the message to the lower layer
 	if(!this->enqueueMessage((void **)&packets))
 	{
-		Output::sendLog(this->log_send, LEVEL_ERROR,
-		                "failed to send burst to lower layer\n");
+		LOG(this->log_send, LEVEL_ERROR,
+		    "failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	Output::sendLog(this->log_send, LEVEL_INFO,
-	                "%s burst sent to the lower layer\n",
-	                (this->downlink_ctx.back())->getName().c_str());
+	LOG(this->log_send, LEVEL_INFO,
+	    "%s burst sent to the lower layer\n",
+	    (this->downlink_ctx.back())->getName().c_str());
 
 	// everthing is fine
 	return true;

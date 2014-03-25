@@ -181,9 +181,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	vol_sym_t init_capa = capacity_sym;
 	capacity_sym += previous_sym;
 
-	Output::sendLog(this->log_scheduling, LEVEL_INFO,
-	                "SF#%u: capacity is %u symbols (+ %u previous)\n",
-	                current_superframe_sf, capacity_sym, previous_sym);
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: capacity is %u symbols (+ %u previous)\n",
+	    current_superframe_sf, capacity_sym, previous_sym);
 
 	// first add the pending complete BBFrame in the complete BBframes list
 	// we add previous remaining capacity here because if a BBFrame was
@@ -205,10 +205,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	}
 
 	// there are really packets to send
-	Output::sendLog(this->log_scheduling, LEVEL_INFO,
-	                "SF#%u: send at most %ld encapsulation packets "
-	                "for %s fifo\n", current_superframe_sf,
-	                max_to_send, fifo->getName().c_str());
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: send at most %ld encapsulation packets "
+	    "for %s fifo\n", current_superframe_sf,
+	    max_to_send, fifo->getName().c_str());
 
 	// now build BB frames with packets extracted from the MAC FIFO
 	while(fifo->getCurrentSize() > 0)
@@ -221,21 +221,21 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
 		{
-			Output::sendLog(this->log_scheduling, LEVEL_INFO,
-			                "SF#%u: packet is not scheduled for the "
-			                "moment, break\n", current_superframe_sf); 
-			// this is the first MAC FIFO element that is not ready yet,
-			// there is no more work to do, break now
-			break;
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "SF#%u: packet is not scheduled for the "
+			    "moment, break\n", current_superframe_sf); 
+			    // this is the first MAC FIFO element that is not ready yet,
+			    // there is no more work to do, break now
+			    break;
 		}
 
 		elem = fifo->pop();
 		// examine the packet to be sent
 		if(elem->getType() != 1)
 		{
-			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-			                "SF#%u: MAC FIFO element does not "
-			                "contain NetPacket\n", current_superframe_sf);
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: MAC FIFO element does not "
+			    "contain NetPacket\n", current_superframe_sf);
 			goto error_fifo_elem;
 		}
 
@@ -243,10 +243,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// retrieve the encapsulation packet
 		if(encap_packet == NULL)
 		{
-			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-			                "SF#%u: invalid packet #%u in MAC FIFO "
-			                "element\n", current_superframe_sf,
-			                sent_packets + 1);
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: invalid packet #%u in MAC FIFO "
+			    "element\n", current_superframe_sf,
+			    sent_packets + 1);
 			goto error_fifo_elem;
 		}
 
@@ -261,20 +261,20 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				this->fwd_fmt_simu->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{
-				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-				                "SF#%u: The scheduling of a "
-				                "multicast frame failed\n",
-				                current_superframe_sf);
-				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-				                "SF#%u: The Tal_Id corresponding to "
-				                "the terminal using the lower modcod can not "
-				                "be retrieved\n", current_superframe_sf);
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: The scheduling of a "
+				    "multicast frame failed\n",
+				    current_superframe_sf);
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: The Tal_Id corresponding to "
+				    "the terminal using the lower modcod can not "
+				    "be retrieved\n", current_superframe_sf);
 				goto error;
 			}
-			Output::sendLog(this->log_scheduling, LEVEL_INFO,
-			                "SF#%u: TAL_ID corresponding to lower "
-			                "MODCOD = %u\n", current_superframe_sf,
-			                tal_id);
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "SF#%u: TAL_ID corresponding to lower "
+			    "MODCOD = %u\n", current_superframe_sf,
+			    tal_id);
 		}
 
 		if(!this->getIncompleteBBFrame(tal_id, carriers, &current_bbframe))
@@ -291,12 +291,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			continue;
 		}
 
-		Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
-		                "SF#%u: Got the BBFrame for packet #%u, "
-		                "there is now %zu complete BBFrames and %zu "
-		                "incomplete\n", current_superframe_sf,
-		                sent_packets + 1, complete_dvb_frames->size(),
-		                this->incomplete_bb_frames.size());
+		LOG(this->log_scheduling, LEVEL_DEBUG,
+		    "SF#%u: Got the BBFrame for packet #%u, "
+		    "there is now %zu complete BBFrames and %zu "
+		    "incomplete\n", current_superframe_sf,
+		    sent_packets + 1, complete_dvb_frames->size(),
+		    this->incomplete_bb_frames.size());
 
 		// get the part of the packet to store in the BBFrame
 		ret = this->packet_handler->getChunk(encap_packet,
@@ -305,10 +305,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// use case 4 (see @ref getChunk)
 		if(!ret)
 		{
-			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-			                "SF#%u: error while processing packet "
-			                "#%u\n", current_superframe_sf,
-			                sent_packets + 1);
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: error while processing packet "
+			    "#%u\n", current_superframe_sf,
+			    sent_packets + 1);
 			delete elem;
 		}
 		// use cases 1 (see @ref getChunk)
@@ -316,12 +316,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			if(!current_bbframe->addPacket(data))
 			{
-				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-				                "SF#%u: failed to add encapsulation "
-				                "packet #%u in BB frame with MODCOD ID %u "
-				                "(packet length %zu, free space %zu",
-				                current_superframe_sf,
-				                sent_packets + 1,
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: failed to add encapsulation "
+				    "packet #%u in BB frame with MODCOD ID %u "
+				    "(packet length %zu, free space %zu",
+				    current_superframe_sf,
+				    sent_packets + 1,
 				                current_bbframe->getModcodId(),
 				                data->getTotalLength(),
 				                current_bbframe->getFreeSpace());
@@ -338,12 +338,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			if(!current_bbframe->addPacket(data))
 			{
-				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-				                "SF#%u: failed to add encapsulation "
-				                "packet #%u in BB frame with MODCOD ID %u "
-				                "(packet length %zu, free space %zu",
-				                current_superframe_sf,
-				                sent_packets + 1,
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: failed to add encapsulation "
+				    "packet #%u in BB frame with MODCOD ID %u "
+				    "(packet length %zu, free space %zu",
+				    current_superframe_sf,
+				    sent_packets + 1,
 				                current_bbframe->getModcodId(),
 				                data->getTotalLength(),
 				                current_bbframe->getFreeSpace());
@@ -356,11 +356,11 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			elem->setPacket(remaining_data);
 			fifo->pushFront(elem);
 
-			Output::sendLog(this->log_scheduling, LEVEL_INFO,
-			                "SF#%u: packet fragmented, there is "
-			                "still %zu bytes of data\n",
-			                current_superframe_sf,
-			                remaining_data->getTotalLength());
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "SF#%u: packet fragmented, there is "
+			    "still %zu bytes of data\n",
+			    current_superframe_sf,
+			    remaining_data->getTotalLength());
 		}
 		// use case 3 (see @ref getChunk)
 		else if(!data && remaining_data)
@@ -370,21 +370,21 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			fifo->pushFront(elem);
 
 			// keep the NetPacket in the fifo
-			Output::sendLog(this->log_scheduling, LEVEL_INFO,
-			                "SF#%u: not enough free space in BBFrame "
-			                "(%zu bytes) for %s packet (%zu bytes)\n",
-			                current_superframe_sf,
-			                current_bbframe->getFreeSpace(),
-			                this->packet_handler->getName().c_str(),
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "SF#%u: not enough free space in BBFrame "
+			    "(%zu bytes) for %s packet (%zu bytes)\n",
+			    current_superframe_sf,
+			    current_bbframe->getFreeSpace(),
+			    this->packet_handler->getName().c_str(),
 			                encap_packet->getTotalLength());
 		}
 		else
 		{
-			Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-			                "SF#%u: bad getChunk function "
-			                "implementation, assert or skip packet #%u\n",
-			                current_superframe_sf,
-			                sent_packets + 1);
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "SF#%u: bad getChunk function "
+			    "implementation, assert or skip packet #%u\n",
+			    current_superframe_sf,
+			    sent_packets + 1);
 			assert(0);
 			delete elem;
 		}
@@ -452,12 +452,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	{
 		unsigned int cpt_frame = complete_dvb_frames->size();
 
-		Output::sendLog(this->log_scheduling, LEVEL_INFO,
-		                "SF#%u: %u %s been scheduled and %u BB %s "
-		                "completed\n", current_superframe_sf,
-		                sent_packets,
-		                (sent_packets > 1) ? "packets have" : "packet has",
-		                cpt_frame,
+		LOG(this->log_scheduling, LEVEL_INFO,
+		    "SF#%u: %u %s been scheduled and %u BB %s "
+		    "completed\n", current_superframe_sf,
+		    sent_packets,
+		    (sent_packets > 1) ? "packets have" : "packet has",
+		    cpt_frame,
 		                (cpt_frame > 1) ? "frames were" : "frame was");
 	}
 
@@ -486,15 +486,15 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	*bbframe = new BBFrame();
 	if(bbframe == NULL)
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-		                "failed to create an incomplete BB frame\n");
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "failed to create an incomplete BB frame\n");
 		goto error;
 	}
 
 	if(!this->packet_handler)
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-		                "packet handler is NULL\n");
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "packet handler is NULL\n");
 		goto error;
 	}
 
@@ -506,9 +506,9 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	// size of the BBframe to be the payload size
 	coding_rate = modcod_definitions->getCodingRate(modcod_id);
 	bbframe_size_bytes = getPayloadSize(coding_rate);
-	Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
-	                "size of the BBFRAME for MODCOD %u = %zu\n",
-	                modcod_id, bbframe_size_bytes);
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "size of the BBFRAME for MODCOD %u = %zu\n",
+	    modcod_id, bbframe_size_bytes);
 
 	// set the size of the BB frame
 	(*bbframe)->setMaxSize(bbframe_size_bytes);
@@ -529,9 +529,9 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
 	// it changed or not
 	if(!this->fwd_fmt_simu->doTerminalExist(tal_id))
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-		                "encapsulation packet is for ST with ID %u "
-		                "that is not registered\n", tal_id);
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "encapsulation packet is for ST with ID %u "
+		    "that is not registered\n", tal_id);
 		goto error;
 	}
 	modcod_id = this->fwd_fmt_simu->getCurrentModcodId(tal_id);
@@ -543,9 +543,9 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
 		                     this->fwd_fmt_simu->getPreviousModcodId(tal_id));
 	}
 
-	Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
-	                "MODCOD for ST ID %u = %u (changed = %s)\n",
-	                tal_id, modcod_id, is_advertised ? "no" : "yes");
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "MODCOD for ST ID %u = %u (changed = %s)\n",
+	    tal_id, modcod_id, is_advertised ? "no" : "yes");
 
 	return true;
 
@@ -564,9 +564,9 @@ bool ForwardSchedulingS2::getBBFrameSize(size_t bbframe_size_bytes,
 
 	if(!modcod_definitions->doFmtIdExist(modcod_id))
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-		                "failed to found the definition of MODCOD ID %u\n",
-		                modcod_id);
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "failed to found the definition of MODCOD ID %u\n",
+		    modcod_id);
 		goto error;
 	}
 	spectral_efficiency = modcod_definitions->getSpectralEfficiency(modcod_id);
@@ -575,8 +575,8 @@ bool ForwardSchedulingS2::getBBFrameSize(size_t bbframe_size_bytes,
 	// size represents the payload without coding
 	bbframe_size_sym = (bbframe_size_bytes * 8) / spectral_efficiency;
 
-	Output::sendLog(this->log_scheduling, LEVEL_INFO,
-	                "size of the BBFRAME = %u symbols\n", bbframe_size_sym);
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "size of the BBFRAME = %u symbols\n", bbframe_size_sym);
 
 	return true;
 
@@ -606,29 +606,29 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 	modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_NOTICE,
-		                "cannot serve terminal %u with any modcod (desired %u) "
-		                "on carrier %u\n", tal_id, desired_modcod,
-		                carriers->getCarriersId());
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "cannot serve terminal %u with any modcod (desired %u) "
+		    "on carrier %u\n", tal_id, desired_modcod,
+		    carriers->getCarriersId());
 
 		goto skip;
 	}
-	Output::sendLog(this->log_scheduling, LEVEL_DEBUG,
-	                "Available MODCOD for ST id %u = %u\n", tal_id, modcod_id);
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "Available MODCOD for ST id %u = %u\n", tal_id, modcod_id);
 
 	// find if the BBFrame exists
 	iter = this->incomplete_bb_frames.find(modcod_id);
 	if(iter != this->incomplete_bb_frames.end() && (*iter).second != NULL)
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_INFO,
-		                "Found a BBFrame for MODCOD %u\n", modcod_id);
+		LOG(this->log_scheduling, LEVEL_INFO,
+		    "Found a BBFrame for MODCOD %u\n", modcod_id);
 		*bbframe = (*iter).second;
 	}
 	// no BBFrame for this MOCDCOD create a new one
 	else
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_INFO,
-		                "Create a new BBFrame for MODCOD %u\n", modcod_id);
+		LOG(this->log_scheduling, LEVEL_INFO,
+		    "Create a new BBFrame for MODCOD %u\n", modcod_id);
 		// if there is no incomplete BB frame create a new one
 		if(!this->createIncompleteBBFrame(bbframe, modcod_id))
 		{
@@ -657,19 +657,19 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 	// how much time do we need to send the BB frame ?
 	if(!this->getBBFrameSize(bbframe_size_bytes, modcod_id, bbframe_size_sym))
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-		                "failed to get BB frame size (MODCOD ID = %u)\n",
-		                modcod_id);
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "failed to get BB frame size (MODCOD ID = %u)\n",
+		    modcod_id);
 		return status_error;
 	}
 
 	// not enough space for this BBFrame
 	if(remaining_capacity_sym < bbframe_size_sym)
 	{
-		Output::sendLog(this->log_scheduling, LEVEL_INFO,
-		                "not enough capacity (%u symbols) for the BBFrame of "
-		                "size %u symbols\n", remaining_capacity_sym,
-		                bbframe_size_sym);
+		LOG(this->log_scheduling, LEVEL_INFO,
+		    "not enough capacity (%u symbols) for the BBFrame of "
+		    "size %u symbols\n", remaining_capacity_sym,
+		    bbframe_size_sym);
 		return status_full;
 	}
 
@@ -684,13 +684,13 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 			uint8_t modcod;
 			if(!this->fwd_fmt_simu->getNextModcodToAdvertise(tal_id, modcod))
 			{
-				Output::sendLog(this->log_scheduling, LEVEL_INFO,
-				                "%u MODCOD advertised\n", i);
+				LOG(this->log_scheduling, LEVEL_INFO,
+				    "%u MODCOD advertised\n", i);
 				break;
 			}
 			bbframe->addModcodOption(tal_id, modcod);
-			Output::sendLog(this->log_scheduling, LEVEL_INFO,
-			                "Advertise MODCOD for terminal %u\n", tal_id);
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "Advertise MODCOD for terminal %u\n", tal_id);
 		}
 	}
 
@@ -729,9 +729,9 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 			                            (*it),
 			                            remaining_capacity_sym) != status_ok)
 			{
-				Output::sendLog(this->log_scheduling, LEVEL_ERROR,
-				                "cannot add pending BBFrame in the list "
-				                "of complete BBFrames\n");
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "cannot add pending BBFrame in the list "
+				    "of complete BBFrames\n");
 			}
 		}
 		else

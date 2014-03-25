@@ -132,27 +132,27 @@ bool init_process(int argc, char **argv, string &ip_addr,
 		Output::enableStdlog();
 	}
 
-	Output::sendLog(LEVEL_NOTICE,
-	                "starting output\n");
+	DFLTLOG(LEVEL_NOTICE,
+	        "starting output\n");
 
 	if(ip_addr.size() == 0)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "missing mandatory IP address option");
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory IP address option");
 		return false;
 	}
 
 	if(emu_iface.size() == 0)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "missing mandatory emulation interface name option");
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory emulation interface name option");
 		return false;
 	}
 
 	if(lan_iface.size() == 0)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "missing mandatory lan interface name option");
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory lan interface name option");
 		return false;
 	}
 	return true;
@@ -189,8 +189,8 @@ int main(int argc, char **argv)
 	status = Output::registerEvent("Status");
 	if(!init_ok)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: failed to init the process\n", progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: failed to init the process\n", progname);
 		goto quit;
 	}
 
@@ -204,33 +204,34 @@ int main(int argc, char **argv)
 	// Load configuration files content
 	if(!globalConfig.loadConfig(conf_files))
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot load configuration files, quit\n",
-		                progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load configuration files, quit\n",
+		        progname);
 		goto unload_config;
 	}
 
 	// read all packages debug levels
-//	Output::sendLog(LEVEL_CRITICAL, "readDebugLevels:TODO\n");
+//	DFLTLOG(LEVEL_CRITICAL,
+// 	        "readDebugLevels:TODO\n");
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
 	                          with_phy_layer))
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot  check if physical layer is enabled\n",
-		                progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot  check if physical layer is enabled\n",
+		        progname);
 		goto unload_config;
 	}
-	Output::sendLog(LEVEL_NOTICE,
-	                "%s: physical layer is %s\n",
-	                progname, with_phy_layer ? "enabled" : "disabled");
+	DFLTLOG(LEVEL_NOTICE,
+	        "%s: physical layer is %s\n",
+	        progname, with_phy_layer ? "enabled" : "disabled");
 
 	// load the plugins
 	if(!Plugin::loadPlugins(with_phy_layer))
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot load the plugins\n", progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load the plugins\n", progname);
 		goto unload_config;
 	}
 
@@ -241,9 +242,9 @@ int main(int argc, char **argv)
 	                                       string>("LanAdaptation", NULL, lan_iface);
 	if(!block_lan_adaptation)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot create the LanAdaptation block\n",
-		                progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot create the LanAdaptation block\n",
+		        progname);
 		goto release_plugins;
 	}
 
@@ -252,8 +253,8 @@ int main(int argc, char **argv)
 	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
 	if(!block_encap)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot create the Encap block\n", progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot create the Encap block\n", progname);
 		goto release_plugins;
 	}
 
@@ -262,8 +263,8 @@ int main(int argc, char **argv)
 	                            BlockDvbNcc::DvbDownward>("Dvb", block_encap);
 	if(!block_dvb)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot create the DvbNcc block\n", progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot create the DvbNcc block\n", progname);
 		goto release_plugins;
 	}
 
@@ -276,9 +277,9 @@ int main(int argc, char **argv)
 		                                                                block_dvb);
 		if(block_phy_layer == NULL)
 		{
-			Output::sendLog(LEVEL_CRITICAL,
-			                "%s: cannot create the PhysicalLayer block\n",
-			                progname);
+			DFLTLOG(LEVEL_CRITICAL,
+			        "%s: cannot create the PhysicalLayer block\n",
+			        progname);
 			goto release_plugins;
 		}
 		up_sat_carrier = block_phy_layer;
@@ -294,13 +295,13 @@ int main(int argc, char **argv)
 	                                                        specific);
 	if(!block_sat_carrier)
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot create the SatCarrier block\n", progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
 
-	Output::sendLog(LEVEL_DEBUG,
-	                "All blocks are created, start\n");
+	DFLTLOG(LEVEL_DEBUG,
+	        "All blocks are created, start\n");
 
 	// make the GW alive
 	if(!Rt::init())
@@ -310,17 +311,17 @@ int main(int argc, char **argv)
     // TODO for errors in init we may use a string that would report last error
 	if(!Output::finishInit())
 	{
-		Output::sendLog(LEVEL_NOTICE,
-		                "%s: failed to init the output => disable it\n",
-		                progname);
+		DFLTLOG(LEVEL_NOTICE,
+		        "%s: failed to init the output => disable it\n",
+		        progname);
 	}
 
 	Output::sendEvent(status, "Blocks initialized");
 	if(!Rt::run())
 	{
-		Output::sendLog(LEVEL_CRITICAL,
-		                "%s: cannot run process loop\n",
-		                progname);
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot run process loop\n",
+		        progname);
 	}
 
 	Output::sendEvent(status, "Simulation stopped");
@@ -334,8 +335,8 @@ release_plugins:
 unload_config:
 	globalConfig.unloadConfig();
 quit:
-	Output::sendLog(LEVEL_NOTICE,
-	                "%s: GW process stopped with exit code %d\n",
-	                progname, is_failure);
+	DFLTLOG(LEVEL_NOTICE,
+	        "%s: GW process stopped with exit code %d\n",
+	        progname, is_failure);
 	return is_failure;
 }

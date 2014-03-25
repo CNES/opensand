@@ -85,8 +85,8 @@ Data IpPacket::getPayload() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IP packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IP packet\n");
 		return Data();
 	}
 
@@ -95,8 +95,8 @@ Data IpPacket::getPayload() const
 
 	if(header_len <= 0 || payload_len <= 0)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "IP packet has a 0 length payload\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "IP packet has a 0 length payload\n");
 		return Data();
 	}
 
@@ -108,8 +108,8 @@ int IpPacket::version(Data data)
 {
 	if(data.length() < 4 * 5)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IP packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IP packet\n");
 		return 0;
 	}
 
@@ -121,8 +121,8 @@ int IpPacket::version(Data data)
 {
 	if(length < 4 * 5)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IP packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IP packet\n");
 		return 0;
 	}
 
@@ -133,8 +133,8 @@ int IpPacket::version() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IP packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IP packet\n");
 		return 0;
 	}
 

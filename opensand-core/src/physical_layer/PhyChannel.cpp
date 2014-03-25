@@ -68,23 +68,23 @@ bool PhyChannel::update()
 
 	if(!this->status)
 	{
-		Output::sendLog(this->log_channel, LEVEL_DEBUG,
-		                "channel is broken, do not update it");
+		LOG(this->log_channel, LEVEL_DEBUG,
+		    "channel is broken, do not update it");
 		goto error;
 	}
 
-	Output::sendLog(this->log_channel, LEVEL_INFO,
-	                "%s Channel updated\n", FUNCNAME);
+	LOG(this->log_channel, LEVEL_INFO,
+	    "%s Channel updated\n", FUNCNAME);
 	if(this->attenuation_model->updateAttenuationModel())
 	{
-		Output::sendLog(this->log_channel, LEVEL_INFO,
-		                "%s New attenuation: %.2f dB\n",
-		                FUNCNAME, this->attenuation_model->getAttenuation());
+		LOG(this->log_channel, LEVEL_INFO,
+		    "%s New attenuation: %.2f dB\n",
+		    FUNCNAME, this->attenuation_model->getAttenuation());
 	}
 	else
 	{
-		Output::sendLog(this->log_channel, LEVEL_ERROR,
-		                "channel updating failed, disable it");
+		LOG(this->log_channel, LEVEL_ERROR,
+		    "channel updating failed, disable it");
 		this->status = false;
 	}
 
@@ -117,9 +117,9 @@ double PhyChannel::getTotalCN(DvbFrame *dvb_frame)
 	// update CN in frame for DVB block transmission
 	dvb_frame->setCn(cn_total);
 
-	Output::sendLog(this->log_channel, LEVEL_DEBUG,
-	                "Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
-	                "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
+	LOG(this->log_channel, LEVEL_DEBUG,
+	    "Satellite: cn_downlink= %.2f dB cn_uplink= %.2f dB "
+	    "cn_total= %.2f dB\n", cn_down, cn_up, cn_total);
 	this->probe_total_cn->put(cn_total);
 
 	return cn_total;
@@ -134,8 +134,8 @@ void PhyChannel::addSegmentCN(DvbFrame *dvb_frame)
 	   the Attenuation for this segment(uplink) */
 
 	val = this->nominal_condition - this->attenuation_model->getAttenuation();
-	Output::sendLog(this->log_channel, LEVEL_INFO,
-	                "Calculation of C/N: %.2f dB\n", val);
+	LOG(this->log_channel, LEVEL_INFO,
+	    "Calculation of C/N: %.2f dB\n", val);
 
 	dvb_frame->setCn(val);
 }
@@ -179,13 +179,13 @@ void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 {
 	uint8_t modcod_id = 0;
-	Output::sendLog(this->log_channel, LEVEL_DEBUG,
-	                "Trace update minimal condition\n");
+	LOG(this->log_channel, LEVEL_DEBUG,
+	    "Trace update minimal condition\n");
 
 	if(!this->status)
 	{
-		Output::sendLog(this->log_channel, LEVEL_INFO,
-		                "channel is broken, do not update minimal condition");
+		LOG(this->log_channel, LEVEL_INFO,
+		    "channel is broken, do not update minimal condition");
 		goto error;
 	}
 
@@ -204,14 +204,14 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 
 		modcod_id = dvb_rcs_frame->getModcodId();
 	}
-	Output::sendLog(this->log_channel, LEVEL_INFO,
-	                "Receive frame with MODCOD %u\n", modcod_id);
+	LOG(this->log_channel, LEVEL_INFO,
+	    "Receive frame with MODCOD %u\n", modcod_id);
 
 	if(!this->minimal_condition->updateThreshold(modcod_id))
 	{
-		Output::sendLog(this->log_channel, LEVEL_ERROR,
-		                "Threshold update failed, the channel will "
-		                "be disabled\n");
+		LOG(this->log_channel, LEVEL_ERROR,
+		    "Threshold update failed, the channel will "
+		    "be disabled\n");
 		this->status = false;
 		goto error;     
 	}
@@ -225,9 +225,9 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 	//      With physcal layer ACM loop, these frame would be mark as corrupted
 	this->probe_minimal_condition->put(this->minimal_condition->getMinimalCN());
 
-	Output::sendLog(this->log_channel, LEVEL_INFO,
-	                "Update minimal condition: %.2f dB\n",
-	                this->minimal_condition->getMinimalCN());
+	LOG(this->log_channel, LEVEL_INFO,
+	    "Update minimal condition: %.2f dB\n",
+	    this->minimal_condition->getMinimalCN());
 error:
 	return this->status;
 }

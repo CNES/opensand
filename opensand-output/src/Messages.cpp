@@ -149,7 +149,7 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 
 	if(got == 0)
 	{
-		Output::sendLog(LEVEL_WARNING, "Socket closed");
+		DFLTLOG(LEVEL_WARNING, "Socket closed");
 		// The socket was probably closed
 		return 0;
 	}
@@ -158,40 +158,40 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 	   strncmp(address.sun_path, Output::daemonSockAddr()->sun_path,
 	           sizeof(address.sun_path)) != 0)
 	{
-		Output::sendLog(LEVEL_WARNING,
-		                "Got unexpected message from “%s”\n",
-		                address.sun_path);
+		DFLTLOG(LEVEL_WARNING,
+		        "Got unexpected message from “%s”\n",
+		        address.sun_path);
 		return 0;
 	}
 
 	if(got < 0)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "Error during message reception: %s\n",
-		                strerror(errno));
+		DFLTLOG(LEVEL_ERROR,
+		        "Error during message reception: %s\n",
+		        strerror(errno));
 		return 0;
 	}
 
 	if(got < (signed)sizeof(msg_base_header_t))
 	{
-		Output::sendLog(LEVEL_ERROR, "Got too short message from daemon!\n");
+		DFLTLOG(LEVEL_ERROR, "Got too short message from daemon!\n");
 		return 0;
 	}
 
 	if(got > (signed)max_length)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "Message length overflow (%zd > %zu), please increase "
-		                "the message buffer size.", got, max_length);
+		DFLTLOG(LEVEL_ERROR,
+		        "Message length overflow (%zd > %zu), please increase "
+		        "the message buffer size.", got, max_length);
 		return 0;
 	}
 
 	const msg_base_header_t *head = (const msg_base_header_t *)message_data;
 	if(head->magic != htonl(MAGIC_NUMBER))
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "Got message with bad magic number %08x\n",
-		                ntohl(head->magic));
+		DFLTLOG(LEVEL_ERROR,
+		        "Got message with bad magic number %08x\n",
+		        ntohl(head->magic));
 		return 0;
 	}
 

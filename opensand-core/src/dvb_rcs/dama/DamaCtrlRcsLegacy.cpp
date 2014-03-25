@@ -83,9 +83,9 @@ bool DamaCtrlRcsLegacy::init()
 		{
 			if((*carrier_it)->getFmtIds().size() > 1)
 			{
-				Output::sendLog(this->log_init, LEVEL_ERROR,
-				                "you should only define one FMT ID per FMT "
-				                "group for Legacy DAMA\n");
+				LOG(this->log_init, LEVEL_ERROR,
+				    "you should only define one FMT ID per FMT "
+				    "group for Legacy DAMA\n");
 				return false;
 			}
 			// Output probes and stats
@@ -277,12 +277,12 @@ bool DamaCtrlRcsLegacy::resetDama()
 			// initialize remaining capacity with total capacity in
 			// packet per superframe as it is the unit used in DAMA computations
 			(*carrier_it)->setRemainingCapacity(remaining_capacity_pktpf);
-			Output::sendLog(this->log_run_dama, LEVEL_NOTICE,
-			                "SF#%u: Capacity before DAMA computation for "
-			                "carrier %u: %u packet (per frame) (%u kb)\n",
-			                this->current_superframe_sf,
-			                (*carrier_it)->getCarriersId(),
-			                remaining_capacity_pktpf,
+			LOG(this->log_run_dama, LEVEL_NOTICE,
+			    "SF#%u: Capacity before DAMA computation for "
+			    "carrier %u: %u packet (per frame) (%u kb)\n",
+			    this->current_superframe_sf,
+			    (*carrier_it)->getCarriersId(),
+			    remaining_capacity_pktpf,
 			                remaining_capacity_kb / 
 			                this->frames_per_superframe);
 
@@ -337,15 +337,15 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 
 	if(remaining_capacity_pktpf == 0)
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_INFO,
-		                "%s skipping RBDC dama computation: Not enough "
-		                "capacity\n", debug.c_str());
+		LOG(this->log_run_dama, LEVEL_INFO,
+		    "%s skipping RBDC dama computation: Not enough "
+		    "capacity\n", debug.c_str());
 		return;
 	}
 
-	Output::sendLog(this->log_run_dama, LEVEL_INFO,
-	                "%s remaining capacity = %u pktpf before RBDC allocation \n",
-	                debug.c_str(), remaining_capacity_pktpf);
+	LOG(this->log_run_dama, LEVEL_INFO,
+	    "%s remaining capacity = %u pktpf before RBDC allocation \n",
+	    debug.c_str(), remaining_capacity_pktpf);
 
 	tal = category->getTerminalsInCarriersGroup<TerminalContextRcs>(carrier_id);
 	// get total RBDC requests
@@ -353,10 +353,10 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 	{
 		rate_pktpf_t request_pktpf;
 		terminal = (TerminalContextRcs *)(*tal_it);
-		Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-		                "%s ST%d: RBDC request %d packet per superframe\n",
-		                debug.c_str(), terminal->getTerminalId(),
-		                terminal->getRequiredRbdc());
+		LOG(this->log_run_dama, LEVEL_DEBUG,
+		    "%s ST%d: RBDC request %d packet per superframe\n",
+		    debug.c_str(), terminal->getTerminalId(),
+		    terminal->getRequiredRbdc());
 
 		request_pktpf = terminal->getRequiredRbdc();
 		total_request_pktpf += request_pktpf;
@@ -370,8 +370,8 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 
 	if(total_request_pktpf == 0)
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_INFO,
-		                "%s no RBDC request for this frame.\n", debug.c_str());
+		LOG(this->log_run_dama, LEVEL_INFO,
+		    "%s no RBDC request for this frame.\n", debug.c_str());
 
 		// Output stats and probes
 		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
@@ -401,10 +401,10 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 		this->gw_rbdc_alloc_pktpf += remaining_capacity_pktpf;
 	}
 
-	Output::sendLog(this->log_run_dama, LEVEL_INFO,
-	                "%s: sum of all RBDC requests = %u packets per superframe "
-	                " -> Fair share=%f\n", debug.c_str(),
-	                total_request_pktpf, fair_share);
+	LOG(this->log_run_dama, LEVEL_INFO,
+	    "%s: sum of all RBDC requests = %u packets per superframe "
+	    " -> Fair share=%f\n", debug.c_str(),
+	    total_request_pktpf, fair_share);
 
 	// first step : serve the integer part of the fair RBDC
 	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
@@ -417,10 +417,10 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 		// take the integer part of fair RBDC
 		rbdc_alloc_pktpf = floor(fair_rbdc_pktpf);
 		terminal->setRbdcAllocation(rbdc_alloc_pktpf);
-		Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-		                "%s ST%u RBDC alloc %u packets per superframe\n",
-		                debug.c_str(), terminal->getTerminalId(),
-		                rbdc_alloc_pktpf);
+		LOG(this->log_run_dama, LEVEL_DEBUG,
+		    "%s ST%u RBDC alloc %u packets per superframe\n",
+		    debug.c_str(), terminal->getTerminalId(),
+		    rbdc_alloc_pktpf);
 
 		// decrease the total capacity
 		remaining_capacity_pktpf -= rbdc_alloc_pktpf;
@@ -456,11 +456,11 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 				break;
 			}
 			credit_pktpf = terminal->getRbdcCredit();
-			Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-			                "%s step 2 scanning ST%u remaining capacity=%u "
-			                "credit_pktpf=%u\n", debug.c_str(),
-			                terminal->getTerminalId(),
-			                remaining_capacity_pktpf, credit_pktpf);
+			LOG(this->log_run_dama, LEVEL_DEBUG,
+			    "%s step 2 scanning ST%u remaining capacity=%u "
+			    "credit_pktpf=%u\n", debug.c_str(),
+			    terminal->getTerminalId(),
+			    remaining_capacity_pktpf, credit_pktpf);
 			if(credit_pktpf > 1.0)
 			{
 				if(terminal->getMaxRbdc() - rbdc_alloc_pktpf > 1)
@@ -469,9 +469,9 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 					terminal->setRbdcAllocation(rbdc_alloc_pktpf + 1);
 					terminal->addRbdcCredit(-1);
 					remaining_capacity_pktpf--;
-					Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-					                "%s step 2 allocating 1 cell to ST%u\n",
-					                debug.c_str(), terminal->getTerminalId());
+					LOG(this->log_run_dama, LEVEL_DEBUG,
+					    "%s step 2 allocating 1 cell to ST%u\n",
+					    debug.c_str(), terminal->getTerminalId());
 					// Update probes and stats
 					this->carrier_return_remaining_capacity_pktpf[carrier_id]--;
 					this->category_return_remaining_capacity_pktpf
@@ -503,9 +503,9 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 
 	if(remaining_capacity_pktpf == 0)
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_NOTICE,
-		                "%s skipping VBDC dama computation: Not enough "
-		                "capacity\n", debug.c_str());
+		LOG(this->log_run_dama, LEVEL_NOTICE,
+		    "%s skipping VBDC dama computation: Not enough "
+		    "capacity\n", debug.c_str());
 
 		// Output stats and probes
 		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
@@ -517,9 +517,9 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 		return;
 	}
 
-	Output::sendLog(this->log_run_dama, LEVEL_INFO,
-	                "%s remaining capacity = %u packets before VBDC "
-	                "allocation \n", debug.c_str(), remaining_capacity_pktpf);
+	LOG(this->log_run_dama, LEVEL_INFO,
+	    "%s remaining capacity = %u packets before VBDC "
+	    "allocation \n", debug.c_str(), remaining_capacity_pktpf);
 
 	tal = category->getTerminalsInCarriersGroup<TerminalContextRcs>(carrier_id);
 	// sort terminal according to their VBDC requests
@@ -543,11 +543,11 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 
 		vol_pkt_t request_pkt = terminal->getRequiredVbdc(this->frames_per_superframe);
 
-		Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-		                "%s: ST%u remaining capacity=%u remaining VBDC "
-		                "request %u\n", debug.c_str(),
-		                terminal->getTerminalId(), remaining_capacity_pktpf,
-		                request_pkt);
+		LOG(this->log_run_dama, LEVEL_DEBUG,
+		    "%s: ST%u remaining capacity=%u remaining VBDC "
+		    "request %u\n", debug.c_str(),
+		    terminal->getTerminalId(), remaining_capacity_pktpf,
+		    request_pkt);
 
 		if(request_pkt > 0)
 		{
@@ -566,10 +566,10 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 				remaining_capacity_pktpf -= request_pkt;
 				terminal->setVbdcAllocation(
 					request_pkt, this->frames_per_superframe);
-				Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-				                "%s ST%u allocate remaining VBDC: %u\n",
-				                debug.c_str(), terminal->getTerminalId(),
-				                request_pkt);
+				LOG(this->log_run_dama, LEVEL_DEBUG,
+				    "%s ST%u allocate remaining VBDC: %u\n",
+				    debug.c_str(), terminal->getTerminalId(),
+				    request_pkt);
 
 				// Output probes and stats
 				this->probes_st_vbdc_alloc[terminal->getTerminalId()]->put(
@@ -613,11 +613,11 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 					-= remaining_capacity_pktpf;
 				this->gw_remaining_capacity_pktpf -= remaining_capacity_pktpf;
 
-				Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-				                "%s: ST%u allocate partial remaining VBDC: "
-				                "%u<%u\n", debug.c_str(),
-				                terminal->getTerminalId(),
-				                remaining_capacity_pktpf, request_pkt);
+				LOG(this->log_run_dama, LEVEL_DEBUG,
+				    "%s: ST%u allocate partial remaining VBDC: "
+				    "%u<%u\n", debug.c_str(),
+				    terminal->getTerminalId(),
+				    remaining_capacity_pktpf, request_pkt);
 				remaining_capacity_pktpf = 0;
 
 				return;
@@ -650,8 +650,8 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 
 	if(this->fca_kbps == 0)
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_INFO,
-		                "SF#%u: no fca, skip\n", this->current_superframe_sf);
+		LOG(this->log_run_dama, LEVEL_INFO,
+		    "SF#%u: no fca, skip\n", this->current_superframe_sf);
 		return;
 	}
 	fca_pktpf = this->converter->kbpsToPktpf(this->fca_kbps);
@@ -676,15 +676,15 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 			tal_it++;
 		}
 
-		Output::sendLog(this->log_run_dama, LEVEL_NOTICE,
-		                "%s skipping FCA dama computaiton. Not enough "
-		                "capacity\n", debug.c_str());
+		LOG(this->log_run_dama, LEVEL_NOTICE,
+		    "%s skipping FCA dama computaiton. Not enough "
+		    "capacity\n", debug.c_str());
 		return;
 	}
 
-	Output::sendLog(this->log_run_dama, LEVEL_INFO,
-	                "%s remaining capacity = %u packets before FCA "
-	                "computation\n", debug.c_str(), remaining_capacity_pktpf);
+	LOG(this->log_run_dama, LEVEL_INFO,
+	    "%s remaining capacity = %u packets before FCA "
+	    "computation\n", debug.c_str(), remaining_capacity_pktpf);
 
 	// sort terminal according to their remaining credit
 	// this is a random but logical choice
@@ -698,9 +698,9 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 		if (remaining_capacity_pktpf > fca_pktpf)
 		{
 			remaining_capacity_pktpf -= fca_pktpf;
-			Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-			                "%s ST%u FCA allocation %u)\n", debug.c_str(),
-			                terminal->getTerminalId(), fca_pktpf);
+			LOG(this->log_run_dama, LEVEL_DEBUG,
+			    "%s ST%u FCA allocation %u)\n", debug.c_str(),
+			    terminal->getTerminalId(), fca_pktpf);
 			terminal->setFcaAllocation(fca_pktpf);
 
 			// Output probes and stats
@@ -717,10 +717,10 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 		}
 		else
 		{
-			Output::sendLog(this->log_run_dama, LEVEL_DEBUG,
-			                "%s ST%u FCA allocation %u)\n",
-			                debug.c_str(), terminal->getTerminalId(),
-			                remaining_capacity_pktpf);
+			LOG(this->log_run_dama, LEVEL_DEBUG,
+			    "%s ST%u FCA allocation %u)\n",
+			    debug.c_str(), terminal->getTerminalId(),
+			    remaining_capacity_pktpf);
 			terminal->setFcaAllocation(remaining_capacity_pktpf);
 
 			// Output probes and stats

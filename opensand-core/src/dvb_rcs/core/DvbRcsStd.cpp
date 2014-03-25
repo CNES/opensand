@@ -73,51 +73,51 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		// corrupted, nothing more to do
 
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "The Frame was corrupted by physical layer, "
-		                "drop it\n");
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "The Frame was corrupted by physical layer, "
+		    "drop it\n");
 		goto skip;
 	}
 
 	if(dvb_rcs_frame->getMessageType() != MSG_TYPE_DVB_BURST)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "the message received is not a DVB burst\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "the message received is not a DVB burst\n");
 		goto error;
 	}
 
 	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "skip DVB-RCS frame with no encapsulation packet\n");
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "skip DVB-RCS frame with no encapsulation packet\n");
 		goto skip;
 	}
 	if(!this->packet_handler)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "packet handler is NULL\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "packet handler is NULL\n");
 		goto error;
 	}
 	if(this->packet_handler->getFixedLength() == 0)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "encapsulated packets length is not fixed on "
-		                "a DVB-RCS emission link (packet type is %s)\n",
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "encapsulated packets length is not fixed on "
+		    "a DVB-RCS emission link (packet type is %s)\n",
 		    this->packet_handler->getName().c_str());
 		return false;
 	}
 
-	Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-	                "%s burst received (%u packet(s))\n",
-	                this->packet_handler->getName().c_str(),
-	                dvb_rcs_frame->getNumPackets());
+	LOG(this->log_rcv_from_down, LEVEL_INFO,
+	    "%s burst received (%u packet(s))\n",
+	    this->packet_handler->getName().c_str(),
+	    dvb_rcs_frame->getNumPackets());
 
 	// create an empty burst of encapsulation packets
 	*burst = new NetBurst();
 	if(*burst == NULL)
 	{
-		Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-		                "failed to create a burst of packets\n");
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "failed to create a burst of packets\n");
 		goto error;
 	}
 
@@ -140,9 +140,9 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		previous_length += current_length;
 		if(encap_packet == NULL)
 		{
-			Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-			                "cannot create one %s packet\n",
-			                this->packet_handler->getName().c_str());
+			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			    "cannot create one %s packet\n",
+			    this->packet_handler->getName().c_str());
 			goto release_burst;
 		}
 
@@ -156,9 +156,9 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 			spot_id = this->generic_switch->find(encap_packet);
 			if(spot_id == 0)
 			{
-				Output::sendLog(this->log_rcv_from_down, LEVEL_ERROR,
-				                "unable to find destination spot, drop the "
-				                "packet\n");
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "unable to find destination spot, drop the "
+				    "packet\n");
 				delete encap_packet;
 				continue;
 			}
@@ -169,10 +169,10 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 
 		// add the packet to the burst of packets
 		(*burst)->add(encap_packet);
-		Output::sendLog(this->log_rcv_from_down, LEVEL_INFO,
-		                "%s packet (%zu bytes) added to burst\n",
-		                this->packet_handler->getName().c_str(),
-		                encap_packet->getTotalLength());
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		    "%s packet (%zu bytes) added to burst\n",
+		    this->packet_handler->getName().c_str(),
+		    encap_packet->getTotalLength());
 	}
 
 skip:
@@ -183,7 +183,7 @@ skip:
 release_burst:
 	delete burst;
 error:
-	delete dvb_frame;;
+	delete dvb_frame;
 	return false;
 }
 

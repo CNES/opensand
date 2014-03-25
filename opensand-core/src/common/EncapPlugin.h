@@ -86,7 +86,7 @@ class EncapPlugin: public StackPlugin
 		virtual bool getSrc(const Data &data, tal_id_t &tal_id) const = 0;
 
 
-		void init()
+		virtual void init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "Encap.%s",
@@ -146,7 +146,7 @@ class EncapPlugin: public StackPlugin
 			this->dst_tal_id = tal_id;
 		}
 
-		void init()
+		virtual void init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "Encap.%s",
@@ -162,7 +162,7 @@ class EncapPlugin: public StackPlugin
 		OutputLog *log;
 	};
 
-	void init()
+	virtual void init()
 	{
 		this->log = Output::registerLog(LEVEL_WARNING,
 		                                "Encap.%s",

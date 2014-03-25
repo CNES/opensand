@@ -47,9 +47,9 @@ RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t prio
 	priority(priority)
 {
 	// TODO log rt ?
-	Output::sendLog(LEVEL_DEBUG,
-	                "Create new event \"%s\" of type %d\n",
-	                name.c_str(), type);
+	DFLTLOG(LEVEL_DEBUG,
+	        "Create new event \"%s\" of type %d\n",
+	        name.c_str(), type);
 	this->setTriggerTime();
 	this->setCustomTime();
 }

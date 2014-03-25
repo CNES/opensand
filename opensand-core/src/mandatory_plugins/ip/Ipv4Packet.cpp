@@ -97,8 +97,8 @@ bool Ipv4Packet::isValid() const
 	// IPv4 packet length must be at least 20 byte long
 	if(this->data.length() < 4 * 5)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "IP packet is to small\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "IP packet is to small\n");
 		goto invalid;
 	}
 
@@ -108,9 +108,9 @@ bool Ipv4Packet::isValid() const
 
 	if(crc != cur_crc)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "CRC = %08x, should be %08x\n",
-		                cur_crc, crc);
+		DFLTLOG(LEVEL_ERROR,
+		        "CRC = %08x, should be %08x\n",
+		        cur_crc, crc);
 		goto invalid;
 	}
 
@@ -153,8 +153,8 @@ uint16_t Ipv4Packet::crc() const
 {
 	if(this->data.length() < 4 * 5)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -166,8 +166,8 @@ size_t Ipv4Packet::getTotalLength() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -179,8 +179,8 @@ uint8_t Ipv4Packet::ihl() const
 {
 	if(this->data.length() < 4 * 5)
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -191,8 +191,8 @@ size_t Ipv4Packet::getPayloadLength() const
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -205,8 +205,8 @@ IpAddress *Ipv4Packet::srcAddr()
 	{
 		if(!this->isValid())
 		{
-			Output::sendLog(LEVEL_ERROR,
-			                "invalid IPv4 packet\n");
+			DFLTLOG(LEVEL_ERROR,
+			        "invalid IPv4 packet\n");
 			return NULL;
 		}
 
@@ -224,8 +224,8 @@ IpAddress *Ipv4Packet::dstAddr()
 	{
 		if(!this->isValid())
 		{
-			Output::sendLog(LEVEL_ERROR,
-			                "invalid IPv4 packet\n");
+			DFLTLOG(LEVEL_ERROR,
+			        "invalid IPv4 packet\n");
 			return NULL;
 		}
 
@@ -243,8 +243,8 @@ uint8_t Ipv4Packet::diffServField() const
 	
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -258,8 +258,8 @@ uint8_t Ipv4Packet::diffServCodePoint() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 
@@ -273,8 +273,8 @@ uint8_t Ipv4Packet::explicitCongestionNotification() const
 
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid IPv4 packet\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid IPv4 packet\n");
 		return 0;
 	}
 

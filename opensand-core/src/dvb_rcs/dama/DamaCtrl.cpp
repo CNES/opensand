@@ -144,15 +144,15 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	                                    this->frame_duration_ms);
 	if(converter == NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Cannot create the Unit Converter\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot create the Unit Converter\n");
 		goto error;
 	}
 
 	if(categories.size() == 0)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "No category defined\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "No category defined\n");
 		return false;
 	}
 	this->categories = categories;
@@ -161,8 +161,8 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	if(default_category == NULL)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "No default terminal affectation defined\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "No default terminal affectation defined\n");
 		return false;
 	}
 	this->default_category = default_category;
@@ -171,9 +171,9 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	if (!this->initOutput())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "the output probes and stats initialization have "
-		                "failed\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "the output probes and stats initialization have "
+		    "failed\n");
 		return false;
 	}
 
@@ -252,8 +252,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 	rate_kbps_t cra_kbps = logon->getRtBandwidth();
 	rate_kbps_t max_rbdc_kbps = logon->getMaxRbdc();
 	vol_kb_t max_vbdc_kb = logon->getMaxVbdc();
-	Output::sendLog(this->log_logon, LEVEL_INFO,
-	                "New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
+	LOG(this->log_logon, LEVEL_INFO,
+	    "New ST: #%u, with CRA: %u bits/sec\n", tal_id, cra_kbps);
 
 	DamaTerminalList::iterator it;
 	it = this->terminals.find(tal_id);
@@ -282,9 +282,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		                         this->rbdc_timeout_sf,
 		                         max_vbdc_kb))
 		{
-			Output::sendLog(this->log_logon, LEVEL_ERROR,
-			                "Cannot create terminal context for ST #%d\n",
-							tal_id);
+			LOG(this->log_logon, LEVEL_ERROR,
+			    "Cannot create terminal context for ST #%d\n",
+			    tal_id);
 			return false;
 		}
 
@@ -323,10 +323,10 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		it = this->terminal_affectation.find(tal_id);
 		if(it == this->terminal_affectation.end())
 		{
-			Output::sendLog(this->log_logon, LEVEL_INFO,
-			                "ST #%d is not affected to a category, using "
-			                "default: %s\n", tal_id, 
-			                this->default_category->getLabel().c_str());
+			LOG(this->log_logon, LEVEL_INFO,
+			    "ST #%d is not affected to a category, using "
+			    "default: %s\n", tal_id, 
+			    this->default_category->getLabel().c_str());
 			category = this->default_category;
 		}
 		else
@@ -336,9 +336,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);
 		terminal->setCurrentCategory(category->getLabel());
-		Output::sendLog(this->log_logon, LEVEL_NOTICE,
-		                "Add terminal %u in category %s\n",
-		                tal_id, category->getLabel().c_str());
+		LOG(this->log_logon, LEVEL_NOTICE,
+		    "Add terminal %u in category %s\n",
+		    tal_id, category->getLabel().c_str());
 		DC_RECORD_EVENT("LOGON st%d rt = %u", logon->getMac(),
 		                logon->getRtBandwidth());
 
@@ -369,18 +369,18 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		if(cra_kbps > max_capa_kbps)
 		{
-			Output::sendLog(this->log_logon, LEVEL_WARNING,
-			                "The CRA value for ST%u is too high compared to "
-			                "the maximum carrier capacity (%u > %u)\n",
-			                tal_id, cra_kbps, max_capa_kbps);
+			LOG(this->log_logon, LEVEL_WARNING,
+			    "The CRA value for ST%u is too high compared to "
+			    "the maximum carrier capacity (%u > %u)\n",
+			    tal_id, cra_kbps, max_capa_kbps);
 			// TODO OUTPUT::EVENT
 		}
 
 	}
 	else
 	{
-		Output::sendLog(this->log_logon, LEVEL_NOTICE,
-		                "Duplicate logon received for ST #%u\n", tal_id);
+		LOG(this->log_logon, LEVEL_NOTICE,
+		    "Duplicate logon received for ST #%u\n", tal_id);
 	}
 
 
@@ -398,8 +398,8 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		Output::sendLog(this->log_logon, LEVEL_INFO,
-		                "No ST found for id %u\n", tal_id);
+		LOG(this->log_logon, LEVEL_INFO,
+		    "No ST found for id %u\n", tal_id);
 		return false;
 	}
 
@@ -426,7 +426,7 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 		}
 	}
 
-	DC_RECORD_EVENT("LOGOFF st%d", tal_id);
+	DC_RECORD_EVENT("iLOGOFF st%d", tal_id);
 
 	return true;
 }
@@ -446,8 +446,8 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 
 	if(!this->runDama())
 	{
-		Output::sendLog(this->log_super_frame_tick, LEVEL_ERROR,
-		                "Error during DAMA computation.\n");
+		LOG(this->log_super_frame_tick, LEVEL_ERROR,
+		    "Error during DAMA computation.\n");
 		return false;
 	}
 
@@ -460,31 +460,31 @@ bool DamaCtrl::runDama()
 	// reset the DAMA settings
 	if(!this->resetDama())
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
-		                "SF#%u: Cannot reset DAMA\n",
-		                this->current_superframe_sf);
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot reset DAMA\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 
 	if(this->enable_rbdc && !this->runDamaRbdc())
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
-		                "SF#%u: Error while computing RBDC allocation\n",
-		                this->current_superframe_sf);
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Error while computing RBDC allocation\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 	if(this->enable_vbdc && !this->runDamaVbdc())
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
-		                "SF#%u: Error while computing RBDC allocation\n",
-		                this->current_superframe_sf);
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Error while computing RBDC allocation\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 	if(!this->runDamaFca())
 	{
-		Output::sendLog(this->log_run_dama, LEVEL_ERROR,
-		                "SF#%u: Error while computing RBDC allocation\n",
-		                this->current_superframe_sf);
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Error while computing RBDC allocation\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 	return true;

@@ -45,9 +45,9 @@ NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
 	// Register output log
 	this->log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
 
-	Output::sendLog(this->log_net_burst, LEVEL_INFO,
-	                "burst created (max length = %d)\n",
-	                this->max_packets);
+	LOG(this->log_net_burst, LEVEL_INFO,
+	    "burst created (max length = %d)\n",
+	    this->max_packets);
 }
 
 NetBurst::~NetBurst()
@@ -78,17 +78,17 @@ bool NetBurst::add(NetPacket *packet)
 
 	if(this->isFull() || packet == NULL)
 	{
-		Output::sendLog(this->log_net_burst, LEVEL_INFO,
-		                "[NetBurst::add] cannot add packet to burst (%d/%d)\n",
-		                this->length(), this->max_packets);
+		LOG(this->log_net_burst, LEVEL_INFO,
+		    "cannot add packet to burst (%d/%d)\n",
+		    this->length(), this->max_packets);
 		success = false;
 	}
 	else
 	{
 		this->push_back(packet);
-		Output::sendLog(this->log_net_burst, LEVEL_INFO,
-		                "[NetBurst::add] packet added to burst (%d/%d)\n",
-		                this->length(), this->max_packets);
+		LOG(this->log_net_burst, LEVEL_INFO,
+		    "packet added to burst (%d/%d)\n",
+		    this->length(), this->max_packets);
 	}
 
 	return success;
@@ -141,9 +141,9 @@ uint16_t NetBurst::type()
 	if(this->length() <= 0)
 	{
 		// no packet in the burst, impossible to get the packet type
-		Output::sendLog(this->log_net_burst, LEVEL_ERROR,
-		                "failed to determine the burst type: "
-		                "burst is empty\n");
+		LOG(this->log_net_burst, LEVEL_ERROR,
+		    "failed to determine the burst type: "
+		    "burst is empty\n");
 		return NET_PROTO_ERROR;
 	}
 	else

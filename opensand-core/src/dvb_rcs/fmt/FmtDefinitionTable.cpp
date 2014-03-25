@@ -96,9 +96,9 @@ bool FmtDefinitionTable::load(const string filename)
 	file.open(filename.c_str());
 	if(!file.is_open())
 	{
-		Output::sendLog(this->log_fmt, LEVEL_ERROR,
-		                "failed to open the FMT definition file '%s'\n",
-		                filename.c_str());
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "failed to open the FMT definition file '%s'\n",
+		    filename.c_str());
 		goto error;
 	}
 
@@ -135,11 +135,11 @@ bool FmtDefinitionTable::load(const string filename)
 			{
 				// this is not the first line that starts with
 				// the 'nb_fmt' keyword
-				Output::sendLog(this->log_fmt, LEVEL_ERROR,
-				                "bad syntax at line %u (%s): "
-				                "multiple lines starting "
-				                "with the 'nb_fmt' keyword\n",
-				                lines_count, line.substr(0,16).c_str());
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "bad syntax at line %u (%s): "
+				    "multiple lines starting "
+				    "with the 'nb_fmt' keyword\n",
+				    lines_count, line.substr(0,16).c_str());
 				goto malformed;
 			}
 			else
@@ -154,27 +154,27 @@ bool FmtDefinitionTable::load(const string filename)
 				// some checks on read values
 				if(equal != "=")
 				{
-					Output::sendLog(this->log_fmt, LEVEL_ERROR,
-					                "bad syntax at line %u (%s): the 'nb_fmt'"
-					                " keyword should be followed by an equal "
-					                "symbol\n", lines_count,
-					                line.substr(0,16).c_str());
+					LOG(this->log_fmt, LEVEL_ERROR,
+					    "bad syntax at line %u (%s): the 'nb_fmt'"
+					    " keyword should be followed by an equal "
+					    "symbol\n", lines_count,
+					    line.substr(0,16).c_str());
 					goto malformed;
 				}
 				if(nb_fmt <= 0 || nb_fmt > MAX_FMT)
 				{
-					Output::sendLog(this->log_fmt, LEVEL_ERROR,
-					                "bad syntax at line %u (%s): "
-					                "the number of FMTs should be a non-zero "
-					                "positive value under %d\n", lines_count,
-					                line.substr(0,16).c_str(), MAX_FMT);
+					LOG(this->log_fmt, LEVEL_ERROR,
+					    "bad syntax at line %u (%s): "
+					    "the number of FMTs should be a non-zero "
+					    "positive value under %d\n", lines_count,
+					    line.substr(0,16).c_str(), MAX_FMT);
 					goto malformed;
 				}
 
 				// line format is valid
-				Output::sendLog(this->log_fmt, LEVEL_NOTICE,
-				                "%d FMTs present in definition "
-				                "file\n", nb_fmt);
+				LOG(this->log_fmt, LEVEL_NOTICE,
+				    "%d FMTs present in definition "
+				    "file\n", nb_fmt);
 				is_nb_fmt_found = true;
 				nb_fmt_read = 0;
 			}
@@ -195,11 +195,11 @@ bool FmtDefinitionTable::load(const string filename)
 			token_stream >> scheme_number;
 			if(scheme_number <= 0 || scheme_number > MAX_FMT)
 			{
-				Output::sendLog(this->log_fmt, LEVEL_ERROR,
-				                "bad syntax at line %u (%s): FMT "
-				                "definition should start with a non-zero "
-				                "positive integer up to %u\n", lines_count,
-				                line.substr(0,16).c_str(), MAX_FMT);
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "bad syntax at line %u (%s): FMT "
+				    "definition should start with a non-zero "
+				    "positive integer up to %u\n", lines_count,
+				    line.substr(0,16).c_str(), MAX_FMT);
 				goto malformed;
 			}
 
@@ -208,10 +208,10 @@ bool FmtDefinitionTable::load(const string filename)
 			{
 				// the 'nb_fmt' keyword should be
 				// specified before any FMTs line
-				Output::sendLog(this->log_fmt, LEVEL_ERROR,
-				                "bad syntax at line %u (%s): FMT "
-				                "definition before the 'nb_fmt' keyword\n",
-				                lines_count, line.substr(0,16).c_str());
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "bad syntax at line %u (%s): FMT "
+				    "definition before the 'nb_fmt' keyword\n",
+				    lines_count, line.substr(0,16).c_str());
 				goto malformed;
 			}
 
@@ -219,11 +219,11 @@ bool FmtDefinitionTable::load(const string filename)
 			nb_fmt_read++;
 			if(nb_fmt_read > ((unsigned int) nb_fmt))
 			{
-				Output::sendLog(this->log_fmt, LEVEL_ERROR,
-				                "bad syntax at line %u (%s): %u or more "
-				                "FMTs definitions found, but only %d specified"
-				                "with the 'nb_fmt' keyword\n", lines_count,
-				                line.substr(0,16).c_str(), nb_fmt_read, nb_fmt);
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "bad syntax at line %u (%s): %u or more "
+				    "FMTs definitions found, but only %d specified"
+				    "with the 'nb_fmt' keyword\n", lines_count,
+				    line.substr(0,16).c_str(), nb_fmt_read, nb_fmt);
 				goto malformed;
 			}
 
@@ -238,34 +238,34 @@ bool FmtDefinitionTable::load(const string filename)
 			                spectral_efficiency, required_es_n0);
 			if(ret != true)
 			{
-				Output::sendLog(this->log_fmt, LEVEL_ERROR,
-				                "failed to add new FMT definition: "
-				                "%u, %s, %s, %f, %f\n",
-				                scheme_number, modulation.c_str(),
-				                coding_rate.c_str(), spectral_efficiency,
-								required_es_n0);
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "failed to add new FMT definition: "
+				    "%u, %s, %s, %f, %f\n",
+				    scheme_number, modulation.c_str(),
+				    coding_rate.c_str(), spectral_efficiency,
+				    required_es_n0);
 				goto malformed;
 			}
 
-			Output::sendLog(this->log_fmt, LEVEL_NOTICE,
-			                "FMT definition: %u, %s, %s, %f, %f\n",
-			                scheme_number, modulation.c_str(),
-			                coding_rate.c_str(),
-				            spectral_efficiency, required_es_n0);
+			LOG(this->log_fmt, LEVEL_NOTICE,
+			    "FMT definition: %u, %s, %s, %f, %f\n",
+			    scheme_number, modulation.c_str(),
+			    coding_rate.c_str(),
+			    spectral_efficiency, required_es_n0);
 		}
 	}
 
 	// check the number of FMTs read in definition file
 	if(nb_fmt_read != ((unsigned int) nb_fmt))
 	{
-		Output::sendLog(this->log_fmt, LEVEL_ERROR,
-		                "too few FMTs definitions: %u found while %d specified"
-		                " with the 'nb_fmt' keyword\n",
-		                nb_fmt_read, nb_fmt);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "too few FMTs definitions: %u found while %d specified"
+		    " with the 'nb_fmt' keyword\n",
+		    nb_fmt_read, nb_fmt);
 		goto malformed;
 	}
-	Output::sendLog(this->log_fmt, LEVEL_NOTICE,
-	                "%d FMTs found in definition file\n", nb_fmt);
+	LOG(this->log_fmt, LEVEL_NOTICE,
+	    "%d FMTs found in definition file\n", nb_fmt);
 
 	// close the definition file
 	file.close();
@@ -273,8 +273,8 @@ bool FmtDefinitionTable::load(const string filename)
 	return true;
 
 malformed:
-	Output::sendLog(this->log_fmt, LEVEL_ERROR,
-	                "malformed FMT definition file\n");
+	LOG(this->log_fmt, LEVEL_ERROR,
+	    "malformed FMT definition file\n");
 	file.close();
 error:
 	return false;
@@ -414,8 +414,8 @@ FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
 	}
 	if(!def)
 	{
-		Output::sendLog(this->log_fmt, LEVEL_ERROR,
-		                "cannot find FMT definition for ID %u\n", id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find FMT definition for ID %u\n", id);
 	}
 
 	return def;

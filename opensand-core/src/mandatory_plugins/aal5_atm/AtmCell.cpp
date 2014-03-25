@@ -96,9 +96,9 @@ bool AtmCell::isValid()
 
 	if(this->getTotalLength() != AtmCell::getLength())
 	{
-		Output::sendLog(LEVEL_WARNING,
-		                "total length (%u) != ATM cell length (%u)\n",
-		                this->getTotalLength(), AtmCell::getLength());
+		DFLTLOG(LEVEL_WARNING,
+		        "total length (%u) != ATM cell length (%u)\n",
+		        this->getTotalLength(), AtmCell::getLength());
 		is_ok = false;
 	}
 
@@ -119,8 +119,8 @@ Data AtmCell::getPayload()
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid ATM cell\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid ATM cell\n");
 		return Data();
 	}
 
@@ -132,8 +132,8 @@ uint8_t AtmCell::getVpi()
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid ATM cell\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -146,8 +146,8 @@ uint16_t AtmCell::getVci()
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid ATM cell\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -161,8 +161,8 @@ uint8_t AtmCell::getPt()
 {
 	if(!this->isValid())
 	{
-		Output::sendLog(LEVEL_ERROR,
-		                "invalid ATM cell\n");
+		DFLTLOG(LEVEL_ERROR,
+		        "invalid ATM cell\n");
 		return 0;
 	}
 

@@ -99,9 +99,9 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			case cr_none:
 				break;
 			default:
-				Output::sendLog(this->log_init, LEVEL_ERROR,
-				                "Unknown CR type for FIFO %s: %d\n",
-				                (*it).second->getName().c_str(), cr_type);
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Unknown CR type for FIFO %s: %d\n",
+				    (*it).second->getName().c_str(), cr_type);
 			goto error;
 		}
 	}
@@ -110,9 +110,9 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 	if (!this->initOutput())
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "the output probes and stats initialization have "
-		                "failed\n");
+		LOG(this->log_init, LEVEL_ERROR,
+		    "the output probes and stats initialization have "
+		    "failed\n");
 		return false;
 	}
 

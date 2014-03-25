@@ -94,9 +94,9 @@ bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                                           category);
 	if(!this->scheduling)
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR, 
-		                "cannot create down scheduling for spot %u\n",
-		                this->spot_id);
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "cannot create down scheduling for spot %u\n",
+		    this->spot_id);
 		return false;
 	}
 	return true;

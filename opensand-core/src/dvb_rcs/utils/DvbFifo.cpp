@@ -75,8 +75,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	}
 	else
 	{
-		Output::sendLog(this->log_dvb_fifo, LEVEL_ERROR,
-		                "unknown CR type of FIFO: %s\n", cr_type_name.c_str());
+		LOG(this->log_dvb_fifo, LEVEL_ERROR,
+		    "unknown CR type of FIFO: %s\n", cr_type_name.c_str());
 	}
 }
 

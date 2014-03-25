@@ -61,9 +61,9 @@ bool Ideal::init(int granularity, string link)
 
 	if(config.loadConfig(CONF_IDEAL_FILE) < 0)
 	{   
-		Output::sendLog(this->log_init, LEVEL_ERROR, 
-		                "failed to load config file '%s'",
-		                CONF_IDEAL_FILE);
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "failed to load config file '%s'",
+		    CONF_IDEAL_FILE);
 		goto error;
 	}
 
@@ -73,9 +73,9 @@ bool Ideal::init(int granularity, string link)
 	                          LINK, link,
 	                          ATTENUATION_VALUE, this->value))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR, 
-		                "Ideal attenuation %slink: cannot get %s",
-		                link.c_str(), ATTENUATION_VALUE);
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "Ideal attenuation %slink: cannot get %s",
+		    link.c_str(), ATTENUATION_VALUE);
 		goto error;
 	}
 
@@ -87,8 +87,8 @@ error:
 bool Ideal::updateAttenuationModel()
 {
 	this->attenuation = this->value;
-	Output::sendLog(this->log_init, LEVEL_INFO, 
-	                "Constant attenuation: %.2f dB\n", this->getAttenuation());
+	LOG(this->log_init, LEVEL_INFO, 
+	    "Constant attenuation: %.2f dB\n", this->getAttenuation());
 
 	return true;
 }

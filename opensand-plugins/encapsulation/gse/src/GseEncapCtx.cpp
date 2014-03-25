@@ -82,9 +82,9 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	else if(this->isFull())
 	{
 		status = GSE_STATUS_DATA_TOO_LONG;
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to encapsulate packet because its size "
-		                "is greater that GSE fragment free space\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to encapsulate packet because its size "
+		    "is greater that GSE fragment free space\n");
 		goto error;
 	}
 	else
@@ -100,8 +100,8 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	                              packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to set the new vfrag length\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to set the new vfrag length\n");
 		goto error;
 	}
 

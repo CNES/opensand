@@ -68,9 +68,9 @@ bool OnOff::init(int granularity, string link)
 
 	if(config.loadConfig(CONF_ON_OFF_FILE) < 0)
 	{   
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to load config file '%s'",
-		                CONF_ON_OFF_FILE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to load config file '%s'",
+		    CONF_ON_OFF_FILE);
 		goto error;
 	}
 
@@ -80,9 +80,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          PERIOD_ON, this->on_duration))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "On/Off attenuation %slink: cannot get %s",
-		                link.c_str(), PERIOD_ON);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "On/Off attenuation %slink: cannot get %s",
+		    link.c_str(), PERIOD_ON);
 		goto error;
 	}
 
@@ -90,9 +90,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          PERIOD_OFF, this->off_duration))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "On/Off attenuation %slink: cannot get %s",
-		                link.c_str(), PERIOD_OFF);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "On/Off attenuation %slink: cannot get %s",
+		    link.c_str(), PERIOD_OFF);
 		goto error;
 	}
 
@@ -100,9 +100,9 @@ bool OnOff::init(int granularity, string link)
 	                          LINK, link,
 	                          AMPLITUDE, this->amplitude))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "On/Off attenuation %slink: cannot get %s",
-		                link.c_str(), AMPLITUDE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "On/Off attenuation %slink: cannot get %s",
+		    link.c_str(), AMPLITUDE);
 		goto error;
 	}
 
@@ -116,8 +116,8 @@ bool OnOff::updateAttenuationModel()
 	this->duration_counter = (this->duration_counter + 1) %
 	                         (this->on_duration + this->off_duration);
 
-	Output::sendLog(this->log_attenuation, LEVEL_INFO,
-	                "Attenuation model counter %d\n", this->duration_counter);
+	LOG(this->log_attenuation, LEVEL_INFO,
+	    "Attenuation model counter %d\n", this->duration_counter);
 	if(this->duration_counter <= this->off_duration)
 	{
 		this->setAttenuation(0);
@@ -127,8 +127,8 @@ bool OnOff::updateAttenuationModel()
 		this->setAttenuation(this->amplitude);
 	}
 
-	Output::sendLog(this->log_attenuation, LEVEL_INFO,
-	                "On/Off Attenuation %.2f dB\n", this->getAttenuation());
+	LOG(this->log_attenuation, LEVEL_INFO,
+	    "On/Off Attenuation %.2f dB\n", this->getAttenuation());
 	return true;
 }
 

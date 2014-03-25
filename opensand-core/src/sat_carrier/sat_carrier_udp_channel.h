@@ -178,9 +178,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	{
 		if(this->at(udp_counter).first)
 		{
-			Output::sendLog(this->log_sat_carrier, LEVEL_ERROR, 
-			                "new data for UDP stack at position %u, erase "
-			                "previous data\n", udp_counter);
+			LOG(this->log_sat_carrier, LEVEL_ERROR, 
+			    "new data for UDP stack at position %u, erase "
+			    "previous data\n", udp_counter);
 			this->counter--;
 			delete (this->at(udp_counter).first);
 		}

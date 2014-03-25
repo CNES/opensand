@@ -66,12 +66,14 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 	// Comparison between current and required C/N values
 	if(cn_total >= threshold_qef)
 	{
-		Output::sendLog(LEVEL_DEBUG, "Packet should not be modified \n");
+		DFLTLOG(LEVEL_DEBUG,
+		        "Packet should not be modified\n");
 		do_modify = false;
 	}
 	else
 	{
-		Output::sendLog(LEVEL_DEBUG, "Packet should be modified\n");
+		DFLTLOG(LEVEL_DEBUG,
+		        "Payload is should be modified\n");
 		do_modify = true;
 	}
 	return do_modify;
@@ -79,7 +81,8 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 
 bool Gate::modifyPacket(const Data &UNUSED(payload))
 {
-	Output::sendLog(LEVEL_DEBUG, "Payload is modified\n");
+	DFLTLOG(LEVEL_DEBUG,
+	        "Payload is modified\n");
 	// not needed, we will reject frame in DVB layer as we return true
 	// memset(payload, '\0', length);
 	return true;

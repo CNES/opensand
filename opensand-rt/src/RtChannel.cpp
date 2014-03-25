@@ -128,8 +128,8 @@ bool RtChannel::init(void)
 	sigset_t signal_mask;
 	int32_t pipefd[2];
 
-	Output::sendLog(this->log_init, LEVEL_INFO,
-	                "Starting initialization\n");
+	LOG(this->log_init, LEVEL_INFO,
+	    "Starting initialization\n");
 
 	// pipe used to break select when a new event is received
 	if(pipe(pipefd) != 0)
@@ -313,10 +313,10 @@ bool RtChannel::addEvent(RtEvent *event)
 	         MAGIC_WORD,
 	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
 	{
-		Output::sendLog(this->log_rt, LEVEL_ERROR,
-		                "[%s]Channel %u: failed to break select upon a new "
-		                "event reception\n", this->block->getName().c_str(),
-		                this->chan);
+		LOG(this->log_rt, LEVEL_ERROR,
+		    "[%s]Channel %u: failed to break select upon a new "
+		    "event reception\n", this->block->getName().c_str(),
+		    this->chan);
 	}
 
 #ifdef TIME_REPORTS
@@ -333,10 +333,10 @@ void RtChannel::updateEvents(void)
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
 	{
-		Output::sendLog(this->log_rt, LEVEL_INFO,
-		                "[%s]Channel %u: Add new event \"%s\" in list\n",
-		                this->block->getName().c_str(), this->chan,
-		                (*iter)->getName().c_str());
+		LOG(this->log_rt, LEVEL_INFO,
+		    "[%s]Channel %u: Add new event \"%s\" in list\n",
+		    this->block->getName().c_str(), this->chan,
+		    (*iter)->getName().c_str());
 		this->addInputFd((*iter)->getFd());
 		this->events[(*iter)->getFd()] = *iter;
 	}
@@ -351,10 +351,10 @@ void RtChannel::updateEvents(void)
 		it = this->events.find(*iter);
 		if(it != this->events.end())
 		{
-			Output::sendLog(this->log_rt, LEVEL_INFO,
-			                "[%s]Channel %u: remove event \"%s\" from list\n",
-			                this->block->getName().c_str(), this->chan,
-			                (*it).second->getName().c_str());
+			LOG(this->log_rt, LEVEL_INFO,
+			    "[%s]Channel %u: remove event \"%s\" from list\n",
+			    this->block->getName().c_str(), this->chan,
+			    (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
 			if((*it).first == this->max_input_fd)
@@ -392,9 +392,9 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	it = this->events.find(id);
 	if(it == this->events.end())
 	{
-		Output::sendLog(this->log_rt, LEVEL_DEBUG,
-		                "[%s]Channel %u: event not found, search in new events\n",
-		                this->block->getName().c_str(), this->chan);
+		LOG(this->log_rt, LEVEL_DEBUG,
+		    "[%s]Channel %u: event not found, search in new events\n",
+		    this->block->getName().c_str(), this->chan);
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -402,9 +402,9 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 		{
 			if(*(*iter) == id)
 			{
-				Output::sendLog(this->log_rt, LEVEL_DEBUG,
-				                "[%s]Channel %u: event found in new events\n",
-				                this->block->getName().c_str(), this->chan);
+				LOG(this->log_rt, LEVEL_DEBUG,
+				    "[%s]Channel %u: event found in new events\n",
+				    this->block->getName().c_str(), this->chan);
 				found = true;
 				event = *iter;
 				break;
@@ -418,9 +418,9 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	}
 	else
 	{
-		Output::sendLog(this->log_rt, LEVEL_DEBUG,
-		                "[%s]Channel %u: Timer found\n",
-		                this->block->getName().c_str(), this->chan);
+		LOG(this->log_rt, LEVEL_DEBUG,
+		    "[%s]Channel %u: Timer found\n",
+		    this->block->getName().c_str(), this->chan);
 		event = (*it).second;
 	}
 	if(event && event->getType() != evt_timer)
@@ -492,10 +492,10 @@ clock_t RtChannel::getCurrentTime(void)
 
 bool RtChannel::processEvent(const RtEvent *const event)
 {
-	Output::sendLog(this->log_rt, LEVEL_DEBUG,
-	                "[%s]Channel %u: event received (%s)",
-	                this->block->getName().c_str(), this->chan,
-	                event->getName().c_str());
+	LOG(this->log_rt, LEVEL_DEBUG,
+	    "[%s]Channel %u: event received (%s)",
+	    this->block->getName().c_str(), this->chan,
+	    event->getName().c_str());
 	return this->block->processEvent(event, this->chan);
 };
 
@@ -532,9 +532,9 @@ void RtChannel::executeThread(void)
 			unsigned char data[strlen(MAGIC_WORD)];
 			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
 			{
-				Output::sendLog(this->log_rt, LEVEL_ERROR,
-				                "[%s]Channel %u: failed to read in pipe",
-				                this->block->getName().c_str(), this->chan);
+				LOG(this->log_rt, LEVEL_ERROR,
+				    "[%s]Channel %u: failed to read in pipe",
+				    this->block->getName().c_str(), this->chan);
 			}
 			handled++;
 		}
@@ -574,9 +574,9 @@ void RtChannel::executeThread(void)
 			if(*event == this->stop_fd)
 			{
 				// we have to stop
-				Output::sendLog(this->log_rt, LEVEL_INFO,
-				                "[%s]Channel %u: stop signal received\n",
-				                this->block->getName().c_str(), this->chan);
+				LOG(this->log_rt, LEVEL_INFO,
+				    "[%s]Channel %u: stop signal received\n",
+				    this->block->getName().c_str(), this->chan);
 				pthread_exit(NULL);
 			}
 		}
@@ -591,10 +591,10 @@ void RtChannel::executeThread(void)
 			(*iter)->setTriggerTime();
 			if(!this->processEvent(*iter))
 			{
-				Output::sendLog(this->log_rt, LEVEL_ERROR,
-				                "[%s]Channel %u: failed to process event %s\n",
-				                this->block->getName().c_str(), this->chan,
-				                (*iter)->getName().c_str());
+				LOG(this->log_rt, LEVEL_ERROR,
+				    "[%s]Channel %u: failed to process event %s\n",
+				    this->block->getName().c_str(), this->chan,
+				    (*iter)->getName().c_str());
 			}
 #ifdef TIME_REPORTS
 			timeval time = (*iter)->getTimeFromTrigger();
@@ -643,10 +643,10 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	// check that block is initialized (i.e. we are in event processing)
 	if(!this->block->initialized)
 	{
-		Output::sendLog(this->log_send, LEVEL_NOTICE,
-		                "Be careful, some message are sent while process are not "
-		                "started. If too many messages are sent we may block because "
-		                "fifo is full\n");
+		LOG(this->log_send, LEVEL_NOTICE,
+		    "Be careful, some message are sent while process are not "
+		    "started. If too many messages are sent we may block because "
+		    "fifo is full\n");
 		// FIXME we could separate onInit into a static initialization and an
 		//       initialization when threads are started
 	}

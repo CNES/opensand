@@ -59,16 +59,16 @@ bool Constant::init(void)
 
 	if(config.loadConfig(CONF_CST_FILE) < 0)
 	{   
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "failed to load config file '%s'", CONF_CST_FILE);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to load config file '%s'", CONF_CST_FILE);
 		goto error;
 	}
 
 	if(!config.getValue(CONSTANT_SECTION, THRESHOLD, this->minimal_cn))
 	{
-		Output::sendLog(this->log_init, LEVEL_ERROR,
-		                "Constant minimal conditions: cannot get %s",
-		                THRESHOLD);
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Constant minimal conditions: cannot get %s",
+		    THRESHOLD);
 		goto error;
 	}
 	return true;

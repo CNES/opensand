@@ -53,6 +53,7 @@ from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
+from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
 
 # TODO get logs on error
@@ -218,12 +219,12 @@ help="specify the root folder for tests configurations\n"
         self._quiet = True
 
         # Create the Log View that will only log in standard output
-        lvl = 'warning'
+        lvl = MGR_WARNING
         if options.debug:
-            lvl = 'debug'
+            lvl = MGR_DEBUG
             self._quiet = False
         elif options.verbose:
-            lvl = 'info'
+            lvl = MGR_INFO
             self._quiet = False
         else:
             print "Initialization please wait..."

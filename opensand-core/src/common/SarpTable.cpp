@@ -74,14 +74,14 @@ bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
 	bool success = true;
 	sarpIpEntry *entry;
 
-	Output::sendLog(this->log_sarp, LEVEL_INFO,
-	                "add new entry in SARP table (%s/%u)\n",
-	                ip_addr->str().c_str(), mask_len);
+	LOG(this->log_sarp, LEVEL_INFO,
+	    "add new entry in SARP table (%s/%u)\n",
+	    ip_addr->str().c_str(), mask_len);
 
 	if((this->ip_sarp.size() >= this->max_entries) || ip_addr == NULL)
 	{
-		Output::sendLog(this->log_sarp, LEVEL_ERROR,
-		                "SARP table full, cannot add entry\n");
+		LOG(this->log_sarp, LEVEL_ERROR,
+		    "SARP table full, cannot add entry\n");
 		success = false;
 		goto quit;
 	}
@@ -90,8 +90,8 @@ bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
 	entry = new sarpIpEntry;
 	if(!entry)
 	{
-		Output::sendLog(this->log_sarp, LEVEL_ERROR,
-		                "cannot get memory for SARP entry\n");
+		LOG(this->log_sarp, LEVEL_ERROR,
+		    "cannot get memory for SARP entry\n");
 		success = false;
 		goto quit;
 	}
@@ -114,15 +114,15 @@ bool SarpTable::add(MacAddress *mac_address,
 	bool success = true;
 	sarpEthEntry *entry;
 
-	Output::sendLog(this->log_sarp, LEVEL_INFO,
-	                "add new entry in SARP table (%s)\n",
-	                mac_address->str().c_str());
+	LOG(this->log_sarp, LEVEL_INFO,
+	    "add new entry in SARP table (%s)\n",
+	    mac_address->str().c_str());
 
 	if((this->eth_sarp.size() >= this->max_entries) || mac_address == NULL)
 	{
-		Output::sendLog(this->log_sarp, LEVEL_ERROR,
-		                "SARP table full or address is empry, "
-		                "cannot add entry\n");
+		LOG(this->log_sarp, LEVEL_ERROR,
+		    "SARP table full or address is empry, "
+		    "cannot add entry\n");
 		success = false;
 		goto quit;
 	}
@@ -132,9 +132,9 @@ bool SarpTable::add(MacAddress *mac_address,
 	if(!entry)
 	{
 		// no more memory
-		Output::sendLog(this->log_sarp, LEVEL_ERROR,
-		                "cannot get memory for an Ethernet SARP entry, "
-		                "cannot add entry\n");
+		LOG(this->log_sarp, LEVEL_ERROR,
+		    "cannot get memory for an Ethernet SARP entry, "
+		    "cannot add entry\n");
 		success = false;
 		goto quit;
 	}

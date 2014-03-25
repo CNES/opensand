@@ -61,20 +61,25 @@ Ip::Ip():
 Ip::Context::Context(LanAdaptationPlugin &plugin):
 	LanAdaptationContext(plugin)
 {
+}
+
+void Ip::Context::init()
+{
+	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
 
 	if(config.loadConfig(CONF_IP_FILE) < 0)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "failed to load config file '%s'", CONF_IP_FILE);
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to load config file '%s'", CONF_IP_FILE);
 		return;
 	}
 
 	this->handle_net_packet = true;
 	if(!this->initTrafficCategories(config))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot Initialize traffic categories\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot Initialize traffic categories\n");
 	}
 
 	config.unloadConfig();
@@ -100,8 +105,8 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 	ip_packets = new NetBurst();
 	if(ip_packets == NULL)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot allocate memory for burst of IP packets\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot allocate memory for burst of IP packets\n");
 		delete burst;
 		return NULL;
 	}
@@ -123,18 +128,18 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 				ip_packet = new Ipv6Packet((*packet)->getData());
 				break;
 			default:
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "unknown IP packet version");
+				LOG(this->log, LEVEL_ERROR,
+				    "unknown IP packet version");
 				continue;
 		}
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "got an IPv%u packet\n",
-		                IpPacket::version((*packet)->getData()));
+		LOG(this->log, LEVEL_INFO,
+		    "got an IPv%u packet\n",
+		    IpPacket::version((*packet)->getData()));
 		// check IP packet validity
 		if(!ip_packet->isValid())
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "IP packet is not valid\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "IP packet is not valid\n");
 			delete ip_packet;
 			continue;
 		}
@@ -142,8 +147,8 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 		ip_packet->setSrcTalId(this->tal_id);
 		if(!this->onMsgIp(ip_packet))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "IP handling failed, drop packet\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "IP handling failed, drop packet\n");
 			continue;
 		}
 		ip_packets->add(ip_packet);
@@ -164,9 +169,9 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot allocate memory for burst of network "
-		                "packets\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot allocate memory for burst of network "
+		    "packets\n");
 		delete burst;
 		return false;
 	}
@@ -187,18 +192,18 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 				ip_packet = new Ipv6Packet((*packet)->getData());
 				break;
 			default:
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "unknown IP packet version");
+				LOG(this->log, LEVEL_ERROR,
+				    "unknown IP packet version");
 				continue;
 		}
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "got an IPv%u packet\n",
-		                IpPacket::version((*packet)->getData()));
+		LOG(this->log, LEVEL_INFO,
+		    "got an IPv%u packet\n",
+		    IpPacket::version((*packet)->getData()));
 		// check IP packet validity
 		if(!ip_packet->isValid())
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "IP packet is not valid\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "IP packet is not valid\n");
 			delete ip_packet;
 			continue;
 		}
@@ -211,17 +216,17 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 			// check default tal_id
 			if(pkt_tal_id > BROADCAST_TAL_ID)
 			{
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "cannot get destination tal ID in SARP table\n");
+				LOG(this->log, LEVEL_ERROR,
+				    "cannot get destination tal ID in SARP table\n");
 				delete ip_packet;
 				continue;
 			}
 			else
 			{
 				// TODO use info or notice once it will not be printed by default
-				Output::sendLog(this->log, LEVEL_INFO,
-				                "cannot find destination tal ID, use default "
-				                "(%u)\n", pkt_tal_id);
+				LOG(this->log, LEVEL_INFO,
+				    "cannot find destination tal ID, use default "
+				    "(%u)\n", pkt_tal_id);
 			}
 		}
 		ip_packet->setDstTalId(pkt_tal_id);
@@ -252,26 +257,26 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 	found_category = this->category_map.find(traffic_category);
 	if(found_category == this->category_map.end())
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "DSCP %d unknown; IP packet goes to default "
-		                "MAC category %d\n", traffic_category, 
-		                this->default_category);
+		LOG(this->log, LEVEL_INFO,
+		    "DSCP %d unknown		    ; IP packet goes to default "
+		    "MAC category %d\n", traffic_category, 
+		    this->default_category);
 
 		found_category = this->category_map.find(this->default_category);
 		if(found_category == this->category_map.end())
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "default MAC category not defined\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "default MAC category not defined\n");
 			return false;
 		}
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_INFO,
-		                "IP packet with DSCP %d goes to MAC category %s with "
-		                "id %u\n", traffic_category, 
-		                found_category->second->getName().c_str(),
-		                found_category->second->getId());
+		LOG(this->log, LEVEL_INFO,
+		    "IP packet with DSCP %d goes to MAC category %s with "
+		    "id %u\n", traffic_category, 
+		    found_category->second->getName().c_str(),
+		    found_category->second->getId());
 	}
 	ip_packet->setQos(found_category->second->getId());
 
@@ -290,13 +295,13 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 		ip_addr = ip_packet->dstAddr();
 		if(!ip_addr)
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "cannot get IP packet address\n");
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot get IP packet address\n");
 			return false;
 		}
-		Output::sendLog(this->log, LEVEL_DEBUG,
-		                "IPv%d destination address = %s\n",
-		                ip_packet->version(), ip_addr->str().c_str());
+		LOG(this->log, LEVEL_DEBUG,
+		    "IPv%d destination address = %s\n",
+		    ip_packet->version(), ip_addr->str().c_str());
 
 		if(!this->sarp_table->getTalByIp(ip_addr, pkt_tal_id))
 		{
@@ -304,29 +309,29 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 			if(pkt_tal_id > BROADCAST_TAL_ID)
 			{
 				// tal id not found
-				Output::sendLog(this->log, LEVEL_ERROR,
-				                "IP dest addr not found in SARP table\n");
+				LOG(this->log, LEVEL_ERROR,
+				    "IP dest addr not found in SARP table\n");
 				return false;
 
 			}
 			else
 			{
 				// TODO use info or notice once it will not be printed by default
-				Output::sendLog(this->log, LEVEL_INFO,
-				                "cannot find destination tal ID, use "
-				                "default (%u)\n", pkt_tal_id);
+				LOG(this->log, LEVEL_INFO,
+				    "cannot find destination tal ID, use "
+				    "default (%u)\n", pkt_tal_id);
 			}
 		}
 
-		Output::sendLog(this->log, LEVEL_DEBUG,
-		                "talID in SARP Table: %d \n", pkt_tal_id);
+		LOG(this->log, LEVEL_DEBUG,
+		    "talID in SARP Table: %d \n", pkt_tal_id);
 		                ip_packet->setDstTalId(pkt_tal_id);
 	}
 
-	Output::sendLog(this->log, LEVEL_DEBUG,
-	                "Src TAL ID: %u \n", ip_packet->getSrcTalId());
-	Output::sendLog(this->log, LEVEL_DEBUG,
-	                "Dst TAL ID: %u \n", ip_packet->getDstTalId());
+	LOG(this->log, LEVEL_DEBUG,
+	    "Src TAL ID: %u \n", ip_packet->getSrcTalId());
+	LOG(this->log, LEVEL_DEBUG,
+	    "Dst TAL ID: %u \n", ip_packet->getDstTalId());
 
 	return true;
 }
@@ -338,14 +343,14 @@ char Ip::Context::getLanHeader(unsigned int pos, NetPacket *packet)
 	switch(IpPacket::version(packet->getData()))
 	{
 		case 4:
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "add IPv4 flags for TUN interface");
+			LOG(this->log, LEVEL_INFO,
+			    "add IPv4 flags for TUN interface");
 			ether_type[2] = (NET_PROTO_IPV4 >> 8) & 0xFF;
 			ether_type[3] = (NET_PROTO_IPV4) & 0xFF;
 			break;
 		case 6:
-			Output::sendLog(this->log, LEVEL_INFO,
-			                "add IPv6 flags for TUN interface");
+			LOG(this->log, LEVEL_INFO,
+			    "add IPv6 flags for TUN interface");
 			ether_type[2] = (NET_PROTO_IPV6 >> 8) & 0xFF;
 			ether_type[3] = (NET_PROTO_IPV6) & 0xFF;
 			break;
@@ -387,8 +392,8 @@ NetPacket *Ip::PacketHandler::build(const Data &data,
 	}
 	else
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot get IP version\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot get IP version\n");
 		return NULL;
 	}
 }
@@ -405,9 +410,9 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
 	                        category_list))
 	{
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "missing or empty section [%s, %s]\n",
-		                SECTION_MAPPING, MAPPING_LIST);
+		LOG(this->log, LEVEL_ERROR,
+		    "missing or empty section [%s, %s]\n",
+		    SECTION_MAPPING, MAPPING_LIST);
 		return false;
 	}
 
@@ -421,39 +426,39 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 		// get category id
 		if(!config.getAttributeValue(iter, MAPPING_IP_DSCP, dscp_value))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_IP_DSCP, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_IP_DSCP, i);
 			return false;
 		}
 		// get category name
 		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_MAC_NAME, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_MAC_NAME, i);
 			return false;
 		}
 		// get service class
 		if(!config.getAttributeValue(iter, MAPPING_MAC_PRIO,
 		                             mac_queue_prio))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "section '%s, %s': failed to retrieve %s at "
-			                "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			                MAPPING_MAC_PRIO, i);
+			LOG(this->log, LEVEL_ERROR,
+			    "section '%s, %s': failed to retrieve %s at "
+			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
+			    MAPPING_MAC_PRIO, i);
 			return false;
 		}
 
 		if(this->category_map.count(dscp_value))
 		{
-			Output::sendLog(this->log, LEVEL_ERROR,
-			                "Traffic category %ld - [%s] rejected: identifier "
-			                "already exists for [%s]\n", dscp_value,
-			                mac_queue_name.c_str(),
-			                this->category_map[dscp_value]->getName().c_str());
+			LOG(this->log, LEVEL_ERROR,
+			    "Traffic category %ld - [%s] rejected: identifier "
+			    "already exists for [%s]\n", dscp_value,
+			    mac_queue_name.c_str(),
+			    this->category_map[dscp_value]->getName().c_str());
 			return false;
 		}
 
@@ -468,8 +473,8 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;
-		Output::sendLog(this->log, LEVEL_ERROR,
-		                "cannot find default MAC traffic category\n");
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot find default MAC traffic category\n");
 		return false;
 	}
 

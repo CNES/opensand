@@ -83,8 +83,7 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 
 	if(conf_files.size() == 0)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "No configuration files provided\n");
+		    
 		return false;
 	}
 
@@ -92,16 +91,15 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 	{
 		if((*it).empty())
 		{
-			Output::sendLog(this->log_conf, LEVEL_ERROR,
-			                "Configuration filename is empty\n");
+			    
 			return false;
 		}
 
 		if(access((*it).c_str(), R_OK) < 0)
 		{
-			Output::sendLog(this->log_conf, LEVEL_ERROR,
-			                "unable to access configuration file '%s' (%s)\n",
-			                (*it).c_str(), strerror(errno));
+			LOG(this->log_conf, LEVEL_ERROR,
+			    "unable to access configuration file '%s' (%s)\n",
+			    (*it).c_str(), strerror(errno));
 			return false;
 		}
 
@@ -113,18 +111,18 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 			root = new_parser->get_document()->get_root_node();
 			if(root->get_name() != "configuration")
 			{
-				Output::sendLog(this->log_conf, LEVEL_ERROR,
-				                "Root element is not 'configuration' (%s)\n",
-				                root->get_name().c_str());
+				LOG(this->log_conf, LEVEL_ERROR,
+				    "Root element is not 'configuration' (%s)\n",
+				    root->get_name().c_str());
 				return false;
 			}
 			this->parsers.push_back(new_parser);
 		}
 		catch(const std::exception& ex)
 		{
-			Output::sendLog(this->log_conf, LEVEL_ERROR,
-			                "Exception when parsing the configuration file %s: %s\n",
-			                (*it).c_str(), ex.what());
+			LOG(this->log_conf, LEVEL_ERROR,
+			    "Exception when parsing the configuration file %s: %s\n",
+			    (*it).c_str(), ex.what());
 			return false;
 		}
 	}
@@ -168,8 +166,7 @@ bool ConfigurationFile::getComponent(string &compo)
 		name = root->get_attribute("component");
 		if(!name)
 		{
-			Output::sendLog(this->log_conf, LEVEL_ERROR,
-			                "no component attribute in root node\n");
+			    
 			continue;
 		}
 		else
@@ -211,8 +208,7 @@ bool ConfigurationFile::getSection(const char *section,
 	}
 	if(sectionList.empty())
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "no section '%s'\n", section);
+		    
 		goto error;
 	}
 
@@ -240,8 +236,7 @@ bool ConfigurationFile::getKey(const char *section,
 
 	if(!this->getSection(section, sectionList))
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "cannot find section %s\n", section);
+		    
 		goto error;
 	}
 
@@ -252,9 +247,9 @@ bool ConfigurationFile::getKey(const char *section,
 		keyList = sectionNode->get_children(key);
 		if(keyList.size() > 1)
 		{
-			Output::sendLog(this->log_conf, LEVEL_ERROR,
-			                "more than one key named '%s' in section '%s'\n",
-			                key, section);
+			LOG(this->log_conf, LEVEL_ERROR,
+			    "more than one key named '%s' in section '%s'\n",
+			    key, section);
 			goto error;
 		}
 		else if(keyList.size() == 1)
@@ -262,9 +257,9 @@ bool ConfigurationFile::getKey(const char *section,
 			*keyNode = dynamic_cast<const xmlpp::Element*>(keyList.front());
 			if(!(*keyNode))
 			{
-				Output::sendLog(this->log_conf, LEVEL_ERROR,
-				                "cannot convert the key '%s' from section '%s' "
-				                "into element\n", key, section);
+				LOG(this->log_conf, LEVEL_ERROR,
+				    "cannot convert the key '%s' from section '%s' "
+				    "into element\n", key, section);
 				goto error;
 			}
 			found = true;
@@ -273,9 +268,9 @@ bool ConfigurationFile::getKey(const char *section,
 	}
 	if(!found)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "no key named '%s' in section '%s'\n",
-		                key, section);
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "no key named '%s' in section '%s'\n",
+		    key, section);
 		goto error;
 	}
 
@@ -308,9 +303,9 @@ bool ConfigurationFile::getStringValue(const char *section,
 	list = keyNode->get_children();
 	if(list.size() != 1)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "The key '%s' in section '%s' does not contain text\n",
-		                key, section);
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "The key '%s' in section '%s' does not contain text\n",
+		    key, section);
 		goto error;
 	}
 	else
@@ -320,9 +315,9 @@ bool ConfigurationFile::getStringValue(const char *section,
 
 	if(!nodeText)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "The key '%s' in section '%s' does not contain text\n",
-		                key, section);
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "The key '%s' in section '%s' does not contain text\n",
+		    key, section);
 		goto error;
 	}
 	value = nodeText->get_content();
@@ -427,16 +422,15 @@ bool ConfigurationFile::getAttributeStringValue(ConfigurationList::iterator iter
 	element = dynamic_cast<const xmlpp::Element *>(*iter);
 	if(!element)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "Wrong configuration list element\n");
+		    
 		goto error;
 	}
 	name = element->get_attribute(attribute);
 	if(!name)
 	{
-		Output::sendLog(this->log_conf, LEVEL_ERROR,
-		                "no attribute named %s in element %s\n",
-		                attribute, element->get_name().c_str());
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "no attribute named %s in element %s\n",
+		    attribute, element->get_name().c_str());
 		goto error;
 	}
 	else

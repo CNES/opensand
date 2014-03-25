@@ -96,7 +96,7 @@ class LanAdaptationPlugin: public StackPlugin
 		};
 
 
-		void init()
+		virtual void init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "LanAdaptation.%s",
@@ -171,7 +171,7 @@ class LanAdaptationPlugin: public StackPlugin
 			                                                        sat_type);
 		}
 
-		void init()
+		virtual void init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "LanAdaptation.%s",
@@ -217,7 +217,7 @@ class LanAdaptationPlugin: public StackPlugin
 		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
 	};
 
-	void init()
+	virtual void init()
 	{
 		this->log = Output::registerLog(LEVEL_WARNING,
 		                                "LanAdaptation.%s",
