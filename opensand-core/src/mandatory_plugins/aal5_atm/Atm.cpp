@@ -78,7 +78,6 @@ Atm::Context::~Context()
 NetBurst *Atm::Context::encapsulate(NetBurst *burst,
                                     std::map<long, int> &UNUSED(time_contexts))
 {
-	const char *FUNCNAME = "[Atm::Context::encapsulate]";
 	NetBurst *atm_cells = NULL;
 	NetBurst::iterator packet;
 
@@ -87,8 +86,7 @@ NetBurst *Atm::Context::encapsulate(NetBurst *burst,
 	if(atm_cells == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of ATM cells\n",
-		    FUNCNAME);
+		    "cannot allocate memory for burst of ATM cells\n");
 		delete burst;
 		return NULL;
 	}
@@ -101,14 +99,13 @@ NetBurst *Atm::Context::encapsulate(NetBurst *burst,
 		if(!aal5_packet)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s AAL5 encapsulation failed, drop packet\n",
-			    FUNCNAME);
+			    "AAL5 encapsulation failed, drop packet\n");
 			continue;
 		}
 		if(!this->encapAtm(aal5_packet, atm_cells))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s ATM encapsulation failed, drop packet\n", FUNCNAME);
+			    "ATM encapsulation failed, drop packet\n");
 			continue;
 		}
 	}
@@ -121,7 +118,6 @@ NetBurst *Atm::Context::encapsulate(NetBurst *burst,
 
 NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 {
-	const char *FUNCNAME = "[Atm::Context::deencapsulate]";
 	NetBurst *net_packets;
 
 	NetBurst::iterator packet;
@@ -131,8 +127,8 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 	if(net_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of network "
-		    "packets\n", FUNCNAME);
+		    "cannot allocate memory for burst of network "
+		    "packets\n");
 		delete burst;
 		return false;
 	}
@@ -146,8 +142,8 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 		if(*packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s encapsulation packet is not valid, drop the "
-			    "packet\n", FUNCNAME);
+			    "encapsulation packet is not valid, drop the "
+			    "packet\n");
 			continue;
 		}
 
@@ -155,9 +151,9 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 		if((*packet)->getType() != this->getEtherType())
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s encapsulation packet is not an AAL5/ATM packet "
+			    "encapsulation packet is not an AAL5/ATM packet "
 			    "(type = 0x%04x), drop the packet\n",
-			    FUNCNAME, (*packet)->getType());
+			    (*packet)->getType());
 			continue;
 		}
 
@@ -167,8 +163,8 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 			&& (dst_tal_id != BROADCAST_TAL_ID))
 		{
 			LOG(this->log, LEVEL_INFO,
-			    "%s encapsulation packet is for ST#%u. Drop\n",
-			    FUNCNAME, dst_tal_id);
+			    "encapsulation packet is for ST#%u. Drop\n",
+			    dst_tal_id);
 			continue;
 		}
 
@@ -176,15 +172,14 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 		if(aal5_packets == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s ATM desencapsulation failed, drop packet\n",
-			    FUNCNAME);
+			    "ATM desencapsulation failed, drop packet\n");
 			continue;
 		}
 		if(!this->deencapAal5(aal5_packets, net_packets))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create a burst of packets, drop "
-			    "packet\n", FUNCNAME);
+			    "cannot create a burst of packets, drop "
+			    "packet\n");
 			continue;
 		}
 	}
@@ -197,7 +192,6 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 bool Atm::Context::encapAtm(Aal5Packet *packet,
                             NetBurst *atm_cells)
 {
-	const char *FUNCNAME = "Atm::Context::encapAtm";
 	AtmCell *atm_cell;
 	NetPacket *atm;
 	int nb_atm_cells, i;
@@ -215,13 +209,13 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 	if(packet->getType() != NET_PROTO_AAL5)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s encapsulation packet is not an AAL5 packet, "
-		    "drop the packet\n", FUNCNAME);
+		    "encapsulation packet is not an AAL5 packet, "
+		    "drop the packet\n");
 		goto drop;
 	}
 
 	LOG(this->log, LEVEL_DEBUG,
-	    "%s talID of packet to encapsulate: %u \n", FUNCNAME,
+	    "talID of packet to encapsulate: %u \n",
 	    packet->getDstTalId());
 
 	nb_atm_cells = packet->nbAtmCells();
@@ -258,8 +252,8 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 		if(atm_cell == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot allocate memory for one ATM cell, drop "
-			    "it\n", FUNCNAME);
+			    "cannot allocate memory for one ATM cell, drop "
+			    "it\n");
 			continue;
 		}
 		atm = this->createPacket(atm_cell->getData(),
@@ -269,14 +263,13 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 		if(atm == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create one ATM cell, drop it\n",
-			    FUNCNAME);
+			    "cannot create one ATM cell, drop it\n");
 			continue;
 		}
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s one ATM cell created with QoS %d\n",
-		    FUNCNAME, atm->getQos());
+		    "one ATM cell created with QoS %d\n",
+		    atm->getQos());
 
 		// set the desintation spot ID
 		atm->setDstSpot(dest_spot);
@@ -295,7 +288,6 @@ drop:
 // TODO for here and other encap/deencapmethods : handle endianess !!
 NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 {
-	const char *FUNCNAME = "[Atm::Context::deencapAtm]";
 	NetBurst *aal5_packets;
 	AtmCell *atm_cell;
 	uint8_t vpi;
@@ -313,15 +305,15 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	uint8_t qos = packet->getQos();
 
 	LOG(this->log, LEVEL_DEBUG,
-	    "%s talID of received packet: %u \n",
-	    FUNCNAME, packet->getDstTalId());
+	    "talID of received packet: %u \n",
+	    packet->getDstTalId());
 
 	// cast from a generic packet to an ATM cell
 	atm_cell = new AtmCell(packet->getData());
 	if(atm_cell == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot create AtmCell from NetPacket\n", FUNCNAME);
+		    "cannot create AtmCell from NetPacket\n");
 		goto error;
 	}
 
@@ -329,8 +321,8 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	vpi = atm_cell->getVpi();
 	vci = atm_cell->getVci();
 	LOG(this->log, LEVEL_INFO,
-	    "%s ATM packet belongs to the encapsulation context "
-	    "identified by VPI = %d and VCI = %d\n", FUNCNAME,
+	    "ATM packet belongs to the encapsulation context "
+	    "identified by VPI = %d and VCI = %d\n",
 	    vpi, vci);
 
 	// find the desencapsulation context for the ATM cell
@@ -339,8 +331,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	if(context_it == this->contexts.end())
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s desencapsulation context does not exist yet\n",
-		    FUNCNAME);
+		    "desencapsulation context does not exist yet\n");
 
 		Data *new_context = new Data();
 		std::pair < std::map < AtmIdentifier *, Data *,
@@ -350,38 +341,36 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		if(!infos.second)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create a new desencapsulation context, "
-			    "drop the packet\n", FUNCNAME);
+			    "cannot create a new desencapsulation context, "
+			    "drop the packet\n");
 			delete new_context;
 			delete atm_id;
 			goto drop;
 		}
 
 		LOG(this->log, LEVEL_NOTICE,
-		    "%s new desencapsulation context created (VPI = %d, "
-		    "VCI = %d)\n", FUNCNAME, vpi, vci);
+		    "new desencapsulation context created (VPI = %d, "
+		    "VCI = %d)\n", vpi, vci);
 		context = (*(infos.first)).second;
 	}
 	else
 	{
 		LOG(this->log, LEVEL_DEBUG,
-		    "%s desencapsulation context already exists\n",
-		    FUNCNAME);
+		    "desencapsulation context already exists\n");
 		context = (*context_it).second;
 		delete atm_id;
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s desencapsulation context contains %zu bytes of "
-	    "data\n", FUNCNAME, context->length());
+	    "desencapsulation context contains %zu bytes of "
+	    "data\n", context->length());
 
 	// create an empty burst of AAL5 packets
 	aal5_packets = new NetBurst();
 	if(aal5_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of AAL5 packets\n",
-		    FUNCNAME);
+		    "cannot allocate memory for burst of AAL5 packets\n");
 		goto drop;
 	}
 
@@ -390,9 +379,9 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	if(!atm_cell->isLastCell())
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s ATM cell is not the last one of AAL5 packet, store "
+		    "ATM cell is not the last one of AAL5 packet, store "
 		    "payload data in the desencapsulation context for "
-		    "next ATM cell\n", FUNCNAME);
+		    "next ATM cell\n");
 
 		context->append(atm_cell->getPayload());
 	}
@@ -401,9 +390,8 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		Aal5Packet *aal5_packet;
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s ATM cell is the last one of AAL5 packet, "
-		    "extract the AAL5 packet from ATM payloads\n",
-		    FUNCNAME);
+		    "ATM cell is the last one of AAL5 packet, "
+		    "extract the AAL5 packet from ATM payloads\n");
 
 		context->append(atm_cell->getPayload());
 
@@ -412,18 +400,16 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		if(aal5_packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create an AAL5 packet, drop all of the "
-			    "ATM cells in the desencapsulation context\n",
-			    FUNCNAME);
+			    "cannot create an AAL5 packet, drop all of the "
+			    "ATM cells in the desencapsulation context\n");
 			goto clear;
 		}
 		// check AAL5 packet validity
 		if(!aal5_packet->isValid())
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s AAL5 packet is not valid, drop all of the "
-			    "ATM cells in the desencapsulation context\n",
-			    FUNCNAME);
+			    "AAL5 packet is not valid, drop all of the "
+			    "ATM cells in the desencapsulation context\n");
 			delete aal5_packet;
 			goto clear;
 		}
@@ -439,16 +425,16 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		// add the AAL5 packet to the list
 		aal5_packets->add(aal5_packet);
 		LOG(this->log, LEVEL_INFO,
-		    "%s AAL5 packet added to the burst\n", FUNCNAME);
+		    "AAL5 packet added to the burst\n");
 
 		// clear data stored in context
 		context->clear();
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s ATM cell is now desencapsulated "
+	    "ATM cell is now desencapsulated "
 	    "(context data = %zu bytes)\n",
-	    FUNCNAME, context->length());
+	    context->length());
 
 	delete atm_cell;
 	return aal5_packets;
@@ -466,7 +452,6 @@ error:
 
 Aal5Packet *Atm::Context::encapAal5(NetPacket *packet)
 {
-	const char *FUNCNAME = "[Atm::Context::encapAal5]";
 	Aal5Packet *aal5_packet;
 
 	LOG(this->log, LEVEL_INFO,
@@ -477,8 +462,8 @@ Aal5Packet *Atm::Context::encapAal5(NetPacket *packet)
 	if(aal5_packet == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot create an AAL5 packet, "
-		    "drop the network packet\n", FUNCNAME);
+		    "cannot create an AAL5 packet, "
+		    "drop the network packet\n");
 		goto drop;
 	}
 	aal5_packet->setDstTalId(packet->getDstTalId());
@@ -489,14 +474,14 @@ Aal5Packet *Atm::Context::encapAal5(NetPacket *packet)
 	if(!aal5_packet->isValid())
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s AAL5 packet is not valid, "
-		    "drop the network packet\n", FUNCNAME);
+		    "AAL5 packet is not valid, "
+		    "drop the network packet\n");
 		goto clean;
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s AAL5 packet is valid (QoS %d)\n",
-	    FUNCNAME, aal5_packet->getQos());
+	    "AAL5 packet is valid (QoS %d)\n",
+	    aal5_packet->getQos());
 
 
 	return aal5_packet;
@@ -510,7 +495,6 @@ drop:
 bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
                                NetBurst *net_packets)
 {
-	const char *FUNCNAME = "[Atm::Context::deencapAal5]";
 	NetPacket *packet;
 	Aal5Packet *aal5_packet;
 
@@ -527,8 +511,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		if(aal5_packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s bad cast from NetPacket to Aal5Packet!\n",
-			    FUNCNAME);
+			    "bad cast from NetPacket to Aal5Packet!\n");
 			continue;
 		}
 
@@ -546,8 +529,8 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		if(packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot build a %s packet, drop the AAL5 "
-			    "packet\n", FUNCNAME,
+			    "cannot build a %s packet, drop the AAL5 "
+			    "packet\n",
 			    this->current_upper->getName().c_str());
 			continue;
 		}
@@ -559,8 +542,8 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		net_packets->add(packet);
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s %s packet added to the burst (proto %u)\n",
-		    FUNCNAME, packet->getName().c_str(),
+		    "%s packet added to the burst (proto %u)\n",
+		    packet->getName().c_str(),
 		    packet->getType());
 
 	}
@@ -577,15 +560,14 @@ NetPacket *Atm::PacketHandler::build(const Data &data,
                                      uint8_t UNUSED(_src_tal_id),
                                      uint8_t UNUSED(_dst_tal_id)) const
 {
-	const char *FUNCNAME = "[Atm::PacketHandler::build]";
 	uint8_t qos;
 	uint8_t src_tal_id, dst_tal_id;
 
 	if(data_length != this->getFixedLength())
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s bad data length (%zu) for ATM cell\n",
-		    FUNCNAME, data_length);
+		    "bad data length (%zu) for ATM cell\n",
+		    data_length);
 		return NULL;
 	}
 

@@ -125,7 +125,6 @@ ule_ext_status UleExtSecurity::build(uint16_t ptype, Data payload)
 
 ule_ext_status UleExtSecurity::decode(uint8_t hlen, Data payload)
 {
-	const char FUNCNAME[] = "[UleExtPadding::decode]";
 	ARC4 rc4d((unsigned char *)"12345678",8);
 	int i;
 	int plen;
@@ -135,8 +134,8 @@ ule_ext_status UleExtSecurity::decode(uint8_t hlen, Data payload)
 	if(hlen < 1 || hlen > 5)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s optional extension, but hlen (0x%x) != 1-5\n",
-		        FUNCNAME, hlen);
+		        "optional extension, but hlen (0x%x) != 1-5\n",
+		        hlen);
 		goto error;
 	}
 
@@ -144,8 +143,8 @@ ule_ext_status UleExtSecurity::decode(uint8_t hlen, Data payload)
 	if(payload.length() < (size_t) hlen * 2)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s too few data (%u bytes) for %d-byte extension\n",
-		        FUNCNAME, payload.length(), hlen * 2);
+		        "too few data (%u bytes) for %d-byte extension\n",
+		        payload.length(), hlen * 2);
 		goto error;
 	}
 

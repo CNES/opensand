@@ -64,8 +64,6 @@ PhyChannel::~PhyChannel()
 
 bool PhyChannel::update()
 {
-	const char *FUNCNAME = "[Channel::update]";
-
 	if(!this->status)
 	{
 		LOG(this->log_channel, LEVEL_DEBUG,
@@ -74,12 +72,12 @@ bool PhyChannel::update()
 	}
 
 	LOG(this->log_channel, LEVEL_INFO,
-	    "%s Channel updated\n", FUNCNAME);
+	    "Channel updated\n");
 	if(this->attenuation_model->updateAttenuationModel())
 	{
 		LOG(this->log_channel, LEVEL_INFO,
-		    "%s New attenuation: %.2f dB\n",
-		    FUNCNAME, this->attenuation_model->getAttenuation());
+		    "New attenuation: %.2f dB\n",
+		    this->attenuation_model->getAttenuation());
 	}
 	else
 	{

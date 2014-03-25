@@ -167,7 +167,6 @@ UlePacket::~UlePacket()
 
 bool UlePacket::isValid(bool crc_enabled) const
 {
-	const char FUNCNAME[] = "[UlePacket::isValid]";
 	uint16_t length;
 	uint32_t crc;
 
@@ -175,9 +174,9 @@ bool UlePacket::isValid(bool crc_enabled) const
 	if(this->getTotalLength() < 2)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s packet too short to contain a "
+		        "packet too short to contain a "
 		        "length field (%zu bytes)\n",
-		        FUNCNAME, this->getTotalLength());
+		        this->getTotalLength());
 		goto bad;
 	}
 
@@ -190,9 +189,9 @@ bool UlePacket::isValid(bool crc_enabled) const
 	if(this->getTotalLength() != length)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s bad packet length (%zu bytes of data for "
+		        "bad packet length (%zu bytes of data for "
 		        "a %u-byte ULE packet)\n",
-		        FUNCNAME, this->getTotalLength(), length);
+		        this->getTotalLength(), length);
 		goto bad;
 	}
 
@@ -201,8 +200,8 @@ bool UlePacket::isValid(bool crc_enabled) const
 	if(this->crc() != crc)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s bad CRC (0x%08x != 0x%08x)\n",
-		        FUNCNAME, this->crc(), crc);
+		        "bad CRC (0x%08x != 0x%08x)\n",
+		        this->crc(), crc);
 		goto bad;
 	}
 

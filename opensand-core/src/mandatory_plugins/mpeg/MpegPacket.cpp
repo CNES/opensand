@@ -101,14 +101,12 @@ uint8_t MpegPacket::getDstTalId()
 
 bool MpegPacket::isValid() const
 {
-	const char FUNCNAME[] = "[MpegPacket::isValid]";
-
 	/* check length */
 	if(this->getTotalLength() != TS_PACKETSIZE)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s bad length (%zu bytes)\n",
-		        FUNCNAME, this->getTotalLength());
+		        "bad length (%zu bytes)\n",
+		        this->getTotalLength());
 		goto bad;
 	}
 
@@ -116,8 +114,8 @@ bool MpegPacket::isValid() const
 	if(this->sync() != 0x47)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s bad sync byte (0x%02x)\n",
-		        FUNCNAME, this->sync());
+		        "bad sync byte (0x%02x)\n",
+		        this->sync());
 		goto bad;
 	}
 
@@ -125,7 +123,7 @@ bool MpegPacket::isValid() const
 	if(this->tei())
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s TEI is on\n", FUNCNAME);
+		        "TEI is on\n");
 		goto bad;
 	}
 
@@ -133,7 +131,7 @@ bool MpegPacket::isValid() const
 	if(this->tsc() != 0)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s TSC is on\n", FUNCNAME);
+		        "TSC is on\n");
 		goto bad;
 	}
 
@@ -141,8 +139,8 @@ bool MpegPacket::isValid() const
 	if(this->pusi() && this->pp() >= (TS_DATASIZE - 1))
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s bad payload pointer (PUSI set and PP = 0x%02x)\n",
-		        FUNCNAME, this->pp());
+		        "bad payload pointer (PUSI set and PP = 0x%02x)\n",
+		        this->pp());
 		goto bad;
 	}
 

@@ -71,14 +71,12 @@ ule_ext_status UleExtTest::build(uint16_t UNUSED(ptype), Data payload)
 
 ule_ext_status UleExtTest::decode(uint8_t hlen, Data UNUSED(payload))
 {
-	const char FUNCNAME[] = "[UleExtTest::decode]";
-
 	// extension is mandatory, hlen must be 0
 	if(hlen != 0)
 	{
 		DFLTLOG(LEVEL_ERROR,
-		        "%s mandatory extension, but hlen (0x%x) != 0\n",
-		        FUNCNAME, hlen);
+		        "mandatory extension, but hlen (0x%x) != 0\n",
+		        hlen);
 		goto error;
 	}
 

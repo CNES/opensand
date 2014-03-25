@@ -156,7 +156,6 @@ Aal5Packet::~Aal5Packet()
 
 bool Aal5Packet::isValid() const
 {
-	const char *FUNCNAME = "[Aal5Packet::isValid]";
 	bool is_valid = false;
 	uint32_t crc;
 	uint32_t cur_crc;
@@ -168,7 +167,7 @@ bool Aal5Packet::isValid() const
 	if(this->data.length() < 8)
 	{
 		DFLTLOG(LEVEL_NOTICE,
-		        "%s data length < 0\n", FUNCNAME);
+		        "data length < 0\n");
 		goto invalid;
 	}
 
@@ -177,8 +176,8 @@ bool Aal5Packet::isValid() const
 	if((this->getPayloadLength() + 8) > (int) this->data.length())
 	{
 		DFLTLOG(LEVEL_NOTICE,
-		        "%s payload (%zu) + trailer (8) > total length (%zu)\n",
-		        FUNCNAME, this->getPayloadLength(),
+		        "payload (%zu) + trailer (8) > total length (%zu)\n",
+		        this->getPayloadLength(),
 		        this->data.length());
 		goto invalid;
 	}
@@ -187,8 +186,8 @@ bool Aal5Packet::isValid() const
 	if(this->data.length() % 48 != 0)
 	{
 		DFLTLOG(LEVEL_NOTICE,
-		        "%s total length (%zu) is not a multiple of 48\n",
-		        FUNCNAME, this->data.length());
+		        "total length (%zu) is not a multiple of 48\n",
+		        this->data.length());
 		goto invalid;
 	}
 
@@ -199,7 +198,7 @@ bool Aal5Packet::isValid() const
 	if(crc != cur_crc)
 	{
 		DFLTLOG(LEVEL_NOTICE,
-		        "%s CRC = %08x, should be %08x\n", FUNCNAME, cur_crc,
+		        "CRC = %08x, should be %08x\n", cur_crc,
 		        crc);
 		goto invalid;
 	}

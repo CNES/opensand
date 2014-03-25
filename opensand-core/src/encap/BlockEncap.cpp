@@ -378,30 +378,29 @@ bool BlockEncap::initOutput()
 
 bool BlockEncap::onTimer(event_id_t timer_id)
 {
-	const char *FUNCNAME = "[BlockEncap::onTimer]";
 	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
 	bool status = false;
 
 	LOG(this->log_rcv_from_up, LEVEL_INFO,
-	    "%s emission timer received, flush corresponding emission "
-	    "context\n", FUNCNAME);
+	    "emission timer received, flush corresponding emission "
+	    "context\n");
 
 	// find encapsulation context to flush
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
 		LOG(this->log_rcv_from_up, LEVEL_ERROR,
-		    "%s timer not found\n", FUNCNAME);
+		    "timer not found\n");
 		goto error;
 	}
 
 	// context found
 	id = (*it).second;
 	LOG(this->log_rcv_from_up, LEVEL_INFO,
-	    "%s corresponding emission context found (ID = %d)\n",
-	    FUNCNAME, id);
+	    "corresponding emission context found (ID = %d)\n",
+	    id);
 
 	// remove emission timer from the list
 	this->downward->removeEvent((*it).first);
@@ -412,13 +411,13 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	if(burst == NULL)
 	{
 		LOG(this->log_rcv_from_up, LEVEL_ERROR,
-		    "%s flushing context %d failed\n", FUNCNAME, id);
+		    "flushing context %d failed\n", id);
 		goto error;
 	}
 
 	LOG(this->log_rcv_from_up, LEVEL_INFO,
-	    "%s %zu encapsulation packets flushed\n",
-	    FUNCNAME, burst->size());
+	    "%zu encapsulation packets flushed\n",
+	    burst->size());
 
 	if(burst->size() <= 0)
 	{
@@ -430,8 +429,7 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	if(!this->sendDown((void **)&burst))
 	{
 		LOG(this->log_rcv_from_up, LEVEL_ERROR,
-		    "%s cannot send burst to lower layer failed\n",
-		    FUNCNAME);
+		    "cannot send burst to lower layer failed\n");
 		goto clean;
 	}
 
@@ -448,7 +446,6 @@ error:
 
 bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncap::onRcvBurstFromUp]";
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
 	string name;
@@ -459,15 +456,15 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	if(burst == NULL)
 	{
 		LOG(this->log_rcv_from_up, LEVEL_ERROR,
-		    "%s burst is not valid\n", FUNCNAME);
+		    "burst is not valid\n");
 		goto error;
 	}
 
 	name = burst->name();
 	size = burst->size();
 	LOG(this->log_rcv_from_up, LEVEL_INFO,
-	    "%s encapsulate %zu %s packet(s)\n",
-	    FUNCNAME, size, name.c_str());
+	    "encapsulate %zu %s packet(s)\n",
+	    size, name.c_str());
 
 	// encapsulate packet
 	for(iter = this->emission_ctx.begin(); iter != this->emission_ctx.end();
@@ -477,8 +474,8 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 		if(burst == NULL)
 		{
 			LOG(this->log_rcv_from_up, LEVEL_ERROR,
-			    "%s encapsulation failed in %s context\n",
-			    FUNCNAME, (*iter)->getName().c_str());
+			    "encapsulation failed in %s context\n",
+			    (*iter)->getName().c_str());
 			goto error;
 		}
 	}
@@ -507,14 +504,14 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
 			LOG(this->log_rcv_from_up, LEVEL_INFO,
-			    "%s timer for context ID %d armed with %ld ms\n",
-			    FUNCNAME, (*time_iter).second, (*time_iter).first);
+			    "timer for context ID %d armed with %ld ms\n",
+			    (*time_iter).second, (*time_iter).first);
 		}
 		else
 		{
 			LOG(this->log_rcv_from_up, LEVEL_INFO,
-			    "%s timer already set for context ID %d\n",
-			    FUNCNAME, (*time_iter).second);
+			    "timer already set for context ID %d\n",
+			    (*time_iter).second);
 		}
 	}
 
@@ -522,7 +519,7 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	if(burst == NULL)
 	{
 		LOG(this->log_rcv_from_up, LEVEL_ERROR,
-		    "%s encapsulation failed\n", FUNCNAME);
+		    "encapsulation failed\n");
 		goto error;
 	}
 
@@ -555,8 +552,7 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	}
 
 	LOG(this->log_rcv_from_up, LEVEL_INFO,
-	    "%s encapsulation burst sent to the lower layer\n",
-	    FUNCNAME);
+	    "encapsulation burst sent to the lower layer\n");
 
 	// everything is fine
 	return true;
@@ -569,7 +565,6 @@ error:
 
 bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 {
-	const char *FUNCNAME = "[BlocEncap::onRcvBurstFromDown]";
 	vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
 
@@ -578,14 +573,14 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	if(burst == NULL)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "%s burst is not valid\n", FUNCNAME);
+		    "burst is not valid\n");
 		goto error;
 	}
 
 	nb_bursts = burst->size();
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
-	    "%s message contains a burst of %d %s packet(s)\n",
-	    FUNCNAME, nb_bursts, burst->name().c_str());
+	    "message contains a burst of %d %s packet(s)\n",
+	    nb_bursts, burst->name().c_str());
 
 	// iterate on all the deencapsulation contexts to get the ip packets
 	for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
@@ -595,14 +590,14 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 		if(burst == NULL)
 		{
 			LOG(this->log_rcv_from_down, LEVEL_ERROR,
-			    "%s deencapsulation failed in %s context\n",
-			    FUNCNAME, (*iter)->getName().c_str());
+			    "deencapsulation failed in %s context\n",
+			    (*iter)->getName().c_str());
 			goto error;
 		}
 	}
 
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
-	    "%s %d %s packet => %zu %s packet(s)\n", FUNCNAME,
+	    "%d %s packet => %zu %s packet(s)\n",
 	    nb_bursts, this->reception_ctx[0]->getName().c_str(),
 	    burst->size(), burst->name().c_str());
 	if(burst->size() == 0)
@@ -620,8 +615,8 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	}
 
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
-	    "%s burst of deencapsulated packets sent to the upper "
-	    "layer\n", FUNCNAME);
+	    "burst of deencapsulated packets sent to the upper "
+	    "layer\n");
 
 	// everthing is fine
 	return true;

@@ -114,7 +114,6 @@ Mpeg::Context::~Context()
 NetBurst *Mpeg::Context::encapsulate(NetBurst *burst,
                                      map<long, int> &time_contexts)
 {
-	const char *FUNCNAME = "[Mpeg::Context::encapsulate]";
 	NetBurst *mpeg_packets = NULL;
 	NetBurst::iterator packet;
 
@@ -123,8 +122,8 @@ NetBurst *Mpeg::Context::encapsulate(NetBurst *burst,
 	if(mpeg_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of MPEG "
-		    "packets\n", FUNCNAME);
+		    "cannot allocate memory for burst of MPEG "
+		    "packets\n");
 		delete burst;
 		return NULL;
 	}
@@ -137,8 +136,7 @@ NetBurst *Mpeg::Context::encapsulate(NetBurst *burst,
 		if(!this->encapMpeg(*packet, mpeg_packets, context_id, time))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s MPEG encapsulation failed, drop packet\n",
-			    FUNCNAME);
+			    "MPEG encapsulation failed, drop packet\n");
 			continue;
 		}
 		time_contexts.insert(make_pair(time, context_id));
@@ -152,7 +150,6 @@ NetBurst *Mpeg::Context::encapsulate(NetBurst *burst,
 
 NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 {
-	const char *FUNCNAME = "[Mpeg::Context::deencapsulate]";
 	NetBurst *net_packets;
 
 	NetBurst::iterator packet;
@@ -162,8 +159,8 @@ NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 	if(net_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of network "
-		    "packets\n", FUNCNAME);
+		    "cannot allocate memory for burst of network "
+		    "packets\n");
 		delete burst;
 		return false;
 	}
@@ -176,8 +173,8 @@ NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 		if(*packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s encapsulation packet is not valid, drop "
-			    "the packet\n", FUNCNAME);
+			    "encapsulation packet is not valid, drop "
+			    "the packet\n");
 			continue;
 		}
 
@@ -185,9 +182,9 @@ NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 		if((*packet)->getType() != this->getEtherType())
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s encapsulation packet is not a MPEG packet "
+			    "encapsulation packet is not a MPEG packet "
 			    "(type = 0x%04x), drop the packet\n",
-			    FUNCNAME, (*packet)->getType());
+			    (*packet)->getType());
 			continue;
 		}
 
@@ -197,16 +194,16 @@ NetBurst *Mpeg::Context::deencapsulate(NetBurst *burst)
 			&& (dst_tal_id != BROADCAST_TAL_ID))
 		{
 			LOG(this->log, LEVEL_INFO,
-			    "%s encapsulation packet is for ST#%u. Drop\n",
-			    FUNCNAME, dst_tal_id);
+			    "encapsulation packet is for ST#%u. Drop\n",
+			    dst_tal_id);
 			continue;
 		}
 
 		if(!this->deencapMpeg(*packet, net_packets))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create a burst of packets, "
-			    "drop packet\n", FUNCNAME);
+			    "cannot create a burst of packets, "
+			    "drop packet\n");
 			continue;
 		}
 	}
@@ -222,7 +219,6 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
                               int &context_id,
                               long &time)
 {
-	const char *FUNCNAME = "Mpeg::Context::encapMpeg";
 	MpegPacket *mpeg_packet;
 	uint16_t pid;
 	MpegEncapCtx *context;
@@ -262,8 +258,8 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 
 	// find the encapsulation context for the network packet
 	LOG(this->log, LEVEL_INFO,
-	    "%s network packet belongs to the encapsulation context "
-	    "identified by PID = %u\n", FUNCNAME, pid);
+	    "network packet belongs to the encapsulation context "
+	    "identified by PID = %u\n", pid);
 	context = this->find_encap_context(pid, dest_spot);
 	if(context == NULL)
 		goto drop;
@@ -272,12 +268,12 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 	context_id = context->pid();
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s encapsulation context contains %u bytes of data\n",
-	    FUNCNAME, context->length());
+	    "encapsulation context contains %u bytes of data\n",
+	    context->length());
 
 	// build MPEG packets
 	LOG(this->log, LEVEL_INFO,
-	    "%s Synchonisation Byte = 0x%02x\n", FUNCNAME,
+	    "Synchonisation Byte = 0x%02x\n",
 	    context->sync());
 
 	// set PUSI bit to 1 only if not already set. If not set, insert a
@@ -285,21 +281,21 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 	if(!context->pusi())
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s PUSI (%d) not set, set PUSI = 1 and add Payload "
-		    "Pointer (packet length = %u)\n", FUNCNAME,
+		    "PUSI (%d) not set, set PUSI = 1 and add Payload "
+		    "Pointer (packet length = %u)\n",
 		    context->pusi(), context->length());
 
 		// set the PUSI bit
 		context->setPusi();
 		LOG(this->log, LEVEL_INFO,
-		    "%s PUSI is now set to %d\n", FUNCNAME,
+		    "PUSI is now set to %d\n",
 		    context->pusi());
 
 		// add the Payload Pointer field
 		context->addPP();
 		LOG(this->log, LEVEL_INFO,
-		    "%s packet is now %u byte length\n",
-		    FUNCNAME, context->length());
+		    "packet is now %u byte length\n",
+		    context->length());
 	}
 
 	packet_data = packet->getData();
@@ -312,9 +308,9 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		context->add(&packet_data, packet_off, length);
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s copy %u bytes of SNDU data into MPEG payload "
+		    "copy %u bytes of SNDU data into MPEG payload "
 		    "(SNDU data = %u bytes, unused payload = %u bytes)\n",
-		    FUNCNAME, length,
+		    length,
 		    packet_len, context->left());
 
 		packet_len -= length;
@@ -329,7 +325,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 			if(mpeg_packet != NULL)
 			{
 				LOG(this->log, LEVEL_INFO,
-				    "%s one MPEG packet created\n", FUNCNAME);
+				    "one MPEG packet created\n");
 				// set the destination spot ID
 				mpeg_packet->setDstSpot(dest_spot);
 
@@ -338,7 +334,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 			else
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s failed to create MPEG packet\n", FUNCNAME);
+				    "failed to create MPEG packet\n");
 			}
 
 			// clear the encapsulation context
@@ -347,11 +343,10 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s SNDU packet now entirely packed into MPEG packets\n",
-	    FUNCNAME);
+	    "SNDU packet now entirely packed into MPEG packets\n");
 	LOG(this->log, LEVEL_INFO,
-	    "%s unused space in MPEG payload = %u bytes\n",
-	    FUNCNAME, context->left());
+	    "unused space in MPEG payload = %u bytes\n",
+	    context->left());
 
 	// SNDU packet is now entirely packed, check for unused payload at the end
 	// of the MPEG2-TS frame. Perhaps can we later pack another SNDU packet
@@ -372,9 +367,8 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		// frame to the list
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s too few unused space in the MPEG payload for "
-		    "packing => add padding to packet and send it\n",
-		    FUNCNAME);
+		    "too few unused space in the MPEG payload for "
+		    "packing => add padding to packet and send it\n");
 
 		// add padding if necessary
 		context->padding();
@@ -385,7 +379,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		if(mpeg_packet != NULL)
 		{
 			LOG(this->log, LEVEL_INFO,
-			    "%s one MPEG packet created\n", FUNCNAME);
+			    "one MPEG packet created\n");
 			// set the destination spot ID
 			mpeg_packet->setDstSpot(dest_spot);
 			mpeg_packets->add(mpeg_packet);
@@ -393,7 +387,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		else
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s failed to create MPEG packet\n", FUNCNAME);
+			    "failed to create MPEG packet\n");
 		}
 
 		// ... and clear the encapsulation context
@@ -407,9 +401,9 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 		// for further use
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s enough unused space in the MPEG payload for "
+		    "enough unused space in the MPEG payload for "
 		    "packing => keep incomplete MPEG packet during %ld "
-		    "ms\n", FUNCNAME, this->packing_threshold);
+		    "ms\n", this->packing_threshold);
 
 		time = this->packing_threshold;
 	}
@@ -422,8 +416,6 @@ drop:
 
 bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 {
-	const char *FUNCNAME = "[Mpeg::Context::deencapMpeg]";
-
 	NetBurst *tmp_packets = NULL;
 	NetBurst::iterator it;
 	MpegPacket *mpeg_packet = NULL;
@@ -441,8 +433,8 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 	if(packet->getType() != NET_PROTO_MPEG)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s encapsulation packet is not an MPEG packet, "
-		    "drop the packet\n", FUNCNAME);
+		    "encapsulation packet is not an MPEG packet, "
+		    "drop the packet\n");
 		goto drop;
 	}
 
@@ -451,24 +443,22 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 	if(mpeg_packet == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot create a MpegPacket from NetPacket\n",
-		    FUNCNAME);
+		    "cannot create a MpegPacket from NetPacket\n");
 		goto error;
 	}
 
 	// get the PID number for the MPEG packet to desencapsulate
 	pid = mpeg_packet->getPid();
 	LOG(this->log, LEVEL_INFO,
-	    "%s MPEG packet belongs to the encapsulation context "
-	    "identified by PID = %u\n", FUNCNAME, pid);
+	    "MPEG packet belongs to the encapsulation context "
+	    "identified by PID = %u\n", pid);
 
 	// find the desencapsulation context for the MPEG packet
 	context_it = this->desencap_contexts.find(pid);
 	if(context_it == this->desencap_contexts.end())
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s desencapsulation context does not exist yet\n",
-		    FUNCNAME);
+		    "desencapsulation context does not exist yet\n");
 
 		MpegDeencapCtx *new_context = new MpegDeencapCtx(pid, dest_spot);
 		std::pair < std::map < int, MpegDeencapCtx * >::iterator, bool > infos;
@@ -477,56 +467,55 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 		if(!infos.second)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create a new desencapsulation context, "
-			    "drop the packet\n", FUNCNAME);
+			    "cannot create a new desencapsulation context, "
+			    "drop the packet\n");
 			delete new_context;
 			goto error;
 		}
 
 		LOG(this->log, LEVEL_NOTICE,
-		    "%s new desencapsulation context created (PID = %u)\n",
-		    FUNCNAME, pid);
+		    "new desencapsulation context created (PID = %u)\n",
+		    pid);
 		context = (*(infos.first)).second;
 	}
 	else
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s desencapsulation context already exists\n",
-		    FUNCNAME);
+		    "desencapsulation context already exists\n");
 		context = (*context_it).second;
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s desencapsulation context contains %d bytes of "
-	    "data\n", FUNCNAME, context->length());
+	    "desencapsulation context contains %d bytes of "
+	    "data\n", context->length());
 
 	// create an empty burst of SNDU packets
 	tmp_packets = new NetBurst();
 	if(tmp_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of MPEG "
-		    "packets\n", FUNCNAME);
+		    "cannot allocate memory for burst of MPEG "
+		    "packets\n");
 		goto error;
 	}
 
 restart:
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s MPEG frame has PUSI = %d\n", FUNCNAME,
+	    "MPEG frame has PUSI = %d\n",
 	    mpeg_packet->pusi() ? 1 : 0);
 
 	// synchronize on PUSI bit if necessary
 	if(context->need_pusi())
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s PUSI synchronizing is needed\n", FUNCNAME);
+		    "PUSI synchronizing is needed\n");
 
 		if(mpeg_packet->pusi())
 		{
 			LOG(this->log, LEVEL_INFO,
-			    "%s sync on PUSI with MPEG frame CC = %d\n",
-			    FUNCNAME, mpeg_packet->cc());
+			    "sync on PUSI with MPEG frame CC = %d\n",
+			    mpeg_packet->cc());
 			// synchronize Continuity Counter
 			context->setCc(mpeg_packet->cc());
 			// find out the offset of the SNDU in MPEG payload
@@ -538,8 +527,8 @@ restart:
 		{
 			// PUSI bit not set, drop MPEG frame
 			LOG(this->log, LEVEL_ERROR,
-			    "%s sync on PUSI needed, drop MPEG frame CC = %d "
-			    "with no PUSI\n", FUNCNAME, mpeg_packet->cc());
+			    "sync on PUSI needed, drop MPEG frame CC = %d "
+			    "with no PUSI\n", mpeg_packet->cc());
 			goto drop;
 		}
 	}
@@ -549,8 +538,7 @@ restart:
 		// for lost frames
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s PUSI synchronizing not needed, check CC\n",
-		    FUNCNAME);
+		    "PUSI synchronizing not needed, check CC\n");
 
 		context->incCc();
 		if(mpeg_packet->cc() != context->cc())
@@ -558,8 +546,8 @@ restart:
 			// Continuity Counters are different, some MPEG frames were lost
 
 			LOG(this->log, LEVEL_ERROR,
-			    "%s MPEG frame(s) lost (MPEG CC = %d, CTXT CC "
-			    "= %d), reset context, sync on PUSI\n", FUNCNAME,
+			    "MPEG frame(s) lost (MPEG CC = %d, CTXT CC "
+			    "= %d), reset context, sync on PUSI\n",
 			    mpeg_packet->cc(), context->cc());
 
 			// delete partially desencapsulated SNDUs
@@ -573,8 +561,8 @@ restart:
 				// the current MPEG frame has PUSI bit set, do not drop it,
 				// but synchronize CC with it
 				LOG(this->log, LEVEL_INFO,
-				    "%s PUSI is set in current MPEG frame, "
-				    "restart analysis...\n", FUNCNAME);
+				    "PUSI is set in current MPEG frame, "
+				    "restart analysis...\n");
 				goto restart;
 			}
 			else
@@ -582,8 +570,8 @@ restart:
 				// the current MPEG frame has no PUSI bit set, drop it and
 				// synchronize on next MPEG frame with PUSI bit set
 				LOG(this->log, LEVEL_ERROR,
-				    "%s PUSI not set in current MPEG frame, "
-				    "drop it\n", FUNCNAME);
+				    "PUSI not set in current MPEG frame, "
+				    "drop it\n");
 				goto drop;
 			}
 		}
@@ -592,7 +580,7 @@ restart:
 			// Continuity Counters are equal, no MPEG frame was lost
 
 			LOG(this->log, LEVEL_INFO,
-			    "%s MPEG frame with CC = %d received\n", FUNCNAME,
+			    "MPEG frame with CC = %d received\n",
 			    context->cc());
 
 			if(mpeg_packet->pusi())
@@ -609,8 +597,8 @@ restart:
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s SNDU starts at offset %u in MPEG payload\n",
-	    FUNCNAME, sndu_offset);
+	    "SNDU starts at offset %u in MPEG payload\n",
+	    sndu_offset);
 
 	// check Payload Pointer validity: the number of packed bytes at the end of
 	// the MPEG payload depends on SNDU type
@@ -620,9 +608,9 @@ restart:
 	   (TS_DATASIZE - 1 - mpeg_packet->pp()) < this->current_upper->getMinLength())
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s too few bytes (%d < %zu) after Payload Pointer "
+		    "too few bytes (%d < %zu) after Payload Pointer "
 		    "to contain a SNDU fragment, reset context, sync on"
-		    " PUSI\n", FUNCNAME,
+		    " PUSI\n",
 		    TS_DATASIZE - 1 - mpeg_packet->pp(),
 		    this->current_upper->getMinLength());
 		context->reset();
@@ -651,16 +639,16 @@ restart:
 			// SNDU partially built, complete with data in current MPEG frame
 
 			LOG(this->log, LEVEL_INFO,
-			    "%s context not empty, complete partially built "
-			    "SNDU\n", FUNCNAME);
+			    "context not empty, complete partially built "
+			    "SNDU\n");
 
 			// check data length in context
 			if(context->length() >= context->sndu_len())
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s context contains too much data (%d bytes) "
+				    "context contains too much data (%d bytes) "
 				    "for one %d-byte SNDU, reset context, sync "
-				    "on PUSI\n", FUNCNAME, context->length(),
+				    "on PUSI\n", context->length(),
 				    context->sndu_len());
 				context->reset();
 				context->set_need_pusi(true);
@@ -683,8 +671,8 @@ restart:
 			{
 				// End Indicator
 				LOG(this->log, LEVEL_INFO,
-				    "%s End Indicator found at offset %u\n",
-				    FUNCNAME, sndu_offset);
+				    "End Indicator found at offset %u\n",
+				    sndu_offset);
 				goto padding;
 			}
 
@@ -694,21 +682,21 @@ restart:
 			if(len == 0)
 			{
 				LOG(this->log, LEVEL_INFO,
-				    "%s 0-byte SNDU\n", FUNCNAME);
+				    "0-byte SNDU\n");
 				goto drop;
 			}
 
 			context->set_sndu_len(len);
 			LOG(this->log, LEVEL_INFO,
-			    "%s context is empty, extract a new %u-byte "
-			    "SNDU\n", FUNCNAME, context->sndu_len());
+			    "context is empty, extract a new %u-byte "
+			    "SNDU\n", context->sndu_len());
 		}
 
 		// find out how much SNDU data is available
 		max_len = MIN(TS_DATASIZE - sndu_offset, context->sndu_len() - context->length());
 		LOG(this->log, LEVEL_INFO,
-		    "%s add %u bytes of data to SNDU (SNDU needs %u "
-		    "bytes, MPEG frame owns %u bytes)\n", FUNCNAME,
+		    "add %u bytes of data to SNDU (SNDU needs %u "
+		    "bytes, MPEG frame owns %u bytes)\n",
 		    max_len, context->sndu_len() - context->length(),
 		    TS_DATASIZE - sndu_offset);
 
@@ -724,7 +712,7 @@ restart:
 			NetPacket *net_packet;
 
 			LOG(this->log, LEVEL_INFO,
-			    "%s SNDU completed (%u bytes)\n", FUNCNAME,
+			    "SNDU completed (%u bytes)\n",
 			    context->length());
 
 			net_packet = this->current_upper->build(
@@ -735,7 +723,7 @@ restart:
 			if(net_packet == NULL)
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s cannot create a new SNDU, drop it\n", FUNCNAME);
+				    "cannot create a new SNDU, drop it\n");
 			}
 			else
 			{
@@ -745,8 +733,7 @@ restart:
 				tmp_packets->add(net_packet);
 
 				LOG(this->log, LEVEL_INFO,
-				    "%s SNDU (%s) created and added to the list\n",
-				    FUNCNAME,
+				    "SNDU (%s) created and added to the list\n",
 				    this->current_upper->getName().c_str());
 			}
 
@@ -761,9 +748,9 @@ restart:
 			if(sndu_offset < TS_DATASIZE)
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s SNDU incomplete, but %u remaining "
+				    "SNDU incomplete, but %u remaining "
 				    "bytes in MPEG payload, reset context, sync "
-				    "on PUSI\n", FUNCNAME,
+				    "on PUSI\n",
 				    TS_DATASIZE - sndu_offset);
 				context->reset();
 				context->set_need_pusi(true);
@@ -777,9 +764,9 @@ restart:
 			else if(sndu_offset > TS_DATASIZE)
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s sndu_offset too big (offset = %u), reset "
+				    "sndu_offset too big (offset = %u), reset "
 				    "context, delete SNDUs, sync on PUSI\n",
-				    FUNCNAME, sndu_offset);
+				    sndu_offset);
 				context->reset();
 				for(it = tmp_packets->begin(); it != tmp_packets->end(); it++)
 				{
@@ -795,9 +782,9 @@ restart:
 		else // context->length() > context->sndu_len()
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s context contains too much data (%d bytes) for "
+			    "context contains too much data (%d bytes) for "
 			    "one %u-byte SNDU, reset context, sync on PUSI\n",
-			    FUNCNAME, context->length(), context->sndu_len());
+			    context->length(), context->sndu_len());
 			context->reset();
 			context->set_need_pusi(true);
 			// we can eventually synchronize with the current MPEG frame
@@ -817,7 +804,7 @@ padding:
 		unsigned int i;
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s %u bytes of padding\n", FUNCNAME,
+		    "%u bytes of padding\n",
 		    TS_DATASIZE - sndu_offset);
 
 		for(i = sndu_offset; i < TS_DATASIZE; i++)
@@ -825,9 +812,9 @@ padding:
 			if((unsigned char) mpeg_packet->getPayload().at(i) != 0xff)
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s bad padding byte (0x%02x) at offset %u, "
+				    "bad padding byte (0x%02x) at offset %u, "
 				    "reset context, delete SNDUs, sync on PUSI\n",
-				    FUNCNAME, mpeg_packet->getPayload().at(i), i);
+				    mpeg_packet->getPayload().at(i), i);
 				context->reset();
 				for(it = tmp_packets->begin(); it != tmp_packets->end(); it++)
 				{
@@ -844,13 +831,13 @@ padding:
 	else if(sndu_offset == TS_DATASIZE)
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s no padding\n", FUNCNAME);
+		    "no padding\n");
 	}
 	else if(sndu_offset > TS_DATASIZE)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s sndu_offset too big (offset = %u), reset context, "
-		    "delete SNDUs, sync on PUSI\n", FUNCNAME, sndu_offset);
+		    "sndu_offset too big (offset = %u), reset context, "
+		    "delete SNDUs, sync on PUSI\n", sndu_offset);
 		context->reset();
 		delete tmp_packets;
 		context->set_need_pusi(true);
@@ -860,8 +847,8 @@ padding:
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s MPEG packet is now desencapsulated (context data = %u "
-	    "bytes)\n", FUNCNAME, context->length());
+	    "MPEG packet is now desencapsulated (context data = %u "
+	    "bytes)\n", context->length());
 
 	// add packets to the burst of network packets
 	net_packets->insert(net_packets->end(),
@@ -880,15 +867,13 @@ error:
 
 NetBurst *Mpeg::Context::flush(int context_id)
 {
-	const char *FUNCNAME = "[Mpeg::Context::flush]";
 	std::map < int, MpegEncapCtx * >::iterator it;
 	MpegEncapCtx *context;
 	NetBurst *mpeg_packets = NULL;
 	NetPacket *mpeg_packet;
 
 	LOG(this->log, LEVEL_INFO,
-	    "%s search for encapsulation context to flush...\n",
-	    FUNCNAME);
+	    "search for encapsulation context to flush...\n");
 
 	it = this->encap_contexts.find(context_id);
 
@@ -898,16 +883,16 @@ NetBurst *Mpeg::Context::flush(int context_id)
 		(context = (*it).second) && context->frame()->length() > 0)
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s context with PID = %d has to be flushed\n",
-		    FUNCNAME, context->pid());
+		    "context with PID = %d has to be flushed\n",
+		    context->pid());
 
 		// create an empty burst of MPEG packets
 		mpeg_packets = new NetBurst();
 		if(mpeg_packets == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot allocate memory for burst of MPEG "
-			    "packets\n", FUNCNAME);
+			    "cannot allocate memory for burst of MPEG "
+			    "packets\n");
 			goto error;
 		}
 
@@ -919,9 +904,9 @@ NetBurst *Mpeg::Context::flush(int context_id)
 		if(mpeg_packet != NULL)
 		{
 			LOG(this->log, LEVEL_INFO,
-			    "%s one MPEG packet created "
+			    "one MPEG packet created "
 			    "(SRC Tal Id = %u, DST Tal ID = %u, QoS = %u)\n",
-			    FUNCNAME, mpeg_packet->getSrcTalId(),
+			    mpeg_packet->getSrcTalId(),
 			    mpeg_packet->getDstTalId(),
 			    mpeg_packet->getQos());
 			// set the destination spot ID
@@ -931,7 +916,7 @@ NetBurst *Mpeg::Context::flush(int context_id)
 		else
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s failed to create MPEG packet\n", FUNCNAME);
+			    "failed to create MPEG packet\n");
 		}
 
 		// clear the encapsulation context
@@ -940,8 +925,8 @@ NetBurst *Mpeg::Context::flush(int context_id)
 	else
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s encapsulation context to flush not found or "
-		    "empty\n", FUNCNAME);
+		    "encapsulation context to flush not found or "
+		    "empty\n");
 	}
 
 error:
@@ -950,7 +935,6 @@ error:
 
 NetBurst *Mpeg::Context::flushAll()
 {
-	const char *FUNCNAME = "[Mpeg::Context::flushAll]";
 	NetBurst *mpeg_packets;
 	NetPacket *mpeg_packet;
 	std::map < int, MpegEncapCtx * >::iterator it;
@@ -961,8 +945,8 @@ NetBurst *Mpeg::Context::flushAll()
 	if(mpeg_packets == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s cannot allocate memory for burst of MPEG "
-		    "packets\n", FUNCNAME);
+		    "cannot allocate memory for burst of MPEG "
+		    "packets\n");
 		goto error;
 	}
 
@@ -972,7 +956,7 @@ NetBurst *Mpeg::Context::flushAll()
 		context = (*it).second;
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s flush context with PID = %d\n", FUNCNAME,
+		    "flush context with PID = %d\n",
 		    context->pid());
 
 		if(context->length() > 0)
@@ -986,7 +970,7 @@ NetBurst *Mpeg::Context::flushAll()
 			if(mpeg_packet != NULL)
 			{
 				LOG(this->log, LEVEL_INFO,
-				    "%s one MPEG packet created\n", FUNCNAME);
+				    "one MPEG packet created\n");
 				// set the destination spot ID
 				mpeg_packet->setDstSpot(context->getDstSpot());
 				mpeg_packets->add(mpeg_packet);
@@ -994,7 +978,7 @@ NetBurst *Mpeg::Context::flushAll()
 			else
 			{
 				LOG(this->log, LEVEL_ERROR,
-				    "%s failed to create MPEG packet\n", FUNCNAME);
+				    "failed to create MPEG packet\n");
 			}
 
 			// clear the encapsulation context
@@ -1008,7 +992,6 @@ error:
 
 MpegEncapCtx *Mpeg::Context::find_encap_context(uint16_t pid, uint16_t spot_id)
 {
-	const char *FUNCNAME = "[Mpeg::Context::find_encap_context]";
 	std::map < int, MpegEncapCtx * >::iterator context_it;
 	MpegEncapCtx *context;
 
@@ -1020,8 +1003,7 @@ MpegEncapCtx *Mpeg::Context::find_encap_context(uint16_t pid, uint16_t spot_id)
 		std::pair < std::map < int, MpegEncapCtx * >::iterator, bool > infos;
 
 		LOG(this->log, LEVEL_INFO,
-		    "%s encapsulation context does not exist yet\n",
-		    FUNCNAME);
+		    "encapsulation context does not exist yet\n");
 
 		new_context = new MpegEncapCtx(pid, spot_id);
 
@@ -1030,21 +1012,21 @@ MpegEncapCtx *Mpeg::Context::find_encap_context(uint16_t pid, uint16_t spot_id)
 		if(!infos.second)
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "%s cannot create a new encapsulation context, "
-			    "drop the packet\n", FUNCNAME);
+			    "cannot create a new encapsulation context, "
+			    "drop the packet\n");
 			delete new_context;
 			goto error;
 		}
 
 		LOG(this->log, LEVEL_NOTICE,
-		    "%s new encapsulation context created (PID = %u)\n",
-		    FUNCNAME, pid);
+		    "new encapsulation context created (PID = %u)\n",
+		    pid);
 		context = (*(infos.first)).second;
 	}
 	else
 	{
 		LOG(this->log, LEVEL_INFO,
-		    "%s encapsulation context already exists\n", FUNCNAME);
+		    "encapsulation context already exists\n");
 		context = (*context_it).second;
 	}
 
@@ -1067,8 +1049,8 @@ NetPacket *Mpeg::PacketHandler::build(const Data &data, size_t data_length,
 	if(data_length != this->getFixedLength())
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "%s bad data length (%zu) for MPEG packet\n",
-		    FUNCNAME, data_length);
+		    "bad data length (%zu) for MPEG packet\n",
+		    data_length);
 		return NULL;
 	}
 

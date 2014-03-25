@@ -108,7 +108,6 @@ bool sat_carrier_channel::isOutputOk()
  */
 int sat_carrier_channel::getIfIndex(const char *name)
 {
-	const char FUNCNAME[] = "[sat_carrier_channel::getIfIndex]";
 	int sock;
 	ifreq ifr;
 	int index = -1;
@@ -118,8 +117,8 @@ int sat_carrier_channel::getIfIndex(const char *name)
 	if(sock < 0)
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "%s cannot create an INET socket: "
-		    "%s (%d)\n", FUNCNAME, strerror(errno), errno);
+		    "cannot create an INET socket: "
+		    "(%d)\n", strerror(errno), errno);
 		goto exit;
 	}
 
@@ -129,8 +128,8 @@ int sat_carrier_channel::getIfIndex(const char *name)
 	if(ioctl(sock, SIOGIFINDEX, &ifr) < 0)
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "%s cannot get the network interface "
-		    "index: %s (%d)\n", FUNCNAME, strerror(errno), errno);
+		    "cannot get the network interface "
+		    "index: %s (%d)\n", strerror(errno), errno);
 		goto close;
 	}
 
