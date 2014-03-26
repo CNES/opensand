@@ -76,8 +76,6 @@
 #include <heap-checker.h>
 #endif
 
-unsigned char dbgLevel_default = 4;
-
 
 TestBlock::TestBlock(const string &name):
 	Block(name)

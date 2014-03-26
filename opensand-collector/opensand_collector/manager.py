@@ -347,6 +347,7 @@ class Program(object):
             LOGGER.debug("Creating program folder %s", path)
             mkdir(path)
 
+        # TODO create a file par logging facility (error.log, warning.log, ...)
         path = join(path, "log.txt")
         if mode != 'a':
             LOGGER.debug("Creating log file %s", path)

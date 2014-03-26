@@ -76,9 +76,9 @@ class RtChannel
 
 	/// Output Log
 	OutputLog *log_init;
+	OutputLog *log_rt;
 	OutputLog *log_receive;
 	OutputLog *log_send;
-	OutputLog *log_rt;
 
 	/// The bloc containing channel
 	// TODO remove
@@ -406,6 +406,10 @@ class RtChannel
 
 template<class T>
 RtChannel::RtChannel(Block *const bl, chan_type_t chan, T specific):
+	log_init(NULL),
+	log_rt(NULL),
+	log_receive(NULL),
+	log_send(NULL),
 	block(bl),
 	chan(chan),
 	previous_fifo(NULL),

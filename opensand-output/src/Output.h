@@ -237,7 +237,7 @@ public:
 		PRINTFLIKE(2, 3);
 
 	/**
-	 * @brief Enable output on stdout/stdin
+	 * @brief Enable output on stdout/stderr
 	 */
 	static void enableStdlog(void);
 

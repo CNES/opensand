@@ -60,6 +60,10 @@ using std::ostringstream;
 
 // TODO pointer on onEventUp/Down and remove chan and add name
 RtChannel::RtChannel(Block *const bl, chan_type_t chan):
+	log_init(NULL),
+	log_rt(NULL),
+	log_receive(NULL),
+	log_send(NULL),
 	block(bl),
 	chan(chan),
 	previous_fifo(NULL),
@@ -70,21 +74,6 @@ RtChannel::RtChannel(Block *const bl, chan_type_t chan):
 	r_sel_break(-1)
 {
 	FD_ZERO(&(this->input_fd_set));
-	string channel = (chan == upward_chan) ? "Upward": "Downward";
-
-	// Output Log
-	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.%s.rt",
-	                                   block->name.c_str(),
-	                                   channel.c_str());
-	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.%s.init",
-	                                     block->name.c_str(),
-	                                     channel.c_str());
-	this->log_receive = Output::registerLog(LEVEL_WARNING, "%s.%s.receive",
-	                                        block->name.c_str(),
-	                                        channel.c_str());
-	this->log_send = Output::registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                     block->name.c_str(),
-	                                     channel.c_str());
 }
 
 RtChannel::~RtChannel()
@@ -127,6 +116,21 @@ bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
 	int32_t pipefd[2];
+	string channel = (chan == upward_chan) ? "Upward": "Downward";
+
+	// Output Log
+	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.%s.rt",
+	                                   block->name.c_str(),
+	                                   channel.c_str());
+	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.%s.init",
+	                                     block->name.c_str(),
+	                                     channel.c_str());
+	this->log_receive = Output::registerLog(LEVEL_WARNING, "%s.%s.receive",
+	                                        block->name.c_str(),
+	                                        channel.c_str());
+	this->log_send = Output::registerLog(LEVEL_WARNING, "%s.%s.send",
+	                                     block->name.c_str(),
+	                                     channel.c_str());
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
@@ -314,9 +318,8 @@ bool RtChannel::addEvent(RtEvent *event)
 	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
 	{
 		LOG(this->log_rt, LEVEL_ERROR,
-		    "[%s]Channel %u: failed to break select upon a new "
-		    "event reception\n", this->block->getName().c_str(),
-		    this->chan);
+		    "failed to break select upon a new "
+		    "event reception\n");
 	}
 
 #ifdef TIME_REPORTS
@@ -334,8 +337,7 @@ void RtChannel::updateEvents(void)
 		iter != this->new_events.end(); ++iter)
 	{
 		LOG(this->log_rt, LEVEL_INFO,
-		    "[%s]Channel %u: Add new event \"%s\" in list\n",
-		    this->block->getName().c_str(), this->chan,
+		    "Add new event \"%s\" in list\n",
 		    (*iter)->getName().c_str());
 		this->addInputFd((*iter)->getFd());
 		this->events[(*iter)->getFd()] = *iter;
@@ -352,8 +354,7 @@ void RtChannel::updateEvents(void)
 		if(it != this->events.end())
 		{
 			LOG(this->log_rt, LEVEL_INFO,
-			    "[%s]Channel %u: remove event \"%s\" from list\n",
-			    this->block->getName().c_str(), this->chan,
+			    "remove event \"%s\" from list\n",
 			    (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
@@ -393,8 +394,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	if(it == this->events.end())
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
-		    "[%s]Channel %u: event not found, search in new events\n",
-		    this->block->getName().c_str(), this->chan);
+		    "event not found, search in new events\n");
 		bool found = false;
 		// check in new events
 		for(list<RtEvent *>::iterator iter = this->new_events.begin();
@@ -403,8 +403,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 			if(*(*iter) == id)
 			{
 				LOG(this->log_rt, LEVEL_DEBUG,
-				    "[%s]Channel %u: event found in new events\n",
-				    this->block->getName().c_str(), this->chan);
+				    "event found in new events\n");
 				found = true;
 				event = *iter;
 				break;
@@ -419,8 +418,7 @@ TimerEvent *RtChannel::getTimer(event_id_t id)
 	else
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
-		    "[%s]Channel %u: Timer found\n",
-		    this->block->getName().c_str(), this->chan);
+		    "Timer found\n");
 		event = (*it).second;
 	}
 	if(event && event->getType() != evt_timer)
@@ -493,8 +491,7 @@ clock_t RtChannel::getCurrentTime(void)
 bool RtChannel::processEvent(const RtEvent *const event)
 {
 	LOG(this->log_rt, LEVEL_DEBUG,
-	    "[%s]Channel %u: event received (%s)",
-	    this->block->getName().c_str(), this->chan,
+	    "event received (%s)",
 	    event->getName().c_str());
 	return this->block->processEvent(event, this->chan);
 };
@@ -533,8 +530,7 @@ void RtChannel::executeThread(void)
 			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
-				    "[%s]Channel %u: failed to read in pipe",
-				    this->block->getName().c_str(), this->chan);
+				    "failed to read in pipe");
 			}
 			handled++;
 		}
@@ -575,8 +571,7 @@ void RtChannel::executeThread(void)
 			{
 				// we have to stop
 				LOG(this->log_rt, LEVEL_INFO,
-				    "[%s]Channel %u: stop signal received\n",
-				    this->block->getName().c_str(), this->chan);
+				    "stop signal received\n");
 				pthread_exit(NULL);
 			}
 		}
@@ -592,8 +587,7 @@ void RtChannel::executeThread(void)
 			if(!this->processEvent(*iter))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
-				    "[%s]Channel %u: failed to process event %s\n",
-				    this->block->getName().c_str(), this->chan,
+				    "failed to process event %s\n",
 				    (*iter)->getName().c_str());
 			}
 #ifdef TIME_REPORTS

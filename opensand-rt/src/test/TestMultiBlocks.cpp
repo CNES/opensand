@@ -86,7 +86,6 @@
 #include <heap-checker.h>
 #endif
 
-unsigned char dbgLevel_default = 4;
 
 using std::ostringstream;
 
