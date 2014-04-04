@@ -33,13 +33,12 @@
  */
 
 #include "Ule.h"
+#include "UlePacket.h"
 
 #include <opensand_output/Output.h>
 
 #include <vector>
 #include <map>
-
-#include "UlePacket.h"
 
 Ule::Ule():
 	EncapPlugin(NET_PROTO_ULE)
@@ -52,6 +51,8 @@ Ule::Ule():
 	this->upper[REGENERATIVE].push_back("PHS");
 	this->upper[REGENERATIVE].push_back("IP");
 	this->upper[REGENERATIVE].push_back("Ethernet");
+	// register the static packet log
+	UlePacket::ule_log = Output::registerLog(LEVEL_WARNING, "Encap.Net.ULE");
 }
 
 

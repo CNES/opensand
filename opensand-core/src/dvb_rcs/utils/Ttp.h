@@ -187,6 +187,9 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 		return ntohs(this->frame()->ttp.ttp_info.superframe_count);
 	};
 
+	/// The log for TTP
+	static OutputLog *ttp_log;
+
  private:
 
 	/// A list of time plans

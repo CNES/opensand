@@ -50,6 +50,9 @@ Atm::Atm():
 	this->upper[REGENERATIVE].push_back("PHS");
 	this->upper[REGENERATIVE].push_back("IP");
 	this->upper[REGENERATIVE].push_back("Ethernet");
+	// register the static packets log
+	Aal5Packet::aal5_log = Output::registerLog(LEVEL_WARNING, "Encap.Net.AAL5");
+	AtmCell::atm_log = Output::registerLog(LEVEL_WARNING, "Encap.Net.ATM");
 }
 
 

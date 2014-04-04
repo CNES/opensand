@@ -36,6 +36,8 @@
 
 #include <opensand_output/Output.h>
 
+OutputLog *IpPacket::ip_log = NULL;
+
 IpPacket::IpPacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)
 {
@@ -85,8 +87,8 @@ Data IpPacket::getPayload() const
 
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid IP packet\n");
+		LOG(ip_log, LEVEL_ERROR,
+		    "invalid IP packet\n");
 		return Data();
 	}
 
@@ -95,8 +97,8 @@ Data IpPacket::getPayload() const
 
 	if(header_len <= 0 || payload_len <= 0)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "IP packet has a 0 length payload\n");
+		LOG(ip_log, LEVEL_ERROR,
+		    "IP packet has a 0 length payload\n");
 		return Data();
 	}
 
@@ -108,8 +110,8 @@ int IpPacket::version(Data data)
 {
 	if(data.length() < 4 * 5)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid IP packet\n");
+		LOG(ip_log, LEVEL_ERROR,
+		    "invalid IP packet\n");
 		return 0;
 	}
 
@@ -121,8 +123,8 @@ int IpPacket::version(Data data)
 {
 	if(length < 4 * 5)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid IP packet\n");
+		LOG(ip_log, LEVEL_ERROR,
+		    "invalid IP packet\n");
 		return 0;
 	}
 
@@ -133,8 +135,8 @@ int IpPacket::version() const
 {
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid IP packet\n");
+		LOG(ip_log, LEVEL_ERROR,
+		    "invalid IP packet\n");
 		return 0;
 	}
 

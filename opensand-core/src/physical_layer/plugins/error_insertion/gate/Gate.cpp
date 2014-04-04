@@ -44,10 +44,10 @@
 #include <strings.h>
 #include <cstring>
 
+
 Gate::Gate():ErrorInsertionPlugin()
 {
 }
-
 
 Gate::~Gate()
 {
@@ -66,14 +66,14 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 	// Comparison between current and required C/N values
 	if(cn_total >= threshold_qef)
 	{
-		DFLTLOG(LEVEL_DEBUG,
-		        "Packet should not be modified\n");
+		LOG(this->log_error, LEVEL_DEBUG,
+		    "Packet should not be modified\n");
 		do_modify = false;
 	}
 	else
 	{
-		DFLTLOG(LEVEL_DEBUG,
-		        "Payload is should be modified\n");
+		LOG(this->log_error, LEVEL_DEBUG,
+		    "Payload is should be modified\n");
 		do_modify = true;
 	}
 	return do_modify;
@@ -81,8 +81,8 @@ bool Gate::isToBeModifiedPacket(double cn_total,
 
 bool Gate::modifyPacket(const Data &UNUSED(payload))
 {
-	DFLTLOG(LEVEL_DEBUG,
-	        "Payload is modified\n");
+	LOG(this->log_error, LEVEL_INFO,
+	    "Payload is modified\n");
 	// not needed, we will reject frame in DVB layer as we return true
 	// memset(payload, '\0', length);
 	return true;

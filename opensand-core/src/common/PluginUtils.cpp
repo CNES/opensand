@@ -53,6 +53,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 	DIR *plugin_dir;
 	char *lib_path;
 	vector<string> path;
+	this->log_init = Output::registerLog(LEVEL_WARNING, "init");
 
 	lib_path = getenv("LD_LIBRARY_PATH");
 	if(lib_path)
@@ -71,13 +72,13 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 		plugin_dir = opendir(dir.c_str());
 		if(!plugin_dir)
 		{
-			DFLTLOG(LEVEL_NOTICE,
-			        "cannot search plugins in %s folder\n", 
-			        dir.c_str());
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "cannot search plugins in %s folder\n", 
+			    dir.c_str());
 			continue;
 		}
-		DFLTLOG(LEVEL_NOTICE,
-		        "search for plugins in %s folder\n", dir.c_str());
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "search for plugins in %s folder\n", dir.c_str());
 
 		while((ent = readdir(plugin_dir)) != NULL)
 		{
@@ -96,23 +97,23 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				opensand_plugin_t *plugin;
 				string plugin_name = dir + filename;
 
-				DFLTLOG(LEVEL_INFO,
-				        "find plugin library %s\n", filename.c_str());
+				LOG(this->log_init, LEVEL_INFO,
+				    "find plugin library %s\n", filename.c_str());
 				handle = dlopen(plugin_name.c_str(), RTLD_LAZY);
 				if(!handle)
 				{
-					DFLTLOG(LEVEL_ERROR,
-					        "cannot load plugin %s (%s)\n",
-					        filename.c_str(), dlerror());
+					LOG(this->log_init, LEVEL_ERROR,
+					    "cannot load plugin %s (%s)\n",
+					    filename.c_str(), dlerror());
 					continue;
 				}
 
 				sym = dlsym(handle, "init");
 				if(!sym)
 				{
-					DFLTLOG(LEVEL_ERROR,
-					        "cannot find 'init' method in plugin %s "
-					        "(%s)\n", filename.c_str(), dlerror());
+					LOG(this->log_init, LEVEL_ERROR,
+					    "cannot find 'init' method in plugin %s "
+					    "(%s)\n", filename.c_str(), dlerror());
 					dlclose(handle);
 					goto close;
 				}
@@ -121,8 +122,8 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 				plugin = init();
 				if(!plugin)
 				{
-					DFLTLOG(LEVEL_ERROR,
-					        "cannot create plugin\n");
+					LOG(this->log_init, LEVEL_ERROR,
+					    "cannot create plugin\n");
 					continue;
 				}
 
@@ -137,9 +138,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						plug = this->encapsulation.find(plugin->name);
 						if(plug == this->encapsulation.end())
 						{
-							DFLTLOG(LEVEL_NOTICE,
-							        "load encapsulation plugin %s\n",
-							        plugin->name.c_str());
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load encapsulation plugin %s\n",
+							    plugin->name.c_str());
 							this->encapsulation[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -159,9 +160,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						plug = this->lan_adaptation.find(plugin->name);
 						if(plug == this->lan_adaptation.end())
 						{
-							DFLTLOG(LEVEL_NOTICE,
-							        "load lan adaptation plugin %s\n",
-							        plugin->name.c_str());
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load lan adaptation plugin %s\n",
+							    plugin->name.c_str());
 							this->lan_adaptation[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -187,9 +188,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						plug = this->attenuation.find(plugin->name);
 						if(plug == this->attenuation.end())
 						{
-							DFLTLOG(LEVEL_NOTICE,
-							        "load attenuation model plugin "
-							        "%s\n", plugin->name.c_str());
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load attenuation model plugin "
+							    "%s\n", plugin->name.c_str());
 							this->attenuation[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -215,9 +216,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						plug = this->minimal.find(plugin->name);
 						if(plug == this->minimal.end())
 						{
-							DFLTLOG(LEVEL_NOTICE,
-							        "load minimal conditions plugin"
-							        " %s\n", plugin->name.c_str());
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load minimal conditions plugin"
+							    " %s\n", plugin->name.c_str());
 							this->minimal[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -243,9 +244,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						plug = this->error.find(plugin->name);
 						if(plug == this->error.end())
 						{
-							DFLTLOG(LEVEL_NOTICE,
-							        "load error insertions plugin "
-							        "%s\n", plugin->name.c_str());
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load error insertions plugin "
+							    "%s\n", plugin->name.c_str());
 							this->error[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
@@ -257,9 +258,9 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 					break;
 
 					default:
-						DFLTLOG(LEVEL_ERROR,
-						        "Wrong plugin type %d for %s",
-						        plugin->type, filename.c_str());
+						LOG(this->log_init, LEVEL_ERROR,
+						    "Wrong plugin type %d for %s",
+						    plugin->type, filename.c_str());
 				}
 				delete plugin;
 			}
@@ -356,17 +357,17 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		create = this->attenuation[att_pl_name];
 		if(!create)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot load attenuation model plugin: %s",
-			        att_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load attenuation model plugin: %s",
+			    att_pl_name.c_str());
 			return false;
 		}
 		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
 		if(*attenuation == NULL)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot create attenuation model plugin: %s",
-			        att_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create attenuation model plugin: %s",
+			    att_pl_name.c_str());
 			return false;
 		}
 		this->plugins.push_back(*attenuation);
@@ -377,17 +378,17 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		create = this->minimal[min_pl_name];
 		if(!create)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot load minimal condition plugin: %s",
-			        min_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load minimal condition plugin: %s",
+			    min_pl_name.c_str());
 			return false;
 		}
 		*minimal = dynamic_cast<MinimalConditionPlugin *>(create());
 		if(*minimal == NULL)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot create minimal condition plugin: %s",
-			        min_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create minimal condition plugin: %s",
+			    min_pl_name.c_str());
 			return false;
 		}
 		this->plugins.push_back(*minimal);
@@ -398,17 +399,17 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		create = this->error[err_pl_name];
 		if(!create)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot load error insertion plugin: %s",
-			        err_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot load error insertion plugin: %s",
+			    err_pl_name.c_str());
 			return false;
 		}
 		*error = dynamic_cast<ErrorInsertionPlugin *>(create());
 		if(*error == NULL)
 		{
-			DFLTLOG(LEVEL_ERROR,
-			        "cannot error insertion model plugin: %s",
-			        err_pl_name.c_str());
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot error insertion model plugin: %s",
+			    err_pl_name.c_str());
 			return false;
 		}
 		this->plugins.push_back(*error);

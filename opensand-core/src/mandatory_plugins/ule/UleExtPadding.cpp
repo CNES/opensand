@@ -32,6 +32,7 @@
  */
 
 #include "UleExtPadding.h"
+#include "UlePacket.h"
 
 #include <opensand_output/Output.h>
 
@@ -74,18 +75,18 @@ ule_ext_status UleExtPadding::decode(uint8_t hlen, Data payload)
 	// extension is optional, hlen must be 1-5
 	if(hlen < 1 || hlen > 5)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "optional extension, but hlen (0x%x) != 1-5\n",
-		        hlen);
+		LOG(UlePacket::ule_log, LEVEL_ERROR,
+		    "optional extension, but hlen (0x%x) != 1-5\n",
+		    hlen);
 		goto error;
 	}
 
 	// check if payload is large enough
 	if(payload.length() < (size_t) hlen * 2)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "too few data (%zu bytes) for %d-byte extension\n",
-		        payload.length(), hlen * 2);
+		LOG(UlePacket::ule_log, LEVEL_ERROR,
+		    "too few data (%zu bytes) for %d-byte extension\n",
+		    payload.length(), hlen * 2);
 		goto error;
 	}
 

@@ -61,6 +61,8 @@ Ip::Ip():
 Ip::Context::Context(LanAdaptationPlugin &plugin):
 	LanAdaptationContext(plugin)
 {
+	// register the static IP packet log
+	IpPacket::ip_log = Output::registerLog(LEVEL_WARNING, "LanAdaptation.Net.IP");
 }
 
 void Ip::Context::init()

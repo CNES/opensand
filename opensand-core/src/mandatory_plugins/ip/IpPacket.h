@@ -142,6 +142,9 @@ class IpPacket: public NetPacket
 	 * @return true if network-layer packet is valid, false otherwise
 	 */
 	virtual bool isValid() const = 0;
+
+	/// The IP packet log
+	static OutputLog *ip_log;
 };
 
 #endif

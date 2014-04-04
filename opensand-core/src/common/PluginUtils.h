@@ -60,6 +60,7 @@ typedef map<string, fn_create>::const_iterator pl_list_it_t;
  */
 class PluginUtils
 {
+	friend class Plugin;
   protected:
 
 	pl_list_t encapsulation;
@@ -69,8 +70,6 @@ class PluginUtils
 	pl_list_t error;
 	vector <void *> handlers;
 	vector<OpenSandPlugin *> plugins;
-
-  public:
 
 	PluginUtils();
 
@@ -147,6 +146,8 @@ class PluginUtils
 		lan_adaptation = this->lan_adaptation;
 	}
 
+	/// the log
+	OutputLog *log_init;
 };
 
 

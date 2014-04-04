@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 		goto unload_config;
 	}
 
-
+	// Output::setLevels();
 	// read all packages debug levels
 //	DFLTLOG(LEVEL_CRITICAL,
 // 	        "readDebugLevels:TODO\n");

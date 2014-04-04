@@ -33,6 +33,7 @@
  */
 
 #include "Mpeg.h"
+#include "MpegPacket.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_conf/ConfigurationFile.h>
@@ -51,6 +52,8 @@ Mpeg::Mpeg():
 	this->upper[TRANSPARENT].push_back("ULE");
 	this->upper[REGENERATIVE].push_back("AAL5/ATM");
 	this->upper[REGENERATIVE].push_back("ULE");
+	// register the static packet log
+	MpegPacket::mpeg_log = Output::registerLog(LEVEL_WARNING, "Encap.Net.MPEG");
 }
 
 

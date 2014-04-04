@@ -84,6 +84,8 @@ static uint32_t crc_table[2560] =
 };
 
 
+OutputLog *UlePacket::ule_log = NULL;
+
 UlePacket::UlePacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)
 {
@@ -173,10 +175,10 @@ bool UlePacket::isValid(bool crc_enabled) const
 	// check minimal length to read the Length field
 	if(this->getTotalLength() < 2)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "packet too short to contain a "
-		        "length field (%zu bytes)\n",
-		        this->getTotalLength());
+		LOG(ule_log, LEVEL_ERROR,
+		    "packet too short to contain a "
+		    "length field (%zu bytes)\n",
+		    this->getTotalLength());
 		goto bad;
 	}
 
@@ -188,10 +190,10 @@ bool UlePacket::isValid(bool crc_enabled) const
 	// check length
 	if(this->getTotalLength() != length)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "bad packet length (%zu bytes of data for "
-		        "a %u-byte ULE packet)\n",
-		        this->getTotalLength(), length);
+		LOG(ule_log, LEVEL_ERROR,
+		    "bad packet length (%zu bytes of data for "
+		    "a %u-byte ULE packet)\n",
+		    this->getTotalLength(), length);
 		goto bad;
 	}
 
@@ -199,9 +201,9 @@ bool UlePacket::isValid(bool crc_enabled) const
 	crc = this->calcCrc(crc_enabled);
 	if(this->crc() != crc)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "bad CRC (0x%08x != 0x%08x)\n",
-		        this->crc(), crc);
+		LOG(ule_log, LEVEL_ERROR,
+		    "bad CRC (0x%08x != 0x%08x)\n",
+		    this->crc(), crc);
 		goto bad;
 	}
 

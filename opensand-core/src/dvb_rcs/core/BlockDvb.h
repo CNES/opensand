@@ -60,6 +60,9 @@
 #include "PhysicStd.h"
 #include "NccPepInterface.h"
 #include "TerminalCategory.h"
+#include "BBFrame.h"
+#include "Sac.h"
+#include "Ttp.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
@@ -143,7 +146,12 @@ class BlockDvb: public Block
 	 */
 	BlockDvb(const string &name):
 		Block(name)
-	{};
+	{
+		// register static logs
+		BBFrame::bbframe_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
+		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.SAC");
+		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.TTP");
+	};
 
 
 	~BlockDvb();

@@ -149,6 +149,9 @@ class UlePacket: public NetPacket
 	 * @return  the CRC field at the end of the ULE packet
 	 */
 	uint32_t crc() const;
+
+	/// The ULE packet log
+	static OutputLog *ule_log;
 };
 
 #endif

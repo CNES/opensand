@@ -133,18 +133,18 @@ ule_ext_status UleExtSecurity::decode(uint8_t hlen, Data payload)
 	// extension is optional, hlen must be 1-5
 	if(hlen < 1 || hlen > 5)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "optional extension, but hlen (0x%x) != 1-5\n",
-		        hlen);
+		LOG(ule_log, LEVEL_ERROR,
+		    "optional extension, but hlen (0x%x) != 1-5\n",
+		    hlen);
 		goto error;
 	}
 
 	// check if payload is large enough
 	if(payload.length() < (size_t) hlen * 2)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "too few data (%u bytes) for %d-byte extension\n",
-		        payload.length(), hlen * 2);
+		LOG(ule_log, LEVEL_ERROR,
+		    "too few data (%u bytes) for %d-byte extension\n",
+		    payload.length(), hlen * 2);
 		goto error;
 	}
 

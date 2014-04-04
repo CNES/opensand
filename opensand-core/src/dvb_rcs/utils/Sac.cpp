@@ -45,6 +45,7 @@
 #define DVB_CR_VBDC_SCALING_FACTOR_OFFSET 255
 #define DVB_CR_RBDC_SCALING_FACTOR_OFFSET 510
 
+OutputLog *Sac::sac_log = NULL;
 
 static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
 static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);
@@ -80,8 +81,8 @@ bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
 
 	if(this->request_nbr + 1 >= NBR_MAX_CR)
 	{
-		DFLTLOG(LEVEL_ERROR, 
-		        "Cannot add more request\n");
+		LOG(sac_log, LEVEL_ERROR, 
+		    "Cannot add more request\n");
 		return false;
 	}
 	this->request_nbr++;

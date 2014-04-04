@@ -37,6 +37,8 @@
 #include <opensand_output/Output.h>
 
 
+OutputLog *AtmCell::atm_log = NULL;
+
 AtmCell::AtmCell(const unsigned char *data, size_t length):
 	NetPacket(data, length)
 {
@@ -96,9 +98,9 @@ bool AtmCell::isValid()
 
 	if(this->getTotalLength() != AtmCell::getLength())
 	{
-		DFLTLOG(LEVEL_WARNING,
-		        "total length (%u) != ATM cell length (%u)\n",
-		        this->getTotalLength(), AtmCell::getLength());
+		LOG(atm_log, LEVEL_WARNING,
+		    "total length (%u) != ATM cell length (%u)\n",
+		    this->getTotalLength(), AtmCell::getLength());
 		is_ok = false;
 	}
 
@@ -119,8 +121,8 @@ Data AtmCell::getPayload()
 {
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid ATM cell\n");
+		LOG(atm_log, LEVEL_ERROR,
+		    "invalid ATM cell\n");
 		return Data();
 	}
 
@@ -132,8 +134,8 @@ uint8_t AtmCell::getVpi()
 {
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid ATM cell\n");
+		LOG(atm_log, LEVEL_ERROR,
+		    "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -146,8 +148,8 @@ uint16_t AtmCell::getVci()
 {
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid ATM cell\n");
+		LOG(atm_log, LEVEL_ERROR,
+		    "invalid ATM cell\n");
 		return 0;
 	}
 
@@ -161,8 +163,8 @@ uint8_t AtmCell::getPt()
 {
 	if(!this->isValid())
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "invalid ATM cell\n");
+		LOG(atm_log, LEVEL_ERROR,
+		    "invalid ATM cell\n");
 		return 0;
 	}
 

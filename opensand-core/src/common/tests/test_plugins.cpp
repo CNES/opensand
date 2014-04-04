@@ -393,7 +393,6 @@ static void test_encap_and_decap(
 	string folder,
 	bool compare)
 {
-	PluginUtils utils;
 	pl_list_t encap_plug;
 	pl_list_it_t plugit;
 	string stack = "";

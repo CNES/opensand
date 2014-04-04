@@ -216,6 +216,7 @@ inline double ncntoh(uint32_t cn)
 	return new_cn;
 };
 
+
 // The types used in OpenSAND
 
 // addressing

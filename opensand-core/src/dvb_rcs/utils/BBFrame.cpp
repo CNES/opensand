@@ -40,6 +40,8 @@
 
 #include <string.h>
 
+OutputLog *BBFrame::bbframe_log = NULL;
+
 BBFrame::BBFrame(const unsigned char *data, size_t length):
 	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
 {
@@ -156,9 +158,9 @@ void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
 		// is the option for us ?
 		if(ntohs(real_modcod_option->terminal_id) == tal_id)
 		{
-			DFLTLOG(LEVEL_INFO,
-			        "update real MODCOD to %d\n",
-			        real_modcod_option->real_modcod);
+			LOG(bbframe_log, LEVEL_INFO,
+			    "update real MODCOD to %d\n",
+			    real_modcod_option->real_modcod);
 			// check if the value is not outside the values of the file
 			modcod_id = real_modcod_option->real_modcod;
 			return;

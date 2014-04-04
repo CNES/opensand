@@ -32,6 +32,7 @@
  */
 
 #include "UleExtTest.h"
+#include "UlePacket.h"
 
 #include <opensand_output/Output.h>
 
@@ -74,9 +75,9 @@ ule_ext_status UleExtTest::decode(uint8_t hlen, Data UNUSED(payload))
 	// extension is mandatory, hlen must be 0
 	if(hlen != 0)
 	{
-		DFLTLOG(LEVEL_ERROR,
-		        "mandatory extension, but hlen (0x%x) != 0\n",
-		        hlen);
+		LOG(UlePacket::ule_log, LEVEL_ERROR,
+		    "mandatory extension, but hlen (0x%x) != 0\n",
+		    hlen);
 		goto error;
 	}
 

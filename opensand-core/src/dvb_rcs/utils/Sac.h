@@ -204,10 +204,14 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 */
 	double getCni() const;
 
+	/// The log for sac
+	static OutputLog *sac_log;
+
  private:
 
 	/// the number of requests
 	uint8_t request_nbr;
+
 };
 
 #endif
