@@ -325,6 +325,7 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 	std::vector < sat_carrier_channel * >::iterator it;
 
 	op_len = 0;
+	op_carrier = 0;
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
 	    "try to receive a packet from satellite channel "

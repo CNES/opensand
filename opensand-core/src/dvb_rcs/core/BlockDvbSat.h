@@ -75,11 +75,7 @@ class BlockDvbSat: public BlockDvb
 	class Upward: public DvbUpward
 	{
 	 public:
-		Upward(Block *const bl):
-			DvbUpward(bl)
-		{
-			this->receptionStd = NULL;
-		};
+		Upward(Block *const bl);
 
 		~Upward();
 		bool onInit(void);
@@ -128,23 +124,12 @@ class BlockDvbSat: public BlockDvb
 
 		/// The satellite delay to emulate
 		time_ms_t sat_delay;
-
-		/// the satellite type (regenerative o transparent)
-		sat_type_t satellite_type;
-
-		/// Physical layer enable
-		bool with_phy_layer;
-
-		/// The up/return link encapsulation packet
-		EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
 	};
 
 	class Downward: public DvbDownward
 	{
 	 public:
-		Downward(Block *const bl):
-			DvbDownward(bl)
-		{};
+		Downward(Block *const bl);
 
 		~Downward();
 		bool onInit(void);
@@ -202,26 +187,11 @@ class BlockDvbSat: public BlockDvb
 		 */
 		void updateStats(void);
 
-		/// the satellite type (regenerative o transparent)
-		sat_type_t satellite_type;
-
-		/// Physical layer enable
-		bool with_phy_layer;
-
-		/// The down/forward link encapsulation packet
-		EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
-
 		/// the counter for downlink frames
 		time_sf_t down_frame_counter;
 
-		/// the frame duration
-		time_ms_t fwd_timer_ms;
-
 		/// The satellite delay to emulate
 		time_ms_t sat_delay;
-
-		/// The statistics period
-		time_ms_t stats_period_ms;
 
 		/// timer used to awake the block regurlarly in order to send frames
 		//  and schedule in regenerative scenario
@@ -230,9 +200,6 @@ class BlockDvbSat: public BlockDvb
 		/// timer used to awake the block every second in order to retrieve
 		/// the modcods
 		event_id_t scenario_timer;
-
-		/// statistic timer
-		event_id_t stats_timer;
 
 		/// The terminal categories for forward band
 		TerminalCategories categories;
@@ -250,12 +217,6 @@ class BlockDvbSat: public BlockDvb
 		/// The satellite spots
 		sat_spots_t spots;
 
-		/// the scenario refresh interval
-		time_ms_t dvb_scenario_refresh;
-
-		/// The MODCOD simulation elements for forward link
-		FmtSimulation fwd_fmt_simu;
-
 		// Output probes and stats
 		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
 
@@ -271,7 +232,6 @@ class BlockDvbSat: public BlockDvb
 		ProbeListPerSpot probe_sat_l2_to_gw;
 			// Frame interval
 		Probe<float> *probe_frame_interval;
-
 	};
 
 

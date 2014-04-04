@@ -84,7 +84,6 @@ class DamaCtrl
 	 * @param   default_category        default category for non-affected
 	 *                                  terminals
 	 * @param   ret_fmt_simu            The list of simulated up/return FMT
-	 * @param   fwd_fmt_simu            The list of simulated down/forward FMT
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
@@ -97,8 +96,7 @@ class DamaCtrl
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
 	                        TerminalCategory *default_category,
-	                        FmtSimulation *const ret_fmt_simu,
-	                        FmtSimulation *const fwd_fmt_simu);
+	                        FmtSimulation *const ret_fmt_simu);
 
 	// Protocol frames processing
 
@@ -124,11 +122,9 @@ class DamaCtrl
 	 *          the type of CR it receives
 	 *
 	 * @param   sac             SAC frame.
-	 * @param   satellite_type  The type of satellite
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsSAC(const Sac *sac,
-	                       sat_type_t satellite_type = REGENERATIVE) = 0;
+	virtual bool hereIsSAC(const Sac *sac) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.
@@ -284,9 +280,6 @@ class DamaCtrl
 
 	/** FMT simulation information for up/return link */
 	FmtSimulation *ret_fmt_simu;
-
-	/** FMT simulation information for down/forward */
-	FmtSimulation *fwd_fmt_simu;
 
 	/** Roll-off factor */
 	double roll_off;

@@ -71,7 +71,20 @@
 //      to disable this macro consequently
 //      see https://rt.wiki.kernel.org/index.php/RT_PREEMPT_HOWTO#Runtime_detection_of_an_RT-PREEMPT_Kernel
 //      BUT do we really need that ? Do wee need to add it on the other timers ?
+//      maybe not useful on new kernels
 #define DVB_TIMER_ADJUST(x)  ((long)x/10)*10
+
+
+/// the current state of the ST
+typedef enum
+{
+	state_null,            /**< non-existant state */
+	state_off,             /**< The ST is stopped */
+	state_initializing,    /**< The ST is begin started */
+	state_wait_logon_resp, /**< The ST is not logged yet */
+	state_running,         /**< The ST is operational */
+} tal_state_t;
+
 
 
 /**
@@ -96,93 +109,6 @@
  */
 class BlockDvbTal: public BlockDvb
 {
-
- private:
-
-	/// is true if the init is done
-	bool init_ok;
-
-	/// the current state of the ST
-	enum
-	{
-		state_null,            /**< non-existant state */
-		state_off,
-		state_initializing,    /**< The ST is begin started */
-		state_wait_logon_resp, /**< The ST is not logged yet */
-		state_running,         /**< The ST is operational */
-	} _state;
-
-	// the MAC ID of the ST (as specified in configuration)
-	int mac_id;
-	/// the group ID sent by NCC (only valid in state ef state_running)
-	group_id_t group_id;
-	/// the logon ID sent by NCC (only valid in state ef state_running,
-	/// should be the same as ef mac_d)
-	tal_id_t tal_id;
-
-	/// the DAMA agent
-	DamaAgent *dama_agent;
-
-
-	/* carrier IDs */
-
-	uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
-	uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
-	uint8_t carrier_id_data;  ///< carrier id for traffic emission
-
-	/* DVB-RCS/S2 emulation */
-
-	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	std::list<DvbFrame *> complete_dvb_frames;
-
-	/// Length of an output encapsulation packet (in bytes)
-	int out_encap_packet_length;
-	/// Type of output encapsulation packet
-	long out_encap_packet_type;
-	/// Length of an input encapsulation packet (in bytes)
-	int in_encap_packet_length;
-
-	rate_kbps_t fixed_bandwidth;   ///< fixed bandwidth (CRA) in kbits/s
-	rate_kbps_t max_rbdc_kbps;     ///< Maximum RBDC in kbits/s
-	vol_kb_t max_vbdc_kb;          ///< Maximum VBDC in kbits
-
-	/// The C/N0 for downlink in scenario
-	double cni;
-
-	/* Timers and their values */
-
-	event_id_t logon_timer;  ///< Upon each m_logonTimer event retry logon
-	event_id_t frame_timer;  ///< Upon each m_frameTimer event is a frame
-
-	/// whether this is the first frame
-	bool first;
-
-
-	/* Fifos */
-
-	/// map of FIFOs per MAX priority to manage different queues
-	fifos_t dvb_fifos;
-	/// the default MAC fifo index = fifo with the smallest priority
-	unsigned int default_fifo_id;
-	/// the number of PVCs
-	unsigned int nbr_pvc;
-
-
-	/* QoS Server / Policy Enforcement Point (PEP) on ST side */
-
-	static int qos_server_sock;           ///< The socket for the QoS Server
-	std::string qos_server_host;   ///< The hostname of the QoS Server
-	int qos_server_port;           ///< The TCP port of the QoS Server
-	event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
-
-
-	/* OBR */
-
-	/// OBR period -in number of frames- and Obr slot
-	/// position within the multi-frame,
-	int m_obrPeriod;
-	int m_obrSlotFrame;
-
  public:
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
@@ -190,182 +116,325 @@ class BlockDvbTal: public BlockDvb
 
 	class Upward: public DvbUpward
 	{
-	  public:
-		Upward(Block *const bl, tal_id_t UNUSED(mac_id)):
-			DvbUpward(bl)
-		{};
+	 public:
+		Upward(Block *const bl, tal_id_t mac_id);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 protected:
+
+		/**
+		 * @brief Initialize the transmission mode
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMode(void);
+
+		/**
+		 * @brief Initialize the output
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
+
+		/**
+		 * Upon reception of a SoF:
+		 * - update allocation with TBTP received last superframe (in DAMA agent)
+		 * - reset timers
+		 * @param dvb_frame  The DVB frame
+		 * @return true on success, false otherwise
+		 */
+		bool onStartOfFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * When receive a frame tick, send a constant DVB burst size for RT traffic,
+		 * and a DVB burst for NRT allocated by the DAMA agent
+		 * @return true on success, false if failed
+		 */
+		bool processOnFrameTick(void);
+
+		/**
+		 * Manage the receipt of the DVB Frames
+		 *
+		 * @param dvb_frame  The DVB frame
+		 * @return true on success, false otherwise
+		 */
+		bool onRcvDvbFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * Manage logon response: inform opposite channel and upper layer
+		 * that the link is now up and running
+		 *
+		 * @param dvb_frame  The frame containing the logon response
+		 * @return true on success, false otherwise
+		 */
+		bool onRcvLogonResp(DvbFrame *dvb_frame);
+
+		/**
+		 * Transmist a frame to the opposite channel
+		 *
+		 * @param frame  The dvb frame
+		 * @return true on success, false otherwise
+		 */
+		bool shareFrame(DvbFrame *frame);
+
+		// statistics update
+		void updateStats(void);
+		void resetStatsCxt(void);
+
+
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
+		/// the group ID sent by NCC (only valid in state_running)
+		group_id_t group_id;
+		/// the logon ID sent by NCC (only valid in state_running,
+		/// should be the same as the mac_id)
+		tal_id_t tal_id;
+
+		/// the current state of the ST
+		tal_state_t state;
+
+		/// the DAMA agent
+		DamaAgent *dama_agent;
+
+		/* Output probes and stats */
+			// Rates
+					// Layer 2 from SAT
+		Probe<int> *probe_st_l2_from_sat;
+		int l2_from_sat_bytes;
+			// Physical layer information
+		Probe<int> *probe_st_real_modcod;
+		Probe<int> *probe_st_received_modcod;
+		Probe<int> *probe_st_rejected_modcod;
+			// Stability
+		Probe<float> *probe_sof_interval;
 	};
 
 
 	class Downward: public DvbDownward
 	{
 	  public:
-		Downward(Block *const bl, tal_id_t UNUSED(mac_id)):
-			DvbDownward(bl)
-		{};
+		Downward(Block *const bl, tal_id_t mac_id);
+		~Downward();
 		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	 protected:
+
+		/**
+		 * @brief Initialize the transmission mode
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMode(void);
+
+		/**
+		 * Read configuration for the carrier ID
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initCarrierId(void);
+
+		/**
+		 * Read configuration for the MAC FIFOs
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMacFifo(void);
+
+		/**
+		 * Read configuration for the OBR period
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initObr(void);
+
+		/**
+		 * Read configuration for the DAMA algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initDama(void);
+
+		/**
+		 * @brief Initialize the output
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
+
+
+		/**
+		 * Read configuration for the QoS Server
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initQoSServer(void);
+
+		/**
+		 * @brief Initialize the timers
+		 *
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initTimers(void);
+
+
+		// statistics update
+		void updateStats(void);
+		void resetStatsCxt(void);
+
+		/**
+		 * This method send a Logon Req message
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool sendLogonReq(void);
+
+		/**
+		 * Manage logon response: inform dama that the link is now up and running
+		 *
+		 * @param frame  The frame containing the logon response
+		 * @return true on success, false otherwise
+		 */
+		bool handleLogonResp(DvbFrame *frame);
+
+		/**
+		 * Upon reception of a SoF:
+		 * - update allocation with TBTP received last superframe (in DAMA agent)
+		 * - reset timers
+		 * @param dvb_frame  The DVB frame
+		 * @return true on success, false otherwise
+		 */
+		bool handleStartOfFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * When receive a frame tick, send a constant DVB burst size for RT traffic,
+		 * and a DVB burst for NRT allocated by the DAMA agent
+		 * @return true on success, false if failed
+		 */
+		bool processOnFrameTick(void);
+
+		/**
+		 * Manage the receipt of the DVB Frames
+		 *
+		 * @param dvb_frame  The DVB frame
+		 * @return true on success, false otherwise
+		 */
+		bool handleDvbFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * Send a SAC
+		 * @return true on success, false otherwise
+		 */
+		bool sendSAC(void);
+
+		// communication with QoS Server:
+		bool connectToQoSServer();
+		static void closeQosSocket(int sig);
+
+		/**
+		 * Delete packets in dvb_fifo
+		 */
+		void deletePackets(void);
+
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
+
+		/// the current state of the ST
+		tal_state_t state;
+
+		/// the group ID sent by NCC (only valid in state_running)
+		group_id_t group_id;
+		/// the logon ID sent by NCC (only valid in state_running,
+		/// should be the same as the mac_id)
+		tal_id_t tal_id;
+
+		/// fixed bandwidth (CRA) in kbits/s
+		rate_kbps_t fixed_bandwidth;
+		/// Maximum RBDC in kbits/s
+		rate_kbps_t max_rbdc_kbps;
+		/// Maximum VBDC in kbits
+		vol_kb_t max_vbdc_kb;
+
+		/// the DAMA agent
+		DamaAgent *dama_agent;
+
+		/// the current frame number inside the current super frame
+		time_frame_t frame_counter; // from 1 to frames_per_superframe
+
+		/* carrier IDs */
+		uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
+		uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
+		uint8_t carrier_id_data;  ///< carrier id for traffic emission
+
+		/* Fifos */
+		/// map of FIFOs per MAX priority to manage different queues
+		fifos_t dvb_fifos;
+		/// the default MAC fifo index = fifo with the smallest priority
+		unsigned int default_fifo_id;
+		/// the number of PVCs
+		unsigned int nbr_pvc;
+
+		/* OBR */
+		/// OBR period -in number of frames- and Obr slot
+		/// position within the multi-frame,
+		time_frame_t obr_period_frame;
+		time_frame_t obr_slot_frame;
+
+		/// Upon each frame timer event is a frame
+		event_id_t frame_timer;
+
+		/// whether this is the first frame
+		bool is_first_frame;
+
+		/// the list of complete DVB-RCS/BB frames that were not sent yet
+		std::list<DvbFrame *> complete_dvb_frames;
+
+		/// Upon each logon timer event retry logon
+		event_id_t logon_timer;
+
+		/// The C/N0 for downlink in scenario
+		double cni;
+
+		/* QoS Server / Policy Enforcement Point (PEP) on ST side */
+		static int qos_server_sock;           ///< The socket for the QoS Server
+		std::string qos_server_host;   ///< The hostname of the QoS Server
+		int qos_server_port;           ///< The TCP port of the QoS Server
+		event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
+
+		// Output events
+		OutputEvent *event_login_sent;
+		OutputEvent *event_login_complete;
+
+		// Output Logs
+		OutputLog *log_frame_tick;
+		OutputLog *log_qos_server;
+
+		/* Output probes and stats */
+			// Queue sizes
+		map<unsigned int, Probe<int> *> probe_st_queue_size;
+		map<unsigned int, Probe<int> *> probe_st_queue_size_kb;
+			// Rates
+					// Layer 2 to SAT
+		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
+		int *l2_to_sat_cells_before_sched;
+		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
+		int *l2_to_sat_cells_after_sched;
+		Probe<int> *probe_st_l2_to_sat_total;
+		int l2_to_sat_total_cells;
+					// PHY to SAT
+		Probe<int> *probe_st_phy_to_sat;
+					// Layer 2 from SAT
+		Probe<int> *probe_st_l2_from_sat;
+		int l2_from_sat_bytes;
 	};
 
-  protected:
+ protected:
 
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
-	bool onInit(void);
-
- private:
-
-	// initialization methods
-
-
-	/**
-	 * @brief Initialize the transmission mode
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initMode();
-
-	/**
-	 * Read configuration for the parameters
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initParameters();
-
-	/**
-	 * Read configuration for the carrier ID
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initCarrierId();
-
-	/**
-	 * Read configuration for the MAC FIFOs
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initMacFifo();
-
-	/**
-	 * Read configuration for the OBR period
-	 *
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initObr();
-
-	/**
-	 * Read configuration for the DAMA algorithm
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initDama();
-
-	/**
-	 * Read configuration for the QoS Server
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initQoSServer();
-
-	/**
-	 * @brief Initialize the timers
-	 *
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initTimers();
-
-	/**
-	 * @brief Initialize the output
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initOutput();
-
-	bool onStartOfFrame(DvbFrame *dvb_frame);
-	int processOnFrameTick();
-
-	// DVB frame from lower layer
-
-	/**
-	 * Manage the receipt of the DVB Frames
-	 *
-	 * @param dvb_frame  The DVB frame
-	 * @return true on success, false otherwise
-	 */
-	bool onRcvDvbFrame(DvbFrame *dvb_frame);
-
-	/**
-	 * Manage logon response: inform dama and upper layer that the link is now up and running
-	 *
-	 * @param dvb_frame  The frame containing the logon response
-	 * @return true on success, false otherwise
-	 */
-	bool onRcvLogonResp(DvbFrame *dvb_frame);
-
-	// UL DVB frames emission
-	/**
-	 * This method send a Logon Req message
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool sendLogonReq();
-	bool sendSAC();
-
-	void deletePackets();
-
-	// statistics update
-	void updateStats();
-	void resetStatsCxt();
-
-	// communication with QoS Server:
-	bool connectToQoSServer();
-	static void closeQosSocket(int sig);
-
-	// Output events
-	OutputEvent *event_login_sent;
-	OutputEvent *event_login_complete;
-
-	// Output Logs
-	// TODO too many logs here
-	OutputLog *log_on_downward_event; 
-	OutputLog *log_on_upward_event; 
-	OutputLog *log_close_qos_socket;
-	OutputLog *log_connect_to_qos_server;
-	OutputLog *log_send_logon_req;
-	OutputLog *log_send_sac;
-	OutputLog *log_on_rcv_dvb_frame;
-	OutputLog *log_on_rcv_logon_resp;
-	OutputLog *log_on_start_of_frame;
-	OutputLog *log_process_on_frame_tick;
-	
-	// Output probes and stats
-
-		// Queue sizes
-	map<unsigned int, Probe<int> *> probe_st_queue_size;
-	map<unsigned int, Probe<int> *> probe_st_queue_size_kb;
-		// Rates
-				// Layer 2 to SAT
-	map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
-	int *l2_to_sat_cells_before_sched;
-	map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
-	int *l2_to_sat_cells_after_sched;
-	Probe<int> *probe_st_l2_to_sat_total;
-	int l2_to_sat_total_cells;
-				// PHY to SAT
-	Probe<int> *probe_st_phy_to_sat;
-				// Layer 2 from SAT
-	Probe<int> *probe_st_l2_from_sat;
-	int l2_from_sat_bytes;
-				// PHY from SAT
-	Probe<int> *probe_st_phy_from_sat;
-	int phy_from_sat_bytes;
-		// Physical layer information
-	Probe<int> *probe_st_real_modcod;
-	Probe<int> *probe_st_received_modcod;
-	Probe<int> *probe_st_rejected_modcod;
-		// Stability
-	Probe<float> *probe_sof_interval;
+	bool onInit(void);	
 };
 
 #endif

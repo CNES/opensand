@@ -217,7 +217,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 {
 	int i;
 
-	uint8_t tal_id;
+	tal_id_t tal_id = 0;
 	int mask;
 	IpAddress *ip_addr;
 

@@ -259,8 +259,8 @@ int main(int argc, char **argv)
 	}
 
 	block_dvb = Rt::createBlock<BlockDvbNcc,
-	                            BlockDvbNcc::DvbUpward,
-	                            BlockDvbNcc::DvbDownward>("Dvb", block_encap);
+	                            BlockDvbNcc::Upward,
+	                            BlockDvbNcc::Downward>("Dvb", block_encap);
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

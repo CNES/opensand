@@ -104,7 +104,7 @@ bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
 	return true;
 }
 
-bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
+bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 {
 	DamaTerminalList::iterator st;
 	TerminalContextRcs *terminal;
@@ -120,8 +120,6 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "
 		    "Discarded.\n" , this->current_superframe_sf, tal_id);
-/*		Output::sendEvent(error_ncc_req, "CR for an unknown st (logon_id=%d)."
-		                  "Discarded.\n", tal_id);*/
 		goto error;
 	}
 	terminal = (TerminalContextRcs*) st->second; // Now st_context points to a valid context
@@ -164,22 +162,6 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac, sat_type_t satellite_type)
 				                tal_id, xbdc);
 
 				break;
-		}
-	}
-	// TODO global part ? for DamaCtrl and not only RCS
-	if(this->with_phy_layer)
-	{
-		// transparent : the C/N0 of forward link
-		// regenerative : the C/N0 of uplink (updated by sat)
-		// TODO we have to avoid fwd_fmt_simu here !
-		double cni = sac->getCni();
-		if(satellite_type == TRANSPARENT)
-		{
-			this->fwd_fmt_simu->setRequiredModcod(tal_id, cni);
-		}
-		else if(satellite_type == REGENERATIVE)
-		{
-			this->ret_fmt_simu->setRequiredModcod(tal_id, cni);
 		}
 	}
 

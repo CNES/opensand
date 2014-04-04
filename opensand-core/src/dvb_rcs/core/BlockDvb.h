@@ -68,46 +68,124 @@ class BlockDvbSat;
 class BlockDvbNcc;
 class BlockDvbTal;
 
+
+class DvbChannel: public RtChannel
+{
+ public:
+	DvbChannel(Block *const bl, chan_type_t chan):
+		RtChannel(bl, chan),
+		satellite_type(),
+		with_phy_layer(false),
+		super_frame_counter(0),
+		pkt_hdl(NULL),
+		stats_period_ms(),
+		stats_timer(-1)
+	{
+	};
+
+ protected:
+
+	/**
+	 * @brief Read the satellite type
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool initSatType(void);
+
+	/**
+	 * @brief Read the encapsulation shcemes to get packet handler
+	 *
+	 * @param encap_schemes The section in configuration file for encapsulation
+	 *                      schemes (up/return or down/forward)
+	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
+	 * @return true on success, false otherwise
+	 */
+	bool initPktHdl(const char *encap_schemes,
+	                EncapPlugin::EncapPacketHandler **pkt_hdl);
+
+
+	/**
+	 * @brief Read the common configuration parameters
+	 *
+	 * @param encap_schemes The section in configuration file for encapsulation
+	 *                      schemes (up/return or down/forward)
+	 * @return true on success, false otherwise
+	 */
+	bool initCommon(const char *encap_schemes);
+
+	/// the satellite type (regenerative o transparent)
+	sat_type_t satellite_type;
+
+	/// Physical layer enable
+	bool with_phy_layer;
+
+	/// the current super frame number
+	time_sf_t super_frame_counter;
+
+	/// The encapsulation packet handler
+	EncapPlugin::EncapPacketHandler *pkt_hdl;
+
+	/// The statistics period
+	time_ms_t stats_period_ms;
+
+	/// Statistics timer
+	event_id_t stats_timer;
+};
+
+
 class BlockDvb: public Block
 {
-	// TODO for protected parameters assignment in channels
-	//      remove when everything will be correctly separated
-	friend class BlockDvbSat;
  public:
 
 	/**
 	 * @brief DVB block constructor
 	 *
 	 */
-	BlockDvb(const string &name);
+	BlockDvb(const string &name):
+		Block(name)
+	{};
+
 
 	~BlockDvb();
 
-	class DvbUpward: public RtUpward
+	class DvbUpward: public DvbChannel
 	{
-		// TODO REMOVE
-		friend class BlockDvbNcc;
-		friend class BlockDvbTal;
 	 public:
 		DvbUpward(Block *const bl):
-			RtUpward(bl)
+			DvbChannel(bl, upward_chan),
+			receptionStd(NULL)
 		{};
+
+
 		~DvbUpward();
+
 	 protected:
 		/// reception standard (DVB-RCS or DVB-S2)
 		PhysicStd *receptionStd;
 	};
 
-	class DvbDownward: public RtDownward
+	class DvbDownward: public DvbChannel
 	{
-		// TODO REMOVE
-		friend class BlockDvbNcc;
-		friend class BlockDvbTal;
 	 public:
 		DvbDownward(Block *const bl):
-			RtDownward(bl)
+			DvbChannel(bl, downward_chan),
+			fmt_simu(),
+			frame_duration_ms(),
+			fwd_timer_ms(),
+			frames_per_superframe(-1),
+			frame_counter(0),
+			dvb_scenario_refresh(-1)
 		{};
+
+
 	 protected:
+		/**
+		 * @brief Read the common configuration parameters for downward channels
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool initDown(void);
+
 		/**
 		 * Receive Packet from upper layer
 		 *
@@ -143,150 +221,96 @@ class BlockDvb: public Block
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
 
 		/**
+		 * @brief init the band according to configuration
+		 *
+		 * @param band                 The section in configuration file
+		 *                             (up/return or down/forward)
+		 * @param duration_ms          The frame duration on this band
+		 * @param categories           OUT: The terminal categories
+		 * @param terminal_affectation OUT: The terminal affectation in categories
+		 * @param default_category     OUT: The default category if terminal is not
+		 *                                  in terminal affectation
+		 * @param fmt_groups           OUT: The groups of FMT ids
+		 * @return true on success, false otherwise
+		 */
+		bool initBand(const char *band,
+		              time_ms_t duration_ms,
+		              TerminalCategories &categories,
+		              TerminalMapping &terminal_affectation,
+		              TerminalCategory **default_category,
+		              fmt_groups_t &fmt_groups);
+
+		/**
+		 * @brief  Compute the bandplan.
+		 *
+		 * Compute available carrier frequency for each carriers group in each
+		 * category, according to the current number of users in these groups.
+		 *
+		 * @param   available_bandplan_khz  available bandplan (in kHz).
+		 * @param   roll_off                roll-off factor
+		 * @param   duration_ms             The frame duration on this band
+		 * @param   categories              pointer to category list.
+		 *
+		 * @return  true on success, false otherwise.
+		 */
+		bool computeBandplan(freq_khz_t available_bandplan_khz,
+		                     double roll_off,
+		                     time_ms_t duration_ms,
+		                     TerminalCategories &categories);
+
+
+		/**
+		 * @brief Read configuration for the MODCOD definition/simulation files
+		 *
+		 * @param def     The section in configuration file for MODCOD definitions
+		 *                (up/return or down/forward)
+		 * @param simu    The section in configuration file for MODCOD simulation
+		 *                (up/return or down/forward)
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodFiles(const char *def, const char *simu);
+
+		/**
+		 * @brief Read configuration for link MODCOD definition/simulation files
+		 *
+		 * @param def       The section in configuration file for MODCOD definitions
+		 *                  (up/return or down/forward)
+		 * @param simu      The section in configuration file for MODCOD simulation
+		 *                  (up/return or down/forward)
+		 * @param fmt_simu  The FMT simulation attribute to initialize
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodFiles(const char *def, const char *simu,
+		                     FmtSimulation &fmt_simu);
+
+		/**
 		 * Update the statistics
 		 */
-		virtual void updateStats(void) {return;}; //TODO once correctly separated = 0;
+		virtual void updateStats(void) = 0;
+
+	 protected:
+
+		/// The MODCOD simulation elements
+		FmtSimulation fmt_simu;
+	
+		/// the frame duration
+		time_ms_t frame_duration_ms;
+
+		/// the frame duration
+		time_ms_t fwd_timer_ms;
+
+		/// the number of frame per superframe
+		unsigned int frames_per_superframe;
+
+		/// the current frame number inside the current super frame
+		time_frame_t frame_counter; // from 1 to frames_per_superframe
+
+		/// the scenario refresh interval
+		time_ms_t dvb_scenario_refresh;
+
+		// Output log and debug
+		OutputLog *log_band;
 	};
-
- protected:
-
-	// Common function for parameters reading
-	// TODO these functions may be used in both channels,
-	//      create a generic DvbChannel that implement them
-
-	/**
-	 * brief Read the common configuration parameters
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool initCommon();
-
-
-	/**
-	 * @brief Create a message with the given burst
-	 *        and sned it to upper layer
-	 *
-	 * @param burst the burst of encapsulated packets
-	 * @return  true on success, false otherwise
-	 */
-	// TODO REMOVE
-	bool SendNewMsgToUpperLayer(NetBurst *burst);
-
-	/**
-	 * @brief Read configuration for the down/forward link MODCOD
-	 *        definition/simulation files
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initForwardModcodFiles();
-
-	/**
-	 * @brief Read configuration for the up/return link MODCOD
-	 *        definition/simulation files
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initReturnModcodFiles();
-
-	/**
-	 * @brief init the band according to configuration
-	 *
-	 * @param band                 The section in configuration file
-	 *                             (up/return or down/forward)
-	 * @param duration_ms          The frame duration on this band
-	 * @param categories           OUT: The terminal categories
-	 * @param terminal_affectation OUT: The terminal affectation in categories
-	 * @param default_category     OUT: The default category if terminal is not
-	 *                                  in terminal affectation
-	 * @param fmt_groups           OUT: The groups of FMT ids
-	 * @return true on success, false otherwise
-	 */
-	bool initBand(const char *band,
-	              time_ms_t duration_ms,
-	              TerminalCategories &categories,
-	              TerminalMapping &terminal_affectation,
-	              TerminalCategory **default_category,
-	              fmt_groups_t &fmt_groups);
-
-	/**
-	 * @brief  Compute the bandplan.
-	 *
-	 * Compute available carrier frequency for each carriers group in each
-	 * category, according to the current number of users in these groups.
-	 *
-	 * @param   available_bandplan_khz  available bandplan (in kHz).
-	 * @param   roll_off                roll-off factor
-	 * @param   duration_ms             The frame duration on this band
-	 * @param   categories              pointer to category list.
-	 *
-	 * @return  true on success, false otherwise.
-	 */
-	bool computeBandplan(freq_khz_t available_bandplan_khz,
-	                     double roll_off,
-	                     time_ms_t duration_ms,
-	                     TerminalCategories &categories);
-
-
-
-	// Output log and debug
-	OutputLog *log_send_up;
-	OutputLog *log_band;
-	OutputLog *log_request_simulation;
-	OutputLog *log_qos_server;
-	OutputLog *log_frame_tick;
-	// TODO REMOVE
-	OutputLog *log_send_down;
-	OutputLog *log_rcv_from_up;
-	OutputLog *log_rcv_from_down;
-
-
-	/// the satellite type (regenerative o transparent)
-	sat_type_t satellite_type;
-
-	/// the frame duration
-	time_ms_t frame_duration_ms;
-
-	/// the frame duration
-	time_ms_t fwd_timer_ms;
-
-	/// the number of frame per superframe
-	unsigned int frames_per_superframe;
-
-	/// the current super frame number
-	time_sf_t super_frame_counter;
-	/// the current frame number inside the current super frame
-	time_frame_t frame_counter; // from 1 to frames_per_superframe
-
-	/// The MODCOD simulation elements for return link
-	// TODO only in DvbNcc
-	FmtSimulation ret_fmt_simu;
-
-	/// The MODCOD simulation elements for forward link
-	FmtSimulation fwd_fmt_simu;
-
-	/// Physical layer enable
-	bool with_phy_layer;
-
-	/// the scenario refresh interval
-	time_ms_t dvb_scenario_refresh;
-
-	/// The up/return link encapsulation packet
-	EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
-
-	/// The down/forward link encapsulation packet
-	EncapPlugin::EncapPacketHandler *down_forward_pkt_hdl;
-
-	/// The statistics period
-	time_ms_t  stats_period_ms;
-
-	/// Statistics timer
-	event_id_t stats_timer;
-
-	/// output events
-	// TODO these events here and some other in DvbNcc
-	OutputEvent *event_login_received;
-	OutputEvent *event_login_response;
-
 };
 
 #endif

@@ -63,105 +63,12 @@
 #include "NccPepInterface.h"
 #include "Scheduling.h"
 
-class BlockDvbNcc: public BlockDvb, NccPepInterface
+class BlockDvbNcc: public BlockDvb
 {
-
- private:
-
-	/// The DAMA controller
-	DamaCtrlRcs *dama_ctrl;
-
-	/// The uplink of forward scheduling depending on satellite
-	Scheduling *scheduling;
-
-	/// carrier ids
-	uint8_t ctrl_carrier_id;
-	uint8_t sof_carrier_id;
-	uint8_t data_carrier_id;
-
-	/// frame timer for return, used to awake the block every frame period
-	event_id_t frame_timer;
-
-	/// frame timer for forward, used to awake the block every frame period
-	event_id_t fwd_timer;
-
-	/// counter for forward frames
-	time_sf_t fwd_frame_counter;
-
-	/// ST unique mac id (configuration param)
-	tal_id_t macId;
-
-	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	std::list<DvbFrame *> complete_dvb_frames;
-
-	/// timer used to awake the block every second in order to retrieve
-	/// the current MODCODs
-	event_id_t scenario_timer;
-
-	/// a fifo to keep the received packet from encap bloc
-	DvbFifo *data_dvb_fifo;
-
-	/// The terminal categories for forward band
-	TerminalCategories categories;
-
-	/// The terminal affectation for forward band
-	TerminalMapping terminal_affectation;
-
-	/// The default terminal category for forward band
-	TerminalCategory *default_category;
-
-	// TODO remove FMT groups from attributes
-	/// FMT groups for down/forward
-	fmt_groups_t fwd_fmt_groups;
-
-	/// FMT groups for up/return
-	fmt_groups_t ret_fmt_groups;
-
-	/// The C/N0 for downlink in regenerative scenario that will be transmited
-	//  to satellite in SAC
-	//  For transparent scenario the return link cni will be used to update return
-	//  MODCOD id for terminals
-	double cni;
-
-	/**** NGN network / Policy Enforcement Point (PEP) ****/
-
-	/// timer used for applying resources allocations received from PEP
-	event_id_t pep_cmd_apply_timer;
-
-	/// Delay for allocation requests from PEP (in ms)
-	int pepAllocDelay;
-
-	/// parameters for request simulation
-	FILE *event_file;
-	FILE *stat_file;
-	FILE *simu_file;
-    enum
-	{
-		none_simu,
-		file_simu,
-		random_simu,
-	} simulate;
-	long simu_st;
-	long simu_rt;
-	long simu_max_rbdc;
-	long simu_max_vbdc;
-	long simu_cr;
-	long simu_interval;
-	event_id_t simu_timer;
-
-	//events
-
-	/// logon request reveived
-	OutputEvent *event_logon_req;
-	/// logon response sent
-	OutputEvent *event_logon_resp;
-
-	map<uint16_t, uint16_t> column_list;
 
  public:
 
 	/// Class constructor
-	/// Use mgl_bloc default constructor
 	BlockDvbNcc(const string &name);
 
 	~BlockDvbNcc();
@@ -174,129 +81,301 @@ class BlockDvbNcc: public BlockDvb, NccPepInterface
 	int nb_sequencing;
 
 
-	/* Methods */
+	class Upward: public DvbUpward
+	{
+	 public:
+		Upward(Block *const bl);
+		~Upward();
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
- private:
+	 protected:
 
-	/** Read configuration for the request simulation
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initRequestSimulation();
+		/**
+		 * @brief Initialize the transmission mode
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMode(void);
 
-	/**
-	 * Read configuration for the downward timers
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initDownwardTimers();
+		/**
+		 * @brief Initialize the statistics
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
 
-	/**
-	 * Read configuration for simulated FMT columns ID
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initColumns();
+		/// DVB frame from lower layer
+		bool onRcvDvbFrame(DvbFrame *dvb_frame);
+		bool onRcvLogonReq(DvbFrame *dvb_frame);
+		bool onRcvLogoffReq(DvbFrame *dvb_frame);
 
-	/**
-	 * @brief Initialize the transmission mode
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initMode();
+		// statistics update
+		void updateStats(void);
 
-	/**
-	 * Read configuration for the carrier IDs
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initCarrierIds();
+		/**
+		 * Transmist a frame to the opposite channel
+		 *
+		 * @param frame  The dvb frame
+		 * @return true on success, false otherwise
+		 */
+		bool shareFrame(DvbFrame *frame);
 
-	/**
-	 * @brief Read configuration for the different files and open them
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initFiles();
+		/// ST unique mac id
+		tal_id_t mac_id;
 
-	/**
-	 * Read configuration for the DAMA algorithm
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initDama();
+		// Output probes and stats
+			// Rates
+				// Layer 2 from SAT
+		Probe<int> *probe_gw_l2_from_sat;
+		int l2_from_sat_bytes;
+			// Physical layer information
+		Probe<int> *probe_received_modcod;
+		Probe<int> *probe_rejected_modcod;
 
-	/**
-	 * @brief Read configuration for the FIFO
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initFifo();
+		/// logon request received
+		OutputEvent *event_logon_req;
+	};
 
-	/**
-	 * @brief Initialize the statistics
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initOutput(void);
 
-	/// DVB frame from lower layer
-	bool onRcvDvbFrame(DvbFrame *dvb_frame);
-	void onRcvLogonReq(DvbFrame *dvb_frame);
-	void onRcvLogoffReq(DvbFrame *dvb_frame);
+	class Downward: public DvbDownward, NccPepInterface
+	{
+	  public:
+		Downward(Block *const bl);
+		~Downward();
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
-	// NCC functions
-	void sendTTP();
-	void sendSOF();
+	 protected:
 
-	// event simulation
+		/**
+		 * Read configuration for the downward timers
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initTimers(void);
 
-	/**
-	 * Simulate event based on an input file
-	 * @return true on success, false otherwise
-	 */
-	bool simulateFile();
+		/**
+		 * Read configuration for the carrier IDs
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initCarrierIds(void);
 
-	/**
-	 * Simulate event based on random generation
-	 */
-	void simulateRandom();
+		/**
+		 * @brief Initialize the transmission mode
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initMode(void);
 
-	/**
-	 * @brief Send a SAC message containing ACM parameters
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool sendAcmParameters();
+		/**
+		 * Read configuration for the DAMA algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initDama(void);
 
-	// Output probes and stats
+		/**
+		 * @brief Read configuration for the FIFO
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initFifo(void);
 
-		// Rates
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
 
-			// Layer 2 to SAT
-	Probe<int> *probe_gw_l2_to_sat_before_sched;
-	int l2_to_sat_bytes_before_sched;
-	Probe<int> *probe_gw_l2_to_sat_after_sched;
-	int l2_to_sat_bytes_after_sched;
-			// Layer 2 from SAT
-	Probe<int> *probe_gw_l2_from_sat;
-	int l2_from_sat_bytes;
+		/**
+		 * Read configuration for simulated FMT columns ID
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initColumns(void);
 
-		// Frame interval
-	Probe<float> *probe_frame_interval;
+		/**
+		 * @brief Initialize the statistics
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
 
-		// Queue sizes
-	Probe<int> *probe_gw_queue_size;
-	Probe<int> *probe_gw_queue_size_kb;
-		// Physical layer information
-	Probe<int> *probe_received_modcod;
-	Probe<int> *probe_rejected_modcod;
-	Probe<int> *probe_used_modcod;
+		/** Read configuration for the request simulation
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initRequestSimulation(void);
 
-	/// TODO following
+		/**
+		 * Send a Terminal Time Plan
+		 */
+		void sendTTP(void);
 
-	// statistics update
-	void updateStats();
+		/**
+		 * Send a start of frame
+		 */
+		void sendSOF(void);
+
+		/**
+		 * @brief Send a SAC message containing ACM parameters
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool sendAcmParameters(void);
+
+		/**
+		 * @brief Handle a DVB frame transmitted from upward channel
+		 *
+		 * @param dvb_frame  The frame
+		 * @return true on success, false otherwise
+		 */
+		bool handleDvbFrame(DvbFrame *dvb_frame);
+
+		/**
+		 *  @brief Handle a logon request transmitted by the opposite
+		 *         block
+		 *
+		 *  @param dvb_frame  The frame contining the logon request
+		 *  @return true on success, false otherwise
+		 */
+		bool handleLogonReq(DvbFrame *dvb_frame);
+		/**
+		 *  @brief Handle a logoff request transmitted by the opposite
+		 *         block
+		 *
+		 *  @param dvb_frame  The frame contining the logoff request
+		 *  @return true on success, false otherwise
+		 */
+		bool handleLogoffReq(DvbFrame *dvb_frame);
+
+		// statistics update
+		void updateStats(void);
+
+		/**
+		 * Simulate event based on an input file
+		 * @return true on success, false otherwise
+		 */
+		bool simulateFile(void);
+
+		/**
+		 * Simulate event based on random generation
+		 */
+		void simulateRandom(void);
+
+		/// The DAMA controller
+		DamaCtrlRcs *dama_ctrl;
+
+		/// The uplink of forward scheduling depending on satellite
+		Scheduling *scheduling;
+
+		/// frame timer for return, used to awake the block every frame period
+		event_id_t frame_timer;
+
+		/// frame timer for forward, used to awake the block every frame period
+		event_id_t fwd_timer;
+
+		/// counter for forward frames
+		time_sf_t fwd_frame_counter;
+
+		/// carrier ids
+		uint8_t ctrl_carrier_id;
+		uint8_t sof_carrier_id;
+		uint8_t data_carrier_id;
+
+		/// a fifo to keep the received packet from encap bloc
+		DvbFifo *data_dvb_fifo;
+
+		/// the list of complete DVB-RCS/BB frames that were not sent yet
+		std::list<DvbFrame *> complete_dvb_frames;
+
+		/// The terminal categories for forward band
+		TerminalCategories categories;
+
+		/// The terminal affectation for forward band
+		TerminalMapping terminal_affectation;
+
+		/// The default terminal category for forward band
+		TerminalCategory *default_category;
+
+		/// The up/return packet handler
+		EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
+
+		// TODO remove FMT groups from attributes
+		/// FMT groups for down/forward
+		fmt_groups_t fwd_fmt_groups;
+
+		/// FMT groups for up/return
+		fmt_groups_t ret_fmt_groups;
+
+		/// The MODCOD simulation elements for up/return link
+		FmtSimulation up_ret_fmt_simu;
+		/// The MODCOD simulation elements for down/forward link
+		FmtSimulation down_fwd_fmt_simu;
+
+		/// timer used to awake the block every second in order to retrieve
+		/// the current MODCODs
+		/// In regenerative case with physical layer, is it used to send
+		// ACM parameters to satellite
+		event_id_t scenario_timer;
+
+		/// The C/N0 for downlink in regenerative scenario that will be transmited
+		//  to satellite in SAC
+		//  For transparent scenario the return link cni will be used to update return
+		//  MODCOD id for terminals (not this one)
+		double cni;
+
+		/// The column ID for FMT simulation
+		map<tal_id_t, uint16_t> column_list;
+
+		/// timer used for applying resources allocations received from PEP
+		event_id_t pep_cmd_apply_timer;
+
+		/// Delay for allocation requests from PEP (in ms)
+		int pep_alloc_delay;
+
+		/// parameters for request simulation
+		FILE *event_file;
+		FILE *stat_file;
+		FILE *simu_file;
+		enum
+		{
+			none_simu,
+			file_simu,
+			random_simu,
+		} simulate;
+		long simu_st;
+		long simu_rt;
+		long simu_max_rbdc;
+		long simu_max_vbdc;
+		long simu_cr;
+		long simu_interval;
+		event_id_t simu_timer;
+
+		// Output probes and stats
+			// Rates
+				// Layer 2 to SAT
+		Probe<int> *probe_gw_l2_to_sat_before_sched;
+		int l2_to_sat_bytes_before_sched;
+		Probe<int> *probe_gw_l2_to_sat_after_sched;
+		int l2_to_sat_bytes_after_sched;
+			// Frame interval
+		Probe<float> *probe_frame_interval;
+			// Queue sizes
+		Probe<int> *probe_gw_queue_size;
+		Probe<int> *probe_gw_queue_size_kb;
+			// Physical layer information
+		Probe<int> *probe_used_modcod;
+
+		// Output logs and events
+		OutputLog *log_request_simulation;
+
+		/// logon response sent
+		OutputEvent *event_logon_resp;
+	};
 };
 
 #endif

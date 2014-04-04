@@ -355,7 +355,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		this->udp_counters[ip_address] = nb_sequencing;
 		if(nb_sequencing != 0)
 		{
-			LOG(this->log_sat_carrier, LEVEL_WARNING,
+			LOG(this->log_sat_carrier, LEVEL_NOTICE,
 			    "force synchronisation on UDP channel %d "
 			    "from %s at startup: received counter is %d "
 			    "while it should have been 0\n",
@@ -401,7 +401,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 		// suppose we lost the packet
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "we may have lost UDP packets, check "
-		    "/etc/default/opensand-daemon and adjust UDP buffers");
+		    "/etc/default/opensand-daemon and adjust UDP buffers\n");
 		// send the next packets from stack
 		current_sequencing = (current_sequencing + 1) % 256;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))

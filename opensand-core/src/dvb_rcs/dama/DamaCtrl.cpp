@@ -61,9 +61,7 @@ DamaCtrl::DamaCtrl():
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	// TODO ouch, up and down at the same time, be careful !
 	ret_fmt_simu(),
-	fwd_fmt_simu(),
 	roll_off(0.0)
 {
 	// Output Log
@@ -128,8 +126,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           TerminalCategories categories,
                           TerminalMapping terminal_affectation,
                           TerminalCategory *default_category,
-                          FmtSimulation *const ret_fmt_simu,
-                          FmtSimulation *const fwd_fmt_simu)
+                          FmtSimulation *const ret_fmt_simu)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->frames_per_superframe = frames_per_superframe;
@@ -138,7 +135,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
 	this->ret_fmt_simu = ret_fmt_simu;
-	this->fwd_fmt_simu = fwd_fmt_simu;
 
 	this->converter = new UnitConverter(packet_length_bytes,
 	                                    this->frame_duration_ms);
@@ -373,7 +369,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			    "The CRA value for ST%u is too high compared to "
 			    "the maximum carrier capacity (%u > %u)\n",
 			    tal_id, cra_kbps, max_capa_kbps);
-			// TODO OUTPUT::EVENT
 		}
 
 	}

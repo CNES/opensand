@@ -142,6 +142,17 @@ typedef enum
 	link_up
 } link_state_t;
 
+/// Internal message types
+enum
+{
+	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
+	               //   default value of sendUp/Down function
+	msg_link_up,   ///< link up message
+	msg_cni,       ///< message containing CNI information
+	msg_sig,       ///< message containing signalisation
+};
+
+
 
 /** Compare two floats */
 inline bool equals(double val1, double val2)

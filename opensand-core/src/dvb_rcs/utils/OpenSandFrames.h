@@ -247,14 +247,6 @@ typedef struct
 } __attribute__((__packed__)) T_DVB_ENCAP_BURST;
 
 
-enum
-{
-	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
-	               //   default value of sendUp/Down function
-	msg_link_up,   ///< link up message
-};
-
-
 /// This message is used by dvb rcs layer to advertise the upper layer
 /// that the link is up
 typedef struct

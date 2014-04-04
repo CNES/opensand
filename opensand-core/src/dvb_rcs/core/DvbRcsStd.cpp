@@ -40,7 +40,7 @@
 #include <cassert>
 
 
-DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler * pkt_hdl):
+DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl)
 {
 	this->generic_switch = NULL;

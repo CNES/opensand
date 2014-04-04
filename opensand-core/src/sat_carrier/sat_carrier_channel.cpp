@@ -118,7 +118,7 @@ int sat_carrier_channel::getIfIndex(const char *name)
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "cannot create an INET socket: "
-		    "(%d)\n", strerror(errno), errno);
+		    "(%s:%d)\n", strerror(errno), errno);
 		goto exit;
 	}
 
