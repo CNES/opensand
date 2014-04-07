@@ -226,9 +226,10 @@ OutputLog *OutputInternal::registerLog(log_level_t display_level,
 	{
 		if((*it)->getName() == name)
 		{
+			this->mutex.releaseLock();
+			// logs functions are protected by a mutex in log
 			(*it)->setDisplayLevel(std::max(display_level,
 			                                (*it)->getDisplayLevel()));
-			this->mutex.releaseLock();
 			return *it;
 		}
 	}
@@ -417,33 +418,30 @@ void OutputInternal::sendProbes(void)
 // level, so it would be great, in this case to load a level per
 // block + a default one in the configuration file as it was
 // done before.
-// TODO maybe add a counter or timer and send some logs, not log per log
-void OutputInternal::sendLog(OutputLog *log, log_level_t log_level, 
+// TODO create a circular buffer running in a thread, to avoid sending
+//      too much logs and also to avoid sending sames logs many times
+//      and also to avoid waiting on output when logging...
+void OutputInternal::sendLog(const OutputLog *log,
+                             log_level_t log_level, 
                              const string &message_text)
 {
 	if(!log)
 	{
-		log = this->default_log;
-		if(!log)
-		{
-			goto outputs;
-		}
+		// for internal output
+		goto outputs;
 	}
-	this->mutex.acquireLock();
 	// This log should not be reported
 	// Events are always reported to manager
 	if(log_level > log->getDisplayLevel() &&
 	   log_level <= LEVEL_DEBUG)
 	{
-		this->mutex.releaseLock();
 		return;
 	}
-	this->mutex.releaseLock();
 
 	if(this->collectorEnabled() &&
 	   (this->logsEnabled() || log_level == LEVEL_EVENT))
 	{
-		// Send the debub message to the collector
+		// Send the debug message to the collector
 		string message;	
 		msgHeaderSendLog(message, log->id, log_level);
 		message.append(message_text);
@@ -461,7 +459,6 @@ outputs:
 	if ((!this->collectorEnabled() || this->syslogEnabled()) &&
 		log_level < LEVEL_EVENT)
 	{
-		// TODO __FUNCTION__; __FILE__; __LINE__
 		// Log the debug message with syslog
 		syslog(log_level, "[%s] %s",
 		       log ? log->getName().c_str(): "default",
@@ -470,7 +467,6 @@ outputs:
 
 	if (this->stdlogEnabled() && log_level < LEVEL_EVENT)
 	{
-		// TODO __FUNCTION__ (in Output to get caller)
 		// Log the messages in console
 		if (log_level > LEVEL_WARNING)
 		{
@@ -490,7 +486,21 @@ outputs:
 }
 
 
-void OutputInternal::sendLog(OutputLog *log,
+void OutputInternal::sendLog(log_level_t log_level, 
+                             const string &message_text)
+{
+	if(!this->default_log)
+	{
+		if(log_level > LEVEL_WARNING)
+		{
+			return;
+		}
+	}
+	this->sendLog(this->default_log, log_level, message_text);
+}
+
+
+void OutputInternal::sendLog(const OutputLog *log,
                              log_level_t log_level, 
                              const char *msg_format, ...)
 {
@@ -502,7 +512,14 @@ void OutputInternal::sendLog(OutputLog *log,
 
 	va_end(args);
 
-	this->sendLog(log, log_level, string(buf));
+	if(log)
+	{
+		this->sendLog(log, log_level, string(buf));
+	}
+	else
+	{
+		this->sendLog(log_level, string(buf));
+	}
 }
 
 
@@ -523,7 +540,6 @@ void OutputInternal::setLogLevel(uint8_t log_id, log_level_t level)
 	              this->logs[log_id]->getName().c_str(),
 	              level);
 
-	OutputLock lock(this->mutex); // take lock
 	this->logs[log_id]->setDisplayLevel(level);
 }
 

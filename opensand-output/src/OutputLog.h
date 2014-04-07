@@ -39,6 +39,8 @@
 #ifndef _OUTPUT_LOG_H
 #define _OUTPUT_LOG_H
 
+#include "OutputMutex.h"
+
 #include <string>
 #include <stdint.h>
 
@@ -68,6 +70,22 @@ class OutputLog
 {
 	friend class OutputInternal;
 
+ public:
+	/**
+	 * @brief Set the current log display level
+	 *
+	 * @param level  the current log display level
+	 */
+	virtual void setDisplayLevel(log_level_t level);
+
+	/**
+	 * @brief Get the current log diaplay level
+	 *
+	 * @return the current log display level
+	 */
+	log_level_t getDisplayLevel(void) const;
+
+
  protected:
 	/**
 	 * @brief create a log
@@ -83,25 +101,14 @@ class OutputLog
 	~OutputLog();
 
 	/**
-	 * @brief Get the current log diaplay level
-	 *
-	 * @return the current log display level
-	 */
-	log_level_t getDisplayLevel(void) const;
-
-	/**
-	 * @brief Set the current log diaplay level
-	 *
-	 * @param level  the current log display level
-	 */
-	virtual void setDisplayLevel(log_level_t level);
-
-	/**
 	 * @brief Get the name of the log
 	 *
 	 * @return the name of the log
 	 **/
-	inline const string getName() const { return this->name; };
+	inline const string getName() const
+	{
+		return this->name;
+	};
 
 	/// The levels string representation
 	const static char *levels[];
@@ -116,6 +123,8 @@ private:
 	string name;
 	/// the level 
 	log_level_t display_level;
+	/// The mutex on log
+	mutable OutputMutex mutex;
 };
 
 #endif

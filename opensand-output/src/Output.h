@@ -42,7 +42,6 @@
 #include "OutputEvent.h"
 #include "OutputLog.h"
 #include "OutputInternal.h"
-#include "OutputMutex.h"
 
 #include <vector>
 #include <assert.h>
@@ -64,9 +63,12 @@
 #define LOG(log, level, fmt, args...) \
 	do \
 	{ \
-		Output::sendLog(log, level, \
-		                " [%s:%s():%d] " fmt, \
-		                __FILE__, __FUNCTION__, __LINE__, ##args); \
+		if(level <= log->getDisplayLevel()) \
+		{ \
+			Output::sendLog(log, level, \
+			                " [%s:%s():%d] " fmt, \
+			                __FILE__, __FUNCTION__, __LINE__, ##args); \
+		} \
 	} \
 	while(0)
 
@@ -221,7 +223,8 @@ public:
 	 * @param log_level   The log level to send
 	 * @param msg_format  The message format
 	 **/
-	static void sendLog(OutputLog *log, log_level_t log_level, 
+	static void sendLog(const OutputLog *log,
+	                    log_level_t log_level, 
 	                    const char *msg_format, ...)
 		PRINTFLIKE(3, 4);
 	
@@ -313,7 +316,6 @@ private:
 
 	/// The output instance
 	static OutputInternal instance;
-
 };
 
 template<typename T>

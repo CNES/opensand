@@ -99,7 +99,7 @@ Probe<T>::~Probe()
 template<typename T>
 void Probe<T>::put(T value)
 {
-	OutputLock lock(mutex);
+	OutputLock lock(this->mutex);
 
 	if(this->values_count == 0)
 	{

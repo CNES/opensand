@@ -122,7 +122,16 @@ private:
 	 * @param log_level	The log level
 	 * @param message	The message
 	 **/
-	void sendLog(OutputLog *log, log_level_t log_level,
+	void sendLog(const OutputLog *log, log_level_t log_level,
+	             const string &message_text);
+
+	/**
+	 * @brief Send default log with the specified message
+	 *
+	 * @param log_level	The log level
+	 * @param message	The message
+	 **/
+	void sendLog(log_level_t log_level,
 	             const string &message_text);
 
 	/**
@@ -132,7 +141,7 @@ private:
 	 * @param log_level	The log level
 	 * @param message	The message
 	 **/
-	void sendLog(OutputLog *log, log_level_t log_level,
+	void sendLog(const OutputLog *log, log_level_t log_level,
 	             const char *msg_format, ...);
 
 	/**
@@ -311,7 +320,8 @@ Probe<T> *OutputInternal::registerProbe(const string &name,
 	              name.c_str(), type);
 
 	// single registration if process is already started
-	if(!this->isInitializing() && !this->sendRegister(probe))
+	if(this->collectorEnabled() && !this->isInitializing() &&
+	   !this->sendRegister(probe))
 	{
 		this->sendLog(this->log, LEVEL_ERROR,
 		              "Failed to register new probe %s\n", 

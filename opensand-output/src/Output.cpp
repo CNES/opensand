@@ -109,7 +109,8 @@ void Output::sendEvent(OutputEvent* event,
 }
 
 
-void Output::sendLog(OutputLog *log, log_level_t log_level,
+void Output::sendLog(const OutputLog *log,
+                     log_level_t log_level,
                      const char *msg_format, ...)
 {
 	char buf[1024];
@@ -134,7 +135,7 @@ void Output::sendLog(log_level_t log_level,
 
 	va_end(args);
 
-	instance.sendLog(NULL, log_level, string(buf));
+	instance.sendLog(log_level, string(buf));
 }
 
 Output::Output()
