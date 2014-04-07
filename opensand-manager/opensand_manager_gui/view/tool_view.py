@@ -123,7 +123,7 @@ class ToolView(WindowView):
             self._hosts_name.remove(host_name)
             del self._selected_tools[host_name.lower()]
             del self._saved_tools[host_name.lower()]
-            gobject.idle_add(self._tree.del_host, host_name)
+            gobject.idle_add(self._tree.del_elem, host_name)
 
         self._tool_lock.release()
 

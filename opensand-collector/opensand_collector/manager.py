@@ -268,7 +268,7 @@ class Program(object):
 
         self._setup_storage()
 
-        for probe in self._probes:
+        for probe in self._probes.values():
             probe.switch_storage()
 
     def cleanup(self):
@@ -323,7 +323,7 @@ class Program(object):
         """
         for (probe_id, p_name, unit, storage_type, enabled) in probe_list:
             if not probe_id in self._probes:
-                LOGGER.debug("Add probe %s with id %s\n", p_name, probe_id)
+                LOGGER.debug("Add probe %s with id %s", p_name, probe_id)
                 probe = Probe(self, probe_id, p_name, unit, storage_type, enabled)
                 self._probes[probe_id] = probe
 
@@ -334,7 +334,7 @@ class Program(object):
         """
         for (log_id, name, level) in log_list:
             if not log_id in self._logs:
-                LOGGER.debug("Add log %s with id %s\n", name, log_id)
+                LOGGER.debug("Add log %s with id %s", name, log_id)
                 log = Log(self, log_id, name, level)
                 self._logs[log_id] = log
 
@@ -417,8 +417,9 @@ class Host(object):
             prog = self._programs[ident]
             prog.add_probe(probe_list)
             prog.add_log(log_list)
-            LOGGER.debug("New probe or log added to program %s for host %s",
-                         name, self)
+            LOGGER.info("Added %s probe(s) and %s log(s) to program %s "
+                        "for host %s", len(probe_list), len(log_list),
+                        name, self)
             return prog
 
         prog = Program(self, ident, name, probe_list, log_list)
@@ -576,7 +577,7 @@ class HostManager(object):
         previous_folder = self._storage_folder
         self._storage_folder = tempfile.mkdtemp("opensand_collector")
         LOGGER.debug("Initialized new storage folder at %s",
-            self._storage_folder)
+                     self._storage_folder)
 
         for host in self._host_by_name.itervalues():
             host.switch_storage()

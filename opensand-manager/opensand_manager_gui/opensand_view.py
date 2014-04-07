@@ -579,17 +579,21 @@ class View(WindowView):
         page = self._event_notebook.get_current_page()
         program = self.get_program_for_active_tab(page)
         if program is not None:
-            widget = self._ui.get_widget('enable_syslog')
-            program.enable_syslog(widget.get_active())
+            wlog = self._ui.get_widget('enable_logs')
+            wsyslog = self._ui.get_widget('enable_syslog')
+            active = wlog.get_active() or wsyslog.get_active()
+            program.enable_syslog(wsyslog.get_active())
+            self._ui.get_widget('configure_logging').set_sensitive(active)
 
     def on_enable_logs_toggled(self, source=None, event=None):
         """ event handler for logging  activation """ 
         page = self._event_notebook.get_current_page()
         program = self.get_program_for_active_tab(page)
         if program is not None:
-            widget = self._ui.get_widget('enable_logs')
-            active = widget.get_active()
-            program.enable_logs(active)
+            wlog = self._ui.get_widget('enable_logs')
+            wsyslog = self._ui.get_widget('enable_syslog')
+            active = wlog.get_active() or wsyslog.get_active()
+            program.enable_logs(wlog.get_active())
             self._ui.get_widget('configure_logging').set_sensitive(active)
 
     def get_program_for_active_tab(self, page_num):

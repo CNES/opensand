@@ -148,8 +148,7 @@ class ProcessList():
                 LOGGER.info("start " + section)
                 LOGGER.debug("command line: " + str(cmd_line))
                 cmd = shlex.split(cmd_line)
-                LOGGER.debug("command line splitted: " +
-                                     str(cmd))
+                LOGGER.debug("command line splitted: " + str(cmd))
                 if parser.has_option(section, 'ld_library_path'):
                     ld_library_path = parser.get(section, 'ld_library_path')
                     os.environ['LD_LIBRARY_PATH'] = ld_library_path

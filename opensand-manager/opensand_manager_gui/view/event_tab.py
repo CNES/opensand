@@ -41,7 +41,6 @@ import gtk
 import time
 import pango
 
-
 class EventTab(object):
     """
     Handler for a tab used to display events
@@ -133,6 +132,7 @@ class EventTab(object):
             sev_text = 'EVENT'
             color = 'white'
             bg = 'bg_green'
+            image = gtk.STOCK_DIALOG_INFO
 
         if new_line:
             self._buff.insert(at_end(), "\n")
