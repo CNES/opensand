@@ -54,7 +54,6 @@ TimerEvent::TimerEvent(const string &name,
 
 	if(this->enabled)
 	{
-		// TODO log rt ?
 		DFLTLOG(LEVEL_DEBUG,
 		        "Timer \"%s\" enabled, start it for the first time "
 		        "(duration = %.2f ms)\n",

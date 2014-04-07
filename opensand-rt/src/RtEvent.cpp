@@ -46,7 +46,6 @@ RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t prio
 	fd(fd),
 	priority(priority)
 {
-	// TODO log rt ?
 	DFLTLOG(LEVEL_DEBUG,
 	        "Create new event \"%s\" of type %d\n",
 	        name.c_str(), type);

@@ -632,7 +632,6 @@ void RtChannel::setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo)
 bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t type)
 {
 	bool success = true;
-	bool locked = false;
 
 	// check that block is initialized (i.e. we are in event processing)
 	if(!this->block->initialized)
@@ -645,25 +644,11 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 		//       initialization when threads are started
 	}
 
-	// release lock in block because we can create interblocking here
-	// as we can block on semaphore
-	if(this->block->chan_mutex && this->block->block_mutex.isLocked() &&
-	   this->block->initialized)
-	{
-		printf("ICI\n");
-		this->block->block_mutex.releaseLock();
-		locked = true;
-	}
 	if(!out_fifo->push(*data, size, type))
 	{
 		this->reportError(false,
 		                  "cannot push data in fifo for next block\n");
 		success = false;
-	}
-	// take the lock again
-	if(locked)
-	{
-		this->block->block_mutex.acquireLock();
 	}
 
 	// be sure that the pointer won't be used anymore

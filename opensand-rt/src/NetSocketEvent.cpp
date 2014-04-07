@@ -92,9 +92,6 @@ bool NetSocketEvent::handle(void)
 		goto error;
 	}
 	this->size = ret;
-	DFLTLOG(LEVEL_DEBUG,
-	        "event %s: received %zu bytes\n",
-	        this->name.c_str(), this->size);
 
 	return true;
 error:
