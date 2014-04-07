@@ -123,8 +123,9 @@ private:
 	string name;
 	/// the level 
 	log_level_t display_level;
-	/// The mutex on log
-	mutable OutputMutex mutex;
+	/// The lock on log (spinlock was the less consuming according to our tests)
+	mutable OutputSpinLock spinlock;
+	//mutable OutputMutex mutex;
 };
 
 #endif

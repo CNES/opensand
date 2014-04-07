@@ -39,9 +39,8 @@
 #include <string.h>
 #include <syslog.h>
 
-OutputMutex::OutputMutex(string name):
-	name(name),
-	locked(false)
+OutputMutex::OutputMutex(const string &name):
+	name(name)
 {
 	int ret;
 	pthread_mutexattr_t mutex_attr;
@@ -74,6 +73,14 @@ OutputMutex::OutputMutex(string name):
 		       "Mutex '%s' initialization failure [%d: %s]\n",
 		       this->name.c_str(), ret, strerror(ret));
 	}
+
+	ret = pthread_mutexattr_destroy(&mutex_attr);
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "Mutex '%s' attribute release failure [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+	}
 }
 
 OutputMutex::~OutputMutex()
@@ -92,33 +99,124 @@ OutputMutex::~OutputMutex()
 
 void OutputMutex::acquireLock(void)
 {
-	int ret;
-
-	ret = pthread_mutex_lock(&(this->mutex));
-	if(ret != 0)
+	if(pthread_mutex_lock(&(this->mutex)) != 0)
 	{
 		syslog(LEVEL_ERROR,
-		       "Failed to lock mutex '%s' [%d: %s]\n",
-		       this->name.c_str(), ret, strerror(ret));
+		       "Failed to lock mutex '%s'\n",
+		       this->name.c_str());
 	}
-	this->locked = true;
 }
 	
 void OutputMutex::releaseLock(void)
 {
-	int ret;
+	if(pthread_mutex_unlock(&(this->mutex)) != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "Failed to unlock mutex '%s'\n",
+		       this->name.c_str());
+	}
+}
 
-	this->locked = false;
-	ret = pthread_mutex_unlock(&(this->mutex));
+
+
+/// Read Write Lock
+
+OutputRwLock::OutputRwLock(const string &name):
+	name(name)
+{
+	int ret;
+	pthread_rwlockattr_t rwlock_attr;
+
+	ret = pthread_rwlockattr_init(&rwlock_attr);
 	if(ret != 0)
 	{
 		syslog(LEVEL_ERROR,
-		       "Failed to unlock mutex '%s' [%d: %s]\n",
+		       "Failed to initialize rwlock '%s' attributes [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+		return;
+	}
+
+	ret = pthread_rwlock_init(&(this->rwlock), &rwlock_attr);
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "rwlock '%s' initialization failure [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+	}
+
+	ret = pthread_rwlockattr_destroy(&rwlock_attr);
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "rwlock '%s' attribute release failure [%d: %s]\n",
 		       this->name.c_str(), ret, strerror(ret));
 	}
 }
 
-bool OutputMutex::isLocked(void) const
+OutputRwLock::~OutputRwLock()
 {
-	return this->locked;
+	int ret;
+
+	ret = pthread_rwlock_destroy(&(this->rwlock));
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "Failed to destroy rwlock '%s' [%d: %s]\n",
+		       this->name.c_str(), ret, strerror(ret));
+	}
+
+}
+
+void OutputRwLock::readLock(void)
+{
+	pthread_rwlock_rdlock(&(this->rwlock));
+}
+	
+void OutputRwLock::writeLock(void)
+{
+	pthread_rwlock_wrlock(&(this->rwlock));
+}
+
+void OutputRwLock::releaseLock(void)
+{
+	pthread_rwlock_unlock(&(this->rwlock));
+}
+
+
+/// SpinLock
+
+OutputSpinLock::OutputSpinLock()
+{
+	int ret;
+	ret = pthread_spin_init(&(this->spinlock), 0);
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "SpinLock initialization failure [%d: %s]\n",
+		       ret, strerror(ret));
+	}
+}
+
+OutputSpinLock::~OutputSpinLock()
+{
+	int ret;
+
+	ret = pthread_spin_destroy(&(this->spinlock));
+	if(ret != 0)
+	{
+		syslog(LEVEL_ERROR,
+		       "Failed to destroy spinlock [%d: %s]\n",
+		       ret, strerror(ret));
+	}
+
+}
+
+void OutputSpinLock::acquireLock(void)
+{
+	pthread_spin_lock(&(this->spinlock));
+}
+	
+void OutputSpinLock::releaseLock(void)
+{
+	pthread_spin_unlock(&(this->spinlock));
 }

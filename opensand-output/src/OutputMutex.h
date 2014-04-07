@@ -51,15 +51,13 @@ class OutputMutex
 	 *
 	 * @param name  The name of the caller for debug
 	 */
-	OutputMutex(string name);
+	OutputMutex(const string &name);
 
 	~OutputMutex();
 
 	void acquireLock(void);
 	
 	void releaseLock(void);
-
-	bool isLocked(void) const;
 
  private:
  
@@ -68,9 +66,6 @@ class OutputMutex
 	
 	/// The name of the caller for debug messages
 	string name;
-
-	/// Whether the mutex is locked or not
-	bool locked;
 };
 
 /**
@@ -101,6 +96,151 @@ class OutputLock
 
 	/// The OutputMutex
 	OutputMutex &mutex;
+};
+
+
+
+
+class OutputRwLock
+{
+ public:
+
+	/**
+	 * Create OutputRwLock
+	 *
+	 * @param name  The name of the caller for debug
+	 */
+	OutputRwLock(const string &name);
+
+	~OutputRwLock();
+
+	void readLock(void);
+	void writeLock(void);
+	
+	void releaseLock(void);
+
+ private:
+ 
+	/// The rwlock
+	pthread_rwlock_t rwlock;
+	
+	/// The name of the caller for debug messages
+	string name;
+};
+
+
+/**
+ * @class OutputRLock
+ * @brief Wrapper for using a rwlock read lock with RAII method
+ */
+class OutputRLock
+{
+ public:
+
+	/**
+	 * Create Lock
+	 *
+	 * @param rwlock  The OutputRwLock on which we want to take lock
+	 */
+	OutputRLock(OutputRwLock &rwlock):
+		rwlock(rwlock)
+	{
+		this->rwlock.readLock();
+	};
+
+	~OutputRLock()
+	{
+		this->rwlock.releaseLock();
+	};
+
+ private:
+
+	/// The OutputRwLock
+	OutputRwLock &rwlock;
+};
+
+/**
+ * @class OutputWLock
+ * @brief Wrapper for using a rwlock write lock with RAII method
+ */
+class OutputWLock
+{
+ public:
+
+	/**
+	 * Create Lock
+	 *
+	 * @param rwlock  The OutputRwLock on which we want to take lock
+	 */
+	OutputWLock(OutputRwLock &rwlock):
+		rwlock(rwlock)
+	{
+		this->rwlock.writeLock();
+	};
+
+	~OutputWLock()
+	{
+		this->rwlock.releaseLock();
+	};
+
+ private:
+
+	/// The OutputRwLock
+	OutputRwLock &rwlock;
+};
+
+
+class OutputSpinLock
+{
+ public:
+
+	/**
+	 * Create OutputSpinLock
+	 *
+	 * @param name  The name of the caller for debug
+	 */
+	OutputSpinLock();
+
+	~OutputSpinLock();
+
+	void acquireLock(void);
+	
+	void releaseLock(void);
+
+ private:
+ 
+	/// The spinlock
+	pthread_spinlock_t spinlock;
+};
+
+/**
+ * @class OutputLock
+ * @brief Wrapper for using a spinlock with RAII method
+ */
+class OutputSLock
+{
+ public:
+
+	/**
+	 * Create Lock
+	 *
+	 * @param spinlock  The OutputSpinLock on which we want to take lock
+	 */
+	OutputSLock(OutputSpinLock &spinlock):
+		spinlock(spinlock)
+	{
+		this->spinlock.acquireLock();
+	};
+
+	~OutputSLock()
+	{
+		this->spinlock.releaseLock();
+	};
+
+ private:
+
+	/// The OutputSpinLock
+	OutputSpinLock &spinlock;
 };
 
 

@@ -69,7 +69,8 @@ OutputLog::OutputLog(uint8_t id,
 	id(id),
 	name(name),
 	display_level(display_level),
-	mutex("Log")
+	spinlock()
+	//mutex("log-" + name)
 {
 }
 
@@ -79,13 +80,15 @@ OutputLog::~OutputLog()
 
 log_level_t OutputLog::getDisplayLevel(void) const
 {
-	OutputLock lock(this->mutex);
+	OutputSLock lock(this->spinlock);
+	//OutputLock lock(this->mutex);
 	return this->display_level;
 }
 
 void OutputLog::setDisplayLevel(log_level_t level)
 {
-	OutputLock lock(this->mutex);
+	OutputSLock lock(this->spinlock);
+	//OutputLock lock(this->mutex);
 	this->display_level = level;
 }
 
