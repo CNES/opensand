@@ -55,9 +55,6 @@ class NetBurst: public std::list<NetPacket *>
 	/// (0 for unlimited length)
 	unsigned int max_packets;
 
-	// Output log
-	OutputLog *log_net_burst;
-
  public:
 
 	/**
@@ -142,6 +139,9 @@ class NetBurst: public std::list<NetPacket *>
 	 * @return the name of packets in the burst
 	 */
 	std::string name();
+
+	/// Netburst log
+	static OutputLog *log_net_burst;
 };
 
 #endif

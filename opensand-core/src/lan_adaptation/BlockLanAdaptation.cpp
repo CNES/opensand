@@ -60,6 +60,8 @@ BlockLanAdaptation::BlockLanAdaptation(const string &name, string lan_iface):
 	lan_iface(lan_iface),
 	is_tap(false)
 {
+	// register static log
+	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 /**
