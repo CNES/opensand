@@ -51,6 +51,8 @@ BlockEncap::BlockEncap(const string &name):
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
+	// register static log
+	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 BlockEncap::~BlockEncap()
