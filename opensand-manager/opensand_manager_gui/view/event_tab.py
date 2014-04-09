@@ -88,6 +88,7 @@ class EventTab(object):
         self._text.set_cursor_visible(False)
         self._text.set_buffer(self._buff)
         self._text.show()
+        self._autoscroll = True
 
         hadjustement = gtk.Adjustment(value=0, lower=0, upper=100, step_incr=1,
                                       page_incr=10, page_size=10)
@@ -146,7 +147,8 @@ class EventTab(object):
                                                 color, bg)
         self._buff.insert(at_end(), text.rstrip() + "\n")
         self._buff.place_cursor(at_end())
-        self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
+        if self._autoscroll:
+            self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 
         if self._notebook.get_current_page() != self._page_num:
             if severity is not None and self._icon_level > severity:
@@ -161,7 +163,9 @@ class EventTab(object):
         """ Called when the notebook page is changed """
         if page_num == self._page_num:
             self._act_image.hide()
-            self._icon_level = -1
+            self._icon_level = 100
+            self._act_image.set_from_stock(gtk.STOCK_DIALOG_INFO,
+                                           gtk.ICON_SIZE_MENU)
             self._act_image.hide()
 
     def get_program(self):
@@ -171,3 +175,15 @@ class EventTab(object):
     def update(self, program):
         """ update the event tab """
         self._program = program
+
+    @property
+    def autoscroll(self):
+        """ Get the autoscroll state """
+        return self._autoscroll
+
+    @autoscroll.setter
+    def autoscroll(self, enabled):
+        """ set autoscroll state """
+        self._autoscroll = enabled
+
+

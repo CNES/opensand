@@ -338,7 +338,7 @@ class AdvancedDialog(WindowView):
         config = module.get_config_parser()
         if config is None:
             self._module_label = gtk.Label()
-            self._module_label.set_markup("<span size='large'>Nothing to" +
+            self._module_label.set_markup("<span size='large'>Nothing to " +
                                           "configure for this module</span>")
             self._modules_conf_view.pack_start(self._module_label)
             if self._current_module_notebook is not None:

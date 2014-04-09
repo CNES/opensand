@@ -93,6 +93,8 @@ class View(WindowView):
         self._logs_hdl = widget.connect('toggled', self.on_enable_logs_toggled)
         widget = self._ui.get_widget('enable_syslog')
         self._syslog_hdl = widget.connect('toggled', self.on_enable_syslog_toggled)
+        widget = self._ui.get_widget('autoscroll')
+        self._autoscroll_hdl = widget.connect('toggled', self.on_autoscroll_toggled)
 
 
         # initialize each tab
@@ -561,7 +563,13 @@ class View(WindowView):
         widget.handler_block(self._syslog_hdl)
         widget.set_active(syslog_enabled)
         widget.handler_unblock(self._syslog_hdl)
-        pass
+        # set autoscroll state
+        tab = self.get_active_tab(page_num)
+        widget = self._ui.get_widget('autoscroll')
+        val = tab.autoscroll
+        widget.handler_block(self._autoscroll_hdl)
+        widget.set_active(val)
+        widget.handler_unblock(self._autoscroll_hdl)
 
     def on_configure_logging_clicked(self, source=None, event=None):
         """ event handler for logging configuration """ 
@@ -596,13 +604,30 @@ class View(WindowView):
             program.enable_logs(wlog.get_active())
             self._ui.get_widget('configure_logging').set_sensitive(active)
 
-    def get_program_for_active_tab(self, page_num):
-        """ get the label of the active event notebook page """
+    def on_autoscroll_toggled(self, source=None, event=None):
+        """ event handler for autoscroll toggled """
+        page = self._event_notebook.get_current_page()
+        tab = self.get_active_tab(page)
+        if tab is None:
+            return
+        widget = self._ui.get_widget('autoscroll')
+        val = widget.get_active()
+        tab.autoscroll = val
+
+    def get_active_tab(self, page_num):
+        """ get the active event notebook page """
         child = self._event_notebook.get_nth_page(page_num)
         progname = self._event_notebook.get_tab_label(child).get_name()
         if not progname in self._event_tabs:
             return None
-        program = self._event_tabs[progname].get_program()
+        return self._event_tabs[progname]
+
+    def get_program_for_active_tab(self, page_num):
+        """ get the program associated with the active event notebook page """
+        tab = self.get_active_tab(page_num)
+        if tab is None:
+            return None
+        program = tab.get_program()
         return program
 
     def on_start(self, run):
@@ -641,7 +666,6 @@ class View(WindowView):
             #      instead of using default values...
             program.enable_logs(True)
             program.enable_syslog(True)
-
 
 
 ##### TEST #####
