@@ -128,12 +128,12 @@ bool DamaAgent::initOutput()
 	// Output Log
 	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING,
-	                                           "Dvb.DamaAgent.frameTick");
+	                                           "Dvb.DamaAgent.FrameTick");
 	
 	this->log_schedule = Output::registerLog(LEVEL_WARNING,
 	                                           "Dvb.DamaAgent.Schedule");
-	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Ttp");
-	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Sac");
+	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
+	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
 	this->log_request = Output::registerLog(LEVEL_WARNING,
 	                                        "Dvb.DamaAgent.Request");
 

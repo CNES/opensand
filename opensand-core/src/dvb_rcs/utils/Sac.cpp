@@ -136,6 +136,8 @@ vector<cr_info_t> Sac::getRequets(void) const
 
 void Sac::setAcm(double cni)
 {
+	LOG(sac_log, LEVEL_INFO, 
+	    "Set CNI value %f in SAC\n", cni);
 	this->frame()->sac.acm.cni = hcnton(cni);
 }
 

@@ -365,7 +365,7 @@ void DamaCtrlRcs::updateFmt()
 
 		if(available_fmt == 0)
 		{
-			LOG(this->log_fmt, LEVEL_NOTICE,
+			LOG(this->log_fmt, LEVEL_WARNING,
 			    "SF#%u: cannot serve terminal %u with simulated "
 			    "MODCOD %u after affectation\n",
 			    this->current_superframe_sf, id, simulated_fmt);

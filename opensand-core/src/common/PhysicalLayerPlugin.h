@@ -75,7 +75,7 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	 */
 	AttenuationModelPlugin(): OpenSandPlugin() 
 	{
-		this->log_init = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
+		this->log_init = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.init");
 		this->log_attenuation = Output::registerLog(LEVEL_WARNING,
 		                                            "PhysicalLayer.Attenuation");
 	};

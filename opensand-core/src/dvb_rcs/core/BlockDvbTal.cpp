@@ -116,7 +116,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	is_first_frame(true),
 	complete_dvb_frames(),
 	logon_timer(-1),
-	cni(),
+	cni(100),
 	qos_server_host(),
 	event_login_sent(NULL),
 	event_login_complete(NULL),

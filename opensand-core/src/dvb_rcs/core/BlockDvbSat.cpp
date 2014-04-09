@@ -1263,7 +1263,12 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 				else
 				{
-					this->cni[tal_id] = frame->getCn();
+					double cn = frame->getCn();
+					LOG(this->log_receive, LEVEL_INFO,
+					    "Uplink CNI for terminal %u = %f\n",
+					    tal_id, cn);
+
+					this->cni[tal_id] = cn;
 				}
 			}
 
@@ -1365,7 +1370,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				    "channel\n");
 			}
 			// update ACM parameters with uplink value, thus the GW will
-			// known uplink C/N and thus update uplink MODCOD
+			// known uplink C/N and thus update uplink MODCOD used in TTP
 			if(this->cni.find(tal_id) != this->cni.end())
 			{
 				sac->setAcm(this->cni[tal_id]);

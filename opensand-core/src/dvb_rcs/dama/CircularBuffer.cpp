@@ -52,7 +52,7 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 {
 	// Output Log
 	this->log_circular_buffer = Output::registerLog(LEVEL_WARNING,
-	                                                "CircularBuffer");
+	                                                "Dvb.CircularBuffer");
 
 	if(buffer_size == 0)
 	{

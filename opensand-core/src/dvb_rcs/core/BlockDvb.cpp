@@ -327,7 +327,6 @@ bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
 		}
 
 		// DVB frame is now sent, so delete its content
-		//delete frame;
 		LOG(this->log_send, LEVEL_INFO,
 		    "complete DVB frame sent to carrier %u\n", carrier_id);
 	}
@@ -363,6 +362,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id
 		    "failed to send DVB frame to lower layer\n");
 		goto release_dvb_frame;
 	}
+	// TODO make a log_send_frame and a log_send_sig
 	LOG(this->log_send, LEVEL_INFO,
 	    "DVB frame sent to the lower layer\n");
 

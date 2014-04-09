@@ -66,6 +66,8 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroup *> carriers;
 	vector<CarriersGroup *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
+	uint8_t desired_modcod = this->retrieveCurrentModcod();
+	bool found_modcod = false;
 
 	// initialize carriers capacity
 	for(carrier_it = carriers.begin();
@@ -75,19 +77,21 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		vol_kb_t remaining_capacity_kb;
 		rate_pktpf_t remaining_capacity_pktpf;
 		const FmtDefinitionTable *modcod_def;
-		uint8_t desired_modcod = retrieveCurrentModcod();
 		uint8_t modcod_id;
 
 		// get best modcod ID according to carrier
 		modcod_id = (*carrier_it)->getNearestFmtId(desired_modcod);
 		if(modcod_id == 0)
 		{
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "cannot serve GW with any modcod (desired %u) "
-			    "on carrier %u\n", desired_modcod,
+			LOG(this->log_scheduling, LEVEL_NOTICE,
+			    "cannot use any modcod (desired %u) "
+			    "to send on on carrier %u\n", desired_modcod,
 			    (*carrier_it)->getCarriersId());
+			// no available allocation on this carrier
+			(*carrier_it)->setRemainingCapacity(0);
 			continue;
 		}
+		found_modcod = true;
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "Available MODCOD for GW = %u\n", modcod_id);
 
@@ -114,6 +118,12 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		    (*carrier_it)->getCarriersId(),
 		    remaining_capacity_pktpf,
 		                remaining_capacity_kb / this->frames_per_superframe);
+	}
+	if(!found_modcod)
+	{
+		LOG(this->log_scheduling, LEVEL_WARNING,
+		    "No carrier found to use modcod %u\n",
+		    desired_modcod);
 	}
 
 	for(fifo_it = this->dvb_fifos.begin();

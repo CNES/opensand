@@ -128,7 +128,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	up_ret_fmt_simu(),
 	down_fwd_fmt_simu(),
 	scenario_timer(-1),
-	cni(),
+	cni(100),
 	column_list(),
 	pep_cmd_apply_timer(-1),
 	pep_alloc_delay(-1),
@@ -1147,7 +1147,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				   this->complete_dvb_frames.size() > 0)
 				{
 					// we can do that because we have only one MODCOD per allocation
-					// TODO this may change in the future...
+					// TODO THIS IS NOT TRUE ! we schedule for each carriers, if
+					// desired modcod is low we can send on many carriers
 					uint8_t modcod_id;
 					modcod_id =
 						((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();

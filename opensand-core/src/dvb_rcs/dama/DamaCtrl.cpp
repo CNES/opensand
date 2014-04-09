@@ -72,9 +72,9 @@ DamaCtrl::DamaCtrl():
 	                                                 "SuperFrameTick");
 	this->log_run_dama = Output::registerLog(LEVEL_WARNING,
 	                                         "Dvb.DamaCtrl.RunDama");
-	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Sac");
-	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Ttp");
-	this->log_pep = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Pep");
+	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
+	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
+	this->log_pep = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.PEP");
 	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Update");
 
 	// Output probes and stats

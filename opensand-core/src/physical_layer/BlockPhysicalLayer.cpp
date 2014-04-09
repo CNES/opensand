@@ -391,7 +391,7 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 		// reject wrong frames, we need this because
 		// GW receives its own traffic that does not need to be handled
 		// we may forward it bu it will be rejected at DVB layer
-		LOG(this->log_send, LEVEL_DEBUG,
+		LOG(this->log_send, LEVEL_NOTICE,
 		    "unsupported frame rejected at physical layer\n");
 		delete dvb_frame;
 		return true;

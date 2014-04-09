@@ -606,7 +606,7 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 	modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
-		LOG(this->log_scheduling, LEVEL_NOTICE,
+		LOG(this->log_scheduling, LEVEL_WARNING,
 		    "cannot serve terminal %u with any modcod (desired %u) "
 		    "on carrier %u\n", tal_id, desired_modcod,
 		    carriers->getCarriersId());

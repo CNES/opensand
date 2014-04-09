@@ -149,8 +149,8 @@ class BlockDvb: public Block
 	{
 		// register static logs
 		BBFrame::bbframe_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
-		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.SAC");
-		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.TTP");
+		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
+		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
 	};
 
 
