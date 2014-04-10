@@ -120,7 +120,8 @@ class OpenSandModule(object):
             return
 
         if not component in self._targets:
-            raise ModelException("component is not in plugin targets")
+            raise ModelException("component is not in %s plugin targets" %
+                                 (self._name))
 
         if component != 'global':
             default_host_path = os.path.join('/usr/share/opensand',

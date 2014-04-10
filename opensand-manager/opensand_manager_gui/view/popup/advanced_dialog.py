@@ -224,7 +224,7 @@ class AdvancedDialog(WindowView):
 
     def get_used_modules(self):
         """ get the modules used by a host """
-        all_modules = self._current_host.get_modules()
+        all_modules = list(self._current_host.get_modules())
         # header modifications modules have their configuration in st and gw
         # but a global target si get them
         all_modules += self._model.get_global_lan_adaptation_modules().values()
