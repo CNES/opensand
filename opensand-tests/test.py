@@ -163,7 +163,8 @@ class Test:
                               help="launch only one type of test")
         opt_parser.add_option("-l", "--test", dest="test", default=None,
                               help="launch one test in particular (use test "
-                              "name in its folder and set the --type option)")
+                              "names from the same folder (separated by ',') "
+                              "and set the --type option)")
         opt_parser.add_option("-s", "--service", dest="service",
                               default=SERVICE,
                               help="listen for OpenSAND entities "\
@@ -197,7 +198,7 @@ help="specify the root folder for tests configurations\n"
 "the test directory")
         (options, args) = opt_parser.parse_args()
 
-        self._test = options.test
+        self._test = options.test.split(',')
         self._type = options.type
         if self._test is not None and self._type is None:
             raise TestError("Initialization", "--type option needed by --test")
@@ -355,17 +356,19 @@ help="specify the root folder for tests configurations\n"
             test_names = glob.glob(test_type + '/*')
             # get test in only one test should be run
             if self._test is not None:
-                found = False
+                found = 0
+                desired = []
                 for test in test_names:
-                    if os.path.basename(test) == self._test:
-                        test_names = [test]
-                        found = True
-                        break
-                if not found:
-                    raise TestError("Initialization", "test '%s' is not "
-                                    "available, found %s" % (self._test,
+                    if os.path.basename(test) in self._test:
+                        desired.append(test)
+                        found += 1
+                if found < len(self._test):
+                    raise TestError("Initialization",
+                                    "one or more test in '%s' was not "
+                                    "found, available: %s" % (self._test,
                                     map(lambda x: os.path.basename(x),
                                         test_names)))
+                test_names = desired
 
             # iter on tests 
             for test_name in test_names:
@@ -382,7 +385,10 @@ help="specify the root folder for tests configurations\n"
                 self._log.info(" * Start test %s" % os.path.basename(test_name))
                 # in quiet mode print important output on terminal
                 if self._quiet:
-                    print "Start test %s" % os.path.basename(test_name),
+                    msg = "Start test %s " % os.path.basename(test_name)
+                    if len(msg) < 40:
+                        msg = msg + " " * (40 - len(msg))
+                    print msg,
                     sys.stdout.flush()
                 self._model.set_scenario(os.path.join(test_name, 'scenario'))
                 self._error = []
