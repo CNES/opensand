@@ -339,7 +339,6 @@ class BlockDvbNcc: public BlockDvb
 
 		/// parameters for request simulation
 		FILE *event_file;
-		FILE *stat_file;
 		FILE *simu_file;
 		enum
 		{
@@ -353,6 +352,8 @@ class BlockDvbNcc: public BlockDvb
 		long simu_max_vbdc;
 		long simu_cr;
 		long simu_interval;
+		bool simu_eof;
+		char simu_buffer[255];
 		event_id_t simu_timer;
 
 		// Output probes and stats

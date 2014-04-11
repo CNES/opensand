@@ -133,7 +133,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	pep_cmd_apply_timer(-1),
 	pep_alloc_delay(-1),
 	event_file(NULL),
-	stat_file(NULL),
 	simu_file(NULL),
 	simulate(none_simu),
 	simu_st(-1),
@@ -142,6 +141,8 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	simu_max_vbdc(-1),
 	simu_cr(-1),
 	simu_interval(-1),
+	simu_eof(false),
+	simu_timer(-1),
 	probe_gw_l2_to_sat_before_sched(NULL),
 	probe_gw_l2_to_sat_after_sched(NULL),
 	probe_frame_interval(NULL),
@@ -166,11 +167,6 @@ BlockDvbNcc::Downward::~Downward()
 	{
 		fflush(this->event_file);
 		fclose(this->event_file);
-	}
-	if(this->stat_file)
-	{
-		fflush(this->stat_file);
-		fclose(this->stat_file);
 	}
 	if(this->simu_file)
 	{
@@ -400,45 +396,6 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "events recorded in %s.\n", str_config.c_str());
-	}
-
-	// Get and open the stat file
-	// TODO it would be better to register probes for simulated ST and
-	//      use probes
-	this->stat_file = NULL;
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_STAT_FILE, str_config))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_STAT_FILE, DVB_NCC_SECTION);
-		goto error;
-	}
-	if(str_config == "stdout")
-	{
-		this->stat_file = stdout;
-	}
-	else if(str_config == "stderr")
-	{
-		this->stat_file = stderr;
-	}
-	else if(str_config != "none")
-	{
-		this->stat_file = fopen(str_config.c_str(), "a");
-		if(this->stat_file == NULL)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
-		}
-	}
-	if(this->stat_file == NULL && str_config != "none")
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "no record file will be used for statistics\n");
-	}
-	else if(this->stat_file != NULL)
-	{
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "statistics recorded in %s.\n", str_config.c_str());
 	}
 
 	// Get and set simulation parameter
@@ -936,7 +893,9 @@ bool BlockDvbNcc::Downward::initDama(void)
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                &this->up_ret_fmt_simu))
+	                                &this->up_ret_fmt_simu,
+	                                (this->simulate == none_simu) ?
+	                                false : true))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Dama Controller Initialization failed.\n");
@@ -949,7 +908,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 		    "failed to initialize the DAMA controller\n");
 		goto release_dama;
 	}
-	this->dama_ctrl->setRecordFile(this->event_file, this->stat_file);
+	this->dama_ctrl->setRecordFile(this->event_file);
 
 	return true;
 
@@ -1132,6 +1091,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// schedule encapsulation packets
 				// TODO loop on categories (see todo in initMode)
+				// TODO In regenerative mode we should schedule in frame_timer ??
+				//      There is a problem with uplink allocation between ST and GW !!
 				if(!this->scheduling->schedule(this->fwd_frame_counter,
 				                               0,
 				                               this->getCurrentTime(),
@@ -1223,7 +1184,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						break;
 				}
 				// flush files
-				fflush(this->stat_file);
 				fflush(this->event_file);
 			}
 			else if(*event == this->pep_cmd_apply_timer)
@@ -1592,10 +1552,9 @@ void BlockDvbNcc::Downward::sendTTP(void)
 	    "SF#%u: TTP sent\n", this->super_frame_counter);
 }
 
+// TODO create a class for simulation and subclass file/random
 bool BlockDvbNcc::Downward::simulateFile(void)
 {
-	static bool simu_eof = false;
-	static char buffer[255] = "";
 	enum
 	{ none, cr, logon, logoff } event_selected;
 
@@ -1608,29 +1567,32 @@ bool BlockDvbNcc::Downward::simulateFile(void)
 	vol_kb_t st_vbdc;
 	int cr_type;
 
-	if(simu_eof)
+	if(this->simu_eof)
 	{
 		LOG(this->log_request_simulation, LEVEL_DEBUG,
 		    "End of file\n");
-		goto error;
+		goto end;
 	}
 
-	sf_nr = -1;
+	sf_nr = 0;
 	while(sf_nr <= this->super_frame_counter)
 	{
 		if(4 ==
-		   sscanf(buffer, "SF#%hu CR st%hu cr=%u type=%d", &sf_nr, &st_id,
-		   &st_request, &cr_type))
+		   sscanf(this->simu_buffer,
+		          "SF%hu CR st%hu cr=%u type=%d",
+		          &sf_nr, &st_id, &st_request, &cr_type))
 		{
 			event_selected = cr;
 		}
 		else if(5 ==
-		        sscanf(buffer, "SF#%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
+		        sscanf(this->simu_buffer,
+		               "SF%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
 		               &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
 		{
 			event_selected = logon;
 		}
-		else if(2 == sscanf(buffer, "SF#%hu LOGOFF st%hu", &sf_nr, &st_id))
+		else if(2 ==
+		        sscanf(this->simu_buffer, "SF%hu LOGOFF st%hu", &sf_nr, &st_id))
 		{
 			event_selected = logoff;
 		}
@@ -1638,9 +1600,9 @@ bool BlockDvbNcc::Downward::simulateFile(void)
 		{
 			event_selected = none;
 		}
-		if(st_id <= BROADCAST_TAL_ID)
+		if(event_selected != none && st_id <= BROADCAST_TAL_ID)
 		{
-			LOG(this->log_request_simulation, LEVEL_ERROR,
+			LOG(this->log_request_simulation, LEVEL_WARNING,
 			    "Simulated ST%u ignored, IDs smaller than %u "
 			    "reserved for emulated terminals\n",
 			    st_id, BROADCAST_TAL_ID);
@@ -1728,7 +1690,7 @@ bool BlockDvbNcc::Downward::simulateFile(void)
 		resul = -1;
 		while(resul < 1)
 		{
-			resul = fscanf(this->simu_file, "%254[^\n]\n", buffer);
+			resul = fscanf(this->simu_file, "%254[^\n]\n", this->simu_buffer);
 			if(resul == 0)
 			{
 				int ret;
@@ -1740,20 +1702,22 @@ bool BlockDvbNcc::Downward::simulateFile(void)
 				}
 			}
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "fscanf resul=%d: %s", resul, buffer);
+			    "fscanf result=%d: %s", resul, this->simu_buffer);
 			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
 			    "frame %u\n", this->super_frame_counter);
 			if(resul == -1)
 			{
-				simu_eof = true;
+				this->simu_eof = true;
+				this->removeEvent(this->simu_timer);
 				LOG(this->log_request_simulation, LEVEL_DEBUG,
 				    "End of file.\n");
-				goto error;
+				goto end;
 			}
 		}
 	}
 
+end:
 	return true;
 
  error:

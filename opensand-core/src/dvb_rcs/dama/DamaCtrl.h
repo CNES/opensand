@@ -84,6 +84,7 @@ class DamaCtrl
 	 * @param   default_category        default category for non-affected
 	 *                                  terminals
 	 * @param   ret_fmt_simu            The list of simulated up/return FMT
+	 * @param   simulated               Whether there is simulated requests
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
@@ -96,7 +97,8 @@ class DamaCtrl
 	                        TerminalCategories categories,
 	                        TerminalMapping terminal_affectation,
 	                        TerminalCategory *default_category,
-	                        FmtSimulation *const ret_fmt_simu);
+	                        FmtSimulation *const ret_fmt_simu,
+	                        bool simulated);
 
 	// Protocol frames processing
 
@@ -164,9 +166,8 @@ class DamaCtrl
 	 * @brief Set the file for simulation statistic and events record
 	 *
 	 * @param event_stream  The events file
-	 * @param stat_stream  The stats file
 	 */
-	virtual void setRecordFile(FILE * event_stream, FILE *stat_stream);
+	virtual void setRecordFile(FILE * event_stream);
 
  protected:
 
@@ -284,6 +285,9 @@ class DamaCtrl
 	/** Roll-off factor */
 	double roll_off;
 
+	/** Whethter we used simulated requests */
+	bool simulated;
+
 	/**
 	 * @brief run the Dama, it allocates exactly what have been asked
 	 *        using internal requests, TBTP and contexts.
@@ -308,10 +312,6 @@ class DamaCtrl
 
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;
-
-	/// if set to other than NULL, the fd where recording stats
-	FILE *stat_file;
-
 
 	/// Output probe and stats
 
@@ -382,10 +382,6 @@ class DamaCtrl
 	ProbeListPerCarrier probes_carrier_return_remaining_capacity;
 	map<unsigned int, int> carrier_return_remaining_capacity_pktpf;
 
-	// TODO
-	// Physical Layer stats
-
-
 };
 
 #define DC_RECORD_EVENT(fmt,args...) \
@@ -397,11 +393,3 @@ class DamaCtrl
 	} \
 }
 
-#define DC_RECORD_STAT(fmt,args...) \
-{ \
-	if (this->stat_file != NULL) \
-	{ \
-		fprintf(this->stat_file, "SF%u "fmt"\n", \
-		        this->current_superframe_sf, ##args); \
-	} \
-}

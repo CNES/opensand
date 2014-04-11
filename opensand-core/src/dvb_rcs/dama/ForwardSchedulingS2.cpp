@@ -94,6 +94,13 @@ ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *
 	fwd_fmt_simu(fwd_fmt_simu),
 	category(category)
 {
+	// only one category at the moment so total capacity is category 
+	// and also carrier group capacity
+	// TODO In symbol number, can we get it in kbps ?..
+	this->probe_fwd_total_capacity = Output::registerProbe<int>(
+		"Down/Forward capacity.Total.Available", "Symbol number", true, SAMPLE_LAST);
+	this->probe_fwd_remaining_capacity = Output::registerProbe<int>(
+		"Down/Forward capacity.Total.Remaining", "Symbol number", true, SAMPLE_LAST);
 }
 
 ForwardSchedulingS2::~ForwardSchedulingS2()
@@ -122,6 +129,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroup *> carriers;
 	vector<CarriersGroup *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
+	int total_capa = 0;
 
 	// initialize carriers capacity
 	for(carrier_it = carriers.begin();
@@ -131,7 +139,9 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		vol_sym_t capacity_sym  = (*carrier_it)->getTotalCapacity() +
 		                          (*carrier_it)->getRemainingCapacity();
 		(*carrier_it)->setRemainingCapacity(capacity_sym);
+		total_capa += capacity_sym;
 	}
+	this->probe_fwd_total_capacity->put(total_capa);
 
 	for(fifo_it = this->dvb_fifos.begin();
 	    fifo_it != this->dvb_fifos.end(); ++fifo_it)
@@ -160,6 +170,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		// reset remaining capacity
 		(*carrier_it)->setRemainingCapacity(0);
 	}
+	this->probe_fwd_remaining_capacity->put(remaining_allocation);
 
 	return true;
 }

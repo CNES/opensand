@@ -94,13 +94,14 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	{
 		this->frames[frame_id].push_back(tp);
 	}
+/* not compatible with simulated STs => remove if this is ok
 	if(this->frames[frame_id].size() > BROADCAST_TAL_ID)
 	{
 		LOG(ttp_log, LEVEL_ERROR,
 		    "Too many time plans for frame id %u\n", frame_id);
 		this->frames[frame_id].pop_back();
 		return false;
-	}
+	}*/
 	LOG(ttp_log, LEVEL_DEBUG,
 	    "Add TP for ST%u at frame %u with offset=%u, "
 	    "assignment_count=%u, FMT=%u, priority=%u\n",

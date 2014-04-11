@@ -144,8 +144,11 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 			case cr_vbdc:
 				this->enable_vbdc = true;
 				terminal->setRequiredVbdc(xbdc);
-				DC_RECORD_EVENT("CR ST%u value=%u type=VBDC",
-				                tal_id, xbdc);
+				if(tal_id > BROADCAST_TAL_ID)
+				{
+					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
+					                tal_id, xbdc, cr_vbdc);
+				}
 				break;
 
 			case cr_rbdc:
@@ -158,8 +161,11 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 				}
 				request = this->converter->kbpsToPktpf(xbdc);
 				terminal->setRequiredRbdc(request);
-				DC_RECORD_EVENT("CR ST%u value=%u type=RBDC",
-				                tal_id, xbdc);
+				if(tal_id > BROADCAST_TAL_ID)
+				{
+					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
+					                tal_id, xbdc, cr_vbdc);
+				}
 
 				break;
 		}

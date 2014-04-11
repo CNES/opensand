@@ -93,6 +93,10 @@ class ForwardSchedulingS2: public Scheduling
 	/** The terminal category */
 	const TerminalCategory *category;
 
+	// Total and unused capacity probes
+	Probe<int> *probe_fwd_total_capacity;
+	Probe<int> *probe_fwd_remaining_capacity;
+
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
 	 *        The available capacity is obtained from carrier capacity in symbols
