@@ -142,6 +142,9 @@ class MessagesHandler(object):
         self._time = time()
 
         packet, addr = self._sock.recvfrom(4096)
+        if len(packet) > 4095:
+            LOGGER.warning("Too many data received from daemon, "
+                           "we may not be able to parse command")
 
         if len(packet) < 5:
             LOGGER.error("Received short packet from address %s:%d." % addr)

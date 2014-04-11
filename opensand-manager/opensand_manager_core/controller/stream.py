@@ -133,7 +133,12 @@ class Stream:
 
         name = os.path.basename(dst_filename)
         if mode is None:
-            mode = os.stat(src_filename).st_mode
+            try:
+                mode = os.stat(src_filename).st_mode
+            except (IOError, OSError), error:
+                self._log.error("error when getting file %s mode (%s)"
+                                  % (src_filename, error))
+                raise
 
         if prolog:
             buf = '<?xml version="1.0" encoding="utf-8"?>\n'

@@ -36,6 +36,8 @@ infos.py - the popup used for information
 
 import gtk
 
+# TODO variable to say if there is already a popup, we should not launch many
+# of these popups
 def error_popup(error, text = ''):
     """ display an error popup without instantiating a new main loop """
     dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL,

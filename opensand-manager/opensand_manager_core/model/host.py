@@ -79,7 +79,8 @@ class HostModel:
             try:
                 self._advanced = AdvancedHostModel(self._name, scenario)
             except ModelException, error:
-                self._log.warning("%s: %s" % (self._name.upper(), error))
+                self._log.error("%s: %s" % (self._name.upper(), error))
+                raise
 
         self._lock = threading.Lock()
 

@@ -73,7 +73,7 @@ class EnvironmentPlaneController(object):
         self._sock.bind(('', 0))
         self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
                                          self._data_received)
-        self._collector_addr = None
+        self._collector_addr = []
 
         self._transfer_port = 0
         self._transfer_dest = None
@@ -97,10 +97,10 @@ class EnvironmentPlaneController(object):
         """
         addr = (ipaddr, port)
 
-        if self._collector_addr:
+        self._collector_addr.append(addr)
+        if len(self._collector_addr) > 1:
+            # only keep the others address to recognize collector
             return
-
-        self._collector_addr = addr
         self._transfer_port = transfer_port
         self._log.info("Registering on collector %s:%d" % addr)
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
@@ -110,16 +110,16 @@ class EnvironmentPlaneController(object):
         """
         Unregisters on the specified collector.
         """
-        if not self._collector_addr:
+        if len(self._collector_addr) == 0:
             return
 
         self._log.info("Unregistering on collector %s:%d" %
-                       self._collector_addr)
+                       self._collector_addr[0])
 
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_UNREGISTER),
-                          self._collector_addr)
+                          self._collector_addr[0])
 
-        self._collector_addr = None
+        self._collector_addr = []
 
     def cleanup(self):
         """
@@ -165,7 +165,7 @@ class EnvironmentPlaneController(object):
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         transfer_socket.settimeout(10.0)
         try:
-            transfer_socket.connect((self._collector_addr[0], self._transfer_port))
+            transfer_socket.connect((self._collector_addr[0][0], self._transfer_port))
         except socket.error, msg:
             self._log.error("Cannot connect to collector for transfer: %s" %
                             msg)
@@ -256,8 +256,11 @@ class EnvironmentPlaneController(object):
         the message.
         """
         packet, addr = self._sock.recvfrom(4096)
+        if len(packet) > 4095:
+            self._log.warning("To many data received from collector, "
+                              "we may not be able to parse command")
 
-        if addr != self._collector_addr:
+        if not addr in self._collector_addr:
             self._log.error("Received data from unknown host %s:%d." % addr)
             return True
 
@@ -276,7 +279,7 @@ class EnvironmentPlaneController(object):
 
         if cmd == MSG_MGR_STATUS:
             self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_STATUS),
-                              self._collector_addr)
+                              self._collector_addr[0])
             return True
 
         if cmd == MSG_MGR_REGISTER_PROGRAM:
@@ -498,7 +501,7 @@ class EnvironmentPlaneController(object):
         """
         Notifies the collector that the status of a given probe has changed.
         """
-        if not self._collector_addr:
+        if len(self._collector_addr) == 0:
             return
 
         host_id = (probe.program.ident >> 8) & 0xFF
@@ -516,13 +519,13 @@ class EnvironmentPlaneController(object):
         message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SET_PROBE_STATUS,
                               host_id, program_id, probe_id, state)
 
-        self._sock.sendto(message, self._collector_addr)
+        self._sock.sendto(message, self._collector_addr[0])
 
     def update_log_status(self, log):
         """
         Notifies the collector that the status of a given log has changed.
         """
-        if not self._collector_addr:
+        if len(self._collector_addr) == 0:
             return
 
         host_id = (log.program.ident >> 8) & 0xFF
@@ -535,13 +538,13 @@ class EnvironmentPlaneController(object):
         message = struct.pack("!LBBBBB", MAGIC_NUMBER, MSG_MGR_SET_LOG_LEVEL,
                               host_id, program_id, log_id, log.display_level)
 
-        self._sock.sendto(message, self._collector_addr)
+        self._sock.sendto(message, self._collector_addr[0])
         
     def enable_syslog(self, value, program):
         """
         Notifies the collector that syslog is enabled/disabled on host
         """
-        if not self._collector_addr:
+        if len(self._collector_addr) == 0:
             return
 
         host_id = (program.ident >> 8) & 0xFF
@@ -557,13 +560,13 @@ class EnvironmentPlaneController(object):
         message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SET_SYSLOG_STATUS,
                               host_id, program_id, value)
 
-        self._sock.sendto(message, self._collector_addr)
+        self._sock.sendto(message, self._collector_addr[0])
 
     def enable_logs(self, value, program):
         """
         Notifies the collector that logs are enabled/disabled on host
         """
-        if not self._collector_addr:
+        if len(self._collector_addr) == 0:
             return
 
         host_id = (program.ident >> 8) & 0xFF
@@ -579,7 +582,7 @@ class EnvironmentPlaneController(object):
         message = struct.pack("!LBBBB", MAGIC_NUMBER, MSG_MGR_SET_LOGS_STATUS,
                               host_id, program_id, value)
 
-        self._sock.sendto(message, self._collector_addr)
+        self._sock.sendto(message, self._collector_addr[0])
 
 
 
