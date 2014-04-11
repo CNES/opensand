@@ -140,7 +140,6 @@
 #define DVB_DATA_CAR            "carrier_id_data"
 #define DVB_IN_DATA_CAR         "carrier_id_in_data"
 #define DVB_EVENT_FILE          "event_file"
-#define DVB_STAT_FILE           "stat_file"
 #define DVB_SIMU_FILE           "simu_file"
 #define DVB_SIMU_MODE           "simulation"
 #define DVB_SIMU_RANDOM         "simu_random"
