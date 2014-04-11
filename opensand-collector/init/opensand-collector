@@ -19,7 +19,7 @@ PROGNAME="sand-collector"
 BIN="/usr/bin/sand-collector"
 PIDFILE="/var/run/sand-collector/pid"
 USER="opensand"
-OPTIONS="-q -b -v"
+OPTIONS="-q -b"
 IFACE=""
 TYPE="_opensand._tcp"
 

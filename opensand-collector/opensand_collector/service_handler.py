@@ -93,12 +93,15 @@ class ServiceHandler(object):
         else:
             iface = avahi.IF_UNSPEC
 
-        self._pub_group.AddService(iface, avahi.PROTO_INET, dbus.UInt32(0),
-                                   "collector", self._service_type, "", "",
-                                   dbus.UInt16(self._listen_port),
-                                   additional_data,
-                                   reply_handler=self._commit_group,
-                                   error_handler=on_error)
+        try:
+            self._pub_group.AddService(iface, avahi.PROTO_INET, dbus.UInt32(0),
+                                       "collector", self._service_type, "", "",
+                                       dbus.UInt16(self._listen_port),
+                                       additional_data)
+        except dbus.exceptions.DBusException as error:
+            LOGGER.error("cannot add Avahi service (%s)" % error)
+            raise KeyboardInterrupt
+        self._pub_group.Commit()
 
         self._mainloop = gobject.MainLoop()
         gobject.threads_init()  # Necessary for the transfer_server thread
@@ -119,10 +122,6 @@ class ServiceHandler(object):
 
         return self
     
-    def _commit_group(self, *args):
-        """ reply handler for AddService """
-        self._pub_group.Commit()
-
     def run(self):
         """ start the mainloop for service listening """
         self._mainloop.run()
