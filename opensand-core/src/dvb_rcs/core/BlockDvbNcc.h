@@ -63,6 +63,8 @@
 #include "NccPepInterface.h"
 #include "Scheduling.h"
 
+#define SIMU_BUFF_LEN 255
+
 class BlockDvbNcc: public BlockDvb
 {
 
@@ -353,7 +355,7 @@ class BlockDvbNcc: public BlockDvb
 		long simu_cr;
 		long simu_interval;
 		bool simu_eof;
-		char simu_buffer[255];
+		char simu_buffer[SIMU_BUFF_LEN];
 		event_id_t simu_timer;
 
 		// Output probes and stats

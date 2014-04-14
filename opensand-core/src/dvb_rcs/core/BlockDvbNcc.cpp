@@ -353,6 +353,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 {
 	string str_config;
 
+	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
 	// Get and open the event file
 	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
 	{
@@ -1775,8 +1776,15 @@ void BlockDvbNcc::Downward::simulateRandom(void)
 		uint32_t val;
 		Sac *sac = new Sac(sim_tal_id + i);
 
-		val = this->simu_cr - this->simu_interval / 2 +
-		      random() % this->simu_interval;
+		if(this->simu_interval)
+		{
+			val = this->simu_cr - this->simu_interval / 2 +
+			      random() % this->simu_interval;
+	    }
+	    else
+	    {
+			val = this->simu_cr;
+	    }
 		sac->addRequest(0, cr_rbdc, val);
 
 		this->dama_ctrl->hereIsSAC(sac);

@@ -378,7 +378,11 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroup *carriers,
 		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
 		{
 			terminal = (TerminalContextRcs *)(*tal_it);
-			this->probes_st_rbdc_alloc[terminal->getTerminalId()]->put(0);
+			tal_id_t tal_id = terminal->getTerminalId();
+			if(tal_id < BROADCAST_TAL_ID)
+			{
+				this->probes_st_rbdc_alloc[tal_id]->put(0);
+			}
 		}
 		if(this->simulated)
 		{
@@ -529,7 +533,11 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroup *carriers,
 		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
 		{
 			terminal = (TerminalContextRcs *)(*tal_it);
-			this->probes_st_vbdc_alloc[terminal->getTerminalId()]->put(0);
+			tal_id_t tal_id = terminal->getTerminalId();
+			if(tal_id < BROADCAST_TAL_ID)
+			{
+				this->probes_st_vbdc_alloc[tal_id]->put(0);
+			}
 		}
 		if(this->simulated)
 		{
@@ -712,7 +720,11 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroup *carriers,
 		while(tal_it != tal.end())
 		{
 			terminal = (TerminalContextRcs *)(*tal_it);
-			this->probes_st_fca_alloc[terminal->getTerminalId()]->put(0);
+			tal_id_t tal_id = terminal->getTerminalId();
+			if(tal_id < BROADCAST_TAL_ID)
+			{
+				this->probes_st_fca_alloc[tal_id]->put(0);
+			}
 			tal_it++;
 		}
 		if(this->simulated)
