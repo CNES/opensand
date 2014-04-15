@@ -410,9 +410,6 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 		goto error;
 	}
 
-	// TODO if we use probes we need to register here so we need to known the number
-	//      of terminals (easy in random mode, need parsing in file mode,
-	//      may need a ST number parameter for stdin)
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
@@ -635,7 +632,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 			// TODO at the moment we use only one category
 			// To implement more than one category we will need to create one (a group of)
 			// fifo(s) per category and schedule per (group of) fifo(s).
-			// The packets would the pushed in the correct (group of) fifo(s) according to
+			// The packets would then be pushed in the correct (group of) fifo(s) according to
 			// the category the destination terminal ID belongs
 			// this is why we have categories, terminal_affectation and default_category
 			// as attributes
@@ -865,7 +862,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		                this->dama_ctrl = new DamaCtrlRcsLegacy();
+		this->dama_ctrl = new DamaCtrlRcsLegacy();
 
 	}
 	else

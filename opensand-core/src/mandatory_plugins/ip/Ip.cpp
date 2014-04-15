@@ -225,7 +225,6 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 			}
 			else
 			{
-				// TODO use info or notice once it will not be printed by default
 				LOG(this->log, LEVEL_INFO,
 				    "cannot find destination tal ID, use default "
 				    "(%u)\n", pkt_tal_id);
@@ -318,7 +317,6 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 			}
 			else
 			{
-				// TODO use info or notice once it will not be printed by default
 				LOG(this->log, LEVEL_INFO,
 				    "cannot find destination tal ID, use "
 				    "default (%u)\n", pkt_tal_id);

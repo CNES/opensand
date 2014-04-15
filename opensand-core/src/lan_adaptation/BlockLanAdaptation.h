@@ -140,8 +140,7 @@ class BlockLanAdaptation: public Block
 	 public:
 		Downward(Block *const bl, string UNUSED(lan_iface)):
 			RtDownward(bl),
-			// TODO load stats_period from configuration
-			stats_period(53),
+			stats_period_ms(),
 			contexts(),
 			state(link_down)
 		{};
@@ -178,7 +177,7 @@ class BlockLanAdaptation: public Block
 		event_id_t stats_timer;
 
 		///  The period for statistics update
-		unsigned int stats_period;
+		time_ms_t stats_period_ms;
 
 		/// the contexts list from lower to upper context
 		lan_contexts_t contexts;

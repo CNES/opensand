@@ -44,7 +44,7 @@
 
 // TODO add spot fifos in configuration
 // TODO size per fifo ?
-// TODO to not do...: do not create fifo in the regenerative case
+// TODO to not do...: do not create all fifo in the regenerative case
 SatSpot::SatSpot(spot_id_t spot_id,
                  uint8_t data_in_carrier_id,
                  uint8_t log_id,

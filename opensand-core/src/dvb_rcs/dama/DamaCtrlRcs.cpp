@@ -326,7 +326,6 @@ void DamaCtrlRcs::updateFmt()
 		unsigned int simulated_fmt;
 		unsigned int available_fmt = 0; // not in the table
 
-		// remove terminal from the terminal category
 		category_it = this->categories.find(terminal->getCurrentCategory());
 		if(category_it == this->categories.end())
 		{

@@ -201,8 +201,7 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 	}
 	if(tp.size() > 1)
 	{
-		// TODO WARNING
-		LOG(this->log_ttp, LEVEL_ERROR,
+		LOG(this->log_ttp, LEVEL_WARNING,
 		    "Received more than one TP in TTP, "
 		    "allocation will be correctly handled but not "
 		    "modcod for physical layer emulation\n");

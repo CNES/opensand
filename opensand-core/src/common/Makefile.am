@@ -59,4 +59,4 @@ libopensand_plugin_includedir = ${includedir}/opensand_plugin
 libopensand_plugin_include_HEADERS = \
 	$(libopensand_plugin_la_h)
  
-# TODO traffic_category hould be in ip once removed from Ethernet !
+# TODO traffic_category should be in ip once removed from Ethernet !

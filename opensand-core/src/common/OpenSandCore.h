@@ -226,6 +226,7 @@ typedef uint8_t qos_t; ///< QoS (3 bits)
 typedef uint8_t group_id_t; ///< Groupe ID
 
 // TODO check types according to max value
+// TODO link with config
 // data
 typedef uint16_t rate_kbps_t; ///< Bitrate in kb/s (suffix kbps)
 typedef uint16_t rate_pktpf_t; ///< Rate in packets per frame (suffix pktpf)
