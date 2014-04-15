@@ -90,6 +90,12 @@ class RunView(WindowView):
             raise RunException("image path '%s' does not exist" %
                                IMG_PATH)
 
+        # set run_id if a run was already running at launch
+        widget = self._ui.get_widget('run_id_txt')
+        run_id = self._model.get_run()
+        if run_id != 'default':
+            widget.set_text(run_id)
+
     def expose_handler(self, drawing_area, event):
         """ 'expose' event handler on drawing area """
         self._context_graph.set_line_attributes(line_width=1,

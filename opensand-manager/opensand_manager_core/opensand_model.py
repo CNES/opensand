@@ -89,6 +89,15 @@ class Model:
         # load the global modules
         self._modules = load_modules('global')
 
+        # check if there is already a running simulation
+        filename = os.path.join(os.environ['HOME'], ".opensand/current")
+        if os.path.exists(filename):
+            with open(filename, 'r') as current:
+                self._scenario_path = current.readline().strip()
+                self._run_id = current.readline().strip()
+                self._log.info("Manager was stopped while playing scenario %s "
+                               "run %s" % (self._scenario_path, self._run_id))
+            os.remove(filename)
         try:
             self.load()
         except ModelException:
@@ -97,17 +106,20 @@ class Model:
     def load(self):
         """ load the model scenario """
         # load the scenario
-        self._is_default = False
+        self._is_default = True
         if not 'HOME' in os.environ:
             raise ModelException("cannot get HOME environment variable")
 
+        default = os.path.join(os.environ['HOME'], ".opensand/default")
         # no scenario to load use the default path
         if self._scenario_path == "":
-            self._scenario_path = os.path.join(os.environ['HOME'],
-                                               ".opensand/default")
+            self._scenario_path = default
             self.clean_default()
-            self._is_default = True
-        else:
+        elif self._scenario_path != default:
+            self._is_default = False
+            # we check that this is not the defautl scenario path because
+            # in the case where the default scenario was running when starting
+            # we do not clean the path but we don't want to keep it in recents
             recents = []
             filename = os.path.join(os.environ['HOME'], ".opensand/recent")
             if os.path.exists(filename):
@@ -291,6 +303,16 @@ class Model:
 
     def close(self):
         """ release the model """
+        # keep current scenario if running
+        filename = os.path.join(os.environ['HOME'], ".opensand/current")
+        if self.is_running():
+            with open(filename, 'w') as current:
+                current.write("%s\n%s" % (self._scenario_path, self._run_id))
+                self._log.debug("Platform is running, keep current scenario "
+                                "and run")
+        else:
+            if os.path.exists(filename):
+                os.remove(filename)
         self._log.debug("Model: close")
         self._event_manager.set('quit')
         self._event_manager_response.set('quit')

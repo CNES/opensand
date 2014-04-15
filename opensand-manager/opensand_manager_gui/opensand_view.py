@@ -61,7 +61,7 @@ KONAMI = ['Up', 'Up', 'Down', 'Down',
 class View(WindowView):
     """ OpenSAND manager view """
     def __init__(self, model, manager_log, glade='',
-                 scenario='', dev_mode=False, service_type=''):
+                 dev_mode=False, service_type=''):
         self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
@@ -125,11 +125,12 @@ class View(WindowView):
         }
 
         # update the window title
-        if scenario == "":
+        if self._model._is_default:
             gobject.idle_add(self.set_title, "OpenSAND Manager - [new]")
         else:
             gobject.idle_add(self.set_title,
-                             "OpenSAND Manager - [%s]" % scenario)
+                             "OpenSAND Manager - [%s]" %
+                             self._model.get_scenario())
 
         self._keylist = []
 
