@@ -69,6 +69,8 @@ class ProcessList():
         pass
 
     def reset(self):
+        if self.is_running():
+            return
         ProcessList._process_lock.acquire()
         ProcessList._process_list = {}
         ProcessList._stop.set()

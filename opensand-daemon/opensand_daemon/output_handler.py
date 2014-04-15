@@ -421,7 +421,7 @@ class OutputHandler(threading.Thread):
         for msg_list in self._register_msg.values():
             for msg in msg_list:
                 sendtosock(self._ext_socket, msg, self._collector_addr)
-                magic, cmd = struct.unpack("!LB", msg[0])
+                magic, cmd = struct.unpack("!LB", msg[0:5])
                 if cmd != MSG_CMD_REGISTER_LIVE:
                     # Wait for ACK
                     rlist, _, _ = select.select([self._rack], [], [], 5)
