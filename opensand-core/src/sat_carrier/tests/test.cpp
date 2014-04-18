@@ -119,11 +119,11 @@ int main(int argc, char **argv)
 
 	conf_files.push_back("test_topology.conf");
 	// Load configuration files content
-	if(!globalConfig.loadConfig(conf_files))
+	if(!Conf::loadConfig(conf_files))
 	{
 		fprintf(stderr, "%s: cannot load configuration files, quit\n",
 		          progname);
-		goto unload_config;
+		goto quit;
 	}
 
 	block_sat_carrier = Rt::createBlock<TestSatCarriers,
@@ -135,13 +135,13 @@ int main(int argc, char **argv)
 	if(!block_sat_carrier)
 	{
 		fprintf(stderr, "%s: cannot create the SatCarrier block\n", progname);
-		goto unload_config;
+		goto quit;
 	}
 
 	// make the SAT alive
 	if(!Rt::init())
 	{
-		goto unload_config;
+		goto quit;
     }
 
 	if(!Rt::run())
@@ -153,9 +153,6 @@ int main(int argc, char **argv)
 	// everything went fine, so report success
 	is_failure = 0;
 
-	// cleanup
-unload_config:
-	globalConfig.unloadConfig();
 quit:
 	return is_failure;
 }

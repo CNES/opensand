@@ -77,6 +77,7 @@ OutputInternal::OutputInternal():
 	logs(),
 	sock(-1),
 	default_log(NULL),
+	levels(),
 	mutex("Output")
 {
 	memset(&this->daemon_sock_addr, 0, sizeof(this->daemon_sock_addr));
@@ -234,6 +235,7 @@ OutputLog *OutputInternal::registerLog(log_level_t display_level,
 		}
 	}
 	OutputLog *log = new OutputLog(new_id, display_level, name);
+	this->checkLogLevel(log);
 	this->logs.push_back(log);
 	this->mutex.releaseLock();
 
@@ -745,4 +747,41 @@ uint8_t OutputInternal::rcvMessage(void) const
 	OutputLock lock(this->mutex);
 	char buffer[32];
 	return receiveMessage(this->sock, buffer, sizeof(buffer));
+}
+
+
+void OutputInternal::setLevels(const map<string, log_level_t> &levels)
+{
+	this->levels = levels;
+	vector<OutputLog *>::iterator log_it;
+	this->mutex.acquireLock();
+	for(log_it = this->logs.begin(); log_it != this->logs.end(); ++log_it)
+	{
+		this->checkLogLevel(*log_it);
+	}
+	this->mutex.releaseLock();
+}
+
+void OutputInternal::checkLogLevel(OutputLog *log)
+{
+	map<string, log_level_t>::iterator lvl_it;
+	for(lvl_it = this->levels.begin(); lvl_it != this->levels.end(); ++lvl_it)
+	{
+		string name = (*lvl_it).first;
+		string log_name = log->getName();
+		std::transform(log->getName().begin(), log->getName().end(),
+		               log_name.begin(), ::tolower);
+		// first check if this is an init log as its override others names
+		if(name == "init" && (log_name.find(name) != std::string::npos))
+		{
+			log->setDisplayLevel((*lvl_it).second);
+			break;
+		}
+		// then check if the name baginning of the log is in levels
+		if(log_name.compare(0, name.size(), name) == 0)
+		{
+			log->setDisplayLevel((*lvl_it).second);
+			break;
+		}
+	}
 }

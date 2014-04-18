@@ -63,7 +63,7 @@
 #include "Plugin.h"
 
 #include <opensand_rt/Rt.h>
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_conf/Configuration.h>
 #include <opensand_output/Output.h>
 
 #include <stdlib.h>
@@ -188,6 +188,7 @@ int main(int argc, char **argv)
 	Block *block_sat_carrier;
 
 	vector<string> conf_files;
+	map<string, log_level_t> levels;
 
 	OutputEvent *status;
 
@@ -212,26 +213,32 @@ int main(int argc, char **argv)
 	conf_files.push_back(CONF_GLOBAL_FILE);
 	conf_files.push_back(CONF_DEFAULT_FILE);
 	// Load configuration files content
-	if(!globalConfig.loadConfig(conf_files))
+	if(!Conf::loadConfig(conf_files))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load configuration files, quit\n",
 		        progname);
-		goto unload_config;
+		goto quit;
 	}
 
 	// read all packages debug levels
-//	DFLTLOG(LEVEL_CRITICAL,
-// 	        "readDebugLevels:TODO\n");
+	if(!Conf::loadLevels(levels))
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load default levels, quit\n",
+		        progname);
+		goto quit;
+	}
+	Output::setLevels(levels);
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
 	                          with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",
 		        progname);
-		goto unload_config;
+		goto quit;
 	}
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: physical layer is %s\n",
@@ -242,7 +249,7 @@ int main(int argc, char **argv)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);
-		goto unload_config;
+		goto quit;
 	}
 
 	// instantiate all blocs
@@ -343,8 +350,6 @@ int main(int argc, char **argv)
 	// cleanup before ST stops
 release_plugins:
 	Plugin::releasePlugins();
-unload_config:
-	globalConfig.unloadConfig();
 quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: ST process stopped with exit code %d\n",

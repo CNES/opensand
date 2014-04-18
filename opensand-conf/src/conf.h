@@ -35,13 +35,8 @@
 #ifndef CONF__H
 #define CONF__H
 
+#include "Configuration.h"
 
-// configuration file
-#include "ConfigurationFile.h"
-
-// configure defines
-// TODO remove if not necessary
-//#include "config.h"
 
 ////////////////////
 // section global //
@@ -271,15 +266,11 @@
 //    Debug    //
 /////////////////
 #define SECTION_DEBUG  "debug"
-#define INIT           "init"
-#define DEFAULT        "default"
-#define RT             "rt"
-#define OUTPUT         "output"
-#define CONF           "conf"
+/*#define INIT           "init"
 #define LAN_ADAPTATION "lan_adaptation"
 #define ENCAP          "encap"
 #define DVB            "dvb"
 #define SAT_CARRIER    "sat_carrier"
-#define PHYS           "physical_layer"
+#define PHYS           "physical_layer"*/
 
 #endif

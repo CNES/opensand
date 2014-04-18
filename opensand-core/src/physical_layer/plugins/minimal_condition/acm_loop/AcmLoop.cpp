@@ -35,7 +35,7 @@
 
 #include "AcmLoop.h"
 
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_conf/Configuration.h>
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -61,8 +61,8 @@ bool AcmLoop::init(void)
 	component_t compo;
 
 	// satellite type
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          val))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                   val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -74,7 +74,7 @@ bool AcmLoop::init(void)
 	sat_type = strToSatType(val);
 
 	val = "";
-	if(!globalConfig.getComponent(val))
+	if(!Conf::getComponent(val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get component type\n");
@@ -94,8 +94,8 @@ bool AcmLoop::init(void)
 		modcod_key = UP_RETURN_MODCOD_DEF;
 	}
 	// get appropriate MODCOD definitions for receving link
-	if(!globalConfig.getValue(GLOBAL_SECTION, modcod_key.c_str(),
-	                          filename))
+	if(!Conf::getValue(GLOBAL_SECTION, modcod_key.c_str(),
+	                   filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",

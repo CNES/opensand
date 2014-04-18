@@ -54,10 +54,10 @@ TimerEvent::TimerEvent(const string &name,
 
 	if(this->enabled)
 	{
-		DFLTLOG(LEVEL_DEBUG,
+/*		DFLTLOG(LEVEL_DEBUG,
 		        "Timer \"%s\" enabled, start it for the first time "
 		        "(duration = %.2f ms)\n",
-		        name.c_str(), timer_duration_ms);
+		        name.c_str(), timer_duration_ms);*/
 		this->start();
 	}
 }

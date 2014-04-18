@@ -80,15 +80,12 @@ void Mpeg::Context::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", PACKING_THRESHOLD);
-		goto unload;
+		goto error;
 	}
 	LOG(this->log, LEVEL_INFO,
 	    "packing thershold: %lu\n",
 	    this->packing_threshold);
 
-
-unload:
-	config.unloadConfig();
 error:
 	return;
 }

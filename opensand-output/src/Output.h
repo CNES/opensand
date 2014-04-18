@@ -244,6 +244,20 @@ public:
 	 */
 	static void enableStdlog(void);
 
+	/**
+	 * @brief Adjust the output log display level
+	 *
+	 * @param level  the new display level
+	 */
+	static void setDisplayLevel(log_level_t level);
+
+	/**
+	 * @brief Set the log levels as defined in the configuration
+	 *
+	 * @param levels  The log levels defines in configuration
+	 */
+	static void setLevels(const map<string, log_level_t> &levels);
+
 private:
 	/**
 	 * @brief  Get the daemon socket address
@@ -330,11 +344,7 @@ Probe<T> *Output::registerProbe(const string &name,
                                 const string &unit,
                                 bool enabled, sample_type_t type)
 {
-	Probe<T> *probe;
-
-	probe = Output::instance.registerProbe<T>(name, unit, enabled, type);
-
-	return probe;
+	return Output::instance.registerProbe<T>(name, unit, enabled, type);
 }
 
 template<typename T>

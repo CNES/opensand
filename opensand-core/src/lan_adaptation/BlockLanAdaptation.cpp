@@ -125,7 +125,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 				for(lan_contexts_t::iterator it= this->contexts.begin();
 				    it != this->contexts.end(); ++it)
 				{
-					(*it)->updateStats(this->stats_period);
+					(*it)->updateStats(this->stats_period_ms);
 				}
 			}
 			else

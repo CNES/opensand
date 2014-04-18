@@ -66,8 +66,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	ConfigurationList::iterator iter;
 
 	// get transmission type
-	if(!globalConfig.getValue(SATCAR_SECTION, SOCKET_TYPE,
-	                          this->socket_type))
+	if(!Conf::getValue(SATCAR_SECTION, SOCKET_TYPE,
+	                   this->socket_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Can't get socket type from section %s, %s\n",
@@ -76,7 +76,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	}
 
 	// get satellite channels from configuration
-	if(!globalConfig.getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
+	if(!Conf::getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite channels\n",
@@ -103,7 +103,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 
 		i++;
 		// get carrier ID
-		if(!globalConfig.getAttributeValue(iter, CARRIER_ID, carrier_id))
+		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -112,7 +112,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 		// get IP address
-		if(!globalConfig.getAttributeValue(iter, CARRIER_IP, carrier_ip))
+		if(!Conf::getAttributeValue(iter, CARRIER_IP, carrier_ip))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -122,7 +122,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		}
 
 		// get port
-		if(!globalConfig.getAttributeValue(iter, CARRIER_PORT, carrier_port))
+		if(!Conf::getAttributeValue(iter, CARRIER_PORT, carrier_port))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -131,7 +131,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 		// get up
-		if(!globalConfig.getAttributeValue(iter, CARRIER_UP, carrier_up))
+		if(!Conf::getAttributeValue(iter, CARRIER_UP, carrier_up))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -140,7 +140,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 		// get down
-		if(!globalConfig.getAttributeValue(iter, CARRIER_DOWN, carrier_down))
+		if(!Conf::getAttributeValue(iter, CARRIER_DOWN, carrier_down))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -149,8 +149,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 		// get multicast
-		if(!globalConfig.getAttributeValue(iter, CARRIER_MULTICAST,
-		                                   carrier_multicast))
+		if(!Conf::getAttributeValue(iter, CARRIER_MULTICAST,
+		                            carrier_multicast))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -159,8 +159,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 		// get disabled_on
-		if(!globalConfig.getAttributeValue(iter, CARRIER_DISABLED,
-		                                   carrier_disabled))
+		if(!Conf::getAttributeValue(iter, CARRIER_DISABLED,
+		                            carrier_disabled))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -171,7 +171,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 
 		// get host type
 		compo_name = "";
-		if(!globalConfig.getComponent(compo_name))
+		if(!Conf::getComponent(compo_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get component type\n");
@@ -213,8 +213,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				unsigned int wmem;
 
 				// get UDP stack
-				if(!globalConfig.getValue(PERF_SECTION, UDP_STACK,
-				                          stack))
+				if(!Conf::getValue(PERF_SECTION, UDP_STACK,
+				                   stack))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s missing\n",
@@ -222,8 +222,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 					goto error;
 				}
 				// get rmem
-				if(!globalConfig.getValue(PERF_SECTION, UDP_RMEM,
-				                          rmem))
+				if(!Conf::getValue(PERF_SECTION, UDP_RMEM,
+				                   rmem))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s missing\n",
@@ -231,8 +231,8 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 					goto error;
 				}
 				// get wmem
-				if(!globalConfig.getValue(PERF_SECTION, UDP_WMEM,
-				                          wmem))
+				if(!Conf::getValue(PERF_SECTION, UDP_WMEM,
+				                   wmem))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s missing\n",

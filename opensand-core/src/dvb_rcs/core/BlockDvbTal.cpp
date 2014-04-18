@@ -265,9 +265,9 @@ error:
 bool BlockDvbTal::Downward::initCarrierId(void)
 {
 	// Get the ID for control carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION,
-	                          DVB_CAR_ID_CTRL,
-	                          this->carrier_id_ctrl))
+	if(!Conf::getValue(DVB_TAL_SECTION,
+	                   DVB_CAR_ID_CTRL,
+	                   this->carrier_id_ctrl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u %s missing from section %s\n",
@@ -277,9 +277,9 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	}
 
 	// Get the ID for logon carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION,
-	                          DVB_CAR_ID_LOGON,
-	                          this->carrier_id_logon))
+	if(!Conf::getValue(DVB_TAL_SECTION,
+	                   DVB_CAR_ID_LOGON,
+	                   this->carrier_id_logon))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u %s missing from section %s\n",
@@ -289,8 +289,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	}
 
 	// Get the ID for data carrier
-	if(!globalConfig.getValue(DVB_TAL_SECTION,
-	                          DVB_CAR_ID_DATA,
+	if(!Conf::getValue(DVB_TAL_SECTION,
+	                   DVB_CAR_ID_DATA,
 	                          this->carrier_id_data))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -320,7 +320,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	* Read the MAC queues configuration in the configuration file.
 	* Create and initialize MAC FIFOs
 	*/
-	if(!globalConfig.getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
+	if(!Conf::getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
@@ -338,7 +338,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		DvbFifo *fifo;
 
 		// get fifo_id --> fifo_priority
-		if(!globalConfig.getAttributeValue(iter, FIFO_PRIO, fifo_priority))
+		if(!Conf::getAttributeValue(iter, FIFO_PRIO, fifo_priority))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
@@ -346,7 +346,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 		// get fifo_mac_prio
-		if(!globalConfig.getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
+		if(!Conf::getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
@@ -354,7 +354,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 		// get fifo_size
-		if(!globalConfig.getAttributeValue(iter, FIFO_SIZE, fifo_size))
+		if(!Conf::getAttributeValue(iter, FIFO_SIZE, fifo_size))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
@@ -362,7 +362,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 		// get pvc
-		if(!globalConfig.getAttributeValue(iter, FIFO_PVC, pvc))
+		if(!Conf::getAttributeValue(iter, FIFO_PVC, pvc))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
@@ -370,7 +370,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 		// get the fifo CR type
-		if(!globalConfig.getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
+		if(!Conf::getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
@@ -439,8 +439,8 @@ err_fifo_release:
 bool BlockDvbTal::Downward::initObr(void)
 {
 	// get the OBR period - in number of frames
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA,
-	                          this->obr_period_frame))
+	if(!Conf::getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA,
+	                   this->obr_period_frame))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s", DVB_OBR_PERIOD_DATA);
@@ -471,8 +471,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	bool cr_output_only;
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
-	                          this->fixed_bandwidth))
+	if(!Conf::getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
+	                   this->fixed_bandwidth))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", DVB_RT_BANDWIDTH);
@@ -483,8 +483,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	    "fixed_bandwidth = %d kbits/s\n", this->fixed_bandwidth);
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA,
-	                          this->max_rbdc_kbps))
+	if(!Conf::getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA,
+	                   this->max_rbdc_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n",
@@ -492,8 +492,8 @@ bool BlockDvbTal::Downward::initDama(void)
 		goto error;
 	}
 
-	if(!globalConfig.getValue(DA_TAL_SECTION,
-	                          DA_RBDC_TIMEOUT_DATA, rbdc_timeout_sf))
+	if(!Conf::getValue(DA_TAL_SECTION,
+	                   DA_RBDC_TIMEOUT_DATA, rbdc_timeout_sf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n",
@@ -502,8 +502,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// Max VBDC
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA,
-	                          this->max_vbdc_kb))
+	if(!Conf::getValue(DA_TAL_SECTION, DA_MAX_VBDC_DATA,
+	                   this->max_vbdc_kb))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", DA_MAX_VBDC_DATA);
@@ -511,7 +511,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// MSL duration -- in frames number
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_MSL_DURATION, msl_sf))
+	if(!Conf::getValue(DA_TAL_SECTION, DA_MSL_DURATION, msl_sf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", DA_MSL_DURATION);
@@ -519,7 +519,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// CR computation rule
-	if(!globalConfig.getValue(DA_TAL_SECTION, DA_CR_RULE, cr_output_only))
+	if(!Conf::getValue(DA_TAL_SECTION, DA_CR_RULE, cr_output_only))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", DA_CR_RULE);
@@ -536,8 +536,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	    cr_output_only);
 
 	// dama algorithm
-	if(!globalConfig.getValue(DVB_TAL_SECTION, DAMA_ALGO,
-	                          dama_algo))
+	if(!Conf::getValue(DVB_TAL_SECTION, DAMA_ALGO,
+	                   dama_algo))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -614,8 +614,8 @@ error:
 bool BlockDvbTal::Downward::initQoSServer(void)
 {
 	// QoS Server: read hostname and port from configuration
-	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
-	                          this->qos_server_host))
+	if(!Conf::getValue(SECTION_QOS_AGENT, QOS_SERVER_HOST,
+	                   this->qos_server_host))
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
 		    "section %s, %s missing",
@@ -623,8 +623,8 @@ bool BlockDvbTal::Downward::initQoSServer(void)
 		goto error;
 	}
 
-	if(!globalConfig.getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
-	                          this->qos_server_port))
+	if(!Conf::getValue(SECTION_QOS_AGENT, QOS_SERVER_PORT,
+	                   this->qos_server_port))
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
 		    "section %s, %s missing\n",

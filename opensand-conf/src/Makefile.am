@@ -11,11 +11,13 @@ lib_LTLIBRARIES = libopensand_conf.la
 
 libopensand_conf_la_cpp = \
     ConfigurationList.cpp \
-    ConfigurationFile.cpp
+    ConfigurationFile.cpp \
+    Configuration.cpp
 
 libopensand_conf_la_h = \
     ConfigurationList.h \
     ConfigurationFile.h \
+    Configuration.h \
     conf.h
 
 libopensand_conf_la_SOURCES = \
@@ -26,4 +28,5 @@ libopensand_conf_includedir = ${includedir}/opensand_conf
 libopensand_conf_include_HEADERS = \
     ConfigurationList.h \
     ConfigurationFile.h \
+    Configuration.h \
     conf.h

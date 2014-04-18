@@ -355,7 +355,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 
 	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
 	// Get and open the event file
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
+	if(!Conf::getValue(DVB_NCC_SECTION, DVB_EVENT_FILE, str_config))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
@@ -402,7 +402,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 	// Get and set simulation parameter
 	//
 	this->simulate = none_simu;
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_MODE, str_config))
+	if(!Conf::getValue(DVB_NCC_SECTION, DVB_SIMU_MODE, str_config))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
@@ -413,7 +413,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
-		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
+		if(!Conf::getValue(DVB_NCC_SECTION, DVB_SIMU_FILE, str_config))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot load parameter %s from section %s\n",
@@ -449,7 +449,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 	{
 		int val;
 
-		if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIMU_RANDOM, str_config))
+		if(!Conf::getValue(DVB_NCC_SECTION, DVB_SIMU_RANDOM, str_config))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot load parameter %s from section %s\n",
@@ -516,8 +516,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	}
 
 	// read the pep allocation delay
-	if(!globalConfig.getValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY,
-	                          this->pep_alloc_delay))
+	if(!Conf::getValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY,
+	                   this->pep_alloc_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -546,8 +546,8 @@ bool BlockDvbNcc::Downward::initColumns(void)
 	ConfigurationList::iterator iter;
 
 	// Get the list of STs
-	if(!globalConfig.getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
-	                              columns))
+	if(!Conf::getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
+	                       columns))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': problem retrieving simulation "
@@ -562,7 +562,7 @@ bool BlockDvbNcc::Downward::initColumns(void)
 		uint16_t column_nbr;
 
 		// Get the Tal ID
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in simulation column "
@@ -570,7 +570,7 @@ bool BlockDvbNcc::Downward::initColumns(void)
 			goto error;
 		}
 		// Get the column nbr
-		if(!globalConfig.getAttributeValue(iter, COLUMN_NBR, column_nbr))
+		if(!Conf::getAttributeValue(iter, COLUMN_NBR, column_nbr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in simulation column "
@@ -700,9 +700,9 @@ error:
 bool BlockDvbNcc::Downward::initCarrierIds(void)
 {
 	// Get the ID for DVB control carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION,
-	                          DVB_CTRL_CAR,
-	                          this->ctrl_carrier_id))
+	if(!Conf::getValue(DVB_NCC_SECTION,
+	                   DVB_CTRL_CAR,
+	                   this->ctrl_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -714,9 +714,9 @@ bool BlockDvbNcc::Downward::initCarrierIds(void)
 	    this->ctrl_carrier_id);
 
 	// Get the ID for SOF carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION,
-	                          DVB_SOF_CAR,
-	                          this->sof_carrier_id))
+	if(!Conf::getValue(DVB_NCC_SECTION,
+	                   DVB_SOF_CAR,
+	                   this->sof_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -727,9 +727,9 @@ bool BlockDvbNcc::Downward::initCarrierIds(void)
 	    "SoF carrier ID set to %u\n", this->sof_carrier_id);
 
 	// Get the ID for data carrier
-	if(!globalConfig.getValue(DVB_NCC_SECTION,
-	                          DVB_DATA_CAR,
-	                          this->data_carrier_id))
+	if(!Conf::getValue(DVB_NCC_SECTION,
+	                   DVB_DATA_CAR,
+	                   this->data_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -797,7 +797,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	TerminalCategory *dc_default_category;
 
 	// Retrieving the cra decrease parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
+	if(!Conf::getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing %s parameter", DC_CRA_DECREASE);
@@ -807,7 +807,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	    cra_decrease == true ? "true" : "false");
 
 	// Retrieving the free capacity assignement parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_FREE_CAP, fca_kbps))
+	if(!Conf::getValue(DC_SECTION_NCC, DC_FREE_CAP, fca_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing %s parameter", DC_FREE_CAP);
@@ -817,7 +817,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	    "fca = %d kb/s\n", fca_kbps);
 
 	// Retrieving the rbdc timeout parameter
-	if(!globalConfig.getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
+	if(!Conf::getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing %s parameter", DC_RBDC_TIMEOUT);
@@ -847,8 +847,8 @@ bool BlockDvbNcc::Downward::initDama(void)
 	}
 
 	// dama algorithm
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO,
-	                          dama_algo))
+	if(!Conf::getValue(DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO,
+	                   dama_algo))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -922,7 +922,7 @@ bool BlockDvbNcc::Downward::initFifo(void)
 	int val;
 
 	// retrieve and set FIFO size
-	if(!globalConfig.getValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
+	if(!Conf::getValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': bad value for parameter '%s'\n",

@@ -40,7 +40,6 @@
 #include "Ipv6Address.h"
 #include "Plugin.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_output/Output.h>
 
 #include <stdio.h>
@@ -62,7 +61,7 @@ bool BlockLanAdaptation::onInit(void)
 	lan_contexts_t contexts;
 	int fd = -1;
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "%s missing from section %s.\n", GLOBAL_SECTION,
@@ -74,8 +73,8 @@ bool BlockLanAdaptation::onInit(void)
 	satellite_type = strToSatType(sat_type);
 
 	// get the number of lan adaptation context to use
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-	                                lan_scheme_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                         lan_scheme_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
@@ -91,8 +90,8 @@ bool BlockLanAdaptation::onInit(void)
 		LanAdaptationPlugin::LanAdaptationContext *context;
 
 		// get all the lan adaptation plugins to use from upper to lower
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-		                                POSITION, toString(i), PROTO, name))
+		if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+		                         POSITION, toString(i), PROTO, name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
@@ -155,8 +154,8 @@ bool BlockLanAdaptation::onInit(void)
 bool BlockLanAdaptation::Downward::onInit(void)
 {
 	// statistics timer
-	if(!globalConfig.getValue(PERF_SECTION, STATS_TIMER,
-	                          this->stats_period_ms))
+	if(!Conf::getValue(PERF_SECTION, STATS_TIMER,
+	                   this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -176,7 +175,7 @@ bool BlockLanAdaptation::Upward::onInit(void)
 	string sat_type;
 	int dflt = -1;
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "%s missing from section %s.\n", GLOBAL_SECTION,
@@ -188,7 +187,7 @@ bool BlockLanAdaptation::Upward::onInit(void)
 	this->satellite_type = strToSatType(sat_type);
 
 
-	if(!globalConfig.getValue(SARP_SECTION, DEFAULT, dflt))
+	if(!Conf::getValue(SARP_SECTION, DEFAULT, dflt))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get default destination terminal, "
@@ -237,7 +236,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 	ConfigurationList::iterator iter;
 
 	// IPv4 SARP table
-	if(!globalConfig.getListItems(SARP_SECTION, IPV4_LIST, terminal_list))
+	if(!Conf::getListItems(SARP_SECTION, IPV4_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,
@@ -251,7 +250,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 
 		i++;
 		// get the IPv4 address
-		if(!globalConfig.getAttributeValue(iter, TERMINAL_ADDR, ipv4_addr))
+		if(!Conf::getAttributeValue(iter, TERMINAL_ADDR, ipv4_addr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -260,7 +259,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 			return false;
 		}
 		// get the IPv4 mask
-		if(!globalConfig.getAttributeValue(iter, TERMINAL_IP_MASK, mask))
+		if(!Conf::getAttributeValue(iter, TERMINAL_IP_MASK, mask))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -269,7 +268,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 			return false;
 		}
 		// get the terminal ID
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -288,7 +287,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 
 	// IPv6 SARP table
 	terminal_list.clear();
-	if(!globalConfig.getListItems(SARP_SECTION, IPV6_LIST, terminal_list))
+	if(!Conf::getListItems(SARP_SECTION, IPV6_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,
@@ -302,7 +301,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 
 		i++;
 		// get the IPv6 address
-		if(!globalConfig.getAttributeValue(iter, TERMINAL_ADDR, ipv6_addr))
+		if(!Conf::getAttributeValue(iter, TERMINAL_ADDR, ipv6_addr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -311,7 +310,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 			return false;
 		}
 		// get the IPv6 mask
-		if(!globalConfig.getAttributeValue(iter, TERMINAL_IP_MASK, mask))
+		if(!Conf::getAttributeValue(iter, TERMINAL_IP_MASK, mask))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -320,7 +319,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 			return false;
 		}
 		// get the terminal ID
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -341,7 +340,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 	// Ethernet SARP table
 	// TODO we could only initialize IP or Ethernet tables according to stack
 	terminal_list.clear();
-	if(!globalConfig.getListItems(SARP_SECTION, ETH_LIST, terminal_list))
+	if(!Conf::getListItems(SARP_SECTION, ETH_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,
@@ -356,7 +355,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 
 		i++;
 		// get the MAC address
-		if(!globalConfig.getAttributeValue(iter, MAC_ADDR, addr))
+		if(!Conf::getAttributeValue(iter, MAC_ADDR, addr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -365,7 +364,7 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 			return false;
 		}
 		// get the terminal ID
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "

@@ -126,8 +126,8 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string val;
 
 	// satellite type
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          val))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                   val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -139,7 +139,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	sat_type = strToSatType(val);
 
 	val = "";
-	if(!globalConfig.getComponent(val))
+	if(!Conf::getComponent(val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get component type\n");
@@ -160,8 +160,8 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// get granularity
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
-	                          this->granularity))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
+	                   this->granularity))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -172,9 +172,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	    "granularity = %d\n", this->granularity);
 
 	// Initiate Attenuation model
-	if(!globalConfig.getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                          ATTENUATION_MODEL_TYPE,
-	                          attenuation_type))
+	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	                   ATTENUATION_MODEL_TYPE,
+	                   attenuation_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -184,9 +184,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Nominal value
-	if(!globalConfig.getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                          NOMINAL_CONDITION,
-	                          this->nominal_condition))
+	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	                   NOMINAL_CONDITION,
+	                   this->nominal_condition))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -196,9 +196,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Minimal conditions
-	if(!globalConfig.getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                          MINIMAL_CONDITION_TYPE,
-	                          minimal_type))
+	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	                   MINIMAL_CONDITION_TYPE,
+	                   minimal_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -208,9 +208,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Error Insertion
-	if(!globalConfig.getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                          ERROR_INSERTION_TYPE,
-	                          error_type))
+	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	                   ERROR_INSERTION_TYPE,
+	                   error_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -300,8 +300,8 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	string attenuation_type;
 
 	// get granularity
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
-	                          this->granularity))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
+	                   this->granularity))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -312,9 +312,9 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	    "granularity = %d\n", this->granularity);
 
 	// Initiate Attenuation model
-	if(!globalConfig.getValue(UPLINK_PHYSICAL_LAYER_SECTION,
-	                          ATTENUATION_MODEL_TYPE,
-	                          attenuation_type))
+	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	                   ATTENUATION_MODEL_TYPE,
+	                   attenuation_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -323,9 +323,9 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	}
 
 	// Initiate Nominal value
-	if(!globalConfig.getValue(UPLINK_PHYSICAL_LAYER_SECTION,
-	                          NOMINAL_CONDITION,
-	                          this->nominal_condition))
+	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	                   NOMINAL_CONDITION,
+	                   this->nominal_condition))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -502,9 +502,9 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	this->msg_type = MSG_TYPE_DVB_BURST;
 
 	// Initiate Minimal conditions
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION,
-	                          MINIMAL_CONDITION_TYPE,
-	                          minimal_type))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION,
+	                   MINIMAL_CONDITION_TYPE,
+	                   minimal_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -513,9 +513,9 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	}
 
 	// Initiate Error Insertion
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION,
-	                          ERROR_INSERTION_TYPE,
-	                          error_type))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION,
+	            ERROR_INSERTION_TYPE,
+	            error_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",

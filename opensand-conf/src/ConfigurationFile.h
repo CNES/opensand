@@ -31,8 +31,8 @@
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  */
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef CONFIGURATION_FILE_H
+#define CONFIGURATION_FILE_H
 
 #include <string>
 #include <map>
@@ -46,21 +46,6 @@
 
 using namespace std;
 
-/** unused macro to avoid compilation warning with unused parameters */
-#ifdef __GNUC__
-#  define UNUSED(x) x __attribute__((unused))
-#elif __LCLINT__
-#  define UNUSED(x) /*@unused@*/ x
-#else               /* !__GNUC__ && !__LCLINT__ */
-#  define UNUSED(x) x
-#endif              /* !__GNUC__ && !__LCLINT__ */
-
-#define CONF_TOPOLOGY      "/etc/opensand/topology.conf"
-#define CONF_GLOBAL_FILE   "/etc/opensand/core_global.conf"
-#define CONF_DEFAULT_FILE  "/etc/opensand/core.conf"
-
-// TODO high level interface as for Rt and Output
-// TODO remove conf.h and add the defines in related headers (as for plugins)
 
 /*
  * @class ConfigurationFile
@@ -96,32 +81,84 @@ class ConfigurationFile
 	 * @return  true on success, false otherwise
 	 */
 	bool loadConfig(const string conf_file);
+
 	/**
 	 * Load some configuration files content into memory
 	 * @param conf_files the configuration files path
 	 * @return  true on success, false otherwise
 	 */
 	bool loadConfig(const vector<string> conf_files);
+
+	/**
+	 * Unload the whole configuration file content from memory,
+	 * i.e. free tables
+	 */
 	void unloadConfig();
 
+	/**
+	 * @brief Get the component among sat, gw, st or ws
+	 *
+	 * @param compo  OUT: the component type
+	 * @return true if an adequate component was found, false otherwise
+	 */
 	bool getComponent(string &compo);
 
-	/* Get a value */
+	/**
+	 * Read a value from configuration
+	 *
+	 * @param  section  name of the section
+	 * @param  key      name of the key
+	 * @param  value    the value
+	 * @return  true on success, false otherwise
+	 */
 	template <class T>
 	bool getValue(const char *section, const char *key, T &val);
 
-	// Get the number of items in the list; Get the items from the list
+	/**
+	 * Read the number of elements in a list
+	 *
+	 * @param  section  name of the section
+	 * @param  key      name of the list key
+	 * @param  nbr      the number of elements in the list
+	 * @return  true on success, false otherwise
+	 */
 	bool getNbListItems(const char *section, const char *key, int &value);
-	bool getNbListItems(const char *section, const char *key, unsigned int &value);
+
+	/**
+	 * Get the elements from the list
+	 *
+	 * @param  section  name of the section
+	 * @param  key      name of the list key
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
 	bool getListItems(const char *section, const char *key, ConfigurationList &list);
 
-	// Get a value from a list attribute
+	/**
+	 * Get the value of an attribute in a list element
+	 *
+	 * @param  elt        an iterator on a ConfigurationList
+	 * @param  attribute  the attribute name
+	 * @param  value      attribute value
+	 * @return  true on success, false otherwise
+	 */
 	template <class T>
 	bool getAttributeValue(ConfigurationList::iterator iter,
 	                       const char *attribute,
 	                       T &value);
 
-	// Get a value from a line in a list
+
+	/**
+	 * Get a value from a list element identified by a attribute value
+	 *
+	 * @param  section   name of the section identifying the list
+	 * @param  key       name of the list key identifying the list
+	 * @param  id        the reference attribute
+	 * @param  id_val    the reference attribute value
+	 * @param  attribute the desired attribute
+	 * @param  value     the desired value
+	 * @return  true on success, false otherwise
+	 */
 	template <class T>
 	bool getValueInList(const char *section,
 	                    const char *key,
@@ -129,6 +166,17 @@ class ConfigurationFile
 	                    const string id_val,
 	                    const char *attribute,
 	                    T &value);
+
+	/**
+	 * Get a value from a list element identified by a attribute value
+	 *
+	 * @param  list      the list
+	 * @param  id        the reference attribute
+	 * @param  id_val    the reference attribute value
+	 * @param  attribute the desired attribute
+	 * @param  value     the desired value
+	 * @return  true on success, false otherwise
+	 */
 	template <class T>
 	bool getValueInList(ConfigurationList list,
 	                    const char *id,
@@ -136,6 +184,14 @@ class ConfigurationFile
 	                    const char *attribute,
 	                    T &value);
 
+	/**
+	 * Load the log desired display levels
+	 * 
+	 * @param levels  OUT: the log levels
+	 * @return true on success, false otherwise
+	 */
+	bool loadLevels(map<string, log_level_t> &levels);
+	
  private:
 
 	/// Output Log
@@ -144,21 +200,59 @@ class ConfigurationFile
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;
 
-	/// get a section node in XML configuration file
+	/**
+	 * Get a XML section node from its name
+	 *
+	 * @param  section      name of the section
+	 * @param  sectionNode  the XML section node
+	 * @return  true on success, false otherwise
+	 */
 	bool getSection(const char *section,
 	                xmlpp::Node::NodeList &sectionList);
-	/// get a key node in XML configuration file
+
+	/**
+	 * Get a XML key node from its name and its section name
+	 *
+	 * @param  section  name of the section
+	 * @param  key      name of the key
+	 * @param  keyNode  the XML key node
+	 * @return  true on success, false otherwise
+	 */
 	bool getKey(const char *section,const char*key,
 	            const xmlpp::Element **keyNode);
 
-	/// generic functions to get value
+	/**
+	 * Read a string value from configuration
+	 *
+	 * @param  section  name of the section
+	 * @param  key      name of the key
+	 * @param  value    value of the string
+	 * @return  true on success, false otherwise
+	 */
 	bool getStringValue(const char *section, const char *key, string &value);
 
-	/// generic functions to get value in list
+	/**
+	 * Get the string value of an attribute in a list element
+	 *
+	 * @param  elt        an iterator on a ConfigurationList
+	 * @param  attribute  the attribute name
+	 * @param  value      attribute value
+	 * @return  true on success, false otherwise
+	 */
 	bool getAttributeStringValue(ConfigurationList::iterator iter,
 	                             const char *attribute,
 	                             string &value);
-	/// generic function to get value in list from elements
+
+	/**
+	 * Get a string value from a list element identified by a attribute value
+	 *
+	 * @param  list      the list
+	 * @param  id        the reference attribute
+	 * @param  id_val    the reference attribute value
+	 * @param  attribute the desired attribute
+	 * @param  value     the desired value
+	 * @return  true on success, false otherwise
+	 */
 	bool getStringValueInList(ConfigurationList list,
 	                          const char *id,
 	                          const string id_val,
@@ -184,20 +278,8 @@ inline string toString(long val)
 }
 
 
-// Configuration file content is loaded in this object at main initialization
-extern ConfigurationFile globalConfig;
+// these functions should must be in .h file because they are templates
 
-// these functions should be in .h file because they are templates
-
-/**
- * Read a value from configuration
- *
- * @param  section  name of the section
- * @param  key      name of the key
- * @param  value    the value
- * @return  true on success, false otherwise
- */
-/* Get a value */
 template <class T>
 bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
 {
@@ -216,14 +298,7 @@ bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
 	return true;
 }
 
-/**
- * Get the value of an attribute in a list element
- *
- * @param  elt        an iterator on a ConfigurationList
- * @param  attribute  the attribute name
- * @param  value      attribute value
- * @return  true on success, false otherwise
- */
+
 template <class T>
 bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
                                           const char *attribute,
@@ -244,16 +319,7 @@ bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
 	return true;
 }
 
-/**
- * Get a value from a list element identified by a attribute value
- *
- * @param  list      the list
- * @param  id        the reference attribute
- * @param  id_val    the reference attribute value
- * @param  attribute the desired attribute
- * @param  value     the desired value
- * @return  true on success, false otherwise
- */
+
 template <class T>
 bool ConfigurationFile::getValueInList(ConfigurationList list,
                                        const char *id,
@@ -276,17 +342,7 @@ bool ConfigurationFile::getValueInList(ConfigurationList list,
 	return true;
 }
 
-/**
- * Get a value from a list element identified by a attribute value
- *
- * @param  section   name of the section identifying the list
- * @param  key       name of the list key identifying the list
- * @param  id        the reference attribute
- * @param  id_val    the reference attribute value
- * @param  attribute the desired attribute
- * @param  value     the desired value
- * @return  true on success, false otherwise
- */
+
 template <class T>
 bool ConfigurationFile::getValueInList(const char *section,
                                        const char *key,
@@ -507,4 +563,4 @@ inline bool ConfigurationFile::getValueInList<uint16_t>(ConfigurationList list,
 
 
 
-#endif /* CONFIGURATION_H */
+#endif

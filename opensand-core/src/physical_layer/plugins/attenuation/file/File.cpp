@@ -71,7 +71,7 @@ bool File::init(int granularity, string link)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",
 		    CONF_FILE_FILE);
-		goto error;
+		return false;
 	}
 
 	this->granularity = granularity;
@@ -83,7 +83,7 @@ bool File::init(int granularity, string link)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE attenuation %slink: cannot get %s",
 		    link.c_str(), PATH);
-		goto unload;
+		return false;
 	}
 
 	if(!config.getValueInList(FILE_SECTION, FILE_LIST,
@@ -93,18 +93,10 @@ bool File::init(int granularity, string link)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE %slink: cannot get %s",
 		    link.c_str(), LOOP);
-		goto unload;
+		return false;
 	}
 
-	config.unloadConfig();
-
 	return this->load(filename);
-
-	return true;
-unload:
-	config.unloadConfig();
-error:
-	return false;
 }
 
 

@@ -42,11 +42,10 @@
 #include <sys/stat.h>
 
 #include "ConfigurationFile.h"
+#include "conf.h"
 
 #include <opensand_output/Output.h>
 
-
-ConfigurationFile globalConfig;
 
 
 /**
@@ -62,7 +61,6 @@ ConfigurationFile::ConfigurationFile()
  */
 ConfigurationFile::~ConfigurationFile()
 {
-	unloadConfig();
 }
 
 bool ConfigurationFile::loadConfig(const string conf_file)
@@ -83,7 +81,8 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 
 	if(conf_files.size() == 0)
 	{
-		    
+		LOG(this->log_conf, LEVEL_ERROR, 
+		    "No configuration files provided\n");
 		return false;
 	}
 
@@ -91,7 +90,8 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 	{
 		if((*it).empty())
 		{
-			    
+			LOG(this->log_conf, LEVEL_ERROR, 
+			    "Configuration filename is empty\n");
 			return false;
 		}
 
@@ -131,10 +131,6 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 }
 
 
-/**
- * Unload the whole configuration file content from memory,
- * i.e. free tables
- */
 void ConfigurationFile::unloadConfig()
 {
 	vector<xmlpp::DomParser *>::iterator parser;
@@ -144,15 +140,9 @@ void ConfigurationFile::unloadConfig()
 		delete *parser;
 	}
 	this->parsers.clear();
-} // unloadConfig
+}
 
 
-/**
- * @brief Get the component among sat, gw, st or ws
- *
- * @param compo  OUT: the component type
- * @return true if an adequate component was found, false otherwise
- */
 bool ConfigurationFile::getComponent(string &compo)
 {
 	vector<xmlpp::DomParser *>::iterator parser;
@@ -166,7 +156,8 @@ bool ConfigurationFile::getComponent(string &compo)
 		name = root->get_attribute("component");
 		if(!name)
 		{
-			    
+			LOG(this->log_conf, LEVEL_ERROR, 
+			    "Unable to find component attribute\n");
 			continue;
 		}
 		else
@@ -185,13 +176,6 @@ bool ConfigurationFile::getComponent(string &compo)
 }
 
 
-/**
- * Get a XML section node from its name
- *
- * @param  section      name of the section
- * @param  sectionNode  the XML section node
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getSection(const char *section,
                                    xmlpp::Node::NodeList &sectionList)
 {
@@ -208,7 +192,8 @@ bool ConfigurationFile::getSection(const char *section,
 	}
 	if(sectionList.empty())
 	{
-		    
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "no section '%s'\n", section);
 		goto error;
 	}
 
@@ -217,14 +202,6 @@ error:
 	return false;
 }
 
-/**
- * Get a XML key node from its name and its section name
- *
- * @param  section  name of the section
- * @param  key      name of the key
- * @param  keyNode  the XML key node
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getKey(const char *section,
                                const char *key,
                                const xmlpp::Element **keyNode)
@@ -236,7 +213,6 @@ bool ConfigurationFile::getKey(const char *section,
 
 	if(!this->getSection(section, sectionList))
 	{
-		    
 		goto error;
 	}
 
@@ -279,14 +255,6 @@ error:
 }
 
 
-/**
- * Read a string value from configuration
- *
- * @param  section  name of the section
- * @param  key      name of the key
- * @param  value    value of the string
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getStringValue(const char *section,
                                        const char *key,
                                        string &value)
@@ -327,14 +295,6 @@ error:
 	return false;
 }
 
-/**
- * Read the number of elements in a list
- *
- * @param  section  name of the section
- * @param  key      name of the list key
- * @param  nbr      the number of elements in the list
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getNbListItems(const char *section,
                                        const char *key,
                                        int &nbr)
@@ -353,22 +313,6 @@ error:
 
 }
 
-bool ConfigurationFile::getNbListItems(const char *section,
-                                       const char *key,
-                                       unsigned int &nbr)
-{
-	return this->getNbListItems(section, key, (int &)nbr);
-}
-
-
-/**
- * Get the elements from the list
- *
- * @param  section  name of the section
- * @param  key      name of the list key
- * @param  list     the list
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getListItems(const char *section,
                                      const char *key,
                                      ConfigurationList &list)
@@ -404,14 +348,6 @@ error:
 	return false;
 }
 
-/**
- * Get the string value of an attribute in a list element
- *
- * @param  elt        an iterator on a ConfigurationList
- * @param  attribute  the attribute name
- * @param  value      attribute value
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getAttributeStringValue(ConfigurationList::iterator iter,
                                                const char *attribute,
                                                string &value)
@@ -423,6 +359,8 @@ bool ConfigurationFile::getAttributeStringValue(ConfigurationList::iterator iter
 	if(!element)
 	{
 		    
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "Wrong configuration list element\n");
 		goto error;
 	}
 	name = element->get_attribute(attribute);
@@ -443,17 +381,6 @@ error:
 	return false;
 }
 
-
-/**
- * Get a string value from a list element identified by a attribute value
- *
- * @param  list      the list
- * @param  id        the reference attribute
- * @param  id_val    the reference attribute value
- * @param  attribute the desired attribute
- * @param  value     the desired value
- * @return  true on success, false otherwise
- */
 bool ConfigurationFile::getStringValueInList(ConfigurationList list,
                                              const char *id,
                                              const string id_val,
@@ -483,5 +410,45 @@ error:
 }
 
 
+bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels)
+{
+	xmlpp::Node::NodeList sectionList;
+		xmlpp::Node::NodeList::iterator sec_iter;
+
+	if(!this->getSection(SECTION_DEBUG, sectionList))
+	{
+		return false;
+	}
+
+	for(sec_iter = sectionList.begin(); sec_iter != sectionList.end(); ++sec_iter)
+	{
+		const xmlpp::Node *sectionNode = *sec_iter;
+		xmlpp::Node::NodeList::iterator key_iter;
+		xmlpp::Node::NodeList keyList;
+
+		keyList = sectionNode->get_children();
+		for(key_iter = keyList.begin(); key_iter != keyList.end(); ++key_iter)
+		{
+			const xmlpp::TextNode* nodeText;
+			const xmlpp::CommentNode* nodeComment;
+			string key_name = (*key_iter)->get_name();
+			nodeText = dynamic_cast<const xmlpp::TextNode*>(*key_iter);
+			nodeComment = dynamic_cast<const xmlpp::CommentNode*>(*key_iter);
+			int val;
+			if(nodeText || nodeComment)
+			{
+				continue;
+			}
+			if(!this->getValue(SECTION_DEBUG, key_name.c_str(), val))
+			{
+				return false;
+			}
+			levels[key_name] = (log_level_t)val;
+		}
+	}
+
+	return true;
+
+}
 
 

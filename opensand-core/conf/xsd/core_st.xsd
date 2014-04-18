@@ -330,15 +330,12 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="default" type="debugValue" />
-            <xsd:element name="qos_data" type="debugValue" />
-            <xsd:element name="physical_layer" type="debugValue" />
-            <xsd:element name="dama_da" type="debugValue" />
-            <xsd:element name="dvb_rcs" type="debugValue" />
-            <xsd:element name="dvb_rcs_tal" type="debugValue" />
-            <xsd:element name="qos_control" type="debugValue" />
-            <xsd:element name="sat_carrier" type="debugValue" />
+            <xsd:element name="init" type="debugValue" />
+            <xsd:element name="lan_adaptation" type="debugValue" />
             <xsd:element name="encap" type="debugValue" />
+            <xsd:element name="dvb" type="debugValue" />
+            <xsd:element name="physical_layer" type="debugValue" />
+            <xsd:element name="sat_carrier" type="debugValue" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

@@ -180,7 +180,7 @@ bool NccPepInterface::listenForPepConnections()
 	// retrieve the TCP communication port dedicated
 	// for NCC/PEP communications
     // TODO move configuration reading in bloc
-	if(!globalConfig.getValue(NCC_SECTION_PEP, PEP_DAMA_PORT, tcp_port))
+	if(!Conf::getValue(NCC_SECTION_PEP, PEP_DAMA_PORT, tcp_port))
 	{
 		LOG(this->log_pep, LEVEL_NOTICE,
 		    "section '%s': missing parameter '%s'\n",

@@ -157,7 +157,9 @@ int main(int argc, char **argv)
 	Block *block_phy_layer;
 	Block *up_sat_carrier;
 	Block *block_sat_carrier;
+
 	vector<string> conf_files;
+	map<string, log_level_t> levels;
 
 	OutputEvent *status;
 
@@ -183,39 +185,44 @@ int main(int argc, char **argv)
 	conf_files.push_back(CONF_GLOBAL_FILE);
 	conf_files.push_back(CONF_DEFAULT_FILE);
 	// Load configuration files content
-	if(!globalConfig.loadConfig(conf_files))
+	if(!Conf::loadConfig(conf_files))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load configuration files, quit\n",
 		        progname);
-		goto unload_config;
+		goto quit;
 	}
 
-	// Output::setLevels();
 	// read all packages debug levels
-//	DFLTLOG(LEVEL_CRITICAL,
-// 	        "readDebugLevels:TODO\n");
+	if(!Conf::loadLevels(levels))
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load default levels, quit\n",
+		        progname);
+		goto quit;
+	}
+	Output::setLevels(levels);
 
 	// retrieve the type of satellite from configuration
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          satellite_type))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                   satellite_type))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "section '%s': missing parameter '%s'\n",
 		        GLOBAL_SECTION, SATELLITE_TYPE);
-		goto unload_config;
+		goto quit;
 	}
 	DFLTLOG(LEVEL_NOTICE,
 	        "Satellite type = %s\n", satellite_type.c_str());
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                          with_phy_layer))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	                   with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",
 		        progname);
-		goto unload_config;
+		goto quit;
 	}
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: physical layer is %s\n",
@@ -226,7 +233,7 @@ int main(int argc, char **argv)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);
-		goto unload_config;
+		goto quit;
 	}
 
 	block_encap = NULL;
@@ -317,8 +324,6 @@ int main(int argc, char **argv)
 	// cleanup when SAT stops
 release_plugins:
 	Plugin::releasePlugins();
-unload_config:
-	globalConfig.unloadConfig();
 quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: SAT process stopped with exit code %d\n",

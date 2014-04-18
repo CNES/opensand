@@ -143,8 +143,8 @@ bool BlockEncapSat::Downward::onInit()
 	vector <string> up_proto;
 
 	// get the number of encapsulation context to use for up link
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
-	                                encap_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
@@ -157,8 +157,8 @@ bool BlockEncapSat::Downward::onInit()
 		string encap_name;
 
 		// get all the encapsulation to use from lower to upper
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
-		                                POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
@@ -170,8 +170,8 @@ bool BlockEncapSat::Downward::onInit()
 	}
 
 	// get the number of encapsulation context to use for forward link
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
-	                                encap_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
@@ -189,8 +189,8 @@ bool BlockEncapSat::Downward::onInit()
 
 
 		// get all the encapsulation to use from lower to upper
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
-		                                POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",

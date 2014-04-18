@@ -44,8 +44,10 @@
 #include <assert.h>
 #include <sys/un.h>
 #include <vector>
+#include <map>
 
 using std::vector;
+using std::map;
 
 
 /**
@@ -259,6 +261,21 @@ private:
 	 */
 	void setInitializing(bool val);
 
+	/**
+	 * @brief Set the log levels as defined in the configuration
+	 *
+	 * @param levels  The log levels defines in configuration
+	 */
+	void setLevels(const map<string, log_level_t> &levels);
+
+	/**
+	 * @brief Check a log level in order to update it according to
+	 *        levels loaded in configuration
+	 *
+	 * @param log  The log to check
+	 */
+	void checkLogLevel(OutputLog *log);
+
 	/// whether the element is enabled
 	bool enable_collector;
 
@@ -297,6 +314,9 @@ private:
 	
 	/// a output log
 	OutputLog *log;
+
+	/// the levels loaded in configuration
+	map<string, log_level_t> levels;
 
 	/// The mutex on Output
 	mutable OutputMutex mutex;

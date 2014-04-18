@@ -212,12 +212,11 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="default" type="debugValue" />
-            <xsd:element name="physical_layer" type="debugValue" />
-            <xsd:element name="dvb_rcs" type="debugValue" />
-            <xsd:element name="dvb_rcs_sat" type="debugValue" />
-            <xsd:element name="sat_carrier" type="debugValue" />
+            <xsd:element name="init" type="debugValue" />
             <xsd:element name="encap" type="debugValue" />
+            <xsd:element name="dvb" type="debugValue" />
+            <xsd:element name="physical_layer" type="debugValue" />
+            <xsd:element name="sat_carrier" type="debugValue" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

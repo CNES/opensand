@@ -83,8 +83,6 @@ void Ip::Context::init()
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot Initialize traffic categories\n");
 	}
-
-	config.unloadConfig();
 }
 
 Ip::Context::~Context()

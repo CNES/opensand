@@ -49,8 +49,8 @@ bool DvbChannel::initSatType(void)
 	string sat_type;
 
 	// satellite type
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          sat_type))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                   sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -73,8 +73,8 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	EncapPlugin *plugin;
 
 	// get the packet types
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, encap_schemes,
-	                                encap_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, encap_schemes,
+	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
@@ -83,8 +83,8 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	}
 
 	// get all the encapsulation to use from lower to upper
-	if(!globalConfig.getValueInList(GLOBAL_SECTION, encap_schemes,
-	                                POSITION, toString(encap_nbr - 1),
+	if(!Conf::getValueInList(GLOBAL_SECTION, encap_schemes,
+	                         POSITION, toString(encap_nbr - 1),
 	                                ENCAP_NAME, encap_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -128,8 +128,8 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!globalConfig.getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                          this->with_phy_layer))
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	                   this->with_phy_layer))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
@@ -145,8 +145,8 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// statistics timer
-	if(!globalConfig.getValue(PERF_SECTION, STATS_TIMER,
-	                          this->stats_period_ms))
+	if(!Conf::getValue(PERF_SECTION, STATS_TIMER,
+	                   this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -183,8 +183,8 @@ BlockDvb::DvbUpward::~DvbUpward()
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// frame duration
-	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_F_DURATION,
-	                          this->frame_duration_ms))
+	if(!Conf::getValue(GLOBAL_SECTION, DVB_F_DURATION,
+	                   this->frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -196,8 +196,8 @@ bool BlockDvb::DvbDownward::initDown(void)
 
 
 	// forward timer
-	if(!globalConfig.getValue(PERF_SECTION, FWD_TIMER,
-	                          this->fwd_timer_ms))
+	if(!Conf::getValue(PERF_SECTION, FWD_TIMER,
+	                   this->fwd_timer_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -209,8 +209,8 @@ bool BlockDvb::DvbDownward::initDown(void)
 	    this->fwd_timer_ms);
 
 	// number of frame per superframe
-	if(!globalConfig.getValue(DVB_MAC_SECTION, DVB_FPF,
-	                          this->frames_per_superframe))
+	if(!Conf::getValue(DVB_MAC_SECTION, DVB_FPF,
+	                   this->frames_per_superframe))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -222,8 +222,8 @@ bool BlockDvb::DvbDownward::initDown(void)
 	    this->frames_per_superframe);
 
 	// scenario refresh interval
-	if(!globalConfig.getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
-	                          this->dvb_scenario_refresh))
+	if(!Conf::getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
+	                   this->dvb_scenario_refresh))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -254,8 +254,8 @@ bool BlockDvb::DvbDownward::initModcodFiles(const char *def,
 	string modcod_def_file;
 
 	// MODCOD simulations and definitions for down/forward link
-	if(!globalConfig.getValue(GLOBAL_SECTION, simu,
-	                          modcod_simu_file))
+	if(!Conf::getValue(GLOBAL_SECTION, simu,
+	                   modcod_simu_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -266,8 +266,8 @@ bool BlockDvb::DvbDownward::initModcodFiles(const char *def,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
-	if(!globalConfig.getValue(GLOBAL_SECTION, def,
-	                          modcod_def_file))
+	if(!Conf::getValue(GLOBAL_SECTION, def,
+	                   modcod_def_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -437,8 +437,8 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 	this->log_band = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
 
 	// Get the value of the bandwidth for return link
-	if(!globalConfig.getValue(band, BANDWIDTH,
-	                          bandwidth_mhz))
+	if(!Conf::getValue(band, BANDWIDTH,
+	                   bandwidth_mhz))
 	{
 		LOG(this->log_band, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -450,8 +450,8 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 	    "%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
 
 	// Get the value of the roll off
-	if(!globalConfig.getValue(band, ROLL_OFF,
-	                          roll_off))
+	if(!Conf::getValue(band, ROLL_OFF,
+	                   roll_off))
 	{
 		LOG(this->log_band, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -460,9 +460,9 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 	}
 
 	// get the FMT groups
-	if(!globalConfig.getListItems(band,
-	                              FMT_GROUP_LIST,
-	                              conf_list))
+	if(!Conf::getListItems(band,
+	                       FMT_GROUP_LIST,
+	                       conf_list))
 	{
 		LOG(this->log_band, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
@@ -479,7 +479,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		FmtGroup *group;
 
 		// Get group id name
-		if(!globalConfig.getAttributeValue(iter, GROUP_ID, group_id))
+		if(!Conf::getAttributeValue(iter, GROUP_ID, group_id))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
@@ -488,7 +488,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		}
 
 		// Get FMT IDs
-		if(!globalConfig.getAttributeValue(iter, FMT_ID, fmt_id))
+		if(!Conf::getAttributeValue(iter, FMT_ID, fmt_id))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
@@ -509,7 +509,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 
 	conf_list.clear();
 	// get the carriers distribution
-	if(!globalConfig.getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
+	if(!Conf::getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
 	{
 		LOG(this->log_band, LEVEL_ERROR,
 		    "Section %s, %s missing\n", band,
@@ -534,7 +534,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		i++;
 
 		// Get carriers' name
-		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
@@ -544,7 +544,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		}
 
 		// Get carriers' ratio
-		if(!globalConfig.getAttributeValue(iter, RATIO, ratio))
+		if(!Conf::getAttributeValue(iter, RATIO, ratio))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
@@ -553,7 +553,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		}
 
 		// Get carriers' symbol ratge
-		if(!globalConfig.getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
+		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
@@ -563,7 +563,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		}
 
 		// Get carriers' FMT id
-		if(!globalConfig.getAttributeValue(iter, FMT_GROUP, group_id))
+		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
@@ -573,7 +573,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		}
 
 		// Get carriers' access type
-		if(!globalConfig.getAttributeValue(iter, ACCESS_TYPE, access_type))
+		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access_type))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
@@ -619,8 +619,8 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 	}
 
 	// get the default terminal category
-	if(!globalConfig.getValue(band, DEFAULT_AFF,
-	                          default_category_name))
+	if(!Conf::getValue(band, DEFAULT_AFF,
+	                   default_category_name))
 	{
 		LOG(this->log_band, LEVEL_ERROR,
 		    "Section %s, missing %s parameter\n", band,
@@ -647,7 +647,7 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 	    (*default_category)->getLabel().c_str(), band);
 
 	// get the terminal affectations
-	if(!globalConfig.getListItems(band, TAL_AFF_LIST, aff_list))
+	if(!Conf::getListItems(band, TAL_AFF_LIST, aff_list))
 	{
 		LOG(this->log_band, LEVEL_NOTICE,
 		    "Section %s, missing %s parameter\n", band,
@@ -665,14 +665,14 @@ bool BlockDvb::DvbDownward::initBand(const char *band,
 		TerminalCategory *category;
 
 		i++;
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
 			    "affection table entry %u\n", band, TAL_ID, i);
 			goto error;
 		}
-		if(!globalConfig.getAttributeValue(iter, CATEGORY, name))
+		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
 			LOG(this->log_band, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "

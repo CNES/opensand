@@ -123,7 +123,7 @@ bool BlockDvbSat::initSpots(void)
 	ConfigurationList::iterator iter;
 
 	// Retrive FIFO size
-	if(!globalConfig.getValue(SAT_DVB_SECTION, DVB_SIZE_FIFO, fifo_size))
+	if(!Conf::getValue(SAT_DVB_SECTION, DVB_SIZE_FIFO, fifo_size))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -132,7 +132,7 @@ bool BlockDvbSat::initSpots(void)
 	}
 
 	// Retrieving the spots description
-	if(!globalConfig.getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
+	if(!Conf::getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite spot list\n",
@@ -152,7 +152,7 @@ bool BlockDvbSat::initSpots(void)
 
 		i++;
 		// get the spot_id
-		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
+		if(!Conf::getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -161,7 +161,7 @@ bool BlockDvbSat::initSpots(void)
 			goto error;
 		}
 		// get the ctrl_id
-		if(!globalConfig.getAttributeValue(iter, CTRL_ID, ctrl_id))
+		if(!Conf::getAttributeValue(iter, CTRL_ID, ctrl_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -170,7 +170,7 @@ bool BlockDvbSat::initSpots(void)
 			goto error;
 		}
 		// get the data_in_carrier_id
-		if(!globalConfig.getAttributeValue(iter, DATA_IN_ID, data_in_carrier_id))
+		if(!Conf::getAttributeValue(iter, DATA_IN_ID, data_in_carrier_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -179,7 +179,7 @@ bool BlockDvbSat::initSpots(void)
 			goto error;
 		}
 		// get the data_out_gw_id
-		if(!globalConfig.getAttributeValue(iter, DATA_OUT_GW_ID, data_out_gw_id))
+		if(!Conf::getAttributeValue(iter, DATA_OUT_GW_ID, data_out_gw_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -188,7 +188,7 @@ bool BlockDvbSat::initSpots(void)
 			goto error;
 		}
 		// get the data_out_st_id
-		if(!globalConfig.getAttributeValue(iter, DATA_OUT_ST_ID, data_out_st_id))
+		if(!Conf::getAttributeValue(iter, DATA_OUT_ST_ID, data_out_st_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -197,7 +197,7 @@ bool BlockDvbSat::initSpots(void)
 			goto error;
 		}
 		// get the log_id
-		if(!globalConfig.getAttributeValue(iter, LOG_ID, log_id))
+		if(!Conf::getAttributeValue(iter, LOG_ID, log_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
@@ -373,7 +373,7 @@ bool BlockDvbSat::Downward::onInit()
 
 bool BlockDvbSat::Downward::initSatLink(void)
 {
-	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, this->sat_delay))
+	if(!Conf::getValue(GLOBAL_SECTION, SAT_DELAY, this->sat_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -454,8 +454,8 @@ bool BlockDvbSat::Downward::initStList(void)
 	ConfigurationList::iterator iter;
 
 	// Get the list of STs
-	if(!globalConfig.getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
-	                              column_list))
+	if(!Conf::getListItems(SAT_SIMU_COL_SECTION, COLUMN_LIST,
+	                       column_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': problem retrieving simulation "
@@ -470,7 +470,7 @@ bool BlockDvbSat::Downward::initStList(void)
 		long column_nbr;
 
 		// Get the Tal ID
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in simulation column "
@@ -478,7 +478,7 @@ bool BlockDvbSat::Downward::initStList(void)
 			goto error;
 		}
 		// Get the column nbr
-		if(!globalConfig.getAttributeValue(iter, COLUMN_NBR, column_nbr))
+		if(!Conf::getAttributeValue(iter, COLUMN_NBR, column_nbr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in simulation column "
@@ -993,7 +993,7 @@ bool BlockDvbSat::Upward::onInit()
 bool BlockDvbSat::Upward::initMode(void)
 {
 	// Delay to apply to the medium
-	if(!globalConfig.getValue(GLOBAL_SECTION, SAT_DELAY, this->sat_delay))
+	if(!Conf::getValue(GLOBAL_SECTION, SAT_DELAY, this->sat_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -1042,7 +1042,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 
 	// Retrieving switching table entries
-	if(!globalConfig.getListItems(SAT_SWITCH_SECTION, SWITCH_LIST, switch_list))
+	if(!Conf::getListItems(SAT_SWITCH_SECTION, SWITCH_LIST, switch_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite switching "
@@ -1059,7 +1059,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 
 		i++;
 		// get the Tal ID attribute
-		if(!globalConfig.getAttributeValue(iter, TAL_ID, tal_id))
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in switching table"
@@ -1068,7 +1068,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 		}
 
 		// get the Spot ID attribute
-		if(!globalConfig.getAttributeValue(iter, SPOT_ID, spot_id))
+		if(!Conf::getAttributeValue(iter, SPOT_ID, spot_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in switching table"
@@ -1091,7 +1091,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 
 	// get default spot id
-	if(!globalConfig.getValue(SAT_SWITCH_SECTION, DEFAULT_SPOT, spot_id))
+	if(!Conf::getValue(SAT_SWITCH_SECTION, DEFAULT_SPOT, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",

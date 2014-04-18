@@ -136,7 +136,7 @@
 <xsd:simpleType name="debugValue">
     <xsd:restriction base="xsd:nonNegativeInteger">
         <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="3" />
+        <xsd:maxInclusive value="7" />
     </xsd:restriction>
 </xsd:simpleType>
 

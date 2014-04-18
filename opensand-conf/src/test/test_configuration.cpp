@@ -31,7 +31,7 @@
  * @brief    Test the configuration parsing
  */
 
-#include "ConfigurationFile.h"
+#include "Configuration.h"
 
 #include <opensand_output/Output.h>
 
@@ -59,25 +59,25 @@ static void usage(void)
 
 int main(int argc, char **argv)
 {
-    int failure = 1;
-    int lcount;
-    string value;
-    int args_used;
-    vector<string> conf_files;
+	int failure = 1;
+	int lcount;
+	string value;
+	int args_used;
+	vector<string> conf_files;
 
-    // sections, keys map
-    map<string, vector<string> > config;
-    map<string, vector<string> >::iterator iter;
-    // section, keys map for lists
-    map<pair<string, string>, vector<string> > config_list;
-    map<pair<string, string>, vector<string> >::iterator iter_list;
-    vector<string>::iterator vec_it;
-    vector<string> vec;
-    ofstream comp_ofile(COMP_FILE);
-    ifstream res_file;
-    ifstream comp_ifile;
-    vector<string> input_files;
-    string result_filename;
+	// sections, keys map
+	map<string, vector<string> > config;
+	map<string, vector<string> >::iterator iter;
+	// section, keys map for lists
+	map<pair<string, string>, vector<string> > config_list;
+	map<pair<string, string>, vector<string> >::iterator iter_list;
+	vector<string>::iterator vec_it;
+	vector<string> vec;
+	ofstream comp_ofile(COMP_FILE);
+	ifstream res_file;
+	ifstream comp_ifile;
+	vector<string> input_files;
+	string result_filename;
    
 	/* parse program arguments, print the help message in case of failure */
 	if(argc <= 1)
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 
     // load the configuration files
     // be careful the maps are ordered, the output will not be ordered like above
-    if(!globalConfig.loadConfig(input_files))
+    if(!Conf::loadConfig(input_files))
     {
         cerr << "cannot load configuration files" << endl;
         goto close;
@@ -172,12 +172,12 @@ int main(int argc, char **argv)
 
         for(vec_it = vec.begin(); vec_it != vec.end(); vec_it++)
         {
-            if(!globalConfig.getValue((*iter).first.c_str(),
-                                      (*vec_it).c_str(), value))
+            if(!Conf::getValue((*iter).first.c_str(),
+                               (*vec_it).c_str(), value))
             {
                 cerr << "cannot get the value for section '" << (*iter).first
                     << "', key '" << (*vec_it) << "'" << endl;
-                goto unload;
+                goto close;
             }
             comp_ofile << (*vec_it) << "=" << value << endl;
             cout << "got value '" << value << "' for section '" << (*iter).first
@@ -194,25 +194,25 @@ int main(int argc, char **argv)
         ConfigurationList::iterator line;
         pair<string, string> table = (*iter_list).first;
 
-        if(!globalConfig.getListItems(table.first.c_str(),
-                                      table.second.c_str(), list))
+        if(!Conf::getListItems(table.first.c_str(),
+                               table.second.c_str(), list))
         {
             cerr << "cannot get the items list for section '" << table.first
                  << "' key '" << table.second << "'" << endl;
-            goto unload;
+            goto close;
         }
         for(line = list.begin(); line != list.end(); line++)
         {
             vec = (*iter_list).second;
             for(vec_it = vec.begin(); vec_it != vec.end(); vec_it++)
             {
-                if(!globalConfig.getAttributeValue(line, (*vec_it).c_str(),
-                                                   value))
+                if(!Conf::getAttributeValue(line, (*vec_it).c_str(),
+                                            value))
                 {
                     cerr << "cannot get the vec_itribute '" << (*vec_it)
                          << "' for section '" << table.first << "', key '"
                          << table.second << "'" << endl;
-                    goto unload;
+                    goto close;
                 }
                 comp_ofile << (*vec_it) << "=" << value << " ";
                 cout << "got value '" << value << "' for attribute "
@@ -243,18 +243,16 @@ int main(int argc, char **argv)
                  << "expected: '" << res << "'" << endl
                  << "obtained: '" << comp<< "'" << endl;
             failure = 1;
-            goto unload;
+            goto close;
         }
     }
     if(comp_ifile.eof() != res_file.eof())
     {
         cerr << "files have different size" << endl;
         failure = 1;
-        goto unload;
+        goto close;
     }
 
-unload:
-    globalConfig.unloadConfig();
 close:
     if(res_file && res_file.is_open())
     {

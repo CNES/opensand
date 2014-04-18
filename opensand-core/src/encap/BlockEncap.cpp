@@ -192,8 +192,8 @@ bool BlockEncap::onInit()
 	}
 
 	// satellite type: regenerative or transparent ?
-	if(!globalConfig.getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                          satellite_type))
+	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	                   satellite_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -204,17 +204,17 @@ bool BlockEncap::onInit()
 	    "satellite type = %s\n", satellite_type.c_str());
 
 	// Retrieve last packet handler in lan adaptation layer
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-	                                lan_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                         lan_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
 		    LAN_ADAPTATION_SCHEME_LIST);
 		goto error;
 	}
-	if(!globalConfig.getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
-	                                POSITION, toString(lan_nbr - 1),
-	                                PROTO, lan_name))
+	if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                         POSITION, toString(lan_nbr - 1),
+	                         PROTO, lan_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, invalid value %d for parameter "
@@ -233,8 +233,8 @@ bool BlockEncap::onInit()
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
 
 	// get the number of encapsulation context to use for up/return link
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
-	                                encap_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
@@ -249,8 +249,8 @@ bool BlockEncap::onInit()
 		EncapPlugin::EncapContext *context;
 
 		// get all the encapsulation to use from upper to lower
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
-		                                POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
@@ -286,8 +286,8 @@ bool BlockEncap::onInit()
 	}
 
 	// get the number of encapsulation context to use for down/forward link
-	if(!globalConfig.getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
-	                                encap_nbr))
+	if(!Conf::getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    " Section %s, %s missing\n", GLOBAL_SECTION,
@@ -302,8 +302,8 @@ bool BlockEncap::onInit()
 		EncapPlugin::EncapContext *context;
 
 		// get all the encapsulation to use from upper to lower
-		if(!globalConfig.getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
-		                                POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
@@ -340,7 +340,7 @@ bool BlockEncap::onInit()
 
 	// get host type
 	compo_name = "";
-	if(!globalConfig.getComponent(compo_name))
+	if(!Conf::getComponent(compo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get component type\n");
