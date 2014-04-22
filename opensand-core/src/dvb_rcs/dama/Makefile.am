@@ -22,7 +22,7 @@ libopensand_dama_la_h = \
 	DamaAgent.h \
 	DamaAgentRcs.h \
 	DamaAgentRcsLegacy.h \
-	DamaAgentRcsRrmQos.h
+	DamaAgentRcsRrmQos.h \
 	DamaCtrl.h \
 	DamaCtrlRcs.h \
 	DamaCtrlRcsLegacy.h
