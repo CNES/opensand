@@ -217,8 +217,10 @@ private:
 	 * @brief  Send a message to the daemon
 	 *
 	 * @param message  The message
+	 * @param block    Whether we should block until message can be sent
+	 * @return true on success or non-blocked operation, false otherwise
 	 */
-	bool sendMessage(const string &message) const;
+	bool sendMessage(const string &message, bool block=true) const;
 
 	/**
 	 * @brief receive a message from the daemon
@@ -312,11 +314,14 @@ private:
 	/// a default log
 	OutputLog *default_log;
 	
-	/// a output log
+	/// an output log
 	OutputLog *log;
 
 	/// the levels loaded in configuration
 	map<string, log_level_t> levels;
+
+	/// The number of blocked operations
+	mutable int blocked;
 
 	/// The mutex on Output
 	mutable OutputMutex mutex;

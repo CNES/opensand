@@ -77,7 +77,9 @@ OutputInternal::OutputInternal():
 	logs(),
 	sock(-1),
 	default_log(NULL),
+	log(NULL),
 	levels(),
+	blocked(0),
 	mutex("Output")
 {
 	memset(&this->daemon_sock_addr, 0, sizeof(this->daemon_sock_addr));
@@ -448,7 +450,7 @@ void OutputInternal::sendLog(const OutputLog *log,
 		msgHeaderSendLog(message, log->id, log_level);
 		message.append(message_text);
 
-		if(!this->sendMessage(message))
+		if(!this->sendMessage(message, false))
 		{
 			// do not call sendLog again, we may loop...
 			syslog(LEVEL_ERROR,
@@ -693,15 +695,27 @@ bool OutputInternal::sendRegister(OutputLog *log)
 	return true;
 }
 
-bool OutputInternal::sendMessage(const string &message) const
+bool OutputInternal::sendMessage(const string &message, bool block) const
 {
 	OutputLock lock(this->mutex);
-	// TODO for logs no block and report if msg rej
-	if(sendto(this->sock, message.data(), message.size(), 0,
+	if(sendto(this->sock, message.data(), message.size(),
+	          ((block == true) ? 0 : MSG_DONTWAIT),
 	          (const sockaddr*)&this->daemon_sock_addr,
 	          sizeof(this->daemon_sock_addr)) < (signed)message.size())
 	{
+		if(!block && (errno == EAGAIN || errno == EWOULDBLOCK))
+		{
+			this->blocked++;
+			return true;
+		}
 		return false;
+	}
+	if(this->blocked > 0)
+	{
+		syslog(LEVEL_WARNING,
+		       "%d messages were not sent due to non-blocking socket operations\n",
+		       this->blocked);
+		this->blocked = 0;
 	}
 	return true;
 }
