@@ -351,13 +351,13 @@ class Controller(threading.Thread):
 
         self._log.info("Stop OpenSAND platform")
 
-        try:
-            for host in self._hosts + self._ws:
+        for host in self._hosts + self._ws:
+            try:
                 self._log.info("Stopping " + host.get_name().upper())
                 host.start_stop('STOP')
-        except CommandException:
-            self._log.error("OpenSAND platform failed to stop")
-            return False
+            except CommandException:
+                self._log.error("Failure when trying to stop %s" %
+                                host.get_name().upper())
 
         # save the environment plane results into the correct path
         # everything is saved in scenario/run

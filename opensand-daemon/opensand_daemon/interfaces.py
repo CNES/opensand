@@ -522,7 +522,7 @@ class OpenSandIfaces(object):
             except:
                 continue
 
-    def stanbye(self):
+    def standby(self):
         """ set interfaces for emulation """
         if OpenSandIfaces._name in ['sat', 'ws']:
             return
@@ -530,13 +530,13 @@ class OpenSandIfaces(object):
         # set opensand interfaces down and in case of layer 2 scenario, move
         # back address on lan interface
         try:
-            self._stanbye()
+            self._standby()
         except Exception:
             raise
         finally:
             OpenSandIfaces._lock.release()
 
-    def _stanbye(self):
+    def _standby(self):
         """ internal wrapper to simplify lock management """
         # remove IPv4 address on bridge if it exists
         if OpenSandIfaces._ifaces.exists(BR_NAME):

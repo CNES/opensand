@@ -341,7 +341,7 @@ def start_daemon():
 	# set opensand interfaces down if nothng is running
     if not StateHandler._running:
         LOGGER.info("process are not running, standbye interfaces")
-        INTERFACES.stanbye()
+        INTERFACES.standby()
 
 
 if __name__ == "__main__":

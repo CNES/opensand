@@ -126,6 +126,8 @@ class CommandHandler(MyTcpHandler):
                 self.wfile.write("ERROR unknown command '%s'\n" % self._data)
         except Exception, msg:
             LOGGER.exception("exception while handling manager request: ")
+            self.wfile.write("ERROR exception received while handling manager "
+                             "request %s" % self._data)
 
 
     def handle_data_request(self):
@@ -207,7 +209,7 @@ class CommandHandler(MyTcpHandler):
         """ handle a STOP request """
         self._process_list.stop()
         self._routes.remove_routes()
-        self._interfaces.stanbye()
+        self._interfaces.standby()
 
         LOGGER.debug("send: 'OK'")
         self.wfile.write("OK\n")
