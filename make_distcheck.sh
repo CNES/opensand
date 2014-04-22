@@ -22,7 +22,7 @@ function make_distcheck()
 }
 function opensand()
 {
-    for dir in opensand-conf opensand-rt opensand-output opensand-collector opensand-core opensand-daemon opensand-manager; do
+    for dir in opensand-output opensand-conf opensand-rt opensand-collector opensand-core opensand-daemon opensand-manager; do
         if [ -f $dir/autogen.sh ]; then
             make_distcheck $dir
         elif [ -f $dir/setup.py ]; then
@@ -96,10 +96,11 @@ function err()
 
 function phy()
 {
-    att
-    nom
-    min
-    err
+    return
+#    att
+#    nom
+#    min
+#    err
 }
 
 move()
@@ -124,25 +125,9 @@ case $1 in
         ;;
         
     "lan")
-        encap
+        lan
         ;;
 
-
-    "phy_att")
-        att
-        ;;
-
-    "phy_nom")
-        nom
-        ;;
-
-    "phy_min")
-        min
-        ;;
-
-    "phy_err")
-        err
-        ;;
 
     "phy")
         phy
@@ -153,6 +138,6 @@ case $1 in
         ;;
 
     *)
-        /bin/echo -e "wrong command (all, opensand, encap, lan, phy {att, nom, min, err})"
+        /bin/echo -e "wrong command (all, opensand, encap, lan, phy)"
         ;;
 esac
