@@ -1,20 +1,17 @@
-#include <opensand_conf/uti_debug.h>
 #include <opensand_output/Output.h>
 
 #include <stdio.h>
 #include <unistd.h>
 
 
-unsigned char dbgLevel_default = 4;
-
 int main(int argc, char* argv[])
 {
 	bool output_enabled = true;
-	event_level_t min_level = LEVEL_DEBUG;
+	log_level_t min_level = LEVEL_DEBUG;
 
 	puts("Initializing");
 
-	Output::init(output_enabled, min_level);
+	Output::init(output_enabled);
 
 	Probe<int32_t> *int32_last_probe =
 	    Output::registerProbe<int32_t>("int32_last_probe", true, SAMPLE_LAST);
@@ -28,8 +25,7 @@ int main(int argc, char* argv[])
 	    Output::registerProbe<float>("float_probe", true, SAMPLE_LAST);
 	Output::registerProbe<double>("double_probe", true, SAMPLE_LAST);
 
-	Output::registerEvent("debug_event", LEVEL_DEBUG);
-	Event* info_event = Output::registerEvent("info_event", LEVEL_INFO);
+	OutputLog* log = Output::registerLog(LEVEL_INFO, "log");
 
 	puts("Finishing init");
 	if(!Output::finishInit()) {
@@ -52,8 +48,8 @@ int main(int argc, char* argv[])
 
 		if((val % 10) == 0)
 		{
-			puts("Sending an event");
-			Output::sendEvent(info_event, "Hello, %s.", "World");
+			puts("Sending a log");
+			Output::sendLog(log, LEVEL_INFO, "Hello, %s.", "World");
 			sleep(1);
 		}
 

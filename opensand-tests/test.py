@@ -198,7 +198,9 @@ help="specify the root folder for tests configurations\n"
 "the test directory")
         (options, args) = opt_parser.parse_args()
 
-        self._test = options.test.split(',')
+        self._test = None
+        if options.test is not None:
+            self._test = options.test.split(',')
         self._type = options.type
         if self._test is not None and self._type is None:
             raise TestError("Initialization", "--type option needed by --test")
