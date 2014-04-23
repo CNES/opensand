@@ -118,7 +118,7 @@ bool OnOff::updateAttenuationModel()
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Attenuation model counter %d\n", this->duration_counter);
-	if(this->duration_counter <= this->off_duration)
+	if(this->duration_counter < this->off_duration)
 	{
 		this->setAttenuation(0);
 	}
