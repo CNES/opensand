@@ -27,13 +27,6 @@ Description: Packages for OpenSAND, a satellite emulation platform.
 #Description: Packages containing lan adaptation plugins for OpenSAND, a satellite emulation platform.
 # This metapackage is to ease the installation of OpenSAND encapsulation plugins.
  
-#Package: opensand-physical-layer-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand, libopensand-constant-minimal-plugin, libopensand-default-nominal-plugin, libopensand-gate-error-plugin, libopensand-ideal-attenuation-plugin, libopensand-modcod-minimal-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin
-#Description: Packages containing physical layer plugins for OpenSAND, a satellite emulation platform.
-# This metapackage is to ease the installation of OpenSAND physical layer plugins.
-
 Package: opensand-manager
 Architecture: any
 Section: metapackages
@@ -55,9 +48,3 @@ Description: Packages for OpenSAND manager.
 #Description: Packages containing encapsulation plugins for the OpenSAND manager.
 # This metapackage is to ease the installation of OpenSAND lan adaptation plugins on manager.
  
-#Package: opensand-manager-physical-layer-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand-manager, opensand-physical-layer-plugins, libopensand-constant-minimal-plugin-manager, libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager, libopensand-ideal-attenuation-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager
-#Description: Packages containing physical layer plugins for the OpenSAND manager.
-# This metapackage is to ease the installation of OpenSAND physical layer plugins on manager.

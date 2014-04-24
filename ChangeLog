@@ -1,3 +1,31 @@
+2014-04-24 opensand-3.0.0
+
+   * Release 3.0.0
+   * Simplify QoS configuration
+   * Completely rewrite DAMA and band configuration
+   * Correct MODCOD support on forward and return link
+   * Improve frames handling and support endianess
+   * Enable probe registration after initialisation
+   * Improve probes
+   * Improve communication speed between manager and daemon
+   * Enable generic fields in MAC address for Ethernet SARP tables
+   * Add another DAMA agent (RRM-QoS)
+   * Add main physical layer plugins in core
+   * Rewrite and improve some parts of physical layer
+   * Adapat MODCOD depending on C/N0 when physical layer is enabled
+   * Move plugin configuration from tools tab to advanced window
+   * Split channels in some blocks to avoid mutex between upward and downward
+   * Set independant frame duration between forward and return link
+   * Set default frame duration to 26.5 ms and frames per superframe to 1
+   * Add some parameters for UDP and performance improvements
+   * Rewrite logging part, use output library in order to collect logs on manager
+   * Add statistics for simulated requests
+   * Fix bug #1204028
+   * Fix bug #1279872
+   * Fix bug #1029023 
+   * Fix bug #1283996 
+   * Fix bug #1282635 
+   * Various other bugfixes and improvements
 
 2013-06-13 opensand-2.0.0
 
