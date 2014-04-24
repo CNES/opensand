@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-rt, 3.0.0, [http://opensand.org])
+AC_INIT(opensand-rt, trunk, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -38,7 +38,7 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 PKG_PROG_PKG_CONFIG
 
 # check for opensand-output library
-PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 3.0.0])
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = trunk])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 
