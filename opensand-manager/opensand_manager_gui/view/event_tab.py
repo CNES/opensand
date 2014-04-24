@@ -185,5 +185,7 @@ class EventTab(object):
     def autoscroll(self, enabled):
         """ set autoscroll state """
         self._autoscroll = enabled
+        if enabled:
+            self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 
 
