@@ -744,7 +744,7 @@ class HostManager(object):
 
         level_changed = (int(display_level) != log.display_level)
 
-        log.displayed = display_level
+        log.display_level = display_level
 
         if level_changed:
             return host
