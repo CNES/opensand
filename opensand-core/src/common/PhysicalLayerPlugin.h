@@ -170,7 +170,7 @@ public:
 	/**
 	 * @brief Updates Thresold when a msg arrives to Channel
 	 *
-	 * @param modcod_id  The MODCOD id carried by the BBFrame
+	 * @param modcod_id  The MODCOD id carried by the frame
 	 * @return true on success, false otherwise
 	 */
 	virtual bool updateThreshold(uint8_t modcod_id) = 0;
@@ -220,7 +220,7 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 	                                  double threshold_qef) = 0;
 
 	/**
-	 * @brief Corrupt a package with error bits 
+	 * @brief Corrupt a packet with error bits 
 	 *
 	 * @param payload the payload to the frame that should be modified 
 	 * @return true if DVB header should be tagged as corrupted,

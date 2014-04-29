@@ -192,7 +192,7 @@
                     The ID of the FMT in the MODCOD definition file.
                     You can add a list of single values separated by ';' or
                     a list of values contained in two values separated by '-'.
-                    (e.g. 1-4;7 for 1,2,3,4,7)
+                    (e.g. 1-4;7 for 1;2;3;4;7)
                     For DVB-RCS, only one value is authorized !
                 </xsd:documentation>
             </xsd:annotation>
