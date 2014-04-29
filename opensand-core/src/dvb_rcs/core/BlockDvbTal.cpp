@@ -118,8 +118,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	logon_timer(-1),
 	cni(100),
 	qos_server_host(),
-	event_login_sent(NULL),
-	event_login_complete(NULL),
+	event_login(NULL),
 	probe_st_queue_size(),
 	probe_st_queue_size_kb(),
 	probe_st_l2_to_sat_before_sched(),
@@ -658,8 +657,7 @@ error:
 
 bool BlockDvbTal::Downward::initOutput(void)
 {
-	this->event_login_sent = Output::registerEvent("bloc_dvb:login_sent");
-	this->event_login_complete = Output::registerEvent("bloc_dvb:login_complete");
+	this->event_login = Output::registerEvent("DVB.login");
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -938,7 +936,7 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(this->event_login_sent, "Login sent to GW");
+	Output::sendEvent(this->event_login, "Login sent to GW");
 
 	return true;
 
@@ -1264,7 +1262,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	this->state = state_running;
 
 	// send the corresponding event
-	Output::sendEvent(event_login_complete, "Login complete with MAC %d",
+	Output::sendEvent(event_login, "Login complete with MAC %d",
 	                  this->mac_id);
 
 	return true;
@@ -1639,6 +1637,7 @@ bool BlockDvbTal::Upward::initOutput(void)
 	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
+	// TODO SAMPLE_SUM ?
 	this->probe_st_rejected_modcod = Output::registerProbe<int>("ACM.Rejected_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);

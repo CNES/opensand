@@ -943,7 +943,7 @@ bool BlockDvbNcc::Downward::initFifo(void)
 bool BlockDvbNcc::Downward::initOutput(void)
 {
 	// Events
-	this->event_logon_resp = Output::registerEvent("Dvb.logon_response");
+	this->event_logon_resp = Output::registerEvent("DVB.logon_response");
 
 	// Logs
 	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
@@ -1977,7 +1977,7 @@ error:
 bool BlockDvbNcc::Upward::initOutput(void)
 {
 	// Events
-	this->event_logon_req = Output::registerEvent("Dvb.logon_request");
+	this->event_logon_req = Output::registerEvent("DVB.logon_request");
 
 	// Output probes and stats
 	this->probe_gw_l2_from_sat=

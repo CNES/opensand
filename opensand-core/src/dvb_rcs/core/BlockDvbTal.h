@@ -404,8 +404,7 @@ class BlockDvbTal: public BlockDvb
 		event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
 
 		// Output events
-		OutputEvent *event_login_sent;
-		OutputEvent *event_login_complete;
+		OutputEvent *event_login;
 
 		// Output Logs
 		OutputLog *log_frame_tick;
