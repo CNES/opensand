@@ -134,6 +134,10 @@ class Ule: public EncapPlugin
 		{
 			assert(0);
 		};
+		bool getQos(const Data &UNUSED(data), qos_t &UNUSED(qos)) const
+		{
+			assert(0);
+		};
 	};
 
 	/// Constructor

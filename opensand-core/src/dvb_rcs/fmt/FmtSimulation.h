@@ -77,7 +77,7 @@ class FmtSimulation
 	map<tal_id_t, StFmtSimu *> sts;
 
 	/** The table of MODCOD definitions */
-	FmtDefinitionTable modcod_def;
+	FmtDefinitionTable *modcod_def;
 
 	/** The file stream for the MODCOD simulation file
 	 *  Need pointer because ifstream is not copyable */

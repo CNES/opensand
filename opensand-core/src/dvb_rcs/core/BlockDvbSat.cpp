@@ -38,6 +38,7 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
+#include "SlottedAlohaFrame.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
@@ -272,6 +273,8 @@ BlockDvbSat::Downward::Downward(Block *const bl):
 
 BlockDvbSat::Downward::~Downward()
 {
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+
 	// delete FMT groups here because they may be present in many carriers
 	for(fmt_groups_t::iterator it = this->fmt_groups.begin();
 	    it != this->fmt_groups.end(); ++it)
@@ -279,10 +282,10 @@ BlockDvbSat::Downward::~Downward()
 		delete (*it).second;
 	}
 
-	for(TerminalCategories::iterator it = this->categories.begin();
-	    it != this->categories.end(); ++it)
+	for(cat_it = this->categories.begin();
+	    cat_it != this->categories.end(); ++cat_it)
 	{
-		delete (*it).second;
+		delete (*cat_it).second;
 	}
 	this->categories.clear();
 
@@ -294,8 +297,6 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 {
 	this->spots = spots;
 }
-
-
 
 bool BlockDvbSat::Downward::onInit()
 {
@@ -385,12 +386,15 @@ bool BlockDvbSat::Downward::initSatLink(void)
 
 	if(this->satellite_type == REGENERATIVE)
 	{
-		if(!this->initBand(DOWN_FORWARD_BAND,
-		                   this->fwd_timer_ms,
-		                   this->categories,
-		                   this->terminal_affectation,
-		                   &this->default_category,
-		                   this->fmt_groups))
+		// TODO no need of tal_aff and dflt_cat in attributes
+		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
+		                                         TDM,
+		                                         this->fwd_timer_ms,
+		                                         this->fmt_simu.getModcodDefinitions(),
+		                                         this->categories,
+		                                         this->terminal_affectation,
+		                                         &this->default_category,
+		                                         this->fmt_groups))
 		{
 			return false;
 		}
@@ -410,10 +414,11 @@ bool BlockDvbSat::Downward::initSatLink(void)
 		{
 			SatSpot *spot;
 			spot = i_spot->second;
+			TerminalCategoryDama *category = this->categories.begin()->second;
 
 			if(!spot->initScheduling(this->pkt_hdl,
 			                         &this->fmt_simu,
-			                         this->categories.begin()->second))
+			                         category))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "failed to init the spot scheduling\n");
@@ -794,15 +799,7 @@ bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
 		elem = fifo->pop();
 		assert(elem != NULL);
 
-		// check that we got a DVB frame in the SAT cell
-		if(elem->getType() != 0)
-		{
-			LOG(this->log_send, LEVEL_ERROR,
-			    "FIFO element does not contain a DVB or BB "
-			    "frame\n");
-			goto error;
-		}
-		dvb_frame = elem->getFrame();
+		dvb_frame = elem->getElem<DvbFrame>();
 		length = dvb_frame->getTotalLength();
 
 		// create a message for the DVB frame
@@ -1330,6 +1327,62 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				    getCarrierId());
 
 				if(!this->forwardDvbFrame(current_spot->getDataOutStFifo(),
+				                          dvb_frame))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "cannot forward burst\n");
+					status = false;
+				}
+
+				// satellite spot found, abort the search
+				break;
+			}
+		}
+	}
+	break;
+
+	case MSG_TYPE_SALOHA_DATA:
+	case MSG_TYPE_SALOHA_CTRL:
+	{
+		/* we should not receive BB frame in regenerative mode */
+		assert(this->satellite_type == TRANSPARENT);
+
+		LOG(this->log_receive, LEVEL_INFO,
+		    "Slotted Aloha frame received\n");
+
+		// get the satellite spot from which the DVB frame comes from
+		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
+		{
+			SatSpot *current_spot = spot->second;
+
+			if(current_spot->getInputCarrierId() == dvb_frame->getCarrierId())
+			{
+				DvbFifo *fifo;
+				// satellite spot found, forward frame on the same spot
+				SlottedAlohaFrame *sa_frame = dvb_frame->operator SlottedAlohaFrame*();
+
+				// Update probes and stats
+				current_spot->updateL2FromSt(sa_frame->getPayloadLength());
+
+				if(dvb_frame->getMessageType() == MSG_TYPE_SALOHA_DATA)
+				{
+					fifo = current_spot->getDataOutGwFifo();
+				}
+				else
+				{
+					fifo = current_spot->getDataOutStFifo();
+				}
+
+				// TODO: forward according to a table
+				LOG(this->log_receive, LEVEL_INFO,
+				    "Slotte Aloha frame comes from spot %u (carrier "
+				    "%u) => forward it to spot %u (carrier %u)\n",
+				    current_spot->getSpotId(),
+				    current_spot->getInputCarrierId(),
+				    current_spot->getSpotId(),
+				    fifo->getCarrierId());
+
+				if(!this->forwardDvbFrame(fifo,
 				                          dvb_frame))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,

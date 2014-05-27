@@ -43,10 +43,7 @@
 
 /**
  * @class TerminalContext
- * @brief Interface for a terminal context to be used in a DAMA controller.
- *        The requests values and handling MUST be treated in this context but
- *        they SHOULD be implemented in derived classes as these highly depends
- *        on access type
+ * @brief Interface for a terminal context
  */
 class TerminalContext
 {
@@ -55,18 +52,10 @@ class TerminalContext
 	/**
 	 * @brief  Create a terminal context.
 	 *
-	 * @param  tal_id          terminal id.
-	 * @param  cra_kbps        terminal CRA (kb/s).
-	 * @param  max_rbdc_kbps   maximum RBDC value (kb/s).
-	 * @param  rbdc_timeout_sf RBDC timeout (in superframe number).
-	 * @param  max_vbdc_kb     maximum VBDC value (kb).
+	 * @param  tal_id  terminal id.
 	 */
-	TerminalContext(tal_id_t tal_id,
-	                rate_kbps_t cra_kbps,
-	                rate_kbps_t max_rbdc_kbps,
-	                time_sf_t rbdc_timeout_sf,
-	                vol_kb_t max_vbdc_kb);
-	~TerminalContext();
+	TerminalContext(tal_id_t tal_id);
+	virtual ~TerminalContext();
 
 	/**
 	 * @brief  Get the terminal id.
@@ -74,74 +63,6 @@ class TerminalContext
 	 * @return  terminal id.
 	 */
 	tal_id_t getTerminalId() const;
-
-	/** @brief  Set the terminal CRA
-	 *
-	 * @param  The new CRA value (kb/s).
-	 */
-	virtual void setCra(rate_kbps_t cra_kbps);
-
-	/**
-	 * @brief   Get the terminal CRA.
-	 *
-	 * @return  CRA of terminal (kb/s).
-	 */
-	rate_kbps_t getCra() const;
-
-	/** @brief  Set the terminal max RBDC value
-	 *
-	 * @param  max_rbdc_kbps The new max RBDC value (kb/s)
-	 */
-	virtual void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
-
-	/**
-	 * @brief   Get the terminal max RBDC value.
-	 *
-	 * @return  max RBDC value of terminal of terminal (kb/s).
-	 */
-	rate_kbps_t getMaxRbdc() const;
-
-	/**
-	 * @brief   Get the terminal max VBDC value.
-	 *
-	 * @return  max VBDC value of terminal of terminal (kb).
-	 */
-	vol_kb_t getMaxVbdc() const;
-
-	/**
-	 * @brief  Called on SoF emission.
-	 *
-	 * @return  true on succes, false otherwise.
-	 */
-	virtual void onStartOfFrame() = 0;
-
-	/**
-	 * @brief Get the current FMT ID of the terminal
-	 *
-	 * @return the ID of FMT
-	 */
-	unsigned int getFmtId();
-
-	/**
-	 * @brief Set the current FMT ID of the terminal
-	 *
-	 * @param fmt_id  The current FMT ID of the terminal
-	 */
-	void setFmtId(unsigned int fmt_id);
-
-	/**
-	 * @brief Get the current carriers group for the terminal
-	 *
-	 * @return the ID of the carriers group
-	 */
-	unsigned int getCarrierId();
-
-	/**
-	 * @brief Set the current carriers group for the terminal
-	 *
-	 * @param carrier_id  The current carriers group
-	 */
-	void setCarrierId(unsigned int carrier_id);
 
 	/**
 	 * @brief Set the current terminal category
@@ -168,23 +89,6 @@ class TerminalContext
 	/** The terminal category */
 	string category;
 
-	/** CRA for the terminal (kb/s) */
-	rate_kbps_t cra_kbps;
-
-	/** Maximual RBDC value (kb/s) */
-	rate_kbps_t max_rbdc_kbps;
-
-	/** RBDC request timeout */
-	time_sf_t rbdc_timeout_sf;
-
-	/*** The maximum VBDC value */
-	vol_kb_t max_vbdc_kb;
-
-	/** The FMT ID */
-	unsigned int fmt_id;
-
-	/** The carrier ID */
-	unsigned int carrier_id;
 };
 
 #endif

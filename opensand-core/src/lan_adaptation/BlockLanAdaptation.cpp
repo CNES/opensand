@@ -454,7 +454,7 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 
 	/* create TUN or TAP interface */
 	LOG(this->log_init, LEVEL_INFO,
-	    "create interface opensand_%s",
+	    "create interface opensand_%s\n",
 	    (this->is_tap ? "tap" : "tun"));
 	snprintf(ifr.ifr_name, IFNAMSIZ, "opensand_%s",
 	        (this->is_tap ? "tap" : "tun"));

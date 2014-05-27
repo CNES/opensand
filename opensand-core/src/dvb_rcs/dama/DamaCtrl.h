@@ -38,8 +38,8 @@
 
 #include "Sac.h"
 #include "Ttp.h"
-#include "TerminalContext.h"
-#include "TerminalCategory.h"
+#include "TerminalContextDama.h"
+#include "TerminalCategoryDama.h"
 #include "FmtSimulation.h"
 #include "PepRequest.h"
 #include "UnitConverter.h"
@@ -94,9 +94,9 @@ class DamaCtrl
 	                        bool cra_decrease,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
-	                        TerminalCategories categories,
-	                        TerminalMapping terminal_affectation,
-	                        TerminalCategory *default_category,
+	                        TerminalCategories<TerminalCategoryDama> categories,
+	                        TerminalMapping<TerminalCategoryDama> terminal_affectation,
+	                        TerminalCategoryDama *default_category,
 	                        FmtSimulation *const ret_fmt_simu,
 	                        bool simulated);
 
@@ -189,7 +189,7 @@ class DamaCtrl
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
 	 * @return  true if success, false otherwise.
 	 */
-	virtual bool createTerminal(TerminalContext **terminal,
+	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
@@ -224,13 +224,12 @@ class DamaCtrl
 	/** Flag if init of THIS DAMA class (DamaCtrl) has been done */
 	bool is_parent_init;
 
-	// Helper to simplify context manipulation
-	typedef map<tal_id_t, TerminalContext *> DamaTerminalList;
-
 	UnitConverter *converter;  ///< Used to convert from/to KB to encap packets
 
+	// Helper to simplify context manipulation
+	typedef map<tal_id_t, TerminalContextDama *> DamaTerminalList;
+
 	/** List of registered terminals */
-	// TODO useful? they are in TerminalCategories
 	DamaTerminalList terminals;
 
 	/// Physical layer enable
@@ -264,20 +263,20 @@ class DamaCtrl
 	freq_khz_t available_bandplan_khz;
 
 	/** List of terminal category configurations. */
-	TerminalCategories categories;
+	TerminalCategories<TerminalCategoryDama> categories;
 
 	/**
 	 * Mapping terminal <-> category.
 	 * Used on terminal registration, since the terminal's category is only
 	 * defined in the configuration file, which is read by the DVB bloc.
 	 */
-	TerminalMapping terminal_affectation;
+	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 
 	/**
 	 * Default terminal category.
 	 * Used on terminals which are not affected to any specific category.
 	 */
-	TerminalCategory *default_category;
+	TerminalCategoryDama *default_category;
 
 	/** FMT simulation information for up/return link */
 	FmtSimulation *ret_fmt_simu;

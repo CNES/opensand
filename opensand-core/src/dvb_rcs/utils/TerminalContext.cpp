@@ -37,21 +37,10 @@
 
 #include <opensand_output/Output.h>
 
-#define DEFAULT_PRIO 1
 
-TerminalContext::TerminalContext(tal_id_t tal_id,
-                                 rate_kbps_t cra_kbps,
-                                 rate_kbps_t max_rbdc_kbps,
-                                 time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t max_vbdc_kb):
+TerminalContext::TerminalContext(tal_id_t tal_id):
 	tal_id(tal_id),
-	category(""),
-	cra_kbps(cra_kbps),
-	max_rbdc_kbps(max_rbdc_kbps),
-	rbdc_timeout_sf(rbdc_timeout_sf),
-	max_vbdc_kb(max_vbdc_kb),
-	fmt_id(1), // at beginning the terminal need to be served whlie FMT ID is unknown
-	carrier_id()
+	category("")
 {
 	this->log_band = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
 }
@@ -63,51 +52,6 @@ TerminalContext::~TerminalContext()
 tal_id_t TerminalContext::getTerminalId() const
 {
 	return this->tal_id;
-}
-
-void TerminalContext::setCra(rate_kbps_t cra_kbps)
-{
-	this->cra_kbps = cra_kbps;
-}
-
-rate_kbps_t TerminalContext::getCra() const
-{
-	return this->cra_kbps;
-}
-
-void TerminalContext::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
-{
-	this->max_rbdc_kbps = max_rbdc_kbps;
-}
-
-rate_kbps_t TerminalContext::getMaxRbdc() const
-{
-	return this->max_rbdc_kbps;
-}
-
-vol_kb_t TerminalContext::getMaxVbdc() const
-{
-	return this->max_vbdc_kb;
-}
-
-unsigned int TerminalContext::getFmtId()
-{
-	return this->fmt_id;
-}
-
-void TerminalContext::setFmtId(unsigned int fmt_id)
-{
-	this->fmt_id = fmt_id;
-}
-
-unsigned int TerminalContext::getCarrierId()
-{
-	return this->carrier_id;
-}
-
-void TerminalContext::setCarrierId(unsigned int carrier_id)
-{
-	this->carrier_id = carrier_id;
 }
 
 void TerminalContext::setCurrentCategory(string name)

@@ -35,11 +35,7 @@
 #ifndef FIFO_ELEMENT_H
 #define FIFO_ELEMENT_H
 
-
-#include <syslog.h>
-
-#include "NetPacket.h"
-#include "DvbFrame.h"
+#include "NetContainer.h"
 
 /**
  * @class MacFifoElement
@@ -49,21 +45,8 @@ class MacFifoElement
 {
  protected:
 
-	/// 0 if the element contains a DVB frame,
-	/// 1 if the element contains a NetPacket
-	int type;
-
-/*	/// The data to store in the FIFO (if type = 0)
-	unsigned char *data;
-	/// The length of data
-	size_t length;*/
-	//
-	/// The frame to store in the FIFO (if type = 0)
-	DvbFrame *dvb_frame;
-	/// The data to store in the FIFO (if type = 1)
-	NetPacket *packet;
-// TODO once everything will be uniformized
-// 	NetContainer *elem;
+	/// The element stored in the FIFO
+	NetContainer *elem;
 
 	/// The arrival time of packet in FIFO (in ms)
 	time_t tick_in;
@@ -75,20 +58,11 @@ class MacFifoElement
 
 	/**
 	 * Build a fifo element
-	 * @param dvb_frame  The DVB frame to store in the FIFO
-	 * @param tick_in    The arrival time of packet in FIFO (in ms)
-	 * @param tick_out   The minimal time the packet will output the FIFO (in ms)
+	 * @param elem       The element to store in the FIFO
+	 * @param tick_in    The arrival time of element in FIFO (in ms)
+	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	MacFifoElement(DvbFrame *dvb_frame,
-	               time_t tick_in, time_t tick_out);
-
-	/**
-	 * Build a fifo element
-	 * @param packet   The data to store in the FIFO
-	 * @param tick_in  The arrival time of packet in FIFO (in ms)
-	 * @param tick_out The minimal time the packet will output the FIFO (in ms)
-	 */
-	MacFifoElement(NetPacket *packet,
+	MacFifoElement(NetContainer *elem,
 	               time_t tick_in, time_t tick_out);
 
 	/**
@@ -97,38 +71,31 @@ class MacFifoElement
 	~MacFifoElement();
 
 	/**
-	 * Get the frame
-	 * @return The frame
+	 * Get the FIFO elelement
+	 * @return The FIFO element
 	 */
-	DvbFrame *getFrame() const;
+	NetContainer *getElem() const;
 
 	/**
-	 * Set the packet
+	 * Get the FIFO elelement
+	 * @return The FIFO element
+	 */
+	template<class T>
+	T *getElem() const;
+
+
+	/**
+	 * Set the FIFO element
 	 *
-	 * @param packet The new packet
+	 * @param packet The new FIFO element
 	 */
-	void setPacket(NetPacket *packet);
-
-
-	/**
-	 * Get the packet
-	 * @return The packet
-	 */
-	NetPacket *getPacket() const;
-
+	void setElem(NetContainer *elem);
 
 	/**
 	 * Get the element length
 	 * @return The element length
 	 */
 	size_t getTotalLength() const;
-
-
-	/**
-	 * Get the type of data in FIFO element
-	 * @return The type of data in FIFO element
-	 */
-	int getType() const;
 
 	/**
 	 * Get the arrival time of packet in FIFO (in ms)
@@ -141,7 +108,13 @@ class MacFifoElement
 	 * @return The minimal time the packet will output the FIFO
 	 */
 	time_t getTickOut() const;
-
 };
+
+// TODO check that, static cast ? operator () ?
+template<class T>
+T *MacFifoElement::getElem() const
+{
+	return (T *)this->getElem();
+}
 
 #endif

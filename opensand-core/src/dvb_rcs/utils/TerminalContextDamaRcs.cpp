@@ -27,15 +27,13 @@
  */
 
 /**
- * @file lib_dama_ctrl_st.cpp
- * @brief This bloc implements a ST and request context used by the DAMA CTRL
- *        within the NCC.
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @file    TerminalContextDamaRcs.cpp
+ * @brief   The terminal context for RCS terminals handled with DAMA
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
 
-#include "TerminalContextRcs.h"
+#include "TerminalContextDamaRcs.h"
 
 #include "OpenSandCore.h"
 
@@ -46,13 +44,13 @@
 #include <cstdlib>
 
 
-TerminalContextRcs::TerminalContextRcs(tal_id_t tal_id,
-                                       rate_kbps_t cra_kbps,
-                                       rate_kbps_t max_rbdc_kbps,
-                                       time_sf_t rbdc_timeout_sf,
-                                       vol_kb_t max_vbdc_kb,
-                                       const UnitConverter *converter):
-	TerminalContext(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, max_vbdc_kb),
+TerminalContextDamaRcs::TerminalContextDamaRcs(tal_id_t tal_id,
+                                               rate_kbps_t cra_kbps,
+                                               rate_kbps_t max_rbdc_kbps,
+                                               time_sf_t rbdc_timeout_sf,
+                                               vol_kb_t max_vbdc_kb,
+                                               const UnitConverter *converter):
+	TerminalContextDama(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, max_vbdc_kb),
 	rbdc_credit_pktpf(0.0),
 	timer_sf(0),
 	rbdc_request_pktpf(0),
@@ -68,22 +66,22 @@ TerminalContextRcs::TerminalContextRcs(tal_id_t tal_id,
 
 }
 
-TerminalContextRcs::~TerminalContextRcs()
+TerminalContextDamaRcs::~TerminalContextDamaRcs()
 {
 }
 
-void TerminalContextRcs::setCra(rate_kbps_t cra_kbps)
+void TerminalContextDamaRcs::setCra(rate_kbps_t cra_kbps)
 {
 	this->cra_kbps = cra_kbps;
 	this->cra_pktpf = this->converter->kbpsToPktpf(cra_kbps);
 }
 
-rate_kbps_t TerminalContextRcs::getCra()
+rate_kbps_t TerminalContextDamaRcs::getCra()
 {
 	return this->cra_kbps;
 }
 
-void TerminalContextRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
+void TerminalContextDamaRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
 {
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->max_rbdc_pktpf = this->converter->kbpsToPktpf(max_rbdc_kbps);
@@ -93,17 +91,17 @@ void TerminalContextRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
 	    this->max_rbdc_pktpf, this->tal_id);
 }
 
-rate_kbps_t TerminalContextRcs::getMaxRbdc()
+rate_kbps_t TerminalContextDamaRcs::getMaxRbdc()
 {
 	return this->max_rbdc_kbps;
 }
 
-void TerminalContextRcs::setRbdcTimeout(time_sf_t rbdc_timeout_sf)
+void TerminalContextDamaRcs::setRbdcTimeout(time_sf_t rbdc_timeout_sf)
 {
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 }
 
-void TerminalContextRcs::setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf)
+void TerminalContextDamaRcs::setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf)
 {
 	// limit the requets to Max RBDC
 	rbdc_request_pktpf = std::min(rbdc_request_pktpf, this->max_rbdc_pktpf);
@@ -118,27 +116,27 @@ void TerminalContextRcs::setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf)
 	    this->timer_sf, this->tal_id);
 }
 
-rate_pktpf_t TerminalContextRcs::getRequiredRbdc() const
+rate_pktpf_t TerminalContextDamaRcs::getRequiredRbdc() const
 {
 	return this->rbdc_request_pktpf;
 }
 
-void TerminalContextRcs::setRbdcAllocation(rate_pktpf_t rbdc_alloc_pktpf)
+void TerminalContextDamaRcs::setRbdcAllocation(rate_pktpf_t rbdc_alloc_pktpf)
 {
 	this->rbdc_alloc_pktpf = rbdc_alloc_pktpf;
 }
 
-void TerminalContextRcs::addRbdcCredit(rate_pktpf_t credit_pktpf)
+void TerminalContextDamaRcs::addRbdcCredit(rate_pktpf_t credit_pktpf)
 {
 	this->rbdc_credit_pktpf += credit_pktpf;
 }
 
-rate_pktpf_t TerminalContextRcs::getRbdcCredit()
+rate_pktpf_t TerminalContextDamaRcs::getRbdcCredit()
 {
 	return this->rbdc_credit_pktpf;
 }
 
-void TerminalContextRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
+void TerminalContextDamaRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
 {
 	this->vbdc_request_pkt += vbdc_request_pkt;
 	this->vbdc_request_pkt = std::min(this->vbdc_request_pkt, this->max_vbdc_pkt);
@@ -147,7 +145,7 @@ void TerminalContextRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
 	    vbdc_request_pkt, this->tal_id);
 }
 
-void TerminalContextRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
+void TerminalContextDamaRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
                                            unsigned int allocation_cycle)
 {
 	this->vbdc_alloc_pkt += vbdc_alloc_pkt;
@@ -164,25 +162,25 @@ void TerminalContextRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
 	}
 }
 
-vol_pkt_t TerminalContextRcs::getRequiredVbdc(unsigned int allocation_cycle) const
+vol_pkt_t TerminalContextDamaRcs::getRequiredVbdc(unsigned int allocation_cycle) const
 {
 	// the allocation is used for each frame per supertrame so it should
 	// be divided by the number of frames per superframes
 	return ceil(this->vbdc_request_pkt / allocation_cycle);
 }
 
-void TerminalContextRcs::setFcaAllocation(rate_pktpf_t fca_alloc_pktpf)
+void TerminalContextDamaRcs::setFcaAllocation(rate_pktpf_t fca_alloc_pktpf)
 {
 	this->fca_alloc_pktpf = fca_alloc_pktpf;
 }
 
-rate_pktpf_t TerminalContextRcs::getFcaAllocation()
+rate_pktpf_t TerminalContextDamaRcs::getFcaAllocation()
 {
 	return this->fca_alloc_pktpf;
 }
 
 
-rate_pktpf_t TerminalContextRcs::getTotalRateAllocation()
+rate_pktpf_t TerminalContextDamaRcs::getTotalRateAllocation()
 {
 	LOG(this->log_band, LEVEL_DEBUG,
 	    "Rate allocation: RBDC %u packets, FCA %u packets, "
@@ -191,12 +189,12 @@ rate_pktpf_t TerminalContextRcs::getTotalRateAllocation()
 	return this->rbdc_alloc_pktpf + this->fca_alloc_pktpf + this->cra_pktpf;
 }
 
-vol_pkt_t TerminalContextRcs::getTotalVolumeAllocation()
+vol_pkt_t TerminalContextDamaRcs::getTotalVolumeAllocation()
 {
 	return this->vbdc_alloc_pkt;
 }
 
-void TerminalContextRcs::onStartOfFrame()
+void TerminalContextDamaRcs::onStartOfFrame()
 {
 	if(this->timer_sf > 0)
 	{
@@ -224,14 +222,14 @@ void TerminalContextRcs::onStartOfFrame()
 }
 
 
-bool TerminalContextRcs::sortByRemainingCredit(const TerminalContextRcs *e1,
-                                               const TerminalContextRcs *e2)
+bool TerminalContextDamaRcs::sortByRemainingCredit(const TerminalContextDamaRcs *e1,
+                                               const TerminalContextDamaRcs *e2)
 {
 	return e1->rbdc_credit_pktpf > e2->rbdc_credit_pktpf;
 }
 
-bool TerminalContextRcs::sortByVbdcReq(const TerminalContextRcs *e1,
-                                       const TerminalContextRcs *e2)
+bool TerminalContextDamaRcs::sortByVbdcReq(const TerminalContextDamaRcs *e1,
+                                       const TerminalContextDamaRcs *e2)
 {
 	return e1->vbdc_request_pkt > e2->vbdc_request_pkt;
 }

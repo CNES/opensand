@@ -41,7 +41,7 @@
 
 #include "BBFrame.h"
 #include "FmtSimulation.h"
-#include "TerminalCategory.h"
+#include "TerminalCategoryDama.h"
 
 
 /** Status for the carrier capacity */
@@ -65,7 +65,7 @@ class ForwardSchedulingS2: public Scheduling
 	ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategory *const category);
+	                    const TerminalCategoryDama *const category);
 
 	~ForwardSchedulingS2();
 
@@ -91,7 +91,7 @@ class ForwardSchedulingS2: public Scheduling
 	FmtSimulation *fwd_fmt_simu;
 
 	/** The terminal category */
-	const TerminalCategory *category;
+	const TerminalCategoryDama *category;
 
 	// Total and unused capacity probes
 	Probe<int> *probe_fwd_total_capacity;
@@ -111,7 +111,7 @@ class ForwardSchedulingS2: public Scheduling
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
-	                          CarriersGroup *carriers);
+	                          CarriersGroupDama *carriers);
 
 	/**
 	 * @brief Get the current modcod of a terminal
@@ -141,7 +141,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @return          true on success, false otherwise
 	 */
 	bool getIncompleteBBFrame(tal_id_t tal_id,
-	                          CarriersGroup *carriers,
+	                          CarriersGroupDama *carriers,
 	                          BBFrame **bbframe);
 
 	/**

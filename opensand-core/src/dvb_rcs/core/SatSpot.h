@@ -42,7 +42,7 @@
 #include "DvbFrame.h"
 #include "Scheduling.h"
 #include "FmtSimulation.h"
-#include "TerminalCategory.h"
+#include "TerminalCategoryDama.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -117,14 +117,14 @@ class SatSpot
 	/**
 	 * initialize the scheduling attribute
 	 *
-	 * @param pkt_hdl                The packet handler
-	 * @param fwd_fmt_simu               The FMT simulation information
-	 * @param category               The related terminal category
+	 * @param pkt_hdl         The packet handler
+	 * @param fwd_fmt_simu    The FMT simulation information
+	 * @param category        The related terminal category
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategory *const category);
+	                    const TerminalCategoryDama *const category);
 
 	/**
 	 * @brief Schedule packets emission

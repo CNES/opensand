@@ -41,6 +41,7 @@
 
 #include "OpenSandCore.h"
 #include "CarriersGroup.h"
+#include "TerminalCategoryDama.h"
 
 /**
  *  @class DamaCtrlRcsLegacy
@@ -73,8 +74,8 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	 * @param carriers  The carrier group
 	 * @param category  The terminal category containing the carrier
 	 */
-	void runDamaRbdcPerCarrier(CarriersGroup *carriers,
-	                           const TerminalCategory *category);
+	void runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
+	                           const TerminalCategoryDama *category);
 
 	/**
 	 * @brief Compute VBDC per carriers group
@@ -82,8 +83,8 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	 * @param carriers  The carrier group
 	 * @param category  The terminal category containing the carrier
 	 */
-	void runDamaVbdcPerCarrier(CarriersGroup *carriers,
-	                           const TerminalCategory *category);
+	void runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
+	                           const TerminalCategoryDama *category);
 
 	/**
 	 * @brief Compute FCA per carriers group
@@ -91,8 +92,8 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	 * @param carriers  The carrier group
 	 * @param category  The terminal category containing the carrier
 	 */
-	void runDamaFcaPerCarrier(CarriersGroup *carriers,
-	                          const TerminalCategory *category);
+	void runDamaFcaPerCarrier(CarriersGroupDama *carriers,
+	                          const TerminalCategoryDama *category);
 
 };
 

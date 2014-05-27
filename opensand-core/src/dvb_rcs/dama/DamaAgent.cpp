@@ -96,6 +96,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			case cr_vbdc:
 				this->vbdc_enabled = true;
 				break;
+			case cr_saloha:
 			case cr_none:
 				break;
 			default:

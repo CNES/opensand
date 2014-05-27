@@ -42,6 +42,9 @@
 
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsRrmQos.h"
+#include "TerminalCategoryDama.h"
+
+#include "SlottedAlohaPacketData.h"
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
@@ -103,6 +106,8 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	max_rbdc_kbps(0),
 	max_vbdc_kb(0),
 	dama_agent(NULL),
+	saloha(NULL),
+	ret_fmt_groups(),
 	frame_counter(),
 	carrier_id_ctrl(),
 	carrier_id_logon(),
@@ -119,6 +124,9 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	cni(100),
 	qos_server_host(),
 	event_login(NULL),
+	log_frame_tick(NULL),
+	log_qos_server(NULL),
+	log_saloha(NULL),
 	probe_st_queue_size(),
 	probe_st_queue_size_kb(),
 	probe_st_l2_to_sat_before_sched(),
@@ -133,6 +141,19 @@ BlockDvbTal::Downward::~Downward()
 	if(this->dama_agent != NULL)
 	{
 		delete this->dama_agent;
+	}
+
+	if(this->saloha)
+	{
+		delete this->saloha;
+	}
+
+	// delete FMT groups here because they may be present in many carriers
+	// TODO do something to avoid groups here
+	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
+	    it != this->ret_fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
 	}
 
 	// delete fifos
@@ -161,6 +182,7 @@ BlockDvbTal::Downward::~Downward()
 	this->complete_dvb_frames.clear();
 }
 
+
 bool BlockDvbTal::Downward::onInit(void)
 {
 	this->log_qos_server = Output::registerLog(LEVEL_WARNING, 
@@ -172,55 +194,62 @@ bool BlockDvbTal::Downward::onInit(void)
 	if(!this->initCommon(UP_RETURN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation");
+		    "failed to complete the common part of the initialisation\n");
 		goto error;
 	}
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the downward common "
-		    "initialisation");
+		    "failed to complete the downward common initialisation\n");
 		goto error;
 	}
 
 	if(!this->initCarrierId())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the carrier IDs part of the "
-		    "initialisation");
+		    "failed to complete the carrier IDs part of the initialisation\n");
 		goto error;
 	}
 
 	if(!this->initMacFifo())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the MAC FIFO part of the "
-		    "initialisation");
+		    "failed to complete the MAC FIFO part of the initialisation\n");
 		goto error;
 	}
 
 	if(!this->initObr())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the OBR part of the "
-		    "initialisation");
+		    "failed to complete the OBR part of the initialisation\n");
 		goto error;
 	}
 
 	if(!this->initDama())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the "
-		    "initialisation");
+		    "failed to complete the DAMA part of the initialisation\n");
 		goto error;
+	}
+
+	if(!this->initSlottedAloha())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of Slotted Aloha\n");
+		goto error;
+	}
+	if(!this->dama_agent && !this->saloha)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unable to instanciate DAMA or Slotted Aloha, "
+		    "check your configuration\n");
+		return false;
 	}
 
 	if(!this->initQoSServer())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the QoS Server part of the "
-		    "initialisation");
+		    "failed to complete the QoS Server part of the initialisation\n");
 		goto error;
 	}
 
@@ -228,14 +257,14 @@ bool BlockDvbTal::Downward::onInit(void)
 	if(!this->initOutput())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of output");
+		    "failed to complete the initialisation of output\n");
 		goto error;
 	}
 
 	if(!this->initTimers())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialization of timers");
+		    "failed to complete the initialization of timers\n");
 		goto error;
 	}
 
@@ -468,6 +497,116 @@ bool BlockDvbTal::Downward::initDama(void)
 	time_sf_t msl_sf = 0;
 	string dama_algo;
 	bool cr_output_only;
+	bool is_dama_fifo = false;
+
+	TerminalCategories<TerminalCategoryDama> dama_categories;
+	TerminalMapping<TerminalCategoryDama> terminal_affectation;
+	TerminalCategoryDama *default_category;
+	TerminalCategoryDama *tal_category = NULL;
+	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		if((*it).second->getCrType() == cr_rbdc ||
+		   (*it).second->getCrType() == cr_vbdc ||
+		   (*it).second->getCrType() == cr_none)
+		{
+			is_dama_fifo = true;
+		}
+	}
+
+	// init fmt_simu
+	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
+	                          UP_RETURN_MODCOD_SIMU))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD files\n");
+		return false;
+	}
+
+	if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+	                                         DAMA,
+	                                         this->frame_duration_ms *
+	                                           this->frames_per_superframe,
+	                                         this->fmt_simu.getModcodDefinitions(),
+	                                         dama_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         this->ret_fmt_groups))
+	{
+		return false;
+	}
+
+	if(dama_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No DAMA carriers\n");
+		return true;
+	}
+
+	// Find the category for this terminal
+	tal_map_it = terminal_affectation.find(this->mac_id);
+	if(tal_map_it == terminal_affectation.end())
+	{
+		// check if the default category is concerned by Slotted Aloha
+		if(!default_category)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "ST not affected to a DAMA category\n");
+			return true;
+		}
+		tal_category = default_category;
+	}
+	else
+	{
+		tal_category = (*tal_map_it).second;
+	}
+
+	// check if there is Slotted Aloha carriers
+	if(!tal_category)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No DAMA carrier\n");
+		if(is_dama_fifo)
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Remove DAMA FIFOs because there is no "
+			    "DAMA carrier\n");
+			for(fifos_t::iterator it = this->dvb_fifos.begin();
+			    it != this->dvb_fifos.end(); ++it)
+			{
+				if((*it).second->getCrType() == cr_rbdc ||
+				   (*it).second->getCrType() == cr_vbdc ||
+				   (*it).second->getCrType() == cr_none)
+				{
+					// TODO check if we can still iterate
+					delete (*it).second;
+					this->dvb_fifos.erase(it);
+				}
+			}
+		}
+		return true;
+	}
+
+	if(!is_dama_fifo)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "The DAMA carrier won't be used as there is no DAMA FIFO\n");
+		return true;
+	}
+
+	for(cat_it = dama_categories.begin();
+	    cat_it != dama_categories.end(); ++cat_it)
+	{
+		if((*cat_it).second->getLabel() != tal_category->getLabel())
+		{
+			delete (*cat_it).second;
+		}
+	}
+	dama_categories.clear();
+	dama_categories[tal_category->getLabel()] = tal_category;
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
 	if(!Conf::getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
@@ -609,6 +748,155 @@ error:
 	return false;
 }
 
+bool BlockDvbTal::Downward::initSlottedAloha(void)
+{
+	bool is_sa_fifo = false;
+
+	TerminalCategories<TerminalCategorySaloha> sa_categories;
+	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
+	TerminalCategorySaloha *default_category;
+	TerminalCategorySaloha *tal_category = NULL;
+	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
+	TerminalCategories<TerminalCategorySaloha>::iterator cat_it;
+
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		if((*it).second->getCrType() == cr_saloha)
+		{
+			is_sa_fifo = true;
+		}
+	}
+
+	// fmt_simu was initialized in initDama
+	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
+	                                           ALOHA,
+	                                           this->frame_duration_ms *
+	                                             this->frames_per_superframe,
+	                                           this->fmt_simu.getModcodDefinitions(),
+	                                           sa_categories,
+	                                           terminal_affectation,
+	                                           &default_category,
+	                                           this->ret_fmt_groups))
+	{
+		return false;
+	}
+
+	if(sa_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No Slotted Aloha carriers\n");
+		return true;
+	}
+
+	// Find the category for this terminal
+	tal_map_it = terminal_affectation.find(this->mac_id);
+	if(tal_map_it == terminal_affectation.end())
+	{
+		// check if the default category is concerned by Slotted Aloha
+		if(!default_category)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "ST not affected to a Slotted Aloha category\n");
+			return true;
+		}
+		tal_category = default_category;
+	}
+	else
+	{
+		tal_category = (*tal_map_it).second;
+	}
+
+	// check if there is Slotted Aloha carriers
+	if(!tal_category)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No Slotted Aloha carrier\n");
+		if(is_sa_fifo)
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Remove Slotted Aloha FIFOs because there is no "
+			    "Slotted Aloha carrier\n");
+			for(fifos_t::iterator it = this->dvb_fifos.begin();
+			    it != this->dvb_fifos.end(); ++it)
+			{
+				if((*it).second->getCrType() == cr_saloha)
+				{
+					// TODO check if we can still iterate
+					delete (*it).second;
+					this->dvb_fifos.erase(it);
+				}
+			}
+		}
+		return true;
+	}
+
+	if(!is_sa_fifo)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "The Slotted Aloha carrier won't be used as there is no "
+		    "Slotted Aloha FIFO\n");
+		return true;
+	}
+
+	for(cat_it = sa_categories.begin();
+	    cat_it != sa_categories.end(); ++cat_it)
+	{
+		if((*cat_it).second->getLabel() != tal_category->getLabel())
+		{
+			delete (*cat_it).second;
+		}
+	}
+	sa_categories.clear();
+	sa_categories[tal_category->getLabel()] = tal_category;
+
+	// cannot use Slotted Aloha with regenerative satellite
+	if(this->satellite_type == REGENERATIVE)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Carrier configured with Slotted Aloha while satellite "
+		    "is regenerative\n");
+		return false;
+	}
+
+	// Create the Slotted ALoha part
+	this->saloha = new SlottedAlohaTal();
+	if(!this->saloha)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create Slotted Aloha\n");
+		return false;
+	}
+
+	// Initialize the Slotted Aloha parent class
+	// Unlike (future) scheduling, Slotted Aloha get all categories because
+	// it also handles received frames and in order to know to which
+	// category a frame is affected we need to get source terminal ID
+	if(!this->saloha->initParent(this->frame_duration_ms,
+	                             this->pkt_hdl,
+	                             sa_categories,
+	                             terminal_affectation,
+	                             default_category))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Dama Controller Initialization failed.\n");
+		goto release_saloha;
+	}
+
+	if(!this->saloha->init(this->mac_id, this->frames_per_superframe))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the DAMA controller\n");
+		goto release_saloha;
+	}
+
+	return true;
+
+release_saloha:
+	delete this->saloha;
+	return false;
+}
+
 
 bool BlockDvbTal::Downward::initQoSServer(void)
 {
@@ -658,6 +946,11 @@ error:
 bool BlockDvbTal::Downward::initOutput(void)
 {
 	this->event_login = Output::registerEvent("DVB.login");
+
+	if(this->saloha)
+	{
+		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+	}
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -728,31 +1021,56 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			// messages from upper layer: burst of encapsulation packets
 			NetBurst *burst;
 			NetBurst::iterator pkt_it;
-			unsigned int fifo_priority;
 			std::string message;
 			std::ostringstream oss;
 			int ret;
+			// TODO move saloha handling in a specific function
+			// Slotted Aloha variables
+			unsigned int sa_burst_size = 0; // burst size
+			unsigned int sa_offset = 0; // packet position (offset) in the burst
+			SlottedAlohaPacketData *sa_packet = NULL; // Slotted Aloha packet
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
+			sa_burst_size = burst->length();
 			LOG(this->log_receive, LEVEL_INFO,
 			    "SF#%u: encapsulation burst received (%d "
 			    "packets)\n", this->super_frame_counter,
-			    burst->length());
+			    sa_burst_size);
+
 
 			// set each packet of the burst in MAC FIFO
-
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "SF#%u: encapsulation packet has QoS value "
-				    "%d\n", this->super_frame_counter,
-				    (*pkt_it)->getQos());
+				unsigned int fifo_priority = (*pkt_it)->getQos();
 
-				fifo_priority = (*pkt_it)->getQos();
+				LOG(this->log_receive, LEVEL_DEBUG,
+				    "SF#%u: encapsulation packet has QoS value %u\n",
+				    this->super_frame_counter, fifo_priority);
+
+				// Slotted Aloha
+				sa_packet = NULL;
+				if(this->saloha &&
+				   this->dvb_fifos[fifo_priority]->getCrType() == cr_saloha)
+				{
+					// TODO rename function
+					sa_packet = this->saloha->onRcvEncapPacket(*pkt_it,
+					                                           sa_offset++,
+					                                           sa_burst_size);
+					if(!sa_packet)
+					{
+						LOG(this->log_saloha, LEVEL_ERROR,
+						    "SF#%u: frame %u: unable to "
+						    "store received Slotted Aloha encapsulation "
+						    "packet (see previous errors)\n",
+						    this->super_frame_counter,
+						    this->frame_counter);
+						return false;
+					}
+				}
+
 				// find the FIFO associated to the IP QoS (= MAC FIFO id)
 				// else use the default id
-
 				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
 				{
 					fifo_priority = this->default_fifo_id;
@@ -765,7 +1083,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 
 				// store the encapsulation packet in the FIFO
-				if(!this->onRcvEncapPacket(*pkt_it,
+				if(!this->onRcvEncapPacket(sa_packet ? sa_packet : *pkt_it,
 				                           this->dvb_fifos[fifo_priority],
 				                           0))
 				{
@@ -782,6 +1100,13 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					delete burst;
 					return false;
 				}
+
+				// Slotted Aloha
+				// TODO not really useful
+/*				if (this->dvb_fifos[fifo_id]->getCrType() == cr_saloha)
+				{
+					this->saloha->registerFifo(fifo_id);
+				}*/
 
 				this->l2_to_sat_cells_before_sched[
 					this->dvb_fifos[fifo_priority]->getPriority()]++;
@@ -846,7 +1171,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					{
 						// exit because the bloc is unable to continue
 						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u: treatments failed at frame %u",
+						    "SF#%u: treatments failed at frame %u\n",
 						    this->super_frame_counter,
 						    this->frame_counter);
 						// Fatal error
@@ -962,6 +1287,15 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			break;
 
+		case MSG_TYPE_SALOHA_CTRL:
+			if(!this->saloha->onRcvFrame(dvb_frame))
+			{
+				LOG(this->log_saloha, LEVEL_ERROR,
+				    "failed to handle Slotted Aloha Signal Controls frame");
+				goto error;
+			}
+			break;
+
 		case MSG_TYPE_SOF:
 			if(!this->handleStartOfFrame(dvb_frame))
 			{
@@ -977,7 +1311,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 		{
 			// TODO Ttp *ttp = dynamic_cast<Ttp *>(dvb_frame);
 			Ttp *ttp = (Ttp *)dvb_frame;
-			if(!this->dama_agent->hereIsTTP(ttp))
+			if(this->dama_agent && !this->dama_agent->hereIsTTP(ttp))
 			{
 				delete dvb_frame;
 				goto error_on_TTP;
@@ -1027,6 +1361,10 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	bool empty;
 	Sac *sac = new Sac(this->tal_id, this->group_id);
 
+	if(!this->dama_agent)
+	{
+		return true;
+	}
 	// Set CR body
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
@@ -1116,7 +1454,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 	this->super_frame_counter = sfn;
 
 	// Inform dama agent
-	if(!this->dama_agent->hereIsSOF(sfn))
+	if(this->dama_agent && !this->dama_agent->hereIsSOF(sfn))
 	{
 		goto error;
 	}
@@ -1146,6 +1484,20 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 			    "SF#%u frame %u: treatments failed\n",
 			    this->super_frame_counter, this->frame_counter);
 			goto error;
+		}
+
+		if(this->saloha)
+		{
+			// Slotted Aloha
+			if(!this->saloha->schedule(this->dvb_fifos,
+			                           this->complete_dvb_frames,
+			                           this->super_frame_counter))
+			{
+				LOG(this->log_saloha, LEVEL_ERROR,
+				    "SF#%u: frame %u: failed to process Slotted Aloha frame tick\n",
+				     this->super_frame_counter, this->frame_counter);
+				goto error;
+			}
 		}
 	}
 	else
@@ -1189,26 +1541,29 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 		}
 	}
 
-	// ---------- tell the DAMA agent that a new frame begins ----------
-	// Inform dama agent, and update total Available Allocation
-	// for current frame
-	if(!this->dama_agent->processOnFrameTick())
+	if(this->dama_agent)
 	{
-		LOG(this->log_frame_tick, LEVEL_ERROR,
-		    "SF#%u: frame %u: failed to process frame tick\n",
-		    this->super_frame_counter, this->frame_counter);
-	    goto error;
-	}
+		// ---------- tell the DAMA agent that a new frame begins ----------
+		// Inform dama agent, and update total Available Allocation
+		// for current frame
+		if(!this->dama_agent->processOnFrameTick())
+		{
+			LOG(this->log_frame_tick, LEVEL_ERROR,
+			    "SF#%u: frame %u: failed to process frame tick\n",
+			    this->super_frame_counter, this->frame_counter);
+			goto error;
+		}
 
-	// ---------- schedule and send data frames ---------
-	// schedule packets extracted from DVB FIFOs according to
-	// the algorithm defined in DAMA agent
-	if(!this->dama_agent->returnSchedule(&this->complete_dvb_frames))
-	{
-		LOG(this->log_frame_tick, LEVEL_ERROR,
-		    "SF#%u: frame %u: failed to schedule packets from DVB "
-		    "FIFOs\n", this->super_frame_counter, this->frame_counter);
-		goto error;
+		// ---------- schedule and send data frames ---------
+		// schedule packets extracted from DVB FIFOs according to
+		// the algorithm defined in DAMA agent
+		if(!this->dama_agent->returnSchedule(&this->complete_dvb_frames))
+		{
+			LOG(this->log_frame_tick, LEVEL_ERROR,
+			    "SF#%u: frame %u: failed to schedule packets from DVB "
+			    "FIFOs\n", this->super_frame_counter, this->frame_counter);
+			goto error;
+		}
 	}
 
 	// send on the emulated DVB network the DVB frames that contain
@@ -1253,7 +1608,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	this->tal_id = logon_resp->getLogonId();
 
 	// Inform Dama agent
-	if(!this->dama_agent->hereIsLogonResp(logon_resp))
+	if(this->dama_agent && !this->dama_agent->hereIsLogonResp(logon_resp))
 	{
 		return false;
 	}
@@ -1271,7 +1626,11 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 
 void BlockDvbTal::Downward::updateStats(void)
 {
-	this->dama_agent->updateStatistics(this->stats_period_ms);
+	if(this->dama_agent)
+	{
+		this->dama_agent->updateStatistics(this->stats_period_ms);
+	}
+	//TODO update saloha stats
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
@@ -1499,7 +1858,14 @@ error:
 	return false;
 }
 
-
+void BlockDvbTal::Downward::deletePackets()
+{
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		(*it).second->flush();
+	}
+}
 
 /*****************************************************************************/
 /*                               Upward                                      */
@@ -1767,6 +2133,65 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			break;
 
+		// Slotted Aloha
+/*		case MSG_TYPE_SALOHA_DATA:
+		{
+			if (SALOHA_DEBUG)
+			{
+				//Local variables
+				T_DVB_SALOHA* burst;
+				size_t offset,
+					header_size,
+					replicas_size;
+				SALOHA_DATA_HEADER* header;
+				NetPacket* encap_packet;
+				SlottedAlohaPacketData* sa_packet;
+				int cpt;
+	
+				//Block body
+				burst=(T_DVB_SALOHA*)ip_buf;
+				offset=sizeof(T_DVB_SALOHA);
+				header_size=sizeof(SALOHA_DATA_HEADER);
+				for(cpt=0;cpt < burst->dataLength;cpt++)
+				{
+					header=(SALOHA_DATA_HEADER*)(ip_buf+offset);
+					replicas_size=header->nb_replicas*sizeof(uint16_t);
+					encap_packet=this->up_return_pkt_hdl->build(
+						ip_buf+offset+header_size+replicas_size,
+						header->total_length-header_size-replicas_size,
+						0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID); //Default values
+					sa_packet=new SlottedAlohaPacketData(
+						*encap_packet,
+						(uint64_t)header->id,
+						(uint16_t)header->ts,
+						(uint16_t)header->seq,
+						(uint16_t)header->pdu_nb,
+						(uint16_t)header->timeout,
+						(uint16_t)header->nb_retransmissions,
+						(uint16_t)header->nb_replicas,
+						(uint16_t*)(ip_buf+offset+header_size)
+					);
+					delete encap_packet;
+					this->saloha.debug("< RCVD_ERR", sa_packet);
+					offset+=sa_packet->getTotalLength();
+					delete sa_packet;
+				}
+			}
+			else
+				LOG(this->log_saloha, LEVEL_DEBUG,
+				    "Slotted Aloha Data frame cannot be received by ST");
+			return true;
+		}*/
+		case MSG_TYPE_SALOHA_CTRL:
+			if(!this->shareFrame(dvb_frame))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "Unable to transmit Slotted Aloha Control frame "
+				    "to opposite channel\n");
+				goto error;
+			}
+			break;
+
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "SF#%u: unknown type of DVB frame (%u), ignore\n",
@@ -1808,9 +2233,9 @@ bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 
 	// update the frame numerotation
 	this->super_frame_counter = sfn;
+
 	return true;
 }
-
 
 
 bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
@@ -1902,12 +2327,5 @@ void BlockDvbTal::Upward::resetStatsCxt(void)
 }
 
 
-void BlockDvbTal::Downward::deletePackets()
-{
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		(*it).second->flush();
-	}
-}
+
 

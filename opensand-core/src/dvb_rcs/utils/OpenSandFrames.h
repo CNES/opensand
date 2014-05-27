@@ -60,10 +60,12 @@
 #define MSG_DVB_RCS_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 /// The maximum size of a BBFrame
 #define MSG_BBFRAME_SIZE_MAX 8100 + MAX_MODCOD_OPTIONS * sizeof(T_DVB_REAL_MODCOD) + sizeof(T_DVB_PHY)
+#define MSG_SALOHA_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 
 /// Whether the frame contains data or sig
 #define IS_DATA_FRAME(msg_type) \
-    (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST)
+    (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST || \
+     msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL)
 
 
 /**
@@ -111,6 +113,16 @@
  * BBFRAME
  */
 #define MSG_TYPE_BBFRAME 13
+
+/**
+ * Slotted Aloha data burst
+ */
+#define MSG_TYPE_SALOHA_DATA 14
+
+/**
+ * Slotted Aloha control burst
+ */
+#define MSG_TYPE_SALOHA_CTRL 15
 
 /**
  * Allocation Table, NCC -> ST
@@ -245,6 +257,16 @@ typedef struct
 	uint16_t qty_element;  ///< Number of following encapsulation packets
 	uint8_t modcod;        ///< The MODCOD of the data carried in frame
 } __attribute__((__packed__)) T_DVB_ENCAP_BURST;
+
+
+/**
+ * Slotted Aloha header
+ */
+typedef struct
+{
+	T_DVB_HDR hdr;
+	uint16_t data_length;
+} __attribute__((__packed__)) T_DVB_SALOHA;
 
 
 /// This message is used by dvb rcs layer to advertise the upper layer

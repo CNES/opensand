@@ -6,6 +6,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/pep \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
+	-I$(top_srcdir)/src/dvb_rcs/saloha \
 	-I$(top_srcdir)/src/dvb_rcs/core \
 	-I$(top_srcdir)/src/lan_adaptation \
 	-I$(top_srcdir)/src/sat_carrier \
@@ -19,6 +20,7 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/dvb_rcs/libopensand_dvb.la \
 	$(top_builddir)/src/dvb_rcs/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb_rcs/pep/libopensand_dvb_pep.la \
+	$(top_builddir)/src/dvb_rcs/saloha/libopensand_dvb_saloha.la \
 	$(top_builddir)/src/dvb_rcs/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \

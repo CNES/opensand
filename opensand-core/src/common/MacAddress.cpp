@@ -78,6 +78,7 @@ MacAddress::MacAddress(std::string mac_address)
 		if(ss.str() == "**")
 		{
 			this->generic_bytes[index] = true;
+			this->mac[index] = 0;
 		}
 		else
 		{

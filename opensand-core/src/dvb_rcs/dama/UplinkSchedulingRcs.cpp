@@ -35,6 +35,7 @@
 
 
 #include "UplinkSchedulingRcs.h"
+
 #include "MacFifoElement.h"
 #include "OpenSandFrames.h"
 #include "FmtDefinitionTable.h"
@@ -46,8 +47,8 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
 			unsigned int frames_per_superframe,
-			const FmtSimulation * const ret_fmt_simu,
-			const TerminalCategory *const category):
+			const FmtSimulation *const ret_fmt_simu,
+			const TerminalCategoryDama *const category):
 	Scheduling(packet_handler, fifos),
 	frames_per_superframe(frames_per_superframe),
 	ret_fmt_simu(ret_fmt_simu),
@@ -63,8 +64,8 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
                                    uint32_t &UNUSED(remaining_allocation))
 {
 	fifos_t::const_iterator fifo_it;
-	vector<CarriersGroup *> carriers;
-	vector<CarriersGroup *>::iterator carrier_it;
+	vector<CarriersGroupDama *> carriers;
+	vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
 	uint8_t desired_modcod = this->retrieveCurrentModcod();
 	bool found_modcod = false;
@@ -80,17 +81,18 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		rate_pktpf_t remaining_capacity_pktpf;
 		const FmtDefinitionTable *modcod_def;
 		uint8_t modcod_id;
+		CarriersGroupDama *carriers = *carrier_it;
 
 		// get best modcod ID according to carrier
-		modcod_id = (*carrier_it)->getNearestFmtId(desired_modcod);
+		modcod_id = carriers->getNearestFmtId(desired_modcod);
 		if(modcod_id == 0)
 		{
 			LOG(this->log_scheduling, LEVEL_NOTICE,
 			    "cannot use any modcod (desired %u) "
 			    "to send on on carrier %u\n", desired_modcod,
-			    (*carrier_it)->getCarriersId());
+			    carriers->getCarriersId());
 			// no available allocation on this carrier
-			(*carrier_it)->setRemainingCapacity(0);
+			carriers->setRemainingCapacity(0);
 			continue;
 		}
 		found_modcod = true;
@@ -100,7 +102,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		remaining_capacity_kb =
 			modcod_def->symToKbits(modcod_id,
-			                       (*carrier_it)->getTotalCapacity());
+			                      carriers->getTotalCapacity());
 		// as this function is called each superframe we can directly
 		// convert number of packet to rate in packet per superframe
 		// and dividing by the frame number per superframes we have
@@ -112,12 +114,12 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 
 		// initialize remaining capacity with total capacity in
 		// packet per superframe as it is the unit used in DAMA computations
-		(*carrier_it)->setRemainingCapacity(remaining_capacity_pktpf);
+		carriers->setRemainingCapacity(remaining_capacity_pktpf);
 		LOG(this->log_scheduling, LEVEL_INFO,
 		    "SF#%u: capacity before scheduling on GW uplink %u: "
 		    "%u packet (per frame) (%u kb)",
 		    current_superframe_sf,
-		    (*carrier_it)->getCarriersId(),
+		    carriers->getCarriersId(),
 		    remaining_capacity_pktpf,
 		                remaining_capacity_kb / this->frames_per_superframe);
 	}
@@ -140,7 +142,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 			                               current_frame,
 			                               current_time,
 			                               complete_dvb_frames,
-			                               (*carrier_it)))
+			                               *carrier_it))
 			{
 				return false;
 			}
@@ -155,7 +157,7 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_frame_t current_frame,
                                                clock_t current_time,
                                                std::list<DvbFrame *> *complete_dvb_frames,
-                                               CarriersGroup *carriers)
+                                               CarriersGroupDama *carriers)
 {
 	unsigned int cpt_frame;
 	unsigned int sent_packets;
@@ -204,18 +206,9 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 		}
 
 		elem = fifo->pop();
-		// examine the packet to be sent
-		if(elem->getType() != 1)
-		{
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: frame %u: MAC FIFO element does not "
-			    "contain NetPacket\n", current_superframe_sf,
-			    current_frame);
-			goto error;
-		}
 
 		// retrieve the encapsulation packet and delete element
-		encap_packet = elem->getPacket();
+		encap_packet = elem->getElem<NetPacket>();
 		delete elem;
 
 		// check the validity of the encapsulation packet

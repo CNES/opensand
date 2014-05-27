@@ -617,3 +617,14 @@ bool Atm::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
 	tal_id = atm_cell.getSrcTalId();
 	return true;
 }
+
+bool Atm::PacketHandler::getQos(const Data &data, qos_t &qos) const
+{
+	AtmCell atm_cell(data, this->getFixedLength());
+	if(!atm_cell.isValid())
+	{
+		return false;
+	}
+	qos = atm_cell.getQos();
+	return true;
+}

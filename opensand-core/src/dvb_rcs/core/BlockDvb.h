@@ -66,6 +66,7 @@
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
+#include <opensand_conf/conf.h>
 
 class BlockDvbSat;
 class BlockDvbNcc;
@@ -80,7 +81,11 @@ class DvbChannel: public RtChannel
 		satellite_type(),
 		with_phy_layer(false),
 		super_frame_counter(0),
+		frames_per_superframe(-1),
+		frame_counter(0),
+		frame_duration_ms(),
 		pkt_hdl(NULL),
+		fmt_simu(),
 		stats_period_ms(),
 		stats_timer(-1)
 	{
@@ -116,6 +121,77 @@ class DvbChannel: public RtChannel
 	 */
 	bool initCommon(const char *encap_schemes);
 
+	/**
+	 * @brief Read configuration for the MODCOD definition/simulation files
+	 *
+	 * @param def     The section in configuration file for MODCOD definitions
+	 *                (up/return or down/forward)
+	 * @param simu    The section in configuration file for MODCOD simulation
+	 *                (up/return or down/forward)
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodFiles(const char *def, const char *simu);
+
+	/**
+	 * @brief Read configuration for link MODCOD definition/simulation files
+	 *
+	 * @param def       The section in configuration file for MODCOD definitions
+	 *                  (up/return or down/forward)
+	 * @param simu      The section in configuration file for MODCOD simulation
+	 *                  (up/return or down/forward)
+	 * @param fmt_simu  The FMT simulation attribute to initialize
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodFiles(const char *def, const char *simu,
+	                     FmtSimulation &fmt_simu);
+
+	/**
+	 * @brief init the band according to configuration
+	 *
+	 * @tparam  T The type of terminal category to create
+	 * @param   band                 The section in configuration file
+	 *                               (up/return or down/forward)
+	 * @param   access_type          The access type value
+	 * @param   duration_ms          The frame duration on this band
+	 * @param   fmt_def              The FMT definition table
+	 * @param   categories           OUT: The terminal categories
+	 * @param   terminal_affectation OUT: The terminal affectation in categories
+	 * @param   default_category     OUT: The default category if terminal is not
+	 *                                  in terminal affectation
+	 * @param   fmt_groups           OUT: The groups of FMT ids
+	 * @return true on success, false otherwise
+	 */
+	template<class T>
+	bool initBand(const char *band,
+	              access_type_t access_type,
+	              time_ms_t duration_ms,
+	              const FmtDefinitionTable *fmt_def,
+	              TerminalCategories<T> &categories,
+	              TerminalMapping<T> &terminal_affectation,
+	              T **default_category,
+	              fmt_groups_t &fmt_groups);
+
+	/**
+	 * @brief  Compute the bandplan.
+	 *
+	 * Compute available carrier frequency for each carriers group in each
+	 * category, according to the current number of users in these groups.
+	 *
+	 * @tparam  T The type of terminal category to create
+	 * @param   available_bandplan_khz  available bandplan (in kHz).
+	 * @param   roll_off                roll-off factor
+	 * @param   duration_ms             The frame duration on this band
+	 * @param   categories              pointer to category list.
+	 *
+	 * @return  true on success, false otherwise.
+	 */
+	template<class T>
+	bool computeBandplan(freq_khz_t available_bandplan_khz,
+	                     double roll_off,
+	                     time_ms_t duration_ms,
+	                     TerminalCategories<T> &categories);
+
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -125,8 +201,20 @@ class DvbChannel: public RtChannel
 	/// the current super frame number
 	time_sf_t super_frame_counter;
 
+	/// the number of frame per superframe
+	unsigned int frames_per_superframe;
+
+	/// the current frame number inside the current super frame
+	time_frame_t frame_counter; // from 1 to frames_per_superframe
+
+	/// the frame duration
+	time_ms_t frame_duration_ms;
+
 	/// The encapsulation packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
+
+	/// The MODCOD simulation elements
+	FmtSimulation fmt_simu;
 
 	/// The statistics period
 	time_ms_t stats_period_ms;
@@ -177,11 +265,7 @@ class BlockDvb: public Block
 	 public:
 		DvbDownward(Block *const bl):
 			DvbChannel(bl, downward_chan),
-			fmt_simu(),
-			frame_duration_ms(),
 			fwd_timer_ms(),
-			frames_per_superframe(-1),
-			frame_counter(0),
 			dvb_scenario_refresh(-1)
 		{};
 
@@ -229,96 +313,394 @@ class BlockDvb: public Block
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
 
 		/**
-		 * @brief init the band according to configuration
-		 *
-		 * @param band                 The section in configuration file
-		 *                             (up/return or down/forward)
-		 * @param duration_ms          The frame duration on this band
-		 * @param categories           OUT: The terminal categories
-		 * @param terminal_affectation OUT: The terminal affectation in categories
-		 * @param default_category     OUT: The default category if terminal is not
-		 *                                  in terminal affectation
-		 * @param fmt_groups           OUT: The groups of FMT ids
-		 * @return true on success, false otherwise
-		 */
-		bool initBand(const char *band,
-		              time_ms_t duration_ms,
-		              TerminalCategories &categories,
-		              TerminalMapping &terminal_affectation,
-		              TerminalCategory **default_category,
-		              fmt_groups_t &fmt_groups);
-
-		/**
-		 * @brief  Compute the bandplan.
-		 *
-		 * Compute available carrier frequency for each carriers group in each
-		 * category, according to the current number of users in these groups.
-		 *
-		 * @param   available_bandplan_khz  available bandplan (in kHz).
-		 * @param   roll_off                roll-off factor
-		 * @param   duration_ms             The frame duration on this band
-		 * @param   categories              pointer to category list.
-		 *
-		 * @return  true on success, false otherwise.
-		 */
-		bool computeBandplan(freq_khz_t available_bandplan_khz,
-		                     double roll_off,
-		                     time_ms_t duration_ms,
-		                     TerminalCategories &categories);
-
-
-		/**
-		 * @brief Read configuration for the MODCOD definition/simulation files
-		 *
-		 * @param def     The section in configuration file for MODCOD definitions
-		 *                (up/return or down/forward)
-		 * @param simu    The section in configuration file for MODCOD simulation
-		 *                (up/return or down/forward)
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodFiles(const char *def, const char *simu);
-
-		/**
-		 * @brief Read configuration for link MODCOD definition/simulation files
-		 *
-		 * @param def       The section in configuration file for MODCOD definitions
-		 *                  (up/return or down/forward)
-		 * @param simu      The section in configuration file for MODCOD simulation
-		 *                  (up/return or down/forward)
-		 * @param fmt_simu  The FMT simulation attribute to initialize
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodFiles(const char *def, const char *simu,
-		                     FmtSimulation &fmt_simu);
-
-		/**
 		 * Update the statistics
 		 */
 		virtual void updateStats(void) = 0;
 
 	 protected:
 
-		/// The MODCOD simulation elements
-		FmtSimulation fmt_simu;
-	
-		/// the frame duration
-		time_ms_t frame_duration_ms;
-
 		/// the frame duration
 		time_ms_t fwd_timer_ms;
 
-		/// the number of frame per superframe
-		unsigned int frames_per_superframe;
-
-		/// the current frame number inside the current super frame
-		time_frame_t frame_counter; // from 1 to frames_per_superframe
-
 		/// the scenario refresh interval
 		time_ms_t dvb_scenario_refresh;
-
-		// Output log and debug
-		OutputLog *log_band;
 	};
 };
+
+// Implementation of functions with templates
+
+template<class T>
+bool DvbChannel::initBand(const char *band,
+                          access_type_t access_type,
+                          time_ms_t duration_ms,
+                          const FmtDefinitionTable *fmt_def,
+                          TerminalCategories<T> &categories,          
+                          TerminalMapping<T> &terminal_affectation,
+                          T **default_category,
+                          fmt_groups_t &fmt_groups)
+{
+	freq_khz_t bandwidth_khz;
+	double roll_off;
+	freq_mhz_t bandwidth_mhz = 0;
+	ConfigurationList conf_list;
+	ConfigurationList aff_list;
+	typename TerminalCategories<T>::iterator cat_iter;
+	unsigned int carrier_id = 0;
+	int i;
+	string default_category_name;
+
+	// Get the value of the bandwidth for return link
+	if(!Conf::getValue(band, BANDWIDTH,
+	                   bandwidth_mhz))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    band, BANDWIDTH);
+		goto error;
+	}
+	bandwidth_khz = bandwidth_mhz * 1000;
+	LOG(this->log_init, LEVEL_INFO,
+	    "%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
+
+	// Get the value of the roll off
+	if(!Conf::getValue(band, ROLL_OFF,
+	                   roll_off))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    band, ROLL_OFF);
+		goto error;
+	}
+
+	// get the FMT groups
+	if(!Conf::getListItems(band,
+	                       FMT_GROUP_LIST,
+	                       conf_list))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    band, FMT_GROUP_LIST);
+		goto error;
+	}
+
+	// create group list
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		unsigned int group_id;
+		string fmt_id;
+		FmtGroup *group;
+
+		// Get group id name
+		if(!Conf::getAttributeValue(iter, GROUP_ID, group_id))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in FMT "
+			    "groups\n", band, GROUP_ID);
+			goto error;
+		}
+
+		// Get FMT IDs
+		if(!Conf::getAttributeValue(iter, FMT_ID, fmt_id))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in FMT "
+			    "groups\n", band, FMT_ID);
+			goto error;
+		}
+
+		if(fmt_groups.find(group_id) != fmt_groups.end())
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "Section %s, FMT group %u already loaded\n", band,
+			    group_id);
+			continue;
+		}
+		group = new FmtGroup(group_id, fmt_id, fmt_def);
+		fmt_groups[group_id] = group;
+	}
+
+	conf_list.clear();
+	// get the carriers distribution
+	if(!Conf::getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n", band,
+		    CARRIERS_DISTRI_LIST);
+		goto error;
+	}
+
+	i = 0;
+	carrier_id = 0;
+	// create terminal categories according to channel distribution
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		string name;
+		unsigned int ratio;
+		rate_symps_t symbol_rate_symps;
+		unsigned int group_id;
+		string access;
+		T *category;
+		fmt_groups_t::const_iterator group_it;
+
+		i++;
+
+		// Get carriers' name
+		if(!Conf::getAttributeValue(iter, CATEGORY, name))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", band,
+			    CATEGORY, i);
+			goto error;
+		}
+
+		// Get carriers' ratio
+		if(!Conf::getAttributeValue(iter, RATIO, ratio))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", band, RATIO, i);
+			goto error;
+		}
+
+		// Get carriers' symbol ratge
+		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", band,
+			    SYMBOL_RATE, i);
+			goto error;
+		}
+
+		// Get carriers' FMT id
+		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", band,
+			    FMT_GROUP, i);
+			goto error;
+		}
+
+		// Get carriers' access type
+		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", band,
+			    ACCESS_TYPE, i);
+			goto error;
+		}
+
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "%s: new carriers: category=%s, Rs=%G, FMT group=%u, "
+		    "ratio=%u, access type=%s\n", band, name.c_str(),
+		    symbol_rate_symps, group_id, ratio,
+		    access.c_str());
+		if(strToAccessType(access) != access_type)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "Skip access type %s\n", access.c_str());
+			continue;
+		}
+
+		group_it = fmt_groups.find(group_id);
+		if(group_it == fmt_groups.end())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, nentry for FMT group with ID %u\n",
+			    band, group_id);
+			goto error;
+		}
+
+		// create the category if it does not exist
+		cat_iter = categories.find(name);
+		category = dynamic_cast<T *>((*cat_iter).second);
+		if(cat_iter == categories.end())
+		{
+			category = new T(name);
+			categories[name] = category;
+		}
+		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
+		                           symbol_rate_symps, access_type);
+		carrier_id++;
+	}
+
+	if(categories.size() == 0)
+	{
+		// no category here, this will be handled by caller
+		return true;
+	}
+
+	// get the default terminal category
+	if(!Conf::getValue(band, DEFAULT_AFF,
+	                   default_category_name))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, missing %s parameter\n", band,
+		    DEFAULT_AFF);
+		goto error;
+	}
+
+	// Look for associated category
+	*default_category = NULL;
+	cat_iter = categories.find(default_category_name);
+	if(cat_iter != categories.end())
+	{
+		*default_category = (*cat_iter).second;
+	}
+	if(*default_category == NULL)
+	{
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Section %s, could not find category %s, "
+		    "no default category for access type %u\n",
+		    band, default_category_name.c_str(), access_type);
+	}
+	else
+	{
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "ST default category: %s in %s\n",
+		    (*default_category)->getLabel().c_str(), band);
+	}
+
+	// get the terminal affectations
+	if(!Conf::getListItems(band, TAL_AFF_LIST, aff_list))
+	{
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Section %s, missing %s parameter\n", band,
+		    TAL_AFF_LIST);
+		goto error;
+	}
+
+	i = 0;
+	for(ConfigurationList::iterator iter = aff_list.begin();
+	    iter != aff_list.end(); ++iter)
+	{
+		// To prevent compilator to issue warning about non initialised variable
+		tal_id_t tal_id = -1;
+		string name;
+		T *category;
+
+		i++;
+		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in terminal "
+			    "affection table entry %u\n", band, TAL_ID, i);
+			goto error;
+		}
+		if(!Conf::getAttributeValue(iter, CATEGORY, name))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in terminal "
+			    "affection table entry %u\n", band, CATEGORY, i);
+			goto error;
+		}
+
+		// Look for the category
+		category = NULL;
+		cat_iter = categories.find(name);
+		if(cat_iter != categories.end())
+		{
+			category = (*cat_iter).second;
+		}
+		if(category == NULL)
+		{
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "Could not find category %s for terminal %u affectation, "
+			    "it is maybe concerned by another access type",
+			    name.c_str(), tal_id);
+			// keep the NULL affectation for this terminal to avoid
+			// setting default category
+			terminal_affectation[tal_id] = NULL;
+		}
+		else
+		{
+			terminal_affectation[tal_id] = category;
+			LOG(this->log_init, LEVEL_INFO,
+			    "%s: terminal %u will be affected to category %s\n",
+			    band, tal_id, name.c_str());
+		}
+	}
+
+	// Compute bandplan
+	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot compute band plan for %s\n", band);
+		goto error;
+	}
+
+	return true;
+
+error:
+	return false;
+}
+
+
+template<class T>
+bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
+                                 double roll_off,
+                                 time_ms_t duration_ms,
+                                 TerminalCategories<T> &categories)
+{
+	typename TerminalCategories<T>::const_iterator category_it;
+
+	double weighted_sum_ksymps = 0.0;
+
+	// compute weighted sum
+	for(category_it = categories.begin();
+	    category_it != categories.end();
+	    ++category_it)
+	{
+		T *category = (*category_it).second;
+
+		// Compute weighted sum in ks/s since available bandplan is in kHz.
+		weighted_sum_ksymps += category->getWeightedSum();
+	}
+
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
+
+	if(equals(weighted_sum_ksymps, 0.0))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Weighted ratio sum is 0\n");
+		goto error;
+	}
+
+	// compute carrier number per category
+	for(category_it = categories.begin();
+	    category_it != categories.end();
+		category_it++)
+	{
+		unsigned int carriers_number = 0;
+		T *category = (*category_it).second;
+		unsigned int ratio = category->getRatio();
+
+		carriers_number = ceil(
+		    (ratio / weighted_sum_ksymps) *
+		    (available_bandplan_khz / (1 + roll_off)));
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Number of carriers for category %s: %d\n",
+		    category->getLabel().c_str(), carriers_number);
+
+		// set the carrier numbers and capacity in carrier groups
+		category->updateCarriersGroups(carriers_number,
+		                               duration_ms);
+	}
+
+	return true;
+error:
+	return false;
+}
+
+
+
+
+
 
 #endif

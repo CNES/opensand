@@ -62,12 +62,12 @@
 #include "DamaCtrlRcs.h"
 #include "NccPepInterface.h"
 #include "Scheduling.h"
+#include "SlottedAlohaNcc.h"
 
 #define SIMU_BUFF_LEN 255
 
 class BlockDvbNcc: public BlockDvb
 {
-
  public:
 
 	/// Class constructor
@@ -101,6 +101,13 @@ class BlockDvbNcc: public BlockDvb
 		bool initMode(void);
 
 		/**
+		 * Read configuration for the Slotted Aloha algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initSlottedAloha(void);
+
+		/**
 		 * @brief Initialize the statistics
 		 *
 		 * @return  true on success, false otherwise
@@ -123,8 +130,14 @@ class BlockDvbNcc: public BlockDvb
 		 */
 		bool shareFrame(DvbFrame *frame);
 
+		/// The Slotted Aloha for NCC
+		SlottedAlohaNcc *saloha;
+
 		/// ST unique mac id
 		tal_id_t mac_id;
+
+		/// FMT groups for up/return
+		fmt_groups_t ret_fmt_groups;
 
 		// Output probes and stats
 			// Rates
@@ -135,7 +148,10 @@ class BlockDvbNcc: public BlockDvb
 		Probe<int> *probe_received_modcod;
 		Probe<int> *probe_rejected_modcod;
 
-		/// logon request received
+		/// log for slotted aloha
+		OutputLog *log_saloha;
+
+		/// logon request events
 		OutputEvent *event_logon_req;
 	};
 
@@ -292,21 +308,23 @@ class BlockDvbNcc: public BlockDvb
 		DvbFifo *data_dvb_fifo;
 
 		/// the list of complete DVB-RCS/BB frames that were not sent yet
-		std::list<DvbFrame *> complete_dvb_frames;
+		list<DvbFrame *> complete_dvb_frames;
 
 		/// The terminal categories for forward band
-		TerminalCategories categories;
+		TerminalCategories<TerminalCategoryDama> categories;
 
 		/// The terminal affectation for forward band
-		TerminalMapping terminal_affectation;
+		TerminalMapping<TerminalCategoryDama> terminal_affectation;
 
 		/// The default terminal category for forward band
-		TerminalCategory *default_category;
+		TerminalCategoryDama *default_category;
 
 		/// The up/return packet handler
 		EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
 
 		// TODO remove FMT groups from attributes
+		// TODO we may create a class that inherit from fmt_groups_t (map) with
+		//      a destructor that erases the map elements
 		/// FMT groups for down/forward
 		fmt_groups_t fwd_fmt_groups;
 

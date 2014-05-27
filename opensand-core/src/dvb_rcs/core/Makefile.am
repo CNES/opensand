@@ -31,6 +31,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/switch \
 	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/saloha \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/common
 

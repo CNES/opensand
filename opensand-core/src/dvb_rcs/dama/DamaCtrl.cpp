@@ -95,6 +95,7 @@ DamaCtrl::DamaCtrl():
 
 DamaCtrl::~DamaCtrl()
 {
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 	if(this->converter)
 	{
 		delete this->converter;
@@ -107,10 +108,10 @@ DamaCtrl::~DamaCtrl()
 	}
 	this->terminals.clear();
 
-	for(TerminalCategories::iterator it = this->categories.begin();
-	    it != this->categories.end(); ++it)
+	for(cat_it = this->categories.begin();
+	    cat_it != this->categories.end(); ++cat_it)
 	{
-		delete (*it).second;
+		delete (*cat_it).second;
 	}
 	this->categories.clear();
 
@@ -124,9 +125,9 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool cra_decrease,
                           time_sf_t rbdc_timeout_sf,
                           rate_kbps_t fca_kbps,
-                          TerminalCategories categories,
-                          TerminalMapping terminal_affectation,
-                          TerminalCategory *default_category,
+                          TerminalCategories<TerminalCategoryDama> categories,
+                          TerminalMapping<TerminalCategoryDama> terminal_affectation,
+                          TerminalCategoryDama *default_category,
                           FmtSimulation *const ret_fmt_simu,
                           bool simulated)
 {
@@ -148,23 +149,20 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 		goto error;
 	}
 
-	if(categories.size() == 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "No category defined\n");
-		return false;
-	}
 	this->categories = categories;
 
+	// we keep terminal affectation and default category but these affectations
+	// and the default category can concern non DAMA categories
+	// so be careful when adding a new terminal
 	this->terminal_affectation = terminal_affectation;
 
-	if(default_category == NULL)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "No default terminal affectation defined\n");
-		return false;
-	}
 	this->default_category = default_category;
+	if(!this->default_category)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "No default terminal affectation defined, "
+		    "some terminals may not be able to log\n");
+	}
 
 	this->is_parent_init = true;
 
@@ -291,14 +289,52 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		TerminalContext *terminal;
-		TerminalMapping::const_iterator it;
-		TerminalCategories::const_iterator category_it;
-		TerminalCategory *category;
-		vector<CarriersGroup *> carriers;
-		vector<CarriersGroup *>::const_iterator carrier_it;
+		TerminalContextDama *terminal;
+		TerminalMapping<TerminalCategoryDama>::const_iterator it;
+		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
+		TerminalCategoryDama *category;
+		vector<CarriersGroupDama *> carriers;
+		vector<CarriersGroupDama *>::const_iterator carrier_it;
 		const FmtDefinitionTable *modcod_def;
 		uint32_t max_capa_kbps = 0;
+
+		// Find the associated category
+		it = this->terminal_affectation.find(tal_id);
+		if(it == this->terminal_affectation.end())
+		{
+			if(!this->default_category)
+			{
+				LOG(this->log_logon, LEVEL_WARNING,
+				    "ST #%u cannot be logged, there is no default category\n",
+				    tal_id);
+				return false;
+			}
+			LOG(this->log_logon, LEVEL_INFO,
+			    "ST #%d is not affected to a category, using "
+			    "default: %s\n", tal_id, 
+			    this->default_category->getLabel().c_str());
+			category = this->default_category;
+		}
+		else
+		{
+			category = (*it).second;
+		}
+		if(!category)
+		{
+			LOG(this->log_logon, LEVEL_WARNING,
+			    "ST #%u cannot be logged, there is no DAMA "
+			    "category associated to its mapping\n",
+			    tal_id);
+			return false;
+		}
+
+		// check if the category is concerned by DAMA
+		if(this->categories.find(category->getLabel()) == this->categories.end())
+		{
+			LOG(this->log_logon, LEVEL_INFO,
+			    "Terminal %u is affected to non DAMA category\n", tal_id);
+			return true;
+		}
 
 		// create the terminal
 		if(!this->createTerminal(&terminal,
@@ -352,22 +388,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		// Add the new terminal to the list
 		this->terminals.insert(
-			pair<unsigned int, TerminalContext *>(tal_id, terminal));
+			pair<unsigned int, TerminalContextDama *>(tal_id, terminal));
 
-		// Find the associated category
-		it = this->terminal_affectation.find(tal_id);
-		if(it == this->terminal_affectation.end())
-		{
-			LOG(this->log_logon, LEVEL_INFO,
-			    "ST #%d is not affected to a category, using "
-			    "default: %s\n", tal_id, 
-			    this->default_category->getLabel().c_str());
-			category = this->default_category;
-		}
-		else
-		{
-			category = it->second;
-		}
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);
 		terminal->setCurrentCategory(category->getLabel());
@@ -397,11 +419,11 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			// we can use the same function that convert sym to kbits
 			// for conversion from sym/s to kbits/s
 			max_capa_kbps +=
-					// maxium FMT ID is the last in getFmtIds() and this is the one
+					// the last FMT ID in getFmtIds() is the one
 					// which will give us the higher rate
 					modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
-					                       (*carrier_it)->getSymbolRate() *
-					                       (*carrier_it)->getCarriersNumber());
+					                      (*carrier_it)->getSymbolRate() *
+					                      (*carrier_it)->getCarriersNumber());
 
 		}
 
@@ -427,9 +449,9 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 {
 	DamaTerminalList::iterator it;
-	TerminalContext *terminal;
-	TerminalCategories::const_iterator category_it;
-	TerminalCategory *category;
+	TerminalContextDama *terminal;
+	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
+	TerminalCategoryDama *category;
 	tal_id_t tal_id = logoff->getMac();
 
 	it = this->terminals.find(tal_id);
@@ -479,7 +501,7 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 
 	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
 	{
-		TerminalContext *terminal = it->second;
+		TerminalContextDama *terminal = it->second;
 		// reset/update terminal allocations/requests
 		terminal->onStartOfFrame();
 	}
@@ -543,6 +565,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 {
 	int simu_cra = 0;
 	int simu_rbdc = 0;
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 	// Update probes and stats
 	this->probe_gw_st_num->put(this->gw_st_num);
 	this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
@@ -551,7 +574,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	    it != this->terminals.end(); ++it)
 	{
 		tal_id_t tal_id = it->first;
-		TerminalContext* terminal = it->second;
+		TerminalContextDama *terminal = it->second;
 		if(tal_id > BROADCAST_TAL_ID)
 		{
 			simu_cra += terminal->getCra();
@@ -572,12 +595,12 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	}
 	this->probe_gw_return_remaining_capacity->put(
 		this->converter->pktpfToKbps(this->gw_remaining_capacity_pktpf));
-	for(TerminalCategories::iterator it = this->categories.begin();
-	    it != categories.end(); ++it)
+	for(cat_it = this->categories.begin();
+	    cat_it != categories.end(); ++cat_it)
 	{
-		TerminalCategory* category = it->second;
-		vector<CarriersGroup *> carriers;
-		vector<CarriersGroup *>::const_iterator carrier_it;
+		TerminalCategoryDama *category = (*cat_it).second;
+		vector<CarriersGroupDama *> carriers;
+		vector<CarriersGroupDama *>::const_iterator carrier_it;
 		string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
 			this->converter->pktpfToKbps(

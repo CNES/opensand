@@ -201,6 +201,8 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
+	// TODO add a config table in debug containing pattern and level in order
+	// to increase the start level of any log !!
 	Output::setLevels(levels);
 
 	// retrieve the type of satellite from configuration

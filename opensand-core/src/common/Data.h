@@ -59,6 +59,13 @@ class Data: public std::basic_string<unsigned char>
 	Data(std::basic_string<unsigned char> string);
 
 	/**
+	 * Create a set of data from a string
+	 *
+	 * @param string  the string
+	 */
+	Data(std::string);
+
+	/**
 	 * Create a set of data from unsigned characters
 	 *
 	 * @param data  the unsigned characters to copy

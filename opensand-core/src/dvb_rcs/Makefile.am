@@ -1,4 +1,4 @@
-SUBDIRS = utils pep fmt dama switch core
+SUBDIRS = utils pep fmt dama switch saloha core
 
 noinst_LTLIBRARIES = libopensand_dvb.la
 

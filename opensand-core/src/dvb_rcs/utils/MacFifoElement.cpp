@@ -34,61 +34,31 @@
 
 #include "MacFifoElement.h"
 
-// TODO one constructor with NetContainer
-MacFifoElement::MacFifoElement(DvbFrame *dvb_frame,
+MacFifoElement::MacFifoElement(NetContainer *elem,
                                time_t tick_in, time_t tick_out):
-	type(0),
-	dvb_frame(dvb_frame),
-	packet(NULL),
+	elem(elem),
 	tick_in(tick_in),
 	tick_out(tick_out)
 {
 }
-
-MacFifoElement::MacFifoElement(NetPacket *packet,
-                               time_t tick_in, time_t tick_out):
-	type(1),
-	dvb_frame(NULL),
-	packet(packet),
-	tick_in(tick_in),
-	tick_out(tick_out)
-{
-}
-
 
 MacFifoElement::~MacFifoElement()
 {
 }
 
-DvbFrame *MacFifoElement::getFrame() const
+NetContainer *MacFifoElement::getElem() const
 {
-	return this->dvb_frame;
+	return this->elem;
 }
 
-void MacFifoElement::setPacket(NetPacket *packet)
+void MacFifoElement::setElem(NetContainer *elem)
 {
-	this->packet = packet;
+	this->elem = elem;
 }
-
-NetPacket *MacFifoElement::getPacket() const
-{
-	return this->packet;
-}
-// TODO getElem for NetContainer and remove GetFrame and getPacket
 
 size_t MacFifoElement::getTotalLength() const
 {
-	switch(this->type)
-	{
-		case 0: return this->dvb_frame->getTotalLength();
-		case 1: return this->packet->getTotalLength();
-		default: return 0;
-	}
-}
-
-int MacFifoElement::getType() const
-{
-	return this->type;
+	return this->elem->getTotalLength();
 }
 
 time_t MacFifoElement::getTickIn() const

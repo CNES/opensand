@@ -38,23 +38,21 @@
 CarriersGroup::CarriersGroup(unsigned int carriers_id,
                              const FmtGroup *const fmt_group,
                              unsigned int ratio,
-                             rate_symps_t symbol_rate_symps):
+                             rate_symps_t symbol_rate_symps,
+                             access_type_t access_type):
 	carriers_id(carriers_id),
 	fmt_group(fmt_group),
 	carriers_number(0),
 	ratio(ratio),
 	capacity_sym(0),
-	remaining_capacity(0),
-	previous_capacity(0),
-	previous_sf(0),
-	symbol_rate_symps(symbol_rate_symps)
+	symbol_rate_symps(symbol_rate_symps),
+	access_type(access_type)
 {
 }
 
 CarriersGroup::~CarriersGroup()
 {
 }
-
 
 unsigned int CarriersGroup::getCarriersId() const
 {
@@ -74,32 +72,6 @@ void CarriersGroup::setCapacity(const vol_sym_t capacity_sym)
 vol_sym_t CarriersGroup::getTotalCapacity() const
 {
 	return (this->capacity_sym * this->carriers_number);
-}
-
-void CarriersGroup::setRemainingCapacity(const unsigned int remaining_capacity)
-{
-	this->remaining_capacity = remaining_capacity;
-}
-
-unsigned int CarriersGroup::getRemainingCapacity() const
-{
-	return this->remaining_capacity;
-}
-
-void CarriersGroup::setPreviousCapacity(const unsigned int previous_capacity,
-                                        const time_sf_t superframe_sf)
-{
-	this->previous_capacity = previous_capacity;
-	this->previous_sf = superframe_sf;
-}
-
-unsigned int CarriersGroup::getPreviousCapacity(const time_sf_t superframe_sf) const
-{
-	if(this->previous_sf != superframe_sf)
-	{
-		return 0;
-	}
-	return this->previous_capacity;
 }
 
 rate_symps_t CarriersGroup::getSymbolRate() const
@@ -122,12 +94,13 @@ unsigned int CarriersGroup::getRatio() const
 	return this->ratio;
 }
 
-unsigned int CarriersGroup::getNearestFmtId(unsigned int fmt_id)
-{
-	return this->fmt_group->getNearest(fmt_id);
-}
-
 const list<unsigned int> CarriersGroup::getFmtIds() const
 {
 	return this->fmt_group->getFmtIds();
 }
+
+access_type_t CarriersGroup::getAccessType(void) const
+{
+	return this->access_type;
+}
+

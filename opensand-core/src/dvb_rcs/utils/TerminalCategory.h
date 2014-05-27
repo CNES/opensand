@@ -40,7 +40,7 @@
 #include "TerminalContext.h"
 #include "CarriersGroup.h"
 
-#include <opensand_output/OutputLog.h>
+#include <opensand_output/Output.h>
 
 #include <string>
 #include <map>
@@ -50,10 +50,12 @@ using std::string;
 using std::map;
 using std::vector;
 
+
 /**
  * @class TerminalCategory
- * @brief Represent a category of terminal.
+ * @brief Template for a category of terminal.
  */
+template<class T = CarriersGroup>
 class TerminalCategory
 {
 
@@ -64,16 +66,37 @@ class TerminalCategory
 	 *
 	 * @param  label  label of the category.
 	 */
-	TerminalCategory(string label);
+	TerminalCategory(string label):
+		terminals(),
+		carriers_groups(),
+		label(label)
+	{
+		// Output log
+		this->log_terminal_category = Output::registerLog(LEVEL_WARNING,
+		                                                  "Dvb.Ncc.Band");
+	};
 
-	~TerminalCategory();
+	virtual ~TerminalCategory()
+	{
+		typename vector<T *>::iterator it;
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			delete *it;
+		}
+		// do not delete terminals, they will be deleted in DAMA or SlottedAloha
+	};
+
 
 	/**
 	 * @brief  Get the label.
 	 *
 	 * @return  the label.
 	 */
-	string getLabel() const;
+	string getLabel() const
+	{
+		return this->label;
+	};
 
 
 	/**
@@ -81,14 +104,38 @@ class TerminalCategory
 	 *
 	 * @return the weighted sum
 	 */
-	double getWeightedSum() const;
+	double getWeightedSum() const
+	{
+		// Compute weighted sum in ks/s since available bandplan is in kHz
+		double weighted_sum_ksymps = 0.0;
+		typename vector<T *>::const_iterator it;
+
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			// weighted_sum = ratio * Rs (ks/s)
+			weighted_sum_ksymps += (*it)->getRatio() * (*it)->getSymbolRate() / 1E3;
+		}
+		return weighted_sum_ksymps;
+	};
 
 	/**
 	 * @brief  Get the estimated occupation ratio.
 	 *
 	 * @return  the estimated occupation ratio.
 	 */
-	unsigned int getRatio() const;
+	unsigned int getRatio() const
+	{
+		unsigned int ratio = 0;
+		typename vector<T *>::const_iterator it;
+
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			ratio += (*it)->getRatio();
+		}
+		return ratio;
+	};
 
 	/**
 	 * @brief  Set the number and the capacity of carriers in each group
@@ -97,14 +144,53 @@ class TerminalCategory
 	 * @param  superframe_duration_ms  The superframe duration (in ms)
 	 */
 	void updateCarriersGroups(unsigned int carriers_number,
-	                         time_ms_t superframe_duration_ms);
+	                         time_ms_t superframe_duration_ms)
+	{
+		unsigned int total_ratio = this->getRatio();
+		typename vector<T *>::const_iterator it;
+
+		if(carriers_number < this->carriers_groups.size())
+		{
+			LOG(this->log_terminal_category, LEVEL_NOTICE, 
+			    "Not enough carriers for category %s that contains %zu "
+			    "groups. Increase carriers number to the number of "
+			    "groups\n",
+			    this->label.c_str(), this->carriers_groups.size());
+			carriers_number = this->carriers_groups.size();
+		}
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			unsigned int number;
+			vol_sym_t capacity_sym;
+	
+			// get number per carriers from total number in category
+			number = ceil(carriers_number * (*it)->getRatio() / total_ratio);
+			(*it)->setCarriersNumber(number);
+			LOG(this->log_terminal_category, LEVEL_NOTICE, 
+			    "Carrier group %u: number of carriers %u\n",
+			    (*it)->getCarriersId(), number);
+	
+			// get the capacity of the carriers
+			capacity_sym = floor((*it)->getSymbolRate() * superframe_duration_ms / 1000);
+			(*it)->setCapacity(capacity_sym);
+			LOG(this->log_terminal_category, LEVEL_NOTICE, 
+			    "Carrier group %u: capacity for Symbol Rate %.2E: %u "
+			    "symbols\n", (*it)->getCarriersId(),
+			    (*it)->getSymbolRate(), capacity_sym);
+		}
+	};
 
 	/**
 	 * @brief  Add a terminal to the category
 	 *
 	 * @param  terminal  terminal to be added.
 	 */
-	void addTerminal(TerminalContext *terminal);
+	void addTerminal(TerminalContext *terminal)
+	{
+		terminal->setCurrentCategory(this->label);
+		this->terminals.push_back(terminal);
+	};
 
 	/**
 	 * @brief  Remove a terminal from the category
@@ -112,7 +198,40 @@ class TerminalCategory
 	 * @param  terminal  terminal to be removed.
 	 * @return true on success, false otherwise
 	 */
-	bool removeTerminal(TerminalContext *terminal);
+	bool removeTerminal(TerminalContext *terminal)
+	{
+		vector<TerminalContext *>::iterator terminal_it
+		                                    = this->terminals.begin();
+		const tal_id_t tal_id = terminal->getTerminalId();
+		while(terminal_it != this->terminals.end()
+			  && (*terminal_it)->getTerminalId() != tal_id)
+		{
+			++terminal_it;
+		}
+	
+		if(terminal_it != this->terminals.end())
+		{
+			this->terminals.erase(terminal_it);
+		}
+		else
+		{
+			LOG(this->log_terminal_category, LEVEL_ERROR, 
+			    "ST#%u not registered on category %s",
+			    tal_id, this->label.c_str());
+			return false;
+		}
+		return true;
+	};
+
+	/**
+	 * @brief   Get the carriers groups
+	 *
+	 * @return  the carriers groups
+	 */
+	vector<T *> getCarriersGroups(void) const
+	{
+		return this->carriers_groups;
+	};
 
 	/**
 	 * @brief  Add a carriers group to the category
@@ -121,80 +240,69 @@ class TerminalCategory
 	 * @param  fmt_group    The FMT group associated to the carrier
 	 * @param  ratio        The estimated occupation ratio
 	 * @param  rate_symps   The group symbol rate (symbol/s)
+	 * @param  access_type  The carriers access type
 	 */
 	void addCarriersGroup(unsigned int carriers_id,
 	                      const FmtGroup *const fmt_group,
 	                      unsigned int ratio,
-	                      rate_symps_t rate_symps);
+	                      rate_symps_t rate_symps,
+	                      access_type_t access_type)
+	{
+		T *group = new T(carriers_id, fmt_group,
+		                 ratio, rate_symps,
+		                 access_type);
+		this->carriers_groups.push_back(group);
+	};
 
-	/**
-	 * @brief   Get the carriers groups
-	 *
-	 * @return  the carriers groups
-	 */
-	vector<CarriersGroup *> getCarriersGroups() const;
 
 	/**
 	 * @brief   Get number of carriers.
 	 *
 	 * @return  number of carriers.
 	 */
-	unsigned int getCarriersNumber() const;
+	unsigned int getCarriersNumber(void) const
+	{
+		unsigned int carriers_number = 0;
+		typename vector<T *>::const_iterator it;
+
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			carriers_number += (*it)->getCarriersNumber();
+		}
+		return carriers_number;
+	};
 
 	/**
 	 * @brief   Get terminal list.
 	 *
 	 * @return  terminal list.
 	 */
-	vector<TerminalContext *> getTerminals() const;
-
-	/**
-	 * @brief  Get the terminal list in a specific carriers group
-	 *
-	 * @tparam T            a terminal context
-	 * @param  carrier_id   the carrier ID
-	 * @return  terminal list in the carriers group
-	 */
-	template<class T>
-	vector<T *> getTerminalsInCarriersGroup(
-	                             unsigned int carrier_id) const;
+	vector<TerminalContext *> getTerminals() const
+	{
+		return this->terminals;
+	};
 
  protected:
 	// Output Log
 	OutputLog *log_terminal_category;
 
- private:
-
 	/** List of terminals. */
 	vector<TerminalContext *> terminals;
 
 	/** List of carriers */
-	vector<CarriersGroup *> carriers_groups;
+	vector<T *> carriers_groups;
 
 	/** The label */
 	string label;
 
 };
 
-typedef map<string, TerminalCategory *> TerminalCategories;
-typedef map<tal_id_t, TerminalCategory *> TerminalMapping;
 
 template<class T>
-vector<T *> TerminalCategory::getTerminalsInCarriersGroup(
-                                          unsigned int carrier_id) const
-{
-	vector<T *> entries;
-	vector<TerminalContext *>::const_iterator it;
-	for(it = this->terminals.begin();
-	    it != this->terminals.end(); ++it)
-	{
-		if((*it)->getCarrierId() == carrier_id)
-		{
-			entries.push_back((T *)(*it));
-		}
-	}
-	return entries;
-}
+class TerminalCategories: public map<string, T *> {};
+template<class T>
+class TerminalMapping: public map<tal_id_t, T *> {};
 
 #endif
 

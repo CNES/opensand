@@ -48,6 +48,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
@@ -72,6 +73,20 @@
 	} \
 	while(0)
 
+
+#define DUMP(data, len) \
+	do \
+	{ \
+		std::string str(""); char x[4]; int i; \
+		for(i=0;i<(signed)len;i++) \
+		{ \
+			sprintf(x, "%02X ", ((unsigned char *)data)[i]); \
+			str += x; \
+		} \
+		Output::sendLog(LEVEL_ERROR, \
+		                "%s", str.c_str()); \
+	} \
+	while(0)
 
 class Output
 {

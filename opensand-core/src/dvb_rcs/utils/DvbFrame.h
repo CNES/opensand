@@ -43,6 +43,7 @@
 
 class BBFrame;
 class DvbRcsFrame;
+class SlottedAlohaFrame;
 
 /**
  * @class DvbFrameTpl
@@ -331,6 +332,12 @@ class DvbFrameTpl: public NetContainer
 	{
 		this->header_length = sizeof(T_DVB_ENCAP_BURST);
 		return (DvbRcsFrame *)this;
+	};
+
+	operator SlottedAlohaFrame* ()
+	{
+		this->header_length = sizeof(T_DVB_SALOHA);
+		return (SlottedAlohaFrame *)this;
 	};
 
 };

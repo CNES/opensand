@@ -69,6 +69,10 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	{
 		this->cr_type = cr_vbdc;
 	}
+	else if(cr_type_name == "SALOHA")
+	{
+		this->cr_type = cr_saloha;
+	}
 	else if(cr_type_name == "NONE")
 	{
 		this->cr_type = cr_none;
@@ -184,6 +188,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 
 	if(this->queue.size() >= this->max_size_pkt)
 	{
+		// TODO stat drop
 		return false;
 	}
 
@@ -203,7 +208,6 @@ bool DvbFifo::push(MacFifoElement *elem)
 bool DvbFifo::pushFront(MacFifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
-	assert(elem->getType() == 1);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
@@ -256,16 +260,8 @@ void DvbFifo::flush()
 	vector<MacFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it < this->queue.end(); ++it)
 	{
-		NetPacket *packet = (*it)->getPacket();
-		DvbFrame *frame = (*it)->getFrame();
-		if(packet)
-		{
-			delete packet;
-		}
-		if(frame)
-		{
-			delete frame;
-		}
+		NetContainer *elem = (*it)->getElem();
+		delete elem;
 		delete *it;
 	}
 

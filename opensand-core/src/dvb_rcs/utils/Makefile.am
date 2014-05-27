@@ -10,13 +10,21 @@ libopensand_dvb_utils_la_cpp = \
 	DvbFifo.cpp \
 	MacFifoElement.cpp \
 	TerminalContext.cpp \
-	TerminalContextRcs.cpp \
+	TerminalContextDama.cpp \
+	TerminalContextDamaRcs.cpp \
+	TerminalContextSaloha.cpp \
 	FmtGroup.cpp \
 	CarriersGroup.cpp \
-	TerminalCategory.cpp \
+	CarriersGroupDama.cpp \
+	CarriersGroupSaloha.cpp \
+	TerminalCategoryDama.cpp \
+	TerminalCategorySaloha.cpp \
 	DvbRcsFrame.cpp \
-	BBFrame.cpp
-
+	BBFrame.cpp \
+	Slot.cpp \
+	SlottedAlohaPacketData.cpp \
+	SlottedAlohaPacketCtrl.cpp \
+	SlottedAlohaFrame.cpp
 
 libopensand_dvb_utils_la_h = \
 	UnitConverter.h \
@@ -28,14 +36,25 @@ libopensand_dvb_utils_la_h = \
 	DvbFifo.h \
 	MacFifoElement.h \
 	TerminalContext.h \
-	TerminalContextRcs.h \
+	TerminalContextDama.h \
+	TerminalContextDamaRcs.h \
+	TerminalContextSaloha.h \
 	TerminalCategory.h \
+	TerminalCategoryDama.h \
+	TerminalCategorySaloha.h \
 	FmtGroup.h \
 	CarriersGroup.h \
+	CarriersGroupDama.h \
+	CarriersGroupSaloha.h \
 	OpenSandFrames.h \
 	DvbFrame.h \
 	DvbRcsFrame.h \
-	BBFrame.h
+	BBFrame.h \
+	Slot.h \
+	SlottedAlohaPacket.h \
+	SlottedAlohaPacketData.h \
+	SlottedAlohaPacketCtrl.h \
+	SlottedAlohaFrame.h
 
 
 libopensand_dvb_utils_la_SOURCES = \

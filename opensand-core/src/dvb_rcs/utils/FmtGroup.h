@@ -36,15 +36,21 @@
 #ifndef FMT_GROUP_H
 #define FMT_GROUP_H
 
+
+#include "FmtDefinitionTable.h"
+
+#include <opensand_output/OutputLog.h>
+
 #include <list>
 #include <string>
 #include <map>
 
-#include <opensand_output/OutputLog.h>
-
 using std::list;
 using std::string;
 using std::map;
+
+
+class FmtId;
 
 /**
  * @class FmtGroup
@@ -57,7 +63,14 @@ class FmtGroup
 	/** The ID of the FMT group */
 	unsigned int id;
 
-	list<unsigned int> fmt_ids;
+	/** The list of FMT IDs */
+	list<FmtId> fmt_ids;
+
+	/** The list of IDs from FMT IDs */
+	list<unsigned int> num_fmt_ids;
+
+	/** The table of MODCOD definitions */
+	const FmtDefinitionTable *modcod_def;
 
  protected:
 	// Output log
@@ -68,10 +81,13 @@ class FmtGroup
 	/**
 	 * @brief Create a new FMT group
 	 *
-	 * @param group_id  The group id
-	 * @param fmt_ids   The FMT IDs to add
+	 * @param group_id    The group id
+	 * @param ids         The FMT IDs to add
+	 * @param modcod_def  The MODCOD definitions
 	 */
-	FmtGroup(unsigned int group_id, string fmt_ids);
+	FmtGroup(unsigned int group_id,
+	         string ids,
+	         const FmtDefinitionTable *modcod_def);
 
 	/**
 	 * @brief Get the nearest supported value in the group
@@ -91,6 +107,13 @@ class FmtGroup
 	 */
 	const list<unsigned int> getFmtIds() const;
 
+	/**
+	 * @brief Get the MODCOD definitions
+	 *
+	 * @return the MODCOD definitions
+	 */
+	const FmtDefinitionTable *getModcodDefinitions() const;
+
   private:
 
 	/**
@@ -101,6 +124,60 @@ class FmtGroup
 	void parse(string fmt_ids);
 };
 
+
+/**
+ * @class FmtId
+ * @brief A FMT ID
+ */
+class FmtId
+{
+ public:
+	FmtId(unsigned int id, float es_n0):
+		id(id),
+		es_n0(es_n0)
+	{};
+
+    /// operator < used by sort on required Es/N0
+    bool operator<(const FmtId &id) const
+    {   
+        return (this->es_n0 < id.es_n0);
+    }
+
+    /// operator <= used to compare with FMT ID
+    bool operator<=(unsigned int id) const
+    {   
+        return (this->id <= id);
+    }
+
+    /// operator >= used to compare with FMT ID
+    bool operator>=(unsigned int id) const
+    {   
+        return (this->id >= id);
+    }
+
+    /// operator == used to compare with FMT ID
+    bool operator==(unsigned int id) const
+    {   
+        return (this->id == id);
+    }   
+
+    /// operator != used to compare with FMT ID
+    bool operator!=(unsigned int id) const
+    {   
+        return (this->id != id);
+    }  
+
+	/// The FMT ID
+	unsigned int id;
+
+ private:
+	/// The required Es/N0
+	float es_n0;
+};
+
+
+
 typedef map<unsigned int, FmtGroup *> fmt_groups_t;
+
 
 #endif

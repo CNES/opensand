@@ -37,6 +37,12 @@ Data::Data(): std::basic_string<unsigned char>()
 {
 }
 
+Data::Data(std::string string):
+	std::basic_string<unsigned char>((unsigned char *)string.c_str(),
+	                                  string.size())
+{
+}
+
 Data::Data(std::basic_string<unsigned char> string):
 	std::basic_string<unsigned char>(string)
 {

@@ -27,35 +27,35 @@
  */
 
 /**
- * @file TerminalContextRcs.h
+ * @file TerminalContextDamaRcs.h
  * @brief The terminal allocations
  * @author Julien Bernard / Viveris Technologies
  *
  */
 
-#ifndef _TERMINAL_CONTEXT_RCS_H_
-#define _TERMINAL_CONTEXT_RCS_H_
+#ifndef _TERMINAL_CONTEXT_DAMA_RCS_H_
+#define _TERMINAL_CONTEXT_DAMA_RCS_H_
 
-#include "TerminalContext.h"
+#include "TerminalContextDama.h"
 
 #include "OpenSandCore.h"
 #include "UnitConverter.h"
 
 /**
- * @class TerminalContextRcs
+ * @class TerminalContextDamaRcs
  */
-class TerminalContextRcs : public TerminalContext
+class TerminalContextDamaRcs : public TerminalContextDama
 {
  public:
 
-	TerminalContextRcs(tal_id_t tal_id,
-	                   rate_kbps_t cra_kbps,
-	                   rate_kbps_t max_rbdc_kbps,
-	                   time_sf_t rbdc_timeout_sf,
-	                   vol_kb_t min_vbdc_kb,
-	                   const UnitConverter *converter);
+	TerminalContextDamaRcs(tal_id_t tal_id,
+	                       rate_kbps_t cra_kbps,
+	                       rate_kbps_t max_rbdc_kbps,
+	                       time_sf_t rbdc_timeout_sf,
+	                       vol_kb_t min_vbdc_kb,
+	                       const UnitConverter *converter);
 
-	virtual ~TerminalContextRcs();
+	virtual ~TerminalContextDamaRcs();
 
 	/**
 	 * @brief  Update the CRA value.
@@ -192,8 +192,8 @@ class TerminalContextRcs : public TerminalContext
 	 * @param e2  second terminal
 	 * @return true if remaining credit of e1 is greater than e2
 	 */
-	static bool sortByRemainingCredit(const TerminalContextRcs *e1,
-	                                  const TerminalContextRcs *e2);
+	static bool sortByRemainingCredit(const TerminalContextDamaRcs *e1,
+	                                  const TerminalContextDamaRcs *e2);
 
 	/**
 	 * @brief Functor to sort terminals by descending VBDC Request
@@ -202,10 +202,10 @@ class TerminalContextRcs : public TerminalContext
 	 * @param e2  second terminal
 	 * @return true if VBDC request of e1 is greater than e2
 	 */
-	static bool sortByVbdcReq(const TerminalContextRcs *e1,
-	                          const TerminalContextRcs *e2);
+	static bool sortByVbdcReq(const TerminalContextDamaRcs *e1,
+	                          const TerminalContextDamaRcs *e2);
 
-	// inherited from TerminalContext
+	// inherited from TerminalContextDama
 	void onStartOfFrame();
 
 

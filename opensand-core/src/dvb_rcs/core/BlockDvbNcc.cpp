@@ -189,10 +189,11 @@ BlockDvbNcc::Downward::~Downward()
 
 	if(this->satellite_type == TRANSPARENT)
 	{
-		for(TerminalCategories::iterator it = this->categories.begin();
-		    it != this->categories.end(); ++it)
+		TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+		for(cat_it = this->categories.begin();
+		    cat_it != this->categories.end(); ++cat_it)
 		{
-			delete (*it).second;
+			delete (*cat_it).second;
 		}
 		this->categories.clear();
 	}
@@ -279,19 +280,19 @@ bool BlockDvbNcc::Downward::onInit(void)
 		goto release_dama;
 	}
 
-	if(!this->initMode())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation");
-		goto error;
-	}
-
 	// Get and open the files
 	if(!this->initModcodSimu())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the files part of the "
+		    "initialisation");
+		goto error;
+	}
+
+	if(!this->initMode())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the mode part of the "
 		    "initialisation");
 		goto error;
 	}
@@ -611,18 +612,22 @@ bool BlockDvbNcc::Downward::initMode(void)
 {
 	// TODO remove that once data fifo will be a map
 	fifos_t fifos;
+	TerminalCategoryDama *cat;
+
 	fifos[this->data_dvb_fifo->getCarrierId()] = this->data_dvb_fifo;
 
 	// initialize scheduling
 	// depending on the satellite type
 	if(this->satellite_type == TRANSPARENT)
 	{
-		if(!this->initBand(DOWN_FORWARD_BAND,
-		                   this->fwd_timer_ms,
-		                   this->categories,
-		                   this->terminal_affectation,
-		                   &this->default_category,
-		                   this->fwd_fmt_groups))
+		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
+		                                         TDM,
+		                                         this->fwd_timer_ms,
+		                                         this->down_fwd_fmt_simu.getModcodDefinitions(),
+		                                         this->categories,
+		                                         this->terminal_affectation,
+		                                         &this->default_category,
+		                                         this->fwd_fmt_groups))
 		{
 			return false;
 		}
@@ -636,27 +641,30 @@ bool BlockDvbNcc::Downward::initMode(void)
 			// the category the destination terminal ID belongs
 			// this is why we have categories, terminal_affectation and default_category
 			// as attributes
+			// map<cat label, sched> and fifos in scheduler ?
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot support more than one category for "
 			    "down/forward band\n");
 			return false;
 		}
 
+		cat = this->categories.begin()->second;
 		this->scheduling = new ForwardSchedulingS2(this->pkt_hdl,
 		                                           fifos,
 		                                           &this->down_fwd_fmt_simu,
-		                                           this->categories.begin()->second);
+		                                           cat);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
-		TerminalCategory *cat;
-
-		if(!this->initBand(UP_RETURN_BAND,
-		                   this->frame_duration_ms * this->frames_per_superframe,
-		                   this->categories,
-		                   this->terminal_affectation,
-		                   &this->default_category,
-		                   this->ret_fmt_groups))
+		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+		                                         DAMA,
+		                                         this->frame_duration_ms * 
+		                                           this->frames_per_superframe,
+		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
+		                                         this->categories,
+		                                         this->terminal_affectation,
+		                                         &this->default_category,
+		                                         this->ret_fmt_groups))
 		{
 			return false;
 		}
@@ -668,6 +676,12 @@ bool BlockDvbNcc::Downward::initMode(void)
 		}
 		else
 		{
+			if(!this->default_category)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "No default category and GW has no affectation\n");
+				return false;
+			}
 			cat = this->default_category;
 		}
 		this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
@@ -785,16 +799,14 @@ error:
 //      we could maybe create two classes inside the block to keep them separated
 bool BlockDvbNcc::Downward::initDama(void)
 {
-	string up_return_encap_proto;
 	bool cra_decrease;
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
 
-	TerminalCategories dc_categories;
-	TerminalCategories::const_iterator cat_iter;
-	TerminalMapping dc_terminal_affectation;
-	TerminalCategory *dc_default_category;
+	TerminalCategories<TerminalCategoryDama> dc_categories;
+	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
+	TerminalCategoryDama *dc_default_category;
 
 	// Retrieving the cra decrease parameter
 	if(!Conf::getValue(DC_SECTION_NCC, DC_CRA_DECREASE, cra_decrease))
@@ -828,12 +840,15 @@ bool BlockDvbNcc::Downward::initDama(void)
 
 	if(this->satellite_type == TRANSPARENT)
 	{
-		if(!this->initBand(UP_RETURN_BAND,
-		                   this->frame_duration_ms * this->frames_per_superframe,
-		                   dc_categories,
-		                   dc_terminal_affectation,
-		                   &dc_default_category,
-		                   this->ret_fmt_groups))
+		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+		                                         DAMA,
+		                                         this->frame_duration_ms *
+		                                           this->frames_per_superframe,
+		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
+		                                         dc_categories,
+		                                         dc_terminal_affectation,
+		                                         &dc_default_category,
+		                                         this->ret_fmt_groups))
 		{
 			return false;
 		}
@@ -844,6 +859,24 @@ bool BlockDvbNcc::Downward::initDama(void)
 		dc_categories = this->categories;
 		dc_terminal_affectation = this->terminal_affectation;
 		dc_default_category = this->default_category;
+	}
+
+	// check if there is DAMA carriers
+	if(dc_categories.size() == 0)
+	{
+		if(this->satellite_type == REGENERATIVE)
+		{
+			// No Slotted Aloha with regenerative satellite,
+			// so we need a DAMA
+			LOG(this->log_init, LEVEL_ERROR,
+			    "No DAMA and regenerative satellite\n");
+			return false;
+		}
+		LOG(this->log_init, LEVEL_DEBUG,
+		    "No TDM carrier, won't allocate DAMA\n");
+		// Also disable request simulation
+		this->simulate = none_simu;
+		return true;
 	}
 
 	// dama algorithm
@@ -863,7 +896,6 @@ bool BlockDvbNcc::Downward::initDama(void)
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
 		this->dama_ctrl = new DamaCtrlRcsLegacy();
-
 	}
 	else
 	{
@@ -873,7 +905,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 		goto error;
 	}
 
-	if(this->dama_ctrl == NULL)
+	if(!this->dama_ctrl)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create the DAMA controller\n");
@@ -946,8 +978,11 @@ bool BlockDvbNcc::Downward::initOutput(void)
 	this->event_logon_resp = Output::registerEvent("DVB.logon_response");
 
 	// Logs
-	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
-	                                                   "Dvb.RequestSimulation");
+	if(this->simulate != none_simu)
+	{
+		this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
+		                                                   "Dvb.RequestSimulation");
+	}
 
 	// Output probes and stats
 	this->probe_gw_l2_to_sat_before_sched =
@@ -995,6 +1030,20 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				break;
 			}
+			else if(((MessageEvent *)event)->getMessageType() == msg_saloha)
+			{
+				list<DvbFrame *> *ack_frames;
+				list<DvbFrame *>::iterator ack_it;
+				ack_frames = (list<DvbFrame *> *)((MessageEvent *)event)->getData();
+				for(ack_it = ack_frames->begin(); ack_it != ack_frames->end();
+				    ++ack_it)
+				{
+					this->complete_dvb_frames.push_back(*ack_it);
+				}
+				delete ack_frames;
+				break;
+			}
+
 			NetBurst *burst;
 			NetBurst::iterator pkt_it;
 
@@ -1066,6 +1115,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// send Start Of Frame (SOF)
 					this->sendSOF();
 
+					if(!this->dama_ctrl)
+					{
+						// stop here
+						return true;
+					}
+
 					if(this->with_phy_layer)
 					{
 						// for each terminal in DamaCtrl update FMT because in this case
@@ -1090,7 +1145,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// schedule encapsulation packets
 				// TODO loop on categories (see todo in initMode)
 				// TODO In regenerative mode we should schedule in frame_timer ??
-				//      There is a problem with uplink allocation between ST and GW !!
 				if(!this->scheduling->schedule(this->fwd_frame_counter,
 				                               0,
 				                               this->getCurrentTime(),
@@ -1153,8 +1207,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					    "SF#%u: MODCOD IDs successfully updated\n",
 					    this->super_frame_counter);
 				}
-				// for each terminal in DamaCtrl update FMT
-				this->dama_ctrl->updateFmt();
+				if(this->dama_ctrl)
+				{
+					// TODO FMT in slotted aloha should be handled on ST
+					//  => so remove return fmt simu !
+					//  => keep this todo in order to think of it on ST
+					// for each terminal in DamaCtrl update FMT
+					this->dama_ctrl->updateFmt();
+				}
 			}
 			else if(*event == this->stats_timer)
 			{
@@ -1469,7 +1529,7 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame)
 	}
 
 	// Inform the Dama controller (for its own context)
-	if(!this->dama_ctrl->hereIsLogon(logon_req))
+	if(this->dama_ctrl && !this->dama_ctrl->hereIsLogon(logon_req))
 	{
 		goto release;
 	}
@@ -1516,7 +1576,10 @@ bool BlockDvbNcc::Downward::handleLogoffReq(DvbFrame *dvb_frame)
 		return false;
 	}
 
-	this->dama_ctrl->hereIsLogoff(logoff);
+	if(this->dama_ctrl)
+	{
+		this->dama_ctrl->hereIsLogoff(logoff);
+	}
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "SF#%u: logoff request from %d\n",
 	    this->super_frame_counter, logoff->getMac());
@@ -1793,7 +1856,10 @@ void BlockDvbNcc::Downward::updateStats(void)
 	mac_fifo_stat_context_t fifo_stat;
 
 	// Update stats on the GW
-	this->dama_ctrl->updateStatistics(this->stats_period_ms);
+	if(this->dama_ctrl)
+	{
+		this->dama_ctrl->updateStatistics(this->stats_period_ms);
+	}
 
 	this->data_dvb_fifo->getStatsCxt(fifo_stat);
 	this->l2_to_sat_bytes_after_sched = fifo_stat.out_length_bytes;
@@ -1840,13 +1906,19 @@ bool BlockDvbNcc::Downward::sendAcmParameters(void)
 /*                               Upward                                      */
 /*****************************************************************************/
 
+// TODO try to get a correct design for Slotted Aloha
+//      this is a mix between dama and receptionStd and Scheduling,
+//      maybe split it in receptionStd and Scheduling ?
 
 BlockDvbNcc::Upward::Upward(Block *const bl):
 	DvbUpward(bl),
+	saloha(NULL),
 	mac_id(GW_TAL_ID),
+	ret_fmt_groups(),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
+	log_saloha(NULL),
 	event_logon_req(NULL)
 {
 }
@@ -1854,6 +1926,16 @@ BlockDvbNcc::Upward::Upward(Block *const bl):
 
 BlockDvbNcc::Upward::~Upward()
 {
+	if(this->saloha)
+		delete this->saloha;
+
+	// delete FMT groups here because they may be present in many carriers
+	// TODO do something to avoid groups here
+	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
+	    it != this->ret_fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
 }
 
 
@@ -1893,6 +1975,16 @@ bool BlockDvbNcc::Upward::onInit(void)
 		    "initialisation");
 		goto error;
 	}
+
+	// initialize the slotted Aloha part
+	if(!this->initSlottedAloha())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the DAMA part of the "
+		    "initialisation");
+		goto error;
+	}
+
 
 	if(!this->initOutput())
 	{
@@ -1940,6 +2032,91 @@ error:
 	return false;
 }
 
+bool BlockDvbNcc::Upward::initSlottedAloha(void)
+{
+	TerminalCategories<TerminalCategorySaloha> sa_categories;
+	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
+	TerminalCategorySaloha *sa_default_category;
+
+	// init fmt_simu
+	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
+	                          UP_RETURN_MODCOD_SIMU))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD files\n");
+		return false;
+	}
+
+	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
+	                                           ALOHA,
+	                                           this->frame_duration_ms *
+	                                             this->frames_per_superframe,
+	                                           this->fmt_simu.getModcodDefinitions(),
+	                                           sa_categories,
+	                                           sa_terminal_affectation,
+	                                           &sa_default_category,
+	                                           this->ret_fmt_groups))
+	{
+		return false;
+	}
+
+	// check if there is Slotted Aloha carriers
+	if(sa_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_DEBUG,
+		    "No Slotted Aloha carrier\n");
+		return true;
+	}
+
+	// cannot use Slotted Aloha with regenerative satellite
+	if(this->satellite_type == REGENERATIVE)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Carrier configured with Slotted Aloha while satellite "
+		    "is regenerative\n");
+		return false;
+	}
+
+	// Create the Slotted ALoha part
+	this->saloha = new SlottedAlohaNcc();
+	if(!this->saloha)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create Slotted Aloha\n");
+		return false;
+	}
+
+	// Initialize the Slotted Aloha parent class
+	// Unlike (future) scheduling, Slotted Aloha get all categories because
+	// it also handles received frames and in order to know to which
+	// category a frame is affected we need to get source terminal ID
+	if(!this->saloha->initParent(this->frame_duration_ms,
+	                             // pkt_hdl is the up_ret one because transparent sat
+	                             this->pkt_hdl,
+	                             sa_categories,
+	                             sa_terminal_affectation,
+	                             sa_default_category))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Dama Controller Initialization failed.\n");
+		goto release_saloha;
+	}
+
+	if(!this->saloha->init())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the DAMA controller\n");
+		goto release_saloha;
+	}
+
+	return true;
+
+release_saloha:
+	delete this->saloha;
+	return false;
+}
+
+
 bool BlockDvbNcc::Upward::initMode(void)
 {
 	// initialize the reception standard
@@ -1979,6 +2156,11 @@ bool BlockDvbNcc::Upward::initOutput(void)
 	// Events
 	this->event_logon_req = Output::registerEvent("DVB.logon_request");
 
+	if(this->saloha)
+	{
+		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+	}
+
 	// Output probes and stats
 	this->probe_gw_l2_from_sat=
 		Output::registerProbe<int>("Throughputs.L2_from_SAT",
@@ -2006,8 +2188,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			LOG(this->log_receive, LEVEL_INFO,
-			    "DVB frame received\n");
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				return false;
@@ -2035,6 +2215,9 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
+
+	LOG(this->log_receive, LEVEL_INFO,
+	    "DVB frame received with type %u\n", msg_type);
 	switch(msg_type)
 	{
 		// burst
@@ -2127,13 +2310,114 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SESSION_LOGON_RESP:
-		case MSG_TYPE_SOF:
 			// nothing to do in this case
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "ignore TTP, logon response or SOF frame "
 			    "(type = %d)\n", dvb_frame->getMessageType());
 			delete dvb_frame;
 			break;
+
+		case MSG_TYPE_SOF:
+		{
+			this->frame_counter++;
+			// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
+			if(this->saloha)
+			{
+				if(this->frame_counter == this->frames_per_superframe)
+				{
+					list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
+					// increase the superframe number and reset
+					// counter of frames per superframe
+					this->super_frame_counter++;
+					this->frame_counter = 0;
+
+					//Slotted Aloha
+					NetBurst* sa_burst = NULL;
+					if(!this->saloha->schedule(&sa_burst,
+					                           *ack_frames,
+					                           this->super_frame_counter))
+					{
+						LOG(this->log_saloha, LEVEL_ERROR,
+						    "failed to schedule Slotted Aloha\n");
+						return false;
+					}
+					if(sa_burst &&
+					   !this->enqueueMessage((void **)&sa_burst))
+					{
+						LOG(this->log_saloha, LEVEL_ERROR,
+						    "Failed to send encapsulation packets to upper layer\n");
+						return false;
+					}
+					if(ack_frames->size() &&
+					   !this->shareMessage((void **)&ack_frames,
+					                       sizeof(ack_frames),
+					                       msg_saloha))
+					{
+						LOG(this->log_saloha, LEVEL_ERROR,
+						    "Failed to send Slotted Aloha acks to opposite layer\n");
+						return false;
+					}
+				}
+			}
+			else
+			{
+				// nothing to do in this case
+				LOG(this->log_receive, LEVEL_DEBUG,
+				    "ignore SOF frame (type = %d)\n",
+				    dvb_frame->getMessageType());
+				delete dvb_frame;
+			}
+		}
+		break;
+
+		// Slotted Aloha
+		case MSG_TYPE_SALOHA_DATA:
+			// Update stats
+			this->l2_from_sat_bytes += dvb_frame->getPayloadLength();
+
+			if(!this->saloha->onRcvFrame(dvb_frame))
+			{
+				LOG(this->log_saloha, LEVEL_ERROR,
+				    "failed to handle Slotted Aloha frame\n");
+				goto error;
+			}
+			break;
+
+// TODO remove: only debug
+		case MSG_TYPE_SALOHA_CTRL:
+			delete dvb_frame;
+			break;
+
+/*			if(SALOHA_DEBUG)
+			{
+				//Local variables
+				T_DVB_SALOHA* burst;
+				size_t offset;
+				int cpt;
+				SALOHA_CTRL_HEADER* header;
+				SlottedAlohaPacketCtrl* sa_packet;
+
+				//Block body
+				burst=(T_DVB_SALOHA*)data;
+				offset=sizeof(T_DVB_SALOHA);
+				for(cpt=0;cpt < burst->dataLength;cpt++)
+				{
+					header=(SALOHA_CTRL_HEADER*)(data+offset);
+					sa_packet=new SlottedAlohaPacketCtrl(data+offset,
+						header->total_length);
+					this->saloha.debug("< RCVD_ERR",sa_packet);
+					offset+=header->total_length;
+					delete sa_packet;
+				}
+			}
+			else
+				LOG(this->log_saloha, LEVEL_DEBUG,
+				    "Slotted Aloha Signal Controls frame cannot be "
+				    "received by GW");
+			goto drop;
+		}*/
+
+
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -2176,6 +2460,17 @@ bool BlockDvbNcc::Upward::onRcvLogonReq(DvbFrame *dvb_frame)
 		    "(%d), reject its request!\n", mac);
 		delete dvb_frame;
 		return false;
+	}
+
+	// Inform SlottedAloha
+	if(this->saloha)
+	{
+		if(!this->saloha->addTerminal(mac))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Cannot add terminal in Slotted Aloha context\n");
+			return false;
+		}
 	}
 
 	// send the corresponding event

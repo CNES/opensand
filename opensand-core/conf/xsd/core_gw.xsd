@@ -79,6 +79,14 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<!-- types for slotted_aloha section -->
+<xsd:simpleType name="sa_method">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="DSA" /> <!-- Diversity Slotted Aloha -->
+        <xsd:enumeration value="CRDSA" /> <!-- Contention Resolution Diversity Slotted Aloha -->
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- types for pep section -->
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
@@ -93,6 +101,7 @@
         <xsd:sequence>
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_ncc" />
+            <xsd:element ref="slotted_aloha" />
             <xsd:element ref="pep" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
@@ -221,6 +230,28 @@
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
+</xsd:element>
+
+<!-- saloha section description -->
+<xsd:element name="slotted_aloha">
+	<xsd:complexType>
+		<xsd:sequence>
+			<xsd:element name="method" type="sa_method">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The method used to schedule packets
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="simulation_traffic" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Add simulated traffic (in %)
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
 </xsd:element>
 
 <!-- pep section description -->

@@ -38,7 +38,7 @@
 #include "DamaCtrl.h"
 
 #include "FmtDefinitionTable.h"
-#include "TerminalContextRcs.h"
+#include "TerminalContextDamaRcs.h"
 
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
@@ -71,14 +71,14 @@ class DamaCtrlRcs: public DamaCtrl
 	 */
 	virtual bool init();
 
-	virtual bool createTerminal(TerminalContext **terminal,
+	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
 	                            vol_kb_t max_vbdc_kb);
 
-	virtual bool removeTerminal(TerminalContext *terminal);
+	virtual bool removeTerminal(TerminalContextDama *terminal);
 
 
 	// Process DVB frames

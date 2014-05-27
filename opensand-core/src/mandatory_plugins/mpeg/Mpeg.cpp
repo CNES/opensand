@@ -1098,3 +1098,14 @@ bool Mpeg::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
 	tal_id = packet.getSrcTalId();
 	return true;
 }
+
+bool Mpeg::PacketHandler::getQos(const Data &data, qos_t &qos) const
+{
+	MpegPacket packet(data, this->getFixedLength());
+	if(!packet.isValid())
+	{
+		return false;
+	}
+	qos = packet.getQos();
+	return true;
+}

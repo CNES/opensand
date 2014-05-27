@@ -61,6 +61,7 @@ ConfigurationFile::ConfigurationFile()
  */
 ConfigurationFile::~ConfigurationFile()
 {
+	this->unloadConfig();
 }
 
 bool ConfigurationFile::loadConfig(const string conf_file)

@@ -112,7 +112,7 @@ inline component_t getComponentType(string name)
 		return unknown_compo;
 };
 
-
+/// Satellite type
 typedef enum
 {
 	REGENERATIVE,
@@ -123,7 +123,7 @@ typedef enum
 /**
  * @brief get the satellite type according to its name
  *
- * @param type the satellite type name
+ * @param sat_type the satellite type name
  *
  * @return the satellite type enum
  */
@@ -133,6 +133,34 @@ inline sat_type_t strToSatType(string sat_type)
 		return REGENERATIVE;
 	else
 		return TRANSPARENT;
+}
+
+/// Carrier access type
+typedef enum
+{
+	DAMA,
+	TDM,
+	ALOHA,
+	ERROR,
+} access_type_t;
+
+
+/**
+ * @brief get the access type according to its name
+ *
+ * @param access_type the access type name
+ *
+ * @return the access type enum
+ */
+inline access_type_t strToAccessType(string access_type)
+{
+	if(access_type == "DAMA")
+		return DAMA;
+	else if(access_type == "TDM")
+		return TDM;
+	else if(access_type == "ALOHA")
+		return ALOHA;
+	return ERROR;
 }
 
 /// State of the satellite link
@@ -150,8 +178,8 @@ enum
 	msg_link_up,   ///< link up message
 	msg_cni,       ///< message containing CNI information
 	msg_sig,       ///< message containing signalisation
+	msg_saloha,    ///< message containing Slotted Aloha content
 };
-
 
 
 /** Compare two floats */

@@ -251,6 +251,6 @@ class DvbFifo
 	OutputLog *log_dvb_fifo;
 };
 
-typedef map<unsigned int, DvbFifo *> fifos_t;
+typedef map<qos_t, DvbFifo *> fifos_t;
 
 #endif

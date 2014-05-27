@@ -84,7 +84,7 @@ SatSpot::~SatSpot()
 
 bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
                              FmtSimulation *const fwd_fmt_simu,
-                             const TerminalCategory *const category)
+                             const TerminalCategoryDama *const category)
 {
 	fifos_t fifos;
 	fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;

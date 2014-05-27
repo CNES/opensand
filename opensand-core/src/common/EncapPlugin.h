@@ -85,6 +85,14 @@ class EncapPlugin: public StackPlugin
 		 */
 		virtual bool getSrc(const Data &data, tal_id_t &tal_id) const = 0;
 
+		/**
+		 * @brief Get the QoS of a packet
+		 *
+		 * @param data   The packet content
+		 * @param qos    OUT: the QoS of the packet
+		 * @return true on success, false otherwise
+		 */
+		virtual bool getQos(const Data &data, qos_t &qos) const = 0;
 
 		virtual void init()
 		{

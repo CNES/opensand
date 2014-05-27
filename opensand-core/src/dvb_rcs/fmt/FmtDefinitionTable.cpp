@@ -436,8 +436,6 @@ unsigned int FmtDefinitionTable::getMaxId() const
 	return id;
 }
 
-
-
 unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
                                             unsigned int val_sym) const
 {
@@ -524,5 +522,6 @@ unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
 		cod = 9.0/10.0;
 	}
 
+	// TODO use spectral efficiency
 	return ceil(val_sym * mod * cod/1000);
 }

@@ -94,6 +94,7 @@
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="RBDC" />
         <xsd:enumeration value="VBDC"/>
+        <xsd:enumeration value="SALOHA" />
         <xsd:enumeration value="NONE"/>
     </xsd:restriction>
 </xsd:simpleType>
@@ -146,6 +147,14 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- types for slotted_aloha section -->
+<xsd:simpleType name="sa_backoff">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="BEB" /> <!-- Binary Exponential Backoff -->
+        <xsd:enumeration value="EIED" /> <!-- Exponential Incr. Exponential Decr. -->
+        <xsd:enumeration value="MIMD" /> <!-- Multiplicative Incr. Multiplicative Decr. -->
+    </xsd:restriction>
+</xsd:simpleType>
 
 <!-- Complete XML description -->
 <xsd:element name="configuration">
@@ -153,6 +162,7 @@
         <xsd:sequence>
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_tal" />
+            <xsd:element ref="slotted_aloha" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="qos_agent" />
@@ -292,6 +302,57 @@
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
+</xsd:element>
+
+<!-- saloha section description -->
+<xsd:element name="slotted_aloha">
+	<xsd:complexType>
+		<xsd:sequence>
+			<xsd:element name="timeout" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The timeout before packet deleting or retransmission
+                        (in number of Slotted Aloha frames)
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="nb_max_packets" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum number of packets per Slotted Aloha frame
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="nb_max_retransmissions" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The number of retransmissions of a packet before deleting it
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="backoff_algorithm" type="sa_backoff">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The backoff algorithm used
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="cw_max" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The value of CWmax for backoff
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+			<xsd:element name="backoff_multiple" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The value of multiple for backoff
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
 </xsd:element>
 
 <!-- qos_agent section description -->

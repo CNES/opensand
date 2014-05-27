@@ -55,10 +55,11 @@ using std::vector;
 ///> The type of capacity request associated to each FIFO among RBDC, VBDC or None
 typedef enum
 {
-	cr_vbdc  = 0, /* Volume Based */
-	cr_rbdc  = 1, /* Rate Based */
-	cr_avbdc = 2, /* Absolute Volume Based */
-	cr_none  = 3, /* No CR, only use Constant Allocation */
+	cr_vbdc   = 0, /* Volume Based */
+	cr_rbdc   = 1, /* Rate Based */
+	cr_avbdc  = 2, /* Absolute Volume Based */
+	cr_saloha = 2, /* Slotted Aloha */
+	cr_none   = 3, /* No CR, only use Constant Allocation */
 } cr_type_t;
 
 /**

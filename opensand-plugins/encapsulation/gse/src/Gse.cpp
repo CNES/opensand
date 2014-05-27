@@ -1326,6 +1326,61 @@ bool Gse::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
 	return true;
 }
 
+bool Gse::PacketHandler::getQos(const Data &data, qos_t &qos) const
+{
+	gse_status_t status;
+	uint8_t s;
+	uint8_t e;
+
+	unsigned char *packet = (unsigned char *)data.c_str();
+
+	status = gse_get_start_indicator(packet, &s);
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR, "cannot get start indicator (%s)\n",
+		    gse_get_status(status));
+		return false;
+	}
+
+	status = gse_get_end_indicator(packet, &e);
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR, "cannot get end indicator (%s)\n",
+		    gse_get_status(status));
+		return false;
+	}
+
+	// subsequent fragment
+	if(s == 0)
+	{
+		uint8_t frag_id;
+		status = gse_get_frag_id(packet, &frag_id);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR, "cannot get frag ID (%s)\n",
+			    gse_get_status(status));
+			return false;
+		}
+		qos = Gse::getQosFromFragId(frag_id);
+	}
+	// complete or first fragment
+	else
+	{
+		uint8_t label[6];
+		status = gse_get_label(packet, label);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR, "cannot get label (%s)\n",
+			    gse_get_status(status));
+			return NULL;
+		}
+		qos = Gse::getQosFromLabel(label);
+
+	}
+
+	return true;
+}
+
 // Static methods
 
 bool Gse::setLabel(NetPacket *packet, uint8_t label[])

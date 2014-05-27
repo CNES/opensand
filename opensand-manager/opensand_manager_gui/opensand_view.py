@@ -669,6 +669,8 @@ class View(WindowView):
             program.enable_syslog(True)
 
 
+# TODO button to clear logs !
+
 ##### TEST #####
 if __name__ == "__main__":
     from opensand_manager_core.loggers.manager_log import ManagerLog

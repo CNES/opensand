@@ -94,6 +94,9 @@ void BlockManager::stop(int signal)
 	}
 	// avoid calling many times stop, we may have loop else
 	this->stopped = true;
+	// TODO try using pthread_cancel, select has a posix cancel point in it
+	// http://www.mkssoftware.com/docs/man3/pthread_cancel.3.asp
+	// https://stackoverflow.com/questions/433989/posix-cancellation-points
 }
 
 bool BlockManager::init(void)

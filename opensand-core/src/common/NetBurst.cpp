@@ -39,7 +39,7 @@
 OutputLog *NetBurst::log_net_burst = NULL;
 
 // max_packets = 0 => unlimited length
-NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
+NetBurst::NetBurst(unsigned int max_packets): list<NetPacket *>()
 {
 	this->max_packets = max_packets;
 
@@ -50,7 +50,7 @@ NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
 
 NetBurst::~NetBurst()
 {
-	std::list < NetPacket * >::iterator it;
+	list < NetPacket * >::iterator it;
 
 	for(it = this->begin(); it != this->end(); it++)
 	{
@@ -106,7 +106,7 @@ unsigned int NetBurst::length()
 Data NetBurst::data()
 {
 	Data data;
-	std::list<NetPacket *>::iterator it;
+	list<NetPacket *>::iterator it;
 
 	// add the data of each network packet of the burst
 	for(it = this->begin(); it != this->end(); it++)
@@ -123,7 +123,7 @@ long NetBurst::bytes()
 
 	if(this->length() > 0)
 	{
-		std::list<NetPacket *>::iterator it;
+		list<NetPacket *>::iterator it;
 
 		for(it = this->begin(); it != this->end(); it++)
 		{
@@ -151,12 +151,12 @@ uint16_t NetBurst::type()
 	}
 }
 
-std::string NetBurst::name()
+string NetBurst::name()
 {
 	if(this->length() <= 0)
 	{
 		// no packet in the burst, impossible to get the packet type
-		return std::string("unknown");
+		return string("unknown");
 	}
 	else
 	{

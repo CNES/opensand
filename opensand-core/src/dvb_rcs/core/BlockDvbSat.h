@@ -202,13 +202,13 @@ class BlockDvbSat: public BlockDvb
 		event_id_t scenario_timer;
 
 		/// The terminal categories for forward band
-		TerminalCategories categories;
+		TerminalCategories<TerminalCategoryDama> categories;
 
 		/// The terminal affectation for forward band
-		TerminalMapping terminal_affectation;
+		TerminalMapping<TerminalCategoryDama> terminal_affectation;
 
 		/// The default terminal category for forward band
-		TerminalCategory *default_category;
+		TerminalCategoryDama *default_category;
 
 		// TODO remove FMT groups from attributes
 		/// FMT groups

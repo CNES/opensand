@@ -791,11 +791,11 @@ void OutputInternal::checkLogLevel(OutputLog *log)
 			log->setDisplayLevel((*lvl_it).second);
 			break;
 		}
-		// then check if the name baginning of the log is in levels
+		// then check if the name beginning of the log is in levels
 		if(log_name.compare(0, name.size(), name) == 0)
 		{
 			log->setDisplayLevel((*lvl_it).second);
-			break;
+			// continue for init checking
 		}
 	}
 }

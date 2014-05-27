@@ -86,7 +86,7 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          FmtSimulation *const fwd_fmt_simu,
-                                         const TerminalCategory *const category):
+                                         const TerminalCategoryDama *const category):
 	Scheduling(packet_handler, fifos),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
@@ -126,19 +126,20 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
                                    uint32_t &remaining_allocation)
 {
 	fifos_t::const_iterator fifo_it;
-	vector<CarriersGroup *> carriers;
-	vector<CarriersGroup *>::iterator carrier_it;
-	carriers = this->category->getCarriersGroups();
+	vector<CarriersGroupDama *> carriers_group;
+	vector<CarriersGroupDama *>::iterator carrier_it;
+	carriers_group = this->category->getCarriersGroups();
 	int total_capa = 0;
 
 	// initialize carriers capacity
-	for(carrier_it = carriers.begin();
-	    carrier_it != carriers.end();
+	for(carrier_it = carriers_group.begin();
+	    carrier_it != carriers_group.end();
 	    ++carrier_it)
 	{
-		vol_sym_t capacity_sym  = (*carrier_it)->getTotalCapacity() +
-		                          (*carrier_it)->getRemainingCapacity();
-		(*carrier_it)->setRemainingCapacity(capacity_sym);
+		CarriersGroupDama *carriers = *carrier_it;
+		vol_sym_t capacity_sym  = carriers->getTotalCapacity() +
+		                          carriers->getRemainingCapacity();
+		carriers->setRemainingCapacity(capacity_sym);
 		total_capa += capacity_sym;
 	}
 	this->probe_fwd_total_capacity->put(total_capa);
@@ -146,8 +147,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	for(fifo_it = this->dvb_fifos.begin();
 	    fifo_it != this->dvb_fifos.end(); ++fifo_it)
 	{
-		for(carrier_it = carriers.begin();
-		    carrier_it != carriers.end();
+		for(carrier_it = carriers_group.begin();
+		    carrier_it != carriers_group.end();
 		    ++carrier_it)
 		{
 			if(!this->scheduleEncapPackets((*fifo_it).second,
@@ -161,14 +162,15 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		}
 	}
 
-	for(carrier_it = carriers.begin();
-	    carrier_it != carriers.end();
+	for(carrier_it = carriers_group.begin();
+	    carrier_it != carriers_group.end();
 	    ++carrier_it)
 	{
+		CarriersGroupDama *carriers = *carrier_it;
 		// keep total remaining capacity (for stats)
-		remaining_allocation += (*carrier_it)->getRemainingCapacity();
+		remaining_allocation += carriers->getRemainingCapacity();
 		// reset remaining capacity
-		(*carrier_it)->setRemainingCapacity(0);
+		carriers->setRemainingCapacity(0);
 	}
 	this->probe_fwd_remaining_capacity->put(remaining_allocation);
 
@@ -179,7 +181,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_sf_t current_superframe_sf,
                                                clock_t current_time,
                                                list<DvbFrame *> *complete_dvb_frames,
-                                               CarriersGroup *carriers)
+                                               CarriersGroupDama *carriers)
 {
 	int ret;
 	unsigned int sent_packets = 0;
@@ -241,16 +243,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		}
 
 		elem = fifo->pop();
-		// examine the packet to be sent
-		if(elem->getType() != 1)
-		{
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: MAC FIFO element does not "
-			    "contain NetPacket\n", current_superframe_sf);
-			goto error_fifo_elem;
-		}
 
-		encap_packet = elem->getPacket();
+		encap_packet = elem->getElem<NetPacket>();
 		// retrieve the encapsulation packet
 		if(encap_packet == NULL)
 		{
@@ -364,7 +358,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			delete data;
 
 			// replace the fifo first element with the remaining data
-			elem->setPacket(remaining_data);
+			elem->setElem(remaining_data);
 			fifo->pushFront(elem);
 
 			LOG(this->log_scheduling, LEVEL_INFO,
@@ -377,7 +371,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		else if(!data && remaining_data)
 		{
 			// replace the fifo first element with the remaining data
-			elem->setPacket(remaining_data);
+			elem->setElem(remaining_data);
 			fifo->pushFront(elem);
 
 			// keep the NetPacket in the fifo
@@ -491,8 +485,8 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
 	string coding_rate;
-	const FmtDefinitionTable *modcod_definitions;
-	modcod_definitions = this->fwd_fmt_simu->getModcodDefinitions();
+	const FmtDefinitionTable *modcod_def;
+	modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
 
 	*bbframe = new BBFrame();
 	if(bbframe == NULL)
@@ -515,7 +509,7 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	// get the payload size
 	// to simulate the modcod applied to transmitted data, we limit the
 	// size of the BBframe to be the payload size
-	coding_rate = modcod_definitions->getCodingRate(modcod_id);
+	coding_rate = modcod_def->getCodingRate(modcod_id);
 	bbframe_size_bytes = getPayloadSize(coding_rate);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "size of the BBFRAME for MODCOD %u = %zu\n",
@@ -568,19 +562,19 @@ bool ForwardSchedulingS2::getBBFrameSize(size_t bbframe_size_bytes,
                                          unsigned int modcod_id,
                                          vol_sym_t &bbframe_size_sym)
 {
-	const FmtDefinitionTable *modcod_definitions;
+	const FmtDefinitionTable *modcod_def;
 	float spectral_efficiency;
 
-	modcod_definitions = this->fwd_fmt_simu->getModcodDefinitions();
+	modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
 
-	if(!modcod_definitions->doFmtIdExist(modcod_id))
+	if(!modcod_def->doFmtIdExist(modcod_id))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "failed to found the definition of MODCOD ID %u\n",
 		    modcod_id);
 		goto error;
 	}
-	spectral_efficiency = modcod_definitions->getSpectralEfficiency(modcod_id);
+	spectral_efficiency = modcod_def->getSpectralEfficiency(modcod_id);
 
 	// duration is calculated over the complete BBFrame size, the BBFrame data
 	// size represents the payload without coding
@@ -597,7 +591,7 @@ error:
 
 
 bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
-                                               CarriersGroup *carriers,
+                                               CarriersGroupDama *carriers,
                                                BBFrame **bbframe)
 {
 	map<unsigned int, BBFrame *>::iterator iter;

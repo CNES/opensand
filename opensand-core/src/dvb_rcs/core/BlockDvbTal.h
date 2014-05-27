@@ -43,6 +43,7 @@
 #include "BlockDvb.h"
 
 #include "DamaAgent.h"
+#include "SlottedAlohaTal.h"
 #include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
@@ -51,17 +52,10 @@
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
-
 #include <errno.h>
-//#include <stdarg.h>       // for va_* macros (ANSI format)
 #include <netdb.h>        // for h_errno and hstrerror
 #include <arpa/inet.h>    // for inet_ntoa
 #include <sys/socket.h>
-#include <signal.h>
-// BEGIN STAT
-#include <linux/param.h>
-#include <sys/times.h>
-// END STAT
 
 
 // Adjust timer to linux timer precision (10 ms):
@@ -103,7 +97,7 @@ typedef enum
  *   |                  |
  *    ------------------
  *            ^
- *            | DVB Frame
+ *            | DVB Frame / Slotted Aloha packets
  *            v
  *
  */
@@ -194,9 +188,6 @@ class BlockDvbTal: public BlockDvb
 		/// the current state of the ST
 		tal_state_t state;
 
-		/// the DAMA agent
-		DamaAgent *dama_agent;
-
 		/* Output probes and stats */
 			// Rates
 					// Layer 2 from SAT
@@ -257,12 +248,18 @@ class BlockDvbTal: public BlockDvb
 		bool initDama(void);
 
 		/**
+		 * Read configuration for the Slotted Aloha algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initSlottedAloha(void);
+
+		/**
 		 * @brief Initialize the output
 		 *
 		 * @return  true on success, false otherwise
 		 */
 		bool initOutput(void);
-
 
 		/**
 		 * Read configuration for the QoS Server
@@ -360,6 +357,12 @@ class BlockDvbTal: public BlockDvb
 		/// the DAMA agent
 		DamaAgent *dama_agent;
 
+		/// The Slotted Aloha for terminal
+		SlottedAlohaTal *saloha;
+
+		/// FMT groups for up/return
+		fmt_groups_t ret_fmt_groups;
+
 		/// the current frame number inside the current super frame
 		time_frame_t frame_counter; // from 1 to frames_per_superframe
 
@@ -409,6 +412,8 @@ class BlockDvbTal: public BlockDvb
 		// Output Logs
 		OutputLog *log_frame_tick;
 		OutputLog *log_qos_server;
+		/// log for slotted aloha
+		OutputLog *log_saloha;
 
 		/* Output probes and stats */
 			// Queue sizes

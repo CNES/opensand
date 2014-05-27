@@ -44,11 +44,14 @@
 #include <list>
 #include <string>
 
+using std::list;
+using std::string;
+
 /**
  * @class NetBurst
  * @brief Generic network burst
  */
-class NetBurst: public std::list<NetPacket *>
+class NetBurst: public list<NetPacket *>
 {
  protected:
 
@@ -139,7 +142,7 @@ class NetBurst: public std::list<NetPacket *>
 	 *
 	 * @return the name of packets in the burst
 	 */
-	std::string name();
+	string name();
 
 	/// Netburst log
 	static OutputLog *log_net_burst;

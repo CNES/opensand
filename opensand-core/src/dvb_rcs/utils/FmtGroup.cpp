@@ -45,21 +45,26 @@
 using std::vector;
 using std::stringstream;
 
-FmtGroup::FmtGroup(unsigned int group_id, string fmt_ids):
-	id(group_id)
+FmtGroup::FmtGroup(unsigned int group_id,
+                   string ids,
+                   const FmtDefinitionTable *modcod_def):
+	id(group_id),
+	fmt_ids(),
+	num_fmt_ids(),
+	modcod_def(modcod_def)
 {
 	// Output log
 	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Group");
 
-	this->parse(fmt_ids);
+	this->parse(ids);
 };
 
 unsigned int FmtGroup::getNearest(unsigned int fmt_id) const
 {
 	list<unsigned int>::const_reverse_iterator it;
-	// FMT IDs are sorted from more to less robust (lower to higher value)
-	for(it = this->fmt_ids.rbegin();
-		it != this->fmt_ids.rend();
+	// FMT IDs are sorted from more to less robust
+	for(it = this->num_fmt_ids.rbegin();
+		it != this->num_fmt_ids.rend();
 		++it)
 	{
 		if((*it) <= fmt_id)
@@ -75,6 +80,7 @@ void FmtGroup::parse(string ids)
 {
 	vector<string>::iterator it;
 	vector<string> first_step;
+	list<unsigned int>::const_iterator id_it;
 
 	// first get groups of strings separated by ';'
 	tokenize(ids, first_step, ";");
@@ -100,7 +106,8 @@ void FmtGroup::parse(string ids)
 			if(std::find(this->fmt_ids.begin(),
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
-				this->fmt_ids.push_back(val);
+				FmtId fmt_id(val, this->modcod_def->getRequiredEsN0(val));
+				this->fmt_ids.push_back(fmt_id);
 				LOG(this->log_fmt, LEVEL_INFO,
 				    "Add ID %u in FMT group %u\n", val, this->id);
 			}
@@ -117,7 +124,8 @@ void FmtGroup::parse(string ids)
 				if(std::find(this->fmt_ids.begin(),
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
-					this->fmt_ids.push_back(i);
+					FmtId fmt_id(val, this->modcod_def->getRequiredEsN0(val));
+					this->fmt_ids.push_back(fmt_id);
 					LOG(this->log_fmt, LEVEL_INFO,
 					    "Add ID %u in FMT group %u\n", i, this->id);
 				}
@@ -127,9 +135,22 @@ void FmtGroup::parse(string ids)
 		}
 	}
 	this->fmt_ids.sort();
+	// we need the list of numeric IDs to avoid creating it each time
+	// we call getFmtIds
+	for(list<FmtId>::const_iterator id_it = this->fmt_ids.begin();
+	    id_it != this->fmt_ids.end(); ++id_it)
+	{
+		this->num_fmt_ids.push_back((*id_it).id);
+	}
 }
 
 const list<unsigned int> FmtGroup::getFmtIds() const
 {
-	return this->fmt_ids;
+	return this->num_fmt_ids;
 }
+
+const FmtDefinitionTable *FmtGroup::getModcodDefinitions() const
+{
+	return this->modcod_def;
+}
+

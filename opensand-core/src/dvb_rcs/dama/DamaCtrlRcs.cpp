@@ -33,7 +33,8 @@
 
 
 #include "DamaCtrlRcs.h"
-#include "TerminalContextRcs.h"
+#include "TerminalContextDamaRcs.h"
+#include "CarriersGroupDama.h"
 
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
@@ -75,19 +76,19 @@ error:
 	return false;
 }
 
-bool DamaCtrlRcs::createTerminal(TerminalContext **terminal,
+bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
                                  tal_id_t tal_id,
                                  rate_kbps_t cra_kbps,
                                  rate_kbps_t max_rbdc_kbps,
                                  time_sf_t rbdc_timeout_sf,
                                  vol_kb_t max_vbdc_kb)
 {
-	*terminal = new TerminalContextRcs(tal_id,
-	                                   cra_kbps,
-	                                   max_rbdc_kbps,
-	                                   rbdc_timeout_sf,
-	                                   max_vbdc_kb,
-	                                   this->converter);
+	*terminal = new TerminalContextDamaRcs(tal_id,
+	                                      cra_kbps,
+	                                      max_rbdc_kbps,
+	                                      rbdc_timeout_sf,
+	                                      max_vbdc_kb,
+	                                      this->converter);
 	if(!(*terminal))
 	{
 		LOG(this->log_logon, LEVEL_ERROR,
@@ -98,7 +99,7 @@ bool DamaCtrlRcs::createTerminal(TerminalContext **terminal,
 	return true;
 }
 
-bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
+bool DamaCtrlRcs::removeTerminal(TerminalContextDama *terminal)
 {
 	delete terminal;
 	return true;
@@ -107,7 +108,7 @@ bool DamaCtrlRcs::removeTerminal(TerminalContext *terminal)
 bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 {
 	DamaTerminalList::iterator st;
-	TerminalContextRcs *terminal;
+	TerminalContextDamaRcs *terminal;
 	tal_id_t tal_id = sac->getTerminalId();
 	std::vector<cr_info_t> requests = sac->getRequets();
 
@@ -122,7 +123,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 		    "Discarded.\n" , this->current_superframe_sf, tal_id);
 		goto error;
 	}
-	terminal = (TerminalContextRcs*) st->second; // Now st_context points to a valid context
+	terminal = (TerminalContextDamaRcs*) st->second; // Now st_context points to a valid context
 
 	for(std::vector<cr_info_t>::iterator it = requests.begin();
 	    it != requests.end(); ++it)
@@ -180,12 +181,11 @@ error:
 
 bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 {
-	TerminalCategories::const_iterator category_it;
+	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
 	    category_it++)
 	{
-		//const std::vector<TerminalContextRcs *> &terminals
 		const std::vector<TerminalContext *> &terminals =
 							(*category_it).second->getTerminals();
 
@@ -198,7 +198,8 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 			terminal_index < terminals.size();
 			terminal_index++)
 		{
-			TerminalContextRcs *terminal = (TerminalContextRcs*) terminals[terminal_index];
+			TerminalContextDamaRcs *terminal =
+					dynamic_cast<TerminalContextDamaRcs*>(terminals[terminal_index]);
 			vol_pkt_t total_allocation_pkt = 0;
 
 			total_allocation_pkt += terminal->getTotalVolumeAllocation();
@@ -229,7 +230,7 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 {
 	DamaTerminalList::iterator it;
-	TerminalContextRcs *terminal;
+	TerminalContextDamaRcs *terminal;
 	rate_kbps_t cra_kbps;
 	rate_kbps_t max_rbdc_kbps;
 	rate_kbps_t rbdc_kbps;
@@ -245,7 +246,7 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 		    "allocation" : "release");
 		goto abort;
 	}
-	terminal = (TerminalContextRcs*)(it->second);
+	terminal = (TerminalContextDamaRcs*)(it->second);
 
 	// update CRA allocation ?
 	cra_kbps = request->getCra();
@@ -318,11 +319,11 @@ void DamaCtrlRcs::updateFmt()
 	for(DamaTerminalList::iterator terminal_it = this->terminals.begin();
 	    terminal_it != this->terminals.end(); ++terminal_it)
     {
-    	TerminalCategory *category;
-		TerminalCategories::const_iterator category_it;
-		TerminalContext *terminal = terminal_it->second;
+    	TerminalCategoryDama *category;
+		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
+		TerminalContextDama *terminal = terminal_it->second;
 		tal_id_t id = terminal->getTerminalId();
-		vector<CarriersGroup *> carriers;
+		vector<CarriersGroupDama *> carriers_group;
 		unsigned int simulated_fmt;
 		unsigned int available_fmt = 0; // not in the table
 
@@ -340,31 +341,32 @@ void DamaCtrlRcs::updateFmt()
 		    "SF#%u: ST%u simulated FMT ID before affectation: %u\n",
 		    this->current_superframe_sf, id, simulated_fmt);
 		// get an available MODCOD id for this terminal among carriers
-		carriers = category->getCarriersGroups();
-		for(vector<CarriersGroup *>::const_iterator it = carriers.begin();
-		    it != carriers.end(); ++it)
+		carriers_group = category->getCarriersGroups();
+		for(vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
+		    it != carriers_group.end(); ++it)
 		{
+			CarriersGroupDama *carriers = *it;
 			// FMT groups should only have one FMT id here, so get nearest should
 			// return the FMT id of the carrier
-			if((*it)->getNearestFmtId(simulated_fmt) == simulated_fmt)
+			if(carriers->getNearestFmtId(simulated_fmt) == simulated_fmt)
 			{
 				LOG(this->log_fmt, LEVEL_DEBUG,
 				    "SF#%u: ST%u will  served with the required "
 				    "MODCOD (%u)\n", this->current_superframe_sf,
 				    terminal->getTerminalId(), available_fmt);
 				// we have a carrier with the corresponding MODCOD
-				terminal->setCarrierId((*it)->getCarriersId());
+				terminal->setCarrierId(carriers->getCarriersId());
 				available_fmt = simulated_fmt;
 				break;
 			}
 			// if we do not found the MODCOD value we need the closer supported value
 			// MODCOD are classified from most to less robust
-			if((*it)->getNearestFmtId(simulated_fmt) < simulated_fmt)
+			if(carriers->getNearestFmtId(simulated_fmt) < simulated_fmt)
 			{
-				unsigned int fmt = (*it)->getNearestFmtId(simulated_fmt);
+				unsigned int fmt = carriers->getNearestFmtId(simulated_fmt);
 				// take the closest FMT id (i.e. the bigger value)
 				available_fmt = std::max(available_fmt, fmt);
-				terminal->setCarrierId((*it)->getCarriersId());
+				terminal->setCarrierId(carriers->getCarriersId());
 			}
 		}
 

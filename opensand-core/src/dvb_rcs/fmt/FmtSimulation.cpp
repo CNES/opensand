@@ -69,12 +69,12 @@ inline bool fileExists(const string &filename)
 
 FmtSimulation::FmtSimulation():
 	sts(),
-	modcod_def(),
 	modcod_simu(NULL),
 	is_modcod_simu_defined(false),
 	need_advertise()
 {
 	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Simulation");
+	this->modcod_def = new FmtDefinitionTable();
 }
 
 
@@ -84,6 +84,7 @@ FmtSimulation::FmtSimulation():
 FmtSimulation::~FmtSimulation()
 {
 	this->clear();
+	delete this->modcod_def;
 
 	if(this->modcod_simu)
 	{
@@ -270,7 +271,7 @@ bool FmtSimulation::setModcodDef(const string &filename)
 	}
 
 	// load all the MODCOD definitions from file
-	if(!this->modcod_def.load(filename))
+	if(!this->modcod_def->load(filename))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "failed to load the MODCOD definitions from file "
@@ -427,13 +428,13 @@ bool FmtSimulation::getNextModcodToAdvertise(tal_id_t &tal_id, uint8_t &modcod_i
 
 uint8_t FmtSimulation::getMaxModcod() const
 {
-	return this->modcod_def.getMaxId();
+	return this->modcod_def->getMaxId();
 }
 
 
 const FmtDefinitionTable *FmtSimulation::getModcodDefinitions() const
 {
-	return &(this->modcod_def);
+	return this->modcod_def;
 }
 
 void FmtSimulation::setRequiredModcod(tal_id_t id, double cni) const
@@ -441,7 +442,7 @@ void FmtSimulation::setRequiredModcod(tal_id_t id, double cni) const
 	uint8_t modcod_id;
 	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
 
-	modcod_id = this->modcod_def.getRequiredModcod(cni);
+	modcod_id = this->modcod_def->getRequiredModcod(cni);
 	LOG(this->log_fmt, LEVEL_INFO,
 	    "Terminal %u required %.2f dB, will receive allocation "
 	    "with MODCOD %u\n", id, cni, modcod_id);

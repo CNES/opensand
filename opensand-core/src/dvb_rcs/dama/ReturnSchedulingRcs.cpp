@@ -164,7 +164,7 @@ bool ReturnSchedulingRcs::macSchedule(const unsigned int pvc,
 			elem = fifo->pop();
 
 			// delete elem context (keep only the packet)
-			encap_packet = elem->getPacket();
+			encap_packet = elem->getElem<NetPacket>();
 			delete elem;
 
 			// is there enough free space in the DVB frame
