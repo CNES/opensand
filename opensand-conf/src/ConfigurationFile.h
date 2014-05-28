@@ -187,10 +187,12 @@ class ConfigurationFile
 	/**
 	 * Load the log desired display levels
 	 * 
-	 * @param levels  OUT: the log levels
+	 * @param levels    OUT: the log levels
+	 * @param specific  OUT: specific log levels
 	 * @return true on success, false otherwise
 	 */
-	bool loadLevels(map<string, log_level_t> &levels);
+	bool loadLevels(map<string, log_level_t> &levels,
+	                map<string, log_level_t> &specific);
 	
  private:
 

@@ -282,6 +282,9 @@
 //    Debug    //
 /////////////////
 #define SECTION_DEBUG  "debug"
+#define LEVEL_LIST     "levels"
+#define LOG_NAME       "name"
+#define LOG_LEVEL      "level"
 /*#define INIT           "init"
 #define LAN_ADAPTATION "lan_adaptation"
 #define ENCAP          "encap"

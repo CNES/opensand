@@ -191,7 +191,8 @@ void Output::enableStdlog(void)
 	instance.enableStdlog();
 }
 
-void Output::setLevels(const map<string, log_level_t> &levels)
+void Output::setLevels(const map<string, log_level_t> &levels,
+                       const map<string, log_level_t> &specific)
 {
-	instance.setLevels(levels);
+	instance.setLevels(levels, specific);
 }

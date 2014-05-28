@@ -479,6 +479,8 @@ class XmlParser:
         if len(values) > 0:
             # take the first element it should be better than nothing
             return int(values[0])
+        else:
+            return 0
 
     def get_maxoccurs(self, table_name):
         """ get maxOccurs value for table elements """
@@ -487,9 +489,14 @@ class XmlParser:
                                           % table_name, namespaces=NAMESPACES)
         values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs"
                                           % table_name, namespaces=NAMESPACES)
-        if len(values) > 0:
+        if len(values) > 0 and values[0] != "unbounded":
             # take the first element it should be better than nothing
             return int(values[0])
+        elif len(values):
+            # unbounded: return a high value
+            return 100
+        else:
+            return 1
 
     def get_file_elements(self, elem):
         """ get elements or attributes with type: 'file' """

@@ -140,4 +140,31 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:element name="levels">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="level" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="level">
+    <xsd:complexType>
+        <xsd:attribute name="name" type="xsd:string">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    A log name or part of the name
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="level" type="debugValue">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The level
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 </xsd:schema>

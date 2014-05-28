@@ -189,6 +189,7 @@ int main(int argc, char **argv)
 
 	vector<string> conf_files;
 	map<string, log_level_t> levels;
+	map<string, log_level_t> spec_level;
 
 	OutputEvent *status;
 
@@ -222,14 +223,14 @@ int main(int argc, char **argv)
 	}
 
 	// read all packages debug levels
-	if(!Conf::loadLevels(levels))
+	if(!Conf::loadLevels(levels, spec_level))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load default levels, quit\n",
 		        progname);
 		goto quit;
 	}
-	Output::setLevels(levels);
+	Output::setLevels(levels, spec_level);
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,

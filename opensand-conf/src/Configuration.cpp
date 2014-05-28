@@ -86,8 +86,9 @@ bool Conf::getListItems(const char *section,
 	return global_config.getListItems(section, key, list);
 }
 
-bool Conf::loadLevels(map<string, log_level_t> &levels)
+bool Conf::loadLevels(map<string, log_level_t> &levels,
+                      map<string, log_level_t> &specific)
 {
-	return global_config.loadLevels(levels);
+	return global_config.loadLevels(levels, specific);
 }
 

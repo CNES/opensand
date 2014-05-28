@@ -297,6 +297,13 @@
             <xsd:element name="dvb" type="debugValue" />
             <xsd:element name="physical_layer" type="debugValue" />
             <xsd:element name="sat_carrier" type="debugValue" />
+            <xsd:element ref="levels">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The user log levels
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

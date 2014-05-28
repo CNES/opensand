@@ -79,6 +79,7 @@ OutputInternal::OutputInternal():
 	default_log(NULL),
 	log(NULL),
 	levels(),
+	specific(),
 	blocked(0),
 	mutex("Output")
 {
@@ -764,9 +765,11 @@ uint8_t OutputInternal::rcvMessage(void) const
 }
 
 
-void OutputInternal::setLevels(const map<string, log_level_t> &levels)
+void OutputInternal::setLevels(const map<string, log_level_t> &levels,
+                               const map<string, log_level_t> &specific)
 {
 	this->levels = levels;
+	this->specific = specific;
 	vector<OutputLog *>::iterator log_it;
 	this->mutex.acquireLock();
 	for(log_it = this->logs.begin(); log_it != this->logs.end(); ++log_it)
@@ -796,6 +799,20 @@ void OutputInternal::checkLogLevel(OutputLog *log)
 		{
 			log->setDisplayLevel((*lvl_it).second);
 			// continue for init checking
+		}
+	}
+	for(lvl_it = this->specific.begin(); lvl_it != this->specific.end(); ++lvl_it)
+	{
+		string name = (*lvl_it).first;
+		string log_name = log->getName();
+		std::transform(log->getName().begin(), log->getName().end(),
+		               log_name.begin(), ::tolower);
+		// check if the log name matches a part of the user defined log
+		if((log_name.find(name) != std::string::npos))
+		{
+			log->setDisplayLevel((*lvl_it).second);
+			// stop once we get a match
+			break;
 		}
 	}
 }

@@ -266,9 +266,11 @@ private:
 	/**
 	 * @brief Set the log levels as defined in the configuration
 	 *
-	 * @param levels  The log levels defines in configuration
+	 * @param levels    The log levels defines in configuration
+	 * @param specific  Used defined levels
 	 */
-	void setLevels(const map<string, log_level_t> &levels);
+	void setLevels(const map<string, log_level_t> &levels,
+	               const map<string, log_level_t> &specific);
 
 	/**
 	 * @brief Check a log level in order to update it according to
@@ -319,6 +321,9 @@ private:
 
 	/// the levels loaded in configuration
 	map<string, log_level_t> levels;
+
+	/// the user defined levels loaded in configuration
+	map<string, log_level_t> specific;
 
 	/// The number of blocked operations
 	mutable int blocked;
