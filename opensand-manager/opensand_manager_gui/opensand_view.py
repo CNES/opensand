@@ -605,6 +605,14 @@ class View(WindowView):
             program.enable_logs(wlog.get_active())
             self._ui.get_widget('configure_logging').set_sensitive(active)
 
+    def on_erase_logs_clicked(self, source=None, event=None):
+        """ event handler for erase logs clicked """
+        page = self._event_notebook.get_current_page()
+        tab = self.get_active_tab(page)
+        if tab is None:
+            return
+        tab.empty()
+
     def on_autoscroll_toggled(self, source=None, event=None):
         """ event handler for autoscroll toggled """
         page = self._event_notebook.get_current_page()
@@ -641,6 +649,8 @@ class View(WindowView):
         widget.set_sensitive(True)
         widget = self._ui.get_widget('configure_logging')
         widget.set_sensitive(True)
+        widget = self._ui.get_widget('erase_logs')
+        widget.set_sensitive(False)
         page = self._event_notebook.get_current_page()
         program = self.get_program_for_active_tab(page)
         if program == None:
@@ -657,6 +667,8 @@ class View(WindowView):
         widget.set_sensitive(False)
         widget = self._ui.get_widget('configure_logging')
         widget.set_sensitive(False)
+        widget = self._ui.get_widget('erase_logs')
+        widget.set_sensitive(True)
         gobject.idle_add(self._conf_logs_dialog.hide)
         for page_num in range(self._event_notebook.get_n_pages()):
             program = self.get_program_for_active_tab(page_num)
@@ -668,8 +680,6 @@ class View(WindowView):
             program.enable_logs(True)
             program.enable_syslog(True)
 
-
-# TODO button to clear logs !
 
 ##### TEST #####
 if __name__ == "__main__":

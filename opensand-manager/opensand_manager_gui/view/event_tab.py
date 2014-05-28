@@ -176,6 +176,11 @@ class EventTab(object):
         """ update the event tab """
         self._program = program
 
+    def empty(self):
+        """ remove all text in buffer """
+        self._buff.delete(self._buff.get_start_iter(),
+                          self._buff.get_end_iter())
+
     @property
     def autoscroll(self):
         """ Get the autoscroll state """

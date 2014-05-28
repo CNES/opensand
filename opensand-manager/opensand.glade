@@ -1166,6 +1166,21 @@ This is the name used when loading probes.</property>
                               </packing>
                             </child>
                             <child>
+                              <widget class="GtkToolButton" id="erase_logs">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">Erase logs</property>
+                                <property name="use_underline">True</property>
+                                <property name="stock_id">gtk-clear</property>
+                                <signal name="clicked" handler="on_erase_logs_clicked" />
+                              </widget>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">True</property>
+                              </packing>
+                            </child>
+                            <child>
                               <widget class="GtkToolItem" id="autoscroll_button">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -2589,6 +2604,17 @@ This is the name used when loading probes.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2652,17 +2678,6 @@ This is the name used when loading probes.</property>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
