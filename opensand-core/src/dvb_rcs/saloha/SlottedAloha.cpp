@@ -44,9 +44,14 @@
 #include <opensand_conf/conf.h>
 
 SlottedAloha::SlottedAloha():
-/*	nb_packets_received_per_frame(0),// TODO remove ?
-	nb_packets_received_total(0), // TODO remove ?*/
-	is_parent_init(false)
+	sf_per_saframe(),
+	frame_duration_ms(),
+	nb_replicas(0),
+	is_parent_init(false),
+	pkt_hdl(NULL),
+	categories(),
+	terminal_affectation(),
+	default_category(NULL)
 // TODO init vars
 {
 	// TODO name
@@ -98,14 +103,6 @@ bool SlottedAloha::initParent(time_ms_t frame_duration_ms,
 		    SALOHA_SECTION, SALOHA_FPF);
 		return false;
 	}
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_REPLICAS, this->nb_replicas))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_NB_REPLICAS);
-		return false;
-	}
-
 	this->is_parent_init = true;
 
 	return true;

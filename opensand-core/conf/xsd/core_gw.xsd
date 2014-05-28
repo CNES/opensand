@@ -243,13 +243,13 @@
                     </xsd:documentation>
                 </xsd:annotation>
 			</xsd:element>
-			<xsd:element name="simulation_traffic" type="xsd:nonNegativeInteger">
+<!--			<xsd:element name="simulation_traffic" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Add simulated traffic (in %)
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
+			</xsd:element>-->
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>

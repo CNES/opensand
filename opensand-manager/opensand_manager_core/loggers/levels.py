@@ -126,7 +126,7 @@ class LogNotice(LogLevel):
     """ The notice log level """
     def __init__(self):
         LogLevel.__init__(self)
-        self._color = 'green'
+        self._color = 'blue'
         self._msg = "NOTICE"
         self._level = MGR_NOTICE
 

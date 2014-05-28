@@ -463,15 +463,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
 			</xsd:element>
-			<xsd:element name="nb_replicas" type="xsd:positiveInteger">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The number of replicas per Slotted Aloha frame
-                        = 1 -> basic Slotted Aloha is used
-                        > 1 -> CRDSA is used (N replicas per packets with anti-collisions algorithm)
-                    </xsd:documentation>
-                </xsd:annotation>
-			</xsd:element>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>

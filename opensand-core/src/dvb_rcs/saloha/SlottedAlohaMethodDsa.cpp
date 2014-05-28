@@ -79,8 +79,9 @@ void SlottedAlohaMethodDsa::removeCollisions(map<unsigned int, Slot *> &slots,
 		}
 		else
 		{
-			LOG(this->log_saloha, LEVEL_DEBUG,
-			    "Collision, remove packets\n");
+			// TODO NOTICE
+			LOG(this->log_saloha, LEVEL_WARNING,
+			    "Collision on slot %u, remove packets\n", slot->getId());
 			for(pkt_it = packets.begin();
 			    pkt_it != packets.end();
 			    ++pkt_it)

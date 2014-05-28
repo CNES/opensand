@@ -42,7 +42,8 @@
 
 SlottedAlohaTal::SlottedAlohaTal():
 	SlottedAloha(),
-	tal_id(255),
+	tal_id(),
+	timeout(),
 	packets_wait_ack(),
 	nb_success(0),
 	nb_max_packets(0),
@@ -89,6 +90,13 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SALOHA_SECTION, SALOHA_NB_MAX_PACKETS);
+		return false;
+	}
+	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_REPLICAS, this->nb_replicas))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    SALOHA_SECTION, SALOHA_NB_REPLICAS);
 		return false;
 	}
 
@@ -255,8 +263,8 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 		}
 //		this->debug("< RCVD", ctrl_pkt);
 //		TODO useful ?
-		this->nb_packets_received_per_frame++;
-		this->nb_packets_received_total++;
+/*		this->nb_packets_received_per_frame++;
+		this->nb_packets_received_total++;*/
 
 		switch(ctrl_pkt->getCtrlType())
 		{
@@ -280,8 +288,8 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 					if(id == data_id)
 					{
 //						this->debug("remove", data_pkt);
-						LOG(this->log_saloha, LEVEL_INFO,
-						    "Packet with ID %s found in packet waiting for ack "
+						LOG(this->log_saloha, LEVEL_DEBUG,
+						    "Packet with ID %s found in packets waiting for ack "
 						    "and removed\n", data_id.c_str());
 						delete data_pkt;
 						this->nb_success++;
@@ -349,11 +357,14 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 	{
 		goto skip;
 	}
-	this->nb_packets_received_per_frame = 0;
+//	this->nb_packets_received_per_frame = 0;
 
-	LOG(this->log_saloha, LEVEL_INFO,
-	    "Schedule Slotted Aloha packets, %zu complete frames at the moment\n",
-	    complete_dvb_frames.size());
+	if(complete_dvb_frames.size())
+	{
+		LOG(this->log_saloha, LEVEL_INFO,
+		    "Schedule Slotted Aloha packets, %zu complete frames at the moment\n",
+		    complete_dvb_frames.size());
+	}
 
 	// If waiting packets can be retransmitted, store them in retransmission_packets
 	for(wack_it = this->packets_wait_ack.begin();
@@ -369,6 +380,9 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 			{
 				if(sa_packet->canBeRetransmitted(this->nb_max_retransmissions))
 				{
+					LOG(this->log_saloha, LEVEL_NOTICE,
+					    "Packet %s not acked, will be retransmitted\n",
+					    this->buildPacketId(sa_packet).c_str());
 //					this->debug("timeout_OK", sa_packet);
 					sa_packet->incNbRetransmissions();
 					sa_packet->setTimeout(this->timeout);
@@ -379,8 +393,9 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 				}
 				else
 				{
-					LOG(this->log_saloha, LEVEL_DEBUG,
-					    "packet lost\n");
+					LOG(this->log_saloha, LEVEL_WARNING,
+					    "Packet %s lost\n",
+					    this->buildPacketId(sa_packet).c_str());
 					delete sa_packet;
 //					this->debug("timeout_NOK", sa_packet);
 					this->backoff->setNok();
@@ -401,6 +416,7 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 		    nb_retransmissions);
 		this->nb_success = 0;
 	}
+	// TODO stat retransmissions
 	frame = new SlottedAlohaFrameData();
 	if(!frame)
 	{
@@ -434,7 +450,7 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 	}
 	if(nbr_packets)
 	{
-		LOG(this->log_saloha, LEVEL_NOTICE,
+		LOG(this->log_saloha, LEVEL_INFO,
 		    "%u retransmission packets added to Slotted Aloha frames\n",
 		    nbr_packets);
 		nbr_packets = 0;
@@ -478,7 +494,7 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 		}
 		if(nbr_packets)
 		{
-			LOG(this->log_saloha, LEVEL_NOTICE,
+			LOG(this->log_saloha, LEVEL_INFO,
 			    "%u packets added to Slotted Aloha frames from %s fifo\n",
 			    nbr_packets, fifo->getName().c_str());
 			nbr_packets = 0;
@@ -493,9 +509,12 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 	{
 		delete frame;
 	}
-	LOG(this->log_saloha, LEVEL_INFO,
-	    "Slotted Aloha scheduled, there is now %zu complete frames to send\n",
-	    complete_dvb_frames.size());
+	if(complete_dvb_frames.size())
+	{
+		LOG(this->log_saloha, LEVEL_INFO,
+		    "Slotted Aloha scheduled, there is now %zu complete frames to send\n",
+		    complete_dvb_frames.size());
+	}
 
 //	this->debugFifo("end");
 skip:

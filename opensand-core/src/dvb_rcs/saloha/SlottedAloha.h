@@ -61,10 +61,10 @@ class SlottedAloha
 	uint16_t nb_replicas;
 
 	/// Number of packets received per frame
-	uint16_t nb_packets_received_per_frame;
+//	uint16_t nb_packets_received_per_frame;
 
 	/// Number total of packets received since the begining
-	uint64_t nb_packets_received_total;
+//	uint64_t nb_packets_received_total;
 
 	/// Check whether the parent is correctly initialized
 	bool is_parent_init;

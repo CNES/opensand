@@ -316,6 +316,14 @@
                     </xsd:documentation>
                 </xsd:annotation>
 			</xsd:element>
+			<xsd:element name="nb_replicas" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The number of replicas per Slotted Aloha frame
+                        (including the original packet)
+                    </xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
 			<xsd:element name="nb_max_packets" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

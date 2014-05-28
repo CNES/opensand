@@ -53,17 +53,6 @@
 class SlottedAlohaNcc: public SlottedAloha
 {
  private:
-	/// FIFO containing packets received
-//	sa_vector_vector_data_t fifos_from_input; => slot fifo
-
-	/// FIFO containig waiting packets for propagation
-//	sa_map_map_vector_data_t fifos_wait_propagation;
-
-	/// Map containing last packets received and propagated
-//	sa_map_map_id_t last_propagated;
-
-	/// FIFO to propage packets to encap bloc
-//	sa_vector_data_t fifo_to_encap; ==> talCat encap fifo
 
 	// Helper to simplify context manipulation
 	typedef map<tal_id_t, TerminalContextSaloha *> SalohaTerminalList;
@@ -212,18 +201,12 @@ class AlohaPacketComparator
 		SlottedAlohaPacketData *data_pkt2 =
 			dynamic_cast<SlottedAlohaPacketData *>(pkt2);
 		
-/*		uint16_t replicas_1[data_pkt1->getNbReplicas()];
-		uint16_t replicas_2[data_pkt2->getNbReplicas()];
+		uint16_t replica_1 = data_pkt1->getReplica(0);
+		uint16_t replica_2 = data_pkt2->getReplica(0);
 
-		data_pkt1->getReplicas(replicas_1);
-		data_pkt2->getReplicas(replicas_2);
-
-		return (((replicas_1[0] % this->slots_per_carrier) <
-		         (replicas_2[0] % this->slots_per_carrier)) &&
-		        (pkt1->getSrcTalId()));*/
-        // Ts is the timeslot of the first replicated packet
-		return (((data_pkt1->getTs() % this->slots_per_carrier) <
-		         (data_pkt2->getTs() % this->slots_per_carrier)) &&
+		// First replica slot allows ordering
+		return (((replica_1 % this->slots_per_carrier) <
+		         (replica_2 % this->slots_per_carrier)) &&
 		        (pkt1->getSrcTalId()));
 		// TODO SRC TAL ID ???? (eventually check if they have the same src !..
     };

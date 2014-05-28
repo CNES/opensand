@@ -59,7 +59,7 @@ class SlottedAlohaTal: public SlottedAloha
 	tal_id_t tal_id;
 
 	/// packet timeout
-	uint16_t timeout;
+	time_sf_t timeout;
 
 	/// The packets waiting for ACK
 	map<qos_t, saloha_packets_t> packets_wait_ack;
