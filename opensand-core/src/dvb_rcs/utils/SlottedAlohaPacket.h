@@ -27,7 +27,7 @@
  */
 
 /**
- * @file SlottedAlohaPacketData.h
+ * @file SlottedAlohaPacket.h
  * @brief The Slotted Aloha packets
  * @author Julien Bernard / Viveris technologies
  */
@@ -50,6 +50,10 @@
 #define SALOHA_ID_SEQ 1
 #define SALOHA_ID_PDU_NB 2
 #define SALOHA_ID_QOS 3
+
+
+/// A Slotted Aloha ID representation
+typedef Data saloha_id_t;
 
 
 /**
@@ -77,12 +81,17 @@ public:
 	 */
 	virtual ~SlottedAlohaPacket() {};
 
+	/**
+	 * Get the packet unique identifier <ID, Seq, PDU_nb, QoS>
+	 *
+	 * @return The unisuqe id of the Slotted Aloha packet
+	 */
+	virtual saloha_id_t getUniqueId(void) const = 0;
+
 };
 
 /// A list of Slotted Aloha Packets 
 typedef vector<SlottedAlohaPacket *> saloha_packets_t;
-/// A Slotted Aloha ID representation
-typedef Data saloha_id_t;
 
 
 #endif

@@ -63,12 +63,12 @@ saloha_packets_t *TerminalContextSaloha::getWaitPropagationPackets(qos_t qos)
 	return this->wait_propagation[qos];
 }
 
-saloha_id_t TerminalContextSaloha::getLastPropagatedIds(qos_t qos)
+saloha_id_t TerminalContextSaloha::getLastPropagatedId(qos_t qos)
 {
 	return this->last_propagated[qos];
 }
 
-void TerminalContextSaloha::setLastPropagatedIds(qos_t qos, saloha_id_t id)
+void TerminalContextSaloha::setLastPropagatedId(qos_t qos, saloha_id_t id)
 {
 	this->last_propagated[qos] = id;
 }

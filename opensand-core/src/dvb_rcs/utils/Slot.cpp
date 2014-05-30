@@ -39,8 +39,7 @@
 Slot::Slot(unsigned int carriers_id,
            unsigned int slot_id):
 	carriers_id(carriers_id),
-	slot_id(slot_id),
-	packets()
+	slot_id(slot_id)
 {
 }
 
@@ -59,31 +58,10 @@ unsigned int Slot::getId() const
 	return this->slot_id;
 }
 
-void Slot::addPacket(SlottedAlohaPacketData *packet)
-{
-	this->packets.push_back(packet);
-}
-
-unsigned int Slot::getNbrPackets(void) const
-{
-	return this->packets.size();
-}
-
-saloha_packets_t &Slot::getPackets(void)
-{
-	return this->packets;
-}
-
-
-void Slot::clear(void)
-{
-	this->packets.clear();
-}
-
 void Slot::release(void)
 {
-	for(saloha_packets_t::iterator it = this->packets.begin();
-	    it != this->packets.end(); ++it)
+	for(saloha_packets_t::iterator it = this->begin();
+	    it != this->end(); ++it)
 	{
 		delete *it;
 	}

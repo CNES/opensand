@@ -40,10 +40,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <sstream>
 
-
-// TODO REMOVE
-#include <opensand_output/Output.h>
 
 // TODO qos is maybe not useful in header
 SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data,
@@ -171,7 +169,7 @@ uint16_t SlottedAlohaPacketData::getReplica(uint16_t pos) const
 	return ntohs(replicas[pos]);
 }
 
-uint8_t SlottedAlohaPacketData::getQos()
+uint8_t SlottedAlohaPacketData::getQos() const
 {
 	saloha_data_hdr_t *header;
 	
@@ -303,6 +301,16 @@ size_t SlottedAlohaPacketData::getPacketLength(const Data &data)
 	
 	header = (saloha_data_hdr_t *)data.c_str();
 	return ntohs(header->total_length);
+}
+
+saloha_id_t SlottedAlohaPacketData::getUniqueId(void) const
+{
+	std::ostringstream os;
+	
+	// need int cast else there is some problems
+	os << (int)this->getId() << ':' << (int)this->getSeq() << ':'
+	   << (int)this->getPduNb() << ':' << (int)this->getQos();
+	return saloha_id_t(os.str());
 }
 
 

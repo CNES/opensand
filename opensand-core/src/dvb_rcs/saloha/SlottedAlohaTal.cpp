@@ -36,6 +36,7 @@
 #include "SlottedAlohaBackoffBeb.h"
 #include "SlottedAlohaBackoffEied.h"
 #include "SlottedAlohaBackoffMimd.h"
+#include "SlottedAlohaPacketCtrl.h"
 
 #include <opensand_conf/conf.h>
 
@@ -50,12 +51,14 @@ SlottedAlohaTal::SlottedAlohaTal():
 	nb_max_retransmissions(0),
 	base_id(0),
 	backoff(NULL),
-	category(NULL)
+	category(NULL),
+	dvb_fifos()
 {
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,
-                           unsigned int frames_per_superframe)
+                           unsigned int frames_per_superframe,
+                           const fifos_t &dvb_fifos)
 {
 	uint16_t max;
 	uint16_t multiple;
@@ -63,9 +66,6 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	uint16_t t;
 	uint16_t d;
 	string backoff_name;
-
-	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
-	TerminalMapping<TerminalCategorySaloha>::const_iterator it;
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -84,6 +84,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 	this->category = (*(this->categories.begin())).second;
+	this->dvb_fifos = dvb_fifos;
 
 	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_MAX_PACKETS, this->nb_max_packets))
 	{
@@ -101,8 +102,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	}
 
 	/// check nb_max_packets
+	//  we limit maximum to the number of slots per carrier to avoid two packets to
+	//  be sent on the same slot but at different frequencies
+	//  (we may have different slots depending on band and carriers but here we
+	//   do as if all carriers and slots were the same, this is a convenient approx)
 	if((unsigned)(this->nb_max_packets * this->nb_replicas) >
-	   this->category->getSlotsNumber())
+	   (this->category->getSlotsNumber() / this->category->getCarriersNumber()))
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "Maximum packet per Slotted Aloha frames is bigger than "
@@ -189,6 +194,34 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		if((*it).second->getCrType() != cr_saloha)
+		{
+			continue;
+		}
+		Probe<int> *probe_ret;
+		Probe<int> *probe_wait;
+		Probe<int> *probe_nb_drop;
+
+		probe_ret = Output::registerProbe<int>(true, SAMPLE_SUM,
+		                                       "Aloha.retransmissions.%s",
+		                                       (*it).second->getName().c_str());
+		probe_wait = Output::registerProbe<int>(true, SAMPLE_LAST,
+		                                       "Aloha.wait.%s",
+		                                       (*it).second->getName().c_str());
+		probe_nb_drop = Output::registerProbe<int>(true, SAMPLE_SUM,
+		                                       "Aloha.drops.%s",
+		                                       (*it).second->getName().c_str());
+		this->probe_retransmission.insert(
+		            pair<qos_t, Probe<int> *>((*it).first, probe_ret));
+		this->probe_wait_ack.insert(
+		            pair<qos_t, Probe<int> *>((*it).first, probe_wait));
+		this->probe_drop.insert(
+		            pair<qos_t, Probe<int> *>((*it).first, probe_nb_drop));
+	}
+
 	return true;
 }
 
@@ -261,7 +294,6 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 			    "cannot create a Slotted Aloha control packet\n");
 			continue;
 		}
-//		this->debug("< RCVD", ctrl_pkt);
 //		TODO useful ?
 /*		this->nb_packets_received_per_frame++;
 		this->nb_packets_received_total++;*/
@@ -273,6 +305,7 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 				uint16_t ids[4];
 				saloha_packets_t::iterator packet;
 				saloha_id_t id = ctrl_pkt->getId();
+				// TODO if tal_id is added in header, filter
 
 				this->convertPacketId(ctrl_pkt->getId(), ids);
 				packet = this->packets_wait_ack[ids[SALOHA_ID_QOS]].begin();
@@ -284,10 +317,9 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 					SlottedAlohaPacketData *data_pkt;
 					saloha_id_t data_id;
 					data_pkt = (SlottedAlohaPacketData *)(*packet);
-					data_id = this->buildPacketId(data_pkt);
+					data_id = data_pkt->getUniqueId();
 					if(id == data_id)
 					{
-//						this->debug("remove", data_pkt);
 						LOG(this->log_saloha, LEVEL_DEBUG,
 						    "Packet with ID %s found in packets waiting for ack "
 						    "and removed\n", data_id.c_str());
@@ -317,8 +349,7 @@ skip:
 	return true;
 }
 
-bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
-                               list<DvbFrame *> &complete_dvb_frames,
+bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
                                uint64_t counter)
 {
 	uint16_t nb_retransmissions;
@@ -349,7 +380,6 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 		{
 			sa_packet = (SlottedAlohaPacketData *)(*packet);
 			sa_packet->decTimeout();
-//			this->debug("decTimeout", sa_packet);
 		}
 	}*/
 
@@ -382,8 +412,7 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 				{
 					LOG(this->log_saloha, LEVEL_NOTICE,
 					    "Packet %s not acked, will be retransmitted\n",
-					    this->buildPacketId(sa_packet).c_str());
-//					this->debug("timeout_OK", sa_packet);
+					    sa_packet->getUniqueId().c_str());
 					sa_packet->incNbRetransmissions();
 					sa_packet->setTimeout(this->timeout);
 					this->retransmission_packets.insert(
@@ -395,9 +424,9 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 				{
 					LOG(this->log_saloha, LEVEL_WARNING,
 					    "Packet %s lost\n",
-					    this->buildPacketId(sa_packet).c_str());
+					    sa_packet->getUniqueId().c_str());
+					this->probe_drop[sa_packet->getQos()]->put(1);
 					delete sa_packet;
-//					this->debug("timeout_NOK", sa_packet);
 					this->backoff->setNok();
 				}
 				// erase goes to next iterator
@@ -408,7 +437,6 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 		}
 	}
 
-	// TODO MORE DEBUG !!!!
 	if(nb_retransmissions)
 	{
 		LOG(this->log_saloha, LEVEL_NOTICE,
@@ -424,7 +452,7 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 		    "failed to create a Slotted Aloha data frame");
 		goto error;
 	}
-	ts = this->getTimeSlots(dvb_fifos); // Get random unique time slots
+	ts = this->getTimeSlots(); // Get random unique time slots
 	i_ts = ts.begin();
 	// Send packets which can be retransmitted (high priority)
 	packet = this->retransmission_packets.begin();
@@ -432,17 +460,18 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 	      nbr_packets_total < ts.size())
 	{
 		sa_packet = (SlottedAlohaPacketData *)(*packet);
+		qos_t qos = sa_packet->getQos();
 
 		if(!this->sendPacketData(complete_dvb_frames,
 		                         &frame, sa_packet,
-		                         i_ts, sa_packet->getQos()))
+		                         i_ts, qos))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "failed to add a Slotted Aloha packet in data frame");
 			packet++;
 			continue;
 		}
-//		this->debug("> SEND_bis", sa_packet);
+		this->probe_retransmission[qos]->put(1);
 		// erase goes to next iterator
 		this->retransmission_packets.erase(packet);
 		nbr_packets++;
@@ -457,8 +486,8 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 	}
 
 	// Send new packets (low priority)
-	for(fifos_t::const_iterator it = dvb_fifos.begin();
-	    it != dvb_fifos.end(); ++it)
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
 		// the allocated slot limits the capacity
 		if(nbr_packets_total >= ts.size())
@@ -490,7 +519,6 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 			delete elem;
 			nbr_packets++;
 			nbr_packets_total++;
-//			this->debug("> SEND", sa_packet);
 		}
 		if(nbr_packets)
 		{
@@ -518,12 +546,30 @@ bool SlottedAlohaTal::schedule(fifos_t &dvb_fifos,
 
 //	this->debugFifo("end");
 skip:
+	for(wack_it = this->packets_wait_ack.begin();
+	    wack_it != this->packets_wait_ack.end();
+	    ++wack_it)
+	{
+		this->probe_wait_ack[(*wack_it).first]->put((*wack_it).second.size());
+	}
+
+	// keep the probes refreshing
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		if((*it).second->getCrType() != cr_saloha)
+		{
+			continue;
+		}
+		this->probe_retransmission[(*it).first]->put(0);
+		this->probe_drop[(*it).first]->put(0);
+	}
 	return true;
 error:
 	return false;
 }
 
-saloha_ts_list_t SlottedAlohaTal::getTimeSlots(fifos_t &dvb_fifos)
+saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 {
 	saloha_ts_list_t tmp;
 	saloha_ts_list_t time_slots;
@@ -538,8 +584,8 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(fifos_t &dvb_fifos)
 
 	// TODO we could add these fifos as an attribute of this class ?
 	nb_packets = this->retransmission_packets.size();
-	for(fifos_t::const_iterator it = dvb_fifos.begin();
-	    it != dvb_fifos.end(); ++it)
+	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getCrType() == cr_saloha)
 		{
@@ -630,14 +676,6 @@ bool SlottedAlohaTal::sendPacketData(list<DvbFrame *> &complete_dvb_frames,
 	uint16_t nbr_replicas = packet->getNbReplicas();
 	uint16_t replicas[nbr_replicas];
 	
-/*	replicas = (uint16_t *)calloc(nbr_replicas, sizeof(uint16_t));
-	if (!replicas)
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "Error when allocating replicas\n");
-		return false;
-	}*/
-
 	// in this function, the iterator on slots can be increased by nbr_replicas
 	// because slots has been computed accordingly
 	for(unsigned int cpt = 0; cpt < nbr_replicas; cpt++)

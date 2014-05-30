@@ -86,6 +86,16 @@ class SlottedAlohaTal: public SlottedAloha
 	/// The terminal category
 	TerminalCategorySaloha *category;
 
+	/// The DVB fifos
+	fifos_t dvb_fifos;
+
+	//TODO in opensandcore.h
+	typedef map<qos_t, Probe<int> *> probe_per_qos_t;
+	/// Statistics
+	probe_per_qos_t probe_retransmission;
+	probe_per_qos_t probe_wait_ack;
+	probe_per_qos_t probe_drop;
+
  public:
 
 	/**
@@ -103,10 +113,12 @@ class SlottedAlohaTal: public SlottedAloha
 	 *
 	 * @param tal_id                  The terminal ID
 	 * @param frames_per_superframe   The number of frames per superframes
+	 * @param dvb_fifos               The DVB fifos
 	 * @return true on success, false otherwise
 	 */
 	bool init(tal_id_t tal_id,
-	          unsigned int frames_per_superframe);
+	          unsigned int frames_per_superframe,
+	          const fifos_t &dvb_fifos);
 
 	/**
 	 * Called when a packet is received from encap block
@@ -124,15 +136,12 @@ class SlottedAlohaTal: public SlottedAloha
 	/**
 	 * Schedule Slotted Aloha packets
 	 *
-	 * @param dvb_fifos            FIFO containing encap packets received
-	 *                             propagate to encap block
 	 * @param complete_dvb_frames  frames to attach Slotted Aloha frame to send
 	 * @param counter              current SoF counter
 	 *
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
-	bool schedule(fifos_t &dvb_fifos,
-	              list<DvbFrame *> &complete_dvb_frames,
+	bool schedule(list<DvbFrame *> &complete_dvb_frames,
 	              uint64_t counter); // uint32 ?
 
 	//Implementation of a virtual function
@@ -143,11 +152,9 @@ class SlottedAlohaTal: public SlottedAloha
 	/**
 	 * generate random unique time slots for packets to send
 	 *
-	 * @param dvb_fifos  FIFO containing encap packets received, used to know
-	 *                   its size and calculate the number of packets
 	 * @return set containing random unique time slots
 	 */
-	saloha_ts_list_t getTimeSlots(fifos_t &dvb_fifos);
+	saloha_ts_list_t getTimeSlots(void);
 
 	/**
 	 * Add a Slotted Aloha data packet and its replicas into Slotted Aloha frames

@@ -41,18 +41,20 @@
 
 #include <stdlib.h>
 
+/// Slotted Aloha data packet header
 typedef struct
 {
-	uint64_t id;
-	uint16_t ts;
-	uint16_t seq;
-	uint16_t pdu_nb;
-	uint16_t timeout;
-	uint16_t nb_retransmissions;
-	uint16_t nb_replicas;
-	qos_t qos; // Duplicate header to transmit information
-	uint16_t total_length;
-	uint16_t replicas[0];
+	uint64_t id;                    ///< ID of the PDU to which the packet belongs
+	uint16_t ts;                    ///< Timeslot
+	uint16_t seq;                   ///< Sequence of the packet in the PDU
+	uint16_t pdu_nb;                ///< Number of packets in the PDU
+	uint16_t timeout;               ///< TODO do we need that in header
+	uint16_t nb_retransmissions;    ///< The number of retransmissions of this packet
+	uint16_t nb_replicas;           ///< The number of replicas of this packet
+	                                ///  per Slotted Aloha frame
+	qos_t qos; // Duplicate header to transmit information TODO check if necessary
+	uint16_t total_length;          ///< The packet total length
+	uint16_t replicas[0];           ///< The TS for replicas
 } __attribute__((__packed__)) saloha_data_hdr_t;
 
 
@@ -167,7 +169,7 @@ public:
 	 *
 	 * @return qos of initial packet
 	 */
-	uint8_t getQos();
+	uint8_t getQos() const;
 
 	/**
 	 * Set the time slot
@@ -208,11 +210,13 @@ public:
 	 */
 	void incNbRetransmissions();
 
+
 	/// implementation of virtual fonctions
 	size_t getTotalLength() const;
 	size_t getPayloadLength() const;
 	Data getPayload() const;
 	void setQos(uint8_t qos);
+	saloha_id_t getUniqueId() const;
 
 	/**
 	 * Get the packet length from data

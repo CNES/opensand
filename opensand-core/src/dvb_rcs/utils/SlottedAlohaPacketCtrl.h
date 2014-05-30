@@ -45,6 +45,7 @@ typedef struct
 	uint8_t type;
 	uint16_t total_length;
 } __attribute__((__packed__)) saloha_ctrl_hdr_t;
+// TODO add dst_tal_id in order to filter on reception ? no necessary but can be useful
 
 
 /**
@@ -82,7 +83,7 @@ public:
 	 *
 	 * @return the ID carried by the packet
 	 */
-	Data getId() const;
+	saloha_id_t getId() const;
 
 	/**
 	 * Get the control type of packet
@@ -93,6 +94,7 @@ public:
 
 	/// implementation of virtual fonctions
 	size_t getTotalLength() const;
+	saloha_id_t getUniqueId() const;
 
 	/**
 	 * Get the packet length from data

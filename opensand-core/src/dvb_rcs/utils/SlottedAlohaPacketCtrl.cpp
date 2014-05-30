@@ -72,10 +72,15 @@ uint8_t SlottedAlohaPacketCtrl::getCtrlType() const
 	return header->type;
 }
 
-Data SlottedAlohaPacketCtrl::getId() const
+saloha_id_t SlottedAlohaPacketCtrl::getId() const
 {
 	return this->data.substr(sizeof(saloha_ctrl_hdr_t),
 	                         this->getTotalLength() - sizeof(saloha_ctrl_hdr_t));
+}
+
+saloha_id_t SlottedAlohaPacketCtrl::getUniqueId(void) const
+{
+	return this->getId();
 }
 
 size_t SlottedAlohaPacketCtrl::getTotalLength() const

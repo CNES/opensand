@@ -39,9 +39,9 @@
 
 /**
  * @class Slot
- * @brief Represent a RCS slot in a carrier
+ * @brief Represent a RCS slot in a carrier (i.e. a list of packets + attributes)
  */
-class Slot
+class Slot: public saloha_packets_t
 {
  public:
 
@@ -72,30 +72,11 @@ class Slot
 	unsigned int getId() const;
 
 	/**
-	 * @brief Add a received packet on this slot
-	 *
-	 * @param packet  The packet to add in slot
-	 */
-	void addPacket(SlottedAlohaPacketData *packet);
-
-	/**
 	 * @brief Get the number of packets received on this slot
 	 *
 	 * @return the number of packets received
 	 */
 	unsigned int getNbrPackets(void) const;
-
-	/**
-	 * @brief Get the packets received on the slot
-	 *
-	 * @return the packets
-	 */
-	saloha_packets_t &getPackets(void);
-
-	/**
-	 * @brief Clear the packets in slot
-	 */
-	void clear(void);
 
 	/**
 	 * @brief Release all packets in slot
@@ -109,9 +90,6 @@ class Slot
 
 	/** Slot id */
 	unsigned int slot_id;
-
-	/** The paquets or replicas received on this slot */
-	saloha_packets_t packets;
 };
 
 

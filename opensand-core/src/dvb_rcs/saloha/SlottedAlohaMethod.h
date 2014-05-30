@@ -68,9 +68,10 @@ class SlottedAlohaMethod
 	 *
 	 * @param slots    Slots containing the received Slotted Aloha data packets
 	 * @param fifo     the packets that are not collisionned
+	 * @return the number of collisionned packets
 	 */
-	virtual void removeCollisions(map<unsigned int, Slot *> &slots,
-	                              saloha_packets_t *accepted_packets) = 0;
+	virtual uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
+	                                  saloha_packets_t *accepted_packets) = 0;
 
  protected:
 	OutputLog *log_saloha;

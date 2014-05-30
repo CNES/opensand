@@ -55,12 +55,11 @@ class SlottedAlohaNcc: public SlottedAloha
  private:
 
 	// Helper to simplify context manipulation
-	typedef map<tal_id_t, TerminalContextSaloha *> SalohaTerminalList;
+	typedef map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
 
 	/** List of registered terminals */
-	SalohaTerminalList terminals;
+	saloha_terminals_t terminals;
 
-// TODO move in SlottedAlohaNcc
 	/// Method used to schedule Slotted Aloha
 	// TODO RENAME into SlottedAlohaScheduling
 	SlottedAlohaMethod *method;
@@ -68,6 +67,9 @@ class SlottedAlohaNcc: public SlottedAloha
 	/// Traffic to simulate
 	uint8_t simulation_traffic;
 
+	typedef map<string, Probe<int> *> probe_per_cat_t;
+	/// Statistics
+	probe_per_cat_t probe_collisions;
 
  public:
 	SlottedAlohaNcc();
@@ -205,8 +207,10 @@ class AlohaPacketComparator
 		uint16_t replica_2 = data_pkt2->getReplica(0);
 
 		// First replica slot allows ordering
-		return (((replica_1 % this->slots_per_carrier) <
-		         (replica_2 % this->slots_per_carrier)) &&
+		// TODO in terminal, we use slots sorted in the entire category,
+		// not per carrier => no module here !
+		return (((replica_1 /*% this->slots_per_carrier*/) <
+		         (replica_2 /*% this->slots_per_carrier*/)) &&
 		        (pkt1->getSrcTalId()));
 		// TODO SRC TAL ID ???? (eventually check if they have the same src !..
     };

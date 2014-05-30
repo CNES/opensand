@@ -71,20 +71,20 @@ class TerminalContextSaloha: public TerminalContext
 	saloha_packets_t *getWaitPropagationPackets(qos_t qos);
 
 	/**
-	 * @brief Get the last propagated IDs for the desired QoS
+	 * @brief Get the last propagated ID for the desired QoS
 	 *
 	 * @param qos  The QoS for the last propagated ID
 	 * @return the last propagated ID
 	 */
-	saloha_id_t getLastPropagatedIds(qos_t qos);
+	saloha_id_t getLastPropagatedId(qos_t qos);
 
 	/**
-	 * @brief Set the last propagated IDs for the desired QoS
+	 * @brief Set the last propagated ID for the desired QoS
 	 *
 	 * @param qos  The QoS for the last propagated ID
 	 * @param id   The last propagated ID
 	 */
-	void setLastPropagatedIds(qos_t qos, saloha_id_t id);
+	void setLastPropagatedId(qos_t qos, saloha_id_t id);
 
 
   protected:

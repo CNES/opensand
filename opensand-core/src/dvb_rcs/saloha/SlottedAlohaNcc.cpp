@@ -59,7 +59,7 @@ SlottedAlohaNcc::SlottedAlohaNcc():
 
 SlottedAlohaNcc::~SlottedAlohaNcc()
 {
-	for(SalohaTerminalList::iterator it = this->terminals.begin();
+	for(saloha_terminals_t::iterator it = this->terminals.begin();
 	    it != this->terminals.end(); ++it)
 	{
 		delete it->second;
@@ -72,6 +72,7 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 bool SlottedAlohaNcc::init(void)
 {
 	string method_name;
+	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -116,6 +117,20 @@ bool SlottedAlohaNcc::init(void)
 	    "initialize Slotted Aloha with %s algorithm\n",
 	    method_name.c_str());
 
+	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
+	    ++cat_iter)
+	{
+		Probe<int> *probe_coll;
+
+		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
+		                                       "Aloha.collisions.%s",
+		                                       (*cat_iter).first.c_str());
+		this->probe_collisions.insert(
+		            pair<string, Probe<int> *>((*cat_iter).first,
+		                                       probe_coll));
+	}
+
+
 	return true;
 }
 
@@ -145,7 +160,7 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		map<unsigned int, Slot *> slots;
 		map<unsigned int, Slot *>::iterator slot_it;
 		TerminalContextSaloha *terminal;
-		SalohaTerminalList::iterator st;
+		saloha_terminals_t::iterator st;
 		TerminalCategorySaloha *category;
 		tal_id_t src_tal_id;
 		qos_t qos;
@@ -182,8 +197,6 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		}
 		terminal = st->second;
 		category = this->categories[terminal->getCurrentCategory()];
-		// TODO
-//		this->debug("< RCVD", sa_packet);
 		// TODO move nb_packet _received in category ?
 //		this->nb_packets_received_total++;
 
@@ -197,24 +210,8 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 			delete sa_packet;
 			continue;
 		}
-		(*slot_it).second->addPacket(sa_packet);
+		(*slot_it).second->push_back(sa_packet);
 		category->increaseReceivedPacketsNbr();
-/*		for(unsigned int i = 0; i < sa_packet->getNbReplicas(); i++)
-		{
-			unsigned int slot_id = sa_packet->getReplica(i);
-
-			slot_it = slots.find(slot_id);
-			if(slot_it == slots.end())
-			{
-				LOG(this->log_saloha, LEVEL_ERROR,
-				    "replica received in slot %u that does not exist\n",
-				    slot_id);
-				continue;
-			}
-//			this->nb_packets_received_total++;
-//			category->increaseReceivedPacketsNbr();
-			(*slot_it).second->addPacket(sa_packet);
-		}*/
 	}
 	// TODO stat nb_packets_received_per_frame
 	//      nb_packet_received_total
@@ -245,7 +242,6 @@ bool SlottedAlohaNcc::schedule(NetBurst **burst,
 			return false;
 		}
 	}
-//	this->debugFifo("after scheduling");
 	return true;
 }
 
@@ -256,6 +252,8 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	SlottedAlohaFrameCtrl *frame;
 	saloha_packets_t *accepted_packets;
 	saloha_packets_t::iterator pkt_it;
+	// refresh the probe in case of no traffic
+	this->probe_collisions[category->getLabel()]->put(0);
 	if(!category->getReceivedPacketsNbr())
 	{
 		LOG(this->log_saloha, LEVEL_DEBUG,
@@ -274,14 +272,10 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 
 	//this->simulateTraffic(category); // Simulate traffic to get performance statistics
 	category->resetReceivedPacketsNbr();
-	// TODO
-//	this->debugFifo("before scheduling");
 	LOG(this->log_saloha, LEVEL_DEBUG,
 	    "Remove collisions on category %s\n",
 	    category->getLabel().c_str());
 	this->removeCollisions(category); // Call specific algorithm to remove collisions
-	// TODO
-//	this->debugFifo("after collisions removing");
 
 	// create the Slotted Aloha control frame
 	frame = new SlottedAlohaFrameCtrl();
@@ -303,8 +297,9 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		SlottedAlohaPacketData *sa_packet;
 		SlottedAlohaPacketCtrl *ack;
 		TerminalContextSaloha *terminal;
-		SalohaTerminalList::iterator st;
+		saloha_terminals_t::iterator st;
 		saloha_packets_t *wait_propagation_packets;
+		saloha_packets_t::iterator wait_pkt_it;
 		saloha_id_t last_propagated_id;
 		saloha_id_t id_packet;
 		tal_id_t tal_id;
@@ -314,7 +309,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		sa_packet = dynamic_cast<SlottedAlohaPacketData *>(*pkt_it);
 		// erase goes to next iterator
 		accepted_packets->erase(pkt_it);
-		id_packet = this->buildPacketId(sa_packet);
+		id_packet = sa_packet->getUniqueId();
 		tal_id = sa_packet->getSrcTalId();
 		qos = sa_packet->getQos();
 
@@ -338,7 +333,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		}
 
 		// TODO ENUM for state !
-		last_propagated_id = terminal->getLastPropagatedIds(qos);
+		last_propagated_id = terminal->getLastPropagatedId(qos);
 		state = this->canPropagate(last_propagated_id, id_packet, sa_packet);
 		if(!sa_packet->getSrcTalId())
 		{
@@ -350,8 +345,9 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 
 		if(state == dup)
 		{
-			LOG(this->log_saloha, LEVEL_NOTICE,
-			    "drop Slotted Aloha packet because of duplication\n");
+			LOG(this->log_saloha, LEVEL_DEBUG,
+			    "drop Slotted Aloha packet %s because of duplication\n",
+			    id_packet.c_str());
 			delete sa_packet;
 			continue;
 		}
@@ -396,8 +392,6 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		    "Ack packet %s on ST%u\n", id_packet.c_str(), tal_id);
 		delete ack;
 
-
-//		this->debug("SEND >", ack);
 		wait_propagation_packets = terminal->getWaitPropagationPackets(qos);
 		if(state == no_prop)
 		{
@@ -406,25 +400,28 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			    id_packet.c_str(), tal_id, last_propagated_id.c_str());
 			// Store packet in waiting list because of previous packet missing
 			wait_propagation_packets->push_back(sa_packet);
-			continue;
 		}
+		else
+		{
+			terminal->setLastPropagatedId(qos, id_packet);
+			(*burst)->add(this->removeHeader(sa_packet));
+			last_propagated_id = terminal->getLastPropagatedId(qos);
 
-		saloha_packets_t::iterator wait_pkt_it;
-		terminal->setLastPropagatedIds(qos, id_packet);
-//		this->debug("PROPAGATE", sa_packet);
-		(*burst)->add(this->removeHeader(sa_packet));
-		last_propagated_id = terminal->getLastPropagatedIds(qos);
-
-		LOG(this->log_saloha, LEVEL_INFO,
-		    "Propagate packet from ST%u with ID %s\n",
-		    tal_id, id_packet.c_str());
-		//Propagate all waiting packet after receiving the missing packet
-		/// TODO function, this is quite the same as the upper algo on accepted_packets
+			LOG(this->log_saloha, LEVEL_INFO,
+			    "Propagate packet from ST%u with ID %s\n",
+			    tal_id, id_packet.c_str());
+		}
+		// Propagate all waiting packet after receiving the missing packet
+		// OR
+		// check if there is the next packet (we need that because we
+		// may have the missing packet waiting from previous schdeuling
+		// and not sent because there was not enough capacity
 		wait_pkt_it = wait_propagation_packets->begin();
+		/// TODO function, this is quite the same as the upper algo on accepted_packets
 		while(wait_pkt_it != wait_propagation_packets->end())
 		{
 			sa_packet = dynamic_cast<SlottedAlohaPacketData *>(*wait_pkt_it);
-			id_packet = this->buildPacketId(sa_packet);
+			id_packet = sa_packet->getUniqueId();
 			if((sa_packet->getSrcTalId() != terminal->getTerminalId()) ||
 			   (sa_packet->getQos() != qos))
 			{
@@ -443,14 +440,14 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 				LOG(this->log_saloha, LEVEL_INFO,
 				    "Waiting packet with ID %s can also be propagated\n",
 				    id_packet.c_str());
-//				this->debug("PROPAGATE_bis", sa_packet);
 				(*burst)->add(this->removeHeader(sa_packet));
-				terminal->setLastPropagatedIds(qos, id_packet);
-				last_propagated_id = terminal->getLastPropagatedIds(qos);
+				terminal->setLastPropagatedId(qos, id_packet);
+				last_propagated_id = terminal->getLastPropagatedId(qos);
 				// erase goes to next packet
 				wait_propagation_packets->erase(wait_pkt_it);
 				continue;
 			}
+			// TODO sort packets and break here
 			wait_pkt_it++;
 		}
 	}
@@ -549,17 +546,18 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 {
 	// we remove collision per category as in the same category
 	// we do as if there was only one big carrier
+	uint16_t nbr;
 	unsigned int slots_per_carrier = floor(category->getSlotsNumber() /
 	                                       category->getCarriersNumber());
 	map<unsigned int, Slot *> slots = category->getSlots();
 	AlohaPacketComparator comparator(slots_per_carrier);
 	saloha_packets_t *accepted_packets = category->getAcceptedPackets();
 
-	this->method->removeCollisions(slots,
-	                               accepted_packets);
+	nbr = this->method->removeCollisions(slots,
+	                                     accepted_packets);
+	this->probe_collisions[category->getLabel()]->put(nbr);
 	// Because of CRDSA algorithm for example, need to sort packets
 	sort(accepted_packets->begin(), accepted_packets->end(), comparator);
-	// TODO stat collision
 }
 
 void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
@@ -627,127 +625,14 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
 			                                       (uint16_t*)NULL);
 			// no need to check here if id exists as we directly
 			// get info from the map itself to get IDs
-			slots[slot_id]->addPacket(sa_packet);
+			slots[slot_id]->push_back(sa_packet);
 		}
 	}
 }
-
-/*void SlottedAlohaNcc::debugFifo(const char* title)
-{
-	sa_vector_vector_data_t::iterator i1;
-	sa_vector_data_t::iterator i2;
-	sa_map_map_vector_data_t::iterator i3;
-	sa_map_vector_data_t::iterator i4;
-	sa_map_map_id_t::iterator i5;
-	sa_map_id_t::iterator i6;
-	SlottedAlohaPacketData* sa_packet;
-	int cpt;
-	
-	if (!SALOHA_DEBUG)
-		return;
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL , ---------------- %s ----------------------", title);
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | fifos_from_input.size() = %d",
-		(int)this->fifos_from_input.size());
-	cpt = 0;
-	for(i1 = this->fifos_from_input.begin();
-		i1 != this->fifos_from_input.end();
-		++i1)
-	{
-		if (i1->size())
-		{
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "WKL |     fifos_from_input[Slot = %d].size() = %d",
-				cpt, (int)i1->size());
-			for(i2 = i1->begin();
-				i2 != i1->end();
-				++i2)
-			{
-				LOG(this->log_saloha, LEVEL_ERROR,
-				    "WKL |         Pkt[#%d]", (int)*i2);
-			}
-		}
-		cpt++;
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | fifo_to_encap.size() = %d",
-		(int)this->fifo_to_encap.size());
-	for(i2 = this->fifo_to_encap.begin();
-		i2 != fifo_to_encap.end();
-		++i2)
-	{
-		sa_packet = dynamic_cast<SlottedAlohaPacketData*>(*i2);
-		if (sa_packet->getSrcTalId())
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "WKL |     Pkt[#%d]", (int)*i2);
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | last_propagated.size() = %d",
-		(int)last_propagated_ids.size());
-	for(i5 = last_propagated_ids.begin();
-		i5 != last_propagated_ids.end();
-		++i5)
-	{
-		if (i5->second.size())
-		{
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "WKL |     last_propagated[ST = %d].size() = %d",
-				i5->first, (int)i5->second.size());
-			for(i6 = i5->second.begin();
-				i6 != i5->second.end();
-				++i6)
-			{
-				if (i6->second.size())
-				{
-					LOG(this->log_saloha, LEVEL_ERROR,
-					    "WKL |         last_propagated[ST = %d][QoS = %d] = '%s'",
-						i5->first, i6->first, i6->second.c_str());
-				}
-			}
-		}
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | fifos_wait_propagation.size() = %d",
-		(int)wait_propagation_packets.size());
-	for(i3 = wait_propagation_packets.begin();
-		i3 != wait_propagation_packets.end();
-		++i3)
-	{
-		if (i3->second.size())
-		{
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "WKL |     fifos_wait_propagation[ST = %d].size() = %d",
-				i3->first, (int)i3->second.size());
-			for(i4 = i3->second.begin();
-				i4 != i3->second.end();
-				++i4)
-			{
-				if (i4->second.size())
-				{
-					LOG(this->log_saloha, LEVEL_ERROR,
-					    "WKL |         fifos_wait_propagation"
-						"[ST = %d][QoS = %d].size() = %d",
-						i3->first, i4->first, (int)i4->second.size());
-					for(i2 = i4->second.begin();
-						i2 != i4->second.end();
-						++i2)
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "WKL |             Pkt[#%d]", (int)*i2);
-					}
-				}
-			}
-		}
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL '--------------------------------------------------------");
-}
-*/
 
 bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 {
-	SalohaTerminalList::iterator it;
+	saloha_terminals_t::iterator it;
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{

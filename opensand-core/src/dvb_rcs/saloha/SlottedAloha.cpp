@@ -123,17 +123,6 @@ SlottedAloha::~SlottedAloha()
 
 }
 
-// TODO this is not the same ID representation in both following fct, do something else
-saloha_id_t SlottedAloha::buildPacketId(SlottedAlohaPacketData *packet)
-{
-	ostringstream os;
-	
-	// need int cast else there is some problems
-	os << (int)packet->getId() << ':' << (int)packet->getSeq() << ':'
-	   << (int)packet->getPduNb() << ':' << (int)packet->getQos();
-	return saloha_id_t(os.str());
-}
-
 void SlottedAloha::convertPacketId(saloha_id_t id, uint16_t ids[4])
 {
 	istringstream iss((char *)id.c_str());
@@ -153,60 +142,3 @@ bool SlottedAloha::isSuperFrameTick(time_sf_t superframe_counter)
 	return !(superframe_counter % this->sf_per_saframe);
 }
 
-/*const char *SlottedAloha::hexa(Data input)
-{
-	static const char* lut = "0123456789ABCDEF";
-	size_t length;
-	string output;
-	
-	length = input.length();
-	output.reserve(2 * length);
-	for(size_t cpt = 0; cpt < length; ++cpt)
-	{
-		const unsigned char c = input[cpt];
-		
-		output.push_back(lut[c >> 4]);
-		output.push_back(lut[c & 15]);
-	}
-	return output.c_str();
-}*/
-
-/*void SlottedAloha::debug(const char* title, SlottedAlohaPacketData* packet)
-{
-	sa_ostream_t os;
-	uint16_t* replicas;
-	int cpt;
-	
-	if (!SALOHA_DEBUG)
-		return;
-	replicas = packet->getReplicas();
-	for(cpt = 0; cpt < packet->getNbReplicas(); cpt++)
-	{
-		if (cpt)
-			os << ', ';
-		os << (int)replicas[cpt];
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL %s Pkt[#%d] = { id: '%s', TS: %d, timeout: %d, nb_ret.: %d, "
-		"nb_replicas: %d, replicas: [%s] }",
-		title,
-		(int)packet,
-		this->buildPacketId(packet).c_str(),
-		packet->getTs(),
-		packet->getTimeout(),
-		packet->getNbRetransmissions(),
-		packet->getNbReplicas(),
-		os.str().c_str());
-}
-void SlottedAloha::debug(const char* title, SlottedAlohaPacketCtrl* packet)
-{
-	if (!SALOHA_DEBUG)
-		return;
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL %s Pkt[#%d] = { type: %d, data: '%s' }",
-		title,
-		(int)packet,
-		packet->getCtrlType(),
-		packet->getCtrlData().c_str());
-}
-*/

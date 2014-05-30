@@ -118,14 +118,6 @@ class SlottedAloha
  protected:
 
 	/**
-	 * Build an <ID, Seq, PDU_nb, QoS> id of a Slotted Aloha data packet
-	 *
-	 * @param packet  Slotted Aloha data packet to build identifiant
-	 * @return The id of the Slotted Aloha data packet given in parameter
-	 */
-	saloha_id_t buildPacketId(SlottedAlohaPacketData *packet);
-
-	/**
 	 * Convert a Slotted Aloha data packet <ID, Seq, PDU_nb, QoS> id to
 	 * integers table
 	 *
@@ -148,14 +140,7 @@ class SlottedAloha
 	OutputLog *log_saloha;
 	/// The init logger
 	OutputLog *log_init;
-	//TODO probes !! and updateStats function
 
- public:
-//	const char *hexa(Data input);
-	// TODO REMOVE DEBUG
-/*	void debug(const char *title, SlottedAlohaPacketData *packet);
-	void debug(const char *title, SlottedAlohaPacketCtrl *packet);
-	virtual void debugFifo(const char *title) = 0;*/
 };
 
 #endif

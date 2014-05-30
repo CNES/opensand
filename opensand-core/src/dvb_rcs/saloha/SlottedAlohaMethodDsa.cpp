@@ -33,7 +33,6 @@
 */
 
 #include "SlottedAlohaMethodDsa.h"
-#include "SlottedAlohaTypes.h"
 
 
 SlottedAlohaMethodDsa::SlottedAlohaMethodDsa():
@@ -45,10 +44,13 @@ SlottedAlohaMethodDsa::~SlottedAlohaMethodDsa()
 {
 }
 
-void SlottedAlohaMethodDsa::removeCollisions(map<unsigned int, Slot *> &slots,
-                                             saloha_packets_t *accepted_packets)
+uint16_t SlottedAlohaMethodDsa::removeCollisions(map<unsigned int, Slot *> &slots,
+                                                 saloha_packets_t *accepted_packets)
 {
 	map<unsigned int, Slot *>::iterator slot_it;
+	vector<saloha_id_t> accepted_ids;
+	accepted_ids.push_back(Data(""));
+	uint16_t nbr_collisions = 0;
 
 	// cf: DSA algorithm
 	for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
@@ -56,48 +58,49 @@ void SlottedAlohaMethodDsa::removeCollisions(map<unsigned int, Slot *> &slots,
 	{
 		Slot *slot = (*slot_it).second;
 		saloha_packets_t::iterator pkt_it;
-		saloha_packets_t &packets = slot->getPackets();
-		if(!slot->getNbrPackets())
+		if(!slot->size())
 		{
 			continue;
 		}
-		packets = slot->getPackets();
 
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "Remove collisions on slot %u, containing %zu packets\n",
-		    slot->getId(), packets.size());
+		    slot->getId(), slot->size());
 
-		if((packets.size() == 1) &&
-		   (std::find(accepted_packets->begin(),
-		              accepted_packets->end(),
-		              packets.front()) == accepted_packets->end()))
+		if(slot->size() == 1)
 		{
-			accepted_packets->push_back(packets.front());
-			LOG(this->log_saloha, LEVEL_DEBUG,
-			    "No collision, keep packet from terminal %u\n",
-			    packets.front()->getSrcTalId());
+			SlottedAlohaPacketData *packet;
+			packet = dynamic_cast<SlottedAlohaPacketData *>(slot->front());
+			if(std::find(accepted_ids.begin(),
+			             accepted_ids.end(),
+			             packet->getUniqueId()) == accepted_ids.end())
+			{
+				accepted_packets->push_back(packet);
+				accepted_ids.push_back(packet->getUniqueId());
+				LOG(this->log_saloha, LEVEL_DEBUG,
+				    "No collision, keep packet from terminal %u\n",
+				    packet->getSrcTalId());
+			}
+			else
+			{
+				// packet was already received on another slot
+				delete packet;
+			}
 		}
 		else
 		{
-			// TODO NOTICE
-			LOG(this->log_saloha, LEVEL_WARNING,
+			LOG(this->log_saloha, LEVEL_NOTICE,
 			    "Collision on slot %u, remove packets\n", slot->getId());
-			for(pkt_it = packets.begin();
-			    pkt_it != packets.end();
+			nbr_collisions += slot->size();
+			for(pkt_it = slot->begin();
+			    pkt_it != slot->end();
 			    ++pkt_it)
 			{
-				// delete packets on the slot, except those that
-				// was accepted on another slot, to avoid releasing
-				// data that will be used later
-				if(std::find(accepted_packets->begin(),
-				             accepted_packets->end(),
-				             *pkt_it) == accepted_packets->end())
-				{
-				   delete *pkt_it;
-				}
+			   delete *pkt_it;
 			}
 		}
 		slot->clear();
 	}
+	return nbr_collisions;
 }
 

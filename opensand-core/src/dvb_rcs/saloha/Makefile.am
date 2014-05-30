@@ -22,8 +22,7 @@ libopensand_dvb_saloha_la_h = \
 	SlottedAlohaMethodCrdsa.h \
 	SlottedAloha.h \
 	SlottedAlohaTal.h \
-	SlottedAlohaNcc.h \
-	SlottedAlohaTypes.h
+	SlottedAlohaNcc.h
 
 libopensand_dvb_saloha_la_SOURCES = \
 	$(libopensand_dvb_saloha_la_cpp) \

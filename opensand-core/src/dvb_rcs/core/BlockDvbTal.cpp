@@ -883,7 +883,9 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		goto release_saloha;
 	}
 
-	if(!this->saloha->init(this->mac_id, this->frames_per_superframe))
+	if(!this->saloha->init(this->mac_id,
+	                       this->frames_per_superframe,
+	                       this->dvb_fifos))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the DAMA controller\n");
@@ -1489,8 +1491,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 		if(this->saloha)
 		{
 			// Slotted Aloha
-			if(!this->saloha->schedule(this->dvb_fifos,
-			                           this->complete_dvb_frames,
+			if(!this->saloha->schedule(this->complete_dvb_frames,
 			                           this->super_frame_counter))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,

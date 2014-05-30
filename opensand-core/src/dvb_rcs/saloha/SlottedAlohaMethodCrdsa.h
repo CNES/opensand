@@ -50,8 +50,8 @@ class SlottedAlohaMethodCrdsa: public SlottedAlohaMethod
 	~SlottedAlohaMethodCrdsa();
 
  private:
-	void removeCollisions(map<unsigned int, Slot *> &slots,
-	                      saloha_packets_t *accepted_packets);
+	uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
+	                          saloha_packets_t *accepted_packets);
 };
 
 #endif

@@ -33,7 +33,9 @@
 */
 
 #include "SlottedAlohaBackoff.h"
+
 #include <math.h>
+#include <stdlib.h>
 
 
 SlottedAlohaBackoff::SlottedAlohaBackoff(uint16_t max, uint16_t multiple)

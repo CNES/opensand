@@ -35,7 +35,7 @@
 #ifndef SALOHA_BACKOFF_H
 #define SALOHA_BACKOFF_H
 
-#include "SlottedAlohaTypes.h"
+#include <stdint.h>
 
 /**
  * @class SlottedAlohaBackoff
