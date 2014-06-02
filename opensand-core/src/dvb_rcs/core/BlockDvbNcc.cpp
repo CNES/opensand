@@ -1212,6 +1212,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// TODO FMT in slotted aloha should be handled on ST
 					//  => so remove return fmt simu !
 					//  => keep this todo in order to think of it on ST
+
 					// for each terminal in DamaCtrl update FMT
 					this->dama_ctrl->updateFmt();
 				}
@@ -1507,7 +1508,7 @@ void BlockDvbNcc::Downward::sendSOF(void)
 bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame)
 {
 	LogonResponse *logon_resp;
-	//TODO find why dynamic cast fail here !?
+	//TODO find why dynamic cast fail here and each time we do that on frames !?
 //	LogonRequest *logon_req = dynamic_cast<LogonRequest *>(dvb_frame);
 	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
 	uint16_t mac = logon_req->getMac();
@@ -1905,10 +1906,6 @@ bool BlockDvbNcc::Downward::sendAcmParameters(void)
 /*****************************************************************************/
 /*                               Upward                                      */
 /*****************************************************************************/
-
-// TODO try to get a correct design for Slotted Aloha
-//      this is a mix between dama and receptionStd and Scheduling,
-//      maybe split it in receptionStd and Scheduling ?
 
 BlockDvbNcc::Upward::Upward(Block *const bl):
 	DvbUpward(bl),

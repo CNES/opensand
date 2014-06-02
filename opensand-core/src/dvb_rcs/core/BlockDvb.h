@@ -191,6 +191,18 @@ class DvbChannel: public RtChannel
 	                     time_ms_t duration_ms,
 	                     TerminalCategories<T> &categories);
 
+	/**
+	 * Receive Push data in FIFO
+	 *
+	 * @param fifo          The FIFO to put data in
+	 * @param data          The data
+	 * @param fifo_delay    The minimum delay the data must stay in the
+	 *                      FIFO (used on SAT to emulate delay)
+	 * @return              true on success, false otherwise
+	 */
+	bool pushInFifo(DvbFifo *fifo,
+	                NetContainer *data,
+	                time_ms_t fifo_delay);
 
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;

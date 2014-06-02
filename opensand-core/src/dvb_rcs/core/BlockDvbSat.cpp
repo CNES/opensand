@@ -1466,47 +1466,9 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	return status;
 }
 
-// TODO duplicate onRcvEncapPacket if we store NetContainer in Fifos
 bool BlockDvbSat::Upward::forwardDvbFrame(DvbFifo *fifo, DvbFrame *dvb_frame)
 {
-	MacFifoElement *elem;
-	time_ms_t current_time;
-
-	current_time = this->getCurrentTime();
-
-	// Get a room with timestamp in fifo
-	elem = new MacFifoElement(dvb_frame, current_time,
-	                          current_time + this->sat_delay);
-	if(!elem)
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "failed to create a MAC FIFO element, drop the "
-		    "frame\n");
-		goto error;
-	}
-
-	// Fill the delayed queue
-	if(!fifo->push(elem))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "FIFO %s full, drop the DVB frame\n",
-		    fifo->getName().c_str());
-		goto release_elem;
-	}
-
-	LOG(this->log_send, LEVEL_INFO,
-	    "frame stored in FIFO for carrier ID %d "
-	    "(tick_in = %ld, tick_out = %ld)\n",
-	    fifo->getCarrierId(),
-	    elem->getTickIn(), elem->getTickOut());
-
-	return true;
-
-release_elem:
-	delete elem;
-error:
-	delete dvb_frame;
-	return false;
+    return this->pushInFifo(fifo, (NetContainer *)dvb_frame, this->sat_delay);
 }
 
 

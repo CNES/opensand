@@ -252,6 +252,46 @@ error:
 	return false;
 }
 
+bool DvbChannel::pushInFifo(DvbFifo *fifo,
+                            NetContainer *data,
+                            time_ms_t fifo_delay)
+{
+	MacFifoElement *elem;
+	time_ms_t current_time = this->getCurrentTime();
+
+    // TODO log receive is not really adapted (log_fifo ?)
+	// create a new FIFO element to store the packet
+	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
+	if(!elem)
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "cannot allocate FIFO element, drop data\n");
+		goto error;
+	}
+
+	// append the data in the fifo
+	if(!fifo->push(elem))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "FIFO is full: drop data\n");
+		goto release_elem;
+	}
+
+	LOG(this->log_receive, LEVEL_NOTICE,
+	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
+	    data->getName().c_str(), fifo->getName().c_str(),
+	    elem->getTickIn(), elem->getTickOut());
+
+	return true;
+
+release_elem:
+	delete elem;
+error:
+	delete data;
+	return false;
+}
+
+
 
 BlockDvb::DvbUpward::~DvbUpward()
 {
@@ -375,41 +415,7 @@ bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
                                              DvbFifo *fifo,
                                              time_ms_t fifo_delay)
 {
-
-	MacFifoElement *elem;
-	clock_t current_time = this->getCurrentTime();
-
-	// create a new satellite cell to store the packet
-	elem = new MacFifoElement(packet, current_time, current_time + fifo_delay);
-	if(elem == NULL)
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "cannot allocate FIFO element, drop packet\n");
-		goto error;
-	}
-
-	// append the new packet in the fifo
-	if(!fifo->push(elem))
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "FIFO is full: drop packet\n");
-		goto release_elem;
-	}
-
-	LOG(this->log_receive, LEVEL_INFO,
-	    "encapsulation packet %s stored in FIFO "
-	    "(tick_in = %ld, tick_out = %ld)\n",
-	    packet->getName().c_str(),
-	    elem->getTickIn(), elem->getTickOut());
-
-	return true;
-
-release_elem:
-	delete elem;
-error:
-	delete packet;
-	return false;
+    return this->pushInFifo(fifo, packet, fifo_delay);
 }
-
 
 
