@@ -221,6 +221,8 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		this->probe_drop.insert(
 		            pair<qos_t, Probe<int> *>((*it).first, probe_nb_drop));
 	}
+	this->probe_backoff = Output::registerProbe<int>(true, SAMPLE_MAX,
+	                                                 "Aloha.backoff");
 
 	return true;
 }
@@ -294,6 +296,12 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 			    "cannot create a Slotted Aloha control packet\n");
 			continue;
 		}
+		if(ctrl_pkt->getTerminalId() != this->tal_id)
+		{
+			// control packet for another terminal
+			delete ctrl_pkt;
+			continue;
+		}
 //		TODO useful ?
 /*		this->nb_packets_received_per_frame++;
 		this->nb_packets_received_total++;*/
@@ -320,12 +328,14 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 					data_id = data_pkt->getUniqueId();
 					if(id == data_id)
 					{
+						uint16_t cw;
 						LOG(this->log_saloha, LEVEL_DEBUG,
 						    "Packet with ID %s found in packets waiting for ack "
 						    "and removed\n", data_id.c_str());
 						delete data_pkt;
 						this->nb_success++;
-						this->backoff->setOk();
+						cw = this->backoff->setOk();
+						this->probe_backoff->put(cw);
 						// erase goes to next iterator
 						this->packets_wait_ack[ids[SALOHA_ID_QOS]].erase(packet);
 						continue;
@@ -370,8 +380,8 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 	this->backoff->tick();
 	nb_retransmissions = 0;
 	// Decrease timeout of waiting packets
-	// TODO this has been moved in the other loop, check that this is ok
-/*	for(wack_it = this->packets_wait_ack.begin();
+	// We do that here because we may skip depending on backoff
+	for(wack_it = this->packets_wait_ack.begin();
 	    wack_it != this->packets_wait_ack.end();
 	    ++wack_it)
 	{
@@ -382,7 +392,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 			sa_packet = (SlottedAlohaPacketData *)(*packet);
 			sa_packet->decTimeout();
 		}
-	}*/
+	}
 
 	if(!this->backoff->isOk())
 	{
@@ -406,7 +416,6 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 		while(packet != (*wack_it).second.end())
 		{
 			sa_packet = (SlottedAlohaPacketData *)(*packet);
-			sa_packet->decTimeout();
 			if(sa_packet->isTimeout())
 			{
 				if(sa_packet->canBeRetransmitted(this->nb_max_retransmissions))
@@ -423,12 +432,14 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 				}
 				else
 				{
+					uint16_t cw;
 					LOG(this->log_saloha, LEVEL_WARNING,
 					    "Packet %s lost\n",
 					    sa_packet->getUniqueId().c_str());
 					this->probe_drop[sa_packet->getQos()]->put(1);
 					delete sa_packet;
-					this->backoff->setNok();
+					cw = this->backoff->setNok();
+					this->probe_backoff->put(cw);
 				}
 				// erase goes to next iterator
 				wack_it->second.erase(packet);
@@ -545,7 +556,6 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 		    complete_dvb_frames.size());
 	}
 
-//	this->debugFifo("end");
 skip:
 	for(wack_it = this->packets_wait_ack.begin();
 	    wack_it != this->packets_wait_ack.end();
@@ -621,51 +631,6 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	// time slots is a ordonned set
 	return time_slots;
 }
-
-/*void SlottedAlohaTal::debugFifo(const char* title)
-{
-	sa_map_vector_data_t::iterator i1;
-	sa_vector_data_t::iterator i2;
-
-	if (!SALOHA_DEBUG)
-		return;
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL , ---------------- %s ----------------------", title);
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | packets_wait_ack.size() = %d",
-		(int)this->packets_wait_ack.size());
-	for(i1 = this->packets_wait_ack.begin();
-		i1 != this->packets_wait_ack.end();
-		++i1)
-	{
-		if (i1->second.size())
-		{
-			LOG(this->log_saloha, LEVEL_ERROR,
-			    "WKL |     packets_wait_ack[QoS = %d].size() = %d",
-				(int)i1->first, (int)i1->second.size());
-			for(i2 = i1->second.begin();
-				i2 != i1->second.end();
-				++i2)
-			{
-				LOG(this->log_saloha, LEVEL_ERROR,
-				    "WKL |         Pkt[#%d]", (int)*i2);
-			}
-		}
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL | retransmission_packets.size() = %d",
-		(int)this->retransmission_packets.size());
-	for(i2 = this->retransmission_packets.begin();
-		i2 != this->retransmission_packets.end();
-		++i2)
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "WKL |     Pkt[#%d]", (int)*i2);
-	}
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "WKL '--------------------------------------------------------");
-}*/
-
 
 // TODO rename
 bool SlottedAlohaTal::sendPacketData(list<DvbFrame *> &complete_dvb_frames,

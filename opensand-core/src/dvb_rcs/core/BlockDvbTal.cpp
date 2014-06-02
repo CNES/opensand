@@ -2135,55 +2135,6 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			break;
 
-		// Slotted Aloha
-/*		case MSG_TYPE_SALOHA_DATA:
-		{
-			if (SALOHA_DEBUG)
-			{
-				//Local variables
-				T_DVB_SALOHA* burst;
-				size_t offset,
-					header_size,
-					replicas_size;
-				SALOHA_DATA_HEADER* header;
-				NetPacket* encap_packet;
-				SlottedAlohaPacketData* sa_packet;
-				int cpt;
-	
-				//Block body
-				burst=(T_DVB_SALOHA*)ip_buf;
-				offset=sizeof(T_DVB_SALOHA);
-				header_size=sizeof(SALOHA_DATA_HEADER);
-				for(cpt=0;cpt < burst->dataLength;cpt++)
-				{
-					header=(SALOHA_DATA_HEADER*)(ip_buf+offset);
-					replicas_size=header->nb_replicas*sizeof(uint16_t);
-					encap_packet=this->up_return_pkt_hdl->build(
-						ip_buf+offset+header_size+replicas_size,
-						header->total_length-header_size-replicas_size,
-						0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID); //Default values
-					sa_packet=new SlottedAlohaPacketData(
-						*encap_packet,
-						(uint64_t)header->id,
-						(uint16_t)header->ts,
-						(uint16_t)header->seq,
-						(uint16_t)header->pdu_nb,
-						(uint16_t)header->timeout,
-						(uint16_t)header->nb_retransmissions,
-						(uint16_t)header->nb_replicas,
-						(uint16_t*)(ip_buf+offset+header_size)
-					);
-					delete encap_packet;
-					this->saloha.debug("< RCVD_ERR", sa_packet);
-					offset+=sa_packet->getTotalLength();
-					delete sa_packet;
-				}
-			}
-			else
-				LOG(this->log_saloha, LEVEL_DEBUG,
-				    "Slotted Aloha Data frame cannot be received by ST");
-			return true;
-		}*/
 		case MSG_TYPE_SALOHA_CTRL:
 			if(!this->shareFrame(dvb_frame))
 			{

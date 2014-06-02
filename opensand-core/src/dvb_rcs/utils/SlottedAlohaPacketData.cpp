@@ -36,11 +36,11 @@
 
 #include "SlottedAlohaPacketData.h"
 
-#include <math.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <sstream>
+#include <algorithm>
 
 
 // TODO qos is maybe not useful in header
@@ -245,7 +245,7 @@ void SlottedAlohaPacketData::decTimeout()
 	saloha_data_hdr_t *header;
 	
 	header = (saloha_data_hdr_t *)this->data.c_str();
-	header->timeout = htons(fmax((int)ntohs(header->timeout) - 1, 0));
+	header->timeout = htons(std::max((int)ntohs(header->timeout) - 1, 0));
 }
 
 bool SlottedAlohaPacketData::canBeRetransmitted(uint16_t nb_retransmissions) const

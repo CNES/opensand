@@ -33,8 +33,11 @@
 */
 
 #include "SlottedAlohaBackoffMimd.h"
-#include <math.h>
+
 #include <stdlib.h>
+#include <algorithm>
+
+using std::min;
 
 /**
  * @class SlottedAlohaBackoffMimd
@@ -51,15 +54,17 @@ SlottedAlohaBackoffMimd::~SlottedAlohaBackoffMimd()
 {
 }
 
-void SlottedAlohaBackoffMimd::setOk()
+uint16_t SlottedAlohaBackoffMimd::setOk()
 {
-	this->cw = fmin((int)this->cw / (int)this->multiple, this->cw_max);
+	this->cw = min((int)this->cw / (int)this->multiple, (int)this->cw_max);
 	this->setRandom();
+	return this->backoff;
 }
 
-void SlottedAlohaBackoffMimd::setNok()
+uint16_t SlottedAlohaBackoffMimd::setNok()
 {
-	this->cw = fmin((int)this->cw * (int)this->multiple, this->cw_max);
+	this->cw = min((int)this->cw * (int)this->multiple, (int)this->cw_max);
 	this->setRandom();
+	return this->backoff;
 }
 

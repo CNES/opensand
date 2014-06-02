@@ -314,6 +314,14 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		tal_id = sa_packet->getSrcTalId();
 		qos = sa_packet->getQos();
 
+		if(tal_id == GW_TAL_ID)
+		{
+			LOG(this->log_saloha, LEVEL_DEBUG,
+			    "drop Slotted Aloha simulation packet\n");
+			delete sa_packet;
+			continue;
+		}
+
 		st = this->terminals.find(tal_id);
 		if(st == this->terminals.end())
 		{
@@ -336,14 +344,6 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		// TODO ENUM for state !
 		last_propagated_id = terminal->getLastPropagatedId(qos);
 		state = this->canPropagate(last_propagated_id, id_packet, sa_packet);
-		if(!sa_packet->getSrcTalId())
-		{
-			LOG(this->log_saloha, LEVEL_DEBUG,
-			    "drop Slotted Aloha simulation packet\n");
-			delete sa_packet;
-			continue;
-		}
-
 		if(state == dup)
 		{
 			LOG(this->log_saloha, LEVEL_DEBUG,
@@ -354,10 +354,10 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		}
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "New Slotted Aloha packet with ID %s received from terminal %u\n", 
-		    id_packet.c_str(), sa_packet->getSrcTalId());
+		    id_packet.c_str(), tal_id);
 
 		// Send an ACK
-		ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK);
+		ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK, tal_id);
 		if(!ack)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
@@ -390,7 +390,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			delete sa_packet;
 			continue;
 		}
-		LOG(this->log_saloha, LEVEL_DEBUG,
+		LOG(this->log_saloha, LEVEL_INFO,
 		    "Ack packet %s on ST%u\n", id_packet.c_str(), tal_id);
 		delete ack;
 

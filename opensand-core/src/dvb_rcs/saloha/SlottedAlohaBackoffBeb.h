@@ -60,8 +60,8 @@ class SlottedAlohaBackoffBeb: public SlottedAlohaBackoff
 	~SlottedAlohaBackoffBeb();
 
  private:
-	void setOk();
-	void setNok();
+	uint16_t setOk();
+	uint16_t setNok();
 };
 
 #endif

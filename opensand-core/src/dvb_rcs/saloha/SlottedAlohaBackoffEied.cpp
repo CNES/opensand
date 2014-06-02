@@ -36,6 +36,9 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
+
+using std::min;
 
 SlottedAlohaBackoffEied::SlottedAlohaBackoffEied(uint16_t max, uint16_t multiple):
 	SlottedAlohaBackoff(max, multiple)
@@ -47,15 +50,17 @@ SlottedAlohaBackoffEied::~SlottedAlohaBackoffEied()
 {
 }
 
-void SlottedAlohaBackoffEied::setOk()
+uint16_t SlottedAlohaBackoffEied::setOk()
 {
-	this->cw = fmin((int)this->cw * (int)sqrt(this->multiple), this->cw_max);
+	this->cw = min((int)this->cw * (int)sqrt(this->multiple), (int)this->cw_max);
 	this->setRandom();
+	return this->backoff;
 }
 
-void SlottedAlohaBackoffEied::setNok()
+uint16_t SlottedAlohaBackoffEied::setNok()
 {
-	this->cw = fmin((int)this->cw * (int)this->multiple, this->cw_max);
+	this->cw = min((int)this->cw * (int)this->multiple, (int)this->cw_max);
 	this->setRandom();
+	return this->backoff;
 }
 

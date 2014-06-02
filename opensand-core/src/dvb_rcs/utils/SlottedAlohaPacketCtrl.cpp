@@ -40,7 +40,8 @@
 
 
 SlottedAlohaPacketCtrl::SlottedAlohaPacketCtrl(const Data &data,
-                                               uint8_t ctrl_type):
+                                               uint8_t ctrl_type,
+                                               tal_id_t tal_id):
 	SlottedAlohaPacket(data)
 {
 	saloha_ctrl_hdr_t header;
@@ -48,6 +49,7 @@ SlottedAlohaPacketCtrl::SlottedAlohaPacketCtrl(const Data &data,
 	this->header_length = sizeof(saloha_ctrl_hdr_t);
 
 	header.type = ctrl_type;
+	header.tal_id = htons(tal_id);
 	header.total_length = htons(this->header_length + this->data.length());
 	this->data.insert(0, (unsigned char*)&header, this->header_length);
 }
@@ -70,6 +72,14 @@ uint8_t SlottedAlohaPacketCtrl::getCtrlType() const
 	
 	header = (saloha_ctrl_hdr_t *)this->data.c_str();
 	return header->type;
+}
+
+uint16_t SlottedAlohaPacketCtrl::getTerminalId() const
+{
+	saloha_ctrl_hdr_t *header;
+	
+	header = (saloha_ctrl_hdr_t *)this->data.c_str();
+	return (ntohs)(header->tal_id);
 }
 
 saloha_id_t SlottedAlohaPacketCtrl::getId() const

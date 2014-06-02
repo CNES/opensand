@@ -2405,41 +2405,9 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			break;
 
-// TODO remove: only debug
 		case MSG_TYPE_SALOHA_CTRL:
 			delete dvb_frame;
 			break;
-
-/*			if(SALOHA_DEBUG)
-			{
-				//Local variables
-				T_DVB_SALOHA* burst;
-				size_t offset;
-				int cpt;
-				SALOHA_CTRL_HEADER* header;
-				SlottedAlohaPacketCtrl* sa_packet;
-
-				//Block body
-				burst=(T_DVB_SALOHA*)data;
-				offset=sizeof(T_DVB_SALOHA);
-				for(cpt=0;cpt < burst->dataLength;cpt++)
-				{
-					header=(SALOHA_CTRL_HEADER*)(data+offset);
-					sa_packet=new SlottedAlohaPacketCtrl(data+offset,
-						header->total_length);
-					this->saloha.debug("< RCVD_ERR",sa_packet);
-					offset+=header->total_length;
-					delete sa_packet;
-				}
-			}
-			else
-				LOG(this->log_saloha, LEVEL_DEBUG,
-				    "Slotted Aloha Signal Controls frame cannot be "
-				    "received by GW");
-			goto drop;
-		}*/
-
-
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,

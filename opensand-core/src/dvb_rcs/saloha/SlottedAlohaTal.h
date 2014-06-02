@@ -95,6 +95,7 @@ class SlottedAlohaTal: public SlottedAloha
 	probe_per_qos_t probe_retransmission;
 	probe_per_qos_t probe_wait_ack;
 	probe_per_qos_t probe_drop;
+	Probe<int> *probe_backoff;
 
  public:
 
@@ -171,11 +172,6 @@ class SlottedAlohaTal: public SlottedAloha
 	                    SlottedAlohaPacketData *packet,
 	                    saloha_ts_list_t::iterator &slot,
 	                    qos_t qos);
-
-
-	//Implementation of virtual debug functions
-	/// TODO REMOVE
-	void debugFifo(const char* title);
 };
 
 #endif

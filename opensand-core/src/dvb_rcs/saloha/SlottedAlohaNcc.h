@@ -168,9 +168,6 @@ class SlottedAlohaNcc: public SlottedAloha
 	bool scheduleCategory(TerminalCategorySaloha *category,
 	                      NetBurst **burst,
 	                      list<DvbFrame *> &complete_dvb_frames);
-	//Implementation of virtual debug functions
-	// TODO REMOVE
-//	void debugFifo(const char *title);
 };
 
 /**

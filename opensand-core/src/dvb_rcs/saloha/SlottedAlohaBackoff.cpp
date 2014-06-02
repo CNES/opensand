@@ -34,17 +34,17 @@
 
 #include "SlottedAlohaBackoff.h"
 
-#include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 
 
-SlottedAlohaBackoff::SlottedAlohaBackoff(uint16_t max, uint16_t multiple)
+SlottedAlohaBackoff::SlottedAlohaBackoff(uint16_t max, uint16_t multiple):
+	cw_min(1),
+	cw_max(max),
+	cw(0),
+	backoff(0),
+	multiple(multiple)
 {
-	this->cw_min = 1;
-	this->cw_max = max;
-	this->multiple = multiple;
-	this->cw = 0;
-	this->backoff = 0;
 }
 
 SlottedAlohaBackoff::~SlottedAlohaBackoff()
@@ -53,7 +53,7 @@ SlottedAlohaBackoff::~SlottedAlohaBackoff()
 
 void SlottedAlohaBackoff::tick()
 {
-	this->backoff = fmax((int)this->backoff - 1, 0);
+	this->backoff = std::max((int)this->backoff - 1, 0);
 }
 
 void SlottedAlohaBackoff::setRandom()

@@ -34,8 +34,8 @@
 
 #include "SlottedAlohaBackoffBeb.h"
 
-#include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 
 SlottedAlohaBackoffBeb::SlottedAlohaBackoffBeb(uint16_t max, uint16_t multiple):
 	SlottedAlohaBackoff(max, multiple)
@@ -47,15 +47,17 @@ SlottedAlohaBackoffBeb::~SlottedAlohaBackoffBeb()
 {
 }
 
-void SlottedAlohaBackoffBeb::setOk()
+uint16_t SlottedAlohaBackoffBeb::setOk()
 {
 	this->cw = this->cw_min;
 	this->setRandom();
+	return this->backoff;
 }
 
-void SlottedAlohaBackoffBeb::setNok()
+uint16_t SlottedAlohaBackoffBeb::setNok()
 {
-	this->cw = fmin((int)this->cw * (int)this->multiple, this->cw_max);
+	this->cw = std::min((int)this->cw * (int)this->multiple, (int)this->cw_max);
 	this->setRandom();
+	return this->backoff;
 }
 

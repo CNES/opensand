@@ -84,6 +84,7 @@ public:
 	 */
 	void tick();
 
+// TODO rename ok and nok...
 	/**
 	 * Return true if backoff is ready, false otherwise
 	 *
@@ -94,13 +95,17 @@ public:
 
 	/**
 	 * Refresh the backoff after a successful transmission
+	 *
+	 * @return the backoff value
 	 */
-	virtual void setOk() = 0;
+	virtual uint16_t setOk() = 0;
 
 	/**
 	 * Refresh the backoff after a collision
+	 *
+	 * @return the backoff value
 	 */
-	virtual void setNok() = 0;
+	virtual uint16_t setNok() = 0;
 };
 
 #endif
