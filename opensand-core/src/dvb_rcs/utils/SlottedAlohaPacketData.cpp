@@ -86,13 +86,13 @@ SlottedAlohaPacketData::~SlottedAlohaPacketData()
 {
 }
 
-void SlottedAlohaPacketData::removeHeader()
+/*void SlottedAlohaPacketData::removeHeader()
 {
 	size_t replicas_size;
 	
 	replicas_size = this->getReplicasLength();
 	this->data.erase(0, this->header_length + replicas_size);
-}
+}*/
 
 uint64_t SlottedAlohaPacketData::getId() const
 {

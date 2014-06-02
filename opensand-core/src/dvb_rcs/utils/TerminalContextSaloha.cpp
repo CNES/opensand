@@ -49,6 +49,11 @@ TerminalContextSaloha::~TerminalContextSaloha()
 	for(map<qos_t, saloha_packets_t *>::iterator it = this->wait_propagation.begin();
 	    it != this->wait_propagation.end(); ++it)
 	{
+		for(saloha_packets_t::iterator iter = (*it).second->begin();
+		    iter != (*it).second->end(); ++iter)
+		{
+			delete *iter;
+		}
 		delete (*it).second;
 	}
 	this->wait_propagation.clear();

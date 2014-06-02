@@ -50,7 +50,12 @@ TerminalCategorySaloha::TerminalCategorySaloha(string label):
 
 TerminalCategorySaloha::~TerminalCategorySaloha()
 {
-	delete accepted_packets;
+	for(saloha_packets_t::iterator it = this->accepted_packets->begin();
+	    it != this->accepted_packets->end(); ++it)
+	{
+		delete *it;
+	}
+	delete this->accepted_packets;
 }
 
 void TerminalCategorySaloha::setSlotsNumber(time_ms_t frame_duration_ms,

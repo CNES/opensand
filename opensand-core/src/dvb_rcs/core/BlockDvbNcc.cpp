@@ -2323,12 +2323,25 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
 			if(this->saloha)
 			{
+				uint16_t sfn;
+				// TODO Sof *sof = dynamic_cast<Sof *>(dvb_frame);
+				Sof *sof = (Sof *)dvb_frame;
+
+				sfn = sof->getSuperFrameNumber();
+
 				if(this->frame_counter == this->frames_per_superframe)
 				{
 					list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
 					// increase the superframe number and reset
 					// counter of frames per superframe
 					this->super_frame_counter++;
+					if(this->super_frame_counter != sfn)
+					{
+						LOG(this->log_receive, LEVEL_WARNING,
+						    "superframe counter (%u) is not the same as in SoF (%u)\n",
+						    this->super_frame_counter, sfn);
+						this->super_frame_counter = sfn;
+					}
 					this->frame_counter = 0;
 
 					//Slotted Aloha
@@ -2339,6 +2352,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
 						    "failed to schedule Slotted Aloha\n");
+						delete ack_frames;
 						return false;
 					}
 					if(sa_burst &&
@@ -2346,6 +2360,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
 						    "Failed to send encapsulation packets to upper layer\n");
+						delete ack_frames;
 						return false;
 					}
 					if(ack_frames->size() &&
@@ -2355,7 +2370,14 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
 						    "Failed to send Slotted Aloha acks to opposite layer\n");
+						delete ack_frames;
 						return false;
+					}
+					// delete ack_frames if they are emtpy, else shareMessage
+					// would set ack_frames == NULL
+					if(ack_frames)
+					{
+						delete ack_frames;
 					}
 				}
 			}
@@ -2365,8 +2387,8 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "ignore SOF frame (type = %d)\n",
 				    dvb_frame->getMessageType());
-				delete dvb_frame;
 			}
+			delete dvb_frame;
 		}
 		break;
 

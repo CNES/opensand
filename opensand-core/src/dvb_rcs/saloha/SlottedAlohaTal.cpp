@@ -332,6 +332,7 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 					}
 					packet++;
 				}
+				delete ctrl_pkt;
 				break;
 			}
 			//TODO Possibility to add new control signals

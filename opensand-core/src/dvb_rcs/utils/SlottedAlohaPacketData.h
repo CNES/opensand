@@ -98,7 +98,7 @@ public:
 	/**
 	 * Remove Slotted Aloha header
 	 */
-	void removeHeader();
+// TODO REMOVE	void removeHeader();
 
 	/**
 	 * Get identifiant of initial packet

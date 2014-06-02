@@ -172,7 +172,7 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		sa_packet = new SlottedAlohaPacketData(payload,
 		                                       current_length);
 		previous_length += current_length;
-		if (!sa_packet)
+		if(!sa_packet)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "cannot create a Slotted Aloha data packet\n");
@@ -260,6 +260,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		    "No packet to schedule in category %s\n",
 		    category->getLabel().c_str());
 		return true;
+		// TODO check wait propagation packets here ?
 	}
 
 	*burst = new NetBurst();
@@ -376,6 +377,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "failed to create a Slotted Aloha signal control frame");
+				delete sa_packet;
 				return false;
 			}
 		}
@@ -429,6 +431,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 				    "Wrong packet data waiting for propagation\n");
 				// erase goes to next packet
 				wait_propagation_packets->erase(wait_pkt_it);
+				delete sa_packet;
 				continue;
 			}
 
@@ -484,7 +487,7 @@ SlottedAlohaNcc::canPropagate(saloha_id_t last_propagated_id,
 	id = sa_packet->getId();
 	seq = sa_packet->getSeq();
 	this->convertPacketId(last_propagated_id, id_last);
-	if(last_propagated_id.empty() && (!id) && (!seq))
+	if(last_propagated_id.empty())
 	{
 		goto success;
 	}
@@ -516,16 +519,15 @@ success:
 	return prop;
 }
 
+// TODO rename
 NetPacket* SlottedAlohaNcc::removeHeader(SlottedAlohaPacketData *sa_packet)
 {
 	NetPacket* encap_packet;
 	size_t length = sa_packet->getPayloadLength();
-/*	qos_t qos = sa_packet->getQos();
-	tal_id_t src_tal_id*/
 	
-	sa_packet->removeHeader();
+//	sa_packet->removeHeader();
 	// TODO why not use EncapPktHdl to create the correct pkt type
-	encap_packet = this->pkt_hdl->build(sa_packet->getData(),
+	encap_packet = this->pkt_hdl->build(sa_packet->getPayload(),
 	                                    length,
 	                                    0, 0, 0);
 

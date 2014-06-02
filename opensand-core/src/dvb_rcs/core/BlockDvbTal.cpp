@@ -1361,12 +1361,13 @@ error:
 bool BlockDvbTal::Downward::sendSAC(void)
 {
 	bool empty;
-	Sac *sac = new Sac(this->tal_id, this->group_id);
+	Sac *sac;
 
 	if(!this->dama_agent)
 	{
 		return true;
 	}
+	sac = new Sac(this->tal_id, this->group_id);
 	// Set CR body
 	// NB: cr_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
