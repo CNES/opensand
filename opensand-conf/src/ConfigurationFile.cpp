@@ -437,6 +437,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 			const xmlpp::TextNode* nodeText;
 			const xmlpp::CommentNode* nodeComment;
 			string key_name = (*key_iter)->get_name();
+			string log_name = key_name;
 			nodeText = dynamic_cast<const xmlpp::TextNode*>(*key_iter);
 			nodeComment = dynamic_cast<const xmlpp::CommentNode*>(*key_iter);
 			int val;
@@ -453,7 +454,9 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 			{
 				return false;
 			}
-			levels[key_name] = (log_level_t)val;
+			std::transform(key_name.begin(), key_name.end(),
+			               log_name.begin(), ::tolower);
+			levels[log_name] = (log_level_t)val;
 		}
 	}
 
@@ -470,6 +473,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
     for(iter = level_list.begin(); iter != level_list.end(); ++iter)
     {
         string log;
+        string log_name;
         int level;
 
         // Get the Log Name
@@ -487,7 +491,11 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
                 "problem retrieving entry in levels\n");
             continue;
         }
-        specific[log] = (log_level_t)level;
+        log_name = log;
+
+		std::transform(log.begin(), log.end(),
+		               log_name.begin(), ::tolower);
+        specific[log_name] = (log_level_t)level;
 	}
 
 	return true;
