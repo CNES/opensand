@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,20 +27,21 @@
  */
 
 /**
- * @file SlottedAlohaMethod.cpp
- * @brief The Slotted Aloha methods
+ * @file SlottedAlohaAlgo.cpp
+ * @brief The Slotted Aloha algos
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
-#include "SlottedAlohaMethod.h"
+#include "SlottedAlohaAlgo.h"
 
 
-SlottedAlohaMethod::SlottedAlohaMethod()
+SlottedAlohaAlgo::SlottedAlohaAlgo()
 {
-	this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+	this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAlohaAlgo");
 }
 
-SlottedAlohaMethod::~SlottedAlohaMethod()
+SlottedAlohaAlgo::~SlottedAlohaAlgo()
 {
 }
 

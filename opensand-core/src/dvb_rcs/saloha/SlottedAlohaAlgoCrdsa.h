@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,26 +28,27 @@
 
 /**
  * @file SlottedAlohaCrdsa.h
- * @brief The CRDSA method
+ * @brief The CRDSA algo
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
-#ifndef SALOHA_METHOD_CRDSA_H
-#define SALOHA_METHOD_CRDSA_H
+#ifndef SALOHA_ALGO_CRDSA_H
+#define SALOHA_ALGO_CRDSA_H
 
-#include "SlottedAlohaMethod.h"
+#include "SlottedAlohaAlgo.h"
 
 /**
  * @class SlottedAlohaCrdsa
- * @brief The CRDSA method
+ * @brief The CRDSA algo
 */
-class SlottedAlohaMethodCrdsa: public SlottedAlohaMethod
+class SlottedAlohaAlgoCrdsa: public SlottedAlohaAlgo
 {
  public:
 
-	SlottedAlohaMethodCrdsa();
+	SlottedAlohaAlgoCrdsa();
 
-	~SlottedAlohaMethodCrdsa();
+	~SlottedAlohaAlgoCrdsa();
 
  private:
 	uint16_t removeCollisions(map<unsigned int, Slot *> &slots,

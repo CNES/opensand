@@ -47,7 +47,7 @@ using std::pair;
 DamaCtrl::DamaCtrl():
 	is_parent_init(false),
 	converter(NULL),
-	terminals(), // TODO not very useful, they are stocked in categories
+	terminals(), // TODO not very useful, they are stored in categories
 	with_phy_layer(false),
 	current_superframe_sf(0),
 	frame_duration_ms(0),

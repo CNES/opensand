@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaBackoff.cpp
  * @brief The backoff algorithms generic class
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #include "SlottedAlohaBackoff.h"
@@ -56,12 +57,12 @@ void SlottedAlohaBackoff::tick()
 	this->backoff = std::max((int)this->backoff - 1, 0);
 }
 
-void SlottedAlohaBackoff::setRandom()
+void SlottedAlohaBackoff::randomize()
 {
 	this->backoff = (rand() / (double)RAND_MAX) * this->cw;
 }
 
-bool SlottedAlohaBackoff::isOk() const
+bool SlottedAlohaBackoff::isReady() const
 {
 	return (this->backoff <= 0);
 }

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaBackoffBeb.cpp
  * @brief The BEB backoff algorithm
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #include "SlottedAlohaBackoffBeb.h"
@@ -40,24 +41,24 @@
 SlottedAlohaBackoffBeb::SlottedAlohaBackoffBeb(uint16_t max, uint16_t multiple):
 	SlottedAlohaBackoff(max, multiple)
 {
-	this->setOk();
+	this->setReady();
 }
 
 SlottedAlohaBackoffBeb::~SlottedAlohaBackoffBeb()
 {
 }
 
-uint16_t SlottedAlohaBackoffBeb::setOk()
+uint16_t SlottedAlohaBackoffBeb::setReady()
 {
 	this->cw = this->cw_min;
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 
-uint16_t SlottedAlohaBackoffBeb::setNok()
+uint16_t SlottedAlohaBackoffBeb::setCollision()
 {
 	this->cw = std::min((int)this->cw * (int)this->multiple, (int)this->cw_max);
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 

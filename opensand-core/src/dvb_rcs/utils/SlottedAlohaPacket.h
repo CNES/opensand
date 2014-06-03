@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 /**
  * @file SlottedAlohaPacket.h
  * @brief The Slotted Aloha packets
+ * @author Julien Bernard / Viveris technologies
  * @author Julien Bernard / Viveris technologies
  */
 

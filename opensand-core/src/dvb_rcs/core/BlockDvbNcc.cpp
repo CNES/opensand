@@ -2089,17 +2089,16 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 	// category a frame is affected we need to get source terminal ID
 	if(!this->saloha->initParent(this->frame_duration_ms,
 	                             // pkt_hdl is the up_ret one because transparent sat
-	                             this->pkt_hdl,
-	                             sa_categories,
-	                             sa_terminal_affectation,
-	                             sa_default_category))
+	                             this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Dama Controller Initialization failed.\n");
 		goto release_saloha;
 	}
 
-	if(!this->saloha->init())
+	if(!this->saloha->init(sa_categories,
+	                       sa_terminal_affectation,
+	                       sa_default_category))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the DAMA controller\n");

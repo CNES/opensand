@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -48,8 +48,6 @@ typedef struct
 	uint16_t ts;                    ///< Timeslot
 	uint16_t seq;                   ///< Sequence of the packet in the PDU
 	uint16_t pdu_nb;                ///< Number of packets in the PDU
-	uint16_t timeout;               ///< TODO do we need that in header
-	uint16_t nb_retransmissions;    ///< The number of retransmissions of this packet
 	uint16_t nb_replicas;           ///< The number of replicas of this packet
 	                                ///  per Slotted Aloha frame
 	qos_t qos; // Duplicate header to transmit information TODO check if necessary
@@ -64,7 +62,16 @@ typedef struct
  */
 class SlottedAlohaPacketData: public SlottedAlohaPacket
 {
-public:
+
+ private:
+
+	/// The packet timeout (in Slotted Aloha frames number)
+	time_sf_t timeout_saf;
+
+	/// The number of retransmissions of this packet
+	uint16_t nb_retransmissions;
+ public:
+
 	/**
 	 * Build a slotted Aloha data packet
 	 *
@@ -73,20 +80,16 @@ public:
 	 * @param ts                  time slot to send packet
 	 * @param seq                 offset about initial packet
 	 * @param pdu_nb              number of packets
-	 * @param timeout             timeout before deleting
-	 * @param nb_retransmissions  number of retransmissions
 	 * @param nb_replicas         number of replicas
-	 * @param replicas            array containing time slots of replicas
+	 * @param timeout             timeout before deleting
 	 */
 	SlottedAlohaPacketData(const Data &data,
 	                       uint64_t id,
 	                       uint16_t ts,
 	                       uint16_t seq,
 	                       uint16_t pdu_nb,
-	                       uint16_t timeout,
-	                       uint16_t nb_retransmissions,
 	                       uint16_t nb_replicas,
-	                       uint16_t *replicas);
+	                       time_sf_t timeout);
 
 	SlottedAlohaPacketData(const Data &data, size_t length);
 
@@ -94,11 +97,6 @@ public:
 	 * Class destructor
 	 */
 	~SlottedAlohaPacketData();
-
-	/**
-	 * Remove Slotted Aloha header
-	 */
-// TODO REMOVE	void removeHeader();
 
 	/**
 	 * Get identifiant of initial packet
@@ -190,8 +188,10 @@ public:
 
 	/**
 	 * Set the timeout
+	 *
+	 * @param timeout_saf  The timeout value
 	 */
-	void setTimeout(uint16_t timeout);
+	void setTimeout(time_sf_t timeout_saf);
 
 	/**
 	 * Decrease the timeout
@@ -199,11 +199,13 @@ public:
 	void decTimeout();
 
 	/**
-	 * Return true if packet can be retranssmitted, false otherwise
+	 * Check if a packet can be retransmitted
+	 *
+	 * @param max_retransmissions  The maximum number of allowed retransmissions
 	 *
 	 * @return true if packet can be retranssmitted, false otherwise
 	 */
-	bool canBeRetransmitted(uint16_t nb_retransmissions) const;
+	bool canBeRetransmitted(uint16_t max_retransmissions) const;
 
 	/**
 	 * Increase the number of retransmissions
@@ -226,6 +228,9 @@ public:
 	 */
 	static size_t getPacketLength(const Data &data);
 };
+
+/// A list of Slotted Aloha Data Packets
+typedef vector<SlottedAlohaPacketData *> saloha_packets_data_t;
 
 #endif
 

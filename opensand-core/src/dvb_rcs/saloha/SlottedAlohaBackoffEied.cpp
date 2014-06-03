@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaBackoffEied.cpp
  * @brief The EIED backoff algorithm
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #include "SlottedAlohaBackoffEied.h"
@@ -43,24 +44,24 @@ using std::min;
 SlottedAlohaBackoffEied::SlottedAlohaBackoffEied(uint16_t max, uint16_t multiple):
 	SlottedAlohaBackoff(max, multiple)
 {
-	this->setOk();
+	this->setReady();
 }
 
 SlottedAlohaBackoffEied::~SlottedAlohaBackoffEied()
 {
 }
 
-uint16_t SlottedAlohaBackoffEied::setOk()
+uint16_t SlottedAlohaBackoffEied::setReady()
 {
 	this->cw = min((int)this->cw * (int)sqrt(this->multiple), (int)this->cw_max);
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 
-uint16_t SlottedAlohaBackoffEied::setNok()
+uint16_t SlottedAlohaBackoffEied::setCollision()
 {
 	this->cw = min((int)this->cw * (int)this->multiple, (int)this->cw_max);
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 

@@ -80,7 +80,7 @@
 </xsd:simpleType>
 
 <!-- types for slotted_aloha section -->
-<xsd:simpleType name="sa_method">
+<xsd:simpleType name="sa_algo">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DSA" /> <!-- Diversity Slotted Aloha -->
         <xsd:enumeration value="CRDSA" /> <!-- Contention Resolution Diversity Slotted Aloha -->
@@ -236,10 +236,10 @@
 <xsd:element name="slotted_aloha">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element name="method" type="sa_method">
+			<xsd:element name="algorithm" type="sa_algo">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The method used to schedule packets
+                        The algorithm used to handle collisions on slots
                     </xsd:documentation>
                 </xsd:annotation>
 			</xsd:element>

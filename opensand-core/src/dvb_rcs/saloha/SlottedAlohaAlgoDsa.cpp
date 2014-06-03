@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,23 +28,24 @@
 
 /**
  * @file SlottedAlohaDsa.cpp
- * @brief The DSA method
+ * @brief The DSA algo
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
-#include "SlottedAlohaMethodDsa.h"
+#include "SlottedAlohaAlgoDsa.h"
 
 
-SlottedAlohaMethodDsa::SlottedAlohaMethodDsa():
-	SlottedAlohaMethod()
+SlottedAlohaAlgoDsa::SlottedAlohaAlgoDsa():
+	SlottedAlohaAlgo()
 {
 }
 
-SlottedAlohaMethodDsa::~SlottedAlohaMethodDsa()
+SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 {
 }
 
-uint16_t SlottedAlohaMethodDsa::removeCollisions(map<unsigned int, Slot *> &slots,
+uint16_t SlottedAlohaAlgoDsa::removeCollisions(map<unsigned int, Slot *> &slots,
                                                  saloha_packets_t *accepted_packets)
 {
 	map<unsigned int, Slot *>::iterator slot_it;

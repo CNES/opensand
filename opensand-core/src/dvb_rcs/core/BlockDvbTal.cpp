@@ -581,7 +581,6 @@ bool BlockDvbTal::Downward::initDama(void)
 				   (*it).second->getCrType() == cr_vbdc ||
 				   (*it).second->getCrType() == cr_none)
 				{
-					// TODO check if we can still iterate
 					delete (*it).second;
 					this->dvb_fifos.erase(it);
 				}
@@ -822,7 +821,6 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 			{
 				if((*it).second->getCrType() == cr_saloha)
 				{
-					// TODO check if we can still iterate
 					delete (*it).second;
 					this->dvb_fifos.erase(it);
 				}
@@ -847,8 +845,6 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 			delete (*cat_it).second;
 		}
 	}
-	sa_categories.clear();
-	sa_categories[tal_category->getLabel()] = tal_category;
 
 	// cannot use Slotted Aloha with regenerative satellite
 	if(this->satellite_type == REGENERATIVE)
@@ -873,10 +869,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
 	if(!this->saloha->initParent(this->frame_duration_ms,
-	                             this->pkt_hdl,
-	                             sa_categories,
-	                             terminal_affectation,
-	                             default_category))
+	                             this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Dama Controller Initialization failed.\n");
@@ -884,7 +877,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	if(!this->saloha->init(this->mac_id,
-	                       this->frames_per_superframe,
+	                       tal_category,
 	                       this->dvb_fifos))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -1026,7 +1019,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			std::string message;
 			std::ostringstream oss;
 			int ret;
-			// TODO move saloha handling in a specific function
+			// TODO move saloha handling in a specific function ?
 			// Slotted Aloha variables
 			unsigned int sa_burst_size = 0; // burst size
 			unsigned int sa_offset = 0; // packet position (offset) in the burst
@@ -1055,10 +1048,9 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				if(this->saloha &&
 				   this->dvb_fifos[fifo_priority]->getCrType() == cr_saloha)
 				{
-					// TODO rename function
-					sa_packet = this->saloha->onRcvEncapPacket(*pkt_it,
-					                                           sa_offset++,
-					                                           sa_burst_size);
+					sa_packet = this->saloha->addSalohaHeader(*pkt_it,
+					                                          sa_offset++,
+					                                          sa_burst_size);
 					if(!sa_packet)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
@@ -1102,13 +1094,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					delete burst;
 					return false;
 				}
-
-				// Slotted Aloha
-				// TODO not really useful
-/*				if (this->dvb_fifos[fifo_id]->getCrType() == cr_saloha)
-				{
-					this->saloha->registerFifo(fifo_id);
-				}*/
 
 				this->l2_to_sat_cells_before_sched[
 					this->dvb_fifos[fifo_priority]->getPriority()]++;
@@ -1632,7 +1617,6 @@ void BlockDvbTal::Downward::updateStats(void)
 	{
 		this->dama_agent->updateStatistics(this->stats_period_ms);
 	}
-	//TODO update saloha stats
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
@@ -2005,7 +1989,6 @@ bool BlockDvbTal::Upward::initOutput(void)
 	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	// TODO SAMPLE_SUM ?
 	this->probe_st_rejected_modcod = Output::registerProbe<int>("ACM.Rejected_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);

@@ -200,17 +200,17 @@
 //    slotted aloha    //
 /////////////////////////
 
-#define SALOHA_SECTION					"slotted_aloha"
-#define SALOHA_FPF						"frames_per_superframe"
-#define SALOHA_NB_MAX_PACKETS			"nb_max_packets"
-#define SALOHA_TIMEOUT					"timeout"
-#define SALOHA_NB_MAX_RETRANSMISSIONS	"nb_max_retransmissions"
-#define SALOHA_BACKOFF_ALGORITHM		"backoff_algorithm"
-#define SALOHA_CW_MAX					"cw_max"
-#define SALOHA_BACKOFF_MULTIPLE			"backoff_multiple"
-#define SALOHA_NB_REPLICAS				"nb_replicas"
-#define SALOHA_METHOD					"method"
-#define SALOHA_SIMU_TRAFFIC				"simulation_traffic"
+#define SALOHA_SECTION                 "slotted_aloha"
+#define SALOHA_FPSAF                   "superframes_per_saframe"
+#define SALOHA_NB_MAX_PACKETS          "nb_max_packets"
+#define SALOHA_TIMEOUT                 "timeout"
+#define SALOHA_NB_MAX_RETRANSMISSIONS  "nb_max_retransmissions"
+#define SALOHA_BACKOFF_ALGORITHM       "backoff_algorithm"
+#define SALOHA_CW_MAX                  "cw_max"
+#define SALOHA_BACKOFF_MULTIPLE        "backoff_multiple"
+#define SALOHA_NB_REPLICAS             "nb_replicas"
+#define SALOHA_ALGO                    "algorithm"
+#define SALOHA_SIMU_TRAFFIC            "simulation_traffic"
 
 //////////
 // QOS //

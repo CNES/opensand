@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -49,27 +49,25 @@ SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data,
                                                uint16_t ts,
                                                uint16_t seq,
                                                uint16_t pdu_nb,
-                                               uint16_t timeout,
-                                               uint16_t nb_retransmissions,
                                                uint16_t nb_replicas,
-                                               uint16_t *replicas):
+                                               time_sf_t timeout_saf):
 	SlottedAlohaPacket(data)
 {
 	saloha_data_hdr_t tmp_head;
 	saloha_data_hdr_t *header;
 	this->name = "Slotted Aloha data";
 	this->header_length = sizeof(saloha_data_hdr_t);
+	this->timeout_saf = timeout_saf;
+	this->nb_retransmissions = 0;
 	
 	tmp_head.id = htobe64(id);
 	tmp_head.ts = htons(ts);
 	tmp_head.seq = htons(seq);
 	tmp_head.pdu_nb = htons(pdu_nb);
-	tmp_head.timeout = htons(timeout);
-	tmp_head.nb_retransmissions = htons(nb_retransmissions);
 	tmp_head.nb_replicas = 0;
 	this->data.insert(0, (unsigned char *)&tmp_head, this->header_length);
 
-	this->setReplicas(replicas, nb_replicas);
+	this->setReplicas(NULL, nb_replicas);
 	this->header_length = sizeof(saloha_data_hdr_t) + nb_replicas * sizeof(uint16_t);
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	header->total_length = htons(this->data.length());
@@ -85,14 +83,6 @@ SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data, size_t length):
 SlottedAlohaPacketData::~SlottedAlohaPacketData()
 {
 }
-
-/*void SlottedAlohaPacketData::removeHeader()
-{
-	size_t replicas_size;
-	
-	replicas_size = this->getReplicasLength();
-	this->data.erase(0, this->header_length + replicas_size);
-}*/
 
 uint64_t SlottedAlohaPacketData::getId() const
 {
@@ -128,18 +118,12 @@ uint16_t SlottedAlohaPacketData::getPduNb() const
 
 uint16_t SlottedAlohaPacketData::getTimeout() const
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	return ntohs(header->timeout);
+	return this->timeout_saf;
 }
 
 uint16_t SlottedAlohaPacketData::getNbRetransmissions() const
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	return ntohs(header->nb_retransmissions);
+	return this->nb_retransmissions;
 }
 
 uint16_t SlottedAlohaPacketData::getNbReplicas() const
@@ -226,44 +210,27 @@ void SlottedAlohaPacketData::setReplicas(uint16_t *replicas, size_t nb_replicas)
 }
 bool SlottedAlohaPacketData::isTimeout() const
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	return (ntohs(header->timeout) <= 0);
+	return this->timeout_saf <= 0;
 }
 
-void SlottedAlohaPacketData::setTimeout(uint16_t timeout)
+void SlottedAlohaPacketData::setTimeout(time_sf_t timeout_saf)
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	header->timeout = htons(timeout);
+	this->timeout_saf = timeout_saf;
 }
 
 void SlottedAlohaPacketData::decTimeout()
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	header->timeout = htons(std::max((int)ntohs(header->timeout) - 1, 0));
+	this->timeout_saf = std::max((int)this->timeout_saf - 1, 0);
 }
 
-bool SlottedAlohaPacketData::canBeRetransmitted(uint16_t nb_retransmissions) const
+bool SlottedAlohaPacketData::canBeRetransmitted(uint16_t max_retransmissions) const
 {
-	saloha_data_hdr_t *header;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	return (ntohs(header->nb_retransmissions) < nb_retransmissions);
+	return this->nb_retransmissions < max_retransmissions;
 }
 
 void SlottedAlohaPacketData::incNbRetransmissions()
 {
-	saloha_data_hdr_t *header;
-	uint16_t retrans;
-	
-	header = (saloha_data_hdr_t *)this->data.c_str();
-	retrans = ntohs(header->nb_retransmissions) + 1;
-	header->nb_retransmissions = htons(retrans);
+	this->nb_retransmissions++;
 }
 
 size_t SlottedAlohaPacketData::getTotalLength() const

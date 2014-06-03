@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaBackoff.h
  * @brief The backoff algorithms generic class
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #ifndef SALOHA_BACKOFF_H
@@ -60,6 +61,11 @@ protected:
 	/// Multiple used to refresh the backoff
 	uint16_t multiple;
 
+	/**
+	 * Set a random value of the backoff
+	 */
+	void randomize();
+
 public:
 	/**
 	 * Build generic backhoff class
@@ -75,37 +81,30 @@ public:
 	~SlottedAlohaBackoff();
 
 	/**
-	 * Set a random value of the backoff
-	 */
-	void setRandom();
-
-	/**
 	 * Decrease the backoff
 	 */
 	void tick();
 
-// TODO rename ok and nok...
 	/**
 	 * Return true if backoff is ready, false otherwise
 	 *
 	 * @return true if backoff is ready, false otherwise
 	 */
-	bool isOk() const;
-
+	bool isReady() const;
 
 	/**
 	 * Refresh the backoff after a successful transmission
 	 *
 	 * @return the backoff value
 	 */
-	virtual uint16_t setOk() = 0;
+	virtual uint16_t setReady() = 0;
 
 	/**
 	 * Refresh the backoff after a collision
 	 *
 	 * @return the backoff value
 	 */
-	virtual uint16_t setNok() = 0;
+	virtual uint16_t setCollision() = 0;
 };
 
 #endif

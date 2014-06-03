@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,56 +27,33 @@
  */
 
 /**
- * @file SlottedAlohaMethod.h
- * @brief The Slotted Aloha methods
+ * @file SlottedAlohaDsa.h
+ * @brief The DSA algo
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
-#ifndef SALOHA_METHOD_H
-#define SALOHA_METHOD_H
+#ifndef SALOHA_ALGO_DSA_H
+#define SALOHA_ALGO_DSA_H
 
-#include "SlottedAlohaFrame.h"
-#include "Slot.h"
-
-#include <algorithm>
-#include <set>
-
-
-/// A list of TS
-typedef std::set<uint16_t> saloha_ts_list_t;
+#include "SlottedAlohaAlgo.h"
 
 /**
- * @class SlottedAlohaMethod
- * @brief The Slotted Aloha methods
+ * @class SlottedAlohaDsa
+ * @brief The DSA algo
 */
 
-class SlottedAlohaMethod
+class SlottedAlohaAlgoDsa: public SlottedAlohaAlgo
 {
  public:
-	/**
-	 * Class constructor without any parameters
-	 */
-	SlottedAlohaMethod();
+	SlottedAlohaAlgoDsa();
 
-	/**
-	 * Class destructor
-	 */
-	~SlottedAlohaMethod();
+	~SlottedAlohaAlgoDsa();
 
-	/**
-	 * Remove collisions with a specific algorithm
-	 *
-	 * @param slots    Slots containing the received Slotted Aloha data packets
-	 * @param fifo     the packets that are not collisionned
-	 * @return the number of collisionned packets
-	 */
-	virtual uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
-	                                  saloha_packets_t *accepted_packets) = 0;
-
- protected:
-	OutputLog *log_saloha;
+ private:
+	uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
+	                          saloha_packets_t *accepted_packets);
 };
-
 
 #endif
 

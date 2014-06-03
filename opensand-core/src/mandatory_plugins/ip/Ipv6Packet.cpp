@@ -37,7 +37,7 @@
 #include <opensand_output/Output.h>
 
 
-// TODO for all packets : better link with NetContainer and NetPacket (header_length, ...)
+// TODO for all packets : improve link with NetContainer and NetPacket (header_length, ...)
 Ipv6Packet::Ipv6Packet(const unsigned char *data, size_t length):
 	IpPacket(data, length)
 {

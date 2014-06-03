@@ -456,7 +456,7 @@
 <xsd:element name="slotted_aloha">
 	<xsd:complexType>
 		<xsd:sequence>
-			<xsd:element name="frames_per_superframe" type="xsd:positiveInteger">
+			<xsd:element name="superframes_per_saframe" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of DVB superframe per Slotted Aloha frame 

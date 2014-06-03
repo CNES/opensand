@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,23 +28,24 @@
 
 /**
  * @file SlottedAlohaCrdsa.cpp
- * @brief The CRDSA method
+ * @brief The CRDSA algo
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
-#include "SlottedAlohaMethodCrdsa.h"
+#include "SlottedAlohaAlgoCrdsa.h"
 
 
-SlottedAlohaMethodCrdsa::SlottedAlohaMethodCrdsa():
-	SlottedAlohaMethod()
+SlottedAlohaAlgoCrdsa::SlottedAlohaAlgoCrdsa():
+	SlottedAlohaAlgo()
 {
 }
 
-SlottedAlohaMethodCrdsa::~SlottedAlohaMethodCrdsa()
+SlottedAlohaAlgoCrdsa::~SlottedAlohaAlgoCrdsa()
 {
 }
 
-uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &slots,
+uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slots,
                                                    saloha_packets_t *accepted_packets)
 {
 	map<unsigned int, Slot *>::iterator slot_it;
@@ -55,6 +56,8 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 	
 	//cf: CRDSA algorithm, but here, each packet is searched in accepted_packets
 	//    for each iteration
+	LOG(this->log_saloha, LEVEL_DEBUG,
+	    "Start removing collisions\n");
 	do
 	{
 		stop = true;
@@ -67,6 +70,9 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 			{
 				continue;
 			}
+			LOG(this->log_saloha, LEVEL_DEBUG,
+			    "Remove collisions on slot %u, containing %zu packets\n",
+			    slot->getId(), slot->size());
 
 			pkt_it = slot->begin();
 			// remove packets that were accepted on another slot from this slot
@@ -91,6 +97,9 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 				}
 				pkt_it++;
 			}
+			LOG(this->log_saloha, LEVEL_DEBUG,
+			    "Slot %u contains %zu packets after signal suppression\n",
+			    slot->getId(), slot->size());
 			if(slot->size() == 1)
 			{
 				packet = dynamic_cast<SlottedAlohaPacketData *>(slot->front());
@@ -99,6 +108,15 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 				// packet is decoded, we need to restart the check all slots
 				// to remove the signal of this packet when a duplicate was found
 				stop = false;
+				LOG(this->log_saloha, LEVEL_DEBUG,
+				    "No collision on slot %u, keep packet from terminal %u\n",
+				    slot->getId(), packet->getSrcTalId());
+			}
+			else if(slot->size())
+			{
+				LOG(this->log_saloha, LEVEL_DEBUG,
+				    "Collision on slot %u at the moment\n",
+				    slot->getId());
 			}
 		}
 	}
@@ -110,7 +128,10 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 		// check for collisions here, we do not count collisions that were avoided
 		if(slot->size() > 1)
 		{
-			nbr_collisions++;
+			LOG(this->log_saloha, LEVEL_NOTICE,
+			    "There is still collision on slot %u, remove packets\n",
+			    slot->getId());
+			nbr_collisions += slot->size();
 			for(pkt_it = slot->begin();
 			    pkt_it != slot->end();
 			    ++pkt_it)
@@ -121,6 +142,6 @@ uint16_t SlottedAlohaMethodCrdsa::removeCollisions(map<unsigned int, Slot *> &sl
 		}
 		(*slot_it).second->clear();
 	}
-	return 0;
+	return nbr_collisions;
 }
 

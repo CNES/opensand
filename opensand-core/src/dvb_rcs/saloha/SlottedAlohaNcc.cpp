@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -35,10 +35,10 @@
 
 #include "SlottedAlohaNcc.h"
 #include "SlottedAlohaFrame.h"
-#include "SlottedAlohaMethod.h"
+#include "SlottedAlohaAlgo.h"
 #include "SlottedAlohaPacketCtrl.h"
-#include "SlottedAlohaMethodDsa.h"
-#include "SlottedAlohaMethodCrdsa.h"
+#include "SlottedAlohaAlgoDsa.h"
+#include "SlottedAlohaAlgoCrdsa.h"
 
 #include <stdlib.h>
 #include <math.h>
@@ -51,8 +51,11 @@
 
 SlottedAlohaNcc::SlottedAlohaNcc():
 	SlottedAloha(),
+	categories(),
+	terminal_affectation(),
+	default_category(NULL),
 	terminals(),
-	method(NULL),
+	algo(NULL),
 	simulation_traffic(0)
 {
 }
@@ -66,12 +69,26 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 	}
 	this->terminals.clear();
 
-	delete this->method;
+	TerminalCategories<TerminalCategorySaloha>::iterator it;
+
+	for(it = this->categories.begin();
+	    it != this->categories.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->categories.clear();
+
+	this->terminal_affectation.clear();
+
+	delete this->algo;
 }
 
-bool SlottedAlohaNcc::init(void)
+bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
+                           TerminalMapping<TerminalCategorySaloha> terminal_affectation,
+                           TerminalCategorySaloha *default_category)
+
 {
-	string method_name;
+	string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 
 	// Ensure parent init has been done
@@ -82,11 +99,40 @@ bool SlottedAlohaNcc::init(void)
 		return false;
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_METHOD, method_name)) // TODO RENAME !
+	this->categories = categories;
+	// we keep terminal affectation and default category but these affectations
+	// and the default category can concern non Slotted Aloha categories
+	// so be careful when adding a new terminal
+	this->terminal_affectation = terminal_affectation;
+	this->default_category = default_category;
+	if(!this->default_category)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "No default terminal affectation defined, "
+		    "some terminals may not be able to log in\n");
+	}
+
+	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
+	    ++cat_iter)
+	{
+		TerminalCategorySaloha *cat = (*cat_iter).second;
+		cat->setSlotsNumber(this->frame_duration_ms,
+		                    this->pkt_hdl->getFixedLength());
+		Probe<int> *probe_coll;
+
+		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
+		                                       "Aloha.collisions.%s",
+		                                       (*cat_iter).first.c_str());
+		this->probe_collisions.insert(
+		            pair<string, Probe<int> *>((*cat_iter).first,
+		                                       probe_coll));
+	}
+
+	if(!Conf::getValue(SALOHA_SECTION, SALOHA_ALGO, algo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_METHOD);
+		    SALOHA_SECTION, SALOHA_ALGO);
 		return false;
 	}
 	// TODO add more parameters (nb_replicas, max_pkt, ...)
@@ -99,37 +145,23 @@ bool SlottedAlohaNcc::init(void)
 		return false;
 	}*/
 
-	if (method_name == "DSA")
+	if (algo_name == "DSA")
 	{
-		this->method = new SlottedAlohaMethodDsa();
+		this->algo = new SlottedAlohaAlgoDsa();
 	}
-	else if (method_name == "CRDSA")
+	else if (algo_name == "CRDSA")
 	{
-		this->method = new SlottedAlohaMethodCrdsa();
+		this->algo = new SlottedAlohaAlgoCrdsa();
 	}
 	else
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to set Slotted Aloha '%s' algorithm\n", method_name.c_str());
+		    "failed to set Slotted Aloha '%s' algorithm\n", algo_name.c_str());
 		return false;
 	}
 	LOG(this->log_init, LEVEL_INFO,
 	    "initialize Slotted Aloha with %s algorithm\n",
-	    method_name.c_str());
-
-	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
-	    ++cat_iter)
-	{
-		Probe<int> *probe_coll;
-
-		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.collisions.%s",
-		                                       (*cat_iter).first.c_str());
-		this->probe_collisions.insert(
-		            pair<string, Probe<int> *>((*cat_iter).first,
-		                                       probe_coll));
-	}
-
+	    algo_name.c_str());
 
 	return true;
 }
@@ -197,8 +229,6 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		}
 		terminal = st->second;
 		category = this->categories[terminal->getCurrentCategory()];
-		// TODO move nb_packet _received in category ?
-//		this->nb_packets_received_total++;
 
 		// Add replicas in the corresponding slots
 		slots = category->getSlots();
@@ -213,8 +243,6 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		(*slot_it).second->push_back(sa_packet);
 		category->increaseReceivedPacketsNbr();
 	}
-	// TODO stat nb_packets_received_per_frame
-	//      nb_packet_received_total
 
 skip:
 	delete dvb_frame;
@@ -228,7 +256,7 @@ bool SlottedAlohaNcc::schedule(NetBurst **burst,
 {
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	
-	if(!this->isSuperFrameTick(superframe_counter))
+	if(!this->isSalohaFrameTick(superframe_counter))
 	{
 		return true;
 	}
@@ -341,7 +369,6 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			continue;
 		}
 
-		// TODO ENUM for state !
 		last_propagated_id = terminal->getLastPropagatedId(qos);
 		state = this->canPropagate(last_propagated_id, id_packet, sa_packet);
 		if(state == dup)
@@ -406,7 +433,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		else
 		{
 			terminal->setLastPropagatedId(qos, id_packet);
-			(*burst)->add(this->removeHeader(sa_packet));
+			(*burst)->add(this->removeSalohaHeader(sa_packet));
 			last_propagated_id = terminal->getLastPropagatedId(qos);
 
 			LOG(this->log_saloha, LEVEL_INFO,
@@ -443,7 +470,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 				LOG(this->log_saloha, LEVEL_INFO,
 				    "Waiting packet with ID %s can also be propagated\n",
 				    id_packet.c_str());
-				(*burst)->add(this->removeHeader(sa_packet));
+				(*burst)->add(this->removeSalohaHeader(sa_packet));
 				terminal->setLastPropagatedId(qos, id_packet);
 				last_propagated_id = terminal->getLastPropagatedId(qos);
 				// erase goes to next packet
@@ -519,27 +546,15 @@ success:
 	return prop;
 }
 
-// TODO rename
-NetPacket* SlottedAlohaNcc::removeHeader(SlottedAlohaPacketData *sa_packet)
+NetPacket* SlottedAlohaNcc::removeSalohaHeader(SlottedAlohaPacketData *sa_packet)
 {
 	NetPacket* encap_packet;
 	size_t length = sa_packet->getPayloadLength();
 	
-//	sa_packet->removeHeader();
-	// TODO why not use EncapPktHdl to create the correct pkt type
 	encap_packet = this->pkt_hdl->build(sa_packet->getPayload(),
 	                                    length,
 	                                    0, 0, 0);
 
-	                                    
-/*	encap_packet = new NetPacket(sa_packet->getData(),
-	                             sa_packet->getTotalLength(),
-	                             sa_packet->getName(),
-	                             sa_packet->getType(),
-	                             sa_packet->getQos(),
-	                             sa_packet->getSrcTalId(),
-	                             sa_packet->getDstTalId(),
-	                             sa_packet->getHeaderLength());*/
 	delete sa_packet;
 	return encap_packet;
 }
@@ -555,8 +570,8 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	AlohaPacketComparator comparator(slots_per_carrier);
 	saloha_packets_t *accepted_packets = category->getAcceptedPackets();
 
-	nbr = this->method->removeCollisions(slots,
-	                                     accepted_packets);
+	nbr = this->algo->removeCollisions(slots,
+	                                   accepted_packets);
 	this->probe_collisions[category->getLabel()]->put(nbr);
 	// Because of CRDSA algorithm for example, need to sort packets
 	sort(accepted_packets->begin(), accepted_packets->end(), comparator);
@@ -622,9 +637,7 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
 			                                       (uint16_t)0,
 			                                       (uint16_t)0,
 			                                       (uint16_t)0,
-			                                       (uint16_t)0,
-			                                       (uint16_t)0,
-			                                       (uint16_t*)NULL);
+			                                       (time_ms_t)0);
 			// no need to check here if id exists as we directly
 			// get info from the map itself to get IDs
 			slots[slot_id]->push_back(sa_packet);
@@ -690,8 +703,6 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 			    tal_id);
 			return false;
 		}
-
-		// TODO register probes ?
 
 		// Add the new terminal to the list
 		this->terminals.insert(

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaTal.h
  * @brief The Slotted Aloha
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #ifndef SALOHA_TAL_H
@@ -38,11 +39,12 @@
 #include "SlottedAloha.h"
 
 #include "SlottedAlohaBackoff.h"
+#include "SlottedAlohaFrame.h"
+#include "SlottedAlohaAlgo.h"
+#include "TerminalCategorySaloha.h"
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 #include "NetBurst.h"
-#include "SlottedAlohaFrame.h"
-#include "TerminalCategorySaloha.h"
 
 #include <list>
 
@@ -58,14 +60,14 @@ class SlottedAlohaTal: public SlottedAloha
 	/// The terminal ID
 	tal_id_t tal_id;
 
-	/// packet timeout
-	time_sf_t timeout;
+	/// packet timeout in Slotted Aloha frame number
+	time_sf_t timeout_saf;
 
 	/// The packets waiting for ACK
-	map<qos_t, saloha_packets_t> packets_wait_ack;
+	map<qos_t, saloha_packets_data_t> packets_wait_ack;
 
 	/// list of  packets to be retransmitted
-	saloha_packets_t retransmission_packets;
+	saloha_packets_data_t retransmission_packets;
 
 	/// Number of successive transmissions
 	uint16_t nb_success;
@@ -113,16 +115,17 @@ class SlottedAlohaTal: public SlottedAloha
 	 * @brief Initialize Slotted Aloha for terminal
 	 *
 	 * @param tal_id                  The terminal ID
-	 * @param frames_per_superframe   The number of frames per superframes
+	 * @param category                The terminal category
 	 * @param dvb_fifos               The DVB fifos
+	 *
 	 * @return true on success, false otherwise
 	 */
 	bool init(tal_id_t tal_id,
-	          unsigned int frames_per_superframe,
+	          TerminalCategorySaloha *category,
 	          const fifos_t &dvb_fifos);
 
 	/**
-	 * Called when a packet is received from encap block
+	 * Add the Slotted Aloha header on an encapsulation packet
 	 *
 	 * @param encap_packet  encap packet received
 	 * @param offset        offset of packet about initial packet
@@ -130,9 +133,9 @@ class SlottedAlohaTal: public SlottedAloha
 	 *
 	 * @return Slotted Aloha packet
 	 */
-	SlottedAlohaPacketData* onRcvEncapPacket(NetPacket *encap_packet,
-	                                         uint16_t offset,
-	                                         uint16_t burst_size);
+	SlottedAlohaPacketData* addSalohaHeader(NetPacket *encap_packet,
+	                                        uint16_t offset,
+	                                        uint16_t burst_size);
 
 	/**
 	 * Schedule Slotted Aloha packets
@@ -167,11 +170,11 @@ class SlottedAlohaTal: public SlottedAloha
 	 * @param qos                  qos of the packet
 	 * @return true if the packet was successful added, false otherwise
 	 */
-	bool sendPacketData(list<DvbFrame *> &complete_dvb_frames,
-	                    SlottedAlohaFrame **frame,
-	                    SlottedAlohaPacketData *packet,
-	                    saloha_ts_list_t::iterator &slot,
-	                    qos_t qos);
+	bool addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
+	                       SlottedAlohaFrame **frame,
+	                       SlottedAlohaPacketData *packet,
+	                       saloha_ts_list_t::iterator &slot,
+	                       qos_t qos);
 };
 
 #endif

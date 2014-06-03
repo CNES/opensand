@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaBackoffMimd.cpp
  * @brief The MIMD backoff algorithm
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #include "SlottedAlohaBackoffMimd.h"
@@ -47,24 +48,24 @@ using std::min;
 SlottedAlohaBackoffMimd::SlottedAlohaBackoffMimd(uint16_t max, uint16_t multiple):
 	SlottedAlohaBackoff(max, multiple)
 {
-	this->setOk();
+	this->setReady();
 }
 
 SlottedAlohaBackoffMimd::~SlottedAlohaBackoffMimd()
 {
 }
 
-uint16_t SlottedAlohaBackoffMimd::setOk()
+uint16_t SlottedAlohaBackoffMimd::setReady()
 {
 	this->cw = min((int)this->cw / (int)this->multiple, (int)this->cw_max);
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 
-uint16_t SlottedAlohaBackoffMimd::setNok()
+uint16_t SlottedAlohaBackoffMimd::setCollision()
 {
 	this->cw = min((int)this->cw * (int)this->multiple, (int)this->cw_max);
-	this->setRandom();
+	this->randomize();
 	return this->backoff;
 }
 

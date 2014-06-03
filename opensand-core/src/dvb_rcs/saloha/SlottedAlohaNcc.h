@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file SlottedAlohaNcc.h
  * @brief The Slotted Aloha
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
  */
 
 #ifndef SALOHA_NCC_H
@@ -42,6 +43,7 @@
 #include "EncapPlugin.h"
 #include "TerminalContextSaloha.h"
 #include "TerminalCategorySaloha.h"
+#include "SlottedAlohaAlgo.h"
 
 #include <list>
 
@@ -54,15 +56,23 @@ class SlottedAlohaNcc: public SlottedAloha
 {
  private:
 
+	/// The terminal categories
+	TerminalCategories<TerminalCategorySaloha> categories;
+
+	/// The terminal affectation
+	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
+
+	/// The default terminal category
+	TerminalCategorySaloha *default_category;
+
 	// Helper to simplify context manipulation
 	typedef map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
 
 	/** List of registered terminals */
 	saloha_terminals_t terminals;
 
-	/// Method used to schedule Slotted Aloha
-	// TODO RENAME into SlottedAlohaScheduling
-	SlottedAlohaMethod *method;
+	/// Algorithm used to check collisions on slots
+	SlottedAlohaAlgo *algo;
 
 	/// Traffic to simulate
 	uint8_t simulation_traffic;
@@ -72,17 +82,23 @@ class SlottedAlohaNcc: public SlottedAloha
 	probe_per_cat_t probe_collisions;
 
  public:
+
 	SlottedAlohaNcc();
 
 	~SlottedAlohaNcc();
 
-	/**
+	/*
 	 * Init the Slotted Aloha NCC class
+	 *
+	 * @param categories             The terminal categories
+	 * @param terminal_affectation   The terminal affectation
+	 * @param default_category       The default terminan category
 	 *
 	 * @return true on success, false otherwise
 	 */
-
-	bool init(void);
+	bool init(TerminalCategories<TerminalCategorySaloha> &categories,
+	          TerminalMapping<TerminalCategorySaloha> terminal_affectation,
+	          TerminalCategorySaloha *default_category);
 
 	/**
 	 * Schedule Slotted Aloha packets
@@ -123,7 +139,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @param packet The slotted aloha packet
 	 * @return Encap packet without Slotted Aloha encapsulation
 	 */
-	NetPacket *removeHeader(SlottedAlohaPacketData *packet);
+	NetPacket *removeSalohaHeader(SlottedAlohaPacketData *packet);
 
 	/**
 	 * Return if packet can be propagated to encap block or not
@@ -174,7 +190,6 @@ class SlottedAlohaNcc: public SlottedAloha
  * @class AlohaPacketComparator
  * @brief Functor to compare data Aloha packets for the std::sort function
  */
-// TODO there is no id for packets !!!!!?????
 class AlohaPacketComparator
 {
  public:
@@ -208,13 +223,14 @@ class AlohaPacketComparator
 		// not per carrier => no module here !
 		return (((replica_1 /*% this->slots_per_carrier*/) <
 		         (replica_2 /*% this->slots_per_carrier*/)) &&
-		        (pkt1->getSrcTalId()));
-		// TODO SRC TAL ID ???? (eventually check if they have the same src !..
+		        (pkt1->getSrcTalId() == pkt2->getSrcTalId()) &&
+		        (pkt1->getSrcTalId())); // no need to sort simulated traffic
     };
 
  private:
 	/// The slots per carrier
-	uint16_t slots_per_carrier; // TODO we work per category, maybe not useful
+	uint16_t slots_per_carrier; // TODO we work per category, not useful,
+	                            //      see upper todo
 };
 
 

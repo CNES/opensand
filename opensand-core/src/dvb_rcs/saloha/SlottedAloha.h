@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2013 TAS
- * Copyright © 2013 CNES
+ * Copyright © 2014 TAS
+ * Copyright © 2014 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,16 +30,15 @@
  * @file SlottedAloha.h
  * @brief The Slotted Aloha scheduling
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
+ * @author Julien Bernard / Viveris technologies
 */
 
 #ifndef SALOHA_H
 #define SALOHA_H
 
-// TODO move in SlottedAlohaNcc
-#include "SlottedAlohaMethod.h"
-#include "TerminalCategorySaloha.h"
 #include "EncapPlugin.h"
-
+#include "DvbFrame.h"
+#include "SlottedAlohaPacket.h"
 
 #include <opensand_output/Output.h>
 
@@ -60,26 +59,11 @@ class SlottedAloha
 	/// Number of replicas per packet
 	uint16_t nb_replicas;
 
-	/// Number of packets received per frame
-//	uint16_t nb_packets_received_per_frame;
-
-	/// Number total of packets received since the begining
-//	uint64_t nb_packets_received_total;
-
 	/// Check whether the parent is correctly initialized
 	bool is_parent_init;
 
 	/// The encap packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
-
-	/// The terminal categories
-	TerminalCategories<TerminalCategorySaloha> categories;
-
-	/// The terminal affectation
-	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
-
-	/// The default terminal category
-	TerminalCategorySaloha *default_category;
 
  public:
 	/**
@@ -97,16 +81,11 @@ class SlottedAloha
 	 *
 	 * @param frame_duration_ms      The frame duration (ms)
 	 * @param pkt_hdl                The handler for encap packet
-	 * @param categories             The terminal categories
-	 * @param terminal_affectation   The terminal affectation
-	 * @param default_category       The default terminan category
+	 *
+	 * @return true on success, false otherwise
 	 */
 	bool initParent(time_ms_t frame_duration_ms,
-	                EncapPlugin::EncapPacketHandler *const pkt_hdl,
-	                TerminalCategories<TerminalCategorySaloha> &categories,
-	                TerminalMapping<TerminalCategorySaloha> terminal_affectation,
-	                TerminalCategorySaloha *default_category);
-	// TODO affectation and default useful ?????
+	                EncapPlugin::EncapPacketHandler *const pkt_hdl);
 
 	/**
 	 * Handle a received Slotted Aloha frame
@@ -134,7 +113,7 @@ class SlottedAloha
 	 *                            (the current superframe)
 	 * @return true if current tick is a Slotted Aloha frame tick, false otherwise
 	 */
-	bool isSuperFrameTick(time_sf_t superframe_counter);
+	bool isSalohaFrameTick(time_sf_t superframe_counter);
 
 	/// The slotted aloha logger
 	OutputLog *log_saloha;

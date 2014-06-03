@@ -5,9 +5,9 @@ libopensand_dvb_saloha_la_cpp = \
 	SlottedAlohaBackoffBeb.cpp \
 	SlottedAlohaBackoffEied.cpp \
 	SlottedAlohaBackoffMimd.cpp \
-	SlottedAlohaMethod.cpp \
-	SlottedAlohaMethodDsa.cpp \
-	SlottedAlohaMethodCrdsa.cpp \
+	SlottedAlohaAlgo.cpp \
+	SlottedAlohaAlgoDsa.cpp \
+	SlottedAlohaAlgoCrdsa.cpp \
 	SlottedAloha.cpp \
 	SlottedAlohaTal.cpp \
 	SlottedAlohaNcc.cpp
@@ -17,9 +17,9 @@ libopensand_dvb_saloha_la_h = \
 	SlottedAlohaBackoffBeb.h \
 	SlottedAlohaBackoffEied.h \
 	SlottedAlohaBackoffMimd.h \
-	SlottedAlohaMethod.h \
-	SlottedAlohaMethodDsa.h \
-	SlottedAlohaMethodCrdsa.h \
+	SlottedAlohaAlgo.h \
+	SlottedAlohaAlgoDsa.h \
+	SlottedAlohaAlgoCrdsa.h \
 	SlottedAloha.h \
 	SlottedAlohaTal.h \
 	SlottedAlohaNcc.h
