@@ -41,7 +41,7 @@
  * @class Slot
  * @brief Represent a RCS slot in a carrier (i.e. a list of packets + attributes)
  */
-class Slot: public saloha_packets_t
+class Slot: public saloha_packets_data_t
 {
  public:
 

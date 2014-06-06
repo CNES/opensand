@@ -38,7 +38,7 @@
 #include "TerminalCategory.h"
 #include "CarriersGroupSaloha.h"
 
-#include "SlottedAlohaPacket.h"
+#include "SlottedAlohaPacketData.h"
 #include "Slot.h"
 
 /**
@@ -88,7 +88,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 *
 	 * @return the accepted packets
 	 */
-	saloha_packets_t *getAcceptedPackets(void);
+	saloha_packets_data_t *getAcceptedPackets(void);
 
 	/**
 	 * @brief increment the number of received packets
@@ -107,7 +107,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 
  private:
 	/// A FIFO containing packet to be transmitted to encapsulation block
-	saloha_packets_t *accepted_packets;
+	saloha_packets_data_t *accepted_packets;
 
 	/// The number of received packets
 	unsigned int received_packets_nbr;

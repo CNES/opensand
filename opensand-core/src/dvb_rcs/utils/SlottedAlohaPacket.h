@@ -40,6 +40,7 @@
 #include "OpenSandCore.h"
 
 #include <stdlib.h>
+#include <sstream>
 
 
 //Control signal types
@@ -89,6 +90,22 @@ public:
 	 */
 	virtual saloha_id_t getUniqueId(void) const = 0;
 
+	/**
+	 * Convert a Slotted Aloha data packet <ID, Seq, PDU_nb, QoS> id to
+	 * integers table
+	 *
+	 * @param id   Slotted Aloha data packet id
+	 * @paarm ids  OUT: table containing packet ID elements
+	 * @return integers vector
+	 */
+	static void convertPacketId(saloha_id_t id, uint16_t ids[4])
+	{
+		std::istringstream iss((char *)id.c_str());
+		char c;
+		
+		iss >> ids[SALOHA_ID_ID] >> c >> ids[SALOHA_ID_SEQ] >> c
+			>> ids[SALOHA_ID_PDU_NB] >> c >> ids[SALOHA_ID_QOS];
+	};
 };
 
 /// A list of Slotted Aloha Packets 

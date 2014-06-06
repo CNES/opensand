@@ -52,7 +52,7 @@ class SlottedAlohaAlgoDsa: public SlottedAlohaAlgo
 
  private:
 	uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
-	                          saloha_packets_t *accepted_packets);
+	                          saloha_packets_data_t *accepted_packets);
 };
 
 #endif

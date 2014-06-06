@@ -46,7 +46,7 @@ SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 }
 
 uint16_t SlottedAlohaAlgoDsa::removeCollisions(map<unsigned int, Slot *> &slots,
-                                                 saloha_packets_t *accepted_packets)
+                                                 saloha_packets_data_t *accepted_packets)
 {
 	map<unsigned int, Slot *>::iterator slot_it;
 	vector<saloha_id_t> accepted_ids;
@@ -58,7 +58,7 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(map<unsigned int, Slot *> &slots,
 	    slot_it != slots.end(); ++slot_it)
 	{
 		Slot *slot = (*slot_it).second;
-		saloha_packets_t::iterator pkt_it;
+		saloha_packets_data_t::iterator pkt_it;
 		if(!slot->size())
 		{
 			continue;

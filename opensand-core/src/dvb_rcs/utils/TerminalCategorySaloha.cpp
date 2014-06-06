@@ -45,12 +45,12 @@ TerminalCategorySaloha::TerminalCategorySaloha(string label):
 	accepted_packets(NULL),
 	received_packets_nbr(0)
 {
-	this->accepted_packets = new saloha_packets_t();
+	this->accepted_packets = new saloha_packets_data_t();
 }
 
 TerminalCategorySaloha::~TerminalCategorySaloha()
 {
-	for(saloha_packets_t::iterator it = this->accepted_packets->begin();
+	for(saloha_packets_data_t::iterator it = this->accepted_packets->begin();
 	    it != this->accepted_packets->end(); ++it)
 	{
 		delete *it;
@@ -100,7 +100,7 @@ map<unsigned int, Slot *> TerminalCategorySaloha::getSlots(void) const
 	return slots;
 }
 
-saloha_packets_t *TerminalCategorySaloha::getAcceptedPackets(void)
+saloha_packets_data_t *TerminalCategorySaloha::getAcceptedPackets(void)
 {
 	return this->accepted_packets;
 }

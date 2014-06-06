@@ -79,15 +79,6 @@ SlottedAloha::~SlottedAloha()
 {
 }
 
-void SlottedAloha::convertPacketId(saloha_id_t id, uint16_t ids[4])
-{
-	istringstream iss((char *)id.c_str());
-	char c;
-	
-	iss >> ids[SALOHA_ID_ID] >> c >> ids[SALOHA_ID_SEQ] >> c
-		>> ids[SALOHA_ID_PDU_NB] >> c >> ids[SALOHA_ID_QOS];
-}
-
 bool SlottedAloha::isSalohaFrameTick(time_sf_t superframe_counter)
 {
 	if(!(superframe_counter % this->sf_per_saframe))

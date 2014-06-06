@@ -39,12 +39,17 @@
 
 #include "TerminalContext.h"
 
-#include "SlottedAlohaPacket.h"
+#include "SlottedAlohaPacketData.h"
 
 #include <map>
 
 using std::map;
 
+typedef enum
+{
+	no_prop,
+	prop,
+} prop_state_t;
 
 /**
  * @class TerminalContextSaloha
@@ -63,37 +68,46 @@ class TerminalContextSaloha: public TerminalContext
 	~TerminalContextSaloha();
 
 	/**
-	 * @brief Get the packet waiting to be propagated for the desired QoS
+	 * @brief Add a new received packet in context and check if the PDU is complete
 	 *
-	 * @param qos  The QoS for the last propagated ID
-	 * @return the packets waiting to be propagated
-	 */
-	saloha_packets_t *getWaitPropagationPackets(qos_t qos);
-
-	/**
-	 * @brief Get the last propagated ID for the desired QoS
+	 * @param packet  The Slotted Aloha Data packet
+	 * @param pdu     OUT: A list of packets if the PDU is complete or an empty
+	 *                     list if no PDU is completed
 	 *
-	 * @param qos  The QoS for the last propagated ID
-	 * @return the last propagated ID
+	 * @return no_prop  if no PDU can be propagated,
+	 *         prop     if PDU can be propagated
 	 */
-	saloha_id_t getLastPropagatedId(qos_t qos);
-
-	/**
-	 * @brief Set the last propagated ID for the desired QoS
-	 *
-	 * @param qos  The QoS for the last propagated ID
-	 * @param id   The last propagated ID
-	 */
-	void setLastPropagatedId(qos_t qos, saloha_id_t id);
-
+	prop_state_t addPacket(SlottedAlohaPacketData *packet, saloha_packets_data_t &pdu);
 
   protected:
 
-	/// The packets waiting to be propagated per QoS
-	map<qos_t, saloha_packets_t *> wait_propagation;
+	typedef map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
+	/// The PDU fragments waiting to be propagated per QoS
+	//  Fragments are propagated once all fragments of the complete PDU are received
+	map<qos_t, pdus_t> wait_propagation;
+	/// The oldest PDU ID per QoS in order to remove it after a certain amount of time
+	map<qos_t, saloha_pdu_id_t> oldest_id;
+	/// The counter for oldest packet
+	saloha_pdu_id_t old_count;
 
-	/// The IDs of last propagtated packets per QoS
-	map<qos_t, saloha_id_t> last_propagated;
+	/// The slotted aloha logger
+	OutputLog *log_saloha;
+
+	/**
+	 * @brief Handle oldest PDU id
+	 *        If necessary remove old content and update oldest value
+	 *
+	 * @param qos         The current qos
+	 */
+	void handleOldest(qos_t qos, saloha_pdu_id_t current_id);
+
+	/**
+	 * @brief Find oldest pdu_id in waiting packets
+	 *
+	 * @param qos         The current qos
+	 * @param current_id  The current PDU id
+	 */
+	void findOldest(qos_t qos);
 
 };
 

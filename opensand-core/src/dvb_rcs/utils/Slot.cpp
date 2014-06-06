@@ -60,7 +60,7 @@ unsigned int Slot::getId() const
 
 void Slot::release(void)
 {
-	for(saloha_packets_t::iterator it = this->begin();
+	for(saloha_packets_data_t::iterator it = this->begin();
 	    it != this->end(); ++it)
 	{
 		delete *it;

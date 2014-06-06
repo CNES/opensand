@@ -80,7 +80,7 @@ class SlottedAlohaTal: public SlottedAloha
 	uint16_t nb_max_retransmissions;
 
 	/// Current packet identifiant
-	uint64_t base_id;
+	saloha_pdu_id_t base_id;
 
 	/// Backoff algorithm used
 	SlottedAlohaBackoff *backoff;
@@ -141,12 +141,12 @@ class SlottedAlohaTal: public SlottedAloha
 	 * Schedule Slotted Aloha packets
 	 *
 	 * @param complete_dvb_frames  frames to attach Slotted Aloha frame to send
-	 * @param counter              current SoF counter
+	 * @param sf_counter           current superframe counter
 	 *
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
 	bool schedule(list<DvbFrame *> &complete_dvb_frames,
-	              uint64_t counter); // uint32 ?
+	              time_sf_t sf_counter);
 
 	//Implementation of a virtual function
 	bool onRcvFrame(DvbFrame *frame);

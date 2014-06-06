@@ -278,8 +278,8 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
                                        list<DvbFrame *> &complete_dvb_frames)
 {
 	SlottedAlohaFrameCtrl *frame;
-	saloha_packets_t *accepted_packets;
-	saloha_packets_t::iterator pkt_it;
+	saloha_packets_data_t *accepted_packets;
+	saloha_packets_data_t::iterator pkt_it;
 	// refresh the probe in case of no traffic
 	this->probe_collisions[category->getLabel()]->put(0);
 	if(!category->getReceivedPacketsNbr())
@@ -323,24 +323,21 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	pkt_it = accepted_packets->begin();
 	while(pkt_it != accepted_packets->end())
 	{
-		SlottedAlohaPacketData *sa_packet;
+		SlottedAlohaPacketData *sa_packet = *pkt_it;
 		SlottedAlohaPacketCtrl *ack;
+		saloha_packets_data_t pdu;
 		TerminalContextSaloha *terminal;
 		saloha_terminals_t::iterator st;
-		saloha_packets_t *wait_propagation_packets;
-		saloha_packets_t::iterator wait_pkt_it;
-		saloha_id_t last_propagated_id;
+		saloha_pdu_id_t id_pdu;
 		saloha_id_t id_packet;
 		tal_id_t tal_id;
-		qos_t qos;
 		prop_state_t state;
 
-		sa_packet = dynamic_cast<SlottedAlohaPacketData *>(*pkt_it);
 		// erase goes to next iterator
 		accepted_packets->erase(pkt_it);
 		id_packet = sa_packet->getUniqueId();
+		id_pdu = sa_packet->getId();
 		tal_id = sa_packet->getSrcTalId();
-		qos = sa_packet->getQos();
 
 		if(tal_id == GW_TAL_ID)
 		{
@@ -368,20 +365,6 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			delete sa_packet;
 			continue;
 		}
-
-		last_propagated_id = terminal->getLastPropagatedId(qos);
-		state = this->canPropagate(last_propagated_id, id_packet, sa_packet);
-		if(state == dup)
-		{
-			LOG(this->log_saloha, LEVEL_DEBUG,
-			    "drop Slotted Aloha packet %s because of duplication\n",
-			    id_packet.c_str());
-			delete sa_packet;
-			continue;
-		}
-		LOG(this->log_saloha, LEVEL_DEBUG,
-		    "New Slotted Aloha packet with ID %s received from terminal %u\n", 
-		    id_packet.c_str(), tal_id);
 
 		// Send an ACK
 		ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK, tal_id);
@@ -421,68 +404,32 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		    "Ack packet %s on ST%u\n", id_packet.c_str(), tal_id);
 		delete ack;
 
-		wait_propagation_packets = terminal->getWaitPropagationPackets(qos);
+		state = terminal->addPacket(sa_packet, pdu);
+		LOG(this->log_saloha, LEVEL_DEBUG,
+		    "New Slotted Aloha packet with ID %s received from terminal %u\n", 
+		    id_packet.c_str(), tal_id);
+
 		if(state == no_prop)
 		{
-			LOG(this->log_saloha, LEVEL_NOTICE,
-			    "Received packet %s from ST%u, last packet received is %s, wait\n",
-			    id_packet.c_str(), tal_id, last_propagated_id.c_str());
-			// Store packet in waiting list because of previous packet missing
-			wait_propagation_packets->push_back(sa_packet);
+			LOG(this->log_saloha, LEVEL_INFO,
+			    "Received packet %s from ST%u, no complete PDU to propagate\n",
+			    id_packet.c_str(), tal_id);
 		}
 		else
 		{
-			terminal->setLastPropagatedId(qos, id_packet);
-			(*burst)->add(this->removeSalohaHeader(sa_packet));
-			last_propagated_id = terminal->getLastPropagatedId(qos);
-
 			LOG(this->log_saloha, LEVEL_INFO,
-			    "Propagate packet from ST%u with ID %s\n",
-			    tal_id, id_packet.c_str());
-		}
-		// Propagate all waiting packet after receiving the missing packet
-		// OR
-		// check if there is the next packet (we need that because we
-		// may have the missing packet waiting from previous schdeuling
-		// and not sent because there was not enough capacity
-		wait_pkt_it = wait_propagation_packets->begin();
-		/// TODO function, this is quite the same as the upper algo on accepted_packets
-		while(wait_pkt_it != wait_propagation_packets->end())
-		{
-			sa_packet = dynamic_cast<SlottedAlohaPacketData *>(*wait_pkt_it);
-			id_packet = sa_packet->getUniqueId();
-			if((sa_packet->getSrcTalId() != terminal->getTerminalId()) ||
-			   (sa_packet->getQos() != qos))
-			{
-				LOG(this->log_saloha, LEVEL_ERROR,
-				    "Wrong packet data waiting for propagation\n");
-				// erase goes to next packet
-				wait_propagation_packets->erase(wait_pkt_it);
-				delete sa_packet;
-				continue;
-			}
+			    "Complete PDU received from ST%u with ID %u\n",
+			    tal_id, id_pdu);
 
-			state = this->canPropagate(last_propagated_id,
-			                           id_packet,
-			                           sa_packet);
-			if(state == prop)
+			for(saloha_packets_data_t::iterator pdu_it = pdu.begin();
+			    pdu_it != pdu.end(); ++pdu_it)
 			{
-				LOG(this->log_saloha, LEVEL_INFO,
-				    "Waiting packet with ID %s can also be propagated\n",
-				    id_packet.c_str());
-				(*burst)->add(this->removeSalohaHeader(sa_packet));
-				terminal->setLastPropagatedId(qos, id_packet);
-				last_propagated_id = terminal->getLastPropagatedId(qos);
-				// erase goes to next packet
-				wait_propagation_packets->erase(wait_pkt_it);
-				continue;
+				(*burst)->add(this->removeSalohaHeader(*pdu_it));
 			}
-			// TODO sort packets and break here
-			wait_pkt_it++;
 		}
 	}
-	// TODO if a packet is really lost and has timeouted, we won't send any packets
-	//       we should have a timeout on wait porpagation packets
+	// NB: if a pdu is never completed, it will be overwritten once
+	//     PDU id would have looped
 	// add last frame in complete frames
 	if(frame->getDataLength())
 	{
@@ -498,53 +445,6 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	return true;
 }
 
-
-// dup     = packet duplicated (no propagation, no ACK)
-// no_prop = packet cannot be propagated (no propagation but ACK)
-// prop    = packet can be propagated (propagation and ACK)
-SlottedAlohaNcc::prop_state_t
-SlottedAlohaNcc::canPropagate(saloha_id_t last_propagated_id,
-                              saloha_id_t id_packet,
-                              SlottedAlohaPacketData *sa_packet)
-{
-	uint16_t id_last[4];
-	uint16_t id;
-	uint16_t seq;
-	
-	id = sa_packet->getId();
-	seq = sa_packet->getSeq();
-	this->convertPacketId(last_propagated_id, id_last);
-	if(last_propagated_id.empty())
-	{
-		goto success;
-	}
-	else if(last_propagated_id == id_packet)
-	{
-		goto drop;
-	}
-	else if((id_last[SALOHA_ID_ID] == id) &&
-	        (id_last[SALOHA_ID_SEQ] == (seq - 1)) &&
-	        (id_last[SALOHA_ID_PDU_NB] == (seq + 1)))
-	{
-		goto success;
-	}
-	else if((id_last[SALOHA_ID_ID] == (id - 1)) &&
-	        (id_last[SALOHA_ID_PDU_NB] == (id_last[SALOHA_ID_SEQ] + 1)) &&
-	        (seq == 0))
-	{
-		goto success;
-	}
-	else
-	{
-		goto error;
-	}
-drop:
-	return dup;
-error:
-	return no_prop;
-success:
-	return prop;
-}
 
 NetPacket* SlottedAlohaNcc::removeSalohaHeader(SlottedAlohaPacketData *sa_packet)
 {
@@ -568,7 +468,7 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	                                       category->getCarriersNumber());
 	map<unsigned int, Slot *> slots = category->getSlots();
 	AlohaPacketComparator comparator(slots_per_carrier);
-	saloha_packets_t *accepted_packets = category->getAcceptedPackets();
+	saloha_packets_data_t *accepted_packets = category->getAcceptedPackets();
 
 	nbr = this->algo->removeCollisions(slots,
 	                                   accepted_packets);
@@ -632,7 +532,7 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
 //			NetPacket encap_packet(Data(""), 0, "", 0, 0, 0, 0, 0);
 			SlottedAlohaPacketData *sa_packet;
 			sa_packet = new SlottedAlohaPacketData(Data(),
-			                                       (uint64_t)0,
+			                                       (saloha_pdu_id_t)0,
 			                                       (uint16_t)0,
 			                                       (uint16_t)0,
 			                                       (uint16_t)0,

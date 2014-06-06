@@ -72,7 +72,7 @@ class SlottedAlohaAlgo
 	 * @return the number of collisionned packets
 	 */
 	virtual uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
-	                                  saloha_packets_t *accepted_packets) = 0;
+	                                  saloha_packets_data_t *accepted_packets) = 0;
 
  protected:
 	OutputLog *log_saloha;

@@ -39,13 +39,15 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
-#include <sstream>
 #include <algorithm>
 
+// TODO idea for everywhere, create a template class for endianess handling
+//      that abstract the type (uint8_t, uint16_t, uint32_t, uint64_t, ...)
+//      this avoid changing everything when changing a type
 
 // TODO qos is maybe not useful in header
 SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data,
-                                               uint64_t id,
+                                               saloha_pdu_id_t id,
                                                uint16_t ts,
                                                uint16_t seq,
                                                uint16_t pdu_nb,
@@ -60,7 +62,7 @@ SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data,
 	this->timeout_saf = timeout_saf;
 	this->nb_retransmissions = 0;
 	
-	tmp_head.id = htobe64(id);
+	tmp_head.id = htonl(id);
 	tmp_head.ts = htons(ts);
 	tmp_head.seq = htons(seq);
 	tmp_head.pdu_nb = htons(pdu_nb);
@@ -84,12 +86,15 @@ SlottedAlohaPacketData::~SlottedAlohaPacketData()
 {
 }
 
-uint64_t SlottedAlohaPacketData::getId() const
+saloha_pdu_id_t SlottedAlohaPacketData::getId() const
 {
 	saloha_data_hdr_t *header;
 	
 	header = (saloha_data_hdr_t *)this->data.c_str();
-	return be64toh(header->id);
+	// if uint64_t
+	//return be64toh(header->id);
+	// if uint32_t
+	return ntohl(header->id);
 }
 
 uint16_t SlottedAlohaPacketData::getTs() const

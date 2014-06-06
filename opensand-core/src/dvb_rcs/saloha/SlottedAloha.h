@@ -97,16 +97,6 @@ class SlottedAloha
  protected:
 
 	/**
-	 * Convert a Slotted Aloha data packet <ID, Seq, PDU_nb, QoS> id to
-	 * integers table
-	 *
-	 * @param id   Slotted Aloha data packet id
-	 * @paarm ids  OUT: table containing packet ID elements
-	 * @return integers vector
-	 */
-	void convertPacketId(saloha_id_t id, uint16_t ids[4]);
-
-	/**
 	 * Return check if current tick is a Slotted Aloha frame tick
 	 *
 	 * @param superframe_counter  counter of superfframes since the begining

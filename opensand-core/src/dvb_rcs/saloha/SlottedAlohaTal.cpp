@@ -302,14 +302,16 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 			case SALOHA_CTRL_ACK:
 			{
 				uint16_t ids[4];
+				bool dup = true;
 				saloha_packets_data_t::iterator packet;
 				saloha_id_t id = ctrl_pkt->getId();
+				delete ctrl_pkt;
 
-				this->convertPacketId(ctrl_pkt->getId(), ids);
+				SlottedAlohaPacket::convertPacketId(id, ids);
 				packet = this->packets_wait_ack[ids[SALOHA_ID_QOS]].begin();
 				LOG(this->log_saloha, LEVEL_DEBUG,
 				    "ACK received for packet with ID %s\n",
-				    ctrl_pkt->getId().c_str());
+				    id.c_str());
 				while(packet != this->packets_wait_ack[ids[SALOHA_ID_QOS]].end())
 				{
 					SlottedAlohaPacketData *data_pkt = *packet;
@@ -325,16 +327,21 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 						this->nb_success++;
 						cw = this->backoff->setReady();
 						this->probe_backoff->put(cw);
-						// erase goes to next iterator
 						this->packets_wait_ack[ids[SALOHA_ID_QOS]].erase(packet);
-						continue;
+						dup = false;
+						break;
 					}
 					packet++;
 				}
-				delete ctrl_pkt;
+				if(dup)
+				{
+					LOG(this->log_saloha, LEVEL_NOTICE,
+					    "Potentially duplicated ACK received for ID %s\n",
+					    id.c_str());
+				}
 				break;
 			}
-			//TODO Possibility to add new control signals
+			//NB: Possibility to add new control signals
 			default:
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
@@ -350,7 +357,7 @@ skip:
 }
 
 bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
-                               uint64_t counter)
+                               time_sf_t sf_counter)
 {
 	uint16_t nb_retransmissions;
 	SlottedAlohaPacketData *sa_packet;
@@ -362,7 +369,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 	uint16_t nbr_packets = 0;
 	uint16_t nbr_packets_total = 0;
 
-	if(!this->isSalohaFrameTick(counter))
+	if(!this->isSalohaFrameTick(sf_counter))
 	{
 		goto skip;
 	}

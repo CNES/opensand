@@ -41,10 +41,12 @@
 
 #include <stdlib.h>
 
+typedef uint32_t saloha_pdu_id_t;
+
 /// Slotted Aloha data packet header
 typedef struct
 {
-	uint64_t id;                    ///< ID of the PDU to which the packet belongs
+	saloha_pdu_id_t id;                 ///< ID of the PDU to which the packet belongs
 	uint16_t ts;                    ///< Timeslot
 	uint16_t seq;                   ///< Sequence of the packet in the PDU
 	uint16_t pdu_nb;                ///< Number of packets in the PDU
@@ -84,7 +86,7 @@ class SlottedAlohaPacketData: public SlottedAlohaPacket
 	 * @param timeout             timeout before deleting
 	 */
 	SlottedAlohaPacketData(const Data &data,
-	                       uint64_t id,
+	                       saloha_pdu_id_t id,
 	                       uint16_t ts,
 	                       uint16_t seq,
 	                       uint16_t pdu_nb,
@@ -103,7 +105,7 @@ class SlottedAlohaPacketData: public SlottedAlohaPacket
 	 *
 	 * @return identifiant of initial packet
 	 */
-	uint64_t getId() const;
+	saloha_pdu_id_t getId() const;
 
 	/**
 	 * Get time slot to send packet

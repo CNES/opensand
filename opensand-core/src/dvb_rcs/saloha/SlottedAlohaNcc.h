@@ -126,13 +126,6 @@ class SlottedAlohaNcc: public SlottedAloha
 
  private:
 
-	typedef enum
-	{
-		dup,
-		no_prop,
-		prop,
-	} prop_state_t;
-
 	/**
 	 * Remove Slotted Aloha header
 	 *
@@ -140,22 +133,6 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @return Encap packet without Slotted Aloha encapsulation
 	 */
 	NetPacket *removeSalohaHeader(SlottedAlohaPacketData *packet);
-
-	/**
-	 * Return if packet can be propagated to encap block or not
-	 *
-	 * @param last_propgated_id  The last ID propagated
-	 * @param packet_id          The Slotted Aloha packet ID
-	 * @param packet             The Slotted Aloha packet
-	 *
-	 * @return dup      if packet is duplicated or an error occurred
-	 *                  (no propagation, no ACK),
-	 *         no_prop  if packet cannot be propagated (no propagation but ACK),
-	 *         prop     if packet can be propagated (propagation and ACK)
-	 */
-	prop_state_t canPropagate(saloha_id_t last_propgated_id,
-	                          saloha_id_t packet_id,
-	                          SlottedAlohaPacketData *packet);
 
 	/**
 	 * @brief Call a specific algorithm to remove all collided packets
