@@ -67,9 +67,9 @@ class SatSpot
 	uint8_t spot_id;            ///< Internal identifier of a spot
 
 	uint8_t data_in_carrier_id; ///< the input carrier ID for the spot
-	uint8_t logon_carrier_id;   ///< the output carrier ID for logon frames
-	uint8_t ctrl_carrier_id;    ///< the output carrier ID for control frames
 
+	DvbFifo *control_fifo;     ///<  Fifo associated with Control carrier
+	DvbFifo *logon_fifo;       ///<  Fifo associated with Logons
 	DvbFifo *data_out_gw_fifo; ///<  Fifo associated with Data for the GW
 	DvbFifo *data_out_st_fifo; ///<  Fifo associated with Data for the ST
 
@@ -168,18 +168,25 @@ class SatSpot
 	DvbFifo *getDataOutGwFifo(void) const;
 
 	/**
-	 * @brief Get the control carrier ID
+	 * @brief Get the control FIFO
 	 *
-	 * @return the control carrier ID
+	 * @return the control FIFO
 	 */
+	DvbFifo *getControlFifo(void) const;
+
+ 	/**
+	 * @brief Get the control carrier ID
+ 	 *
+	 * @return the control carrier ID
+ 	 */
 	uint8_t getControlCarrierId(void) const;
 
 	/**
-	 * @brief Get the logon carrier ID
+	 * @brief Get the logon FIFO
 	 *
-	 * @return the logon carrier ID
+	 * @return the logon FIFO
 	 */
-	uint8_t getLogonCarrierId(void) const;
+	DvbFifo *getLogonFifo(void) const;
 
 	/**
 	 * @brief Get the complete DVB frames list

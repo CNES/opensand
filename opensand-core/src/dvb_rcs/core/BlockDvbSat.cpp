@@ -616,8 +616,21 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					// copy the frame because it will be sent on other spots
 					DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
 
-					if(!this->sendSigFrame(dvb_frame_copy, current_spot))
+					if(dvb_frame_copy->getMessageType() != MSG_TYPE_SOF)
 					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Forwarded frame is not a SoF\n");
+						status = false;
+						break;
+					}
+
+					// create a message for the DVB frame
+					if(!this->sendDvbFrame(dvb_frame_copy,
+					                       current_spot->getControlCarrierId()))
+					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "failed to send sig frame to lower layer, "
+						    "drop it\n");
 						status = false;
 					}
 				}
@@ -704,6 +717,26 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				    i_spot != this->spots.end(); i_spot++)
 				{
 					SatSpot *current_spot = i_spot->second;
+
+					LOG(this->log_send, LEVEL_DEBUG,
+					    "send logon frames on satellite spot %u\n",
+					    i_spot->first);
+					if(!this->sendFrames(current_spot->getLogonFifo()))
+					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Failed to send logon frames on spot %u\n",
+						    i_spot->first);
+					}
+
+					LOG(this->log_send, LEVEL_DEBUG,
+					    "send control frames on satellite spot %u\n",
+					    i_spot->first);
+					if(!this->sendFrames(current_spot->getControlFifo()))
+					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Failed to send contol frames on spot %u\n",
+						    i_spot->first);
+					}
 
 					if(this->satellite_type == TRANSPARENT)
 					{
@@ -823,53 +856,6 @@ error:
 	delete elem;
 	return false;
 }
-
-
-bool BlockDvbSat::Downward::sendSigFrame(DvbFrame *frame, const SatSpot *const spot)
-{
-	uint8_t carrier_id;
-	size_t length;
-
-	switch(frame->getMessageType())
-	{
-		case MSG_TYPE_SAC:
-		case MSG_TYPE_SOF:
-		case MSG_TYPE_TTP:
-		case MSG_TYPE_SYNC:
-		case MSG_TYPE_SESSION_LOGON_RESP:
-			carrier_id = spot->getControlCarrierId();
-			break;
-
-		case MSG_TYPE_SESSION_LOGON_REQ:
-			carrier_id = spot->getLogonCarrierId();
-			break;
-
-		default:
-			LOG(this->log_send, LEVEL_ERROR,
-			    "Frame is not a sig frame\n");
-			goto error;
-	}
-
-	length = frame->getTotalLength();
-	// create a message for the DVB frame
-	if(!this->sendDvbFrame(frame, carrier_id))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "failed to send sig frame to lower layer, "
-		    "drop it\n");
-		goto error;
-	}
-
-	LOG(this->log_send, LEVEL_INFO,
-	    "Sig frame sent with a size of %zu\n", length);
-
-	return true;
-
-error:
-	delete frame;
-	return false;
-}
-
 
 void BlockDvbSat::Downward::updateStats(void)
 {
@@ -1432,16 +1418,53 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// traffic from this terminal, GW will have a wrong value...
 		}
 		// do not break here !
-	case MSG_TYPE_SOF:
 	case MSG_TYPE_TTP:
 	case MSG_TYPE_SYNC:
 	case MSG_TYPE_SESSION_LOGON_RESP:
+	{
+		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
+		{
+			DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
+
+			// forward the frame copy
+			if(!this->forwardDvbFrame(spot->second->getControlFifo(),
+			                          dvb_frame_copy))
+			{
+				status = false;
+			}
+		}
+		delete dvb_frame;
+	}
+	break;
+
+	// Special case of logon frame with dedicated channel
 	case MSG_TYPE_SESSION_LOGON_REQ:
+	{
+		LOG(this->log_receive, LEVEL_DEBUG,
+		    "ST logon request received, forward it on all satellite spots\n");
+
+		for(spot = this->spots.begin(); spot != this->spots.end(); spot++)
+		{
+			DvbFrame *dvb_frame_copy = new DvbFrame(dvb_frame);
+
+			// forward the frame copy
+			if(!this->forwardDvbFrame(spot->second->getLogonFifo(),
+			                          dvb_frame_copy))
+			{
+				status = false;
+			}
+		}
+		delete dvb_frame;
+	}
+	break;
+
+
+	case MSG_TYPE_SOF:
 	{
 		LOG(this->log_receive, LEVEL_DEBUG,
 		    "control frame (type = %u) received, forward it on all satellite spots\n",
 		    dvb_frame->getMessageType());
-		// the message should not be stored in fifo, especially SOF because it
+		// the SOF message should not be stored in fifo, because it
 		// would be kept a random amount of time between [0, fwd_timer]
 		// and we need a perfect synchronization
 		if(!this->shareMessage((void **)&dvb_frame, sizeof(dvb_frame),
