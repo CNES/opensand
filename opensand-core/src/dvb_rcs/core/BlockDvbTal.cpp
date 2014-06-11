@@ -555,7 +555,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "ST not affected to a DAMA category\n");
-			return true;
+			goto release_cat;
 		}
 		tal_category = default_category;
 	}
@@ -586,26 +586,15 @@ bool BlockDvbTal::Downward::initDama(void)
 				}
 			}
 		}
-		return true;
+		goto release_cat;
 	}
 
 	if(!is_dama_fifo)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The DAMA carrier won't be used as there is no DAMA FIFO\n");
-		return true;
+		goto release_cat;
 	}
-
-	for(cat_it = dama_categories.begin();
-	    cat_it != dama_categories.end(); ++cat_it)
-	{
-		if((*cat_it).second->getLabel() != tal_category->getLabel())
-		{
-			delete (*cat_it).second;
-		}
-	}
-	dama_categories.clear();
-	dama_categories[tal_category->getLabel()] = tal_category;
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
 	if(!Conf::getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
@@ -739,11 +728,22 @@ bool BlockDvbTal::Downward::initDama(void)
 		goto err_agent_release;
 	}
 
+release_cat:
+	for(cat_it = dama_categories.begin();
+	    cat_it != dama_categories.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
 	return true;
 
 err_agent_release:
 	delete this->dama_agent;
 error:
+	for(cat_it = dama_categories.begin();
+	    cat_it != dama_categories.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
 	return false;
 }
 
@@ -834,6 +834,11 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The Slotted Aloha carrier won't be used as there is no "
 		    "Slotted Aloha FIFO\n");
+		for(cat_it = sa_categories.begin();
+		    cat_it != sa_categories.end(); ++cat_it)
+		{
+			delete (*cat_it).second;
+		}
 		return true;
 	}
 
@@ -1043,6 +1048,13 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				    "SF#%u: encapsulation packet has QoS value %u\n",
 				    this->super_frame_counter, fifo_priority);
 
+				// find the FIFO associated to the IP QoS (= MAC FIFO id)
+				// else use the default id
+				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+				{
+					fifo_priority = this->default_fifo_id;
+				}
+
 				// Slotted Aloha
 				sa_packet = NULL;
 				if(this->saloha &&
@@ -1063,18 +1075,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 
-				// find the FIFO associated to the IP QoS (= MAC FIFO id)
-				// else use the default id
-				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
-				{
-					fifo_priority = this->default_fifo_id;
-				}
-
 				LOG(this->log_receive, LEVEL_INFO,
 				    "SF#%u: store one encapsulation packet "
 				    "(QoS = %d)\n", this->super_frame_counter,
 				    fifo_priority);
-
 
 				// store the encapsulation packet in the FIFO
 				if(!this->onRcvEncapPacket(sa_packet ? sa_packet : *pkt_it,
@@ -1275,7 +1279,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			break;
 
 		case MSG_TYPE_SALOHA_CTRL:
-			if(!this->saloha->onRcvFrame(dvb_frame))
+			if(this->saloha && !this->saloha->onRcvFrame(dvb_frame))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "failed to handle Slotted Aloha Signal Controls frame");

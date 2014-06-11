@@ -40,8 +40,8 @@
 #include <algorithm>
 
 
-TerminalCategorySaloha::TerminalCategorySaloha(string label):
-	TerminalCategory<CarriersGroupSaloha>(label),
+TerminalCategorySaloha::TerminalCategorySaloha(string label, access_type_t access_type):
+	TerminalCategory<CarriersGroupSaloha>(label, access_type),
 	accepted_packets(NULL),
 	received_packets_nbr(0)
 {

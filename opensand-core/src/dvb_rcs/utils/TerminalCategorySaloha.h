@@ -54,8 +54,9 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 * @brief  Create a terminal category.
 	 *
 	 * @param  label  label of the category.
+	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategorySaloha(string label);
+	TerminalCategorySaloha(string label, access_type_t desired_access);
 
 	~TerminalCategorySaloha();
 

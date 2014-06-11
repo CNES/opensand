@@ -46,7 +46,7 @@ typedef uint32_t saloha_pdu_id_t;
 /// Slotted Aloha data packet header
 typedef struct
 {
-	saloha_pdu_id_t id;                 ///< ID of the PDU to which the packet belongs
+	saloha_pdu_id_t id;             ///< ID of the PDU to which the packet belongs
 	uint16_t ts;                    ///< Timeslot
 	uint16_t seq;                   ///< Sequence of the packet in the PDU
 	uint16_t pdu_nb;                ///< Number of packets in the PDU

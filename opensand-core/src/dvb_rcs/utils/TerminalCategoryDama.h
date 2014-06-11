@@ -54,8 +54,9 @@ class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 	 * @brief  Create a terminal category.
 	 *
 	 * @param  label  label of the category.
+	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategoryDama(string label);
+	TerminalCategoryDama(string label, access_type_t desired_access=DAMA);
 
 	~TerminalCategoryDama();
 

@@ -64,12 +64,15 @@ class TerminalCategory
 	/**
 	 * @brief  Create a terminal category.
 	 *
-	 * @param  label  label of the category.
+	 * @param  label           label of the category.
+	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategory(string label):
+	TerminalCategory(string label, access_type_t desired_access):
 		terminals(),
 		carriers_groups(),
-		label(label)
+		desired_access(desired_access),
+		label(label),
+		other_carriers()
 	{
 		// Output log
 		this->log_terminal_category = Output::registerLog(LEVEL_WARNING,
@@ -78,11 +81,20 @@ class TerminalCategory
 
 	virtual ~TerminalCategory()
 	{
-		typename vector<T *>::iterator it;
+		typename vector<T *>::const_iterator it;
+		vector<CarriersGroup *>::const_iterator other_it;
+
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
 		{
 			delete *it;
+		}
+
+		// delete other carriers in case updateCarriersGroups where not called
+		for(other_it = this->other_carriers.begin();
+		    other_it != this->other_carriers.end(); ++other_it)
+		{
+			delete *other_it;
 		}
 		// do not delete terminals, they will be deleted in DAMA or SlottedAloha
 	};
@@ -100,7 +112,7 @@ class TerminalCategory
 
 
 	/**
-	 * @brief Get the weighted sum among carriers groups on thsi category
+	 * @brief Get the weighted sum among all carriers groups on this category
 	 *
 	 * @return the weighted sum
 	 */
@@ -109,6 +121,7 @@ class TerminalCategory
 		// Compute weighted sum in ks/s since available bandplan is in kHz
 		double weighted_sum_ksymps = 0.0;
 		typename vector<T *>::const_iterator it;
+		vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -116,11 +129,20 @@ class TerminalCategory
 			// weighted_sum = ratio * Rs (ks/s)
 			weighted_sum_ksymps += (*it)->getRatio() * (*it)->getSymbolRate() / 1E3;
 		}
+
+		for(other_it = this->other_carriers.begin();
+		    other_it != this->other_carriers.end(); ++other_it)
+		{
+			// weighted_sum = ratio * Rs (ks/s)
+			weighted_sum_ksymps += (*other_it)->getRatio() * (*other_it)->getSymbolRate() / 1E3;
+		}
+
 		return weighted_sum_ksymps;
 	};
 
 	/**
-	 * @brief  Get the estimated occupation ratio.
+	 * @brief  Get the estimated occupation ratio other all carriers groups of
+	 *         this category.
 	 *
 	 * @return  the estimated occupation ratio.
 	 */
@@ -128,12 +150,20 @@ class TerminalCategory
 	{
 		unsigned int ratio = 0;
 		typename vector<T *>::const_iterator it;
+		vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
 		{
 			ratio += (*it)->getRatio();
 		}
+
+		for(other_it = this->other_carriers.begin();
+		    other_it != this->other_carriers.end(); ++other_it)
+		{
+			ratio += (*other_it)->getRatio();
+		}
+
 		return ratio;
 	};
 
@@ -148,6 +178,7 @@ class TerminalCategory
 	{
 		unsigned int total_ratio = this->getRatio();
 		typename vector<T *>::const_iterator it;
+		vector<CarriersGroup *>::const_iterator other_it;
 
 		if(carriers_number < this->carriers_groups.size())
 		{
@@ -179,6 +210,14 @@ class TerminalCategory
 			    "symbols\n", (*it)->getCarriersId(),
 			    (*it)->getSymbolRate(), capacity_sym);
 		}
+		// no need to update other groups, they won't be used anymore
+		// then released them
+		for(other_it = this->other_carriers.begin();
+		    other_it != this->other_carriers.end(); ++other_it)
+		{
+			delete *other_it;
+		}
+		this->other_carriers.clear();
 	};
 
 	/**
@@ -224,7 +263,7 @@ class TerminalCategory
 	};
 
 	/**
-	 * @brief   Get the carriers groups
+	 * @brief   Get the carriers groups with the desired access type
 	 *
 	 * @return  the carriers groups
 	 */
@@ -248,15 +287,25 @@ class TerminalCategory
 	                      rate_symps_t rate_symps,
 	                      access_type_t access_type)
 	{
-		T *group = new T(carriers_id, fmt_group,
-		                 ratio, rate_symps,
-		                 access_type);
-		this->carriers_groups.push_back(group);
+		if(access_type == this->desired_access)
+		{
+			T *group = new T(carriers_id, fmt_group,
+			                 ratio, rate_symps,
+			                 access_type);
+			this->carriers_groups.push_back(group);
+		}
+		else
+		{
+			CarriersGroup *group = new CarriersGroup(carriers_id, fmt_group,
+			                                         ratio, rate_symps,
+			                                         access_type);
+			this->other_carriers.push_back(group);
+		}
 	};
 
 
 	/**
-	 * @brief   Get number of carriers.
+	 * @brief   Get number of carriers with the desired access type.
 	 *
 	 * @return  number of carriers.
 	 */
@@ -293,9 +342,16 @@ class TerminalCategory
 	/** List of carriers */
 	vector<T *> carriers_groups;
 
+	/** The access type of the carriers */
+	access_type_t desired_access;
+	
 	/** The label */
 	string label;
 
+ private:
+	/** The carriers groups that does not correspond to the desired access type
+	 *   needed for band computation */
+	vector<CarriersGroup *> other_carriers;
 };
 
 

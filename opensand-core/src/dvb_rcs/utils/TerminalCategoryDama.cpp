@@ -42,8 +42,8 @@
 #include <algorithm>
 
 
-TerminalCategoryDama::TerminalCategoryDama(string label):
-	TerminalCategory<CarriersGroupDama>(label)
+TerminalCategoryDama::TerminalCategoryDama(string label, access_type_t access_type):
+	TerminalCategory<CarriersGroupDama>(label, access_type)
 {
 }
 

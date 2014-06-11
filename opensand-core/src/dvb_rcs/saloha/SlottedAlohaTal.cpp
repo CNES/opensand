@@ -666,6 +666,7 @@ bool SlottedAlohaTal::addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
 			return false;
 		}
 	}
+
 	this->packets_wait_ack[qos].push_back(packet);
 
 	return true;

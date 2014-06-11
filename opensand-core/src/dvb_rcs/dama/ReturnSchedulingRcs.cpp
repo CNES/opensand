@@ -50,6 +50,12 @@ ReturnSchedulingRcs::ReturnSchedulingRcs(
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
+		if((*it).second->getCrType() != cr_rbdc &&
+		   (*it).second->getCrType() != cr_vbdc &&
+		   (*it).second->getCrType() != cr_none)
+		{
+			continue;
+		}
 		this->max_pvc = std::max((*it).second->getPvc(), this->max_pvc);
 	}
 }

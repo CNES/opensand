@@ -471,7 +471,7 @@ bool BlockDvbSat::Downward::initStList(void)
 	for(iter = column_list.begin(); iter != column_list.end(); iter++)
 	{
 		i++;
-		tal_id_t tal_id;
+		tal_id_t tal_id = 0;
 		long column_nbr;
 
 		// Get the Tal ID
@@ -1361,7 +1361,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 				// TODO: forward according to a table
 				LOG(this->log_receive, LEVEL_INFO,
-				    "Slotte Aloha frame comes from spot %u (carrier "
+				    "Slotted Aloha frame comes from spot %u (carrier "
 				    "%u) => forward it to spot %u (carrier %u)\n",
 				    current_spot->getSpotId(),
 				    current_spot->getInputCarrierId(),

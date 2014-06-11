@@ -872,7 +872,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 			    "No DAMA and regenerative satellite\n");
 			return false;
 		}
-		LOG(this->log_init, LEVEL_DEBUG,
+		LOG(this->log_init, LEVEL_NOTICE,
 		    "No TDM carrier, won't allocate DAMA\n");
 		// Also disable request simulation
 		this->simulate = none_simu;

@@ -512,12 +512,6 @@ bool DvbChannel::initBand(const char *band,
 		    "ratio=%u, access type=%s\n", band, name.c_str(),
 		    symbol_rate_symps, group_id, ratio,
 		    access.c_str());
-		if(strToAccessType(access) != access_type)
-		{
-			LOG(this->log_init, LEVEL_INFO,
-			    "Skip access type %s\n", access.c_str());
-			continue;
-		}
 
 		group_it = fmt_groups.find(group_id);
 		if(group_it == fmt_groups.end())
@@ -529,21 +523,48 @@ bool DvbChannel::initBand(const char *band,
 		}
 
 		// create the category if it does not exist
+		// we also create categories with wrong access type because:
+		//  - we may have many access types in the category
+		//  - we need to get all carriers for band computation
 		cat_iter = categories.find(name);
 		category = dynamic_cast<T *>((*cat_iter).second);
 		if(cat_iter == categories.end())
 		{
-			category = new T(name);
+			category = new T(name, access_type);
 			categories[name] = category;
 		}
 		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
-		                           symbol_rate_symps, access_type);
+		                           symbol_rate_symps, strToAccessType(access));
 		carrier_id++;
+	}
+
+	// Compute bandplan
+	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot compute band plan for %s\n", band);
+		goto error;
+	}
+
+	// delete category with no carriers corresponding to the access type
+	for(cat_iter = categories.begin(); cat_iter != categories.end(); ++cat_iter)
+	{
+		T *category = (*cat_iter).second;
+		// getCarriersNumber returns the number of carriers with the desired
+		// access type only
+		if(!category->getCarriersNumber())
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "Skip category %s with no carriers with desired access type\n",
+			    category->getLabel().c_str());
+			delete category;
+			categories.erase(cat_iter);
+		}
 	}
 
 	if(categories.size() == 0)
 	{
-		// no category here, this will be handled by caller
+		// no more category here, this will be handled by caller
 		return true;
 	}
 
@@ -638,14 +659,6 @@ bool DvbChannel::initBand(const char *band,
 		}
 	}
 
-	// Compute bandplan
-	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot compute band plan for %s\n", band);
-		goto error;
-	}
-
 	return true;
 
 error:
@@ -709,9 +722,6 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 error:
 	return false;
 }
-
-
-
 
 
 

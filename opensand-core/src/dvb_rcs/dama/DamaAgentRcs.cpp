@@ -145,9 +145,12 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	for(list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
 	    it != complete_dvb_frames->end(); ++it)
 	{
-		// TODO DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
-		DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
-		frame->setModcodId(this->modcod_id);
+		if((*it)->getMessageType() == MSG_TYPE_DVB_BURST)
+		{
+			// TODO DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
+			DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
+			frame->setModcodId(this->modcod_id);
+		}
 	}
 	this->probe_st_used_modcod->put(this->modcod_id);
 

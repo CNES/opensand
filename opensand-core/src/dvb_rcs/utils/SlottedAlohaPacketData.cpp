@@ -1,5 +1,5 @@
 /*
- *
+*
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
  * satellite telecommunication system for research and engineering activities.
  *
@@ -29,7 +29,7 @@
 /**
  * @file SlottedAlohaPacketData.cpp
  * @brief The Slotted Aloha data packets
- * 
+ *
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
  * @author Julien Bernard / Viveris technologies
  */
@@ -61,7 +61,7 @@ SlottedAlohaPacketData::SlottedAlohaPacketData(const Data &data,
 	this->header_length = sizeof(saloha_data_hdr_t);
 	this->timeout_saf = timeout_saf;
 	this->nb_retransmissions = 0;
-	
+
 	tmp_head.id = htonl(id);
 	tmp_head.ts = htons(ts);
 	tmp_head.seq = htons(seq);
@@ -89,7 +89,7 @@ SlottedAlohaPacketData::~SlottedAlohaPacketData()
 saloha_pdu_id_t SlottedAlohaPacketData::getId() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	// if uint64_t
 	//return be64toh(header->id);
@@ -100,7 +100,7 @@ saloha_pdu_id_t SlottedAlohaPacketData::getId() const
 uint16_t SlottedAlohaPacketData::getTs() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return ntohs(header->ts);
 }
@@ -108,7 +108,7 @@ uint16_t SlottedAlohaPacketData::getTs() const
 uint16_t SlottedAlohaPacketData::getSeq() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return ntohs(header->seq);
 }
@@ -116,7 +116,7 @@ uint16_t SlottedAlohaPacketData::getSeq() const
 uint16_t SlottedAlohaPacketData::getPduNb() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return ntohs(header->pdu_nb);
 }
@@ -134,7 +134,7 @@ uint16_t SlottedAlohaPacketData::getNbRetransmissions() const
 uint16_t SlottedAlohaPacketData::getNbReplicas() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return ntohs(header->nb_replicas);
 }
@@ -161,7 +161,7 @@ uint16_t SlottedAlohaPacketData::getReplica(uint16_t pos) const
 uint8_t SlottedAlohaPacketData::getQos() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return header->qos;
 }
@@ -169,7 +169,7 @@ uint8_t SlottedAlohaPacketData::getQos() const
 void SlottedAlohaPacketData::setTs(uint16_t ts)
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	header->ts = htons(ts);
 }
@@ -178,7 +178,7 @@ void SlottedAlohaPacketData::setReplicas(uint16_t *replicas, size_t nb_replicas)
 {
 	uint16_t *hreplicas;
 	saloha_data_hdr_t *header;
-	
+
 	//Warning: a Slotted Aloha data packet (not ctrl signal) is composed
 	//         as follows:
 	//         <header><replicas><data> so we need to reserve some memory
@@ -206,7 +206,7 @@ void SlottedAlohaPacketData::setReplicas(uint16_t *replicas, size_t nb_replicas)
 	{
 		return;
 	}
-	
+
 	hreplicas = (uint16_t *)header->replicas;
 	for(unsigned int i = 0; i < nb_replicas; i++)
 	{
@@ -241,7 +241,7 @@ void SlottedAlohaPacketData::incNbRetransmissions()
 size_t SlottedAlohaPacketData::getTotalLength() const
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)this->data.c_str();
 	return ntohs(header->total_length);
 }
@@ -270,7 +270,7 @@ Data SlottedAlohaPacketData::getPayload() const
 size_t SlottedAlohaPacketData::getPacketLength(const Data &data)
 {
 	saloha_data_hdr_t *header;
-	
+
 	header = (saloha_data_hdr_t *)data.c_str();
 	return ntohs(header->total_length);
 }
@@ -278,7 +278,7 @@ size_t SlottedAlohaPacketData::getPacketLength(const Data &data)
 saloha_id_t SlottedAlohaPacketData::getUniqueId(void) const
 {
 	std::ostringstream os;
-	
+
 	// need int cast else there is some problems
 	os << (int)this->getId() << ':' << (int)this->getSeq() << ':'
 	   << (int)this->getPduNb() << ':' << (int)this->getQos();
