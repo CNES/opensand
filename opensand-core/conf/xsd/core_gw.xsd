@@ -87,6 +87,67 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="Ratio">
+    <xsd:restriction base="xsd:nonNegativeInteger">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="100" /> <!-- 0x1f -->
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="Category">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="Standard" />
+        <xsd:enumeration value="Premium" />
+        <xsd:enumeration value="Pro" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the traffic simulation table -->
+<xsd:element name="simulation_traffic">
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:element ref="simu" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="simu">
+    <xsd:complexType>
+        <xsd:attribute name="category" type="Category">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The name of the category to which the traffic applies
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="nb_max_packets" type="xsd:nonNegativeInteger">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The maximum number of packets per Slotted Aloha frame
+                    per simulated terminal (0 to disable this line)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="nb_replicas" type="xsd:positiveInteger">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The number of replicas per Slotted Aloha frame
+                    (including the original packet)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="ratio" type="Ratio">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The amount of traffic to simulate on the category
+                    (in %)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
 <!-- types for pep section -->
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
@@ -243,13 +304,13 @@
                     </xsd:documentation>
                 </xsd:annotation>
 			</xsd:element>
-<!--			<xsd:element name="simulation_traffic" type="xsd:nonNegativeInteger">
+			<xsd:element ref="simulation_traffic">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        Add simulated traffic (in %)
+                        Add Slotted Aloha simulated traffic in categories
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>-->
+			</xsd:element>
 		</xsd:sequence>
 	</xsd:complexType>
 </xsd:element>

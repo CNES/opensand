@@ -557,8 +557,8 @@ bool DvbChannel::initBand(const char *band,
 			LOG(this->log_init, LEVEL_INFO,
 			    "Skip category %s with no carriers with desired access type\n",
 			    category->getLabel().c_str());
-			delete category;
 			categories.erase(cat_iter);
+			delete category;
 		}
 	}
 

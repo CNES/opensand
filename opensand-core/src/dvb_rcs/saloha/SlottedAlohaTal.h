@@ -75,6 +75,9 @@ class SlottedAlohaTal: public SlottedAloha
 	/// Maximum number of packets per superframe
 	uint16_t nb_max_packets;
 
+	/// Number of replicas per packet
+	uint16_t nb_replicas;
+
 	/// Configuration parameter : maximum number of retransmissions before
 	/// packet deleting
 	uint16_t nb_max_retransmissions;

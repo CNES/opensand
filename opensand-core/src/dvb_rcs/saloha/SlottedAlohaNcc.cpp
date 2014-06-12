@@ -56,7 +56,7 @@ SlottedAlohaNcc::SlottedAlohaNcc():
 	default_category(NULL),
 	terminals(),
 	algo(NULL),
-	simulation_traffic(0)
+	simu()
 {
 }
 
@@ -80,6 +80,12 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 
 	this->terminal_affectation.clear();
 
+	for(vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
+	    it != this->simu.end(); ++it)
+	{
+		delete *it;
+	}
+
 	delete this->algo;
 }
 
@@ -90,6 +96,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 {
 	string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
+	ConfigurationList simu_list;
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -119,13 +126,21 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		cat->setSlotsNumber(this->frame_duration_ms,
 		                    this->pkt_hdl->getFixedLength());
 		Probe<int> *probe_coll;
+		Probe<int> *probe_coll_ratio;
 
 		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
 		                                       "Aloha.collisions.%s",
 		                                       (*cat_iter).first.c_str());
+		probe_coll_ratio = Output::registerProbe<int>("%", true, SAMPLE_AVG,
+		                                             "Aloha.collisions_ratio.%s",
+		                                             (*cat_iter).first.c_str());
+
 		this->probe_collisions.insert(
 		            pair<string, Probe<int> *>((*cat_iter).first,
 		                                       probe_coll));
+		this->probe_collisions_ratio.insert(
+		            pair<string, Probe<int> *>((*cat_iter).first,
+		                                       probe_coll_ratio));
 	}
 
 	if(!Conf::getValue(SALOHA_SECTION, SALOHA_ALGO, algo_name))
@@ -135,15 +150,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		    SALOHA_SECTION, SALOHA_ALGO);
 		return false;
 	}
-	// TODO add more parameters (nb_replicas, max_pkt, ...)
-/*	if(!Conf::getValue(SALOHA_SECTION, SALOHA_SIMU_TRAFFIC,
-	                   this->simulation_traffic))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_SIMU_TRAFFIC);
-		return false;
-	}*/
 
 	if (algo_name == "DSA")
 	{
@@ -162,6 +168,81 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	LOG(this->log_init, LEVEL_INFO,
 	    "initialize Slotted Aloha with %s algorithm\n",
 	    algo_name.c_str());
+
+	// load Slotted Aloha traffic simulation parameters
+	if(!Conf::getListItems(SALOHA_SECTION, SALOHA_SIMU_LIST, simu_list))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', '%s': missing simulation list\n",
+		    SALOHA_SECTION, SALOHA_SIMU_LIST);
+		return false;
+	}
+
+	for(ConfigurationList::iterator iter = simu_list.begin();
+	    iter != simu_list.end(); ++iter)
+	{
+		string label;
+		uint16_t nb_max_packets = 0;
+		uint16_t nb_replicas = 0;
+		uint8_t ratio = 0;
+		SlottedAlohaSimu *simulation;
+
+		if(!Conf::getAttributeValue(iter, CATEGORY, label))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    CATEGORY, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			return false;
+		}
+		if(!Conf::getAttributeValue(iter, SALOHA_NB_MAX_PACKETS, nb_max_packets))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    SALOHA_NB_MAX_PACKETS, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			return false;
+		}
+		if(!Conf::getAttributeValue(iter, SALOHA_NB_REPLICAS, nb_replicas))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    SALOHA_NB_REPLICAS, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			return false;
+		}
+		if(!Conf::getAttributeValue(iter, SALOHA_RATIO, ratio))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    SALOHA_RATIO, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			return false;
+		}
+
+		// FIXME: as in manager we need at least one element in a table
+		//        to add a new line, we will have at least one line here.
+		//        So this is a way to ignore it
+		if(nb_max_packets == 0)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "Slotted Aloha simulation parameters for category %s "
+			    "with 0 maximum packets: ignored\n", label.c_str());
+			continue;
+		}
+
+		cat_iter = this->categories.find(label);
+		if(cat_iter == this->categories.end())
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Slotted Aloha simulation parameters for category %s "
+			    "that does not contain Slotted Aloha carriers\n",
+			    label.c_str());
+			continue;
+		}
+		
+		simulation = new SlottedAlohaSimu((*cat_iter).second,
+		                                  nb_max_packets,
+		                                  nb_replicas,
+		                                  ratio);
+		this->simu.push_back(simulation);
+	}
 
 	return true;
 }
@@ -260,7 +341,6 @@ bool SlottedAlohaNcc::schedule(NetBurst **burst,
 	{
 		return true;
 	}
-	// TODO at the moment we simulate trafic on all categories
 	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
 	    ++cat_iter)
 	{
@@ -282,13 +362,13 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	saloha_packets_data_t::iterator pkt_it;
 	// refresh the probe in case of no traffic
 	this->probe_collisions[category->getLabel()]->put(0);
+	this->probe_collisions_ratio[category->getLabel()]->put(0);
 	if(!category->getReceivedPacketsNbr())
 	{
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "No packet to schedule in category %s\n",
 		    category->getLabel().c_str());
 		return true;
-		// TODO check wait propagation packets here ?
 	}
 
 	*burst = new NetBurst();
@@ -299,7 +379,15 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		return false;
 	}
 
-	//this->simulateTraffic(category); // Simulate traffic to get performance statistics
+	for(vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
+	    it != this->simu.end(); ++it)
+	{
+		if((*it)->getCategory() == category->getLabel())
+		{
+			this->simulateTraffic(category, *it);
+		}
+	}
+
 	category->resetReceivedPacketsNbr();
 	LOG(this->log_saloha, LEVEL_DEBUG,
 	    "Remove collisions on category %s\n",
@@ -339,7 +427,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		id_pdu = sa_packet->getId();
 		tal_id = sa_packet->getSrcTalId();
 
-		if(tal_id == GW_TAL_ID)
+		if(tal_id > BROADCAST_TAL_ID)
 		{
 			LOG(this->log_saloha, LEVEL_DEBUG,
 			    "drop Slotted Aloha simulation packet\n");
@@ -473,47 +561,31 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	nbr = this->algo->removeCollisions(slots,
 	                                   accepted_packets);
 	this->probe_collisions[category->getLabel()]->put(nbr);
+	this->probe_collisions_ratio[category->getLabel()]->put(nbr * 100 /
+	                                                        category->getSlotsNumber());
 	// Because of CRDSA algorithm for example, need to sort packets
 	sort(accepted_packets->begin(), accepted_packets->end(), comparator);
 }
 
-void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
+void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
+                                      const SlottedAlohaSimu *simulation)
 {
-	if(!this->simulation_traffic)
+	for(unsigned int cpt = 0; cpt < simulation->getNbTal(); cpt++)
 	{
-		return;
-	}
+		saloha_ts_list_t tmp;
+		saloha_ts_list_t time_slots;
+		saloha_ts_list_t::iterator it;
+		uint16_t slots_per_carrier;
+		uint16_t slot;
+		uint16_t pdu_id;
 
-	unsigned int nb_packets;
-	unsigned int nb_packets_per_tal;
-	unsigned int nb_slots;
-	unsigned int slot;
-	unsigned int nb_tal;
-	unsigned int slots_per_carrier = floor(category->getSlotsNumber() /
-	                                       category->getCarriersNumber());
-	// TODO choose mean nb_max_packet in conf
-	uint16_t nb_max_packets = 10;
-
-	nb_slots = round((category->getSlotsNumber() * this->simulation_traffic) / 100);
-	nb_packets = nb_slots * this->nb_replicas;
-	nb_tal = nb_packets / nb_max_packets;
-	nb_packets_per_tal = nb_packets / nb_tal;
-	LOG(this->log_saloha, LEVEL_ERROR,
-	    "category %s, simulate %du%% = (%u slots * %u replicas) "
-	    "= %u packets (%u / tal * %u)",
-	    category->getLabel().c_str(), this->simulation_traffic,
-	    nb_slots, this->nb_replicas, nb_packets,
-	    nb_packets_per_tal, nb_tal);
-	for(unsigned int cpt = 0; cpt < nb_tal; cpt++)
-	{
-		set<unsigned int> tmp;
-		set<unsigned int> time_slots;
-		set<unsigned int>::iterator it;
+		slots_per_carrier = floor(category->getSlotsNumber() /
+		                          category->getCarriersNumber());
 
 		// see SlottedAlohaTal
 		tmp.clear();
 		time_slots.clear();
-		while(tmp.size() < nb_packets_per_tal)
+		while(tmp.size() < simulation->getNbPacketsPerTal())
 		{
 			slot = (rand() / (double)RAND_MAX) * slots_per_carrier;
 			tmp.insert(slot);
@@ -525,22 +597,44 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category)
 			       slots_per_carrier + slot_id;
 			time_slots.insert(slot);
 		}
-		for(it = time_slots.begin(); it != time_slots.end(); ++it)
+
+
+		pdu_id = 0;
+		it = time_slots.begin();
+		while(it != time_slots.end())
 		{
-			unsigned int slot_id = *it;
 			map<unsigned int, Slot *> slots = category->getSlots();
-//			NetPacket encap_packet(Data(""), 0, "", 0, 0, 0, 0, 0);
-			SlottedAlohaPacketData *sa_packet;
-			sa_packet = new SlottedAlohaPacketData(Data(),
-			                                       (saloha_pdu_id_t)0,
-			                                       (uint16_t)0,
-			                                       (uint16_t)0,
-			                                       (uint16_t)0,
-			                                       (uint16_t)0,
-			                                       (time_ms_t)0);
-			// no need to check here if id exists as we directly
-			// get info from the map itself to get IDs
-			slots[slot_id]->push_back(sa_packet);
+			uint16_t nb_replicas = simulation->getNbReplicas();
+			uint16_t replicas[nb_replicas];
+			for(uint16_t rep_cpt = 0; rep_cpt < nb_replicas; rep_cpt++)
+			{
+				replicas[rep_cpt] = *it;
+				it++;
+			}
+ 
+			for(uint16_t rep_cpt = 0; rep_cpt < nb_replicas; rep_cpt++)
+			{
+				uint16_t slot_id = replicas[rep_cpt];
+				SlottedAlohaPacketData *sa_packet;
+				// we need a PDU ID else removeCollision will consider all
+				// packets the same, this will mislead CRDSA algorithm
+				sa_packet = new SlottedAlohaPacketData(Data(),
+				                                       (saloha_pdu_id_t)pdu_id,
+				                                       (uint16_t)0,
+				                                       (uint16_t)0,
+				                                       (uint16_t)0,
+				                                       nb_replicas,
+				                                       (time_ms_t)0);
+				// as for request simulation use tal id > BROADCAST_TAL_ID
+				// used for filtering
+				sa_packet->setSrcTalId(BROADCAST_TAL_ID + 1 + cpt);
+				sa_packet->setReplicas(replicas, nb_replicas);
+				sa_packet->setTs(slot_id);
+				// no need to check here if id exists as we directly
+				// get info from the map itself to get IDs
+				slots[slot_id]->push_back(sa_packet);
+			}
+			pdu_id++;
 		}
 	}
 }

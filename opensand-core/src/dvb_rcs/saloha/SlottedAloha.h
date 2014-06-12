@@ -56,9 +56,6 @@ class SlottedAloha
 	/// The frame duration
 	time_ms_t frame_duration_ms;
 
-	/// Number of replicas per packet
-	uint16_t nb_replicas;
-
 	/// Check whether the parent is correctly initialized
 	bool is_parent_init;
 

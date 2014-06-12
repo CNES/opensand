@@ -47,11 +47,12 @@
 
 #include <list>
 
+class SlottedAlohaSimu;
+
 /**
  * @class SlottedAlohaNcc
  * @brief The Slotted Aloha class for NCC
  */
-
 class SlottedAlohaNcc: public SlottedAloha
 {
  private:
@@ -74,12 +75,13 @@ class SlottedAlohaNcc: public SlottedAloha
 	/// Algorithm used to check collisions on slots
 	SlottedAlohaAlgo *algo;
 
-	/// Traffic to simulate
-	uint8_t simulation_traffic;
+	/// Parameters to simulate Slotted Aloha traffic
+	vector<SlottedAlohaSimu *> simu;
 
 	typedef map<string, Probe<int> *> probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
+	probe_per_cat_t probe_collisions_ratio;
 
  public:
 
@@ -144,9 +146,11 @@ class SlottedAlohaNcc: public SlottedAloha
 	/**
 	 * @brief Simulate traffic to get some performance statistics with minimal plateform
 	 *
-	 * @param category  The terminal category
+	 * @param category    The terminal category
+	 * @param simulation  The simulation parameters
 	 */
-	void simulateTraffic(TerminalCategorySaloha *category);
+	void simulateTraffic(TerminalCategorySaloha *category,
+	                     const SlottedAlohaSimu *simulation);
 
 	/**
 	 * Schedule Slotted Aloha packets per category
@@ -211,6 +215,119 @@ class AlohaPacketComparator
 };
 
 
+/**
+ * @class SlottedAlohaSimu
+ * @brief Parameters for Slotted Aloha traffic simulation on a category
+ */
+class SlottedAlohaSimu
+{
+ public:
+
+	/**
+	 * @brief Constructor
+	 *
+	 * @param category        The category concerned by these simulation parameters
+	 * @param nb_max_packets  The maximum number of packets on the category
+	 * @param nb_replicas     The number of replicas
+	 * @param ratio           The ratio of the band the traffic should occupy
+	 */
+	SlottedAlohaSimu(const TerminalCategorySaloha *category,
+	                 uint16_t nb_max_packets,
+	                 uint16_t nb_replicas,
+	                 uint8_t ratio):
+		cat_label(category->getLabel()),
+		nb_replicas(nb_replicas)
+	{
+		uint16_t nb_packets;
+		uint16_t nb_slots;
+		uint16_t slots_per_carrier;
+
+		this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+		slots_per_carrier = floor(category->getSlotsNumber() /
+		                          category->getCarriersNumber());
+	
+		nb_slots = round((category->getSlotsNumber() * ratio) / 100);
+		nb_packets = nb_slots * this->nb_replicas;
+		this->nb_tal = floor(nb_slots / nb_max_packets);
+		this->nb_packets_per_tal = floor(nb_slots / nb_tal) * this->nb_replicas;
+		if(this->nb_packets_per_tal > slots_per_carrier)
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "The simulation traffic is too high for category %s, "
+			    "please consider modifying nb_max_packets. Too many packet "
+			    "per terminal\n", this->cat_label.c_str());
+			// set maxium packets per terminal and adjust terminal number
+			this->nb_packets_per_tal = floor(slots_per_carrier / this->nb_replicas) *
+			                           this->nb_replicas;
+			this->nb_tal = floor(nb_packets /
+			                     (this->nb_packets_per_tal / this->nb_replicas));
+		}
+
+
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "category %s, simulate %d%% ( => %u slots out of %u), "
+		    "%u replicas => %u total packets "
+		    "(%u terminals, %u packets per terminal)",
+		    this->cat_label.c_str(), ratio, nb_slots,
+		    category->getSlotsNumber(), this->nb_replicas, nb_packets,
+		    this->nb_tal, this->nb_packets_per_tal);
+	}
+
+	/**
+	 * @brief Get the label of the category for these simulation parameters
+	 *
+	 * @return the label of the category
+	 */
+	string getCategory(void) const
+	{
+		return this->cat_label;
+	};
+
+	/**
+	 * @brief Get the number of simulated terminals
+	 *
+	 * @return the number of simulated terminals
+	 */
+	tal_id_t getNbTal(void) const
+	{
+		return this->nb_tal;
+	};
+
+	/**
+	 * @brief Get the number of simulated packets per terminal
+	 *
+	 * @return the number of simulated packets per terminal
+	 */
+	uint16_t getNbPacketsPerTal(void) const
+	{
+		return this->nb_packets_per_tal;
+	};
+
+	/**
+	 * @brief Get the number of replicas
+	 *
+	 * @return the number of replicas
+	 */
+	uint16_t getNbReplicas(void) const
+	{
+		return this->nb_replicas;
+	};
+
+ protected:
+
+	// TODO this would be better to do something more random with mean nbr of pkt per tal,
+	//      mean number of tal
+	/// The label of the category
+	string cat_label;
+	/// The number of replicas
+	uint16_t nb_replicas;
+	/// The number of terminal
+	tal_id_t nb_tal;
+	/// The number of packets per terminal
+	uint16_t nb_packets_per_tal;
+	/// Logger
+	OutputLog *log_init;
+};
 
 #endif
 

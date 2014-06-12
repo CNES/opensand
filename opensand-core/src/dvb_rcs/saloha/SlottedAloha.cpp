@@ -47,7 +47,6 @@
 SlottedAloha::SlottedAloha():
 	sf_per_saframe(),
 	frame_duration_ms(),
-	nb_replicas(0),
 	is_parent_init(false),
 	pkt_hdl(NULL)
 {

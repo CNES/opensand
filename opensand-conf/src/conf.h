@@ -210,7 +210,8 @@
 #define SALOHA_BACKOFF_MULTIPLE        "backoff_multiple"
 #define SALOHA_NB_REPLICAS             "nb_replicas"
 #define SALOHA_ALGO                    "algorithm"
-#define SALOHA_SIMU_TRAFFIC            "simulation_traffic"
+#define SALOHA_SIMU_LIST               "simulation_traffic"
+#define SALOHA_RATIO                   "ratio"
 
 //////////
 // QOS //

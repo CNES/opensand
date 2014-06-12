@@ -49,7 +49,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
                                                    saloha_packets_data_t *accepted_packets)
 {
 	map<unsigned int, Slot *>::iterator slot_it;
-	vector<saloha_id_t> accepted_ids;
+	map<tal_id_t, vector<saloha_id_t> > accepted_ids;
 	saloha_packets_data_t::iterator pkt_it;
 	uint16_t nbr_collisions = 0;
 	bool stop;
@@ -80,9 +80,17 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
 			while(pkt_it != slot->end())
 			{
 				packet = dynamic_cast<SlottedAlohaPacketData *>(*pkt_it);
-				if(std::find(accepted_ids.begin(),
-				             accepted_ids.end(),
-				             packet->getUniqueId()) != accepted_ids.end())
+				tal_id_t tal_id = packet->getSrcTalId();
+
+				// create accepted_ids for this terminal if it does not exist
+				if(accepted_ids.find(tal_id) == accepted_ids.end())
+				{
+					accepted_ids[tal_id] = vector<saloha_id_t>();
+				}
+
+				if(std::find(accepted_ids[tal_id].begin(),
+				             accepted_ids[tal_id].end(),
+				             packet->getUniqueId()) != accepted_ids[tal_id].end())
 				{
 					slot->erase(pkt_it);
 					// avoid removing an accepted packet
@@ -103,14 +111,22 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
 			if(slot->size() == 1)
 			{
 				packet = dynamic_cast<SlottedAlohaPacketData *>(slot->front());
+				tal_id_t tal_id = packet->getSrcTalId();
+
+				// create accepted_ids for this terminal if it does not exist
+				if(accepted_ids.find(tal_id) == accepted_ids.end())
+				{
+					accepted_ids[tal_id] = vector<saloha_id_t>();
+				}
+
 				accepted_packets->push_back(packet);
-				accepted_ids.push_back(packet->getUniqueId());
+				accepted_ids[tal_id].push_back(packet->getUniqueId());
 				// packet is decoded, we need to restart the check all slots
 				// to remove the signal of this packet when a duplicate was found
 				stop = false;
 				LOG(this->log_saloha, LEVEL_DEBUG,
 				    "No collision on slot %u, keep packet from terminal %u\n",
-				    slot->getId(), packet->getSrcTalId());
+				    slot->getId(), tal_id);
 			}
 			else if(slot->size())
 			{

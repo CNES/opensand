@@ -49,6 +49,7 @@ SlottedAlohaTal::SlottedAlohaTal():
 	packets_wait_ack(),
 	nb_success(0),
 	nb_max_packets(0),
+	nb_replicas(0),
 	nb_max_retransmissions(0),
 	base_id(0),
 	backoff(NULL),
@@ -637,7 +638,7 @@ bool SlottedAlohaTal::addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
 	
 	// in this function, the iterator on slots can be increased by nbr_replicas
 	// because slots has been computed accordingly
-	for(unsigned int cpt = 0; cpt < nbr_replicas; cpt++)
+	for(uint16_t cpt = 0; cpt < nbr_replicas; cpt++)
 	{
 		replicas[cpt] = *slot;
 		slot++;
@@ -645,7 +646,7 @@ bool SlottedAlohaTal::addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
 	packet->setReplicas(replicas, nbr_replicas);
 
 	// add each replicas in the frame
-	for(unsigned int cpt = 0; cpt < nbr_replicas; cpt++)
+	for(uint16_t cpt = 0; cpt < nbr_replicas; cpt++)
 	{
 		if((*frame)->getFreeSpace() < packet->getTotalLength())
 		{
