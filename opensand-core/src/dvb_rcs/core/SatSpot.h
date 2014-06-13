@@ -136,7 +136,7 @@ class SatSpot
 	 * @return true on success, false otherwise
 	 */
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time);
+	              time_ms_t current_time);
 
 
 	/**

@@ -107,7 +107,7 @@ bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
 
 
 bool SatSpot::schedule(const time_sf_t current_superframe_sf,
-                       clock_t current_time)
+                       time_ms_t current_time)
 {
 	// not used by scheduling here
 	uint32_t remaining_allocation = 0;

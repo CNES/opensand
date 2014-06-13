@@ -762,7 +762,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					else
 					{
 						if(!current_spot->schedule(this->down_frame_counter,
-						                           this->getCurrentTime()))
+						                           (time_ms_t)this->getCurrentTime()))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "failed to schedule packets for satellite spot %u "
