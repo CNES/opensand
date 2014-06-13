@@ -318,14 +318,6 @@ bool BlockDvbSat::Downward::onInit()
 
 	this->down_frame_counter = 0;
 
-	if(!this->initSatLink())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of "
-		    "link parameters");
-		return false;
-	}
-
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE)
 	{
@@ -352,6 +344,14 @@ bool BlockDvbSat::Downward::onInit()
 			    "initialisation");
 			return false;
 		}
+	}
+
+	if(!this->initSatLink())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of "
+		    "link parameters");
+		return false;
 	}
 
 	if(!this->initOutput())
