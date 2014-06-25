@@ -47,7 +47,7 @@ from opensand_tests import Service
 #      GW as a server instead of client
 #COMMAND = '/usr/bin/iperf -y c -d -t '
 COMMAND = '/usr/bin/iperf -y c -t '
-SERVER = ['st3'] #, 'gw']
+SERVER = ['st2'] #, 'gw']
 TIME = 30
 
 class IperfClient():

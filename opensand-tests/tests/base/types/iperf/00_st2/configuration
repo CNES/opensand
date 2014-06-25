@@ -3,7 +3,7 @@
 source=.
 destination=/tmp/opensand_tests
 
-[st3]
+[st2]
 files=base/types/iperf/files/iperf_server.py
 
 [command]
