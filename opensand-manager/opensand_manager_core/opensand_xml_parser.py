@@ -244,7 +244,7 @@ class XmlParser:
                         self._tree.xpath("%s/@%s" % (path, node))[0]
         return files
 
-    #### functions form XSD parsing ###
+    #### functions for XSD parsing ###
 
     def get_type(self, name):
         """ get an element type in the XSD document """
@@ -508,11 +508,21 @@ class XmlParser:
         return values
 
 
+    #### functions for XSLT transform ###
+
+    def transform(self, xslt, write=True):
+        """ Transform the configuration with XSLT """
+        transf = etree.XSLT(etree.parse(xslt))
+        new_xml = transf(self._tree)
+        self._tree = new_xml
+        if write:
+            self.write()
+
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print "Usage: %s xml_file xsd_file" % sys.argv[0]
+        print "Usage: %s xml_file xsd_file [xslt_file]" % sys.argv[0]
         sys.exit(1)
     print "use schema: %s and xml: %s" % (sys.argv[2],
                                           sys.argv[1])
@@ -530,6 +540,9 @@ if __name__ == "__main__":
                 for ELT in PARSER.get_table_elements(KEY):
                     print "\t\t%s -> %s" % (PARSER.get_name(ELT),
                                             PARSER.get_element_content(ELT))
+    if sys.argv[3] != "":
+        PARSER.transform(sys.argv[3], False)
+
     sys.exit(0)
 
 

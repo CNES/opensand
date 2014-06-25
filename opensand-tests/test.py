@@ -55,6 +55,7 @@ from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
+from opensand_manager_core.utils import copytree
 
 # TODO get logs on error
 # TODO clean scenarios
@@ -174,16 +175,17 @@ class Test:
                               default='./tests/',
 help="specify the root folder for tests configurations\n"
 "The root folder should contains the following subfolders and files:\n"
-"  test_type/test_name/+-order_host/configuration\n"
-"                      |-scenario/+-core_global.conf\n"
-"                                   (optionnal)\n"
-"                                 |-host/core.conf\n"
-"                                   (optionnal)\n"
-" and the scripts and configuration for the tests, this can be any files as "
-"they will be specified in the configuration files\n"
+"  base/+-configs/+-test_name/core_HOST.xslt\n"
+"       |-types/test_type/+-order_host/configuration\n"
+"                         |-core_HOST.xslt (optional)\n"
+"  other/test_type/+-order_host/configuration\n"
+"                  |-configs/test_name/core_HOST.xslt (optional)\n"
+" and the scripts and configuration for the tests, this can be any files as"
+" they will be specified in the configuration files.\n"
+" Usually we add a files folder in test_type folder containing them\n"
 
-"with configuration containing the same sections that deploy.ini and a command "
-"part:\n"
+" with configuration containing the same sections that deploy.ini and a command "
+" part for remote hosts:\n"
 "  [command]\n"
 "  # the command line to execute the test\n"
 "  exec={command line}\n"
@@ -192,18 +194,33 @@ help="specify the root folder for tests configurations\n"
 "  wait=True/False\n"
 "  # the code that test script should return\n"
 "  return=[0:255]\n"
-"All the files to copy are stocked into the files \n"
+" and configuration contining the following elements for local tests\n"
+"  [itest_command]\n"
+"  # the command line to execute the test\n"
+"  exec={command line}\n"
+"  # the code that test script should return\n"
+"  return=[0:255]\n"
+"  # the directory to copy statistics on local host\n"
+"  stats={dir}\n"
+
+"All the files to copy are stored into the files \n"
 "directory, as the path is specified, the files\n"
 "directory can be whichever directory you want in\n"
-"the test directory")
+"the test directory\n"
+"In core_HOST.xslt HOST can be gw, sat, global, st, stX (with X the ST id)\n"
+"order_host is first the order for test launch (00, 01, 02, ...) and host "
+"the host on which test should be run among (sat, gw, stX (with X the ST id), "
+"wsY_Z (with Y the workstation id and Z its name), test (if test is launched "
+"on local host, stat (if test is launched on local host and needs statistics, "
+"be careful, stat test stops the platform, no more test should be run after)")
         (options, args) = opt_parser.parse_args()
 
         self._test = None
+        self._type = None
         if options.test is not None:
             self._test = options.test.split(',')
-        self._type = options.type
-        if self._test is not None and self._type is None:
-            raise TestError("Initialization", "--type option needed by --test")
+        if options.type is not None:
+            self._type = options.type.split(',')
         self._folder = options.folder
         self._service = options.service
         self._ws_enabled = options.ws
@@ -235,7 +252,8 @@ help="specify the root folder for tests configurations\n"
 
         try:
             self.load()
-            self.run()
+            self.run_base()
+            self.run_other()
             if len(self._last_error) > 0:
                 raise TestError('Last error: ', str(self._last_error))
         except TestError as err:
@@ -305,25 +323,158 @@ help="specify the root folder for tests configurations\n"
         if self._controller is not None:
             self._controller.join()
 
-    def run(self):
-        """ launch the tests """
+    def run_base(self):
+        """ launch the tests with base configurations """
         if not self._model.main_hosts_found():
             raise TestError("Initialization", "main hosts not found")
 
-        # TODO test matrix
-        # if the tess is launched with the type option
+        base = os.path.join(self._folder, 'base')
+        types_path = os.path.join(base, 'types')
+        configs_path = os.path.join(base, 'configs')
+        # if the test is launched with the type option
         # check if it is a supported type
-        types_init = os.listdir(self._folder)
+        types_init = os.listdir(types_path)
         types = list(types_init)
         for folder in types_init:
-            if folder.startswith('.'):
-                types.remove(folder)
-            elif not os.path.isdir(os.path.join(self._folder, folder)):
+            if not os.path.isdir(os.path.join(types_path, folder)):
                 types.remove(folder)
 
-        if self._type is not None and self._type not in types:
-            raise TestError("Initialization", "test type '%s' is not available,"
-                            " supported values are %s" % (self._type, types))
+        # get type if only some types should be run
+        if self._type is not None:
+            found = 0
+            desired = []
+            for folder in types_init:
+                if folder in self._type:
+                    desired.append(folder)
+                    found += 1
+
+            types = desired
+            # keep remaining types for run_other
+            for folder in desired:
+                self._type.remove(os.path.basename(folder))
+        if len(types) == 0:
+            return
+
+        # modify the service in the test library
+        lib = os.path.join(self._folder, '.lib/opensand_tests.py')
+        buf = ""
+        try:
+            with open(lib, 'r') as flib:
+                for line in flib:
+                    if line.startswith("TYPE ="):
+                        buf += 'TYPE = "%s"\n' % self._service
+                    else:
+                        buf += line
+            with open(lib, 'w') as flib:
+                flib.write(buf)
+        except IOError, msg:
+            raise TestError("Configuration",
+                            "Cannot edit test libraries: %s" % msg)
+
+        test_names_init = glob.glob(configs_path + '/*')
+        test_names = list(test_names_init)
+        for test in test_names_init:
+            if not os.path.isdir(test):
+                test_names.remove(test)
+        # get test if only some tests should be run
+        if self._test is not None:
+            found = 0
+            desired = []
+            for test in test_names:
+                if os.path.basename(test) in self._test:
+                    desired.append(test)
+                    found += 1
+            test_names = desired
+            # keep remaining tests for run_other
+            for test in desired:
+                self._test.remove(os.path.basename(test))
+
+        for test_name in test_names:
+            self._log.info(" * Test %s with base configuration" %
+                           os.path.basename(test_name))
+            if self._quiet:
+                print "Test configuration \033[1;34m%s\033[0m" % os.path.basename(test_name)
+                sys.stdout.flush()
+
+            # get the new configuration from base configuration
+            # and create scenario
+
+            self.new_scenario(test_name)
+
+            try:
+                self.stop_opensand()
+            except:
+                pass
+            # start the platform
+            self.start_opensand()
+
+            nonbase = []
+            # get test_type folders
+            test_types = map(lambda x: os.path.join(types_path, x), types)
+            for test_type in test_types:
+                # check for XSLT files
+                orders = glob.glob(test_type + '/*')
+                found = False
+                for elt in orders:
+                    if elt.endswith('.xslt'):
+                        found = True
+                        break
+                if found:
+                    # the base configuration should be updated for this
+                    # test, do it later
+                    nonbase.append(test_type)
+                    continue
+
+                self.launch_test_type(test_type, os.path.basename(test_name))
+
+            # now launch tests for non based configuration, stop platform
+            # between each run
+            init_scenario = self._model.get_scenario()
+            for test_type in nonbase:
+                self._model.set_scenario(init_scenario)
+                # update configuration
+                self.new_scenario(test_type)
+
+                try:
+                    self.stop_opensand()
+                except:
+                    pass
+                self.start_opensand()
+
+                self.launch_test_type(test_type, os.path.basename(test_name))
+
+            # stop the platform
+            try:
+                self.stop_opensand()
+            except:
+                pass
+
+    def run_other(self):
+        """ launch the tests for non base configuration """
+        if not self._model.main_hosts_found():
+            raise TestError("Initialization", "main hosts not found")
+
+        types_path = os.path.join(self._folder, 'other')
+        # if the test is launched with the type option
+        # check if it is a supported type
+        types_init = os.listdir(types_path)
+        types = list(types_init)
+        for folder in types_init:
+            if not os.path.isdir(os.path.join(types_path, folder)):
+                types.remove(folder)
+
+        # get type if only some types should be run
+        if self._type is not None:
+            found = 0
+            desired = []
+            for folder in types_init:
+                if folder in self._type:
+                    desired.append(folder)
+                    found += 1
+
+            types = desired
+        if len(types) == 0:
+            return
 
         # modify the service in the test library
         lib = os.path.join(self._folder, '.lib/opensand_tests.py')
@@ -342,124 +493,87 @@ help="specify the root folder for tests configurations\n"
                             "Cannot edit test libraries: %s" % msg)
 
         # get test_type folders
-        test_types = glob.glob(self._folder + '/*')
+        test_types = map(lambda x: os.path.join(types_path, x), types)
+        test_names = []
         for test_type in test_types:
-            # if the test is launched with the type option
-            # only run the corresponding tests
-            if self._type is not None and \
-               self._type != os.path.basename(test_type):
-                continue
+            configs_path = os.path.join(test_type, 'configs')
+            if os.path.exists(configs_path):
+                test_names = glob.glob(configs_path + '/*')
+                # get test if only some tests should be run
+                if self._test is not None:
+                    found = 0
+                    desired = []
+                    for test in test_names:
+                        if not os.path.isdir(test):
+                            test_names.remove(test)
+                        if os.path.basename(test) in self._test:
+                            desired.append(test)
+                            found += 1
+                    test_names = desired
+            else:
+                if self._test is not None:
+                    self._log.info(" * No test name for type %s while a name "
+                                   "was specified in options, skip" %
+                                   os.path.basename(test_type))
+                    continue
 
-            self._log.info(" * Enter %s tests" % os.path.basename(test_type))
+            self._log.info(" * Test %s" % os.path.basename(test_type))
             if self._quiet:
-                print "Enter \033[1;34m%s\033[0m tests" % os.path.basename(test_type)
+                print "Test \033[1;34m%s\033[0m" % os.path.basename(test_type)
                 sys.stdout.flush()
-            # get test_name folders
-            test_names = glob.glob(test_type + '/*')
-            # get test in only one test should be run
-            if self._test is not None:
-                found = 0
-                desired = []
-                for test in test_names:
-                    if os.path.basename(test) in self._test:
-                        desired.append(test)
-                        found += 1
-                if found < len(self._test):
-                    raise TestError("Initialization",
-                                    "one or more test in '%s' was not "
-                                    "found, available: %s" % (self._test,
-                                    map(lambda x: os.path.basename(x),
-                                        test_names)))
-                test_names = desired
 
-            # iter on tests 
             for test_name in test_names:
+                # get the new configuration from base configuration
+                # and create scenario
+                self.new_scenario(test_name)
+
                 try:
                     self.stop_opensand()
                 except:
                     pass
-                if not os.path.exists(os.path.join(test_name, 'scenario')):
-                    # skip folders that does not contain a scenario directory
-                    self._log.debug("skip folder %s as it does not contain a "
-                                    "scenario subfolder" %
-                                    os.path.basename(test_name))
-                    continue
-                self._log.info(" * Start test %s" % os.path.basename(test_name))
-                # in quiet mode print important output on terminal
-                if self._quiet:
-                    msg = "Start test %s " % os.path.basename(test_name)
-                    if len(msg) < 40:
-                        msg = msg + " " * (40 - len(msg))
-                    print msg,
-                    sys.stdout.flush()
-                self._model.set_scenario(os.path.join(test_name, 'scenario'))
-                self._error = []
                 # start the platform
                 self.start_opensand()
-                # wait to be sure the plateform is started
-                time.sleep(2)
-                # get order_host folders
-                orders = glob.glob(test_name + '/*')
-                if os.path.join(test_name, 'files') in orders:
-                    orders.remove(os.path.join(test_name, 'files'))
-                if os.path.join(test_name, 'scenario') in orders:
-                    orders.remove(os.path.join(test_name, 'scenario'))
-                orders.sort()
-                for host in orders:
-                    if not os.path.isdir(host):
-                        continue
-                    try:
-                        self.launch_test(host)
-                        # wait for test to initialize or stop on host
-                        time.sleep(0.5)
-                    except Exception, msg:
-                        self._error.append(str(msg))
-                        self._last_error = str(msg)
-                        break
-                    if len(self._error) > 0:
-                        self._last_error = self._error[len(self._error) - 1]
-                        break
-                for thread in self._threads:
-                    # wait for pending tests to stop
-                    self._log.info("waiting for a test thread to stop")
-                    thread.join(120)
-                    if thread.is_alive():
-                        self._log.error("cannot stop a thread, we may have "
-                                        "errors")
-                    else:
-                        self._log.info("thread stopped")
-                    self._threads.remove(thread)
-                if len(self._error) > 0:
-                    #TODO get the test output
-                    # in quiet mode print important output on terminal
-                    if self._quiet:
-                        print "    \033[91mERROR\033[0m"
-                        sys.stdout.flush()
-                    # continue on other tests
-                    self._log.error(" * Test %s failed: %s" %
-                                    (os.path.basename(test_name),
-                                     str(self._error)))
-                    self._last_error = self._error[len(self._error) - 1]
-                else:
-                    self._log.info(" * Test %s successful" %
-                                   os.path.basename(test_name))
-                    # in quiet mode print important output on terminal
-                    if self._quiet:
-                        print "    \033[92mSUCCESS\033[0m"
-                        sys.stdout.flush()
 
-    def launch_test(self, path):
+                self.launch_test_type(test_type, os.path.basename(test_name))
+
+            # if there is not configs folder we only have default configuration,
+            # so there is not test_name, launch test with base configuration
+            if len(test_names) == 0:
+                # get the new configuration from base configuration
+                # and create scenario
+                self.new_scenario(test_type)
+
+                try:
+                    self.stop_opensand()
+                except:
+                    pass
+                # start the platform
+                self.start_opensand()
+
+                self.launch_test_type(test_type, "default")
+
+        # stop the platform
+        try:
+            self.stop_opensand()
+        except:
+            pass
+
+    def launch_test(self, path, test_name):
         """ initialize the test: load configuration, deploy files
             then contact the distant host in a thread and launch
             the desired command """
         names = os.path.basename(path).split("_", 1)
-        if len(names) < 1:
-            raise TestError("Configuration", "wrong path: %s "
-                            "cannot find host name" % path)
+        if len(names) < 2:
+            self._log.info(" * Skip path %s as it has a wrong format" % path)
+            return
 
         host_name = names[1].upper()
         self._log.info(" * Launch command on %s" % host_name)
         conf_file = os.path.join(path, 'configuration')
+        if not os.path.exists(conf_file):
+            self._log.info(" * Skip path %s as it does not contain scenario" %
+                           path)
+            return
         # read the command section in configuration
         config = ConfigParser.SafeConfigParser()
         if len(config.read(conf_file)) == 0:
@@ -472,116 +586,130 @@ help="specify the root folder for tests configurations\n"
             pass
 
         # check if this is a local test
-        if host_name != "TEST":
-            # get the host controller
-            host_ctrl = None
-            found = False
-            if not self._ws_ctrl and host_name.startswith("WS"):
-                # use STinstead => remove WS name and replace name
-                host_name = host_name.split("_", 1)[0]
-                host_name = host_name.replace("WS", "ST")
-                
-            if host_name.startswith("WS"):
-                for ctrl in self._ws_ctrl:
-                    if ctrl.get_name() == host_name:
-                        host_ctrl = ctrl
-                        break
-            else:
-                for ctrl in self._controller._hosts:
-                    if ctrl.get_name() == host_name:
-                        host_ctrl = ctrl
-                        break
-
-            if host_ctrl is None:
-                raise TestError("Configuration", "Cannot find host %s" % host_name)
-
-            # deploy the test files
-            # the deploy section has the same format as in deploy.ini file so
-            # we can directly use the deploy fonction from hosts
-            try:
-                host_ctrl.deploy(config)
-            except CommandException as msg:
-                raise TestError("Configuration", "Cannot deploy host %s: %s" %
-                                (host_name, msg))
-
-            cmd = ''
-            wait = False
-            ret = 0
-            try:
-                cmd = config.get('command', 'exec')
-                wait = config.get('command', 'wait')
-                if wait.lower() == 'true':
-                    wait = True
-                else:
-                    wait = False
-                ret = config.get('command', 'return')
-            except ConfigParser.Error, err:
-                raise TestError("Configuration",
-                                "Error when parsing configuration in %s : %s" %
-                                (path, err))
-            # check if we have to get stats in /tmp/opensand_tests/stats for the next step
-            stats_dst = ''
-            try:
-                stats_dst = config.get('command', 'stats')
-            except:
-                pass
-
-            # if wait is True we need to wait the host response before launching the
-            # next command so we don't need to connect the host in a thread
-            if wait:
-                self.connect_host(host_ctrl, cmd, ret)
-            else:
-                connect = threading.Thread(target=self.connect_host,
-                                           args=(host_ctrl, cmd, ret))
-                self._threads.append(connect)
-                connect.start()
-
-            if stats_dst != '':
-                stats = os.path.dirname(path)
-                stats = os.path.join(stats, 'scenario/default/')
-
-                if not os.path.exists('/tmp/opensand_tests'):
-                    os.mkdir('/tmp/opensand_tests')
-                elif os.path.exists('/tmp/opensand_tests/stats/'):
-                    shutil.rmtree('/tmp/opensand_tests/stats/')
-                # wait that all stats are collected
-                time.sleep(10)
-                shutil.copytree(stats,
-                                '/tmp/opensand_tests/stats/')
+        if host_name == "TEST":
+            self.launch_local(test_name, config, path)
         else:
-            cmd = ''
-            ret = 0
+            self.launch_remote(test_name, host_name, config, path)
+
+
+    def launch_remote(self, test_name, host_name, config, path):
+        """ launch the test on a remote host """
+        # get the host controller
+        host_ctrl = None
+        found = False
+        if not self._ws_ctrl and host_name.startswith("WS"):
+            # use ST instead => remove WS name and replace name
+            host_name = host_name.split("_", 1)[0]
+            host_name = host_name.replace("WS", "ST")
+
+        if host_name.startswith("WS"):
+            for ctrl in self._ws_ctrl:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
+                    break
+        else:
+            for ctrl in self._controller._hosts:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
+                    break
+
+        if host_ctrl is None:
+            raise TestError("Configuration", "Cannot find host %s" % host_name)
+
+        # deploy the test files
+        # the deploy section has the same format as in deploy.ini file so
+        # we can directly use the deploy fonction from hosts
+        try:
+            host_ctrl.deploy(config)
+        except CommandException as msg:
+            raise TestError("Configuration", "Cannot deploy host %s: %s" %
+                            (host_name, msg))
+
+        cmd = ''
+        wait = False
+        ret = 0
+        try:
+            # TODO give test name in cmd argument !
+            cmd = config.get('command', 'exec')
+            cmd += " " + test_name
+            wait = config.get('command', 'wait')
+            if wait.lower() == 'true':
+                wait = True
+            else:
+                wait = False
+            ret = config.get('command', 'return')
+        except ConfigParser.Error, err:
+            raise TestError("Configuration",
+                            "Error when parsing configuration in %s : %s" %
+                            (path, err))
+        # if wait is True we need to wait the host response before launching the
+        # next command so we don't need to connect the host in a thread
+        if wait:
+            self.connect_host(host_ctrl, cmd, ret)
+        else:
+            connect = threading.Thread(target=self.connect_host,
+                                       args=(host_ctrl, cmd, ret))
+            self._threads.append(connect)
+            connect.start()
+
+    def launch_local(self, test_name, config, path=None):
+        """ launch a local test """
+        # check if we have to get stats in /tmp/opensand_tests/stats before
+        stats_dst = ''
+        try:
+            stats_dst = config.get('test_command', 'stats')
+        except:
+            pass
+
+        if stats_dst != '':
+            # we need to stop OpenSAND to get statistics in scenario folder
             try:
-                cmd = config.get('test_command', 'exec')
-                ret = config.getint('test_command', 'return')
-            except ConfigParser.Error, err:
-                raise TestError("Configuration",
-                                "Error when parsing configuration in %s : %s" %
-                                (path, err))
+                self.stop_opensand()
+            except:
+                raise TestError("Test", "Cannot stop platform to get statistics")
+            stats = os.path.dirname(path)
+            stats = os.path.join(stats, 'scenario/default/')
 
-            command = os.path.join(self._folder, cmd)
-            cmd = shlex.split(command)
-            if not os.path.exists('/tmp/opensand_tests'):
-                os.mkdir('/tmp/opensand_tests')
-            with open('/tmp/opensand_tests/result', 'a') as output:
-                output.write("\n")
-                process = subprocess.Popen(cmd, close_fds=True,
-                                           stdout=output,
-                                           stderr=subprocess.STDOUT)
-                while process.returncode is None:
-                    process.poll()
-                    time.sleep(1)
+            if not os.path.exists(stats_dst):
+                os.mkdir(stats_dst)
+            else:
+                shutil.rmtree(stats_dst)
+            copytree(stats, stats_dst)
 
-                if process.returncode is None:
-                    process.kill()
+        cmd = ''
+        ret = 0
+        try:
+            cmd = config.get('test_command', 'exec')
+            cmd += " " + test_name
+            ret = config.getint('test_command', 'return')
+        except ConfigParser.Error, err:
+            raise TestError("Configuration",
+                            "Error when parsing configuration: %s" %
+                            (err))
 
-                process.wait()
+        command = os.path.join(self._folder, cmd)
+        cmd = shlex.split(command)
+        if not os.path.exists('/tmp/opensand_tests'):
+            os.mkdir('/tmp/opensand_tests')
+        with open('/tmp/opensand_tests/result', 'a') as output:
+            output.write("\n")
+            process = subprocess.Popen(cmd, close_fds=True,
+                                       stdout=output,
+                                       stderr=subprocess.STDOUT)
+            while process.returncode is None:
+                process.poll()
+                time.sleep(1)
 
-                if process.returncode != ret:
-                    self._log.info(" * Test returns %s, expected is %s" %
+            if process.returncode is None:
+                process.kill()
+
+            process.wait()
+
+            if process.returncode != ret:
+                self._log.info(" * Test returns %s, expected is %s" %
+                               (process.returncode, ret))
+                self._error.append("Test returned '%s' instead of '%s'" %
                                    (process.returncode, ret))
-                    self._error.append("Test returned '%s' instead of '%s'" %
-                                       (process.returncode, ret))
 
 
     def connect_host(self, host_ctrl, cmd, ret):
@@ -607,7 +735,7 @@ help="specify the root folder for tests configurations\n"
         except socket.timeout:
             err = "%s: Timeout" % host_ctrl.get_name()
         except Exception, msg:
-            err = msg
+            err = "Unknown exception: msg"
         finally:
             if sock:
                 sock.close()
@@ -633,11 +761,13 @@ help="specify the root folder for tests configurations\n"
 #                                              resp.get_type())
         # TODO remove if we implement a progress_event_handler instead of using
         # the reponse event handler and uncomment above
-        while resp.get_type() != "resp_stop_platform":
+        count = 0
+        while resp.get_type() != "resp_stop_platform" and count < 5:
             self._log.info("%s event received, wait fro stop event" %
                            resp.get_type())
             resp.clear()
             resp.wait(None)
+            count += 1
         self._log.info("%s event received" % resp.get_type())
         # end TODO
         if resp.get_text() != 'done':
@@ -659,11 +789,13 @@ help="specify the root folder for tests configurations\n"
 #                                              "starting platform" % evt)
         # TODO remove if we implement a progress_event_handler instead of using
         # the reponse event handler and uncomment above
-        while resp.get_type() != "resp_start_platform":
+        count = 0
+        while resp.get_type() != "resp_start_platform" and count < 20:
             self._log.info("%s event received, wait fro stop event" %
                            resp.get_type())
             resp.clear()
             resp.wait(None)
+            count += 1
         self._log.info("%s event received" % resp.get_type())
         # end TODO
         if resp.get_text() != 'done':
@@ -683,6 +815,118 @@ help="specify the root folder for tests configurations\n"
         for ws_model in self._model.get_workstations_list():
             new_ws = HostController(ws_model, self._log, None)
             self._ws_ctrl.append(new_ws)
+
+# TODO at the moment we can not configure modules !!
+    def new_scenario(self, test_path):
+        """ create a new scenario for tests and apply XSLT transformation """
+        # get the new configuration from base configuration
+        # and create scenario
+        path = os.path.join(test_path, 'scenario')
+        try:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+            os.makedirs(path)
+            copytree(self._model.get_scenario(), path)
+        except (OSError, IOError), (_, strerror):
+            raise TestError("Configuration",
+                            "Cannot create scenario %s: %s" % (path, strerror))
+
+        # update the configuration corresponding to the test with XSLT files
+        self._model.set_scenario(path)
+        for host in self._model.get_hosts_list() + [self._model]:
+            conf = host.get_advanced_conf().get_configuration()
+            xslt = os.path.join(test_path, 'core_%s.xslt' %
+                                host.get_component().lower())
+            # specific case for terminals if there is a XSLT for a specific
+            # one
+            if host.get_component().lower() == 'st':
+                for st in os.listdir(path):
+                    if st.startswith('st'):
+                        st_id = st[2:]
+                        xslt_path = os.path.join(test_path, 'core_st%s.xslt' % st_id)
+                        if os.path.exists(xslt_path):
+                            xslt = xslt_path
+            if os.path.exists(xslt):
+                try:
+                    conf.transform(xslt)
+                except Exception, error:
+                    raise TestError("Configuration",
+                                    "Update Configuration: %s" % error)
+
+
+    def launch_test_type(self, test_path, test_name):
+        """ launch tests on a type """
+        type_name = os.path.basename(test_path)
+        self._log.info(" * Start %s" % type_name)
+        # in quiet mode print important output on terminal
+        if self._quiet:
+            msg = "Start %s " % type_name
+            if len(msg) < 40:
+                msg = msg + " " * (40 - len(msg))
+            print msg,
+            sys.stdout.flush()
+        self._error = []
+        # wait to be sure the plateform is started
+        time.sleep(2)
+        # get order_host folders
+        orders = glob.glob(test_path + '/*')
+        # remove common folders from list (not mandatory)
+        if os.path.join(test_path, 'files') in orders:
+            orders.remove(os.path.join(test_path, 'files'))
+        if os.path.join(test_path, 'scenario') in orders:
+            orders.remove(os.path.join(test_path, 'scenario'))
+        orders.sort()
+        launched = False
+        for host in orders:
+            if not os.path.isdir(host):
+                continue
+            try:
+                # check that we effectively lauched a test
+                launched = True
+                self.launch_test(host, test_name)
+                # wait for test to initialize or stop on host
+                time.sleep(0.5)
+            except Exception, msg:
+                self._error.append(str(msg))
+                self._last_error = str(msg)
+                break
+            if len(self._error) > 0:
+                self._last_error = self._error[len(self._error) - 1]
+                break
+        for thread in self._threads:
+            # wait for pending tests to stop
+            self._log.info("waiting for a test thread to stop")
+            thread.join(120)
+            if thread.is_alive():
+                self._log.error("cannot stop a thread, we may have "
+                                "errors")
+            else:
+                self._log.info("thread stopped")
+            self._threads.remove(thread)
+        if len(self._error) > 0:
+            #TODO get the test output
+            # in quiet mode print important output on terminal
+            if self._quiet:
+                print "    \033[91mERROR\033[0m"
+                sys.stdout.flush()
+            # continue on other tests
+            self._log.error(" * Test %s failed: %s" %
+                            (type_name, str(self._error)))
+            self._last_error = self._error[len(self._error) - 1]
+        elif not launched:
+            # in quiet mode print important output on terminal
+            if self._quiet:
+                print "    \033[91mERROR\033[0m"
+                sys.stdout.flush()
+            # continue on other tests
+            self._log.error("Not test launched for %s" % type_name)
+            self._last_error = "Not test launched for %s" %  type_name
+        else:
+            self._log.info(" * Test %s successful" % type_name)
+            # in quiet mode print important output on terminal
+            if self._quiet:
+                print "    \033[92mSUCCESS\033[0m"
+                sys.stdout.flush()
 
 
 class TestError(Exception):

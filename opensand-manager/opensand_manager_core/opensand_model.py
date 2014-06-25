@@ -735,6 +735,10 @@ class Model:
         """ for compatibility with advanced dialog host calls """
         return 'global'
 
+    def get_component(self):
+        """ for compatibility with advanced dialog host calls """
+        return 'global'
+
     def get_advanced_conf(self):
         """ for compatibility with advanced dialog host calls """
         return self._config

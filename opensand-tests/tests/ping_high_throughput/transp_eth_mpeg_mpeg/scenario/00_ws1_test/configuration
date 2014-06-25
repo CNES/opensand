@@ -1,7 +1,0 @@
-[deploy]
-./unit/ping_files/ping.py:/tmp/ping.py
-
-[command]
-exec=/tmp/ping.py regenerative
-wait=True
-return=0

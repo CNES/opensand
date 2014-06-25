@@ -1,0 +1,13 @@
+[prefix]
+# automatically replaced by the binary
+source=.
+destination=/tmp/opensand_tests
+
+[st1]
+files=other/stats/files/test_prog
+ld_library_path=.lib
+
+[command]
+exec=/tmp/opensand_tests/other/stats/files/test_prog
+wait=True
+return=0

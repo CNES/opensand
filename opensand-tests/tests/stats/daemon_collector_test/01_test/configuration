@@ -1,3 +1,0 @@
-[test_command]
-exec=stats/daemon_collector_files/check_stats.sh
-return=0

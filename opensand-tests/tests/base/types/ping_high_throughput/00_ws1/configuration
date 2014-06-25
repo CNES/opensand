@@ -1,0 +1,16 @@
+[prefix]
+# automatically replaced by the binary
+source=.
+destination=/tmp/opensand_tests
+
+[st1]
+files=base/types/ping_high_throughput/files/ping_high_throughput.py
+ld_library_path=.lib
+
+[common]
+files=.lib/opensand_tests.py,  .lib/__init__.py
+
+[command]
+exec=/tmp/opensand_tests/base/types/ping_high_throughput/files/ping_high_throughput.py
+wait=True
+return=0

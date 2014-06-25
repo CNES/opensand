@@ -1,0 +1,3 @@
+[test_command]
+exec=other/stats/files/build_test_prog.sh
+return=0
