@@ -58,8 +58,10 @@ from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.utils import copytree
 
 # TODO get logs on error
-# TODO clean scenarios
+# TODO rewrite this as this is now too long
+#      maybe create classes that will simplify the code
 SERVICE = "_opensand._tcp"
+ENRICH_FOLDER = "enrich"
 
 class Loop(threading.Thread):
     """ the mainloop for service_listener """
@@ -252,10 +254,19 @@ help="specify the root folder for tests configurations\n"
 
         try:
             self.load()
+            self._base = self._model.get_scenario()
             self.run_base()
+            self._model.set_scenario(self._base)
             self.run_other()
             if len(self._last_error) > 0:
                 raise TestError('Last error: ', str(self._last_error))
+            if self._test is not None and len(self._test):
+                raise TestError("Configuration", "The following tests were not "
+                                "found %s" % self._test)
+            if self._type is not None and len(self._type):
+                raise TestError("Configuration", "The following types were not "
+                                "found %s" % self._type)
+
         except TestError as err:
             self._log.error("%s: %s" % (err.step, err.msg))
             raise
@@ -349,7 +360,6 @@ help="specify the root folder for tests configurations\n"
                     found += 1
 
             types = desired
-            # keep remaining types for run_other
             for folder in desired:
                 self._type.remove(os.path.basename(folder))
         if len(types) == 0:
@@ -371,36 +381,48 @@ help="specify the root folder for tests configurations\n"
             raise TestError("Configuration",
                             "Cannot edit test libraries: %s" % msg)
 
-        test_names_init = glob.glob(configs_path + '/*')
-        test_names = list(test_names_init)
-        for test in test_names_init:
+        test_paths_init = glob.glob(configs_path + '/*')
+        test_paths = list(test_paths_init)
+        for test in test_paths_init:
             if not os.path.isdir(test):
-                test_names.remove(test)
-        # get test if only some tests should be run
-        if self._test is not None:
-            found = 0
-            desired = []
-            for test in test_names:
-                if os.path.basename(test) in self._test:
-                    desired.append(test)
-                    found += 1
-            test_names = desired
-            # keep remaining tests for run_other
-            for test in desired:
-                self._test.remove(os.path.basename(test))
+                test_paths.remove(test)
+            if os.path.basename(test) == ENRICH_FOLDER:
+                test_paths.remove(test)
 
-        for test_name in test_names:
-            self._log.info(" * Test %s with base configuration" %
-                           os.path.basename(test_name))
-            if self._quiet:
-                print "Test configuration \033[1;34m%s\033[0m" % os.path.basename(test_name)
-                sys.stdout.flush()
+        for test_path in test_paths:
+            self._model.set_scenario(self._base)
+            self.run_enrich(test_path, "", types_path, types) 
+            
+        # stop the platform
+        try:
+            self.stop_opensand()
+        except:
+            pass
 
+    def run_enrich(self, test_path, enrich, types_path, types):
+        """ run a test for a specific type or this type enriched """
+        test_name = os.path.basename(test_path)
+        if enrich != "":
+            pos = enrich.find(ENRICH_FOLDER)
+            path = enrich[pos + 1 + len(ENRICH_FOLDER):]
+            new = path.split("/")
+            for name in new:
+                test_name += "_" + name
+            self.new_scenario(enrich)
+        else:
             # get the new configuration from base configuration
             # and create scenario
+            self.new_scenario(test_path)
+        init_scenario = self._model.get_scenario()
 
-            self.new_scenario(test_name)
+        if self._test is None or test_name in self._test:
+            self._log.info(" * Test %s with base configuration" % test_name)
+            if self._quiet:
+                print "Test configuration \033[1;34m%s\033[0m" % test_name
+                sys.stdout.flush()
 
+            if self._test is not None:
+                self._test.remove(test_name)
             try:
                 self.stop_opensand()
             except:
@@ -425,29 +447,39 @@ help="specify the root folder for tests configurations\n"
                     nonbase.append(test_type)
                     continue
 
-                self.launch_test_type(test_type, os.path.basename(test_name))
+                self.launch_test_type(test_type, os.path.basename(test_path))
 
             # now launch tests for non based configuration, stop platform
             # between each run
-            init_scenario = self._model.get_scenario()
             for test_type in nonbase:
                 self._model.set_scenario(init_scenario)
                 # update configuration
                 self.new_scenario(test_type)
-
+    
                 try:
                     self.stop_opensand()
                 except:
                     pass
                 self.start_opensand()
+    
+                self.launch_test_type(test_type, os.path.basename(test_path))
+            
+        # we restart from the test scenario that will be enriched
+        self._model.set_scenario(init_scenario)
+        if enrich == "":
+            base = os.path.join(self._folder, 'base')
+            configs_path = os.path.join(base, 'configs')
+            enrich = os.path.join(configs_path, ENRICH_FOLDER)
+        for folder in glob.glob(enrich + "/*"):
+            # FIXME workaround because Slotted Aloha does not work in regenerative
+            #       at the moment !!!
+            if test_name.find("regen") >= 0 and folder.find("aloha") >= 0:
+                continue
+            if os.path.basename(folder) == "scenario":
+                continue
+            if os.path.isdir(folder):
+                self.run_enrich(test_path, folder, types_path, types) 
 
-                self.launch_test_type(test_type, os.path.basename(test_name))
-
-            # stop the platform
-            try:
-                self.stop_opensand()
-            except:
-                pass
 
     def run_other(self):
         """ launch the tests for non base configuration """
@@ -473,6 +505,8 @@ help="specify the root folder for tests configurations\n"
                     found += 1
 
             types = desired
+            for folder in desired:
+                self._type.remove(os.path.basename(folder))
         if len(types) == 0:
             return
 
@@ -494,38 +528,27 @@ help="specify the root folder for tests configurations\n"
 
         # get test_type folders
         test_types = map(lambda x: os.path.join(types_path, x), types)
-        test_names = []
+        test_paths = []
         for test_type in test_types:
             configs_path = os.path.join(test_type, 'configs')
             if os.path.exists(configs_path):
-                test_names = glob.glob(configs_path + '/*')
-                # get test if only some tests should be run
-                if self._test is not None:
-                    found = 0
-                    desired = []
-                    for test in test_names:
-                        if not os.path.isdir(test):
-                            test_names.remove(test)
-                        if os.path.basename(test) in self._test:
-                            desired.append(test)
-                            found += 1
-                    test_names = desired
-            else:
-                if self._test is not None:
-                    self._log.info(" * No test name for type %s while a name "
-                                   "was specified in options, skip" %
-                                   os.path.basename(test_type))
-                    continue
+                test_paths = glob.glob(configs_path + '/*')
 
             self._log.info(" * Test %s" % os.path.basename(test_type))
             if self._quiet:
                 print "Test \033[1;34m%s\033[0m" % os.path.basename(test_type)
                 sys.stdout.flush()
 
-            for test_name in test_names:
+            for test_path in test_paths:
+                test_name = os.path.basename(test_path)
+                if self._test is not None:
+                    if test_name not in self._test:
+                        continue
+                    self._test.remove(test_name)
+                self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
-                self.new_scenario(test_name)
+                self.new_scenario(test_path)
 
                 try:
                     self.stop_opensand()
@@ -534,11 +557,12 @@ help="specify the root folder for tests configurations\n"
                 # start the platform
                 self.start_opensand()
 
-                self.launch_test_type(test_type, os.path.basename(test_name))
+                self.launch_test_type(test_type, os.path.basename(test_path))
 
             # if there is not configs folder we only have default configuration,
-            # so there is not test_name, launch test with base configuration
-            if len(test_names) == 0:
+            # so there is not test_path, launch test with base configuration
+            if len(test_paths) == 0 and self._test is None:
+                self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
                 self.new_scenario(test_type)
@@ -843,6 +867,8 @@ help="specify the root folder for tests configurations\n"
                 for st in os.listdir(path):
                     if st.startswith('st'):
                         st_id = st[2:]
+                        if host.get_instance() != st_id:
+                            continue
                         xslt_path = os.path.join(test_path, 'core_st%s.xslt' % st_id)
                         if os.path.exists(xslt_path):
                             xslt = xslt_path
@@ -852,7 +878,7 @@ help="specify the root folder for tests configurations\n"
                 except Exception, error:
                     raise TestError("Configuration",
                                     "Update Configuration: %s" % error)
-
+                
 
     def launch_test_type(self, test_path, test_name):
         """ launch tests on a type """
