@@ -178,6 +178,9 @@ class Test:
 help="specify the root folder for tests configurations\n"
 "The root folder should contains the following subfolders and files:\n"
 "  base/+-configs/+-test_name/core_HOST.xslt\n"
+"                 |-enrich/+-enrich_name/+-core_HOST.xslt\n"
+"                                        |-accepts (optional)\n"
+"                                        |-enrich_name/...(iterative)\n"
 "       |-types/test_type/+-order_host/configuration\n"
 "                         |-core_HOST.xslt (optional)\n"
 "  other/test_type/+-order_host/configuration\n"
@@ -214,9 +217,12 @@ help="specify the root folder for tests configurations\n"
 "the host on which test should be run among (sat, gw, stX (with X the ST id), "
 "wsY_Z (with Y the workstation id and Z its name), test (if test is launched "
 "on local host, stat (if test is launched on local host and needs statistics, "
-"be careful, stat test stops the platform, no more test should be run after)")
+"be careful, stat test stops the platform, no more test should be run after). "
+"The enrich folders contains new scenario that will complete base ones. "
+"The accept file contains the types that are allowed for this enrichment.")
         (options, args) = opt_parser.parse_args()
 
+        # TODO regex in selt._test and self._type for regen* or transp* for ex
         self._test = None
         self._type = None
         if options.test is not None:
@@ -321,9 +327,11 @@ help="specify the root folder for tests configurations\n"
             thread.join(10)
             self._threads.remove(thread)
         try:
-            self.stop_opensand()
+            threading.Thread(target=self.stop_opensand)
         except:
             pass
+        evt = self._model.get_event_manager()
+        evt.set('quit')
         for ws_ctrl in self._ws_ctrl:
             ws_ctrl.close()
         if self._model is not None:
@@ -399,8 +407,10 @@ help="specify the root folder for tests configurations\n"
         except:
             pass
 
-    def run_enrich(self, test_path, enrich, types_path, types):
+    def run_enrich(self, test_path, enrich, types_path, types, accepts=[]):
         """ run a test for a specific type or this type enriched """
+        # create a new list to avoid modifying reference
+        accepts = list(accepts)
         test_name = os.path.basename(test_path)
         if enrich != "":
             pos = enrich.find(ENRICH_FOLDER)
@@ -409,6 +419,11 @@ help="specify the root folder for tests configurations\n"
             for name in new:
                 test_name += "_" + name
             self.new_scenario(enrich)
+            accept_path = os.path.join(enrich, "accepts")
+            if os.path.exists(accept_path):
+                with open(accept_path) as accept_list:
+                    for accepted in accept_list:
+                        accepts.append(accepted.strip())
         else:
             # get the new configuration from base configuration
             # and create scenario
@@ -447,7 +462,9 @@ help="specify the root folder for tests configurations\n"
                     nonbase.append(test_type)
                     continue
 
-                self.launch_test_type(test_type, os.path.basename(test_path))
+
+                if len(accepts) == 0 or os.path.basename(test_type) in accepts:
+                    self.launch_test_type(test_type, os.path.basename(test_path))
 
             # now launch tests for non based configuration, stop platform
             # between each run
@@ -462,7 +479,8 @@ help="specify the root folder for tests configurations\n"
                     pass
                 self.start_opensand()
     
-                self.launch_test_type(test_type, os.path.basename(test_path))
+                if len(accepts) == 0 or test_type in accepts:
+                    self.launch_test_type(test_type, os.path.basename(test_path))
             
         # we restart from the test scenario that will be enriched
         self._model.set_scenario(init_scenario)
@@ -478,7 +496,7 @@ help="specify the root folder for tests configurations\n"
             if os.path.basename(folder) == "scenario":
                 continue
             if os.path.isdir(folder):
-                self.run_enrich(test_path, folder, types_path, types) 
+                self.run_enrich(test_path, folder, types_path, types, accepts) 
 
 
     def run_other(self):
