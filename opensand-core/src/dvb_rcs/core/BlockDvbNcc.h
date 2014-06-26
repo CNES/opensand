@@ -304,9 +304,12 @@ class BlockDvbNcc: public BlockDvb
 		uint8_t sof_carrier_id;
 		uint8_t data_carrier_id;
 
-		/// a fifo to keep the received packet from encap bloc
-		DvbFifo *data_dvb_fifo;
-
+		/* Fifos */
+		/// map of FIFOs per MAX priority to manage different queues
+		fifos_t dvb_fifos;
+		/// the default MAC fifo index = fifo with the smallest priority
+		unsigned int default_fifo_id;
+		
 		/// the list of complete DVB-RCS/BB frames that were not sent yet
 		list<DvbFrame *> complete_dvb_frames;
 
@@ -377,17 +380,20 @@ class BlockDvbNcc: public BlockDvb
 		event_id_t simu_timer;
 
 		// Output probes and stats
+		// FAB: TODO: add/modify stats
+  			// Queue sizes
+		/*map<unsigned int, Probe<int> *> probe_gw_queue_size;
+		map<unsigned int, Probe<int> *> probe_gw_queue_size_kb;
 			// Rates
 				// Layer 2 to SAT
-		Probe<int> *probe_gw_l2_to_sat_before_sched;
-		int l2_to_sat_bytes_before_sched;
-		Probe<int> *probe_gw_l2_to_sat_after_sched;
-		int l2_to_sat_bytes_after_sched;
+		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
+		int *l2_to_sat_cells_before_sched;
+		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
+		int *l2_to_sat_cells_after_sched;
+		Probe<int> *probe_gw_l2_to_sat_total;
+		int l2_to_sat_total_cells;*/
 			// Frame interval
 		Probe<float> *probe_frame_interval;
-			// Queue sizes
-		Probe<int> *probe_gw_queue_size;
-		Probe<int> *probe_gw_queue_size_kb;
 			// Physical layer information
 		Probe<int> *probe_used_modcod;
 

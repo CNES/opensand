@@ -130,13 +130,6 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="pvc" type="xsd:integer">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The Permanent Virtual Channel, it must be in increasing order
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
         <xsd:attribute name="cr_type" type="crType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">

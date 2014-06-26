@@ -62,6 +62,16 @@ typedef struct
 	vol_bytes_t out_length_bytes;     // current length of data extraction during period
 } mac_fifo_stat_context_t;
 
+/// Access type for fifo (mapping between mac_fifo and carrier)
+typedef enum
+{
+	access_vcm0 = 0,
+	access_vcm1 = 1,
+	access_vcm2 = 2,
+	access_vcm3 = 3,
+	access_acm = 4,
+} fwd_access_type_t;
+
 
 /**
  * @class DvbFifo
@@ -77,13 +87,14 @@ class DvbFifo
 	 * @brief Create the DvbFifo
 	 *
 	 * @param fifo_priority the fifo priority
-	 * @param fifo_name the name of the fifo queue (NM, EF, ...) or SAT
-	 * @param cr_type_name  the CR type name for this fifo
-	 * @param pvc           the PVC associated to this fifo
+	 * @param fifo_name 	the name of the fifo queue (NM, EF, ...) or SAT
+	 * @param type_name 	the CR type name for this fifo if it is for a ST 
+	 * 						(return link, the carrier access type name for
+	 * 						this fifo if it is for the GW (forward link)
 	 * @param max_size_pkt  the fifo maximum size
 	 */
 	DvbFifo(unsigned int fifo_priority, string mac_fifo_name,
-	        string cr_type_name, unsigned int pvc,
+	        string type_name, /*unsigned int pvc,*/
 	        vol_pkt_t max_size_pkt);
 
 	/**
@@ -112,7 +123,8 @@ class DvbFifo
 	 *
 	 * return the PVC of the fifo
 	 */
-	unsigned int getPvc() const;
+	//TODO FAB To delete
+	//unsigned int getPvc() const;
 
 	/**
 	 * @brief Get the CR type associated to the fifo
@@ -120,6 +132,13 @@ class DvbFifo
 	 * return the CR type associated to the fifo
 	 */
 	cr_type_t getCrType() const;
+
+	/**
+	 * @brief Get the access type associated to the fifo
+	 *
+	 * return the access type associated to the fifo
+	 */
+	fwd_access_type_t getAccessType() const;
 
 	/**
 	 * @brief Get the fifo_priority of the fifo (value from ST FIFO configuration)
@@ -237,6 +256,7 @@ class DvbFifo
 	                     ///< spot and allocation would depend of it as it depends
 	                     ///< of spot
 	cr_type_t cr_type;   ///< the associated Capacity Request
+	fwd_access_type_t access_type; ///< the associated Access Type
 	vol_pkt_t new_size_pkt;  ///< the number of packets that filled the fifo
 	                         ///< since previous check
 	vol_bytes_t new_length_bytes; ///< the size of data that filled the fifo

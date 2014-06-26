@@ -43,12 +43,13 @@
 
 
 DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
-                 string cr_type_name, unsigned int pvc,
+                 string type_name, /*unsigned int pvc,*/
                  vol_pkt_t max_size_pkt):
 	queue(),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
-	pvc(pvc),
+	// TODO: FAB: to delete
+	//pvc(pvc),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
@@ -61,26 +62,46 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
 	// of FIFO queues (dvb_rcs_tal section)
-	if(cr_type_name == "RBDC")
+	if(type_name == "RBDC")
 	{
 		this->cr_type = cr_rbdc;
 	}
-	else if(cr_type_name == "VBDC")
+	else if(type_name == "VBDC")
 	{
 		this->cr_type = cr_vbdc;
 	}
-	else if(cr_type_name == "SALOHA")
+	else if(type_name == "SALOHA")
 	{
 		this->cr_type = cr_saloha;
 	}
-	else if(cr_type_name == "NONE")
+	else if(type_name == "NONE")
 	{
 		this->cr_type = cr_none;
+	}
+	else if(type_name == "ACM")
+	{
+		this->access_type = access_acm;
+	}
+	else if(type_name == "VCM0")
+	{
+		this->access_type = access_vcm0;
+	}
+	else if(type_name == "VCM1")
+	{
+		this->access_type = access_vcm1;
+	}
+	else if(type_name == "VCM2")
+	{
+		this->access_type = access_vcm2;
+	}
+	else if(type_name == "VCM3")
+	{
+		this->access_type = access_vcm3;
 	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_ERROR,
-		    "unknown CR type of FIFO: %s\n", cr_type_name.c_str());
+		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
 	}
 }
 
@@ -113,14 +134,20 @@ string DvbFifo::getName() const
 	return this->fifo_name;
 }
 
-unsigned int DvbFifo::getPvc() const
+//TODO FAB To delete
+/*unsigned int DvbFifo::getPvc() const
 {
 	return this->pvc;
-}
+}*/
 
 cr_type_t DvbFifo::getCrType() const
 {
 	return this->cr_type;
+}
+
+fwd_access_type_t DvbFifo::getAccessType() const
+{
+	return this->access_type;
 }
 
 // FIFO priority for ST

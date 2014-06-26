@@ -71,6 +71,16 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="accessType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ACM" />
+        <xsd:enumeration value="VCM0"/>
+        <xsd:enumeration value="VCM1"/>
+        <xsd:enumeration value="VCM2"/>
+        <xsd:enumeration value="VCM3"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- simulation random type -->
 <xsd:simpleType name="simuRandom">
     <xsd:restriction base="xsd:string">
@@ -78,6 +88,66 @@
         <xsd:pattern value="([0-9]*:){5}[0-9]*" />
     </xsd:restriction>
 </xsd:simpleType>
+
+<!-- fifo types -->
+<xsd:simpleType name="className">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="NM" />
+        <xsd:enumeration value="EF"/>
+        <xsd:enumeration value="SIG"/>
+        <xsd:enumeration value="AF"/>
+        <xsd:enumeration value="BE"/>
+    </xsd:restriction>
+</xsd:simpleType>
+ 
+<xsd:simpleType name="classId">
+     <xsd:restriction base="xsd:integer">
+         <xsd:minInclusive value="0" />
+         <xsd:maxInclusive value="31" />
+     </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="fifos">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="fifo">
+    <xsd:complexType>
+        <xsd:attribute name="priority" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                The ID and the scheduler priority of the class related to the FIFO
+        </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="type" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The name of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="size_max" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The size of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+		</xsd:attribute>
+        <xsd:attribute name="access_type" type="accessType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of access
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- types for slotted_aloha section -->
 <xsd:simpleType name="sa_algo">
@@ -154,7 +224,7 @@
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="2000" />
     </xsd:restriction>
-</xsd:simpleType>
+</xsd:simpleType>i
 
 <!-- Complete XML description -->
 <xsd:element name="configuration">
@@ -281,11 +351,11 @@
                         The sending carrier id for DVB Start of Frame
                     </xsd:documentation>
                 </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="max_fifo" type="xsd:integer">
+			</xsd:element>
+            <xsd:element ref="fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The maximal size of the BBFrame FIFO
+                        The MAC fifos
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

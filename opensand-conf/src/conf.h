@@ -84,8 +84,10 @@
 
 #define FIFO_TYPE                 "type"
 #define FIFO_SIZE                 "size_max"
-#define FIFO_PVC                  "pvc"
+// TODO FAB to delete
+//#define FIFO_PVC                  "pvc"
 #define FIFO_CR_TYPE              "cr_type"
+#define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"
 #define DVB_RT_BANDWIDTH          "rt_fixed_bandwidth"
 #define DVB_SIMU_COL              "simulation_column"
