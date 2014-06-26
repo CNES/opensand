@@ -45,12 +45,11 @@ from opensand_manager_core.utils import GreedyConfigParser
 XSD="/usr/share/opensand/core_global.xsd"
 
 
-# TODO add minimum bitrate so we have max and min !
-
 class OpenSandBand():
     """ The OpenSAND Bandwidth representation """
 
     def __init__(self):
+        self._access_type = ""
         self._bandwidth = 0.0
         self._roll_off = 0.0
         self._categories = {}
@@ -103,6 +102,7 @@ class OpenSandBand():
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
             self._add_carrier(content["category"],
+                              content["access_type"],
                               float(content["ratio"]),
                               float(content["symbol_rate"]),
                               content["fmt_group"])
@@ -141,12 +141,12 @@ class OpenSandBand():
                 self._fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
                                                float(elts[3]), float(elts[4]))
 
-    def _add_carrier(self, name, ratio, symbol_rate_baud, fmt_group):
+    def _add_carrier(self, name, access_type, ratio, symbol_rate_baud, fmt_group):
         """ add a new category """
         if not name in self._categories:
             self._categories[name] = []
 
-        carriers = _CarriersGroup(ratio, symbol_rate_baud, fmt_group)
+        carriers = _CarriersGroup(access_type, ratio, symbol_rate_baud, fmt_group)
         self._categories[name].append(carriers)
 
     def _add_fmt_group(self, group_id, fmt_ids):
@@ -191,7 +191,7 @@ class OpenSandBand():
                            (self._bandwidth / (1 + self._roll_off)))
                 carriers.number = nbr
                 
-    def _get_carrier_bitrate(self, carriers):
+    def _get_max_carrier_bitrate(self, carriers):
         """ get the maximum bitrate per carriers group """
         rs = carriers.symbol_rate * carriers.number
         max_fmt = max(self._fmt_group[carriers.fmt_group])
@@ -199,10 +199,20 @@ class OpenSandBand():
         br = rs * fmt.modulation * fmt.coding_rate
         return br
 
-    def _get_max_bitrate(self, name):
+    def _get_min_carrier_bitrate(self, carriers):
+        """ get the maximum bitrate per carriers group """
+        rs = carriers.symbol_rate * carriers.number
+        min_fmt = min(self._fmt_group[carriers.fmt_group])
+        fmt = self._fmt[min_fmt]
+        br = rs * fmt.modulation * fmt.coding_rate
+        return br
+
+    def _get_max_bitrate(self, name, access_type):
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carriers in self._categories[name]:
+            if carriers.access_type != access_type:
+                continue
             rs = carriers.symbol_rate * carriers.number
             min_fmt = max(self._fmt_group[carriers.fmt_group])
             fmt = self._fmt[min_fmt]
@@ -210,10 +220,12 @@ class OpenSandBand():
             bitrate += br
         return bitrate
     
-    def _get_min_bitrate(self, name):
+    def _get_min_bitrate(self, name, access_type):
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carriers in self._categories[name]:
+            if carriers.access_type != access_type:
+                continue
             rs = carriers.symbol_rate * carriers.number
             min_fmt = min(self._fmt_group[carriers.fmt_group])
             fmt = self._fmt[min_fmt]
@@ -227,28 +239,41 @@ class OpenSandBand():
         for carriers in self._categories[name]:
             nbr += carriers.number
         return nbr
+    
+    def _get_access_type(self, name):
+        """ get the access types in a category """
+        access_types = []
+        for carriers in self._categories[name]:
+            access_types.append(carriers.access_type)
+        return set(access_types)
 
     def __str__(self):
         """ print band representation """
         output = "BAND: %sMhz roll-off=%s" % (self._bandwidth, self._roll_off)
         for name in self._categories:
             output += "\n\nCATEGORY %s" % (name)
-            i = 0
-            for carriers in self._categories[name]:
-                i += 1
-                output += "\nGroup %d: %s (%d kb/s)" % \
-                          (i, carriers,
-                           self._get_carrier_bitrate(carriers) / 1000)
-            output += "\n    %d carrier(s)" % (self._get_carriers_number(name))
-            output += "\n    Bitrate [%d, %d] kb/s" % (
-                      (self._get_min_bitrate(name) / 1000),
-                      (self._get_max_bitrate(name) / 1000))
+            for access in self._get_access_type(name):
+                output += "\n  * Access type: %s" % access
+                i = 0
+                for carriers in self._categories[name]:
+                    i += 1
+                    if carriers.access_type != access:
+                        continue
+                    output += "\n    Group %d: %s ([%d, %d] kb/s)" % \
+                              (i, carriers,
+                               self._get_min_carrier_bitrate(carriers) / 1000,
+                               self._get_max_carrier_bitrate(carriers) / 1000)
+                    output += "\n       %d carrier(s)" % (self._get_carriers_number(name))
+                    output += "\n       Bitrate [%d, %d] kb/s" % (
+                              (self._get_min_bitrate(name, access) / 1000),
+                              (self._get_max_bitrate(name, access) / 1000))
         return output
 
 class _CarriersGroup():
     """ The terminal categories """
 
-    def __init__(self, ratio, symbol_rate_baud, fmt_group):
+    def __init__(self, access_type, ratio, symbol_rate_baud, fmt_group):
+        self._access_type = access_type
         self._ratio = ratio
         self._symbol_rate = symbol_rate_baud
         self._fmt_group = fmt_group
@@ -258,6 +283,11 @@ class _CarriersGroup():
         return "ratio=%s Rs=%g => %d carriers" % (self.ratio,
                                                   self.symbol_rate,
                                                   self.number)
+
+    @property
+    def access_type(self):
+        """ get the access_type of carriers """
+        return self._access_type
 
     @property
     def ratio(self):
