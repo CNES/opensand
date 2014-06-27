@@ -52,6 +52,9 @@ EMU_IPV4=''
 LAN_IFACE='eth1'
 LAN_IPV4=''
 LAN_IPV6=''
+WS_LAN_IFACE='eth0'
+WS_LAN_IPV4=''
+WS_LAN_IPV6=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
@@ -101,6 +104,12 @@ read_conf(){
     LAN_IPV4=$RET
     db_get opensand-daemon/network/lan_ipv6
     LAN_IPV6=$RET
+    db_get opensand-daemon/network/ws_lan_iface
+    WS_LAN_IFACE=$RET
+    db_get opensand-daemon/network/ws_lan_ipv4
+    WS_LAN_IPV4=$RET
+    db_get opensand-daemon/network/ws_lan_ipv6
+    WS_LAN_IPV6=$RET
 }
 
 # write daemon configuration
@@ -142,20 +151,31 @@ write_conf(){
             echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
             echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
         fi
-        if [ ${SERVICE_NAME} != 'sat' ] &&
-           [ "${SERVICE_NAME}" != "ws" -o "${DHCP}" != "true" ]; then
-            echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-            echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
-            echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+        if [ ${SERVICE_NAME} != 'sat' ]; then
+            if [ "${SERVICE_NAME}" != "ws" ]; then
+                echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+                echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
+                echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+            else
+                echo "lan_iface = ${WS_LAN_IFACE}" >> ${DAEMON_CONF}
+                if [ "${DHCP}" != "true" ]; then
+                    echo "lan_ipv4 = ${WS_LAN_IPV4}" >> ${DAEMON_CONF}
+                    echo "lan_ipv6 = ${WS_LAN_IPV6}" >> ${DAEMON_CONF}
+                fi
+            fi
         fi
     # for automatic mode the interfaces addresses will be handled by the daemon
     else
-    	if [ "${SERVICE_NAME}" != "ws" ]; then
-    		echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
-    	fi
-    	if [ ${SERVICE_NAME} != 'sat' ]; then
-    		echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
-    	fi
+        if [ "${SERVICE_NAME}" != "ws" ]; then
+            echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
+        fi
+        if [ ${SERVICE_NAME} != 'sat' ]; then
+            if [ "${SERVICE_NAME}" != "ws" ]; then
+                echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
+            else
+                echo "lan_iface = ${WS_LAN_IFACE}" >> ${DAEMON_CONF}
+            fi
+        fi
     fi
 }
 
@@ -190,7 +210,7 @@ initialize(){
             fi
         fi
     else
-    	# remove interfaces in case it it was another type of host
+        # remove interfaces in case it it was another type of host
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
     # configure host
