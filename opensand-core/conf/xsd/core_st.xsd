@@ -264,13 +264,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dvb_mac_id" type="talId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The Dvb Mac identifier = the terminal id (integer)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="rt_fixed_bandwidth" type="bitRate">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
