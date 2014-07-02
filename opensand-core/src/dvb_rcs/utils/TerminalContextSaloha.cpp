@@ -59,6 +59,8 @@ TerminalContextSaloha::~TerminalContextSaloha()
 {
 }
 
+// TODO this functions return complete PDU even if a previous one has not
+//      been received, this creates problems with MPEG (CC) and RoHC
 prop_state_t TerminalContextSaloha::addPacket(SlottedAlohaPacketData *packet,
                                               saloha_packets_data_t &pdu)
 {

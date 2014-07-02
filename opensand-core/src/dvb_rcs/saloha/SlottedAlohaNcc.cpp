@@ -126,15 +126,24 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		cat->setSlotsNumber(this->frame_duration_ms,
 		                    this->pkt_hdl->getFixedLength());
 		Probe<int> *probe_coll;
+		Probe<int> *probe_coll_before;
 		Probe<int> *probe_coll_ratio;
 
 		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
 		                                       "Aloha.collisions.%s",
 		                                       (*cat_iter).first.c_str());
-		probe_coll_ratio = Output::registerProbe<int>("%", true, SAMPLE_AVG,
+		// disable by default
+		probe_coll_before = Output::registerProbe<int>(false, SAMPLE_SUM,
+		                                               "Aloha.collisions_before_algo.%s",
+		                                               (*cat_iter).first.c_str());
+		// disable by default
+		probe_coll_ratio = Output::registerProbe<int>("%", false, SAMPLE_AVG,
 		                                             "Aloha.collisions_ratio.%s",
 		                                             (*cat_iter).first.c_str());
 
+		this->probe_collisions_before.insert(
+		            pair<string, Probe<int> *>((*cat_iter).first,
+		                                       probe_coll_before));
 		this->probe_collisions.insert(
 		            pair<string, Probe<int> *>((*cat_iter).first,
 		                                       probe_coll));
@@ -362,6 +371,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	saloha_packets_data_t::iterator pkt_it;
 	// refresh the probe in case of no traffic
 	this->probe_collisions[category->getLabel()]->put(0);
+	this->probe_collisions_before[category->getLabel()]->put(0);
 	this->probe_collisions_ratio[category->getLabel()]->put(0);
 	if(!category->getReceivedPacketsNbr())
 	{
@@ -558,6 +568,20 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	AlohaPacketComparator comparator(slots_per_carrier);
 	saloha_packets_data_t *accepted_packets = category->getAcceptedPackets();
 
+	if(this->probe_collisions_before[category->getLabel()]->isEnabled())
+	{
+		uint16_t coll = 0;
+		for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
+		    slot_it != slots.end(); ++slot_it)
+		{
+			Slot *slot = (*slot_it).second;
+			if(slot->size() > 1)
+			{
+				coll += slot->size();
+			}
+		}
+		this->probe_collisions_before[category->getLabel()]->put(coll);
+	}
 	nbr = this->algo->removeCollisions(slots,
 	                                   accepted_packets);
 	this->probe_collisions[category->getLabel()]->put(nbr);

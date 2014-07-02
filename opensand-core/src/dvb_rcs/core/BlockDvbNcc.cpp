@@ -2034,6 +2034,7 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
+	int lan_scheme_nbr;
 
 	// init fmt_simu
 	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
@@ -2073,6 +2074,42 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 		    "is regenerative\n");
 		return false;
 	}
+
+	// TODO possible loss with Slotted Aloha and ROHC or MPEG
+	//      (see TODO in TerminalContextSaloha.cpp)
+	if(this->pkt_hdl->getName() == "MPEG2-TS")
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "Cannot guarantee no loss with MPEG2-TS and Slotted Aloha "
+		    "on return link due to interleaving\n");
+	}
+	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	                         lan_scheme_nbr))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    LAN_ADAPTATION_SCHEME_LIST);
+		return false;
+	}
+	for(int i = 0; i < lan_scheme_nbr; i++)
+	{
+		string name;
+		if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+		                         POSITION, toString(i), PROTO, name))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, invalid value %d for parameter '%s'\n",
+			    GLOBAL_SECTION, i, POSITION);
+			return false;
+		}
+		if(name == "ROHC")
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Cannot guarantee no loss with RoHC and Slotted Aloha "
+			    "on return link due to interleaving\n");
+		}
+	}
+	// end TODO
 
 	// Create the Slotted ALoha part
 	this->saloha = new SlottedAlohaNcc();

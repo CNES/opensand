@@ -81,6 +81,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	typedef map<string, Probe<int> *> probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
+	probe_per_cat_t probe_collisions_before;
 	probe_per_cat_t probe_collisions_ratio;
 
  public:
