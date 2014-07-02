@@ -418,7 +418,7 @@ help="specify the root folder for tests configurations\n"
             new = path.split("/")
             for name in new:
                 test_name += "_" + name
-            self.new_scenario(enrich)
+            self.new_scenario(enrich, test_name)
             accept_path = os.path.join(enrich, "accepts")
             if os.path.exists(accept_path):
                 with open(accept_path) as accept_list:
@@ -427,7 +427,7 @@ help="specify the root folder for tests configurations\n"
         else:
             # get the new configuration from base configuration
             # and create scenario
-            self.new_scenario(test_path)
+            self.new_scenario(test_path, test_name)
         init_scenario = self._model.get_scenario()
 
         if self._test is None or test_name in self._test:
@@ -462,16 +462,15 @@ help="specify the root folder for tests configurations\n"
                     nonbase.append(test_type)
                     continue
 
-
                 if len(accepts) == 0 or os.path.basename(test_type) in accepts:
-                    self.launch_test_type(test_type, os.path.basename(test_path))
+                    self.launch_test_type(test_type, test_name)
 
             # now launch tests for non based configuration, stop platform
             # between each run
             for test_type in nonbase:
                 self._model.set_scenario(init_scenario)
                 # update configuration
-                self.new_scenario(test_type)
+                self.new_scenario(test_type, test_name)
     
                 try:
                     self.stop_opensand()
@@ -479,8 +478,8 @@ help="specify the root folder for tests configurations\n"
                     pass
                 self.start_opensand()
     
-                if len(accepts) == 0 or test_type in accepts:
-                    self.launch_test_type(test_type, os.path.basename(test_path))
+                if len(accepts) == 0 or os.path.basename(test_type) in accepts:
+                    self.launch_test_type(test_type, test_name)
             
         # we restart from the test scenario that will be enriched
         self._model.set_scenario(init_scenario)
@@ -489,11 +488,14 @@ help="specify the root folder for tests configurations\n"
             configs_path = os.path.join(base, 'configs')
             enrich = os.path.join(configs_path, ENRICH_FOLDER)
         for folder in glob.glob(enrich + "/*"):
-            # FIXME workaround because Slotted Aloha does not work in regenerative
-            #       at the moment !!!
-            if test_name.find("regen") >= 0 and folder.find("aloha") >= 0:
+            # FIXME workaround because Slotted Aloha does not neither work in regenerative
+            #       at the moment nor with MPEG and ROHC !!!
+            if (test_name.find("regen") >= 0 or
+                test_name.find("rohc") >= 0 or
+                test_name.split('_')[2] == "mpeg") and \
+               folder.find("aloha") >= 0:
                 continue
-            if os.path.basename(folder) == "scenario":
+            if os.path.basename(folder).startswith("scenario"):
                 continue
             if os.path.isdir(folder):
                 self.run_enrich(test_path, folder, types_path, types, accepts) 
@@ -566,7 +568,7 @@ help="specify the root folder for tests configurations\n"
                 self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
-                self.new_scenario(test_path)
+                self.new_scenario(test_path, test_name)
 
                 try:
                     self.stop_opensand()
@@ -583,7 +585,7 @@ help="specify the root folder for tests configurations\n"
                 self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
-                self.new_scenario(test_type)
+                self.new_scenario(test_type, "default")
 
                 try:
                     self.stop_opensand()
@@ -710,7 +712,7 @@ help="specify the root folder for tests configurations\n"
             except:
                 raise TestError("Test", "Cannot stop platform to get statistics")
             stats = os.path.dirname(path)
-            stats = os.path.join(stats, 'scenario/default/')
+            stats = os.path.join(stats, 'scenario_%s/default/' % test_name)
 
             if not os.path.exists(stats_dst):
                 os.mkdir(stats_dst)
@@ -859,11 +861,11 @@ help="specify the root folder for tests configurations\n"
             self._ws_ctrl.append(new_ws)
 
 # TODO at the moment we can not configure modules !!
-    def new_scenario(self, test_path):
+    def new_scenario(self, test_path, test_name):
         """ create a new scenario for tests and apply XSLT transformation """
         # get the new configuration from base configuration
         # and create scenario
-        path = os.path.join(test_path, 'scenario')
+        path = os.path.join(test_path, 'scenario_%s' % test_name)
         try:
             if os.path.exists(path):
                 shutil.rmtree(path)
@@ -917,8 +919,9 @@ help="specify the root folder for tests configurations\n"
         # remove common folders from list (not mandatory)
         if os.path.join(test_path, 'files') in orders:
             orders.remove(os.path.join(test_path, 'files'))
-        if os.path.join(test_path, 'scenario') in orders:
-            orders.remove(os.path.join(test_path, 'scenario'))
+        for path in orders:
+            if path.startswith('scenario'):
+                orders.remove(path)
         orders.sort()
         launched = False
         for host in orders:

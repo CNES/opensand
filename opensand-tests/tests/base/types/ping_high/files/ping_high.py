@@ -68,9 +68,12 @@ class PingTest():
             self.print_error("error when getting OpenSAND hosts")
             return
 
-        # wait 10 second because for ethernet tests we wait for bridge to be
+        # wait 10 seconds more because for ethernet tests we wait for bridge to be
         # ready        
-        time.sleep(10)
+        if test_name.find("eth") >= 0:
+            time.sleep(11)
+        else:
+            time.sleep(1)
 
         address_v4 = ''
         address_v6 = ''
@@ -109,6 +112,14 @@ class PingTest():
         cmd = 'ping'
         if v6:
             cmd = 'ping6'
+
+        # first ping twice for initialization that sometimes leads to errors
+        ping = subprocess.Popen([cmd, "-c", "2", address],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = ping.communicate()
+        print out
+
         # TODO it would be better to set a smaller interval but ping
         #      want us to be root
         ping = subprocess.Popen([cmd, "-c", "60", "-i", "0.2", "-s", "1400", "-q",

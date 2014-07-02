@@ -87,10 +87,10 @@ opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-p
 opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-plugin-dbg
 opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-plugin-manager
 opensand-plugins/lan_adaptation/ethernet/debian/tmp
-opensand-tests/tests/base/*/*/scenario/
-opensand-tests/tests/other/*/scenario/
-opensand-tests/tests/base/configs/enrich/saloha/scenario/
-opensand-tests/tests/base/configs/enrich/saloha/dama/scenario/
+opensand-tests/tests/base/*/*/scenario*/
+opensand-tests/tests/other/*/scenario*/
+opensand-tests/tests/base/configs/enrich/saloha/scenario*/
+opensand-tests/tests/base/configs/enrich/saloha/dama/scenario*/
 opensand-tests/tests/other/stats/files/test_prog
 opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/__init__.py
