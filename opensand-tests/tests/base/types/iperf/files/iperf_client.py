@@ -79,9 +79,12 @@ class IperfClient():
 
             info = services[serv]
 
-            # wait 10 second because for ethernet tests we wait for bridge to be
+            # wait 11 seconds more because for ethernet tests we wait for bridge to be
             # ready        
-            time.sleep(10)
+            if test_name.find("eth") >= 0:
+                time.sleep(11)
+            else:
+                time.sleep(1)
 
             if not v6 and not 'lan_ipv4' in info:
                 self.print_error('no IPv4 lan address for %s' % serv)

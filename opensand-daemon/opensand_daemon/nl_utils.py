@@ -34,26 +34,29 @@
 netlink.py - interface with netlink adresses and routes
 """
 
+import logging
 import netlink.route.capi as capi
 import netlink.route.link as link
 import netlink.core as netlink
 import netlink.route.address as address
 from ipaddr import IPNetwork
 
+#macros
+LOGGER = logging.getLogger('sand-daemon')
+
 class NlError(netlink.NetlinkError):
     pass
-
 
 # dissociate the Object exists error
 class NlExists(netlink.NetlinkError):
     # used for NLE_EXIST (6)
     pass
 
-
 class NlMissing(netlink.NetlinkError):
     # used for NLE_OBJ_NOTFOUND (12)
     # and NLE_NOADDR (16)
     pass
+
 
 class NlRoute(object):
     """Route object"""
@@ -81,6 +84,12 @@ class NlRoute(object):
         ret = capi.rtnl_route_add(self._sock._sock, route, 0)
         if ret == -6:
             raise NlExists(ret)
+        # FIXME sometime we have an unspecific failure that leads to
+        #       problems but we don't know where it come from
+        if ret == -1:
+            LOGGER.error("Unspecific Failure when adding route "
+                         "(dst = %s, gw = %s" % (dst, gw))
+            return
         if ret < 0:
             raise NlError(ret)
         
@@ -104,6 +113,13 @@ class NlRoute(object):
         ret = capi.rtnl_route_delete(self._sock._sock, route, 0)
         if ret == -12:
             raise NlMissing(ret)
+        # FIXME sometime we have an unspecific failure that leads to
+        #       problems but we don't know where it come from
+        if ret == -1:
+            LOGGER.error("Unspecific Failure when removing route "
+                         "(dst = %s, gw = %s, proto = %s" % (dst, gw,
+                                                             proto_kernel))
+            return
         if ret < 0:
             raise NlError(ret)
 
@@ -136,7 +152,13 @@ class NlInterfaces(object):
             ret = capi.rtnl_addr_add(self._sock._sock, ad._rtnl_addr, 0)
             if ret == -6:
                 raise NlExists(ret)
-            if ret < 0:
+            # FIXME sometime we have an unspecific failure that leads to
+            #       problems but we don't know where it come from
+            if ret == -1:
+                LOGGER.error("Unspecific Failure when adding address "
+                             "(addr = %s, iface = %s" % (addr, iface))
+                pass
+            elif ret < 0:
                 raise NlError(ret)
         except Exception:
             raise
@@ -154,7 +176,13 @@ class NlInterfaces(object):
             ret = capi.rtnl_addr_delete(self._sock._sock, ad._rtnl_addr, 0)
             if ret == -19: # 19 is for NLE_NOADDR
                 raise NlMissing(ret)
-            if ret < 0:
+            # FIXME sometime we have an unspecific failure that leads to
+            #       problems but we don't know where it come from
+            if ret == -1:
+                LOGGER.error("Unspecific Failure when removing address "
+                             "(addr = %s, iface = %s" % (addr, iface))
+                pass
+            elif ret < 0:
                 raise NlError(ret)
         except Exception:
             raise

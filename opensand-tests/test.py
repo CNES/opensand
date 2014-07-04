@@ -818,7 +818,7 @@ help="specify the root folder for tests configurations\n"
             resp.clear()
             raise TestError("Initialization", "cannot stop platform")
         resp.clear()
-        time.sleep(4)
+        time.sleep(2)
 
     def start_opensand(self):
         """ start the OpenSAND testbed """
@@ -846,12 +846,16 @@ help="specify the root folder for tests configurations\n"
             resp.clear()
             raise TestError("Initialization", "cannot start platform")
         resp.clear()
-        time.sleep(4)
+        time.sleep(2)
 
         for host in self._model.get_hosts_list():
             if not host.get_state():
                 raise TestError("Initialization", "%s did not start" %
                                 host.get_name())
+        # disable remote logs this reduce consumption
+        env_plane_ctrl = self._controller.get_env_plane_controller()
+        for program in env_plane_ctrl.get_programs():
+            env_plane_ctrl.enable_logs(False, program)
 
     def create_ws_controllers(self):
         """ create controllers for WS because the manager
