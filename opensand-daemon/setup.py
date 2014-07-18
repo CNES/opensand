@@ -24,17 +24,17 @@ include = ['/usr/include/libnl3']
 
 netlink_capi = Extension('netlink/_capi',
                          sources = ['netlink/capi.i'],
-             include_dirs = include,
-             swig_opts = opts,
-             libraries = ['nl-3'],
-            )
+                         include_dirs = include,
+                         swig_opts = opts,
+                         libraries = ['nl-3'],
+                        )
 
 route_capi = Extension('netlink/route/_capi',
-                         sources = ['netlink/route/capi.i'],
-             include_dirs = include,
-             swig_opts = opts,
-             libraries = ['nl-3', 'nl-route-3'],
-            )
+                       sources = ['netlink/route/capi.i'],
+                       include_dirs = include,
+                       swig_opts = opts,
+                       libraries = ['nl-3', 'nl-route-3'],
+                      )
 
 setup(
     name="opensand-daemon",

@@ -143,6 +143,7 @@ class NlInterfaces(object):
 
     def add_address(self, addr, iface):
         """ add a new address """
+        LOGGER.info("add address %s on %s" % (addr, iface))
         try:
             ifidx = self._cache[iface].ifindex
             ad = address.Address()
@@ -168,6 +169,7 @@ class NlInterfaces(object):
 
     def del_address(self, addr, iface):
         """ delete an address """
+        LOGGER.info("delete address %s on %s" % (addr, iface))
         try:
             ifidx = self._cache[iface].ifindex
             ad = address.Address()
