@@ -39,6 +39,7 @@
 
 #include <cstring>
 #include <errno.h>
+#include <unistd.h>
 
 
 MessageEvent::MessageEvent(RtFifo *const fifo,

@@ -42,6 +42,7 @@
 #include <strings.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <unistd.h>
 
 
 /**

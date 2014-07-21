@@ -41,6 +41,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 AcmLoop::AcmLoop():
 	MinimalConditionPlugin(), modcod_table()

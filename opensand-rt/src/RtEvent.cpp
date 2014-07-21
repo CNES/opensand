@@ -39,6 +39,7 @@
 #include <opensand_output/Output.h>
 
 #include <cstdlib>
+#include <unistd.h>
 
 RtEvent::RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t priority):
 	type(type),

@@ -48,6 +48,7 @@ extern "C"
 #include <linux/if_tun.h>
 #include <net/if.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 

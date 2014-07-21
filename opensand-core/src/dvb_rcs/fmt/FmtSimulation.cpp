@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 
 // TODO we say that if modcod id1 < modcod id2, then

@@ -37,6 +37,7 @@
 
 #include <netinet/in.h>
 #include <cstring>
+#include <unistd.h>
 
 
 /**

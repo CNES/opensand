@@ -53,6 +53,7 @@
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <linux/if_tun.h>
 
 

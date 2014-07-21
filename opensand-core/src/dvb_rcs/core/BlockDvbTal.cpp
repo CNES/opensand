@@ -56,6 +56,7 @@
 
 #include <sstream>
 #include <assert.h>
+#include <unistd.h>
 
 int BlockDvbTal::Downward::Downward::qos_server_sock = -1;
 

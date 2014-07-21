@@ -39,6 +39,7 @@
 
 #include <opensand_output/Output.h>
 
+#include <unistd.h>
 #include <signal.h>
 #include <cstdio>
 #include <cstring>

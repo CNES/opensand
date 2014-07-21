@@ -67,6 +67,7 @@
 #include <cstring>
 #include <cassert>
 #include <signal.h>
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
