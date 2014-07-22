@@ -116,6 +116,14 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 		case evt_timer:
 			// timer only on upward channel
 			this->nbr_timeouts++;
+			// test for duration
+			if(this->nbr_timeouts > 10)
+			{
+				// that is 2 seconds, should be enough to read the file, so stop the application
+				std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
+				kill(getpid(), SIGTERM);
+			}
+
 			elapsed_time = ((TimerEvent *)event)->getTimeFromTrigger();
 			sprintf(this->last_written, "%ld.%06ld",
 					elapsed_time.tv_sec, elapsed_time.tv_usec);
@@ -131,13 +139,6 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 			          << "; value: " << this->last_written << std::endl;
 			fflush(stdout);
 
-			// test for duration
-			if(this->nbr_timeouts > 10)
-			{
-				// that is 2 seconds, should be enough to read the file, so stop the application
-				std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
-				kill(getpid(), SIGTERM);
-			}
 			break;
 
 		case evt_message:
