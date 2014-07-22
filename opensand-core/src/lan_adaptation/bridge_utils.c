@@ -35,6 +35,7 @@
 #include <string.h>
 #include <linux/if.h>
 //#include <linux/if_tun.h>
+#include <netinet/ip6.h>
 #include <linux/if_bridge.h>
 #include <errno.h>
 
