@@ -78,7 +78,7 @@ public:
 	/**
 	 * Class destructor
 	 */
-	~SlottedAlohaBackoff();
+	virtual ~SlottedAlohaBackoff();
 
 	/**
 	 * Decrease the backoff

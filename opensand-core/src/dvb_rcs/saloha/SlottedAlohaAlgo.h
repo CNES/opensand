@@ -62,7 +62,7 @@ class SlottedAlohaAlgo
 	/**
 	 * Class destructor
 	 */
-	~SlottedAlohaAlgo();
+	virtual ~SlottedAlohaAlgo();
 
 	/**
 	 * Remove collisions with a specific algorithm

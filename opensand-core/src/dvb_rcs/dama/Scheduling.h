@@ -66,6 +66,8 @@ class Scheduling
 		                                           "Dvb.Scheduling"); 
 	};
 
+	virtual ~Scheduling() {};
+
 	/**
 	 * @brief Schedule packets emission.
 	 *

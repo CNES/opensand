@@ -98,7 +98,7 @@ class OutputLog
 	          log_level_t display_level,
 	          const string &name);
 
-	~OutputLog();
+	virtual ~OutputLog();
 
 	/**
 	 * @brief Get the name of the log

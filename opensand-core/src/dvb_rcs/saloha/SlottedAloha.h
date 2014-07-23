@@ -71,7 +71,7 @@ class SlottedAloha
 	/**
 	 * Class destructor
 	 */
-	~SlottedAloha();
+	virtual ~SlottedAloha();
 
 	/**
 	 * Init the Slotted Aloha parent class
