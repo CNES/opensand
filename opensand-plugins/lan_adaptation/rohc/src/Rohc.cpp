@@ -247,7 +247,7 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of network packets\n");
 		delete burst;
-		return false;
+		return NULL;
 	}
 
 	for(packet = burst->begin(); packet != burst->end(); packet++)

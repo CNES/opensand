@@ -133,7 +133,7 @@ NetBurst *Atm::Context::deencapsulate(NetBurst *burst)
 		    "cannot allocate memory for burst of network "
 		    "packets\n");
 		delete burst;
-		return false;
+		return NULL;
 	}
 
 	for(packet = burst->begin(); packet != burst->end(); packet++)

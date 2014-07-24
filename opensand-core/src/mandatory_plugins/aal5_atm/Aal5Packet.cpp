@@ -174,7 +174,7 @@ bool Aal5Packet::isValid() const
 
 	// (AAL5 payload length + AAL5 trailer length + padding) = buffer length
 	// => we must have (AAL5 payload len + AAL5 trailer len) <= buffer length
-	if((this->getPayloadLength() + 8) > (int) this->data.length())
+	if((this->getPayloadLength() + 8) > this->data.length())
 	{
 		LOG(aal5_log, LEVEL_NOTICE,
 		    "payload (%zu) + trailer (8) > total length (%zu)\n",
