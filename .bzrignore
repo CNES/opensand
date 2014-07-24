@@ -159,3 +159,7 @@ opensand-meta/debian/opensand-manager
 opensand-meta/debian/opensand-manager-encap-plugins
 opensand-meta/debian/opensand-manager-physical-layer-plugins
 opensand-meta/debian/opensand-physical-layer-plugins
+compile
+*.log
+*.trs
+test-driver
