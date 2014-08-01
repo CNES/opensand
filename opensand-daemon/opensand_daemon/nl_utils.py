@@ -88,7 +88,7 @@ class NlRoute(object):
         #       problems but we don't know where it come from
         if ret == -1:
             LOGGER.error("Unspecific Failure when adding route "
-                         "(dst = %s, gw = %s" % (dst, gw))
+                         "(dst = %s, gw = %s)" % (dst, gw))
             return
         if ret < 0:
             raise NlError(ret)

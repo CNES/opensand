@@ -70,8 +70,9 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	uint8_t desired_modcod = this->retrieveCurrentModcod();
 	bool found_modcod = false;
 
-	// TODO Here we take capacity from uplink carriers that are the same carriers as for terminals
-	//      but is this counted when allocating for terminals ????
+	// FIXME we consider the band is not the same for GW and terminals (this
+	//       is a good consideration...) but as we have only one band configuration
+	//       we use the same parameters
 	// initialize carriers capacity
 	for(carrier_it = carriers.begin();
 	    carrier_it != carriers.end();

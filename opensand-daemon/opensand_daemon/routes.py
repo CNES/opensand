@@ -53,6 +53,7 @@ class OpenSandRoutes(object):
 
     # the OpenSANDRoutes class attributes are shared between command and service
     # threads
+    _name = None
     _routes_lock = threading.Lock()
     _route_hdl = None
     _routes_v4 = {} # the available host and IPv4 adresses
@@ -71,9 +72,10 @@ class OpenSandRoutes(object):
         if OpenSandRoutes._is_ws:
             self.remove_routes()
 
-    def load(self, cache_dir, iface, is_ws=False):
+    def load(self, cache_dir, name, iface, is_ws=False):
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._cache_dir = cache_dir
+        OpenSandRoutes._name = name.lower()
         try:
             OpenSandRoutes._route_hdl = NlRoute(iface)
         except KeyError:
@@ -136,8 +138,8 @@ class OpenSandRoutes(object):
         if OpenSandRoutes._unused:
             return
         OpenSandRoutes._routes_lock.acquire()
-        LOGGER.debug("new distant host %s with addresses %s and %s" %
-                     (name, v4, v6))
+        LOGGER.info("new distant host %s with addresses %s and %s" %
+                    (name, v4, v6))
         if gw_v4 is not None or gw_v6 is not None:
             LOGGER.debug("routers %s %s" % (gw_v4, gw_v6))
 
@@ -273,6 +275,11 @@ class OpenSandRoutes(object):
     def add_route(self, host, route_v4, route_v6, gw_v4, gw_v6):
         """ add a new route """
         if OpenSandRoutes._unused:
+            return
+        if host == OpenSandRoutes._name:
+            LOGGER.warning("Try to add route for myself...")
+            del OpenSandRoutes._routes_v4[host]
+            del OpenSandRoutes._routes_v6[host]
             return
         LOGGER.info("add routes for host %s toward %s and %s via %s" %
                     (host, route_v4, route_v6, OpenSandRoutes._iface))

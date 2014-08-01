@@ -87,10 +87,10 @@ class OpenSandService(object):
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
-                OpenSandService._routes.load(cache_dir, TUN_NAME)
+                OpenSandService._routes.load(cache_dir, name, TUN_NAME)
             else:
-                OpenSandService._routes.load(cache_dir, descr['lan_iface'],
-                                             True)
+                OpenSandService._routes.load(cache_dir, name,
+                                             descr['lan_iface'], True)
         else:
             # no route to handle on satellite
             OpenSandService._routes.set_unused()
@@ -117,11 +117,10 @@ class OpenSandService(object):
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
             self._output_handler = output_handler
-            # add name in _names to avoid adding route for the current host
             if compo != "gw":
-                self._names = [compo + instance]
+                self._current_host = [compo + instance]
             else:
-                self._names = [compo]
+                self._current_host = [compo]
             self._new_routes = []
             self._router_v4 = None
             self._router_v6 = None
@@ -170,6 +169,8 @@ class OpenSandService(object):
 
             if name in self._names:
                 LOGGER.debug("ignore %s that is already discovered" % name)
+                return
+            elif name == self._current_host:
                 return
             elif not name.startswith('st') and name != 'gw':
                 LOGGER.debug("ignore %s that is not a ST" % name)
@@ -354,8 +355,8 @@ class OpenSandService(object):
             elif state == avahi.SERVER_RUNNING:
                 self.add_service()
             else:
-                LOGGER.error("Server state changed %s (error: %s)" % (state,
-                                                                      error))
+                LOGGER.warning("Server state changed %s (error: %s)" % (state,
+                                                                        error))
 
         def entry_group_state_changed(self, state, error):
             """ signal received when group state change """

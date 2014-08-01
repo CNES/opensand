@@ -35,7 +35,6 @@
  */
 
 
-// FIXME we need to include uti_debug.h before...
 #include <opensand_output/Output.h>
 
 #include "BlockDvbTal.h"

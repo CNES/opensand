@@ -345,7 +345,7 @@ class OpenSandIfaces(object):
     def _remove_default_routes(self):
         """ delete default routes on tun interface """
         # delete default routes on tun (for bridge this is ok at it remains the
-        # ain interface for both emulation network and terminal network)
+        # main interface for both emulation network and terminal network)
         # (these are routes with kernel protocol)
         tun_route = NlRoute(TUN_NAME)
         try:

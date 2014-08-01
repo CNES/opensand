@@ -758,8 +758,10 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 //  In first case, we have a problem if no terminal required the same
 //  modcod, the BBFrame will wait forever to be completed and we will
 //  have to wait case 2 for the BBFrame to be sent
-//  One way to improve this algo, use to counter :
+//  One way to improve this algo, use a counter :
 //   - first: if the counter is reached, try to complete the frame
 //            with packet requiring higher MODCODs
 //   - second: (the frame is still not completed) force sending the incomplete
 //             frame
+//  Another way : keep the frame in completes and try to complete it
+//                during scheduling
