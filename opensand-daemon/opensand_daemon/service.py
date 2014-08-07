@@ -117,10 +117,11 @@ class OpenSandService(object):
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
             self._output_handler = output_handler
-            if compo != "gw":
-                self._current_host = [compo + instance]
+            self._names = []
+            if self._compo != "gw":
+                self._current_host = self._compo + self._instance
             else:
-                self._current_host = [compo]
+                self._current_host = self._compo
             self._new_routes = []
             self._router_v4 = None
             self._router_v6 = None
@@ -140,7 +141,7 @@ class OpenSandService(object):
 
         def service_resolved(self, *args):
             """ get the parameter of service once it is resolved """
-            name = args[2]
+            name = args[2].lower()
             if name == 'collector':
                 # only add collector if it can receive information from our
                 # publish interface
