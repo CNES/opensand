@@ -260,8 +260,8 @@ class XmlParser:
             if elem_type in ["xsd:integer",
                              "xsd:nonNegativeInteger",
                              "xsd:nonPositiveInteger",
-                             "xsd:PositiveInteger",
-                             "xsd:NegativeInteger"]:
+                             "xsd:positiveInteger",
+                             "xsd:negativeInteger"]:
 #                             "xsd:decimal"]:
     #TODO add step so we could add decimal
                 return {"type": "numeric"}
