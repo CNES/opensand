@@ -478,10 +478,9 @@ class ConfEvent(ConfView) :
                     self.update_view()
                 except ConfException as msg:
                     error_popup(str(msg))
-        window = AdvancedDialog(self._model, self._log)
+        window = AdvancedDialog(self._model, self._log, self.update_view)
         window.go()
         try:
-            self.update_view()
             self.enable_conf_buttons(False)
         except ConfException as msg:
             error_popup(str(msg))

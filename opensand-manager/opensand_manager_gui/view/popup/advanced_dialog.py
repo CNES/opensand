@@ -48,7 +48,7 @@ from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
 
 class AdvancedDialog(WindowView):
     """ an advanced configuration window """
-    def __init__(self, model, manager_log):
+    def __init__(self, model, manager_log, update_cb):
         WindowView.__init__(self, None, 'advanced_dialog')
 
         self._dlg = self._ui.get_widget('advanced_dialog')
@@ -72,6 +72,7 @@ class AdvancedDialog(WindowView):
         self._module_label = None
         self._current_module_notebook = None
         self._all_modules = False
+        self._update_cb = update_cb
 
     def go(self):
         """ run the window """
@@ -425,6 +426,7 @@ class AdvancedDialog(WindowView):
         # copy the list (do not only copy the address)
         self._saved = list(self._enabled)
         self._host_lock.release()
+        gobject.idle_add(self._update_cb)
 
     def handle_param_chanded(self, source=None, event=None):
         """ 'changed' event on configuration value """
@@ -448,6 +450,7 @@ class AdvancedDialog(WindowView):
         self._host_lock.release()
         self.on_host_selected(self._host_tree.get_selection())
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
+        gobject.idle_add(self._update_cb)
         self.close()
 
     def on_plugins_checkbutton_toggled(self, source=None, event=None):
