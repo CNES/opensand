@@ -727,9 +727,10 @@ class ConfigurationNotebook(gtk.Notebook):
         for check_button in [check for check in self._tables[name]
                                    if check.get_active()]:
             line = check_button.get_parent()
-            line.hide()
-            self._removed.append(line)
-            self._table_length[name] -= 1
+            if line is not None:
+                line.hide()
+                self._removed.append(line)
+                self._table_length[name] -= 1
 
         self.check_sensitive()
 
