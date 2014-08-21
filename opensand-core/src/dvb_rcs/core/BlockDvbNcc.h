@@ -382,7 +382,7 @@ class BlockDvbNcc: public BlockDvb
 		// Output probes and stats
 		// FAB: TODO: add/modify stats
   			// Queue sizes
-		/*map<unsigned int, Probe<int> *> probe_gw_queue_size;
+		map<unsigned int, Probe<int> *> probe_gw_queue_size;
 		map<unsigned int, Probe<int> *> probe_gw_queue_size_kb;
 			// Rates
 				// Layer 2 to SAT
@@ -391,7 +391,7 @@ class BlockDvbNcc: public BlockDvb
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
 		int *l2_to_sat_cells_after_sched;
 		Probe<int> *probe_gw_l2_to_sat_total;
-		int l2_to_sat_total_cells;*/
+		int l2_to_sat_total_cells;
 			// Frame interval
 		Probe<float> *probe_frame_interval;
 			// Physical layer information

@@ -72,9 +72,7 @@ class ReturnSchedulingRcs: public Scheduling
 	 *
 	 * @return true on success, false otherwise
 	 */
-	//TODO FAB delete pvc
-	bool macSchedule(/*const unsigned int pvc,*/
-	                 const time_sf_t current_superframe_sf,
+	bool macSchedule(const time_sf_t current_superframe_sf,
 	                 const time_frame_t current_frame,
 	                 list<DvbFrame *> *complete_dvb_frames,
 	                 rate_pktpf_t &remaining_allocation_pktpf);

@@ -119,14 +119,6 @@ class DvbFifo
 	string getName() const;
 
 	/**
-	 * @brief Get the PVC associated to the fifo
-	 *
-	 * return the PVC of the fifo
-	 */
-	//TODO FAB To delete
-	//unsigned int getPvc() const;
-
-	/**
 	 * @brief Get the CR type associated to the fifo
 	 *
 	 * return the CR type associated to the fifo

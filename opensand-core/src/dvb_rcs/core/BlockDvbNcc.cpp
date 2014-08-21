@@ -143,13 +143,14 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	simu_interval(-1),
 	simu_eof(false),
 	simu_timer(-1),
-	// TODO: FAB: stats to add/modify
-	//probe_gw_l2_to_sat_before_sched(NULL),
-	//probe_gw_l2_to_sat_after_sched(NULL),
+	probe_gw_queue_size(),
+	probe_gw_queue_size_kb(),
+	probe_gw_l2_to_sat_before_sched(),
+	probe_gw_l2_to_sat_after_sched(),
+	probe_gw_l2_to_sat_total(NULL),
 	probe_frame_interval(NULL),
 	// TODO: FAB: stats to add/modify
-	//probe_gw_queue_size(NULL),
-	//probe_gw_queue_size_kb(NULL),
+	//probe_perte_files
 	probe_used_modcod(NULL),
 	log_request_simulation(NULL),
 	event_logon_resp(NULL)
@@ -217,10 +218,6 @@ BlockDvbNcc::Downward::~Downward()
 		}
 		this->categories.clear();
 	}
-
-	// TODO: FAB : TO delete
-	// in regenerative mode categories is also owned and released by DAMA
-	//delete this->data_dvb_fifo;
 
 	this->terminal_affectation.clear();
 }
@@ -636,9 +633,6 @@ bool BlockDvbNcc::Downward::initMode(void)
 	fifos_t fifos;
 	TerminalCategoryDama *cat;
 
-	// TODO: FAB: To modify
-	//fifos[this->data_dvb_fifo->getCarrierId()] = this->data_dvb_fifo;
-
 	// initialize scheduling
 	// depending on the satellite type
 	if(this->satellite_type == TRANSPARENT)
@@ -1031,9 +1025,8 @@ bool BlockDvbNcc::Downward::initFifo(void)
 			goto err_fifo_release;
 		}
 
-		// TODO: FAB: Delte the pvc (0 here) from the constructor
 		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
-		                   fifo_access_type, /*0,*/ fifo_size);
+		                   fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
@@ -1114,13 +1107,29 @@ bool BlockDvbNcc::Downward::initOutput(void)
 	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
 	                                                          "ms", true,
 	                                                          SAMPLE_LAST);
-	// TODO: FAB: Stats to add/modify
-	/*this->probe_gw_queue_size = Output::registerProbe<int>("Queue size.packets",
-	                                                       "Packets", true,
-	                                                       SAMPLE_LAST);
-	this->probe_gw_queue_size_kb = Output::registerProbe<int>("Queue size.kbits",
-	                                                          "kbits", true,
-	                                                          SAMPLE_LAST);*/
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+		it != this->dvb_fifos.end(); ++it)
+	{
+		const char *fifo_name = ((*it).second)->getName().data();
+		unsigned int id = (*it).first;
+			 
+		this->probe_gw_queue_size[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
+		                               "Queue size.packets.%s", fifo_name);
+		this->probe_gw_queue_size_kb[id] =
+			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
+		                               "Queue size.%s", fifo_name);
+		// TODO: FAB: Stats to add/modify
+		/*this->probe_gw_l2_to_sat_before_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Throughputs.L2_to_SAT_before_sched.%s",
+		                                fifo_name);
+		this->probe_gw_l2_to_sat_after_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Throughputs.L2_to_SAT_after_sched.%s",
+		                               fifo_name);*/
+	}
+
 	if(this->satellite_type == REGENERATIVE)
 	{
 		this->probe_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",

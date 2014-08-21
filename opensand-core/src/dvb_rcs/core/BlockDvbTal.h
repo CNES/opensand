@@ -377,10 +377,6 @@ class BlockDvbTal: public BlockDvb
 		/// the default MAC fifo index = fifo with the smallest priority
 		unsigned int default_fifo_id;
 		
-		//TODO FAB to delete
-		/// the number of PVCs
-		//unsigned int nbr_pvc;
-
 		/* OBR */
 		/// OBR period -in number of frames- and Obr slot
 		/// position within the multi-frame,

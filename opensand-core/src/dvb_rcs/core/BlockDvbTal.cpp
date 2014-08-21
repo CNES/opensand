@@ -114,8 +114,6 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	carrier_id_data(),
 	dvb_fifos(),
 	default_fifo_id(0),
-	// FAB TODO deltete
-	//nbr_pvc(0),
 	obr_period_frame(-1),
 	obr_slot_frame(-1),
 	frame_timer(-1),
@@ -360,8 +358,6 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
 		unsigned int fifo_priority;
-		// FAB: to delete
-		//unsigned int pvc;
 		vol_pkt_t fifo_size = 0;
 		string fifo_mac_prio;
 		string fifo_cr_type;
@@ -391,15 +387,6 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			    FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		//TODO: FAB: to delete
-		// get pvc
-		/*if(!Conf::getAttributeValue(iter, FIFO_PVC, pvc))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST);
-			goto err_fifo_release;
-		}*/
 		// get the fifo CR type
 		if(!Conf::getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
@@ -410,9 +397,8 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 
-		// TODO: FAB: Delte the pvc from the constructor
 		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
-		                   fifo_cr_type, /*pvc,*/ fifo_size);
+		                   fifo_cr_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
@@ -421,10 +407,6 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		    fifo->getName().c_str(),
 		    fifo->getMaxSize(),
 		    fifo->getCrType());
-
-		// TODO: FAB: Delete pvc
-		// update the number of PVC = the maximum PVC
-		//this->nbr_pvc = std::max(this->nbr_pvc, pvc);
 
 		// the default FIFO is the last one = the one with the smallest priority
 		// actually, the IP plugin should add packets in the default FIFO if

@@ -48,8 +48,6 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	queue(),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
-	// TODO: FAB: to delete
-	//pvc(pvc),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
@@ -133,12 +131,6 @@ string DvbFifo::getName() const
 {
 	return this->fifo_name;
 }
-
-//TODO FAB To delete
-/*unsigned int DvbFifo::getPvc() const
-{
-	return this->pvc;
-}*/
 
 cr_type_t DvbFifo::getCrType() const
 {
