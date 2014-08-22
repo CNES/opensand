@@ -257,14 +257,9 @@ class XmlParser:
             return None
 
         if elem_type.startswith("xsd:"):
-            if elem_type in ["xsd:integer",
-                             "xsd:nonNegativeInteger",
-                             "xsd:nonPositiveInteger",
-                             "xsd:PositiveInteger",
-                             "xsd:NegativeInteger"]:
-#                             "xsd:decimal"]:
-    #TODO add step so we could add decimal
-                return {"type": "numeric"}
+            ret = self.parse_numeric(elem_type)
+            if ret is not None:
+                return ret
             else:
                 return {"type": elem_type.replace("xsd:", "", 4)}
         else:
@@ -281,14 +276,9 @@ class XmlParser:
             return None
 
         if att_type.startswith("xsd:"):
-            if att_type in ["xsd:integer",
-                            "xsd:nonNegativeInteger",
-                            "xsd:nonPositiveInteger",
-                            "xsd:positiveInteger",
-                            "xsd:negativeInteger"]:
-#                            "xsd:decimal"]:
-    #TODO add step so we could add decimal
-                return {"type": "numeric"}
+            ret = self.parse_numeric(att_type)
+            if ret is not None:
+                return ret
             else:
                 return {"type": att_type.replace("xsd:", "", 4)}
         else:
@@ -357,6 +347,8 @@ class XmlParser:
                     return elem
                 elif elem.get('type') is not None and with_type:
                     return elem
+            # return the first one, it should be better than nothing
+            return elems[0]
         return None
 
     def get_attribute(self, name, parent_name):
@@ -373,9 +365,30 @@ class XmlParser:
 
         # some elements can have the same attribute, get the attribute for the
         # desired element
+        # first check if parent has a complex type
+        cplx_name = self.get_complex_name(parent_name)
+        if cplx_name is not None:
+            parent_name = cplx_name
         for attrib in attribs:
             if attrib.getparent().getparent().get("name") == parent_name:
                 return attrib
+
+    def get_complex_name(self, name):
+        """ get a completType element in the XSD document """
+        elem = []
+        elem += self._common_xsd.xpath("//xsd:element[@name = $val]",
+                                       namespaces=NAMESPACES,
+                                       val = name)
+        elem += self._xsd_parser.xpath("//xsd:element[@name = $val]",
+                                       namespaces=NAMESPACES,
+                                       val = name)
+        if len(elem) == 0:
+            return None
+
+        # we have now the type of the complex element in the type attribute
+        # take the first element it should be better than nothingi
+        cplx_name = elem[0].get('type')
+        return cplx_name
 
     def get_simple_type(self, name):
         """ get a simple type and the associated attributes
@@ -407,51 +420,24 @@ class XmlParser:
             return None
 
         # TODO also handle long, double, float, etc..
-        if base in ["xsd:integer",
-                    "xsd:nonNegativeInteger",
-                    "xsd:nonPositiveInteger",
-                    "xsd:positiveInteger",
-                    "xsd:negativeInteger",
-                    "xsd:decimal"]:
-            min_val = None
-            max_val = None
-            step = 1
-            # get the minimum or maximum value that can be infered
-            if base == "xsd:nonNegativeInteger":
-                min_val = 0
-            elif base == "xsd:nonPositiveInteger":
-                max_val = 0
-            elif base == "xsd:positiveInteger":
-                min_val = 1
-            elif base == "xsd:negativeInteger":
-                max_val = -1
-            elif base == "xsd:decimal":
-                # arbitrarily fixed
-                step = 0.01
-
+        ret = self.parse_numeric(base)
+        if ret is not None:
             # get the minimum or maximum value if specified
             min_inc = restriction.xpath("xsd:minInclusive",
                                         namespaces=NAMESPACES)
             if len(min_inc) == 1:
-                min_val = min_inc[0].get("value")
+                ret["min"] = min_inc[0].get("value")
             max_inc = restriction.xpath("xsd:maxInclusive",
                                         namespaces=NAMESPACES)
-            if len(max_inc) != 1:
-                max_inc = None
-            else:
-                max_val = max_inc[0].get("value")
+            if len(max_inc) == 1:
+                ret['max'] = max_inc[0].get("value")
             fraction_digit = restriction.xpath("xsd:fractionDigits",
                                                namespaces=NAMESPACES)
             if len(fraction_digit) == 1:
-                step = "0.%s1" % ("0" *
-                                  (int(fraction_digit[0].get("value")) - 1))
-
-            return {
-                      "type": "numeric",
-                      "min": min_val,
-                      "max": max_val,
-                      "step": step,
-                   }
+                ret['step'] = "0.%s1" % ("0" *
+                                         (int(fraction_digit[0].get("value")) -
+                                          1))
+            return ret
         elif base == "xsd:string":
             enum = restriction.xpath("xsd:enumeration",
                                      namespaces=NAMESPACES)
@@ -476,6 +462,10 @@ class XmlParser:
                                          table_name, namespaces=NAMESPACES)
         values += self._xsd_parser.xpath("//xsd:element[@ref='%s']/@minOccurs" %
                                          table_name, namespaces=NAMESPACES)
+        values += self._common_xsd.xpath("//xsd:element[@name='%s']/@minOccurs" %
+                                         table_name, namespaces=NAMESPACES)
+        values += self._xsd_parser.xpath("//xsd:element[@name='%s']/@minOccurs" %
+                                         table_name, namespaces=NAMESPACES)
         if len(values) > 0:
             # take the first element it should be better than nothing
             return int(values[0])
@@ -488,6 +478,10 @@ class XmlParser:
         values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs"
                                           % table_name, namespaces=NAMESPACES)
         values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs"
+                                          % table_name, namespaces=NAMESPACES)
+        values +=  self._common_xsd.xpath("//xsd:element[@name='%s']/@maxOccurs"
+                                          % table_name, namespaces=NAMESPACES)
+        values +=  self._xsd_parser.xpath("//xsd:element[@name='%s']/@maxOccurs"
                                           % table_name, namespaces=NAMESPACES)
         if len(values) > 0 and values[0] != "unbounded":
             # take the first element it should be better than nothing
@@ -506,6 +500,41 @@ class XmlParser:
         values +=  self._xsd_parser.xpath("//xsd:%s[@type='file']/@name" %
                                           elem, namespaces=NAMESPACES)
         return values
+
+    def parse_numeric(self, base):
+        """ parse a numeric xsd type """
+        if base in ["xsd:integer",
+                    "xsd:nonNegativeInteger",
+                    "xsd:nonPositiveInteger",
+                    "xsd:positiveInteger",
+                    "xsd:negativeInteger",
+                    "xsd:decimal"]:
+            min_val = None
+            max_val = None
+            step = 1
+            # get the minimum or maximum value that can be infered
+            if base == "xsd:nonNegativeInteger":
+                min_val = 0
+            elif base == "xsd:nonPositiveInteger":
+                max_val = 0
+            elif base == "xsd:positiveInteger":
+                min_val = 1
+            elif base == "xsd:negativeInteger":
+                max_val = -1
+            elif base == "xsd:decimal":
+                # arbitrarily fixed
+                step = 0.01
+
+            ret = {
+                      "type": "numeric",
+                      "step": step,
+                   }
+            if min_val is not None:
+                ret["min"] = min_val
+            if max_val is not None:
+                ret["max"] = max_val
+            return ret
+        return None
 
 
 if __name__ == "__main__":
