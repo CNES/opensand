@@ -86,9 +86,6 @@ class ReturnSchedulingRcs: public Scheduling
 	 */
 	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
 
-
-	/** The maximum PVC value */
-	unsigned int max_pvc;
 };
 
 #endif

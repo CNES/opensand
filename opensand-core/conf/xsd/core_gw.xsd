@@ -90,23 +90,6 @@
 </xsd:simpleType>
 
 <!-- fifo types -->
-<xsd:simpleType name="className">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="NM" />
-        <xsd:enumeration value="EF"/>
-        <xsd:enumeration value="SIG"/>
-        <xsd:enumeration value="AF"/>
-        <xsd:enumeration value="BE"/>
-    </xsd:restriction>
-</xsd:simpleType>
- 
-<xsd:simpleType name="classId">
-     <xsd:restriction base="xsd:integer">
-         <xsd:minInclusive value="0" />
-         <xsd:maxInclusive value="31" />
-     </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:element name="fifos">
     <xsd:complexType>
         <xsd:sequence>
@@ -120,8 +103,8 @@
         <xsd:attribute name="priority" type="classId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                The ID and the scheduler priority of the class related to the FIFO
-        </xsd:documentation>
+                    The ID and the scheduler priority of the class related to the FIFO
+                </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="type" type="className">
@@ -137,7 +120,7 @@
                     The size of the FIFO
                 </xsd:documentation>
             </xsd:annotation>
-		</xsd:attribute>
+        </xsd:attribute>
         <xsd:attribute name="access_type" type="accessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
@@ -224,7 +207,7 @@
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="2000" />
     </xsd:restriction>
-</xsd:simpleType>i
+</xsd:simpleType>
 
 <!-- Complete XML description -->
 <xsd:element name="configuration">
@@ -351,7 +334,7 @@
                         The sending carrier id for DVB Start of Frame
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
+            </xsd:element>
             <xsd:element ref="fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -365,24 +348,24 @@
 
 <!-- saloha section description -->
 <xsd:element name="slotted_aloha">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element name="algorithm" type="sa_algo">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="algorithm" type="sa_algo">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The algorithm used to handle collisions on slots
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element ref="simulation_traffic">
+            </xsd:element>
+            <xsd:element ref="simulation_traffic">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Add Slotted Aloha simulated traffic in categories
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-		</xsd:sequence>
-	</xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- pep section description -->

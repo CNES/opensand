@@ -54,25 +54,24 @@ bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
                                    list<DvbFrame *> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
 {
-		if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(rate_pktpf_t)))
-		{
-			LOG(this->log_scheduling, LEVEL_NOTICE,
-			    "Remaining allocation (%u) is too long and will be "
-			    "truncated\n", remaining_allocation);
-		}
-		// extract and send encap packets from MAC FIFOs, in function of
-		// UL allocation
-		if(!this->macSchedule(current_superframe_sf,
-		                      current_frame,
-		                      complete_dvb_frames,
-		                      (rate_pktpf_t &)remaining_allocation))
-		{
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: MAC scheduling failed\n",
-			    current_superframe_sf);
-			return false;
-		}
-	/*}*/
+	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(rate_pktpf_t)))
+	{
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "Remaining allocation (%u) is too long and will be "
+		    "truncated\n", remaining_allocation);
+	}
+	// extract and send encap packets from MAC FIFOs, in function of
+	// UL allocation
+	if(!this->macSchedule(current_superframe_sf,
+	                      current_frame,
+	                      complete_dvb_frames,
+	                      (rate_pktpf_t &)remaining_allocation))
+	{
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "SF#%u: MAC scheduling failed\n",
+		    current_superframe_sf);
+		return false;
+	}
 
 	return true;
 }
@@ -114,7 +113,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 
 		if(fifo->getCurrentSize() <= 0)
 		{
-			// FIFO is on correct PVC but got no data
+			// no data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: frame %u: ignore MAC FIFO "
 			    "with ID %d: no data "
@@ -126,7 +125,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		}
 		else
 		{
-			// FIFO with correct PVC and awaiting data
+			// FIFO with awaiting data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: frame %u: extract packet from "
 			    "MAC FIFO with ID %d: "

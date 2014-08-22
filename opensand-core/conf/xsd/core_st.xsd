@@ -65,23 +65,6 @@
 <!-- types for dvb_rcs_tal section -->
 <!-- see class section for some types -->
 
-<xsd:simpleType name="className">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="NM" />
-        <xsd:enumeration value="EF"/>
-        <xsd:enumeration value="SIG"/>
-        <xsd:enumeration value="AF"/>
-        <xsd:enumeration value="BE"/>
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="classId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="31" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- TODO: be more precise that bitrates, depending on parameter, see TODO in common.xsd -->
 <xsd:simpleType name="bitRate">
     <xsd:restriction base="xsd:integer">
@@ -113,7 +96,7 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                 The ID and the scheduler priority of the class related to the FIFO
-		</xsd:documentation>
+        </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="type" type="className">
@@ -299,61 +282,61 @@
 
 <!-- saloha section description -->
 <xsd:element name="slotted_aloha">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element name="timeout" type="xsd:nonNegativeInteger">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="timeout" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The timeout before packet deleting or retransmission
                         (in number of Slotted Aloha frames)
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="nb_replicas" type="xsd:positiveInteger">
+            </xsd:element>
+            <xsd:element name="nb_replicas" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of replicas per Slotted Aloha frame
                         (including the original packet)
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="nb_max_packets" type="xsd:positiveInteger">
+            </xsd:element>
+            <xsd:element name="nb_max_packets" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximum number of packets per Slotted Aloha frame
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="nb_max_retransmissions" type="xsd:nonNegativeInteger">
+            </xsd:element>
+            <xsd:element name="nb_max_retransmissions" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of retransmissions of a packet before deleting it
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="backoff_algorithm" type="sa_backoff">
+            </xsd:element>
+            <xsd:element name="backoff_algorithm" type="sa_backoff">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The backoff algorithm used
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="cw_max" type="xsd:positiveInteger">
+            </xsd:element>
+            <xsd:element name="cw_max" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The value of CWmax for backoff
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element name="backoff_multiple" type="xsd:positiveInteger">
+            </xsd:element>
+            <xsd:element name="backoff_multiple" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The value of multiple for backoff
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-		</xsd:sequence>
-	</xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- qos_agent section description -->

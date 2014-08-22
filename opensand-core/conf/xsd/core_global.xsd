@@ -94,109 +94,133 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- the uplink carriers distributions tables -->
-<xsd:element name="up_carriers_distribution">
+<!-- the FMT groups table -->
+<xsd:element name="fmt_groups">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="up_carriers" minOccurs="1" maxOccurs="255" />
+            <xsd:element ref="group" minOccurs="1" maxOccurs="255" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>
 
-<xsd:element name="up_carriers">
+<xsd:element name="group">
     <xsd:complexType>
-        <xsd:attribute name="access_type" type="upAccessType">
+        <xsd:attribute name="id" type="xsd:nonNegativeInteger">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (DAMA, ALOHA)
+                    The ID of the FMT group, specified in carriers
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="category" type="Category">
+        <xsd:attribute name="fmt_id" type="fmtId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The category to which the carrier belong
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="ratio" type="xsd:integer">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The occupation ratio of bandwidth dedicated for this type of
-                    carriers within the (forward or return) frequency plan
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="symbol_rate" type="symbolRate">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The symbol rate (in bauds) allowing to compute the number of
-                    carriers of this type, in combination with ratio
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The MODCOD group ID" representing the possible set of
-                    MODCOD(s) for this carrier
+                    The ID of the FMT in the MODCOD definition file.
+                    You can add a list of single values separated by ';' or
+                    a list of values contained in two values separated by '-'.
+                    (e.g. 1-4;7 for 1,2,3,4,7)
+                    For DVB-RCS, only one value is authorized !
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
+
+<!-- the uplink carriers distributions tables -->
+<xsd:complexType name="upCarriersDistribution">
+    <xsd:choice>
+        <xsd:element name="carriers" type="upCarriers" minOccurs="1" maxOccurs="255" />
+    </xsd:choice>
+</xsd:complexType>
+
+<xsd:complexType name="upCarriers">
+    <xsd:attribute name="access_type" type="upAccessType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The type of multiplexing (DAMA, ALOHA)
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="category" type="Category">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The category to which the carrier belong
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="ratio" type="xsd:integer">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The occupation ratio of bandwidth dedicated for this type of
+                carriers within the (forward or return) frequency plan
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="symbol_rate" type="symbolRate">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The symbol rate (in bauds) allowing to compute the number of
+                carriers of this type, in combination with ratio
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The MODCOD group ID" representing the possible set of
+                MODCOD(s) for this carrier
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+</xsd:complexType>
 
 <!-- the downlink carriers distributions tables -->
-<xsd:element name="down_carriers_distribution">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="down_carriers" minOccurs="1" maxOccurs="255" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
+<xsd:complexType name="downCarriersDistribution">
+    <xsd:choice>
+        <xsd:element name="carriers" type="downCarriers" minOccurs="1" maxOccurs="255" />
+    </xsd:choice>
+</xsd:complexType>
 
-<xsd:element name="down_carriers">
-    <xsd:complexType>
-        <xsd:attribute name="access_type" type="downAccessType">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The type of multiplexing (TDM, VCM)
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="category" type="Category">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The category to which the carrier belong
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="ratio" type="xsd:integer">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The occupation ratio of bandwidth dedicated for this type of
-                    carriers within the (forward or return) frequency plan
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="symbol_rate" type="symbolRate">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The symbol rate (in bauds) allowing to compute the number of
-                    carriers of this type, in combination with ratio
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The MODCOD group ID" representing the possible set of
-                    MODCOD(s) for this carrier
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
+<xsd:complexType name="downCarriers">
+    <xsd:attribute name="access_type" type="downAccessType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The type of multiplexing (TDM, VCM)
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="category" type="Category">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The category to which the carrier belong
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="ratio" type="xsd:integer">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The occupation ratio of bandwidth dedicated for this type of
+                carriers within the (forward or return) frequency plan
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="symbol_rate" type="symbolRate">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The symbol rate (in bauds) allowing to compute the number of
+                carriers of this type, in combination with ratio
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The MODCOD group ID" representing the possible set of
+                MODCOD(s) for this carrier
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
+</xsd:complexType>
 
 <!-- the tal affectations table -->
 <xsd:element name="tal_affectations">
@@ -220,70 +244,6 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The category to which the terminal belongs
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- the down/forward FMT groups table -->
-<xsd:element name="fwd_fmt_groups">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="fwd_group" minOccurs="1" maxOccurs="255" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="fwd_group">
-    <xsd:complexType>
-        <xsd:attribute name="id" type="xsd:nonNegativeInteger">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the FMT group, specified in carriers
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="fmt_id" type="fmtId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the FMT in the MODCOD definition file.
-                    You can add a list of single values separated by ';' or
-                    a list of values contained in two values separated by '-'.
-                    (e.g. 1-4;7 for 1,2,3,4,7)
-                    For DVB-RCS, only one value is authorized !
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- the up/return FMT groups table -->
-<xsd:element name="rtn_fmt_groups">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="rtn_group" minOccurs="1" maxOccurs="255" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="rtn_group">
-    <xsd:complexType>
-        <xsd:attribute name="id" type="xsd:nonNegativeInteger">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the FMT group, specified in carriers
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="fmt_id" type="fmtId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the FMT in the MODCOD definition file.
-                    You can add a list of single values separated by ';' or
-                    a list of values contained in two values separated by '-'.
-                    (e.g. 1-4;7 for 1;2;3;4;7)
-                    For DVB-RCS, only one value is authorized !
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -491,7 +451,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:element>           
-        <xsd:element ref="carriers_distribution">
+        <xsd:element name="carriers_distribution" type="upCarriersDistribution">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The distribution of carriers on the band
@@ -512,7 +472,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:element>
-        <xsd:element ref="rtn_fmt_groups">
+        <xsd:element ref="fmt_groups">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The groups of FMT IDs
@@ -539,7 +499,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:element>           
-        <xsd:element ref="carriers_distribution">
+        <xsd:element name="carriers_distribution" type="downCarriersDistribution">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The distribution of carriers on the band
@@ -560,7 +520,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:element>
-        <xsd:element ref="fwd_fmt_groups">
+        <xsd:element ref="fmt_groups">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The groups of FMT IDs

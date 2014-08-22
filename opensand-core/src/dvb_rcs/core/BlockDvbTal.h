@@ -399,7 +399,7 @@ class BlockDvbTal: public BlockDvb
 		double cni;
 
 		/* QoS Server / Policy Enforcement Point (PEP) on ST side */
-		static int qos_server_sock;           ///< The socket for the QoS Server
+		static int qos_server_sock;    ///< The socket for the QoS Server
 		std::string qos_server_host;   ///< The hostname of the QoS Server
 		int qos_server_port;           ///< The TCP port of the QoS Server
 		event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
@@ -417,17 +417,20 @@ class BlockDvbTal: public BlockDvb
 			// Queue sizes
 		map<unsigned int, Probe<int> *> probe_st_queue_size;
 		map<unsigned int, Probe<int> *> probe_st_queue_size_kb;
+			// Queue loss
+		map<unsigned int, Probe<int> *> probe_st_queue_loss;
+		map<unsigned int, Probe<int> *> probe_st_queue_loss_kb;
 			// Rates
-					// Layer 2 to SAT
+				// Layer 2 to SAT
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
 		int *l2_to_sat_cells_before_sched;
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
 		int *l2_to_sat_cells_after_sched;
 		Probe<int> *probe_st_l2_to_sat_total;
 		int l2_to_sat_total_cells;
-					// PHY to SAT
+				// PHY to SAT
 		Probe<int> *probe_st_phy_to_sat;
-					// Layer 2 from SAT
+				// Layer 2 from SAT
 		Probe<int> *probe_st_l2_from_sat;
 		int l2_from_sat_bytes;
 	};

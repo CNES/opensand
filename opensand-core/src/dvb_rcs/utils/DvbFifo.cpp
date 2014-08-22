@@ -43,7 +43,7 @@
 
 
 DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
-                 string type_name, /*unsigned int pvc,*/
+                 string type_name,
                  vol_pkt_t max_size_pkt):
 	queue(),
 	fifo_priority(fifo_priority),
@@ -58,8 +58,6 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
-	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
-	// of FIFO queues (dvb_rcs_tal section)
 	if(type_name == "RBDC")
 	{
 		this->cr_type = cr_rbdc;
@@ -109,7 +107,6 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
-	pvc(0),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(carrier_id),
@@ -203,20 +200,21 @@ bool DvbFifo::push(MacFifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 	vol_bytes_t length;
-	// insert in top of fifo
+	length = elem->getTotalLength();
 
 	if(this->queue.size() >= this->max_size_pkt)
 	{
-		// TODO stat drop
+		this->stat_context.drop_pkt_nbr++;
+		this->stat_context.drop_bytes += length;
 		return false;
 	}
 
+	// insert in top of fifo
 	this->queue.push_back(elem);
 	// update counter
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.in_pkt_nbr++;
-	length = elem->getTotalLength();
 	this->new_length_bytes += length;
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
@@ -300,6 +298,8 @@ void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 	stat_info.out_pkt_nbr = this->stat_context.out_pkt_nbr;
 	stat_info.in_length_bytes = this->stat_context.in_length_bytes;
 	stat_info.out_length_bytes = this->stat_context.out_length_bytes;
+	stat_info.drop_pkt_nbr = this->stat_context.drop_pkt_nbr;
+	stat_info.drop_bytes = this->stat_context.drop_bytes;
 
 	// reset counters
 	this->resetStats();
@@ -311,7 +311,8 @@ void DvbFifo::resetStats()
 	this->stat_context.out_pkt_nbr = 0;
 	this->stat_context.in_length_bytes = 0;
 	this->stat_context.out_length_bytes = 0;
-	// Add nbr packet dropped
+	this->stat_context.drop_pkt_nbr = 0;
+	this->stat_context.drop_bytes = 0;
 }
 
 

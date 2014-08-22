@@ -272,6 +272,7 @@ class BlockDvbNcc: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
+		void resetStatsCxt(void);
 
 		/**
 		 * Simulate event based on an input file
@@ -380,18 +381,19 @@ class BlockDvbNcc: public BlockDvb
 		event_id_t simu_timer;
 
 		// Output probes and stats
-		// FAB: TODO: add/modify stats
-  			// Queue sizes
+			// Queue sizes
 		map<unsigned int, Probe<int> *> probe_gw_queue_size;
 		map<unsigned int, Probe<int> *> probe_gw_queue_size_kb;
+			// Queue loss
+		map<unsigned int, Probe<int> *> probe_gw_queue_loss;
+		map<unsigned int, Probe<int> *> probe_gw_queue_loss_kb;
 			// Rates
-				// Layer 2 to SAT
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
-		int *l2_to_sat_cells_before_sched;
+		int *l2_to_sat_bytes_before_sched;
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
-		int *l2_to_sat_cells_after_sched;
+		int *l2_to_sat_bytes_after_sched;
 		Probe<int> *probe_gw_l2_to_sat_total;
-		int l2_to_sat_total_cells;
+		int l2_to_sat_total_bytes;
 			// Frame interval
 		Probe<float> *probe_frame_interval;
 			// Physical layer information
