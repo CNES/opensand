@@ -250,14 +250,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the downward common "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 	
@@ -280,7 +280,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the request simulation part of "
-		    "the initialisation");
+		    "the initialisation\n");
 		goto error;
 	}
 
@@ -289,7 +289,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the carrier IDs part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -297,7 +297,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the FIFO part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto release_dama;
 	}
 
@@ -306,7 +306,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the files part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -314,7 +314,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -323,7 +323,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -340,7 +340,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the timers part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto release_dama;
 	}
 
@@ -2105,7 +2105,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -2113,7 +2113,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -2122,7 +2122,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 

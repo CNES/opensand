@@ -39,6 +39,7 @@
 
 #include "CarriersGroup.h"
 
+
 /**
  * @class CarriersGroupDama
  * @brief Represent a group of carriers with the same characteristics
@@ -51,20 +52,27 @@ class CarriersGroupDama: public CarriersGroup
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
-	 * @param  carriers_id     The carriers ID
-	 * @param  fmt_group       The FMT group
-	 * @param  ratio           The estimated occupation ratio
-	 * @param  rate_syms       The symbol rate (sym/s)
-	 * @param  access_type     The carriers access type
+	 * @param  carriers_id        The carriers ID
+	 * @param  fmt_group          The FMT group
+	 * @param  ratio              The estimated occupation ratio
+	 * @param  symbol_rate_symps  The symbol rate (sym/s)
+	 * @param  access_type        The carriers access type
 	 */
 	CarriersGroupDama(unsigned int carriers_id,
 	                  const FmtGroup *const fmt_group,
 	                  unsigned int ratio,
-	                  rate_symps_t rate_symps,
+	                  rate_symps_t symbol_rate_symps,
 	                  access_type_t access_type);
 
 	/** Destructor */
 	virtual ~CarriersGroupDama();
+
+
+	virtual void setCapacity(const vol_sym_t capacity_sym);
+	virtual void setCarriersNumber(const unsigned int carriers_number);
+	virtual void setSymbolRate(const rate_symps_t symbol_rate_symps);
+	virtual void addVcm(const FmtGroup *const fmt_group,
+	                    unsigned int ratio);
 
 	/**
 	 * @brief  Get available capacity.
@@ -119,9 +127,16 @@ class CarriersGroupDama: public CarriersGroup
 	 */
 	unsigned int getNearestFmtId(unsigned int fmt_id);
 
- private:
+	/**
+	 * @brief Get the VCM carriers
+	 *
+	 * @return the VCM carriers
+	 */
+	vector<CarriersGroupDama *> getVcmCarriers();
 
-	/** The remaining capacity on the current frame */
+ protected:
+
+    /** The remaining capacity on the current frame */
 	unsigned int remaining_capacity;
 
 	/** The previous capacity */
@@ -129,8 +144,12 @@ class CarriersGroupDama: public CarriersGroup
 
 	/** The superframe for which we can get the previous capacity */
 	time_sf_t previous_sf;
-};
 
+	/** In case of VCM, this carriers group contains only global values over
+	 *  the entire frame (total ratio, total capacity, ...) and each VCM part
+	 *  is instantiated into a new carriers group */
+	vector<CarriersGroupDama *> vcm_carriers;
+};
 
 #endif
 

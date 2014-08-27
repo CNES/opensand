@@ -67,11 +67,8 @@ typedef struct
 /// Access type for fifo (mapping between mac_fifo and carrier)
 typedef enum
 {
-	access_vcm0 = 0,
-	access_vcm1 = 1,
-	access_vcm2 = 2,
-	access_vcm3 = 3,
-	access_acm = 4,
+	access_acm,
+	access_vcm,
 } fwd_access_type_t;
 
 
@@ -135,9 +132,16 @@ class DvbFifo
 	fwd_access_type_t getAccessType() const;
 
 	/**
-	 * @brief Get the fifo_priority of the fifo (value from ST FIFO configuration)
+	 * @brief Get the VCM id
 	 *
-	 * @return the fifo_priority of the fifo
+	 * @return the VCM id
+	 */
+	unsigned int getVcmId() const;
+
+	/**
+	 * @brief Get the priority of the fifo (value from ST FIFO configuration)
+	 *
+	 * @return the priority of the fifo
 	 */
 	unsigned int getPriority() const;
 
@@ -245,6 +249,7 @@ class DvbFifo
 	string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
 	cr_type_t cr_type;              ///< the associated Capacity Request
 	fwd_access_type_t access_type;  ///< the associated Access Type
+	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
 	                                ///< since previous check
 	vol_bytes_t new_length_bytes;   ///< the size of data that filled the fifo

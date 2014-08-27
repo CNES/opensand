@@ -115,11 +115,10 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		{
 			// no data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: frame %u: ignore MAC FIFO "
-			    "with ID %d: no data "
-			    "(left) to schedule\n",
+			    "SF#%u: frame %u: ignore MAC FIFO %s: "
+			    "no data (left) to schedule\n",
 			    current_superframe_sf, current_frame,
-			    fifo->getPriority());
+			    fifo->getName().c_str());
 			// pass to next fifo
 			++fifo_it;
 		}
@@ -128,11 +127,11 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			// FIFO with awaiting data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: frame %u: extract packet from "
-			    "MAC FIFO with ID %d: "
+			    "MAC FIFO %s: "
 			    "%u awaiting packets (remaining "
 			    "allocation = %d)\n",
 			    current_superframe_sf, current_frame,
-			    fifo->getPriority(),
+			    fifo->getName().c_str(),
 			    fifo->getCurrentSize(), remaining_allocation_pktpf);
 
 			// extract next encap packet context from MAC fifo

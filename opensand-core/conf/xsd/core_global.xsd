@@ -77,7 +77,7 @@
 
 <xsd:simpleType name="downAccessType">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="TDM" />
+        <xsd:enumeration value="ACM" />
         <xsd:enumeration value="VCM" />
     </xsd:restriction>
 </xsd:simpleType>
@@ -149,7 +149,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="ratio" type="xsd:integer">
+        <xsd:attribute name="ratio" type="xsd:positiveInteger">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The occupation ratio of bandwidth dedicated for this type of
@@ -188,7 +188,7 @@
         <xsd:attribute name="access_type" type="downAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (TDM, VCM)
+                    The type of multiplexing (ACMM, VCM)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -199,11 +199,13 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="ratio" type="xsd:integer">
+        <xsd:attribute name="ratio" type="xsd:string">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The occupation ratio of bandwidth dedicated for this type of
                     carriers within the (forward or return) frequency plan
+                    For VCM, the temporal division is described with several
+                    values separated by ',' or ';' or '-'
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -215,11 +217,13 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
+        <xsd:attribute name="fmt_group" type="xsd:string">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The MODCOD group ID" representing the possible set of
                     MODCOD(s) for this carrier
+                    For VCM, the temporal division is described with several
+                    values separated by ',' or ';' or a '-'
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

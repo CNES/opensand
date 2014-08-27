@@ -48,6 +48,9 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	queue(),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
+	cr_type(),
+	access_type(),
+	vcm_id(),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
@@ -78,26 +81,18 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	{
 		this->access_type = access_acm;
 	}
-	else if(type_name == "VCM0")
+	else if(type_name.find("VCM") == 0)
 	{
-		this->access_type = access_vcm0;
-	}
-	else if(type_name == "VCM1")
-	{
-		this->access_type = access_vcm1;
-	}
-	else if(type_name == "VCM2")
-	{
-		this->access_type = access_vcm2;
-	}
-	else if(type_name == "VCM3")
-	{
-		this->access_type = access_vcm3;
+		this->access_type = access_vcm;
 	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_ERROR,
 		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
+	}
+	if(this->access_type == access_vcm)
+	{
+		sscanf(type_name.c_str(), "VCM%d", &this->vcm_id);
 	}
 }
 
@@ -137,6 +132,11 @@ cr_type_t DvbFifo::getCrType() const
 fwd_access_type_t DvbFifo::getAccessType() const
 {
 	return this->access_type;
+}
+
+unsigned int DvbFifo::getVcmId() const
+{
+	return this->vcm_id;
 }
 
 // FIFO priority for ST
