@@ -35,7 +35,6 @@ opensand_band.py - The OpenSAND bandwidth representation
 """
 
 import os
-import sys
 from math import ceil
 from fractions import Fraction
 from optparse import OptionParser
@@ -44,8 +43,6 @@ from opensand_manager_core.utils import GreedyConfigParser
 
 XSD="/usr/share/opensand/core_global.xsd"
 
-
-# TODO add minimum bitrate so we have max and min !
 
 class OpenSandBand():
     """ The OpenSAND Bandwidth representation """
@@ -70,26 +67,43 @@ class OpenSandBand():
         opt_parser.add_option("-f", "--forward", action="store_true",
                               dest="forward", default=False,
                               help="compute band information for forward link")
-
+        
         (options, args) = opt_parser.parse_args()
-        if options.ret and options.forward:
-            print "Please choose between return and forward option"
-            opt_parser.print_help()
-            sys.exit(1)
+        
+        # if no link option choose both
         if not options.ret and not options.forward:
-            print "Please choose an option between return and forward"
-            opt_parser.print_help()
-            sys.exit(1)
-        link = ""
-        if options.ret:
-            link = "up_return"
-        if options.forward:
-            link = "down_forward"
+            options.ret = True
+            options.forward = True
 
-        self._parse(options.scenario, link)
+        if options.ret:
+            print \
+"**************************************************************************\n" \
+"****************************** RETURN ************************************\n" \
+"**************************************************************************\n"
+            self._parse(options.scenario, "up_return")
+            print str(self)
+            print
+        if options.forward:
+            print \
+"**************************************************************************\n" \
+"****************************** FORWARD ***********************************\n" \
+"**************************************************************************\n"
+            self._parse(options.scenario, "down_forward")
+            print str(self)
+
+
+    def _reset(self):
+        """ reset all data """
+        self._bandwidth = 0.0
+        self._roll_off = 0.0
+        self._categories = {}
+        self._carriers_groups = {}
+        self._fmt_group = {}
+        self._fmt = {}
 
     def _parse(self, scenario, link):
         """ parse configuration and get results """
+        self._reset()
         config = XmlParser(os.path.join(scenario, "core_global.conf"), XSD)
 
         # bandwidth
@@ -102,10 +116,16 @@ class OpenSandBand():
         xpath = "//%s_band/carriers_distribution" % link
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
+            ratios = content["ratio"].replace(',', ';')
+            ratios = ratios.replace('-', ';')
+            ratios = map(lambda x: float(x), ratios.split(';'))
+            fmt_groups =  content["fmt_group"].replace(',', ';')
+            fmt_groups = fmt_groups.replace('-', ';')
+            fmt_groups = fmt_groups.split(';')
             self._add_carrier(content["category"],
-                              float(content["ratio"]),
+                              ratios,
                               float(content["symbol_rate"]),
-                              content["fmt_group"])
+                              fmt_groups)
 
         # fmt groups
         xpath = "//%s_band/fmt_groups" % link
@@ -141,12 +161,12 @@ class OpenSandBand():
                 self._fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
                                                float(elts[3]), float(elts[4]))
 
-    def _add_carrier(self, name, ratio, symbol_rate_baud, fmt_group):
+    def _add_carrier(self, name, ratios, symbol_rate_baud, fmt_groups):
         """ add a new category """
         if not name in self._categories:
             self._categories[name] = []
 
-        carriers = _CarriersGroup(ratio, symbol_rate_baud, fmt_group)
+        carriers = _CarriersGroup(ratios, symbol_rate_baud, fmt_groups)
         self._categories[name].append(carriers)
 
     def _add_fmt_group(self, group_id, fmt_ids):
@@ -166,8 +186,12 @@ class OpenSandBand():
         """ check that everything is ok """
         for name in self._categories:
             for carriers in self._categories[name]:
-                if not carriers.fmt_group in self._fmt_group:
-                    raise KeyError(carriers.fmt_group)
+                if len(carriers.fmt_groups) != len(carriers.ratios):
+                    raise Exception("not the same numbers of ratios and fmt "
+                                    "groups")
+                for group in carriers.fmt_groups:
+                    if not group in self._fmt_group:
+                        raise KeyError(group)
 
         for gid in self._fmt_group:
             for fmt_id in self._fmt_group[gid]:
@@ -180,45 +204,59 @@ class OpenSandBand():
         weighted_sum = 0.0
         for name in self._categories:
             for carriers in self._categories[name]:
-                ws = carriers.ratio * carriers.symbol_rate / 1E6
+                ws = sum(carriers.ratios) * carriers.symbol_rate / 1E6
                 weighted_sum += ws
 
         # TODO check that this is not 0
 
         for name in self._categories:
             for carriers in self._categories[name]:
-                nbr = ceil((carriers.ratio / weighted_sum) *
+                nbr = ceil((sum(carriers.ratios) / weighted_sum) *
                            (self._bandwidth / (1 + self._roll_off)))
                 carriers.number = nbr
                 
-    def _get_carrier_bitrate(self, carriers):
+    def _get_carrier_bitrates(self, carriers):
         """ get the maximum bitrate per carriers group """
-        rs = carriers.symbol_rate * carriers.number
-        max_fmt = max(self._fmt_group[carriers.fmt_group])
-        fmt = self._fmt[max_fmt]
-        br = rs * fmt.modulation * fmt.coding_rate
+        br = []
+        i = 0
+        for ratio in carriers.ratios:
+            rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
+            max_fmt = max(self._fmt_group[carriers.fmt_groups[i]])
+            min_fmt = min(self._fmt_group[carriers.fmt_groups[i]])
+            fmt = self._fmt[max_fmt]
+            max_br = rs * fmt.modulation * fmt.coding_rate
+            fmt = self._fmt[min_fmt]
+            min_br = rs * fmt.modulation * fmt.coding_rate
+            br.append((min_br, max_br))
+            i += 1
         return br
 
     def _get_max_bitrate(self, name):
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carriers in self._categories[name]:
-            rs = carriers.symbol_rate * carriers.number
-            min_fmt = max(self._fmt_group[carriers.fmt_group])
-            fmt = self._fmt[min_fmt]
-            br = rs * fmt.modulation * fmt.coding_rate
-            bitrate += br
+            i = 0
+            for ratio in carriers.ratios:
+                rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
+                max_fmt = max(self._fmt_group[carriers.fmt_groups[i]])
+                fmt = self._fmt[max_fmt]
+                br = rs * fmt.modulation * fmt.coding_rate
+                bitrate += br
+                i += 1
         return bitrate
     
     def _get_min_bitrate(self, name):
-        """ get the maximum bitrate for a given category """
+        """ get the minimum bitrate for a given category """
         bitrate = 0
         for carriers in self._categories[name]:
-            rs = carriers.symbol_rate * carriers.number
-            min_fmt = min(self._fmt_group[carriers.fmt_group])
-            fmt = self._fmt[min_fmt]
-            br = rs * fmt.modulation * fmt.coding_rate
-            bitrate += br
+            i = 0
+            for ratio in carriers.ratios:
+                rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
+                min_fmt = min(self._fmt_group[carriers.fmt_groups[i]])
+                fmt = self._fmt[min_fmt]
+                br = rs * fmt.modulation * fmt.coding_rate
+                bitrate += br
+                i += 1
         return bitrate
 
     def _get_carriers_number(self, name):
@@ -235,10 +273,14 @@ class OpenSandBand():
             output += "\n\nCATEGORY %s" % (name)
             i = 0
             for carriers in self._categories[name]:
+                rates = ""
+                for (min_rate, max_rate) in self._get_carrier_bitrates(carriers):
+                    rates += "[%d, %d] kb/s " % (min_rate / 1000,
+                                                 max_rate / 1000)
+                rates = rates.rstrip()
                 i += 1
-                output += "\nGroup %d: %s (%d kb/s)" % \
-                          (i, carriers,
-                           self._get_carrier_bitrate(carriers) / 1000)
+                output += "\nGroup %d: %s (%s)" % \
+                          (i, carriers, rates)
             output += "\n    %d carrier(s)" % (self._get_carriers_number(name))
             output += "\n    Bitrate [%d, %d] kb/s" % (
                       (self._get_min_bitrate(name) / 1000),
@@ -248,21 +290,21 @@ class OpenSandBand():
 class _CarriersGroup():
     """ The terminal categories """
 
-    def __init__(self, ratio, symbol_rate_baud, fmt_group):
-        self._ratio = ratio
+    def __init__(self, ratios, symbol_rate_baud, fmt_groups):
+        self._ratios = ratios
         self._symbol_rate = symbol_rate_baud
-        self._fmt_group = fmt_group
+        self._fmt_groups = fmt_groups
         self._carriers_number = 0
 
     def __str__(self):
-        return "ratio=%s Rs=%g => %d carriers" % (self.ratio,
+        return "ratio=%s Rs=%g => %d carriers" % (sum(self.ratios),
                                                   self.symbol_rate,
                                                   self.number)
 
     @property
-    def ratio(self):
+    def ratios(self):
         """ get the category name """
-        return self._ratio
+        return self._ratios
 
     @property
     def symbol_rate(self):
@@ -270,9 +312,9 @@ class _CarriersGroup():
         return self._symbol_rate
 
     @property
-    def fmt_group(self):
+    def fmt_groups(self):
         """ get the category name """
-        return self._fmt_group
+        return self._fmt_groups
 
     @property
     def number(self):
@@ -315,4 +357,3 @@ class _Fmt():
 
 if __name__ == "__main__":
     BAND = OpenSandBand()
-    print str(BAND)
