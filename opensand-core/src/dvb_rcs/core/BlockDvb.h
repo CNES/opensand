@@ -611,7 +611,7 @@ bool DvbChannel::initBand(const char *band,
 				categories[name] = category;
 			}
 			category->addCarriersGroup(carrier_id, (*group_it).second,
-			                           ratio[vcm_id],
+			                           ratios[vcm_id],
 			                           symbol_rate_symps,
 			                           strToAccessType(access));
 			vcm_id++;

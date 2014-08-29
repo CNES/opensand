@@ -85,13 +85,15 @@ SatSpot::~SatSpot()
 	delete this->data_out_gw_fifo;
 }
 
-bool SatSpot::initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+bool SatSpot::initScheduling(time_ms_t fwd_timer_ms,
+                             const EncapPlugin::EncapPacketHandler *pkt_hdl,
                              FmtSimulation *const fwd_fmt_simu,
                              const TerminalCategoryDama *const category)
 {
 	fifos_t fifos;
 	fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
-	this->scheduling = new ForwardSchedulingS2(pkt_hdl,
+	this->scheduling = new ForwardSchedulingS2(fwd_timer_ms,
+	                                           pkt_hdl,
 	                                           fifos,
 	                                           fwd_fmt_simu,
 	                                           category);

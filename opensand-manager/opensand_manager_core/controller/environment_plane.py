@@ -487,7 +487,7 @@ class EnvironmentPlaneController(object):
 
         try:
             log = program.get_log(log_id)
-        except IndexError:
+        except KeyError, IndexError:
             self._log.error("Incorrect log ID %d for program [%d:%d] "
                             "received" % (log_id, host_id, prog_id))
             return False

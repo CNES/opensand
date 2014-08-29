@@ -35,7 +35,7 @@ opensand_band.py - The OpenSAND bandwidth representation
 """
 
 import os
-from math import ceil
+from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 from opensand_manager_core.opensand_xml_parser import XmlParser
@@ -211,8 +211,8 @@ class OpenSandBand():
 
         for name in self._categories:
             for carriers in self._categories[name]:
-                nbr = ceil((sum(carriers.ratios) / weighted_sum) *
-                           (self._bandwidth / (1 + self._roll_off)))
+                nbr = floor((sum(carriers.ratios) / weighted_sum) *
+                            (self._bandwidth / (1 + self._roll_off)))
                 carriers.number = nbr
                 
     def _get_carrier_bitrates(self, carriers):
@@ -255,7 +255,7 @@ class OpenSandBand():
                 min_fmt = min(self._fmt_group[carriers.fmt_groups[i]])
                 fmt = self._fmt[min_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
-                bitrate += br
+                bitrate += br * carriers.number
                 i += 1
         return bitrate
 

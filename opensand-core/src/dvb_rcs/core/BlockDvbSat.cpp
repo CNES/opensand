@@ -416,7 +416,8 @@ bool BlockDvbSat::Downward::initSatLink(void)
 			spot = i_spot->second;
 			TerminalCategoryDama *category = this->categories.begin()->second;
 
-			if(!spot->initScheduling(this->pkt_hdl,
+			if(!spot->initScheduling(this->fwd_timer_ms,
+			                         this->pkt_hdl,
 			                         &this->fmt_simu,
 			                         category))
 			{

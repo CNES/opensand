@@ -117,12 +117,14 @@ class SatSpot
 	/**
 	 * initialize the scheduling attribute
 	 *
+	 * @param fwd_timer_ms    The timer for forward scheduling
 	 * @param pkt_hdl         The packet handler
 	 * @param fwd_fmt_simu    The FMT simulation information
 	 * @param category        The related terminal category
 	 * @return true on success, false otherwise
 	 */
-	bool initScheduling(const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	bool initScheduling(time_ms_t fwd_timer_ms,
+	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    FmtSimulation *const fwd_fmt_simu,
 	                    const TerminalCategoryDama *const category);
 

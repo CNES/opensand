@@ -62,7 +62,8 @@ class ForwardSchedulingS2: public Scheduling
 {
   public:
 
-	ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
+	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
+	                    const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    FmtSimulation *const fwd_fmt_simu,
 	                    const TerminalCategoryDama *const category);
@@ -76,6 +77,9 @@ class ForwardSchedulingS2: public Scheduling
 	              uint32_t &remaining_allocation);
   
   private:
+
+	/** The timer for forward scheduling (ms) */
+	time_ms_t fwd_timer_ms;
 
   	/** the BBFrame being built identified by their modcod */
 	map<unsigned int, BBFrame *> incomplete_bb_frames;
@@ -95,7 +99,9 @@ class ForwardSchedulingS2: public Scheduling
 
 	// Total and unused capacity probes
 	Probe<int> *probe_fwd_total_capacity;
-	Probe<int> *probe_fwd_remaining_capacity;
+	Probe<int> *probe_fwd_total_remaining_capacity;
+	map<unsigned int, vector<Probe<int> *> > probe_fwd_remaining_capacity;
+	map<unsigned int, vector<Probe<int> *> > probe_fwd_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs

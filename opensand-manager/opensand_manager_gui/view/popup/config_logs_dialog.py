@@ -143,9 +143,12 @@ class ConfigLogsDialog(WindowView):
         if not new_text.isdigit() or int(new_text) >= len(LOG_LEVELS):
             return
         self._log_store.set_value(it, LEVEL, int(new_text))
-        log = self._program.get_log(log_id)
-        
-        log.display_level = int(new_text)
+        try:
+            log = self._program.get_log(log_id)
+        except KeyError:
+            pass
+        else:
+            log.display_level = int(new_text)
 
 
     def _delete(self, _widget, _event):

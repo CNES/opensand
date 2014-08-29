@@ -666,7 +666,8 @@ bool BlockDvbNcc::Downward::initMode(void)
 		}
 
 		cat = this->categories.begin()->second;
-		this->scheduling = new ForwardSchedulingS2(this->pkt_hdl,
+		this->scheduling = new ForwardSchedulingS2(this->fwd_timer_ms,
+		                                           this->pkt_hdl,
 		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
 		                                           cat);
