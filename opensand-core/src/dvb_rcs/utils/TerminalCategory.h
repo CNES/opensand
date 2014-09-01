@@ -174,7 +174,7 @@ class TerminalCategory
 	 * @param  superframe_duration_ms  The superframe duration (in ms)
 	 */
 	void updateCarriersGroups(unsigned int carriers_number,
-	                         time_ms_t superframe_duration_ms)
+	                          time_ms_t superframe_duration_ms)
 	{
 		unsigned int total_ratio = this->getRatio();
 		typename vector<T *>::const_iterator it;
@@ -287,11 +287,37 @@ class TerminalCategory
 	                      rate_symps_t rate_symps,
 	                      access_type_t access_type)
 	{
+		typename vector<T *>::const_iterator it;
+		vector<CarriersGroup *>::const_iterator other_it;
+		// first, check if we already have this carriers id in case
+		// of VCM carriers
+		for(it = this->carriers_groups.begin();
+		    it != this->carriers_groups.end(); ++it)
+		{
+			if((*it)->getCarriersId() == carriers_id)
+			{
+				(*it)->addVcm(fmt_group, ratio);
+				return;
+			}
+		}
+		for(other_it = this->other_carriers.begin();
+		    other_it != this->other_carriers.end(); ++other_it)
+		{
+			if((*other_it)->getCarriersId() == carriers_id)
+			{
+				(*other_it)->addVcm(fmt_group, ratio);
+				return;
+			}
+		}
+
 		if(access_type == this->desired_access)
 		{
 			T *group = new T(carriers_id, fmt_group,
 			                 ratio, rate_symps,
 			                 access_type);
+			// we call that because with Dama we need to count this carriers
+			// in the VCM list
+			group->addVcm(fmt_group, ratio);
 			this->carriers_groups.push_back(group);
 		}
 		else

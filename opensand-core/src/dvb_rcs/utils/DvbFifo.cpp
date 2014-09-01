@@ -43,12 +43,14 @@
 
 
 DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
-                 string cr_type_name, unsigned int pvc,
+                 string type_name,
                  vol_pkt_t max_size_pkt):
 	queue(),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
-	pvc(pvc),
+	cr_type(),
+	access_type(),
+	vcm_id(),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
@@ -59,28 +61,38 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
-	// fifo_priority is a value (e.g: from 0 to 5) specified in the configuration file
-	// of FIFO queues (dvb_rcs_tal section)
-	if(cr_type_name == "RBDC")
+	if(type_name == "RBDC")
 	{
 		this->cr_type = cr_rbdc;
 	}
-	else if(cr_type_name == "VBDC")
+	else if(type_name == "VBDC")
 	{
 		this->cr_type = cr_vbdc;
 	}
-	else if(cr_type_name == "SALOHA")
+	else if(type_name == "SALOHA")
 	{
 		this->cr_type = cr_saloha;
 	}
-	else if(cr_type_name == "NONE")
+	else if(type_name == "NONE")
 	{
 		this->cr_type = cr_none;
+	}
+	else if(type_name == "ACM")
+	{
+		this->access_type = access_acm;
+	}
+	else if(type_name.find("VCM") == 0)
+	{
+		this->access_type = access_vcm;
 	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_ERROR,
-		    "unknown CR type of FIFO: %s\n", cr_type_name.c_str());
+		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
+	}
+	if(this->access_type == access_vcm)
+	{
+		sscanf(type_name.c_str(), "VCM%d", &this->vcm_id);
 	}
 }
 
@@ -90,7 +102,6 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
-	pvc(0),
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(carrier_id),
@@ -113,14 +124,19 @@ string DvbFifo::getName() const
 	return this->fifo_name;
 }
 
-unsigned int DvbFifo::getPvc() const
-{
-	return this->pvc;
-}
-
 cr_type_t DvbFifo::getCrType() const
 {
 	return this->cr_type;
+}
+
+fwd_access_type_t DvbFifo::getAccessType() const
+{
+	return this->access_type;
+}
+
+unsigned int DvbFifo::getVcmId() const
+{
+	return this->vcm_id;
 }
 
 // FIFO priority for ST
@@ -184,20 +200,21 @@ bool DvbFifo::push(MacFifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 	vol_bytes_t length;
-	// insert in top of fifo
+	length = elem->getTotalLength();
 
 	if(this->queue.size() >= this->max_size_pkt)
 	{
-		// TODO stat drop
+		this->stat_context.drop_pkt_nbr++;
+		this->stat_context.drop_bytes += length;
 		return false;
 	}
 
+	// insert in top of fifo
 	this->queue.push_back(elem);
 	// update counter
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.in_pkt_nbr++;
-	length = elem->getTotalLength();
 	this->new_length_bytes += length;
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
@@ -281,6 +298,8 @@ void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 	stat_info.out_pkt_nbr = this->stat_context.out_pkt_nbr;
 	stat_info.in_length_bytes = this->stat_context.in_length_bytes;
 	stat_info.out_length_bytes = this->stat_context.out_length_bytes;
+	stat_info.drop_pkt_nbr = this->stat_context.drop_pkt_nbr;
+	stat_info.drop_bytes = this->stat_context.drop_bytes;
 
 	// reset counters
 	this->resetStats();
@@ -292,7 +311,8 @@ void DvbFifo::resetStats()
 	this->stat_context.out_pkt_nbr = 0;
 	this->stat_context.in_length_bytes = 0;
 	this->stat_context.out_length_bytes = 0;
-	// Add nbr packet dropped
+	this->stat_context.drop_pkt_nbr = 0;
+	this->stat_context.drop_bytes = 0;
 }
 
 

@@ -83,24 +83,101 @@ static size_t getPayloadSize(string coding_rate)
 }
 
 
-ForwardSchedulingS2::ForwardSchedulingS2(const EncapPlugin::EncapPacketHandler *packet_handler,
+ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
+                                         const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          FmtSimulation *const fwd_fmt_simu,
                                          const TerminalCategoryDama *const category):
 	Scheduling(packet_handler, fifos),
+	fwd_timer_ms(fwd_timer_ms),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
 	fwd_fmt_simu(fwd_fmt_simu),
 	category(category)
 {
-	// only one category at the moment so total capacity is category 
-	// and also carrier group capacity
-	// TODO In symbol number, can we get it in kbps ?..
+	unsigned int vcm_id = 0;
+	vector<CarriersGroupDama *> carriers_group;
+	vector<CarriersGroupDama *>::iterator carrier_it;
+
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
-		"Down/Forward capacity.Total.Available", "Symbol number", true, SAMPLE_LAST);
-	this->probe_fwd_remaining_capacity = Output::registerProbe<int>(
-		"Down/Forward capacity.Total.Remaining", "Symbol number", true, SAMPLE_LAST);
+		"Down/Forward capacity.Total.Available", "Symbols per frame", true, SAMPLE_LAST);
+	this->probe_fwd_total_remaining_capacity = Output::registerProbe<int>(
+		"Down/Forward capacity.Total.Remaining", "Symbols per frame", true, SAMPLE_LAST);
+
+	carriers_group = this->category->getCarriersGroups();
+	for(carrier_it = carriers_group.begin();
+	    carrier_it != carriers_group.end();
+	    ++carrier_it)
+	{
+		CarriersGroupDama *carriers = *carrier_it;
+		vector<CarriersGroupDama *> vcm_carriers;
+		vector<CarriersGroupDama *>::iterator vcm_it;
+		vector<Probe<int> *> remain_probes;
+		vector<Probe<int> *> avail_probes;
+		unsigned int carriers_id = carriers->getCarriersId();
+	
+		vcm_carriers = carriers->getVcmCarriers();
+		for(vcm_it = vcm_carriers.begin();
+		    vcm_it != vcm_carriers.end();
+		    ++vcm_it)
+		{
+			Probe<int> *remain_probe;
+			Probe<int> *avail_probe;
+			// For units, if there is only one MODCOD use Kbits/s else symbols
+			// check if the FIFO can emit on this carriers group
+			if(vcm_carriers.size() <= 1)
+			{
+				string type = "ACM";
+				string unit = "Symbol number";
+				if((*vcm_it)->getFmtIds().size() == 1)
+				{
+					unit = "Kbits/s";
+					type = "CCM";
+				}
+				remain_probe = Output::registerProbe<int>(
+						unit,
+						true,
+						SAMPLE_AVG,
+						"Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
+						this->category->getLabel().c_str(),
+						carriers_id, type.c_str());
+				avail_probe = Output::registerProbe<int>(
+						unit,
+						true,
+						SAMPLE_AVG,
+						"Down/Forward capacity.Category %s.Carrier%u.%s.Available",
+						this->category->getLabel().c_str(),
+						carriers_id, type.c_str());
+			}
+			else
+			{
+				remain_probe = Output::registerProbe<int>(
+						"Kbits/s",
+						true,
+						SAMPLE_AVG,
+						"Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
+						this->category->getLabel().c_str(),
+						carriers_id, vcm_id);
+				avail_probe = Output::registerProbe<int>(
+						"Kbits/s",
+						true,
+						SAMPLE_AVG,
+						"Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
+						this->category->getLabel().c_str(),
+						carriers_id, vcm_id);
+				vcm_id++;
+			}
+			avail_probes.push_back(avail_probe);
+			remain_probes.push_back(remain_probe);
+		}
+		this->probe_fwd_available_capacity.insert(
+			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
+			                                                    avail_probes));
+		this->probe_fwd_remaining_capacity.insert(
+			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
+			                                                    remain_probes));
+	}
 }
 
 ForwardSchedulingS2::~ForwardSchedulingS2()
@@ -129,6 +206,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers_group = this->category->getCarriersGroups();
+	vol_sym_t capacity_sym;
 	int total_capa = 0;
 
 	// initialize carriers capacity
@@ -137,27 +215,94 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vol_sym_t capacity_sym  = carriers->getTotalCapacity() +
-		                          carriers->getRemainingCapacity();
-		carriers->setRemainingCapacity(capacity_sym);
-		total_capa += capacity_sym;
+		vector<CarriersGroupDama *> vcm_carriers;
+		vector<CarriersGroupDama *>::iterator vcm_it;
+
+		vcm_carriers = carriers->getVcmCarriers();
+		// if no VCM, getVcm() will return only one carrier
+		for(vcm_it = vcm_carriers.begin();
+		    vcm_it != vcm_carriers.end();
+		    ++vcm_it)
+		{
+			CarriersGroupDama *vcm = *vcm_it;
+			capacity_sym = vcm->getTotalCapacity() +
+			               vcm->getRemainingCapacity();
+			vcm->setRemainingCapacity(capacity_sym);
+			total_capa += capacity_sym;
+		}
 	}
 	this->probe_fwd_total_capacity->put(total_capa);
 
 	for(fifo_it = this->dvb_fifos.begin();
 	    fifo_it != this->dvb_fifos.end(); ++fifo_it)
 	{
+		DvbFifo *fifo = (*fifo_it).second;
+		unsigned int vcm_id = 0;
+
 		for(carrier_it = carriers_group.begin();
 		    carrier_it != carriers_group.end();
 		    ++carrier_it)
 		{
-			if(!this->scheduleEncapPackets((*fifo_it).second,
-			                               current_superframe_sf,
-			                               current_time,
-			                               complete_dvb_frames,
-			                               *carrier_it))
+			CarriersGroupDama *carriers = *carrier_it;
+			vector<CarriersGroupDama *> vcm_carriers;
+			vector<CarriersGroupDama *>::iterator vcm_it;
+			
+			vcm_carriers = carriers->getVcmCarriers();
+			for(vcm_it = vcm_carriers.begin();
+			    vcm_it != vcm_carriers.end();
+			    ++vcm_it)
 			{
-				return false;
+				// check if the FIFO can emit on this carriers group
+				if(vcm_carriers.size() <= 1)
+				{
+					// ACM
+					if(fifo->getAccessType() != access_acm)
+					{
+						LOG(this->log_scheduling, LEVEL_DEBUG,
+						    "Ignore carriers with id %u in category %s for VCM fifo %s\n",
+						    carriers->getCarriersId(), this->category->getLabel().c_str(),
+						    fifo->getName().c_str());
+						break;
+					}
+				}
+				else
+				{
+					// VCM
+					if(fifo->getAccessType() != access_vcm)
+					{
+						LOG(this->log_scheduling, LEVEL_DEBUG,
+						    "Ignore carriers with id %u in category %s for ACM fifo %s\n",
+						    carriers->getCarriersId(), this->category->getLabel().c_str(),
+						    fifo->getName().c_str());
+						break;
+					}
+					// we handle with increasing VCM id, once the VCM id is reached
+					// this is over
+					if(fifo->getVcmId() < vcm_id)
+					{
+						break;
+					}
+					if(fifo->getVcmId() != vcm_id)
+					{
+						vcm_id++;
+						continue;
+					}
+					vcm_id++;
+				}
+				LOG(this->log_scheduling, LEVEL_DEBUG,
+				    "Can send data from fifo %s on carriers group %u in category %s\n",
+				    fifo->getName().c_str(), carriers->getCarriersId(),
+				    this->category->getLabel().c_str());
+
+				if(!this->scheduleEncapPackets(fifo,
+				                               current_superframe_sf,
+				                               current_time,
+				                               complete_dvb_frames,
+				                               *vcm_it))
+				{
+					return false;
+				}
+				// TODO with VCM, previous capacity should be handled differently
 			}
 		}
 	}
@@ -167,12 +312,43 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		// keep total remaining capacity (for stats)
-		remaining_allocation += carriers->getRemainingCapacity();
-		// reset remaining capacity
-		carriers->setRemainingCapacity(0);
+		vector<CarriersGroupDama *> vcm_carriers;
+		vector<CarriersGroupDama *>::iterator vcm_it;
+		unsigned int carriers_id = carriers->getCarriersId();
+		unsigned int id = 0;
+			
+		vcm_carriers = carriers->getVcmCarriers();
+		for(vcm_it = vcm_carriers.begin();
+		    vcm_it != vcm_carriers.end();
+		    ++vcm_it)
+		{
+			unsigned int remain = (*vcm_it)->getRemainingCapacity();
+			unsigned int avail = (*vcm_it)->getTotalCapacity();
+			// keep total remaining capacity (for stats)
+			remaining_allocation += remain;
+
+			// get remain in Kbits/s instead of symbols if possible
+			if((*vcm_it)->getFmtIds().size() == 1)
+			{
+				const FmtDefinitionTable *modcod_def;
+				modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
+				remain = modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				                                 remain);
+				avail = modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				                               avail);
+				// we get kbits per frame, convert in kbits/s
+				remain = remain * 1000 / this->fwd_timer_ms;
+				avail = avail * 1000 / this->fwd_timer_ms;
+			}
+
+			this->probe_fwd_available_capacity[carriers_id][id]->put(avail);
+			this->probe_fwd_remaining_capacity[carriers_id][id]->put(remain);
+			id++;
+			// reset remaining capacity
+			(*vcm_it)->setRemainingCapacity(0);
+		}
 	}
-	this->probe_fwd_remaining_capacity->put(remaining_allocation);
+	this->probe_fwd_total_remaining_capacity->put(remaining_allocation);
 
 	return true;
 }
@@ -737,6 +913,9 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "cannot add pending BBFrame in the list "
 				    "of complete BBFrames\n");
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "this errors may mean that you don't have enough "
+				    "band to send BBFrames, please change your configuration\n");
 			}
 		}
 		else

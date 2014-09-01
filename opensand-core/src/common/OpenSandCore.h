@@ -156,10 +156,12 @@ inline access_type_t strToAccessType(string access_type)
 {
 	if(access_type == "DAMA")
 		return DAMA;
-	else if(access_type == "TDM")
+	else if(access_type == "ACM")
 		return TDM;
 	else if(access_type == "ALOHA")
 		return ALOHA;
+	else if(access_type == "VCM")
+		return TDM;
 	return ERROR;
 }
 

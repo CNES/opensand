@@ -77,19 +77,19 @@ class CarriersGroup
 	 *
 	 * @param carriers_number  The number of carriers
 	 */
-	void setCarriersNumber(const unsigned int carriers_number);
+	virtual void setCarriersNumber(const unsigned int carriers_number);
 
 	/**
 	 * @brief  Set carriers capacity.
 	 *
 	 * @param  capacity_sym  carriers capacity (in symbols) for a superframe.
 	 */
-	void setCapacity(const vol_sym_t capacity_sym);
+	virtual void setCapacity(const vol_sym_t capacity_sym);
 
 	/**
-	 * @brief   Get carriers group capacity;
+	 * @brief   Get carriers group capacity
 	 *
-	 * @return  carriers group capacity (in kbits) for a superframe.
+	 * @return  carriers group capacity (in symbols) for a superframe.
 	 */
 	vol_sym_t getTotalCapacity() const;
 
@@ -105,7 +105,7 @@ class CarriersGroup
 	 *
 	 * @param  symbol_rate  new symbol rate.
 	 */
-	void setSymbolRate(const rate_symps_t symbol_rate_symps);
+	virtual void setSymbolRate(const rate_symps_t symbol_rate_symps);
 
 	/**
 	 * @brief  Get the carriers number
@@ -134,6 +134,15 @@ class CarriersGroup
 	 * @return  The carriers access type
 	 */
 	access_type_t getAccessType(void) const;
+
+	/**
+	 * @brief Add a VCM part in the carriers group
+	 *
+	 * @param  fmt_group       The FMT group
+	 * @param  ratio           The estimated occupation ratio
+	 */
+	virtual void addVcm(const FmtGroup *const fmt_group,
+	                    unsigned int ratio);
 
  protected:
 

@@ -54,13 +54,22 @@ using std::map;
 /// DVB fifo statistics context
 typedef struct
 {
-	vol_pkt_t current_pkt_nbr;  // current number of elements
-	vol_bytes_t current_length_bytes; // current length of data in fifo
-	vol_pkt_t in_pkt_nbr;       // number of elements inserted during period
-	vol_pkt_t out_pkt_nbr;      // number of elements extracted during period
-	vol_bytes_t in_length_bytes;      // current length of data inserted during period
-	vol_bytes_t out_length_bytes;     // current length of data extraction during period
+	vol_pkt_t current_pkt_nbr;        ///< current number of elements
+	vol_bytes_t current_length_bytes; ///< current length of data in fifo
+	vol_pkt_t in_pkt_nbr;             ///< number of elements inserted during period
+	vol_pkt_t out_pkt_nbr;            ///< number of elements extracted during period
+	vol_bytes_t in_length_bytes;      ///< current length of data inserted during period
+	vol_bytes_t out_length_bytes;     ///< current length of data extraction during period
+	vol_pkt_t drop_pkt_nbr;           ///< number of elements dropped
+	vol_bytes_t drop_bytes;           ///< current length of data dropped
 } mac_fifo_stat_context_t;
+
+/// Access type for fifo (mapping between mac_fifo and carrier)
+typedef enum
+{
+	access_acm,
+	access_vcm,
+} fwd_access_type_t;
 
 
 /**
@@ -77,13 +86,14 @@ class DvbFifo
 	 * @brief Create the DvbFifo
 	 *
 	 * @param fifo_priority the fifo priority
-	 * @param fifo_name the name of the fifo queue (NM, EF, ...) or SAT
-	 * @param cr_type_name  the CR type name for this fifo
-	 * @param pvc           the PVC associated to this fifo
+	 * @param fifo_name     the name of the fifo queue (NM, EF, ...) or SAT
+	 * @param type_name     the CR type name for this fifo if it is for a ST 
+	 *                      (return link, the carrier access type name for
+	 *                      this fifo if it is for the GW (forward link)
 	 * @param max_size_pkt  the fifo maximum size
 	 */
 	DvbFifo(unsigned int fifo_priority, string mac_fifo_name,
-	        string cr_type_name, unsigned int pvc,
+	        string type_name,
 	        vol_pkt_t max_size_pkt);
 
 	/**
@@ -108,13 +118,6 @@ class DvbFifo
 	string getName() const;
 
 	/**
-	 * @brief Get the PVC associated to the fifo
-	 *
-	 * return the PVC of the fifo
-	 */
-	unsigned int getPvc() const;
-
-	/**
 	 * @brief Get the CR type associated to the fifo
 	 *
 	 * return the CR type associated to the fifo
@@ -122,9 +125,23 @@ class DvbFifo
 	cr_type_t getCrType() const;
 
 	/**
-	 * @brief Get the fifo_priority of the fifo (value from ST FIFO configuration)
+	 * @brief Get the access type associated to the fifo
 	 *
-	 * @return the fifo_priority of the fifo
+	 * return the access type associated to the fifo
+	 */
+	fwd_access_type_t getAccessType() const;
+
+	/**
+	 * @brief Get the VCM id
+	 *
+	 * @return the VCM id
+	 */
+	unsigned int getVcmId() const;
+
+	/**
+	 * @brief Get the priority of the fifo (value from ST FIFO configuration)
+	 *
+	 * @return the priority of the fifo
 	 */
 	unsigned int getPriority() const;
 
@@ -228,21 +245,17 @@ class DvbFifo
 
 	vector<MacFifoElement *> queue; ///< the FIFO itself
 
-	unsigned int fifo_priority;   // the MAC priority of the fifo
-	string fifo_name;  ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
-	unsigned int pvc;    ///< the MAC PVC (Pemanent Virtual Channel)
-	                     ///< associated to the FIFO
-	                     ///< No used in starred or mono-spot
-	                     ///< In meshed satellite, a PVC should be associated to a
-	                     ///< spot and allocation would depend of it as it depends
-	                     ///< of spot
-	cr_type_t cr_type;   ///< the associated Capacity Request
-	vol_pkt_t new_size_pkt;  ///< the number of packets that filled the fifo
-	                         ///< since previous check
-	vol_bytes_t new_length_bytes; ///< the size of data that filled the fifo
-	                         ///< since previous check
-	vol_pkt_t max_size_pkt;  ///< the maximum size for that FIFO
-	uint8_t carrier_id; ///< the carrier id of the fifo (for SAT and GW purposes)
+	unsigned int fifo_priority;     ///< the MAC priority of the fifo
+	string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
+	cr_type_t cr_type;              ///< the associated Capacity Request
+	fwd_access_type_t access_type;  ///< the associated Access Type
+	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
+	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
+	                                ///< since previous check
+	vol_bytes_t new_length_bytes;   ///< the size of data that filled the fifo
+	                                ///< since previous check
+	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
+	uint8_t carrier_id;             ///< the carrier id of the fifo (for SAT and GW purposes)
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access

@@ -104,3 +104,9 @@ access_type_t CarriersGroup::getAccessType(void) const
 	return this->access_type;
 }
 
+void CarriersGroup::addVcm(const FmtGroup *const UNUSED(fmt_group),
+                           unsigned int UNUSED(ratio))
+{
+}
+
+

@@ -114,7 +114,6 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	carrier_id_data(),
 	dvb_fifos(),
 	default_fifo_id(0),
-	nbr_pvc(0),
 	obr_period_frame(-1),
 	obr_slot_frame(-1),
 	frame_timer(-1),
@@ -358,8 +357,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
-		unsigned int fifo_priority;
-		unsigned int pvc;
+		qos_t fifo_priority = 0;
 		vol_pkt_t fifo_size = 0;
 		string fifo_mac_prio;
 		string fifo_cr_type;
@@ -389,14 +387,6 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			    FIFO_SIZE, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		// get pvc
-		if(!Conf::getAttributeValue(iter, FIFO_PVC, pvc))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_PVC, DVB_TAL_SECTION, FIFO_LIST);
-			goto err_fifo_release;
-		}
 		// get the fifo CR type
 		if(!Conf::getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
 		{
@@ -408,25 +398,22 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		}
 
 		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
-		                   fifo_cr_type, pvc, fifo_size);
+		                   fifo_cr_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
-		    "pvc %u, CR type %d\n",
+		    "CR type %d\n",
 		    fifo->getPriority(),
 		    fifo->getName().c_str(),
 		    fifo->getMaxSize(),
-		    fifo->getPvc(),
 		    fifo->getCrType());
-
-		// update the number of PVC = the maximum PVC
-		this->nbr_pvc = std::max(this->nbr_pvc, pvc);
 
 		// the default FIFO is the last one = the one with the smallest priority
 		// actually, the IP plugin should add packets in the default FIFO if
 		// the DSCP field is not recognize, default_fifo_id should not be used
 		// this is only used if traffic categories configuration and fifo configuration
 		// are not coherent.
+		// TODO remove !!!
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
@@ -973,6 +960,14 @@ bool BlockDvbTal::Downward::initOutput(void)
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
 			                           "Throughputs.L2_to_SAT_after_sched.%s",
 			                           fifo_name);
+		this->probe_st_queue_loss[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
+		                               "Queue loss.packets.%s",
+		                               fifo_name);
+		this->probe_st_queue_loss_kb[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
+		                               "Queue loss.%s",
+		                               fifo_name);
 	}
 	this->probe_st_l2_to_sat_total =
 		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
@@ -1042,7 +1037,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			// set each packet of the burst in MAC FIFO
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
 			{
-				unsigned int fifo_priority = (*pkt_it)->getQos();
+				qos_t fifo_priority = (*pkt_it)->getQos();
 
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "SF#%u: encapsulation packet has QoS value %u\n",
@@ -1099,8 +1094,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 
-				this->l2_to_sat_cells_before_sched[
-					this->dvb_fifos[fifo_priority]->getPriority()]++;
+				this->l2_to_sat_cells_before_sched[fifo_priority]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1629,12 +1623,9 @@ void BlockDvbTal::Downward::updateStats(void)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
 
-		// NB: mac queueing delay = fifo_stat.lastPkQueuingDelay
-		// is writing at each UL cell emission by MAC layer and DA
-
 		// NB: outgoingCells = cells directly sent from IP packets + cells
 		//     stored before extraction next frame
-		this->l2_to_sat_cells_after_sched[(*it).first] += fifo_stat.out_pkt_nbr;
+		this->l2_to_sat_cells_after_sched[(*it).first] = fifo_stat.out_pkt_nbr;
 		this->l2_to_sat_total_cells += fifo_stat.out_pkt_nbr;
 
 		// write in statitics file
@@ -1649,12 +1640,13 @@ void BlockDvbTal::Downward::updateStats(void)
 
 		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
 		this->probe_st_queue_size_kb[(*it).first]->put(
-			((int) fifo_stat.current_length_bytes * 8 / 1000));
+				fifo_stat.current_length_bytes * 8 / 1000);
+		this->probe_st_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
+		this->probe_st_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}
-	this->probe_st_l2_to_sat_total->put(
-		this->l2_to_sat_total_cells *
-		this->pkt_hdl->getFixedLength() * 8 /
-		this->stats_period_ms);
+	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_cells *
+	                                    this->pkt_hdl->getFixedLength() * 8 /
+	                                    this->stats_period_ms);
 
 	// reset stat context for next frame
 	this->resetStatsCxt();

@@ -64,7 +64,6 @@ class ReturnSchedulingRcs: public Scheduling
 	/**
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *
-	 * @param pvc                          the current pvc
 	 * @param current_superframe_sf        the current superframe (for logging)
 	 * @param current_frame                the current frame (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
@@ -73,8 +72,7 @@ class ReturnSchedulingRcs: public Scheduling
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool macSchedule(const unsigned int pvc,
-	                 const time_sf_t current_superframe_sf,
+	bool macSchedule(const time_sf_t current_superframe_sf,
 	                 const time_frame_t current_frame,
 	                 list<DvbFrame *> *complete_dvb_frames,
 	                 rate_pktpf_t &remaining_allocation_pktpf);
@@ -88,9 +86,6 @@ class ReturnSchedulingRcs: public Scheduling
 	 */
 	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
 
-
-	/** The maximum PVC value */
-	unsigned int max_pvc;
 };
 
 #endif

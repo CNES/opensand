@@ -422,8 +422,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 					// the last FMT ID in getFmtIds() is the one
 					// which will give us the higher rate
 					modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
-					                      (*carrier_it)->getSymbolRate() *
-					                      (*carrier_it)->getCarriersNumber());
+					                       (*carrier_it)->getSymbolRate() *
+					                       (*carrier_it)->getCarriersNumber());
 
 		}
 

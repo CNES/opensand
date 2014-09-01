@@ -71,6 +71,16 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="accessType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ACM" />
+        <xsd:enumeration value="VCM0"/>
+        <xsd:enumeration value="VCM1"/>
+        <xsd:enumeration value="VCM2"/>
+        <xsd:enumeration value="VCM3"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- simulation random type -->
 <xsd:simpleType name="simuRandom">
     <xsd:restriction base="xsd:string">
@@ -78,6 +88,49 @@
         <xsd:pattern value="([0-9]*:){5}[0-9]*" />
     </xsd:restriction>
 </xsd:simpleType>
+
+<!-- fifo types -->
+<xsd:element name="fifos">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="fifo">
+    <xsd:complexType>
+        <xsd:attribute name="priority" type="classId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID and the scheduler priority of the class related to the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="type" type="className">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The name of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="size_max" type="xsd:integer">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The size of the FIFO
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="access_type" type="accessType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of access
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- types for slotted_aloha section -->
 <xsd:simpleType name="sa_algo">
@@ -282,10 +335,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="max_fifo" type="xsd:integer">
+            <xsd:element ref="fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The maximal size of the BBFrame FIFO
+                        The MAC fifos
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -295,24 +348,24 @@
 
 <!-- saloha section description -->
 <xsd:element name="slotted_aloha">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element name="algorithm" type="sa_algo">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="algorithm" type="sa_algo">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The algorithm used to handle collisions on slots
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-			<xsd:element ref="simulation_traffic">
+            </xsd:element>
+            <xsd:element ref="simulation_traffic">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Add Slotted Aloha simulated traffic in categories
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-		</xsd:sequence>
-	</xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- pep section description -->

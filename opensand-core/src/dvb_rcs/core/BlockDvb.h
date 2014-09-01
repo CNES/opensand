@@ -339,6 +339,52 @@ class BlockDvb: public Block
 	};
 };
 
+/**
+ * @brief Get integer values separated by ',' or ';' or a space
+ *        in a string.
+ *        Used for temporal division in VCM carriers
+ *
+ * @param values  The value to split
+ * @return The vector containing the splitted values
+ */
+inline vector<unsigned int> tempSplit(string values)
+{
+	vector<string>::iterator it;
+	vector<string> first_step;
+	vector<unsigned int> output;
+
+	// first get groups of strings separated by ';'
+	tokenize(values, first_step, ";");
+	for(it = first_step.begin(); it != first_step.end(); ++it)
+	{
+		vector<string> second_step;
+		vector<string>::iterator it2;
+
+		// then get groups of strings separated by ','
+		tokenize(*it, second_step, ",");
+		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
+		{
+			vector<string> third_step;
+			vector<string>::iterator it3;
+
+			// then split the integers separated by '-'
+			tokenize(*it2, third_step, "-");
+			for(it3 = third_step.begin(); it3 != third_step.end(); ++it3)
+			{
+				stringstream str(*it3);
+				unsigned int val;
+				str >> val;
+				if(str.fail())
+				{
+					continue;
+				}
+				output.push_back(val);
+			}
+		}
+	}
+	return output;
+}
+
 // Implementation of functions with templates
 
 template<class T>
@@ -346,7 +392,7 @@ bool DvbChannel::initBand(const char *band,
                           access_type_t access_type,
                           time_ms_t duration_ms,
                           const FmtDefinitionTable *fmt_def,
-                          TerminalCategories<T> &categories,          
+                          TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
                           T **default_category,
                           fmt_groups_t &fmt_groups)
@@ -449,12 +495,14 @@ bool DvbChannel::initBand(const char *band,
 	    iter != conf_list.end(); ++iter)
 	{
 		string name;
-		unsigned int ratio;
+		string ratio;
+		vector<unsigned int> ratios;
 		rate_symps_t symbol_rate_symps;
-		unsigned int group_id;
+		string group_id;
+		vector<unsigned int> group_ids;
 		string access;
+		unsigned int vcm_id = 0;
 		T *category;
-		fmt_groups_t::const_iterator group_it;
 
 		i++;
 
@@ -476,6 +524,8 @@ bool DvbChannel::initBand(const char *band,
 			    "distribution table entry %u\n", band, RATIO, i);
 			goto error;
 		}
+		// parse ratio if there is many values
+		ratios = tempSplit(ratio);
 
 		// Get carriers' symbol ratge
 		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
@@ -496,6 +546,15 @@ bool DvbChannel::initBand(const char *band,
 			    FMT_GROUP, i);
 			goto error;
 		}
+		// parse group ids if there is many values
+		group_ids = tempSplit(group_id);
+
+		if(group_ids.size() != ratios.size())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "There should be as many ratio values as fmt groups values\n");
+			goto error;
+		}
 
 		// Get carriers' access type
 		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
@@ -506,35 +565,58 @@ bool DvbChannel::initBand(const char *band,
 			    ACCESS_TYPE, i);
 			goto error;
 		}
-
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "%s: new carriers: category=%s, Rs=%G, FMT group=%u, "
-		    "ratio=%u, access type=%s\n", band, name.c_str(),
-		    symbol_rate_symps, group_id, ratio,
-		    access.c_str());
-
-		group_it = fmt_groups.find(group_id);
-		if(group_it == fmt_groups.end())
+		if(access != "VCM" &&
+		   (group_ids.size() > 1 || ratios.size() > 1))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, nentry for FMT group with ID %u\n",
-			    band, group_id);
+			    "Too many FMT groups or ratio for non-VCM access type\n");
 			goto error;
 		}
 
-		// create the category if it does not exist
-		// we also create categories with wrong access type because:
-		//  - we may have many access types in the category
-		//  - we need to get all carriers for band computation
-		cat_iter = categories.find(name);
-		category = dynamic_cast<T *>((*cat_iter).second);
-		if(cat_iter == categories.end())
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
+		    "ratio=%s, access type=%s\n", band, name.c_str(),
+		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
+		    access.c_str());
+
+		for(vector<unsigned int>::iterator it = group_ids.begin();
+		    it != group_ids.end(); ++it)
 		{
-			category = new T(name, access_type);
-			categories[name] = category;
+			fmt_groups_t::const_iterator group_it;
+			group_it = fmt_groups.find(*it);
+			if(group_it == fmt_groups.end())
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Section %s, no entry for FMT group with ID %u\n",
+				    band, (*it));
+				goto error;
+			}
+			if(group_ids.size() > 1 && (*group_it).second->getFmtIds().size() > 1)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "For each VCM carriers, the FMT group should only "
+				    "contain one FMT id\n");
+				goto error;
+			}
+
+			// create the category if it does not exist
+			// we also create categories with wrong access type because:
+			//  - we may have many access types in the category
+			//  - we need to get all carriers for band computation
+			cat_iter = categories.find(name);
+			category = dynamic_cast<T *>((*cat_iter).second);
+			if(cat_iter == categories.end())
+			{
+				category = new T(name, access_type);
+				categories[name] = category;
+			}
+			category->addCarriersGroup(carrier_id, (*group_it).second,
+			                           ratios[vcm_id],
+			                           symbol_rate_symps,
+			                           strToAccessType(access));
+			vcm_id++;
+			// do not increment carrier_id here
 		}
-		category->addCarriersGroup(carrier_id, (*group_it).second, ratio,
-		                           symbol_rate_symps, strToAccessType(access));
 		carrier_id++;
 	}
 

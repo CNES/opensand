@@ -93,7 +93,7 @@ bool BlockDvbSat::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the spots part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -305,14 +305,14 @@ bool BlockDvbSat::Downward::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		return false;
 	}
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the downward common "
-		    "initialisation");
+		    "initialisation\n");
 		return false;
 	}
 
@@ -326,7 +326,7 @@ bool BlockDvbSat::Downward::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to complete the modcod part of the "
-			    "initialisation");
+			    "initialisation\n");
 			return false;
 		}
 		// initialize the MODCOD scheme ID
@@ -341,7 +341,7 @@ bool BlockDvbSat::Downward::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to complete the ST part of the"
-			    "initialisation");
+			    "initialisation\n");
 			return false;
 		}
 	}
@@ -416,7 +416,8 @@ bool BlockDvbSat::Downward::initSatLink(void)
 			spot = i_spot->second;
 			TerminalCategoryDama *category = this->categories.begin()->second;
 
-			if(!spot->initScheduling(this->pkt_hdl,
+			if(!spot->initScheduling(this->fwd_timer_ms,
+			                         this->pkt_hdl,
 			                         &this->fmt_simu,
 			                         category))
 			{
@@ -944,7 +945,7 @@ bool BlockDvbSat::Upward::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		return false;;
 	}
 
@@ -952,7 +953,7 @@ bool BlockDvbSat::Upward::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
-		    "initialisation");
+		    "initialisation\n");
 		return false;
 	}
 
@@ -964,7 +965,7 @@ bool BlockDvbSat::Upward::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to complete the switch part of the "
-			    "initialisation");
+			    "initialisation\n");
 			return false;
 		}
 	}

@@ -834,11 +834,14 @@ class ConfEntry(object):
         low = -100000
         up = 100000
         step = 1
+        digits = 0
         if "min" in self._type:
             low = float(self._type["min"])
         if "max" in self._type:
             up = float(self._type["max"])
-        if " step" in self._type:
+        if "step" in self._type:
+            step = str(self._type["step"])
+            digits=len(step[step.find('.'):]) - 1
             step = float(self._type["step"])
         if self._value != '':
             val = float(self._value)
@@ -846,7 +849,8 @@ class ConfEntry(object):
             val = low
         adj = gtk.Adjustment(value=val, lower=low, upper=up,
                              step_incr=step, page_incr=0, page_size=0)
-        self._entry = gtk.SpinButton(adjustment=adj, climb_rate=step)
+        self._entry = gtk.SpinButton(adjustment=adj, climb_rate=step,
+                                     digits=digits)
         self._entry.connect('value-changed', self.global_handler)
         self._entry.connect('scroll-event', self.do_not_scroll)
 

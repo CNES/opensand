@@ -106,6 +106,8 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 /*****************************************************************************/
 
 
+// TODO lot of duplicated code for fifos between ST and GW
+
 BlockDvbNcc::Downward::Downward(Block *const bl):
 	DvbDownward(bl),
 	NccPepInterface(),
@@ -117,7 +119,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	ctrl_carrier_id(),
 	sof_carrier_id(),
 	data_carrier_id(),
-	data_dvb_fifo(),
+	dvb_fifos(),
 	complete_dvb_frames(),
 	categories(),
 	terminal_affectation(),
@@ -143,11 +145,15 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	simu_interval(-1),
 	simu_eof(false),
 	simu_timer(-1),
-	probe_gw_l2_to_sat_before_sched(NULL),
-	probe_gw_l2_to_sat_after_sched(NULL),
+	probe_gw_queue_size(),
+	probe_gw_queue_size_kb(),
+	probe_gw_queue_loss(),
+	probe_gw_queue_loss_kb(),
+	probe_gw_l2_to_sat_before_sched(),
+	probe_gw_l2_to_sat_after_sched(),
+	probe_gw_l2_to_sat_total(NULL),
+	l2_to_sat_total_bytes(0),
 	probe_frame_interval(NULL),
-	probe_gw_queue_size(NULL),
-	probe_gw_queue_size_kb(NULL),
 	probe_used_modcod(NULL),
 	log_request_simulation(NULL),
 	event_logon_resp(NULL)
@@ -187,6 +193,23 @@ BlockDvbNcc::Downward::~Downward()
 		delete (*it).second;
 	}
 
+	// delete fifos
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+		it != this->dvb_fifos.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->dvb_fifos.clear();
+		
+	if(this->l2_to_sat_bytes_before_sched != NULL)
+	{
+		delete[] this->l2_to_sat_bytes_before_sched;
+	}
+	if(this->l2_to_sat_bytes_after_sched != NULL)
+	{
+		delete[] this->l2_to_sat_bytes_after_sched;
+	}
+		
 	if(this->satellite_type == TRANSPARENT)
 	{
 		TerminalCategories<TerminalCategoryDama>::iterator cat_it;
@@ -197,8 +220,6 @@ BlockDvbNcc::Downward::~Downward()
 		}
 		this->categories.clear();
 	}
-	// in regenerative mode categories is also owned and released by DAMA
-	delete this->data_dvb_fifo;
 
 	this->terminal_affectation.clear();
 }
@@ -229,14 +250,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the downward common "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 	
@@ -259,7 +280,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the request simulation part of "
-		    "the initialisation");
+		    "the initialisation\n");
 		goto error;
 	}
 
@@ -268,7 +289,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the carrier IDs part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -276,7 +297,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the FIFO part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto release_dama;
 	}
 
@@ -285,7 +306,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the files part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -293,7 +314,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -302,7 +323,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -319,7 +340,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the timers part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto release_dama;
 	}
 
@@ -610,11 +631,7 @@ error:
 
 bool BlockDvbNcc::Downward::initMode(void)
 {
-	// TODO remove that once data fifo will be a map
-	fifos_t fifos;
 	TerminalCategoryDama *cat;
-
-	fifos[this->data_dvb_fifo->getCarrierId()] = this->data_dvb_fifo;
 
 	// initialize scheduling
 	// depending on the satellite type
@@ -649,8 +666,9 @@ bool BlockDvbNcc::Downward::initMode(void)
 		}
 
 		cat = this->categories.begin()->second;
-		this->scheduling = new ForwardSchedulingS2(this->pkt_hdl,
-		                                           fifos,
+		this->scheduling = new ForwardSchedulingS2(this->fwd_timer_ms,
+		                                           this->pkt_hdl,
+		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
 		                                           cat);
 	}
@@ -685,7 +703,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 			cat = this->default_category;
 		}
 		this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
-		                                           fifos,
+		                                           this->dvb_fifos,
 		                                           this->frames_per_superframe,
 		                                           &this->up_ret_fmt_simu,
 		                                           cat);
@@ -951,25 +969,114 @@ error:
 
 bool BlockDvbNcc::Downward::initFifo(void)
 {
-	int val;
+	ConfigurationList fifo_list;
+	ConfigurationList::iterator iter;
 
-	// retrieve and set FIFO size
-	if(!Conf::getValue(DVB_NCC_SECTION, DVB_SIZE_FIFO, val))
+	/*
+	* Read the MAC queues configuration in the configuration file.
+	* Create and initialize MAC FIFOs
+	*/
+	if(!Conf::getListItems(DVB_NCC_SECTION, FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': bad value for parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_SIZE_FIFO);
-		return false;
+		    "section '%s, %s': missing fifo list", DVB_NCC_SECTION,
+		    FIFO_LIST);
+		goto err_fifo_release;
 	}
-	this->data_dvb_fifo = new DvbFifo(this->data_carrier_id, val, "GWFifo");
-	if(!this->data_dvb_fifo)
+
+	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot create DVB fifo\n");
-		return false;
+		unsigned int fifo_priority;
+		vol_pkt_t fifo_size = 0;
+		string fifo_mac_prio;
+		string fifo_access_type;
+		DvbFifo *fifo;
+
+		// get fifo_id --> fifo_priority
+		if(!Conf::getAttributeValue(iter, FIFO_PRIO, fifo_priority))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    FIFO_PRIO, DVB_NCC_SECTION, FIFO_LIST);
+			goto err_fifo_release;
+		}
+		// get fifo_mac_prio
+		if(!Conf::getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    FIFO_TYPE, DVB_NCC_SECTION, FIFO_LIST);
+			goto err_fifo_release;
+		}
+		// get fifo_size
+		if(!Conf::getAttributeValue(iter, FIFO_SIZE, fifo_size))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    FIFO_SIZE, DVB_NCC_SECTION, FIFO_LIST);
+			goto err_fifo_release;
+		}
+		// get the fifo CR type
+		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get %s from section '%s, %s'\n",
+			    FIFO_ACCESS_TYPE, DVB_NCC_SECTION,
+			    FIFO_LIST);
+			goto err_fifo_release;
+		}
+
+		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
+		                   fifo_access_type, fifo_size);
+
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Fifo priority = %u, FIFO name %s, size %u, "
+		    "access type %d\n",
+		    fifo->getPriority(),
+		    fifo->getName().c_str(),
+		    fifo->getMaxSize(),
+		    fifo->getAccessType());
+
+		// the default FIFO is the last one = the one with the smallest priority
+		// actually, the IP plugin should add packets in the default FIFO if
+		// the DSCP field is not recognize, default_fifo_id should not be used
+		// this is only used if traffic categories configuration and fifo configuration
+		// are not coherent.
+		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
+
+		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+	} // end for(queues are now instanciated and initialized)
+
+	// init stats context per QoS
+	this->l2_to_sat_bytes_before_sched = new int[this->dvb_fifos.size()];
+	if(this->l2_to_sat_bytes_before_sched == NULL)
+	{
+		goto err_before_release;
 	}
+
+	this->l2_to_sat_bytes_after_sched = new int[this->dvb_fifos.size()];
+	if(this->l2_to_sat_bytes_after_sched == NULL)
+	{
+		goto err_after_release;
+	}
+
+	this->resetStatsCxt();
 
 	return true;
+
+err_before_release:
+	delete[] this->l2_to_sat_bytes_after_sched;
+err_after_release:
+	delete[] this->l2_to_sat_bytes_before_sched;
+err_fifo_release:
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	this->dvb_fifos.clear();
+	return false;
+
 }
 
 bool BlockDvbNcc::Downward::initOutput(void)
@@ -985,25 +1092,42 @@ bool BlockDvbNcc::Downward::initOutput(void)
 	}
 
 	// Output probes and stats
-	this->probe_gw_l2_to_sat_before_sched =
-		Output::registerProbe<int>("Throughputs.L2_to_SAT.before_sched",
-		                           "Kbits/s", true, SAMPLE_AVG);
-	this->l2_to_sat_bytes_before_sched = 0;
-
-	this->probe_gw_l2_to_sat_after_sched =
-		Output::registerProbe<int>("Throughputs.L2_to_SAT.after_sched",
-		                           "Kbits/s", true, SAMPLE_AVG);
-	this->l2_to_sat_bytes_after_sched = 0;
-
 	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
 	                                                          "ms", true,
 	                                                          SAMPLE_LAST);
-	this->probe_gw_queue_size = Output::registerProbe<int>("Queue size.packets",
-	                                                       "Packets", true,
-	                                                       SAMPLE_LAST);
-	this->probe_gw_queue_size_kb = Output::registerProbe<int>("Queue size.kbits",
-	                                                          "kbits", true,
-	                                                          SAMPLE_LAST);
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+		it != this->dvb_fifos.end(); ++it)
+	{
+		const char *fifo_name = ((*it).second)->getName().data();
+		unsigned int id = (*it).first;
+			 
+		this->probe_gw_queue_size[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
+		                               "Queue size.packets.%s", fifo_name);
+		this->probe_gw_queue_size_kb[id] =
+			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
+		                               "Queue size.%s", fifo_name);
+		this->probe_gw_l2_to_sat_before_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Throughputs.L2_to_SAT_before_sched.%s",
+		                                fifo_name);
+		this->probe_gw_l2_to_sat_after_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Throughputs.L2_to_SAT_after_sched.%s",
+		                               fifo_name);
+		this->probe_gw_queue_loss[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
+		                               "Queue loss.packets.%s",
+		                               fifo_name);
+		this->probe_gw_queue_loss_kb[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
+		                               "Queue loss.%s",
+		                               fifo_name);
+	}
+	this->probe_gw_l2_to_sat_total =
+		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
+		                           "Kbits/s", true, SAMPLE_AVG);
+
 	if(this->satellite_type == REGENERATIVE)
 	{
 		this->probe_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
@@ -1057,11 +1181,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			// set each packet of the burst in MAC FIFO
 			for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 			{
+				qos_t fifo_priority = (*pkt_it)->getQos();
 				LOG(this->log_receive, LEVEL_INFO,
 				    "SF#%u: store one encapsulation "
 				    "packet\n", this->super_frame_counter);
 
-				if(!this->onRcvEncapPacket(*pkt_it, this->data_dvb_fifo, 0))
+				if(!this->onRcvEncapPacket(*pkt_it,
+				                           this->dvb_fifos[fifo_priority],
+				                           0))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -1079,7 +1206,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "SF#%u: encapsulation packet is "
 				    "successfully stored\n",
 				    this->super_frame_counter);
-				this->l2_to_sat_bytes_before_sched += (*pkt_it)->getTotalLength();
+				this->l2_to_sat_bytes_before_sched[fifo_priority] +=
+							(*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1854,33 +1982,50 @@ void BlockDvbNcc::Downward::simulateRandom(void)
 
 void BlockDvbNcc::Downward::updateStats(void)
 {
-	mac_fifo_stat_context_t fifo_stat;
-
 	// Update stats on the GW
 	if(this->dama_ctrl)
 	{
 		this->dama_ctrl->updateStatistics(this->stats_period_ms);
 	}
 
-	this->data_dvb_fifo->getStatsCxt(fifo_stat);
-	this->l2_to_sat_bytes_after_sched = fifo_stat.out_length_bytes;
+	mac_fifo_stat_context_t fifo_stat;
+	// MAC fifos stats
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		(*it).second->getStatsCxt(fifo_stat);
+		
+		this->l2_to_sat_bytes_after_sched[(*it).first] = fifo_stat.out_length_bytes;
+		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
-	this->probe_gw_l2_to_sat_before_sched->put(
-		this->l2_to_sat_bytes_before_sched * 8.0 / this->stats_period_ms);
-	this->l2_to_sat_bytes_before_sched = 0;
+		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
+			this->l2_to_sat_bytes_before_sched[(*it).first] * 8.0 / this->stats_period_ms);
 
-	this->probe_gw_l2_to_sat_after_sched->put(
-		this->l2_to_sat_bytes_after_sched * 8.0 / this->stats_period_ms);
-	this->l2_to_sat_bytes_after_sched = 0;
+		this->probe_gw_l2_to_sat_after_sched[(*it).first]->put(
+			this->l2_to_sat_bytes_after_sched[(*it).first] * 8.0 / this->stats_period_ms);
 
-	// Mac fifo stats
-	this->probe_gw_queue_size->put(fifo_stat.current_pkt_nbr);
-	this->probe_gw_queue_size_kb->put(fifo_stat.current_length_bytes * 8 / 1000); //TODO
-
-	// Send probes
-//	Output::sendProbes();
+		// Mac fifo stats
+		this->probe_gw_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
+		this->probe_gw_queue_size_kb[(*it).first]->put(
+					fifo_stat.current_length_bytes * 8 / 1000);
+		this->probe_gw_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
+		this->probe_gw_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
+	}
+	this->probe_gw_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
+	                                    this->stats_period_ms);
+	
+	this->resetStatsCxt();
 }
 
+void BlockDvbNcc::Downward::resetStatsCxt(void)
+{
+	for(unsigned int i = 0; i < this->dvb_fifos.size(); i++)
+	{
+		this->l2_to_sat_bytes_before_sched[i] = 0;
+		this->l2_to_sat_bytes_after_sched[i] = 0;
+	}
+	this->l2_to_sat_total_bytes = 0;
+}
 
 bool BlockDvbNcc::Downward::sendAcmParameters(void)
 {
@@ -1961,7 +2106,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -1969,7 +2114,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
@@ -1978,7 +2123,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
-		    "initialisation");
+		    "initialisation\n");
 		goto error;
 	}
 
