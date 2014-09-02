@@ -12,12 +12,12 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="fifos">
-    <fifos>
+<xsl:template match="//down_forward_band/carriers_distribution">
+    <carriers_distribution>
     <xsl:call-template name="Newline" />
-        <fifo priority="4" type="BE" size_max="3000" cr_type="RBDC" />
+        <down_carriers access_type="VCM" category="Standard" ratio="2,8" symbol_rate="28.8E6" fmt_group="1,1"/>
     <xsl:call-template name="Newline" />
-    </fifos>
+    </carriers_distribution>
 </xsl:template>
 
 

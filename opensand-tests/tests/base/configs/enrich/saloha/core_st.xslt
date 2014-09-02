@@ -15,7 +15,7 @@
 <xsl:template match="fifos">
     <fifos>
     <xsl:call-template name="Newline" />
-        <fifo priority="4" type="BE" size_max="3000" pvc="2" cr_type="SALOHA" />
+        <fifo priority="4" type="BE" size_max="3000" cr_type="SALOHA" />
     <xsl:call-template name="Newline" />
     </fifos>
 </xsl:template>

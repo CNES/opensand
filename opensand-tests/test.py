@@ -180,6 +180,7 @@ help="specify the root folder for tests configurations\n"
 "  base/+-configs/+-test_name/core_HOST.xslt\n"
 "                 |-enrich/+-enrich_name/+-core_HOST.xslt\n"
 "                                        |-accepts (optional)\n"
+"                                        |-ignored (optional)\n"
 "                                        |-enrich_name/...(iterative)\n"
 "       |-types/test_type/+-order_host/configuration\n"
 "                         |-core_HOST.xslt (optional)\n"
@@ -407,10 +408,12 @@ help="specify the root folder for tests configurations\n"
         except:
             pass
 
-    def run_enrich(self, test_path, enrich, types_path, types, accepts=[]):
+    def run_enrich(self, test_path, enrich, types_path, types, accepts=[],
+                   ignored={}):
         """ run a test for a specific type or this type enriched """
         # create a new list to avoid modifying reference
         accepts = list(accepts)
+        ignored = dict(ignored)
         test_name = os.path.basename(test_path)
         if enrich != "":
             pos = enrich.find(ENRICH_FOLDER)
@@ -424,10 +427,35 @@ help="specify the root folder for tests configurations\n"
                 with open(accept_path) as accept_list:
                     for accepted in accept_list:
                         accepts.append(accepted.strip())
+            ignored_path = os.path.join(enrich, "ignored")
+            if os.path.exists(ignored_path):
+                with open(ignored_path) as ignored_list:
+                    for ignore in ignored_list:
+                        ignore = ignore.strip()
+                        info = ignore.split(',')
+                        # ignore can containa position in the test name
+                        # to check for the specific pattern
+                        if len(info) == 1:
+                            ignored[ignore] = None
+                        else:
+                            ignored[info[0]] = info[1]
         else:
             # get the new configuration from base configuration
             # and create scenario
             self.new_scenario(test_path, test_name)
+            
+        # check if test should be ignored
+        for ig in ignored:
+            if ignored[ig] == None:
+                if test_name.find(ig) >= 0:
+                    return
+            else:
+                try:
+                    if test_name.split('_')[int(ignored[ig])] == ig:
+                        return
+                except Exception:
+                    pass
+
         init_scenario = self._model.get_scenario()
 
         if self._test is None or test_name in self._test:
@@ -488,17 +516,14 @@ help="specify the root folder for tests configurations\n"
             configs_path = os.path.join(base, 'configs')
             enrich = os.path.join(configs_path, ENRICH_FOLDER)
         for folder in glob.glob(enrich + "/*"):
-            # FIXME workaround because Slotted Aloha does not neither work in regenerative
-            #       at the moment nor with MPEG and ROHC !!!
-            if (test_name.find("regen") >= 0 or
-                test_name.find("rohc") >= 0 or
-                test_name.split('_')[2] == "mpeg") and \
-               folder.find("aloha") >= 0:
-                continue
+            # we restart from the test scenario that will be enriched
+            # for each new path
+            self._model.set_scenario(init_scenario)
             if os.path.basename(folder).startswith("scenario"):
                 continue
             if os.path.isdir(folder):
-                self.run_enrich(test_path, folder, types_path, types, accepts) 
+                self.run_enrich(test_path, folder, types_path, types,
+                                accepts, ignored) 
 
 
     def run_other(self):
