@@ -82,11 +82,6 @@ opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin
 opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-dbg
 opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-manager
 opensand-plugins/lan_adaptation/rohc/debian/tmp
-opensand-plugins/lan_adaptation/ethernet/debian/files
-opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-plugin
-opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-plugin-dbg
-opensand-plugins/lan_adaptation/ethernet/debian/libopensand-ethernet-lan-adapt-plugin-manager
-opensand-plugins/lan_adaptation/ethernet/debian/tmp
 opensand-tests/tests/base/*/*/scenario*/
 opensand-tests/tests/other/*/scenario*/
 opensand-tests/tests/base/configs/enrich/saloha/scenario*/
@@ -95,6 +90,7 @@ opensand-tests/tests/other/stats/files/test_prog
 opensand-manager/opensand_manager_core/modules/*.py
 !opensand-manager/opensand_manager_core/modules/__init__.py
 !opensand-manager/opensand_manager_core/modules/ip.py
+!opensand-manager/opensand_manager_core/modules/ule.py
 !opensand-manager/opensand_manager_core/modules/aal5_atm.py
 !opensand-manager/opensand_manager_core/modules/mpeg.py
 !opensand-manager/opensand_manager_core/modules/ule.py

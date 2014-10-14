@@ -25,7 +25,7 @@ Description: Packages for OpenSAND, a satellite emulation platform.
 #Package: opensand-lan-adapt-plugins
 #Architecture: any
 #Section: metapackages
-#Depends: opensand, libopensand-ethernet-lan-adapt-plugin, libopensand-rohc-lan-adapt-plugin, librohc
+#Depends: opensand, libopensand-rohc-lan-adapt-plugin, librohc
 #Description: Packages containing lan adaptation plugins for OpenSAND, a satellite emulation platform.
 # This metapackage is to ease the installation of OpenSAND encapsulation plugins.
  
@@ -47,7 +47,7 @@ Description: Packages for OpenSAND manager.
 #Package: opensand-manager-encap-plugins
 #Architecture: any
 #Section: metapackages
-#Depends: opensand-manager, opensand-lan-adapt-plugins, libopensand-ethernet-lan-adapt-plugin-manager, libopensand-rohc-lan-adapt-plugin-manager
+#Depends: opensand-manager, opensand-lan-adapt-plugins, libopensand-rohc-lan-adapt-plugin-manager
 #Description: Packages containing encapsulation plugins for the OpenSAND manager.
 # This metapackage is to ease the installation of OpenSAND lan adaptation plugins on manager.
  

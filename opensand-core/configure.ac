@@ -118,6 +118,7 @@ AC_CONFIG_FILES([ \
 	src/mandatory_plugins/Makefile \
 	src/mandatory_plugins/aal5_atm/Makefile \
 	src/mandatory_plugins/ip/Makefile \
+	src/mandatory_plugins/ethernet/Makefile \
 	src/mandatory_plugins/mpeg/Makefile \
 	src/mandatory_plugins/ule/Makefile \
 	src/interfaces/Makefile \

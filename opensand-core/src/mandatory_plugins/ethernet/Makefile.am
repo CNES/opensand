@@ -8,10 +8,6 @@ SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_eth_lan_adapt_plugin.la
 
-INCLUDES = \
-	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/lan_adaptation
-
 libopensand_eth_lan_adapt_plugin_la_cpp = \
 	Evc.cpp \
 	Ethernet.cpp
@@ -25,8 +21,12 @@ libopensand_eth_lan_adapt_plugin_la_SOURCES = \
     $(libopensand_eth_lan_adapt_plugin_la_cpp) \
     $(libopensand_eth_lan_adapt_plugin_la_h)
 
+libopensand_eth_lan_adapt_plugin_la_LIBADD = \
+	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la
+
 pluginsdir = $(prefix)/lib/opensand/plugins
 
+INCLUDES = \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/lan_adaptation
 
-EXTRA_DIST = \
-	ethernet.py

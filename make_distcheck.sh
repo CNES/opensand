@@ -50,7 +50,7 @@ function encap()
 function lan()
 {
     cd opensand-plugins/lan_adaptation
-    for dir in rohc ethernet; do
+    for dir in rohc; do
         make_distcheck $dir
     done
     cd ../..

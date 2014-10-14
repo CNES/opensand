@@ -62,7 +62,7 @@ override_dh_install:
 	install -m 0644 conf/mandatory_plugins/mpeg.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/plugins/mpeg.xsd
 
 	for host in gw st; do \
-		for plugin in ip ideal on_off file triangular constant; do \
+		for plugin in ip ethernet ideal on_off file triangular constant; do \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/$${plugin}.conf ; \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/$${host}/plugins/$${plugin}.xsd ; \
 		done ; \

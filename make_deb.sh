@@ -66,7 +66,7 @@ function opensand()
 function lan()
 {
     cd opensand-plugins/lan_adaptation
-    for dir in ethernet rohc ; do
+    for dir in rohc ; do
         build_pkg $dir
     done
     rm *.dsc *.tar.gz *.changes
@@ -102,7 +102,7 @@ function clean()
         rm *.dsc *.tar.gz *.changes  1>/dev/null 2>&1
     done
     cd opensand-plugins/lan_adaptation
-    for dir in ethernet rohc ; do
+    for dir in rohc ; do
         cd $dir
         dh_clean 1>/dev/null
         cd ..

@@ -69,7 +69,7 @@ Description: The tools supported by the host
 
 Template: opensand-daemon/service/modules
 Type: string
-Default: AAL5/ATM ULE MPEG2-TS IP ACM-Loop Constant Gate Ideal On/Off Triangular File
+Default: AAL5/ATM ULE MPEG2-TS IP Ethernet ACM-Loop Constant Gate Ideal On/Off Triangular File
 Description: The modules supported by the host
   This shall be filled by modules packages
 
