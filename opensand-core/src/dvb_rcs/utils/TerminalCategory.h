@@ -177,12 +177,13 @@ class TerminalCategory
 	                          time_ms_t superframe_duration_ms)
 	{
 		unsigned int total_ratio = this->getRatio();
+		unsigned int total_number = 0;
 		typename vector<T *>::const_iterator it;
 		vector<CarriersGroup *>::const_iterator other_it;
 
 		if(carriers_number < this->carriers_groups.size())
 		{
-			LOG(this->log_terminal_category, LEVEL_NOTICE, 
+			LOG(this->log_terminal_category, LEVEL_WARNING, 
 			    "Not enough carriers for category %s that contains %zu "
 			    "groups. Increase carriers number to the number of "
 			    "groups\n",
@@ -196,7 +197,12 @@ class TerminalCategory
 			vol_sym_t capacity_sym;
 	
 			// get number per carriers from total number in category
-			number = ceil(carriers_number * (*it)->getRatio() / total_ratio);
+			number = (unsigned int)(carriers_number * (*it)->getRatio() / total_ratio);
+			if(number == 0)
+			{
+				number = 1;
+			}
+			total_number += number;
 			(*it)->setCarriersNumber(number);
 			LOG(this->log_terminal_category, LEVEL_NOTICE, 
 			    "Carrier group %u: number of carriers %u\n",

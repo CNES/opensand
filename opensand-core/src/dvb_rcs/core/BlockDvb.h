@@ -788,9 +788,17 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		T *category = (*category_it).second;
 		unsigned int ratio = category->getRatio();
 
-		carriers_number = ceil(
+		carriers_number = floor(
 		    (ratio / weighted_sum_ksymps) *
 		    (available_bandplan_khz / (1 + roll_off)));
+		// create at least one carrier
+		if(carriers_number == 0)
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Band is too small for one carrier. "
+			    "Increase band for one carrier\n");
+			carriers_number = 1;
+		}
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Number of carriers for category %s: %d\n",
 		    category->getLabel().c_str(), carriers_number);

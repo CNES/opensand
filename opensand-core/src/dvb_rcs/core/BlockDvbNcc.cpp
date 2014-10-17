@@ -2522,7 +2522,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					}
 					this->frame_counter = 0;
 
-					//Slotted Aloha
+					// Slotted Aloha
 					NetBurst* sa_burst = NULL;
 					if(!this->saloha->schedule(&sa_burst,
 					                           *ack_frames,

@@ -211,10 +211,18 @@ class OpenSandBand():
 
         # TODO check that this is not 0
 
+        total_ratio = 0
         for name in self._categories:
             for carriers in self._categories[name]:
-                nbr = floor((sum(carriers.ratios) / weighted_sum) *
-                            (self._bandwidth / (1 + self._roll_off)))
+                total_ratio += sum(carriers.ratios)
+        carriers_number = floor((total_ratio / weighted_sum) *
+                                (self._bandwidth / (1 + self._roll_off)))
+        if carriers_number == 0:
+            carriers_number = 1
+                
+        for name in self._categories:
+            for carrier in self._categories[name]:
+                nbr = int(carriers_number * sum(carriers.ratios) / total_ratio)
                 if nbr == 0:
                     nbr = 1
                 carriers.number = nbr
