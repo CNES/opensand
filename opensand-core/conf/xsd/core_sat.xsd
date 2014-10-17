@@ -142,6 +142,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The FIFOs size (same for all FIFO at the moment)
+                        <unit>packets</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

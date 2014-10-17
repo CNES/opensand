@@ -23,7 +23,7 @@
 
 <!-- types for global section -->
 <xsd:simpleType name="msTimeFrame">
-    <xsd:restriction base="xsd:double">
+    <xsd:restriction base="xsd:decimal">
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="106" />
     </xsd:restriction>
@@ -83,6 +83,7 @@
 </xsd:simpleType>
 
 <xsd:simpleType name="symbolRate">
+    <!-- double for scientific notation support -->
     <xsd:restriction base="xsd:double">
         <xsd:minInclusive value="0" />
     </xsd:restriction>
@@ -162,13 +163,14 @@
                 <xsd:documentation xml:lang="en">
                     The symbol rate (in bauds) allowing to compute the number of
                     carriers of this type, in combination with ratio
+                    <unit>bauds</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="fmt_group" type="xsd:positiveInteger">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The MODCOD group ID" representing the possible set of
+                    The MODCOD group ID representing the possible set of
                     MODCOD(s) for this carrier
                 </xsd:documentation>
             </xsd:annotation>
@@ -214,6 +216,7 @@
                 <xsd:documentation xml:lang="en">
                     The symbol rate (in bauds) allowing to compute the number of
                     carriers of this type, in combination with ratio
+                    <unit>bauds</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -381,6 +384,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The delay to simulate (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -416,6 +420,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         How often do we refresh the adaptive physical layer scenario (ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -423,6 +428,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The DVB frame duration (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -459,6 +465,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Bandwidth (MHz)
+                        <unit>Mhz</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -516,6 +523,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Bandwidth (MHz)
+                        <unit>Mhz</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -649,6 +657,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The channel refreshing (ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -717,6 +726,7 @@
                     <xsd:documentation xml:lang="en">
                         The timer used for forward link emission and for
                         satellite fifo handling (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -724,6 +734,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The timer used for statistics (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

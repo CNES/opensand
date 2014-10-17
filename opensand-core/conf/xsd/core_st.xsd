@@ -109,7 +109,8 @@
         <xsd:attribute name="size_max" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The size of the FIFO
+                    The size of the FIFO (in packets)
+                    <unit>packets</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -193,6 +194,7 @@
                     <xsd:documentation xml:lang="en">
                         The OBR period (frame number):
                         period used to determine when we should send a request
+                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -221,6 +223,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The RBDC Timeout (frame number)
+                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -230,6 +233,7 @@
                         The Minimum Scheduling Latency (frame number):
                         time between the capacity request emission and the
                         reception of the corresponding Terminal Burst Time Plan
+                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -249,6 +253,7 @@
                     <xsd:documentation xml:lang="en">
                         The static bandwidth allocated to ST (kbits/s) = the
                         bandwidth for real time traffic
+                        <unit>kbits/s</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -263,6 +268,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximum RBDC value for the terminal (kbits/s)
+                        <unit>kbits/s</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -270,6 +276,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximum VBDC value for the terminal (kbits)
+                        <unit>kbits</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -293,6 +300,7 @@
                     <xsd:documentation xml:lang="en">
                         The timeout before packet deleting or retransmission
                         (in number of Slotted Aloha frames)
+                        <unit>Slotted Aloha frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -301,6 +309,7 @@
                     <xsd:documentation xml:lang="en">
                         The number of replicas per Slotted Aloha frame
                         (including the original packet)
+                        <unit>packets</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -308,6 +317,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The maximum number of packets per Slotted Aloha frame
+                        <unit>packets</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -315,6 +325,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of retransmissions of a packet before deleting it
+                        <unit>packets</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -329,6 +340,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The value of CWmax for backoff
+                        <unit>Slotted Aloha frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

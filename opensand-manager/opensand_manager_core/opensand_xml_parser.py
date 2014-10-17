@@ -284,7 +284,7 @@ class XmlParser:
         else:
             return self.get_simple_type(att_type)
 
-    def get_documentation(self, name, parent_name = None):
+    def get_documentation(self, name, parent_name=None):
         """ get the description associated to an element """
         if parent_name is not None:
             elem = self.get_attribute(name, parent_name)
@@ -306,6 +306,34 @@ class XmlParser:
                 return None
 
         text = doc[0].text
+        # remove indentation
+        text = ' '.join(text.split())
+        # set tabulations and newlines
+        text = text.replace('\\n', '\n').replace('\\t', '\t')
+        return text
+
+    def get_unit(self, name, parent_name=None):
+        """ get the unit of an element """
+        if parent_name is not None:
+            elem = self.get_attribute(name, parent_name)
+        else:
+            elem = self.get_element(name)
+
+        if elem is None:
+            return None
+
+        unit = elem.xpath("xsd:annotation/xsd:documentation/unit",
+                          namespaces=NAMESPACES)
+        if len(unit) != 1:
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                unit = elem.xpath("xsd:annotation/xsd:documentation/unit",
+                                  namespaces=NAMESPACES)
+            if len(unit) != 1:
+                return None
+
+        text = unit[0].text
         # remove indentation
         text = ' '.join(text.split())
         # set tabulations and newlines
@@ -503,25 +531,38 @@ class XmlParser:
 
     def parse_numeric(self, base):
         """ parse a numeric xsd type """
-        if base in ["xsd:integer",
-                    "xsd:nonNegativeInteger",
-                    "xsd:nonPositiveInteger",
-                    "xsd:positiveInteger",
-                    "xsd:negativeInteger",
-                    "xsd:decimal"]:
+        base = base.strip("xsd:")
+        if base in ["byte",
+                    "decimal"
+                    "int",
+                    "integer",
+                    "long",
+                    "negativeInteger",
+                    "nonNegativeInteger",
+                    "nonPositiveInteger",
+                    "positiveInteger",
+                    "short",
+                    "unsignedLong",
+                    "unsignedInt",
+                    "unsignedShort",
+                    "unsignedByte"]:
             min_val = None
             max_val = None
             step = 1
             # get the minimum or maximum value that can be infered
-            if base == "xsd:nonNegativeInteger":
+            if base in ["nonNegativeInteger",
+                        "unsignedLong",
+                        "unsignedInt",
+                        "unsignedShort",
+                        "unsignedByte"]:
                 min_val = 0
-            elif base == "xsd:nonPositiveInteger":
+            elif base == "nonPositiveInteger":
                 max_val = 0
-            elif base == "xsd:positiveInteger":
+            elif base == "positiveInteger":
                 min_val = 1
-            elif base == "xsd:negativeInteger":
+            elif base == "negativeInteger":
                 max_val = -1
-            elif base == "xsd:decimal":
+            elif base == "decimal":
                 # arbitrarily fixed
                 step = 0.01
 
@@ -569,8 +610,11 @@ if __name__ == "__main__":
                 for ELT in PARSER.get_table_elements(KEY):
                     print "\t\t%s -> %s" % (PARSER.get_name(ELT),
                                             PARSER.get_element_content(ELT))
-    if sys.argv[3] != "":
-        PARSER.transform(sys.argv[3], False)
+    try:
+        if sys.argv[3] != "":
+            PARSER.transform(sys.argv[3], False)
+    except IndexError:
+        pass
 
     sys.exit(0)
 

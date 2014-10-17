@@ -531,6 +531,13 @@ class ConfigurationNotebook(gtk.Notebook):
         key_box.set_child_packing(entry.get(), expand=False,
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
+        unit = self._config.get_unit(name)
+        if unit is not None:
+            unit_label = gtk.Label(unit)
+            key_box.pack_start(unit_label)
+            key_box.set_child_packing(unit_label, expand=False,
+                                      fill=False, padding=2,
+                                      pack_type=gtk.PACK_START)
         return key_box
 
     def add_table(self, key):
@@ -659,7 +666,13 @@ class ConfigurationNotebook(gtk.Notebook):
             hbox.set_child_packing(entry.get(), expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
-
+            unit = self._config.get_unit(att, name)
+            if unit is not None:
+                unit_label = gtk.Label(unit)
+                hbox.pack_start(unit_label)
+                hbox.set_child_packing(unit_label, expand=False,
+                                       fill=False, padding=2,
+                                       pack_type=gtk.PACK_START)
         return hbox
 
 
@@ -811,7 +824,7 @@ class ConfEntry(object):
         """ load a gtk.Entry """
         self._entry = gtk.Entry()
         self._entry.set_text(self._value)
-        self._entry.set_width_chars(40)
+        self._entry.set_width_chars(20)
         self._entry.set_inner_border(gtk.Border(1, 1, 1, 1))
         self._entry.connect('changed', self.global_handler)
 
@@ -841,8 +854,8 @@ class ConfEntry(object):
 
     def load_num(self):
         """ load a gtk.SpinButton """
-        low = -100000
-        up = 100000
+        low = -1000000000
+        up = 1000000000
         step = 1
         digits = 0
         if "min" in self._type:

@@ -89,7 +89,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer attenuation for uplink: </b>
+            <b>The physical layer attenuation for uplink: </b>\n
             <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
             ]]>
         </xsd:documentation>
@@ -106,7 +106,8 @@
             <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The nominal C/N
+                        The nominal C/N (in dB)
+                        <unit>dB</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -149,7 +150,8 @@
             <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The nominal C/N
+                        The nominal C/N (dB)
+                        <unit>dB</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -185,7 +187,7 @@
         <xsd:attribute name="level" type="debugValue">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The level
+                    The debug level from 0 to 7
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

@@ -117,7 +117,8 @@
         <xsd:attribute name="size_max" type="xsd:integer">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The size of the FIFO
+                    The size of the FIFO (in packets)
+                    <unit>packets</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -194,6 +195,7 @@
                 <xsd:documentation xml:lang="en">
                     The amount of traffic to simulate on the category
                     (in %)
+                    <unit>%</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -269,6 +271,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The Free capacity assignement (kbits/s)
+                        <unit>kbits/s</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -276,6 +279,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The RBDC Timeout (frame number)
+                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -402,6 +406,7 @@
                     <xsd:documentation xml:lang="en">
                         Delay to apply anticipation RBDC allocations from
                         PEP/ARC (ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

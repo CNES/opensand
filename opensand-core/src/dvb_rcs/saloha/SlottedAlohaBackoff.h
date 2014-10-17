@@ -68,7 +68,7 @@ protected:
 
 public:
 	/**
-	 * Build generic backhoff class
+	 * Build generic backoff class
 	 *
 	 * @param max		maximum value for the contention window
 	 * @param multiple	multiple used to refresh the backoff
