@@ -183,7 +183,8 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description for regenerative satellite applied on uplink</b>
+            <b>The physical layer description for regenerative satellite applied on uplink:</b>
+            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
             ]]>
         </xsd:documentation>
     </xsd:annotation>

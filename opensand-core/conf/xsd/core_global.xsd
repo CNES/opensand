@@ -346,8 +346,8 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element name="up_return_band" type="upBandConfiguration" />
-            <xsd:element name="down_forward_band" type="downBandConfiguration" />
+            <xsd:element ref="up_return_band" />
+            <xsd:element ref="down_forward_band" />
             <xsd:element ref="mac_layer" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
@@ -445,114 +445,118 @@
 </xsd:element>
 
 <!-- uplink band section description -->
-<xsd:complexType name="upBandConfiguration">
+<xsd:element name="up_return_band">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Return/Up link bandwidth configuration: </b>\n
+            <b>Return/Up link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
-    <xsd:sequence>
-         <xsd:element name="bandwidth" type="xsd:decimal">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Bandwidth (MHz)
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element name="roll_off" type="xsd:decimal">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The roll-off factor
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>           
-        <xsd:element name="carriers_distribution" type="upCarriersDistribution">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The distribution of carriers on the band
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element ref="tal_affectations">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal affectation in categories
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element name="tal_default_affectation" type="Category">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The default terminal affectation in categories
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element ref="fmt_groups">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The groups of FMT IDs
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-    </xsd:sequence>
-</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+             <xsd:element name="bandwidth" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Bandwidth (MHz)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="roll_off" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The roll-off factor
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>           
+            <xsd:element name="carriers_distribution" type="upCarriersDistribution">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The distribution of carriers on the band
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="tal_affectations">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The terminal affectation in categories
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="tal_default_affectation" type="Category">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default terminal affectation in categories
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="fmt_groups">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The groups of FMT IDs
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
 
 <!-- downlink band section description -->
-<xsd:complexType name="downBandConfiguration">
+<xsd:element name="down_forward_band">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Forward/Down link bandwidth configuration: </b>\n
+            <b>Forward/Down link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
-    <xsd:sequence>
-         <xsd:element name="bandwidth" type="xsd:decimal">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Bandwidth (MHz)
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element name="roll_off" type="xsd:decimal">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The roll-off factor
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>           
-        <xsd:element name="carriers_distribution" type="downCarriersDistribution">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The distribution of carriers on the band
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element ref="tal_affectations">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal affectation in categories
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element name="tal_default_affectation" type="Category">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The default terminal affectation in categories
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-        <xsd:element ref="fmt_groups">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The groups of FMT IDs
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:element>
-    </xsd:sequence>
-</xsd:complexType>
+    <xsd:complexType>
+        <xsd:sequence>
+             <xsd:element name="bandwidth" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Bandwidth (MHz)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="roll_off" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The roll-off factor
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>           
+            <xsd:element name="carriers_distribution" type="downCarriersDistribution">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The distribution of carriers on the band
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="tal_affectations">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The terminal affectation in categories
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="tal_default_affectation" type="Category">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default terminal affectation in categories
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="fmt_groups">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The groups of FMT IDs
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
 
 <!-- mac_layer section description -->
 <xsd:element name="mac_layer">
@@ -627,7 +631,8 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description</b>
+            <b>The physical layer description:</b>\n
+            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
             ]]>
         </xsd:documentation>
     </xsd:annotation>

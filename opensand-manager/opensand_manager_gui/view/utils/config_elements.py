@@ -485,7 +485,7 @@ class ConfigurationNotebook(gtk.Notebook):
             evt = gtk.EventBox()
             evt.add(section_descr)
             section_descr.set_markup(description)
-            section_descr.set_justify(gtk.JUSTIFY_LEFT)
+            section_descr.set_justify(gtk.JUSTIFY_CENTER)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535, 65535, 65535))
             tab.pack_start(evt)
             tab.set_child_packing(evt, expand=False,

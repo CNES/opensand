@@ -21,4 +21,5 @@ Architecture: any
 Section: misc
 Depends: ${misc:Depends}, opensand-manager-core (= ${binary:Version}),
  python-matplotlib, python-gtk2 (>=2.16), rsyslog, logrotate
+ desktop-file-utils
 Description: GUI of Manager for OpenSAND emulation testbed
