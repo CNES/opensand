@@ -597,6 +597,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					ad_tag = (evc->getAdTag() & 0xff);
 					// here we use the ad_tag to set QoS at DVB layer
 					// TODO add other parameters
+					// TODO COS field
 					found_category = this->category_map.find(ad_tag);
 					if(found_category == this->category_map.end())
 					{

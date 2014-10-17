@@ -472,15 +472,25 @@ class ConfigurationNotebook(gtk.Notebook):
         tab_label = gtk.Label()
         tab_label.set_justify(gtk.JUSTIFY_CENTER)
         tab_label.set_markup("<small><b>%s</b></small>" % name)
-        description = self._config.get_documentation(name)
-        if description != None:
-            tab_label.set_tooltip_text(description)
-            tab_label.set_has_tooltip(True)
         self.append_page(scroll_notebook, tab_label)
         return tab_vbox
 
     def fill_section(self, section, tab):
         """ get the section content and fill the corresponding tab """
+        # first add the section description
+        name = self._config.get_name(section)
+        description = self._config.get_documentation(name)
+        if description != None:
+            section_descr = gtk.Label()
+            evt = gtk.EventBox()
+            evt.add(section_descr)
+            section_descr.set_markup(description)
+            section_descr.set_justify(gtk.JUSTIFY_LEFT)
+            evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535, 65535, 65535))
+            tab.pack_start(evt)
+            tab.set_child_packing(evt, expand=False,
+                                  fill=False, padding=5,
+                                  pack_type=gtk.PACK_START)
         for key in self._config.get_keys(section):
             if self._config.is_table(key):
                 table = self.add_table(key)

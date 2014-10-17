@@ -481,9 +481,12 @@ if __name__ == "__main__":
     from opensand_manager_core.loggers.manager_log import ManagerLog
     from opensand_manager_core.opensand_model import Model
 
-    LOGGER = ManagerLog('debug', True, True, True)
+    def nothing():
+        pass
+
+    LOGGER = ManagerLog(7, True, True, True)
     MODEL = Model(LOGGER)
     WindowView(None, 'none', 'opensand.glade')
-    DIALOG = AdvancedDialog(MODEL, LOGGER)
+    DIALOG = AdvancedDialog(MODEL, LOGGER, nothing)
     DIALOG.go()
     DIALOG.close()
