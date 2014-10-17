@@ -88,7 +88,9 @@
 <xsd:element name="uplink_physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The physical layer attenuation for uplink
+            <![CDATA[
+            <b>The physical layer attenuation for uplink</b
+            >]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -114,7 +116,9 @@
 <xsd:element name="downlink_physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The physical layer description for downlink
+            <![CDATA[
+            <b>The physical layer description for downlink</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

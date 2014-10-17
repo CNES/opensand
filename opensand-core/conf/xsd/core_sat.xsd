@@ -124,7 +124,9 @@
 <xsd:element name="dvb_rcs_sat">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The dvb layer configuration for satellite
+            <![CDATA[
+            <b>The dvb layer configuration for satellite</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -151,7 +153,9 @@
 <xsd:element name="sat_switching_table">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            ATM, MPEG and GSE switching table for satellite
+            <![CDATA[
+            <b>ATM, MPEG and GSE switching table for satellite</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -178,7 +182,9 @@
 <xsd:element name="physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The physical layer description for regenerative satellite applied on uplink
+            <![CDATA[
+            <b>The physical layer description for regenerative satellite applied on uplink</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -207,7 +213,9 @@
 <xsd:element name="debug">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The debug parameters
+            <![CDATA[
+            <b>The debug parameters</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

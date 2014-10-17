@@ -152,7 +152,9 @@
 <xsd:element name="global">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The global configuration for all components
+            <![CDATA[
+            <b>Some global parameters</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -172,7 +174,9 @@
 <xsd:element name="dvb_rcs_tal">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The dvb layer configuration for terminal
+            <![CDATA[
+            <b>The dvb layer configuration for terminal</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -275,6 +279,13 @@
 
 <!-- saloha section description -->
 <xsd:element name="slotted_aloha">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>The Slotted Aloha GW parameters</b>
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element name="timeout" type="xsd:nonNegativeInteger">
@@ -336,7 +347,9 @@
 <xsd:element name="qos_agent">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The QoS data parameters
+            <![CDATA[
+            <b>The QoS data parameters</b
+            ]]>>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -363,7 +376,9 @@
 <xsd:element name="debug">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The debug parameters
+            <![CDATA[
+            <b>The debug parameters</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

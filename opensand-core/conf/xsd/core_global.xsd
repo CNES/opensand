@@ -363,7 +363,9 @@
 <xsd:element name="global">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The global configuration for all components
+            <![CDATA[
+            <b>The global configuration for all components</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -444,6 +446,13 @@
 
 <!-- uplink band section description -->
 <xsd:complexType name="upBandConfiguration">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>Return/Up link bandwidth configuration: </b>\n
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:sequence>
          <xsd:element name="bandwidth" type="xsd:decimal">
             <xsd:annotation>
@@ -492,6 +501,13 @@
 
 <!-- downlink band section description -->
 <xsd:complexType name="downBandConfiguration">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>Forward/Down link bandwidth configuration: </b>\n
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
     <xsd:sequence>
          <xsd:element name="bandwidth" type="xsd:decimal">
             <xsd:annotation>
@@ -542,7 +558,9 @@
 <xsd:element name="mac_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The MAC layer configuration elements for all components
+            <![CDATA[
+            <b>The MAC layer configuration elements for all components</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -560,25 +578,34 @@
 
 <!-- saloha section description -->
 <xsd:element name="slotted_aloha">
-	<xsd:complexType>
-		<xsd:sequence>
-			<xsd:element name="superframes_per_saframe" type="xsd:positiveInteger">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>The Slotted Aloha common parameters</b>
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="superframes_per_saframe" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of DVB superframe per Slotted Aloha frame 
                     </xsd:documentation>
                 </xsd:annotation>
-			</xsd:element>
-		</xsd:sequence>
-	</xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
 </xsd:element>
 
 <!-- simulation_column section description -->
 <xsd:element name="simulation_column">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The number of the column corresponding to each terminal in the DRA
-            and MODCOD simulation files
+            <![CDATA[
+            <b>The number of the column corresponding to each terminal in the DRA
+            and MODCOD simulation files</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -599,7 +626,9 @@
 <xsd:element name="physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The physical layer description
+            <![CDATA[
+            <b>The physical layer description</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -626,7 +655,9 @@
 <xsd:element name="sat_carrier">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The satellite carriers description
+            <![CDATA[
+            <b>The satellite carriers description</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -646,8 +677,10 @@
 <xsd:element name="perf">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            Some parameters that may influence performances
-            (for advanced users only, do not edit these parameters !)
+            <![CDATA[
+            <b>Some parameters that may influence performances
+            (for advanced users only, do not edit these parameters !)</b>
+            ]]>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
