@@ -514,9 +514,7 @@ class ConfigurationNotebook(gtk.Notebook):
         key_label.set_alignment(0.0, 0.5)
         key_label.set_width_chars(25)
         description = self._config.get_documentation(name)
-        if description != None:
-            key_label.set_tooltip_text(description)
-            key_label.set_has_tooltip(True)
+        self.add_description(key_box, description)
         key_box.pack_start(key_label)
         key_box.set_child_packing(key_label, expand=False,
                                   fill=False, padding=5,
@@ -533,7 +531,8 @@ class ConfigurationNotebook(gtk.Notebook):
                                   pack_type=gtk.PACK_START)
         unit = self._config.get_unit(name)
         if unit is not None:
-            unit_label = gtk.Label(unit)
+            unit_label = gtk.Label()
+            unit_label.set_markup("<i>%s</i>" % unit)
             key_box.pack_start(unit_label)
             key_box.set_child_packing(unit_label, expand=False,
                                       fill=False, padding=2,
@@ -549,13 +548,16 @@ class ConfigurationNotebook(gtk.Notebook):
         table_frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         alignment = gtk.Alignment(0.5, 0.5, 1, 1)
         table_frame.add(alignment)
-        table_label = gtk.Label()
-        table_label.set_markup("<b>%s</b>" % name)
-        table_frame.set_label_widget(table_label)
+        table_label = gtk.HBox()
+        label_text = gtk.Label()
+        label_text.set_markup("<b>%s</b>" % name)
         description = self._config.get_documentation(name)
-        if description != None:
-            table_label.set_tooltip_text(description)
-            table_label.set_has_tooltip(True)
+        self.add_description(table_label, description)
+        table_label.pack_start(label_text)
+        table_label.set_child_packing(label_text, expand=False,
+                                      fill=False, padding=5,
+                                      pack_type=gtk.PACK_START)
+        table_frame.set_label_widget(table_label)
         align_vbox = gtk.VBox()
         alignment.add(align_vbox)
         # add buttons to add/remove elements
@@ -633,12 +635,10 @@ class ConfigurationNotebook(gtk.Notebook):
             name = self._config.get_name(line)
             att_label = gtk.Label()
             att_label.set_markup(att)
-            att_label.set_alignment(1.0, 0.5)
+            att_label.set_alignment(0.1, 0.5)
             att_label.set_width_chars(len(att) + 1)
             att_description = self._config.get_documentation(att, name)
-            if att_description != None:
-                att_label.set_tooltip_text(att_description)
-                att_label.set_has_tooltip(True)
+            self.add_description(hbox, att_description)
             hbox.pack_start(att_label)
             hbox.set_child_packing(att_label, expand=False,
                                    fill=False, padding=5,
@@ -668,12 +668,28 @@ class ConfigurationNotebook(gtk.Notebook):
                                    pack_type=gtk.PACK_START)
             unit = self._config.get_unit(att, name)
             if unit is not None:
-                unit_label = gtk.Label(unit)
+                unit_label = gtk.Label()
+                unit_label.set_markup("<i>%s</i>" % unit)
                 hbox.pack_start(unit_label)
                 hbox.set_child_packing(unit_label, expand=False,
                                        fill=False, padding=2,
                                        pack_type=gtk.PACK_START)
         return hbox
+
+
+    def add_description(self, widget, description):
+        """ add a description tooltip """
+        if description == None:
+            return
+        img = gtk.Image()
+        img.set_from_stock(gtk.STOCK_DIALOG_INFO,
+                           gtk.ICON_SIZE_MENU)
+        img.set_tooltip_text(description)
+        img.set_has_tooltip(True)
+        widget.pack_start(img)
+        widget.set_child_packing(img, expand=False,
+                                 fill=False, padding=1,
+                                 pack_type=gtk.PACK_START)
 
 
     def handle_param_chanded(self, source=None, event=None):
