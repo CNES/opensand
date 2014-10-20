@@ -262,6 +262,8 @@ class XmlParser:
                 return ret
             else:
                 return {"type": elem_type.replace("xsd:", "", 4)}
+        elif elem_type == "file":
+            return {"type": "file"}
         else:
             return self.get_simple_type(elem_type)
 
@@ -281,6 +283,8 @@ class XmlParser:
                 return ret
             else:
                 return {"type": att_type.replace("xsd:", "", 4)}
+        elif att_type == "file":
+            return {"type": "file"}
         else:
             return self.get_simple_type(att_type)
 

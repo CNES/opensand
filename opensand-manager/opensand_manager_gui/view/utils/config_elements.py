@@ -869,6 +869,8 @@ class ConfEntry(object):
             self.load_enum()
         elif type_name == "numeric":
             self.load_num()
+        elif type_name == "file":
+            self.load_file()
         else:
             self.load_default()
 
@@ -929,6 +931,17 @@ class ConfEntry(object):
         self._entry.connect('value-changed', self.global_handler)
         self._entry.connect('scroll-event', self.do_not_scroll)
 
+    def load_file(self):
+        """ load a gtk.FileChooserButton """
+        self._entry = gtk.FileChooserButton(self._value)
+        self._entry.set_filename(self._value)
+        self._entry.connect('file-set', self.global_handler)
+        self._entry.set_size_request(200, -1)
+        def update_title(self):
+            """ file udpated """
+            self.set_title(self.get_filename())
+        self._entry.connect('file-set', update_title)
+
     def do_not_scroll(self, source=None, event=None):
         """ stop scolling in the element which emits the scroll-event signal """
         source.emit_stop_by_name('scroll-event')
@@ -962,6 +975,8 @@ class ConfEntry(object):
             return model.get_value(active, 0)
         elif type_name == "numeric":
             return self._entry.get_text()
+        elif type_name == "file":
+            return self._entry.get_filename()
         else:
             return self._entry.get_text()
 

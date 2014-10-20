@@ -38,6 +38,8 @@ import gtk
 
 # TODO variable to say if there is already a popup, we should not launch many
 # of these popups
+# TODO we may replace some popups with Info Bar
+
 def error_popup(error, text = ''):
     """ display an error popup without instantiating a new main loop """
     dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL,
