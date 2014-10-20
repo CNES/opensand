@@ -423,13 +423,14 @@ class ConfigurationTree(gtk.TreeStore):
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
-    def __init__(self, config, changed_cb=None):
+    def __init__(self, config, dev_mode, changed_cb=None):
         gtk.Notebook.__init__(self)
 
         self._config = config
         self._current_page = 0
         self._changed = []
         self._changed_cb = changed_cb
+        self._dev_mode = dev_mode
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._backup = []
@@ -459,11 +460,14 @@ class ConfigurationNotebook(gtk.Notebook):
         """ load the configuration view """
         for section in self._config.get_sections():
             tab = self.add_section(section)
-            self.fill_section(section, tab)
+            if tab is not None:
+                self.fill_section(section, tab)
 
     def add_section(self, section):
         """ add a section in the notebook and return the associated vbox """
         name = self._config.get_name(section)
+        if self._config.do_hide(name, self._dev_mode):
+            return None
         scroll_notebook = gtk.ScrolledWindow()
         scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
@@ -494,20 +498,24 @@ class ConfigurationNotebook(gtk.Notebook):
         for key in self._config.get_keys(section):
             if self._config.is_table(key):
                 table = self.add_table(key)
-                tab.pack_end(table)
-                tab.set_child_packing(table, expand=False,
-                                      fill=False, padding=5,
-                                      pack_type=gtk.PACK_START)
+                if table is not None:
+                    tab.pack_end(table)
+                    tab.set_child_packing(table, expand=False,
+                                          fill=False, padding=5,
+                                          pack_type=gtk.PACK_START)
             else:
                 entry = self.add_key(key)
-                tab.pack_end(entry)
-                tab.set_child_packing(entry, expand=False,
-                                      fill=False, padding=5,
-                                      pack_type=gtk.PACK_START)
+                if entry is not None:
+                    tab.pack_end(entry)
+                    tab.set_child_packing(entry, expand=False,
+                                          fill=False, padding=5,
+                                          pack_type=gtk.PACK_START)
 
     def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
+        if self._config.do_hide(name, self._dev_mode):
+            return None
         key_box = gtk.HBox()
         key_label = gtk.Label()
         key_label.set_markup(name)
@@ -542,6 +550,8 @@ class ConfigurationNotebook(gtk.Notebook):
     def add_table(self, key):
         """ add a table in the tab """
         name = self._config.get_name(key)
+        if self._config.do_hide(name, self._dev_mode):
+            return None
         check_buttons = []
         table_frame = gtk.Frame()
         table_frame.set_label_align(0, 0.5)

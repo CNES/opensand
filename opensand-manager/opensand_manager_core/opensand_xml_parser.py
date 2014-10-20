@@ -340,6 +340,51 @@ class XmlParser:
         text = text.replace('\\n', '\n').replace('\\t', '\t')
         return text
 
+    def do_hide(self, name, dev_mode):
+        """ get the unit of an element """
+        elem = self.get_element(name)
+
+        if elem is None:
+            return False
+
+        # First check if element has a hide parameter activated
+        hide = elem.xpath("xsd:annotation/xsd:documentation/hide",
+                          namespaces=NAMESPACES)
+        if len(hide) != 1:
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                hide = elem.xpath("xsd:annotation/xsd:documentation/hide",
+                                  namespaces=NAMESPACES)
+        if len(hide) == 1:
+            val = hide[0].text
+            if val == "true":
+                return True
+
+        # then check if element should be hidden in non dev_mode
+        if dev_mode is True:
+            return False
+
+        elem = self.get_element(name)
+
+        if elem is None:
+            return False
+
+        dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
+                         namespaces=NAMESPACES)
+        if len(dev) != 1:
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
+                                 namespaces=NAMESPACES)
+        if len(dev) == 1:
+            val = dev[0].text
+            if val == "true":
+                return True
+
+        return False
+
     def get_reference(self, name):
         """ get a reference in the XSD document """
         elem = []

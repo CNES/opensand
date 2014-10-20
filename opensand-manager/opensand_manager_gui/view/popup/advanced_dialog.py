@@ -291,7 +291,9 @@ class AdvancedDialog(WindowView):
 
         notebook = adv.get_conf_view()
         if notebook is None:
-            notebook = ConfigurationNotebook(config, self.handle_param_chanded)
+            notebook = ConfigurationNotebook(config,
+                                             self._model.get_dev_mode(),
+                                             self.handle_param_chanded)
 
         adv.set_conf_view(notebook)
         if notebook != self._current_host_notebook:
@@ -349,7 +351,9 @@ class AdvancedDialog(WindowView):
             return
         notebook = module.get_conf_view()
         if notebook is None:
-            notebook = ConfigurationNotebook(config, self.handle_param_chanded)
+            notebook = ConfigurationNotebook(config,
+                                             self._model.get_dev_mode(),
+                                             self.handle_param_chanded)
         # TODO set tab label red if the host does not declare this module
 
         module.set_conf_view(notebook)

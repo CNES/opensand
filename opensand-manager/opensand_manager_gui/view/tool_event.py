@@ -164,6 +164,7 @@ class ToolEvent(ToolView):
         notebook = model.get_conf_view()
         if notebook is None:
             notebook = ConfigurationNotebook(config_parser,
+                                             self._model.get_dev_mode(),
                                              self.handle_param_changed)
 
         model.set_conf_view(notebook)
