@@ -72,6 +72,7 @@ class AdvancedDialog(WindowView):
         self._module_label = None
         self._current_module_notebook = None
         self._all_modules = False
+        self._show_hidden = False
         self._update_cb = update_cb
 
     def go(self):
@@ -82,6 +83,9 @@ class AdvancedDialog(WindowView):
             error_popup(str(msg))
         self._dlg.set_title("Advanced configuration - OpenSAND Manager")
         self._dlg.set_icon_name('gtk-properties')
+        # show dev mode elements
+        widget = self._ui.get_widget("hide_checkbutton")
+        widget.set_visible(self._model.get_dev_mode())
         self._dlg.run()
 
     def close(self):
@@ -293,6 +297,7 @@ class AdvancedDialog(WindowView):
         if notebook is None:
             notebook = ConfigurationNotebook(config,
                                              self._model.get_dev_mode(),
+                                             self._show_hidden,
                                              self.handle_param_chanded)
 
         adv.set_conf_view(notebook)
@@ -353,6 +358,7 @@ class AdvancedDialog(WindowView):
         if notebook is None:
             notebook = ConfigurationNotebook(config,
                                              self._model.get_dev_mode(),
+                                             self._show_hidden,
                                              self.handle_param_chanded)
         # TODO set tab label red if the host does not declare this module
 
@@ -469,6 +475,19 @@ class AdvancedDialog(WindowView):
             treeview =  self._modules_tree[self._current_host.get_name()].get_treeview()
             self._modules_tree_view.add(treeview)
             self._modules_tree_view.show_all()
+
+    def on_hide_checkbutton_toggled(self, source=None, event=None):
+        """ The see all plugins per host checkbutton has been toggled """
+        self._show_hidden = not self._show_hidden
+        for host in self._model.get_hosts_list() + [self._model]:
+            adv = host.get_advanced_conf()
+            if adv is None:
+                continue
+            notebook = adv.get_conf_view()
+            if notebook is None:
+                continue
+            notebook.set_hidden(not self._show_hidden)
+
 
     def select_enabled(self, tree, path, iterator):
         """ store the saved enabled value in advanced model

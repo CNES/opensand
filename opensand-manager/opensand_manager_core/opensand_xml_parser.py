@@ -340,14 +340,33 @@ class XmlParser:
         text = text.replace('\\n', '\n').replace('\\t', '\t')
         return text
 
-    def do_hide(self, name, dev_mode):
-        """ get the unit of an element """
+    def do_hide_dev(self, name, dev_mode):
+        """ check if some widget should be hidden in non dev mode """
+        # check if element should be hidden in non dev_mode
         elem = self.get_element(name)
-
         if elem is None:
             return False
+        dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
+                         namespaces=NAMESPACES)
+        if len(dev) != 1:
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
+                                 namespaces=NAMESPACES)
+        if len(dev) == 1 and not dev_mode:
+            val = dev[0].text
+            if val == "true":
+                return True
 
-        # First check if element has a hide parameter activated
+        return False
+
+    def do_hide(self, name):
+        """ check if som widget should be hidden """
+        # check if element has a hide parameter activated
+        elem = self.get_element(name)
+        if elem is None:
+            return False
         hide = elem.xpath("xsd:annotation/xsd:documentation/hide",
                           namespaces=NAMESPACES)
         if len(hide) != 1:
@@ -358,28 +377,6 @@ class XmlParser:
                                   namespaces=NAMESPACES)
         if len(hide) == 1:
             val = hide[0].text
-            if val == "true":
-                return True
-
-        # then check if element should be hidden in non dev_mode
-        if dev_mode is True:
-            return False
-
-        elem = self.get_element(name)
-
-        if elem is None:
-            return False
-
-        dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
-                         namespaces=NAMESPACES)
-        if len(dev) != 1:
-            # search in references
-            elem = self.get_reference(name)
-            if elem is not None:
-                dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
-                                 namespaces=NAMESPACES)
-        if len(dev) == 1:
-            val = dev[0].text
             if val == "true":
                 return True
 

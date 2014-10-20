@@ -165,6 +165,9 @@ class ToolEvent(ToolView):
         if notebook is None:
             notebook = ConfigurationNotebook(config_parser,
                                              self._model.get_dev_mode(),
+                                             # we have no button to hide/show
+                                             # hidden, show them in dev mode
+                                             self._model.get_dev_mode(),
                                              self.handle_param_changed)
 
         model.set_conf_view(notebook)

@@ -423,7 +423,7 @@ class ConfigurationTree(gtk.TreeStore):
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
-    def __init__(self, config, dev_mode, changed_cb=None):
+    def __init__(self, config, dev_mode, show_hidden, changed_cb=None):
         gtk.Notebook.__init__(self)
 
         self._config = config
@@ -453,20 +453,37 @@ class ConfigurationNotebook(gtk.Notebook):
         self._new = []
         # list of removed lines
         self._removed = []
+        # list of hidden elements
+        self._hidden_widgets = []
 
-        self.load()
+        self.load(not show_hidden)
 
-    def load(self):
+    def load(self, hidden):
         """ load the configuration view """
         for section in self._config.get_sections():
             tab = self.add_section(section)
             if tab is not None:
                 self.fill_section(section, tab)
+            # hide widgets by default
+            self.set_hidden(hidden)
+
+    def set_hidden(self, val):
+        """ change the hidden status """
+        for widget in self._hidden_widgets:
+            # enable hide_all and show_all actions on this widget
+            widget.set_no_show_all(False)
+            if val:
+                widget.hide_all()
+            else:
+                widget.show_all()
+            # disable hide_all and show_all actions on this widget
+            # to avoid modifications from outside
+            widget.set_no_show_all(True)
 
     def add_section(self, section):
         """ add a section in the notebook and return the associated vbox """
         name = self._config.get_name(section)
-        if self._config.do_hide(name, self._dev_mode):
+        if self._config.do_hide_dev(name, self._dev_mode):
             return None
         scroll_notebook = gtk.ScrolledWindow()
         scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
@@ -477,6 +494,9 @@ class ConfigurationNotebook(gtk.Notebook):
         tab_label.set_justify(gtk.JUSTIFY_CENTER)
         tab_label.set_markup("<small><b>%s</b></small>" % name)
         self.append_page(scroll_notebook, tab_label)
+        if self._config.do_hide(name):
+            self._hidden_widgets.append(tab_vbox)
+
         return tab_vbox
 
     def fill_section(self, section, tab):
@@ -514,7 +534,7 @@ class ConfigurationNotebook(gtk.Notebook):
     def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
-        if self._config.do_hide(name, self._dev_mode):
+        if self._config.do_hide_dev(name, self._dev_mode):
             return None
         key_box = gtk.HBox()
         key_label = gtk.Label()
@@ -545,12 +565,15 @@ class ConfigurationNotebook(gtk.Notebook):
             key_box.set_child_packing(unit_label, expand=False,
                                       fill=False, padding=2,
                                       pack_type=gtk.PACK_START)
+        if self._config.do_hide(name):
+            self._hidden_widgets.append(key_box)
+
         return key_box
 
     def add_table(self, key):
         """ add a table in the tab """
         name = self._config.get_name(key)
-        if self._config.do_hide(name, self._dev_mode):
+        if self._config.do_hide_dev(name, self._dev_mode):
             return None
         check_buttons = []
         table_frame = gtk.Frame()
@@ -604,6 +627,9 @@ class ConfigurationNotebook(gtk.Notebook):
 
         self._tables[self._config.get_path(key)] = check_buttons
         self.check_sensitive()
+        if self._config.do_hide(name):
+            self._hidden_widgets.append(table_frame)
+
         return table_frame
 
     def add_line(self, key, line, check_buttons):
