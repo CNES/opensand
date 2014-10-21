@@ -268,7 +268,7 @@ class RunEvent(RunView):
 
     def on_option_edit_clicked(self,  source=None, event=None):
         """ edit button in options menu clicked """
-        window = EditDeployDialog(self._model, self._log)
+        window = EditDeployDialog(self._log)
         window.go()
 
     def on_start_stop_activate(self, source=None, event=None):

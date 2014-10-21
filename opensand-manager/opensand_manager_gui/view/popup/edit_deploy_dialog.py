@@ -46,7 +46,7 @@ DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
 
 class EditDeployDialog(WindowView):
     """ a window enabling to edit the deploy.ini file """
-    def __init__(self, model, manager_log):
+    def __init__(self, manager_log):
         WindowView.__init__(self, None, 'edit_deploy_dialog')
 
         self._dlg = self._ui.get_widget('edit_deploy_dialog')
@@ -156,11 +156,9 @@ class EditDeployDialog(WindowView):
 
 if __name__ == "__main__":
     from opensand_manager_core.loggers.manager_log import ManagerLog
-    from opensand_manager_core.opensand_model import Model
 
-    LOGGER = ManagerLog('debug', True, True, True)
-    MODEL = Model(LOGGER)
+    LOGGER = ManagerLog(7, True, True, True)
     WindowView(None, 'none', 'opensand.glade')
-    DIALOG = EditDeployDialog(MODEL, LOGGER)
+    DIALOG = EditDeployDialog(LOGGER)
     DIALOG.go()
     DIALOG.close()

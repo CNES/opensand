@@ -40,6 +40,7 @@ from copy import deepcopy
 
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
+from opensand_manager_gui.view.popup.edit_dialog import EditDialog
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 (DISPLAYED, NAME, ID, SIZE) = range(4)
@@ -933,14 +934,39 @@ class ConfEntry(object):
 
     def load_file(self):
         """ load a gtk.FileChooserButton """
-        self._entry = gtk.FileChooserButton(self._value)
+        self._entry = gtk.FileChooserButton(self._value + ' - OpenSAND')
         self._entry.set_filename(self._value)
         self._entry.connect('file-set', self.global_handler)
         self._entry.set_size_request(200, -1)
         def update_title(self):
             """ file udpated """
-            self.set_title(self.get_filename())
+            self.set_title(self.get_filename() + ' - OpenSAND')
         self._entry.connect('file-set', update_title)
+#        def update_preview_cb(file_chooser, preview):
+#            filename = file_chooser.get_preview_filename()
+#            try:
+#                with open(filename, 'r') as content:
+#                    buf = gtk.TextBuffer()
+#                    buf.set_text(content.read())
+#                    preview.set_buffer(buf)
+#                    preview.set_size_request(500, -1)
+#                have_preview = True
+#            except Exception, m:
+#                print m
+#                have_preview = False
+#            file_chooser.set_preview_widget_active(have_preview)
+#            return
+#        preview = gtk.TextView()
+#        self._entry.set_preview_widget(preview)
+#        self._entry.connect("update-preview", update_preview_cb, preview)
+        def edit_file(button, event, entry):
+            window = EditDialog(entry.get_filename())
+            window.go()
+        button = gtk.Button(stock=gtk.STOCK_EDIT)
+        button.show()
+        button.connect('button-press-event', edit_file, self._entry)
+        self._entry.set_extra_widget(button)
+
 
     def do_not_scroll(self, source=None, event=None):
         """ stop scolling in the element which emits the scroll-event signal """
