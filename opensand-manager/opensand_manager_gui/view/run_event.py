@@ -145,6 +145,10 @@ class RunEvent(RunView):
         self.hide_deploy_button(not self._dev_mode)
         self._model.set_dev_mode(self._dev_mode)
         self._ui.get_widget('deployment').set_visible(self._dev_mode)
+        if not self._dev_mode:
+            # enable back all hosts, hosts cannot be disable in non-dev mode
+            for host in self._model.get_hosts_list():
+                host.enable(True)
         
     def on_option_deploy_clicked(self, source=None, event=None):
         """ deploy button in options menu clicked """

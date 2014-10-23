@@ -120,7 +120,7 @@ class AdvancedDialog(WindowView):
 
         # add the global configuration
         gobject.idle_add(self._host_tree.add_host, self._model,
-                         {})
+                         {}, self._model.get_dev_mode())
 
         # get the modules tree
         self._modules_conf_view = gtk.VBox()
@@ -169,7 +169,8 @@ class AdvancedDialog(WindowView):
                          if elt.get_name() not in self._hosts_name]:
             name = host.get_name()
             self._hosts_name.append(name)
-            gobject.idle_add(self._host_tree.add_host, host)
+            gobject.idle_add(self._host_tree.add_host, host, None,
+                             self._model.get_dev_mode())
 
         real_names = []
         for host in self._model.get_hosts_list():

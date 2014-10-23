@@ -331,7 +331,7 @@ class ConfigurationTree(gtk.TreeStore):
         if col1_changed_cb is not None:
             self._treeselection.connect('changed', col1_changed_cb)
 
-    def add_host(self, host, elt_info=None):
+    def add_host(self, host, elt_info=None, dev_mode=False):
         """ add a host with its elements in the treeview """
         name = host.get_name()
         # append an element in the treestore
@@ -346,7 +346,7 @@ class ConfigurationTree(gtk.TreeStore):
         else:
             top_elt = self.append(None)
 
-        # for tools
+        # for tools and global in advanced configuration
         if elt_info is not None:
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, False,
@@ -365,7 +365,8 @@ class ConfigurationTree(gtk.TreeStore):
                                        ACTIVATABLE, activatable)
         else:
             # for advanced host
-            activatable = True
+            # only set host activatable if developper mode is enabled
+            activatable = dev_mode
             if host.get_state() is None:
                 activatable = False
             active = host.is_enabled()
