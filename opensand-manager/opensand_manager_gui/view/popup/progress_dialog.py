@@ -40,14 +40,12 @@ import gobject
 from opensand_manager_gui.view.window_view import WindowView
 
 
-# TODO use that for deployment, start, etc.
 class ProgressDialog(WindowView):
     """ a window enabling to edit the deploy.ini file """
-    def __init__(self, text, model, manager_log):
+    def __init__(self, text):
         WindowView.__init__(self, None, 'progress_dialog')
 
         self._dlg = self._ui.get_widget('progress_dialog')
-        self._log = manager_log
         self._ui.get_widget('progress_label').set_text(text)
         self._dlg.set_transient_for(self._ui.get_widget('window'))
         self._dlg.set_title("Progress - OpenSAND")
@@ -72,14 +70,9 @@ class ProgressDialog(WindowView):
 
 
 if __name__ == "__main__":
-    from opensand_manager_core.loggers.manager_log import ManagerLog
-    from opensand_manager_core.opensand_model import Model
- 
     gobject.threads_init()
-    LOGGER = ManagerLog('debug', True, True, True)
-    MODEL = Model(LOGGER)
     WindowView(None, 'none', 'opensand.glade')
-    DIALOG = ProgressDialog("test progress dialog", MODEL, LOGGER)
+    DIALOG = ProgressDialog("test progress dialog")
     DIALOG.show()
     try:
         gobject.MainLoop().run()

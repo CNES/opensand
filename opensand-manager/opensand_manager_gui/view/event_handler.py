@@ -38,15 +38,21 @@ import threading
 import gobject
 import time
 
-class EventReponseHandler(threading.Thread):
+from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
+
+class EventResponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
-    def __init__(self, view, event_manager_response, opensand_view,
+    def __init__(self, event_manager_response,
+                 run_view, conf_view, tool_view, probe_view,
                  manager_log):
         threading.Thread.__init__(self)
-        self._view = view
-        self._opensand_view = opensand_view
+        self._run_view = run_view
+        self._conf_view = conf_view
+        self._tool_view = tool_view
+        self._probe_view = probe_view
         self._event_manager_response = event_manager_response
         self._log = manager_log
+        self._prog_dialog = None
 
     def run(self):
         """ main loop that managers the events responses """
@@ -59,17 +65,17 @@ class EventReponseHandler(threading.Thread):
             if event_type == "resp_deploy_platform":
                 # opensand platform installation answer
                 # enable the buttons back
-                gobject.idle_add(self._view.disable_start_button, False,
+                gobject.idle_add(self._run_view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._view.disable_deploy_buttons, False,
+                gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "resp_install_files":
                 # opensand platform installation answer
                 # enable the buttons back
-                gobject.idle_add(self._view.disable_start_button, False,
+                gobject.idle_add(self._run_view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._view.disable_deploy_buttons, False,
+                gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "resp_start_platform":
@@ -79,24 +85,29 @@ class EventReponseHandler(threading.Thread):
                     # avoid to update buttons while state has not been correctly
                     # updated
                     idx = 0
-                    while not self._view.is_running() and idx < 10:
+                    while not self._run_view.is_running() and idx < 10:
                         idx += 1
                         time.sleep(0.5)
                     # update the label of the 'start/stop opensand' button
-                    gobject.idle_add(self._view.set_start_stop_button,
+                    gobject.idle_add(self._run_view.set_start_stop_button,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # starting opensand platform succeeded:
                     # enable back the 'stop opensand' button
-                    gobject.idle_add(self._view.disable_start_button, False,
+                    gobject.idle_add(self._run_view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._opensand_view.on_simu_state_changed,
+                    gobject.idle_add(self._probe_view.simu_state_changed,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                else:
+                    # check if everything went fine
+                    while self._run_view.is_running() and idx < 10:
+                        idx += 1
+                        time.sleep(0.5)
+
+                if not self._run_view.is_running():
                     # starting opensand platform failed:
                     # enable back all the buttons
-                    gobject.idle_add(self._view.disable_start_button, False,
+                    gobject.idle_add(self._run_view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._view.disable_deploy_buttons, False,
+                    gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "resp_stop_platform":
@@ -106,28 +117,26 @@ class EventReponseHandler(threading.Thread):
                     # avoid to update buttons while state has not been correctly
                     # updated
                     idx = 0
-                    while self._view.is_running() and idx < 10:
+                    while self._run_view.is_running() and idx < 10:
                         idx += 1
                         time.sleep(0.5)
-                    # update the label of the 'start/stop opensand' button
-                    gobject.idle_add(self._view.set_start_stop_button,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    # enable back the 'start opensand' button
-                    gobject.idle_add(self._view.disable_start_button, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._opensand_view.on_simu_state_changed,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-
-                # enable all the buttons
-                gobject.idle_add(self._view.disable_start_button, False,
+                # update the label of the 'start/stop opensand' button
+                gobject.idle_add(self._run_view.set_start_stop_button,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._view.disable_deploy_buttons, False,
+                gobject.idle_add(self._probe_view.simu_state_changed,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                # enable all the buttons
+                gobject.idle_add(self._run_view.disable_start_button, False,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
             
             elif event_type == "probe_transfer_progress":
                 text = self._event_manager_response.get_text()
-                gobject.idle_add(self._opensand_view.on_probe_transfer_progress,
+                gobject.idle_add(self.on_probe_transfer_progress,
                                  text == 'start')
+                if text == 'done':
+                    self._probe_view.simu_data_available()
                 # TODO: if text == 'fail':
 
             elif event_type == 'quit':
@@ -143,3 +152,16 @@ class EventReponseHandler(threading.Thread):
     def close(self):
         """ close the event response handler """
         self._log.debug("Response Event Handler: closed")
+
+
+    def on_probe_transfer_progress(self, started):
+        """ Called when probe transfer from the collector starts or stops """
+        if started:
+            self._prog_dialog = ProgressDialog("Saving probe data, please "
+                                               "wait...")
+            self._prog_dialog.show()
+        else:
+            self._prog_dialog.close()
+            self._prog_dialog = None
+
+

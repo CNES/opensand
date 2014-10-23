@@ -41,38 +41,21 @@ import shutil
 
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
-from opensand_manager_gui.view.event_handler import EventReponseHandler
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
 from opensand_manager_gui.view.popup.edit_install_dialog import EditInstallDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
-INIT_ITER = 4
-
 class RunEvent(RunView):
     """ Events for the run tab """
-    def __init__(self, parent, model, opensand_view, dev_mode, manager_log):
+    def __init__(self, parent, model, dev_mode, manager_log, service_type):
         try:
-            RunView.__init__(self, parent, model, manager_log)
+            RunView.__init__(self, parent, model, manager_log, service_type)
         except RunException:
             raise
 
         self._event_manager = self._model.get_event_manager()
-        self._event_response_handler = EventReponseHandler(self,
-                            self._model.get_event_manager_response(),
-                            opensand_view,
-                            self._log)
-
-        self._opensand_view = opensand_view
-        self._first_refresh = True
-        self._refresh_iter = 0
-        # at beginning check platform state immediatly, then every 2 seconds
-        self.on_timer_status()
-        self._timeout_id = gobject.timeout_add(2000, self.on_timer_status)
 
         self._dev_mode = False
-
-        # start event response handler
-        self._event_response_handler.start()
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
@@ -85,29 +68,11 @@ class RunEvent(RunView):
 
     def close(self):
         """ 'close' signal handler """
-        self._log.debug("Run Event: close")
-        if self._timeout_id != None :
-            gobject.source_remove(self._timeout_id)
-            self._timeout_id = None
-
-        if self._event_response_handler.is_alive():
-            self._log.debug("Run Event: join response event handler")
-            self._event_response_handler.join()
-            self._log.debug("Run Event: response event handler joined")
-
         self._log.debug("Run Event: closed")
 
     def activate(self, val):
         """ 'activate' signal handler """
-        if self._first_refresh:
-            return
-        if val == False and self._timeout_id != None :
-            gobject.source_remove(self._timeout_id)
-            self._timeout_id = None
-        elif val and self._timeout_id is None:
-            # refresh immediatly then periodically
-            self.on_timer_status()
-            self._timeout_id = gobject.timeout_add(1000, self.on_timer_status)
+        pass
 
     def on_deploy_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on deploy OpenSAND button """
@@ -167,7 +132,7 @@ class RunEvent(RunView):
             # 'resp_start_platform' event, the button will be enabled there)
             self._event_manager.set('start_platform')
 
-            self._opensand_view.on_start(self._model.get_run())
+            self._log_view.on_start(self._model.get_run())
         else:
             # disable the buttons
             self.disable_start_button(True)
@@ -179,7 +144,7 @@ class RunEvent(RunView):
             # (stop will be finished when we will receive a
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
-            self._opensand_view.on_stop()
+            self._log_view.on_stop()
             # TODO if all process crashed we should also cal on_stop
 
 
@@ -191,72 +156,6 @@ class RunEvent(RunView):
         self._model.set_dev_mode(self._dev_mode)
         self._ui.get_widget('deployment').set_visible(self._dev_mode)
         
-    def on_timer_status(self):
-        """ handler to get OpenSAND status from model periodicaly """
-        # determine the current status of the platform at first refresh
-        # (ie. just after opensand manager startup)
-        if self._first_refresh:
-            # check if we have main components but
-            # do not stay refreshed after INIT_ITER iterations
-            if not self._model.main_hosts_found() and \
-               self._refresh_iter <= INIT_ITER:
-                self._log.debug("platform status is not fully known, " \
-                                "wait a little bit more...")
-                self._refresh_iter = self._refresh_iter + 1
-            else:
-                if self._refresh_iter > INIT_ITER:
-                    self._log.warning("the mandatory components were not "
-                                      "found on the system, the platform "
-                                      "won't be able to start")
-                    self._log.info("you will need at least a satellite, "
-                                   "a gateway and a ST: "
-                                   "please deploy the missing component(s), "
-                                   "they will be automatically detected")
-                
-                if not self._model.is_collector_functional():
-                    self._log.warning("The OpenSAND collector is not known. "
-                                      "The probes will not be available.")
-
-                # update the label of the 'start/stop opensand' button to
-                gobject.idle_add(self.set_start_stop_button,
-                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
-                # check if some components are running
-                state = self._model.is_running()
-                # if at least one application is started at manager startup,
-                # let do as if opensand was started
-                if state:
-                    gobject.idle_add(self.disable_start_button, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    # disable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_buttons, True,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    if self._refresh_iter <= INIT_ITER:
-                        self._log.info("Platform is currently started")
-                else:
-                    gobject.idle_add(self.disable_start_button, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    # enable the 'deploy opensand' and 'save config' buttons
-                    gobject.idle_add(self.disable_deploy_buttons, False,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    if self._refresh_iter <= INIT_ITER:
-                        self._log.info("Platform is currently stopped")
-                # opensand manager is now ready to be used
-                self._first_refresh = False
-                if self._refresh_iter <= INIT_ITER:
-                    self._log.info("OpenSAND Manager is now ready, have fun !")
-
-        # update event GUI
-        gobject.idle_add(self.set_start_stop_button,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
-        gobject.idle_add(self.update_status)
-        
-        # Update simulation state for the main view
-        gobject.idle_add(self._opensand_view.on_simu_state_changed,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
-
-        # restart timer
-        return True
-
     def on_option_deploy_clicked(self, source=None, event=None):
         """ deploy button in options menu clicked """
         self.on_deploy_opensand_button_clicked(source, event)
@@ -285,4 +184,9 @@ class RunEvent(RunView):
         window.go()
         window.close()
 
+    def refresh(self):
+        """ refresh run view """
+        # update the label of the 'start/stop opensand' button to
+        self.set_start_stop_button()
+        self.update_status()
 

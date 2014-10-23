@@ -352,8 +352,8 @@ class SavedProbeLoader(object):
 
         try:
             self._load(run_path)
-        except EnvironmentError:
-            raise ValueError("Incorrect probe data")
+        except EnvironmentError, msg:
+            raise ValueError(str(msg))
 
     def _load(self, run_path):
         prog_id = 0

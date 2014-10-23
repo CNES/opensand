@@ -726,8 +726,8 @@ class Model:
         try:
             return SavedProbeLoader(run_path)
         except ValueError, msg:
-            error_popup("cannot parse saved probes files '%s'" %
-                        msg)
+            error_popup("cannot parse saved probes files",
+                        str(msg))
             return None
 
     # functions for global host

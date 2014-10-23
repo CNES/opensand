@@ -39,16 +39,14 @@ import gobject
 import os
 import shutil
 
-from opensand_manager_gui.view.event_tab import EventTab
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
+from opensand_manager_gui.view.event_handler import EventResponseHandler
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
-from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
-from opensand_manager_gui.view.popup.config_logs_dialog import ConfigLogsDialog
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
 from opensand_manager_core.utils import copytree
@@ -57,9 +55,16 @@ GLADE_PATH = '/usr/share/opensand/manager/opensand.glade'
 KONAMI = ['Up', 'Up', 'Down', 'Down',
           'Left', 'Right', 'Left', 'Right',
           'b', 'a']
+INIT_ITER = 6
 
 class View(WindowView):
-    """ OpenSAND manager view """
+    """
+    OpenSAND manager view:
+        - handle menu actions
+        - handle window title
+        - handle notebook containing tab views
+        - handle some events and dispatch them
+    """
     def __init__(self, model, manager_log, glade='',
                  dev_mode=False, service_type=''):
         self._log = manager_log
@@ -73,36 +78,13 @@ class View(WindowView):
 
         self._model = model
         
-        self._event_tabs = {} # For the individudual program event tabs
-        self._conf_logs_dialog = ConfigLogsDialog(self._model, self._log)
-        self._event_notebook = self._ui.get_widget('event_notebook')
-        mgr_event_tab = EventTab(self._event_notebook, "Manager events")
-        self._log.run(mgr_event_tab)
-
-        self._info_label = self._ui.get_widget('info_label')
-        self._counter = 0
-        infos = ['Service type: ' + service_type]
-        gobject.timeout_add(5000, self.update_label, infos)
-        
-        self._prog_dialog = None
-
-        self._log.info("Welcome to OpenSAND Manager !")
-        self._log.info("Initializing platform, please wait...")
-
-        widget = self._ui.get_widget('enable_logs')
-        self._logs_hdl = widget.connect('toggled', self.on_enable_logs_toggled)
-        widget = self._ui.get_widget('enable_syslog')
-        self._syslog_hdl = widget.connect('toggled', self.on_enable_syslog_toggled)
-        widget = self._ui.get_widget('autoscroll')
-        self._autoscroll_hdl = widget.connect('toggled', self.on_autoscroll_toggled)
-
-
         # initialize each tab
         try:
+            # run first because its starts the logging notebook
+            self._eventrun = RunEvent(self.get_current(), self._model,
+                                      dev_mode, self._log, service_type)
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
-            self._eventrun = RunEvent(self.get_current(), self._model,
-                                      self, dev_mode, self._log)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
@@ -135,6 +117,29 @@ class View(WindowView):
         self._keylist = []
 
         gobject.idle_add(self.set_recents)
+
+# TODO for new scenario, for start, etc
+#        self._event_manager = self._model.get_event_manager()
+        self._event_response_handler = EventResponseHandler(
+                            self._model.get_event_manager_response(),
+                            self._eventrun,
+                            self._eventconf,
+                            self._eventtool,
+                            self._eventprobe,
+                            self._log)
+
+        # start event response handler
+        self._event_response_handler.start()
+
+        self._first_refresh = True
+        self._refresh_iter = 0
+        # at beginning check platform state immediatly, then every 2 seconds
+        self.on_timer_status()
+        self._timeout_id = gobject.timeout_add(1000, self.on_timer_status)
+
+        self._log.info("Welcome to OpenSAND Manager !")
+        self._log.info("Initializing platform, please wait...")
+
 
     def exit(self):
         """ quit main window and application """
@@ -180,12 +185,81 @@ class View(WindowView):
         self._log.debug("View: close probe view")
         self._eventprobe.close()
         self._log.debug("View: closed")
+        if self._event_response_handler.is_alive():
+            self._log.debug("Run Event: join response event handler")
+            self._event_response_handler.join()
+            self._log.debug("Run Event: response event handler joined")
+
 
     def on_quit(self, source=None, event=None):
         """ event handler for close button """
         self._log.info("Close application")
         self._log.info("Please wait...")
         self.exit()
+
+
+    def on_timer_status(self):
+        """ handler to get OpenSAND status from model periodicaly """
+        # determine the current status of the platform at first refresh
+        # (ie. just after opensand manager startup)
+        if self._first_refresh:
+            # check if we have main components but
+            # do not stay refreshed after INIT_ITER iterations
+            if not self._model.main_hosts_found() and \
+               self._refresh_iter <= INIT_ITER:
+                self._log.debug("platform status is not fully known, " \
+                                "wait a little bit more...")
+                self._refresh_iter = self._refresh_iter + 1
+            else:
+                if self._refresh_iter > INIT_ITER:
+                    self._log.warning("the mandatory components were not "
+                                      "found on the system, the platform "
+                                      "won't be able to start")
+                    self._log.info("you will need at least a satellite, "
+                                   "a gateway and a ST: "
+                                   "please deploy the missing component(s), "
+                                   "they will be automatically detected")
+                
+                if not self._model.is_collector_functional():
+                    self._log.warning("The OpenSAND collector is not known. "
+                                      "The probes will not be available.")
+
+                # check if some components are running
+                state = self._model.is_running()
+                # if at least one application is started at manager startup,
+                # let do as if opensand was started
+                if state:
+                    gobject.idle_add(self._eventrun.disable_start_button, False,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    # disable the 'deploy opensand' and 'save config' buttons
+                    gobject.idle_add(self._eventrun.disable_deploy_buttons, True,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    if self._refresh_iter <= INIT_ITER:
+                        self._log.info("Platform is currently started")
+                else:
+                    gobject.idle_add(self._eventrun.disable_start_button, False,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    # enable the 'deploy opensand' and 'save config' buttons
+                    gobject.idle_add(self._eventrun.disable_deploy_buttons, False,
+                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
+                    if self._refresh_iter <= INIT_ITER:
+                        self._log.info("Platform is currently stopped")
+                # opensand manager is now ready to be used
+                self._first_refresh = False
+                if self._refresh_iter <= INIT_ITER:
+                    self._log.info("OpenSAND Manager is now ready, have fun !")
+
+        # update event GUI
+        gobject.idle_add(self._eventrun.refresh,
+                         priority=gobject.PRIORITY_HIGH_IDLE+20)
+        
+        # Update simulation state for the main view
+        gobject.idle_add(self._eventprobe.simu_state_changed,
+                         priority=gobject.PRIORITY_HIGH_IDLE+20)
+
+        # restart timer
+        return True
+
 
     def on_about_activate(self, source=None, event=None):
         """ event handler for about button """
@@ -493,193 +567,20 @@ class View(WindowView):
     
     def on_program_list_changed(self, programs_dict):
         """ called when the environment plane program list changes """
-        for program in programs_dict.itervalues():
-            if program.name not in self._event_tabs:
-                self._event_tabs[program.name] = \
-                    EventTab(self._event_notebook, program.name, program)
-            else:
-                self._event_tabs[program.name].update(program)
-        
-        self._eventprobe.simu_program_list_changed(programs_dict)
+        gobject.idle_add(self._eventrun.simu_program_list_changed,
+                         programs_dict)
+        gobject.idle_add(self._eventprobe.simu_program_list_changed,
+                         programs_dict)
     
     def on_new_program_log(self, program, name, level, message):
         """ called when an environment plane log is received """
-        self._event_tabs[program.name].message(level, name, message)
+        gobject.idle_add(self._eventrun.simu_program_new_log,
+                         program, name, level, message)
 
-    def global_event(self, message):
-        """ put an event in all event tabs """
-        for tab in self._event_tabs.values():
-            tab.message(None, None, message, True)
-    
     def on_new_probe_value(self, probe, timestamp, value):
         """ called when a new probe value is received """
         self._eventprobe.new_probe_value(probe, timestamp, value)
     
-    def on_simu_state_changed(self):
-        """ Called when the simulation state changes """
-        self._eventprobe.simu_state_changed()
-    
-    def on_probe_transfer_progress(self, started):
-        """ Called when probe transfer from the collector starts or stops """
-        if started:
-            self._prog_dialog = ProgressDialog("Saving probe data, please "
-                                               "wait…", self._model, self._log)
-            self._prog_dialog.show()
-        else:
-            self._prog_dialog.close()
-            self._prog_dialog = None
-            self._eventprobe.simu_data_available()
-
-    def update_label(self, infos=[]):
-        """ Update the message displayed on Manager """
-        self._info_label.set_label(infos[self._counter])
-
-        msg = 'Developer mode enabled'
-        if self._model.get_dev_mode() and not msg in infos:
-            infos.append(msg)
-        elif msg in infos:
-            infos.remove(msg)
-        if len(infos) == 0:
-            return True
-        self._counter = (self._counter + 1) % len(infos)
-        return True
-
-    def on_event_notebook_switch_page(self, notebook, page, page_num):
-        """ page switched on event notebook """
-        program = self.get_program_for_active_tab(page_num)
-        if program == None:
-            self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
-            return
-        self._ui.get_widget("logging_toolbar").show()
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
-        logs_enabled = program.logs_enabled()
-        syslog_enabled = program.syslog_enabled()
-        widget = self._ui.get_widget('enable_logs')
-        # block toggle signal when modifying state from here
-        widget.handler_block(self._logs_hdl)
-        widget.set_active(logs_enabled)
-        widget.handler_unblock(self._logs_hdl)
-        widget = self._ui.get_widget('enable_syslog')
-        widget.handler_block(self._syslog_hdl)
-        widget.set_active(syslog_enabled)
-        widget.handler_unblock(self._syslog_hdl)
-        # set autoscroll state
-        tab = self.get_active_tab(page_num)
-        widget = self._ui.get_widget('autoscroll')
-        val = tab.autoscroll
-        widget.handler_block(self._autoscroll_hdl)
-        widget.set_active(val)
-        widget.handler_unblock(self._autoscroll_hdl)
-
-    def on_configure_logging_clicked(self, source=None, event=None):
-        """ event handler for logging configuration """ 
-        page = self._event_notebook.get_current_page()
-        program = self.get_program_for_active_tab(page)
-        if program == None:
-            self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
-            return
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
-        self._conf_logs_dialog.show()
-
-    def on_enable_syslog_toggled(self, source=None, event=None):
-        """ event handler for syslog activation on remote program """ 
-        page = self._event_notebook.get_current_page()
-        program = self.get_program_for_active_tab(page)
-        if program is not None:
-            wlog = self._ui.get_widget('enable_logs')
-            wsyslog = self._ui.get_widget('enable_syslog')
-            active = wlog.get_active() or wsyslog.get_active()
-            program.enable_syslog(wsyslog.get_active())
-            self._ui.get_widget('configure_logging').set_sensitive(active)
-
-    def on_enable_logs_toggled(self, source=None, event=None):
-        """ event handler for logging  activation """ 
-        page = self._event_notebook.get_current_page()
-        program = self.get_program_for_active_tab(page)
-        if program is not None:
-            wlog = self._ui.get_widget('enable_logs')
-            wsyslog = self._ui.get_widget('enable_syslog')
-            active = wlog.get_active() or wsyslog.get_active()
-            program.enable_logs(wlog.get_active())
-            self._ui.get_widget('configure_logging').set_sensitive(active)
-
-    def on_erase_logs_clicked(self, source=None, event=None):
-        """ event handler for erase logs clicked """
-        page = self._event_notebook.get_current_page()
-        tab = self.get_active_tab(page)
-        if tab is None:
-            return
-        tab.empty()
-
-    def on_autoscroll_toggled(self, source=None, event=None):
-        """ event handler for autoscroll toggled """
-        page = self._event_notebook.get_current_page()
-        tab = self.get_active_tab(page)
-        if tab is None:
-            return
-        widget = self._ui.get_widget('autoscroll')
-        val = widget.get_active()
-        tab.autoscroll = val
-
-    def get_active_tab(self, page_num):
-        """ get the active event notebook page """
-        child = self._event_notebook.get_nth_page(page_num)
-        progname = self._event_notebook.get_tab_label(child).get_name()
-        if not progname in self._event_tabs:
-            return None
-        return self._event_tabs[progname]
-
-    def get_program_for_active_tab(self, page_num):
-        """ get the program associated with the active event notebook page """
-        tab = self.get_active_tab(page_num)
-        if tab is None:
-            return None
-        program = tab.get_program()
-        return program
-
-    def on_start(self, run):
-        """ the start button has been pressed
-            (should be used with gobject.idle_add outside gtk handlers) """
-        self.global_event("***** New run: %s *****" % run)
-        widget = self._ui.get_widget('enable_logs')
-        widget.set_sensitive(True)
-        widget = self._ui.get_widget('enable_syslog')
-        widget.set_sensitive(True)
-        widget = self._ui.get_widget('configure_logging')
-        widget.set_sensitive(True)
-        widget = self._ui.get_widget('erase_logs')
-        widget.set_sensitive(False)
-        page = self._event_notebook.get_current_page()
-        program = self.get_program_for_active_tab(page)
-        if program == None:
-            self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
-            return
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
-
-    def on_stop(self):
-        """ the stop button has been pressed """
-        widget = self._ui.get_widget('enable_logs')
-        widget.set_sensitive(False)
-        widget = self._ui.get_widget('enable_syslog')
-        widget.set_sensitive(False)
-        widget = self._ui.get_widget('configure_logging')
-        widget.set_sensitive(False)
-        widget = self._ui.get_widget('erase_logs')
-        widget.set_sensitive(True)
-        gobject.idle_add(self._conf_logs_dialog.hide)
-        for page_num in range(self._event_notebook.get_n_pages()):
-            program = self.get_program_for_active_tab(page_num)
-            if program is None:
-                continue
-            # set default values for next run
-            # TODO maybe output should send syslog and logs state
-            #      instead of using default values...
-            program.enable_logs(True)
-            program.enable_syslog(True)
-
 
 ##### TEST #####
 if __name__ == "__main__":

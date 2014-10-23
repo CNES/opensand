@@ -45,14 +45,12 @@ from opensand_manager_core.loggers.levels import LOG_LEVELS
 
 class ConfigLogsDialog(WindowView):
     """ an advanced configuration window """
-    def __init__(self, model, manager_log):
+    def __init__(self):
         WindowView.__init__(self, None, 'config_collection_window')
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure logs collection - OpenSAND Manager")
         self._listview = self._ui.get_widget('config_collection_view')
-        self._model = model
-        self._log = manager_log
         self._shown = False
         self._program = None
 
