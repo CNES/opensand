@@ -62,6 +62,10 @@ class EventResponseHandler(threading.Thread):
 
             self._log.debug("event response: " + event_type)
 
+            if event_type.startswith("resp"):
+                gobject.idle_add(self._run_view.stop_spinning,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+
             if event_type == "resp_deploy_platform":
                 # opensand platform installation answer
                 # enable the buttons back
@@ -70,8 +74,15 @@ class EventResponseHandler(threading.Thread):
                 gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
-            elif event_type == "resp_install_files":
-                # opensand platform installation answer
+            elif event_type == "deploy_files":
+                gobject.idle_add(self._run_view.spin, "Saving files...")
+                # deploying files, disable buttons
+                gobject.idle_add(self._run_view.disable_start_button, True,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+                gobject.idle_add(self._run_view.disable_deploy_buttons, True,
+                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
+
+            elif event_type == "resp_deploy_files":
                 # enable the buttons back
                 gobject.idle_add(self._run_view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
@@ -131,10 +142,14 @@ class EventResponseHandler(threading.Thread):
                 gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
             
-            elif event_type == "probe_transfer_progress":
+            elif event_type == "probe_transfer":
+                gobject.idle_add(self.on_probe_transfer_progress,
+                                 True)
+
+            elif event_type == "resp_probe_transfer":
                 text = self._event_manager_response.get_text()
                 gobject.idle_add(self.on_probe_transfer_progress,
-                                 text == 'start')
+                                 False)
                 if text == 'done':
                     self._probe_view.simu_data_available()
                 # TODO: if text == 'fail':
@@ -157,6 +172,7 @@ class EventResponseHandler(threading.Thread):
     def on_probe_transfer_progress(self, started):
         """ Called when probe transfer from the collector starts or stops """
         if started:
+            self._run_view.spin("Save probes...")
             self._prog_dialog = ProgressDialog("Saving probe data, please "
                                                "wait...")
             self._prog_dialog.show()

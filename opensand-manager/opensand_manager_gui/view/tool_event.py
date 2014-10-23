@@ -164,7 +164,9 @@ class ToolEvent(ToolView):
         notebook = model.get_conf_view()
         if notebook is None:
             notebook = ConfigurationNotebook(config_parser,
+                                             model.get_host().lower(),
                                              self._model.get_dev_mode(),
+                                             self._model.get_scenario(),
                                              # we have no button to hide/show
                                              # hidden, show them in dev mode
                                              self._model.get_dev_mode(),
@@ -232,7 +234,7 @@ class ToolEvent(ToolView):
         for host in self._model.get_all():
             for tool in host.get_tools():
                 try:
-                    tool.reload_conf()
+                    tool.reload_conf(self._model.get_scenario())
                 except ModelException, msg:
                     self._tool_lock.release()
                     error_popup("%s: %s" % (tool.get_name(), msg))

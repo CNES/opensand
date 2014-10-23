@@ -37,8 +37,12 @@ host_advanced.py - advanced model for hosts
 import os
 import shutil
 
+from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
+
+# TODO create a variable OPENSAND_FOLDER pointing to /usr/share/opensand to
+# avoid repeting it everywhere
 
 class AdvancedHostModel:
     """ Advanced host model"""
@@ -48,12 +52,15 @@ class AdvancedHostModel:
         self._config_view = None
         self._configuration = None
         self._enabled = True
-        self.load(name, scenario)
+        self._files = None
+        self._name = name
 
-    def load(self, name, scenario):
+        self.load(scenario)
+
+    def load(self, scenario):
         """ load the advanced configuration """
         # create the host configuration directory
-        conf_path = os.path.join(scenario, name)
+        conf_path = os.path.join(scenario, self._name)
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
@@ -62,10 +69,10 @@ class AdvancedHostModel:
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, 'core.conf')
-        if name.startswith('st'):
+        if self._name.startswith('st'):
             component = 'st'
         else:
-            component = name
+            component = self._name
         # copy the configuration template in the destination directory
         # if it does not exist
         if not os.path.exists(self._conf_file):
@@ -74,23 +81,27 @@ class AdvancedHostModel:
                             self._conf_file)
             except IOError, msg:
                 raise ModelException("failed to copy %s configuration file in "
-                                     "'%s': %s" % (name, self._conf_file, msg))
+                                     "'%s': %s" % (self._name, self._conf_file,
+                                                   msg))
 
         self._xsd = "/usr/share/opensand/%s/core.xsd" % component
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
+            self._files = Files(self._name, self._configuration, scenario)
         except IOError, msg:
             raise ModelException("cannot load configuration: %s" % msg)
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
 
-    def reload_conf(self):
+
+    def reload_conf(self, scenario):
         """ reload the configuration file """
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
+            self._files = Files(self._name, self._configuration, scenario)
         except IOError, msg:
             raise ModelException("cannot load configuration: %s" % msg)
         except XmlException, msg:
@@ -179,6 +190,10 @@ class AdvancedHostModel:
             self._configuration.set_value(stack[pos], path, key)
             idx += 1
         self._configuration.write()
+
+    def get_files(self):
+        """ get the files """
+        return self._files
 
 
 

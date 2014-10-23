@@ -395,8 +395,6 @@ class RunView(WindowView):
         self._ui.get_widget('deploy_opensand_button').set_sensitive(not status)
         self._ui.get_widget('deploy').set_sensitive(not status)
         self._ui.get_widget('edit').set_sensitive(not status)
-        self._ui.get_widget('install').set_sensitive(not status)
-        self._ui.get_widget('edit_install').set_sensitive(not status)
 
     def hide_deploy_button(self, status = True):
         """ hide or not deploy button

@@ -110,10 +110,11 @@ class Controller(threading.Thread):
                 if self.deploy_platform():
                     res = 'done'
                 self._event_manager_response.set('resp_deploy_platform', res)
-            elif self._event_manager.get_type() == 'install_files':
-                if self.install_simulation_files():
+            elif self._event_manager.get_type() == 'deploy_files':
+                self._event_manager_response.set('deploy_files')
+                if self.deploy_files():
                     res = 'done'
-                self._event_manager_response.set('resp_install_files', res)
+                self._event_manager_response.set('resp_deploy_files')
             elif self._event_manager.get_type() == 'start_platform':
                 if self.start_platform():
                     res = 'done'
@@ -188,28 +189,28 @@ class Controller(threading.Thread):
 
         return True
 
-    def install_simulation_files(self):
-        """ send the simulation files on host """
+    def deploy_files(self):
+        """ send the  files on host """
         # check that all component are stopped
         if self._model.is_running():
             self._log.warning("Some components are still running")
 
-        self._log.info("Install simulation files...")
+        self._log.info("Deploy files...")
 
         threads = []
         errors = []
         try:
-            for host in self._hosts:
+            # first get global configuration files
+            files = self._model.get_deploy_files()
+            for host in self._hosts + self._ws:
                 name = host.get_name()
-                self._log.debug("Installing  %s" % name)
-                files = self._model.get_files()
-                if not name.lower() in files and not 'global' in files:
-                    self._log.debug("no section for %s in simulation deployment "
-                                    "file" % name)
-                    continue
+                dep = files + host.get_deploy_files(self._model.get_scenario())
+                if len(dep) > 0:
+                    self._log.info("%s: deploying some files that were modified"
+                                   % name)
 
-                thread = threading.Thread(None, host.install_simulation_files,
-                                          None, (files, errors), {})
+                thread = threading.Thread(None, host.deploy_modified_files,
+                                          None, (dep, errors), {})
                 threads.append(thread)
                 thread.start()
         except CommandException, msg:
@@ -363,12 +364,15 @@ class Controller(threading.Thread):
         # everything is saved in scenario/run
         if self._model.is_collector_functional():
             self._log.info("Save the environment plane outputs")
-            self._event_manager_response.set('probe_transfer_progress', 'start')
+            # TODO this is not a response to a View event, maybe just rename
+            #      event manager reponse into view_event_manager and
+            #      event_manager into controller_event_manager
+            self._event_manager_response.set('probe_transfer')
             dst = os.path.join(self._model.get_scenario(),
                                self._model.get_run())
             
             def done(status='done'):
-                self._event_manager_response.set('probe_transfer_progress',
+                self._event_manager_response.set('resp_probe_transfer',
                                                  status)
             
             self._env_plane.transfer_from_collector(dst, done)

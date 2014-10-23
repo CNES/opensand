@@ -38,6 +38,7 @@ import os
 import shutil
 
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
+from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
@@ -56,7 +57,7 @@ class GlobalConfig(AdvancedHostModel):
         self._up_return = {}
         self._enable_phy_layer = None
 
-    def load(self, name, scenario):
+    def load(self, scenario):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario
@@ -75,12 +76,14 @@ class GlobalConfig(AdvancedHostModel):
                 shutil.copy(DEFAULT_CONF, self._conf_file)
             except IOError, msg:
                 raise ModelException("failed to copy %s configuration file in "
-                                     "'%s': %s" % (name, self._conf_file, msg))
+                                     "'%s': %s" % (self._name, self._conf_file,
+                                                   msg))
 
         self._xsd = GLOBAL_XSD
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
+            self._files = Files(self._name, self._configuration, scenario)
         except IOError, msg:
             raise ModelException("cannot load configuration: %s" % msg)
         except XmlException, msg:

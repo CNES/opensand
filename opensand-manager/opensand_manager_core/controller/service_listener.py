@@ -71,6 +71,7 @@ class OpenSandServiceListener():
 
         sbrowser.connect_to_signal("ItemNew", self.handler_new)
         sbrowser.connect_to_signal("ItemRemove", self.handler_remove)
+        sbrowser.connect_to_signal("AllForNow", self.handler_end)
 
         # there is no need to create and start a gobject MainLoop because
         # there is already the gtk loop. Thus, this service MUST be created
@@ -219,6 +220,10 @@ class OpenSandServiceListener():
             if ws.get_name().lower() == name:
                 ws.close()
                 self._ws.remove(ws)
+
+    def handler_end(self):
+        """ all service discovered """
+        pass
 
 
 ##### TEST #####

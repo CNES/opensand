@@ -367,7 +367,11 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The global configuration for all components</b>
+            <b>The global configuration for all components</b>\n
+            <u>Note about files:</u>\n
+            When you select another file, it will be copied in your scenario,\n
+            so don't be surprised to always get the same file path when opening\n
+            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -392,6 +396,8 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for down/forward link
+                        <default>modcod/forward/definition.txt</default>
+                        <source>modcod/down_forward_def.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -399,6 +405,8 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD simulation file for down/forward link
+                        <default>modcod/forward/clear_sky.txt</default>
+                        <source>modcod/down_forward_simu.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -406,6 +414,8 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for up/return link
+                        <default>modcod/return/definition_MPEG.txt</default>
+                        <source>modcod/up_return_def.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -413,6 +423,8 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD simulation file for up/return link
+                        <default>modcod/return/clear_sky.txt</default>
+                        <source>modcod/up_return_simu.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -436,6 +448,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The up/return link encapsulation scheme
+                        <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -443,6 +456,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The down/forward link encapsulation scheme
+                        <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -695,6 +709,7 @@
             <b>Some parameters that may influence performances
             (for advanced users only, do not edit these parameters !)</b>
             ]]>
+            <dev>true</dev>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

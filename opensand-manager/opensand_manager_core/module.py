@@ -37,6 +37,7 @@ encap_module.py - Encapsulation module for OpenSAND Manager
 
 import os
 import shutil
+from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
@@ -74,6 +75,7 @@ class OpenSandModule(object):
         # should not be modified
         self._parser = None
         self._config = None
+        self._files = None
 
 
     def get_xml(self):
@@ -156,12 +158,21 @@ class OpenSandModule(object):
         try:
             self._config = None
             self._parser = XmlParser(xml_path, xsd_path)
+            name = host_name
+            if name is None:
+                name = component
+            self._files = Files(name, self._parser, scenario)
         except IOError, msg:
             raise ModelException("cannot load module %s configuration: \n\t%s" %
                                  (self._name, msg))
         except XmlException, msg:
             raise ModelException("failed to parse module %s configuration file:"
                                  "\n\t%s" % (self._name, msg))
+
+
+    def get_files(self):
+        """ get the files """
+        return self._files
 
     def save(self):
         """ save the module """

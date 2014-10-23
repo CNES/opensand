@@ -157,7 +157,7 @@ class EnvironmentPlaneController(object):
         if not self._transfer_port:
             self._log.info("Collector transfer port not known")
             if self._transfer_cb is not None:
-                gobject.idle_add(self._transfer_cb)
+                gobject.idle_add(self._transfer_cb, 'fail')
             return
 
         self._log.debug("Initiating probe transfer from collector")

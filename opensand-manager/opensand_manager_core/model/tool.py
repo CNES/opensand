@@ -38,6 +38,7 @@ import os
 import glob
 import shutil
 
+from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
@@ -61,6 +62,7 @@ class ToolModel:
         self._configuration = None
 
         self._config_view = None
+        self._files = None
 
     def load(self, scenario):
         """ load the tools elements from files """
@@ -120,6 +122,7 @@ class ToolModel:
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
+            self._files = Files(self._host, self._configuration, scenario)
         except IOError, msg:
             raise ModelException("cannot load %s configuration:\n\t%s" %
                                  (msg, self._name))
@@ -127,21 +130,28 @@ class ToolModel:
             raise ModelException("failed to parse %s configuration file:\n\t%s"
                                  % (self._name, msg))
 
-    def reload_conf(self):
+    def get_host(self):
+        """ get the host to which this tool belong """
+        return self._host
+
+    def reload_conf(self, scenario):
         """ reload the configuration file """
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
+            self._files = Files(self._host, self._configuration, scenario)
         except IOError, msg:
             self._configuration = None
             self._state = None
             self._selected = None
+            self._files = None
             raise ModelException("cannot load %s configuration:\n\t%s" %
                                  (msg, self._name))
         except XmlException, msg:
             self._configuration = None
             self._state = None
             self._selected = None
+            self._files = None
             raise ModelException("failed to parse %s configuration file:\n\t%s"
                                  % (self._name, msg))
 
@@ -202,7 +212,7 @@ class ToolModel:
         self._config_view = view
 
     def get_conf_files(self):
-        """get the configuration files."""
+        """ get the configuration files """
         conf_directory = "/usr/share/opensand/tools/%s/%s/" % \
                          (self._name, self._compo)
         conf_files = {}
@@ -212,3 +222,9 @@ class ToolModel:
                                         os.path.basename(conf_file)
 
         return conf_files
+
+    def get_files(self):
+        """ get the files """
+        return self._files
+
+

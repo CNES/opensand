@@ -42,7 +42,6 @@ import shutil
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
-from opensand_manager_gui.view.popup.edit_install_dialog import EditInstallDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 class RunEvent(RunView):
@@ -79,6 +78,7 @@ class RunEvent(RunView):
         # disable the buttons
         self.disable_start_button(True)
         self.disable_deploy_buttons(True)
+        self.spin("Deploying...")
 
         # tell the hosts controller to deploy OpenSAND on all hosts
         # (the installation will be finished when we will receive a
@@ -86,23 +86,12 @@ class RunEvent(RunView):
         # there)
         self._event_manager.set('deploy_platform')
 
-    def on_install_files_button_clicked(self, source=None, event=None):
-        """ 'clicked' event on install files button """
-        # disable the buttons
-        self.disable_start_button(True)
-        self.disable_deploy_buttons(True)
-
-        # tell the hosts controller to install files on all hosts
-        # (the installation will be finished when we will receive a
-        # 'resp_install_files' event, the button will be enabled
-        # there)
-        self._event_manager.set('install_files')
-
     def on_start_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on start OpenSAND button """
         # start or stop the applications ?
         if not self._model.is_running():
             # start the applications
+            self.spin("Starting...")
 
             # retrieve the current scenario and start
             self.set_run_id()
@@ -134,6 +123,7 @@ class RunEvent(RunView):
 
             self._log_view.on_start(self._model.get_run())
         else:
+            self.spin("Stopping...")
             # disable the buttons
             self.disable_start_button(True)
             self.disable_deploy_buttons(True)
@@ -170,23 +160,27 @@ class RunEvent(RunView):
         window = EditDeployDialog(self._log)
         window.go()
 
-    def on_start_stop_activate(self, source=None, event=None):
-        """ start/stop button in action menu clicked """
-        self.on_start_opensand_button_clicked(source, event)
-
-    def on_install_activate(self, source=None, event=None):
-        """ install button in action menu clicked """
-        self.on_install_files_button_clicked(source, event)
-
-    def on_edit_install_activate(self, source=None, event=None):
-        """ edit button in action menu clicked """
-        window = EditInstallDialog(self._model, self._log)
-        window.go()
-        window.close()
-
     def refresh(self):
         """ refresh run view """
         # update the label of the 'start/stop opensand' button to
         self.set_start_stop_button()
         self.update_status()
+
+    def stop_spinning(self):
+        """ stop the spinning button """
+        widget = self._ui.get_widget('idle_spinner')
+        widget.stop()
+        widget = self._ui.get_widget('spinbox')
+        widget.hide_all()
+
+    def spin(self, action=""):
+        """ spin the spin button """
+        widget = self._ui.get_widget('idle_spinner')
+        widget.start()
+        widget.show_all()
+        label = self._ui.get_widget('spinner_label')
+        label.show_all()
+        label.set_markup(action)
+        widget = self._ui.get_widget('spinbox')
+        widget.show_all()
 

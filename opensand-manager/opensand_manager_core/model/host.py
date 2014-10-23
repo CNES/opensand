@@ -120,7 +120,7 @@ class HostModel:
             if not self._advanced:
                 self._advanced = AdvancedHostModel(self._name, scenario)
             else:
-                self._advanced.load(self._name, scenario)
+                self._advanced.load(scenario)
         except ModelException as error:
             self._log.warning("%s: %s" % (self._name.upper(), error))
 
@@ -161,6 +161,36 @@ class HostModel:
     def get_missing_modules(self):
         """ get the missing modules """
         return self._missing_modules
+
+    def update_files(self, changed, scenario):
+        """ update the source files according to user configuration """
+        self._advanced.get_files().update(changed, scenario)
+        for tool in self._tools:
+            files = tool.get_files()
+            if files is not None:
+                files.update(changed, scenario)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                files.update(changed, scenario)
+        if len(changed) > 0:
+            for filename in changed:
+                self._log.warning("%s: the file %s has not been updated" %
+                                  (self._name.upper(), filename))
+
+    def get_deploy_files(self, scenario):
+        """ get the files to deploy (modified files) """
+        deploy_files = []
+        deploy_files += self._advanced.get_files().get_modified(scenario)
+        for tool in self._tools:
+            files = tool.get_files()
+            if files is not None:
+                deploy_files += files.get_modified(scenario)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                deploy_files += files.get_modified(scenario)
+        return deploy_files
 
     def get_advanced_conf(self):
         """ get the advanced configuration """

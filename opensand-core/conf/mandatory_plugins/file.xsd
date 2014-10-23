@@ -62,6 +62,8 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The attenuation file path in file format
+                    <default>plugins/attenuation.csv</default>
+                    <source>plugins/attenuation.csv</source>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

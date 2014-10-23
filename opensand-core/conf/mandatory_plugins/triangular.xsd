@@ -78,6 +78,7 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The triangle period
+                    <unit>ms * refresh_period</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

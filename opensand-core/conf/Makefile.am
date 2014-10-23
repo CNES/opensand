@@ -33,7 +33,6 @@ EXTRA_DIST = \
 	$(HOSTS_XSD) \
 	$(MODCOD) \
 	$(MANDATORY_PLUGINS) \
-	simulation_files.ini \
 	deploy.ini \
 	dama.input
 

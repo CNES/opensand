@@ -63,7 +63,8 @@
         <xsd:attribute name="attenuation_value" type="amplitudes">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The constant attenuation value 
+                    The constant attenuation value (dB)
+                    <unit>dB</unit>
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

@@ -37,8 +37,6 @@ opensand_manager_core/utils.py - Utilities for OpenSAND Manager
 
 import shutil
 import os
-import re
-import ConfigParser
 
 def copytree(src, dst):
     """ Recursively copy a directory tree using copy2()
@@ -62,8 +60,4 @@ def copytree(src, dst):
     except OSError:
         raise
 
-class GreedyConfigParser(ConfigParser.SafeConfigParser):
-    """ a ConfigParser that takes the last separator
-        instead of the first one """
-    ConfigParser.SafeConfigParser.OPTCRE = \
-            re.compile('(?P<option>.*)\s*(?P<vi>[:=])\s*(?P<value>.*)$')
+

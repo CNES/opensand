@@ -38,7 +38,6 @@ import ConfigParser
 import os
 import shutil
 
-from opensand_manager_core.utils import GreedyConfigParser
 from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
@@ -83,11 +82,13 @@ class Model:
 
         # the global config
         self._config = None
-        self._deploy_simu = None
         self._topology = None
 
         # load the global modules
         self._modules = load_modules('global')
+
+        # {host: {sim file xpath: new_source_file}}
+        self._changed_sim_files = {}
 
         # check if there is already a running simulation
         filename = os.path.join(os.environ['HOME'], ".opensand/current")
@@ -99,11 +100,11 @@ class Model:
                                "run %s" % (self._scenario_path, self._run_id))
             os.remove(filename)
         try:
-            self.load()
+            self.load(True)
         except ModelException:
             raise
 
-    def load(self):
+    def load(self, first=False):
         """ load the model scenario """
         # load the scenario
         self._is_default = True
@@ -159,14 +160,15 @@ class Model:
         # load modules configuration
         self.reload_modules()
 
-        # load the simulation deployment file
-        self.load_simulation()
-
         # read configuration file
         try:
             self._config = GlobalConfig(self._scenario_path)
         except ModelException:
             raise
+
+        if not first:
+            # deploy the simulation files when loading a new scenario
+            self._event_manager.set('deploy_files')
 
     def load_topology(self):
         """ load or reload the topology configuration """
@@ -186,37 +188,11 @@ class Model:
         except IOError, (_, strerror):
             raise ModelException("cannot load topology configuration: %s " %
                                  strerror)
-            
+
     def reload_modules(self):
         """ load or reload the modules configuration """
         for module in self._modules:
             module.update(self._scenario_path, 'global')
-
-    def load_simulation(self):
-        """ load the simulation deployment file """
-        simu_path = os.path.join(self._scenario_path, 'simulation_files.ini')
-
-        try:
-            # if the simulation deployment file is not loaded, load it from
-            # current scenario or from default path
-            if self._deploy_simu is None:
-                if not os.path.exists(simu_path):
-                    shutil.copy(DEFAULT_SIMU_FILE, simu_path)
-
-                self._deploy_simu = GreedyConfigParser()
-                if len(self._deploy_simu.read(simu_path)) == 0:
-                    raise ModelException("Cannot load simulation deployment "
-                                         "file '%s'" % simu_path)
-            else:
-                # write the current simulation deployment file
-                with open(simu_path, 'w') as simu_file:
-                    self._deploy_simu.write(simu_file)
-        except IOError, msg:
-            raise ModelException("failed to copy the simulation deployment "
-                                 "file: '%s'" % msg)
-        except ConfigParser.Error, msg:
-            raise ModelException("failed to write the simulation deployment "
-                                 "file '%s': %s" % (simu_path, msg))
 
     def add_topology(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
@@ -423,6 +399,8 @@ class Model:
 
         self.add_topology(name, instance, network_config)
 
+        self._event_manager.set('deploy_files')
+
         if not checked:
             raise ModelException
         else:
@@ -452,7 +430,6 @@ class Model:
         """ set the scenario id """
         self._modified = True
         self._scenario_path = val
-        self._deploy_simu = None
         self.load()
 
     def get_scenario(self):
@@ -478,10 +455,6 @@ class Model:
         """ get the event manager response """
         return self._event_manager_response
 
-    def get_simulation_file_parser(self):
-        """ get the simulation file GreedyConfigParser object """
-        return self._deploy_simu
-
     def main_hosts_found(self):
         """ check if OpenSAND main hosts were found in the platform """
         # check that we have at least sat, gw and one st
@@ -498,24 +471,24 @@ class Model:
                 st = True
 
         return sat and gw and st
-    
+
     def is_collector_known(self):
         """ indicates if the environment plane collector service has been
             found. """
         return self._collector_known
-    
+
     def is_collector_functional(self):
         """ indicates if the environment plane collector has responded to
             the manager registration. """
         return self._collector_functional
-    
+
     def set_collector_known(self, collector_known):
         """ called by the service listener when the collector service is found
             or lost. """
         self._collector_known = collector_known
         if not collector_known:
             self._collector_functional = False
-    
+
     def set_collector_functional(self, collector_functional):
         """ called by the probes controller when the collector responds to
             manager registration. """
@@ -543,7 +516,7 @@ class Model:
     def get_conf(self):
         """ get the global configuration """
         return self._config
-    
+
     def get_modules(self):
         """ get the module list """
         return self._modules
@@ -575,144 +548,6 @@ class Model:
         """ get the missing module list """
         return self._missing_modules
 
-    def get_files(self):
-        """ get the files to deploy for simulation """
-        files = {}
-        for host in self._hosts:
-            init = []
-            modules = host.get_modules()
-            name = host.get_name().lower()
-            compo = host.get_component().lower()
-            # if the host is not referenced in the deployment file try the
-            # component
-            config = host.get_advanced_conf().get_configuration()
-            files[name] = []
-            if not self._deploy_simu.has_section(name):
-                if self._deploy_simu.has_section(compo):
-                    # copy the component section in the host section
-                    self._deploy_simu.add_section(name)
-                    for item in self._deploy_simu.items(compo):
-                        self._deploy_simu.set(name, item[0], item[1])
-                else:
-                    continue
-            for xpath in self._deploy_simu.options(name):
-                src = self._deploy_simu.get(name, xpath)
-                dst = config.get(xpath)
-                if dst is None:
-                    # try to find dst in the modules
-                    for module in modules:
-                        module_config = module.get_config_parser()
-                        if module_config is not None:
-                            dst = module_config.get(xpath)
-                        if dst is not None:
-                            init.append(module_config.get("%s/.." % xpath))
-                            break
-                    if dst is None:
-                        continue
-                else:
-                    init.append(config.get("%s/.." % xpath))
-                files[name].append((xpath, src, dst))
-
-            # detect files that are not in the simulation deployment file in
-            # host configuration and modules configuration
-            config = host.get_advanced_conf().get_configuration()
-            new_files = config.get_files()
-            new = {}
-            # get the elements containing files in configuration
-            for path in new_files:
-                new[config.get("%s/.." % path)] = path
-            for module in modules:
-                module_config = module.get_config_parser()
-                if module_config is not None:
-                    # get the elements containing files in module
-                    # configuration
-                    new_module_files = module_config.get_files()
-                    for path in new_module_files:
-                        new[module_config.get("%s/.." % path)] = path
-                    new_files.update(new_module_files)
-            # get the elements containing files that are delacred in the
-            # deployment file
-            # keep only the new elements
-            remaining = set(new.keys()) - set(init)
-
-            for new_file in remaining:
-                xpath = new[new_file]
-                dst = new_files[xpath]
-                files[name].append((xpath, '', dst))
-
-        # 'global' section
-        init = []
-        glob = self._config.get_configuration()
-        files['global'] = []
-        if self._deploy_simu.has_section('global'):
-            for xpath in self._deploy_simu.options('global'):
-                src = self._deploy_simu.get('global', xpath)
-                dst = glob.get(xpath)
-                if dst is None:
-                    # try to find dst in the modules
-                    for module in self._modules:
-                        module_config = module.get_config_parser()
-                        if module_config is not None:
-                            dst = module_config.get(xpath)
-                        if dst is not None:
-                            init.append(module_config.get("%s/.." % xpath))
-                            break
-                    if dst is None:
-                        continue
-                else:
-                    init.append(glob.get("%s/.." % xpath))
-                files['global'].append((xpath, src, dst))
-
-        # detect files that are not in the simulation deployment file in
-        # global configuration and global modules configuration
-        new_files = glob.get_files()
-        new = {}
-        # get the elements containing files in configuration
-        for path in new_files:
-            new[glob.get("%s/.." % path)] = path
-        for module in self._modules:
-            module_config = module.get_config_parser()
-            if module_config is not None:
-                # get the elements containing files in module
-                # configuration
-                new_module_files = module_config.get_files()
-                for path in new_module_files:
-                    new[module_config.get("%s/.." % path)] = path
-                new_files.update(new_module_files)
-        # get the elements containing files that are delacred in the
-        # deployment file
-        # keep only the new elements
-        remaining = set(new.keys()) - set(init)
-
-        for new_file in remaining:
-            xpath = new[new_file]
-            dst = new_files[xpath]
-            files['global'].append((xpath, '', dst))
-
-        return files
-
-    def modify_deploy_simu(self, host, xpath, val):
-        """ modify a source in the files to deploy for simulation """
-        if not self._deploy_simu.has_section(host):
-            error_popup("Cannot find host %s in the simulation deployment file"
-                        % host)
-            return
-        if not xpath in self._deploy_simu.options(host):
-            error_popup("Cannot find key %s in the simulation deployment file"
-                        % xpath)
-            return
-        self._deploy_simu.set(host, xpath, val)
-
-    def save_deploy_simu(self):
-        """ write the modified file list """
-        simu_path = os.path.join(self._scenario_path, 'simulation_files.ini')
-        try:
-            with open(simu_path, 'w') as simu_file:
-                self._deploy_simu.write(simu_file)
-        except IOError, msg:
-            error_popup("failed to copy the simulation deployment file: '%s'" %
-                        msg)
-
     def get_saved_probes(self, run_id=None):
         """ get a SavedProbeLoader object with the saved probes objects """
         if run_id is None:
@@ -720,9 +555,9 @@ class Model:
         if run_id == "default":
             # default is the equivalent of empty run_id
             return
-        
+
         run_path = os.path.join(self.get_scenario(), run_id)
-        
+
         try:
             return SavedProbeLoader(run_path)
         except ValueError, msg:
@@ -730,7 +565,56 @@ class Model:
                         str(msg))
             return None
 
+    def handle_file_changed(self, file_chooser, host_name, xpath):
+        """ a source for a file from configuration has been updated """
+        host = self.get_host(host_name)
+        if not host in self._changed_sim_files:
+            self._changed_sim_files[host] = {}
+        self._changed_sim_files[host][xpath] = file_chooser.get_filename()
+
+
+    def conf_apply(self):
+        """ the advanced configuration has been applied, the file shoud be
+            modified """
+        for host in self._changed_sim_files:
+            try:
+                host.update_files(self._changed_sim_files[host], self._scenario_path)
+            except IOError, (_, strerror):
+                error_popup("Cannot update files on %s" % host.get_name(), strerror)
+
+        self._changed_sim_files = {}
+        # deploy the simulation files that were modified
+        self._event_manager.set('deploy_files')
+
+    def conf_undo(self):
+        """ the advanced configuration hase no been applied, revert the source
+            files """
+        self._changed_sim_files = {}
+
     # functions for global host
+    def update_files(self, changed, scenario):
+        """ update the source files according to user configuration """
+        self._config.get_files().update(changed, scenario)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                files.update(changed, scenario)
+        if len(changed) > 0:
+            for filename in changed:
+                self._log.warning("The file %s has not been updated" %
+                                  (filename))
+
+    def get_deploy_files(self):
+        """ get the files to deploy (modified files) """
+        deploy_files = []
+        deploy_files += self._config.get_files().get_modified(self._scenario_path)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                deploy_files += files.get_modified(self._scenario_path)
+        return deploy_files
+
+
     def get_name(self):
         """ for compatibility with advanced dialog host calls """
         return 'global'
@@ -742,7 +626,7 @@ class Model:
     def get_advanced_conf(self):
         """ for compatibility with advanced dialog host calls """
         return self._config
-        
+
     def enable(self, val=True):
         """ for compatibility with advanced dialog host calls """
         pass
@@ -752,19 +636,26 @@ class Model:
 if __name__ == "__main__":
     import sys
 
-    LOGGER = ManagerLog('debug', True, True, True)
+    LOGGER = ManagerLog(7, True, True, True)
     MODEL = Model(LOGGER)
     try:
         CONFIG = MODEL.get_conf()
         LOGGER.debug("payload type: " + CONFIG.get_payload_type())
         LOGGER.debug("emission standard: " + CONFIG.get_emission_std())
         LOGGER.debug("uplink encapsulation protocol: " +
-                     CONFIG.get_up_return_encap())
+                     str(CONFIG.get_up_return_encap()))
         LOGGER.debug("downlink encapsulation protocol: " +
-                     CONFIG.get_down_forward_encap())
+                     str(CONFIG.get_down_forward_encap()))
+        net_config = {'discovered': '127.0.0.1',
+                      'emu_iface': 'eth0',
+                      'emu_ipv4': '127.0.0.1',
+                      'lan_iface': 'eth1',
+                      'lan_ipv4': '127.0.0.1',
+                      'lan_ipv6': '::1',
+                      'mac': '01:23:45:67:89'}
 
-        MODEL.add_host('st1', '1', '127.0.0.1', 1111, 2222, {}, {})
-        MODEL.add_host('st3', '3', '127.0.0.1', 1111, 2222, {}, {})
+        MODEL.add_host('st1', '1', net_config, 1111, 2222, {}, {})
+        MODEL.add_host('st3', '3', net_config, 1111, 2222, {}, {})
         NAMES = ''
         for HOST in MODEL.get_hosts_list():
             NAMES = NAMES + HOST.get_name() + ", "

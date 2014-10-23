@@ -149,7 +149,7 @@ class AdvancedDialog(WindowView):
                 continue
 
             try:
-                adv.reload_conf()
+                adv.reload_conf(self._model.get_scenario())
             except ModelException, msg:
                 self._host_lock.release()
                 error_popup("error when reloading %s advanced configuration: %s"
@@ -296,9 +296,12 @@ class AdvancedDialog(WindowView):
         notebook = adv.get_conf_view()
         if notebook is None:
             notebook = ConfigurationNotebook(config,
+                                             name,
                                              self._model.get_dev_mode(),
+                                             self._model.get_scenario(),
                                              self._show_hidden,
-                                             self.handle_param_chanded)
+                                             self.handle_param_chanded,
+                                             self._model.handle_file_changed)
 
         adv.set_conf_view(notebook)
         if notebook != self._current_host_notebook:
@@ -357,9 +360,12 @@ class AdvancedDialog(WindowView):
         notebook = module.get_conf_view()
         if notebook is None:
             notebook = ConfigurationNotebook(config,
+                                             self._current_host.get_name().lower(),
                                              self._model.get_dev_mode(),
+                                             self._model.get_scenario(),
                                              self._show_hidden,
-                                             self.handle_param_chanded)
+                                             self.handle_param_chanded,
+                                             self._model.handle_file_changed)
         # TODO set tab label red if the host does not declare this module
 
         module.set_conf_view(notebook)
@@ -437,6 +443,8 @@ class AdvancedDialog(WindowView):
         self._saved = list(self._enabled)
         self._host_lock.release()
         gobject.idle_add(self._update_cb)
+        # tell model that file changed has been saved
+        self._model.conf_apply()
 
     def handle_param_chanded(self, source=None, event=None):
         """ 'changed' event on configuration value """
@@ -449,6 +457,8 @@ class AdvancedDialog(WindowView):
 
     def on_undo_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on undo button """
+        # tell model that file changed has been saved
+        self._model.conf_undo()
         # delete vbox to reload advanced configurations
         self.reset()
 
@@ -498,6 +508,7 @@ class AdvancedDialog(WindowView):
             if host.get_name() == name:
                 host.enable(True)
                 tree.set(iterator, ACTIVE, True)
+
 
 
 if __name__ == "__main__":

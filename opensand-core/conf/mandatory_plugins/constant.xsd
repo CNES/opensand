@@ -29,6 +29,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Threshold value for QEF communications (dB)
+                        <unit>dB</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -82,6 +82,7 @@ class HostController:
         """ get the name of host """
         return self._host_model.get_name().upper()
 
+
     def state_client(self):
         """ client that check for host state """
         # address of the state server
@@ -383,38 +384,15 @@ class HostController:
                                 (tool.get_name(), self.get_name()))
                 raise
 
-    def install_simulation_files(self, files, errors=[]):
-        """ send the simulation files """
+    def deploy_modified_files(self, files, errors=[]):
+        """ send some files """
         try:
             sock = self.connect_command('CONFIGURE')
             if sock is None:
                 return
 
-            for elem in files[self.get_name().lower()]:
-                src = elem[1]
-                dst = elem[2]
-                if src == '':
-                    self._log.warning("source for %s is empty, the file was"
-                                      " ignored" % elem[0])
-                    continue
-                if dst == '':
-                    self._log.warning("destination for %s is empty, the "
-                                      "file was ignored" % elem[0])
-                    continue
+            for (src, dst) in files:
                 self.send_file(sock, src, dst)
-            if 'global' in files:
-                for elem in files['global']:
-                    src = elem[1]
-                    dst = elem[2]
-                    if src == '':
-                        self._log.warning("source for %s is empty, the file"
-                                          " was ignored" % elem[0])
-                    elif dst == '':
-                        self._log.warning("destination for %s is empty, the"
-                                          " file was ignored" % elem[0])
-                    else:
-                        self.send_file(sock, src, dst)
-
             # send 'STOP' tag
             sock.send('STOP\n')
             self._log.debug("%s: send 'STOP'" % self.get_name())
@@ -707,3 +685,7 @@ class HostController:
     def get_interface_type(self):
         """ get the type of interface according to the stack """
         return self._host_model.get_interface_type()
+
+    def get_deploy_files(self, scenario):
+        """ get the files to deploy """
+        return self._host_model.get_deploy_files(scenario)

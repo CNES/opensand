@@ -36,6 +36,7 @@ config_elements.py - create configuration elements according to their types
 
 import gtk
 import gobject
+import os
 from copy import deepcopy
 
 from opensand_manager_core.my_exceptions import XmlException
@@ -424,13 +425,16 @@ class ConfigurationTree(gtk.TreeStore):
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
-    def __init__(self, config, dev_mode, show_hidden, changed_cb=None):
+    def __init__(self, config, host, dev_mode, scenario, show_hidden, changed_cb, file_cb):
         gtk.Notebook.__init__(self)
 
         self._config = config
+        self._host = host
         self._current_page = 0
         self._changed = []
         self._changed_cb = changed_cb
+        self._file_cb = file_cb
+        self._scenario = scenario
         self._dev_mode = dev_mode
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
@@ -549,9 +553,20 @@ class ConfigurationNotebook(gtk.Notebook):
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
         elt_type = self._config.get_type(name)
-        entry = ConfEntry(elt_type, self._config.get_value(key),
+        source = self._config.get_file_source(name)
+        if source is not None:
+            scenario = self._scenario
+            if self._host != 'global':
+                scenario = os.path.join(self._scenario, self._host)
+            source = os.path.join(scenario, source)
+
+        entry = ConfEntry(self._config.get_type(name),
+                          self._config.get_value(key),
                           self._config.get_path(key),
-                          [self.handle_param_chanded, self._changed_cb])
+                          source,
+                          self._host,
+                          [self.handle_param_chanded, self._changed_cb],
+                          self._file_cb)
         self._backup.append(entry)
 
         key_box.pack_start(entry.get())
@@ -683,17 +698,33 @@ class ConfigurationNotebook(gtk.Notebook):
             elt_type = self._config.get_attribute_type(att, name)
             value = ''
             path = ''
+            source = self._config.get_file_source(att, name)
             cb = [self.handle_param_chanded, self._changed_cb]
+            scenario = self._scenario
+            if self._host != 'global':
+                scenario = os.path.join(self._scenario, self._host)
+
             try:
-                path = '%s--%s' % (self._config.get_path(line), att)
+                line_path = self._config.get_path(line)
+                path = '%s/@%s' % (line_path, att)
+                pos = line_path.rfind('[')
+                line_id = line_path[pos:].strip('[]')
                 value = dic[att]
+                if source is not None:
+                    source += '_' + str(line_id)
+                    source = os.path.join(scenario, source)
             except:
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
-                path = '/%s/%s[%d]--%s' % (key_path, name,
+                path = '/%s/%s[%d]/@%s' % (key_path, name,
                                            nbr + self._new.count(key_path),
                                            att)
-            entry = ConfEntry(elt_type, value, path, cb)
+                # TODO this won't be enough as the file won't exist
+                if source is not None:
+                    source += '_' + str(nbr + self._new.count(key_path))
+                    source = os.path.join(scenario, source)
+            entry = ConfEntry(elt_type, value, path, source, self._host,
+                              cb, self._file_cb)
             if value == '':
                 # add new lines to changed list
                 if not entry in self._changed:
@@ -735,6 +766,7 @@ class ConfigurationNotebook(gtk.Notebook):
             if not source in self._changed:
                 self._changed.append(source)
 
+
     def save(self):
         """ save the configuration """
         if (len(self._changed) == 0 and
@@ -747,8 +779,10 @@ class ConfigurationNotebook(gtk.Notebook):
                 self._config.add_line(table)
 
             for entry in self._changed:
-                path = entry.get_name().split('--')
+                path = entry.get_name().split('/@')
                 val = entry.get_value()
+                if val is None:
+                    continue
                 if len(path) == 0 or len(path) > 2:
                     raise XmlException("wrong xpath %s" % path)
                 elif len(path) == 1:
@@ -848,15 +882,29 @@ class ConfigurationNotebook(gtk.Notebook):
 
 
 
-
+# About the specific case of files:
+# the value in configuration contains the file on destination but
+# we want to change the file here and deploy it on this destination.
+# Thus, we allow changing the source path here and the value in
+# configuration will remain unchanged
+# To be sure that the correct file will be on distant host, we
+# will deploy it (if something changed)  once the configuration will
+# be saved
+# Moreover, to be able to keep the correct source when restarting the manager
+# the file selected in source path is copied in the scenario in a path specified
+# in xsd file documentation between <file> tags
 class ConfEntry(object):
     """ element for configuration entry """
-    def __init__(self, entry_type, value, path, sig_handlers):
+    def __init__(self, entry_type, value, path, source, host,
+                 sig_handlers, file_handler):
         self._type = entry_type
         self._value = value
         self._path = path
+        self._source = source
+        self._host = host
         self._entry = None
         self._sig_handlers = sig_handlers
+        self._file_handler = file_handler
 
         type_name = ""
         if self._type is None:
@@ -934,14 +982,19 @@ class ConfEntry(object):
 
     def load_file(self):
         """ load a gtk.FileChooserButton """
-        self._entry = gtk.FileChooserButton(self._value + ' - OpenSAND')
-        self._entry.set_filename(self._value)
+        # there is a special case with files, see above
+        # In title, set the destination path
+        self._entry = gtk.FileChooserButton(title=self._value + ' - OpenSAND')
+        # Get the source file in scenario
+        if self._source is None:
+            error_popup("Missing XSD source content for file element")
+        else:
+            self._entry.set_filename(self._source)
         self._entry.connect('file-set', self.global_handler)
+        # specific handler here
+        self._entry.connect('file-set', self._file_handler, self._host,
+                            self._path)
         self._entry.set_size_request(200, -1)
-        def update_title(self):
-            """ file udpated """
-            self.set_title(self.get_filename() + ' - OpenSAND')
-        self._entry.connect('file-set', update_title)
 #        def update_preview_cb(file_chooser, preview):
 #            filename = file_chooser.get_preview_filename()
 #            try:
@@ -1002,7 +1055,8 @@ class ConfEntry(object):
         elif type_name == "numeric":
             return self._entry.get_text()
         elif type_name == "file":
-            return self._entry.get_filename()
+            # the destination files should not be modified
+            return None
         else:
             return self._entry.get_text()
 

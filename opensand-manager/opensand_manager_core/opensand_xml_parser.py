@@ -225,23 +225,56 @@ class XmlParser:
                                       encoding=self._tree.docinfo.encoding,
                                       xml_declaration=True))
 
-    def get_files(self):
-        """ get the file elements and their value """
+    def get_file_paths(self):
+        """ get the default and source values for all files to be able
+            to get them in current scenario """
+        files = []
+        # get elements of type file
+        nodes = self.get_file_elements("element")
+        for node in nodes:
+            elems = self.get_all("//%s" % node)
+            for elem in elems:
+                default = self.get_doc_param('/default', self.get_name(elem))
+                source = self.get_doc_param('/source', self.get_name(elem))
+                files.append((default, source))
+        # get attributes of type file
+        nodes = self.get_file_elements("attribute")
+        for node in nodes:
+            elems = self.get_all("//*[@%s]" % node)
+            for elem in elems:
+                default = self.get_doc_param('/default', node, self.get_name(elem))
+                source = self.get_doc_param('/source', node,
+                                            self.get_name(elem))
+                path = self.get_path(elem)
+                # get line ID in path
+                pos = path.rfind('[')
+                line = path[pos:].strip('[]')
+                files.append((default, "%s_%s" % (source, line)))
+        return files
+
+    def get_file_sources(self):
+        """ get the file elements depending on hosts and xpath and their
+            associated source value """
         files = {}
         # get elements of type file
         nodes = self.get_file_elements("element")
         for node in nodes:
             elems = self.get_all("//%s" % node)
             for elem in elems:
-                files["%s/text()" % self.get_path(elem)] = self.get_value(elem)
+                source = self.get_doc_param('/source', self.get_name(elem))
+                files[self.get_path(elem)] = source
         # get attributes of type file
         nodes = self.get_file_elements("attribute")
         for node in nodes:
             elems = self.get_all("//*[@%s]" % node)
             for elem in elems:
+                source = self.get_doc_param('/source', node,
+                                            self.get_name(elem))
                 path = self.get_path(elem)
-                files["%s/@%s" % (path, node)] = \
-                        self._tree.xpath("%s/@%s" % (path, node))[0]
+                # get line ID in path
+                pos = path.rfind('[')
+                line = path[pos:].strip('[]')
+                files["%s/@%s" % (path, node)] = "%s_%s" % (source, line)
         return files
 
     #### functions for XSD parsing ###
@@ -288,8 +321,8 @@ class XmlParser:
         else:
             return self.get_simple_type(att_type)
 
-    def get_documentation(self, name, parent_name=None):
-        """ get the description associated to an element """
+    def get_doc_param(self, param_name, name, parent_name=None):
+        """ get some parameters under configuration """
         if parent_name is not None:
             elem = self.get_attribute(name, parent_name)
         else:
@@ -298,91 +331,65 @@ class XmlParser:
         if elem is None:
             return None
 
-        doc = elem.xpath("xsd:annotation/xsd:documentation",
-                         namespaces=NAMESPACES)
-        if len(doc) != 1:
+        param = elem.xpath("xsd:annotation/xsd:documentation%s" % param_name,
+                           namespaces=NAMESPACES)
+        if len(param) != 1:
             # search in references
             elem = self.get_reference(name)
             if elem is not None:
-                doc = elem.xpath("xsd:annotation/xsd:documentation",
-                                 namespaces=NAMESPACES)
-            if len(doc) != 1:
+                param = elem.xpath("xsd:annotation/xsd:documentation%s" %
+                                     param_name,
+                                     namespaces=NAMESPACES)
+            if len(param) != 1:
                 return None
 
-        text = doc[0].text
+        return param[0].text
+
+    def get_documentation(self, name, parent_name=None):
+        """ get the description associated to an element """
+        doc = self.get_doc_param('', name, parent_name)
+        if doc is None:
+            return None
+
         # remove indentation
-        text = ' '.join(text.split())
+        text = ' '.join(doc.split())
         # set tabulations and newlines
         text = text.replace('\\n', '\n').replace('\\t', '\t')
         return text
 
     def get_unit(self, name, parent_name=None):
         """ get the unit of an element """
-        if parent_name is not None:
-            elem = self.get_attribute(name, parent_name)
-        else:
-            elem = self.get_element(name)
-
-        if elem is None:
+        unit = self.get_doc_param('/unit', name, parent_name)
+        if unit is None:
             return None
 
-        unit = elem.xpath("xsd:annotation/xsd:documentation/unit",
-                          namespaces=NAMESPACES)
-        if len(unit) != 1:
-            # search in references
-            elem = self.get_reference(name)
-            if elem is not None:
-                unit = elem.xpath("xsd:annotation/xsd:documentation/unit",
-                                  namespaces=NAMESPACES)
-            if len(unit) != 1:
-                return None
-
-        text = unit[0].text
         # remove indentation
-        text = ' '.join(text.split())
+        text = ' '.join(unit.split())
         # set tabulations and newlines
         text = text.replace('\\n', '\n').replace('\\t', '\t')
         return text
 
+    def get_file_source(self, name, parent_name=None):
+        """ get the default and source parameters on file """
+        return self.get_doc_param('/source', name, parent_name)
+
+
     def do_hide_dev(self, name, dev_mode):
         """ check if some widget should be hidden in non dev mode """
         # check if element should be hidden in non dev_mode
-        elem = self.get_element(name)
-        if elem is None:
-            return False
-        dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
-                         namespaces=NAMESPACES)
-        if len(dev) != 1:
-            # search in references
-            elem = self.get_reference(name)
-            if elem is not None:
-                dev = elem.xpath("xsd:annotation/xsd:documentation/dev",
-                                 namespaces=NAMESPACES)
-        if len(dev) == 1 and not dev_mode:
-            val = dev[0].text
-            if val == "true":
-                return True
+        dev = self.get_doc_param('/dev', name)
+        if dev is not None and not dev_mode and dev == "true":
+            return True
 
         return False
+
 
     def do_hide(self, name):
         """ check if som widget should be hidden """
         # check if element has a hide parameter activated
-        elem = self.get_element(name)
-        if elem is None:
-            return False
-        hide = elem.xpath("xsd:annotation/xsd:documentation/hide",
-                          namespaces=NAMESPACES)
-        if len(hide) != 1:
-            # search in references
-            elem = self.get_reference(name)
-            if elem is not None:
-                hide = elem.xpath("xsd:annotation/xsd:documentation/hide",
-                                  namespaces=NAMESPACES)
-        if len(hide) == 1:
-            val = hide[0].text
-            if val == "true":
-                return True
+        hide = self.get_doc_param('/hide', name)
+        if hide is not None and hide == "true":
+            return True
 
         return False
 
@@ -661,6 +668,9 @@ if __name__ == "__main__":
             PARSER.transform(sys.argv[3], False)
     except IndexError:
         pass
+
+    print "FILES:"
+    print PARSER.get_files()
 
     sys.exit(0)
 

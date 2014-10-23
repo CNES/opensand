@@ -302,6 +302,8 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         If simulation = file: use a file name or stdin
+                        <default>request_simu/dama.input</default>
+                        <source>dama.input</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

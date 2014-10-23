@@ -41,7 +41,6 @@ override_dh_install:
 	install -m 0644 conf/xsd/common.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/common.xsd
 
 	install -m 0644 conf/deploy.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/deploy.ini
-	install -m 0644 conf/simulation_files.ini $(CURDIR)/debian/opensand-core-all/usr/share/opensand/simulation_files.ini
 
 	# MODCOD files for manager
 	install -D -m 0644 conf/modcod/collective/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/collective
@@ -49,13 +48,13 @@ override_dh_install:
 	install -D -m 0644 conf/modcod/return/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/return
 	install -D -m 0644 conf/modcod/forward/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/forward
 	# MODCOD files for daemons
-	install -D -m 0644 conf/modcod/forward/definition.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_def.txt
-	install -D -m 0644 conf/modcod/forward/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_simu.txt
-	install -D -m 0644 conf/modcod/return/definition_MPEG.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_def.txt
-	install -D -m 0644 conf/modcod/return/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_simu.txt
+#	install -D -m 0644 conf/modcod/forward/definition.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_def.txt
+#	install -D -m 0644 conf/modcod/forward/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/down_forward_simu.txt
+#	install -D -m 0644 conf/modcod/return/definition_MPEG.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_def.txt
+#	install -D -m 0644 conf/modcod/return/clear_sky.txt $(CURDIR)/debian/opensand-core-bin/etc/opensand/modcod/up_return_simu.txt
 	# DAMA request simulation file
 	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-all/usr/share/opensand/request_simu/dama.input
-	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-bin/etc/opensand/simulation/dama.input
+#	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-bin/etc/opensand/simulation/dama.input
 
 	# Configuration for syslog/logrotate
 	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/opensand-core-bin/etc/rsyslog.d/opensand-core.conf
@@ -74,7 +73,8 @@ override_dh_install:
 	install -D -m 0644 conf/mandatory_plugins/constant.conf $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/plugins/constant.conf
 	install -D -m 0644 conf/mandatory_plugins/constant.xsd $(CURDIR)/debian/opensand-core-all/usr/share/opensand/sat/plugins/constant.xsd
 	# Attenuation example for daemons and manager
-	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-bin/etc/opensand/plugins/attenuation.csv
+#	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-bin/etc/opensand/plugins/up_attenuation.csv
+#	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-bin/etc/opensand/plugins/down_attenuation.csv
 	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-all/usr/share/opensand/plugins/attenuation.csv
 
 
