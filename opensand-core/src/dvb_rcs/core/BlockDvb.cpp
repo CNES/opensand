@@ -155,16 +155,16 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	    this->frames_per_superframe);
 
 	// frame duration
-	if(!Conf::getValue(GLOBAL_SECTION, DVB_F_DURATION,
-	                   this->frame_duration_ms))
+	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
+	                   this->ret_up_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, DVB_F_DURATION);
+		    GLOBAL_SECTION, RET_UP_FRAME_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "frame duration set to %d\n", this->frame_duration_ms);
+	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
 
 	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
 	{
@@ -174,23 +174,32 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// statistics timer
-	if(!Conf::getValue(PERF_SECTION, STATS_TIMER,
+	if(!Conf::getValue(GLOBAL_SECTION, STATS_TIMER,
 	                   this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PERF_SECTION, STATS_TIMER);
+		    GLOBAL_SECTION, STATS_TIMER);
 		goto error;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "statistics_timer set to %d\n",
-	    this->stats_period_ms);
 
 	return true;
 error:
 	return false;
 }
 
+
+void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
+{
+	// convert the pediod into a number of frames here to be
+	// precise when computing statistics
+	this->stats_period_frame = std::max(1, (int)round((double)this->stats_period_ms /
+	                                                  (double)frame_duration_ms));
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "statistics_timer set to %d, converted into %d frame(s)\n",
+	    this->stats_period_ms, this->stats_period_frame);
+	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
+}
 
 bool DvbChannel::initModcodFiles(const char *def, const char *simu)
 {
@@ -206,24 +215,24 @@ bool DvbChannel::initModcodFiles(const char *def,
 	string modcod_def_file;
 
 	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(GLOBAL_SECTION, simu,
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, simu,
 	                   modcod_simu_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    GLOBAL_SECTION, simu);
+		    PHYSICAL_LAYER_SECTION, simu);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
-	if(!Conf::getValue(GLOBAL_SECTION, def,
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, def,
 	                   modcod_def_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    GLOBAL_SECTION, def);
+		    PHYSICAL_LAYER_SECTION, def);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -292,6 +301,14 @@ error:
 }
 
 
+bool DvbChannel::doSendStats(void)
+{
+	bool res = (this->check_send_stats == 0);
+	this->check_send_stats = (this->check_send_stats + 1)
+	                          % this->stats_period_frame;
+	return res;
+}
+
 
 BlockDvb::DvbUpward::~DvbUpward()
 {
@@ -306,25 +323,25 @@ BlockDvb::DvbUpward::~DvbUpward()
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer
-	if(!Conf::getValue(PERF_SECTION, FWD_TIMER,
-	                   this->fwd_timer_ms))
+	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION,
+	                   this->fwd_down_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PERF_SECTION, FWD_TIMER);
+		    GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "forward timer set to %u\n",
-	    this->fwd_timer_ms);
+	    this->fwd_down_frame_duration_ms);
 
 	// scenario refresh interval
-	if(!Conf::getValue(GLOBAL_SECTION, DVB_SCENARIO_REFRESH,
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
 	                   this->dvb_scenario_refresh))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, DVB_SCENARIO_REFRESH);
+		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

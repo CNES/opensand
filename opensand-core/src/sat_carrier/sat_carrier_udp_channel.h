@@ -35,12 +35,18 @@
 #ifndef SAT_CARRIER_UDP_CHANNEL_H
 #define SAT_CARRIER_UDP_CHANNEL_H
 
-#include "sat_carrier_channel.h"
-
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
+#include <opensand_rt/Rt.h>
 
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <vector>
+#include <linux/if_packet.h>
+#include <net/if.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+
 
 
 class UdpStack;
@@ -49,7 +55,7 @@ class UdpStack;
  * @class sat_carrier_udp_channel
  * @brief UDP satellite carrier channel
  */
-class sat_carrier_udp_channel: public sat_carrier_channel
+class sat_carrier_udp_channel
 {
  public:
 
@@ -66,12 +72,28 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	~sat_carrier_udp_channel();
 
-	int getChannelFd();
+	bool isInit();
 
+	unsigned int getChannelID();
+
+	bool isInputOk();
+
+	bool isOutputOk();
+
+	/**
+	 * @brief Send data on the satellite carrier
+	 *
+	 * @param data        The data to send
+	 * @param length      The length of the data
+	 * @return true on success, false otherwise
+	 */
 	bool send(const unsigned char *data, size_t length);
-
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);
+
+	int getIfIndex(const char *name);
+
+	int getChannelFd();
 
 	/**
 	 * @brief Get the next stacked packet
@@ -94,6 +116,18 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 	                 uint8_t counter, UdpStack *stack);
 
  protected:
+
+	/// the ID of the channel
+	int m_channelID;
+
+	/// if channel accept input
+	bool m_input;
+
+	/// if channel accept output
+	bool m_output;
+
+	/// is the channel well initialized
+	bool init_success;
 
 	/// the socket which defines the channel
 	int sock_channel;
@@ -133,6 +167,10 @@ class sat_carrier_udp_channel: public sat_carrier_channel
 
 	/// The maximum number of packets buffered in the software stack before sending content
 	unsigned int max_stack;
+
+	/// Output Log
+	OutputLog *log_sat_carrier;
+	OutputLog *log_init;
 };
 
 /*

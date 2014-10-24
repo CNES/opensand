@@ -43,6 +43,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <unistd.h>
+//#include <netinet/in.h>
 
 
 /**
@@ -62,9 +63,6 @@
  *                            stack before sending content
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
-
- *
- * @see sat_carrier_channel::sat_carrier_channel()
  */
 sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  bool input,
@@ -77,7 +75,10 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  unsigned int stack,
                                                  unsigned int rmem,
                                                  unsigned int wmem):
-	sat_carrier_channel(channelID, input, output),
+	m_channelID(channelID),
+	m_input(input),
+	m_output(output),
+	init_success(false),
 	sock_channel(-1),
 	m_multicast(multicast),
 	stacked_ip(""),
@@ -87,6 +88,11 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
 	struct ip_mreq imr;
 	unsigned char ttl = 1;
 	int one = 1;
+
+	// Output log
+	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
+	                                            "SatCarrier.Channel");
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
@@ -267,6 +273,82 @@ sat_carrier_udp_channel::~sat_carrier_udp_channel()
 		delete (*it).second;
 	}
 	this->stacks.clear();
+}
+
+
+/**
+ * Check if the channel was correctly created
+ */
+bool sat_carrier_udp_channel::isInit()
+{
+	return this->init_success;
+}
+
+/**
+ * Get the ID of the channel
+ * @return the channel ID
+ */
+unsigned int sat_carrier_udp_channel::getChannelID()
+{
+	return (m_channelID);
+}
+
+/**
+ * Get if the channel accept input
+ * @return true if channel accept input
+ */
+bool sat_carrier_udp_channel::isInputOk()
+{
+	return (m_input);
+}
+
+/**
+ * Get if the channel accept output
+ * @return true if channel accept output
+ */
+bool sat_carrier_udp_channel::isOutputOk()
+{
+	return (m_output);
+}
+
+/**
+ * Get the index of a network interface
+ * @param name the name of the interface
+ * @return the index of the interface if successful, -1 otherwise
+ */
+int sat_carrier_udp_channel::getIfIndex(const char *name)
+{
+	int sock;
+	ifreq ifr;
+	int index = -1;
+
+	// open the network interface socket
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+	if(sock < 0)
+	{
+		LOG(this->log_sat_carrier, LEVEL_ERROR,
+		    "cannot create an INET socket: "
+		    "(%s:%d)\n", strerror(errno), errno);
+		goto exit;
+	}
+
+	// get the network interface index
+	bzero(&ifr, sizeof(ifreq));
+	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name) - 1);
+	if(ioctl(sock, SIOGIFINDEX, &ifr) < 0)
+	{
+		LOG(this->log_sat_carrier, LEVEL_ERROR,
+		    "cannot get the network interface "
+		    "index: %s (%d)\n", strerror(errno), errno);
+		goto close;
+	}
+
+	index = ifr.ifr_ifindex;
+
+close:
+	close(sock);
+exit:
+	return index;
 }
 
 /**

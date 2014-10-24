@@ -154,12 +154,12 @@ bool BlockLanAdaptation::onInit(void)
 bool BlockLanAdaptation::Downward::onInit(void)
 {
 	// statistics timer
-	if(!Conf::getValue(PERF_SECTION, STATS_TIMER,
+	if(!Conf::getValue(GLOBAL_SECTION, STATS_TIMER,
 	                   this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PERF_SECTION, STATS_TIMER);
+		    GLOBAL_SECTION, STATS_TIMER);
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

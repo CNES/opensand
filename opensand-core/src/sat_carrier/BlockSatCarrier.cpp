@@ -164,8 +164,8 @@ bool BlockSatCarrier::onInit(void)
 
 bool BlockSatCarrier::Upward::onInit(void)
 {
-	vector<sat_carrier_channel *>::iterator it;
-	sat_carrier_channel *channel;
+	vector<sat_carrier_udp_channel *>::iterator it;
+	sat_carrier_udp_channel *channel;
 
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr,

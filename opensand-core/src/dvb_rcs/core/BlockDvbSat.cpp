@@ -321,8 +321,8 @@ bool BlockDvbSat::Downward::onInit()
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE)
 	{
-		if(!this->initModcodFiles(DOWN_FORWARD_MODCOD_DEF,
-		                          DOWN_FORWARD_MODCOD_SIMU))
+		if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+		                          FORWARD_DOWN_MODCOD_TIME_SERIES))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to complete the modcod part of the "
@@ -353,6 +353,8 @@ bool BlockDvbSat::Downward::onInit()
 		    "link parameters");
 		return false;
 	}
+
+	this->initStatsTimer(this->fwd_down_frame_duration_ms);
 
 	if(!this->initOutput())
 	{
@@ -389,7 +391,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 		// TODO no need of tal_aff and dflt_cat in attributes
 		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
 		                                         TDM,
-		                                         this->fwd_timer_ms,
+		                                         this->fwd_down_frame_duration_ms,
 		                                         this->fmt_simu.getModcodDefinitions(),
 		                                         this->categories,
 		                                         this->terminal_affectation,
@@ -416,7 +418,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 			spot = i_spot->second;
 			TerminalCategoryDama *category = this->categories.begin()->second;
 
-			if(!spot->initScheduling(this->fwd_timer_ms,
+			if(!spot->initScheduling(this->fwd_down_frame_duration_ms,
 			                         this->pkt_hdl,
 			                         &this->fmt_simu,
 			                         category))
@@ -436,10 +438,7 @@ bool BlockDvbSat::Downward::initTimers(void)
 {
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
-	                                       this->fwd_timer_ms);
-
-	this->stats_timer = this->addTimerEvent("dvb_stats",
-	                                        this->stats_period_ms);
+	                                       this->fwd_down_frame_duration_ms);
 
 	if(this->satellite_type == REGENERATIVE && !this->with_phy_layer)
 	{
@@ -700,6 +699,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 		{
 			if(*event == this->fwd_timer)
 			{
+				this->updateStats();
 				// Update stats and probes
 				if(this->probe_frame_interval->isEnabled())
 				{
@@ -783,10 +783,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 			}
-			else if(*event == this->stats_timer)
-			{
-				this->updateStats();
-			}
 			else if(*event == this->scenario_timer)
 			{
 				LOG(this->log_receive, LEVEL_DEBUG,
@@ -860,8 +856,11 @@ error:
 
 void BlockDvbSat::Downward::updateStats(void)
 {
+	if(!this->doSendStats())
+	{
+		return;
+	}
 	// Update stats and probes
-
 	sat_spots_t::iterator spot_it;
 	for (spot_it = this->spots.begin(); spot_it != spots.end(); ++spot_it)
 	{

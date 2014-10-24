@@ -36,7 +36,6 @@
 #define SAT_CARRIER_CHANNEL_SET_H
 
 
-#include "sat_carrier_channel.h"
 #include "sat_carrier_udp_channel.h"
 #include "OpenSandCore.h"
 
@@ -50,7 +49,7 @@
  * @brief This implements a set of satellite carrier channels
  */
 // TODO why not a map<fd, carrier>?
-class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
+class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 {
  public:
 
@@ -125,9 +124,6 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_channel * >
 	// Output Log
 	OutputLog *log_init;
 	OutputLog *log_sat_carrier;
-
-	// type of the socket (udp or ethernet)
-	std::string socket_type;
 };
 
 #endif

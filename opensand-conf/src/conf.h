@@ -55,15 +55,10 @@
 
 #define SAT_DELAY                 "delay"
 
-#define DVB_F_DURATION            "frame_duration"
+#define RET_UP_FRAME_DURATION     "return_up_frame_duration"
+#define FWD_DOWN_FRAME_DURATION   "forward_down_frame_duration"
 
-
-#define DOWN_FORWARD_MODCOD_DEF   "down_forward_modcod_def"
-#define DOWN_FORWARD_MODCOD_SIMU  "down_forward_modcod_simu"
-#define UP_RETURN_MODCOD_DEF      "up_return_modcod_def"
-#define UP_RETURN_MODCOD_SIMU     "up_return_modcod_simu"
-
-#define DVB_SCENARIO_REFRESH      "dvb_scenario_refresh"
+#define STATS_TIMER      "statistics_timer"
 
 /////////////////////////
 //   section dvb_rcs   //
@@ -201,7 +196,7 @@
 /////////////////////////
 
 #define SALOHA_SECTION                 "slotted_aloha"
-#define SALOHA_FPSAF                   "superframes_per_saframe"
+#define SALOHA_FPSAF                   "superframes_per_slotted_aloha_frame"
 #define SALOHA_NB_MAX_PACKETS          "nb_max_packets"
 #define SALOHA_TIMEOUT                 "timeout"
 #define SALOHA_NB_MAX_RETRANSMISSIONS  "nb_max_retransmissions"
@@ -252,6 +247,13 @@
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
 #define NOMINAL_CONDITION         "nominal_condition"
 #define GRANULARITY               "granularity"
+#define FORWARD_DOWN_MODCOD_DEF_S2        "forward_down_modcod_def_s2"
+#define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
+#define RETURN_UP_MODCOD_DEF_RCS          "return_up_modcod_def_rcs"
+#define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
+
+#define ACM_PERIOD_REFRESH         "acm_period_refresh"
+
 
 /////////////////
 // SAT Carrier //
@@ -266,18 +268,14 @@
 #define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
 #define CARRIER_DISABLED    "disabled_on"
-#define SOCKET_TYPE         "socket_type"
-#define UDP                 "SOCK_DGRAM"
 
 /////////////////////////
-//         perf        //
+//         dev         //
 /////////////////////////
-#define PERF_SECTION     "perf"
+#define DEV_SECTION      "dev"
 #define UDP_RMEM         "udp_rmem"
 #define UDP_WMEM         "udp_wmem"
 #define UDP_STACK        "udp_stack"
-#define FWD_TIMER        "forward_timer"
-#define STATS_TIMER      "statistics_timer"
 
 /////////////////
 //    Debug    //

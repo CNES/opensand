@@ -83,11 +83,13 @@ class DvbChannel: public RtChannel
 		super_frame_counter(0),
 		frames_per_superframe(-1),
 		frame_counter(0),
-		frame_duration_ms(),
+		fwd_down_frame_duration_ms(),
+		ret_up_frame_duration_ms(),
 		pkt_hdl(NULL),
 		fmt_simu(),
 		stats_period_ms(),
-		stats_timer(-1)
+		stats_period_frame(),
+		check_send_stats(0)
 	{
 	};
 
@@ -120,6 +122,14 @@ class DvbChannel: public RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool initCommon(const char *encap_schemes);
+
+	/**
+	 * @brief Init the timer for statistics
+	 *
+	 * @param frame_duration_ms  The frame duration that will be used to
+	 *                           adujst the timer
+	 */
+	void initStatsTimer(time_ms_t frame_duration_ms);
 
 	/**
 	 * @brief Read configuration for the MODCOD definition/simulation files
@@ -204,6 +214,13 @@ class DvbChannel: public RtChannel
 	                NetContainer *data,
 	                time_ms_t fifo_delay);
 
+	/**
+	 * @brief Whether it is time to send statistics or not
+	 *
+	 * @return true if statistics shoud be sent, false otherwise
+	 */
+	bool doSendStats(void);
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -219,8 +236,9 @@ class DvbChannel: public RtChannel
 	/// the current frame number inside the current super frame
 	time_frame_t frame_counter; // from 1 to frames_per_superframe
 
-	/// the frame duration
-	time_ms_t frame_duration_ms;
+	/// the frame durations
+	time_ms_t fwd_down_frame_duration_ms;
+	time_ms_t ret_up_frame_duration_ms;
 
 	/// The encapsulation packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
@@ -230,9 +248,11 @@ class DvbChannel: public RtChannel
 
 	/// The statistics period
 	time_ms_t stats_period_ms;
+	time_frame_t stats_period_frame;
 
-	/// Statistics timer
-	event_id_t stats_timer;
+ private:
+	/// Whether we can send stats or not (can send stats when 0)
+	time_frame_t check_send_stats;
 };
 
 

@@ -327,6 +327,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 		goto error;
 	}
 
+	this->initStatsTimer(this->fwd_down_frame_duration_ms);
+
 	if(!this->initOutput())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -464,7 +466,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 			    str_config.c_str());
 			this->simulate = file_simu;
 			this->simu_timer = this->addTimerEvent("simu_file",
-			                                       this->frame_duration_ms);
+			                                       this->ret_up_frame_duration_ms);
 		}
 	}
 	else if(str_config == "random")
@@ -501,7 +503,7 @@ bool BlockDvbNcc::Downward::initRequestSimulation(void)
 		}
 		this->simulate = random_simu;
 		this->simu_timer = this->addTimerEvent("simu_random",
-		                                       this->frame_duration_ms);
+		                                       this->ret_up_frame_duration_ms);
 		srandom(times(NULL));
 	}
 	else
@@ -522,12 +524,9 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
 	this->frame_timer = this->addTimerEvent("frame",
-	                                        this->frame_duration_ms);
+	                                        this->ret_up_frame_duration_ms);
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
-	                                      this->fwd_timer_ms);
-	this->stats_timer = this->addTimerEvent("dvb_stats",
-	                                        this->stats_period_ms);
-
+	                                      this->fwd_down_frame_duration_ms);
 
 	// Launch the timer in order to retrieve the modcods if there is no physical layer
 	// or to send SAC with ACM parameters in regenerative mode
@@ -639,7 +638,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 	{
 		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
 		                                         TDM,
-		                                         this->fwd_timer_ms,
+		                                         this->fwd_down_frame_duration_ms,
 		                                         this->down_fwd_fmt_simu.getModcodDefinitions(),
 		                                         this->categories,
 		                                         this->terminal_affectation,
@@ -666,7 +665,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 		}
 
 		cat = this->categories.begin()->second;
-		this->scheduling = new ForwardSchedulingS2(this->fwd_timer_ms,
+		this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
 		                                           this->pkt_hdl,
 		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
@@ -676,7 +675,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 	{
 		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 		                                         DAMA,
-		                                         this->frame_duration_ms * 
+		                                         this->ret_up_frame_duration_ms * 
 		                                           this->frames_per_superframe,
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
 		                                         this->categories,
@@ -780,16 +779,16 @@ error:
 
 bool BlockDvbNcc::Downward::initModcodSimu(void)
 {
-	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
-	                          UP_RETURN_MODCOD_SIMU,
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
+	                          RETURN_UP_MODCOD_TIME_SERIES,
 	                          this->up_ret_fmt_simu))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
 		goto error;
 	}
-	if(!this->initModcodFiles(DOWN_FORWARD_MODCOD_DEF,
-	                          DOWN_FORWARD_MODCOD_SIMU,
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
 	                          this->down_fwd_fmt_simu))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -860,7 +859,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	{
 		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 		                                         DAMA,
-		                                         this->frame_duration_ms *
+		                                         this->ret_up_frame_duration_ms *
 		                                           this->frames_per_superframe,
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
 		                                         dc_categories,
@@ -931,7 +930,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
-	if(!this->dama_ctrl->initParent(this->frame_duration_ms,
+	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->frames_per_superframe,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -1220,6 +1219,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			    "timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
+				this->updateStats();
 				if(this->probe_frame_interval->isEnabled())
 				{
 					timeval time = event->getAndSetCustomTime();
@@ -1344,10 +1344,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// for each terminal in DamaCtrl update FMT
 					this->dama_ctrl->updateFmt();
 				}
-			}
-			else if(*event == this->stats_timer)
-			{
-				this->updateStats();
 			}
 			else if(*event == this->simu_timer)
 			{
@@ -1982,6 +1978,10 @@ void BlockDvbNcc::Downward::simulateRandom(void)
 
 void BlockDvbNcc::Downward::updateStats(void)
 {
+	if(!this->doSendStats())
+	{
+		return;
+	}
 	// Update stats on the GW
 	if(this->dama_ctrl)
 	{
@@ -2127,6 +2127,8 @@ bool BlockDvbNcc::Upward::onInit(void)
 		goto error;
 	}
 
+	// synchronized with SoF
+	this->initStatsTimer(this->ret_up_frame_duration_ms);
 
 	if(!this->initOutput())
 	{
@@ -2135,9 +2137,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 		    "statistics\n");
 		goto error_mode;
 	}
-
-	this->stats_timer = this->addTimerEvent("dvb_stats",
-	                                        this->stats_period_ms);
 
 	// create and send a "link is up" message to upper layer
 	link_is_up = new T_LINK_UP;
@@ -2182,8 +2181,8 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 	int lan_scheme_nbr;
 
 	// init fmt_simu
-	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
-	                          UP_RETURN_MODCOD_SIMU))
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
+	                          RETURN_UP_MODCOD_TIME_SERIES))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
@@ -2192,7 +2191,7 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 
 	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
 	                                           ALOHA,
-	                                           this->frame_duration_ms *
+	                                           this->ret_up_frame_duration_ms *
 	                                             this->frames_per_superframe,
 	                                           this->fmt_simu.getModcodDefinitions(),
 	                                           sa_categories,
@@ -2269,7 +2268,7 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->frame_duration_ms,
+	if(!this->saloha->initParent(this->ret_up_frame_duration_ms,
 	                             // pkt_hdl is the up_ret one because transparent sat
 	                             this->pkt_hdl))
 	{
@@ -2372,13 +2371,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
-
-		case evt_timer:
-			if(*event == this->stats_timer)
-			{
-				this->updateStats();
-			}
-			break;
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -2497,6 +2489,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		case MSG_TYPE_SOF:
 		{
+			this->updateStats();
 			this->frame_counter++;
 			// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
 			if(this->saloha)
@@ -2666,6 +2659,10 @@ bool BlockDvbNcc::Upward::onRcvLogoffReq(DvbFrame *dvb_frame)
 
 void BlockDvbNcc::Upward::updateStats(void)
 {
+	if(!this->doSendStats())
+	{
+		return;
+	}
 	this->probe_gw_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8.0 / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;

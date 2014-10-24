@@ -252,6 +252,8 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
+	this->initStatsTimer(this->ret_up_frame_duration_ms);
+
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
 	{
@@ -505,8 +507,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init fmt_simu
-	if(!this->initModcodFiles(UP_RETURN_MODCOD_DEF,
-	                          UP_RETURN_MODCOD_SIMU))
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
+	                          RETURN_UP_MODCOD_TIME_SERIES))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
@@ -515,7 +517,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 	                                         DAMA,
-	                                         this->frame_duration_ms *
+	                                         this->ret_up_frame_duration_ms *
 	                                           this->frames_per_superframe,
 	                                         this->fmt_simu.getModcodDefinitions(),
 	                                         dama_categories,
@@ -690,7 +692,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// Initialize the DamaAgent parent class
-	if(!this->dama_agent->initParent(this->frame_duration_ms,
+	if(!this->dama_agent->initParent(this->ret_up_frame_duration_ms,
 	                                 this->fixed_bandwidth,
 	                                 this->max_rbdc_kbps,
 	                                 rbdc_timeout_sf,
@@ -757,7 +759,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
 	                                           ALOHA,
-	                                           this->frame_duration_ms *
+	                                           this->ret_up_frame_duration_ms *
 	                                             this->frames_per_superframe,
 	                                           this->fmt_simu.getModcodDefinitions(),
 	                                           sa_categories,
@@ -860,7 +862,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->frame_duration_ms,
+	if(!this->saloha->initParent(this->ret_up_frame_duration_ms,
 	                             this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -984,11 +986,9 @@ bool BlockDvbTal::Downward::initTimers(void)
 	                                        );
 	this->frame_timer = this->addTimerEvent("frame",
 	                                        DVB_TIMER_ADJUST(
-	                                            this->frame_duration_ms),
+	                                            this->ret_up_frame_duration_ms),
 	                                        false,
 	                                        false);
-	this->stats_timer = this->addTimerEvent("dvb_stats",
-	                                        this->stats_period_ms);
 
 	// QoS Server: check connection status in 5 seconds
 	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
@@ -1120,8 +1120,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			{
 				int nbFreeFrames = (*it).second->getMaxSize() -
 				                   (*it).second->getCurrentSize();
-				int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8; // bits
-				float macRate = nbFreeBits / this->frame_duration_ms ; // bits/ms or kbits/s
+				// bits
+				int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
+				// bits/ms or kbits/s
+				float macRate = nbFreeBits / this->ret_up_frame_duration_ms ;
 				oss << "File=\"" << (int) macRate << "\" ";
 				message.append(oss.str());
 				oss.str("");
@@ -1145,6 +1147,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		case evt_timer:
 			if(*event == this->frame_timer)
 			{
+				this->updateStats();
 				// beginning of a new frame
 				if(this->state == state_running)
 				{
@@ -1179,10 +1182,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					    this->mac_id);
 					this->sendLogonReq();
 				}
-			}
-			else if(*event == this->stats_timer)
-			{
-				this->updateStats();
 			}
 			else if(*event == this->qos_server_timer)
 			{
@@ -1611,6 +1610,11 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 
 void BlockDvbTal::Downward::updateStats(void)
 {
+	if(!this->doSendStats())
+	{
+		return;
+	}
+
 	if(this->dama_agent)
 	{
 		this->dama_agent->updateStatistics(this->stats_period_ms);
@@ -1879,6 +1883,8 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
 			{
+				this->updateStats();
+
 				struct timeval time = event->getTimeFromCustom();
 				float val = time.tv_sec * 1000000L + time.tv_usec;
 				event->setCustomTime();
@@ -1902,13 +1908,6 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
-
-		case evt_timer:
-			if(*event == this->stats_timer)
-			{
-				this->updateStats();
-			}
-			break;
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -1949,8 +1948,8 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
-	this->stats_timer = this->addTimerEvent("dvb_stats",
-	                                        this->stats_period_ms);
+	// we synchornize with SoF reception so use ther return frame duration here
+	this->initStatsTimer(this->ret_up_frame_duration_ms);
 
 	return true;
 }
@@ -2242,6 +2241,11 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 
 void BlockDvbTal::Upward::updateStats(void)
 {
+	if(!this->doSendStats())
+	{
+		return;
+	}
+
 	this->probe_st_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8 / this->stats_period_ms);
 

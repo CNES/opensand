@@ -309,13 +309,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for sat_carrier section -->
-<xsd:simpleType name="socketType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="SOCK_DGRAM"/>
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- the columns for simulation_column section -->
 <xsd:element name="columns">
     <xsd:complexType>
@@ -355,8 +348,7 @@
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
-            <xsd:element ref="sat_carrier" />
-            <xsd:element ref="perf" />
+            <xsd:element ref="dev" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -392,54 +384,18 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="down_forward_modcod_def" type="file">
+            <xsd:element name="return_up_frame_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The MODCOD definition file for down/forward link
-                        <default>modcod/forward/definition.txt</default>
-                        <source>modcod/down_forward_def.txt</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="down_forward_modcod_simu" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation file for down/forward link
-                        <default>modcod/forward/clear_sky.txt</default>
-                        <source>modcod/down_forward_simu.txt</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="up_return_modcod_def" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD definition file for up/return link
-                        <default>modcod/return/definition_MPEG.txt</default>
-                        <source>modcod/up_return_def.txt</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="up_return_modcod_simu" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation file for up/return link
-                        <default>modcod/return/clear_sky.txt</default>
-                        <source>modcod/up_return_simu.txt</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="dvb_scenario_refresh" type="msTime">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        How often do we refresh the adaptive physical layer scenario (ms)
+                        The return/up link DVB frame duration (in ms)
                         <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="frame_duration" type="msTimeFrame">
+            <xsd:element name="forward_down_frame_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The DVB frame duration (in ms)
+                        The forward/down link DVB frame duration (in ms)
                         <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
@@ -457,6 +413,14 @@
                     <xsd:documentation xml:lang="en">
                         The down/forward link encapsulation scheme
                         <hide>true</hide>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="statistics_timer" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The timer used for statistics (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -613,10 +577,11 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="superframes_per_saframe" type="xsd:positiveInteger">
+            <xsd:element name="superframes_per_slotted_aloha_frame" type="xsd:positiveInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The number of DVB superframe per Slotted Aloha frame 
+                        <unit>DVB superframes</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -632,6 +597,7 @@
             <b>The number of the column corresponding to each terminal in the DRA
             and MODCOD simulation files</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -675,25 +641,47 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- sat_carrier section description -->
-<xsd:element name="sat_carrier">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>The satellite carriers description</b>
-            ]]>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="socket_type" type="socketType">
+            <xsd:element name="forward_down_modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The type of the socket
+                        The MODCOD definition file for S2 forward/down link
+                        <default>modcod/forward/definition.txt</default>
+                        <source>modcod/forward_down_def_s2.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="forward_down_modcod_time_series" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD simulation time series for forward/down link
+                        <default>modcod/forward/clear_sky.txt</default>
+                        <source>modcod/forward_down_time_series.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="return_up_modcod_def_rcs" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD definition file for RCS return/up link
+                        <default>modcod/return/definition_MPEG.txt</default>
+                        <source>modcod/return_up_def_rcs.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="return_up_modcod_time_series" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD simulation time series for return/up link
+                        <default>modcod/return/clear_sky.txt</default>
+                        <source>modcod/return_up_time_series.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="acm_period_refresh" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        How often do we refresh the adaptive physical layer scenario (ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -701,8 +689,8 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- perf section description -->
-<xsd:element name="perf">
+<!-- dev section description -->
+<xsd:element name="dev">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
@@ -733,23 +721,6 @@
                     <xsd:documentation xml:lang="en">
                         The size of the UDP stack in satellite carrier
                         (max 255 but keep it small)
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="forward_timer" type="msTime">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The timer used for forward link emission and for
-                        satellite fifo handling (in ms)
-                        <unit>ms</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="statistics_timer" type="msTime">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The timer used for statistics (in ms)
-                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -41,7 +41,7 @@
  * Create an empty set of satellite carrier channels
  */
 sat_carrier_channel_set::sat_carrier_channel_set():
-	std::vector < sat_carrier_channel * >()
+	std::vector < sat_carrier_udp_channel * >()
 {
 	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
 	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
@@ -50,7 +50,7 @@ sat_carrier_channel_set::sat_carrier_channel_set():
 
 sat_carrier_channel_set::~sat_carrier_channel_set()
 {
-	std::vector < sat_carrier_channel * >::iterator it;
+	std::vector < sat_carrier_udp_channel * >::iterator it;
 
 	for(it = this->begin(); it != this->end(); it++)
 		delete(*it);
@@ -65,16 +65,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	ConfigurationList carrier_list;
 	ConfigurationList::iterator iter;
 
-	// get transmission type
-	if(!Conf::getValue(SATCAR_SECTION, SOCKET_TYPE,
-	                   this->socket_type))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Can't get socket type from section %s, %s\n",
-		    SATCAR_SECTION, SOCKET_TYPE);
-		goto error;
-	}
-
 	// get satellite channels from configuration
 	if(!Conf::getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 	{
@@ -87,7 +77,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	i = 0;
 	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 	{
-		sat_carrier_channel *channel;
+		sat_carrier_udp_channel *channel;
 		string strConfig;
 		int carrier_id = 0;
 		long carrier_port = 0;
@@ -206,65 +196,55 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		// if for a a channel in=false and out=false channel is not active
 		if(is_input || is_output)
 		{
-			if(this->socket_type == UDP)
-			{
-				unsigned int stack;
-				unsigned int rmem;
-				unsigned int wmem;
+			unsigned int stack;
+			unsigned int rmem;
+			unsigned int wmem;
 
-				// get UDP stack
-				if(!Conf::getValue(PERF_SECTION, UDP_STACK,
-				                   stack))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s missing\n",
-					    PERF_SECTION, UDP_STACK);
-					goto error;
-				}
-				// get rmem
-				if(!Conf::getValue(PERF_SECTION, UDP_RMEM,
-				                   rmem))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s missing\n",
-					    PERF_SECTION, UDP_RMEM);
-					goto error;
-				}
-				// get wmem
-				if(!Conf::getValue(PERF_SECTION, UDP_WMEM,
-				                   wmem))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s missing\n",
-					    PERF_SECTION, UDP_WMEM);
-					goto error;
-				}
-				// create a new udp channel configure it, with information from file
-				// and insert it in the channels vector
-				channel = new sat_carrier_udp_channel(carrier_id,
-				                                      is_input,
-				                                      is_output,
-				                                      interface_name,
-				                                      carrier_port,
-				                                      carrier_multicast,
-				                                      local_ip_addr,
-				                                      carrier_ip,
-				                                      stack, rmem, wmem);
-				if(!channel->isInit())
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "failed to create UDP channel %d\n", i);
-					goto error;
-				}
-				this->push_back(channel);
-			}
-			else
+			// get UDP stack
+			if(!Conf::getValue(DEV_SECTION, UDP_STACK,
+			                   stack))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "Wrong socket type: %s\n",
-				    this->socket_type.c_str());
+				    "Section %s, %s missing\n",
+				    DEV_SECTION, UDP_STACK);
 				goto error;
 			}
+			// get rmem
+			if(!Conf::getValue(DEV_SECTION, UDP_RMEM,
+			                   rmem))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Section %s, %s missing\n",
+				    DEV_SECTION, UDP_RMEM);
+				goto error;
+			}
+			// get wmem
+			if(!Conf::getValue(DEV_SECTION, UDP_WMEM,
+			                   wmem))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Section %s, %s missing\n",
+				    DEV_SECTION, UDP_WMEM);
+					goto error;
+			}
+			// create a new udp channel configure it, with information from file
+			// and insert it in the channels vector
+			channel = new sat_carrier_udp_channel(carrier_id,
+			                                      is_input,
+			                                      is_output,
+			                                      interface_name,
+			                                      carrier_port,
+			                                      carrier_multicast,
+			                                      local_ip_addr,
+			                                      carrier_ip,
+			                                      stack, rmem, wmem);
+			if(!channel->isInit())
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to create UDP channel %d\n", i);
+				goto error;
+			}
+			this->push_back(channel);
 		}
 	}
 
@@ -290,7 +270,7 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
                                    const unsigned char *data,
                                    size_t length)
 {
-	std::vector <sat_carrier_channel *>::const_iterator it;
+	std::vector <sat_carrier_udp_channel *>::const_iterator it;
 	bool status;
 
 	for(it = this->begin(); it != this->end(); ++it)
@@ -322,7 +302,7 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
                                      size_t &op_len)
 {
 	int ret = -1;
-	std::vector < sat_carrier_channel * >::iterator it;
+	std::vector < sat_carrier_udp_channel * >::iterator it;
 
 	op_len = 0;
 	op_carrier = 0;
@@ -369,7 +349,7 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 */
 int sat_carrier_channel_set::getChannelFdByChannelId(unsigned int i_channel)
 {
-	std::vector < sat_carrier_channel * >::iterator it;
+	std::vector < sat_carrier_udp_channel * >::iterator it;
 	int ret = -1;
 
 	for(it = this->begin(); it != this->end(); it++)

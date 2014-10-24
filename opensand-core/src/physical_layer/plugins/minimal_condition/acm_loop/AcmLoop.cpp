@@ -88,14 +88,14 @@ bool AcmLoop::init(void)
 	if(compo == terminal ||
 	   (sat_type == REGENERATIVE && compo == gateway))
 	{
-		modcod_key = DOWN_FORWARD_MODCOD_DEF;
+		modcod_key = FORWARD_DOWN_MODCOD_DEF_S2;
 	}
 	else
 	{
-		modcod_key = UP_RETURN_MODCOD_DEF;
+		modcod_key = RETURN_UP_MODCOD_DEF_RCS;
 	}
 	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(GLOBAL_SECTION, modcod_key.c_str(),
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, modcod_key.c_str(),
 	                   filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
