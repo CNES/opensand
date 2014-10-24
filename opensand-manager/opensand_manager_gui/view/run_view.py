@@ -102,9 +102,13 @@ class RunView(WindowView):
         if run_id != 'default':
             widget.set_text(run_id)
 
+        status_box = self._ui.get_widget('status_box')
+        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
+                                                             0xffff))
         self._info_label = self._ui.get_widget('info_label')
         self._counter = 0
-        infos = ['Service type: ' + service_type]
+        infos = ['Service type: ' + service_type,
+                 '<a href="http://opensand.org">OpenSAND website</a>']
         gobject.timeout_add(5000, self.update_label, infos)
 
 
@@ -411,7 +415,7 @@ class RunView(WindowView):
 
     def update_label(self, infos=[]):
         """ Update the message displayed on Manager """
-        self._info_label.set_label(infos[self._counter])
+        self._info_label.set_markup(infos[self._counter])
 
         msg = 'Developer mode enabled'
         if self._model.get_dev_mode() and not msg in infos:

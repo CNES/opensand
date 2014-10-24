@@ -516,7 +516,7 @@ class ConfigurationNotebook(gtk.Notebook):
             evt.add(section_descr)
             section_descr.set_markup(description)
             section_descr.set_justify(gtk.JUSTIFY_CENTER)
-            evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535, 65535, 65535))
+            evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
             tab.pack_start(evt)
             tab.set_child_packing(evt, expand=False,
                                   fill=False, padding=5,
