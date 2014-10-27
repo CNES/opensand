@@ -102,7 +102,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	state(state_initializing),
 	group_id(),
 	tal_id(),
-	fixed_bandwidth(0),
+	cra_kbps(0),
 	max_rbdc_kbps(0),
 	max_vbdc_kb(0),
 	dama_agent(NULL),
@@ -114,7 +114,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	carrier_id_data(),
 	dvb_fifos(),
 	default_fifo_id(0),
-	obr_period_frame(-1),
+	sync_period_frame(-1),
 	obr_slot_frame(-1),
 	frame_timer(-1),
 	is_first_frame(true),
@@ -214,13 +214,6 @@ bool BlockDvbTal::Downward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the MAC FIFO part of the initialisation\n");
-		goto error;
-	}
-
-	if(!this->initObr())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the OBR part of the initialisation\n");
 		goto error;
 	}
 
@@ -362,7 +355,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		qos_t fifo_priority = 0;
 		vol_pkt_t fifo_size = 0;
 		string fifo_mac_prio;
-		string fifo_cr_type;
+		string fifo_access_type;
 		DvbFifo *fifo;
 
 		// get fifo_id --> fifo_priority
@@ -390,17 +383,17 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 		// get the fifo CR type
-		if(!Conf::getAttributeValue(iter, FIFO_CR_TYPE, fifo_cr_type))
+		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_CR_TYPE, DVB_TAL_SECTION,
+			    FIFO_ACCESS_TYPE, DVB_TAL_SECTION,
 			    FIFO_LIST);
 			goto err_fifo_release;
 		}
 
 		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
-		                   fifo_cr_type, fifo_size);
+		                   fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
@@ -408,7 +401,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		    fifo->getPriority(),
 		    fifo->getName().c_str(),
 		    fifo->getMaxSize(),
-		    fifo->getCrType());
+		    fifo->getAccessType());
 
 		// the default FIFO is the last one = the one with the smallest priority
 		// actually, the IP plugin should add packets in the default FIFO if
@@ -453,35 +446,9 @@ err_fifo_release:
 }
 
 
-bool BlockDvbTal::Downward::initObr(void)
-{
-	// get the OBR period - in number of frames
-	if(!Conf::getValue(DVB_TAL_SECTION, DVB_OBR_PERIOD_DATA,
-	                   this->obr_period_frame))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s", DVB_OBR_PERIOD_DATA);
-		goto error;
-	}
-
-	// deduce the Obr slot position within the multi-frame, from the mac
-	// address and the OBR period
-	// ObrSlotFrame= MacAddress 'modulo' Obr Period
-	// NB : ObrSlotFrame is within [0, Obr Period -1]
-	this->obr_slot_frame = this->mac_id % this->obr_period_frame;
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "SF#%u: MAC adress = %d, OBR period = %d, "
-	    "OBR slot frame = %d\n", this->super_frame_counter,
-	    this->mac_id, this->obr_period_frame, this->obr_slot_frame);
-
-	return true;
-error:
-	return false;
-}
-
-
 bool BlockDvbTal::Downward::initDama(void)
 {
+	time_ms_t sync_period_ms = 0;
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
 	string dama_algo;
@@ -498,9 +465,9 @@ bool BlockDvbTal::Downward::initDama(void)
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_rbdc ||
-		   (*it).second->getCrType() == cr_vbdc ||
-		   (*it).second->getCrType() == cr_none)
+		if((*it).second->getAccessType() == access_dama_rbdc ||
+		   (*it).second->getAccessType() == access_dama_vbdc ||
+		   (*it).second->getAccessType() == access_dama_cra)
 		{
 			is_dama_fifo = true;
 		}
@@ -566,9 +533,9 @@ bool BlockDvbTal::Downward::initDama(void)
 			for(fifos_t::iterator it = this->dvb_fifos.begin();
 			    it != this->dvb_fifos.end(); ++it)
 			{
-				if((*it).second->getCrType() == cr_rbdc ||
-				   (*it).second->getCrType() == cr_vbdc ||
-				   (*it).second->getCrType() == cr_none)
+				if((*it).second->getAccessType() == access_dama_rbdc ||
+				   (*it).second->getAccessType() == access_dama_vbdc ||
+				   (*it).second->getAccessType() == access_dama_cra)
 				{
 					delete (*it).second;
 					this->dvb_fifos.erase(it);
@@ -586,16 +553,16 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	if(!Conf::getValue(DVB_TAL_SECTION, DVB_RT_BANDWIDTH,
-	                   this->fixed_bandwidth))
+	if(!Conf::getValue(DVB_TAL_SECTION, CRA,
+	                   this->cra_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s\n", DVB_RT_BANDWIDTH);
+		    "Missing %s\n", CRA);
 		goto error;
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "fixed_bandwidth = %d kbits/s\n", this->fixed_bandwidth);
+	    "cra_kbps = %d kbits/s\n", this->cra_kbps);
 
 	// Max RBDC (in kbits/s) and RBDC timeout (in frame number)
 	if(!Conf::getValue(DA_TAL_SECTION, DA_MAX_RBDC_DATA,
@@ -604,15 +571,6 @@ bool BlockDvbTal::Downward::initDama(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n",
 		    DA_MAX_RBDC_DATA);
-		goto error;
-	}
-
-	if(!Conf::getValue(DA_TAL_SECTION,
-	                   DA_RBDC_TIMEOUT_DATA, rbdc_timeout_sf))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s\n",
-		    DA_RBDC_TIMEOUT_DATA);
 		goto error;
 	}
 
@@ -641,12 +599,35 @@ bool BlockDvbTal::Downward::initDama(void)
 		goto error;
 	}
 
+	// get the OBR period
+	if(!Conf::getValue(GLOBAL_SECTION, SYNC_PERIOD,
+	                   sync_period_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Missing %s", SYNC_PERIOD);
+		goto error;
+	}
+	this->sync_period_frame = (time_frame_t)round((double)sync_period_ms /
+	                                              (double)this->ret_up_frame_duration_ms);
+
+	// deduce the Obr slot position within the multi-frame, from the mac
+	// address and the OBR period
+	// ObrSlotFrame= MacAddress 'modulo' Obr Period
+	// NB : ObrSlotFrame is within [0, Obr Period -1]
+	this->obr_slot_frame = this->mac_id % this->sync_period_frame;
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "SF#%u: MAC adress = %d, SYNC period = %d, "
+	    "OBR slot frame = %d\n", this->super_frame_counter,
+	    this->mac_id, this->sync_period_frame, this->obr_slot_frame);
+
+	rbdc_timeout_sf = this->sync_period_frame + 1;
+
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "ULCarrierBw %d kbits/s, "
 	    "RBDC max %d kbits/s, RBDC Timeout %d frame, "
 	    "VBDC max %d kbits, mslDuration %d frames, "
 	    "getIpOutputFifoSizeOnly %d\n",
-	    this->fixed_bandwidth, this->max_rbdc_kbps,
+	    this->cra_kbps, this->max_rbdc_kbps,
 	    rbdc_timeout_sf, this->max_vbdc_kb, msl_sf,
 	    cr_output_only);
 
@@ -693,12 +674,12 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// Initialize the DamaAgent parent class
 	if(!this->dama_agent->initParent(this->ret_up_frame_duration_ms,
-	                                 this->fixed_bandwidth,
+	                                 this->cra_kbps,
 	                                 this->max_rbdc_kbps,
 	                                 rbdc_timeout_sf,
 	                                 this->max_vbdc_kb,
 	                                 msl_sf,
-	                                 this->obr_period_frame,
+	                                 this->sync_period_frame,
 	                                 cr_output_only,
 	                                 this->pkt_hdl,
 	                                 this->dvb_fifos))
@@ -750,7 +731,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_saloha)
+		if((*it).second->getAccessType() == access_saloha)
 		{
 			is_sa_fifo = true;
 		}
@@ -808,7 +789,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 			for(fifos_t::iterator it = this->dvb_fifos.begin();
 			    it != this->dvb_fifos.end(); ++it)
 			{
-				if((*it).second->getCrType() == cr_saloha)
+				if((*it).second->getAccessType() == access_saloha)
 				{
 					delete (*it).second;
 					this->dvb_fifos.erase(it);
@@ -1053,7 +1034,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				// Slotted Aloha
 				sa_packet = NULL;
 				if(this->saloha &&
-				   this->dvb_fifos[fifo_priority]->getCrType() == cr_saloha)
+				   this->dvb_fifos[fifo_priority]->getAccessType() == access_saloha)
 				{
 					sa_packet = this->saloha->addSalohaHeader(*pkt_it,
 					                                          sa_offset++,
@@ -1147,7 +1128,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		case evt_timer:
 			if(*event == this->frame_timer)
 			{
-				this->updateStats();
 				// beginning of a new frame
 				if(this->state == state_running)
 				{
@@ -1221,7 +1201,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 bool BlockDvbTal::Downward::sendLogonReq(void)
 {
 	LogonRequest *logon_req = new LogonRequest(this->mac_id,
-	                                           this->fixed_bandwidth,
+	                                           this->cra_kbps,
 	                                           this->max_rbdc_kbps,
 	                                           this->max_vbdc_kb);
 
@@ -1351,9 +1331,9 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	}
 	sac = new Sac(this->tal_id, this->group_id);
 	// Set CR body
-	// NB: cr_type parameter is not used here as CR is built for both
+	// NB: access_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
-	if(!this->dama_agent->buildSAC(cr_none,
+	if(!this->dama_agent->buildSAC(access_dama_cra,
 	                               sac,
 	                               empty))
 	{
@@ -1506,6 +1486,8 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 {
 	int globalFrameNumber;
 
+	this->updateStats();
+
 	// update frame counter for current SF - 1st frame within SF is 1 -
 	this->frame_counter++;
 	LOG(this->log_frame_tick, LEVEL_INFO,
@@ -1566,7 +1548,7 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 	globalFrameNumber =
 		(this->super_frame_counter - 1) * this->frames_per_superframe
 		+ this->frame_counter;
-	if((globalFrameNumber % this->obr_period_frame) == this->obr_slot_frame)
+	if((globalFrameNumber % this->sync_period_frame) == this->obr_slot_frame)
 	{
 		if(!this->sendSAC())
 		{
@@ -1883,8 +1865,6 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
 			{
-				this->updateStats();
-
 				struct timeval time = event->getTimeFromCustom();
 				float val = time.tv_sec * 1000000L + time.tv_usec;
 				event->setCustomTime();
@@ -1948,7 +1928,7 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
-	// we synchornize with SoF reception so use ther return frame duration here
+	// we synchornize with SoF reception so use the return frame duration here
 	this->initStatsTimer(this->ret_up_frame_duration_ms);
 
 	return true;
@@ -2064,6 +2044,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		// treat only if state is running --> otherwise just ignore (other
 		// STs can be logged)
 		case MSG_TYPE_SOF:
+			this->updateStats();
 			// get superframe number
 			if(!this->onStartOfFrame(dvb_frame))
 			{

@@ -60,7 +60,7 @@ Triangular::~Triangular()
 {
 }
 
-bool Triangular::init(int granularity, string link)
+bool Triangular::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
 
@@ -72,7 +72,7 @@ bool Triangular::init(int granularity, string link)
 		goto error;
 	}
 
-	this->granularity = granularity;
+	this->refresh_period_ms = refresh_period_ms;
 
 	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
 	                          LINK, link, PERIOD, this->period))
@@ -103,7 +103,7 @@ bool Triangular::updateAttenuationModel()
 	double time;
 
 	this->duration_counter = (this->duration_counter + 1) % this->period;
-	time = this->duration_counter * this->granularity / 1000;
+	time = this->duration_counter * this->refresh_period_ms / 1000;
 
 	if(time < this->period / 2)
 	{
@@ -111,7 +111,7 @@ bool Triangular::updateAttenuationModel()
 	}
 	else
 	{
-		double max = this->period * this->slope * this->granularity / 1000;
+		double max = this->period * this->slope * this->refresh_period_ms / 1000;
 		this->setAttenuation(max - time * this->slope);
 	}
 

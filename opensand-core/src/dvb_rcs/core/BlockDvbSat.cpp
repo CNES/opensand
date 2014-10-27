@@ -124,11 +124,11 @@ bool BlockDvbSat::initSpots(void)
 	ConfigurationList::iterator iter;
 
 	// Retrive FIFO size
-	if(!Conf::getValue(SAT_DVB_SECTION, DVB_SIZE_FIFO, fifo_size))
+	if(!Conf::getValue(DEV_SECTION, DELAY_BUFFER, fifo_size))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    SAT_DVB_SECTION, DVB_SIZE_FIFO);
+		    DEV_SECTION, DELAY_BUFFER);
 		goto error;
 	}
 

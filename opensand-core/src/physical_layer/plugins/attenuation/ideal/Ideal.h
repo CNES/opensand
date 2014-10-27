@@ -63,7 +63,7 @@ class Ideal:public AttenuationModelPlugin
 		 */
 		~Ideal();
 
-		bool init(int granularity, string link);
+		bool init(time_ms_t refresh_period_ms, string link);
 
 		bool updateAttenuationModel();
 

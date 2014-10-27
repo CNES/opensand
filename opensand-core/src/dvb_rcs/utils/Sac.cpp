@@ -155,7 +155,7 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 	value = 0;
 	switch(cr_info.type)
 	{
-		case cr_vbdc:
+		case access_dama_vbdc:
 			if(cr_info.value <= DVB_CR_VBDC_SCALING_FACTOR_OFFSET)
 			{
 				value = cr_info.value;
@@ -169,7 +169,7 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 			}
 			break;
 
-		case cr_rbdc:
+		case access_dama_rbdc:
 			if(cr_info.value <= DVB_CR_RBDC_SCALING_FACTOR_OFFSET)
 			{
 				value = getEncodedRequestValue(cr_info.value,
@@ -229,14 +229,14 @@ static uint16_t getDecodedCrValue(const emu_cr_t &cr)
 
 	switch(cr.type)
 	{
-		case cr_vbdc:
+		case access_dama_vbdc:
 			if(cr.scale == 0)
 				request = cr.value;
 			else
 				request = cr.value * DVB_CR_VBDC_SCALING_FACTOR;
 			break;
 
-		case cr_rbdc:
+		case access_dama_rbdc:
 			if(cr.scale == 0)
 				request = cr.value * DVB_CR_RBDC_GRANULARITY;
 			else

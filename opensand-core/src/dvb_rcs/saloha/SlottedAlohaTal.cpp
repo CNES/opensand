@@ -195,7 +195,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() != cr_saloha)
+		if((*it).second->getAccessType() != access_saloha)
 		{
 			continue;
 		}
@@ -505,7 +505,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 
 		qos_t qos = (*it).first;
 		DvbFifo *fifo = (*it).second;
-		if(fifo->getCrType() != cr_saloha)
+		if(fifo->getAccessType() != access_saloha)
 		{
 			continue;
 		}
@@ -564,7 +564,7 @@ skip:
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() != cr_saloha)
+		if((*it).second->getAccessType() != access_saloha)
 		{
 			continue;
 		}
@@ -593,7 +593,7 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_saloha)
+		if((*it).second->getAccessType() == access_saloha)
 		{
 			nb_packets += (*it).second->getCurrentSize();
 		}

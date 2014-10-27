@@ -48,7 +48,6 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	queue(),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
-	cr_type(),
 	access_type(),
 	vcm_id(),
 	new_size_pkt(0),
@@ -61,21 +60,21 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
-	if(type_name == "RBDC")
+	if(type_name == "DAMA_RBDC")
 	{
-		this->cr_type = cr_rbdc;
+		this->access_type = access_dama_rbdc;
 	}
-	else if(type_name == "VBDC")
+	else if(type_name == "DAMA_VBDC")
 	{
-		this->cr_type = cr_vbdc;
+		this->access_type = access_dama_vbdc;
 	}
 	else if(type_name == "SALOHA")
 	{
-		this->cr_type = cr_saloha;
+		this->access_type = access_saloha;
 	}
-	else if(type_name == "NONE")
+	else if(type_name == "DAMA_CRA")
 	{
-		this->cr_type = cr_none;
+		this->access_type = access_dama_cra;
 	}
 	else if(type_name == "ACM")
 	{
@@ -124,12 +123,7 @@ string DvbFifo::getName() const
 	return this->fifo_name;
 }
 
-cr_type_t DvbFifo::getCrType() const
-{
-	return this->cr_type;
-}
-
-fwd_access_type_t DvbFifo::getAccessType() const
+int DvbFifo::getAccessType() const
 {
 	return this->access_type;
 }
@@ -164,9 +158,9 @@ vol_bytes_t DvbFifo::getNewDataLength() const
 	return this->new_length_bytes;
 }
 
-void DvbFifo::resetNew(cr_type_t cr_type)
+void DvbFifo::resetNew(ret_access_type_t cr_type)
 {
-	if(this->cr_type == cr_type)
+	if(this->access_type == cr_type)
 	{
 		RtLock lock(this->fifo_mutex);
 		this->new_size_pkt = 0;

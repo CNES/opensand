@@ -66,11 +66,11 @@ bool DamaAgentRcs::init()
 	if(this->rbdc_enabled)
 	{
 		// create circular buffer for saving last RBDC requests during the past
-		// MSL duration with size = integer part of MSL / OBR period
+		// MSL duration with size = integer part of MSL / SYNC period
 		// (in frame number)
 		// NB: if size = 0, only last req is saved and sum is always 0
 		this->rbdc_request_buffer =
-			new CircularBuffer((size_t) this->msl_sf / this->obr_period_sf);
+			new CircularBuffer((size_t) this->msl_sf / this->sync_period_sf);
 		if(this->rbdc_request_buffer == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -90,7 +90,7 @@ bool DamaAgentRcs::init()
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_none)
+		if((*it).second->getAccessType() == access_dama_cra)
 		{
 			this->cra_in_cr = true;
 		}
@@ -237,7 +237,7 @@ bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
 	return true;
 }
 
-bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
+bool DamaAgentRcs::buildSAC(ret_access_type_t UNUSED(cr_type),
                             Sac *sac,
                             bool &empty)
 {
@@ -312,7 +312,7 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	// set RBDC request (if any) in SAC
 	if(send_rbdc_request)
 	{
-		sac->addRequest(0, cr_rbdc, rbdc_request_kbps);
+		sac->addRequest(0, access_dama_rbdc, rbdc_request_kbps);
 
 		// update variables used for next RBDC CR computation
 		this->rbdc_timer_sf = 0;
@@ -322,7 +322,7 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 		for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
-			(*it).second->resetNew(cr_rbdc);
+			(*it).second->resetNew(access_dama_rbdc);
 		}
 
 		// Update statistics
@@ -337,7 +337,7 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		sac->addRequest(0, cr_vbdc, vbdc_request_pkt);
+		sac->addRequest(0, access_dama_vbdc, vbdc_request_pkt);
 
 		// Update statistics
 		this->probe_st_vbdc_req_size->put(
@@ -358,7 +358,7 @@ bool DamaAgentRcs::buildSAC(cr_type_t UNUSED(cr_type),
 	return true;
 }
 
-vol_pkt_t DamaAgentRcs::getMacBufferLength(cr_type_t cr_type)
+vol_pkt_t DamaAgentRcs::getMacBufferLength(ret_access_type_t cr_type)
 {
 	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets in fifo
 
@@ -366,7 +366,7 @@ vol_pkt_t DamaAgentRcs::getMacBufferLength(cr_type_t cr_type)
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_type)
+		if((*it).second->getAccessType() == cr_type)
 		{
 			nb_pkt_in_fifo += (*it).second->getCurrentSize();
 		}
@@ -376,7 +376,7 @@ vol_pkt_t DamaAgentRcs::getMacBufferLength(cr_type_t cr_type)
 }
 
 
-vol_pkt_t DamaAgentRcs::getMacBufferArrivals(cr_type_t cr_type)
+vol_pkt_t DamaAgentRcs::getMacBufferArrivals(ret_access_type_t cr_type)
 {
 	vol_pkt_t nb_pkt_input; // packets that filled the queue since last RBDC request
 
@@ -384,7 +384,7 @@ vol_pkt_t DamaAgentRcs::getMacBufferArrivals(cr_type_t cr_type)
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getCrType() == cr_type)
+		if((*it).second->getAccessType() == cr_type)
 		{
 			nb_pkt_input += (*it).second->getNewSize();
 		}

@@ -41,14 +41,14 @@
 
 PhyChannel::PhyChannel():
 	status(true),
-	nominal_condition(0),
+	clear_sky_condition(0),
 	attenuation_model(NULL),
 	minimal_condition(NULL),
 	error_insertion(NULL),
-	granularity(0),
+	refresh_period_ms(0),
 	is_sat(false),
 	probe_attenuation(NULL),
-	probe_nominal_condition(NULL),
+	probe_clear_sky_condition(NULL),
 	probe_minimal_condition(NULL),
 	probe_total_cn(NULL),
 	probe_drops(NULL)
@@ -87,7 +87,7 @@ bool PhyChannel::update()
 	}
 
 	this->probe_attenuation->put(this->attenuation_model->getAttenuation());
-	this->probe_nominal_condition->put(this->nominal_condition);
+	this->probe_clear_sky_condition->put(this->clear_sky_condition);
 
 error:
 	return this->status;
@@ -98,9 +98,9 @@ double PhyChannel::getTotalCN(DvbFrame *dvb_frame)
 	double cn_down, cn_up, cn_total; 
 	double num_down, num_up, num_total; 
 
-	/* C/N calculation of downlink, as the substraction of the Nominal C/N
+	/* C/N calculation of downlink, as the substraction of the clear sky C/N
 	 * with the Attenuation */
-	cn_down = this->nominal_condition - this->attenuation_model->getAttenuation();
+	cn_down = this->clear_sky_condition - this->attenuation_model->getAttenuation();
 
 	/* C/N of uplink */ 
 	cn_up = dvb_frame->getCn();
@@ -128,10 +128,10 @@ void PhyChannel::addSegmentCN(DvbFrame *dvb_frame)
 {
 	double val; 
 
-	/* C/N calculation as the substraction of the Nominal C/N with
+	/* C/N calculation as the substraction of the clear_sky C/N with
 	   the Attenuation for this segment(uplink) */
 
-	val = this->nominal_condition - this->attenuation_model->getAttenuation();
+	val = this->clear_sky_condition - this->attenuation_model->getAttenuation();
 	LOG(this->log_channel, LEVEL_INFO,
 	    "Calculation of C/N: %.2f dB\n", val);
 

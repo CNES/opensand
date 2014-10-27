@@ -73,16 +73,16 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="crType">
+<xsd:simpleType name="returnAccessType">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="RBDC" />
-        <xsd:enumeration value="VBDC"/>
+        <xsd:enumeration value="DAMA_RBDC" />
+        <xsd:enumeration value="DAMA_VBDC"/>
+        <xsd:enumeration value="DAMA_CRA"/>
         <xsd:enumeration value="SALOHA" />
-        <xsd:enumeration value="NONE"/>
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:element name="fifos">
+<xsd:element name="layer2_fifos">
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
@@ -90,6 +90,7 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- TODO try to put that in common and onlly define access_type here and in gw -->
 <xsd:element name="fifo">
     <xsd:complexType>
         <xsd:attribute name="priority" type="classId">
@@ -114,10 +115,10 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="cr_type" type="crType">
+        <xsd:attribute name="access_type" type="returnAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of capacity request
+                    The type of access
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -156,6 +157,7 @@
             <![CDATA[
             <b>Some global parameters</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -182,19 +184,34 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="constant_rate_allocation" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The constant rate allocation for the return link (kbits/s)
+                        <unit>kbits/s</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="max_rbdc" type="bitRate">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum RBDC value for the terminal (kbits/s)
+                        <unit>kbits/s</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="max_vbdc" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The maximum VBDC value for the terminal (kbits)
+                        <unit>kbits</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="dama_algorithm" type="damaAlgorithm">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The DAMA algorithm for Agent
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="obr_period" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The OBR period (frame number):
-                        period used to determine when we should send a request
-                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -219,14 +236,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="rbdc_timeout" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The RBDC Timeout (frame number)
-                        <unit>frames</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="msl_duration" type="xsd:integer">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -248,35 +257,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="rt_fixed_bandwidth" type="bitRate">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The static bandwidth allocated to ST (kbits/s) = the
-                        bandwidth for real time traffic
-                        <unit>kbits/s</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="fifos">
+            <xsd:element ref="layer2_fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MAC fifos
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="max_rbdc" type="bitRate">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The maximum RBDC value for the terminal (kbits/s)
-                        <unit>kbits/s</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="max_vbdc" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The maximum VBDC value for the terminal (kbits)
-                        <unit>kbits</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -362,6 +346,7 @@
             <![CDATA[
             <b>The QoS data parameters</b
             ]]>>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

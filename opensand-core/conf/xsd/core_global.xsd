@@ -424,6 +424,16 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="sync_period" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The SYNC period (ms):
+                        period used to determine when we should send a request
+                        and to compute RBDC timeout
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -633,10 +643,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="granularity" type="xsd:integer">
+            <xsd:element name="acm_period_refresh" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The channel refreshing (ms)
+                        Physical layer refresh period (ms)
                         <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
@@ -677,14 +687,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="acm_period_refresh" type="msTime">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        How often do we refresh the adaptive physical layer scenario (ms)
-                        <unit>ms</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -702,6 +704,14 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="delay_buffer" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the FIFO used to apply delay
+                        <unit>packets</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="udp_rmem" type="xsd:unsignedLong">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

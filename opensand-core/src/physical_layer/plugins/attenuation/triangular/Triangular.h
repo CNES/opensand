@@ -55,7 +55,7 @@ class Triangular: public AttenuationModelPlugin
 		double slope;
 
 		/** The Triangular period:
-		 *  period * granularity/1000 = period in seconds */
+		 *  period * refresh_period_ms/1000 = period in seconds */
 		int period;
 
 		int duration_counter;
@@ -73,7 +73,7 @@ class Triangular: public AttenuationModelPlugin
 		~Triangular();
 
 
-		bool init(int granularity, string link);
+		bool init(time_ms_t refresh_period_ms, string link);
 
 		bool updateAttenuationModel();
 };

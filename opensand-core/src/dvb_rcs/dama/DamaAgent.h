@@ -83,7 +83,7 @@ class DamaAgent
 	 * @param msl_sf                 The MSL (Minimum Scheduling Latency) value
 	 *                               (time between CR emission and TTP reception
 	 *                                in superframe number)
-	 * @param obr_period_sf          The OBR (OutBand request) period
+	 * @param sync_period_sf         The SYNC period ( former OBR (OutBand request) period)
 	 *                               (used to determine when a request should
 	 *                                be sent in superframe number)
 	 * @param cr_output_only         Whether only output FIFO size is computed
@@ -98,7 +98,7 @@ class DamaAgent
 	                time_sf_t rbdc_timeout_sf,
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
-	                time_sf_t obr_period_sf,
+	                time_sf_t sync_period_sf,
 	                bool cr_output_only,
 	                const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                const fifos_t &dvb_fifos);
@@ -150,7 +150,7 @@ class DamaAgent
 	 * @param empty     flag if CR is 0.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool buildSAC(cr_type_t cr_type,
+	virtual bool buildSAC(ret_access_type_t cr_type,
 	                      Sac *sac,
 	                      bool &empty) = 0;
 
@@ -221,8 +221,8 @@ protected:
 	vol_kb_t max_vbdc_kb;
 	/** Minimum Scheduling Latency (in frame number) */
 	time_sf_t msl_sf;
-	/** OBR period: period between two CR (in frame number) */
-	time_sf_t obr_period_sf;
+	/** SYNC period: period between two CR (in frame number) */
+	time_sf_t sync_period_sf;
 	/** If true, compute only output FIFO size for CR generation */
 	bool cr_output_only;
 

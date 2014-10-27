@@ -52,15 +52,15 @@ using std::vector;
 #define NBR_MAX_CR 2
 
 
-///> The type of capacity request associated to each FIFO among RBDC, VBDC or None
+///> The type of access for return/up link
 typedef enum
 {
-	cr_vbdc   = 0, /* Volume Based */
-	cr_rbdc   = 1, /* Rate Based */
-	cr_avbdc  = 2, /* Absolute Volume Based */
-	cr_saloha = 2, /* Slotted Aloha */
-	cr_none   = 3, /* No CR, only use Constant Allocation */
-} cr_type_t;
+	access_dama_vbdc   = 0, /* Volume Based CR */
+	access_dama_rbdc   = 1, /* Rate Based CR */
+	access_dama_avbdc  = 2, /* Absolute Volume Based */
+	access_dama_cra    = 3, /* No CR, only use Constant Allocation */
+	access_saloha      = 4, /* Slotted Aloha */
+} ret_access_type_t;
 
 /**
  * The Emulated Capacity Requests field

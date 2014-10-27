@@ -103,7 +103,7 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 
 	/* get number of outstanding packets in RBDC related MAC FIFOs */
 	rbdc_length_b =
-		this->converter->pktToBits(this->getMacBufferLength(cr_rbdc));
+		this->converter->pktToBits(this->getMacBufferLength(access_dama_rbdc));
 
 	// Get number of packets arrived in RBDC related IP FIFOs since
 	// last RBDC request sent
@@ -112,7 +112,7 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	// more available allocation, but their arrival has been taken into account
 	// in IP fifos
 	rbdc_pkt_arrival_b =
-		this->converter->pktToBits(this->getMacBufferArrivals(cr_rbdc));
+		this->converter->pktToBits(this->getMacBufferArrivals(access_dama_rbdc));
 
 	// get the sum of RBDC request during last MSL
 	rbdc_req_in_previous_msl_kbps = this->rbdc_request_buffer->GetSum();
@@ -192,7 +192,7 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
-	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
+	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
 	LOG(this->log_request, LEVEL_ERROR,		
 	    "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
 	    "%u\n", this->current_superframe_sf, this->current_frame,

@@ -62,7 +62,7 @@ OnOff::~OnOff()
 }
 
 
-bool OnOff::init(int granularity, string link)
+bool OnOff::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
 
@@ -74,7 +74,7 @@ bool OnOff::init(int granularity, string link)
 		goto error;
 	}
 
-	this->granularity = granularity;
+	this->refresh_period_ms = refresh_period_ms;
 
 	if(!config.getValueInList(ON_OFF_SECTION, ON_OFF_LIST,
 	                          LINK, link,

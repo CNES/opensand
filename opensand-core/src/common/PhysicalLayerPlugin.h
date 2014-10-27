@@ -63,15 +63,15 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	/* The model current attenuation */
 	double attenuation;
 
-	/* Granularity*/
-	int granularity;
+	/* channel refreshing period */
+	time_ms_t refresh_period_ms;
 
  public:
 
 	/**
 	 * @brief AttenuationModelPlugin constructor
 	 *
-	 * @param granularity  the attenuation model granularity
+	 * @param refresh_period_ms  the attenuation model refreshing period
 	 */
 	AttenuationModelPlugin(): OpenSandPlugin() 
 	{
@@ -88,11 +88,11 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	/**
 	 * @brief initialize the attenuation model
 	 *
-	 * @param granularity the attenuation granularity
+	 * @param refresh_period_ms the attenuation refreshing period
 	 * @param link        the link
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init(int granularity, string link) = 0;
+	virtual bool init(time_ms_t refresh_period_ms, string link) = 0;
 
 	/**
 	 * @brief Get the model current attenuation

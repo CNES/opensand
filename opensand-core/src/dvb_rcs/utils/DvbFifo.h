@@ -118,18 +118,11 @@ class DvbFifo
 	string getName() const;
 
 	/**
-	 * @brief Get the CR type associated to the fifo
-	 *
-	 * return the CR type associated to the fifo
-	 */
-	cr_type_t getCrType() const;
-
-	/**
 	 * @brief Get the access type associated to the fifo
 	 *
 	 * return the access type associated to the fifo
 	 */
-	fwd_access_type_t getAccessType() const;
+	int getAccessType() const;
 
 	/**
 	 * @brief Get the VCM id
@@ -191,9 +184,9 @@ class DvbFifo
 	/**
 	 * @brief Reset filled, only if the FIFO has the requested CR type
 	 *
-	 * @param cr_type is the CR type for which reset must be done
+	 * @param access_type is the CR type for which reset must be done
 	 */
-	void resetNew(const cr_type_t cr_type);
+	void resetNew(const ret_access_type_t access_type);
 
 	/**
 	 * @brief Add an element at the end of the list
@@ -247,8 +240,7 @@ class DvbFifo
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
 	string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
-	cr_type_t cr_type;              ///< the associated Capacity Request
-	fwd_access_type_t access_type;  ///< the associated Access Type
+	int access_type;                ///< the forward or return access type
 	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
 	                                ///< since previous check

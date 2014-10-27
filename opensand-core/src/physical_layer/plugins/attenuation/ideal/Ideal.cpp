@@ -55,7 +55,7 @@ Ideal::~Ideal()
 }
 
 
-bool Ideal::init(int granularity, string link)
+bool Ideal::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
 
@@ -67,7 +67,7 @@ bool Ideal::init(int granularity, string link)
 		goto error;
 	}
 
-	this->granularity = granularity;
+	this->refresh_period_ms = refresh_period_ms;
 
 	if(!config.getValueInList(IDEAL_SECTION, IDEAL_LIST,
 	                          LINK, link,

@@ -103,10 +103,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
+            <xsd:element name="clear_sky_condition" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The nominal C/N (in dB)
+                        The clear sky C/N (in dB)
                         <unit>dB</unit>
                     </xsd:documentation>
                 </xsd:annotation>
@@ -147,10 +147,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="nominal_condition" type="xsd:nonNegativeInteger">
+            <xsd:element name="clear_sky_condition" type="xsd:nonNegativeInteger">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The nominal C/N (dB)
+                        The clear sky C/N (dB)
                         <unit>dB</unit>
                     </xsd:documentation>
                 </xsd:annotation>

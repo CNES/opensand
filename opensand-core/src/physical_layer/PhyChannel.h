@@ -60,8 +60,8 @@ class PhyChannel
 	/// The channel status
 	bool status;
 
-	/// Nominal Conditions (best C/N in clear-sky conditions)
-	unsigned int nominal_condition;
+	/// Clear Sky Conditions (best C/N in clear-sky conditions)
+	unsigned int clear_sky_condition;
 
 	/// AttenuationModels
 	AttenuationModelPlugin *attenuation_model;
@@ -75,7 +75,7 @@ class PhyChannel
 	ErrorInsertionPlugin *error_insertion;
 
 	/// Period of channel(s) attenuation update (ms)
-	time_ms_t granularity;
+	time_ms_t refresh_period_ms;
 
 	/// Timer id for attenuation update
 	event_id_t att_timer;
@@ -94,7 +94,7 @@ class PhyChannel
 	/**
 	 * @brief get the total C/N of the link according to the uplink C/N
 	 *        carried in the T_DVB_PHY structure and the downlink C/N
-	 *        computed from nominal conditions and attenuation
+	 *        computed from clear sky conditions and attenuation
 	 *
 	 * @param dvb_frame  The uplink DVB frame
 	 *
@@ -145,7 +145,7 @@ class PhyChannel
 
 	/// probes
 	Probe<float> *probe_attenuation;
-	Probe<float> *probe_nominal_condition;
+	Probe<float> *probe_clear_sky_condition;
 	Probe<float> *probe_minimal_condition;
 	Probe<float> *probe_total_cn;
 	Probe<int> *probe_drops;

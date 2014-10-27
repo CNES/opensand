@@ -67,7 +67,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            time_sf_t rbdc_timeout_sf,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
-                           time_sf_t obr_period_sf,
+                           time_sf_t sync_period_sf,
                            bool cr_output_only,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
                            const fifos_t &dvb_fifos)
@@ -78,7 +78,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->max_vbdc_kb = max_vbdc_kb;
 	this->msl_sf = msl_sf;
-	this->obr_period_sf = obr_period_sf;
+	this->sync_period_sf = sync_period_sf;
 	this->cr_output_only = cr_output_only;
 	this->packet_handler = pkt_hdl;
 	this->dvb_fifos = dvb_fifos;
@@ -87,17 +87,17 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		cr_type_t cr_type = (*it).second->getCrType();
+		ret_access_type_t cr_type = (ret_access_type_t)((*it).second->getAccessType());
 		switch(cr_type)
 		{
-			case cr_rbdc:
+			case access_dama_rbdc:
 				this->rbdc_enabled = true;
 				break;
-			case cr_vbdc:
+			case access_dama_vbdc:
 				this->vbdc_enabled = true;
 				break;
-			case cr_saloha:
-			case cr_none:
+			case access_dama_cra:
+			case access_saloha:
 				break;
 			default:
 				LOG(this->log_init, LEVEL_ERROR,

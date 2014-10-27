@@ -61,7 +61,7 @@ File::~File()
 	this->attenuation.clear();
 }
 
-bool File::init(int granularity, string link)
+bool File::init(time_ms_t refresh_period_ms, string link)
 {
 	string filename;
 	ConfigurationFile config;
@@ -74,7 +74,7 @@ bool File::init(int granularity, string link)
 		return false;
 	}
 
-	this->granularity = granularity;
+	this->refresh_period_ms = refresh_period_ms;
 
 	if(!config.getValueInList(FILE_SECTION, FILE_LIST,
 	                          LINK, link,
@@ -193,12 +193,12 @@ bool File::updateAttenuationModel()
 	double old_attenuation, new_attenuation;
 	double next_attenuation;
 
-	this->current_time += this->granularity / 1000;
+	this->current_time += this->refresh_period_ms / 1000;
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Updating attenuation scenario: current time: %u "
 	    "(step: %u)\n", this->current_time,
-	    this->granularity / 1000);
+	    this->refresh_period_ms / 1000);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	attenuation_it = this->attenuation.lower_bound(this->current_time);

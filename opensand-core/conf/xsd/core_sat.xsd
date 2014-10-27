@@ -138,14 +138,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="max_fifo" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The FIFOs size (same for all FIFO at the moment)
-                        <unit>packets</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -157,6 +149,7 @@
             <![CDATA[
             <b>ATM, MPEG and GSE switching table for satellite</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

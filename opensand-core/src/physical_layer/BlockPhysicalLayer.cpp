@@ -159,17 +159,17 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 		this->msg_type = MSG_TYPE_DVB_BURST;
 	}
 
-	// get granularity
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
-	                   this->granularity))
+	// get refresh period
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, GRANULARITY);
+		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "granularity = %d\n", this->granularity);
+	    "acm refreshing period = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
 	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
@@ -183,10 +183,10 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 		goto error;
 	}
 
-	// Initiate Nominal value
+	// Initiate Clear Sky value
 	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                   NOMINAL_CONDITION,
-	                   this->nominal_condition))
+	                   CLEAR_SKY_CONDITION,
+	                   this->clear_sky_condition))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -230,7 +230,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 		    "error when getting physical layer plugins");
 		goto error;
 	}
-	if(!this->attenuation_model->init(this->granularity, link))
+	if(!this->attenuation_model->init(this->refresh_period_ms, link))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize attenuation model plugin %s",
@@ -239,10 +239,10 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "%slink: attenuation model = %s, nominal condition = %u, "
+	    "%slink: attenuation model = %s, clear_sky condition = %u, "
 	    "minimal condition type = %s, error insertion type = %s",
 	    link.c_str(), attenuation_type.c_str(),
-	    this->nominal_condition,
+	    this->clear_sky_condition,
 	    minimal_type.c_str(), error_type.c_str());
 
 	if(!this->minimal_condition->init())
@@ -262,7 +262,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	name << "attenuation_" << link;
-	this->att_timer = this->addTimerEvent(name.str(), this->granularity);
+	this->att_timer = this->addTimerEvent(name.str(), this->refresh_period_ms);
 
 	this->probe_attenuation = Output::registerProbe<float>("dB", true,
 	                                                       SAMPLE_MAX,
@@ -273,9 +273,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                                                             SAMPLE_MAX,
 	                                                             "Phy.minimal_condition (%s)",
 	                                                             minimal_type.c_str());
-	this->probe_nominal_condition = Output::registerProbe<float>("dB", true,
+	this->probe_clear_sky_condition = Output::registerProbe<float>("dB", true,
 	                                                             SAMPLE_MAX,
-	                                                             "Phy.%slink_nominal_condition",
+	                                                             "Phy.%slink_clear_sky_condition",
 	                                                             link.c_str());
 	// no useful on GW because it depends on terminals and we do not make the difference here
 	this->probe_total_cn = Output::registerProbe<float>("dB", true,
@@ -299,17 +299,17 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	string link("up"); // we are on uplink
 	string attenuation_type;
 
-	// get granularity
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, GRANULARITY,
-	                   this->granularity))
+	// get refresh_period
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, GRANULARITY);
+		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "granularity = %d\n", this->granularity);
+	    "refresh_period_ms = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
 	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
@@ -322,10 +322,10 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 		goto error;
 	}
 
-	// Initiate Nominal value
+	// Initiate Clear Sky value
 	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
-	                   NOMINAL_CONDITION,
-	                   this->nominal_condition))
+	                   CLEAR_SKY_CONDITION,
+	                   this->clear_sky_condition))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -343,7 +343,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 		    "error when getting physical layer plugins");
 		goto error;
 	}
-	if(!this->attenuation_model->init(this->granularity, link))
+	if(!this->attenuation_model->init(this->refresh_period_ms, link))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize attenuation model plugin %s",
@@ -352,21 +352,21 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "%slink: attenuation model = %s, nominal condition = %u",
+	    "%slink: attenuation model = %s, clear_sky condition = %u",
 	    link.c_str(), attenuation_type.c_str(),
-	    this->nominal_condition);
+	    this->clear_sky_condition);
 
 	name << "attenuation_" << link;
-	this->att_timer = this->addTimerEvent(name.str(), this->granularity);
+	this->att_timer = this->addTimerEvent(name.str(), this->refresh_period_ms);
 
 	this->probe_attenuation = Output::registerProbe<float>("dB", true,
 	                                                       SAMPLE_LAST,
 	                                                       "Phy.%slink_attenuation (%s)",
 	                                                       link.c_str(),
 	                                                       attenuation_type.c_str());
-	this->probe_nominal_condition = Output::registerProbe<float>("dB", true,
+	this->probe_clear_sky_condition = Output::registerProbe<float>("dB", true,
 	                                                             SAMPLE_MAX,
-	                                                             "Phy.%slink_nominal_condition",
+	                                                             "Phy.%slink_clear_sky_condition",
 	                                                             link.c_str());
 
 	return true;

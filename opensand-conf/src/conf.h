@@ -44,8 +44,8 @@
 
 #define GLOBAL_SECTION            "global"
 
-#define LAN_ADAPTATION_SCHEME_LIST "lan_adaptation_schemes"
-#define UP_RETURN_ENCAP_SCHEME_LIST "up_return_encap_schemes"
+#define LAN_ADAPTATION_SCHEME_LIST     "lan_adaptation_schemes"
+#define UP_RETURN_ENCAP_SCHEME_LIST    "up_return_encap_schemes"
 #define DOWN_FORWARD_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
 #define POSITION                  "pos"
 #define PROTO                     "proto"
@@ -58,7 +58,9 @@
 #define RET_UP_FRAME_DURATION     "return_up_frame_duration"
 #define FWD_DOWN_FRAME_DURATION   "forward_down_frame_duration"
 
-#define STATS_TIMER      "statistics_timer"
+#define STATS_TIMER               "statistics_timer"
+
+#define SYNC_PERIOD               "sync_period"
 
 /////////////////////////
 //   section dvb_rcs   //
@@ -66,30 +68,26 @@
 
 #define DVB_GLOBAL_SECTION        "dvb_rcs"
 
-#define DVB_SIZE_FIFO             "max_fifo"
-
 /////////////////////////
 // section dvb_rcs_tal //
 /////////////////////////
 
 #define DVB_TAL_SECTION           "dvb_rcs_tal"
 
-#define FIFO_LIST                 "fifos"
+#define FIFO_LIST                 "layer2_fifos"
 #define FIFO_PRIO                 "priority"
 
 #define FIFO_TYPE                 "type"
 #define FIFO_SIZE                 "size_max"
-#define FIFO_CR_TYPE              "cr_type"
 #define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"
-#define DVB_RT_BANDWIDTH          "rt_fixed_bandwidth"
+#define CRA                       "constant_rate_allocation"
 #define DVB_SIMU_COL              "simulation_column"
 #define COLUMN_LIST               "columns"
 #define COLUMN_NBR                "column_nbr"
 #define DVB_CAR_ID_CTRL           "carrier_id_dvb_ctrl"
 #define DVB_CAR_ID_LOGON          "carrier_id_logon"
 #define DVB_CAR_ID_DATA           "carrier_id_data"
-#define DVB_OBR_PERIOD_DATA       "obr_period"
 #define DAMA_ALGO                 "dama_algorithm"
 
 
@@ -161,10 +159,10 @@
 
 
 //////////////////////
-//    PEP section   //
+// QoS PEP section  //
 //////////////////////
 
-#define NCC_SECTION_PEP      "pep"
+#define NCC_SECTION_PEP      "qos_pep"
 #define DVB_NCC_ALLOC_DELAY  "pep_alloc_delay"
 #define PEP_DAMA_PORT        "pep_to_dama_port"
 
@@ -175,7 +173,6 @@
 #define DC_SECTION_NCC              "dvb_rcs_ncc"
 #define DC_CRA_DECREASE             "cra_decrease"
 #define DC_FREE_CAP                 "fca"
-#define DC_RBDC_TIMEOUT             "rbdc_timeout"
 #define DC_SECTION_MAC_LAYER        "mac_layer"
 
 //////////
@@ -186,7 +183,6 @@
 
 #define DA_TAL_SECTION          "dvb_rcs_tal"
 #define DA_MAX_RBDC_DATA        "max_rbdc"
-#define DA_RBDC_TIMEOUT_DATA    "rbdc_timeout"
 #define DA_MAX_VBDC_DATA        "max_vbdc"
 #define DA_MSL_DURATION         "msl_duration"
 #define DA_CR_RULE              "cr_rule_output_fifo_only"
@@ -245,8 +241,7 @@
 #define ATTENUATION_MODEL_TYPE    "attenuation_model_type"
 #define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
-#define NOMINAL_CONDITION         "nominal_condition"
-#define GRANULARITY               "granularity"
+#define CLEAR_SKY_CONDITION       "clear_sky_condition"
 #define FORWARD_DOWN_MODCOD_DEF_S2        "forward_down_modcod_def_s2"
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
 #define RETURN_UP_MODCOD_DEF_RCS          "return_up_modcod_def_rcs"
@@ -273,6 +268,7 @@
 //         dev         //
 /////////////////////////
 #define DEV_SECTION      "dev"
+#define DELAY_BUFFER     "delay_buffer"
 #define UDP_RMEM         "udp_rmem"
 #define UDP_WMEM         "udp_wmem"
 #define UDP_STACK        "udp_stack"

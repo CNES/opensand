@@ -90,7 +90,7 @@
 </xsd:simpleType>
 
 <!-- fifo types -->
-<xsd:element name="fifos">
+<xsd:element name="layer2_fifos">
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="fifo" minOccurs="1" maxOccurs="32"/>
@@ -203,7 +203,7 @@
 </xsd:element>
 
 
-<!-- types for pep section -->
+<!-- types for qos_pep section -->
 <xsd:simpleType name="msTime">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -218,7 +218,7 @@
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_ncc" />
             <xsd:element ref="slotted_aloha" />
-            <xsd:element ref="pep" />
+            <xsd:element ref="qos_pep" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="debug" />
@@ -234,6 +234,7 @@
             <![CDATA[
             <b>Some global parameters</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -272,14 +273,6 @@
                     <xsd:documentation xml:lang="en">
                         The Free capacity assignement (kbits/s)
                         <unit>kbits/s</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="rbdc_timeout" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The RBDC Timeout (frame number)
-                        <unit>frames</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -345,7 +338,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="fifos">
+            <xsd:element ref="layer2_fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MAC fifos
@@ -385,13 +378,14 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- pep section description -->
-<xsd:element name="pep">
+<!-- qos_pep section description -->
+<xsd:element name="qos_pep">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The PEP (Policy Enforcement Point) parameters</b>
-            ]]>>
+            <b>The QoS PEP (Policy Enforcement Point) parameters</b>
+            ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -399,7 +393,7 @@
             <xsd:element name="pep_to_dama_port" type="port">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        communication port on DAMA for PEP messages
+                        communication port on DAMA for QoS PEP messages
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -407,7 +401,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Delay to apply anticipation RBDC allocations from
-                        PEP/ARC (ms)
+                        QoS PEP/ARC (ms)
                         <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>

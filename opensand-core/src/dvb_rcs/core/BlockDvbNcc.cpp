@@ -817,6 +817,8 @@ error:
 bool BlockDvbNcc::Downward::initDama(void)
 {
 	bool cra_decrease;
+	time_ms_t sync_period_ms;
+	time_frame_t sync_period_frame;
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
@@ -845,15 +847,20 @@ bool BlockDvbNcc::Downward::initDama(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "fca = %d kb/s\n", fca_kbps);
 
-	// Retrieving the rbdc timeout parameter
-	if(!Conf::getValue(DC_SECTION_NCC, DC_RBDC_TIMEOUT, rbdc_timeout_sf))
+	if(!Conf::getValue(GLOBAL_SECTION, SYNC_PERIOD,
+	                   sync_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "missing %s parameter", DC_RBDC_TIMEOUT);
+		    "Missing %s", SYNC_PERIOD);
 		goto error;
 	}
+	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
+	                                        (double)this->ret_up_frame_duration_ms);
+	rbdc_timeout_sf = sync_period_frame + 1;
+
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "rbdc_timeout = %d superframes\n", rbdc_timeout_sf);
+	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
+	    rbdc_timeout_sf, sync_period_frame);
 
 	if(this->satellite_type == TRANSPARENT)
 	{
@@ -1219,7 +1226,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			    "timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
-				this->updateStats();
 				if(this->probe_frame_interval->isEnabled())
 				{
 					timeval time = event->getAndSetCustomTime();
@@ -1268,6 +1274,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			{
 				uint32_t remaining_alloc_sym = 0;
 
+				this->updateStats();
 				this->fwd_frame_counter++;
 
 				// schedule encapsulation packets
@@ -1970,7 +1977,7 @@ void BlockDvbNcc::Downward::simulateRandom(void)
 	    {
 			val = this->simu_cr;
 	    }
-		sac->addRequest(0, cr_rbdc, val);
+		sac->addRequest(0, access_dama_rbdc, val);
 
 		this->dama_ctrl->hereIsSAC(sac);
 	}

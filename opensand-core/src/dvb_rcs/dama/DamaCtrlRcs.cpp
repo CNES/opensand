@@ -136,23 +136,23 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 		LOG(this->log_sac, LEVEL_INFO,
 		    "SF#%u: ST%u requests %u %s\n",
 		    this->current_superframe_sf, tal_id, xbdc,
-		    ((*it).type == cr_vbdc) ?
+		    ((*it).type == access_dama_vbdc) ?
 		    "slots in VBDC" : "kbits/s in RBDC");
 
 		// take into account the new request
 		switch((*it).type)
 		{
-			case cr_vbdc:
+			case access_dama_vbdc:
 				this->enable_vbdc = true;
 				terminal->setRequiredVbdc(xbdc);
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
-					                tal_id, xbdc, cr_vbdc);
+					                tal_id, xbdc, access_dama_vbdc);
 				}
 				break;
 
-			case cr_rbdc:
+			case access_dama_rbdc:
 				this->enable_rbdc = true;
 				if(this->cra_decrease)
 				{
@@ -165,7 +165,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
-					                tal_id, xbdc, cr_vbdc);
+					                tal_id, xbdc, access_dama_vbdc);
 				}
 
 				break;

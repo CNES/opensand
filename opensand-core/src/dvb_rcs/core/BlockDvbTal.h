@@ -234,13 +234,6 @@ class BlockDvbTal: public BlockDvb
 		bool initMacFifo(void);
 
 		/**
-		 * Read configuration for the OBR period
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initObr(void);
-
-		/**
 		 * Read configuration for the DAMA algorithm
 		 *
 		 * @return  true on success, false otherwise
@@ -348,7 +341,7 @@ class BlockDvbTal: public BlockDvb
 		tal_id_t tal_id;
 
 		/// fixed bandwidth (CRA) in kbits/s
-		rate_kbps_t fixed_bandwidth;
+		rate_kbps_t cra_kbps;
 		/// Maximum RBDC in kbits/s
 		rate_kbps_t max_rbdc_kbps;
 		/// Maximum VBDC in kbits
@@ -380,7 +373,7 @@ class BlockDvbTal: public BlockDvb
 		/* OBR */
 		/// OBR period -in number of frames- and Obr slot
 		/// position within the multi-frame,
-		time_frame_t obr_period_frame;
+		time_frame_t sync_period_frame;
 		time_frame_t obr_slot_frame;
 
 		/// Upon each frame timer event is a frame

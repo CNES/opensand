@@ -122,13 +122,13 @@ bool DamaAgentRcsRrmQos::init()
 		                          // rates of each frame (Rin)
 		
 		// Init the dyn alloc circular buffer	
-		if ((this->obr_period_sf - this->msl_sf) >= 0)
-			this->dyn_alloc = new CircularBuffer(this->obr_period_sf);
+		if ((this->sync_period_sf - this->msl_sf) >= 0)
+			this->dyn_alloc = new CircularBuffer(this->sync_period_sf);
 		else
 		{
-			this->dyn_alloc = new CircularBuffer(this->obr_period_sf);
+			this->dyn_alloc = new CircularBuffer(this->sync_period_sf);
 			LOG(this->log_init, LEVEL_INFO,
-			    "the time between two requests (obrPeriod) is "
+			    "the time between two requests (syncPeriod) is "
 			    "inferior to the Minimum Scheduling Latency (MSL), "
 			    "this case should not be used in the context of "
 			    "the RRM-QoS. However, the simulation is able to "
@@ -144,8 +144,8 @@ bool DamaAgentRcsRrmQos::init()
 		}
 
 		// create circular buffer for saving the incoming rates during each frame
-		// of the last OBR period
-		this->rin = new CircularBuffer(this->obr_period_sf);
+		// of the last SYNC period
+		this->rin = new CircularBuffer(this->sync_period_sf);
 		if(this->rin == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -156,7 +156,7 @@ bool DamaAgentRcsRrmQos::init()
 
 		// create and intialize circular buffer for saving the coefficient to
 		// apply to the incoming rates
-		this->rin_coeff = (double *) malloc(this->obr_period_sf * sizeof(double));
+		this->rin_coeff = (double *) malloc(this->sync_period_sf * sizeof(double));
 		if(this->rin_coeff == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -164,10 +164,10 @@ bool DamaAgentRcsRrmQos::init()
 			    "the incoming rate coefficients\n");
 			goto error;
 		}
-		for (int i = 0; i < this->obr_period_sf; i++)
+		for (int i = 0; i < this->sync_period_sf; i++)
 		{
 			/*** TO DO: To read in conf in the next versions ***/
-			this->rin_coeff[i] = 1.0/this->obr_period_sf;
+			this->rin_coeff[i] = 1.0/this->sync_period_sf;
 			sum_rin_coeff += this->rin_coeff[i];
 		}
 		if (sum_rin_coeff != 1.0)
@@ -225,7 +225,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 
 	/* get number of outstanding packets in RBDC related MAC FIFOs */
 	rbdc_length_b =
-		this->converter->pktToBits(this->getMacBufferLength(cr_rbdc));
+		this->converter->pktToBits(this->getMacBufferLength(access_dama_rbdc));
 
 	// Get number of packets arrived in RBDC related IP FIFOs since
 	// last RBDC request sent
@@ -235,7 +235,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	// in IP fifos
 	//TODO: remove ?
 	//rbdc_pkt_arrival_b =
-		//this->converter->pktToBits(this->getMacBufferArrivals(cr_rbdc));
+		//this->converter->pktToBits(this->getMacBufferArrivals(access_dama_rbdc));
 
 	// get the sum of RBDC request during last MSL
 	// TODO: remove ?
@@ -248,7 +248,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	t_loop_ms = this->msl_sf * this->frame_duration_ms;
 
 	// Get the time between two requests
-	t_sync_ms = this->obr_period_sf * this->frame_duration_ms;
+	t_sync_ms = this->sync_period_sf * this->frame_duration_ms;
 
 	if (LEGACY == 1) // Use the legacy algorithm instead of the RRM-QoS one
 	{
@@ -306,7 +306,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 			LOG(this->log_request, LEVEL_DEBUG,
 			    "this->dyn_alloc_PartialSum = %d pkt\n",
 			    this->dyn_alloc->GetPartialSumFromPrevious(
-			    this->obr_period_sf - this->msl_sf));
+			    this->sync_period_sf - this->msl_sf));
 			LOG(this->log_request, LEVEL_DEBUG,
 			    "this->dyn_alloc_Sum = %d pkt\n",
 			    this->dyn_alloc->GetSum());
@@ -317,7 +317,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 			{
 				alpha =
 					(this->dyn_alloc->GetPartialSumFromPrevious(
-									this->obr_period_sf - this->msl_sf)) /
+									this->sync_period_sf - this->msl_sf)) /
 					((t_sync_ms - t_loop_ms) * last_rbdc_req_kbps);
 			}
 			else
@@ -342,7 +342,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 		{
 			// Nonused case in the R&T RRM-QoS
 			LOG(this->log_request, LEVEL_NOTICE,
-			    "the time between two requests (obrPeriod) is "
+			    "the time between two requests (syncPeriod) is "
 			    "inferior to the Minimum Scheduling Latency (MSL), "
 			    "this case should not be used in the context of "
 			    "the RRM-QoS. However, the simulation is able to "
@@ -375,7 +375,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 
 	// Compute Rin in cell/sec
 	rin_weighted_kbps = 0;
-	for (int i = 0; i < this->obr_period_sf ; i++)
+	for (int i = 0; i < this->sync_period_sf ; i++)
 	{
 		rin_weighted_kbps += (this->rin->GetValueIndex(i+1)) * 
 			(this->rin_coeff[i]); // in cell/frame
@@ -397,7 +397,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	// Compute rate_need_kbps : estimation of the need of bandwith for traffic
 	// in cell/sec (core of the algorithm)
 	alloc_since_last_request = 
-		this->dyn_alloc->GetPartialSumFromPrevious(this->obr_period_sf - this->msl_sf) / 
+		this->dyn_alloc->GetPartialSumFromPrevious(this->sync_period_sf - this->msl_sf) / 
 		                                           (t_sync_ms - t_loop_ms);
 	if((last_rbdc_req_kbps < alloc_since_last_request) || 
 	  (WITHOUT_MODIF_1 == 1)) // RRM-QoS: Modification 1 
@@ -455,10 +455,10 @@ Legacy:
 	{
 		rate_kbps_t rin_kbps = 0.0;
 		rin_kbps = 0;
-		for (int i = 0; i < this->obr_period_sf ; i++)
+		for (int i = 0; i < this->sync_period_sf ; i++)
 		{
 			rin_kbps += (this->rin->GetValueIndex(i + 1) * 1.0 / 
-			             this->obr_period_sf); // in cell/frame
+			             this->sync_period_sf); // in cell/frame
 		}
 		if (rbdc_length_b > rin_kbps * t_sync_ms)
 		{
@@ -521,7 +521,7 @@ vol_pkt_t DamaAgentRcsRrmQos::computeVbdcRequest()
 
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
-	vbdc_need_pkt = this->getMacBufferLength(cr_vbdc);
+	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
 	    "%u\n", this->current_superframe_sf, this->current_frame,
