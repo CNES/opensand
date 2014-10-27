@@ -500,7 +500,6 @@ class XmlParser:
         if base is None:
             return None
 
-        # TODO also handle long, double, float, etc..
         ret = self.parse_numeric(base)
         if ret is not None:
             # get the minimum or maximum value if specified
@@ -584,9 +583,13 @@ class XmlParser:
 
     def parse_numeric(self, base):
         """ parse a numeric xsd type """
-        base = base.strip("xsd:")
+        base = base.split(":", 1)
+        if len(base) > 1:
+            base = base[1]
+        else:
+            base = base[0]
         if base in ["byte",
-                    "decimal"
+                    "decimal",
                     "int",
                     "integer",
                     "long",
