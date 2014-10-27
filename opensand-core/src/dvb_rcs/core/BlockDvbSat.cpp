@@ -527,26 +527,26 @@ bool BlockDvbSat::Downward::initOutput(void)
 		Probe<int> *probe_l2_from_st;
 
 		probe_output_gw = Output::registerProbe<int>(
-			"Packets", true, SAMPLE_LAST,
-			"Spot %d.Queue size.Output_GW", spot_id);
+			"Packets", false, SAMPLE_LAST,
+			"Spot %d.Delay buffer size.Output_GW", spot_id);
 		this->probe_sat_output_gw_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *> (spot_id, probe_output_gw));
 
 		probe_output_gw_kb = Output::registerProbe<int>(
-			"Kbits", true, SAMPLE_LAST,
-			"Spot %d.Queue size.Output_GW_kb", spot_id);
+			"Kbits", false, SAMPLE_LAST,
+			"Spot %d.Delay buffer size.Output_GW_kb", spot_id);
 		this->probe_sat_output_gw_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_gw_kb));
 
 		probe_output_st = Output::registerProbe<int>(
-			"Packets", true, SAMPLE_LAST,
-			"Spot %d.Queue size.Output_ST", spot_id);
+			"Packets", false, SAMPLE_LAST,
+			"Spot %d.Delay buffer size.Output_ST", spot_id);
 		this->probe_sat_output_st_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_st));
 
 		probe_output_st_kb = Output::registerProbe<int>(
-			"Kbits", true, SAMPLE_LAST,
-			"Spot %d.Queue size.Output_ST_kb", spot_id);
+			"Kbits", false, SAMPLE_LAST,
+			"Spot %d.Delay buffer size.Output_ST_kb", spot_id);
 		this->probe_sat_output_st_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_st_kb));
 
