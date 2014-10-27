@@ -81,8 +81,6 @@ class DvbChannel: public RtChannel
 		satellite_type(),
 		with_phy_layer(false),
 		super_frame_counter(0),
-		frames_per_superframe(-1),
-		frame_counter(0),
 		fwd_down_frame_duration_ms(),
 		ret_up_frame_duration_ms(),
 		pkt_hdl(NULL),
@@ -229,12 +227,6 @@ class DvbChannel: public RtChannel
 
 	/// the current super frame number
 	time_sf_t super_frame_counter;
-
-	/// the number of frame per superframe
-	unsigned int frames_per_superframe;
-
-	/// the current frame number inside the current super frame
-	time_frame_t frame_counter; // from 1 to frames_per_superframe
 
 	/// the frame durations
 	time_ms_t fwd_down_frame_duration_ms;

@@ -54,20 +54,15 @@ class UplinkSchedulingRcs: public Scheduling
 
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    unsigned int frames_per_superframe,
 	                    const FmtSimulation *const ret_fmt_simu,
 	                    const TerminalCategoryDama *const category);
 
 	bool schedule(const time_sf_t current_superframe_sf,
-	              const time_frame_t current_frame,
 	              clock_t current_time,
 	              list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
   private:
-
-	/// the number of frame per superframe
-	unsigned int frames_per_superframe;
 
 	/// The FMT simulated data
 	const FmtSimulation *ret_fmt_simu;
@@ -81,14 +76,12 @@ class UplinkSchedulingRcs: public Scheduling
 	 *
 	 * @param fifo  The FIFO whee packets are stored
 	 * @param current_superframe_sf  The current superframe number
-	 * @param current_frame          The current frame ID
 	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          const time_frame_t current_frame,
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);

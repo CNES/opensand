@@ -144,18 +144,15 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	 *         The unit should be the unit for Ttp assignment_count
 	 *
 	 * @param  vbdc_alloc        The VBDC allocation (packets)
-	 * @param  allocation cycle  The number of frames per superframes
 	 */
-	void setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
-	                       unsigned int allocation_cycle);
+	void setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt);
 
 	/**
 	 * @brief Get the ST VBDC request
 	 *
-	 * @param  allocation cycle  The number of frames per superframes
 	 * @return The VBDC request value (packets).
 	 */
-	vol_pkt_t getRequiredVbdc(unsigned int allocation_cycle) const;
+	vol_pkt_t getRequiredVbdc() const;
 
 	/**
 	 * @brief Set the FCA allocation after DAMA computation

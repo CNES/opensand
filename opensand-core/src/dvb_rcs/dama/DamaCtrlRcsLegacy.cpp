@@ -272,8 +272,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 			// and dividing by the frame number per superframes we have
 			// the rate in packet per frame
 			remaining_capacity_pktpf =
-				this->converter->kbitsToPkt(remaining_capacity_kb) /
-				this->frames_per_superframe;
+				this->converter->kbitsToPkt(remaining_capacity_kb);
 
 
 			// initialize remaining capacity with total capacity in
@@ -285,8 +284,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 			    this->current_superframe_sf,
 			    carriers->getCarriersId(),
 			    remaining_capacity_pktpf,
-			                remaining_capacity_kb / 
-			                this->frames_per_superframe);
+			    remaining_capacity_kb);
 
 			// Output probes and stats
 			this->probes_carrier_return_capacity[carriers->
@@ -574,7 +572,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 		terminal = *tal_it;
 		tal_id_t tal_id = terminal->getTerminalId();
 
-		vol_pkt_t request_pkt = terminal->getRequiredVbdc(this->frames_per_superframe);
+		vol_pkt_t request_pkt = terminal->getRequiredVbdc();
 
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s: ST%u remaining capacity=%u remaining VBDC "
@@ -596,8 +594,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 			{
 				// enough capacity to allocate
 				remaining_capacity_pktpf -= request_pkt;
-				terminal->setVbdcAllocation(
-					request_pkt, this->frames_per_superframe);
+				terminal->setVbdcAllocation(request_pkt);
 				LOG(this->log_run_dama, LEVEL_DEBUG,
 				    "%s ST%u allocate remaining VBDC: %u\n",
 				    debug.c_str(), tal_id, request_pkt);
@@ -622,8 +619,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 			else
 			{
 				// not enough capacity to allocate the complete request
-				terminal->setVbdcAllocation(remaining_capacity_pktpf,
-				                            this->frames_per_superframe);
+				terminal->setVbdcAllocation(remaining_capacity_pktpf);
 
 				// Output stats and probes
 				if(tal_id > BROADCAST_TAL_ID)
@@ -643,8 +639,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 					do
 					{
 						terminal = *tal_it;
-						request_pkt = terminal->getRequiredVbdc(
-							this->frames_per_superframe);
+						request_pkt = terminal->getRequiredVbdc();
 						gw_vbdc_req_size_pkt += request_pkt;
 						if(request_pkt > 0)
 							this->gw_vbdc_req_num++;

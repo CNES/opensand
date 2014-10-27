@@ -118,9 +118,6 @@
 // bloc_dvb_rcs_ncc //
 //////////////////////
 
-#define DVB_MAC_SECTION         "mac_layer"
-#define DVB_FPF                 "frames_per_superframe"
-
 #define DVB_NCC_SECTION         "dvb_rcs_ncc"
 #define DVB_NCC_DAMA_ALGO       "dama_algorithm"
 #define DVB_CTRL_CAR            "carrier_id_dvb_ctrl"
@@ -173,13 +170,10 @@
 #define DC_SECTION_NCC              "dvb_rcs_ncc"
 #define DC_CRA_DECREASE             "cra_decrease"
 #define DC_FREE_CAP                 "fca"
-#define DC_SECTION_MAC_LAYER        "mac_layer"
 
 //////////
 // DAMA //
 //////////
-
-#define DA_MAC_LAYER_SECTION    "mac_layer"
 
 #define DA_TAL_SECTION          "dvb_rcs_tal"
 #define DA_MAX_RBDC_DATA        "max_rbdc"

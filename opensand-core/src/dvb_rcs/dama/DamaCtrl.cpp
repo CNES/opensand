@@ -51,7 +51,6 @@ DamaCtrl::DamaCtrl():
 	with_phy_layer(false),
 	current_superframe_sf(0),
 	frame_duration_ms(0),
-	frames_per_superframe(0),
 	cra_decrease(false),
 	rbdc_timeout_sf(0),
 	fca_kbps(0),
@@ -119,7 +118,6 @@ DamaCtrl::~DamaCtrl()
 }
 
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
-                          unsigned int frames_per_superframe,
                           bool with_phy_layer,
                           vol_bytes_t packet_length_bytes,
                           bool cra_decrease,
@@ -132,7 +130,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool simulated)
 {
 	this->frame_duration_ms = frame_duration_ms;
-	this->frames_per_superframe = frames_per_superframe;
 	this->with_phy_layer = with_phy_layer;
 	this->cra_decrease = cra_decrease;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;

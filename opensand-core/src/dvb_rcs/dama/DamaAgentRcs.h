@@ -61,9 +61,6 @@ class DamaAgentRcs : public DamaAgent
 	                      bool &emtpy);
 
  protected:
-	/** Current frame 0 <= current_frame < frames_per_superframes */
-	time_frame_t current_frame;
-
 	/** Number of allocated timeslots  */
 	time_pkt_t allocated_pkt;
 

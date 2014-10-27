@@ -74,7 +74,6 @@ class DamaCtrl
 	 * @brief  Initialize DAMA controller
 	 *
 	 * @param   frame_duration_ms       duration of the frame (in ms).
-	 * @param   frames_per_superframe   The number of frames per superframe
 	 * @param   with_phy_layer          Whether the physical layer is enabled or not
 	 * @param   packet_length_bytes     The packet length in bytes, for constant length
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
@@ -88,7 +87,6 @@ class DamaCtrl
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
-	                        unsigned int frames_per_superframe,
 	                        bool with_phy_layer,
 	                        vol_bytes_t packet_length_bytes,
 	                        bool cra_decrease,
@@ -240,9 +238,6 @@ class DamaCtrl
 
 	/** frame duration (in ms) */
 	time_ms_t frame_duration_ms;
-
-	/** number of frames per superframe */
-	unsigned int frames_per_superframe;
 
 	/** Decrease request received from ST of CRA value ? */
 	bool cra_decrease;

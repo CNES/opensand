@@ -108,7 +108,6 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	dama_agent(NULL),
 	saloha(NULL),
 	ret_fmt_groups(),
-	frame_counter(),
 	carrier_id_ctrl(),
 	carrier_id_logon(),
 	carrier_id_data(),
@@ -116,8 +115,6 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	default_fifo_id(0),
 	sync_period_frame(-1),
 	obr_slot_frame(-1),
-	frame_timer(-1),
-	is_first_frame(true),
 	complete_dvb_frames(),
 	logon_timer(-1),
 	cni(100),
@@ -484,8 +481,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 	                                         DAMA,
-	                                         this->ret_up_frame_duration_ms *
-	                                           this->frames_per_superframe,
+	                                         this->ret_up_frame_duration_ms,
 	                                         this->fmt_simu.getModcodDefinitions(),
 	                                         dama_categories,
 	                                         terminal_affectation,
@@ -740,8 +736,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
 	                                           ALOHA,
-	                                           this->ret_up_frame_duration_ms *
-	                                             this->frames_per_superframe,
+	                                           this->ret_up_frame_duration_ms,
 	                                           this->fmt_simu.getModcodDefinitions(),
 	                                           sa_categories,
 	                                           terminal_affectation,
@@ -965,12 +960,6 @@ bool BlockDvbTal::Downward::initTimers(void)
 	                                        false, // do not rearm
 	                                        false // do not start
 	                                        );
-	this->frame_timer = this->addTimerEvent("frame",
-	                                        DVB_TIMER_ADJUST(
-	                                            this->ret_up_frame_duration_ms),
-	                                        false,
-	                                        false);
-
 	// QoS Server: check connection status in 5 seconds
 	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
 
@@ -1042,11 +1031,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					if(!sa_packet)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
-						    "SF#%u: frame %u: unable to "
+						    "SF#%u: unable to "
 						    "store received Slotted Aloha encapsulation "
 						    "packet (see previous errors)\n",
-						    this->super_frame_counter,
-						    this->frame_counter);
+						    this->super_frame_counter);
 						return false;
 					}
 				}
@@ -1065,11 +1053,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					// or fifo full and we won't empty fifo until next
 					// call to onDownwardEvent => return
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "SF#%u: frame %u: unable to "
+					    "SF#%u: unable to "
 					    "store received encapsulation "
 					    "packet (see previous errors)\n",
-					    this->super_frame_counter,
-					    this->frame_counter);
+					    this->super_frame_counter);
 					burst->clear();
 					delete burst;
 					return false;
@@ -1126,30 +1113,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		break;
 
 		case evt_timer:
-			if(*event == this->frame_timer)
-			{
-				// beginning of a new frame
-				if(this->state == state_running)
-				{
-					LOG(this->log_receive, LEVEL_INFO,
-					    "SF#%u: send encap bursts on timer "
-					    "basis\n", this->super_frame_counter);
-
-					if(this->processOnFrameTick() < 0)
-					{
-						// exit because the bloc is unable to continue
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u: treatments failed at frame %u\n",
-						    this->super_frame_counter,
-						    this->frame_counter);
-						// Fatal error
-						this->reportError(true,
-						                  "superframe treatment failed");
-						return false;
-					}
-				}
-			}
-			else if(*event == this->logon_timer)
+			if(*event == this->logon_timer)
 			{
 				if(this->state == state_wait_logon_resp)
 				{
@@ -1309,13 +1273,13 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 error_on_TTP:
 	LOG(this->log_receive, LEVEL_ERROR,
 	    "TTP Treatments failed at SF#%u, frame %u",
-	    this->super_frame_counter, this->frame_counter);
+	    this->super_frame_counter);
 	return false;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
 	    "Treatments failed at SF#%u, frame %u",
-	    this->super_frame_counter, this->frame_counter);
+	    this->super_frame_counter);
 	return false;
 }
 
@@ -1338,8 +1302,8 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	                               empty))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "SF#%u frame %u: DAMA cannot build CR\n",
-		    this->super_frame_counter, this->frame_counter);
+		    "SF#%u: DAMA cannot build CR\n",
+		    this->super_frame_counter);
 		goto error;
 	}
 	// Set the ACM parameters
@@ -1351,8 +1315,8 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	if(empty)
 	{
 		LOG(this->log_send, LEVEL_DEBUG,
-		    "SF#%u frame %u: Empty CR\n",
-		    this->super_frame_counter, this->frame_counter);
+		    "SF#%u: Empty CR\n",
+		    this->super_frame_counter);
 		// keep going as we can send ACM parameters
 	}
 
@@ -1361,15 +1325,14 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	                       this->carrier_id_ctrl))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "SF#%u frame %u: failed to send SAC\n",
-		    this->super_frame_counter, this->frame_counter);
+		    "SF#%u: failed to send SAC\n",
+		    this->super_frame_counter);
 		delete sac;
 		goto error;
 	}
 
 	LOG(this->log_send, LEVEL_INFO,
-	    "SF#%u frame %u: SAC sent\n", this->super_frame_counter,
-	    this->frame_counter);
+	    "SF#%u: SAC sent\n", this->super_frame_counter);
 
 	return true;
 
@@ -1388,8 +1351,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 
 	LOG(this->log_frame_tick, LEVEL_DEBUG,
 	    "SOF reception SFN #%u super frame nb %u frame "
-	    "counter %u\n", sfn, this->super_frame_counter,
-	    this->frame_counter);
+	    "counter %u\n", sfn, this->super_frame_counter);
 	LOG(this->log_frame_tick, LEVEL_DEBUG,
 	    "superframe number: %u", sfn);
 
@@ -1410,8 +1372,6 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 
 		this->state = state_wait_logon_resp;
 		this->super_frame_counter = sfn;
-		this->is_first_frame = true;
-		this->frame_counter = 0;
 		goto error;
 	}
 
@@ -1426,53 +1386,34 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 
 	// There is a risk of unprecise timing so the following hack
 
-	// ---- if we have consumed all frames of previous sf ----
-	// ---- (or if it is the first frame)                 ----
-	if(this->frame_counter == this->frames_per_superframe ||
-	   this->is_first_frame)
+	LOG(this->log_frame_tick, LEVEL_INFO,
+	    "SF#%u: all frames from previous SF are "
+	    "consumed or it is the first frame\n",
+	    this->super_frame_counter);
+
+
+	// we have consumed all of our frames, we start a new one immediately
+	// this is the first frame of the new superframe
+	if(this->processOnFrameTick() < 0)
 	{
-		LOG(this->log_frame_tick, LEVEL_INFO,
-		    "SF#%u frame %u: all frames from previous SF are "
-		    "consumed or it is the first frame\n",
-		    this->super_frame_counter, this->frame_counter);
+		// exit because the bloc is unable to continue
+		LOG(this->log_frame_tick, LEVEL_ERROR,
+		    "SF#%u: treatments failed\n",
+		    this->super_frame_counter);
+		goto error;
+	}
 
-		// reset frame counter: it will be init to 1 (1st frame number)
-		// at the beginning of processOnFrameTick()
-		this->frame_counter = 0;
-
-		// we have consumed all of our frames, we start a new one immediately
-		// this is the first frame of the new superframe
-		if(this->processOnFrameTick() < 0)
+	if(this->saloha)
+	{
+		// Slotted Aloha
+		if(!this->saloha->schedule(this->complete_dvb_frames,
+		                           this->super_frame_counter))
 		{
-			// exit because the bloc is unable to continue
-			LOG(this->log_frame_tick, LEVEL_ERROR,
-			    "SF#%u frame %u: treatments failed\n",
-			    this->super_frame_counter, this->frame_counter);
+			LOG(this->log_saloha, LEVEL_ERROR,
+			    "SF#%u: failed to process Slotted Aloha frame tick\n",
+			     this->super_frame_counter);
 			goto error;
 		}
-
-		if(this->saloha)
-		{
-			// Slotted Aloha
-			if(!this->saloha->schedule(this->complete_dvb_frames,
-			                           this->super_frame_counter))
-			{
-				LOG(this->log_saloha, LEVEL_ERROR,
-				    "SF#%u: frame %u: failed to process Slotted Aloha frame tick\n",
-				     this->super_frame_counter, this->frame_counter);
-				goto error;
-			}
-		}
-	}
-	else
-	{
-		// else : frame_counter < frames_per_superframe
-		// if we have not consumed all our frames (it is the risk)
-		// Then there is, by design, a timer active, we have to leave it
-		// as we cannot remove it
-		// hence we do only a reassignation of frame_counter (the frame active
-		// count now as one frame in our superframe)
-		this->frame_counter = 0;
 	}
 
 	return true;
@@ -1484,28 +1425,11 @@ error:
 
 bool BlockDvbTal::Downward::processOnFrameTick(void)
 {
-	int globalFrameNumber;
-
 	this->updateStats();
 
-	// update frame counter for current SF - 1st frame within SF is 1 -
-	this->frame_counter++;
 	LOG(this->log_frame_tick, LEVEL_INFO,
-	    "SF#%u: frame %u: start processOnFrameTick\n",
-	    this->super_frame_counter, this->frame_counter);
-
-	// ------------ arm timer for next frame -----------
-	// this is done at the beginning in order not to increase next frame
-	// by current frame treatments delay
-	if(this->frame_counter < this->frames_per_superframe)
-	{
-		if(!this->startTimer(this->frame_timer))
-		{
-			LOG(this->log_frame_tick, LEVEL_ERROR,
-			    "cannot start frame timer");
-			goto error;
-		}
-	}
+	    "SF#%u: start processOnFrameTick\n",
+	    this->super_frame_counter);
 
 	if(this->dama_agent)
 	{
@@ -1515,8 +1439,8 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 		if(!this->dama_agent->processOnFrameTick())
 		{
 			LOG(this->log_frame_tick, LEVEL_ERROR,
-			    "SF#%u: frame %u: failed to process frame tick\n",
-			    this->super_frame_counter, this->frame_counter);
+			    "SF#%u: failed to process frame tick\n",
+			    this->super_frame_counter);
 			goto error;
 		}
 
@@ -1526,8 +1450,8 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 		if(!this->dama_agent->returnSchedule(&this->complete_dvb_frames))
 		{
 			LOG(this->log_frame_tick, LEVEL_ERROR,
-			    "SF#%u: frame %u: failed to schedule packets from DVB "
-			    "FIFOs\n", this->super_frame_counter, this->frame_counter);
+			    "SF#%u: failed to schedule packets from DVB "
+			    "FIFOs\n", this->super_frame_counter);
 			goto error;
 		}
 	}
@@ -1545,10 +1469,7 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 	// ---------- SAC ----------
 	// compute Capacity Request and send SAC...
 	// only if the OBR period has been reached
-	globalFrameNumber =
-		(this->super_frame_counter - 1) * this->frames_per_superframe
-		+ this->frame_counter;
-	if((globalFrameNumber % this->sync_period_frame) == this->obr_slot_frame)
+	if((this->super_frame_counter % this->sync_period_frame) == this->obr_slot_frame)
 	{
 		if(!this->sendSAC())
 		{

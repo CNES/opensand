@@ -113,7 +113,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	NccPepInterface(),
 	dama_ctrl(NULL),
 	scheduling(NULL),
-	frame_timer(-1),
 	fwd_timer(-1),
 	fwd_frame_counter(0),
 	ctrl_carrier_id(),
@@ -675,8 +674,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 	{
 		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 		                                         DAMA,
-		                                         this->ret_up_frame_duration_ms * 
-		                                           this->frames_per_superframe,
+		                                         this->ret_up_frame_duration_ms, 
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
 		                                         this->categories,
 		                                         this->terminal_affectation,
@@ -703,7 +701,6 @@ bool BlockDvbNcc::Downward::initMode(void)
 		}
 		this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 		                                           this->dvb_fifos,
-		                                           this->frames_per_superframe,
 		                                           &this->up_ret_fmt_simu,
 		                                           cat);
 	}
@@ -866,8 +863,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 	{
 		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
 		                                         DAMA,
-		                                         this->ret_up_frame_duration_ms *
-		                                           this->frames_per_superframe,
+		                                         this->ret_up_frame_duration_ms,
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
 		                                         dc_categories,
 		                                         dc_terminal_affectation,
@@ -938,7 +934,6 @@ bool BlockDvbNcc::Downward::initDama(void)
 
 	// Initialize the DamaCtrl parent class
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
-	                                this->frames_per_superframe,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
 	                                cra_decrease,
@@ -1233,42 +1228,35 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					this->probe_frame_interval->put(val/1000);
 				}
 
-				// increment counter of frames per superframe
-				this->frame_counter++;
-
-				// if we reached the end of a superframe and the
+				// we reached the end of a superframe
 				// beginning of a new one, send SOF and run allocation
 				// algorithms (DAMA)
-				if(this->frame_counter == this->frames_per_superframe)
+				// increase the superframe number and reset
+				// counter of frames per superframe
+				this->super_frame_counter++;
+
+				// send Start Of Frame (SOF)
+				this->sendSOF();
+
+				if(!this->dama_ctrl)
 				{
-					// increase the superframe number and reset
-					// counter of frames per superframe
-					this->super_frame_counter++;
-					this->frame_counter = 0;
-
-					// send Start Of Frame (SOF)
-					this->sendSOF();
-
-					if(!this->dama_ctrl)
-					{
-						// stop here
-						return true;
-					}
-
-					if(this->with_phy_layer)
-					{
-						// for each terminal in DamaCtrl update FMT because in this case
-						// this it not done with scenario timer and FMT is updated
-						// each received frame but we only need it for allocation
-						this->dama_ctrl->updateFmt();
-					}
-
-					// run the allocation algorithms (DAMA)
-					this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
-
-					// send TTP computed by DAMA
-					this->sendTTP();
+					// stop here
+					return true;
 				}
+
+				if(this->with_phy_layer)
+				{
+					// for each terminal in DamaCtrl update FMT because in this case
+					// this it not done with scenario timer and FMT is updated
+					// each received frame but we only need it for allocation
+					this->dama_ctrl->updateFmt();
+				}
+
+				// run the allocation algorithms (DAMA)
+				this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
+
+				// send TTP computed by DAMA
+				this->sendTTP();
 			}
 			else if(*event == this->fwd_timer)
 			{
@@ -1281,7 +1269,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// TODO loop on categories (see todo in initMode)
 				// TODO In regenerative mode we should schedule in frame_timer ??
 				if(!this->scheduling->schedule(this->fwd_frame_counter,
-				                               0,
 				                               this->getCurrentTime(),
 				                               &this->complete_dvb_frames,
 				                               remaining_alloc_sym))
@@ -1303,9 +1290,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					this->probe_used_modcod->put(modcod_id);
 				}
 				LOG(this->log_receive, LEVEL_INFO,
-				    "SF#%u: frame %u: %u symbols remaining after "
+				    "SF#%u: %u symbols remaining after "
 				    "scheduling\n", this->super_frame_counter,
-				    this->frame_counter, remaining_alloc_sym);
+				    remaining_alloc_sym);
 				if(!this->sendBursts(&this->complete_dvb_frames,
 				                     this->data_carrier_id))
 				{
@@ -2046,8 +2033,8 @@ bool BlockDvbNcc::Downward::sendAcmParameters(void)
 	                       this->ctrl_carrier_id))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "SF#%u frame %u: failed to send SAC\n",
-		    this->super_frame_counter, this->frame_counter);
+		    "SF#%u: failed to send SAC\n",
+		    this->super_frame_counter);
 		delete send_sac;
 		return false;
 	}
@@ -2198,8 +2185,7 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 
 	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
 	                                           ALOHA,
-	                                           this->ret_up_frame_duration_ms *
-	                                             this->frames_per_superframe,
+	                                           this->ret_up_frame_duration_ms,
 	                                           this->fmt_simu.getModcodDefinitions(),
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
@@ -2497,7 +2483,6 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SOF:
 		{
 			this->updateStats();
-			this->frame_counter++;
 			// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
 			if(this->saloha)
 			{
@@ -2507,56 +2492,52 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 				sfn = sof->getSuperFrameNumber();
 
-				if(this->frame_counter == this->frames_per_superframe)
+				list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
+				// increase the superframe number and reset
+				// counter of frames per superframe
+				this->super_frame_counter++;
+				if(this->super_frame_counter != sfn)
 				{
-					list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
-					// increase the superframe number and reset
-					// counter of frames per superframe
-					this->super_frame_counter++;
-					if(this->super_frame_counter != sfn)
-					{
-						LOG(this->log_receive, LEVEL_WARNING,
-						    "superframe counter (%u) is not the same as in SoF (%u)\n",
-						    this->super_frame_counter, sfn);
-						this->super_frame_counter = sfn;
-					}
-					this->frame_counter = 0;
+					LOG(this->log_receive, LEVEL_WARNING,
+					    "superframe counter (%u) is not the same as in SoF (%u)\n",
+					    this->super_frame_counter, sfn);
+					this->super_frame_counter = sfn;
+				}
 
-					// Slotted Aloha
-					NetBurst* sa_burst = NULL;
-					if(!this->saloha->schedule(&sa_burst,
-					                           *ack_frames,
-					                           this->super_frame_counter))
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "failed to schedule Slotted Aloha\n");
-						delete ack_frames;
-						return false;
-					}
-					if(sa_burst &&
-					   !this->enqueueMessage((void **)&sa_burst))
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "Failed to send encapsulation packets to upper layer\n");
-						delete ack_frames;
-						return false;
-					}
-					if(ack_frames->size() &&
-					   !this->shareMessage((void **)&ack_frames,
-					                       sizeof(ack_frames),
-					                       msg_saloha))
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "Failed to send Slotted Aloha acks to opposite layer\n");
-						delete ack_frames;
-						return false;
-					}
-					// delete ack_frames if they are emtpy, else shareMessage
-					// would set ack_frames == NULL
-					if(ack_frames)
-					{
-						delete ack_frames;
-					}
+				// Slotted Aloha
+				NetBurst* sa_burst = NULL;
+				if(!this->saloha->schedule(&sa_burst,
+				                           *ack_frames,
+				                           this->super_frame_counter))
+				{
+					LOG(this->log_saloha, LEVEL_ERROR,
+					    "failed to schedule Slotted Aloha\n");
+					delete ack_frames;
+					return false;
+				}
+				if(sa_burst &&
+				   !this->enqueueMessage((void **)&sa_burst))
+				{
+					LOG(this->log_saloha, LEVEL_ERROR,
+					    "Failed to send encapsulation packets to upper layer\n");
+					delete ack_frames;
+					return false;
+				}
+				if(ack_frames->size() &&
+				   !this->shareMessage((void **)&ack_frames,
+				                       sizeof(ack_frames),
+				                       msg_saloha))
+				{
+					LOG(this->log_saloha, LEVEL_ERROR,
+					    "Failed to send Slotted Aloha acks to opposite layer\n");
+					delete ack_frames;
+					return false;
+				}
+				// delete ack_frames if they are emtpy, else shareMessage
+				// would set ack_frames == NULL
+				if(ack_frames)
+				{
+					delete ack_frames;
 				}
 			}
 			else

@@ -197,7 +197,6 @@ ForwardSchedulingS2::~ForwardSchedulingS2()
 
 
 bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
-                                   const time_frame_t UNUSED(current_frame),
                                    clock_t current_time,
                                    list<DvbFrame *> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)

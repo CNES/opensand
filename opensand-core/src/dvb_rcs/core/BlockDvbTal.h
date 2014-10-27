@@ -356,9 +356,6 @@ class BlockDvbTal: public BlockDvb
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
-		/// the current frame number inside the current super frame
-		time_frame_t frame_counter; // from 1 to frames_per_superframe
-
 		/* carrier IDs */
 		uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
 		uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
@@ -375,12 +372,6 @@ class BlockDvbTal: public BlockDvb
 		/// position within the multi-frame,
 		time_frame_t sync_period_frame;
 		time_frame_t obr_slot_frame;
-
-		/// Upon each frame timer event is a frame
-		event_id_t frame_timer;
-
-		/// whether this is the first frame
-		bool is_first_frame;
 
 		/// the list of complete DVB-RCS/BB frames that were not sent yet
 		std::list<DvbFrame *> complete_dvb_frames;

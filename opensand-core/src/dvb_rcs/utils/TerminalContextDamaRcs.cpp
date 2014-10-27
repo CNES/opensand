@@ -145,16 +145,15 @@ void TerminalContextDamaRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
 	    vbdc_request_pkt, this->tal_id);
 }
 
-void TerminalContextDamaRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
-                                           unsigned int allocation_cycle)
+void TerminalContextDamaRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt)
 {
 	this->vbdc_alloc_pkt += vbdc_alloc_pkt;
-	if(this->vbdc_request_pkt >= (vbdc_alloc_pkt * allocation_cycle))
+	if(this->vbdc_request_pkt >= vbdc_alloc_pkt)
 	{
 		// The allocation on Agent is processed per frame so for one TTP we
 		// will allocate as many time the allocated value as we have frames
 		// in superframes
-		this->vbdc_request_pkt -= (vbdc_alloc_pkt * allocation_cycle);
+		this->vbdc_request_pkt -= vbdc_alloc_pkt;
 	}
 	else
 	{
@@ -162,11 +161,11 @@ void TerminalContextDamaRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt,
 	}
 }
 
-vol_pkt_t TerminalContextDamaRcs::getRequiredVbdc(unsigned int allocation_cycle) const
+vol_pkt_t TerminalContextDamaRcs::getRequiredVbdc() const
 {
 	// the allocation is used for each frame per supertrame so it should
 	// be divided by the number of frames per superframes
-	return ceil(this->vbdc_request_pkt / allocation_cycle);
+	return ceil(this->vbdc_request_pkt);
 }
 
 void TerminalContextDamaRcs::setFcaAllocation(rate_pktpf_t fca_alloc_pktpf)

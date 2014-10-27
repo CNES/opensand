@@ -139,17 +139,17 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	}
 
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: frame %u: RBDC Timer = %u, RBDC Length = %u bytes"
+	    "SF#%u: RBDC Timer = %u, RBDC Length = %u bytes"
 	    ", RBDC packet arrival = %u, previous RBDC request in "
 	    "MSL = %u kb/s, rate need = %u kb/s\n",
-	    this->current_superframe_sf, this->current_frame,
+	    this->current_superframe_sf,
 	    this->rbdc_timer_sf, rbdc_length_b,
 	    rbdc_pkt_arrival_b, rbdc_req_in_previous_msl_kbps,
 	    rbdc_request_kbps);
   
 	LOG(this->log_request, LEVEL_INFO,
-	    "SF#%u: frame %u: theoretical RBDC request = %u kbits/s",
-	    this->current_superframe_sf, this->current_frame,
+	    "SF#%u: theoretical RBDC request = %u kbits/s",
+	    this->current_superframe_sf,
 	    rbdc_request_kbps);
 
 	/* adjust request in function of max RBDC and fixed allocation */
@@ -170,8 +170,8 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
 
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: frame %u: updated RBDC request = %u kbits/s in "
-	    "SAC\n", this->current_superframe_sf, this->current_frame,
+	    "SF#%u: updated RBDC request = %u kbits/s in "
+	    "SAC\n", this->current_superframe_sf,
 	    rbdc_request_kbps);
 
 	return rbdc_request_kbps;
@@ -194,15 +194,15 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
 	LOG(this->log_request, LEVEL_ERROR,		
-	    "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
-	    "%u\n", this->current_superframe_sf, this->current_frame,
+	    "SF#%u: MAC buffer length = %d, VBDC credit = "
+	    "%u\n", this->current_superframe_sf,
 	    vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
 	LOG(this->log_request, LEVEL_ERROR,
-	    "SF#%u: frame %u: theoretical VBDC request = %u packets",
-	    this->current_superframe_sf, this->current_frame,
+	    "SF#%u: theoretical VBDC request = %u packets",
+	    this->current_superframe_sf,
 	    vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */

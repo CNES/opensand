@@ -297,9 +297,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- types for mac_layer section -->
-
-<!---->
 
 <!-- type for simulation column section -->
 <xsd:simpleType name="columnNbr">
@@ -344,7 +341,6 @@
             <xsd:element ref="global" />
             <xsd:element ref="up_return_band" />
             <xsd:element ref="down_forward_band" />
-            <xsd:element ref="mac_layer" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
@@ -547,28 +543,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The groups of FMT IDs
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- mac_layer section description -->
-<xsd:element name="mac_layer">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>The MAC layer configuration elements for all components</b>
-            ]]>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="frames_per_superframe" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The number of frames per superframe 
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

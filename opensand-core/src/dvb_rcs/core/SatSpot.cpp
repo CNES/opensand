@@ -120,7 +120,6 @@ bool SatSpot::schedule(const time_sf_t current_superframe_sf,
 	}
 
 	return this->scheduling->schedule(current_superframe_sf,
-	                                  0,
 	                                  current_time,
 	                                  &this->complete_dvb_frames,
 	                                  remaining_allocation);

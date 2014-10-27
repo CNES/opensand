@@ -49,7 +49,6 @@ ReturnSchedulingRcs::ReturnSchedulingRcs(
 
 
 bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
-                                   const time_frame_t current_frame,
                                    clock_t UNUSED(current_time),
                                    list<DvbFrame *> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
@@ -63,7 +62,6 @@ bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	// extract and send encap packets from MAC FIFOs, in function of
 	// UL allocation
 	if(!this->macSchedule(current_superframe_sf,
-	                      current_frame,
 	                      complete_dvb_frames,
 	                      (rate_pktpf_t &)remaining_allocation))
 	{
@@ -77,7 +75,6 @@ bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 }
 
 bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
-                                      const time_frame_t current_frame,
                                       list<DvbFrame *> *complete_dvb_frames,
                                       rate_pktpf_t &remaining_allocation_pktpf)
 {
@@ -88,9 +85,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 	fifos_t::const_iterator fifo_it;
 
 	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: frame %u: attempt to extract encap packets from MAC"
+	    "SF#%u: attempt to extract encap packets from MAC"
 	    " FIFOs (remaining allocation = %d packets)\n",
-	    current_superframe_sf, current_frame,
+	    current_superframe_sf,
 	    remaining_allocation_pktpf);
 
 	// create an incomplete DVB-RCS frame
@@ -115,9 +112,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		{
 			// no data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: frame %u: ignore MAC FIFO %s: "
+			    "SF#%u: ignore MAC FIFO %s: "
 			    "no data (left) to schedule\n",
-			    current_superframe_sf, current_frame,
+			    current_superframe_sf,
 			    fifo->getName().c_str());
 			// pass to next fifo
 			++fifo_it;
@@ -126,11 +123,11 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		{
 			// FIFO with awaiting data
 			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: frame %u: extract packet from "
+			    "SF#%u: extract packet from "
 			    "MAC FIFO %s: "
 			    "%u awaiting packets (remaining "
 			    "allocation = %d)\n",
-			    current_superframe_sf, current_frame,
+			    current_superframe_sf,
 			    fifo->getName().c_str(),
 			    fifo->getCurrentSize(), remaining_allocation_pktpf);
 
@@ -147,9 +144,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			   incomplete_dvb_frame->getFreeSpace())
 			{
 				LOG(this->log_scheduling, LEVEL_DEBUG,
-				    "SF#%u: frame %u: DVB frame #%u "
+				    "SF#%u: DVB frame #%u "
 				    "is full, change for next one\n",
-				    current_superframe_sf, current_frame,
+				    current_superframe_sf,
 				    complete_frames_count + 1);
 
 				complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
@@ -179,9 +176,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			if(!incomplete_dvb_frame->addPacket(encap_packet))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: frame %u: cannot add "
+				    "SF#%u: cannot add "
 				    "extracted MAC packet in DVB frame #%u\n",
-				    current_superframe_sf, current_frame,
+				    current_superframe_sf,
 				    complete_frames_count + 1);
 				delete encap_packet;
 				ret = false;
@@ -189,9 +186,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			}
 
 			LOG(this->log_scheduling, LEVEL_DEBUG,
-			    "SF#%u: frame %u: extracted packet added "
+			    "SF#%u: extracted packet added "
 			    "to DVB frame #%u\n",
-			    current_superframe_sf, current_frame,
+			    current_superframe_sf,
 			    complete_frames_count + 1);
 			delete encap_packet;
 
@@ -219,10 +216,9 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 
 	// print status
 	LOG(this->log_scheduling, LEVEL_INFO,
-	    "SF#%u: frame %u: %d packets extracted from MAC FIFOs, "
+	    "SF#%u: %d packets extracted from MAC FIFOs, "
 	    "%u DVB frame(s) were built (remaining "
 	    "allocation = %d packets)\n", current_superframe_sf,
-	    current_frame,
 	    init_alloc_pktpf - remaining_allocation_pktpf, 
 	    complete_frames_count, remaining_allocation_pktpf);
 

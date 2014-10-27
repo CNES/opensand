@@ -141,19 +141,6 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 		goto error;
 	}
 
-	// number of frame per superframe
-	if(!Conf::getValue(DVB_MAC_SECTION, DVB_FPF,
-	                   this->frames_per_superframe))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    DVB_MAC_SECTION, DVB_FPF);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "frames_per_superframe set to %d\n",
-	    this->frames_per_superframe);
-
 	// frame duration
 	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
 	                   this->ret_up_frame_duration_ms))

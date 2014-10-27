@@ -54,7 +54,6 @@ class ReturnSchedulingRcs: public Scheduling
 	                    const fifos_t &fifos);
 
 	bool schedule(const time_sf_t current_superframe_sf,
-	              const time_frame_t current_frame,
 	              clock_t current_time,
 	              list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
@@ -65,7 +64,6 @@ class ReturnSchedulingRcs: public Scheduling
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *
 	 * @param current_superframe_sf        the current superframe (for logging)
-	 * @param current_frame                the current frame (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
 	 * @param remaining_allocation_pktpf  the remaining allocated packets after
 	 *                                     scheduling on the current superframe
@@ -73,7 +71,6 @@ class ReturnSchedulingRcs: public Scheduling
 	 * @return true on success, false otherwise
 	 */
 	bool macSchedule(const time_sf_t current_superframe_sf,
-	                 const time_frame_t current_frame,
 	                 list<DvbFrame *> *complete_dvb_frames,
 	                 rate_pktpf_t &remaining_allocation_pktpf);
 

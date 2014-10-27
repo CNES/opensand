@@ -523,15 +523,15 @@ vol_pkt_t DamaAgentRcsRrmQos::computeVbdcRequest()
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: frame %u: MAC buffer length = %d, VBDC credit = "
-	    "%u\n", this->current_superframe_sf, this->current_frame,
+	    "SF#%u: MAC buffer length = %d, VBDC credit = "
+	    "%u\n", this->current_superframe_sf,
 	    vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: frame %u: theoretical VBDC request = %u packets",
-	    this->current_superframe_sf, this->current_frame,
+	    "SF#%u: theoretical VBDC request = %u packets",
+	    this->current_superframe_sf,
 	    vbdc_request_pkt);
 
 	/* adjust request in function of max_vbdc value */

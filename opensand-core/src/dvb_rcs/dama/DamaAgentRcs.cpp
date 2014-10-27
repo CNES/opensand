@@ -115,7 +115,6 @@ bool DamaAgentRcs::processOnFrameTick()
 		return false;
 	}
 
-	this->current_frame++;
 	this->remaining_allocation_pktpf = this->dynamic_allocation_pkt;
 
 	return true;
@@ -127,18 +126,17 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	uint32_t remaining_alloc_pktpf = this->remaining_allocation_pktpf;
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
-	    "SF#%u: frame %u: allocation before scheduling %u\n",
-	    this->current_superframe_sf, this->current_frame,
+	    "SF#%u: allocation before scheduling %u\n",
+	    this->current_superframe_sf,
 	    remaining_alloc_pktpf);
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
-	                                 this->current_frame,
 	                                 0,
 	                                 complete_dvb_frames,
 	                                 remaining_alloc_pktpf))
 	{
 		LOG(this->log_schedule, LEVEL_ERROR,
-		    "SF#%u: frame %u: Uplink Scheduling failed",
-		    this->current_superframe_sf, this->current_frame);
+		    "SF#%u: Uplink Scheduling failed",
+		    this->current_superframe_sf);
 		return false;
 	}
 	// add modcod id in frames
@@ -155,9 +153,9 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	this->probe_st_used_modcod->put(this->modcod_id);
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
-	    "SF#%u: frame %u: remaining allocation after scheduling "
+	    "SF#%u: remaining allocation after scheduling "
 	    "%u\n", this->current_superframe_sf,
-	    this->current_frame, remaining_alloc_pktpf);
+	    remaining_alloc_pktpf);
 	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
 
 	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
@@ -178,7 +176,6 @@ bool DamaAgentRcs::hereIsSOF(time_sf_t superframe_number_sf)
 		    this->current_superframe_sf);
 		return false;
 	}
-	this->current_frame = 0;
 	return true;
 }
 

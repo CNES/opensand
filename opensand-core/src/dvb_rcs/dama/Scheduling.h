@@ -73,7 +73,6 @@ class Scheduling
 	 *
 	 * @param complete_dvb_frames   created DVB frames.
 	 * @param current_superframe_sf the current superframe
-	 * @param current_frame         the current frame
 	 * @param current_time          the current time
 	 * @param remaining_allocation  the remaining allocation after scheduling
 	 *                              on the current superframe
@@ -81,7 +80,6 @@ class Scheduling
 	 * @return true on success, false otherwise
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      const time_frame_t current_frame,
 	                      clock_t current_time,
 	                      list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
