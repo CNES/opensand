@@ -501,7 +501,7 @@ class ConfigurationNotebook(gtk.Notebook):
         tab_label.set_markup("<small><b>%s</b></small>" % name)
         self.append_page(scroll_notebook, tab_label)
         if self._config.do_hide(name):
-            self._hidden_widgets.append(tab_vbox)
+            self._hidden_widgets.append(scroll_notebook)
 
         return tab_vbox
 

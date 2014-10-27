@@ -669,9 +669,6 @@ if __name__ == "__main__":
     except IndexError:
         pass
 
-    print "FILES:"
-    print PARSER.get_files()
-
     sys.exit(0)
 
 

@@ -53,6 +53,9 @@ class ConfEvent(ConfView) :
         self._previous_img = ''
         # update the image
         self.refresh_description()
+        # hide DVB part at the moment
+        widget = self._ui.get_widget('frame_dvb')
+        widget.hide_all()
 
         gobject.idle_add(self.enable_conf_buttons, False)
 
