@@ -62,6 +62,16 @@
 
 #define SYNC_PERIOD               "sync_period"
 
+
+///////////////////////////////
+// section simulation column //
+///////////////////////////////
+
+#define SAT_SIMU_COL_SECTION      "simulation_column"
+#define COLUMN_LIST               "columns"
+#define COLUMN_NBR                "column_nbr"
+
+
 /////////////////////////
 //   section dvb_rcs   //
 /////////////////////////
@@ -82,33 +92,16 @@
 #define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"
 #define CRA                       "constant_rate_allocation"
-#define DVB_SIMU_COL              "simulation_column"
-#define COLUMN_LIST               "columns"
-#define COLUMN_NBR                "column_nbr"
-#define DVB_CAR_ID_CTRL           "carrier_id_dvb_ctrl"
-#define DVB_CAR_ID_LOGON          "carrier_id_logon"
-#define DVB_CAR_ID_DATA           "carrier_id_data"
 #define DAMA_ALGO                 "dama_algorithm"
 
 
-/////////////////////////
-// section dvb_rcs_sat //
-/////////////////////////
+///////////////////////////
+// section sat switching //
+///////////////////////////
 
 #define SPOT_ID                   "spot_id"
 #define TAL_ID                    "tal_id"
 
-#define SAT_DVB_SECTION           "dvb_rcs_sat"
-#define SPOT_LIST                 "spots"
-#define CTRL_ID                   "ctrl_id"
-#define DATA_IN_ID                "data_in_id"
-#define DATA_OUT_GW_ID            "data_out_gw_id"
-#define DATA_OUT_ST_ID            "data_out_st_id"
-#define LOG_ID                    "log_id"
-
-#define SAT_SIMU_COL_SECTION      "simulation_column"
-#define COLUMN_LIST               "columns"
-#define COLUMN_NBR                "column_nbr"
 #define SAT_SWITCH_SECTION        "sat_switching_table"
 #define SWITCH_LIST               "switchs"
 #define DEFAULT_SPOT              "default_spot"
@@ -120,10 +113,6 @@
 
 #define DVB_NCC_SECTION         "dvb_rcs_ncc"
 #define DVB_NCC_DAMA_ALGO       "dama_algorithm"
-#define DVB_CTRL_CAR            "carrier_id_dvb_ctrl"
-#define DVB_SOF_CAR             "carrier_id_sof"
-#define DVB_DATA_CAR            "carrier_id_data"
-#define DVB_IN_DATA_CAR         "carrier_id_in_data"
 #define DVB_EVENT_FILE          "event_file"
 #define DVB_SIMU_FILE           "simu_file"
 #define DVB_SIMU_MODE           "simulation"
@@ -257,6 +246,24 @@
 #define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
 #define CARRIER_DISABLED    "disabled_on"
+
+#define DVB_CTRL_CAR        "carrier_id_dvb_ctrl"
+#define DVB_SOF_CAR         "carrier_id_sof"
+#define DVB_DATA_CAR        "carrier_id_data"
+#define DVB_IN_DATA_CAR     "carrier_id_in_data"
+
+#define DVB_CAR_ID_CTRL     "carrier_id_dvb_ctrl"
+#define DVB_CAR_ID_LOGON    "carrier_id_logon"
+#define DVB_CAR_ID_DATA     "carrier_id_data"
+
+#define SPOT_LIST           "spots"
+#define CTRL_ID             "ctrl_id"
+#define DATA_IN_ID          "data_in_id"
+#define DATA_OUT_GW_ID      "data_out_gw_id"
+#define DATA_OUT_ST_ID      "data_out_st_id"
+#define LOG_ID              "log_id"
+
+
 
 /////////////////////////
 //         dev         //

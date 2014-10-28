@@ -10,62 +10,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for dvb_rcs_sat section -->
-<xsd:element name="spots">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="spot" minOccurs="1" maxOccurs="256"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="spot">
-    <xsd:complexType>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="log_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The logging carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="ctrl_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The control carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_in_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The input data carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_out_st_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The output data carrier for this spot with ST as destination
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_out_gw_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The output data carrier for this spot with GW as destination
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- types for sat_switching_table section -->
 <xsd:simpleType name="spotId">
     <xsd:restriction base="xsd:integer">
@@ -111,34 +55,11 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="dvb_rcs_sat" />
             <xsd:element ref="sat_switching_table" />
             <xsd:element ref="physical_layer" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
-    </xsd:complexType>
-</xsd:element>
-
-<!-- dvb_rcs_tal section description -->
-<xsd:element name="dvb_rcs_sat">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>The dvb layer configuration for satellite</b>
-            ]]>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="spots">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The spot description table for emulation
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 

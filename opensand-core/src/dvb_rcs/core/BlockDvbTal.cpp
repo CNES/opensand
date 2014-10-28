@@ -284,38 +284,38 @@ error:
 bool BlockDvbTal::Downward::initCarrierId(void)
 {
 	// Get the ID for control carrier
-	if(!Conf::getValue(DVB_TAL_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_CAR_ID_CTRL,
 	                   this->carrier_id_ctrl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u %s missing from section %s\n",
 		    this->super_frame_counter,
-		    DVB_CAR_ID_CTRL, DVB_TAL_SECTION);
+		    DVB_CAR_ID_CTRL, SATCAR_SECTION);
 		goto error;
 	}
 
 	// Get the ID for logon carrier
-	if(!Conf::getValue(DVB_TAL_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_CAR_ID_LOGON,
 	                   this->carrier_id_logon))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u %s missing from section %s\n",
 		    this->super_frame_counter,
-		    DVB_CAR_ID_LOGON, DVB_TAL_SECTION);
+		    DVB_CAR_ID_LOGON, SATCAR_SECTION);
 		goto error;
 	}
 
 	// Get the ID for data carrier
-	if(!Conf::getValue(DVB_TAL_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_CAR_ID_DATA,
 	                          this->carrier_id_data))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u %s missing from section %s\n",
 		    this->super_frame_counter,
-		    DVB_CAR_ID_DATA, DVB_TAL_SECTION);
+		    DVB_CAR_ID_DATA, SATCAR_SECTION);
 		goto error;
 	}
 

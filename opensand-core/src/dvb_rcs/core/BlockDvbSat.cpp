@@ -133,7 +133,7 @@ bool BlockDvbSat::initSpots(void)
 	}
 
 	// Retrieving the spots description
-	if(!Conf::getListItems(SAT_DVB_SECTION, SPOT_LIST, spot_list))
+	if(!Conf::getListItems(SATCAR_SECTION, SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite spot list\n",

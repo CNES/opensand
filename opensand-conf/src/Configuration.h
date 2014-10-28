@@ -159,7 +159,7 @@ class Conf
 	                              T &value);
 
 	/**
-	 * Get a value from a list element identified by a attribute value
+	 * Get a value from a list element identified by an attribute value
 	 *
 	 * @param  section   name of the section identifying the list
 	 * @param  key       name of the list key identifying the list
@@ -178,7 +178,7 @@ class Conf
 	                           T &value);
 
 	/**
-	 * Get a value from a list element identified by a attribute value
+	 * Get a value from a list element identified by an attribute value
 	 *
 	 * @param  list      the list
 	 * @param  id        the reference attribute

@@ -728,13 +728,13 @@ error:
 bool BlockDvbNcc::Downward::initCarrierIds(void)
 {
 	// Get the ID for DVB control carrier
-	if(!Conf::getValue(DVB_NCC_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_CTRL_CAR,
 	                   this->ctrl_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_CTRL_CAR);
+		    SATCAR_SECTION, DVB_CTRL_CAR);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -742,26 +742,26 @@ bool BlockDvbNcc::Downward::initCarrierIds(void)
 	    this->ctrl_carrier_id);
 
 	// Get the ID for SOF carrier
-	if(!Conf::getValue(DVB_NCC_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_SOF_CAR,
 	                   this->sof_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_SOF_CAR);
+		    SATCAR_SECTION, DVB_SOF_CAR);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "SoF carrier ID set to %u\n", this->sof_carrier_id);
 
 	// Get the ID for data carrier
-	if(!Conf::getValue(DVB_NCC_SECTION,
+	if(!Conf::getValue(SATCAR_SECTION,
 	                   DVB_DATA_CAR,
 	                   this->data_carrier_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_DATA_CAR);
+		    SATCAR_SECTION, DVB_DATA_CAR);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

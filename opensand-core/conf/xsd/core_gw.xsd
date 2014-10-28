@@ -317,27 +317,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB control
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_data" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB data frames
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_sof" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB Start of Frame
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element ref="layer2_fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

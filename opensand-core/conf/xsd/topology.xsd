@@ -74,6 +74,13 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="spotId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- the terminals for sarp sections -->
 <xsd:element name="ipv4">
     <xsd:complexType>
@@ -238,6 +245,63 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- the spots for sat_carrier section -->
+<xsd:element name="spots">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="spot" minOccurs="1" maxOccurs="256"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="spot">
+    <xsd:complexType>
+        <xsd:attribute name="spot_id" type="spotId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The ID of the spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="log_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The logging carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="ctrl_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The control carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="data_in_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The input data carrier for this spot
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="data_out_st_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The output data carrier for this spot with ST as destination
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="data_out_gw_id" type="carrierId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The output data carrier for this spot with GW as destination
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
@@ -304,6 +368,41 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The carriers description for emulation purpose
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for DVB control
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_data" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for DVB data frames
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_sof" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for DVB Start of Frame
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="carrier_id_logon" type="carrierId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The sending carrier id for login information
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="spots">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The spot description table for emulation
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
