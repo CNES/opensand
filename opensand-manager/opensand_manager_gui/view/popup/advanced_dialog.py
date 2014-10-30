@@ -303,6 +303,8 @@ class AdvancedDialog(WindowView):
                                              self._show_hidden,
                                              self.handle_param_chanded,
                                              self._model.handle_file_changed)
+            adv.set_conf_view(notebook)
+            self.update_restrictions()
 
         adv.set_conf_view(notebook)
         if notebook != self._current_host_notebook:
@@ -438,6 +440,7 @@ class AdvancedDialog(WindowView):
                                  error.description))
                     self._host_lock.acquire()
 
+        self.update_restrictions()
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
 
         # copy the list (do not only copy the address)
@@ -498,6 +501,7 @@ class AdvancedDialog(WindowView):
             if notebook is None:
                 continue
             notebook.set_hidden(not self._show_hidden)
+        self.update_restrictions()
 
 
     def select_enabled(self, tree, path, iterator):
@@ -509,6 +513,50 @@ class AdvancedDialog(WindowView):
             if host.get_name() == name:
                 host.enable(True)
                 tree.set(iterator, ACTIVE, True)
+
+    def update_restrictions(self):
+        """ update the restrictions in configuration """
+        configs = []
+        # get all the configurations
+        for host in self._model.get_hosts_list() + [self._model]:
+            adv = host.get_advanced_conf()
+            configs.append(adv.get_configuration())
+
+        for host in self._model.get_hosts_list() + [self._model]:
+            # get notebooks to update their restrictions
+            adv = host.get_advanced_conf()
+            notebook = adv.get_conf_view()
+            if notebook is None:
+                continue
+            restrictions = notebook.get_restrictions()
+            new_restrictions = {}
+            # get all the widget concerned by restriction
+            for (widget, restriction) in restrictions.items():
+                # if hidden widgets are shown, only set all the restrictions
+                # to False in order to force widget display
+                if self._show_hidden:
+                    new_restrictions[widget] = False
+                # get the restriction parameter and the value for wich
+                # the widget is not hidden
+                restricted = False
+                for (xpath, val) in restriction.items():
+                    # try to find the parameter in all configurations
+                    for config in configs:
+                        elem = config.get("//" + xpath.replace(".", "/"))
+                        if elem is not None:
+                            break
+                    if elem is None:
+                        continue
+                    # a parameter was not found,
+                    # we do a & between all parameters, so if one is not found, 
+                    # we do not display the widget
+                    if config.get_value(elem) != val:
+                        restricted = True
+                if restricted:
+                    new_restrictions[widget] = True
+                else:
+                    new_restrictions[widget] = False
+            notebook.set_restrictions(new_restrictions)
 
 
 

@@ -180,7 +180,7 @@
             <![CDATA[
             <b>The dvb layer configuration for terminal</b>\n
             For Layer 2 FIFO configuration:\n
-              - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping
+              - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping\n
               - access type has to be correlated with the band configuration one\n
             \n
             ]]>
@@ -359,6 +359,7 @@
             <![CDATA[
             <b>The debug parameters</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

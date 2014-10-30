@@ -393,6 +393,29 @@ class XmlParser:
 
         return False
 
+    def get_xpath_restrictions(self, name, parent_name=None):
+        """ get the unit of an element """
+        if parent_name is not None:
+            elem = self.get_attribute(name, parent_name)
+        else:
+            elem = self.get_element(name)
+
+        if elem is None:
+            return None
+
+        param = elem.xpath("xsd:annotation/xsd:documentation/xpath",
+                           namespaces=NAMESPACES)
+        if len(param) != 1:
+            # search in references
+            elem = self.get_reference(name)
+            if elem is not None:
+                param = elem.xpath("xsd:annotation/xsd:documentation/xpath",
+                                     namespaces=NAMESPACES)
+            if len(param) != 1:
+                return None
+
+        return param[0].attrib
+
     def get_reference(self, name):
         """ get a reference in the XSD document """
         elem = []

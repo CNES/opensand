@@ -463,6 +463,9 @@ class ConfigurationNotebook(gtk.Notebook):
         if config.do_hide(name):
             # the section itself is hidden
             conf_section.add_hidden(scroll_notebook)
+        restriction = config.get_xpath_restrictions(name)
+        if restriction is not None:
+            conf_section.add_restriction(scroll_notebook, restriction)
         return True
 
     def set_hidden(self, val):
@@ -483,6 +486,25 @@ class ConfigurationNotebook(gtk.Notebook):
         """ notebook hidden """
         self._current_page = self.get_current_page()
 
+    def get_restrictions(self):
+        """ get the restrictions in sections """
+        restrictions = {}
+        for section in self._sections:
+            restrictions.update(section.get_restrictions())
+        return restrictions
+
+    def set_restrictions(self, restrictions):
+        """ set the hidden widgets """
+        for (widget, val) in restrictions.items():
+            # enable hide_all and show_all actions on this widget
+            widget.set_no_show_all(False)
+            if val:
+                widget.hide_all()
+            else:
+                widget.show_all()
+            # disable hide_all and show_all actions on this widget
+            # to avoid modifications from outside
+            widget.set_no_show_all(True)
 
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
@@ -517,10 +539,16 @@ class ConfSection(gtk.VBox):
         self._removed = []
         # list of hidden elements
         self._hidden_widgets = []
+        # dict of restriction per widget
+        self._restrictions = {}
         # list of completions
         self._completions = []
 
         self.fill(section)
+
+    def get_restrictions(self):
+        """ get the restrictions """
+        return self._restrictions
 
     def set_hidden(self, val):
         """ change the hidden status """
@@ -607,13 +635,16 @@ class ConfSection(gtk.VBox):
         unit = self._config.get_unit(name)
         if unit is not None:
             unit_label = gtk.Label()
-            unit_label.set_markup("<i>%s</i>" % unit)
+            unit_label.set_markup("<i> %s</i>" % unit)
             key_box.pack_start(unit_label)
             key_box.set_child_packing(unit_label, expand=False,
                                       fill=False, padding=2,
                                       pack_type=gtk.PACK_START)
         if self._config.do_hide(name):
             self._hidden_widgets.append(key_box)
+        restriction = self._config.get_xpath_restrictions(name)
+        if restriction is not None:
+            self._restrictions.update({key_box: restriction})
 
         return key_box
 
@@ -676,6 +707,9 @@ class ConfSection(gtk.VBox):
         self.check_sensitive()
         if self._config.do_hide(name):
             self._hidden_widgets.append(table_frame)
+        restriction = self._config.get_xpath_restrictions(name)
+        if restriction is not None:
+            self._restrictions.update({table_frame: restriction})
 
         return table_frame
 
@@ -768,7 +802,7 @@ class ConfSection(gtk.VBox):
             unit = self._config.get_unit(att, name)
             if unit is not None:
                 unit_label = gtk.Label()
-                unit_label.set_markup("<i>%s</i>" % unit)
+                unit_label.set_markup("<i> %s</i>" % unit)
                 hbox.pack_start(unit_label)
                 hbox.set_child_packing(unit_label, expand=False,
                                        fill=False, padding=2,
@@ -908,6 +942,10 @@ class ConfSection(gtk.VBox):
     def add_hidden(self, widget):
         """ add a hidden widget in the section """
         self._hidden_widgets.append(widget)
+
+    def add_restriction(self, widget, restriction):
+        """ add a restriction on a widget in the section """
+        self._restrictions.update({widget: restriction})
 
     def update_completion(self, completion, path, att=None):
         """ add existing completion in gtk TextEntries """

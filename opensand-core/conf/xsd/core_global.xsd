@@ -365,6 +365,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The satellite payload type
+                        <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -600,7 +601,9 @@
         <xsd:documentation xml:lang="en">
             <![CDATA[
             <b>The physical layer description:</b>\n
-            See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
+            if the physical layer block is enabled, see the
+            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information, else ACM simulation files are used\n
+            acm_refresh_period is used in both cases\n
             \n
             <u>Note about files:</u>\n
             When you select another file, it will be copied in your scenario,\n
@@ -615,6 +618,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Enable the physical layer
+                        <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -632,6 +636,7 @@
                         The MODCOD definition file for S2 forward/down link
                         <default>modcod/forward/definition.txt</default>
                         <source>modcod/forward_down_def_s2.txt</source>
+                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -641,6 +646,7 @@
                         The MODCOD simulation time series for forward/down link
                         <default>modcod/forward/clear_sky.txt</default>
                         <source>modcod/forward_down_time_series.txt</source>
+                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -650,6 +656,7 @@
                         The MODCOD definition file for RCS return/up link
                         <default>modcod/return/definition_MPEG.txt</default>
                         <source>modcod/return_up_def_rcs.txt</source>
+                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -659,6 +666,7 @@
                         The MODCOD simulation time series for return/up link
                         <default>modcod/return/clear_sky.txt</default>
                         <source>modcod/return_up_time_series.txt</source>
+                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

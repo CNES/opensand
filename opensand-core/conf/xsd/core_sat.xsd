@@ -100,10 +100,11 @@
         <xsd:documentation xml:lang="en">
             <![CDATA[
             <b>The physical layer description for regenerative satellite applied on uplink</b>\n
+            Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
             <!-- only visible when satellite type is regenerative -->
-            <xpath satellite_type="regenerative" />
+            <xpath satellite_type="regenerative"  physical_layer.enable="true" />
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -135,6 +136,7 @@
             <![CDATA[
             <b>The debug parameters</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
