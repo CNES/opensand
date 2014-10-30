@@ -88,6 +88,14 @@ class ConfigDebugDialog(WindowView):
                                          host.get_name(),
                                          True, "",
                                          self.edit_cb, None)
+        logs = set()
+        for log in self._program.get_logs():
+            log_name = log.full_name.split('.', 1)[1]
+            names = log_name.split(".")
+            logs |= set(names)
+        logs = set(map(lambda x: x.lower(), logs))
+        self._current_conf.set_completion(logs, "//debug/levels/level", "name")
+
         self._current_conf.show_all()
         self._scroll.add_with_viewport(self._current_conf)
         self._scroll.show_all()

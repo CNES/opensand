@@ -431,9 +431,6 @@ class ConfigurationNotebook(gtk.Notebook):
         gtk.Notebook.__init__(self)
 
         self._current_page = 0
-        # keep ConfEntry objects else we sometimes loose their attributes in the
-        # event callback
-        self._backup = []
         self._sections = []
 
         self.set_scrollable(True)
@@ -502,7 +499,7 @@ class ConfSection(gtk.VBox):
         self._dev_mode = dev_mode
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
-        self._backup = []
+        self._entries = []
 
         # list of tables with format: {table path : [check button per line]}
         self._tables = {}
@@ -520,6 +517,8 @@ class ConfSection(gtk.VBox):
         self._removed = []
         # list of hidden elements
         self._hidden_widgets = []
+        # list of completions
+        self._completions = []
 
         self.fill(section)
 
@@ -599,7 +598,7 @@ class ConfSection(gtk.VBox):
                           self._host,
                           [self.handle_param_chanded, self._changed_cb],
                           self._file_cb)
-        self._backup.append(entry)
+        self._entries.append(entry)
 
         key_box.pack_start(entry.get())
         key_box.set_child_packing(entry.get(), expand=False,
@@ -761,7 +760,7 @@ class ConfSection(gtk.VBox):
                 # add new lines to changed list
                 if not entry in self._changed:
                     self._changed.append(entry)
-            self._backup.append(entry)
+            self._entries.append(entry)
             hbox.pack_start(entry.get())
             hbox.set_child_packing(entry.get(), expand=False,
                                    fill=False, padding=5,
@@ -849,6 +848,10 @@ class ConfSection(gtk.VBox):
 
         self._table_length[table_key] += 1
         self.check_sensitive()
+        # add the completions if necessary
+        for (completion, path, att) in self._completions:
+            print "LA"
+            self.update_completion(completion, path, att)
         hbox.show_all()
 
     def on_del_button_clicked(self, source=None, event=None):
@@ -907,6 +910,25 @@ class ConfSection(gtk.VBox):
         """ add a hidden widget in the section """
         self._hidden_widgets.append(widget)
 
+    def update_completion(self, completion, path, att=None):
+        """ add existing completion in gtk TextEntries """
+        for entry in self._entries:
+            if att is not None:
+                try:
+                    (entry_path, entry_att) = entry.get_name().split('/@')
+                except:
+                    continue
+                if entry.get_name().startswith(entry_path) and att == entry_att:
+                    entry.add_completion(completion)
+            else:
+                if entry.get_name().startswith(path):
+                    entry.add_completion(completion)
+
+
+    def set_completion(self, completion, path, att=None):
+        """ add completion in matching gtk TextEntries """
+        self._completions.append((completion, path, att))
+        self.update_completion(completion, path, att)
 
 
 # About the specific case of files:
@@ -1052,6 +1074,28 @@ class ConfEntry(object):
         """ stop scolling in the element which emits the scroll-event signal """
         source.emit_stop_by_name('scroll-event')
         return False
+
+    def add_completion(self, completion):
+        """ add completion to a text entry """
+        if self._entry.get_completion() is not None:
+            return
+        comp = gtk.EntryCompletion()
+        liststore = gtk.ListStore(str)
+        for data in completion:
+            liststore.append([data])
+        comp.set_model(liststore)
+        self._entry.set_completion(comp)
+        comp.set_text_column(0)
+#        def match(completion, model, iter):
+#        comp.connect('match-selected', match)
+#        def activate_entry(entry, liststore):
+#            text = entry.get_text()
+#            if text:
+#                if text not in [row[0] for row in liststore]:
+#                    self.liststore.append([text])
+#                    entry.set_text('')
+#                    return
+#        self._entry.connect('activate', activate_entry, liststore)
 
     def get(self):
         """ get the gtk element """
