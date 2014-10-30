@@ -59,9 +59,9 @@ class Controller(threading.Thread):
             self._log = manager_log
             self._event_manager = self._model.get_event_manager()
             self._event_manager_response = self._model.get_event_manager_response()
+            self._env_plane = EnvironmentPlaneController(model, manager_log)
             self._hosts = []
             self._ws = []
-            self._env_plane = EnvironmentPlaneController(model, manager_log)
             self._server = None
             self._command = None
 
@@ -90,7 +90,7 @@ class Controller(threading.Thread):
             # but it will be started with gtk main loop
             OpenSandServiceListener(self._model, self._hosts, self._ws,
                                     self._env_plane, service_type, self._log)
-            
+  
             if interactive:
                 self._command = threading.Thread(None, self.start_server, None,
                                                  (), {})

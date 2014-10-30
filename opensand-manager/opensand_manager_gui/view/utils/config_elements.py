@@ -424,14 +424,77 @@ class ConfigurationTree(gtk.TreeStore):
         """ get the treeview """
         return self._treeview
 
+
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
     def __init__(self, config, host, dev_mode, scenario, show_hidden, changed_cb, file_cb):
         gtk.Notebook.__init__(self)
 
+        self._current_page = 0
+        # keep ConfEntry objects else we sometimes loose their attributes in the
+        # event callback
+        self._backup = []
+        self._sections = []
+
+        self.set_scrollable(True)
+        self.set_tab_pos(gtk.POS_LEFT)
+        self.connect('show', self.on_show)
+        self.connect('hide', self.on_hide)
+
+        for section in config.get_sections():
+            conf_section = ConfSection(section, config, host, dev_mode,
+                                       scenario, changed_cb, file_cb)
+            if self.add_section(config, section,
+                                conf_section, dev_mode):
+                self._sections.append(conf_section)
+
+        self.set_hidden(not show_hidden)
+
+    def add_section(self, config, section, conf_section, dev_mode):
+        """ add a section in the notebook and return the associated vbox """
+        name = config.get_name(section)
+        if config.do_hide_dev(name, dev_mode):
+            return False
+        scroll_notebook = gtk.ScrolledWindow()
+        scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+        scroll_notebook.add_with_viewport(conf_section)
+        tab_label = gtk.Label()
+        tab_label.set_justify(gtk.JUSTIFY_CENTER)
+        tab_label.set_markup("<small><b>%s</b></small>" % name)
+        self.append_page(scroll_notebook, tab_label)
+        if config.do_hide(name):
+            # the section itself is hidden
+            conf_section.add_hidden(scroll_notebook)
+        return True
+
+    def set_hidden(self, val):
+        """ change the hidden status """
+        for section in self._sections:
+            section.set_hidden(val)
+
+    def save(self):
+        """ save the configuration """
+        for section in self._sections:
+            section.save()
+
+    def on_show(self, widget):
+        """ notebook shown """
+        self.set_current_page(self._current_page)
+
+    def on_hide(self, widget):
+        """ notebook hidden """
+        self._current_page = self.get_current_page()
+
+
+class ConfSection(gtk.VBox):
+    """ a section in the configuration """
+    def __init__(self, section, config, host, dev_mode, scenario,
+                 changed_cb, file_cb):
+        gtk.VBox.__init__(self)
+
         self._config = config
         self._host = host
-        self._current_page = 0
         self._changed = []
         self._changed_cb = changed_cb
         self._file_cb = file_cb
@@ -441,10 +504,6 @@ class ConfigurationNotebook(gtk.Notebook):
         # event callback
         self._backup = []
 
-        self.set_scrollable(True)
-        self.set_tab_pos(gtk.POS_LEFT)
-        self.connect('show', self.on_show)
-        self.connect('hide', self.on_hide)
         # list of tables with format: {table path : [check button per line]}
         self._tables = {}
         # list of table length
@@ -462,16 +521,7 @@ class ConfigurationNotebook(gtk.Notebook):
         # list of hidden elements
         self._hidden_widgets = []
 
-        self.load(not show_hidden)
-
-    def load(self, hidden):
-        """ load the configuration view """
-        for section in self._config.get_sections():
-            tab = self.add_section(section)
-            if tab is not None:
-                self.fill_section(section, tab)
-            # hide widgets by default
-            self.set_hidden(hidden)
+        self.fill(section)
 
     def set_hidden(self, val):
         """ change the hidden status """
@@ -486,26 +536,7 @@ class ConfigurationNotebook(gtk.Notebook):
             # to avoid modifications from outside
             widget.set_no_show_all(True)
 
-    def add_section(self, section):
-        """ add a section in the notebook and return the associated vbox """
-        name = self._config.get_name(section)
-        if self._config.do_hide_dev(name, self._dev_mode):
-            return None
-        scroll_notebook = gtk.ScrolledWindow()
-        scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
-        tab_vbox = gtk.VBox()
-        scroll_notebook.add_with_viewport(tab_vbox)
-        tab_label = gtk.Label()
-        tab_label.set_justify(gtk.JUSTIFY_CENTER)
-        tab_label.set_markup("<small><b>%s</b></small>" % name)
-        self.append_page(scroll_notebook, tab_label)
-        if self._config.do_hide(name):
-            self._hidden_widgets.append(scroll_notebook)
-
-        return tab_vbox
-
-    def fill_section(self, section, tab):
+    def fill(self, section):
         """ get the section content and fill the corresponding tab """
         # first add the section description
         name = self._config.get_name(section)
@@ -517,23 +548,23 @@ class ConfigurationNotebook(gtk.Notebook):
             section_descr.set_markup(description)
             section_descr.set_justify(gtk.JUSTIFY_CENTER)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
-            tab.pack_start(evt)
-            tab.set_child_packing(evt, expand=False,
-                                  fill=False, padding=5,
-                                  pack_type=gtk.PACK_START)
+            self.pack_start(evt)
+            self.set_child_packing(evt, expand=False,
+                                   fill=False, padding=5,
+                                   pack_type=gtk.PACK_START)
         for key in self._config.get_keys(section):
             if self._config.is_table(key):
                 table = self.add_table(key)
                 if table is not None:
-                    tab.pack_end(table)
-                    tab.set_child_packing(table, expand=False,
-                                          fill=False, padding=5,
-                                          pack_type=gtk.PACK_START)
+                    self.pack_end(table)
+                    self.set_child_packing(table, expand=False,
+                                           fill=False, padding=5,
+                                           pack_type=gtk.PACK_START)
             else:
                 entry = self.add_key(key)
                 if entry is not None:
-                    tab.pack_end(entry)
-                    tab.set_child_packing(entry, expand=False,
+                    self.pack_end(entry)
+                    self.set_child_packing(entry, expand=False,
                                           fill=False, padding=5,
                                           pack_type=gtk.PACK_START)
 
@@ -767,7 +798,6 @@ class ConfigurationNotebook(gtk.Notebook):
             if not source in self._changed:
                 self._changed.append(source)
 
-
     def save(self):
         """ save the configuration """
         if (len(self._changed) == 0 and
@@ -804,14 +834,6 @@ class ConfigurationNotebook(gtk.Notebook):
         self._changed = []
         self._removed = []
         self._new = []
-
-    def on_show(self, widget):
-        """ notebook shown """
-        self.set_current_page(self._current_page)
-
-    def on_hide(self, widget):
-        """ notebook hidden """
-        self._current_page = self.get_current_page()
 
     def on_add_button_clicked(self, source=None, event=None):
         """ add button clicked """
@@ -880,6 +902,10 @@ class ConfigurationNotebook(gtk.Notebook):
             key_name = self._config.get_name(key_entries[0])
             if self._table_length[name] >= self._config.get_maxoccurs(key_name):
                 button.set_sensitive(False)
+
+    def add_hidden(self, widget):
+        """ add a hidden widget in the section """
+        self._hidden_widgets.append(widget)
 
 
 
@@ -1196,13 +1222,6 @@ class InstallNotebook(gtk.Notebook):
         return frame
 
 
-    def on_show(self, widget):
-        """ notebook shown """
-        self.set_current_page(self._current_page)
-
-    def on_hide(self, widget):
-        """ notebook hidden """
-        self._current_page = self.get_current_page()
 
 def xpath_to_name(xpath):
     """ convert a xpath value to a configuration key name """

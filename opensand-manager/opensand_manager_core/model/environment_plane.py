@@ -132,6 +132,18 @@ class Program(object):
         """ Check if logging is enabled or not """
         return self._logs_enabled
 
+    def is_running(self):
+        """ Check if progam is started """
+        return self._host_model.get_state()
+
+    def get_host_model(self):
+        """ Get the host model """
+        if self._host_model.get_name().lower().startswith(self._name.lower()):
+        # only return host model for main host program
+            return self._host_model
+        # TODO return the associated tool if possible and handle it
+        return None
+
 
     @property
     def name(self):

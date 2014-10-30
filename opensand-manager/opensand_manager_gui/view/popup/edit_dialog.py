@@ -42,11 +42,12 @@ from opensand_manager_core.my_exceptions import ModelException
 
 # TODO usr gtksourceview that should enable synthax highlighting
 class EditDialog(WindowView):
-    """ a window enabling to edit the deploy.ini file """
+    """ a window enabling to edit any file """
     def __init__(self, filename):
         WindowView.__init__(self, None, 'edit_dialog')
 
         self._dlg = self._ui.get_widget('edit_dialog')
+        self._dlg.set_title("Edit %s - OpenSAND Manager" % filename)
         self._dlg.set_keep_above(True)
         self._buff = gtk.TextBuffer()
         win = self._ui.get_widget('edit_text_win')
@@ -64,7 +65,6 @@ class EditDialog(WindowView):
             error_popup(str(msg))
             self.close()
             return
-        self._dlg.set_title("Edit ~/.opensand/deploy.ini - OpenSAND")
         self._dlg.set_icon_name('gtk-edit')
         self._dlg.run()
 

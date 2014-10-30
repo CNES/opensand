@@ -50,7 +50,11 @@ class ConfigLogsDialog(WindowView):
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure logs collection - OpenSAND Manager")
-        self._listview = self._ui.get_widget('config_collection_view')
+        self._dlg.set_icon_name('gtk-properties')
+        widget = self._ui.get_widget('config_collection_scroll')
+        self._listview = gtk.TreeView()
+        widget.add(self._listview)
+        widget.show_all()
         self._shown = False
         self._program = None
 
@@ -90,7 +94,6 @@ class ConfigLogsDialog(WindowView):
 
         self._shown = True
 
-        self._dlg.set_icon_name('gtk-properties')
         self._dlg.show()
 
     def hide(self):

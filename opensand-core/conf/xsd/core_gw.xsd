@@ -396,6 +396,7 @@
             <![CDATA[
             <b>The debug parameters</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

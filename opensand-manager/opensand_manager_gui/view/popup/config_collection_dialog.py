@@ -49,7 +49,11 @@ class ConfigCollectionDialog(WindowView):
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure probes collection - OpenSAND Manager")
-        self._listview = self._ui.get_widget('config_collection_view')
+        self._dlg.set_icon_name('gtk-properties')
+        widget = self._ui.get_widget('config_collection_scroll')
+        self._listview = gtk.TreeView()
+        widget.add(self._listview)
+        widget.show_all()
         self._sel_controller = sel_controller
         self._model = model
         self._log = manager_log
@@ -87,7 +91,6 @@ class ConfigCollectionDialog(WindowView):
 
         self._sel_controller.register_collection_dialog(self)
 
-        self._dlg.set_icon_name('gtk-properties')
         self._dlg.show()
 
     def hide(self):

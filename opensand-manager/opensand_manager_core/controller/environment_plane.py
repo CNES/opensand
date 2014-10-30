@@ -402,6 +402,8 @@ class EnvironmentPlaneController(object):
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
             host_model.set_init_status(InitStatus.SUCCESS)
+        else:
+            return
         if full_prog_id in self._programs:
             self._log.debug("Update probes for program %s" % (prog_name))
             self._programs[full_prog_id].add_probes(probe_list)

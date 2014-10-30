@@ -43,6 +43,7 @@ from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
 
 from opensand_manager_gui.view.popup.config_logs_dialog import ConfigLogsDialog
+from opensand_manager_gui.view.popup.conf_debug_dialog import ConfigDebugDialog
 from opensand_manager_gui.view.event_tab import EventTab
 
 COMPO_X = 70
@@ -446,7 +447,8 @@ class LogView(WindowView):
 
         self._log = manager_log
         self._event_tabs = {} # For the individual program event tabs
-        self._conf_logs_dialog = ConfigLogsDialog()
+        self._run_conf_logs_dlg = ConfigLogsDialog()
+        self._conf_debug_dlg = ConfigDebugDialog()
         self._event_notebook = self._ui.get_widget('event_notebook')
         mgr_event_tab = EventTab(self._event_notebook, "Manager events")
         self._log.run(mgr_event_tab)
@@ -481,27 +483,36 @@ class LogView(WindowView):
         program = self.get_program_for_active_tab(page_num)
         if program == None:
             self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
+            gobject.idle_add(self._run_conf_logs_dlg.hide)
+            gobject.idle_add(self._conf_debug_dlg.hide)
             return
-        self._ui.get_widget("logging_toolbar").show()
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
+        widget = self._ui.get_widget("logging_toolbar")
+        gobject.idle_add(widget.show)
+        gobject.idle_add(self._run_conf_logs_dlg.update_list, program)
+        gobject.idle_add(self._conf_debug_dlg.update, program)
         logs_enabled = program.logs_enabled()
         syslog_enabled = program.syslog_enabled()
+        # if program has a debug configuration, enable log configuration
+        widget = self._ui.get_widget('configure_logging')
+        gobject.idle_add(widget.set_sensitive, True)
+        if not program.is_running() and \
+           not self._conf_debug_dlg.has_debug(program):
+            gobject.idle_add(widget.set_sensitive, False)
         widget = self._ui.get_widget('enable_logs')
         # block toggle signal when modifying state from here
         widget.handler_block(self._logs_hdl)
-        widget.set_active(logs_enabled)
+        gobject.idle_add(widget.set_active, logs_enabled)
         widget.handler_unblock(self._logs_hdl)
         widget = self._ui.get_widget('enable_syslog')
         widget.handler_block(self._syslog_hdl)
-        widget.set_active(syslog_enabled)
+        gobject.idle_add(widget.set_active, syslog_enabled)
         widget.handler_unblock(self._syslog_hdl)
         # set autoscroll state
         tab = self.get_active_tab(page_num)
         widget = self._ui.get_widget('autoscroll')
         val = tab.autoscroll
         widget.handler_block(self._autoscroll_hdl)
-        widget.set_active(val)
+        gobject.idle_add(widget.set_active, val)
         widget.handler_unblock(self._autoscroll_hdl)
 
     def on_configure_logging_clicked(self, source=None, event=None):
@@ -509,11 +520,15 @@ class LogView(WindowView):
         page = self._event_notebook.get_current_page()
         program = self.get_program_for_active_tab(page)
         if program == None:
-            self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
+            gobject.idle_add(self._ui.get_widget("logging_toolbar").hide)
+            gobject.idle_add(self._run_conf_logs_dlg.hide)
             return
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
-        self._conf_logs_dialog.show()
+        if program.is_running():
+            gobject.idle_add(self._run_conf_logs_dlg.update_list, program)
+            self._run_conf_logs_dlg.show()
+        else:
+            gobject.idle_add(self._conf_debug_dlg.update, program)
+            self._conf_debug_dlg.show()
 
     def on_enable_syslog_toggled(self, source=None, event=None):
         """ event handler for syslog activation on remote program """ 
@@ -524,7 +539,8 @@ class LogView(WindowView):
             wsyslog = self._ui.get_widget('enable_syslog')
             active = wlog.get_active() or wsyslog.get_active()
             program.enable_syslog(wsyslog.get_active())
-            self._ui.get_widget('configure_logging').set_sensitive(active)
+            widget = self._ui.get_widget('configure_logging')
+            gobject.idle_add(widget.set_sensitive, active)
 
     def on_enable_logs_toggled(self, source=None, event=None):
         """ event handler for logging  activation """ 
@@ -535,7 +551,8 @@ class LogView(WindowView):
             wsyslog = self._ui.get_widget('enable_syslog')
             active = wlog.get_active() or wsyslog.get_active()
             program.enable_logs(wlog.get_active())
-            self._ui.get_widget('configure_logging').set_sensitive(active)
+            widget = self._ui.get_widget('configure_logging')
+            gobject.idle_add(widget.set_sensitive, active)
 
     def on_erase_logs_clicked(self, source=None, event=None):
         """ event handler for erase logs clicked """
@@ -576,32 +593,38 @@ class LogView(WindowView):
             (should be used with gobject.idle_add outside gtk handlers) """
         self.global_event("***** New run: %s *****" % run)
         widget = self._ui.get_widget('enable_logs')
-        widget.set_sensitive(True)
+        gobject.idle_add(widget.set_sensitive, True)
         widget = self._ui.get_widget('enable_syslog')
-        widget.set_sensitive(True)
+        gobject.idle_add(widget.set_sensitive, True)
         widget = self._ui.get_widget('configure_logging')
-        widget.set_sensitive(True)
+        gobject.idle_add(widget.set_sensitive, True)
         widget = self._ui.get_widget('erase_logs')
-        widget.set_sensitive(False)
+        gobject.idle_add(widget.set_sensitive, False)
         page = self._event_notebook.get_current_page()
+        gobject.idle_add(self._run_conf_logs_dlg.hide)
+        gobject.idle_add(self._conf_debug_dlg.hide)
         program = self.get_program_for_active_tab(page)
         if program == None:
             self._ui.get_widget("logging_toolbar").hide()
-            gobject.idle_add(self._conf_logs_dialog.hide)
             return
-        gobject.idle_add(self._conf_logs_dialog.update_list, program)
+        gobject.idle_add(self._run_conf_logs_dlg.update_list, program)
 
     def on_stop(self):
         """ the stop button has been pressed """
         widget = self._ui.get_widget('enable_logs')
-        widget.set_sensitive(False)
+        gobject.idle_add(widget.set_sensitive, False)
         widget = self._ui.get_widget('enable_syslog')
-        widget.set_sensitive(False)
+        gobject.idle_add(widget.set_sensitive, False)
         widget = self._ui.get_widget('configure_logging')
-        widget.set_sensitive(False)
+        gobject.idle_add(widget.set_sensitive, False)
+        page = self._event_notebook.get_current_page()
+        program = self.get_program_for_active_tab(page)
+        if self._conf_debug_dlg.has_debug(program):
+            gobject.idle_add(widget.set_sensitive, True)
         widget = self._ui.get_widget('erase_logs')
-        widget.set_sensitive(True)
-        gobject.idle_add(self._conf_logs_dialog.hide)
+        gobject.idle_add(widget.set_sensitive, True)
+        gobject.idle_add(self._run_conf_logs_dlg.hide)
+        gobject.idle_add(self._conf_debug_dlg.hide)
         for page_num in range(self._event_notebook.get_n_pages()):
             program = self.get_program_for_active_tab(page_num)
             if program is None:

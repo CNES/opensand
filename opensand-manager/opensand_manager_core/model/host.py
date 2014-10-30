@@ -200,6 +200,10 @@ class HostModel:
         """ get the lan adaptation_schemes values """
         return self._advanced.get_stack("lan_adaptation_schemes", 'proto')
 
+    def get_debug(self):
+        """ get the debug section content """
+        return self._advanced.get_debug()
+
     def get_component(self):
         """ return the component type """
         return self._component

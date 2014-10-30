@@ -195,6 +195,8 @@ class AdvancedHostModel:
         """ get the files """
         return self._files
 
-
+    def get_debug(self):
+        """ get the debug configuration """
+        return self._configuration.get("//debug")
 
 
