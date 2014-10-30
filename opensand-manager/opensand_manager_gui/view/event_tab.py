@@ -194,3 +194,7 @@ class EventTab(object):
             self._text.scroll_to_mark(self._buff.get_insert(), 0.0, False, 0, 0)
 
 
+    @property
+    def page_num(self):
+        """ Get the page num """
+        return self._page_num

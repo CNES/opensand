@@ -850,7 +850,6 @@ class ConfSection(gtk.VBox):
         self.check_sensitive()
         # add the completions if necessary
         for (completion, path, att) in self._completions:
-            print "LA"
             self.update_completion(completion, path, att)
         hbox.show_all()
 

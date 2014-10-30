@@ -41,6 +41,7 @@ import os
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
+from opensand_manager_core.model.environment_plane import Program
 
 from opensand_manager_gui.view.popup.config_logs_dialog import ConfigLogsDialog
 from opensand_manager_gui.view.popup.conf_debug_dialog import ConfigDebugDialog
@@ -146,6 +147,8 @@ class RunView(WindowView):
         self._info_x = 170 + (nbr + 1) * 140
         self.draw_collector_state(self._model.is_collector_known(),
             self._model.is_collector_functional())
+
+        self._log_view.update(self._model.get_hosts_list())
 
         return False
 
@@ -459,6 +462,26 @@ class LogView(WindowView):
         widget = self._ui.get_widget('autoscroll')
         self._autoscroll_hdl = widget.connect('toggled', self.on_autoscroll_toggled)
 
+
+    def update(self, hosts):
+        """ update the host list """
+        for tab in self._event_tabs:
+            page_num = self._event_tabs[tab].page_num
+            child = self._event_notebook.get_nth_page(page_num)
+            gobject.idle_add(child.set_sensitive, True)
+        for host in hosts:
+            if host.get_init_status() == InitStatus.FAIL:
+                for tab in self._event_tabs:
+                    prog = tab.get_program()
+                    if host == prog.get_host_model():
+                        page_num = self._event_tabs[tab].page_num
+                        child = self._event_notebook.get_nth_page(page_num)
+                        gobject.idle_add(child.set_sensitive, False)
+                continue
+            name = host.get_name().lower()
+            if name not in self._event_tabs:
+                program = Program(None, "", name + ".", [], [], host)
+                self.add_program(program)
 
 
     def add_program(self, program):
