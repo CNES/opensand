@@ -104,16 +104,6 @@ class RunView(WindowView):
         if run_id != 'default':
             widget.set_text(run_id)
 
-        status_box = self._ui.get_widget('status_box')
-        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
-                                                             0xffff))
-        self._info_label = self._ui.get_widget('info_label')
-        self._counter = 0
-# TODO move in opensand_view !!
-        infos = ['Service type: ' + service_type,
-                 '<a href="http://opensand.org">OpenSAND website</a>']
-        gobject.timeout_add(5000, self.update_label, infos)
-
 
     def expose_handler(self, drawing_area, event):
         """ 'expose' event handler on drawing area """
@@ -417,21 +407,6 @@ class RunView(WindowView):
     def is_running(self):
         """ check if at least one host or controller is running """
         return self._model.is_running()
-
-    def update_label(self, infos=[]):
-        """ Update the message displayed on Manager """
-        self._info_label.set_markup(infos[self._counter])
-
-        # TODO we do not have this one !
-        msg = 'Developer mode enabled'
-        if self._model.get_dev_mode() and not msg in infos:
-            infos.append(msg)
-        elif msg in infos:
-            infos.remove(msg)
-        if len(infos) == 0:
-            return True
-        self._counter = (self._counter + 1) % len(infos)
-        return True
 
 
     def simu_program_list_changed(self, programs_dict):

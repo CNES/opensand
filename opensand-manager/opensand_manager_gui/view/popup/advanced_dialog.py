@@ -74,6 +74,20 @@ class AdvancedDialog(WindowView):
         self._all_modules = False
         self._show_hidden = False
         self._update_cb = update_cb
+        self._vbox = self._ui.get_widget('advanced_vbox')
+        info = gtk.InfoBar()
+        self._vbox.pack_start(info, expand=False, fill=False, padding=0)
+        sep = self._ui.get_widget('advanced_separator')
+        self._vbox.reorder_child(sep, 2)
+        self._vbox.reorder_child(info, 1)
+        info.set_message_type(gtk.MESSAGE_INFO)
+        msg = gtk.Label("Do not forget to configure plugins if necessary")
+        info.get_content_area().pack_start(msg, False, False)
+        def ok(source=None, event=None):
+            source.hide_all()
+        info.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+        info.connect("response", ok)
+        self._vbox.show_all()
 
     def go(self):
         """ run the window """
