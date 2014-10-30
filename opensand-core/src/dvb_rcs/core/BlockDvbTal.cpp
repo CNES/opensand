@@ -187,7 +187,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	                                           "Dvb.DamaAgent.FrameTick");	
 
 	// get the common parameters
-	if(!this->initCommon(UP_RETURN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the initialisation\n");
@@ -479,7 +479,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		return false;
 	}
 
-	if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->fmt_simu.getModcodDefinitions(),
@@ -734,7 +734,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	// fmt_simu was initialized in initDama
-	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
+	if(!this->initBand<TerminalCategorySaloha>(RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->fmt_simu.getModcodDefinitions(),
@@ -1272,13 +1272,13 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 
 error_on_TTP:
 	LOG(this->log_receive, LEVEL_ERROR,
-	    "TTP Treatments failed at SF#%u, frame %u",
+	    "TTP Treatments failed at SF#%u",
 	    this->super_frame_counter);
 	return false;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
-	    "Treatments failed at SF#%u, frame %u",
+	    "Treatments failed at SF#%u",
 	    this->super_frame_counter);
 	return false;
 }
@@ -1350,8 +1350,8 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 	sfn = sof->getSuperFrameNumber();
 
 	LOG(this->log_frame_tick, LEVEL_DEBUG,
-	    "SOF reception SFN #%u super frame nb %u frame "
-	    "counter %u\n", sfn, this->super_frame_counter);
+	    "SOF reception SFN #%u super frame nb counter %u\n",
+	    sfn, this->super_frame_counter);
 	LOG(this->log_frame_tick, LEVEL_DEBUG,
 	    "superframe number: %u", sfn);
 
@@ -1825,7 +1825,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 bool BlockDvbTal::Upward::onInit(void)
 {
 	// get the common parameters
-	if(!this->initCommon(DOWN_FORWARD_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "

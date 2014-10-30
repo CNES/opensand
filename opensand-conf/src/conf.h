@@ -45,8 +45,8 @@
 #define GLOBAL_SECTION            "global"
 
 #define LAN_ADAPTATION_SCHEME_LIST     "lan_adaptation_schemes"
-#define UP_RETURN_ENCAP_SCHEME_LIST    "up_return_encap_schemes"
-#define DOWN_FORWARD_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
+#define RETURN_UP_ENCAP_SCHEME_LIST    "return_up_encap_schemes"
+#define FORWARD_DOWN_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
 #define POSITION                  "pos"
 #define PROTO                     "proto"
 #define ENCAP_NAME                "encap"
@@ -123,8 +123,8 @@
 //  Band configuration  //
 //////////////////////////
 
-#define UP_RETURN_BAND        "up_return_band"
-#define DOWN_FORWARD_BAND     "down_forward_band"
+#define RETURN_UP_BAND        "return_up_band"
+#define FORWARD_DOWN_BAND     "down_forward_band"
 
 #define BANDWIDTH             "bandwidth"
 #define ROLL_OFF              "roll_off"

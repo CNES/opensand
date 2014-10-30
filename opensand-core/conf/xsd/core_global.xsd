@@ -262,7 +262,7 @@
 </xsd:element>
 
 <!-- the encap schemes tables -->
-<xsd:element name="up_return_encap_schemes">
+<xsd:element name="return_up_encap_schemes">
     <xsd:complexType>
         <xsd:choice>
             <xsd:element ref="encap_scheme" minOccurs="1" maxOccurs="5" />
@@ -270,7 +270,7 @@
     </xsd:complexType>
 </xsd:element>
 
-<xsd:element name="down_forward_encap_schemes">
+<xsd:element name="forward_down_encap_schemes">
     <xsd:complexType>
         <xsd:choice>
             <xsd:element ref="encap_scheme" minOccurs="1" maxOccurs="5" />
@@ -339,8 +339,8 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element ref="up_return_band" />
-            <xsd:element ref="down_forward_band" />
+            <xsd:element ref="return_up_band" />
+            <xsd:element ref="forward_down_band" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
@@ -396,18 +396,18 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="up_return_encap_schemes">
+            <xsd:element ref="return_up_encap_schemes">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The up/return link encapsulation scheme
+                        The return/up link encapsulation scheme
                         <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="down_forward_encap_schemes">
+            <xsd:element ref="forward_down_encap_schemes">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The down/forward link encapsulation scheme
+                        The forward/down link encapsulation scheme
                         <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
@@ -435,7 +435,7 @@
 </xsd:element>
 
 <!-- uplink band section description -->
-<xsd:element name="up_return_band">
+<xsd:element name="return_up_band">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
@@ -493,7 +493,7 @@
 </xsd:element>
 
 <!-- downlink band section description -->
-<xsd:element name="down_forward_band">
+<xsd:element name="forward_down_band">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[

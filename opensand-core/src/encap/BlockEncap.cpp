@@ -233,12 +233,12 @@ bool BlockEncap::onInit()
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
 
 	// get the number of encapsulation context to use for up/return link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+	if(!Conf::getNbListItems(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
 	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    UP_RETURN_ENCAP_SCHEME_LIST);
+		    RETURN_UP_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -249,7 +249,7 @@ bool BlockEncap::onInit()
 		EncapPlugin::EncapContext *context;
 
 		// get all the encapsulation to use from upper to lower
-		if(!Conf::getValueInList(GLOBAL_SECTION, UP_RETURN_ENCAP_SCHEME_LIST,
+		if(!Conf::getValueInList(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
 		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -286,12 +286,12 @@ bool BlockEncap::onInit()
 	}
 
 	// get the number of encapsulation context to use for down/forward link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+	if(!Conf::getNbListItems(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
 	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    " Section %s, %s missing\n", GLOBAL_SECTION,
-		    UP_RETURN_ENCAP_SCHEME_LIST);
+		    RETURN_UP_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 
@@ -302,7 +302,7 @@ bool BlockEncap::onInit()
 		EncapPlugin::EncapContext *context;
 
 		// get all the encapsulation to use from upper to lower
-		if(!Conf::getValueInList(GLOBAL_SECTION, DOWN_FORWARD_ENCAP_SCHEME_LIST,
+		if(!Conf::getValueInList(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
 		                         POSITION, toString(i), ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,

@@ -238,11 +238,11 @@ bool BlockDvbNcc::Downward::onInit(void)
 	// get the common parameters
 	if(this->satellite_type == TRANSPARENT)
 	{
-		scheme = DOWN_FORWARD_ENCAP_SCHEME_LIST;
+		scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
 	}
 	else
 	{
-		scheme = UP_RETURN_ENCAP_SCHEME_LIST;
+		scheme = RETURN_UP_ENCAP_SCHEME_LIST;
 	}
 
 	if(!this->initCommon(scheme))
@@ -266,7 +266,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	}
 	else
 	{
-		if(!this->initPktHdl(UP_RETURN_ENCAP_SCHEME_LIST,
+		if(!this->initPktHdl(RETURN_UP_ENCAP_SCHEME_LIST,
 		                     &this->up_return_pkt_hdl))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -635,7 +635,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 	// depending on the satellite type
 	if(this->satellite_type == TRANSPARENT)
 	{
-		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
+		if(!this->initBand<TerminalCategoryDama>(FORWARD_DOWN_BAND,
 		                                         TDM,
 		                                         this->fwd_down_frame_duration_ms,
 		                                         this->down_fwd_fmt_simu.getModcodDefinitions(),
@@ -672,7 +672,7 @@ bool BlockDvbNcc::Downward::initMode(void)
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
-		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+		if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
 		                                         DAMA,
 		                                         this->ret_up_frame_duration_ms, 
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
@@ -861,7 +861,7 @@ bool BlockDvbNcc::Downward::initDama(void)
 
 	if(this->satellite_type == TRANSPARENT)
 	{
-		if(!this->initBand<TerminalCategoryDama>(UP_RETURN_BAND,
+		if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
 		                                         DAMA,
 		                                         this->ret_up_frame_duration_ms,
 		                                         this->up_ret_fmt_simu.getModcodDefinitions(),
@@ -2089,11 +2089,11 @@ bool BlockDvbNcc::Upward::onInit(void)
 	// get the common parameters
 	if(this->satellite_type == TRANSPARENT)
 	{
-		scheme = UP_RETURN_ENCAP_SCHEME_LIST;
+		scheme = RETURN_UP_ENCAP_SCHEME_LIST;
 	}
 	else
 	{
-		scheme = DOWN_FORWARD_ENCAP_SCHEME_LIST;
+		scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
 	}
 
 	if(!this->initCommon(scheme.c_str()))
@@ -2183,7 +2183,7 @@ bool BlockDvbNcc::Upward::initSlottedAloha(void)
 		return false;
 	}
 
-	if(!this->initBand<TerminalCategorySaloha>(UP_RETURN_BAND,
+	if(!this->initBand<TerminalCategorySaloha>(RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->fmt_simu.getModcodDefinitions(),

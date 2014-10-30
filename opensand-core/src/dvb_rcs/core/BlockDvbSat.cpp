@@ -137,7 +137,7 @@ bool BlockDvbSat::initSpots(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite spot list\n",
-		    SAT_DVB_SECTION, SPOT_LIST);
+		    SATCAR_SECTION, SPOT_LIST);
 		goto error;
 	}
 
@@ -157,7 +157,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    SPOT_ID, i);
 			goto error;
 		}
@@ -166,7 +166,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    CTRL_ID, i);
 			goto error;
 		}
@@ -175,7 +175,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    DATA_IN_ID, i);
 			goto error;
 		}
@@ -184,7 +184,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    DATA_OUT_GW_ID, i);
 			goto error;
 		}
@@ -193,7 +193,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    DATA_OUT_ST_ID, i);
 			goto error;
 		}
@@ -202,7 +202,7 @@ bool BlockDvbSat::initSpots(void)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SAT_DVB_SECTION, SPOT_LIST,
+			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
 			    LOG_ID, i);
 			goto error;
 		}
@@ -301,7 +301,7 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Downward::onInit()
 {
 	// get the common parameters
-	if(!this->initCommon(DOWN_FORWARD_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -389,7 +389,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 	if(this->satellite_type == REGENERATIVE)
 	{
 		// TODO no need of tal_aff and dflt_cat in attributes
-		if(!this->initBand<TerminalCategoryDama>(DOWN_FORWARD_BAND,
+		if(!this->initBand<TerminalCategoryDama>(FORWARD_DOWN_BAND,
 		                                         TDM,
 		                                         this->fwd_down_frame_duration_ms,
 		                                         this->fmt_simu.getModcodDefinitions(),
@@ -940,7 +940,7 @@ void BlockDvbSat::Upward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Upward::onInit()
 {
 	// get the common parameters
-	if(!this->initCommon(UP_RETURN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
