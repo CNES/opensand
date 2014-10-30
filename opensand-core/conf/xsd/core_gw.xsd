@@ -255,7 +255,15 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The dvb layer configuration for NCC</b>
+            <b>The dvb layer configuration for NCC</b>\n
+            For Layer 2 FIFO configuration:\n
+              - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping
+              - access type has to be correlated with the band configuration one\n
+            \n
+            <u>Note about files:</u>\n
+            When you select another file, it will be copied in your scenario,\n
+            so don't be surprised to always get the same file path when opening\n
+            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>

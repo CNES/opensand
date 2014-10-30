@@ -442,10 +442,10 @@ class ConfEvent(ConfView) :
             host.set_lan_adaptation(self._lan_stacks[host].get_stack())
 
         # output encapsulation scheme
-        config.set_up_return_encap(self._out_stack.get_stack())
+        config.set_return_up_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
-        config.set_down_forward_encap(self._in_stack.get_stack())
+        config.set_forward_down_encap(self._in_stack.get_stack())
 
         # enable physical layer
         widget = self._ui.get_widget('enable_physical_layer')

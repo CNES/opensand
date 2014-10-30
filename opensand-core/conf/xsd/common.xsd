@@ -89,8 +89,8 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer attenuation for uplink: </b>\n
-            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
+            <b>The physical layer attenuation for uplink</b>\n
+            See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -120,7 +120,7 @@
         <xsd:documentation xml:lang="en">
             <![CDATA[
             <b>The physical layer description for downlink: </b>\n
-            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
+            See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
         </xsd:documentation>
     </xsd:annotation>

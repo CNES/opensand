@@ -218,7 +218,7 @@
 
 #define UPLINK_PHYSICAL_LAYER_SECTION    "uplink_physical_layer"
 #define DOWNLINK_PHYSICAL_LAYER_SECTION  "downlink_physical_layer"
-#define PHYSICAL_LAYER_SECTION    "physical_layer"
+#define PHYSICAL_LAYER_SECTION    "sat_physical_layer"
 #define ENABLE                    "enable"
 #define MODEL_LIST                "models"
 #define ATTENUATION_MODEL_TYPE    "attenuation_model_type"

@@ -56,7 +56,7 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="sat_switching_table" />
-            <xsd:element ref="physical_layer" />
+            <xsd:element ref="sat_physical_layer" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -94,13 +94,16 @@
 </xsd:element>
 
 <!-- physical_layer section description -->
-<xsd:element name="physical_layer">
+<!-- prefixed by sat to avoid getting this description in debug physical_layer section -->
+<xsd:element name="sat_physical_layer">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description for regenerative satellite applied on uplink:</b>
-            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
+            <b>The physical layer description for regenerative satellite applied on uplink</b>\n
+            See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
+            <!-- only visible when satellite type is regenerative -->
+            <xpath satellite_type="regenerative" />
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

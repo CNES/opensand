@@ -81,7 +81,7 @@ class OpenSandBand():
 "**************************************************************************\n" \
 "****************************** RETURN ************************************\n" \
 "**************************************************************************\n"
-            self._parse(options.scenario, "up_return")
+            self._parse(options.scenario, "return_up")
             print str(self)
             print
         if options.forward:
@@ -89,7 +89,7 @@ class OpenSandBand():
 "**************************************************************************\n" \
 "****************************** FORWARD ***********************************\n" \
 "**************************************************************************\n"
-            self._parse(options.scenario, "down_forward")
+            self._parse(options.scenario, "forward_down")
             print str(self)
 
 

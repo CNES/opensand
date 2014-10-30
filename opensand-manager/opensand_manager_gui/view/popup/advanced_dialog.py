@@ -246,12 +246,12 @@ class AdvancedDialog(WindowView):
         except ModelException:
             pass
         try:
-            modules += adv.get_stack("up_return_encap_schemes",
+            modules += adv.get_stack("return_up_encap_schemes",
                                      'encap').itervalues()
         except ModelException:
             pass
         try:
-            modules += adv.get_stack("down_forward_encap_schemes",
+            modules += adv.get_stack("forward_down_encap_schemes",
                                      'encap').itervalues()
         except ModelException:
             pass

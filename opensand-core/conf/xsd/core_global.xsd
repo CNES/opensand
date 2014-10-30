@@ -355,11 +355,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The global configuration for all components</b>\n
-            <u>Note about files:</u>\n
-            When you select another file, it will be copied in your scenario,\n
-            so don't be surprised to always get the same file path when opening\n
-            the advanced configuration window.
+            <b>The global configuration for all components</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -604,7 +600,12 @@
         <xsd:documentation xml:lang="en">
             <![CDATA[
             <b>The physical layer description:</b>\n
-            <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a>
+            See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
+            \n
+            <u>Note about files:</u>\n
+            When you select another file, it will be copied in your scenario,\n
+            so don't be surprised to always get the same file path when opening\n
+            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>

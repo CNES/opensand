@@ -53,8 +53,8 @@ class GlobalConfig(AdvancedHostModel):
         self._payload_type = ''
         self._emission_std = ''
 #        self._dama = ''
-        self._down_forward = {}
-        self._up_return = {}
+        self._forward_down = {}
+        self._return_up = {}
         self._enable_phy_layer = None
 
     def load(self, scenario):
@@ -96,10 +96,10 @@ class GlobalConfig(AdvancedHostModel):
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
 #            self._configuration.set_value(self._dama, "//dama_algorithm")
-            self.set_stack('down_forward_encap_schemes',
-                           self._down_forward, 'encap')
-            self.set_stack('up_return_encap_schemes',
-                           self._up_return, 'encap')
+            self.set_stack('forward_down_encap_schemes',
+                           self._forward_down, 'encap')
+            self.set_stack('return_up_encap_schemes',
+                           self._return_up, 'encap')
             self._configuration.set_value(self._enable_phy_layer,
                                           "//physical_layer/enable")
             self._configuration.write()
@@ -134,22 +134,22 @@ class GlobalConfig(AdvancedHostModel):
 #        """ get the dama value """
 #        return self.get_param("dama_algorithm")
 
-    def set_up_return_encap(self, stack):
-        """ set the up_return_encap_schemes values """
-        self._up_return = stack
+    def set_return_up_encap(self, stack):
+        """ set the return_up_encap_schemes values """
+        self._return_up = stack
 
-    def get_up_return_encap(self):
-        """ get the up_return_encap_schemes values """
-        encap = self.get_stack("up_return_encap_schemes", 'encap')
+    def get_return_up_encap(self):
+        """ get the return_up_encap_schemes values """
+        encap = self.get_stack("return_up_encap_schemes", 'encap')
         return encap
 
-    def set_down_forward_encap(self, stack):
-        """ set the down_forward_encap_schemes values """
-        self._down_forward = stack 
+    def set_forward_down_encap(self, stack):
+        """ set the forward_down_encap_schemes values """
+        self._forward_down = stack 
 
-    def get_down_forward_encap(self):
-        """ get the down_forward_encap_schemes values """
-        encap = self.get_stack("down_forward_encap_schemes", 'encap')
+    def get_forward_down_encap(self):
+        """ get the forward_down_encap_schemes values """
+        encap = self.get_stack("forward_down_encap_schemes", 'encap')
         return encap
 
     def set_enable_physical_layer(self, val):

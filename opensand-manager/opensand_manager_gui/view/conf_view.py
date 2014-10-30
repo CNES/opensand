@@ -103,12 +103,12 @@ class ConfView(WindowView):
 #            widget.set_active(self._dama_rcs.index(config.get_dama()))
 #        for host in self._lan_stacks:
 #            self._lan_stacks[host].load(host.get_lan_adaptation())
-        # up_return_encap
-        self._out_stack.load(config.get_up_return_encap(),
+        # return_up_encap
+        self._out_stack.load(config.get_return_up_encap(),
                              config.get_payload_type(),
                              config.get_emission_std())
-        # down_forward_encap
-        self._in_stack.load(config.get_down_forward_encap(),
+        # forward_down_encap
+        self._in_stack.load(config.get_forward_down_encap(),
                             config.get_payload_type(),
                             "DVB-S2")
         # physical layer
@@ -177,12 +177,12 @@ class ConfView(WindowView):
                 if self._lan_stacks[host].get_stack() != host.get_lan_adaptation():
                     return True
 
-            # up_return_encap
-            if self._out_stack.get_stack() != config.get_up_return_encap():
+            # return_up_encap
+            if self._out_stack.get_stack() != config.get_return_up_encap():
                 return True
 
-            # down_forward_encap
-            if self._in_stack.get_stack() != config.get_down_forward_encap():
+            # forward_down_encap
+            if self._in_stack.get_stack() != config.get_forward_down_encap():
                 return True
 
             # enable physical_layer

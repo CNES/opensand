@@ -178,7 +178,11 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The dvb layer configuration for terminal</b>
+            <b>The dvb layer configuration for terminal</b>\n
+            For Layer 2 FIFO configuration:\n
+              - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping
+              - access type has to be correlated with the band configuration one\n
+            \n
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -252,7 +256,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha GW parameters</b>
+            <b>The Slotted Aloha ST parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>

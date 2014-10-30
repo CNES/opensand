@@ -643,9 +643,9 @@ if __name__ == "__main__":
         LOGGER.debug("payload type: " + CONFIG.get_payload_type())
         LOGGER.debug("emission standard: " + CONFIG.get_emission_std())
         LOGGER.debug("uplink encapsulation protocol: " +
-                     str(CONFIG.get_up_return_encap()))
+                     str(CONFIG.get_return_up_encap()))
         LOGGER.debug("downlink encapsulation protocol: " +
-                     str(CONFIG.get_down_forward_encap()))
+                     str(CONFIG.get_forward_down_encap()))
         net_config = {'discovered': '127.0.0.1',
                       'emu_iface': 'eth0',
                       'emu_ipv4': '127.0.0.1',
