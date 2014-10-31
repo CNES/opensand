@@ -550,6 +550,7 @@ class AdvancedDialog(WindowView):
                 # to False in order to force widget display
                 if self._show_hidden:
                     new_restrictions[widget] = False
+                    continue
                 # get the restriction parameter and the value for wich
                 # the widget is not hidden
                 restricted = False
