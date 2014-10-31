@@ -61,6 +61,11 @@ def line(domain, description, ptype, pname,  vtype, vdefault, vrange, purpose):
         vrange = "-"
     if purpose is None:
         purpose = "-"
+    description = description.replace('\n', '\\\\')
+    description = description.replace('\t', '    ')
+    purpose = purpose.replace('\n', '\\\\')
+    purpose = purpose.replace('\t', '    ')
+    
     return line.format(domain, description, ptype, pname,
                        vtype, vdefault, vrange, purpose)
 # For debug
@@ -101,7 +106,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print "Usage: %s xml_file xsd_file [xslt_file]" % sys.argv[0]
+        print "Usage: %s xml_file xsd_file" % sys.argv[0]
         sys.exit(1)
 
     PARSER = XmlParser(sys.argv[1], sys.argv[2])
@@ -161,6 +166,8 @@ if __name__ == "__main__":
                         ptype = ":::"
                         domain = ":::"
                         description = ":::"
+                    # only one line is necessary
+                    break
     sys.exit(0)
 
 

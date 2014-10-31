@@ -402,7 +402,9 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The debug parameters</b>
+            <b>The debug parameters</b>\n
+            For levels table, you can choose any available logs or part of log name.\n
+            After a first simulation, autocompletion will be availabble for level names.
             ]]>
             <hide>true</hide>
         </xsd:documentation>
