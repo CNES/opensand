@@ -39,7 +39,6 @@ from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 from opensand_manager_core.opensand_xml_parser import XmlParser
-from opensand_manager_core.utils import GreedyConfigParser
 
 XSD="/usr/share/opensand/core_global.xsd"
 
@@ -137,11 +136,16 @@ class OpenSandBand():
                                 content["fmt_id"])
 
 
-        simu = GreedyConfigParser()
-        simu.read(os.path.join(scenario, "simulation_files.ini"))
-        file = simu.get("global", "/configuration/global/%s_modcod_def/text()" % link)
-        # fmt ids
-        self._load_fmt(file)
+        # ACM
+        # TODO fix this
+        for std in ["rcs", "s2"]:
+            xpath = "//%s_modcod_def_%s" % (link, std)
+            elem = config.get(xpath)
+            if elem is not None:
+                break
+        name = config.get_name(elem)
+        path = os.path.join(scenario, config.get_file_source(name))
+        self._load_fmt(path)
 
         self._compute()
 
