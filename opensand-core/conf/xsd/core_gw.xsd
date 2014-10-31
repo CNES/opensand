@@ -305,6 +305,7 @@
                         If simulation = file: use a file name or stdin
                         <default>request_simu/dama.input</default>
                         <source>dama.input</source>
+                        <xpath simulation="file"/>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -313,6 +314,7 @@
                     <xsd:documentation xml:lang="en">
                         If simulation = random:
                         nb_station (numbered > 31):RT bandwidth(Kb/s):max RBDC(kb/s):max VBDC(kb)mean requests(Kb/s):amplitude request(Kb/s)
+                        <xpath simulation="random"/>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

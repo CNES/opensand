@@ -25,7 +25,7 @@ set_owner(){
     EXE_CHOWN="/bin/chown"
     USER_NAME="opensand"
 
-    ${EXE_CHOWN} ${USER_NAME} /etc/opensand/
+    ${EXE_CHOWN} ${USER_NAME} -R /etc/opensand/
     ${EXE_CHOWN} ${USER_NAME} /var/cache/sand-daemon
     ${EXE_CHOWN} ${USER_NAME} /var/run/sand-daemon
     ${EXE_CHOWN} ${USER_NAME} /usr/libexec/opensand
