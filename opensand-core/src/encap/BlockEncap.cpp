@@ -291,7 +291,7 @@ bool BlockEncap::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    " Section %s, %s missing\n", GLOBAL_SECTION,
-		    RETURN_UP_ENCAP_SCHEME_LIST);
+		    FORWARD_DOWN_ENCAP_SCHEME_LIST);
 		goto error;
 	}
 

@@ -502,24 +502,24 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	this->msg_type = MSG_TYPE_DVB_BURST;
 
 	// Initiate Minimal conditions
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
 	                   MINIMAL_CONDITION_TYPE,
 	                   minimal_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
+		    SAT_PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
 		goto error;
 	}
 
 	// Initiate Error Insertion
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
 	            ERROR_INSERTION_TYPE,
 	            error_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
+		    SAT_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
 		goto error;
 	}
 

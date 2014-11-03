@@ -449,7 +449,7 @@ class LogView(WindowView):
         for host in hosts:
             if host.get_init_status() == InitStatus.FAIL:
                 for tab in self._event_tabs:
-                    prog = tab.get_program()
+                    prog = self._event_tabs[tab].get_program()
                     if host == prog.get_host_model():
                         page_num = self._event_tabs[tab].page_num
                         child = self._event_notebook.get_nth_page(page_num)

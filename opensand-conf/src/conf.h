@@ -46,7 +46,7 @@
 
 #define LAN_ADAPTATION_SCHEME_LIST     "lan_adaptation_schemes"
 #define RETURN_UP_ENCAP_SCHEME_LIST    "return_up_encap_schemes"
-#define FORWARD_DOWN_ENCAP_SCHEME_LIST "down_forward_encap_schemes"
+#define FORWARD_DOWN_ENCAP_SCHEME_LIST "forward_down_encap_schemes"
 #define POSITION                  "pos"
 #define PROTO                     "proto"
 #define ENCAP_NAME                "encap"
@@ -124,7 +124,7 @@
 //////////////////////////
 
 #define RETURN_UP_BAND        "return_up_band"
-#define FORWARD_DOWN_BAND     "down_forward_band"
+#define FORWARD_DOWN_BAND     "forward_down_band"
 
 #define BANDWIDTH             "bandwidth"
 #define ROLL_OFF              "roll_off"
@@ -218,7 +218,8 @@
 
 #define UPLINK_PHYSICAL_LAYER_SECTION    "uplink_physical_layer"
 #define DOWNLINK_PHYSICAL_LAYER_SECTION  "downlink_physical_layer"
-#define PHYSICAL_LAYER_SECTION    "sat_physical_layer"
+#define PHYSICAL_LAYER_SECTION           "physical_layer"
+#define SAT_PHYSICAL_LAYER_SECTION       "sat_physical_layer"
 #define ENABLE                    "enable"
 #define MODEL_LIST                "models"
 #define ATTENUATION_MODEL_TYPE    "attenuation_model_type"
