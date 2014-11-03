@@ -493,33 +493,71 @@ class MessagesHandler(object):
         """
         Sends a MSG_MGR_REGISTER_PROGRAM to the manager.
         """
+        # TODO for each register we send the complete list, even if some things
+        # has already been sent !..
         if not self._manager_addr:
             return
 
-        name, host_ident, prog_ident, probes, logs = program.attributes()
-        if type(name) == unicode:
-            name = name.encode('utf8')
+        host_name, host_ident, prog_ident, probes, logs = program.attributes()
+        if type(host_name) == unicode:
+            host_name = host_name.encode('utf8')
 
-        if len(name) > 255:
-            LOGGER.error("Program name %s is too long, truncating.", name)
-            name = name[0:255]
+        if len(host_name) > 255:
+            LOGGER.error("Program name %s is too long, truncating.", host_name)
+            host_name = host_name[0:255]
 
-        message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
-                              host_ident, prog_ident, len(probes),
-                              len(logs), len(name)) + name
+#        message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
+#                              host_ident, prog_ident, len(probes),
+#                              len(logs), len(host_name)) + host_name
+        content = ""
+        header_length = 10 + len(host_name)
+        probe_nbr = 0
+        log_nbr = 0
 
         for probe_id, name, unit, storage_type, enabled, displayed in probes:
             storage_type |= enabled << 7
             storage_type |= displayed << 6
+            if len(content) + header_length + 4 + len(name) + len(unit) > 4095 \
+               or probe_nbr >= 255:
+                # max size, send a first register message
+                message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
+                                      host_ident, prog_ident, probe_nbr,
+                                      log_nbr, len(host_name)) + host_name
+                message += content
+                probe_nbr = 0
+                log_nbr = 0
+                content = ""
+                if self._manager_addr:
+                    self._sock.sendto(message, self._manager_addr)
 
-            message += struct.pack("!BBBB", probe_id, storage_type, len(name), len(unit))
-            message += name
-            message += unit
+            probe_nbr += 1
+            content += struct.pack("!BBBB", probe_id, storage_type, len(name), len(unit))
+            content += name
+            content += unit
 
         for log_id, ident, level in logs:
-            message += struct.pack("!BBB", log_id, level, len(ident))
-            message += ident
+            if len(content) + header_length + 3 + len(ident) > 4095 or \
+               log_nbr >= 255:
+                # max size, send a first register message
+                message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
+                                      host_ident, prog_ident, probe_nbr,
+                                      log_nbr, len(host_name)) + host_name
+                message += content
+                probe_nbr = 0
+                log_nbr = 0
+                content = ""
+                if self._manager_addr:
+                    self._sock.sendto(message, self._manager_addr)
 
+            log_nbr += 1
+            content += struct.pack("!BBB", log_id, level, len(ident))
+            content += ident
+            
+        if len(content) > 0:
+            message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
+                                  host_ident, prog_ident, probe_nbr,
+                                  log_nbr, len(host_name)) + host_name
+            message += content
         if self._manager_addr:
             self._sock.sendto(message, self._manager_addr)
 

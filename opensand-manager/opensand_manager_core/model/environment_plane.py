@@ -116,11 +116,15 @@ class Program(object):
 
     def enable_syslog(self, value):
         """ Enable/disable syslog """
+        if self._controller is None:
+            return
         self._controller.enable_syslog(value, self)
         self._syslog_enabled = value
 
     def enable_logs(self, value):
         """ Enable/disable logging """
+        if self._controller is None:
+            return
         self._controller.enable_logs(value, self)
         self._logs_enabled = value
 

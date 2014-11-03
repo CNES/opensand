@@ -257,7 +257,7 @@ class EnvironmentPlaneController(object):
         """
         packet, addr = self._sock.recvfrom(4096)
         if len(packet) > 4095:
-            self._log.warning("To many data received from collector, "
+            self._log.warning("Too many data received from collector, "
                               "we may not be able to parse command")
 
         if not addr in self._collector_addr:

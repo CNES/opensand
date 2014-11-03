@@ -53,8 +53,8 @@ class Probe(object):
     def __init__(self, program, probe_id, name, unit, storage_type, enabled):
         self._program = program
         self._id = probe_id
-        self._name = name
-        self._unit = unit
+        self._name = name.strip()
+        self._unit = unit.strip()
         self._storage_type = storage_type
         self._enabled = enabled
         self._displayed = False
@@ -191,7 +191,7 @@ class Log(object):
     def __init__(self, program, log_id, ident, display_level):
         self._program = program
         self._id = log_id
-        self._ident = ident
+        self._ident = ident.strip()
         self._display_level = int(display_level)
         self._save_file = None
 
