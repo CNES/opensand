@@ -636,7 +636,6 @@
                         The MODCOD definition file for S2 forward/down link
                         <default>modcod/forward/definition.txt</default>
                         <source>modcod/forward_down_def_s2.txt</source>
-                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -656,7 +655,6 @@
                         The MODCOD definition file for RCS return/up link
                         <default>modcod/return/definition_MPEG.txt</default>
                         <source>modcod/return_up_def_rcs.txt</source>
-                        <xpath physical_layer.enable="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
