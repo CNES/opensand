@@ -392,6 +392,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 		if(!this->initBand<TerminalCategoryDama>(FORWARD_DOWN_BAND,
 		                                         TDM,
 		                                         this->fwd_down_frame_duration_ms,
+		                                         this->satellite_type,
 		                                         this->fmt_simu.getModcodDefinitions(),
 		                                         this->categories,
 		                                         this->terminal_affectation,
@@ -519,24 +520,10 @@ bool BlockDvbSat::Downward::initOutput(void)
 	{
 		SatSpot* spot = spot_it->second;
 		unsigned int spot_id = spot->getSpotId();
-		Probe<int> *probe_output_gw;
-		Probe<int> *probe_output_gw_kb;
 		Probe<int> *probe_output_st;
 		Probe<int> *probe_output_st_kb;
 		Probe<int> *probe_l2_to_st;
 		Probe<int> *probe_l2_from_st;
-
-		probe_output_gw = Output::registerProbe<int>(
-			"Packets", false, SAMPLE_LAST,
-			"Spot %d.Delay buffer size.Output_GW", spot_id);
-		this->probe_sat_output_gw_queue_size.insert(
-			std::pair<unsigned int, Probe<int> *> (spot_id, probe_output_gw));
-
-		probe_output_gw_kb = Output::registerProbe<int>(
-			"Kbits", false, SAMPLE_LAST,
-			"Spot %d.Delay buffer size.Output_GW_kb", spot_id);
-		this->probe_sat_output_gw_queue_size_kb.insert(
-			std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_gw_kb));
 
 		probe_output_st = Output::registerProbe<int>(
 			"Packets", false, SAMPLE_LAST,
@@ -566,6 +553,8 @@ bool BlockDvbSat::Downward::initOutput(void)
 		{
 			Probe<int> *probe_l2_to_gw;
 			Probe<int> *probe_l2_from_gw;
+			Probe<int> *probe_output_gw;
+			Probe<int> *probe_output_gw_kb;
 
 			probe_l2_to_gw = Output::registerProbe<int>(
 				"Kbits/s", true, SAMPLE_LAST, "Spot %d.Throughputs.L2_to_GW",
@@ -578,6 +567,17 @@ bool BlockDvbSat::Downward::initOutput(void)
 			this->probe_sat_l2_from_gw.insert(
 				std::pair<unsigned int, Probe<int> *>
 				(spot_id, probe_l2_from_gw));
+			probe_output_gw = Output::registerProbe<int>(
+				"Packets", false, SAMPLE_LAST,
+				"Spot %d.Delay buffer size.Output_GW", spot_id);
+			this->probe_sat_output_gw_queue_size.insert(
+				std::pair<unsigned int, Probe<int> *> (spot_id, probe_output_gw));
+
+			probe_output_gw_kb = Output::registerProbe<int>(
+				"Kbits", false, SAMPLE_LAST,
+				"Spot %d.Delay buffer size.Output_GW_kb", spot_id);
+			this->probe_sat_output_gw_queue_size_kb.insert(
+				std::pair<unsigned int, Probe<int> *>(spot_id, probe_output_gw_kb));
 		}
 	}
 
@@ -870,11 +870,6 @@ void BlockDvbSat::Downward::updateStats(void)
 		mac_fifo_stat_context_t output_gw_fifo_stat;
 		mac_fifo_stat_context_t output_st_fifo_stat;
 		spot->getDataOutStFifo()->getStatsCxt(output_st_fifo_stat);
-		spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
-		this->probe_sat_output_gw_queue_size[spot_id]->put(
-			output_gw_fifo_stat.current_pkt_nbr);
-		this->probe_sat_output_gw_queue_size_kb[spot_id]->put(
-			((int) output_gw_fifo_stat.current_length_bytes * 8 / 1000));
 
 		this->probe_sat_output_st_queue_size[spot_id]->put(
 			output_st_fifo_stat.current_pkt_nbr);
@@ -901,6 +896,13 @@ void BlockDvbSat::Downward::updateStats(void)
 			this->probe_sat_l2_to_gw[spot_id]->put(
 				((int) output_gw_fifo_stat.out_length_bytes * 8 /
 				this->stats_period_ms));
+
+			// Queue sizes
+			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
+			this->probe_sat_output_gw_queue_size[spot_id]->put(
+				output_gw_fifo_stat.current_pkt_nbr);
+			this->probe_sat_output_gw_queue_size_kb[spot_id]->put(
+				((int) output_gw_fifo_stat.current_length_bytes * 8 / 1000));
 		}
 
 	}

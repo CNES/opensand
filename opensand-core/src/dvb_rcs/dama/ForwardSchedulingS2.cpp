@@ -258,7 +258,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 					if(fifo->getAccessType() != access_acm)
 					{
 						LOG(this->log_scheduling, LEVEL_DEBUG,
-						    "Ignore carriers with id %u in category %s for VCM fifo %s\n",
+						    "Ignore carriers with id %u in category %s for non-ACM fifo %s\n",
 						    carriers->getCarriersId(), this->category->getLabel().c_str(),
 						    fifo->getName().c_str());
 						break;
@@ -270,7 +270,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 					if(fifo->getAccessType() != access_vcm)
 					{
 						LOG(this->log_scheduling, LEVEL_DEBUG,
-						    "Ignore carriers with id %u in category %s for ACM fifo %s\n",
+						    "Ignore carriers with id %u in category %s for non-VCM fifo %s\n",
 						    carriers->getCarriersId(), this->category->getLabel().c_str(),
 						    fifo->getName().c_str());
 						break;

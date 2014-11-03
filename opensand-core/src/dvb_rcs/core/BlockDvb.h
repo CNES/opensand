@@ -161,6 +161,7 @@ class DvbChannel: public RtChannel
 	 *                               (up/return or down/forward)
 	 * @param   access_type          The access type value
 	 * @param   duration_ms          The frame duration on this band
+	 * @param   satellite_type       The satellite type
 	 * @param   fmt_def              The FMT definition table
 	 * @param   categories           OUT: The terminal categories
 	 * @param   terminal_affectation OUT: The terminal affectation in categories
@@ -173,6 +174,7 @@ class DvbChannel: public RtChannel
 	bool initBand(const char *band,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
+	              sat_type_t satellite_type,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
 	              TerminalMapping<T> &terminal_affectation,
@@ -403,6 +405,7 @@ template<class T>
 bool DvbChannel::initBand(const char *band,
                           access_type_t access_type,
                           time_ms_t duration_ms,
+                          sat_type_t satellite_type,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
@@ -582,6 +585,12 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Too many FMT groups or ratio for non-VCM access type\n");
+			goto error;
+		}
+		if(access == "VCM" && satellite_type == REGENERATIVE)
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Cannot use VCM carriers with regenerative satellite\n");
 			goto error;
 		}
 
