@@ -38,11 +38,12 @@ import gtk
 import gobject
 import os
 
-from opensand_manager_gui.view.window_view import WindowView
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
 from opensand_manager_core.model.environment_plane import Program
 
+from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.config_logs_dialog import ConfigLogsDialog
 from opensand_manager_gui.view.popup.conf_debug_dialog import ConfigDebugDialog
 from opensand_manager_gui.view.event_tab import EventTab
@@ -59,7 +60,7 @@ TOOL_Y = 20
 INFO_X = 600
 LEGEND_Y = TOP_2
 
-IMG_PATH = "/usr/share/opensand/manager/images/"
+IMG_PATH = OPENSAND_PATH + "manager/images/"
 
 class RunView(WindowView):
     """ Element of the run tab """

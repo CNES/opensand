@@ -8,7 +8,6 @@
     <property name="border_width">5</property>
     <property name="title" translatable="yes">About - OpenSAND Manager</property>
     <property name="window_position">center-on-parent</property>
-    <property name="icon_name">gtk-about</property>
     <property name="type_hint">normal</property>
     <property name="program_name">OpenSAND Manager</property>
     <property name="comments" translatable="yes">This tool helps you configuring and running the OpenSAND platform on your LAN</property>
@@ -35,11 +34,10 @@ CNES (Centre National d'Etudes Spatiales)
 Current maintainer:
 Viveris technologies
     www.viveris.fr</property>
-    <property name="logo">opensand-manager48.png</property>
+    <property name="logo">/usr/share/icons/hicolor/48x48/apps/opensand-manager.png</property>
     <property name="logo_icon_name">OpenSAND logo</property>
     <signal name="on_about_activate" handler="gtk_widget_show" />
-    <signal name="close" handler="on_about_dialog_close" />
-    <signal name="response" handler="on_about_dialog_close" />
+    <signal name="delete_event" handler="on_about_dialog_delete_event" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -293,6 +291,7 @@ Viveris technologies
     <property name="title" translatable="yes">Configure collection</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="transient_for">window</property>
+    <signal name="delete_event" handler="on_config_collection_window_delete_event" />
     <child>
       <widget class="GtkAlignment" id="alignment1">
         <property name="visible">True</property>
@@ -319,6 +318,7 @@ Viveris technologies
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
+    <signal name="delete_event" handler="on_edit_deploy_dialog_delete_event" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox4">
         <property name="visible">True</property>
@@ -440,6 +440,7 @@ Viveris technologies
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
+    <signal name="delete_event" handler="on_edit_dialog_delete_event" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox7">
         <property name="visible">True</property>
@@ -566,6 +567,7 @@ Viveris technologies
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Load run - OpenSAND Manager</property>
     <property name="type_hint">menu</property>
+    <signal name="delete_event" handler="on_run_dialog_delete_event" />
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox5">
         <property name="visible">True</property>

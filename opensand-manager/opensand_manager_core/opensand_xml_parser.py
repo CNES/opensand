@@ -49,12 +49,13 @@ opensand_xml_parser.py - the XML parser and builder for OpenSAND configuration
 from copy import deepcopy
 
 from lxml import etree
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import XmlException
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
 
-COMMON_XSD = "/usr/share/opensand/common.xsd"
+COMMON_XSD = OPENSAND_PATH + "common.xsd"
 
 class XmlParser:
     """ XML parser for OpenSAND configuration """

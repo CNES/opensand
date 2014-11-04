@@ -49,7 +49,7 @@ def error_popup(error, text = ''):
     dialog.set_keep_above(True)
     dialog.format_secondary_text(text)
     dialog.set_title("Error - OpenSAND Manager")
-    dialog.set_icon_name('gtk-dialog-error')
+    dialog.set_icon_name(gtk.STOCK_DIALOG_ERROR)
     if not dialog.modal:
         dialog.set_modal(True)
     dialog.connect('response', dialog_response_cb)

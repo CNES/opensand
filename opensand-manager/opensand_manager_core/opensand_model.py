@@ -38,6 +38,8 @@ import ConfigParser
 import os
 import shutil
 
+
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
@@ -49,7 +51,6 @@ from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.module import load_modules
 
 MAX_RECENT = 5
-DEFAULT_SIMU_FILE = '/usr/share/opensand/simulation_files.ini'
 
 TOPOLOGY_CONF = "topology.conf"
 TOPOLOGY_XSD = "topology.xsd"
@@ -173,14 +174,14 @@ class Model:
     def load_topology(self):
         """ load or reload the topology configuration """
         topo_conf = os.path.join(self._scenario_path, TOPOLOGY_CONF)
-        topo_xsd = os.path.join('/usr/share/opensand', TOPOLOGY_XSD)
+        topo_xsd = os.path.join(OPENSAND_PATH, TOPOLOGY_XSD)
         try:
             if self._topology is not None:
                 # copy the previous topology in the new file
                 self._topology.write(topo_conf)
             else:
                 # get the default topology file
-                default_topo = os.path.join('/usr/share/opensand',
+                default_topo = os.path.join(OPENSAND_PATH,
                                             TOPOLOGY_CONF)
                 shutil.copy(default_topo, topo_conf)
 
@@ -399,12 +400,15 @@ class Model:
 
         self.add_topology(name, instance, network_config)
 
-        self._event_manager.set('deploy_files')
-
         if not checked:
             raise ModelException
         else:
             return host
+
+    def host_ready(self, host):
+        """ a host was correcly contacted by the controller """
+        if host.get_state() == False:
+            self._event_manager.set('deploy_files')
 
     def is_running(self):
         """ check if at least one host or controller is running """

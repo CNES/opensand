@@ -103,7 +103,7 @@ class RunEvent(RunView):
                 ret = yes_no_popup("You will overwrite an existing run, "
                                    "continue anyway ?",
                                    "Overwrite run %s" % run,
-                                   "gtk-dialog-warning")
+                                   gtk.STOCK_DIALOG_WARNING)
                 if ret != gtk.RESPONSE_YES:
                     return
                 # clean path

@@ -38,11 +38,12 @@ import gtk
 import os
 import shutil
 
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException
 
-DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
+DEFAULT_INI_FILE = OPENSAND_PATH + "deploy.ini"
 
 class EditDeployDialog(WindowView):
     """ a window enabling to edit the deploy.ini file """
@@ -65,7 +66,7 @@ class EditDeployDialog(WindowView):
             self.close()
             return
         self._dlg.set_title("Edit ~/.opensand/deploy.ini - OpenSAND")
-        self._dlg.set_icon_name('gtk-edit')
+        self._dlg.set_icon_name(gtk.STOCK_EDIT)
         self._dlg.run()
 
     def close(self):
@@ -151,6 +152,11 @@ class EditDeployDialog(WindowView):
             source.apply_tag_by_name('comment', start, end)
         if start.get_char() == '[':
             source.apply_tag_by_name('option', start, end)
+
+
+    def on_edit_deploy_dialog_delete_event(self, source=None, event=None):
+        """ delete-event on window """
+        self.close()
 
 
 

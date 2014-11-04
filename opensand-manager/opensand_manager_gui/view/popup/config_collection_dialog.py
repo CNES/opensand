@@ -49,7 +49,7 @@ class ConfigCollectionDialog(WindowView):
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure probes collection - OpenSAND Manager")
-        self._dlg.set_icon_name('gtk-properties')
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         widget = self._ui.get_widget('config_collection_scroll')
         self._listview = gtk.TreeView()
         widget.add(self._listview)
@@ -78,8 +78,6 @@ class ConfigCollectionDialog(WindowView):
         cellrenderer_text = gtk.CellRendererText()
         column_text.pack_start(cellrenderer_text, True)
         column_text.add_attribute(cellrenderer_text, "text", NAME)
-
-        self._dlg.connect('delete-event', self._delete)
 
     def show(self):
         """ show the window """
@@ -171,8 +169,7 @@ class ConfigCollectionDialog(WindowView):
         self._sel_controller.probe_enabled_changed(probe, was_hidden)
 
 
-    def _delete(self, _widget, _event):
+    def on_config_collection_window_delete_event(self, _widget, _event):
         """ the window close button was clicked """
-
         self.hide()
         return True

@@ -40,13 +40,14 @@ import os
 import shutil
 import ConfigParser
 
+
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import CommandException, ModelException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
 
-DEFAUL_PATH = '/usr/share/opensand/'
-DEFAULT_INI_FILE = '/usr/share/opensand/deploy.ini'
+DEFAULT_INI_FILE = OPENSAND_PATH + "deploy.ini"
 CMD_PORT = 5656
 DATA_END = 'DATA_END\n'
 
@@ -270,7 +271,7 @@ class Controller(threading.Thread):
                                           host.get_name())
                     if not os.path.isdir(host_path):
                         os.mkdir(host_path, 0755)
-                    default_path = os.path.join(DEFAUL_PATH, component)
+                    default_path = os.path.join(OPENSAND_PATH, component)
                     shutil.copy(os.path.join(default_path, 'core.conf'),
                                 conf_file)
                 scenario = self._model.get_scenario()

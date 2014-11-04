@@ -36,6 +36,7 @@ service_listener.py - service browser for OpenSAND
 """
 
 import sys
+import time
 
 import dbus, gobject, avahi
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
@@ -180,6 +181,13 @@ class OpenSandServiceListener():
                 if len(host_model.get_tools()) > 0:
                     new_host = HostController(host_model, self._log, cache)
                     self._ws.append(new_host)
+        # host controller will try to get host state, tell model when this is
+        # done
+        count = 0
+        while host_model.get_state() is None and count < 4:
+            count += 1
+            time.sleep(0.5)
+        self._model.host_ready(host_model)
 
     def print_error(self, *args):
         """ error handler """

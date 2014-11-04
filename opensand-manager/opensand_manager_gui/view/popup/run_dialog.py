@@ -50,6 +50,7 @@ class RunDialog(WindowView):
 
         self._dlg = self._ui.get_widget('run_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         # add available runs into combo box
         self._has_runs = self.populate(scenario, run)
 
@@ -103,3 +104,8 @@ class RunDialog(WindowView):
         widget.set_active(active_id)
 
         return list_id > 0
+
+    def on_run_dialog_delete_event(self, source=None, event=None):
+        """ delete-event on window """
+        self.close()
+

@@ -34,6 +34,7 @@
 conf_debug_dialog.py - A window that enable to configure the debug values
 """
 
+import gtk
 
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.config_elements import ConfSection
@@ -45,7 +46,7 @@ class ConfigDebugDialog(WindowView):
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure initial debug levels - OpenSAND Manager")
-        self._dlg.set_icon_name('gtk-properties')
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         self._scroll = self._ui.get_widget('config_collection_scroll')
         self._shown = False
         self._program = None
@@ -60,7 +61,7 @@ class ConfigDebugDialog(WindowView):
 
         self._shown = True
 
-        self._dlg.set_icon_name('gtk-properties')
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         self._dlg.show()
 
     def hide(self):

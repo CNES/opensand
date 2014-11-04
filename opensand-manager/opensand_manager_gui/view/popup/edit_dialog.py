@@ -65,7 +65,7 @@ class EditDialog(WindowView):
             error_popup(str(msg))
             self.close()
             return
-        self._dlg.set_icon_name('gtk-edit')
+        self._dlg.set_icon_name(gtk.STOCK_EDIT)
         self._dlg.run()
 
     def close(self):
@@ -104,6 +104,11 @@ class EditDialog(WindowView):
     def on_cancel_edit_clicked(self, source=None, event=None):
         """ 'clicked' event callback on undo button """
         self.close()
+
+    def on_edit_dialog_delete_event(self, source=None, event=None):
+        """ delete-event on window """
+        self.close()
+
 
 if __name__ == "__main__":
     import sys

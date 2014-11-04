@@ -36,12 +36,13 @@ progress_dialog.py - A generic progress dialog
 """
 
 import gobject
+import gtk
 
 from opensand_manager_gui.view.window_view import WindowView
 
 
 class ProgressDialog(WindowView):
-    """ a window enabling to edit the deploy.ini file """
+    """ a window containing a progress bar """
     def __init__(self, text):
         WindowView.__init__(self, None, 'progress_dialog')
 
@@ -49,6 +50,7 @@ class ProgressDialog(WindowView):
         self._ui.get_widget('progress_label').set_text(text)
         self._dlg.set_transient_for(self._ui.get_widget('window'))
         self._dlg.set_title("Progress - OpenSAND")
+        self._dlg.set_icon_name(gtk.STOCK_EXECUTE)
         self._running = True
 
     def ping(self):

@@ -38,6 +38,8 @@ import os
 import glob
 import shutil
 
+
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
@@ -67,7 +69,8 @@ class ToolModel:
     def load(self, scenario):
         """ load the tools elements from files """
         # get description
-        desc_path = "/usr/share/opensand/tools/%s/description" % self._name
+        desc_path = os.path.join(OPENSAND_PATH, "/tools/%s/description" %
+                                 self._name)
         try:
             size = os.path.getsize(desc_path)
             with open(desc_path) as desc_file:
@@ -77,8 +80,8 @@ class ToolModel:
                                  (self._name, desc_path, strerror))
 
         # parse binary
-        self._bin_path = "/usr/share/opensand/tools/%s/%s/binary" % \
-                         (self._name, self._compo)
+        self._bin_path = os.path.join(OPENSAND_PATH, "/tools/%s/%s/binary"
+                                      % (self._name, self._compo))
         try:
             with open(self._bin_path) as bin_file:
                 self._command = bin_file.readline()
@@ -109,16 +112,16 @@ class ToolModel:
 
         if not os.path.exists(self._conf_file):
             try:
-                default_path = "/usr/share/opensand/tools/%s/%s/config" % \
-                               (self._name, self._compo)
+                default_path = os.path.join(OPENSAND_PATH, "/tools/%s/%s/config"
+                                            % (self._name, self._compo))
                 shutil.copy(default_path, self._conf_file)
             except IOError, (_, strerror):
                 raise ModelException("cannot copy %s configuration from "
                                      "'%s' to '%s': %s" % (self._name,
                                      default_path, self._conf_file, strerror))
 
-        self._xsd = "/usr/share/opensand/tools/%s/%s/config.xsd" % \
-                    (self._name, self._compo)
+        self._xsd = os.path.join(OPENSAND_PATH, "/tools/%s/%s/config.xsd" %
+                                 (self._name, self._compo))
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
@@ -213,8 +216,8 @@ class ToolModel:
 
     def get_conf_files(self):
         """ get the configuration files """
-        conf_directory = "/usr/share/opensand/tools/%s/%s/" % \
-                         (self._name, self._compo)
+        conf_directory = os.path.join(OPENSAND_PATH, "/tools/%s/%s/" %
+                                      (self._name, self._compo))
         conf_files = {}
         for extension in ["*.xml", "*.conf", "*.ini"]:
             for conf_file in glob.glob(conf_directory + extension):

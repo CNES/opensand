@@ -37,12 +37,12 @@ host_advanced.py - advanced model for hosts
 import os
 import shutil
 
+
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
-# TODO create a variable OPENSAND_FOLDER pointing to /usr/share/opensand to
-# avoid repeting it everywhere
 
 class AdvancedHostModel:
     """ Advanced host model"""
@@ -77,14 +77,15 @@ class AdvancedHostModel:
         # if it does not exist
         if not os.path.exists(self._conf_file):
             try:
-                shutil.copy("/usr/share/opensand/%s/core.conf" % component,
+                shutil.copy(os.path.join(OPENSAND_PATH, "%s/core.conf" %
+                                         component),
                             self._conf_file)
             except IOError, msg:
                 raise ModelException("failed to copy %s configuration file in "
                                      "'%s': %s" % (self._name, self._conf_file,
                                                    msg))
 
-        self._xsd = "/usr/share/opensand/%s/core.xsd" % component
+        self._xsd = os.path.join(OPENSAND_PATH, "%s/core.xsd" % component)
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)

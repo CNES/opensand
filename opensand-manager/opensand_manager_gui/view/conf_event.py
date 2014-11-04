@@ -253,8 +253,8 @@ class ConfEvent(ConfView) :
         self._modif = True
 
         # check if OpenSAND is running
-        if self._model.is_running():
-            enable = False
+#        if self._model.is_running():
+#            enable = False
 
         self.refresh_description()
 
@@ -473,7 +473,7 @@ class ConfEvent(ConfView) :
             text =  "Save current configuration ?"
             ret = yes_no_popup(text,
                                "Save Configuration - OpenSAND Manager",
-                               "gtk-dialog-info")
+                                gtk.STOCK_DIALOG_INFO)
             if ret == gtk.RESPONSE_YES:
                 self.on_save_conf_clicked()
             else:

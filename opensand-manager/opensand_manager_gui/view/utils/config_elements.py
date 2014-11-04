@@ -677,14 +677,14 @@ class ConfSection(gtk.VBox):
         align_vbox.set_child_packing(toolbar, expand=False,
                                      fill=False, padding=5,
                                      pack_type=gtk.PACK_START)
-        add_button = gtk.ToolButton('gtk-add')
+        add_button = gtk.ToolButton(gtk.STOCK_ADD)
         add_button.set_name(self._config.get_path(key))
         add_button.connect('clicked', self.on_add_button_clicked)
         add_button.connect('clicked', self._changed_cb)
         add_button.set_tooltip_text("Add a line in the table")
         add_button.set_has_tooltip(True)
         self._add_buttons.append(add_button)
-        del_button = gtk.ToolButton('gtk-remove')
+        del_button = gtk.ToolButton(gtk.STOCK_REMOVE)
         del_button.set_name(self._config.get_path(key))
         del_button.connect('clicked', self.on_del_button_clicked)
         del_button.connect('clicked', self._changed_cb)

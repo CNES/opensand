@@ -38,9 +38,11 @@ import os
 from math import floor
 from fractions import Fraction
 from optparse import OptionParser
+
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
-XSD="/usr/share/opensand/core_global.xsd"
+XSD = OPENSAND_PATH + "core_global.xsd"
 
 
 class OpenSandBand():

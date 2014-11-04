@@ -38,10 +38,11 @@ conf_view.py - the configuration tab view
 import gtk
 import gobject
 
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
 
-IMG_PATH = "/usr/share/opensand/manager/images/"
+IMG_PATH = OPENSAND_PATH + "manager/images/"
 
 class ConfView(WindowView):
     """ Element for the configuration tab """

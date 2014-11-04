@@ -38,6 +38,7 @@ encap_module.py - Encapsulation module for OpenSAND Manager
 import os
 import shutil
 from opensand_manager_core.model.files import Files
+from opensand_manager_core.opensand_model import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
@@ -126,11 +127,11 @@ class OpenSandModule(object):
                                  (self._name))
 
         if component != 'global':
-            default_host_path = os.path.join('/usr/share/opensand',
+            default_host_path = os.path.join(OPENSAND_PATH,
                                              component)
             host_path = os.path.join(scenario, host_name)
         else:
-            default_host_path = '/usr/share/opensand'
+            default_host_path = OPENSAND_PATH 
             host_path = scenario
 
         default_plugin_path = os.path.join(default_host_path, 'plugins')

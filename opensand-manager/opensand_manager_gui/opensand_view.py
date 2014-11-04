@@ -39,6 +39,7 @@ import gobject
 import os
 import shutil
 
+from opensand_manager_core.utils import OPENSAND_PATH, copytree
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.run_event import RunEvent
@@ -46,12 +47,12 @@ from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
+from opensand_manager_gui.view.popup.about_dialog import AboutDialog
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
                                                ViewException, ModelException
-from opensand_manager_core.utils import copytree
 
-GLADE_PATH = '/usr/share/opensand/manager/opensand.glade'
+GLADE_PATH = OPENSAND_PATH + "manager/opensand.glade"
 KONAMI = ['Up', 'Up', 'Down', 'Down',
           'Left', 'Right', 'Left', 'Right',
           'b', 'a']
@@ -162,7 +163,7 @@ class View(WindowView):
             text = "Default path will be overwritten next time\n\n" \
                    "Do you want to save your scenario ?"
             ret = yes_no_popup(text, "Save scenario ?",
-                               "gtk-dialog-warning")
+                               gtk.STOCK_DIALOG_WARNING)
             if ret == gtk.RESPONSE_YES:
                 try:
                     self.save_as()
@@ -174,7 +175,7 @@ class View(WindowView):
         #    text = "The platform is still running, " \
         #           "other users won't be able to use it\n\n" \
         #           "Stop it before exiting ?"
-        #    ret = yes_no_popup(text, "Stop ?", "gtk-dialog-warning")
+        #    ret = yes_no_popup(text, "Stop ?", gtk.STOCK_DIALOG_WARNING)
         #    if ret == gtk.RESPONSE_YES:
         #        self._eventrun.on_start_opensand_button_clicked()
         #        iter = 0
@@ -291,21 +292,23 @@ class View(WindowView):
 
     def on_about_activate(self, source=None, event=None):
         """ event handler for about button """
-        self.show_about()
+        about = AboutDialog()
+        about.run()
+        about.close()
 
     def on_notebook_switch_page(self, notebook, page, page_num):
         """ notebook page changed """
         # on configuration tab keep page if parameters have not been saved
         if self._current_page == self._pages['conf'] and \
-           page_num != self._pages['conf'] and \
-           not self._model.is_running():
+           page_num != self._pages['conf']:
+           #and not self._model.is_running():
             try:
                 if self._eventconf.is_modified():
                     text =  "The configuration was not saved\n\n" \
                             "Do you want to save it ?"
                     ret = yes_no_popup(text,
                                        "Save Configuration - OpenSAND Manager",
-                                       "gtk-dialog-info")
+                                       gtk.STOCK_DIALOG_INFO)
                     if ret == gtk.RESPONSE_YES:
                         self._eventconf.on_save_conf_clicked()
                     else:
@@ -316,15 +319,15 @@ class View(WindowView):
 
         # on tools tab keep page if some tools were modified
         if self._current_page == self._pages['tools'] and \
-           page_num != self._pages['tools'] and \
-           not self._model.is_running():
+           page_num != self._pages['tools']:
+           #and not self._model.is_running():
             # if the save button is sensitive,
             # the configuration may have changed
             if self._ui.get_widget('save_tool_conf').is_sensitive():
                 text =  "The tools configuration was not saved\n\n" \
                         "Do you want to save it ?"
                 ret = yes_no_popup(text, "Save Tools - OpenSAND Manager",
-                                   "gtk-dialog-info")
+                                   gtk.STOCK_DIALOG_INFO)
                 if ret == gtk.RESPONSE_YES:
                     self._eventtool.on_save_tool_conf_clicked()
                 else:
@@ -368,14 +371,6 @@ class View(WindowView):
                 self._eventtool.activate(False)
             if self._eventprobe is not None:
                 self._eventprobe.activate(True)
-
-    def show_about(self):
-        """ show about dialog """
-        xml = gtk.glade.XML(GLADE_PATH, 'about_dialog')
-        about = xml.get_widget('about_dialog')
-        result = about.run()
-        if result == gtk.RESPONSE_CANCEL:
-            about.hide()
 
     def run(self):
         """ start gobject loops """
@@ -526,7 +521,7 @@ class View(WindowView):
                 over = yes_no_popup("Scenario '%s' already exists\n"
                                     "Do you want to overwrite it ?" %
                                     folder, "Overwrite scenario",
-                                    "gtk-dialog-warning")
+                                    gtk.STOCK_DIALOG_WARNING)
                 if over != gtk.RESPONSE_YES:
                     folder = None
                 else:

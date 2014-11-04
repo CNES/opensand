@@ -37,13 +37,14 @@ global_configuration.py - the global configuration description
 import os
 import shutil
 
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
-DEFAULT_CONF = "/usr/share/opensand/core_global.conf"
-GLOBAL_XSD = "/usr/share/opensand/core_global.xsd"
+DEFAULT_CONF = OPENSAND_PATH + "core_global.conf"
+GLOBAL_XSD = OPENSAND_PATH + "core_global.xsd"
 CONF_NAME = "core_global.conf"
 
 class GlobalConfig(AdvancedHostModel):

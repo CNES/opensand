@@ -8,7 +8,6 @@
 #
 #
 # Copyright © 2014 TAS
-# Copyright © 2014 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,37 +28,37 @@
 #
 #
 
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+
 
 """
-opensand_manager_core/utils.py - Utilities for OpenSAND Manager
+about_dialog.py - The about dialog
 """
 
-import shutil
-import os
+import gtk.gdk
 
-OPENSAND_PATH = "/usr/share/opensand/"
+from opensand_manager_gui.view.window_view import WindowView
 
-def copytree(src, dst):
-    """ Recursively copy a directory tree using copy2()
-        Adapted from shutil.copytree """
-    names = os.listdir(src)
+LOGO='/usr/share/icons/hicolor/48x48/apps/opensand-manager.png'
 
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-    for name in names:
-        srcname = os.path.join(src, name)
-        dstname = os.path.join(dst, name)
-        try:
-            if os.path.isdir(srcname):
-                copytree(srcname, dstname)
-            else:
-                shutil.copy2(srcname, dstname)
-        except (IOError, os.error):
-            raise
-    try:
-        shutil.copystat(src, dst)
-    except OSError:
-        raise
+class AboutDialog(WindowView):
+    """ the about window """
+    def __init__(self):
+        WindowView.__init__(self, None, 'about_dialog')
+        self._dlg = self._ui.get_widget('about_dialog')
+        self._dlg.set_icon_name('opensand-manager')
+        logo = gtk.gdk.pixbuf_new_from_file(LOGO)
+        self._dlg.set_logo(logo)
 
+    def run(self):
+        """ run the about dialog """
+        self._dlg.run()
+
+    def close(self):
+        """ close the window """
+        self._dlg.destroy()
+
+    def on_about_dialog_delete_event(self, source=None, event=None):
+        """ delete-event on window """
+        self.close()
 

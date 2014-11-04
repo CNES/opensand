@@ -96,7 +96,7 @@ class AdvancedDialog(WindowView):
         except ModelException, msg:
             error_popup(str(msg))
         self._dlg.set_title("Advanced configuration - OpenSAND Manager")
-        self._dlg.set_icon_name('gtk-properties')
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         # show dev mode elements
         widget = self._ui.get_widget("hide_checkbutton")
         widget.set_visible(self._model.get_dev_mode())

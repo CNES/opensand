@@ -39,6 +39,7 @@ import os
 import shutil
 import hashlib
 
+from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import ModelException
 
 def get_md5(filename):
@@ -90,7 +91,7 @@ class Files(object):
                 raise ModelException("Missing default and source parameters "
                                      "for some files in %s XSD" %
                                      self._host_name)
-            abs_default = os.path.join('/usr/share/opensand', default)
+            abs_default = os.path.join(OPENSAND_PATH, default)
             abs_source = os.path.join(scenario, source)
             if not os.path.exists(os.path.dirname(abs_source)):
                 os.makedirs(os.path.dirname(abs_source))

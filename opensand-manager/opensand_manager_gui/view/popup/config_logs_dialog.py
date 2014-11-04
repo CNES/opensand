@@ -50,7 +50,7 @@ class ConfigLogsDialog(WindowView):
 
         self._dlg = self._ui.get_widget('config_collection_window')
         self._dlg.set_title("Configure logs collection - OpenSAND Manager")
-        self._dlg.set_icon_name('gtk-properties')
+        self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         widget = self._ui.get_widget('config_collection_scroll')
         self._listview = gtk.TreeView()
         widget.add(self._listview)
@@ -83,8 +83,6 @@ class ConfigLogsDialog(WindowView):
         column_level.pack_start(cellrenderer_spin, True)
         column_level.add_attribute(cellrenderer_spin, "text", LEVEL)
         column_level.add_attribute(cellrenderer_spin, "visible", VISIBLE)
-
-        self._dlg.connect('delete-event', self._delete)
 
     def show(self):
         """ show the window """
@@ -152,7 +150,10 @@ class ConfigLogsDialog(WindowView):
             log.display_level = int(new_text)
 
 
-    def _delete(self, _widget, _event):
+    def on_config_collection_window_delete_event(self, _widget, _event):
+        """ the window close button was clicked """
+        self.hide()
+        return True
         """ the window close button was clicked """
         self.hide()
         return True

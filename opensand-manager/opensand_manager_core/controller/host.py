@@ -622,8 +622,9 @@ class HostController:
     def connect_command(self, command):
         """ connect to command server and send a command """
         if self._host_model.get_state() is None:
-            self._log.error("cannot get %s status" % self.get_name())
-            return None
+            if self._host_model.get_state() is None:
+                self._log.error("cannot get %s status" % self.get_name())
+                return None
 
         address = (self._host_model.get_ip_address(),
                    self._host_model.get_command_port())
