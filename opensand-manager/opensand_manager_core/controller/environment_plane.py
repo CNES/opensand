@@ -71,8 +71,7 @@ class EnvironmentPlaneController(object):
         self._log = manager_log
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(('', 0))
-        self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
-                                         self._data_received)
+        self._tag = None
         self._collector_addr = []
 
         self._transfer_port = 0
@@ -105,6 +104,10 @@ class EnvironmentPlaneController(object):
         self._log.info("Registering on collector %s:%d" % addr)
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
                           addr)
+
+        self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
+                                         self._data_received)
+
 
     def unregister_on_collector(self):
         """
@@ -285,7 +288,8 @@ class EnvironmentPlaneController(object):
         if cmd == MSG_MGR_REGISTER_PROGRAM:
             try:
                 success = self._handle_register_program(packet[5:])
-            except struct.error:
+            except struct.error, msg:
+                self._log.error("Cannot parse data %s" % msg)
                 success = False
 
             if not success:
@@ -297,7 +301,8 @@ class EnvironmentPlaneController(object):
         if cmd == MSG_MGR_UNREGISTER_PROGRAM:
             try:
                 success = self._handle_unregister_program(packet[5:])
-            except struct.error:
+            except struct.error, msg:
+                self._log.error("Cannot parse data %s" % msg)
                 success = False
 
             if not success:
@@ -309,7 +314,8 @@ class EnvironmentPlaneController(object):
         if cmd == MSG_MGR_SEND_PROBES:
             try:
                 success = self._handle_send_probes(packet[5:])
-            except struct.error:
+            except struct.error, msg:
+                self._log.error("Cannot parse data %s" % msg)
                 success = False
 
             if not success:
@@ -320,7 +326,8 @@ class EnvironmentPlaneController(object):
         if cmd == MSG_MGR_SEND_LOG:
             try:
                 success = self._handle_send_log(packet[5:])
-            except struct.error:
+            except struct.error, msg:
+                self._log.error("Cannot parse data %s" % msg)
                 success = False
 
             if not success:
@@ -343,6 +350,7 @@ class EnvironmentPlaneController(object):
         full_prog_id = (host_id << 8) | prog_id
 
         if len(prog_name) != name_length:
+            self._log.error("Program name length mismatch")
             return False
 
         pos = 5 + name_length
@@ -358,12 +366,14 @@ class EnvironmentPlaneController(object):
 
             name = data[pos:pos + name_length]
             if len(name) != name_length:
+                self._log.error("Probe name length mismatch")
                 return False
 
             pos += name_length
 
             unit = data[pos:pos + unit_length]
             if len(unit) != unit_length:
+                self._log.error("Unit length mismatch")
                 return False
 
             pos += unit_length
@@ -378,12 +388,14 @@ class EnvironmentPlaneController(object):
 
             ident = data[pos:pos + ident_length]
             if len(ident) != ident_length:
+                self._log.error("Log id length mismatch")
                 return False
 
             log_list.append((log_id, ident, level))
             pos += ident_length
 
         if data[pos:] != "":
+            self._log.error("Remaining data at the end of parsing")
             return False
 
         self._log.debug("Registration of [%d:%d] %s %r %r" % (host_id, prog_id,
@@ -396,6 +408,7 @@ class EnvironmentPlaneController(object):
         if len(splitted) > 1:
             host_name = splitted[0]
         else:
+            self._log.error("Cannot get host name")
             return False
         
         host_model = self._model.get_host(host_name)
@@ -403,6 +416,7 @@ class EnvironmentPlaneController(object):
             self._log.debug("Found a model for host %s" % host_name)
             host_model.set_init_status(InitStatus.SUCCESS)
         else:
+            self._log.warning("Cannot find model for host %s" % host_name)
             return
         if full_prog_id in self._programs:
             self._log.debug("Update probes for program %s" % (prog_name))

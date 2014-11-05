@@ -159,7 +159,7 @@ class View(WindowView):
 
     def exit_kb(self):
         """ quit main window and application when keyboard interrupted """
-        if self._model.is_default_modif():
+        if self._model.is_default_modif() and not self._model.is_running():
             text = "Default path will be overwritten next time\n\n" \
                    "Do you want to save your scenario ?"
             ret = yes_no_popup(text, "Save scenario ?",
@@ -235,7 +235,8 @@ class View(WindowView):
             # check if we have main components but
             # do not stay refreshed after INIT_ITER iterations
             if not self._model.main_hosts_found() and \
-               self._refresh_iter <= INIT_ITER:
+               self._refresh_iter <= INIT_ITER and \
+               not self._model.is_collector_functional():
                 self._log.debug("platform status is not fully known, " \
                                 "wait a little bit more...")
                 self._refresh_iter = self._refresh_iter + 1
