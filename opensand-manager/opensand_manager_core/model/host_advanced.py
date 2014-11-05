@@ -102,7 +102,7 @@ class AdvancedHostModel:
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
-            self._files = Files(self._name, self._configuration, scenario)
+            self._files.load(scenario, self._configuration)
         except IOError, msg:
             raise ModelException("cannot load configuration: %s" % msg)
         except XmlException, msg:

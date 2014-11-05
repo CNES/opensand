@@ -196,22 +196,25 @@ class Controller(threading.Thread):
         if self._model.is_running():
             self._log.warning("Some components are still running")
 
-        self._log.info("Deploy files...")
-
         threads = []
         errors = []
         try:
             # first get global configuration files
             files = self._model.get_deploy_files()
+            all_files = self._model.get_all_files()
             for host in self._hosts + self._ws:
                 name = host.get_name()
-                dep = files + host.get_deploy_files(self._model.get_scenario())
+                # do a copy, not only reference
+                dep = list(files)
+                if host.first_deploy():
+                    dep = all_files
+                dep += host.get_deploy_files(self._model.get_scenario())
                 if len(dep) > 0:
-                    self._log.info("%s: deploying some files that were modified"
-                                   % name)
+                    self._log.info("%s: deploy simulation files" % name)
 
+                scenario = self._model.get_scenario()
                 thread = threading.Thread(None, host.deploy_modified_files,
-                                          None, (dep, errors), {})
+                                          None, (dep, scenario, errors), {})
                 threads.append(thread)
                 thread.start()
         except CommandException, msg:
@@ -226,7 +229,8 @@ class Controller(threading.Thread):
             self._log.error("Simulation files installation failed")
             return False
 
-        self._log.info("Simulation files installed")
+        self._model.set_deployed()
+
         return True
 
     def start_platform(self):

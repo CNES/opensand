@@ -142,7 +142,7 @@ class ToolModel:
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
-            self._files = Files(self._host, self._configuration, scenario)
+            self._files.load(scenario, self._configuration)
         except IOError, msg:
             self._configuration = None
             self._state = None

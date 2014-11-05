@@ -75,11 +75,18 @@ class Files(object):
         self._file_sources = {}
         # {sim file xpath: md5sum}
         self._md5 = {}
+        self._first = True
 
         self.load(scenario)
+        for xpath in self._file_sources:
+            # force initial copy
+            self._md5[xpath] = 0
 
-    def load(self, scenario):
+
+    def load(self, scenario, configuration=None):
         """ load the files for current scenario """
+        if configuration is not None:
+            self._configuration = configuration
         if self._host_name != 'global':
             scenario = os.path.join(scenario, self._host_name)
 
@@ -97,9 +104,6 @@ class Files(object):
                 os.makedirs(os.path.dirname(abs_source))
             if not os.path.exists(abs_source):
                 shutil.copy(abs_default, abs_source)
-        for xpath in self._file_sources:
-            # when reloading, force copy of files
-            self._md5[xpath] = 0
 
     def update(self, changed, scenario):
         """ update changed files """
@@ -142,3 +146,37 @@ class Files(object):
                 deploy.append((src, dest))
         return deploy
 
+    def get_all(self, scenario):
+        """
+        get all the tuples source, destination
+        """
+        if self._host_name != 'global':
+            scenario = os.path.join(scenario, self._host_name)
+
+        deploy = []
+        for xpath in self._file_sources:
+            src = self._file_sources[xpath]
+            src = os.path.join(scenario, src)
+            if not "@" in xpath:
+                xpath += '/text()'
+            dest = self._configuration.get(xpath)
+            deploy.append((src, dest))
+        return deploy
+
+    def set_modified(self, scenario):
+        """
+        the files were modified, update the md5sums
+        """
+        if self._host_name != 'global':
+            scenario = os.path.join(scenario, self._host_name)
+
+        for xpath in self._file_sources:
+            self._md5[xpath]= get_md5(os.path.join(scenario,
+                                                   self._file_sources[xpath]))
+        self._first = False
+
+    def is_first(self):
+        """
+        check if this is the first deployment
+        """
+        return self._first

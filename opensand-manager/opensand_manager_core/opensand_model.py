@@ -618,6 +618,23 @@ class Model:
                 deploy_files += files.get_modified(self._scenario_path)
         return deploy_files
 
+    def get_all_files(self):
+        """ get the files to deploy (modified files) """
+        deploy_files = []
+        deploy_files += self._config.get_files().get_all(self._scenario_path)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                deploy_files += files.get_all(self._scenario_path)
+        return deploy_files
+
+    def set_deployed(self):
+        """ the files were correctly deployed """
+        self._config.get_files().set_modified(self._scenario_path)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                files.set_modified(self._scenario_path)
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """

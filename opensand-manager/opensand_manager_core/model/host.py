@@ -192,6 +192,22 @@ class HostModel:
                 deploy_files += files.get_modified(scenario)
         return deploy_files
 
+    def set_deployed(self, scenario):
+        """ the files were correctly deployed """
+        self._advanced.get_files().set_modified(scenario)
+        for tool in self._tools:
+            files = tool.get_files()
+            if files is not None:
+                files.set_modified(scenario)
+        for module in self._modules:
+            files = module.get_files()
+            if files is not None:
+                files.set_modified(scenario)
+
+    def first_deploy(self):
+        """ check if this is the first deploy """
+        return self._advanced.get_files().is_first()
+
     def get_advanced_conf(self):
         """ get the advanced configuration """
         return self._advanced

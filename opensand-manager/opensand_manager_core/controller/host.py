@@ -384,7 +384,7 @@ class HostController:
                                 (tool.get_name(), self.get_name()))
                 raise
 
-    def deploy_modified_files(self, files, errors=[]):
+    def deploy_modified_files(self, files, scenario, errors=[]):
         """ send some files """
         try:
             sock = self.connect_command('CONFIGURE')
@@ -409,6 +409,8 @@ class HostController:
             self._log.error("cannot install simulation files")
             errors.append("%s: %s" % (self.get_name(), msg))
             return
+        else:
+            self._host_model.set_deployed(scenario)
         finally:
             if sock is not None:
                 sock.close()
@@ -690,3 +692,8 @@ class HostController:
     def get_deploy_files(self, scenario):
         """ get the files to deploy """
         return self._host_model.get_deploy_files(scenario)
+
+    def first_deploy(self):
+        """ check if this is the first deploy """
+        return self._host_model.first_deploy()
+
