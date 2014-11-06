@@ -55,7 +55,7 @@ class EventResponseHandler(threading.Thread):
         self._prog_dialog = None
 
     def run(self):
-        """ main loop that managers the events responses """
+        """ main loop that manages the events responses """
         while True:
             self._event_manager_response.wait(None)
             event_type = self._event_manager_response.get_type()

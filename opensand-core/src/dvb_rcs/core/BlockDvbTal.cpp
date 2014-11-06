@@ -503,7 +503,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
 	{
-		// check if the default category is concerned by Slotted Aloha
+		// check if the default category is concerned by DAMA
 		if(!default_category)
 		{
 			LOG(this->log_init, LEVEL_INFO,
@@ -517,7 +517,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		tal_category = (*tal_map_it).second;
 	}
 
-	// check if there is Slotted Aloha carriers
+	// check if there is DAMA carriers
 	if(!tal_category)
 	{
 		LOG(this->log_init, LEVEL_INFO,
@@ -734,6 +734,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		}
 	}
 
+	// TODO use the up return frame duration for Slotted Aloha
 	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategorySaloha>(RETURN_UP_BAND,
 	                                           ALOHA,

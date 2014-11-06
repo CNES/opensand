@@ -16,18 +16,18 @@
     <satellite_type>regenerative</satellite_type>
 </xsl:template>
 
-<xsl:template match="up_return_encap_schemes">
-        <up_return_encap_schemes>
+<xsl:template match="return_up_encap_schemes">
+        <return_up_encap_schemes>
     <xsl:call-template name="Newline" />
                 <encap_scheme pos="0" encap="ULE" />
     <xsl:call-template name="Newline" />
                 <encap_scheme pos="1" encap="MPEG2-TS" />
     <xsl:call-template name="Newline" />
-        </up_return_encap_schemes>
+        </return_up_encap_schemes>
 </xsl:template>
 
-<xsl:template match="down_forward_encap_schemes">
-        <down_forward_encap_schemes>
+<xsl:template match="forward_down_encap_schemes">
+        <forward_down_encap_schemes>
     <xsl:call-template name="Newline" />
                 <encap_scheme pos="0" encap="ULE" />
     <xsl:call-template name="Newline" />
@@ -35,7 +35,7 @@
     <xsl:call-template name="Newline" />
                 <encap_scheme pos="2" encap="GSE" />
     <xsl:call-template name="Newline" />
-        </down_forward_encap_schemes>
+        </forward_down_encap_schemes>
 </xsl:template>
 
 </xsl:stylesheet>

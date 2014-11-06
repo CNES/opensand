@@ -130,7 +130,8 @@ class EnvironmentPlaneController(object):
         """
         self.unregister_on_collector()
 
-        gobject.source_remove(self._tag)
+        if self._tag is not None:
+            gobject.source_remove(self._tag)
 
         try:
             self._sock.shutdown(socket.SHUT_RDWR)

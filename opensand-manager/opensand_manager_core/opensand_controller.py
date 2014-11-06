@@ -155,8 +155,13 @@ class Controller(threading.Thread):
     def deploy_platform(self):
         """ deploy OpenSAND platform """
         # check that all component are stopped
+        if self._model.all_running():
+            self._log.warning("All components are running, do not deploy")
+            return False
         if self._model.is_running():
-            self._log.warning("Some components are still running")
+            self._log.warning("Some components are still running  while "
+                              "trying to deploy: %s" %
+                              self._model.running_list())
 
         self._log.info("Deploying OpenSAND platform...")
 
@@ -192,9 +197,14 @@ class Controller(threading.Thread):
 
     def deploy_files(self):
         """ send the  files on host """
+        if self._model.all_running():
+            self._log.warning("All components are running, do not deploy files")
+            return False
         # check that all component are stopped
         if self._model.is_running():
-            self._log.warning("Some components are still running")
+            self._log.warning("Some components are still running  while "
+                              "deploying files: %s" %
+                              self._model.running_list())
 
         threads = []
         errors = []
@@ -244,7 +254,9 @@ class Controller(threading.Thread):
 
         # check if some components are still running (should not happen)
         if self._model.is_running():
-            self._log.warning("Some components are still running")
+            self._log.warning("Some components are still running  while "
+                              "trying to start: %s" %
+                              self._model.running_list())
             return False
 
         self._log.info("Start OpenSAND platform")

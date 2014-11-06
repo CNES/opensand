@@ -407,6 +407,7 @@ class Model:
 
     def host_ready(self, host):
         """ a host was correcly contacted by the controller """
+        self._log.debug("%s is ready" % host.get_name())
         if host.get_state() == False:
             self._event_manager.set('deploy_files')
 
@@ -420,6 +421,24 @@ class Model:
         if ret:
             self._modified = True
         return ret
+
+    def all_running(self):
+        """ check if all components are running """
+        alive = False
+        for host in self.get_hosts_list():
+            alive = True 
+            if not host.get_state():
+                alive = False
+        return alive
+
+
+    def running_list(self):
+        """ get the name of the components that are still running """
+        running = []
+        for host in self.get_hosts_list():
+            if host.get_state():
+                running.append(str(host.get_name()).upper())
+        return running
 
     def set_dev_mode(self, dev_mode=False):
         """ Set the dev mode to `dev_mode` """

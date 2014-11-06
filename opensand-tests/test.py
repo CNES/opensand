@@ -50,6 +50,7 @@ import subprocess
 import shutil
 
 from opensand_manager_core.opensand_model import Model
+from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
@@ -62,6 +63,7 @@ from opensand_manager_core.utils import copytree
 #      maybe create classes that will simplify the code
 SERVICE = "_opensand._tcp"
 ENRICH_FOLDER = "enrich"
+EVT_TIMEOUT = 10
 
 class Loop(threading.Thread):
     """ the mainloop for service_listener """
@@ -79,6 +81,79 @@ class Loop(threading.Thread):
     def close(self):
         """ stop the loop """
         self._main_loop.quit()
+        
+
+class EventResponseHandler(threading.Thread):
+    """
+    Get response events from hosts controllers
+    We need this intermediate handler to eliminate parasite events
+    """
+    def __init__(self, event_manager_response, event_response_tests, model,
+                 log):
+        threading.Thread.__init__(self)
+        self._evt_resp = event_manager_response
+        self._evt_tests = event_response_tests
+        self._model = model
+        self._log = log
+        
+    def run(self):
+        """ main loop that manages the events responses """
+        while True:
+            self._evt_resp.wait(None)
+            event_type = self._evt_resp.get_type()
+
+            self._log.info(" * event response: " + event_type)
+
+            if event_type == "resp_deploy_platform":
+                pass
+
+            elif event_type == "deploy_files":
+                self._log.debug(" * deploying files")
+
+            elif event_type == "resp_deploy_files":
+                self._log.debug(" * files deployed")
+
+            elif event_type == "resp_start_platform":
+                count = 0
+                val = str(self._evt_resp.get_text())
+                while not self._model.all_running() and count < 10:
+                    time.sleep(0.5)
+                    count += 1
+                if count >= 10:
+                    val = "fail"
+                self._evt_tests.set('started', val)
+
+            elif event_type == "resp_stop_platform":
+                count = 0
+                while self._model.is_running() and count < 10:
+                    time.sleep(0.5)
+                    count += 1
+                if count >= 10:
+                    val = "fail"
+                self._evt_tests.set('stopped',
+                                    str(self._evt_resp.get_text()))
+            
+            elif event_type == "probe_transfer":
+                self._log.debug(" * transfering probes")
+
+            elif event_type == "resp_probe_transfer":
+                self._log.debug(" * probes transfered")
+
+            elif event_type == 'quit':
+                # quit event
+                self.close()
+                return
+            else:
+                self._log.warning(" * Response Event Handler: unknown event " \
+                                  "'%s' received" % event_type)
+
+            self._evt_resp.clear()
+
+    def close(self):
+        """ close the event response handler """
+        self._log.debug(" * Response Event Handler: closed")
+
+   
 
 class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
     """ parse '\n' in option parser help
@@ -258,6 +333,8 @@ help="specify the root folder for tests configurations\n"
         else:
             print "Initialization please wait..."
         self._log = ManagerLog(lvl, True, False, False, 'PtTest')
+        self._event_response_handler = None
+        self._event_resp = None
 
         try:
             self.load()
@@ -275,16 +352,22 @@ help="specify the root folder for tests configurations\n"
                                 "found %s" % self._type)
 
         except TestError as err:
-            self._log.error("%s: %s" % (err.step, err.msg))
+            if self._quit:
+                print "%s: %s" % (err.step, err.msg)
+            else:
+                self._log.error(" * %s: %s" % (err.step, err.msg))
             raise
         except KeyboardInterrupt:
             if self._quiet:
                 print "Interrupted: please wait..."
-            self._log.info("Interrupted: please wait...")
-            self.close()
+            else:
+                self._log.info(" * Interrupted: please wait...")
             raise
         except Exception, msg:
-            self._log.error("internal error while testing: " + str(msg))
+            if self._quit:
+                print "Internal error:" + str(msg)
+            else:
+                self._log.error(" * internal error while testing: " + str(msg))
             raise
         finally:
             # reset the service in the test library
@@ -313,6 +396,13 @@ help="specify the root folder for tests configurations\n"
         self._controller = Controller(self._model, self._service, self._log,
                                       False)
         self._controller.start()
+        self._event_response_test = EventManager("TestEventsManager")
+        self._event_response_handler = \
+            EventResponseHandler(self._model.get_event_manager_response(),
+                                 self._event_response_test,
+                                 self._model,
+                                 self._log)
+        self._event_response_handler.start()
         # Launch the mainloop for service_listener
         self._loop = Loop()
         self._loop.start()
@@ -324,30 +414,43 @@ help="specify the root folder for tests configurations\n"
 
     def close(self):
         """ stop the service listener """
-        for thread in self._threads:
-            thread.join(10)
-            self._threads.remove(thread)
         try:
-            threading.Thread(target=self.stop_opensand)
+            self.stop_opensand()
         except:
             pass
-        evt = self._model.get_event_manager()
-        evt.set('quit')
+        self._log.info(" * Stopping threads")
+        for thread in self._threads:
+            thread.join()
+            self._threads.remove(thread)
+        self._log.info(" * Threads stopped")
+        self._log.info(" * Close workstation controllers")
         for ws_ctrl in self._ws_ctrl:
             ws_ctrl.close()
+        self._log.info(" * Workstation controllers closed")
         if self._model is not None:
+            self._log.info(" * Close model")
             self._model.close()
+            self._log.info(" * Model closed")
+        if self._event_response_handler is not None and \
+           self._event_response_handler.is_alive():
+            self._log.info(" * Join event reponse handler")
+            self._event_response_handler.join()
+            self._log.info(" * Event reponse handler joined")
         if self._loop is not None:
+            self._log.info(" * Close mainloop")
             self._loop.close()
             self._loop.join()
+            self._log.info(" * Mainloop stopped")
         if self._controller is not None:
+            self._log.info(" * Close controller")
             self._controller.join()
+            self._log.error(" * Controller stopped")
 
     def run_base(self):
         """ launch the tests with base configurations """
         if not self._model.main_hosts_found():
             raise TestError("Initialization", "main hosts not found")
-
+        
         base = os.path.join(self._folder, 'base')
         types_path = os.path.join(base, 'types')
         configs_path = os.path.join(base, 'configs')
@@ -399,18 +502,17 @@ help="specify the root folder for tests configurations\n"
                 test_paths.remove(test)
 
         for test_path in test_paths:
+            self.stop_opensand()
             self._model.set_scenario(self._base)
             self.run_enrich(test_path, "", types_path, types) 
             
         # stop the platform
-        try:
-            self.stop_opensand()
-        except:
-            pass
+        self.stop_opensand()
 
     def run_enrich(self, test_path, enrich, types_path, types, accepts=[],
                    ignored={}):
         """ run a test for a specific type or this type enriched """
+
         # create a new list to avoid modifying reference
         accepts = list(accepts)
         ignored = dict(ignored)
@@ -421,7 +523,6 @@ help="specify the root folder for tests configurations\n"
             new = path.split("/")
             for name in new:
                 test_name += "_" + name
-            self.new_scenario(enrich, test_name)
             accept_path = os.path.join(enrich, "accepts")
             if os.path.exists(accept_path):
                 with open(accept_path) as accept_list:
@@ -439,11 +540,7 @@ help="specify the root folder for tests configurations\n"
                             ignored[ignore] = None
                         else:
                             ignored[info[0]] = info[1]
-        else:
-            # get the new configuration from base configuration
-            # and create scenario
-            self.new_scenario(test_path, test_name)
-            
+                            
         # check if test should be ignored
         for ig in ignored:
             if ignored[ig] == None:
@@ -456,6 +553,13 @@ help="specify the root folder for tests configurations\n"
                 except Exception:
                     pass
 
+        if enrich != "":
+            self.new_scenario(enrich, test_name)
+        else:
+            # get the new configuration from base configuration
+            # and create scenario
+            self.new_scenario(test_path, test_name)
+            
         init_scenario = self._model.get_scenario()
 
         if self._test is None or test_name in self._test:
@@ -466,10 +570,6 @@ help="specify the root folder for tests configurations\n"
 
             if self._test is not None:
                 self._test.remove(test_name)
-            try:
-                self.stop_opensand()
-            except:
-                pass
             # start the platform
             self.start_opensand()
 
@@ -496,18 +596,17 @@ help="specify the root folder for tests configurations\n"
             # now launch tests for non based configuration, stop platform
             # between each run
             for test_type in nonbase:
+                self.stop_opensand()
+
                 self._model.set_scenario(init_scenario)
-                # update configuration
-                self.new_scenario(test_type, test_name)
-    
-                try:
-                    self.stop_opensand()
-                except:
-                    pass
-                self.start_opensand()
     
                 if len(accepts) == 0 or os.path.basename(test_type) in accepts:
+                    # update configuration
+                    self.new_scenario(test_type, test_name)
+                    self.start_opensand()
                     self.launch_test_type(test_type, test_name)
+                    
+        self.stop_opensand()
             
         # we restart from the test scenario that will be enriched
         self._model.set_scenario(init_scenario)
@@ -516,12 +615,14 @@ help="specify the root folder for tests configurations\n"
             configs_path = os.path.join(base, 'configs')
             enrich = os.path.join(configs_path, ENRICH_FOLDER)
         for folder in glob.glob(enrich + "/*"):
-            # we restart from the test scenario that will be enriched
-            # for each new path
-            self._model.set_scenario(init_scenario)
             if os.path.basename(folder).startswith("scenario"):
                 continue
+
             if os.path.isdir(folder):
+                self.stop_opensand()
+                # we restart from the test scenario that will be enriched
+                # for each new path
+                self._model.set_scenario(init_scenario)
                 self.run_enrich(test_path, folder, types_path, types,
                                 accepts, ignored) 
 
@@ -590,15 +691,12 @@ help="specify the root folder for tests configurations\n"
                     if test_name not in self._test:
                         continue
                     self._test.remove(test_name)
+                self.stop_opensand()
                 self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
                 self.new_scenario(test_path, test_name)
 
-                try:
-                    self.stop_opensand()
-                except:
-                    pass
                 # start the platform
                 self.start_opensand()
 
@@ -607,25 +705,19 @@ help="specify the root folder for tests configurations\n"
             # if there is not configs folder we only have default configuration,
             # so there is not test_path, launch test with base configuration
             if len(test_paths) == 0 and self._test is None:
+                self.stop_opensand()
                 self._model.set_scenario(self._base)
                 # get the new configuration from base configuration
                 # and create scenario
                 self.new_scenario(test_type, "default")
 
-                try:
-                    self.stop_opensand()
-                except:
-                    pass
                 # start the platform
                 self.start_opensand()
 
                 self.launch_test_type(test_type, "default")
 
         # stop the platform
-        try:
-            self.stop_opensand()
-        except:
-            pass
+        self.stop_opensand()
 
     def launch_test(self, path, test_name):
         """ initialize the test: load configuration, deploy files
@@ -637,12 +729,12 @@ help="specify the root folder for tests configurations\n"
             return
 
         host_name = names[1].upper()
-        self._log.info(" * Launch command on %s" % host_name)
         conf_file = os.path.join(path, 'configuration')
         if not os.path.exists(conf_file):
-            self._log.info(" * Skip path %s as it does not contain scenario" %
+            self._log.debug(" * Skip path %s as it does not contain scenario" %
                            path)
             return
+        self._log.info(" * Launch command on %s" % host_name)
         # read the command section in configuration
         config = ConfigParser.SafeConfigParser()
         if len(config.read(conf_file)) == 0:
@@ -659,6 +751,7 @@ help="specify the root folder for tests configurations\n"
             self.launch_local(test_name, config, path)
         else:
             self.launch_remote(test_name, host_name, config, path)
+        return True
 
 
     def launch_remote(self, test_name, host_name, config, path):
@@ -792,7 +885,7 @@ help="specify the root folder for tests configurations\n"
                 err = "%s: cannot connect host" % host_ctrl.get_name()
                 raise TestError("Configuration", err)
             # increase the timeout value because tests could be long
-            sock.settimeout(120)
+            sock.settimeout(200)
             sock.send("COMMAND %s\n" % cmd)
             result = sock.recv(512).strip()
             self._log.info(" * Test returns %s on %s, expected is %s" %
@@ -809,7 +902,8 @@ help="specify the root folder for tests configurations\n"
             if sock:
                 sock.close()
             if err is not None:
-                self._log.error(err)
+                if not self._quiet:
+                    self._log.error(" * " +  err)
                 self._error.append(err)
                 return
 
@@ -820,63 +914,39 @@ help="specify the root folder for tests configurations\n"
     def stop_opensand(self):
         """ stop the OpenSAND testbed """
         evt = self._model.get_event_manager()
-        resp = self._model.get_event_manager_response()
         evt.set('stop_platform')
-        resp.wait(None)
-#        if resp.get_type() != "resp_stop_platform":
-#            resp.clear()
-#            raise TestError("Initialization", "wrong event response %s when "
-#                                              "stopping platform" %
-#                                              resp.get_type())
-        # TODO remove if we implement a progress_event_handler instead of using
-        # the reponse event handler and uncomment above
-        count = 0
-        while resp.get_type() != "resp_stop_platform" and count < 5:
-            self._log.info("%s event received, wait fro stop event" %
-                           resp.get_type())
-            resp.clear()
-            resp.wait(None)
-            count += 1
-        self._log.info("%s event received" % resp.get_type())
-        # end TODO
-        if resp.get_text() != 'done':
-            resp.clear()
+        if not self._event_response_test.wait(EVT_TIMEOUT):
+            raise TestError("Initialization", "timeout when stopping platform")
+        if self._event_response_test.get_type() != "stopped":
+            self._event_response_test.clear()
+            raise TestError("Initialization", "wrong event response %s when "
+                                              "stopping platform" %
+                                              self._event_response_test.get_type())
+        self._log.info(" * %s event received" % self._event_response_test.get_type())
+        if self._event_response_test.get_text() != 'done':
+            self._event_response_test.clear()
             raise TestError("Initialization", "cannot stop platform")
-        resp.clear()
-        time.sleep(2)
+        self._event_response_test.clear()
+        time.sleep(1)
 
     def start_opensand(self):
         """ start the OpenSAND testbed """
         evt = self._model.get_event_manager()
-        resp = self._model.get_event_manager_response()
         evt.set('start_platform')
-        resp.wait(None)
-#        if resp.get_type() != "resp_start_platform":
-#            evt = resp.get_type()
-#            resp.clear()
-#            raise TestError("Initialization", "wrong event response %s when "
-#                                              "starting platform" % evt)
-        # TODO remove if we implement a progress_event_handler instead of using
-        # the reponse event handler and uncomment above
-        count = 0
-        while resp.get_type() != "resp_start_platform" and count < 20:
-            self._log.info("%s event received, wait fro stop event" %
-                           resp.get_type())
-            resp.clear()
-            resp.wait(None)
-            count += 1
-        self._log.info("%s event received" % resp.get_type())
-        # end TODO
-        if resp.get_text() != 'done':
-            resp.clear()
+        if not self._event_response_test.wait(EVT_TIMEOUT):
+            raise TestError("Initialization", "timeout when starting platform")
+        if self._event_response_test.get_type() != "started":
+            evt = self._event_response_test.get_type()
+            self._event_response_test.clear()
+            raise TestError("Initialization", "wrong event response %s when "
+                                              "starting platform" % evt)
+        self._log.info(" * %s event received" % self._event_response_test.get_type())
+        if self._event_response_test.get_text() != 'done':
+            self._event_response_test.clear()
             raise TestError("Initialization", "cannot start platform")
-        resp.clear()
-        time.sleep(2)
+        self._event_response_test.clear()
+        time.sleep(1)
 
-        for host in self._model.get_hosts_list():
-            if not host.get_state():
-                raise TestError("Initialization", "%s did not start" %
-                                host.get_name())
         # disable remote logs this reduce consumption
         env_plane_ctrl = self._controller.get_env_plane_controller()
         for program in env_plane_ctrl.get_programs():
@@ -959,9 +1029,9 @@ help="specify the root folder for tests configurations\n"
             try:
                 # check that we effectively lauched a test
                 launched = True
-                self.launch_test(host, test_name)
-                # wait for test to initialize or stop on host
-                time.sleep(0.5)
+                if self.launch_test(host, test_name):
+                    # wait for test to initialize or stop on host
+                    time.sleep(0.5)
             except Exception, msg:
                 self._error.append(str(msg))
                 self._last_error = str(msg)
@@ -971,32 +1041,35 @@ help="specify the root folder for tests configurations\n"
                 break
         for thread in self._threads:
             # wait for pending tests to stop
-            self._log.info("waiting for a test thread to stop")
+            self._log.info(" * waiting for a test thread to stop")
             thread.join(120)
             if thread.is_alive():
-                self._log.error("cannot stop a thread, we may have "
+                self._log.error(" * cannot stop a thread, we may have "
                                 "errors")
             else:
-                self._log.info("thread stopped")
+                self._log.info(" * thread stopped")
             self._threads.remove(thread)
         if len(self._error) > 0:
             #TODO get the test output
             # in quiet mode print important output on terminal
             if self._quiet:
-                print "    \033[91mERROR\033[0m"
+                print "    \033[91mERROR\033[0m " + str(self._error)
                 sys.stdout.flush()
-            # continue on other tests
-            self._log.error(" * Test %s failed: %s" %
-                            (type_name, str(self._error)))
+            else:
+                self._log.error(" * Test %s failed: %s" %
+                                (type_name, str(self._error)))
             self._last_error = self._error[len(self._error) - 1]
+            # continue on other tests
         elif not launched:
             # in quiet mode print important output on terminal
             if self._quiet:
-                print "    \033[91mERROR\033[0m"
+                print "    \033[91mERROR\033[0m no test launched for %s" % \
+                      type_name
                 sys.stdout.flush()
+            else:
+                self._log.error(" * No test launched for %s" % type_name)
+            self._last_error = "No test launched for %s" %  type_name
             # continue on other tests
-            self._log.error("Not test launched for %s" % type_name)
-            self._last_error = "Not test launched for %s" %  type_name
         else:
             self._log.info(" * Test %s successful" % type_name)
             # in quiet mode print important output on terminal

@@ -12,12 +12,12 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="fifos">
-    <fifos>
+<xsl:template match="layer2_fifos">
+    <layer2_fifos>
     <xsl:call-template name="Newline" />
-        <fifo priority="4" type="BE" size_max="3000" cr_type="RBDC" />
+        <fifo priority="4" type="BE" size_max="3000" access_type="DAMA_RBDC" />
     <xsl:call-template name="Newline" />
-    </fifos>
+    </layer2_fifos>
 </xsl:template>
 
 
