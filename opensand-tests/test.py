@@ -444,7 +444,7 @@ help="specify the root folder for tests configurations\n"
         if self._controller is not None:
             self._log.info(" * Close controller")
             self._controller.join()
-            self._log.error(" * Controller stopped")
+            self._log.info(" * Controller stopped")
 
     def run_base(self):
         """ launch the tests with base configurations """

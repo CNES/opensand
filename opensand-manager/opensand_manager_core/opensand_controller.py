@@ -433,7 +433,7 @@ class Controller(threading.Thread):
     def start_server(self):
         """ start the command server """
         self._server = Plop(('0.0.0.0', CMD_PORT), CommandServer,
-                            self)
+                            self, self._model, self._log)
         self._log.info("listening for command on port %d" % CMD_PORT)
         self._server.run()
 
