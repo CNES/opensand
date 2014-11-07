@@ -115,7 +115,7 @@ class Controller(threading.Thread):
                 self._event_manager_response.set('deploy_files')
                 if self.deploy_files():
                     res = 'done'
-                self._event_manager_response.set('resp_deploy_files')
+                self._event_manager_response.set('resp_deploy_files', res)
             elif self._event_manager.get_type() == 'start_platform':
                 if self.start_platform():
                     res = 'done'

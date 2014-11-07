@@ -163,7 +163,10 @@ class Model:
 
         # read configuration file
         try:
-            self._config = GlobalConfig(self._scenario_path)
+            if self._config is None:
+                self._config = GlobalConfig(self._scenario_path)
+            else:
+                self._config.load(self._scenario_path)
         except ModelException:
             raise
 

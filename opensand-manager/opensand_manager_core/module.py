@@ -162,7 +162,10 @@ class OpenSandModule(object):
             name = host_name
             if name is None:
                 name = component
-            self._files = Files(name, self._parser, scenario)
+            if self._files is None:
+                self._files = Files(name, self._parser, scenario)
+            else:
+                self._files.load(scenario, self._parser)
         except IOError, msg:
             raise ModelException("cannot load module %s configuration: \n\t%s" %
                                  (self._name, msg))

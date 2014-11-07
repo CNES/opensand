@@ -89,7 +89,10 @@ class AdvancedHostModel:
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
-            self._files = Files(self._name, self._configuration, scenario)
+            if self._files is None:
+                self._files = Files(self._name, self._configuration, scenario)
+            else:
+                self._files.load(scenario, self._configuration)
         except IOError, msg:
             raise ModelException("cannot load configuration: %s" % msg)
         except XmlException, msg:

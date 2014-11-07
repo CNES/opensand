@@ -75,7 +75,8 @@ class EventResponseHandler(threading.Thread):
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
             elif event_type == "deploy_files":
-                gobject.idle_add(self._run_view.spin, "Saving files...")
+                gobject.idle_add(self._run_view.spin, "Saving files...",
+                                 priority=gobject.PRIORITY_HIGH_IDLE)
                 # deploying files, disable buttons
                 gobject.idle_add(self._run_view.disable_start_button, True,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)

@@ -125,7 +125,10 @@ class ToolModel:
 
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
-            self._files = Files(self._host, self._configuration, scenario)
+            if self._files is None:
+                self._files = Files(self._host, self._configuration, scenario)
+            else:
+                self._files.load(scenario, self._configuration)
         except IOError, msg:
             raise ModelException("cannot load %s configuration:\n\t%s" %
                                  (msg, self._name))
