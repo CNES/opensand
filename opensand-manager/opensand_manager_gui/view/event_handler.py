@@ -46,6 +46,7 @@ class EventResponseHandler(threading.Thread):
                  run_view, conf_view, tool_view, probe_view,
                  manager_log):
         threading.Thread.__init__(self)
+        self.setName("EventResponseHandler")
         self._run_view = run_view
         self._conf_view = conf_view
         self._tool_view = tool_view

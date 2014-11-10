@@ -36,6 +36,7 @@ tcp_server.py - server that get OpenSAND commands
 
 import SocketServer
 import select
+import threading
 
 from opensand_manager_core.my_exceptions import CommandException
 
@@ -61,6 +62,7 @@ class Plop(SocketServer.TCPServer):
 
     def stop(self):
         """ stop the TCP server """
+        MyTcpHandler._stop.set()
         self.shutdown()
 
 
@@ -70,6 +72,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
     # line buffered
     rbufsize = 1
     wbufsize = 0
+    _stop = threading.Event()
 
 
     def setup(self):
@@ -92,7 +95,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
     def read_data(self, timeout = True):
         """ read data on socket """
         if timeout:
-            inputready, _, _ = select.select([self.rfile], [], [], 120)
+            inputready, _, _ = select.select([self.rfile], [], [], 1)
             if(len(inputready) == 0):
                 raise CommandException("timeout")
 
@@ -104,6 +107,11 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
 
 class CommandServer(MyTcpHandler):
     """ A TCP server that handles user command """
+
+    # A callback that allows killing the main process,
+    # it depends on the frontend and should intialized by it
+    _shutdown =  None
+
     def handle(self):
         """ function for TCPServer """
         self._log.info("command server connected to: %s" %
@@ -111,10 +119,13 @@ class CommandServer(MyTcpHandler):
 
         self.wfile.write(LOGO)
 
-        while True:
+        while not MyTcpHandler._stop.is_set():
             try:
                 self.read_data()
             except CommandException, msg:
+                if str(msg) == "timeout":
+                    MyTcpHandler._stop.wait(0.1)
+                    continue
                 self._log.error("Error on command server %s" % msg)
                 return
             else:
@@ -138,6 +149,33 @@ class CommandServer(MyTcpHandler):
         """ parse the commands """
         if instruction in ['help', '?', 'h']:
             self.wfile.write(HELP)
+        elif instruction == "status":
+            status = ""
+            status += "{:<10}: {:}\n".format("SCENARIO",
+                                             self._model.get_scenario())
+            if self._model.is_running():
+                status += "{:<10}: {:}\n".format("RUN", self._model.get_run())
+            if self._model.is_collector_known():
+                running = "[32mRUNNING[0m"
+                if not self._model.is_collector_functional():
+                    running = "[31mUNCREACHABLE...[0m"
+            else:
+                running = "[31mSTOPPED[0m"
+            status += "{:<10}: {:}\n".format("COLLECTOR", running)
+            status += "{:<10}:\n".format("HOSTS")
+            for host in self._model.get_hosts_list():
+                state = host.get_state()
+                if state == False:
+                    running = "[31mSOPPED[0m"
+                elif state == True:
+                    running = "[32mRUNNING[0m"
+                else:
+                    running = "[31mUNCREACHABLE...[0m"
+                status += "  {:<6}: {:}\n".format(host.get_name().upper(),
+                                                  running)
+            if self._model.get_dev_mode():
+                status += "Developer mode enabled\n"
+            self.wfile.write(status)
         elif instruction == "start":
             if len(params) > 0:
                 self._model.set_run(params[0])
@@ -164,6 +202,13 @@ class CommandServer(MyTcpHandler):
         elif instruction in ['quit', 'exit', 'close']:
             self.wfile.write("Goodbye\n")
             return False
+        elif instruction in ['shutdown']:
+            if CommandServer._shutdown is None:
+                self.wfile.write("[31mERROR[0m No shutdown callback available\n")
+            else:
+                self.wfile.write("Goodbye\n")
+                CommandServer._shutdown()
+            return False
         else:
             self.wfile.write("[31mWrong command[0m\n")
         return True
@@ -173,10 +218,12 @@ class CommandServer(MyTcpHandler):
 HELP="Welcome on the OpenSAND command interface.\n" \
      "Commands:\n" \
      "  - help: print the available commands\n" \
+     "  - status: get the platform status\n" \
      "  - start [run]: start the platform with the specific run id\n" \
      "  - stop: stop the platform\n" \
      "  - scenario name: load a scenario with the specified name\n" \
-     "  - exit: logout from this server\n"
+     "  - exit: logout from this server\n" \
+     "  - shutdown: close the manager\n"
 
 LOGO="                   [0;37;5;40;100m8[0;36;5;40;100m  t[0;30;5;40;100mSSSSX[0;36;5;40;100mt [0;37;5;40;100m8[0;1;30;90;47mX[0m                  \n" \
 "              [0;1;30;90;47m8[0;36;5;40;100mt[0;30;5;40;100mSSSSSSSSSSSSSSSSSS[0;36;5;40;100mt[0;37;5;40;100m@[0m              \n" \

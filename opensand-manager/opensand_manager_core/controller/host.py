@@ -61,7 +61,7 @@ class HostController:
         self._log = manager_log
 
         self._state_thread = threading.Thread(None, self.state_client,
-                                              None, (), {})
+                                              "State", (), {})
         self._stop = threading.Event()
         self._state_thread.start()
         self._cache = START_DESTINATION_PATH

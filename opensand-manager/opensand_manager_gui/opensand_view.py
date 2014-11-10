@@ -40,6 +40,10 @@ import os
 import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, copytree
+from opensand_manager_core.controller.tcp_server import CommandServer
+from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
+                                               ViewException, ModelException
+
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.run_event import RunEvent
@@ -49,8 +53,6 @@ from opensand_manager_gui.view.event_handler import EventResponseHandler
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_gui.view.popup.about_dialog import AboutDialog
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
-from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
-                                               ViewException, ModelException
 
 GLADE_PATH = OPENSAND_PATH + "manager/opensand.glade"
 KONAMI = ['Up', 'Up', 'Down', 'Down',
@@ -150,6 +152,7 @@ class View(WindowView):
 
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
+        CommandServer._shutdown = self.on_quit
 
 
     def exit(self):
@@ -234,9 +237,9 @@ class View(WindowView):
         if self._first_refresh:
             # check if we have main components but
             # do not stay refreshed after INIT_ITER iterations
-            if not self._model.main_hosts_found() and \
-               self._refresh_iter <= INIT_ITER and \
-               not self._model.is_collector_functional():
+            if self._refresh_iter <= INIT_ITER and \
+               (not self._model.main_hosts_found() or
+                not self._model.is_collector_functional()):
                 self._log.debug("platform status is not fully known, " \
                                 "wait a little bit more...")
                 self._refresh_iter = self._refresh_iter + 1

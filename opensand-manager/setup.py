@@ -37,5 +37,5 @@ setup(
                   ('share/opensand/manager/images', img_files),
                   ('share/pixmaps/', icon_files), 
                   ],
-    scripts=['sand-manager']
+    scripts=['sand-manager','sand-shell']
 )

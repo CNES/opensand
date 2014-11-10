@@ -56,6 +56,7 @@ class Controller(threading.Thread):
     def __init__ (self, model, service_type, manager_log, interactive=False):
         try:
             threading.Thread.__init__(self)
+            self.setName("Controller")
             self._model = model
             self._log = manager_log
             self._event_manager = self._model.get_event_manager()
@@ -93,7 +94,8 @@ class Controller(threading.Thread):
                                     self._env_plane, service_type, self._log)
   
             if interactive:
-                self._command = threading.Thread(None, self.start_server, None,
+                self._command = threading.Thread(None, self.start_server,
+                                                 "CommandServer",
                                                  (), {})
         except Exception:
             self.close()
@@ -149,6 +151,11 @@ class Controller(threading.Thread):
         if self._env_plane is not None:
             self._env_plane.cleanup()
         self._log.debug("Controller: environment plane closed")
+        if self._server is not None:
+            try:
+                self._server.shutdown()
+            except:
+                pass
 
         self._log.debug("Controller: closed")
 
@@ -176,7 +183,8 @@ class Controller(threading.Thread):
                                       "host will be disabled" % host.get_name())
                     host.disable()
                     continue
-                thread = threading.Thread(None, host.deploy, None,
+                thread = threading.Thread(None, host.deploy, "Deploy%s" %
+                                          host.get_name(),
                                           (self._deploy_config, errors), {})
                 thread.start()
                 threads.append(thread)
@@ -224,7 +232,8 @@ class Controller(threading.Thread):
 
                 scenario = self._model.get_scenario()
                 thread = threading.Thread(None, host.deploy_modified_files,
-                                          None, (dep, scenario, errors), {})
+                                          "DeployFiles%s" % name,
+                                          (dep, scenario, errors), {})
                 threads.append(thread)
                 thread.start()
         except CommandException, msg:
@@ -303,11 +312,12 @@ class Controller(threading.Thread):
                     modules = [modules_dir, # host specific modules
                                os.path.join(scenario, 'plugins')] # global modules
 
-                thread = threading.Thread(None, host.configure, None,
+                thread = threading.Thread(None, host.configure, "Configure%s" %
+                                          name,
                                           (conf_files, modules,
                                            self._deploy_config,
                                            self._model.get_dev_mode(), errors),
-                                         {})
+                                          {})
                 threads.append(thread)
                 thread.start()
 
@@ -321,7 +331,8 @@ class Controller(threading.Thread):
                                        ws.get_name().lower())
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
-                thread = threading.Thread(None, ws.configure_ws, None,
+                thread = threading.Thread(None, ws.configure_ws, "Configure%s" %
+                                          ws.get_name(),
                                           (self._deploy_config,
                                            self._model.get_dev_mode(), errors),
                                          {})
@@ -436,6 +447,7 @@ class Controller(threading.Thread):
                             self, self._model, self._log)
         self._log.info("listening for command on port %d" % CMD_PORT)
         self._server.run()
+        self._server = None
 
 
     def get_env_plane_controller(self):

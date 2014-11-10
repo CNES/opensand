@@ -1,0 +1,106 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
+#
+#
+# OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2014 CNES
+#
+#
+# This file is part of the OpenSAND testbed.
+#
+#
+# OpenSAND is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
+# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+
+"""
+sand-shell - Launch the OpenSAND command server and listen for user connection
+"""
+
+
+import traceback
+import sys
+import os
+from argparse import ArgumentParser
+
+
+from opensand_manager_shell.opensand_shell_manager import SERVICE, ShellManager
+from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
+
+
+if __name__ == '__main__':
+    arg_parser = ArgumentParser(prog='sand-shell',
+                                description="The OpenSAND manager shell "
+                                "interface") 
+    arg_parser.add_argument("-v", "--verbose", action="store_true",
+                            dest="verbose", default=False,
+                            help="enable verbose mode (print OpenSAND status)")
+    arg_parser.add_argument("-d", "--debug", action="store_true",
+                            dest="debug", default=False,
+                            help="print all the debug information (more "
+                            "output than -v)")
+    arg_parser.add_argument("-w", "--enable_ws", action="store_true",
+                            dest="ws", default=False,
+                            help="enable verbose mode (print OpenSAND status)")
+    arg_parser.add_argument("-s", "--service", dest="service",
+                            default=SERVICE,
+                            help="listen for OpenSAND entities "\
+                            "on the specified service type with format: " \
+                            "_name._transport_protocol")
+    arg_parser.add_argument("-p", "--port", dest="port",
+                            default=5656,
+                            help="the port to listen for user connection")
+    arg_parser.add_argument("-b", "--background", action="store_true",
+                            dest="background", default=False,
+                            help="Run in background")
+    options = arg_parser.parse_args()
+
+
+    # Create the Log View that will only log in standard output
+    lvl = MGR_WARNING
+    if options.debug:
+        lvl = MGR_DEBUG
+    elif options.verbose:
+        lvl = MGR_INFO
+
+    if options.background:
+        pid = os.fork()
+        if pid:
+            sys.exit(0)
+            
+    MGR = ShellManager()
+
+    print 'Listening on port %s' % options.port
+    try:
+        MGR.load(log_level=lvl, service=options.service, with_ws=options.ws,
+                 command_server=(True, int(options.port)))
+    except KeyboardInterrupt:
+	    print 'Exiting...'
+    except Exception, error:
+        print "\n\n##### TRACEBACK #####"
+        traceback.print_tb(sys.exc_info()[2])
+        print "\033[91mError: %s \033[0m" % str(error)
+        sys.exit(1)
+    finally:
+        MGR.close()
+
+
+    sys.exit(0)
+

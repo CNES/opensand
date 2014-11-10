@@ -163,7 +163,7 @@ class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
         if not description:
             return ""
         desc_width = self.width - self.current_indent
-        indent = " "*self.current_indent
+        indent = " " * self.current_indent
         # the above is still the same
         bits = description.split('\n')
         formatted_bits = [
@@ -224,7 +224,7 @@ class Test:
 
         ### parse options
 
-# TODO option to get available tess types with descriptions
+# TODO option to get available test types with descriptions
 # TODO option to specify the installed plugins
         opt_parser = OptionParser(formatter=IndentedHelpFormatterWithNL())
         opt_parser.add_option("-v", "--verbose", action="store_true",
