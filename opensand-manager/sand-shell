@@ -43,6 +43,7 @@ from argparse import ArgumentParser
 
 from opensand_manager_shell.opensand_shell_manager import SERVICE, ShellManager
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
+from opensand_manager_core.utils import red
 
 
 if __name__ == '__main__':
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     except Exception, error:
         print "\n\n##### TRACEBACK #####"
         traceback.print_tb(sys.exc_info()[2])
-        print "\033[91mError: %s \033[0m" % str(error)
+        print red("error: %s " % str(error))
         sys.exit(1)
     finally:
         MGR.close()

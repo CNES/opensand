@@ -39,6 +39,19 @@ import shutil
 import os
 
 OPENSAND_PATH = "/usr/share/opensand/"
+COL_RED="\033[91m"
+COL_GREEN="\033[92m"
+COL_END="\033[0m"
+
+
+def red(msg):
+    """ return the message colored in red """
+    return COL_RED + msg + COL_END
+
+def green(msg):
+    """ return the message colored in green """
+    return COL_GREEN + msg + COL_END
+
 
 def copytree(src, dst):
     """ Recursively copy a directory tree using copy2()

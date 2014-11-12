@@ -39,6 +39,7 @@ import select
 import threading
 
 from opensand_manager_core.my_exceptions import CommandException
+from opensand_manager_core.utils import green, red
 
 class Plop(SocketServer.TCPServer):
     """ The TCP socket server with reuse address to true """
@@ -156,21 +157,21 @@ class CommandServer(MyTcpHandler):
             if self._model.is_running():
                 status += "{:<10}: {:}\n".format("RUN", self._model.get_run())
             if self._model.is_collector_known():
-                running = "[32mRUNNING[0m"
+                running = green("RUNNING")
                 if not self._model.is_collector_functional():
-                    running = "[31mUNCREACHABLE...[0m"
+                    running = red("UNCREACHABLE...")
             else:
-                running = "[31mSTOPPED[0m"
+                running = red("STOPPED")
             status += "{:<10}: {:}\n".format("COLLECTOR", running)
             status += "{:<10}:\n".format("HOSTS")
             for host in self._model.get_hosts_list():
                 state = host.get_state()
                 if state == False:
-                    running = "[31mSOPPED[0m"
+                    running = red("SOPPED")
                 elif state == True:
-                    running = "[32mRUNNING[0m"
+                    running = green("RUNNING")
                 else:
-                    running = "[31mUNCREACHABLE...[0m"
+                    running = red("UNCREACHABLE...")
                 status += "  {:<6}: {:}\n".format(host.get_name().upper(),
                                                   running)
             if self._model.get_dev_mode():
@@ -181,36 +182,36 @@ class CommandServer(MyTcpHandler):
                 self._model.set_run(params[0])
             ret = self._controller.start_platform()
             if ret:
-                self.wfile.write("[32mOK[0m (scenario '%s' run '%s')\n" %
+                self.wfile.write(green("OK (scenario '%s' run '%s')\n" %
                                  (self._model.get_scenario(),
-                                  self._model.get_run()))
+                                  self._model.get_run())))
             else:
-                self.wfile.write("[31mERROR[0m\n")
+                self.wfile.write(red("ERROR\n"))
         elif instruction == "stop":
             ret = self._controller.stop_platform()
             if ret:
-                self.wfile.write("[32mOK[0m\n")
+                self.wfile.write(green("OK\n"))
             else:
-                self.wfile.write("[31mERROR[0m\n")
+                self.wfile.write(red("ERROR\n"))
         elif instruction == "scenario":
             if len(params) > 0:
                 self._model.set_scenario(params[0])
-                self.wfile.write("[32mOK[0m (Scenario '%s')\n" %
-                                 self._model.get_scenario())
+                self.wfile.write(green("OK (Scenario '%s')\n" %
+                                 self._model.get_scenario()))
             else:
-                self.wfile.write("[31mERROR[0m\n")
+                self.wfile.write(red("ERROR\n"))
         elif instruction in ['quit', 'exit', 'close']:
             self.wfile.write("Goodbye\n")
             return False
         elif instruction in ['shutdown']:
             if CommandServer._shutdown is None:
-                self.wfile.write("[31mERROR[0m No shutdown callback available\n")
+                self.wfile.write(red("ERROR No shutdown callback available\n"))
             else:
                 self.wfile.write("Goodbye\n")
                 CommandServer._shutdown()
             return False
         else:
-            self.wfile.write("[31mWrong command[0m\n")
+            self.wfile.write(red("Wrong command\n"))
         return True
 
 
