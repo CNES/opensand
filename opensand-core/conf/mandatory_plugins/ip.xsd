@@ -49,7 +49,7 @@
         <xsd:attribute name="dscp" type="categoryId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The Differentiated Services Code Point of IP paquets, default values observe the
+                    The Differentiated Services Code Point of IP packets, default values observe the
                     RFC2474 (DiffServ)
                 </xsd:documentation>
             </xsd:annotation>
@@ -61,10 +61,10 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="mac_name" type="categoryName">
+        <xsd:attribute name="name" type="categoryName">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The service class name of MAC queues (mainly used for statistics)
+                    The service class name of queues (mainly used for logging)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

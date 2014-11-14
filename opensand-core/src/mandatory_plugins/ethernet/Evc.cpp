@@ -42,13 +42,13 @@
 
 Evc::Evc(const MacAddress *mac_src,
          const MacAddress *mac_dst,
-         uint16_t q_tag,
-         uint16_t ad_tag,
+         uint16_t q_tci,
+         uint16_t ad_tci,
          uint16_t ether_type):
 	mac_src(mac_src),
 	mac_dst(mac_dst),
-	q_tag(q_tag & 0x0000FFFF),
-	ad_tag(ad_tag & 0x0000FFFF),
+	q_tci(q_tci & 0x0000FFFF),
+	ad_tci(ad_tci & 0x0000FFFF),
 	ether_type(ether_type)
 {
 }
@@ -69,20 +69,20 @@ const MacAddress *Evc::getMacDst() const
 	return this->mac_dst;
 }
 
-uint32_t Evc::getQTag() const
+uint32_t Evc::getQTci() const
 {
 	uint32_t val = 0;
 	val |= NET_PROTO_802_1Q;
-	return (this->q_tag & 0x0000FFFF) | (val << 16);
+	return (this->q_tci & 0x0000FFFF) | (val << 16);
 }
 
-uint32_t Evc::getAdTag() const
+uint32_t Evc::getAdTci() const
 {
 	uint32_t val = 0;
 	// TODO for kernel support
 	//val |= NET_PROTO_802_1AD;
 	val |= NET_PROTO_802_1Q;
-	return (this->ad_tag & 0x0000FFFF) | (val << 16);
+	return (this->ad_tci & 0x0000FFFF) | (val << 16);
 }
 
 uint16_t Evc::getEtherType() const
@@ -92,14 +92,14 @@ uint16_t Evc::getEtherType() const
 
 bool Evc::matches(const MacAddress *mac_src,
                   const MacAddress *mac_dst,
-                  uint16_t q_tag,
-                  uint16_t ad_tag,
+                  uint16_t q_tci,
+                  uint16_t ad_tci,
                   uint16_t ether_type) const
 {
 	if(!this->mac_src->matches(mac_src) ||
 	   !this->mac_dst->matches(mac_dst) ||
-	   this->q_tag != q_tag ||
-	   this->ad_tag != ad_tag ||
+	   this->q_tci != q_tci ||
+	   this->ad_tci != ad_tci ||
 	   this->ether_type != ether_type)
 	{
 	   	return false;
@@ -115,22 +115,22 @@ bool Evc::matches(const MacAddress *mac_src,
 	   !this->mac_dst->matches(mac_dst) ||
 	   this->ether_type != ether_type)
 	{
-	   	return false;
+		return false;
 	}
 	return true;
 }
 
 bool Evc::matches(const MacAddress *mac_src,
                   const MacAddress *mac_dst,
-                  uint16_t q_tag,
+                  uint16_t q_tci,
                   uint16_t ether_type) const
 {
 	if(!this->mac_src->matches(mac_src) ||
 	   !this->mac_dst->matches(mac_dst) ||
-	   this->q_tag != q_tag ||
+	   this->q_tci != q_tci ||
 	   this->ether_type != ether_type)
 	{
-	   	return false;
+		return false;
 	}
 	return true;
 }

@@ -39,19 +39,35 @@ import shutil
 import os
 
 OPENSAND_PATH = "/usr/share/opensand/"
-COL_RED="\033[91m"
-COL_GREEN="\033[92m"
+COL_RED="\033[31m"
+COL_GREEN="\033[32m"
+COL_BLUE="\033[34m"
+COL_BOLD="\033[1m"
 COL_END="\033[0m"
 
 
-def red(msg):
+def _bold(msg):
+    """ return the message with bold characters """
+    return COL_BOLD + msg + COL_END
+
+def _color(msg, color, bold):
+    """ return the message colored """
+    msg = color + msg + COL_END
+    if bold:
+        return bold(msg)
+    return msg
+
+def red(msg, bold=False):
     """ return the message colored in red """
-    return COL_RED + msg + COL_END
+    return _color(msg, COL_RED, bold)
 
-def green(msg):
+def green(msg, bold=False):
     """ return the message colored in green """
-    return COL_GREEN + msg + COL_END
+    return _color(msg, COL_GREEN, bold)
 
+def blue(msg, bold=False):
+    """ return the message colored in blud """
+    return _color(msg, COL_BLUE, bold)
 
 def copytree(src, dst):
     """ Recursively copy a directory tree using copy2()

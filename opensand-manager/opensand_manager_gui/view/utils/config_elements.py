@@ -1037,7 +1037,11 @@ class ConfEntry(object):
         self._entry.pack_start(cell, True)
         self._entry.add_attribute(cell, 'text', 0)
         if self._value != '':
-            self._entry.set_active(self._type["enum"].index(self._value))
+            try:
+                self._entry.set_active(self._type["enum"].index(self._value))
+            except ValueError:
+                error_popup("Cannot load element %s, value %s is not in the list"
+                            % (self._path, self._value))
         self._entry.connect('changed', self.global_handler)
         self._entry.connect('scroll-event', self.do_not_scroll)
 

@@ -116,8 +116,8 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param mac_src            The source MAC address
 		 * @param mac_dst            The destination MAC address
 		 * @param ether_type         The payload EtherType
-		 * @param q_tag              The Q-tag
-		 * @param ad_tag             The AD-tag
+		 * @param q_tci              The Q TCI
+		 * @param ad_tci             The AD TCI
 		 * @param qos                The packet QoS
 		 * @param src_tal_id         The source terminal ID
 		 * @param dst_tal_id         The destination terminal ID
@@ -127,7 +127,7 @@ class Ethernet: public LanAdaptationPlugin
 		NetPacket *createEthFrameData(Data data,
                                       MacAddress mac_src, MacAddress mac_dst,
                                       uint16_t ether_type,
-                                      uint16_t q_tag, uint16_t ad_tag,
+                                      uint16_t q_tci, uint16_t ad_tci,
                                       qos_t qos,
                                       tal_id_t src_tal_id, tal_id_t dst_tal_id,
                                       uint16_t desired_frame_type);
@@ -151,14 +151,14 @@ class Ethernet: public LanAdaptationPlugin
 		 *
 		 * @param src_mac    The source MAC address
 		 * @param dst_mac    The destination MAC address
-		 * @param q_tag      The Q-tag
+		 * @param q_tci      The Q TCI
 		 * @param ether_type The EtherType
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
 		Evc *getEvc(const MacAddress src_mac,
 		            const MacAddress dst_mac,
-		            uint16_t q_tag,
+		            uint16_t q_tci,
 		            uint16_t ether_type,
 		            uint8_t &evc_id) const;
 
@@ -167,16 +167,16 @@ class Ethernet: public LanAdaptationPlugin
 		 *
 		 * @param src_mac    The source MAC address
 		 * @param dst_mac    The destination MAC address
-		 * @param q_tag      The Q-tag
-		 * @param ad_tag     The ad-tag
+		 * @param q_tci      The Q TCI
+		 * @param ad_tci     The ad TCI
 		 * @param ether_type The EtherType
 		 * @param evc_id     The id of the EVC if found
 		 * @return the EVC if found, NULL otherwise
 		 */
 		Evc *getEvc(const MacAddress src_mac,
 		            const MacAddress dst_mac,
-		            uint16_t q_tag,
-		            uint16_t ad_tag,
+		            uint16_t q_tci,
+		            uint16_t ad_tci,
 		            uint16_t ether_type,
 		            uint8_t &evc_id) const;
 
@@ -278,20 +278,20 @@ class Ethernet: public LanAdaptationPlugin
 	static uint16_t getPayloadEtherType(const Data &data);
 
 	/**
-	 * @brief Retrieve the Q-tag from an Ethernet frame
+	 * @brief Retrieve the Q TCI from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @return the Q-tag
+	 * @return the Q TCI
 	 */
-	static uint16_t getQTag(const Data &data);
+	static uint16_t getQTci(const Data &data);
 
 	/**
-	 * @brief Retrieve the ad-tag from an Ethernet frame
+	 * @brief Retrieve the ad TCI from an Ethernet frame
 	 *
 	 * @param data   the Ethernet frame data
-	 * @return the ad-tag
+	 * @return the ad TCI
 	 */
-	static uint16_t getAdTag(const Data &data);
+	static uint16_t getAdTci(const Data &data);
 
 	/**
 	 * @brief Retrieve the source MAC address from an Ethernet frame

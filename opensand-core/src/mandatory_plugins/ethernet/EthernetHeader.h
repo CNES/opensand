@@ -46,13 +46,36 @@
 
 // use struct ether_header from /usr/include/net/ethernet.h
 typedef struct ether_header eth_2_header_t;
+typedef union
+{
+	struct
+	{
+#if __BYTE_ORDER == __BIG_ENDIAN
+		uint8_t:3 pcp;
+		uint8_t:4 dei;
+		uint8_t:4 vid_hi;
+		uint8_t:8 vid_lo;
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#else
+		uint8_t:4 vid_hi;
+		uint8_t:4 dei;
+		uint8_t:3 pcp;
+		uint8_t:8 vid_lo;
+#error "Please fix <bits/endian.h>"
+#endif
+	} __attribute__ ((__packed__));
+	struct
+	{
+		uint16_t tci;
+	} __attribute__ ((__packed__));
+} __attribute__ ((__packed__)) tci_u;
 
 struct eth_1q_header
 {
 	uint8_t ether_dhost[ETH_ALEN];
 	uint8_t ether_shost[ETH_ALEN];
 	uint16_t TPID; /* Tag Protocol IDentifier : 0x8100 */
-	uint16_t TCI; /* Tag Control Information */
+	tci_u TCI;
 	uint16_t ether_type;
 } __attribute__ ((__packed__));
 
@@ -63,9 +86,9 @@ struct eth_1ad_header
 	uint8_t ether_dhost[ETH_ALEN];
 	uint8_t ether_shost[ETH_ALEN];
 	uint16_t outer_TPID; /* Tag Protocol IDentifier : 0x9100 */
-	uint16_t outer_TCI;
+	tci_u outer_TCI;
 	uint16_t inner_TPID; /* Tag Protocol IDentifier : 0x8100 */
-	uint16_t inner_TCI;
+	tci_u inner_TCI;
 	uint16_t ether_type;
 } __attribute__ ((__packed__));
 

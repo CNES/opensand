@@ -48,7 +48,7 @@
 #define MAPPING_LIST		"categories"
 #define MAPPING_IP_DSCP		"dscp"
 #define MAPPING_MAC_PRIO	"mac_prio"
-#define MAPPING_MAC_NAME	"mac_name"
+#define MAPPING_NAME	"name"
 #define KEY_DEF_CATEGORY	"default_dscp"
 #define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
 
@@ -431,12 +431,12 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 			return false;
 		}
 		// get category name
-		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
+		if(!config.getAttributeValue(iter, MAPPING_NAME, mac_queue_name))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
 			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			    MAPPING_MAC_NAME, i);
+			    MAPPING_NAME, i);
 			return false;
 		}
 		// get service class

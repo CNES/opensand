@@ -54,18 +54,15 @@
 #define MAC_DST          "mac_dst"
 #define IP_SRC           "ip_src"
 #define IP_DST           "ip_dst"
-#define Q_TAG            "tag_802_1q"
-#define AD_TAG           "tag_802_1ad"
+#define Q_TCI            "tci_802_1q"
+#define AD_TCI           "tci_802_1ad"
 #define PROTOCOL_TYPE    "protocol"
 
-// TODO remove following elements
-#define SECTION_MAPPING		"ip_qos"
-#define MAPPING_LIST		"categories"
-#define MAPPING_IP_DSCP		"dscp"
-#define MAPPING_MAC_PRIO	"mac_prio"
-#define MAPPING_MAC_NAME	"mac_name"
-#define KEY_DEF_CATEGORY	"default_dscp"
-#define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
+#define CLASS_LIST       "classes"
+#define PCP              "pcp"
+#define MAC_PRIO         "mac_prio"
+#define CLASS_NAME       "name"
+#define DEFAULT_PCP      "default_pcp"
 
 Ethernet::Ethernet():
 	LanAdaptationPlugin(NET_PROTO_ETH)
@@ -157,9 +154,12 @@ void Ethernet::Context::init()
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to Initialize EVC\n");
 	}
-	// TODO move initStats here ?
-	// this will help removingfinishInit from block to main
-	config.unloadConfig();
+
+	if(!this->initTrafficCategories(config))
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot Initialize traffic categories\n");
+	}
 
 	if(lan_eth == "Ethernet")
 	{
@@ -211,20 +211,6 @@ void Ethernet::Context::init()
 		this->sat_frame_type = NET_PROTO_ERROR;
 	}
 
-	// TODO remove, use something else
-	if(config.loadConfig(CONF_IP_FILE) < 0)
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'", CONF_IP_FILE);
-		return;
-	}
-
-	if(!this->initTrafficCategories(config))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "cannot Initialize traffic categories\n");
-	}
-
 	config.unloadConfig();
 }
 
@@ -270,8 +256,8 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		uint8_t id = 0;
 		MacAddress *mac_src;
 		MacAddress *mac_dst;
-		uint16_t q_tag = 0;
-		uint16_t ad_tag = 0;
+		uint16_t q_tci = 0;
+		uint16_t ad_tci = 0;
 		stringstream proto;
 		uint16_t pt;
 
@@ -309,21 +295,21 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		mac_dst = new MacAddress(dst);
 
 		// get 802.1Q tag
-		if(!config.getAttributeValue(iter, Q_TAG, q_tag))
+		if(!config.getAttributeValue(iter, Q_TCI, q_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
 			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    Q_TAG,  i);
+			    Q_TCI,  i);
 			return false;
 		}
 		// get 802.1ad tag
-		if(!config.getAttributeValue(iter, AD_TAG, ad_tag))
+		if(!config.getAttributeValue(iter, AD_TCI, ad_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
 			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    AD_TAG, i);
+			    AD_TCI, i);
 			return false;
 		}
 		// get source protocol type
@@ -341,9 +327,9 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		    "New EVC: MAC source = %s, MAC destination = %s, "
 		    "tag Q = %u, tag AD = %u, payload_type = %#2X\n",
 		    mac_src->str().c_str(), mac_dst->str().c_str(),
-		    q_tag, ad_tag, pt);
+		    q_tci, ad_tci, pt);
 
-		evc = new Evc(mac_src, mac_dst, q_tag, ad_tag, pt);
+		evc = new Evc(mac_src, mac_dst, q_tci, ad_tci, pt);
 
 		if(this->evc_map.find(id) != this->evc_map.end())
 		{
@@ -368,69 +354,69 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList::iterator iter;
 
 	// Traffic flow categories
-	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	if(!config.getListItems(CONF_ETH_SECTION, CLASS_LIST,
 	                        category_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing or empty section [%s, %s]\n",
-		    SECTION_MAPPING, MAPPING_LIST);
+		    CONF_ETH_SECTION, CLASS_LIST);
 		return false;
 	}
 
 	for(iter = category_list.begin(); iter != category_list.end(); iter++)
 	{
-		long int dscp_value;
+		long int pcp;
 		long int mac_queue_prio;
-		string mac_queue_name;
+		string class_name;
 
 		i++;
 		// get category id
-		if(!config.getAttributeValue(iter, MAPPING_IP_DSCP, dscp_value))
+		if(!config.getAttributeValue(iter, PCP, pcp))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			    MAPPING_IP_DSCP, i);
+			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
+			    PCP, i);
 			return false;
 		}
 		// get category name
-		if(!config.getAttributeValue(iter, MAPPING_MAC_NAME, mac_queue_name))
+		if(!config.getAttributeValue(iter, CLASS_NAME, class_name))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			    MAPPING_MAC_NAME, i);
+			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
+			    CLASS_NAME, i);
 			return false;
 		}
 		// get service class
-		if(!config.getAttributeValue(iter, MAPPING_MAC_PRIO,
+		if(!config.getAttributeValue(iter, MAC_PRIO,
 		                             mac_queue_prio))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SECTION_MAPPING, MAPPING_LIST,
-			    MAPPING_MAC_PRIO, i);
+			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
+			    MAC_PRIO, i);
 			return false;
 		}
 
-		if(this->category_map.count(dscp_value))
+		if(this->category_map.count(pcp))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Traffic category %ld - [%s] rejected: identifier "
-			    "already exists for [%s]\n", dscp_value,
-			    mac_queue_name.c_str(),
-			    this->category_map[dscp_value]->getName().c_str());
+			    "already exists for [%s]\n", pcp,
+			    class_name.c_str(),
+			    this->category_map[pcp]->getName().c_str());
 			return false;
 		}
 
 		category = new TrafficCategory();
 
 		category->setId(mac_queue_prio);
-		category->setName(mac_queue_name);
-		this->category_map[dscp_value] = category;
+		category->setName(class_name);
+		this->category_map[pcp] = category;
 	}
 	// Get default category
-	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	if(!config.getValue(CONF_ETH_SECTION, DEFAULT_PCP,
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;
@@ -492,6 +478,8 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 		if(this->current_upper)
 		{
+			// we have to create the Ethernet header from scratch,
+			// try to find an EVC and create the header with given information
 			eth_frame = this->createEthFrameData(*packet, evc_id);
 			if(!eth_frame)
 			{
@@ -507,11 +495,13 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
 			tal_id_t src;
 			tal_id_t dst = 0;
-			uint16_t q_tag = Ethernet::getQTag((*packet)->getData());
-			uint16_t ad_tag = Ethernet::getAdTag((*packet)->getData());
+			uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
+			uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
+			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
 			map<qos_t, TrafficCategory *>::const_iterator default_category;
+			map<qos_t, TrafficCategory *>::const_iterator found_category;
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
@@ -553,19 +543,33 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			    "to terminal ID %d\n",
 			    src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
 
+			// get default QoS value
+			default_category = this->category_map.find(this->default_category);
+			if(default_category == this->category_map.end())
+			{
+				LOG(this->log, LEVEL_ERROR,
+				    "Unable to find default category for QoS");
+				continue;
+			}
+
 			switch(frame_type)
 			{
 				case NET_PROTO_ETH:
 					header_length = ETHERNET_2_HEADSIZE;
 					evc = this->getEvc(src_mac, dst_mac, ether_type, evc_id);
+					qos = default_category->second->getId();
 					break;
 				case NET_PROTO_802_1Q:
 					header_length = ETHERNET_802_1Q_HEADSIZE;
-					evc = this->getEvc(src_mac, dst_mac, q_tag, ether_type, evc_id);
+					evc = this->getEvc(src_mac, dst_mac, q_tci, ether_type, evc_id);
+					LOG(this->log, LEVEL_INFO,
+					    "TCI = %u\n", q_tci);
 					break;
 				case NET_PROTO_802_1AD:
 					header_length = ETHERNET_802_1AD_HEADSIZE;
-					evc = this->getEvc(src_mac, dst_mac, q_tag, ad_tag, ether_type, evc_id);
+					evc = this->getEvc(src_mac, dst_mac, q_tci, ad_tci, ether_type, evc_id);
+					LOG(this->log, LEVEL_INFO,
+					    "Outer TCI = %u, Inner TCI = %u\n", ad_tci, q_tci);
 					break;
 				default:
 					LOG(this->log, LEVEL_ERROR,
@@ -578,27 +582,32 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				    "cannot find EVC for this flow, use the default values\n");
 			}
 
-			// get default QoS value
-			default_category = this->category_map.find(this->default_category);
-			if(default_category == this->category_map.end())
+			if(frame_type != NET_PROTO_ETH)
 			{
-				LOG(this->log, LEVEL_ERROR,
-				    "Unable to find default category for QoS");
-				continue;
+				// get the QoS from the PCP is there is a PCP
+				found_category = this->category_map.find(pcp);
+				if(found_category == this->category_map.end())
+				{
+					found_category = this->category_map.find(this->default_category);
+					if(found_category == this->category_map.end())
+						continue;
+				}
+				qos = found_category->second->getId();
+				LOG(this->log, LEVEL_INFO,
+				    "PCP = %u corresponding to queue %s (%u)\n", pcp,
+				    found_category->second->getName().c_str(), qos);
 			}
-			qos = default_category->second->getId();
 
 			if(frame_type != this->sat_frame_type)
 			{
 				if(evc)
 				{
-					map<qos_t, TrafficCategory *>::const_iterator found_category;
-					q_tag = (evc->getQTag() & 0xff);
-					ad_tag = (evc->getAdTag() & 0xff);
-					// here we use the ad_tag to set QoS at DVB layer
-					// TODO add other parameters
-					// TODO COS field
-					found_category = this->category_map.find(ad_tag);
+					// Retrieve every field, we may already have it but no need to
+					// handle every condition if we do that
+					q_tci = (evc->getQTci() & 0xffff);
+					ad_tci = (evc->getAdTci() & 0xffff);
+					qos_t pcp = (evc->getQTci() & 0xe000) > 13;
+					found_category = this->category_map.find(pcp);
 					if(found_category == this->category_map.end())
 					{
 						found_category = this->category_map.find(this->default_category);
@@ -607,14 +616,14 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					}
 					qos = found_category->second->getId();
 					LOG(this->log, LEVEL_INFO,
-					    "Use the ad-tag to get the QoS value (%u) for DVB layer\n",
-					    qos);
+					    "PCP in EVC is %u corresponding to QoS %u for DVB layer\n",
+					    pcp, qos);
 				}
 				// TODO we should cast to an EthernetPacket and use getPayload instead
 				eth_frame = this->createEthFrameData((*packet)->getData().substr(header_length),
 				                                     src_mac, dst_mac,
 				                                     ether_type,
-				                                     q_tag, ad_tag,
+				                                     q_tci, ad_tci,
 				                                     qos, src, dst,
 				                                     this->sat_frame_type);
 			}
@@ -689,8 +698,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		size_t data_length = (*packet)->getTotalLength();
 		MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
 		MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
-		uint16_t q_tag = Ethernet::getQTag((*packet)->getData());
-		uint16_t ad_tag = Ethernet::getAdTag((*packet)->getData());
+		uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
+		uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
 		uint16_t ether_type = Ethernet::getPayloadEtherType((*packet)->getData());
 		uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
 		Evc *evc;
@@ -705,11 +714,11 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 				break;
 			case NET_PROTO_802_1Q:
 				header_length = ETHERNET_802_1Q_HEADSIZE;
-				evc = this->getEvc(src_mac, dst_mac, q_tag, ether_type, evc_id);
+				evc = this->getEvc(src_mac, dst_mac, q_tci, ether_type, evc_id);
 				break;
 			case NET_PROTO_802_1AD:
 				header_length = ETHERNET_802_1AD_HEADSIZE;
-				evc = this->getEvc(src_mac, dst_mac, q_tag, ad_tag, ether_type, evc_id);
+				evc = this->getEvc(src_mac, dst_mac, q_tci, ad_tci, ether_type, evc_id);
 				break;
 			default:
 				LOG(this->log, LEVEL_ERROR,
@@ -728,7 +737,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		    "Ethernet frame received: src: %s, dst %s, Q-tag: %u, "
 		    "ad-tag: %u, EtherType: 0x%.4x\n",
 		    src_mac.str().c_str(), dst_mac.str().c_str(),
-		    q_tag, ad_tag, ether_type);
+		    q_tci, ad_tci, ether_type);
 
 		if(this->current_upper)
 		{
@@ -776,14 +785,14 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 			{
 				if(evc)
 				{
-					q_tag = (evc->getQTag() & 0xff);
-					ad_tag = (evc->getAdTag() & 0xff);
+					q_tci = (evc->getQTci() & 0xffff);
+					ad_tci = (evc->getAdTci() & 0xffff);
 				}
 				// TODO we should cast to an EthernetPacket and use getPayload instead
 				deenc_packet = this->createEthFrameData((*packet)->getData().substr(header_length),
 				                                        src_mac, dst_mac,
 				                                        ether_type,
-				                                        q_tag, ad_tag,
+				                                        q_tci, ad_tci,
 				                                        (*packet)->getQos(),
 				                                        (*packet)->getSrcTalId(),
 				                                        dst,
@@ -827,8 +836,8 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	tal_id_t src_tal = packet->getSrcTalId();
 	tal_id_t dst_tal = packet->getDstTalId();
 	qos_t qos = packet->getQos();
-	uint16_t q_tag = 0;
-	uint16_t ad_tag = 0;
+	uint16_t q_tci = 0;
+	uint16_t ad_tci = 0;
 	uint16_t ether_type = packet->getType();
 	Evc *evc = NULL;
 
@@ -839,12 +848,12 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	{
 		if((*it).second->getId() == qos)
 		{
-			ad_tag = (*it).first;
+			ad_tci = (*it).first;
 		}
 	}
 
-	// TODO get ad_tag with IP instead of taking the qos value, in order that
-	//      the qos at layer 3 is independant
+	// TODO here we use the ad_tci to store the qos in order to be able to find
+	//      an EVC, this is a bad workaround
 	if(!this->sarp_table->getMacByTal(src_tal, src_macs))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -866,7 +875,7 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 		    it2 != dst_macs.end(); ++it2)
 		{
 			// TODO remove tags from here and search with IP addresses
-			evc = this->getEvc(*it1, *it2, q_tag, ad_tag, ether_type, evc_id);
+			evc = this->getEvc(*it1, *it2, q_tci, ad_tci, ether_type, evc_id);
 			if(evc)
 			{
 				break;
@@ -888,27 +897,38 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 		default_category = this->category_map.find(this->default_category);
 		if(default_category != this->category_map.end())
 		{
-			ad_tag = default_category->first;
+			ad_tci = default_category->first;
 		}
 		evc_id = 0;
 	}
 	else
 	{
-		q_tag = (evc->getQTag() & 0xff);
-		ad_tag = (evc->getAdTag() & 0xff);
+		q_tci = (evc->getQTci() & 0xffff);
+		ad_tci = (evc->getAdTci() & 0xffff);
 		src_mac = *(evc->getMacSrc());
 		dst_mac = *(evc->getMacDst());
 	}
-	return this->createEthFrameData(packet->getData(), src_mac, dst_mac, ether_type,
-	                                q_tag, ad_tag, qos, src_tal, dst_tal, this->sat_frame_type);
+	return this->createEthFrameData(packet->getData(),
+	                                src_mac,
+	                                dst_mac,
+	                                ether_type,
+	                                q_tci,
+	                                ad_tci,
+	                                qos,
+	                                src_tal,
+	                                dst_tal,
+	                                this->sat_frame_type);
 }
 
 NetPacket *Ethernet::Context::createEthFrameData(Data data,
-                                                 MacAddress src_mac, MacAddress dst_mac,
+                                                 MacAddress src_mac,
+                                                 MacAddress dst_mac,
                                                  uint16_t ether_type,
-                                                 uint16_t q_tag, uint16_t ad_tag,
+                                                 uint16_t q_tci,
+                                                 uint16_t ad_tci,
                                                  qos_t qos,
-                                                 tal_id_t src_tal_id, tal_id_t dst_tal_id,
+                                                 tal_id_t src_tal_id,
+                                                 tal_id_t dst_tal_id,
                                                  uint16_t desired_frame_type)
 {
 	eth_2_header_t *eth_2_hdr;
@@ -937,28 +957,28 @@ NetPacket *Ethernet::Context::createEthFrameData(Data data,
 		case NET_PROTO_802_1Q:
 			eth_1q_hdr = (eth_1q_header_t *) header;
 			eth_1q_hdr->TPID = htons(NET_PROTO_802_1Q);
-			eth_1q_hdr->TCI = htons(q_tag);
+			eth_1q_hdr->TCI.tci = htons(q_tci);
 			eth_1q_hdr->ether_type = htons(ether_type);
 			data.insert(0, header, ETHERNET_802_1Q_HEADSIZE);
 			LOG(this->log, LEVEL_INFO,
 			    "create a 802.1Q frame with src = %s, "
 			    "dst = %s, VLAN ID = %d\n", src_mac.str().c_str(),
-			    dst_mac.str().c_str(), q_tag);
+			    dst_mac.str().c_str(), q_tci);
 			break;
 		case NET_PROTO_802_1AD:
 			eth_1ad_hdr = (eth_1ad_header_t *) header;
 			// TODO use NET_PROTO_802_1AD once kernel will support it
 			eth_1ad_hdr->outer_TPID = htons(NET_PROTO_802_1Q);
 			//eth_1ad_hdr->outer_TPID = htons(NET_PROTO_802_1AD);
-			eth_1ad_hdr->outer_TCI = htons(ad_tag);
+			eth_1ad_hdr->outer_TCI.tci = htons(ad_tci);
 			eth_1ad_hdr->inner_TPID = htons(NET_PROTO_802_1Q);
-			eth_1ad_hdr->inner_TCI = htons(q_tag);
+			eth_1ad_hdr->inner_TCI.tci = htons(q_tci);
 			eth_1ad_hdr->ether_type = htons(ether_type);
 			data.insert(0, header, ETHERNET_802_1AD_HEADSIZE);
 			LOG(this->log, LEVEL_INFO,
 			    "create a 802.1AD frame with src = %s, "
 			    "dst = %s, q-tag = %u, ad-tag = %u\n",
-			    src_mac.str().c_str(), dst_mac.str().c_str(), q_tag, ad_tag);
+			    src_mac.str().c_str(), dst_mac.str().c_str(), q_tci, ad_tci);
 			break;
 		default:
 			LOG(this->log, LEVEL_ERROR,
@@ -1091,14 +1111,14 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
 
 Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
                                const MacAddress dst_mac,
-                               uint16_t q_tag,
+                               uint16_t q_tci,
                                uint16_t ether_type,
                                uint8_t &evc_id) const
 {
 	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
-		if((*it).second->matches(&src_mac, &dst_mac, q_tag, ether_type))
+		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ether_type))
 		{
 			evc_id = (*it).first;
 			return (*it).second;
@@ -1110,15 +1130,15 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
 
 Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
                                const MacAddress dst_mac,
-                               uint16_t q_tag,
-                               uint16_t ad_tag,
+                               uint16_t q_tci,
+                               uint16_t ad_tci,
                                uint16_t ether_type,
                                uint8_t &evc_id) const
 {
 	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
-		if((*it).second->matches(&src_mac, &dst_mac, q_tag, ad_tag, ether_type))
+		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ad_tci, ether_type))
 		{
 			evc_id = (*it).first;
 			return (*it).second;
@@ -1127,6 +1147,8 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
 	return NULL;
 }
 
+
+// TODO ENDIANESS !
 uint16_t Ethernet::getFrameType(const Data &data)
 {
 	uint16_t ether_type = NET_PROTO_ERROR;
@@ -1194,9 +1216,9 @@ uint16_t Ethernet::getPayloadEtherType(const Data &data)
 	return ether_type;
 }
 
-uint16_t Ethernet::getQTag(const Data &data)
+uint16_t Ethernet::getQTci(const Data &data)
 {
-	uint16_t vlan_id = 0;
+	uint16_t tci = 0;
 	uint16_t ether_type;
 	if(data.length() < 17)
 	{
@@ -1208,7 +1230,7 @@ uint16_t Ethernet::getQTag(const Data &data)
 	switch(ether_type)
 	{
 		case NET_PROTO_802_1Q:
-			vlan_id = (data.at(14) << 8) | data.at(15);
+			tci = ((data.at(14) & 0xff) << 8) | data.at(15);
 			// TODO: we need the following part because we use two 802.1Q
 			//       tags for kernel support
 			ether_type = (data.at(16) << 8) | data.at(17);
@@ -1217,16 +1239,16 @@ uint16_t Ethernet::getQTag(const Data &data)
 				break;
 			}
 		case NET_PROTO_802_1AD:
-			vlan_id = (data.at(18) << 8) | data.at(19);
+			tci = ((data.at(18) & 0xff) << 8) | data.at(19);
 			break;
 	}
 
-	return vlan_id;
+	return tci;
 }
 
-uint16_t Ethernet::getAdTag(const Data &data)
+uint16_t Ethernet::getAdTci(const Data &data)
 {
-	uint16_t vlan_id = 0;
+	uint16_t tci = 0;
 	uint16_t ether_type;
 	uint16_t ether_type2;
 	if(data.length() < 17)
@@ -1246,11 +1268,11 @@ uint16_t Ethernet::getAdTag(const Data &data)
 	switch(ether_type)
 	{
 		case NET_PROTO_802_1AD:
-			vlan_id = (data.at(14) << 8) | data.at(15);
+			tci = ((data.at(14) & 0xff) << 8) | data.at(15);
 			break;
 	}
 
-	return vlan_id;
+	return tci;
 }
 
 MacAddress Ethernet::getDstMac(const Data &data)

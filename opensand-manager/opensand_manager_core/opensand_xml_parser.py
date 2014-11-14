@@ -49,13 +49,11 @@ opensand_xml_parser.py - the XML parser and builder for OpenSAND configuration
 from copy import deepcopy
 
 from lxml import etree
-from opensand_manager_core.utils import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import XmlException
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
 
-COMMON_XSD = OPENSAND_PATH + "common.xsd"
 
 class XmlParser:
     """ XML parser for OpenSAND configuration """
@@ -70,7 +68,10 @@ class XmlParser:
             self._tree = etree.parse(xml)
             self._schema = etree.XMLSchema(etree.parse(xsd))
             self._xsd_parser = etree.parse(xsd)
-            self._common_xsd = etree.parse(COMMON_XSD)
+            common_path = self._xsd_parser.xpath("//xsd:include/@schemaLocation",
+                                                 namespaces=NAMESPACES)
+            if len(common_path) == 1:
+                self._common_xsd = etree.parse(common_path[0])
         except IOError, err:
             raise
         except (etree.XMLSyntaxError, etree.XMLSchemaParseError), err:
@@ -420,9 +421,10 @@ class XmlParser:
     def get_reference(self, name):
         """ get a reference in the XSD document """
         elem = []
-        elem += self._common_xsd.xpath("//xsd:element[@ref = $val]",
-                                       namespaces=NAMESPACES,
-                                       val = name)
+        if self._common_xsd is not None:
+            elem += self._common_xsd.xpath("//xsd:element[@ref = $val]",
+                                           namespaces=NAMESPACES,
+                                           val = name)
         elem += self._xsd_parser.xpath("//xsd:element[@ref = $val]",
                                        namespaces=NAMESPACES,
                                        val = name)
@@ -435,9 +437,10 @@ class XmlParser:
     def get_element(self, name, with_type=False):
         """ get an element in the XSD document """
         elems = []
-        elems += self._common_xsd.xpath("//xsd:element[@name = $val]",
-                                        namespaces=NAMESPACES,
-                                        val = name)
+        if self._common_xsd is not None:
+            elems += self._common_xsd.xpath("//xsd:element[@name = $val]",
+                                            namespaces=NAMESPACES,
+                                            val = name)
         elems += self._xsd_parser.xpath("//xsd:element[@name = $val]",
                                         namespaces=NAMESPACES,
                                         val = name)
@@ -459,9 +462,10 @@ class XmlParser:
     def get_attribute(self, name, parent_name):
         """ get an attribute in the XSD document """
         attribs = []
-        attribs += self._common_xsd.xpath("//xsd:attribute[@name = $val]",
-                                         namespaces=NAMESPACES,
-                                         val = name)
+        if self._common_xsd is not None:
+            attribs += self._common_xsd.xpath("//xsd:attribute[@name = $val]",
+                                             namespaces=NAMESPACES,
+                                             val = name)
         attribs += self._xsd_parser.xpath("//xsd:attribute[@name = $val]",
                                           namespaces=NAMESPACES,
                                           val = name)
@@ -481,9 +485,10 @@ class XmlParser:
     def get_complex_name(self, name):
         """ get a completType element in the XSD document """
         elem = []
-        elem += self._common_xsd.xpath("//xsd:element[@name = $val]",
-                                       namespaces=NAMESPACES,
-                                       val = name)
+        if self._common_xsd is not None:
+            elem += self._common_xsd.xpath("//xsd:element[@name = $val]",
+                                           namespaces=NAMESPACES,
+                                           val = name)
         elem += self._xsd_parser.xpath("//xsd:element[@name = $val]",
                                        namespaces=NAMESPACES,
                                        val = name)
@@ -500,9 +505,10 @@ class XmlParser:
             in a XSD document """
         # simpleType
         elems = []
-        elems += self._common_xsd.xpath("//xsd:simpleType[@name = $val]",
-                                        namespaces=NAMESPACES,
-                                        val = name)
+        if self._common_xsd is not None:
+            elems += self._common_xsd.xpath("//xsd:simpleType[@name = $val]",
+                                            namespaces=NAMESPACES,
+                                            val = name)
         elems += self._xsd_parser.xpath("//xsd:simpleType[@name = $val]",
                                         namespaces=NAMESPACES,
                                         val = name)
@@ -562,12 +568,14 @@ class XmlParser:
     def get_minoccurs(self, table_name):
         """ get minOccurs value for table elements """
         values = []
-        values += self._common_xsd.xpath("//xsd:element[@ref='%s']/@minOccurs" %
-                                         table_name, namespaces=NAMESPACES)
+        if self._common_xsd is not None:
+            values += self._common_xsd.xpath("//xsd:element[@ref='%s']/@minOccurs" %
+                                             table_name, namespaces=NAMESPACES)
         values += self._xsd_parser.xpath("//xsd:element[@ref='%s']/@minOccurs" %
                                          table_name, namespaces=NAMESPACES)
-        values += self._common_xsd.xpath("//xsd:element[@name='%s']/@minOccurs" %
-                                         table_name, namespaces=NAMESPACES)
+        if self._common_xsd is not None:
+            values += self._common_xsd.xpath("//xsd:element[@name='%s']/@minOccurs" %
+                                             table_name, namespaces=NAMESPACES)
         values += self._xsd_parser.xpath("//xsd:element[@name='%s']/@minOccurs" %
                                          table_name, namespaces=NAMESPACES)
         if len(values) > 0:
@@ -579,12 +587,14 @@ class XmlParser:
     def get_maxoccurs(self, table_name):
         """ get maxOccurs value for table elements """
         values = []
-        values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs"
-                                          % table_name, namespaces=NAMESPACES)
+        if self._common_xsd is not None:
+            values +=  self._common_xsd.xpath("//xsd:element[@ref='%s']/@maxOccurs"
+                                              % table_name, namespaces=NAMESPACES)
         values +=  self._xsd_parser.xpath("//xsd:element[@ref='%s']/@maxOccurs"
                                           % table_name, namespaces=NAMESPACES)
-        values +=  self._common_xsd.xpath("//xsd:element[@name='%s']/@maxOccurs"
-                                          % table_name, namespaces=NAMESPACES)
+        if self._common_xsd is not None:
+            values +=  self._common_xsd.xpath("//xsd:element[@name='%s']/@maxOccurs"
+                                              % table_name, namespaces=NAMESPACES)
         values +=  self._xsd_parser.xpath("//xsd:element[@name='%s']/@maxOccurs"
                                           % table_name, namespaces=NAMESPACES)
         if len(values) > 0 and values[0] != "unbounded":
@@ -599,8 +609,9 @@ class XmlParser:
     def get_file_elements(self, elem):
         """ get elements or attributes with type: 'file' """
         values = []
-        values +=  self._common_xsd.xpath("//xsd:%s[@type='file']/@name" %
-                                          elem, namespaces=NAMESPACES)
+        if self._common_xsd is not None:
+            values +=  self._common_xsd.xpath("//xsd:%s[@type='file']/@name" %
+                                              elem, namespaces=NAMESPACES)
         values +=  self._xsd_parser.xpath("//xsd:%s[@type='file']/@name" %
                                           elem, namespaces=NAMESPACES)
         return values

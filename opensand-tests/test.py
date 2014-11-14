@@ -56,7 +56,7 @@ from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
-from opensand_manager_core.utils import copytree
+from opensand_manager_core.utils import copytree, red, blue, green
 
 # TODO get logs on error
 # TODO rewrite this as this is now too long
@@ -565,7 +565,7 @@ help="specify the root folder for tests configurations\n"
         if self._test is None or test_name in self._test:
             self._log.info(" * Test %s with base configuration" % test_name)
             if self._quiet:
-                print "Test configuration \033[1;34m%s\033[0m" % test_name
+                print "Test configuration %s" % blue(test_name, True)
                 sys.stdout.flush()
 
             if self._test is not None:
@@ -682,7 +682,7 @@ help="specify the root folder for tests configurations\n"
 
             self._log.info(" * Test %s" % os.path.basename(test_type))
             if self._quiet:
-                print "Test \033[1;34m%s\033[0m" % os.path.basename(test_type)
+                print "Test %s" % blue(os.path.basename(test_type, True))
                 sys.stdout.flush()
 
             for test_path in test_paths:
@@ -1006,9 +1006,7 @@ help="specify the root folder for tests configurations\n"
         # in quiet mode print important output on terminal
         if self._quiet:
             msg = "Start %s " % type_name
-            if len(msg) < 40:
-                msg = msg + " " * (40 - len(msg))
-            print msg,
+            print "{:<40} ".format(msg),
             sys.stdout.flush()
         self._error = []
         # wait to be sure the plateform is started
@@ -1053,7 +1051,7 @@ help="specify the root folder for tests configurations\n"
             #TODO get the test output
             # in quiet mode print important output on terminal
             if self._quiet:
-                print "    \033[91mERROR\033[0m " + str(self._error)
+                print "{:>7} {:}".format(red("ERROR"), str(self._error))
                 sys.stdout.flush()
             else:
                 self._log.error(" * Test %s failed: %s" %
@@ -1063,8 +1061,8 @@ help="specify the root folder for tests configurations\n"
         elif not launched:
             # in quiet mode print important output on terminal
             if self._quiet:
-                print "    \033[91mERROR\033[0m no test launched for %s" % \
-                      type_name
+                print "{:>7} no test launched for {:}".format(red("ERROR"),
+                                                              type_name)
                 sys.stdout.flush()
             else:
                 self._log.error(" * No test launched for %s" % type_name)
@@ -1074,7 +1072,7 @@ help="specify the root folder for tests configurations\n"
             self._log.info(" * Test %s successful" % type_name)
             # in quiet mode print important output on terminal
             if self._quiet:
-                print "    \033[92mSUCCESS\033[0m"
+                print "{:>7}".format(green("SUCCESS"))
                 sys.stdout.flush()
 
 
@@ -1101,7 +1099,7 @@ if __name__ == '__main__':
     except Exception, error:
         print "\n\n##### TRACEBACK #####"
         traceback.print_tb(sys.exc_info()[2])
-        print "\033[91mError: %s \033[0m" % str(error)
+        print red("Error: %s" % str(error))
         sys.exit(1)
 
     print "All tests successfull"

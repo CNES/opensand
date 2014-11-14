@@ -51,10 +51,10 @@ class Evc
 	const MacAddress *mac_src;
 	/// The destination MAC address
 	const MacAddress *mac_dst;
-	/// 802.1Q tag
-	uint32_t q_tag;
-	/// 802.1ad tag
-	uint32_t ad_tag;
+	/// 802.1Q TCI
+	uint32_t q_tci;
+	/// 802.1ad TCI
+	uint32_t ad_tci;
 	/// The EtherType of the packet carried by the Ethernet payload
 	uint16_t ether_type;
 
@@ -65,13 +65,13 @@ class Evc
 	 *
 	 * @param mac_src     The source MAC address
 	 * @param mac_dst     The destination MAC address
-	 * @param q_tag       The Q tag
-	 * @param ad_tag      The ad tag
+	 * @param q_tci       The Q TCI
+	 * @param ad_tci      The ad TCI
 	 * @param ether_type  The EtherType of the packet carried by
 	 *                    the Ethernet payload
 	 */
 	Evc(const MacAddress *mac_src, const MacAddress *mac_dst,
-	    uint16_t q_tag, uint16_t ad_tag,
+	    uint16_t q_tci, uint16_t ad_tci,
 	    uint16_t ether_type);
 
 	/**
@@ -94,18 +94,18 @@ class Evc
 	const MacAddress *getMacDst() const;
 
 	/**
-	 * @brief Get the 802.1Q tag
+	 * @brief Get the 802.1Q TCI
 	 *
-	 * @return the Q tag
+	 * @return the Q TCI
 	 */
-	uint32_t getQTag() const;
+	uint32_t getQTci() const;
 
 	/**
-	 * @brief Get the 802.1ad tag
+	 * @brief Get the 802.1ad TCI
 	 *
-	 * @return the AD tag
+	 * @return the AD TCI
 	 */
-	uint32_t getAdTag() const;
+	uint32_t getAdTci() const;
 
 	/**
 	 * @brief Get the EtherType value
@@ -120,16 +120,16 @@ class Evc
 	 *
 	 * @param mac_src     The source MAC address
 	 * @param mac_dst     The destination MAC address
-	 * @param q_tag       The Q tag
-	 * @param ad_tag      The ad tag
+	 * @param q_tci       The Q TCI
+	 * @param ad_tci      The ad TCI
 	 * @param ether_type  The EtherType of the packet carried by
 	 *                    the Ethernet payload
 	 * @return true if it matches, false otherwise
 	 */
 	bool matches(const MacAddress *mac_src,
 	             const MacAddress *mac_dst,
-	             uint16_t q_tag,
-	             uint16_t ad_tag,
+	             uint16_t q_tci,
+	             uint16_t ad_tci,
 	             uint16_t ether_type) const;
 
 	/**
@@ -149,14 +149,14 @@ class Evc
 	 *
 	 * @param mac_src     The source MAC address
 	 * @param mac_dst     The destination MAC address
-	 * @param q_tag       The Q tag
+	 * @param q_tci       The Q TCI
 	 * @param ether_type  The EtherType of the packet carried by
 	 *                    the Ethernet payload
 	 * @return true if it matches, false otherwise
 	 */
 	bool matches(const MacAddress *mac_src,
 	             const MacAddress *mac_dst,
-	             uint16_t q_tag,
+	             uint16_t q_tci,
 	             uint16_t ether_type) const;
 };
 
