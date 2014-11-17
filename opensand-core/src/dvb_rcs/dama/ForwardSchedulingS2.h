@@ -99,6 +99,7 @@ class ForwardSchedulingS2: public Scheduling
 	// Total and unused capacity probes
 	Probe<int> *probe_fwd_total_capacity;
 	Probe<int> *probe_fwd_total_remaining_capacity;
+	Probe<int> *probe_bbframe_nbr;
 	map<unsigned int, vector<Probe<int> *> > probe_fwd_remaining_capacity;
 	map<unsigned int, vector<Probe<int> *> > probe_fwd_available_capacity;
 
@@ -122,19 +123,24 @@ class ForwardSchedulingS2: public Scheduling
 	 * @brief Get the current modcod of a terminal
 	 *
 	 * @param tal_id    the terminal id
+	 * @param current_superframe_sf  The current superframe number
 	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
 	 * @return          true on succes, false otherwise
 	 */
-	bool retrieveCurrentModcod(tal_id_t tal_id, unsigned int &modcod_id);
+	bool retrieveCurrentModcod(tal_id_t tal_id,
+	                           const time_sf_t current_superframe_sf,
+	                           unsigned int &modcod_id);
 
 	/**
 	 * @brief Create an incomplete BB frame
 	 *
 	 * @param bbframe   the BBFrame that will be created
+	 * @param current_superframe_sf  The current superframe number
 	 * @param modcod_id the BBFrame modcod
 	 * @return          true on succes, false otherwise
 	 */
 	bool createIncompleteBBFrame(BBFrame **bbframe,
+	                             const time_sf_t current_superframe_sf,
 	                             unsigned int modcod_id);
 
 	/**
@@ -142,11 +148,13 @@ class ForwardSchedulingS2: public Scheduling
 	 *
 	 * @param tal_id    the terminal ID we want to send the frame
 	 * @paarm carriers  the carriers group to which the terminal belongs
+	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe   OUT: the BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
 	bool getIncompleteBBFrame(tal_id_t tal_id,
 	                          CarriersGroupDama *carriers,
+	                          const time_sf_t current_superframe_sf,
 	                          BBFrame **bbframe);
 
 	/**
@@ -154,12 +162,14 @@ class ForwardSchedulingS2: public Scheduling
 	 *
 	 * @param complete_bb_frames the list of complete BB frames
 	 * @param bbframe            the BBFrame to add in the list
+	 * @param current_superframe_sf  The current superframe number
 	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
 	 * @return                   status_ok on success, status_error on error and
 	 *                           status_full -2 if there is not enough capacity
 	 */
 	sched_status_t addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
 	                                  BBFrame *bbframe,
+	                                  const time_sf_t current_superframe_sf,
 	                                  vol_sym_t &remaining_capacity_sym);
 
 
@@ -167,10 +177,12 @@ class ForwardSchedulingS2: public Scheduling
 	 * @brief Schedule pending BBFrames from previous slot
 	 *
 	 * @param supported_modcods    The list of supported MODCODS for the current carrier
+	 * @param current_superframe_sf  The current superframe number
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
 	void schedulePending(const list<unsigned int> supported_modcods,
+	                     const time_sf_t current_superframe_sf,
 	                     list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
 
@@ -179,12 +191,22 @@ class ForwardSchedulingS2: public Scheduling
 	 *
 	 * @param bbframe_size_bytes  The BBFrame size in bytes
 	 * @param modcod_id           The BBFrame MODCOD ID
+	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe_size_sym    OUT: The BBFrame size in symbols
 	 * @return true on success, false otherwise
 	 */
-	bool getBBFrameSize(size_t bbframe_size_bytes,
-	                    unsigned int modcod_id,
-	                    vol_sym_t &bbframe_size_sym);
+	bool getBBFrameSizeSym(size_t bbframe_size_bytes,
+	                       unsigned int modcod_id,
+	                       const time_sf_t current_superframe_sf,
+	                       vol_sym_t &bbframe_size_sym);
+
+	/**
+	 * @brief  Get BBFrame size in bytes according to its MODCOD
+	 *
+	 * @param modcod_id           The BBFrame MODCOD ID
+	 * @return the BBFrame size in bytes
+	 */
+	unsigned int getBBFrameSizeBytes(unsigned int modcod_id);
 
 };
 
