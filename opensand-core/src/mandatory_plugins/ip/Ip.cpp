@@ -44,12 +44,12 @@
 #include <map>
 
 
-#define SECTION_MAPPING		"ip_qos"
-#define MAPPING_LIST		"categories"
-#define MAPPING_IP_DSCP		"dscp"
-#define MAPPING_MAC_PRIO	"mac_prio"
-#define MAPPING_NAME	"name"
-#define KEY_DEF_CATEGORY	"default_dscp"
+#define SECTION_MAPPING     "ip_qos"
+#define MAPPING_LIST        "categories"
+#define MAPPING_IP_DSCP     "dscp"
+#define MAPPING_MAC_PRIO    "mac_prio"
+#define MAPPING_NAME        "name"
+#define KEY_DEF_CATEGORY    "default_dscp"
 #define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
 
 
