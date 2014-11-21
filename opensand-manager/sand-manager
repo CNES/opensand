@@ -44,9 +44,9 @@ from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.loggers.levels import MGR_INFO, MGR_DEBUG
+from opensand_manager_core.env_plane_dispatcher import EnvPlaneDispatcher
 from opensand_manager_gui.opensand_view import View
 from opensand_manager_gui.view.popup.infos import error_popup
-from opensand_manager_gui.env_plane_dispatcher import EnvPlaneDispatcher
 
 # TODO add option load plugin from another directory if it is possible ?
 # TODO replace optparser by argparse if 2.6 support is abandonned

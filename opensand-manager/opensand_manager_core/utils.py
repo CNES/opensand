@@ -41,6 +41,7 @@ import os
 OPENSAND_PATH = "/usr/share/opensand/"
 COL_RED="\033[31m"
 COL_GREEN="\033[32m"
+COL_YELLOW="\033[33m"
 COL_BLUE="\033[34m"
 COL_BOLD="\033[1m"
 COL_END="\033[0m"
@@ -54,7 +55,7 @@ def _color(msg, color, bold):
     """ return the message colored """
     msg = color + msg + COL_END
     if bold:
-        return bold(msg)
+        return _bold(msg)
     return msg
 
 def red(msg, bold=False):
@@ -66,8 +67,12 @@ def green(msg, bold=False):
     return _color(msg, COL_GREEN, bold)
 
 def blue(msg, bold=False):
-    """ return the message colored in blud """
+    """ return the message colored in blue """
     return _color(msg, COL_BLUE, bold)
+
+def yellow(msg, bold=False):
+    """ return the message colored in yellow """
+    return _color(msg, COL_YELLOW, bold)
 
 def copytree(src, dst):
     """ Recursively copy a directory tree using copy2()

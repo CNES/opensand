@@ -429,6 +429,10 @@ class EnvironmentPlaneController(object):
             self._programs[full_prog_id] = program
 
         if self._observer:
+            # TODO this will be cause for each subsequent register,
+            #      maybe try to do it once => create a REGISTER_INIT
+            #      message transmited by collector ?
+            #      moreover, the collector already has this info
             self._observer.program_list_changed()
 
         return True
@@ -506,7 +510,7 @@ class EnvironmentPlaneController(object):
             log = program.get_log(log_id)
         except KeyError, IndexError:
             self._log.error("Incorrect log ID %d for program [%d:%d] "
-                            "received" % (log_id, host_id, prog_id))
+                            "received %s" % (log_id, host_id, prog_id, data))
             return False
 
         if self._observer:

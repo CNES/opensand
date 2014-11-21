@@ -606,7 +606,8 @@ class View(WindowView):
 
     def on_new_probe_value(self, probe, timestamp, value):
         """ called when a new probe value is received """
-        self._eventprobe.new_probe_value(probe, timestamp, value)
+        gobject.idle_add(self._eventprobe.new_probe_value,
+                         probe, timestamp, value)
     
 
 ##### TEST #####

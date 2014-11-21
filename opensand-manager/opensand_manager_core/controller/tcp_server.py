@@ -93,7 +93,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
-    def read_data(self, timeout = True):
+    def read_data(self, timeout=True):
         """ read data on socket """
         if timeout:
             inputready, _, _ = select.select([self.rfile], [], [], 1)
@@ -213,7 +213,6 @@ class CommandServer(MyTcpHandler):
         else:
             self.wfile.write(red("Wrong command\n"))
         return True
-
 
 
 HELP="Welcome on the OpenSAND command interface.\n" \

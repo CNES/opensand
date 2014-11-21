@@ -157,6 +157,14 @@ class Program(object):
         return self._name
 
     @property
+    def host_name(self):
+        """
+        Get the program related host name
+        """
+        return self._host_model.get_name().lower()
+
+
+    @property
     def ident(self):
         """
         Get the program ident

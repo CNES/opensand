@@ -41,7 +41,8 @@ import os
 from argparse import ArgumentParser
 
 
-from opensand_manager_shell.opensand_shell_manager import SERVICE, ShellManager
+from opensand_manager_shell.opensand_shell_manager import SERVICE, \
+                                                          ShellManager
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.utils import red
 
@@ -104,4 +105,6 @@ if __name__ == '__main__':
 
 
     sys.exit(0)
+
+
 
