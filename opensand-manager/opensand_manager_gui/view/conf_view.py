@@ -39,8 +39,10 @@ import gtk
 import gobject
 
 from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
+from opensand_manager_gui.view.popup.infos import error_popup
 
 IMG_PATH = OPENSAND_PATH + "manager/images/"
 
@@ -105,13 +107,16 @@ class ConfView(WindowView):
 #        for host in self._lan_stacks:
 #            self._lan_stacks[host].load(host.get_lan_adaptation())
         # return_up_encap
-        self._out_stack.load(config.get_return_up_encap(),
-                             config.get_payload_type(),
-                             config.get_emission_std())
-        # forward_down_encap
-        self._in_stack.load(config.get_forward_down_encap(),
-                            config.get_payload_type(),
-                            "DVB-S2")
+        try:
+            self._out_stack.load(config.get_return_up_encap(),
+                                 config.get_payload_type(),
+                                 config.get_emission_std())
+            # forward_down_encap
+            self._in_stack.load(config.get_forward_down_encap(),
+                                config.get_payload_type(),
+                                "DVB-S2")
+        except ConfException, msg:
+            error_popup(str(msg))
         # physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if config.get_enable_physical_layer().lower() == "true":
@@ -139,7 +144,10 @@ class ConfView(WindowView):
                                        self._ui.get_widget('header_modif_vbox'),
                                        self._ui.get_widget('frame_header_modif'))
                 self._lan_stacks[host] = stack
-                stack.load(host.get_lan_adaptation())
+                try:
+                    stack.load(host.get_lan_adaptation())
+                except ConfException, msg:
+                    error_popup(str(msg))
         # remove old hosts
         remove = []
         for host in self._lan_stacks:

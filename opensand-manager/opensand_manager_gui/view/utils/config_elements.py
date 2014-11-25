@@ -682,14 +682,12 @@ class ConfSection(gtk.VBox):
         add_button.connect('clicked', self.on_add_button_clicked)
         add_button.connect('clicked', self._changed_cb)
         add_button.set_tooltip_text("Add a line in the table")
-        add_button.set_has_tooltip(True)
         self._add_buttons.append(add_button)
         del_button = gtk.ToolButton(gtk.STOCK_REMOVE)
         del_button.set_name(self._config.get_path(key))
         del_button.connect('clicked', self.on_del_button_clicked)
         del_button.connect('clicked', self._changed_cb)
         del_button.set_tooltip_text("Remove the selected lines from the table")
-        del_button.set_has_tooltip(True)
         self._del_buttons.append(del_button)
         toolbar.insert(add_button, -1)
         toolbar.insert(del_button, -1)
@@ -735,7 +733,6 @@ class ConfSection(gtk.VBox):
         check_button = gtk.CheckButton()
         check_button.set_name(key_path)
         check_button.set_tooltip_text("Select the lines you want to remove")
-        check_button.set_has_tooltip(True)
         check_button.connect('toggled', self.on_remove_button_toggled)
         hbox.pack_start(check_button)
         hbox.set_child_packing(check_button, expand=False,
@@ -818,7 +815,6 @@ class ConfSection(gtk.VBox):
         img.set_from_stock(gtk.STOCK_DIALOG_INFO,
                            gtk.ICON_SIZE_MENU)
         img.set_tooltip_text(description)
-        img.set_has_tooltip(True)
         widget.pack_start(img)
         widget.set_child_packing(img, expand=False,
                                  fill=False, padding=1,

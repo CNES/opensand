@@ -216,7 +216,6 @@ class View(WindowView):
         """ Update the message displayed on Manager """
         self._info_label.set_markup(infos[self._counter])
 
-        # TODO we do not have this one !
         msg = 'Developer mode enabled'
         if self._model.get_dev_mode():
             if not msg in infos:
@@ -283,10 +282,13 @@ class View(WindowView):
                     self._log.info("OpenSAND Manager is now ready, have fun !")
 
         # update event GUI
-        gobject.idle_add(self._eventrun.refresh,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
+        # calling refresh on run view remove tooltips (due to queue draw ?)
+        #  => do not refresh that when we are not on run view
+        if self._current_page == self._pages['run']:
+            gobject.idle_add(self._eventrun.refresh,
+                             priority=gobject.PRIORITY_HIGH_IDLE+20)
         
-        # Update simulation state for the main view
+        # Update simulation state for the probe view
         gobject.idle_add(self._eventprobe.simu_state_changed,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
