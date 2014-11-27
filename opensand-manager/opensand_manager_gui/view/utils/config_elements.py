@@ -573,7 +573,7 @@ class ConfSection(gtk.VBox):
             evt = gtk.EventBox()
             evt.add(section_descr)
             section_descr.set_markup(description)
-            section_descr.set_justify(gtk.JUSTIFY_CENTER)
+            section_descr.set_justify(gtk.JUSTIFY_LEFT)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
             self.pack_start(evt)
             self.set_child_packing(evt, expand=False,
