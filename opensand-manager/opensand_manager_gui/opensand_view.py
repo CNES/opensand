@@ -50,7 +50,9 @@ from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
-from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
+from opensand_manager_gui.view.popup.infos import error_popup, \
+                                                  info_popup, \
+                                                  yes_no_popup
 from opensand_manager_gui.view.popup.about_dialog import AboutDialog
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
 
@@ -307,6 +309,13 @@ class View(WindowView):
         about = AboutDialog()
         about.run()
         about.close()
+
+    def on_info_activate(self, source=None, event=None):
+        """ event handler for info button """
+        text = "The default configuration files are stored in the <i>" + \
+               OPENSAND_PATH + "</i> folder and its subfolders.\n\nTBC"
+        info_popup(text, "OpenSAND Manager - Information")
+
 
     def on_notebook_switch_page(self, notebook, page, page_num):
         """ notebook page changed """

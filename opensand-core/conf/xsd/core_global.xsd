@@ -339,8 +339,8 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element ref="return_up_band" />
             <xsd:element ref="forward_down_band" />
+            <xsd:element ref="return_up_band" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
@@ -377,14 +377,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_frame_duration" type="msTimeFrame">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The return/up link DVB frame duration (in ms)
-                        <unit>ms</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="forward_down_frame_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -393,11 +385,11 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="return_up_encap_schemes">
+            <xsd:element name="return_up_frame_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The return/up link encapsulation scheme
-                        <hide>true</hide>
+                        The return/up link DVB frame duration (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -405,6 +397,14 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The forward/down link encapsulation scheme
+                        <hide>true</hide>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="return_up_encap_schemes">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return/up link encapsulation scheme
                         <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>

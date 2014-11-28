@@ -167,7 +167,7 @@ class CommandServer(MyTcpHandler):
             for host in self._model.get_hosts_list():
                 state = host.get_state()
                 if state == False:
-                    running = red("SOPPED")
+                    running = red("STOPPED")
                 elif state == True:
                     running = green("RUNNING")
                 else:

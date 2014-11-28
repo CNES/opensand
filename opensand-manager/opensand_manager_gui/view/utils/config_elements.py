@@ -571,8 +571,9 @@ class ConfSection(gtk.VBox):
             section_descr = gtk.Label()
             evt = gtk.EventBox()
             evt.add(section_descr)
-            section_descr.set_markup(description)
             section_descr.set_justify(gtk.JUSTIFY_LEFT)
+            section_descr.set_alignment(0, 0.5)
+            section_descr.set_markup(description)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
             self.pack_start(evt)
             self.set_child_packing(evt, expand=False,
@@ -963,17 +964,6 @@ class ConfSection(gtk.VBox):
         self.update_completion(completion, path, att)
 
 
-# About the specific case of files:
-# the value in configuration contains the file on destination but
-# we want to change the file here and deploy it on this destination.
-# Thus, we allow changing the source path here and the value in
-# configuration will remain unchanged
-# To be sure that the correct file will be on distant host, we
-# will deploy it (if something changed)  once the configuration will
-# be saved
-# Moreover, to be able to keep the correct source when restarting the manager
-# the file selected in source path is copied in the scenario in a path specified
-# in xsd file documentation between <file> tags
 class ConfEntry(object):
     """ element for configuration entry """
     def __init__(self, entry_type, value, path, source, host,

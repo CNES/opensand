@@ -71,3 +71,17 @@ def yes_no_popup(question, title, icon):
     ret = dialog.run()
     dialog.destroy()
     return ret
+
+
+def info_popup(text, title):
+    """ dialog box asking a question """
+    dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL,
+                               gtk.MESSAGE_INFO,
+                               gtk.BUTTONS_CLOSE,
+                               "")
+    #dialog.set_resizable(True)
+    dialog.set_markup(text)
+    dialog.set_keep_above(True)
+    dialog.set_title(title)
+    dialog.run()
+    dialog.destroy()

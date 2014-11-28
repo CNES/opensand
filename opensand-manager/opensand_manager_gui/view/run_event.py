@@ -62,10 +62,6 @@ class RunEvent(RunView):
 
         if(adv_mode):
             self._ui.get_widget('adv_mode').set_active(True)
-        else:
-            # do not show deploy button
-            gobject.idle_add(self.hide_deploy_button,
-                             priority=gobject.PRIORITY_HIGH_IDLE+20)
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
