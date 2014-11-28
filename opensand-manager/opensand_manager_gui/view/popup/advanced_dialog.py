@@ -135,6 +135,10 @@ class AdvancedDialog(WindowView):
         # add the global configuration
         gobject.idle_add(self._host_tree.add_host, self._model,
                          {}, self._model.get_dev_mode())
+        if not self._model.get_dev_mode():
+            treeview = self._host_tree.get_treeview()
+            column = treeview.get_column(1)
+            column.set_visible(False)
 
         # get the modules tree
         self._modules_conf_view = gtk.VBox()
