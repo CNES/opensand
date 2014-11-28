@@ -165,11 +165,11 @@ class ToolEvent(ToolView):
         if notebook is None:
             notebook = ConfigurationNotebook(config_parser,
                                              model.get_host().lower(),
-                                             self._model.get_dev_mode(),
+                                             self._model.get_adv_mode(),
                                              self._model.get_scenario(),
                                              # we have no button to hide/show
-                                             # hidden, show them in dev mode
-                                             self._model.get_dev_mode(),
+                                             # hidden, show them in adv mode
+                                             self._model.get_adv_mode(),
                                              self.handle_param_changed)
 
         model.set_conf_view(notebook)

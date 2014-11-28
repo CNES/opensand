@@ -124,11 +124,11 @@ bool BlockDvbSat::initSpots(void)
 	ConfigurationList::iterator iter;
 
 	// Retrive FIFO size
-	if(!Conf::getValue(DEV_SECTION, DELAY_BUFFER, fifo_size))
+	if(!Conf::getValue(ADV_SECTION, DELAY_BUFFER, fifo_size))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DEV_SECTION, DELAY_BUFFER);
+		    ADV_SECTION, DELAY_BUFFER);
 		goto error;
 	}
 
@@ -301,6 +301,8 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Downward::onInit()
 {
 	// get the common parameters
+	// TODO no need to init pkt hdl in transparent mode,
+	//      this will avoid loggers for encap to be instanciated
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -942,6 +944,8 @@ void BlockDvbSat::Upward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Upward::onInit()
 {
 	// get the common parameters
+	// TODO no need to init pkt hdl in transparent mode,
+	//      this will avoid loggers for encap to be instanciated
 	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

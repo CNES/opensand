@@ -88,7 +88,11 @@ class OpenSandManager:
                               _name._transport_protocol")
         opt_parser.add_option("-d", "--enable-dev-mode", action="store_true",
                               dest="dev_mode", default=False,
-                              help="enable developer mode")
+                              help="enable developer mode: allows files deployment "
+                                   "and enable advanced mode")
+        opt_parser.add_option("-a", "--enable-adv-mode", action="store_true",
+                              dest="adv_mode", default=False,
+                              help="enable advanced mode")
         opt_parser.add_option("-i", "--interactive", action="store_true",
                               dest="interactive", default=False,
                               help="create a server that listen for distants command \
@@ -114,6 +118,7 @@ class OpenSandManager:
             # create the View
             self._view = View(self._model, self._manager_log,
                               options.glade, options.dev_mode,
+                              options.adv_mode,
                               options.service_type)
 
             # create the host controller and response manager

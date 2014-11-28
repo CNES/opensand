@@ -344,7 +344,7 @@
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
-            <xsd:element ref="dev" />
+            <xsd:element ref="advanced" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -355,7 +355,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The global configuration for all components</b>
+            <b>\tThe global configuration for all components</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -436,7 +436,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Return/Up link bandwidth configuration</b>
+            <b>\tReturn/Up link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -494,7 +494,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Forward/Down link bandwidth configuration</b>
+            <b>\tForward/Down link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -552,7 +552,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha common parameters</b>
+            <b>\tThe Slotted Aloha common parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -575,7 +575,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The number of the column corresponding to each terminal in the DRA
+            <b>\tThe number of the column corresponding to each terminal in the DRA
             and MODCOD simulation files</b>
             ]]>
             <hide>true</hide>
@@ -600,7 +600,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description:</b>\n
+            <b>\tThe physical layer description:</b>\n
             if the physical layer block is enabled, see the
             <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information, else ACM simulation files are used\n
             acm_refresh_period is used in both cases\n
@@ -672,15 +672,15 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- dev section description -->
-<xsd:element name="dev">
+<!-- advanced section description -->
+<xsd:element name="advanced">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Some parameters that may influence performances
+            <b>\tSome parameters that may influence performances
             (for advanced users only, do not edit these parameters !)</b>
             ]]>
-            <dev>true</dev>
+            <adv>true</adv>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

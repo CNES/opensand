@@ -155,7 +155,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Some global parameters</b>
+            <b>\tSome global parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>
@@ -178,11 +178,10 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The dvb layer configuration for terminal</b>\n
+            <b>\tThe dvb layer configuration for terminal</b>\n
             For Layer 2 FIFO configuration:\n
               - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping\n
               - access type has to be correlated with the band configuration one\n
-            \n
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -256,7 +255,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha ST parameters</b>
+            <b>\tThe Slotted Aloha ST parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -327,7 +326,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The QoS data parameters</b
+            <b>\tThe QoS data parameters</b
             ]]>>
             <hide>true</hide>
         </xsd:documentation>
@@ -357,7 +356,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The debug parameters</b>
+            <b>\tThe debug parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>

@@ -270,10 +270,10 @@ void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
 	vector<MacFifoElement *>::iterator it;
-	for(it = this->queue.begin(); it < this->queue.end(); ++it)
+	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 		NetContainer *elem = (*it)->getElem();
-		delete elem;
+//		delete elem;
 		delete *it;
 	}
 

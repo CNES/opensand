@@ -176,6 +176,8 @@ class CommandServer(MyTcpHandler):
                                                   running)
             if self._model.get_dev_mode():
                 status += "Developer mode enabled\n"
+            if self._model.get_adv_mode():
+                status += "Advanced mode enabled\n"
             self.wfile.write(status)
         elif instruction == "start":
             if len(params) > 0:

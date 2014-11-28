@@ -69,7 +69,8 @@ class View(WindowView):
         - handle some events and dispatch them
     """
     def __init__(self, model, manager_log, glade='',
-                 dev_mode=False, service_type=''):
+                 dev_mode=False, adv_mode=False,
+                 service_type=''):
         self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
@@ -85,7 +86,8 @@ class View(WindowView):
         try:
             # run first because its starts the logging notebook
             self._eventrun = RunEvent(self.get_current(), self._model,
-                                      dev_mode, self._log, service_type)
+                                      dev_mode, adv_mode, self._log,
+                                      service_type)
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
             self._eventtool = ToolEvent(self.get_current(),
@@ -105,8 +107,7 @@ class View(WindowView):
                                                              0xffff))
         self._info_label = self._ui.get_widget('info_label')
         self._counter = 0
-        infos = ['Service type: ' + service_type,
-                 '<a href="http://opensand.org">OpenSAND website</a>']
+        infos = ['Service type: ' + service_type]
         gobject.timeout_add(5000, self.update_label, infos)
 
 
@@ -222,11 +223,16 @@ class View(WindowView):
                 infos.append(msg)
         elif msg in infos:
             infos.remove(msg)
+        msg = 'Advanced  mode enabled'
+        if self._model.get_adv_mode():
+            if not msg in infos:
+                infos.append(msg)
+        elif msg in infos:
+            infos.remove(msg)
         if len(infos) == 0:
             return True
         self._counter = (self._counter + 1) % len(infos)
         return True
-
 
 
     def on_timer_status(self):

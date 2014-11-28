@@ -331,7 +331,7 @@ class ConfigurationTree(gtk.TreeStore):
         if col1_changed_cb is not None:
             self._treeselection.connect('changed', col1_changed_cb)
 
-    def add_host(self, host, elt_info=None, dev_mode=False):
+    def add_host(self, host, elt_info=None):
         """ add a host with its elements in the treeview """
         name = host.get_name()
         # append an element in the treestore
@@ -366,14 +366,13 @@ class ConfigurationTree(gtk.TreeStore):
         else:
             # for advanced host
             # only set host activatable if developper mode is enabled
-            activatable = dev_mode
             if host.get_state() is None:
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, True,
                               ACTIVE, active,
-                              ACTIVATABLE, activatable)
+                              ACTIVATABLE, True)
 
 
     def add_module(self, module, parents=False):
@@ -427,7 +426,7 @@ class ConfigurationTree(gtk.TreeStore):
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
-    def __init__(self, config, host, dev_mode, scenario, show_hidden, changed_cb, file_cb):
+    def __init__(self, config, host, adv_mode, scenario, show_hidden, changed_cb, file_cb):
         gtk.Notebook.__init__(self)
 
         self._current_page = 0
@@ -439,18 +438,18 @@ class ConfigurationNotebook(gtk.Notebook):
         self.connect('hide', self.on_hide)
 
         for section in config.get_sections():
-            conf_section = ConfSection(section, config, host, dev_mode,
+            conf_section = ConfSection(section, config, host, adv_mode,
                                        scenario, changed_cb, file_cb)
             if self.add_section(config, section,
-                                conf_section, dev_mode):
+                                conf_section, adv_mode):
                 self._sections.append(conf_section)
 
         self.set_hidden(not show_hidden)
 
-    def add_section(self, config, section, conf_section, dev_mode):
+    def add_section(self, config, section, conf_section, adv_mode):
         """ add a section in the notebook and return the associated vbox """
         name = config.get_name(section)
-        if config.do_hide_dev(name, dev_mode):
+        if config.do_hide_adv(name, adv_mode):
             return False
         scroll_notebook = gtk.ScrolledWindow()
         scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
@@ -508,7 +507,7 @@ class ConfigurationNotebook(gtk.Notebook):
 
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
-    def __init__(self, section, config, host, dev_mode, scenario,
+    def __init__(self, section, config, host, adv_mode, scenario,
                  changed_cb, file_cb):
         gtk.VBox.__init__(self)
 
@@ -518,7 +517,7 @@ class ConfSection(gtk.VBox):
         self._changed_cb = changed_cb
         self._file_cb = file_cb
         self._scenario = scenario
-        self._dev_mode = dev_mode
+        self._adv_mode = adv_mode
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._entries = []
@@ -598,7 +597,7 @@ class ConfSection(gtk.VBox):
     def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
-        if self._config.do_hide_dev(name, self._dev_mode):
+        if self._config.do_hide_adv(name, self._adv_mode):
             return None
         key_box = gtk.HBox()
         key_label = gtk.Label()
@@ -651,7 +650,7 @@ class ConfSection(gtk.VBox):
     def add_table(self, key):
         """ add a table in the tab """
         name = self._config.get_name(key)
-        if self._config.do_hide_dev(name, self._dev_mode):
+        if self._config.do_hide_adv(name, self._adv_mode):
             return None
         check_buttons = []
         table_frame = gtk.Frame()

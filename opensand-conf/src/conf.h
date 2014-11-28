@@ -266,10 +266,10 @@
 
 
 
-/////////////////////////
-//         dev         //
-/////////////////////////
-#define DEV_SECTION      "dev"
+//////////////////////////
+//       advanced       //
+//////////////////////////
+#define ADV_SECTION      "advanced"
 #define DELAY_BUFFER     "delay_buffer"
 #define UDP_RMEM         "udp_rmem"
 #define UDP_WMEM         "udp_wmem"

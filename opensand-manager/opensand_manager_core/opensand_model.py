@@ -75,6 +75,8 @@ class Model:
 
         # Running in dev mode ?
         self._is_dev_mode = False
+        # Running in adv mode ?
+        self._is_adv_mode = False
 
         self._hosts = []
         self._ws = []
@@ -451,6 +453,16 @@ class Model:
     def get_dev_mode(self):
         """get the dev mode """
         return self._is_dev_mode
+
+    def set_adv_mode(self, adv_mode=False):
+        """ Set the adv mode to `adv_mode` """
+        self._log.debug("Switch to adv mode %s" % adv_mode)
+        self._is_adv_mode = adv_mode
+
+    def get_adv_mode(self):
+        """get the adv mode """
+        # dev mode => adv_mode
+        return self._is_adv_mode or self._is_dev_mode
 
     def set_scenario(self, val):
         """ set the scenario id """

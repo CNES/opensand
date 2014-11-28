@@ -89,7 +89,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer attenuation for uplink</b>\n
+            <b>\tThe physical layer attenuation for uplink</b>\n
             Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
@@ -121,7 +121,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description for downlink: </b>\n
+            <b>\tThe physical layer description for downlink: </b>\n
             Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>

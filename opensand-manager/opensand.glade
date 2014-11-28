@@ -12,7 +12,6 @@
     <property name="program_name">OpenSAND Manager</property>
     <property name="comments" translatable="yes">This tool helps you configuring and running the OpenSAND platform on your LAN</property>
     <property name="website">http://opensand.org</property>
-    <property name="website_label" translatable="yes">OpenSAND</property>
     <property name="license" translatable="yes">OpenSAND is free software : you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
@@ -796,6 +795,23 @@ Viveris technologies
                             <property name="stock">gtk-execute</property>
                           </widget>
                         </child>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkSeparatorMenuItem" id="menuitem1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkCheckMenuItem" id="option_adv_mode">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">Advanced mode</property>
+                        <property name="use_underline">True</property>
+                        <signal name="toggled" handler="on_option_adv_mode_toggled" />
                       </widget>
                     </child>
                   </widget>
@@ -2646,6 +2662,17 @@ This is the name used when loading probes.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2709,17 +2736,6 @@ This is the name used when loading probes.</property>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>

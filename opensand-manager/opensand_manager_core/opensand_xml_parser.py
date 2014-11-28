@@ -375,16 +375,14 @@ class XmlParser:
         """ get the default and source parameters on file """
         return self.get_doc_param('/source', name, parent_name)
 
-
-    def do_hide_dev(self, name, dev_mode):
-        """ check if some widget should be hidden in non dev mode """
-        # check if element should be hidden in non dev_mode
-        dev = self.get_doc_param('/dev', name)
-        if dev is not None and not dev_mode and dev == "true":
+    def do_hide_adv(self, name, adv_mode):
+        """ check if some widget should be hidden in non adv mode """
+        # check if element should be hidden in non adv mode
+        adv = self.get_doc_param('/adv', name)
+        if adv is not None and not adv_mode and adv == "true":
             return True
 
         return False
-
 
     def do_hide(self, name):
         """ check if som widget should be hidden """
