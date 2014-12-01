@@ -190,7 +190,7 @@
         <xsd:attribute name="access_type" type="downAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (ACMM, VCM)
+                    The type of multiplexing (ACM, VCM)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

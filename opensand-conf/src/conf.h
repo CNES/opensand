@@ -87,7 +87,7 @@
 #define FIFO_LIST                 "layer2_fifos"
 #define FIFO_PRIO                 "priority"
 
-#define FIFO_TYPE                 "type"
+#define FIFO_NAME                 "name"
 #define FIFO_SIZE                 "size_max"
 #define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"

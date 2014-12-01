@@ -351,7 +351,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	{
 		qos_t fifo_priority = 0;
 		vol_pkt_t fifo_size = 0;
-		string fifo_mac_prio;
+		string fifo_name;
 		string fifo_access_type;
 		DvbFifo *fifo;
 
@@ -363,12 +363,12 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			    FIFO_PRIO, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		// get fifo_mac_prio
-		if(!Conf::getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
+		// get fifo_name
+		if(!Conf::getAttributeValue(iter, FIFO_NAME, fifo_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST);
+			    FIFO_NAME, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_size
@@ -389,7 +389,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 
-		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
+		fifo = new DvbFifo(fifo_priority, fifo_name,
 		                   fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,

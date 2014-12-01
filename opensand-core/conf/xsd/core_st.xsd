@@ -100,7 +100,7 @@
         </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="type" type="className">
+        <xsd:attribute name="name" type="className">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The name of the FIFO
