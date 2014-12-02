@@ -604,11 +604,6 @@
             if the physical layer block is enabled, see the
             <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information, else ACM simulation files are used\n
             acm_refresh_period is used in both cases\n
-            \n
-            <u>Note about files:</u>\n
-            When you select another file, it will be copied in your scenario,\n
-            so don't be surprised to always get the same file path when opening\n
-            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>

@@ -27,7 +27,7 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="damaAlgorithm">
+<xsd:simpleType name="damaAgentAlgorithm">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="Legacy" />
         <xsd:enumeration value="RrmQos" />
@@ -211,7 +211,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dama_algorithm" type="damaAlgorithm">
+            <xsd:element name="dama_agent_algorithm" type="damaAgentAlgorithm">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The DAMA algorithm for Agent
