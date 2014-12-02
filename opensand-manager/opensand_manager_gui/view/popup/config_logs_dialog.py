@@ -75,7 +75,6 @@ class ConfigLogsDialog(WindowView):
 
         store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_INT)
         for level in LOG_LEVELS:
-            print level
             store.append([LOG_LEVELS[level].name, level])
         cellrenderer_combo = gtk.CellRendererCombo()
         cellrenderer_combo.set_property("editable", True)

@@ -37,6 +37,7 @@ config_elements.py - create configuration elements according to their types
 import gtk
 import gobject
 import os
+import pango
 from copy import deepcopy
 
 from opensand_manager_core.my_exceptions import XmlException
@@ -1059,42 +1060,71 @@ class ConfEntry(object):
         """ load a gtk.FileChooserButton """
         # there is a special case with files, see above
         # In title, set the destination path
-        self._entry = gtk.FileChooserButton(title=self._value + ' - OpenSAND')
-        # Get the source file in scenario
-        if self._source is None:
-            error_popup("Missing XSD source content for file element")
-        else:
-            self._entry.set_filename(self._source)
-        self._entry.connect('file-set', self.global_handler)
-        # specific handler here
-        self._entry.connect('file-set', self._file_handler, self._host,
-                            self._path)
-        self._entry.set_size_request(200, -1)
-#        def update_preview_cb(file_chooser, preview):
-#            filename = file_chooser.get_preview_filename()
-#            try:
-#                with open(filename, 'r') as content:
-#                    buf = gtk.TextBuffer()
-#                    buf.set_text(content.read())
-#                    preview.set_buffer(buf)
-#                    preview.set_size_request(500, -1)
-#                have_preview = True
-#            except Exception, m:
-#                print m
-#                have_preview = False
-#            file_chooser.set_preview_widget_active(have_preview)
-#            return
-#        preview = gtk.TextView()
-#        self._entry.set_preview_widget(preview)
-#        self._entry.connect("update-preview", update_preview_cb, preview)
-        def edit_file(button, event, entry):
-            window = EditDialog(entry.get_filename())
+        self._entry = gtk.HBox()
+        def edit_file(edit_button, event):
+            window = EditDialog(self._source)
             window.go()
-        button = gtk.Button(stock=gtk.STOCK_EDIT)
-        button.show()
-        button.connect('button-press-event', edit_file, self._entry)
-        self._entry.set_extra_widget(button)
-
+        edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
+        edit_button.show()
+        # show edit dialog
+        edit_button.connect('button-press-event', edit_file)
+        # consider file may be changed
+        self._entry.pack_start(edit_button)
+        # Get the source file in scenario
+        def update_preview_cb(file_chooser, preview):
+            filename = file_chooser.get_preview_filename()
+            preview.set_editable(False)
+            has_preview = False
+            try:
+                with open(filename, 'r') as content:
+                    buf = gtk.TextBuffer()
+                    small = buf.create_tag('small')
+                    small.set_property('scale', pango.SCALE_SMALL)
+                    text = content.read()
+                    # if text is not utf-8, will return a UnicodeDecodeError,
+                    # this avoid trying to display files with wrong format
+                    text.decode('utf-8')
+                    buf.insert_with_tags_by_name(buf.get_start_iter(),
+                                                 text, 'small')
+                    preview.set_buffer(buf)
+                has_preview = True
+            except Exception:
+                has_preview = False
+            file_chooser.set_preview_widget_active(has_preview)
+            return
+        def upload_file(button, event):
+            if self._source is None:
+                error_popup("Missing XSD source content for file element")
+                return
+            dlg = gtk.FileChooserDialog(self._value + ' - OpenSAND', None,
+                                        gtk.FILE_CHOOSER_ACTION_OPEN,
+                                        (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                         gtk.STOCK_APPLY, gtk.RESPONSE_APPLY))
+            dlg.set_size_request(500, -1)
+            preview = gtk.TextView()
+            scroll = gtk.ScrolledWindow()
+            scroll.add(preview)
+            scroll.show_all()
+            scroll.set_size_request(200, -1)
+            dlg.set_preview_widget(scroll)
+            dlg.connect("update-preview", update_preview_cb, preview)
+            dlg.set_filename(self._source)
+            dlg.set_preview_widget_active(False)
+            ret = dlg.run()
+            if ret == gtk.RESPONSE_APPLY:
+                new_filename = dlg.get_filename()
+                self.global_handler()
+                self._file_handler(new_filename, self._host, self._path)
+            dlg.destroy()
+        upload_button = gtk.Button(label="Upload")
+        img = gtk.Image()
+        img.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+        upload_button.set_image(img)
+        upload_button.show()
+        # show upload dialog
+        upload_button.connect('button-press-event', upload_file)
+        # consider file may be changed
+        self._entry.pack_start(upload_button)
 
     def do_not_scroll(self, source=None, event=None):
         """ stop scolling in the element which emits the scroll-event signal """

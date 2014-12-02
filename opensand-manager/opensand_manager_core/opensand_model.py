@@ -603,13 +603,12 @@ class Model:
                         str(msg))
             return None
 
-    def handle_file_changed(self, file_chooser, host_name, xpath):
+    def handle_file_changed(self, filename, host_name, xpath):
         """ a source for a file from configuration has been updated """
         host = self.get_host(host_name)
         if not host in self._changed_sim_files:
             self._changed_sim_files[host] = {}
-        self._changed_sim_files[host][xpath] = file_chooser.get_filename()
-
+        self._changed_sim_files[host][xpath] = filename
 
     def conf_apply(self):
         """ the advanced configuration has been applied, the file shoud be
