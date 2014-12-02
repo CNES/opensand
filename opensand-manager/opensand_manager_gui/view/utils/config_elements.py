@@ -603,9 +603,10 @@ class ConfSection(gtk.VBox):
             return None
         key_box = gtk.HBox()
         key_label = gtk.Label()
+        key_label.set_ellipsize(pango.ELLIPSIZE_END)
         key_label.set_markup(name)
         key_label.set_alignment(0.0, 0.5)
-        key_label.set_width_chars(25)
+        key_label.set_width_chars(30)
         description = self._config.get_documentation(name)
         self.add_description(key_box, description)
         key_box.pack_start(key_label)
