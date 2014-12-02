@@ -48,6 +48,26 @@
 
 
 
+static map<string, log_level_t> createLevelsMap()
+{
+	map<string, log_level_t> levels;
+	levels["debug"]     = LEVEL_DEBUG;
+	levels["info"]      = LEVEL_INFO;
+	levels["notice"]    = LEVEL_NOTICE;
+	levels["warning"]   = LEVEL_WARNING;
+	levels["error"]     = LEVEL_ERROR;
+	levels["critical"]  = LEVEL_CRITICAL;
+	return levels;
+}
+
+static map<string, log_level_t> levels_map = createLevelsMap();
+
+static log_level_t logNameToLevel(string name)
+{
+	return levels_map[name];
+}
+
+
 /**
  * Ctor
  */
@@ -440,7 +460,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 			string log_name = key_name;
 			nodeText = dynamic_cast<const xmlpp::TextNode*>(*key_iter);
 			nodeComment = dynamic_cast<const xmlpp::CommentNode*>(*key_iter);
-			int val;
+			string val;
 			if(nodeText || nodeComment)
 			{
 				continue;
@@ -456,7 +476,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 			}
 			std::transform(key_name.begin(), key_name.end(),
 			               log_name.begin(), ::tolower);
-			levels[log_name] = (log_level_t)val;
+			levels[log_name] = logNameToLevel(val);
 		}
 	}
 
@@ -474,7 +494,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
     {
         string log;
         string log_name;
-        int level;
+        string level;
 
         // Get the Log Name
         if(!Conf::getAttributeValue(iter, LOG_NAME, log))
@@ -495,7 +515,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 
 		std::transform(log.begin(), log.end(),
 		               log_name.begin(), ::tolower);
-        specific[log_name] = (log_level_t)level;
+        specific[log_name] = logNameToLevel(level);
 	}
 
 	return true;

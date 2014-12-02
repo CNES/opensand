@@ -105,8 +105,8 @@ class View(WindowView):
             self._ui.get_widget("probe_tab").set_sensitive(False)
 
         status_box = self._ui.get_widget('status_box')
-        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
-                                                             0xffff))
+#        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
+#                                                             0xffff))
         self._info_label = self._ui.get_widget('info_label')
         self._counter = 0
         infos = ['Service type: ' + service_type]
@@ -168,7 +168,7 @@ class View(WindowView):
         if self._model.is_default_modif() and not self._model.is_running():
             text = "Default path will be overwritten next time\n\n" \
                    "Do you want to save your scenario ?"
-            ret = yes_no_popup(text, "Save scenario ?",
+            ret = yes_no_popup(text, "Create scenario ?",
                                gtk.STOCK_DIALOG_WARNING)
             if ret == gtk.RESPONSE_YES:
                 try:

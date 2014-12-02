@@ -60,7 +60,7 @@ class ConfigLogsDialog(WindowView):
 
         self._log_store = gtk.TreeStore(gobject.TYPE_STRING,
                                         gobject.TYPE_INT,
-                                        gobject.TYPE_INT,
+                                        gobject.TYPE_STRING,
                                         gobject.TYPE_BOOLEAN)
         self._listview.set_model(self._log_store)
 
@@ -73,16 +73,18 @@ class ConfigLogsDialog(WindowView):
         column_text.pack_start(cellrenderer_text, True)
         column_text.add_attribute(cellrenderer_text, "text", NAME)
 
-        adj = gtk.Adjustment(value=0, lower=0, upper=len(LOG_LEVELS) - 1,
-                             step_incr=1, page_incr=0, page_size=0)
-        cellrenderer_spin = gtk.CellRendererSpin()
-        cellrenderer_spin.set_property("editable", True)
-        cellrenderer_spin.set_property("adjustment", adj)
-        cellrenderer_spin.set_property("digits", 0)
-        cellrenderer_spin.connect("edited", self._cell_edited)
-        column_level.pack_start(cellrenderer_spin, True)
-        column_level.add_attribute(cellrenderer_spin, "text", LEVEL)
-        column_level.add_attribute(cellrenderer_spin, "visible", VISIBLE)
+        store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_INT)
+        for level in LOG_LEVELS:
+            print level
+            store.append([LOG_LEVELS[level].name, level])
+        cellrenderer_combo = gtk.CellRendererCombo()
+        cellrenderer_combo.set_property("editable", True)
+        cellrenderer_combo.set_property("model", store)
+        cellrenderer_combo.set_property("text-column", 0)
+        cellrenderer_combo.connect("changed", self._cell_edited, store)
+        column_level.pack_start(cellrenderer_combo, True)
+        column_level.add_attribute(cellrenderer_combo, "text", LEVEL)
+        column_level.add_attribute(cellrenderer_combo, "visible", VISIBLE)
 
     def show(self):
         """ show the window """
@@ -132,22 +134,22 @@ class ConfigLogsDialog(WindowView):
                     # probes are not all active, untick box
                     self._log_store.append(parent, [names[i],
                                                     log.ident,
-                                                    log.display_level,
+                                                    LOG_LEVELS[log.display_level].name,
                                                     True])
 
-    def _cell_edited(self, cell, path, new_text):
+    def _cell_edited(self, cell, path, new_text, model):
         """ a window cell has been edited """
         it = self._log_store.get_iter(path)
         log_id = self._log_store.get_value(it, ID)
-        if not new_text.isdigit() or int(new_text) >= len(LOG_LEVELS):
-            return
-        self._log_store.set_value(it, LEVEL, int(new_text))
+        level_name = model.get_value(new_text, 0)
+        level_id = model.get_value(new_text, 1)
+        self._log_store.set_value(it, LEVEL, level_name)
         try:
             log = self._program.get_log(log_id)
         except KeyError:
             pass
         else:
-            log.display_level = int(new_text)
+            log.display_level = int(level_id)
 
 
     def on_config_collection_window_delete_event(self, _widget, _event):

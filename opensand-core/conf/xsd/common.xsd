@@ -165,9 +165,13 @@
 
 <!-- types for debug section -->
 <xsd:simpleType name="debugValue">
-    <xsd:restriction base="xsd:nonNegativeInteger">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="7" />
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="debug" />
+        <xsd:enumeration value="info" />
+        <xsd:enumeration value="notice" />
+        <xsd:enumeration value="warning" />
+        <xsd:enumeration value="error" />
+        <xsd:enumeration value="critical" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -191,7 +195,7 @@
         <xsd:attribute name="level" type="debugValue">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The debug level from 0 to 7
+                    The debug level
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

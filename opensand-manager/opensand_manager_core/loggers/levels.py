@@ -56,6 +56,7 @@ class LogLevel(object):
         self._color = 'black'
         self._bg_color = 'white'
         self._msg = ""
+        self._name = ""
         self._level = 0
         self._critical = False
         self._shell_col_cb = lambda x: x
@@ -74,8 +75,13 @@ class LogLevel(object):
 
     @property
     def msg(self):
-        """ Get the log name """
+        """ Get the log level message """
         return self._msg
+
+    @property
+    def name(self):
+        """ Get the log level name """
+        return self._name
 
     @property
     def level(self):
@@ -103,6 +109,7 @@ class LogCritical(LogLevel):
         self._color = 'white'
         self._bg_color = 'red'
         self._msg = "CRITICAL"
+        self._name = "Critical"
         self._level = MGR_CRITICAL
         self._critical = True
         self._shell_col_cb = red
@@ -116,6 +123,7 @@ class LogError(LogLevel):
         self._color = 'white'
         self._bg_color = 'red'
         self._msg = "ERROR"
+        self._name = "Error"
         self._level = MGR_ERROR
         self._shell_col_cb = red
         if GUI:
@@ -127,6 +135,7 @@ class LogWarning(LogLevel):
         LogLevel.__init__(self)
         self._color = 'orange'
         self._msg = "WARNING"
+        self._name = "Warning"
         self._level = MGR_WARNING
         self._shell_col_cb = yellow
         if GUI:
@@ -138,6 +147,7 @@ class LogNotice(LogLevel):
         LogLevel.__init__(self)
         self._color = 'blue'
         self._msg = "NOTICE"
+        self._name = "Notice"
         self._shell_col_cb = blue
         self._level = MGR_NOTICE
 
@@ -147,6 +157,7 @@ class LogInfo(LogLevel):
         LogLevel.__init__(self)
         self._color = 'green'
         self._msg = "INFO"
+        self._name = "Info"
         self._shell_col_cb = green
         self._level = MGR_INFO
 
@@ -155,6 +166,7 @@ class LogDebug(LogLevel):
     def __init__(self):
         LogLevel.__init__(self)
         self._level = MGR_DEBUG
+        self._name = "Debug"
 
 LOG_LEVELS = {
     MGR_DEBUG: LogDebug(),
@@ -163,7 +175,7 @@ LOG_LEVELS = {
     MGR_WARNING: LogWarning(),
     MGR_ERROR: LogError(),
     MGR_CRITICAL: LogCritical(),
-    MGR_ALERT: LogCritical(),
-    MGR_EMERGENCY: LogCritical(),
+#    MGR_ALERT: LogCritical(),
+#    MGR_EMERGENCY: LogCritical(),
 }
 
