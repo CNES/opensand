@@ -569,12 +569,23 @@ class ConfSection(gtk.VBox):
         name = self._config.get_name(section)
         description = self._config.get_documentation(name)
         if description != None:
-            section_descr = gtk.Label()
+            description = description.split("\n", 1)
+            if len(description) > 1:
+                section_descr = gtk.Expander(label=description[0])
+                section_descr.set_use_markup(True)
+                text = gtk.Label()
+                text.set_markup(description[1])
+                text.set_justify(gtk.JUSTIFY_LEFT)
+                text.set_alignment(0, 0.5)
+                section_descr.add(text)
+            else:
+                section_descr = gtk.Label(description[0])
+                section_descr.set_markup(description[0])
+                section_descr.set_justify(gtk.JUSTIFY_LEFT)
+                section_descr.set_alignment(0, 0.5)
+
             evt = gtk.EventBox()
             evt.add(section_descr)
-            section_descr.set_justify(gtk.JUSTIFY_LEFT)
-            section_descr.set_alignment(0, 0.5)
-            section_descr.set_markup(description)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
             self.pack_start(evt)
             self.set_child_packing(evt, expand=False,
