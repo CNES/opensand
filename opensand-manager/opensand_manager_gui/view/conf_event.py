@@ -336,11 +336,11 @@ class ConfEvent(ConfView) :
             self.update_view()
         except ConfException as msg:
             error_popup(str(msg))
+        self.enable_conf_buttons(False)
 
     def on_save_conf_clicked(self, source=None, event=None):
         """ save the new configuration in the ini file """
         # retrieve global parameters
-        self.enable_conf_buttons(False)
 
         # payload type
         if(self.is_button_active('transparent') == True):
@@ -407,39 +407,43 @@ class ConfEvent(ConfView) :
 
         # lan adaptation schemes
         # check that the last module in the stack is the same for all hosts
-        previous = None
-        last = None
-        gw_stack = None
-        other_stacks = []
+        if self._model.get_adv_mode():
+            previous = None
+            last = None
+            gw_stack = None
+            other_stacks = []
+            for host in self._lan_stacks:
+                stack = self._lan_stacks[host].get_stack()
+                if host.get_name() == 'gw':
+                    gw_stack = stack
+                else:
+                    other_stacks.append(stack)
+                # get the last module of the stack that is not a header modification
+                # module
+                for pos in range(len(stack)):
+                    mod = stack[str(len(stack) - 1 - pos)]
+                    # header modification plugins are generally in global plugins
+                    host_modules = host.get_lan_adapt_modules()
+                    if mod in host_modules and  \
+                       not host_modules[mod].get_condition("header_modif"):
+                        last = mod
+                        break
+                if previous is not None and last != previous:
+                    error_popup("The last module of the LAN stack should be the "
+                                "same for each host (except for header modifications)")
+                    return
+                previous = last
+            # check that the GW stack is at least the same as other
+            for stack in other_stacks:
+                if len(set(gw_stack.values()) - set(stack.values())) != 0:
+                    error_popup("The hosts stack should be at least the same as "
+                                "for GW")
+                    return
         for host in self._lan_stacks:
-            stack = self._lan_stacks[host].get_stack()
-            if host.get_name() == 'gw':
-                gw_stack = stack
+            if self._model.get_adv_mode():
+                host.set_lan_adaptation(self._lan_stacks[host].get_stack())
             else:
-                other_stacks.append(stack)
-            # get the last module of the stack that is not a header modification
-            # module
-            for pos in range(len(stack)):
-                mod = stack[str(len(stack) - 1 - pos)]
-                # header modification plugins are generally in global plugins
-                host_modules = host.get_lan_adapt_modules()
-                if mod in host_modules and  \
-                   not host_modules[mod].get_condition("header_modif"):
-                    last = mod
-                    break
-            if previous is not None and last != previous:
-                error_popup("The last module of the LAN stack should be the "
-                            "same for each host (except for header modifications)")
-                return
-            previous = last
-        # check that the GW stack is at least the same as other
-        for stack in other_stacks:
-            if len(set(gw_stack.values()) - set(stack.values())) != 0:
-                error_popup("The hosts stack should be at least the same as "
-                            "for GW")
-                return
-        for host in self._lan_stacks:
-            host.set_lan_adaptation(self._lan_stacks[host].get_stack())
+                host.set_lan_adaptation(self._lan_stack_base.get_stack())
 
         # output encapsulation scheme
         config.set_return_up_encap(self._out_stack.get_stack())
@@ -462,6 +466,9 @@ class ConfEvent(ConfView) :
         except ConfException, error:
             error_popup(str(error))
             self.on_undo_conf_clicked()
+
+        self.update_view()
+        self.enable_conf_buttons(False)
 
 #    def on_dama_box_changed(self, source=None, event=None):
 #        """ 'change' event callback on dama box """

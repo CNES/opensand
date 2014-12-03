@@ -82,6 +82,29 @@ class ProtocolStack():
                     del stack[pos]
                     enabled_header_modif.append(name)
                     break
+        # handle header compression/suppression modules
+        if self._vbox_header_modif is not None:
+            for module in self._header_modif_plugins:
+                button = None
+                # all hosts should have the same header modification plugins
+                # activated so check if there is already one and use it
+                for child in self._vbox_header_modif.get_children():
+                    if child.get_name() == module.get_name():
+                        button = child
+                        break
+                if button is None:
+                    button = gtk.CheckButton(label=module.get_name().upper())
+                    button.connect('clicked', self._modif_cb)
+                    button.set_name(module.get_name())
+                    button.set_active(False)
+                    self._vbox_header_modif.pack_start(button)
+                if module.get_name() in enabled_header_modif:
+                    button.set_active(True)
+                self._header_modif_plugins[module] = button
+            self._vbox_header_modif.show_all()
+            if len(self._header_modif_plugins) == 0:
+                self._frame.hide()
+
         for pos in sorted(stack.keys()):
             if not self.add_layer(upper_val, idx_stack, stack[pos]):
                 # add an empty layer
@@ -96,30 +119,6 @@ class ProtocolStack():
         # add an empty layer
         self.add_layer(upper_val, idx_stack)
         self._vbox_stack.show_all()
-
-        # handle header compression/suppression modules
-        if self._vbox_header_modif == None:
-            return
-        for module in self._header_modif_plugins:
-            button = None
-            # all hosts should have the same header modification plugins
-            # activated so check if there is already one and use it
-            for child in self._vbox_header_modif.get_children():
-                if child.get_name() == module.get_name():
-                    button = child
-                    break
-            if button is None:
-                button = gtk.CheckButton(label=module.get_name().upper())
-                button.connect('clicked', self._modif_cb)
-                button.set_name(module.get_name())
-                button.set_active(False)
-                self._vbox_header_modif.pack_start(button)
-            if module.get_name() in enabled_header_modif:
-                button.set_active(True)
-            self._header_modif_plugins[module] = button
-        self._vbox_header_modif.show_all()
-        if len(self._header_modif_plugins) == 0:
-            self._frame.hide()
 
     def update(self, modif_pos=0):
         """ update the protocol stack """

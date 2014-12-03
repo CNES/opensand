@@ -92,7 +92,7 @@
 #define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"
 #define CRA                       "constant_rate_allocation"
-#define DAMA_ALGO                 "dama_algorithm"
+#define DAMA_ALGO                 "dama_agent_algorithm"
 
 
 ///////////////////////////
