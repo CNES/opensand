@@ -53,7 +53,7 @@ from opensand_manager_core.utils import blue
 
 INIT_ITER = 50
 SERVICE = "_opensand._tcp"
-EVT_TIMEOUT = 10
+EVT_TIMEOUT = 20
 
 
 class ShellManager(object):
@@ -292,11 +292,11 @@ class EventResponseHandler(threading.Thread):
     We need this intermediate handler to eliminate parasite events
     """
     def __init__(self, event_manager_response,
-                       event_response_tests, model,
+                       event_response_shell, model,
                  log):
         threading.Thread.__init__(self)
         self._evt_resp = event_manager_response
-        self._evt_tests = event_response_tests
+        self._evt_shell = event_response_shell
         self._model = model
         self._log = log
         
@@ -325,17 +325,17 @@ class EventResponseHandler(threading.Thread):
                     count += 1
                 if count >= 10:
                     val = "fail"
-                self._evt_tests.set('started', val)
+                self._evt_shell.set('started', val)
 
             elif event_type == "resp_stop_platform":
                 count = 0
+                val = str(self._evt_resp.get_text())
                 while self._model.is_running() and count < 10:
                     time.sleep(0.5)
                     count += 1
                 if count >= 10:
                     val = "fail"
-                self._evt_tests.set('stopped',
-                                    str(self._evt_resp.get_text()))
+                self._evt_shell.set('stopped', val)
             
             elif event_type == "probe_transfer":
                 self._log.debug(" * transfering probes")
