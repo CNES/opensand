@@ -272,7 +272,7 @@ void DvbFifo::flush()
 	vector<MacFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
-		NetContainer *elem = (*it)->getElem();
+//		NetContainer *elem = (*it)->getElem();
 //		delete elem;
 		delete *it;
 	}
