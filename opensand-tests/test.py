@@ -48,14 +48,12 @@ import shlex
 import subprocess
 import shutil
 
-from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
-from opensand_manager_core.utils import copytree, red, blue, green
+from opensand_manager_core.utils import copytree, red, blue, green, yellow
 from opensand_manager_shell.opensand_shell_manager import ShellManager, \
                                                           BaseFrontend, \
-                                                          SERVICE, \
-                                                          EVT_TIMEOUT
+                                                          SERVICE
 
 # TODO get logs on error
 # TODO rewrite this as this is now too long
@@ -142,7 +140,8 @@ class Test(ShellManager):
                               "output than -v)")
         opt_parser.add_option("-w", "--enable_ws", action="store_true",
                               dest="ws", default=False,
-                              help="enable verbose mode (print OpenSAND status)")
+                              help="enable workstations for launching tests "
+                                   "binaries")
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
         opt_parser.add_option("-l", "--test", dest="test", default=None,
@@ -225,6 +224,7 @@ help="specify the root folder for tests configurations\n"
         self._error = {}
         self._last_error = ""
         self._show_last_logs = options.last_logs
+        self._stopped = True
 
         self._quiet = True
         lvl = MGR_WARNING
@@ -249,7 +249,7 @@ help="specify the root folder for tests configurations\n"
             self._model.set_scenario(self._base)
             self.run_other()
             if len(self._last_error) > 0:
-                raise TestError('Last error: ', str(self._last_error))
+                raise TestError('Last error: ', self._last_error)
             if self._test is not None and len(self._test):
                 raise TestError("Configuration", "The following tests were not "
                                 "found %s" % self._test)
@@ -271,7 +271,7 @@ help="specify the root folder for tests configurations\n"
             raise
         except Exception, msg:
             if self._quiet:
-                print "Internal error:" + str(msg)
+                print "Internal error: " + str(msg)
             else:
                 self._log.error(" * internal error while testing: " + str(msg))
             raise
@@ -293,7 +293,7 @@ help="specify the root folder for tests configurations\n"
                             buf += line
                             with open(lib, 'w') as flib:
                                 flib.write(buf)
-            except IOError, msg:
+            except IOError:
                 pass
             self.close()
 
@@ -771,13 +771,6 @@ help="specify the root folder for tests configurations\n"
         if result != ret:
             self._error[host_ctrl.get_name().upper()] = \
                     "Test returned '%s' instead of '%s'" % (result, ret)
-            if self._show_last_logs:
-                print
-                print self.get_last_logs(host_ctrl.get_name())
-                # also print some main osts logs, they may be important
-                for host in ["st1", "gw", "sat"]:
-                    if host_ctrl.get_name().lower() != host:
-                        print self.get_last_logs(host)
 
 # TODO at the moment we can not configure modules !!
     def new_scenario(self, test_path, test_name):
@@ -858,8 +851,22 @@ help="specify the root folder for tests configurations\n"
                 err = ""
                 for host in self._error:
                     err += "%s: %s, " % (host.upper(), str(self._error[host]))
-                err = err.rstrip(",")
+                err = err.rstrip(", ")
                 self._last_error = err
+                # get last logs
+                last_logs = ""
+                for host in self._model.get_hosts_list():
+                    last_logs += self.get_last_logs(host.get_name())
+                if self._show_last_logs:
+                    print
+                    print last_logs
+                else:
+                    if not os.path.exists('/tmp/opensand_tests'):
+                        os.mkdir('/tmp/opensand_tests')
+                    with open('/tmp/opensand_tests/last_errors', 'a') as output:
+                        output.write(yellow("Results for configuration %s, test %s:\n" %
+                                    (test_name, type_name), True))
+                        output.write(last_logs)
                 break
         for thread in self._threads:
             # wait for pending tests to stop
@@ -877,7 +884,7 @@ help="specify the root folder for tests configurations\n"
             err = ""
             for host in self._error:
                 err += "%s: %s, " % (host, str(self._error[host]))
-            err.rstrip(",")
+            err.rstrip(", ")
             if self._quiet:
                 print "{:>7} {:}".format(red("ERROR"), err)
                 sys.stdout.flush()
@@ -902,7 +909,27 @@ help="specify the root folder for tests configurations\n"
             if self._quiet:
                 print "{:>7}".format(green("SUCCESS"))
                 sys.stdout.flush()
+        if not self._stopped and not self._model.all_running():
+            # need to check stopped because for local tests we may stop the
+            # plateform
+            msg = "Some hosts may have crashed, still running: %s" % \
+                  self._model.running_list()
+            self._log.warning(" * %s" % msg)
+            if self._quiet:
+                print red(msg)
+                sys.stdout.flush()
+            self._last_error(msg)
 
+
+    def start_opensand(self):
+        """ override start function """
+        self._stopped = False
+        ShellManager.start_opensand(self)
+
+    def stop_opensand(self):
+        """ override stop function """
+        self._stopped = True
+        ShellManager.stop_opensand(self)
 
 class TestError(Exception):
     """ error during tests """
@@ -912,7 +939,7 @@ class TestError(Exception):
         self.msg = descr
 
     def __repr__(self):
-        return '\tCONTEXT: %s\n\tMESSAGE: %s' % (self.step, self.msg)
+        return '\tCONTEXT: %s\tMESSAGE: %s' % (self.step, self.msg)
 
     def __str__(self):
         return repr(self)

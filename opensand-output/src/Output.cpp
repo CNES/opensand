@@ -38,6 +38,7 @@
 
 OutputInternal Output::instance;
 
+// TODO global buffer
 bool Output::init(bool enabled, const char *sock_prefix)
 {
 	return instance.init(enabled, sock_prefix);
