@@ -58,10 +58,13 @@ class EventManager():
 
     def clear(self):
         """ clear the event """
+        ret = None
         if self._event_type != 'none' and self._event_type != 'quit':
             self._event_type = 'none'
             self._event_text = ''
+            ret = self._evt.clear()
             self._evtmngr_lock.release()
+            return ret
 
         if self._event_type == 'quit':
             return self._evt.set()
