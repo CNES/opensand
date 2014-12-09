@@ -53,7 +53,7 @@ from opensand_manager_core.utils import blue
 
 INIT_ITER = 50
 SERVICE = "_opensand._tcp"
-EVT_TIMEOUT = 20
+EVT_TIMEOUT = 140
 
 
 class ShellManager(object):
