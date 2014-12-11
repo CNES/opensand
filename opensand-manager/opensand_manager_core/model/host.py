@@ -166,7 +166,7 @@ class HostModel:
         """ update the source files according to user configuration """
         if self._advanced is not None:
             self._advanced.get_files().update(changed, scenario)
-        for tool in self._tools:
+        for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
                 files.update(changed, scenario)
@@ -184,7 +184,7 @@ class HostModel:
         deploy_files = []
         if self._advanced is not None:
             deploy_files += self._advanced.get_files().get_modified(scenario)
-        for tool in self._tools:
+        for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
                 deploy_files += files.get_modified(scenario)
@@ -198,7 +198,7 @@ class HostModel:
         """ the files were correctly deployed """
         if self._advanced is not None:
             self._advanced.get_files().set_modified(scenario)
-        for tool in self._tools:
+        for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
                 files.set_modified(scenario)
@@ -213,7 +213,7 @@ class HostModel:
             return self._advanced.get_files().is_first()
         else:
             # WS case, we may have tools files to deploy
-            for tool in self._tools:
+            for tool in self._tools.values():
                 files = tool.get_files()
                 if files is not None:
                     return files.is_first()

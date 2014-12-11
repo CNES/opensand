@@ -181,6 +181,9 @@ class OpenSandServiceListener():
                 if len(host_model.get_tools()) > 0:
                     new_host = HostController(host_model, self._log, cache)
                     self._ws.append(new_host)
+                    # stop here
+                    return
+
         # host controller will try to get host state, tell model when this is
         # done
         count = 0

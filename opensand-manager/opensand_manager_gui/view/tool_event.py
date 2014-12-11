@@ -170,7 +170,9 @@ class ToolEvent(ToolView):
                                              # we have no button to hide/show
                                              # hidden, show them in adv mode
                                              self._model.get_adv_mode(),
-                                             self.handle_param_changed)
+                                             self.handle_param_changed,
+                                             # TODO
+                                             None)
 
         model.set_conf_view(notebook)
 

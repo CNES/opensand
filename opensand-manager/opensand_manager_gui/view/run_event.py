@@ -61,7 +61,7 @@ class RunEvent(RunView):
         self._adv_mode = False
 
         if(adv_mode):
-            self._ui.get_widget('adv_mode').set_active(True)
+            self._ui.get_widget('option_adv_mode').set_active(True)
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)

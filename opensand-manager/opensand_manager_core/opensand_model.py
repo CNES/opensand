@@ -429,12 +429,10 @@ class Model:
 
     def all_running(self):
         """ check if all components are running """
-        alive = False
         for host in self.get_hosts_list():
-            alive = True 
             if not host.get_state():
-                alive = False
-        return alive
+                return False
+        return True
 
 
     def running_list(self):

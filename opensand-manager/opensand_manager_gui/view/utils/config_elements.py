@@ -412,7 +412,7 @@ class ConfigurationTree(gtk.TreeStore):
         """ get a parent in the treeview """
         iterator = self.get_iter_first()
         while iterator is not None and \
-              self.get_value(iterator, TEXT) != name:
+              self.get_value(iterator, TEXT).lower() != name.lower():
             iterator = self.iter_next(iterator)
         return iterator
 
@@ -619,11 +619,11 @@ class ConfSection(gtk.VBox):
         key_label.set_alignment(0.0, 0.5)
         key_label.set_width_chars(30)
         description = self._config.get_documentation(name)
-        self.add_description(key_box, description)
         key_box.pack_start(key_label)
         key_box.set_child_packing(key_label, expand=False,
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
+        self.add_description(key_box, description)
         elt_type = self._config.get_type(name)
         source = self._config.get_file_source(name)
         if source is not None:
@@ -676,11 +676,11 @@ class ConfSection(gtk.VBox):
         label_text = gtk.Label()
         label_text.set_markup("<b>%s</b>" % name)
         description = self._config.get_documentation(name)
-        self.add_description(table_label, description)
         table_label.pack_start(label_text)
         table_label.set_child_packing(label_text, expand=False,
                                       fill=False, padding=5,
                                       pack_type=gtk.PACK_START)
+        self.add_description(table_label, description)
         table_frame.set_label_widget(table_label)
         align_vbox = gtk.VBox()
         alignment.add(align_vbox)
@@ -765,11 +765,11 @@ class ConfSection(gtk.VBox):
             att_label.set_alignment(0.1, 0.5)
             att_label.set_width_chars(len(att) + 1)
             att_description = self._config.get_documentation(att, name)
-            self.add_description(hbox, att_description)
             hbox.pack_start(att_label)
             hbox.set_child_packing(att_label, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
+            self.add_description(hbox, att_description)
             elt_type = self._config.get_attribute_type(att, name)
             value = ''
             path = ''
@@ -1126,7 +1126,8 @@ class ConfEntry(object):
             if ret == gtk.RESPONSE_APPLY:
                 new_filename = dlg.get_filename()
                 self.global_handler()
-                self._file_handler(new_filename, self._host, self._path)
+                if self._file_handler is not None:
+                    self._file_handler(new_filename, self._host, self._path)
             dlg.destroy()
         upload_button = gtk.Button(label="Upload")
         img = gtk.Image()
