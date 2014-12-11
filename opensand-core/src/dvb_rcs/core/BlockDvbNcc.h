@@ -389,9 +389,8 @@ class BlockDvbNcc: public BlockDvb
 		map<unsigned int, Probe<int> *> probe_gw_queue_loss_kb;
 			// Rates
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
-		int *l2_to_sat_bytes_before_sched;
+		map<unsigned int, int> l2_to_sat_bytes_before_sched;
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
-		int *l2_to_sat_bytes_after_sched;
 		Probe<int> *probe_gw_l2_to_sat_total;
 		int l2_to_sat_total_bytes;
 			// Frame interval

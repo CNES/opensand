@@ -149,6 +149,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	probe_gw_queue_loss(),
 	probe_gw_queue_loss_kb(),
 	probe_gw_l2_to_sat_before_sched(),
+	l2_to_sat_bytes_before_sched(),
 	probe_gw_l2_to_sat_after_sched(),
 	probe_gw_l2_to_sat_total(NULL),
 	l2_to_sat_total_bytes(0),
@@ -199,15 +200,6 @@ BlockDvbNcc::Downward::~Downward()
 		delete (*it).second;
 	}
 	this->dvb_fifos.clear();
-		
-	if(this->l2_to_sat_bytes_before_sched != NULL)
-	{
-		delete[] this->l2_to_sat_bytes_before_sched;
-	}
-	if(this->l2_to_sat_bytes_after_sched != NULL)
-	{
-		delete[] this->l2_to_sat_bytes_after_sched;
-	}
 		
 	if(this->satellite_type == TRANSPARENT)
 	{
@@ -1051,27 +1043,10 @@ bool BlockDvbNcc::Downward::initFifo(void)
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
 	} // end for(queues are now instanciated and initialized)
 
-	// init stats context per QoS
-	this->l2_to_sat_bytes_before_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_bytes_before_sched == NULL)
-	{
-		goto err_before_release;
-	}
-
-	this->l2_to_sat_bytes_after_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_bytes_after_sched == NULL)
-	{
-		goto err_after_release;
-	}
-
 	this->resetStatsCxt();
 
 	return true;
 
-err_before_release:
-	delete[] this->l2_to_sat_bytes_after_sched;
-err_after_release:
-	delete[] this->l2_to_sat_bytes_before_sched;
 err_fifo_release:
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1189,6 +1164,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				LOG(this->log_receive, LEVEL_INFO,
 				    "SF#%u: store one encapsulation "
 				    "packet\n", this->super_frame_counter);
+
+				// find the FIFO associated to the IP QoS (= MAC FIFO id)
+				// else use the default id
+				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+				{
+					fifo_priority = this->default_fifo_id;
+				}
 
 				if(!this->onRcvEncapPacket(*pkt_it,
 				                           this->dvb_fifos[fifo_priority],
@@ -1992,14 +1974,13 @@ void BlockDvbNcc::Downward::updateStats(void)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
 		
-		this->l2_to_sat_bytes_after_sched[(*it).first] = fifo_stat.out_length_bytes;
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
 			this->l2_to_sat_bytes_before_sched[(*it).first] * 8.0 / this->stats_period_ms);
 
 		this->probe_gw_l2_to_sat_after_sched[(*it).first]->put(
-			this->l2_to_sat_bytes_after_sched[(*it).first] * 8.0 / this->stats_period_ms);
+			fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
 
 		// Mac fifo stats
 		this->probe_gw_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
@@ -2016,10 +1997,10 @@ void BlockDvbNcc::Downward::updateStats(void)
 
 void BlockDvbNcc::Downward::resetStatsCxt(void)
 {
-	for(unsigned int i = 0; i < this->dvb_fifos.size(); i++)
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		this->l2_to_sat_bytes_before_sched[i] = 0;
-		this->l2_to_sat_bytes_after_sched[i] = 0;
+		this->l2_to_sat_bytes_before_sched[(*it).first] = 0;
 	}
 	this->l2_to_sat_total_bytes = 0;
 }

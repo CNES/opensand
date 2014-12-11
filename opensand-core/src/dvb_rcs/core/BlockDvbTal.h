@@ -407,7 +407,7 @@ class BlockDvbTal: public BlockDvb
 			// Rates
 				// Layer 2 to SAT
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
-		int *l2_to_sat_cells_before_sched;
+		map<unsigned int, int> l2_to_sat_cells_before_sched;
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
 		int *l2_to_sat_cells_after_sched;
 		Probe<int> *probe_st_l2_to_sat_total;

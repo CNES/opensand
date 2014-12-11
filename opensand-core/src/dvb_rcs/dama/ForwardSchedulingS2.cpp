@@ -1025,17 +1025,21 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 		if(std::find(supported_modcods.begin(), supported_modcods.end(), modcod) !=
 		   supported_modcods.end())
 		{
-			if(this->addCompleteBBFrame(complete_dvb_frames,
-			                            (*it),
-			                            current_superframe_sf,
-			                            remaining_capacity_sym) != status_ok)
+			sched_status_t status;
+			status = this->addCompleteBBFrame(complete_dvb_frames,
+			                                  (*it),
+			                                  current_superframe_sf,
+			                                  remaining_capacity_sym);
+			if(status == status_full)
+			{
+				// keep the BBFrame in pending list
+				new_pending.push_back(*it);
+			}
+			else if(status != status_ok)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: cannot add pending BBFrame in the list "
 				    "of complete BBFrames\n", current_superframe_sf);
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "this errors may mean that you don't have enough "
-				    "band to send BBFrames, please change your configuration\n");
 			}
 		}
 		else

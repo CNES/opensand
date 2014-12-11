@@ -18,7 +18,7 @@ export DH_OPTIONS
 
 # To avoid rebuilding everything when creating package
 # Disable for releases !
-#override_dh_auto_clean:
+override_dh_auto_clean:
 
 override_dh_strip:
 	dh_strip --dbg-package=libopensand-plugin-dbg
