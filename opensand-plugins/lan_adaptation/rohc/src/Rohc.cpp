@@ -41,6 +41,7 @@
 
 #include <vector>
 #include <map>
+#include <ctime>
 
 #define MAX_CID "max_cid"
 #define ROHC_SECTION "rohc"
@@ -49,6 +50,47 @@
 #define IS_ETHERNET(type) (type == NET_PROTO_802_1Q || \
                            type == NET_PROTO_802_1AD || \
                            type == NET_PROTO_ETH)
+
+/* Callbacks */
+static int random_cb(const struct rohc_comp *const UNUSED(comp),
+                      void *const UNUSED(user_context))
+{
+	return rand();
+}
+
+static void rohc_traces(void *const priv_ctx,
+                        const rohc_trace_level_t level,
+                        const rohc_trace_entity_t UNUSED(entity),
+                        const int UNUSED(profile),
+                        const char *const format,
+                        ...)
+{
+	OutputLog *rohc_log = (OutputLog *)priv_ctx;
+	log_level_t output_level = LEVEL_DEBUG;
+	char buf[1024];
+	va_list args;
+
+	if(level == ROHC_TRACE_DEBUG)
+	{
+		output_level = LEVEL_DEBUG;
+	}
+	else if(level == ROHC_TRACE_INFO)
+	{
+		output_level = LEVEL_INFO;
+	}
+	else if(level == ROHC_TRACE_WARNING)
+	{
+		output_level = LEVEL_WARNING;
+	}
+	else if(level == ROHC_TRACE_ERROR)
+	{
+		output_level = LEVEL_ERROR;
+	}
+	va_start(args, format);
+	vsnprintf(buf, sizeof(buf), format, args);
+	va_end(args);
+	LOG(rohc_log, output_level, "%s", buf);
+}
 
 Rohc::Rohc():
 	LanAdaptationPlugin(NET_PROTO_ROHC)
@@ -71,6 +113,9 @@ void Rohc::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	int max_cid;
+	int max_alloc = 0;
+	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
+	bool status;
 	ConfigurationFile config;
 
 	if(config.loadConfig(CONF_ROHC_FILE) < 0)
@@ -89,9 +134,14 @@ void Rohc::Context::init()
 	}
 	LOG(this->log, LEVEL_INFO,
 	    "Max CID: %d\n", max_cid);
+	if(max_cid > ROHC_SMALL_CID_MAX)
+	{
+		cid_type = ROHC_LARGE_CID;
+		max_cid = std::min(max_cid, ROHC_LARGE_CID_MAX);
+	}
 
 	// create the ROHC compressor
-	this->comp = rohc_alloc_compressor(max_cid, 0, 0, 0);
+	this->comp = rohc_comp_new2(cid_type, max_cid, random_cb, NULL);
 	if(this->comp == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -99,22 +149,60 @@ void Rohc::Context::init()
 		goto unload;
 	}
 
-	// activate the compression profiles
-	rohc_activate_profile(this->comp, ROHC_PROFILE_UNCOMPRESSED);
-	rohc_activate_profile(this->comp, ROHC_PROFILE_IP);
+	status = rohc_comp_set_traces_cb2(this->comp, rohc_traces, this->log);
+	if(!status)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot enable traces\n");
+		goto free_comp;
+	}
+	status = rohc_comp_enable_profiles(this->comp,
+	                                   ROHC_PROFILE_UNCOMPRESSED,
+	                                   ROHC_PROFILE_UDP,
+	                                   ROHC_PROFILE_IP,
+	                                   ROHC_PROFILE_UDPLITE,
+	                                   ROHC_PROFILE_RTP,
+	                                   ROHC_PROFILE_ESP,
+	                                   ROHC_PROFILE_TCP, -1);
+	if(!status)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot enable compression profiles\n");
+		goto free_comp;
+	}
 
 	for(uint8_t tal_id = 0; tal_id <= BROADCAST_TAL_ID; ++tal_id)
 	{
-		this->decompressors[tal_id] = rohc_alloc_decompressor(this->comp);
+		this->decompressors[tal_id] = rohc_decomp_new2(cid_type, max_cid,
+		                                              ROHC_O_MODE);
 		if(this->decompressors[tal_id] == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "cannot create ROHC decompressor\n");
-			for(uint8_t i = 0; i < tal_id; ++i)
-			{
-				rohc_free_decompressor(this->decompressors[i]);
-			}
-			goto free_comp;
+			goto free_decomp;
+		}
+		max_alloc = tal_id;
+		status = rohc_decomp_set_traces_cb2(this->decompressors[tal_id],
+		                                    rohc_traces, this->log);
+		if(!status)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot enable traces\n");
+			goto free_decomp;
+		}
+		status = rohc_decomp_enable_profiles(this->decompressors[tal_id],
+		                                     ROHC_PROFILE_UNCOMPRESSED,
+		                                     ROHC_PROFILE_UDP,
+		                                     ROHC_PROFILE_IP,
+		                                     ROHC_PROFILE_UDPLITE,
+		                                     ROHC_PROFILE_RTP,
+		                                     ROHC_PROFILE_ESP,
+		                                     ROHC_PROFILE_TCP, -1);
+		if(!status)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot enable decompression profiles\n");
+			goto free_decomp;
 		}
 	}
 
@@ -122,8 +210,13 @@ void Rohc::Context::init()
 
 	return;
 
+free_decomp:
+	for(uint8_t i = 0; i <= max_alloc; ++i)
+	{
+		rohc_decomp_free(this->decompressors[i]);
+	}
 free_comp:
-	rohc_free_compressor(this->comp);
+	rohc_comp_free(this->comp);
 unload:
 	config.unloadConfig();
 error:
@@ -134,13 +227,13 @@ Rohc::Context::~Context()
 {
 	// free ROHC compressor/decompressor if created
 	if(this->comp != NULL)
-		rohc_free_compressor(this->comp);
+		rohc_comp_free(this->comp);
 
 	for(uint8_t tal_id = 0; tal_id <= BROADCAST_TAL_ID; ++tal_id)
 	{
 		if(this->decompressors[tal_id] != NULL)
 		{
-			rohc_free_decompressor(this->decompressors[tal_id]);
+			rohc_decomp_free(this->decompressors[tal_id]);
 		}
 	}
 }
@@ -196,12 +289,11 @@ NetBurst *Rohc::Context::encapsulate(NetBurst *burst,
 		}
 		if(!this->compressRohc(payload, &comp_packet))
 		{
-			LOG(this->log, LEVEL_ERROR,
-			    "ROHC compression failed, drop packet\n");
 			continue;
 		}
 		if(is_eth)
 		{
+			delete payload;
 			// modify EtherType for ROHC
 			//head_buffer[head_length -1] = (this->getEtherType() >> 8) & 0xff;
 			//head_buffer[head_length] = this->getEtherType() & 0xff;
@@ -273,8 +365,6 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 			if(!extractPacketFromEth(*packet, head_length,
 			                         head_buffer, &payload))
 			{
-				LOG(this->log, LEVEL_ERROR,
-				    "cannot get IP packet from Ethernet frame\n");
 				continue;
 			}
 		}
@@ -289,6 +379,7 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 			    "payload is not a ROHC packet "
 			    "(type = 0x%04x), drop the packet\n",
 			    payload->getType());
+			delete payload;
 			continue;
 		}
 
@@ -303,12 +394,11 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 
 		if(!this->decompressRohc(payload, &dec_packet))
 		{
-			LOG(this->log, LEVEL_ERROR,
-			    "ROHC decompression failed, drop packet\n");
 			continue;
 		}
 		if(is_eth)
 		{
+			delete payload;
 			// rebuild ethernet frame
 			NetPacket *rohc_packet = dec_packet;
 			if(!buildEthFromPacket(dec_packet, head_length,
@@ -340,10 +430,13 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
                                  NetPacket **comp_packet)
 {
 	RohcPacket *rohc_packet;
-	static unsigned char rohc_data[MAX_ROHC_SIZE];
-	size_t rohc_len;
+	unsigned char rohc_data[MAX_ROHC_SIZE];
+	Data packet_data = packet->getData();
+	struct rohc_buf packet_buffer;
+	struct rohc_buf rohc_buffer;
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
+	int ret;
 
 	LOG(this->log, LEVEL_INFO,
 	    "compress a %zu-byte packet of type 0x%04x\n",
@@ -357,19 +450,38 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 		goto drop;
 	}
 
+	// packet_buffer
+	packet_buffer.time.sec = 0;
+	packet_buffer.time.nsec = 0;
+	packet_buffer.data = (uint8_t *)packet_data.c_str();
+	packet_buffer.max_len = packet->getTotalLength();
+	packet_buffer.offset = 0;
+	packet_buffer.len = packet->getTotalLength();
+	// rohc_buffer
+	rohc_buffer.time.sec = 0;
+	rohc_buffer.time.nsec = 0;
+	rohc_buffer.data = (uint8_t *)rohc_data;
+	rohc_buffer.max_len = MAX_ROHC_SIZE;
+	rohc_buffer.offset = 0;
+	rohc_buffer.len = 0;
+
 	// compress the IP packet thanks to the ROHC library
-	if(rohc_compress2(this->comp,
-	                  packet->getData().c_str(),
-	                  packet->getTotalLength(),
-	                  rohc_data, MAX_ROHC_SIZE, &rohc_len) != ROHC_OK)
+	ret = rohc_compress4(this->comp,
+	                     packet_buffer, &rohc_buffer);
+	if(ret == ROHC_STATUS_SEGMENT)
+	{
+		LOG(this->log, LEVEL_WARNING,
+		    "Implement RoHC segment part !!\n");
+	}
+	else if(ret != ROHC_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "ROHC compression failed, drop packet\n");
+		    "ROHC compression failed (%d), drop packet\n", ret);
 		goto drop;
 	}
 
 	// create a ROHC packet from data computed by the ROHC library
-	rohc_packet =  new RohcPacket(rohc_data, rohc_len, packet->getType());
+	rohc_packet =  new RohcPacket(rohc_buffer.data, rohc_buffer.len, packet->getType());
 	if(rohc_packet == NULL)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -402,35 +514,41 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
                                    NetPacket **dec_packet)
 {
 	NetPacket *net_packet;
-	RohcPacket *rohc_packet;
-	static unsigned char ip_data[MAX_ROHC_SIZE];
+	unsigned char ip_data[MAX_ROHC_SIZE];
 	Data ip_packet;
-	int ip_len;
 	// keep the destination spot
 	uint16_t dest_spot = packet->getDstSpot();
+	int ret;
+	struct rohc_buf packet_buffer;
+	struct rohc_buf rohc_buffer;
 
-	rohc_packet = new RohcPacket(packet->getData(), NET_PROTO_ROHC);
-	if(rohc_packet == NULL)
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "cannot create RohcPacket from NetPacket\n");
-		goto drop;
-	}
+	// packet_buffer
+	packet_buffer.time.sec = 0;
+	packet_buffer.time.nsec = 0;
+	packet_buffer.data = (uint8_t *)ip_data;
+	packet_buffer.max_len = MAX_ROHC_SIZE;
+	packet_buffer.offset = 0;
+	packet_buffer.len = 0;
+	// rohc_buffer
+	rohc_buffer.time.sec = 0;
+	rohc_buffer.time.nsec = 0;
+	rohc_buffer.max_len = packet->getTotalLength();
+	rohc_buffer.offset = 0;
+	rohc_buffer.len = packet->getTotalLength();
+	rohc_buffer.data = (uint8_t *)packet->getData().c_str();
 
 	// decompress the IP packet thanks to the ROHC library
-	ip_len = rohc_decompress(this->decompressors[packet->getSrcTalId()],
-	                         (unsigned char *)rohc_packet->getData().c_str(),
-	                         rohc_packet->getTotalLength(),
-	                         ip_data, MAX_ROHC_SIZE);
-	if(ip_len <= 0)
+	ret = rohc_decompress3(this->decompressors[packet->getSrcTalId()],
+	                       rohc_buffer, &packet_buffer, NULL, NULL);
+	if (ret != ROHC_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "ROHC decompression failed, drop packet\n");
+		    "ROHC decompression failed (%d), drop packet\n", ret);
 		goto drop;
 	}
 
-	ip_packet.append(ip_data, ip_len);
-	net_packet = this->current_upper->build(ip_packet, ip_len,
+	ip_packet.append(packet_buffer.data, packet_buffer.len);
+	net_packet = this->current_upper->build(ip_packet, packet_buffer.len,
 	                                        packet->getQos(),
 	                                        packet->getSrcTalId(),
 	                                        packet->getDstTalId());
@@ -448,15 +566,12 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 
 	LOG(this->log, LEVEL_INFO,
 	    "%zu-byte ROHC packet => %zu-byte %s packet/frame\n",
-	    rohc_packet->getTotalLength(), net_packet->getTotalLength(),
+	    packet->getTotalLength(), net_packet->getTotalLength(),
 	    net_packet->getName().c_str());
-
-	delete rohc_packet;
 
 	return true;
 
 drop:
-	delete rohc_packet;
 	return false;
 }
 
