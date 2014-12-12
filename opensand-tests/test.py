@@ -239,6 +239,7 @@ help="specify the root folder for tests configurations\n"
 
         try:
             self._frontend = BaseFrontend()
+            self.clean_files()
             self.load(log_level=lvl, service=options.service,
                       with_ws=options.ws,
                       remote_logs=self._show_last_logs,
@@ -302,6 +303,10 @@ help="specify the root folder for tests configurations\n"
         try:
             self.stop_opensand()
         except:
+            # if we get a timeout here, we will block because
+            # we will close model, and thus quit event_mgr_reponse
+            # however, stop process calls it but everything
+            # will be closed
             pass
         self._log.info(" * Stopping threads")
         for thread in self._threads:
@@ -309,6 +314,14 @@ help="specify the root folder for tests configurations\n"
             self._threads.remove(thread)
         self._log.info(" * Threads stopped")
         ShellManager.close(self)
+        
+    def clean_files(self):
+        """ clean local files """
+        try:
+            os.remove('/tmp/opensand_tests/last_errors')
+            os.remove('/tmp/opensand_tests/result')
+        except:
+            pass
 
     def run_base(self):
         """ launch the tests with base configurations """
@@ -433,6 +446,7 @@ help="specify the root folder for tests configurations\n"
             if self._test is not None:
                 self._test.remove(test_name)
             # start the platform
+            self._model.set_run("base_tests")
             self.start_opensand()
 
             nonbase = []
@@ -466,6 +480,8 @@ help="specify the root folder for tests configurations\n"
                 if len(accepts) == 0 or os.path.basename(test_type) in accepts:
                     # update configuration
                     self.new_scenario(test_type, test_name)
+                    self._model.set_run("non_base_test_" +
+                                        os.path.basename(test_type))
                     self.start_opensand()
                     self.launch_test_type(test_type, test_name)
 
@@ -558,6 +574,8 @@ help="specify the root folder for tests configurations\n"
                 # and create scenario
                 self.new_scenario(test_path, test_name)
 
+                self._model.set_run("other_test_" +
+                                    os.path.basename(test_type))
                 # start the platform
                 self.start_opensand()
 
@@ -572,6 +590,8 @@ help="specify the root folder for tests configurations\n"
                 # and create scenario
                 self.new_scenario(test_type, "default")
 
+                self._model.set_run("other_test_" +
+                                    os.path.basename(test_type))
                 # start the platform
                 self.start_opensand()
 
@@ -884,7 +904,7 @@ help="specify the root folder for tests configurations\n"
             err = ""
             for host in self._error:
                 err += "%s: %s, " % (host, str(self._error[host]))
-            err.rstrip(", ")
+            err = err.rstrip(", ")
             if self._quiet:
                 print "{:>7} {:}".format(red("ERROR"), err)
                 sys.stdout.flush()
@@ -918,7 +938,7 @@ help="specify the root folder for tests configurations\n"
             if self._quiet:
                 print red(msg)
                 sys.stdout.flush()
-            self._last_error(msg)
+            self._last_error = msg
 
 
     def start_opensand(self):
