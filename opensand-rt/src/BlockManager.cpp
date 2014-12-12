@@ -47,11 +47,111 @@
 #include <sys/resource.h>
 #include <syslog.h>
 
+#include <execinfo.h>
+#include <errno.h>
+#include <cxxabi.h>
+ 
+ 
+// taken from http://oroboro.com/stack-trace-on-crash/
+static inline void print_stack(unsigned int max_frames = 63)
+{
+	// storage array for stack trace address data
+	void *addrlist[max_frames+1];
+	// retrieve current stack addresses
+	uint32_t addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void *));
+
+	if(addrlen == 0)
+	{
+		return;
+	}
+	syslog(LEVEL_CRITICAL, "stack trace:\n");
+
+	// resolve addresses into strings containing "filename(function+address)",
+	// Actually it will be ## program address function + offset
+	// this array must be free()-ed
+ 
+	// create readable strings to each frame.
+	char **symbollist = backtrace_symbols(addrlist, addrlen);
+	
+	size_t funcnamesize = 1024;
+	char funcname[1024];
+
+	// iterate over the returned symbol lines. skip the first, it is the
+	// address of this function.
+	for (unsigned int i = 4; i < addrlen; i++)
+	{
+		char *begin_name   = NULL;
+		char *begin_offset = NULL;
+		char *end_offset   = NULL;
+
+		// find parentheses and +address offset surrounding the mangled name
+		// ./module(function+0x15c) [0x8048a6d]
+		for(char *p = symbollist[i]; *p; ++p)
+		{
+			if(*p == '(')
+			{
+				begin_name = p;
+			}
+			else if(*p == '+')
+			{
+				begin_offset = p;
+			}
+			else if(*p == ')' && (begin_offset || begin_name))
+			{
+				end_offset = p;
+			}
+		}
+
+		if(begin_name && end_offset && (begin_name < end_offset))
+		{
+			*begin_name++ = '\0';
+			*end_offset++ = '\0';
+			if(begin_offset)
+			{
+				*begin_offset++ = '\0';
+			}
+
+			// mangled name is now in [begin_name, begin_offset) and caller
+			// offset in [begin_offset, end_offset). now apply
+			// __cxa_demangle():
+
+			int status = 0;
+			char *ret = abi::__cxa_demangle(begin_name, funcname,
+			                                &funcnamesize, &status);
+			char *fname = begin_name;
+			if(status == 0)
+			{
+				fname = ret;
+			}
+
+			if(begin_offset)
+			{
+				syslog(LEVEL_CRITICAL, "  %-30s ( %-40s  + %-6s) %s\n",
+				       symbollist[i], fname, begin_offset, end_offset );
+			}
+			else
+			{
+				syslog(LEVEL_CRITICAL, "  %-30s ( %-40s    %-6s) %s\n",
+				       symbollist[i], fname, "", end_offset );
+			}
+		}
+		else
+		{
+			// couldn't parse the line? print the whole line.
+			syslog(LEVEL_CRITICAL, " %-40s\n", symbollist[i]);
+		}
+	}
+
+	free(symbollist);
+}
+
+
 static void crash_handler(int sig)
 {
 	syslog(LEVEL_CRITICAL, "Crash with signal %d: %s\n", sig,
 	       sys_siglist[sig]);
 	signal(sig, SIG_DFL);
+	print_stack();
 	// raise signal to get a core dump
 	kill(getpid(), sig);
 	closelog();
@@ -197,6 +297,7 @@ void BlockManager::wait(void)
 	sigset_t blocked_signals;
 	
 	signal(SIGSEGV, crash_handler);
+	signal(SIGABRT, crash_handler);
 
 	//block all signals
 	sigfillset(&blocked_signals);
