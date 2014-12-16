@@ -242,7 +242,7 @@ help="specify the root folder for tests configurations\n"
             self.clean_files()
             self.load(log_level=lvl, service=options.service,
                       with_ws=options.ws,
-                      remote_logs=self._show_last_logs,
+                      remote_logs=True,
                       frontend=self._frontend)
             self.stop_opensand()
             self._base = self._model.get_scenario()

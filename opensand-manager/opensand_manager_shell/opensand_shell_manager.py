@@ -100,7 +100,7 @@ class ShellManager(object):
                             launch_command_server function
             frontend:       a class inheriting from BaseFrontend
         """ 
-        self._disable_remote_logs = remote_logs
+        self._disable_remote_logs = not remote_logs
         self._log = ManagerLog(log_level, True, False, False, 'ShellManager')
         # create the OpenSAND model
         self._model = Model(self._log)

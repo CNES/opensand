@@ -102,7 +102,11 @@ class ConfigDebugDialog(WindowView):
         self._scroll.show_all()
 
     def edit_cb(self, source=None, event=None):
-        self._current_conf.save()
+        try:
+            self._current_conf.save()
+        except Exception, m:
+            print "Hidden exception for debug: " + str(m)
+            pass
 
     def has_debug(self, program):
         """ check if the program has a debug section """

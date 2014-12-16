@@ -123,15 +123,14 @@ class EnvironmentPlaneController(object):
                           self._collector_addr[0])
 
         self._collector_addr = []
+        if self._tag is not None:
+            gobject.source_remove(self._tag)
 
     def cleanup(self):
         """
         Shut down the probe controller.
         """
         self.unregister_on_collector()
-
-        if self._tag is not None:
-            gobject.source_remove(self._tag)
 
         try:
             self._sock.shutdown(socket.SHUT_RDWR)
