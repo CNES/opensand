@@ -600,7 +600,7 @@ help="specify the root folder for tests configurations\n"
         # stop the platform
         self.stop_opensand()
 
-    def launch_test(self, path, test_name):
+    def launch_test(self, path, test_name, type_name):
         """ initialize the test: load configuration, deploy files
             then contact the distant host in a thread and launch
             the desired command """
@@ -629,7 +629,7 @@ help="specify the root folder for tests configurations\n"
 
         # check if this is a local test
         if host_name == "TEST":
-            self.launch_local(test_name, config, path)
+            self.launch_local(test_name, type_name, config, path)
         else:
             self.launch_remote(test_name, host_name, config, path)
         return True
@@ -695,7 +695,7 @@ help="specify the root folder for tests configurations\n"
             self._threads.append(connect)
             connect.start()
 
-    def launch_local(self, test_name, config, path=None):
+    def launch_local(self, test_name, type_name, config, path=None):
         """ launch a local test """
         # check if we have to get stats in /tmp/opensand_tests/stats before
         stats_dst = ''
@@ -711,7 +711,8 @@ help="specify the root folder for tests configurations\n"
             except:
                 raise TestError("Test", "Cannot stop platform to get statistics")
             stats = os.path.dirname(path)
-            stats = os.path.join(stats, 'scenario_%s/default/' % test_name)
+            stats = os.path.join(stats, 'scenario_%s/other_test_%s/' %
+                                 (test_name, type_name))
 
             if not os.path.exists(stats_dst):
                 os.mkdir(stats_dst)
@@ -860,7 +861,7 @@ help="specify the root folder for tests configurations\n"
             try:
                 # check that we effectively lauched a test
                 launched = True
-                if self.launch_test(host, test_name):
+                if self.launch_test(host, test_name, type_name):
                     # wait for test to initialize or stop on host
                     time.sleep(0.5)
             except Exception, msg:
