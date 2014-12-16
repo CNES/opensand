@@ -152,10 +152,10 @@ static void crash_handler(int sig)
 	       sys_siglist[sig]);
 	signal(sig, SIG_DFL);
 	print_stack();
+	closelog();
 	// raise signal to get a core dump
 	kill(getpid(), sig);
-	closelog();
-	exit(-1);
+	exit(-42);
 }
 
 BlockManager::BlockManager():

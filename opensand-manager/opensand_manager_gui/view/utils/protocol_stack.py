@@ -263,7 +263,8 @@ class ProtocolStack():
         pos = 0
         enabled_header_modif = []
         for module in [mod for mod in self._header_modif_plugins
-                       if self._header_modif_plugins[mod].get_active()]:
+                       if self._header_modif_plugins[mod] is not None and \
+                       self._header_modif_plugins[mod].get_active()]:
             enabled_header_modif.append(module)
         enabled_header_modif = self.rearange_header_modif(enabled_header_modif)
         for i in range(len(self._stack)):

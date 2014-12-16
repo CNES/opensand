@@ -119,6 +119,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	sof_carrier_id(),
 	data_carrier_id(),
 	dvb_fifos(),
+	default_fifo_id(0),
 	complete_dvb_frames(),
 	categories(),
 	terminal_affectation(),

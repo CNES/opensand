@@ -129,7 +129,7 @@ class IperfClient():
 
     def iperf(self, address, v6=False):
         """ launch an iperf """
-        cmd = "%s %s -c %s %s -ub 900k" % \
+        cmd = "%s %s -c %s %s -ub 800k" % \
               (COMMAND, TIME, address, ('-V' if v6 else ''))
         command = shlex.split(cmd)
         iperf = subprocess.Popen(command, stdout=subprocess.PIPE,
@@ -142,7 +142,7 @@ class IperfClient():
         if err != '':
             self.print_error(err + '\n')
 
-        self.check_params(out, 8, 'bandwidth', 880000, 930000)
+        self.check_params(out, 8, 'bandwidth', 790000, 810000)
         self.check_params(out, 10, 'packet loss', 0, 0)
                 
     def check_params(self, msg, pos, name, min_val, max_val):

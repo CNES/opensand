@@ -98,9 +98,6 @@ class RunEvent(RunView):
         """ 'clicked' event on start OpenSAND button """
         # start or stop the applications ?
         if not self._model.is_running():
-            # start the applications
-            self.spin("Starting...")
-
             # retrieve the current scenario and start
             self.set_run_id()
             # check that we won't overwrite an existing run
@@ -119,6 +116,8 @@ class RunEvent(RunView):
             # disable the buttons
             self.disable_start_button(True)
             self.disable_deploy_buttons(True)
+            # start the applications
+            self.spin("Starting...")
 
             # add a line in the event text views
             self._log.info("***** New run: %s *****" % self._model.get_run(),
