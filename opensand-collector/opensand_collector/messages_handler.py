@@ -94,7 +94,7 @@ class MessagesHandler(object):
         self._stop = threading.Event()
         self._mgr_ok = threading.Event()
         self._mgr_status = None
-        self._init_done = False
+        self._lock = threading.Lock()
 
     def get_port(self):
         """
@@ -178,11 +178,11 @@ class MessagesHandler(object):
         if cmd in [MSG_CMD_REGISTER_LIVE, MSG_CMD_REGISTER_INIT,
                    MSG_CMD_REGISTER_END]:
             try:
-                success = self._handle_cmd_register(host, addr, data, cmd ==
-                                                    MSG_CMD_REGISTER_LIVE)
+                success = self._handle_cmd_register(host, addr, data,
+                                                    cmd == MSG_CMD_REGISTER_LIVE,
+                                                    cmd == MSG_CMD_REGISTER_END)
             except struct.error:
                 success = False
-            self._init_done = True
 
             if not success:
                 LOGGER.error("Bad data received for '%s' REGISTER command",
@@ -211,7 +211,7 @@ class MessagesHandler(object):
             LOGGER.error("Unknown command id %d received from '%s'", cmd,
                          host)
 
-    def _handle_cmd_register(self, host, addr, data, live=False):
+    def _handle_cmd_register(self, host, addr, data, live=False, end=False):
         """
         Handles a registration command.
         """
@@ -267,6 +267,8 @@ class MessagesHandler(object):
             self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_CMD_ACK), addr)
 
         self._notify_manager_new_program(program)
+        if end:
+            program.initialized = True
 
         return True
 
@@ -394,12 +396,14 @@ class MessagesHandler(object):
                          "address %s:%d", cmd, addr[0], addr[1])
             return
 
-        # for next commands the process should be initialized
-        if not self._init_done:
+        # for next commands the process should be initialized, check for
+        # initialized in program
+        host_id, program_id = struct.unpack("!BB", data[0:2])
+        if not self._host_manager.is_initialized(host_id, program_id):
             return
-
+        data = data[2:]
         if cmd == MSG_MGR_SET_PROBE_STATUS:
-            host_id, program_id, probe_id, status = struct.unpack("!BBBB", data)
+            probe_id, status = struct.unpack("!BB", data)
 
             new_enabled = (status > 0)
             new_displayed = (status == 2)
@@ -423,7 +427,7 @@ class MessagesHandler(object):
                                               probe_id), host.address)
 
         elif cmd == MSG_MGR_SET_LOG_LEVEL:
-            host_id, program_id, log_id, level = struct.unpack("!BBBB", data)
+            log_id, level = struct.unpack("!BB", data)
 
             LOGGER.info("New log level set from manager for log %d of "
                         "program %d:%d: new level = %s", log_id,
@@ -442,7 +446,7 @@ class MessagesHandler(object):
                                               log_id, level), host.address)
 
         elif cmd == MSG_MGR_SET_LOGS_STATUS:
-            host_id, program_id, status = struct.unpack("!BBB", data)
+            status = struct.unpack("!B", data)
 
             LOGGER.info("New logs status set from manager for "
                         "program %d:%d: enabled = %s", host_id,
@@ -459,7 +463,7 @@ class MessagesHandler(object):
                                   address)
 
         elif cmd == MSG_MGR_SET_SYSLOG_STATUS:
-            host_id, program_id, status = struct.unpack("!BBB", data)
+            status = struct.unpack("!B", data)
 
             LOGGER.info("New syslog status set from manager for "
                         "program %d:%d: enabled = %s", host_id,

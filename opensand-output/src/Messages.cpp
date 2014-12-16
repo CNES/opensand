@@ -40,7 +40,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sys/un.h>
-#include <Output.h>
 
 
 static const uint32_t MAGIC_NUMBER = 0x5A7D0001;

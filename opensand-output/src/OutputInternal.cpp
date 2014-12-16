@@ -363,6 +363,7 @@ bool OutputInternal::finishInit(void)
 		return false;
 	}
 
+	this->setInitializing(false);
 	// Start the command thread
 	command_thread = new CommandThread(this->sock);
 	if(!command_thread->start())
@@ -370,8 +371,6 @@ bool OutputInternal::finishInit(void)
 		this->sendLog(this->log, LEVEL_ERROR, "Cannot start command thread\n");
 		return false;
 	}
-
-	this->setInitializing(false);
 
 	this->sendLog(this->log, LEVEL_INFO, "output initialized\n");
 

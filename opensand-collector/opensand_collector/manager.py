@@ -243,6 +243,7 @@ class Program(object):
         self._setup_storage()
         self._probes = {}
         self._logs = {}
+        self._initialized = False
 
         self.add_probe(probe_list)
         self.add_log(log_list)
@@ -385,6 +386,17 @@ class Program(object):
         Get the logs
         """
         return self._logs.values()
+
+    @property
+    def initialized(self):
+        """ check if a program is initialized """
+        return self._initialized
+
+    @initialized.setter
+    def initialized(self, val):
+        """ set initialized value """
+        self._initialized = val
+
 
     def __str__(self):
         return self._name
@@ -775,6 +787,25 @@ class HostManager(object):
                 return i
 
         return 255
+
+    def is_initialized(self, host_id, program_id):
+        """ check if a program is initialized """
+        try:
+            host = self._host_by_id[host_id]
+        except KeyError:
+            LOGGER.error("Host with ID %d not found in set_probe_status",
+                         host_id)
+            return None
+
+        try:
+            program = host.get_program(program_id)
+        except KeyError:
+            LOGGER.error("Program with ID %d not found in set_probe_status",
+                         program_id)
+            return None
+
+        return program.initialized
+
 
     def __repr__(self):
         return "<HostManager: %r>" % self._host_by_name.values()
