@@ -149,7 +149,7 @@ class TransferServer(threading.Thread):
 
             LOGGER.debug("Sending %d bytes of data from the file", data_size)
 
-            conn.settimeout(10)
+            conn.settimeout(60)
 
             try:
                 conn.sendall(struct.pack("!L", data_size))
@@ -161,9 +161,8 @@ class TransferServer(threading.Thread):
                         break
 
                     conn.sendall(data)
-            except socket.error:
-                LOGGER.exception("Error sending data:")
-
+            except socket.error, msg:
+                LOGGER.exception("Error sending data: %s" % str(msg))
             finally:
                 try:
                     conn.shutdown(socket.SHUT_RDWR)

@@ -166,7 +166,7 @@ class EnvironmentPlaneController(object):
         self._log.debug("Initiating probe transfer from collector")
 
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        transfer_socket.settimeout(10.0)
+        transfer_socket.settimeout(60.0)
         try:
             transfer_socket.connect((self._collector_addr[0][0], self._transfer_port))
         except socket.error, msg:
@@ -179,10 +179,11 @@ class EnvironmentPlaneController(object):
         self._transfer_dest = destination
         self._transfer_file = TemporaryFile()
 
-
-        inputready, _, _ = select.select([transfer_socket], [], [], 5)
+        inputready, _, _ = select.select([transfer_socket], [], [], 120)
         if(len(inputready) == 0):
-            self._log.warning("Cannot get data from collector")
+            self._log.warning("Cannot get data from collector, if the "
+                              "simulation was too long, there was probably too "
+                              "many data")
             if self._transfer_cb is not None:
                 gobject.idle_add(self._transfer_cb, 'fail')
             transfer_socket.close()
