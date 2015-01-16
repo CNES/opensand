@@ -68,16 +68,28 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
 
+/**@briel Get the current time
+ * 
+ * 
+ * @return the current time
+ */ 
+inline clock_t getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
+}
+
+
 class BlockDvbSat;
 class BlockDvbNcc;
 class BlockDvbTal;
 
 
-class DvbChannel: public RtChannel
+class DvbChannel 
 {
  public:
-	DvbChannel(Block *const bl, chan_type_t chan):
-		RtChannel(bl, chan),
+	DvbChannel():
 		satellite_type(),
 		with_phy_layer(false),
 		super_frame_counter(0),
@@ -87,7 +99,18 @@ class DvbChannel: public RtChannel
 		fmt_simu(),
 		stats_period_ms(),
 		stats_period_frame(),
+		log_init_channel(NULL),
+		//log_receive_channel(NULL),
+		log_send_channel(NULL),
 		check_send_stats(0)
+	{
+		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "init");
+		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "receive");
+		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "send");
+
+	};
+
+	virtual ~DvbChannel()
 	{
 	};
 
@@ -244,6 +267,11 @@ class DvbChannel: public RtChannel
 	time_ms_t stats_period_ms;
 	time_frame_t stats_period_frame;
 
+	// log
+	OutputLog *log_init_channel;
+	OutputLog *log_send_channel;
+	OutputLog *log_receive_channel;
+	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
@@ -264,36 +292,39 @@ class BlockDvb: public Block
 		// register static logs
 		BBFrame::bbframe_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
 		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
+		dvb_fifo_log = Output::registerLog(LEVEL_WARNING, "Dvb.FIFO");
 		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
 	};
 
 
 	~BlockDvb();
 
-	class DvbUpward: public DvbChannel
+	/// The log for sac
+	static OutputLog *dvb_fifo_log;
+
+	class DvbUpward: public DvbChannel, public RtChannel
 	{
 	 public:
 		DvbUpward(Block *const bl):
-			DvbChannel(bl, upward_chan),
-			receptionStd(NULL)
+			DvbChannel(),
+			RtChannel(bl, upward_chan)
 		{};
 
 
 		~DvbUpward();
 
-	 protected:
-		/// reception standard (DVB-RCS or DVB-S2)
-		PhysicStd *receptionStd;
 	};
 
-	class DvbDownward: public DvbChannel
+	class DvbDownward: public DvbChannel, public RtChannel
 	{
 	 public:
 		DvbDownward(Block *const bl):
-			DvbChannel(bl, downward_chan),
+			DvbChannel(),
+			RtChannel(bl, downward_chan),
 			fwd_timer_ms(),
 			dvb_scenario_refresh(-1)
-		{};
+		{
+		};
 
 
 	 protected:
@@ -426,20 +457,20 @@ bool DvbChannel::initBand(const char *band,
 	if(!Conf::getValue(band, BANDWIDTH,
 	                   bandwidth_mhz))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    band, BANDWIDTH);
 		goto error;
 	}
 	bandwidth_khz = bandwidth_mhz * 1000;
-	LOG(this->log_init, LEVEL_INFO,
+	LOG(this->log_init_channel, LEVEL_INFO,
 	    "%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
 
 	// Get the value of the roll off
 	if(!Conf::getValue(band, ROLL_OFF,
 	                   roll_off))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    band, ROLL_OFF);
 		goto error;
@@ -450,7 +481,7 @@ bool DvbChannel::initBand(const char *band,
 	                       FMT_GROUP_LIST,
 	                       conf_list))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
 		    band, FMT_GROUP_LIST);
 		goto error;
@@ -467,7 +498,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get group id name
 		if(!Conf::getAttributeValue(iter, GROUP_ID, group_id))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
 			    "groups\n", band, GROUP_ID);
 			goto error;
@@ -476,7 +507,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get FMT IDs
 		if(!Conf::getAttributeValue(iter, FMT_ID, fmt_id))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
 			    "groups\n", band, FMT_ID);
 			goto error;
@@ -484,7 +515,7 @@ bool DvbChannel::initBand(const char *band,
 
 		if(fmt_groups.find(group_id) != fmt_groups.end())
 		{
-			LOG(this->log_init, LEVEL_INFO,
+			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Section %s, FMT group %u already loaded\n", band,
 			    group_id);
 			continue;
@@ -497,7 +528,7 @@ bool DvbChannel::initBand(const char *band,
 	// get the carriers distribution
 	if(!Conf::getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n", band,
 		    CARRIERS_DISTRI_LIST);
 		goto error;
@@ -524,7 +555,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get carriers' name
 		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
 			    "distribution table entry %u\n", band,
 			    CATEGORY, i);
@@ -534,7 +565,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get carriers' ratio
 		if(!Conf::getAttributeValue(iter, RATIO, ratio))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
 			    "distribution table entry %u\n", band, RATIO, i);
 			goto error;
@@ -545,7 +576,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get carriers' symbol ratge
 		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
 			    "distribution table entry %u\n", band,
 			    SYMBOL_RATE, i);
@@ -555,7 +586,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get carriers' FMT id
 		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
 			    "distribution table entry %u\n", band,
 			    FMT_GROUP, i);
@@ -566,7 +597,7 @@ bool DvbChannel::initBand(const char *band,
 
 		if(group_ids.size() != ratios.size())
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "There should be as many ratio values as fmt groups values\n");
 			goto error;
 		}
@@ -574,7 +605,7 @@ bool DvbChannel::initBand(const char *band,
 		// Get carriers' access type
 		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
 			    "distribution table entry %u\n", band,
 			    ACCESS_TYPE, i);
@@ -583,18 +614,18 @@ bool DvbChannel::initBand(const char *band,
 		if(access != "VCM" &&
 		   (group_ids.size() > 1 || ratios.size() > 1))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Too many FMT groups or ratio for non-VCM access type\n");
 			goto error;
 		}
 		if(access == "VCM" && satellite_type == REGENERATIVE)
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Cannot use VCM carriers with regenerative satellite\n");
 			goto error;
 		}
 
-		LOG(this->log_init, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
 		    "ratio=%s, access type=%s\n", band, name.c_str(),
 		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
@@ -607,14 +638,14 @@ bool DvbChannel::initBand(const char *band,
 			group_it = fmt_groups.find(*it);
 			if(group_it == fmt_groups.end())
 			{
-				LOG(this->log_init, LEVEL_ERROR,
+				LOG(this->log_init_channel, LEVEL_ERROR,
 				    "Section %s, no entry for FMT group with ID %u\n",
 				    band, (*it));
 				goto error;
 			}
 			if(group_ids.size() > 1 && (*group_it).second->getFmtIds().size() > 1)
 			{
-				LOG(this->log_init, LEVEL_ERROR,
+				LOG(this->log_init_channel, LEVEL_ERROR,
 				    "For each VCM carriers, the FMT group should only "
 				    "contain one FMT id\n");
 				goto error;
@@ -644,7 +675,7 @@ bool DvbChannel::initBand(const char *band,
 	// Compute bandplan
 	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Cannot compute band plan for %s\n", band);
 		goto error;
 	}
@@ -657,7 +688,7 @@ bool DvbChannel::initBand(const char *band,
 		// access type only
 		if(!category->getCarriersNumber())
 		{
-			LOG(this->log_init, LEVEL_INFO,
+			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Skip category %s with no carriers with desired access type\n",
 			    category->getLabel().c_str());
 			categories.erase(cat_iter);
@@ -675,7 +706,7 @@ bool DvbChannel::initBand(const char *band,
 	if(!Conf::getValue(band, DEFAULT_AFF,
 	                   default_category_name))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, missing %s parameter\n", band,
 		    DEFAULT_AFF);
 		goto error;
@@ -690,14 +721,14 @@ bool DvbChannel::initBand(const char *band,
 	}
 	if(*default_category == NULL)
 	{
-		LOG(this->log_init, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Section %s, could not find category %s, "
 		    "no default category for access type %u\n",
 		    band, default_category_name.c_str(), access_type);
 	}
 	else
 	{
-		LOG(this->log_init, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "ST default category: %s in %s\n",
 		    (*default_category)->getLabel().c_str(), band);
 	}
@@ -705,7 +736,7 @@ bool DvbChannel::initBand(const char *band,
 	// get the terminal affectations
 	if(!Conf::getListItems(band, TAL_AFF_LIST, aff_list))
 	{
-		LOG(this->log_init, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Section %s, missing %s parameter\n", band,
 		    TAL_AFF_LIST);
 		goto error;
@@ -723,14 +754,14 @@ bool DvbChannel::initBand(const char *band,
 		i++;
 		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
 			    "affection table entry %u\n", band, TAL_ID, i);
 			goto error;
 		}
 		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
-			LOG(this->log_init, LEVEL_ERROR,
+			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
 			    "affection table entry %u\n", band, CATEGORY, i);
 			goto error;
@@ -745,7 +776,7 @@ bool DvbChannel::initBand(const char *band,
 		}
 		if(category == NULL)
 		{
-			LOG(this->log_init, LEVEL_NOTICE,
+			LOG(this->log_init_channel, LEVEL_NOTICE,
 			    "Could not find category %s for terminal %u affectation, "
 			    "it is maybe concerned by another access type",
 			    name.c_str(), tal_id);
@@ -756,7 +787,7 @@ bool DvbChannel::initBand(const char *band,
 		else
 		{
 			terminal_affectation[tal_id] = category;
-			LOG(this->log_init, LEVEL_INFO,
+			LOG(this->log_init_channel, LEVEL_INFO,
 			    "%s: terminal %u will be affected to category %s\n",
 			    band, tal_id, name.c_str());
 		}
@@ -790,12 +821,12 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		weighted_sum_ksymps += category->getWeightedSum();
 	}
 
-	LOG(this->log_init, LEVEL_DEBUG,
+	LOG(this->log_init_channel, LEVEL_DEBUG,
 	    "Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
 
 	if(equals(weighted_sum_ksymps, 0.0))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Weighted ratio sum is 0\n");
 		goto error;
 	}
@@ -815,12 +846,12 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		// create at least one carrier
 		if(carriers_number == 0)
 		{
-			LOG(this->log_init, LEVEL_WARNING,
+			LOG(this->log_init_channel, LEVEL_WARNING,
 			    "Band is too small for one carrier. "
 			    "Increase band for one carrier\n");
 			carriers_number = 1;
 		}
-		LOG(this->log_init, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Number of carriers for category %s: %d\n",
 		    category->getLabel().c_str(), carriers_number);
 

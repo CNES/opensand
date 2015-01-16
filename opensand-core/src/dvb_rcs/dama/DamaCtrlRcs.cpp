@@ -47,7 +47,7 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcs::DamaCtrlRcs(): DamaCtrl()
+DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot): DamaCtrl(spot)
 {
 }
 

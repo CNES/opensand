@@ -64,6 +64,9 @@ class NetContainer
 
 	/// The packet trailer length
 	size_t trailer_length;
+	
+	/// The destination spot ID
+	uint8_t dst_spot;
 
  public:
 
@@ -159,6 +162,21 @@ class NetContainer
 	 * @return the header length
 	 */
 	virtual size_t getHeaderLength() const;
+
+	/**
+	 * Set the destination spot ID
+	 *
+	 * @param spot_id  The destination spot id
+	 */
+	void setDstSpot(uint8_t spot_id);
+
+	/**
+	 * Get the destination spot ID
+	 *
+	 * @return the destination spot ID
+	 */
+	uint8_t getDstSpot() const;
+
 };
 
 #endif

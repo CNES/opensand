@@ -40,8 +40,7 @@ NetPacket::NetPacket(const unsigned char *data, size_t length):
 	type(NET_PROTO_ERROR),
 	qos(),
 	src_tal_id(),
-	dst_tal_id(),
-	dst_spot()
+	dst_tal_id()
 {
 	this->name = "NetPacket";
 }
@@ -51,8 +50,7 @@ NetPacket::NetPacket(const Data &data):
 	type(NET_PROTO_ERROR),
 	qos(),
 	src_tal_id(),
-	dst_tal_id(),
-	dst_spot()
+	dst_tal_id()
 {
 	this->name = "NetPacket";
 }
@@ -62,8 +60,7 @@ NetPacket::NetPacket(const Data &data, size_t length):
 	type(NET_PROTO_ERROR),
 	qos(),
 	src_tal_id(),
-	dst_tal_id(),
-	dst_spot()
+	dst_tal_id()
 {
 	this->name = "NetPacket";
 }
@@ -73,8 +70,7 @@ NetPacket::NetPacket():
 	type(NET_PROTO_ERROR),
 	qos(),
 	src_tal_id(),
-	dst_tal_id(),
-	dst_spot()
+	dst_tal_id()
 {
 	this->name = "NetPacket";
 }
@@ -136,15 +132,5 @@ void NetPacket::setDstTalId(uint8_t tal_id)
 uint8_t NetPacket::getDstTalId() const
 {
 	return this->dst_tal_id;
-}
-
-void NetPacket::setDstSpot(uint8_t spot_id)
-{
-	this->dst_spot = spot_id;
-}
-
-uint8_t NetPacket::getDstSpot() const
-{
-	return this->dst_spot;
 }
 

@@ -87,27 +87,30 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          FmtSimulation *const fwd_fmt_simu,
-                                         const TerminalCategoryDama *const category):
+                                         const TerminalCategoryDama *const category,
+                                         spot_id_t spot):
 	Scheduling(packet_handler, fifos),
 	fwd_timer_ms(fwd_timer_ms),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
 	fwd_fmt_simu(fwd_fmt_simu),
-	category(category)
+	category(category),
+	spot_id(spot)
 {
 	unsigned int vcm_id = 0;
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
-		"Down/Forward capacity.Total.Available",
-		"Symbols per frame", true, SAMPLE_LAST);
+		"Symbols per frame", true, SAMPLE_LAST,
+		"Spot_%d.Down/Forward capacity.Total.Available", this->spot_id);
 	this->probe_fwd_total_remaining_capacity = Output::registerProbe<int>(
-		"Down/Forward capacity.Total.Remaining",
-		"Symbols per frame", true, SAMPLE_LAST);
+		"Symbols per frame", true, SAMPLE_LAST,
+		"Spot_%d.Down/Forward capacity.Total.Remaining", this->spot_id);
 	this->probe_bbframe_nbr = Output::registerProbe<int>(
-		"BBFrame number", true, SAMPLE_AVG);
+		true, SAMPLE_AVG,
+		"Spot_%d.BBFrame number", this->spot_id);
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -199,14 +202,16 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 						unit,
 						true,
 						SAMPLE_AVG,
-						"Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
+						"Spot_%d.Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
+						this->spot_id,
 						this->category->getLabel().c_str(),
 						carriers_id, type.c_str());
 				avail_probe = Output::registerProbe<int>(
 						unit,
 						true,
 						SAMPLE_AVG,
-						"Down/Forward capacity.Category %s.Carrier%u.%s.Available",
+						"Spot_%d.Down/Forward capacity.Category %s.Carrier%u.%s.Available",
+						this->spot_id,
 						this->category->getLabel().c_str(),
 						carriers_id, type.c_str());
 			}
@@ -216,14 +221,16 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 						"Kbits/s",
 						true,
 						SAMPLE_AVG,
-						"Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
+						"Spot_%d.Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
+						this->spot_id,
 						this->category->getLabel().c_str(),
 						carriers_id, vcm_id);
 				avail_probe = Output::registerProbe<int>(
 						"Kbits/s",
 						true,
 						SAMPLE_AVG,
-						"Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
+						"Spot%d.Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
+						this->spot_id,
 						this->category->getLabel().c_str(),
 						carriers_id, vcm_id);
 				vcm_id++;

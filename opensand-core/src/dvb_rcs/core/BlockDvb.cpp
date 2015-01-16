@@ -40,6 +40,7 @@
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
+OutputLog *BlockDvb::dvb_fifo_log = NULL;
 
 
 BlockDvb::~BlockDvb()
@@ -56,12 +57,12 @@ bool DvbChannel::initSatType(void)
 	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
 	                   sat_type))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    GLOBAL_SECTION, SATELLITE_TYPE);
 		return false;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
 
@@ -80,7 +81,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	if(!Conf::getNbListItems(GLOBAL_SECTION, encap_schemes,
 	                         encap_nbr))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
 		    GLOBAL_SECTION, encap_schemes);
 		goto error;
@@ -91,7 +92,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	                         POSITION, toString(encap_nbr - 1),
 	                                ENCAP_NAME, encap_name))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, invalid value %d for parameter '%s'\n",
 		    GLOBAL_SECTION, encap_nbr - 1, POSITION);
 		goto error;
@@ -99,7 +100,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get plugin for %s encapsulation",
 		    encap_name.c_str());
 		goto error;
@@ -108,11 +109,11 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	*pkt_hdl = plugin->getPacketHandler();
 	if(!pkt_hdl)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get %s packet handler\n", encap_name.c_str());
 		goto error;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
 
@@ -126,7 +127,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 {
 	if(!this->initSatType())
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize satellite type\n");
 		goto error;
 	}
@@ -135,7 +136,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
 	                   this->with_phy_layer))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
 		    PHYSICAL_LAYER_SECTION, ENABLE);
 		goto error;
@@ -145,17 +146,17 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
 	                   this->ret_up_frame_duration_ms))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    GLOBAL_SECTION, RET_UP_FRAME_DURATION);
 		goto error;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
 
 	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
 		goto error;
 	}
@@ -164,7 +165,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	if(!Conf::getValue(GLOBAL_SECTION, STATS_TIMER,
 	                   this->stats_period_ms))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    GLOBAL_SECTION, STATS_TIMER);
 		goto error;
@@ -182,7 +183,7 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 	// precise when computing statistics
 	this->stats_period_frame = std::max(1, (int)round((double)this->stats_period_ms /
 	                                                  (double)frame_duration_ms));
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "statistics_timer set to %d, converted into %d frame(s)\n",
 	    this->stats_period_ms, this->stats_period_frame);
 	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
@@ -205,24 +206,24 @@ bool DvbChannel::initModcodFiles(const char *def,
 	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, simu,
 	                   modcod_simu_file))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
 		    PHYSICAL_LAYER_SECTION, simu);
 		goto error;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
 	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, def,
 	                   modcod_def_file))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
 		    PHYSICAL_LAYER_SECTION, def);
 		goto error;
 	}
-	LOG(this->log_init, LEVEL_NOTICE,
+	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD definition path set to %s\n",
 	    modcod_def_file.c_str());
 
@@ -253,14 +254,14 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
                             time_ms_t fifo_delay)
 {
 	MacFifoElement *elem;
-	time_ms_t current_time = this->getCurrentTime();
+	time_ms_t current_time = getCurrentTime();
 
     // TODO log receive is not really adapted (log_fifo ?)
 	// create a new FIFO element to store the packet
 	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
 	if(!elem)
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
+		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "cannot allocate FIFO element, drop data\n");
 		goto error;
 	}
@@ -268,12 +269,12 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	// append the data in the fifo
 	if(!fifo->push(elem))
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
+		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
 		goto release_elem;
 	}
 
-	LOG(this->log_receive, LEVEL_NOTICE,
+	LOG(this->log_receive_channel, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
 	    data->getName().c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());
@@ -299,16 +300,12 @@ bool DvbChannel::doSendStats(void)
 
 BlockDvb::DvbUpward::~DvbUpward()
 {
-	// release the reception DVB standards
-	if(this->receptionStd != NULL)
-	{
-		delete this->receptionStd;
-	}
 }
 
 
 bool BlockDvb::DvbDownward::initDown(void)
 {
+
 	// forward timer
 	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION,
 	                   this->fwd_down_frame_duration_ms))
@@ -318,6 +315,7 @@ bool BlockDvb::DvbDownward::initDown(void)
 		    GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION);
 		goto error;
 	}
+
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "forward timer set to %u\n",
 	    this->fwd_down_frame_duration_ms);

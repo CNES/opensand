@@ -264,7 +264,12 @@
 #define DATA_OUT_ST_ID      "data_out_st_id"
 #define LOG_ID              "log_id"
 
+/////////////
+// SNIFFER //
+/////////////
 
+#define SNIFFER_SECTION 	"sniffer"
+#define SNIFFER_ON 			"sniffer_on"
 
 //////////////////////////
 //       advanced       //

@@ -192,6 +192,9 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
+/********************************
+ *     Get le bon spot
+ ********************************/ 
 	if(!this->initCarrierId())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -205,6 +208,7 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to complete the MAC FIFO part of the initialisation\n");
 		goto error;
 	}
+//******************************
 
 	if(!this->initDama())
 	{
@@ -1736,6 +1740,7 @@ void BlockDvbTal::Downward::deletePackets()
 
 BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	DvbUpward(bl),
+	reception_std(NULL),
 	mac_id(mac_id),
 	group_id(),
 	tal_id(),
@@ -1748,6 +1753,14 @@ BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 {
 }
 
+BlockDvbTal::Upward::~Upward()
+{
+	// release the reception DVB standards
+	if(this->reception_std != NULL)
+	{
+		delete this->reception_std;
+	}
+}
 
 bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
@@ -1829,12 +1842,12 @@ bool BlockDvbTal::Upward::onInit(void)
 	return true;
 }
 
-// TODO remove receptionStd as functions are merged but contains part
+// TODO remove reception_std as functions are merged but contains part
 //      dedicated to each host ?
 bool BlockDvbTal::Upward::initMode(void)
 {
-	this->receptionStd = new DvbS2Std(this->pkt_hdl);
-	if(this->receptionStd == NULL)
+	this->reception_std = new DvbS2Std(this->pkt_hdl);
+	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Failed to initialize reception standard\n");
@@ -1882,7 +1895,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_CORRUPTED:
 		{
 			NetBurst *burst = NULL;
-			DvbS2Std *std = (DvbS2Std *)this->receptionStd;
+			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
@@ -1898,7 +1911,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
-			if(!this->receptionStd->onRcvFrame(dvb_frame,
+			if(!this->reception_std->onRcvFrame(dvb_frame,
 			                                   this->tal_id,
 			                                   &burst))
 			{

@@ -96,7 +96,8 @@ bool SatSpot::initScheduling(time_ms_t fwd_timer_ms,
 	                                           pkt_hdl,
 	                                           fifos,
 	                                           fwd_fmt_simu,
-	                                           category);
+	                                           category,
+	                                           this->spot_id);
 	if(!this->scheduling)
 	{
 		LOG(this->log_init, LEVEL_ERROR, 

@@ -52,7 +52,7 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 
  public:
 
-	DamaCtrlRcsLegacy();
+	DamaCtrlRcsLegacy(spot_id_t spot);
 	virtual ~DamaCtrlRcsLegacy();
 
  private:

@@ -42,6 +42,7 @@
 
 #include "BlockDvb.h"
 
+#include "PhysicStd.h" 
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
 #include "UnitConverter.h"
@@ -106,17 +107,17 @@ class BlockDvbTal: public BlockDvb
  public:
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
-	virtual ~BlockDvbTal();
+	~BlockDvbTal();
 
 	class Upward: public DvbUpward
 	{
 	 public:
 		Upward(Block *const bl, tal_id_t mac_id);
+		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 protected:
-
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -175,6 +176,9 @@ class BlockDvbTal: public BlockDvb
 		// statistics update
 		void updateStats(void);
 		void resetStatsCxt(void);
+
+		/// reception standard (DVB-RCS or DVB-S2)      
+		PhysicStd *reception_std; 
 
 
 		/// the MAC ID of the ST (as specified in configuration)

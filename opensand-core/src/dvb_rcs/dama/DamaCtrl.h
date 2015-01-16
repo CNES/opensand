@@ -66,7 +66,7 @@ class DamaCtrl
 {
  public:
 	// Ctor & Dtor
-	DamaCtrl();
+	DamaCtrl( spot_id_t spot);
 	virtual ~DamaCtrl();
 
 	// Initialization
@@ -375,7 +375,9 @@ class DamaCtrl
 	ProbeListPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCarrier probes_carrier_return_remaining_capacity;
 	map<unsigned int, int> carrier_return_remaining_capacity_pktpf;
-
+	
+	// Spot ID
+	spot_id_t spot_id;
 };
 
 #define DC_RECORD_EVENT(fmt,args...) \

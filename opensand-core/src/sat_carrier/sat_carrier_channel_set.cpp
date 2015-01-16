@@ -63,189 +63,221 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 {
 	int i;
 	ConfigurationList carrier_list;
+	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
+	ConfigurationList::iterator iterSpots;
 
+/**********************************
+ *       Create SPOT_LIST
+ *********************************/ 
 	// get satellite channels from configuration
-	if(!Conf::getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
+	if(!Conf::getListItems(SATCAR_SECTION, SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, CARRIER_LIST);
+				"section '%s, %s': missing satellite channels\n",
+				SATCAR_SECTION, SPOT_LIST);
 		goto error;
 	}
 
 	i = 0;
-	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
+	/*****************************
+	 * boucle pour les spots!
+	 *****************************/ 
+	for(iterSpots = spot_list.begin(); iterSpots != spot_list.end(); iterSpots++)
 	{
-		sat_carrier_udp_channel *channel;
-		string strConfig;
-		int carrier_id = 0;
-		long carrier_port = 0;
-		bool carrier_up = false;
-		bool carrier_down = false;
-		bool is_input = false;
-		bool is_output = false;
-		bool carrier_multicast = false;
-		component_t host = unknown_compo;
-		string compo_name;
-		string carrier_ip("");
-		string carrier_disabled("");
-
-		i++;
-		// get carrier ID
-		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_ID, i);
-			goto error;
-		}
-		// get IP address
-		if(!Conf::getAttributeValue(iter, CARRIER_IP, carrier_ip))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_IP, i);
-			goto error;
-		}
-
-		// get port
-		if(!Conf::getAttributeValue(iter, CARRIER_PORT, carrier_port))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_PORT, i);
-			goto error;
-		}
-		// get up
-		if(!Conf::getAttributeValue(iter, CARRIER_UP, carrier_up))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_UP, i);
-			goto error;
-		}
-		// get down
-		if(!Conf::getAttributeValue(iter, CARRIER_DOWN, carrier_down))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_DOWN, i);
-			goto error;
-		}
-		// get multicast
-		if(!Conf::getAttributeValue(iter, CARRIER_MULTICAST,
-		                            carrier_multicast))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_MULTICAST, i);
-			goto error;
-		}
-		// get disabled_on
-		if(!Conf::getAttributeValue(iter, CARRIER_DISABLED,
-		                            carrier_disabled))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, CARRIER_LIST,
-			    CARRIER_DISABLED, i);
-			goto error;
-		}
-
-		// get host type
-		compo_name = "";
-		if(!Conf::getComponent(compo_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get component type\n");
-			goto error;
-		}
-		LOG(this->log_init, LEVEL_INFO,
-		    "host type = %s\n", compo_name.c_str());
-		host = getComponentType(compo_name);
-
-		if(carrier_disabled == compo_name)
-		{
-			continue;
-		}
-
-		is_input = (host == satellite) ? carrier_up : carrier_down;
-		is_output = (host == satellite) ? carrier_down : carrier_up;
-		if((in && !is_input) || (!in && !is_output))
-		{
-			continue;
-		}
-
-		LOG(this->log_init, LEVEL_INFO,
-		    "Line: %d, Carrier ID: %u, IP address: %s, "
-		    "port: %ld, up: %s, down: %s, multicast: %s, "
-		    "disabled on: %s\n",
-		    i, carrier_id, carrier_ip.c_str(),
-		    carrier_port, (carrier_up ? "true" : "false"),
-		    (carrier_down ? "true" : "false"),
-		    (carrier_multicast ? "true" : "false"),
-		    carrier_disabled.c_str());
-
-		// if for a a channel in=false and out=false channel is not active
-		if(is_input || is_output)
-		{
-			unsigned int stack;
-			unsigned int rmem;
-			unsigned int wmem;
-
-			// get UDP stack
-			if(!Conf::getValue(ADV_SECTION, UDP_STACK,
-			                   stack))
+		/******************************************************
+		 *  check spot id avant de récupérer les carriers!
+		 *****************************************************/ 
+		//if(spot_id == current_ST_Spot_id)
+		//{
+		
+			// get satellite channels from configuration
+			if(!Conf::getListItems(SATCAR_SECTION, CARRIER_LIST, carrier_list))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "Section %s, %s missing\n",
-				    ADV_SECTION, UDP_STACK);
+						"section '%s, %s': missing satellite channels\n",
+						SATCAR_SECTION, CARRIER_LIST);
 				goto error;
 			}
-			// get rmem
-			if(!Conf::getValue(ADV_SECTION, UDP_RMEM,
-			                   rmem))
+
+			// check id du spot correspond au id du spot dans lequel est le bloc actuel!
+			for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "Section %s, %s missing\n",
-				    ADV_SECTION, UDP_RMEM);
-				goto error;
-			}
-			// get wmem
-			if(!Conf::getValue(ADV_SECTION, UDP_WMEM,
-			                   wmem))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "Section %s, %s missing\n",
-				    ADV_SECTION, UDP_WMEM);
+				sat_carrier_udp_channel *channel;
+				string strConfig;
+				int carrier_id = 0;
+				long carrier_port = 0;
+				bool carrier_up = false;
+				bool carrier_down = false;
+				bool is_input = false;
+				bool is_output = false;
+				bool carrier_multicast = false;
+				component_t host = unknown_compo;
+				string compo_name;
+				string carrier_ip("");
+				string carrier_disabled("");
+
+				i++;
+				// get carrier ID
+				if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_ID, i);
 					goto error;
+				}
+				// get IP address
+				if(!Conf::getAttributeValue(iter, CARRIER_IP, carrier_ip))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_IP, i);
+					goto error;
+				}
+
+				// get port
+				if(!Conf::getAttributeValue(iter, CARRIER_PORT, carrier_port))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_PORT, i);
+					goto error;
+				}
+				// get up
+				if(!Conf::getAttributeValue(iter, CARRIER_UP, carrier_up))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_UP, i);
+					goto error;
+				}
+				// get down
+				if(!Conf::getAttributeValue(iter, CARRIER_DOWN, carrier_down))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_DOWN, i);
+					goto error;
+				}
+				// get multicast
+				if(!Conf::getAttributeValue(iter, CARRIER_MULTICAST,
+							carrier_multicast))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_MULTICAST, i);
+					goto error;
+				}
+				// get disabled_on
+				if(!Conf::getAttributeValue(iter, CARRIER_DISABLED,
+							carrier_disabled))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"section '%s, %s': failed to retrieve %s at "
+							"line %d\n", SATCAR_SECTION, CARRIER_LIST,
+							CARRIER_DISABLED, i);
+					goto error;
+				}
+
+				// get host type
+				compo_name = "";
+				if(!Conf::getComponent(compo_name))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+							"cannot get component type\n");
+					goto error;
+				}
+				LOG(this->log_init, LEVEL_INFO,
+						"host type = %s\n", compo_name.c_str());
+				host = getComponentType(compo_name);
+
+				if(carrier_disabled == compo_name)
+				{
+					continue;
+				}
+
+				is_input = (host == satellite) ? carrier_up : carrier_down;
+				is_output = (host == satellite) ? carrier_down : carrier_up;
+				if((in && !is_input) || (!in && !is_output))
+				{
+					continue;
+				}
+
+				LOG(this->log_init, LEVEL_INFO,
+						"Line: %d, Carrier ID: %u, IP address: %s, "
+						"port: %ld, up: %s, down: %s, multicast: %s, "
+						"disabled on: %s\n",
+						i, carrier_id, carrier_ip.c_str(),
+						carrier_port, (carrier_up ? "true" : "false"),
+						(carrier_down ? "true" : "false"),
+						(carrier_multicast ? "true" : "false"),
+						carrier_disabled.c_str());
+
+				// if for a a channel in=false and out=false channel is not active
+				if(is_input || is_output)
+				{
+					unsigned int stack;
+					unsigned int rmem;
+					unsigned int wmem;
+
+					// get UDP stack
+					if(!Conf::getValue(ADV_SECTION, UDP_STACK,
+								stack))
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+								"Section %s, %s missing\n",
+								ADV_SECTION, UDP_STACK);
+						goto error;
+					}
+					// get rmem
+					if(!Conf::getValue(ADV_SECTION, UDP_RMEM,
+								rmem))
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+								"Section %s, %s missing\n",
+								ADV_SECTION, UDP_RMEM);
+						goto error;
+					}
+					// get wmem
+					if(!Conf::getValue(ADV_SECTION, UDP_WMEM,
+								wmem))
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+								"Section %s, %s missing\n",
+								ADV_SECTION, UDP_WMEM);
+						goto error;
+					}
+					// create a new udp channel configure it, with information from file
+					// and insert it in the channels vector
+					channel = new sat_carrier_udp_channel(carrier_id,
+							is_input,
+							is_output,
+							interface_name,
+							carrier_port,
+							carrier_multicast,
+							local_ip_addr,
+							carrier_ip,
+							stack, rmem, wmem);
+					if(!channel->isInit())
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+								"failed to create UDP channel %d\n", i);
+						goto error;
+					}
+					this->push_back(channel);
+				}
 			}
-			// create a new udp channel configure it, with information from file
-			// and insert it in the channels vector
-			channel = new sat_carrier_udp_channel(carrier_id,
-			                                      is_input,
-			                                      is_output,
-			                                      interface_name,
-			                                      carrier_port,
-			                                      carrier_multicast,
-			                                      local_ip_addr,
-			                                      carrier_ip,
-			                                      stack, rmem, wmem);
-			if(!channel->isInit())
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to create UDP channel %d\n", i);
-				goto error;
-			}
-			this->push_back(channel);
-		}
+			/******************************************************************
+			 * arrêt de la boucle car on a éxécuter ce que l'on souhaitait!
+			 ******************************************************************/
+			break;
+		//}	
 	}
 
 	return true;

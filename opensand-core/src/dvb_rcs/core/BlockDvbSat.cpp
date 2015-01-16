@@ -83,6 +83,7 @@ BlockDvbSat::~BlockDvbSat()
 	{
 		delete i_spot->second;
 	}
+	
 }
 
 
@@ -161,6 +162,7 @@ bool BlockDvbSat::initSpots(void)
 			    SPOT_ID, i);
 			goto error;
 		}
+
 		// get the ctrl_id
 		if(!Conf::getAttributeValue(iter, CTRL_ID, ctrl_id))
 		{
@@ -233,6 +235,7 @@ bool BlockDvbSat::initSpots(void)
 
 	((Upward *)this->upward)->setSpots(this->spots);
 	((Downward *)this->downward)->setSpots(this->spots);
+
 
 	return true;
 
@@ -765,7 +768,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					else
 					{
 						if(!current_spot->schedule(this->down_frame_counter,
-						                           (time_ms_t)this->getCurrentTime()))
+						                           (time_ms_t)getCurrentTime()))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "failed to schedule packets for satellite spot %u "
@@ -820,7 +823,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
 {
 	MacFifoElement *elem;
-	time_ms_t current_time = this->getCurrentTime();
+	time_ms_t current_time = getCurrentTime();
 
 	while(fifo->getTickOut() <= current_time &&
 	      fifo->getCurrentSize() > 0)
@@ -922,6 +925,7 @@ void BlockDvbSat::Downward::updateStats(void)
 
 BlockDvbSat::Upward::Upward(Block *const bl):
 	DvbUpward(bl),
+	reception_std(NULL),	
 	spots(),
 	cni(),
 	sat_delay()
@@ -931,6 +935,11 @@ BlockDvbSat::Upward::Upward(Block *const bl):
 
 BlockDvbSat::Upward::~Upward()
 {
+	// release the reception DVB standards
+	if(this->reception_std != NULL)
+	{
+	   delete this->reception_std;
+	}
 }
 
 
@@ -995,14 +1004,14 @@ bool BlockDvbSat::Upward::initMode(void)
 
 	if(this->satellite_type == REGENERATIVE)
 	{
-		this->receptionStd = new DvbRcsStd(this->pkt_hdl);
+		this->reception_std = new DvbRcsStd(this->pkt_hdl);
 	}
 	else
 	{
 		// create the reception standard
-		this->receptionStd = new DvbRcsStd(); 
+		this->reception_std = new DvbRcsStd(); 
 	}
-	if(this->receptionStd == NULL)
+	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create the reception standard\n");
@@ -1089,7 +1098,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 	generic_switch->setDefault(spot_id);
 
-	if(!(dynamic_cast<DvbRcsStd *>(this->receptionStd)->setSwitch(generic_switch)))
+	if(!(dynamic_cast<DvbRcsStd *>(this->reception_std)->setSwitch(generic_switch)))
 	{
 		goto error;
 	}
@@ -1238,7 +1247,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 
 			if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
-			   this->receptionStd->getType() == "DVB-RCS")
+			   this->reception_std->getType() == "DVB-RCS")
 			{
 				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
 				tal_id_t tal_id;
@@ -1261,7 +1270,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
-			if(!this->receptionStd->onRcvFrame(dvb_frame,
+			if(!this->reception_std->onRcvFrame(dvb_frame,
 			                                   0 /* no used */, &burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,

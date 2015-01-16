@@ -141,8 +141,8 @@ class MessagesHandler(object):
         """
         self._time = time()
 
-        packet, addr = self._sock.recvfrom(4096)
-        if len(packet) > 4095:
+        packet, addr = self._sock.recvfrom(8192)
+        if len(packet) > 8192:
             LOGGER.warning("Too many data received from daemon, "
                            "we may not be able to parse command")
 
@@ -177,6 +177,7 @@ class MessagesHandler(object):
         """
         if cmd in [MSG_CMD_REGISTER_LIVE, MSG_CMD_REGISTER_INIT,
                    MSG_CMD_REGISTER_END]:
+            
             try:
                 success = self._handle_cmd_register(host, addr, data,
                                                     cmd == MSG_CMD_REGISTER_LIVE,

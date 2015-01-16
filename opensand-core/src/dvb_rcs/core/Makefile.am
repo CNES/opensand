@@ -6,6 +6,8 @@ libopensand_dvb_core_la_cpp = \
 	DvbRcsStd.cpp \
 	DvbS2Std.cpp \
 	BlockDvb.cpp \
+	SpotDownward.cpp \
+	SpotUpward.cpp \
 	BlockDvbSat.cpp \
 	BlockDvbNcc.cpp \
 	BlockDvbTal.cpp
@@ -16,6 +18,8 @@ libopensand_dvb_core_la_h = \
 	DvbRcsStd.h \
 	DvbS2Std.h \
 	BlockDvb.h \
+	SpotDownward.h \
+	SpotUpward.h \
 	BlockDvbSat.h \
 	BlockDvbNcc.h \
 	BlockDvbTal.h

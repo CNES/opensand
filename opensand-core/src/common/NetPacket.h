@@ -125,8 +125,6 @@ class NetPacket: public NetContainer
 	uint8_t src_tal_id;
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
-	/// The destination spot ID
-	uint8_t dst_spot;
 
  public:
 #if 0
@@ -237,20 +235,6 @@ class NetPacket: public NetContainer
 	 * @return the type of network protocol
 	 */
 	uint16_t getType() const;
-
-	/**
-	 * Set the destination spot ID
-	 *
-	 * @param spot_id  The destination spot id
-	 */
-	void setDstSpot(uint8_t spot_id);
-
-	/**
-	 * Get the destination spot ID
-	 *
-	 * @return the destination spot ID
-	 */
-	uint8_t getDstSpot() const;
 
 };
 

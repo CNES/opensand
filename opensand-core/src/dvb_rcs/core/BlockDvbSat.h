@@ -54,6 +54,7 @@
 
 #include "BlockDvb.h"
 #include "SatSpot.h"
+#include "PhysicStd.h" 
 
 // output
 #include <opensand_output/Output.h>
@@ -81,6 +82,10 @@ class BlockDvbSat: public BlockDvb
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
+
+	 protected: 
+		/// reception standard (DVB-RCS or DVB-S2)      
+		PhysicStd *reception_std; 
 
 	 private:
 		/**
