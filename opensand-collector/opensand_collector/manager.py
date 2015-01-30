@@ -354,7 +354,8 @@ class Program(object):
         """
         for (probe_id, p_name, unit, storage_type, enabled) in probe_list:
             if not probe_id in self._probes:
-                LOGGER.info("Add probe %s with id %s", p_name, probe_id)
+                LOGGER.info("Add probe %s with id %s in %s" % (p_name, probe_id,
+                                                               self._name))
                 probe = Probe(self, probe_id, p_name, unit, storage_type, enabled)
                 self._probes[probe_id] = probe
 
