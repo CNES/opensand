@@ -101,8 +101,8 @@ class Program(object):
         """
         for (probe_id, p_name, unit, storage_type, enabled, disp) in probes:
 #            if not probe_id in self._probes:
-            probe = Probe(self._controller, self, probe_id, p_name, unit,
-                          storage_type, enabled, disp)
+            probe = Probe(self._controller, self, probe_id,
+                          p_name, unit, storage_type, enabled, disp)
             self._probes[probe_id] = probe
 
     def add_logs(self, logs):
@@ -188,7 +188,8 @@ class Probe(object):
         self._controller = controller
         self._program = program
         self._ident = ident
-        self._name = name
+        self._disp_name = name
+        self._name = name.replace('/', '_').replace(' ', '_')
         self._unit = unit
         self._storage_type = storage_type
         self._enabled = enabled
@@ -219,6 +220,13 @@ class Probe(object):
         Get the probe ident
         """
         return self._ident
+
+    @property
+    def disp_name(self):
+        """
+        Get the probe name for display
+        """
+        return self._disp_name
 
     @property
     def name(self):
@@ -424,7 +432,8 @@ class SavedProbeLoader(object):
                             probe_values.append(value)
 
                     self._data[probe_full_name] = (probe_times, probe_values)
-                    probes.append((probe_id, probe_name, unit, None, True, False))
+                    probes.append((probe_id, probe_name,
+                                   unit, None, True, False))
                     probe_id += 1
 
                 full_prog_name = "%s.%s" % (host_name, prog_name)

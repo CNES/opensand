@@ -112,7 +112,7 @@ class OpenSandService(object):
         """ listen for OpenSAND service with avahi """
         def __init__(self, iface, service_type, compo, instance,
                      output_handler=None):
-            self._interface = iface
+            self._iface = iface
             self._compo = compo.lower()
             # for WS get only the number, not the name of the instance
             self._instance = instance.split("_", 1)[0]
@@ -129,8 +129,17 @@ class OpenSandService(object):
                 dbus.Interface(OpenSandService._bus.get_object(avahi.DBUS_NAME, '/'),
                                'org.freedesktop.Avahi.Server')
 
+            if self._iface != '':
+                try:
+                    iface = self._listener_server.GetNetworkInterfaceIndexByName(self._iface)
+                except DBusException:
+                    LOGGER.warning("Cannot listen Avahi service on %s iface")
+                    iface = avahi.IF_UNSPEC
+            else:
+                iface = avahi.IF_UNSPEC
+
             sbrowser = dbus.Interface(OpenSandService._bus.get_object(avahi.DBUS_NAME,
-                    self._listener_server.ServiceBrowserNew(avahi.IF_UNSPEC,
+                    self._listener_server.ServiceBrowserNew(iface,
                         avahi.PROTO_INET, service_type, 'local', dbus.UInt32(0))),
                     avahi.DBUS_INTERFACE_SERVICE_BROWSER)
 
@@ -148,7 +157,7 @@ class OpenSandService(object):
                 try:
                     # check if we publish on one interface only
                     iface = \
-                        self._listener_server.GetNetworkInterfaceIndexByName(self._interface)
+                        self._listener_server.GetNetworkInterfaceIndexByName(self._iface)
                 except DBusException:
                     pass
                 else:
@@ -390,9 +399,9 @@ if __name__ == '__main__':
                 'command' : 4444,
              }
 
-    SERVICE = OpenSandService("/tmp", "", "_opensand._tcp", "st", "1", 1234, descr)
+    SERVICE = OpenSandService("/tmp", "eth2", "_opensand._tcp", "sat_test", "", 1234, descr)
 
     try:
         SERVICE.run()
     except KeyboardInterrupt:
-        SERVICE.stop_serv()
+        stop_serv()

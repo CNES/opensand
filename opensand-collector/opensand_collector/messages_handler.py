@@ -112,7 +112,7 @@ class MessagesHandler(object):
         self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
                                          self._data_received)
 
-        LOGGER.debug("Socket bound to port %d.", self.get_port())
+        LOGGER.info("Socket bound to port %d.", self.get_port())
 
         return self
 
@@ -320,6 +320,11 @@ class MessagesHandler(object):
 
         LOGGER.debug("Probe %s: Value %s (t = %d)", probe, value, timestamp)
 
+        if not prog.initialized:
+            LOGGER.info("Program %s is not initialized, do not transmit probe "
+                        "to the manager" % prog)
+            return True
+
         self._notify_manager_probes(host, prog, timestamp, displayed_values)
 
         return True
@@ -342,6 +347,10 @@ class MessagesHandler(object):
 
         LOGGER.debug("Log %s: %s", log, text)
 
+        if not prog.initialized:
+            LOGGER.info("Program %s is not initialized, do not transmit log "
+                        "to the manager" % prog)
+            return True
         self._notify_manager_log(host, prog, log_id, log_level, text)
 
         return True
@@ -355,9 +364,12 @@ class MessagesHandler(object):
             if self._manager_addr is not None and \
                addr != self._manager_addr:
                 self._temp_manager.append(addr)
-                LOGGER.debug("register from another manager, keep it in the "
+                LOGGER.info("register from another manager, keep it in the "
                              "temporary list")
                 return
+            # reset the programs registered elements before registering a new
+            # manager
+            self._host_manager.unreg_manager()
             self._manager_addr = addr
             LOGGER.info("Manager registered from address %s:%d" % addr)
 
@@ -388,7 +400,7 @@ class MessagesHandler(object):
         
         if cmd == MSG_MGR_STATUS:
             self._mgr_ok.set()
-            LOGGER.debug("Manager from address %s:%d is still running" % addr)
+            LOGGER.info("Manager from address %s:%d is still running" % addr)
             return
 
         if addr != self._manager_addr:
@@ -400,6 +412,8 @@ class MessagesHandler(object):
         # initialized in program
         host_id, program_id = struct.unpack("!BB", data[0:2])
         if not self._host_manager.is_initialized(host_id, program_id):
+            LOGGER.info("Program [%d:%d] is not initialized, ignore manager commands"
+                        % (host_id, program_id))
             return
         data = data[2:]
         if cmd == MSG_MGR_SET_PROBE_STATUS:
@@ -421,7 +435,7 @@ class MessagesHandler(object):
             cmd = MSG_CMD_ENABLE_PROBE if new_enabled else MSG_CMD_DISABLE_PROBE
 
             if host:  # Need to propagate the new enabled state upstream
-                LOGGER.debug("The enabled of the above probe has been relayed.")
+                LOGGER.info("The enabled of the above probe has been relayed.")
                 self._sock.sendto(struct.pack("!LBBBB", MAGIC_NUMBER,
                                               MSG_CMD_RELAY, program_id, cmd,
                                               probe_id), host.address)
@@ -439,7 +453,7 @@ class MessagesHandler(object):
                                                             level)
 
             if host:  # Need to propagate the new enabled state upstream
-                LOGGER.debug("The enabled of the above probe has been relayed.")
+                LOGGER.info("The enabled of the above probe has been relayed.")
                 self._sock.sendto(struct.pack("!LBBBBB", MAGIC_NUMBER,
                                               MSG_CMD_RELAY, program_id,
                                               MSG_CMD_SET_LOG_LEVEL,
@@ -457,7 +471,7 @@ class MessagesHandler(object):
             address = self._host_manager.get_host_address(host_id)
 
             if address:
-                LOGGER.debug("The enabled of the logs has been relayed.")
+                LOGGER.info("The enabled of the logs has been relayed.")
                 self._sock.sendto(struct.pack("!LBBB", MAGIC_NUMBER,
                                               MSG_CMD_RELAY, program_id, cmd),
                                   address)
@@ -474,7 +488,7 @@ class MessagesHandler(object):
             address = self._host_manager.get_host_address(host_id)
 
             if address:
-                LOGGER.debug("The enabled of syslog has been relayed.")
+                LOGGER.info("The enabled of syslog has been relayed.")
                 self._sock.sendto(struct.pack("!LBBB", MAGIC_NUMBER,
                                               MSG_CMD_RELAY, program_id, cmd),
                                   address)
@@ -502,7 +516,7 @@ class MessagesHandler(object):
         if not self._manager_addr:
             return
 
-        host_name, host_ident, prog_ident, probes, logs = program.attributes()
+        host_name, host_ident, prog_ident, probes, logs = program.unreg_att()
         if type(host_name) == unicode:
             host_name = host_name.encode('utf8')
 
@@ -517,11 +531,13 @@ class MessagesHandler(object):
         header_length = 10 + len(host_name)
         probe_nbr = 0
         log_nbr = 0
+        reg_p = []
+        reg_l = []
 
         for probe_id, name, unit, storage_type, enabled, displayed in probes:
             storage_type |= enabled << 7
             storage_type |= displayed << 6
-            if len(content) + header_length + 4 + len(name) + len(unit) > 4095 \
+            if len(content) + header_length + 4 + len(name) + len(unit) > 4096 \
                or probe_nbr >= 255:
                 # max size, send a first register message
                 message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
@@ -532,15 +548,18 @@ class MessagesHandler(object):
                 log_nbr = 0
                 content = ""
                 if self._manager_addr:
+                    program.set_registered(probes=reg_p)
+                    reg_p = []
                     self._sock.sendto(message, self._manager_addr)
 
             probe_nbr += 1
+            reg_p.append(probe_id)
             content += struct.pack("!BBBB", probe_id, storage_type, len(name), len(unit))
             content += name
             content += unit
 
         for log_id, ident, level in logs:
-            if len(content) + header_length + 3 + len(ident) > 4095 or \
+            if len(content) + header_length + 3 + len(ident) > 4096 or \
                log_nbr >= 255:
                 # max size, send a first register message
                 message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
@@ -551,9 +570,13 @@ class MessagesHandler(object):
                 log_nbr = 0
                 content = ""
                 if self._manager_addr:
+                    program.set_registered(probes=reg_p, logs=reg_l)
+                    reg_p = []
+                    reg_l = []
                     self._sock.sendto(message, self._manager_addr)
 
             log_nbr += 1
+            reg_l.append(log_id)
             content += struct.pack("!BBB", log_id, level, len(ident))
             content += ident
             
@@ -563,6 +586,7 @@ class MessagesHandler(object):
                                   log_nbr, len(host_name)) + host_name
             message += content
         if self._manager_addr:
+            program.set_registered(probes=reg_p, logs=reg_l)
             self._sock.sendto(message, self._manager_addr)
 
     def _notify_manager_unreg_program(self, host_ident, prog_ident):
@@ -620,7 +644,7 @@ class MessagesHandler(object):
                 continue
             self._mgr_ok.clear()
             message = struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_STATUS)
-            LOGGER.debug("Check whether manager is still running")
+            LOGGER.info("Check whether manager is still running")
             addr = self._manager_addr
             self._sock.sendto(message, addr)
             # wait some time

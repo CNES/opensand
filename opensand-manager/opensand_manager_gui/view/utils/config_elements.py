@@ -83,14 +83,14 @@ class ProbeSelectionController(object):
                                           gobject.TYPE_INT)
 
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
-        probe_listview.set_model(self._probe_store)
-        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
-        probe_listview.set_enable_tree_lines(True)
+        self._probe_listview.set_model(self._probe_store)
+        self._probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
+        self._probe_listview.set_enable_tree_lines(True)
 
 
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(NAME) # Sort on the probe/section name
-        probe_listview.append_column(column)
+        self._probe_listview.append_column(column)
 
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
@@ -194,7 +194,7 @@ class ProbeSelectionController(object):
             if probe.enabled:
                 probe_parent = None
                 cur_group = groups
-                probe_path = probe.name.split(".")
+                probe_path = probe.disp_name.split(".")
                 probe_name = probe_path.pop()
 
                 while probe_path:

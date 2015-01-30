@@ -164,6 +164,10 @@ class OpenSandServiceListener():
             host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
                                               tools, modules)
+            # this is usefull when manager is started while some hosts are
+            # running, collector may be registered before a host so the host
+            # model would not be available at registration
+            self._env_plane.register_host(name)
         except ModelException:
             # host already exists
             return

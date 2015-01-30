@@ -46,10 +46,6 @@ class ProbeEvent(ProbeView):
         ProbeView.__init__(self, parent, model, manager_log)
 
         self._updating = False
-        # TODO remove the following attributes ?
-        self._selected_file_list = []
-
-        self._selected = {'component' : [], 'stat' : [], 'index' : []}
 
     def close(self):
         """ close probe tab """
