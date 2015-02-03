@@ -129,15 +129,20 @@ class EnvironmentPlaneController(object):
 
     def register_host(self, host_name):
         """ A host was registerd """
+        host_model = self._model.get_host(host_name)
+        if host_model is None:
+            self._log.error("Cannot find model for host %s, this should not"
+                            " happen here" % host_name)
+            return
         if host_name in self._wait_init:
             self._wait_init.remove(host_name)
-            host_model = self._model.get_host(host_name)
-            if host_model is not None:
-                self._log.info("Model for host %s is now found" % host_name)
+            self._log.info("Model for host %s is now found" % host_name)
+            print "GOOD"
+            host_model.set_init_status(InitStatus.SUCCESS)
+        for program in self.get_programs():
+            if program.name == host_name:
+                program.set_host_model(host_model)
                 host_model.set_init_status(InitStatus.SUCCESS)
-            else:
-                self._log.error("Cannot find model for host %s, this should not"
-                                " happen here" % host_name)
 
     def cleanup(self):
         """
@@ -428,6 +433,7 @@ class EnvironmentPlaneController(object):
         host_model = self._model.get_host(host_name)
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
+            # TODO que sur FINISHINIT !!!!
             host_model.set_init_status(InitStatus.SUCCESS)
         else:
             self._log.warning("Cannot find model for host %s" % host_name)

@@ -140,6 +140,10 @@ class Program(object):
         """ Check if progam is started """
         return self._host_model.get_state()
 
+    def set_host_model(self, host_model):
+        """ Set the host model """
+        self._host_model = host_model
+
     def get_host_model(self):
         """ Get the host model """
         if self._host_model.get_name().lower().startswith(self._name.lower()):
@@ -147,7 +151,6 @@ class Program(object):
             return self._host_model
         # TODO return the associated tool if possible and handle it
         return None
-
 
     @property
     def name(self):
@@ -162,7 +165,6 @@ class Program(object):
         Get the program related host name
         """
         return self._host_model.get_name().lower()
-
 
     @property
     def ident(self):
