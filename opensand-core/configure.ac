@@ -95,6 +95,7 @@ AC_CONFIG_FILES([ \
 	src/dvb_rcs/fmt/Makefile \
 	src/dvb_rcs/dama/Makefile \
 	src/dvb_rcs/saloha/Makefile \
+	src/dvb_rcs/scpc/Makefile \
 	src/dvb_rcs/switch/Makefile \
 	src/dvb_rcs/core/Makefile \
 	src/encap/Makefile \

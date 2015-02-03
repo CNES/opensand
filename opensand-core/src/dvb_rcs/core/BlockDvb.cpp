@@ -142,12 +142,12 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// frame duration
-	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
+	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_CARRIER_DURATION,
 	                   this->ret_up_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, RET_UP_FRAME_DURATION);
+		    GLOBAL_SECTION, RET_UP_CARRIER_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -310,12 +310,12 @@ BlockDvb::DvbUpward::~DvbUpward()
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer
-	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION,
+	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_CARRIER_DURATION,
 	                   this->fwd_down_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION);
+		    GLOBAL_SECTION, FWD_DOWN_CARRIER_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

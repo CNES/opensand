@@ -141,7 +141,8 @@ typedef enum
 	DAMA,
 	TDM,
 	ALOHA,
-	ERROR,
+	SCPC,
+	ERROR
 } access_type_t;
 
 
@@ -162,6 +163,8 @@ inline access_type_t strToAccessType(string access_type)
 		return ALOHA;
 	else if(access_type == "VCM")
 		return TDM;
+	else if(access_type == "SCPC")
+		return SCPC;
 	return ERROR;
 }
 

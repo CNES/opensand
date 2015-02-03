@@ -44,6 +44,7 @@
 
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
+#include "Scheduling.h"
 #include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
@@ -246,6 +247,14 @@ class BlockDvbTal: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		bool initSlottedAloha(void);
+		
+		/**
+		 * Read configuration for the SCPC algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initScpc(void);
+
 
 		/**
 		 * @brief Initialize the output
@@ -352,10 +361,28 @@ class BlockDvbTal: public BlockDvb
 
 		/// The Slotted Aloha for terminal
 		SlottedAlohaTal *saloha;
-
+		
+		// the SCPC agent
+		//ScpcAgent damascpc
+		 
+		/// SCPC Carrier duration in ms
+		time_ms_t scpc_carr_duration_ms;
+	
+		/// frame timer for scpc, used to awake the block every frame period	
+		event_id_t scpc_timer;
+		
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
-
+		
+		// The MODCOD simulation elements for down/forward link
+		FmtSimulation scpc_fmt_simu;
+		
+		/// The uplink of forward scheduling depending on satellite	
+		Scheduling *scpc_sched;
+		
+		/// counter for SCPC frames
+		time_sf_t scpc_frame_counter;
+			
 		/* carrier IDs */
 		uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
 		uint8_t carrier_id_logon; ///< carrier id for Logon req  emission

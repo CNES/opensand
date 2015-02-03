@@ -60,6 +60,7 @@ typedef enum
 	access_dama_avbdc  = 2, /* Absolute Volume Based */
 	access_dama_cra    = 3, /* No CR, only use Constant Allocation */
 	access_saloha      = 4, /* Slotted Aloha */
+	access_scpc        = 5, /* Dama SCPC */  
 } ret_access_type_t;
 
 /**

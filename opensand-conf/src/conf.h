@@ -55,8 +55,8 @@
 
 #define SAT_DELAY                 "delay"
 
-#define RET_UP_FRAME_DURATION     "return_up_frame_duration"
-#define FWD_DOWN_FRAME_DURATION   "forward_down_frame_duration"
+#define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
+#define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"
 
 #define STATS_TIMER               "statistics_timer"
 
@@ -186,6 +186,15 @@
 #define SALOHA_ALGO                    "algorithm"
 #define SALOHA_SIMU_LIST               "simulation_traffic"
 #define SALOHA_RATIO                   "ratio"
+
+
+/////////////////
+/// dama SCPC ///
+/////////////////
+
+#define SCPC_SECTION                    "dama_scpc"
+#define SCPC_C_DURATION                 "scpc_carrier_duration"
+
 
 //////////
 // QOS //

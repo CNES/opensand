@@ -818,9 +818,10 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
 {
 	MacFifoElement *elem;
+	//Be careful: When using other than time_ms_t in 32-bit machine, the RTT is no correct!
 	time_ms_t current_time = this->getCurrentTime();
 
-	while(fifo->getTickOut() <= current_time &&
+	while(fifo->getTickOut() <= (signed)current_time &&
 	      fifo->getCurrentSize() > 0)
 	{
 		DvbFrame *dvb_frame;
