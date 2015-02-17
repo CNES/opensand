@@ -42,6 +42,7 @@
 // RBDC request granularity in SAC (in Kbits/s)
 #define DVB_CR_RBDC_GRANULARITY             2
 #define DVB_CR_RBDC_SCALING_FACTOR         16
+#define DVB_CR_RBDC_SCALING_FACTOR2        32
 #define DVB_CR_VBDC_SCALING_FACTOR         16
 #define DVB_CR_VBDC_SCALING_FACTOR_OFFSET 255
 #define DVB_CR_RBDC_SCALING_FACTOR_OFFSET 510
@@ -176,12 +177,20 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 				                               DVB_CR_RBDC_GRANULARITY);
 				scale = 0;
 			}
-			else
+			else if(cr_info.value <= DVB_CR_RBDC_SCALING_FACTOR_OFFSET *
+			                         DVB_CR_RBDC_SCALING_FACTOR)
 			{
 				value = getEncodedRequestValue(cr_info.value,
 				                               DVB_CR_RBDC_GRANULARITY *
 				                               DVB_CR_RBDC_SCALING_FACTOR);
 				scale = 1;
+			}
+			else
+			{
+				value = getEncodedRequestValue(cr_info.value,
+				                               DVB_CR_RBDC_GRANULARITY *
+				                               DVB_CR_RBDC_SCALING_FACTOR2);
+				scale = 2;
 			}
 			break;
 	}
@@ -239,9 +248,12 @@ static uint16_t getDecodedCrValue(const emu_cr_t &cr)
 		case access_dama_rbdc:
 			if(cr.scale == 0)
 				request = cr.value * DVB_CR_RBDC_GRANULARITY;
-			else
+			else if(cr.scale == 1)
 				request = cr.value * DVB_CR_RBDC_GRANULARITY
 				                   * DVB_CR_RBDC_SCALING_FACTOR;
+			else
+				request = cr.value * DVB_CR_RBDC_GRANULARITY
+				                   * DVB_CR_RBDC_SCALING_FACTOR2;
 			break;
 	}
 

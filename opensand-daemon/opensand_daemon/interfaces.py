@@ -404,6 +404,8 @@ class OpenSandIfaces(object):
             if OpenSandIfaces._name != 'sat':
                 if OpenSandIfaces._ifaces.exists(BR_NAME):
                     mac = get_mac_address(BR_NAME)
+        else:
+            mac = get_mac_address(OpenSandIfaces._lan_iface)
         if OpenSandIfaces._name != 'sat':
             descr.update({'lan_iface': OpenSandIfaces._lan_iface,
                           'lan_ipv4': OpenSandIfaces._lan_ipv4,

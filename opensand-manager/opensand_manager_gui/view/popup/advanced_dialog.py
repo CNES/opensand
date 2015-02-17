@@ -97,9 +97,9 @@ class AdvancedDialog(WindowView):
             error_popup(str(msg))
         self._dlg.set_title("Advanced configuration - OpenSAND Manager")
         self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
-        # show dev mode elements
+        # show advanced mode elements
         widget = self._ui.get_widget("hide_checkbutton")
-        widget.set_visible(self._model.get_dev_mode())
+        widget.set_visible(self._model.get_adv_mode())
         self._dlg.run()
 
     def close(self):
@@ -134,7 +134,11 @@ class AdvancedDialog(WindowView):
 
         # add the global configuration
         gobject.idle_add(self._host_tree.add_host, self._model,
-                         {}, self._model.get_dev_mode())
+                         {})
+        if not self._model.get_adv_mode():
+            treeview = self._host_tree.get_treeview()
+            column = treeview.get_column(1)
+            column.set_visible(False)
 
         # get the modules tree
         self._modules_conf_view = gtk.VBox()
@@ -183,8 +187,7 @@ class AdvancedDialog(WindowView):
                          if elt.get_name() not in self._hosts_name]:
             name = host.get_name()
             self._hosts_name.append(name)
-            gobject.idle_add(self._host_tree.add_host, host, None,
-                             self._model.get_dev_mode())
+            gobject.idle_add(self._host_tree.add_host, host, None)
 
         real_names = []
         for host in self._model.get_hosts_list():
@@ -312,7 +315,7 @@ class AdvancedDialog(WindowView):
         if notebook is None:
             notebook = ConfigurationNotebook(config,
                                              name,
-                                             self._model.get_dev_mode(),
+                                             self._model.get_adv_mode(),
                                              self._model.get_scenario(),
                                              self._show_hidden,
                                              self.handle_param_chanded,
@@ -378,7 +381,7 @@ class AdvancedDialog(WindowView):
         if notebook is None:
             notebook = ConfigurationNotebook(config,
                                              self._current_host.get_name().lower(),
-                                             self._model.get_dev_mode(),
+                                             self._model.get_adv_mode(),
                                              self._model.get_scenario(),
                                              self._show_hidden,
                                              self.handle_param_chanded,
@@ -505,7 +508,7 @@ class AdvancedDialog(WindowView):
             self._modules_tree_view.show_all()
 
     def on_hide_checkbutton_toggled(self, source=None, event=None):
-        """ The see all plugins per host checkbutton has been toggled """
+        """ The see all sections checkbutton has been toggled """
         self._show_hidden = not self._show_hidden
         for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()

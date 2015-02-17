@@ -124,11 +124,11 @@ bool BlockDvbSat::initSpots(void)
 	ConfigurationList::iterator iter;
 
 	// Retrive FIFO size
-	if(!Conf::getValue(DEV_SECTION, DELAY_BUFFER, fifo_size))
+	if(!Conf::getValue(ADV_SECTION, DELAY_BUFFER, fifo_size))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DEV_SECTION, DELAY_BUFFER);
+		    ADV_SECTION, DELAY_BUFFER);
 		goto error;
 	}
 
@@ -301,6 +301,8 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Downward::onInit()
 {
 	// get the common parameters
+	// TODO no need to init pkt hdl in transparent mode,
+	//      this will avoid loggers for encap to be instanciated
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -893,13 +895,14 @@ void BlockDvbSat::Downward::updateStats(void)
 			this->probe_sat_l2_from_gw[spot_id]->put(
 				spot->getL2FromGw() * 8 / this->stats_period_ms);
 
+			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
+
 			// L2 to GW
 			this->probe_sat_l2_to_gw[spot_id]->put(
 				((int) output_gw_fifo_stat.out_length_bytes * 8 /
 				this->stats_period_ms));
 
 			// Queue sizes
-			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
 			this->probe_sat_output_gw_queue_size[spot_id]->put(
 				output_gw_fifo_stat.current_pkt_nbr);
 			this->probe_sat_output_gw_queue_size_kb[spot_id]->put(
@@ -943,6 +946,8 @@ void BlockDvbSat::Upward::setSpots(const sat_spots_t &spots)
 bool BlockDvbSat::Upward::onInit()
 {
 	// get the common parameters
+	// TODO no need to init pkt hdl in transparent mode,
+	//      this will avoid loggers for encap to be instanciated
 	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

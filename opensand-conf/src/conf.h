@@ -87,12 +87,12 @@
 #define FIFO_LIST                 "layer2_fifos"
 #define FIFO_PRIO                 "priority"
 
-#define FIFO_TYPE                 "type"
+#define FIFO_NAME                 "name"
 #define FIFO_SIZE                 "size_max"
 #define FIFO_ACCESS_TYPE          "access_type"
 #define DVB_TYPE                  "dvb_type"
 #define CRA                       "constant_rate_allocation"
-#define DAMA_ALGO                 "dama_algorithm"
+#define DAMA_ALGO                 "dama_agent_algorithm"
 
 
 ///////////////////////////
@@ -275,10 +275,10 @@
 
 
 
-/////////////////////////
-//         dev         //
-/////////////////////////
-#define DEV_SECTION      "dev"
+//////////////////////////
+//       advanced       //
+//////////////////////////
+#define ADV_SECTION      "advanced"
 #define DELAY_BUFFER     "delay_buffer"
 #define UDP_RMEM         "udp_rmem"
 #define UDP_WMEM         "udp_wmem"

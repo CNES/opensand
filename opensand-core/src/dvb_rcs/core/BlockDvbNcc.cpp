@@ -40,6 +40,7 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
+#include "DvbScpcStd.h"
 #include "Sof.h"
 #include "ForwardSchedulingS2.h"
 #include "UplinkSchedulingRcs.h"
@@ -119,6 +120,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	sof_carrier_id(),
 	data_carrier_id(),
 	dvb_fifos(),
+	default_fifo_id(0),
 	complete_dvb_frames(),
 	categories(),
 	terminal_affectation(),
@@ -200,15 +202,6 @@ BlockDvbNcc::Downward::~Downward()
 	}
 	this->dvb_fifos.clear();
 		
-	if(this->l2_to_sat_bytes_before_sched != NULL)
-	{
-		delete[] this->l2_to_sat_bytes_before_sched;
-	}
-	if(this->l2_to_sat_bytes_after_sched != NULL)
-	{
-		delete[] this->l2_to_sat_bytes_after_sched;
-	}
-		
 	if(this->satellite_type == TRANSPARENT)
 	{
 		TerminalCategories<TerminalCategoryDama>::iterator cat_it;
@@ -267,12 +260,13 @@ bool BlockDvbNcc::Downward::onInit(void)
 	else
 	{
 		if(!this->initPktHdl(RETURN_UP_ENCAP_SCHEME_LIST,
-		                     &this->up_return_pkt_hdl))
+		                     &this->up_return_pkt_hdl, false))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed get packet handler\n");
 			goto error;
 		}
+
 	}
 
 	if(!this->initRequestSimulation())
@@ -615,7 +609,7 @@ bool BlockDvbNcc::Downward::initColumns(void)
 	                                        this->column_list[GW_TAL_ID]))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to define the GW as ST with ID %ld\n",
+		    "failed to define the GW as ST with ID %d\n",
 		    GW_TAL_ID);
 		goto error;
 	}
@@ -992,7 +986,7 @@ bool BlockDvbNcc::Downward::initFifo(void)
 	{
 		unsigned int fifo_priority;
 		vol_pkt_t fifo_size = 0;
-		string fifo_mac_prio;
+		string fifo_name;
 		string fifo_access_type;
 		DvbFifo *fifo;
 
@@ -1004,12 +998,12 @@ bool BlockDvbNcc::Downward::initFifo(void)
 			    FIFO_PRIO, DVB_NCC_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		// get fifo_mac_prio
-		if(!Conf::getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
+		// get fifo_name
+		if(!Conf::getAttributeValue(iter, FIFO_NAME, fifo_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_TYPE, DVB_NCC_SECTION, FIFO_LIST);
+			    FIFO_NAME, DVB_NCC_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_size
@@ -1030,7 +1024,7 @@ bool BlockDvbNcc::Downward::initFifo(void)
 			goto err_fifo_release;
 		}
 
-		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
+		fifo = new DvbFifo(fifo_priority, fifo_name,
 		                   fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
@@ -1051,27 +1045,11 @@ bool BlockDvbNcc::Downward::initFifo(void)
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
 	} // end for(queues are now instanciated and initialized)
 
-	// init stats context per QoS
-	this->l2_to_sat_bytes_before_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_bytes_before_sched == NULL)
-	{
-		goto err_before_release;
-	}
-
-	this->l2_to_sat_bytes_after_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_bytes_after_sched == NULL)
-	{
-		goto err_after_release;
-	}
-
-	this->resetStatsCxt();
+	//reset stat
+	this->l2_to_sat_total_bytes = 0;
 
 	return true;
 
-err_before_release:
-	delete[] this->l2_to_sat_bytes_after_sched;
-err_after_release:
-	delete[] this->l2_to_sat_bytes_before_sched;
 err_fifo_release:
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1190,6 +1168,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "SF#%u: store one encapsulation "
 				    "packet\n", this->super_frame_counter);
 
+				// find the FIFO associated to the IP QoS (= MAC FIFO id)
+				// else use the default id
+				if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+				{
+					fifo_priority = this->default_fifo_id;
+				}
+
 				if(!this->onRcvEncapPacket(*pkt_it,
 				                           this->dvb_fifos[fifo_priority],
 				                           0))
@@ -1210,8 +1195,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "SF#%u: encapsulation packet is "
 				    "successfully stored\n",
 				    this->super_frame_counter);
-				this->l2_to_sat_bytes_before_sched[fifo_priority] +=
-							(*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1992,14 +1975,13 @@ void BlockDvbNcc::Downward::updateStats(void)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
 		
-		this->l2_to_sat_bytes_after_sched[(*it).first] = fifo_stat.out_length_bytes;
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
-			this->l2_to_sat_bytes_before_sched[(*it).first] * 8.0 / this->stats_period_ms);
+			fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
 
 		this->probe_gw_l2_to_sat_after_sched[(*it).first]->put(
-			this->l2_to_sat_bytes_after_sched[(*it).first] * 8.0 / this->stats_period_ms);
+			fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
 
 		// Mac fifo stats
 		this->probe_gw_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
@@ -2008,22 +1990,14 @@ void BlockDvbNcc::Downward::updateStats(void)
 		this->probe_gw_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
 		this->probe_gw_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}
+
+
 	this->probe_gw_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
 	
-	this->resetStatsCxt();
-}
-
-void BlockDvbNcc::Downward::resetStatsCxt(void)
-{
-	for(unsigned int i = 0; i < this->dvb_fifos.size(); i++)
-	{
-		this->l2_to_sat_bytes_before_sched[i] = 0;
-		this->l2_to_sat_bytes_after_sched[i] = 0;
-	}
+	//reset stat
 	this->l2_to_sat_total_bytes = 0;
 }
-
 bool BlockDvbNcc::Downward::sendAcmParameters(void)
 {
 	Sac *send_sac = new Sac(GW_TAL_ID);
@@ -2054,6 +2028,7 @@ BlockDvbNcc::Upward::Upward(Block *const bl):
 	saloha(NULL),
 	mac_id(GW_TAL_ID),
 	ret_fmt_groups(),
+    scpc_pkt_hdl(NULL),			
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
@@ -2166,6 +2141,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 error_mode:
 	delete this->receptionStd;
+	delete this->receptionStdScpc;
 error:
 	return false;
 }
@@ -2298,6 +2274,16 @@ bool BlockDvbNcc::Upward::initMode(void)
 	if(this->satellite_type == TRANSPARENT)
 	{
 		this->receptionStd = new DvbRcsStd(this->pkt_hdl);
+
+		if(!this->initPktHdl("GSE",
+		                     &this->scpc_pkt_hdl, true))
+		{
+		    LOG(this->log_init, LEVEL_ERROR,
+			    "failed get packet handler\n");
+				goto error;
+		}
+	
+		this->receptionStdScpc = new DvbScpcStd(this->scpc_pkt_hdl);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
@@ -2317,6 +2303,14 @@ bool BlockDvbNcc::Upward::initMode(void)
 		    "failed to create the reception standard\n");
 		goto error;
 	}
+
+	if(this->satellite_type == TRANSPARENT && !this->receptionStdScpc)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create the reception standard for SCPC\n");
+		goto error;
+	}
+
 
 	return true;
 
@@ -2392,13 +2386,79 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
+			//  TODO: With multispot, this should be resolved (no need to test if getType == RCS)
 			if(this->receptionStd->getType() == "DVB-RCS")
 			{
 				LOG(this->log_receive, LEVEL_INFO,
 				    "ignore received BB frame in transparent "
 				    "scenario\n");
-				goto drop;
+
+				//goto drop;
 			}
+			if(this->receptionStdScpc->getType() == "SCPC")
+			{
+				NetBurst *burst = NULL;
+				//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
+
+				// Update stats
+				this->l2_from_sat_bytes += dvb_frame->getMessageLength();
+				this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+
+				if(this->with_phy_layer)
+				{
+					DvbFrame *frame_copy = new DvbFrame(dvb_frame);
+					if(!this->shareFrame(frame_copy))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "Unable to transmit Frame to opposite channel\n");
+					}
+				}
+				LOG(this->log_receive, LEVEL_WARNING, " STEP1\n");
+				// GW_TAL_ID is no used
+				if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
+				                                   GW_TAL_ID,
+				                                   &burst))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to handle the reception of "
+					    "BB frame (len = %u)\n",
+					    dvb_frame->getMessageLength());
+					goto error;
+				}
+				if(msg_type != MSG_TYPE_CORRUPTED)
+				{
+					// update MODCOD probes
+					// TODO: for gateway
+					//if(!this->with_phy_layer)
+					//{
+					//	this->probe_st_real_modcod->put(std->getRealModcod());
+					//}
+					//this->probe_received_modcod->put(std->getReceivedModcod());
+					///TDOD: 28 for GW
+					//uint8_t mc = 28;
+					//this->probe_received_modcod->put(mc);
+				}
+				else
+				{
+					//TODO: 28 for GW
+					//this->probe_rejected_modcod->put(std->getReceivedModcod());
+					//uint8_t mc = 28;
+					//this->probe_rejected_modcod->put(mc);
+				}
+				// send the message to the upper layer
+				if(burst && !this->enqueueMessage((void **)&burst))
+				{
+					LOG(this->log_send, LEVEL_ERROR, 
+					    "failed to send burst of packets to upper layer\n");
+					delete burst;
+					goto error;
+				}
+				LOG(this->log_send, LEVEL_INFO, 
+				    "burst sent to the upper layer\n");
+				break;
+				
+			}
+
 			// breakthrough
 		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_CORRUPTED:
@@ -2583,9 +2643,9 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	return true;
 
-drop:
-	delete dvb_frame;
-	return true;
+//drop:
+//	delete dvb_frame;
+//	return true;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,

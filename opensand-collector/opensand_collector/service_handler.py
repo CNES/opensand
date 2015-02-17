@@ -111,7 +111,7 @@ class ServiceHandler(object):
             '/'), 'org.freedesktop.Avahi.Server')
 
         disco_browser = dbus.Interface(bus.get_object(avahi.DBUS_NAME,
-            self._disco_server.ServiceBrowserNew(avahi.IF_UNSPEC,
+            self._disco_server.ServiceBrowserNew(iface,
                 avahi.PROTO_INET, self._service_type, 'local',
                 dbus.UInt32(0))), avahi.DBUS_INTERFACE_SERVICE_BROWSER)
 
@@ -165,7 +165,7 @@ class ServiceHandler(object):
             self._host_manager.add_host_addr(name, (addr, port))
             return
 
-        LOGGER.debug("Daemon on host '%s' has address %s:%d.", name, addr, port)
+        LOGGER.info("Daemon on host '%s' has address %s:%d.", name, addr, port)
         self._known_hosts.add(name)
         self._host_manager.add_host(name, (addr, port))
 
@@ -176,7 +176,7 @@ class ServiceHandler(object):
         if name == "collector":
             return
 
-        LOGGER.debug("Daemon on host '%s' has exited.", name)
+        LOGGER.info("Daemon on host '%s' has exited.", name)
         self._host_manager.remove_host(name)
         self._known_hosts.discard(name)
 

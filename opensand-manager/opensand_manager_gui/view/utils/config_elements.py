@@ -37,6 +37,7 @@ config_elements.py - create configuration elements according to their types
 import gtk
 import gobject
 import os
+import pango
 from copy import deepcopy
 
 from opensand_manager_core.my_exceptions import XmlException
@@ -82,14 +83,14 @@ class ProbeSelectionController(object):
                                           gobject.TYPE_INT)
 
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
-        probe_listview.set_model(self._probe_store)
-        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
-        probe_listview.set_enable_tree_lines(True)
+        self._probe_listview.set_model(self._probe_store)
+        self._probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
+        self._probe_listview.set_enable_tree_lines(True)
 
 
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(NAME) # Sort on the probe/section name
-        probe_listview.append_column(column)
+        self._probe_listview.append_column(column)
 
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
@@ -193,7 +194,7 @@ class ProbeSelectionController(object):
             if probe.enabled:
                 probe_parent = None
                 cur_group = groups
-                probe_path = probe.name.split(".")
+                probe_path = probe.disp_name.split(".")
                 probe_name = probe_path.pop()
 
                 while probe_path:
@@ -331,7 +332,7 @@ class ConfigurationTree(gtk.TreeStore):
         if col1_changed_cb is not None:
             self._treeselection.connect('changed', col1_changed_cb)
 
-    def add_host(self, host, elt_info=None, dev_mode=False):
+    def add_host(self, host, elt_info=None):
         """ add a host with its elements in the treeview """
         name = host.get_name()
         # append an element in the treestore
@@ -366,14 +367,13 @@ class ConfigurationTree(gtk.TreeStore):
         else:
             # for advanced host
             # only set host activatable if developper mode is enabled
-            activatable = dev_mode
             if host.get_state() is None:
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, True,
                               ACTIVE, active,
-                              ACTIVATABLE, activatable)
+                              ACTIVATABLE, True)
 
 
     def add_module(self, module, parents=False):
@@ -412,7 +412,7 @@ class ConfigurationTree(gtk.TreeStore):
         """ get a parent in the treeview """
         iterator = self.get_iter_first()
         while iterator is not None and \
-              self.get_value(iterator, TEXT) != name:
+              self.get_value(iterator, TEXT).lower() != name.lower():
             iterator = self.iter_next(iterator)
         return iterator
 
@@ -427,7 +427,7 @@ class ConfigurationTree(gtk.TreeStore):
 
 class ConfigurationNotebook(gtk.Notebook):
     """ the OpenSAND configuration view elements """
-    def __init__(self, config, host, dev_mode, scenario, show_hidden, changed_cb, file_cb):
+    def __init__(self, config, host, adv_mode, scenario, show_hidden, changed_cb, file_cb):
         gtk.Notebook.__init__(self)
 
         self._current_page = 0
@@ -439,18 +439,18 @@ class ConfigurationNotebook(gtk.Notebook):
         self.connect('hide', self.on_hide)
 
         for section in config.get_sections():
-            conf_section = ConfSection(section, config, host, dev_mode,
+            conf_section = ConfSection(section, config, host, adv_mode,
                                        scenario, changed_cb, file_cb)
             if self.add_section(config, section,
-                                conf_section, dev_mode):
+                                conf_section, adv_mode):
                 self._sections.append(conf_section)
 
         self.set_hidden(not show_hidden)
 
-    def add_section(self, config, section, conf_section, dev_mode):
+    def add_section(self, config, section, conf_section, adv_mode):
         """ add a section in the notebook and return the associated vbox """
         name = config.get_name(section)
-        if config.do_hide_dev(name, dev_mode):
+        if config.do_hide_adv(name, adv_mode):
             return False
         scroll_notebook = gtk.ScrolledWindow()
         scroll_notebook.set_policy(gtk.POLICY_AUTOMATIC,
@@ -508,7 +508,7 @@ class ConfigurationNotebook(gtk.Notebook):
 
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
-    def __init__(self, section, config, host, dev_mode, scenario,
+    def __init__(self, section, config, host, adv_mode, scenario,
                  changed_cb, file_cb):
         gtk.VBox.__init__(self)
 
@@ -518,7 +518,7 @@ class ConfSection(gtk.VBox):
         self._changed_cb = changed_cb
         self._file_cb = file_cb
         self._scenario = scenario
-        self._dev_mode = dev_mode
+        self._adv_mode = adv_mode
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._entries = []
@@ -569,11 +569,23 @@ class ConfSection(gtk.VBox):
         name = self._config.get_name(section)
         description = self._config.get_documentation(name)
         if description != None:
-            section_descr = gtk.Label()
+            description = description.split("\n", 1)
+            if len(description) > 1:
+                section_descr = gtk.Expander(label=description[0])
+                section_descr.set_use_markup(True)
+                text = gtk.Label()
+                text.set_markup(description[1])
+                text.set_justify(gtk.JUSTIFY_LEFT)
+                text.set_alignment(0, 0.5)
+                section_descr.add(text)
+            else:
+                section_descr = gtk.Label(description[0])
+                section_descr.set_markup(description[0])
+                section_descr.set_justify(gtk.JUSTIFY_LEFT)
+                section_descr.set_alignment(0, 0.5)
+
             evt = gtk.EventBox()
             evt.add(section_descr)
-            section_descr.set_markup(description)
-            section_descr.set_justify(gtk.JUSTIFY_CENTER)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
             self.pack_start(evt)
             self.set_child_packing(evt, expand=False,
@@ -598,19 +610,20 @@ class ConfSection(gtk.VBox):
     def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
-        if self._config.do_hide_dev(name, self._dev_mode):
+        if self._config.do_hide_adv(name, self._adv_mode):
             return None
         key_box = gtk.HBox()
         key_label = gtk.Label()
+        key_label.set_ellipsize(pango.ELLIPSIZE_END)
         key_label.set_markup(name)
         key_label.set_alignment(0.0, 0.5)
-        key_label.set_width_chars(25)
+        key_label.set_width_chars(30)
         description = self._config.get_documentation(name)
-        self.add_description(key_box, description)
         key_box.pack_start(key_label)
         key_box.set_child_packing(key_label, expand=False,
                                   fill=False, padding=5,
                                   pack_type=gtk.PACK_START)
+        self.add_description(key_box, description)
         elt_type = self._config.get_type(name)
         source = self._config.get_file_source(name)
         if source is not None:
@@ -651,7 +664,7 @@ class ConfSection(gtk.VBox):
     def add_table(self, key):
         """ add a table in the tab """
         name = self._config.get_name(key)
-        if self._config.do_hide_dev(name, self._dev_mode):
+        if self._config.do_hide_adv(name, self._adv_mode):
             return None
         check_buttons = []
         table_frame = gtk.Frame()
@@ -663,11 +676,11 @@ class ConfSection(gtk.VBox):
         label_text = gtk.Label()
         label_text.set_markup("<b>%s</b>" % name)
         description = self._config.get_documentation(name)
-        self.add_description(table_label, description)
         table_label.pack_start(label_text)
         table_label.set_child_packing(label_text, expand=False,
                                       fill=False, padding=5,
                                       pack_type=gtk.PACK_START)
+        self.add_description(table_label, description)
         table_frame.set_label_widget(table_label)
         align_vbox = gtk.VBox()
         alignment.add(align_vbox)
@@ -682,14 +695,12 @@ class ConfSection(gtk.VBox):
         add_button.connect('clicked', self.on_add_button_clicked)
         add_button.connect('clicked', self._changed_cb)
         add_button.set_tooltip_text("Add a line in the table")
-        add_button.set_has_tooltip(True)
         self._add_buttons.append(add_button)
         del_button = gtk.ToolButton(gtk.STOCK_REMOVE)
         del_button.set_name(self._config.get_path(key))
         del_button.connect('clicked', self.on_del_button_clicked)
         del_button.connect('clicked', self._changed_cb)
         del_button.set_tooltip_text("Remove the selected lines from the table")
-        del_button.set_has_tooltip(True)
         self._del_buttons.append(del_button)
         toolbar.insert(add_button, -1)
         toolbar.insert(del_button, -1)
@@ -735,7 +746,6 @@ class ConfSection(gtk.VBox):
         check_button = gtk.CheckButton()
         check_button.set_name(key_path)
         check_button.set_tooltip_text("Select the lines you want to remove")
-        check_button.set_has_tooltip(True)
         check_button.connect('toggled', self.on_remove_button_toggled)
         hbox.pack_start(check_button)
         hbox.set_child_packing(check_button, expand=False,
@@ -755,11 +765,11 @@ class ConfSection(gtk.VBox):
             att_label.set_alignment(0.1, 0.5)
             att_label.set_width_chars(len(att) + 1)
             att_description = self._config.get_documentation(att, name)
-            self.add_description(hbox, att_description)
             hbox.pack_start(att_label)
             hbox.set_child_packing(att_label, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
+            self.add_description(hbox, att_description)
             elt_type = self._config.get_attribute_type(att, name)
             value = ''
             path = ''
@@ -818,7 +828,6 @@ class ConfSection(gtk.VBox):
         img.set_from_stock(gtk.STOCK_DIALOG_INFO,
                            gtk.ICON_SIZE_MENU)
         img.set_tooltip_text(description)
-        img.set_has_tooltip(True)
         widget.pack_start(img)
         widget.set_child_packing(img, expand=False,
                                  fill=False, padding=1,
@@ -968,17 +977,6 @@ class ConfSection(gtk.VBox):
         self.update_completion(completion, path, att)
 
 
-# About the specific case of files:
-# the value in configuration contains the file on destination but
-# we want to change the file here and deploy it on this destination.
-# Thus, we allow changing the source path here and the value in
-# configuration will remain unchanged
-# To be sure that the correct file will be on distant host, we
-# will deploy it (if something changed)  once the configuration will
-# be saved
-# Moreover, to be able to keep the correct source when restarting the manager
-# the file selected in source path is copied in the scenario in a path specified
-# in xsd file documentation between <file> tags
 class ConfEntry(object):
     """ element for configuration entry """
     def __init__(self, entry_type, value, path, source, host,
@@ -1074,42 +1072,72 @@ class ConfEntry(object):
         """ load a gtk.FileChooserButton """
         # there is a special case with files, see above
         # In title, set the destination path
-        self._entry = gtk.FileChooserButton(title=self._value + ' - OpenSAND')
-        # Get the source file in scenario
-        if self._source is None:
-            error_popup("Missing XSD source content for file element")
-        else:
-            self._entry.set_filename(self._source)
-        self._entry.connect('file-set', self.global_handler)
-        # specific handler here
-        self._entry.connect('file-set', self._file_handler, self._host,
-                            self._path)
-        self._entry.set_size_request(200, -1)
-#        def update_preview_cb(file_chooser, preview):
-#            filename = file_chooser.get_preview_filename()
-#            try:
-#                with open(filename, 'r') as content:
-#                    buf = gtk.TextBuffer()
-#                    buf.set_text(content.read())
-#                    preview.set_buffer(buf)
-#                    preview.set_size_request(500, -1)
-#                have_preview = True
-#            except Exception, m:
-#                print m
-#                have_preview = False
-#            file_chooser.set_preview_widget_active(have_preview)
-#            return
-#        preview = gtk.TextView()
-#        self._entry.set_preview_widget(preview)
-#        self._entry.connect("update-preview", update_preview_cb, preview)
-        def edit_file(button, event, entry):
-            window = EditDialog(entry.get_filename())
+        self._entry = gtk.HBox()
+        def edit_file(edit_button, event):
+            window = EditDialog(self._source)
             window.go()
-        button = gtk.Button(stock=gtk.STOCK_EDIT)
-        button.show()
-        button.connect('button-press-event', edit_file, self._entry)
-        self._entry.set_extra_widget(button)
-
+        edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
+        edit_button.show()
+        # show edit dialog
+        edit_button.connect('button-press-event', edit_file)
+        # consider file may be changed
+        self._entry.pack_start(edit_button)
+        # Get the source file in scenario
+        def update_preview_cb(file_chooser, preview):
+            filename = file_chooser.get_preview_filename()
+            preview.set_editable(False)
+            has_preview = False
+            try:
+                with open(filename, 'r') as content:
+                    buf = gtk.TextBuffer()
+                    small = buf.create_tag('small')
+                    small.set_property('scale', pango.SCALE_SMALL)
+                    text = content.read()
+                    # if text is not utf-8, will return a UnicodeDecodeError,
+                    # this avoid trying to display files with wrong format
+                    text.decode('utf-8')
+                    buf.insert_with_tags_by_name(buf.get_start_iter(),
+                                                 text, 'small')
+                    preview.set_buffer(buf)
+                has_preview = True
+            except Exception:
+                has_preview = False
+            file_chooser.set_preview_widget_active(has_preview)
+            return
+        def upload_file(button, event):
+            if self._source is None:
+                error_popup("Missing XSD source content for file element")
+                return
+            dlg = gtk.FileChooserDialog(self._value + ' - OpenSAND', None,
+                                        gtk.FILE_CHOOSER_ACTION_OPEN,
+                                        (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                         gtk.STOCK_APPLY, gtk.RESPONSE_APPLY))
+            dlg.set_size_request(500, -1)
+            preview = gtk.TextView()
+            scroll = gtk.ScrolledWindow()
+            scroll.add(preview)
+            scroll.show_all()
+            scroll.set_size_request(200, -1)
+            dlg.set_preview_widget(scroll)
+            dlg.connect("update-preview", update_preview_cb, preview)
+            dlg.set_filename(self._source)
+            dlg.set_preview_widget_active(False)
+            ret = dlg.run()
+            if ret == gtk.RESPONSE_APPLY:
+                new_filename = dlg.get_filename()
+                self.global_handler()
+                if self._file_handler is not None:
+                    self._file_handler(new_filename, self._host, self._path)
+            dlg.destroy()
+        upload_button = gtk.Button(label="Upload")
+        img = gtk.Image()
+        img.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+        upload_button.set_image(img)
+        upload_button.show()
+        # show upload dialog
+        upload_button.connect('button-press-event', upload_file)
+        # consider file may be changed
+        self._entry.pack_start(upload_button)
 
     def do_not_scroll(self, source=None, event=None):
         """ stop scolling in the element which emits the scroll-event signal """

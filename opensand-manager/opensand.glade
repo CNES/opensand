@@ -12,7 +12,6 @@
     <property name="program_name">OpenSAND Manager</property>
     <property name="comments" translatable="yes">This tool helps you configuring and running the OpenSAND platform on your LAN</property>
     <property name="website">http://opensand.org</property>
-    <property name="website_label" translatable="yes">OpenSAND</property>
     <property name="license" translatable="yes">OpenSAND is free software : you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
@@ -798,6 +797,23 @@ Viveris technologies
                         </child>
                       </widget>
                     </child>
+                    <child>
+                      <widget class="GtkSeparatorMenuItem" id="menuitem1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkCheckMenuItem" id="option_adv_mode">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">Advanced mode</property>
+                        <property name="use_underline">True</property>
+                        <signal name="toggled" handler="on_option_adv_mode_toggled" />
+                      </widget>
+                    </child>
                   </widget>
                 </child>
               </widget>
@@ -888,6 +904,17 @@ Viveris technologies
                         <signal name="activate" handler="on_about_activate" />
                       </widget>
                     </child>
+                    <child>
+                      <widget class="GtkImageMenuItem" id="info">
+                        <property name="label">gtk-info</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_info_activate" />
+                      </widget>
+                    </child>
                   </widget>
                 </child>
               </widget>
@@ -897,24 +924,6 @@ Viveris technologies
             <property name="expand">False</property>
             <property name="fill">False</property>
             <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkEventBox" id="status_box">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <widget class="GtkLabel" id="info_label">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Welcome to OpenSAND manager !</property>
-              </widget>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -1433,6 +1442,20 @@ This is the name used when loading probes.</property>
                                                 <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkVBox" id="lan_adapt_stack">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <child>
+                                                  <placeholder/>
+                                                </child>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
                                               </packing>
                                             </child>
                                           </widget>
@@ -2646,17 +2669,6 @@ This is the name used when loading probes.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2720,6 +2732,17 @@ This is the name used when loading probes.</property>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
@@ -3036,6 +3059,24 @@ This is the name used when loading probes.</property>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkEventBox" id="status_box">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <widget class="GtkLabel" id="info_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Welcome to OpenSAND manager !</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
             <property name="position">2</property>
           </packing>
         </child>

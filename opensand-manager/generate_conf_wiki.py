@@ -123,7 +123,7 @@ if __name__ == "__main__":
     purpose = ""
     for SECTION in PARSER.get_sections():
         domain = PARSER.get_name(SECTION)
-        if DO_HIDE and PARSER.do_hide(domain) or PARSER.do_hide_dev(domain,
+        if DO_HIDE and PARSER.do_hide(domain) or PARSER.do_hide_adv(domain,
                                                                     False):
             continue
         description = PARSER.get_documentation(domain)
@@ -133,7 +133,7 @@ if __name__ == "__main__":
             pass
         for KEY in PARSER.get_keys(SECTION):
             if DO_HIDE and PARSER.do_hide(PARSER.get_name(KEY)) or \
-               PARSER.do_hide_dev(PARSER.get_name(KEY), False):
+               PARSER.do_hide_adv(PARSER.get_name(KEY), False):
                 continue
             if not PARSER.is_table(KEY):
                 ptype = "PARAM"

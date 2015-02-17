@@ -269,7 +269,8 @@ int main(int argc, char **argv)
 
 	block_encap = Rt::createBlock<BlockEncap,
 	                              BlockEncap::RtUpward,
-	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
+	                              BlockEncap::RtDownward,
+	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

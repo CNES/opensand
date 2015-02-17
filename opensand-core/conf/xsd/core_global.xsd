@@ -191,7 +191,7 @@
         <xsd:attribute name="access_type" type="downAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (ACMM, VCM)
+                    The type of multiplexing (ACM, VCM)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -340,12 +340,12 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element ref="return_up_band" />
             <xsd:element ref="forward_down_band" />
+            <xsd:element ref="return_up_band" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
-            <xsd:element ref="dev" />
+            <xsd:element ref="advanced" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -356,7 +356,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The global configuration for all components</b>
+            <b>\tThe global configuration for all components</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -378,14 +378,6 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_carrier_duration" type="msTimeFrame">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The return/up link DVB frame duration (in ms)
-                        <unit>ms</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="forward_down_carrier_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -394,11 +386,11 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element ref="return_up_encap_schemes">
+            <xsd:element name="return_up_carrier_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The return/up link encapsulation scheme
-                        <hide>true</hide>
+                        The return/up link DVB frame duration (in ms)
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -406,6 +398,14 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The forward/down link encapsulation scheme
+                        <hide>true</hide>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="return_up_encap_schemes">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return/up link encapsulation scheme
                         <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
@@ -437,7 +437,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Return/Up link bandwidth configuration</b>
+            <b>\tReturn/Up link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -495,7 +495,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Forward/Down link bandwidth configuration</b>
+            <b>\tForward/Down link bandwidth configuration</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -553,7 +553,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha common parameters</b>
+            <b>\tThe Slotted Aloha common parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -576,7 +576,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The number of the column corresponding to each terminal in the DRA
+            <b>\tThe number of the column corresponding to each terminal in the DRA
             and MODCOD simulation files</b>
             ]]>
             <hide>true</hide>
@@ -601,15 +601,10 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description:</b>\n
+            <b>\tThe physical layer description:</b>\n
             if the physical layer block is enabled, see the
             <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information, else ACM simulation files are used\n
             acm_refresh_period is used in both cases\n
-            \n
-            <u>Note about files:</u>\n
-            When you select another file, it will be copied in your scenario,\n
-            so don't be surprised to always get the same file path when opening\n
-            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -673,15 +668,15 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- dev section description -->
-<xsd:element name="dev">
+<!-- advanced section description -->
+<xsd:element name="advanced">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Some parameters that may influence performances
+            <b>\tSome parameters that may influence performances
             (for advanced users only, do not edit these parameters !)</b>
             ]]>
-            <dev>true</dev>
+            <adv>true</adv>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

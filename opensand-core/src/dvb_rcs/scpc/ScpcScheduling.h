@@ -122,13 +122,11 @@ class ScpcScheduling: public Scheduling
 	                          CarriersGroupDama *carriers);
 
 	/**
-	 * @brief Get the current modcod of the gateway
+	 * @brief Get the current modcod ID of the gateway
 	 *
 	 * @return         the simulated modcod ID for GW uplink 
 	 */
-	bool retrieveCurrentModcod(tal_id_t tal_id,
-									 const time_sf_t current_superframe_sf,
-									 unsigned int &modcod_id);
+	uint8_t retrieveCurrentModcod(void);
 	/**
 	 * @brief Create an incomplete BB frame
 	 *
@@ -144,14 +142,12 @@ class ScpcScheduling: public Scheduling
 	/**
 	 * @brief Get the incomplete BBFrame for the current destination terminal
 	 *
-	 * @param tal_id    the terminal ID we want to send the frame
-	 * @paarm carriers  the carriers group to which the terminal belongs
+	 * @param carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe   OUT: the BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
-	bool getIncompleteBBFrame(tal_id_t tal_id,
-	                          CarriersGroupDama *carriers,
+	bool getIncompleteBBFrame(CarriersGroupDama *carriers,
 	                          const time_sf_t current_superframe_sf,
 	                          BBFrame **bbframe);
 

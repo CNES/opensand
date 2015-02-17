@@ -27,7 +27,7 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="damaAlgorithm">
+<xsd:simpleType name="damaAgentAlgorithm">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="Legacy" />
         <xsd:enumeration value="RrmQos" />
@@ -101,7 +101,7 @@
         </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="type" type="className">
+        <xsd:attribute name="name" type="className">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The name of the FIFO
@@ -157,7 +157,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Some global parameters</b>
+            <b>\tSome global parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>
@@ -180,11 +180,10 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The dvb layer configuration for terminal</b>\n
+            <b>\tThe dvb layer configuration for terminal</b>\n
             For Layer 2 FIFO configuration:\n
               - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping\n
               - access type has to be correlated with the band configuration one\n
-            \n
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -214,7 +213,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="dama_algorithm" type="damaAlgorithm">
+            <xsd:element name="dama_agent_algorithm" type="damaAgentAlgorithm">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The DAMA algorithm for Agent
@@ -258,7 +257,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha ST parameters</b>
+            <b>\tThe Slotted Aloha ST parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -354,7 +353,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The QoS data parameters</b
+            <b>\tThe QoS data parameters</b
             ]]>>
             <hide>true</hide>
         </xsd:documentation>
@@ -384,7 +383,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The debug parameters</b>
+            <b>\tThe debug parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>

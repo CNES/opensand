@@ -38,19 +38,22 @@ opensand_shell_manager.py - OpenSAND manager utils for shell
 import threading
 import time
 import gobject
+from collections import deque
 
 from opensand_manager_core.opensand_model import Model
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.opensand_controller import Controller
 from opensand_manager_core.controller.host import HostController
+from opensand_manager_core.env_plane_dispatcher import EnvPlaneDispatcher
 from opensand_manager_core.loggers.manager_log import ManagerLog
-from opensand_manager_core.loggers.levels import MGR_WARNING
+from opensand_manager_core.loggers.levels import MGR_WARNING, LOG_LEVELS
 from opensand_manager_core.controller.tcp_server import Plop, CommandServer
+from opensand_manager_core.utils import blue
 
 
-INIT_ITER=50
+INIT_ITER = 50
 SERVICE = "_opensand._tcp"
-EVT_TIMEOUT = 10
+EVT_TIMEOUT = 140
 
 
 class ShellManager(object):
@@ -58,8 +61,11 @@ class ShellManager(object):
     OpenSAND manager shell interface
     """
     def __init__(self):
+        self._log = None
+
         self._model = None
         self._controller = None
+        self._frontend = None
 
         self._disable_remote_logs = None
 
@@ -75,8 +81,9 @@ class ShellManager(object):
         self._command = None
 
     def load(self, log_level=MGR_WARNING, service=SERVICE,
-                 remote_logs=False, with_ws=False,
-                 command_server=(False, 5656)):
+             remote_logs=False, with_ws=False,
+             command_server=(False, 5656),
+             frontend=None):
         """
         load the shell manager interface:
             log_level:      the level of logs that will be printed in shell
@@ -91,8 +98,9 @@ class ShellManager(object):
                             If you don't want to be stuck listening, do not
                             enable command server here and call the
                             launch_command_server function
+            frontend:       a class inheriting from BaseFrontend
         """ 
-        self._disable_remote_logs = remote_logs
+        self._disable_remote_logs = not remote_logs
         self._log = ManagerLog(log_level, True, False, False, 'ShellManager')
         # create the OpenSAND model
         self._model = Model(self._log)
@@ -107,6 +115,12 @@ class ShellManager(object):
                                  self._model,
                                  self._log)
         self._event_response_handler.start()
+        if frontend is not None:
+            self._frontend = frontend
+            self._frontend.set_logger(self._log)
+            EnvPlaneDispatcher(self._controller.get_env_plane_controller(),
+                               self._frontend)
+
         # Launch the mainloop for service_listener
         self._loop = Loop()
         self._loop.start()
@@ -129,7 +143,6 @@ class ShellManager(object):
         CommandServer._shutdown = self.close
         if command_server[0]:
             self._start_command_server(command_server[1])
-
 
     def close(self):
         """ stop the service listener """
@@ -240,6 +253,19 @@ class ShellManager(object):
             new_ws = HostController(ws_model, self._log, None)
             self._ws_ctrl.append(new_ws)
 
+    def get_last_logs(self, host_name):
+        """ get last logs from a distant host """
+        if not self._frontend:
+            return ""
+        message = ""
+        message += blue("Last logs on %s:\n" % host_name.upper(), True)
+        for (prog, logs) in self._frontend.programs.itervalues():
+            if prog.name == host_name.lower():
+                message += blue("    Program: %s\n" % prog.name)
+                for data in logs:
+                    message += data
+        return message
+
 
 
 class Loop(threading.Thread):
@@ -266,11 +292,11 @@ class EventResponseHandler(threading.Thread):
     We need this intermediate handler to eliminate parasite events
     """
     def __init__(self, event_manager_response,
-                       event_response_tests, model,
+                       event_response_shell, model,
                  log):
         threading.Thread.__init__(self)
         self._evt_resp = event_manager_response
-        self._evt_tests = event_response_tests
+        self._evt_shell = event_response_shell
         self._model = model
         self._log = log
         
@@ -299,17 +325,17 @@ class EventResponseHandler(threading.Thread):
                     count += 1
                 if count >= 10:
                     val = "fail"
-                self._evt_tests.set('started', val)
+                self._evt_shell.set('started', val)
 
             elif event_type == "resp_stop_platform":
                 count = 0
+                val = str(self._evt_resp.get_text())
                 while self._model.is_running() and count < 10:
                     time.sleep(0.5)
                     count += 1
                 if count >= 10:
                     val = "fail"
-                self._evt_tests.set('stopped',
-                                    str(self._evt_resp.get_text()))
+                self._evt_shell.set('stopped', val)
             
             elif event_type == "probe_transfer":
                 self._log.debug(" * transfering probes")
@@ -330,6 +356,49 @@ class EventResponseHandler(threading.Thread):
     def close(self):
         """ close the event response handler """
         self._log.debug(" * Response Event Handler: closed")
+
+
+class BaseFrontend(object):
+    """ an example of frontend for environment plane elements """
+    def __init__(self):
+        self._log = None
+        self._programs = {}
+
+    def set_logger(self, logger):
+        """ set the logger """
+        self._log = logger
+
+    def on_program_list_changed(self, programs):
+        """ the program list has changed """
+        self._log.debug("New program list: " + str(programs))
+        for prog_id in programs:
+            if not prog_id in self._programs:
+                self._programs[prog_id] = (programs[prog_id], deque(maxlen=10))
+
+    def on_new_probe_value(self, probe, time, value):
+        """ new probe """
+        pass
+
+    def on_new_program_log(self, program, name, level, message):
+        """ new log """
+        if not program.ident in self._programs:
+            return
+
+        date = time.localtime()
+        msg = time.strftime("%H:%M:%S ", date)
+        if level in LOG_LEVELS:
+            msg += blue(name)
+            msg += " [" + LOG_LEVELS[level].shell_color(LOG_LEVELS[level].msg) + "] "
+        msg += message
+        msg = msg.strip()
+        msg += "\n"
+
+        self._programs[program.ident][1].append(msg)
+
+    @property
+    def programs(self):
+        """ get programs """
+        return self._programs
 
 
 class ShellMgrException(Exception):

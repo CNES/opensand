@@ -50,7 +50,9 @@ from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
-from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
+from opensand_manager_gui.view.popup.infos import error_popup, \
+                                                  info_popup, \
+                                                  yes_no_popup
 from opensand_manager_gui.view.popup.about_dialog import AboutDialog
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
 
@@ -69,7 +71,8 @@ class View(WindowView):
         - handle some events and dispatch them
     """
     def __init__(self, model, manager_log, glade='',
-                 dev_mode=False, service_type=''):
+                 dev_mode=False, adv_mode=False,
+                 service_type=''):
         self._log = manager_log
         if glade == '':
             glade = GLADE_PATH
@@ -85,7 +88,8 @@ class View(WindowView):
         try:
             # run first because its starts the logging notebook
             self._eventrun = RunEvent(self.get_current(), self._model,
-                                      dev_mode, self._log, service_type)
+                                      dev_mode, adv_mode, self._log,
+                                      service_type)
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
             self._eventtool = ToolEvent(self.get_current(),
@@ -101,12 +105,11 @@ class View(WindowView):
             self._ui.get_widget("probe_tab").set_sensitive(False)
 
         status_box = self._ui.get_widget('status_box')
-        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
-                                                             0xffff))
+#        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
+#                                                             0xffff))
         self._info_label = self._ui.get_widget('info_label')
         self._counter = 0
-        infos = ['Service type: ' + service_type,
-                 '<a href="http://opensand.org">OpenSAND website</a>']
+        infos = ['Service type: ' + service_type]
         gobject.timeout_add(5000, self.update_label, infos)
 
 
@@ -165,7 +168,7 @@ class View(WindowView):
         if self._model.is_default_modif() and not self._model.is_running():
             text = "Default path will be overwritten next time\n\n" \
                    "Do you want to save your scenario ?"
-            ret = yes_no_popup(text, "Save scenario ?",
+            ret = yes_no_popup(text, "Create scenario ?",
                                gtk.STOCK_DIALOG_WARNING)
             if ret == gtk.RESPONSE_YES:
                 try:
@@ -216,9 +219,14 @@ class View(WindowView):
         """ Update the message displayed on Manager """
         self._info_label.set_markup(infos[self._counter])
 
-        # TODO we do not have this one !
         msg = 'Developer mode enabled'
         if self._model.get_dev_mode():
+            if not msg in infos:
+                infos.append(msg)
+        elif msg in infos:
+            infos.remove(msg)
+        msg = 'Advanced  mode enabled'
+        if self._model.get_adv_mode():
             if not msg in infos:
                 infos.append(msg)
         elif msg in infos:
@@ -227,7 +235,6 @@ class View(WindowView):
             return True
         self._counter = (self._counter + 1) % len(infos)
         return True
-
 
 
     def on_timer_status(self):
@@ -283,10 +290,13 @@ class View(WindowView):
                     self._log.info("OpenSAND Manager is now ready, have fun !")
 
         # update event GUI
-        gobject.idle_add(self._eventrun.refresh,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
+        # calling refresh on run view remove tooltips (due to queue draw ?)
+        #  => do not refresh that when we are not on run view
+        if self._current_page == self._pages['run']:
+            gobject.idle_add(self._eventrun.refresh,
+                             priority=gobject.PRIORITY_HIGH_IDLE+20)
         
-        # Update simulation state for the main view
+        # Update simulation state for the probe view
         gobject.idle_add(self._eventprobe.simu_state_changed,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
@@ -299,6 +309,13 @@ class View(WindowView):
         about = AboutDialog()
         about.run()
         about.close()
+
+    def on_info_activate(self, source=None, event=None):
+        """ event handler for info button """
+        text = "The default configuration files are stored in the <i>" + \
+               OPENSAND_PATH + "</i> folder and its subfolders.\n\nTBC"
+        info_popup(text, "OpenSAND Manager - Information")
+
 
     def on_notebook_switch_page(self, notebook, page, page_num):
         """ notebook page changed """
@@ -606,7 +623,8 @@ class View(WindowView):
 
     def on_new_probe_value(self, probe, timestamp, value):
         """ called when a new probe value is received """
-        self._eventprobe.new_probe_value(probe, timestamp, value)
+        gobject.idle_add(self._eventprobe.new_probe_value,
+                         probe, timestamp, value)
     
 
 ##### TEST #####

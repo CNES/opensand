@@ -36,11 +36,12 @@ conf_view.py - the configuration tab view
 """
 
 import gtk
-import gobject
 
 from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
+from opensand_manager_gui.view.popup.infos import error_popup
 
 IMG_PATH = OPENSAND_PATH + "manager/images/"
 
@@ -60,6 +61,10 @@ class ConfView(WindowView):
         # dictionnary with one protocol stack per terminal
         self._lan_stack_notebook =  self._ui.get_widget('lan_adapt_notebook')
         self._lan_stacks = {}
+        # dictionnary with a simple protocol stack (for base users)
+        # we take the GW stack as a reference
+        self._lan_stack_base = None
+        self._lan_stack_vbox = self._ui.get_widget('lan_adapt_stack')
 
         self._out_stack = ProtocolStack(self._ui.get_widget('out_encap_stack'),
                                         self._model.get_encap_modules(),
@@ -79,7 +84,7 @@ class ConfView(WindowView):
         # the exception
         self.update_view()
 
-        self._timeout_id = gobject.timeout_add(1000, self.update_lan_adaptation)
+        self._timeout_id = None
 
     def update_view(self):
         """ update the configuration view according to model
@@ -102,16 +107,26 @@ class ConfView(WindowView):
 #            widget.set_active(self._dama_s2.index(config.get_dama()))
 #        else:
 #            widget.set_active(self._dama_rcs.index(config.get_dama()))
-#        for host in self._lan_stacks:
-#            self._lan_stacks[host].load(host.get_lan_adaptation())
+        for host in self._lan_stacks:
+            try:
+                self._lan_stacks[host].load(host.get_lan_adaptation())
+                if host.get_name().lower() == "gw" and \
+                   self._lan_stack_base is not None:
+                    self._lan_stack_base.load(host.get_lan_adaptation())
+            except ConfException, msg:
+                error_popup(str(msg))
+        self.update_lan_adaptation()
         # return_up_encap
-        self._out_stack.load(config.get_return_up_encap(),
-                             config.get_payload_type(),
-                             config.get_emission_std())
-        # forward_down_encap
-        self._in_stack.load(config.get_forward_down_encap(),
-                            config.get_payload_type(),
-                            "DVB-S2")
+        try:
+            self._out_stack.load(config.get_return_up_encap(),
+                                 config.get_payload_type(),
+                                 config.get_emission_std())
+            # forward_down_encap
+            self._in_stack.load(config.get_forward_down_encap(),
+                                config.get_payload_type(),
+                                "DVB-S2")
+        except ConfException, msg:
+            error_popup(str(msg))
         # physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if config.get_enable_physical_layer().lower() == "true":
@@ -120,7 +135,21 @@ class ConfView(WindowView):
             widget.set_active(False)
 
     def update_lan_adaptation(self):
-        """ update the lan adaptation notebook """
+        """ update the lan adaptation stack """
+        if self._model.get_adv_mode():
+            self.update_lan_adaptation_adv()
+            if self._lan_stack_base is not None:
+                self._lan_stack_vbox.hide()
+            self._lan_stack_notebook.show()
+        else:
+            self.update_lan_adaptation_base()
+            self._lan_stack_vbox.show()
+            self._lan_stack_notebook.hide()
+        return True
+
+
+    def update_lan_adaptation_adv(self):
+        """ update the lan adaptation notebook for advanced users """
         # add new hosts
         for host in self._model.get_hosts_list():
             if host in self._lan_stacks:
@@ -133,13 +162,16 @@ class ConfView(WindowView):
                 header_modif = self._model.get_global_lan_adaptation_modules()
                 modules = dict(host.get_lan_adapt_modules())
                 modules.update(header_modif)
-                stack  = ProtocolStack(vbox,
-                                       modules,
-                                       self.on_stack_modif,
-                                       self._ui.get_widget('header_modif_vbox'),
-                                       self._ui.get_widget('frame_header_modif'))
+                stack = ProtocolStack(vbox,
+                                      modules,
+                                      self.on_lan_stack_modif,
+                                      self._ui.get_widget('header_modif_vbox'),
+                                      self._ui.get_widget('frame_header_modif'))
                 self._lan_stacks[host] = stack
-                stack.load(host.get_lan_adaptation())
+                try:
+                    stack.load(host.get_lan_adaptation())
+                except ConfException, msg:
+                    error_popup(str(msg))
         # remove old hosts
         remove = []
         for host in self._lan_stacks:
@@ -151,7 +183,48 @@ class ConfView(WindowView):
         # delete here to avoid changing dictionnary size in iteration
         for host in remove:
             del self._lan_stacks[host]
-        return True
+
+    def update_lan_adaptation_base(self):
+        """ update the lan adaptation notebook for base users """
+        # first check that all stacks are the same, else enable advanced mode
+        host = self._model.get_host("gw")
+        if host is None:
+            return
+
+        if len(self._lan_stacks) == 0:
+            # load advanced stacks that are used for base stack
+            self.update_lan_adaptation_adv()
+        if len(self._lan_stacks) == 0:
+            return
+        stacks = []
+        for host in self._lan_stacks:
+            stack = self._lan_stacks[host].get_stack()
+            stacks.append(stack)
+        # check if all stacks are the same
+        first = stacks[0]
+        for stack in stacks:
+            if stack != first:
+                self.on_save_conf_clicked()
+                error_popup("The lan adaptation stacks are not the same on "
+                            "all host, in non-advanced mode it will be "
+                            "overrided with the GW stack.",
+                            "The configuration has been automatically saved!")
+                return
+
+        if self._lan_stack_base is None:
+            header_modif = self._model.get_global_lan_adaptation_modules()
+            modules = dict(host.get_lan_adapt_modules())
+            modules.update(header_modif)
+            self._lan_stack_base = ProtocolStack(self._lan_stack_vbox,
+                                                 modules,
+                                                 self.on_lan_stack_modif,
+                                                 self._ui.get_widget('header_modif_vbox'),
+                                                 self._ui.get_widget('frame_header_modif'))
+            try:
+                self._lan_stack_base.load(host.get_lan_adaptation())
+            except ConfException, msg:
+                error_popup(str(msg))
+
 
     def is_modified(self):
         """ check if the configuration was modified by user
@@ -174,9 +247,8 @@ class ConfView(WindowView):
 #                return True
 
             # lan adaptation
-            for host in self._lan_stacks:
-                if self._lan_stacks[host].get_stack() != host.get_lan_adaptation():
-                    return True
+            if self.is_lan_adapt_stack_modif():
+                return True
 
             # return_up_encap
             if self._out_stack.get_stack() != config.get_return_up_encap():
@@ -300,9 +372,32 @@ class ConfView(WindowView):
                                                     (xdst - xsrc + orig - 5,
                                                      yorig - 2)])
 
+    def is_lan_adapt_stack_modif(self):
+        """ check if lan adaptation stacks are modified """
+        base_stack = None
+        if not self._model.get_adv_mode() and \
+           self._lan_stack_base is not None:
+            base_stack = self._lan_stack_base.get_stack()
+        for host in self._lan_stacks:
+            # in advanced mode compare each host own stack
+            if self._model.get_adv_mode() and \
+               self._lan_stacks[host].get_stack() != host.get_lan_adaptation():
+                return True
+            # in base mode compare each host stack with base stack
+            if not self._model.get_adv_mode() and \
+               base_stack is not None and \
+               base_stack != host.get_lan_adaptation():
+                return True
+
     def on_stack_modif(self, source=None, event=None):
         """ 'changed' event on a combobox from the stack """
         self.enable_conf_buttons()
+
+    def on_lan_stack_modif(self, source=None, event=None):
+        """ 'changed' event on a combobox from the stack """
+        # we need to check because buttons are modified when loading stack
+        if self.is_lan_adapt_stack_modif():
+            self.enable_conf_buttons()
 
     def enable_conf_buttons(self, enable=True):
         """ defined in conf_event """

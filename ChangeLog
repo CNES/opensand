@@ -1,3 +1,22 @@
+2014-12-24 opensand-3.1.0
+
+   * Release 3.1.0
+   * Add Slotted Aloha support
+   * Improve forward scheduling (multi-QoS and VCM support)
+   * Add a server that allows controlling OpenSAND through a simple interface
+   * Many interface and configuration improvements
+   * Fix bug #1328484
+   * Fix bug #1324153
+   * Fix bug #1276670
+   * Fix bug #1399122
+   * Fix bug #1300143
+   * Fix bug #1319800
+   * Fix bug #1326887
+   * Fix bug #1326896
+   * Fix bug #1326898
+   * Fix bug #1382090
+   * Various other bugfixes and improvements
+
 2014-04-24 opensand-3.0.0
 
    * Release 3.0.0

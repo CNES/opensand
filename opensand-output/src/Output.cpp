@@ -38,6 +38,7 @@
 
 OutputInternal Output::instance;
 
+// TODO global buffer
 bool Output::init(bool enabled, const char *sock_prefix)
 {
 	return instance.init(enabled, sock_prefix);
@@ -99,6 +100,7 @@ void Output::sendEvent(OutputEvent* event,
 {
 	char buf[1024];
 	va_list args;
+	assert(event != NULL);
 	va_start(args, msg_format);
 
 	vsnprintf(buf, sizeof(buf), msg_format, args);
@@ -115,6 +117,7 @@ void Output::sendLog(const OutputLog *log,
 {
 	char buf[1024];
 	va_list args;
+	assert(log != NULL);
 	va_start(args, msg_format);
 
 	vsnprintf(buf, sizeof(buf), msg_format, args);

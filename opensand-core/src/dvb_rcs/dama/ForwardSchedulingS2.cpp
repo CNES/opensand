@@ -147,7 +147,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 				                            size))
 				{
 					LOG(this->log_scheduling, LEVEL_ERROR,
-					    "Cannot determine th maximum BBFrame size\n");
+					    "Cannot determine the maximum BBFrame size\n");
 					break;
 				}
 				if(size > max_bbframe_size_sym)
@@ -275,6 +275,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		CarriersGroupDama *carriers = *carrier_it;
 		vector<CarriersGroupDama *> vcm_carriers;
 		vector<CarriersGroupDama *>::iterator vcm_it;
+		unsigned int vcm_id = 0;
 			
 		vcm_carriers = carriers->getVcmCarriers();
 		// if no VCM, getVcm() will return only one carrier
@@ -297,7 +298,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			    fifo_it != this->dvb_fifos.end(); ++fifo_it)
 			{
 				DvbFifo *fifo = (*fifo_it).second;
-				unsigned int vcm_id = 0;
 
 				// check if the FIFO can emit on this carriers group
 				if(vcm_carriers.size() <= 1)
@@ -329,18 +329,10 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 						    fifo->getName().c_str());
 						break;
 					}
-					// we handle with increasing VCM id, once the VCM id is
-					// reached this is over
-					if(fifo->getVcmId() < vcm_id)
-					{
-						break;
-					}
 					if(fifo->getVcmId() != vcm_id)
 					{
-						vcm_id++;
 						continue;
 					}
-					vcm_id++;
 				}
 				LOG(this->log_scheduling, LEVEL_DEBUG,
 				    "SF#%u: Can send data from fifo %s on carriers group "
@@ -401,6 +393,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			// update remaining capacity for statistics
 			(*vcm_it)->setRemainingCapacity(std::min(capacity_sym,
 			                                         init_capacity_sym));
+			vcm_id++;
 		}
 	}
 	this->probe_fwd_total_capacity->put(total_capa);
@@ -1032,17 +1025,21 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 		if(std::find(supported_modcods.begin(), supported_modcods.end(), modcod) !=
 		   supported_modcods.end())
 		{
-			if(this->addCompleteBBFrame(complete_dvb_frames,
-			                            (*it),
-			                            current_superframe_sf,
-			                            remaining_capacity_sym) != status_ok)
+			sched_status_t status;
+			status = this->addCompleteBBFrame(complete_dvb_frames,
+			                                  (*it),
+			                                  current_superframe_sf,
+			                                  remaining_capacity_sym);
+			if(status == status_full)
+			{
+				// keep the BBFrame in pending list
+				new_pending.push_back(*it);
+			}
+			else if(status != status_ok)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: cannot add pending BBFrame in the list "
 				    "of complete BBFrames\n", current_superframe_sf);
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "this errors may mean that you don't have enough "
-				    "band to send BBFrames, please change your configuration\n");
 			}
 		}
 		else

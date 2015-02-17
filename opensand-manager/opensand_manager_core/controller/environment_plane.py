@@ -81,6 +81,7 @@ class EnvironmentPlaneController(object):
         self._transfer_remaining = 0
 
         self._programs = {}
+        self._wait_init = []
         self._observer = None
 
     def set_observer(self, observer):
@@ -123,15 +124,31 @@ class EnvironmentPlaneController(object):
                           self._collector_addr[0])
 
         self._collector_addr = []
+        if self._tag is not None:
+            gobject.source_remove(self._tag)
+
+    def register_host(self, host_name):
+        """ A host was registerd """
+        host_model = self._model.get_host(host_name)
+        if host_model is None:
+            self._log.error("Cannot find model for host %s, this should not"
+                            " happen here" % host_name)
+            return
+        if host_name in self._wait_init:
+            self._wait_init.remove(host_name)
+            self._log.info("Model for host %s is now found" % host_name)
+            print "GOOD"
+            host_model.set_init_status(InitStatus.SUCCESS)
+        for program in self.get_programs():
+            if program.name == host_name:
+                program.set_host_model(host_model)
+                host_model.set_init_status(InitStatus.SUCCESS)
 
     def cleanup(self):
         """
         Shut down the probe controller.
         """
         self.unregister_on_collector()
-
-        if self._tag is not None:
-            gobject.source_remove(self._tag)
 
         try:
             self._sock.shutdown(socket.SHUT_RDWR)
@@ -167,7 +184,7 @@ class EnvironmentPlaneController(object):
         self._log.debug("Initiating probe transfer from collector")
 
         transfer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        transfer_socket.settimeout(10.0)
+        transfer_socket.settimeout(60.0)
         try:
             transfer_socket.connect((self._collector_addr[0][0], self._transfer_port))
         except socket.error, msg:
@@ -180,10 +197,11 @@ class EnvironmentPlaneController(object):
         self._transfer_dest = destination
         self._transfer_file = TemporaryFile()
 
-
-        inputready, _, _ = select.select([transfer_socket], [], [], 5)
+        inputready, _, _ = select.select([transfer_socket], [], [], 120)
         if(len(inputready) == 0):
-            self._log.warning("Cannot get data from collector")
+            self._log.warning("Cannot get data from collector, if the "
+                              "simulation was too long, there was probably too "
+                              "many data")
             if self._transfer_cb is not None:
                 gobject.idle_add(self._transfer_cb, 'fail')
             transfer_socket.close()
@@ -260,7 +278,7 @@ class EnvironmentPlaneController(object):
         the message.
         """
         packet, addr = self._sock.recvfrom(4096)
-        if len(packet) > 4095:
+        if len(packet) > 4096:
             self._log.warning("Too many data received from collector, "
                               "we may not be able to parse command")
 
@@ -332,12 +350,12 @@ class EnvironmentPlaneController(object):
                 success = False
 
             if not success:
-                self._log.error("Bad data received for SEND_LOG command.")
+                self._log.error("Bad data received for SEND_LOG command")
 
             return True
 
-        self._log.error("Unknown message id %d received from the collector." %
-            cmd)
+        self._log.error("Unknown message id %d received from the collector" %
+                        cmd)
 
         return True
 
@@ -415,10 +433,11 @@ class EnvironmentPlaneController(object):
         host_model = self._model.get_host(host_name)
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
+            # TODO que sur FINISHINIT !!!!
             host_model.set_init_status(InitStatus.SUCCESS)
         else:
             self._log.warning("Cannot find model for host %s" % host_name)
-            return
+            self._wait_init.append(host_name)
         if full_prog_id in self._programs:
             self._log.debug("Update probes for program %s" % (prog_name))
             self._programs[full_prog_id].add_probes(probe_list)
@@ -429,6 +448,10 @@ class EnvironmentPlaneController(object):
             self._programs[full_prog_id] = program
 
         if self._observer:
+            # TODO this will be cause for each subsequent register,
+            #      maybe try to do it once => create a REGISTER_INIT
+            #      message transmited by collector ?
+            #      moreover, the collector already has this info
             self._observer.program_list_changed()
 
         return True
@@ -505,8 +528,9 @@ class EnvironmentPlaneController(object):
         try:
             log = program.get_log(log_id)
         except KeyError, IndexError:
-            self._log.error("Incorrect log ID %d for program [%d:%d] "
-                            "received" % (log_id, host_id, prog_id))
+            self._log.error("Incorrect log ID %d for program %s [%d:%d] with "
+                            "message %s"
+                            % (log_id, program, host_id, prog_id, message))
             return False
 
         if self._observer:

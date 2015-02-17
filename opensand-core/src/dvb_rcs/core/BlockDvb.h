@@ -109,7 +109,7 @@ class DvbChannel: public RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool initPktHdl(const char *encap_schemes,
-	                EncapPlugin::EncapPacketHandler **pkt_hdl);
+	                EncapPlugin::EncapPacketHandler **pkt_hdl, bool force);
 
 
 	/**
@@ -275,7 +275,8 @@ class BlockDvb: public Block
 	 public:
 		DvbUpward(Block *const bl):
 			DvbChannel(bl, upward_chan),
-			receptionStd(NULL)
+			receptionStd(NULL),
+			receptionStdScpc(NULL)
 		{};
 
 
@@ -284,6 +285,9 @@ class BlockDvb: public Block
 	 protected:
 		/// reception standard (DVB-RCS or DVB-S2)
 		PhysicStd *receptionStd;
+
+		/// reception standard for SCPC
+		PhysicStd *receptionStdScpc;
 	};
 
 	class DvbDownward: public DvbChannel
@@ -584,6 +588,10 @@ bool DvbChannel::initBand(const char *band,
 			    ACCESS_TYPE, i);
 			goto error;
 		}
+		// TODO for SCPC we should not use the same fmt_def
+		//      when initializing band on NCC, at the moment we get
+		//      an error, this should not be displayed in this case
+		//      SCPC are only loaded for ratio computation
 		if(access != "VCM" &&
 		   (group_ids.size() > 1 || ratios.size() > 1))
 		{

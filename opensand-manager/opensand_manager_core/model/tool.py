@@ -69,7 +69,7 @@ class ToolModel:
     def load(self, scenario):
         """ load the tools elements from files """
         # get description
-        desc_path = os.path.join(OPENSAND_PATH, "/tools/%s/description" %
+        desc_path = os.path.join(OPENSAND_PATH, "tools/%s/description" %
                                  self._name)
         try:
             size = os.path.getsize(desc_path)
@@ -80,7 +80,7 @@ class ToolModel:
                                  (self._name, desc_path, strerror))
 
         # parse binary
-        self._bin_path = os.path.join(OPENSAND_PATH, "/tools/%s/%s/binary"
+        self._bin_path = os.path.join(OPENSAND_PATH, "tools/%s/%s/binary"
                                       % (self._name, self._compo))
         try:
             with open(self._bin_path) as bin_file:
@@ -112,7 +112,7 @@ class ToolModel:
 
         if not os.path.exists(self._conf_file):
             try:
-                default_path = os.path.join(OPENSAND_PATH, "/tools/%s/%s/config"
+                default_path = os.path.join(OPENSAND_PATH, "tools/%s/%s/config"
                                             % (self._name, self._compo))
                 shutil.copy(default_path, self._conf_file)
             except IOError, (_, strerror):
@@ -120,7 +120,7 @@ class ToolModel:
                                      "'%s' to '%s': %s" % (self._name,
                                      default_path, self._conf_file, strerror))
 
-        self._xsd = os.path.join(OPENSAND_PATH, "/tools/%s/%s/config.xsd" %
+        self._xsd = os.path.join(OPENSAND_PATH, "tools/%s/%s/config.xsd" %
                                  (self._name, self._compo))
 
         try:
@@ -219,7 +219,7 @@ class ToolModel:
 
     def get_conf_files(self):
         """ get the configuration files """
-        conf_directory = os.path.join(OPENSAND_PATH, "/tools/%s/%s/" %
+        conf_directory = os.path.join(OPENSAND_PATH, "tools/%s/%s/" %
                                       (self._name, self._compo))
         conf_files = {}
         for extension in ["*.xml", "*.conf", "*.ini"]:

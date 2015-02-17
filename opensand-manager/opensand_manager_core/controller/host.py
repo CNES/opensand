@@ -154,6 +154,7 @@ class HostController:
                   deploy_config, dev_mode=False, errors=[]):
         """ send the configure command to command server """
         # connect to command server and send the configure command
+        sock = None
         try:
             sock = self.connect_command('CONFIGURE')
         except CommandException, msg:
@@ -290,6 +291,7 @@ class HostController:
     def configure_ws(self, deploy_config, dev_mode=False, errors=[]):
         """ send the configure command to command server on WS """
         # connect to command server and send the configure command
+        sock = None
         try:
             sock = self.connect_command('CONFIGURE')
         except CommandException, msg:
@@ -386,6 +388,7 @@ class HostController:
 
     def deploy_modified_files(self, files, scenario, errors=[]):
         """ send some files """
+        sock = None
         try:
             sock = self.connect_command('CONFIGURE')
             if sock is None:
@@ -517,6 +520,7 @@ class HostController:
 
     def deploy(self, deploy_config, errors=[]):
         """ send the deploy command to command server """
+        sock = None
         try:
             sock = self.connect_command('DEPLOY')
         except CommandException, msg:
@@ -613,6 +617,7 @@ class HostController:
         if not command.startswith('START') and not command.startswith('STOP'):
             self._log.error("%s: wrong command %s" % (self.get_name(), command))
 
+        sock = None
         try:
             sock = self.connect_command(command)
         except CommandException:

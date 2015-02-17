@@ -75,6 +75,8 @@ class Model:
 
         # Running in dev mode ?
         self._is_dev_mode = False
+        # Running in adv mode ?
+        self._is_adv_mode = False
 
         self._hosts = []
         self._ws = []
@@ -427,12 +429,10 @@ class Model:
 
     def all_running(self):
         """ check if all components are running """
-        alive = False
         for host in self.get_hosts_list():
-            alive = True 
             if not host.get_state():
-                alive = False
-        return alive
+                return False
+        return True
 
 
     def running_list(self):
@@ -451,6 +451,16 @@ class Model:
     def get_dev_mode(self):
         """get the dev mode """
         return self._is_dev_mode
+
+    def set_adv_mode(self, adv_mode=False):
+        """ Set the adv mode to `adv_mode` """
+        self._log.debug("Switch to adv mode %s" % adv_mode)
+        self._is_adv_mode = adv_mode
+
+    def get_adv_mode(self):
+        """get the adv mode """
+        # dev mode => adv_mode
+        return self._is_adv_mode or self._is_dev_mode
 
     def set_scenario(self, val):
         """ set the scenario id """
@@ -591,13 +601,12 @@ class Model:
                         str(msg))
             return None
 
-    def handle_file_changed(self, file_chooser, host_name, xpath):
+    def handle_file_changed(self, filename, host_name, xpath):
         """ a source for a file from configuration has been updated """
         host = self.get_host(host_name)
         if not host in self._changed_sim_files:
             self._changed_sim_files[host] = {}
-        self._changed_sim_files[host][xpath] = file_chooser.get_filename()
-
+        self._changed_sim_files[host][xpath] = filename
 
     def conf_apply(self):
         """ the advanced configuration has been applied, the file shoud be

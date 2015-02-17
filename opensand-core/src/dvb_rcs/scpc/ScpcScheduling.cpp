@@ -154,71 +154,35 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 			// a good configuration
 			// if there is more than one carrier, this won't really
 			// be a problem but this won't be representative
-			if(carriers_group.size() > 1)
-			{
-				LOG(this->log_scheduling, LEVEL_WARNING,
-					"Category %s, Carriers group %u : the maximum "
-					"BBFrame size (%u symbols with MODCOD ID %u) is greater "
-					"than the carrier size %u\n",
-					this->category->getLabel().c_str(),
-					carriers->getCarriersId(), max_bbframe_size_sym,
-					max_modcod, carrier_size_sym);
-			}
-			else
-			{
-				LOG(this->log_scheduling, LEVEL_WARNING,
-					"Category %s, Carriers group %u: the maximum BBFrame "
-					"size (%u symbols with MODCOD ID %u) is smaller than "
-					"the carrier size %u\n",
-					this->category->getLabel().c_str(),
-					carriers->getCarriersId(), max_bbframe_size_sym,
-					max_modcod, carrier_size_sym);
-			}
+			LOG(this->log_scheduling, LEVEL_WARNING,
+			    "Category %s, Carriers group %u : the maximum "
+			    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
+				"than the carrier size %u\n",
+				this->category->getLabel().c_str(),
+				carriers->getCarriersId(), max_bbframe_size_sym,
+				max_modcod, carrier_size_sym);
 		}
 
 		// For units, if there is only one MODCOD use Kbits/s else symbols
 		// check if the FIFO can emit on this carriers group
-		if(carriers_group.size() <= 1)
-		{
-			string type = "ACM";
-			string unit = "Symbol number";
-			if(carriers->getFmtIds().size() == 1)
-			{
-				unit = "Kbits/s";
-				type = "CCM";
-			}
-			remain_probe = Output::registerProbe<int>(
-					unit,
-					true,
-					SAMPLE_AVG,
-					"SCPC capacity.Category %s.Carrier%u.%s.Remaining",
-					this->category->getLabel().c_str(),
-					carriers_id, type.c_str());
-			avail_probe = Output::registerProbe<int>(
-					unit,
-					true,
-					SAMPLE_AVG,
-					"SCPC capacity.Category %s.Carrier%u.%s.Available",
-					this->category->getLabel().c_str(),
-					carriers_id, type.c_str());
-		}
-		else
-		{
-			remain_probe = Output::registerProbe<int>(
-					"Kbits/s",
-					true,
-					SAMPLE_AVG,
-					"SCPC capacity.Category %s.Carrier%u.Remaining",
-					this->category->getLabel().c_str(),
-					carriers_id);
-			avail_probe = Output::registerProbe<int>(
-					"Kbits/s",
-					true,
-					SAMPLE_AVG,
-					"SCPC capacity.Category %s.Carrier%u.Available",
-					this->category->getLabel().c_str(),
-					carriers_id);
-		}
+		string type = "SCPC";
+		string unit = "Symbol number";
+		
+		remain_probe = Output::registerProbe<int>(
+				unit,
+				true,
+				SAMPLE_AVG,
+				"SCPC capacity.Category %s.Carrier%u.%s.Remaining",
+				this->category->getLabel().c_str(),
+				carriers_id, type.c_str());
+		avail_probe = Output::registerProbe<int>(
+				unit,
+				true,
+				SAMPLE_AVG,
+				"SCPC capacity.Category %s.Carrier%u.%s.Available",
+				this->category->getLabel().c_str(),
+				carriers_id, type.c_str());
+
 		avail_probes.push_back(avail_probe);
 		remain_probes.push_back(remain_probe);
 
@@ -264,8 +228,6 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-			
-	
 		list<BBFrame *>::iterator it;
 		unsigned int capacity_sym = 0;
 
@@ -282,35 +244,17 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 			DvbFifo *fifo = (*fifo_it).second;
 
 			// check if the FIFO can emit on this carriers group
-			if(carriers_group.size() <= 1)
+			// SCPC
+			if(fifo->getAccessType() != access_scpc)
 			{
-				// ACM
-				if(fifo->getAccessType() != access_acm)
-				{
-					LOG(this->log_scheduling, LEVEL_DEBUG,
-						"SF#%u: Ignore carriers with id %u in category %s "
-						"for non-ACM fifo %s\n",
-						current_superframe_sf,
-						carriers->getCarriersId(),
-						this->category->getLabel().c_str(),
-						fifo->getName().c_str());
-					break;
-				}
-			}
-			else
-			{
-				// VCM
-				if(fifo->getAccessType() != access_vcm)
-				{
-					LOG(this->log_scheduling, LEVEL_DEBUG,
-						"SF#%u: Ignore carriers with id %u in category %s "
-						"for non-VCM fifo %s\n",
-						current_superframe_sf,
-						carriers->getCarriersId(),
-						this->category->getLabel().c_str(),
-						fifo->getName().c_str());
-					break;
-				}
+			//	LOG(this->log_scheduling, LEVEL_DEBUG,
+			//		"SF#%u: Ignore carriers with id %u in category %s "
+			//		"for non-SCPC fifo %s\n",
+			//		current_superframe_sf,
+			//		carriers->getCarriersId(),
+			//		this->category->getLabel().c_str(),
+			//		fifo->getName().c_str());
+				continue;
 			}
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: Can send data from fifo %s on carriers group "
@@ -482,7 +426,6 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	while(fifo->getCurrentSize() > 0)
 	{
 		NetPacket *encap_packet;
-		tal_id_t tal_id;
 		NetPacket *data;
 		NetPacket *remaining_data;
 
@@ -510,33 +453,8 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			goto error_fifo_elem;
 		}
 
-		// retrieve the ST ID associated to the packet
-		tal_id = encap_packet->getDstTalId();
-		// This is a broadcast/multicast destination
-		if(tal_id == BROADCAST_TAL_ID)
-		{
-			// Select the tal_id corresponding to the lower modcod in order to
-			// make all terminal able to read the message
-			tal_id = this->scpc_fmt_simu->getTalIdWithLowerModcod();
-			if(tal_id == 255)
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: The scheduling of a "
-				    "multicast frame failed\n",
-				    current_superframe_sf);
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: The Tal_Id corresponding to "
-				    "the terminal using the lower modcod can not "
-				    "be retrieved\n", current_superframe_sf);
-				goto error;
-			}
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: TAL_ID corresponding to lower "
-			    "MODCOD = %u\n", current_superframe_sf,
-			    tal_id);
-		}
 
-		if(!this->getIncompleteBBFrame(tal_id, carriers, current_superframe_sf,
+		if(!this->getIncompleteBBFrame(carriers, current_superframe_sf,
 		                               &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
@@ -754,38 +672,15 @@ error:
 }
 
 
-bool ScpcScheduling::retrieveCurrentModcod(tal_id_t tal_id,
-                                           const time_sf_t current_superframe_sf,
-                                           unsigned int &modcod_id)
+uint8_t ScpcScheduling::retrieveCurrentModcod(void)
 {
-	bool is_advertised;
-
-	// retrieve the current MODCOD for the ST and whether
-	// it changed or not
-	if(!this->scpc_fmt_simu->doTerminalExist(tal_id))
-	{
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "SF#%u: encapsulation packet is for ST with ID %u "
-		    "that is not registered\n", current_superframe_sf, tal_id);
-		goto error;
-	}
-	modcod_id = this->scpc_fmt_simu->getCurrentModcodId(tal_id);
-	is_advertised = this->scpc_fmt_simu->isCurrentModcodAdvertised(tal_id);
-	if(!is_advertised)
-	{
-		// send the most robust MODCOD if not advertised
-		modcod_id = std::min(this->scpc_fmt_simu->getCurrentModcodId(tal_id),
-		                     this->scpc_fmt_simu->getPreviousModcodId(tal_id));
-	}
-
+	//TODO: MODCOD of GW is set to 28 because STs do not know the GW MODCOD (that should be changed)
+	//uint8_t modcod_id = this->scpc_fmt_simu->getCurrentModcodId(GW_TAL_ID);
+	uint8_t modcod_id = 28;
 	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "SF#%u: MODCOD for ST ID %u = %u (changed = %s)\n",
-	    current_superframe_sf, tal_id, modcod_id, is_advertised ? "no" : "yes");
-
-	return true;
-
-error:
-	return false;
+	    "Simulated MODCOD for GW = %u\n", modcod_id);
+	
+	return modcod_id;
 }
 
 bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
@@ -838,39 +733,32 @@ unsigned int ScpcScheduling::getBBFrameSizeBytes(unsigned int modcod_id)
 
 
 
-bool ScpcScheduling::getIncompleteBBFrame(tal_id_t tal_id,
-                                          CarriersGroupDama *carriers,
+bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
                                           const time_sf_t current_superframe_sf,
                                           BBFrame **bbframe)
 {
 	map<unsigned int, BBFrame *>::iterator iter;
-	unsigned int desired_modcod;
 	unsigned int modcod_id;
+	uint8_t desired_modcod = this->retrieveCurrentModcod();
 
 	*bbframe = NULL;
 
-	// retrieve the current MODCOD for the ST
-	if(!this->retrieveCurrentModcod(tal_id, current_superframe_sf,
-	                                desired_modcod))
-	{
-		// cannot get modcod for the ST skip this element
-		goto skip;
-	}
 
 	// get best modcod ID according to carrier
 	modcod_id = carriers->getNearestFmtId(desired_modcod);
+
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
-		    "SF#%u: cannot serve terminal %u with any modcod (desired %u) "
-		    "on carrier %u\n", current_superframe_sf, tal_id, desired_modcod,
+		    "SF#%u: cannot serve Gateway with any modcod (desired %u) "
+		    "on carrier %u\n", current_superframe_sf, desired_modcod,
 		    carriers->getCarriersId());
 
 		goto skip;
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "SF#%u: Available MODCOD for ST id %u = %u\n",
-	    current_superframe_sf, tal_id, modcod_id);
+	    "SF#%u: Available MODCOD for GW = %u\n",
+	    current_superframe_sf, modcod_id);
 
 	// find if the BBFrame exists
 	iter = this->incomplete_bb_frames.find(modcod_id);
@@ -934,28 +822,6 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(list<DvbFrame *> *complete_bb_
 		return status_full;
 	}
 
-	// check if some terminals need to be advertised
-	if(!this->scpc_fmt_simu->areCurrentModcodsAdvertised())
-	{
-		// we can create up to MAX_MODCOD_OPTIONS, if we need more, they
-		// will be advertised in next BBFrame
-		for(unsigned int i = 0; i < MAX_MODCOD_OPTIONS; i++)
-		{
-			tal_id_t tal_id;
-			uint8_t modcod;
-			if(!this->scpc_fmt_simu->getNextModcodToAdvertise(tal_id, modcod))
-			{
-				LOG(this->log_scheduling, LEVEL_INFO,
-				    "SF#%u: %u MODCOD advertised\n",
-				    current_superframe_sf, i);
-				break;
-			}
-			bbframe->addModcodOption(tal_id, modcod);
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: Advertise MODCOD for terminal %u\n",
-			    current_superframe_sf, tal_id);
-		}
-	}
 
 	// we can send the BBFrame
 	complete_bb_frames->push_back((DvbFrame *)bbframe);

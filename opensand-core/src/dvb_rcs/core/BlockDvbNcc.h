@@ -139,6 +139,8 @@ class BlockDvbNcc: public BlockDvb
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
+		/// The up/return packet handler for SCPC	
+		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;										
 		// Output probes and stats
 			// Rates
 				// Layer 2 from SAT
@@ -272,7 +274,6 @@ class BlockDvbNcc: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
 
 		/**
 		 * Simulate event based on an input file
@@ -389,9 +390,8 @@ class BlockDvbNcc: public BlockDvb
 		map<unsigned int, Probe<int> *> probe_gw_queue_loss_kb;
 			// Rates
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
-		int *l2_to_sat_bytes_before_sched;
+		map<unsigned int, int> l2_to_sat_bytes_before_sched;
 		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
-		int *l2_to_sat_bytes_after_sched;
 		Probe<int> *probe_gw_l2_to_sat_total;
 		int l2_to_sat_total_bytes;
 			// Frame interval

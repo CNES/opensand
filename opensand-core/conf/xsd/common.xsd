@@ -89,7 +89,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer attenuation for uplink</b>\n
+            <b>\tThe physical layer attenuation for uplink</b>\n
             Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
@@ -121,7 +121,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description for downlink: </b>\n
+            <b>\tThe physical layer description for downlink: </b>\n
             Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
@@ -165,9 +165,13 @@
 
 <!-- types for debug section -->
 <xsd:simpleType name="debugValue">
-    <xsd:restriction base="xsd:nonNegativeInteger">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="7" />
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="debug" />
+        <xsd:enumeration value="info" />
+        <xsd:enumeration value="notice" />
+        <xsd:enumeration value="warning" />
+        <xsd:enumeration value="error" />
+        <xsd:enumeration value="critical" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -191,7 +195,7 @@
         <xsd:attribute name="level" type="debugValue">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The debug level from 0 to 7
+                    The debug level
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

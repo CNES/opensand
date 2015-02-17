@@ -508,7 +508,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			if(!this->sarp_table->getTalByMac(src_mac, src))
 			{
 				// do not use default here, default is for destination !
-				LOG(this->log, LEVEL_NOTICE,
+				LOG(this->log, LEVEL_WARNING,
 				    "cannot find source MAC address %s in sarp table\n",
 				    src_mac.str().c_str());
 				continue;
@@ -659,6 +659,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 	{
 		return eth_frames;
 	}
+	delete eth_frames;
 	return NULL;
 }
 
@@ -767,7 +768,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
 				{
-					LOG(this->log, LEVEL_ERROR,
+					LOG(this->log, LEVEL_WARNING,
 					    "cannot find destination MAC address %s in sarp table\n",
 					    dst_mac.str().c_str());
 					delete deenc_packet;

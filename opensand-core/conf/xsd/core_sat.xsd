@@ -68,7 +68,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>ATM, MPEG and GSE switching table for satellite</b>
+            <b>\tATM, MPEG and GSE switching table for satellite</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>
@@ -99,7 +99,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The physical layer description for regenerative satellite applied on uplink</b>\n
+            <b>\tThe physical layer description for regenerative satellite applied on uplink</b>\n
             Check the Physical layer plugins configuration below in order to configure your channel\n
             See the <a href="http://opensand.org/support/wiki/doku.php?id=design:physical_layer">Physical Layer design</a> for more information
             ]]>
@@ -134,7 +134,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The debug parameters</b>
+            <b>\tThe debug parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>

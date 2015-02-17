@@ -132,6 +132,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	probe_st_queue_size_kb(),
 	probe_st_l2_to_sat_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
+	l2_to_sat_total_bytes(0),
 	probe_st_l2_to_sat_total(NULL),
 	probe_st_l2_from_sat(NULL)
 {
@@ -169,15 +170,6 @@ BlockDvbTal::Downward::~Downward()
 		delete (*it).second;
 	}
 	this->dvb_fifos.clear();
-
-	if(this->l2_to_sat_cells_before_sched != NULL)
-	{
-		delete[] this->l2_to_sat_cells_before_sched;
-	}
-	if(this->l2_to_sat_cells_after_sched != NULL)
-	{
-		delete[] this->l2_to_sat_cells_after_sched;
-	}
 
 	// close QoS Server socket if it was opened
 	if(BlockDvbTal::Downward::Downward::qos_server_sock != -1)
@@ -237,6 +229,7 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to complete the initialisation of Slotted Aloha\n");
 		goto error;
 	}
+
 	if(!this->initScpc())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -369,7 +362,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	{
 		qos_t fifo_priority = 0;
 		vol_pkt_t fifo_size = 0;
-		string fifo_mac_prio;
+		string fifo_name;
 		string fifo_access_type;
 		DvbFifo *fifo;
 
@@ -381,12 +374,12 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			    FIFO_PRIO, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
-		// get fifo_mac_prio
-		if(!Conf::getAttributeValue(iter, FIFO_TYPE, fifo_mac_prio))
+		// get fifo_name
+		if(!Conf::getAttributeValue(iter, FIFO_NAME, fifo_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_TYPE, DVB_TAL_SECTION, FIFO_LIST);
+			    FIFO_NAME, DVB_TAL_SECTION, FIFO_LIST);
 			goto err_fifo_release;
 		}
 		// get fifo_size
@@ -407,7 +400,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			goto err_fifo_release;
 		}
 
-		fifo = new DvbFifo(fifo_priority, fifo_mac_prio,
+		fifo = new DvbFifo(fifo_priority, fifo_name,
 		                   fifo_access_type, fifo_size);
 
 		LOG(this->log_init, LEVEL_NOTICE,
@@ -423,33 +416,16 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		// the DSCP field is not recognize, default_fifo_id should not be used
 		// this is only used if traffic categories configuration and fifo configuration
 		// are not coherent.
-		// TODO remove !!!
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
 	} // end for(queues are now instanciated and initialized)
 
-	// init stats context per QoS
-	this->l2_to_sat_cells_before_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_cells_before_sched == NULL)
-	{
-		goto err_before_release;
-	}
 
-	this->l2_to_sat_cells_after_sched = new int[this->dvb_fifos.size()];
-	if(this->l2_to_sat_cells_after_sched == NULL)
-	{
-		goto err_after_release;
-	}
-
-	this->resetStatsCxt();
-
+	this->l2_to_sat_total_bytes = 0;
+	
 	return true;
 
-err_before_release:
-	delete[] this->l2_to_sat_cells_after_sched;
-err_after_release:
-	delete[] this->l2_to_sat_cells_before_sched;
 err_fifo_release:
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -895,7 +871,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategoryDama *cat;
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-
+	
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
@@ -904,7 +880,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 			is_scpc_fifo = true;
 		}
 	}
-	
+
 	// init fmt_simu
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2, 
 		                      FORWARD_DOWN_MODCOD_TIME_SERIES,
@@ -912,8 +888,20 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");
-		return false;
+		goto error;
 	}
+
+	//  Duration of the carrier -- in ms
+	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
+	                   this->scpc_carr_duration_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Missing %s\n", SCPC_C_DURATION);
+		goto error;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
 
 
 	// TODO use the up return frame duration for SCPC?
@@ -928,6 +916,9 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                         &default_category,
 	                                         this->ret_fmt_groups))
 	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "InitBand not correctly initialized \n");
+		
 		return false;
 	}
 
@@ -935,9 +926,9 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_INFO,
 		    "No SCPC carriers\n");
-		return true;
+		goto release_scpc;
 	}
-
+		
 	// Find the category for this terminal
 	tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
@@ -950,12 +941,12 @@ bool BlockDvbTal::Downward::initScpc(void)
 			return true;
 		}
 		tal_category = default_category;
-	}
+	}   
 	else
 	{
 		tal_category = (*tal_map_it).second;
 	}
-
+	
 	// check if there are SCPC carriers
 	if(!tal_category)
 	{
@@ -976,7 +967,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 				}
 			}
 		}
-		return true;
+		goto release_scpc;
 	}
 
 	if(!is_scpc_fifo)
@@ -989,7 +980,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		{
 			delete (*cat_it).second;
 		}
-		return true;
+		goto release_scpc;
 	}
 	
 	//Check if there are DAMA or SALOHA FIFOs in the terminal
@@ -998,32 +989,19 @@ bool BlockDvbTal::Downward::initScpc(void)
     	LOG(this->log_init, LEVEL_ERROR,
     	    "Conflict: SCPC FIFOs and DAMA or SALOHA FIFOs "
     	    "in the same Terminal\n");
-    	goto release_scpc;
+    	goto error;
     }
 	
-
 	//initialize the timers
-	if(!this->initTimers())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-			"failed to complete the timer part of the"
-			 "SCPC initialisation\n");
-		goto release_scpc;
-	}
+	//if(!this->initTimers())
+	//{
+	//	LOG(this->log_init, LEVEL_ERROR,
+	//		"failed to complete the timer part of the"
+	//		 "SCPC initialisation\n");
+	//	goto release_scpc;
+	//}
 	
-	//  Duration of the carrier -- in ms
-	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
-	                   this->scpc_carr_duration_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s\n", SCPC_C_DURATION);
-		goto release_scpc;
-	}
-
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
-
-	//TODO: veritfy that 2ST are not using the same carrier and category
+		//TODO: veritfy that 2ST are not using the same carrier and category
 
 	// TODO cannot use SCPC with regenerative satellite
 	if(this->satellite_type == REGENERATIVE)
@@ -1031,18 +1009,18 @@ bool BlockDvbTal::Downward::initScpc(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Carrier configured with SCPC while satellite "
 		    "is regenerative\n");
-		return false;
+		goto error;
 	}
 	   
 	//Initialise Encapsulation scheme
+	
 	if(!this->initPktHdl("GSE",
-	                     &this->pkt_hdl))
+	                     &this->pkt_hdl, true))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
-		return false;
+		goto error;
 	}
-	
 
 	// Create the SCPC scheduler
 	cat = scpc_categories.begin()->second;
@@ -1055,7 +1033,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize SCPC\n");
-		return false;
+		goto error;
 	}
 	//TODO: Initialize the ScpcAgent parent class
 	//
@@ -1077,7 +1055,10 @@ bool BlockDvbTal::Downward::initScpc(void)
 	
 	return true;
 
-release_scpc:
+release_scpc: //Something TODO
+	return true;
+
+error:
 	return false;
 }
 
@@ -1182,8 +1163,11 @@ bool BlockDvbTal::Downward::initTimers(void)
 	                                        );
 	// QoS Server: check connection status in 5 seconds
 	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
-	this->scpc_timer = this->addTimerEvent("scpc_timer",
-											this->scpc_carr_duration_ms);
+	if(this->scpc_sched)
+	{	
+		this->scpc_timer = this->addTimerEvent("scpc_timer",
+		                                       this->scpc_carr_duration_ms);
+	}
 	return true;
 }
 
@@ -1283,7 +1267,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 
-				this->l2_to_sat_cells_before_sched[fifo_priority]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1785,19 +1768,14 @@ void BlockDvbTal::Downward::updateStats(void)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
 
-		// NB: outgoingCells = cells directly sent from IP packets + cells
-		//     stored before extraction next frame
-		this->l2_to_sat_cells_after_sched[(*it).first] = fifo_stat.out_pkt_nbr;
-		this->l2_to_sat_total_cells += fifo_stat.out_pkt_nbr;
+		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		// write in statitics file
 		this->probe_st_l2_to_sat_before_sched[(*it).first]->put(
-			this->l2_to_sat_cells_before_sched[(*it).first] *
-			this->pkt_hdl->getFixedLength() * 8 /
+			fifo_stat.in_length_bytes * 8 /
 			this->stats_period_ms);
 		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
-			this->l2_to_sat_cells_after_sched[(*it).first] *
-			this->pkt_hdl->getFixedLength() * 8 /
+			fifo_stat.out_length_bytes* 8 /
 			this->stats_period_ms);
 
 		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
@@ -1806,23 +1784,11 @@ void BlockDvbTal::Downward::updateStats(void)
 		this->probe_st_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
 		this->probe_st_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}
-	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_cells *
-	                                    this->pkt_hdl->getFixedLength() * 8 /
+	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
 
-	// reset stat context for next frame
-	this->resetStatsCxt();
-
-}
-
-void BlockDvbTal::Downward::resetStatsCxt(void)
-{
-	for(unsigned int i = 0; i < this->dvb_fifos.size(); i++)
-	{
-		this->l2_to_sat_cells_before_sched[i] = 0;
-		this->l2_to_sat_cells_after_sched[i] = 0;
-	}
-	this->l2_to_sat_total_cells = 0;
+	// reset stat 
+	this->l2_to_sat_total_bytes = 0;
 }
 
 
@@ -2026,6 +1992,7 @@ BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
+	
 {
 }
 
@@ -2136,6 +2103,8 @@ bool BlockDvbTal::Upward::initOutput(void)
 		this->probe_st_real_modcod = Output::registerProbe<int>("ACM.Required_modcod",
 		                                                        "modcod index",
 		                                                        true, SAMPLE_LAST);
+
+
 	}
 	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
 	                                                            "modcod index",

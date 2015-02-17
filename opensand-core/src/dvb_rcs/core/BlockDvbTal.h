@@ -177,7 +177,6 @@ class BlockDvbTal: public BlockDvb
 		void updateStats(void);
 		void resetStatsCxt(void);
 
-
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 		/// the group ID sent by NCC (only valid in state_running)
@@ -281,7 +280,6 @@ class BlockDvbTal: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
 
 		/**
 		 * This method send a Logon Req message
@@ -434,11 +432,10 @@ class BlockDvbTal: public BlockDvb
 			// Rates
 				// Layer 2 to SAT
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
-		int *l2_to_sat_cells_before_sched;
+		map<unsigned int, int> l2_to_sat_cells_before_sched;
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
-		int *l2_to_sat_cells_after_sched;
+		int l2_to_sat_total_bytes;
 		Probe<int> *probe_st_l2_to_sat_total;
-		int l2_to_sat_total_cells;
 				// PHY to SAT
 		Probe<int> *probe_st_phy_to_sat;
 				// Layer 2 from SAT

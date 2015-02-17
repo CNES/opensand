@@ -46,7 +46,8 @@ from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 class RunEvent(RunView):
     """ Events for the run tab """
-    def __init__(self, parent, model, dev_mode, manager_log, service_type):
+    def __init__(self, parent, model, dev_mode, adv_mode,
+                 manager_log, service_type):
         try:
             RunView.__init__(self, parent, model, manager_log, service_type)
         except RunException:
@@ -54,7 +55,13 @@ class RunEvent(RunView):
 
         self._event_manager = self._model.get_event_manager()
 
+        # initialize to False, the set_active methods on buttons
+        # will trigger callbacks that will change that
         self._dev_mode = False
+        self._adv_mode = False
+
+        if(adv_mode):
+            self._ui.get_widget('option_adv_mode').set_active(True)
 
         if(dev_mode):
             self._ui.get_widget('dev_mode').set_active(True)
@@ -63,6 +70,7 @@ class RunEvent(RunView):
             # do not show deploy button
             gobject.idle_add(self.hide_deploy_button,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
+
 
 
     def close(self):
@@ -90,9 +98,6 @@ class RunEvent(RunView):
         """ 'clicked' event on start OpenSAND button """
         # start or stop the applications ?
         if not self._model.is_running():
-            # start the applications
-            self.spin("Starting...")
-
             # retrieve the current scenario and start
             self.set_run_id()
             # check that we won't overwrite an existing run
@@ -111,6 +116,8 @@ class RunEvent(RunView):
             # disable the buttons
             self.disable_start_button(True)
             self.disable_deploy_buttons(True)
+            # start the applications
+            self.spin("Starting...")
 
             # add a line in the event text views
             self._log.info("***** New run: %s *****" % self._model.get_run(),
@@ -135,7 +142,7 @@ class RunEvent(RunView):
             # 'resp_stop_platform' event, the button will be enabled there)
             self._event_manager.set('stop_platform')
             self._log_view.on_stop()
-            # TODO if all process crashed we should also cal on_stop
+            # TODO if all process crashed we should also call on_stop
 
 
     def on_dev_mode_button_toggled(self, source=None, event=None):
@@ -145,11 +152,7 @@ class RunEvent(RunView):
         self.hide_deploy_button(not self._dev_mode)
         self._model.set_dev_mode(self._dev_mode)
         self._ui.get_widget('deployment').set_visible(self._dev_mode)
-        if not self._dev_mode:
-            # enable back all hosts, hosts cannot be disable in non-dev mode
-            for host in self._model.get_hosts_list():
-                host.enable(True)
-        
+
     def on_option_deploy_clicked(self, source=None, event=None):
         """ deploy button in options menu clicked """
         self.on_deploy_opensand_button_clicked(source, event)
@@ -158,6 +161,15 @@ class RunEvent(RunView):
         """ disable button in options menu clicked """
         # this will raise the appropriate event
         self._ui.get_widget('dev_mode').set_active(False)
+
+    def on_option_adv_mode_toggled(self, source=None, event=None):
+        """ enable/disable advanced mode """
+        self._adv_mode = not self._adv_mode
+        self._model.set_adv_mode(self._adv_mode)
+        if not self._adv_mode and not self._dev_mode:
+            # enable back all hosts, hosts cannot be disabled in non-adv/dev mode
+            for host in self._model.get_hosts_list():
+                host.enable(True)
 
     def on_option_edit_clicked(self,  source=None, event=None):
         """ edit button in options menu clicked """

@@ -37,17 +37,21 @@
 
 #include "Plugin.h"
 
+
+#include "TerminalCategoryDama.h"
+
 #include <opensand_output/Output.h>
 
 #include <algorithm>
 #include <stdint.h>
 
 
-BlockEncap::BlockEncap(const string &name):
+BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 	Block(name),
 	group_id(-1),
 	tal_id(-1),
-	state(link_down)
+	state(link_down),
+	mac_id(mac_id)
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
@@ -175,12 +179,9 @@ bool BlockEncap::onInit()
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
-	int i = 0;
 	int lan_nbr;
-	int encap_nbr;
+	int i=0;
 	LanAdaptationPlugin *lan_plugin = NULL;
-	StackPlugin *upper_encap = NULL;
-	EncapPlugin *plugin;
 	string compo_name;
 	component_t host;
 
@@ -200,6 +201,8 @@ bool BlockEncap::onInit()
 		    GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
+	
+
 	LOG(this->log_init, LEVEL_INFO,
 	    "satellite type = %s\n", satellite_type.c_str());
 
@@ -231,111 +234,47 @@ bool BlockEncap::onInit()
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
+	
+	//TODO: Function
+	//est-ce que je suis en SCPC?
+	if (this->mac_id != GW_TAL_ID)
+	{
 
-	// get the number of encapsulation context to use for up/return link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
-	                         encap_nbr))
+		if(this->checkIfScpc(satellite_type))
+		{
+			LOG(this->log_init, LEVEL_INFO,
+				"SCPC mode available - BlockEncap");
+			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
+			                          lan_plugin, up_return_ctx, satellite_type,
+			                          "return/up", true)) 
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+					"Cannot get Up/Return Encapsulation context");
+				goto error;
+			}
+		}
+	
+		else
+		{
+			LOG(this->log_init, LEVEL_INFO,
+				"SCPC mode not available - BlockEncap");
+			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
+				                     lan_plugin, up_return_ctx, satellite_type,
+					                 "return/up", false)) 
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Cannot get Up/Return Encapsulation context");
+				goto error;
+			}
+		}
+	}
+	if(!this->getEncapContext(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
+	                         lan_plugin, down_forward_ctx, satellite_type,
+	                         "forward/down", false)) 
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    RETURN_UP_ENCAP_SCHEME_LIST);
+	    "Cannot get Down/Forward Encapsulation context");
 		goto error;
-	}
-
-	upper_encap = lan_plugin;
-	for(i = 0; i < encap_nbr; i++)
-	{
-		string encap_name;
-		EncapPlugin::EncapContext *context;
-
-		// get all the encapsulation to use from upper to lower
-		if(!Conf::getValueInList(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), ENCAP_NAME, encap_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
-			goto error;
-		}
-
-		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
-			    encap_name.c_str());
-			goto error;
-		}
-
-		context = plugin->getContext();
-		up_return_ctx.push_back(context);
-		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					strToSatType(satellite_type)))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper encapsulation type %s is not supported "
-			    "for %s encapsulation",
-			    upper_encap->getName().c_str(),
-			    context->getName().c_str());
-			goto error;
-		}
-		upper_encap = plugin;
-		LOG(this->log_init, LEVEL_INFO,
-		    "add up/return encapsulation layer: %s\n",
-		    upper_encap->getName().c_str());
-	}
-
-	// get the number of encapsulation context to use for down/forward link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	                         encap_nbr))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    " Section %s, %s missing\n", GLOBAL_SECTION,
-		    FORWARD_DOWN_ENCAP_SCHEME_LIST);
-		goto error;
-	}
-
-	upper_encap = lan_plugin;
-	for(i = 0; i < encap_nbr; i++)
-	{
-		string encap_name;
-		EncapPlugin::EncapContext *context;
-
-		// get all the encapsulation to use from upper to lower
-		if(!Conf::getValueInList(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), ENCAP_NAME, encap_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
-			goto error;
-		}
-
-		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
-			    encap_name.c_str());
-			goto error;
-		}
-
-		context = plugin->getContext();
-		down_forward_ctx.push_back(context);
-		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					strToSatType(satellite_type)))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper encapsulation type %s is not supported "
-			    "for %s encapsulation",
-			    upper_encap->getName().c_str(),
-			    context->getName().c_str());
-			goto error;
-		}
-		upper_encap = plugin;
-		LOG(this->log_init, LEVEL_INFO,
-		    "add down/forward encapsulation layer: %s\n",
-		    upper_encap->getName().c_str());
 	}
 
 	// get host type
@@ -621,6 +560,280 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	    "layer\n");
 
 	// everthing is fine
+	return true;
+
+error:
+	return false;
+}
+
+bool BlockEncap::checkIfScpc(string &sat_type)
+{
+	TerminalCategories<TerminalCategoryDama> scpc_categories;
+	TerminalMapping<TerminalCategoryDama> terminal_affectation;
+	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
+	TerminalCategoryDama *default_category;
+	TerminalCategoryDama *tal_category = NULL;
+	time_ms_t scpc_carr_duration_ms;
+	FmtSimulation scpc_fmt_simu;
+	fifos_t dvb_fifos;
+	fmt_groups_t ret_fmt_groups;
+	bool is_scpc = false;
+	
+	ConfigurationList fifo_list;
+	ConfigurationList::iterator iter;
+
+	/*
+	* Read the MAC queues configuration in the configuration file.
+	* Create and initialize MAC FIFOs
+	*/
+	if(!Conf::getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
+		    FIFO_LIST);
+		goto no_scpc;
+	}
+
+	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
+	{
+		string fifo_access_type;
+
+		// get the fifo CR type
+		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			"cannot get %s from section '%s, %s'\n",
+			FIFO_ACCESS_TYPE, DVB_TAL_SECTION,
+			FIFO_LIST);
+			goto no_scpc;
+		}
+		
+		if(fifo_access_type == "SCPC")
+		{   
+			// No SCPC FIFOs
+			is_scpc = true;
+		}
+	}
+	
+	if(!is_scpc)
+	{
+		goto no_scpc;
+	}	
+
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+							  FORWARD_DOWN_MODCOD_TIME_SERIES,
+							  scpc_fmt_simu))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"failed to initialize the down/forward MODCOD files\n");
+		goto no_scpc;
+	}
+	
+	//  Duration of the carrier -- in ms
+	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
+	                   scpc_carr_duration_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Missing %s\n", SCPC_C_DURATION);
+		goto no_scpc;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "scpc_carr_duration_ms = %d ms\n", scpc_carr_duration_ms);
+
+
+
+	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
+	                                         SCPC,
+	                                         scpc_carr_duration_ms,
+	                                         sat_type,
+	                                         scpc_fmt_simu.getModcodDefinitions(),
+	                                         scpc_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         ret_fmt_groups))
+	{
+		goto no_scpc;
+	}
+
+	if(scpc_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No SCPC carriers\n");
+		goto no_scpc;
+	}
+	// Find the category for this terminal
+	tal_map_it = terminal_affectation.find(this->mac_id);
+	if(tal_map_it == terminal_affectation.end())
+	{
+		// check if the default category is concerned by SCPC
+		if(!default_category)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "ST not affected to a SCPC category\n");
+			goto no_scpc;
+		}
+		tal_category = default_category;
+	}
+	else
+	{
+		tal_category = (*tal_map_it).second;
+	}
+	
+	if(!tal_category)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No SCPC carrier\n");
+		//Even if there are SCPC FIFOs, SCPC is no used because there are no SCPC carriers
+		goto no_scpc;
+	}
+	
+	return true;
+	
+	no_scpc: 
+		return false;
+	
+}
+
+bool BlockEncap::getEncapContext(const char *section, 
+	                             const char *scheme_list,
+	                             LanAdaptationPlugin *l_plugin,
+	                             vector <EncapPlugin::EncapContext *> &ctx,
+	                             string &sat_type,
+	                             const char *link_type, bool scpc_scheme)
+{
+	StackPlugin *upper_encap = NULL;
+	EncapPlugin *plugin;
+	int encap_nbr = 1;
+	int i;
+	
+	
+	if(!scpc_scheme)
+	{
+		// get the number of encapsulation context if Tal is not in SCPC mode
+		if(!Conf::getNbListItems(section, scheme_list,
+		                         encap_nbr))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, %s missing\n", section,
+				scheme_list);
+			goto error;
+		}
+	}
+
+	upper_encap = l_plugin;
+
+	// get all the encapsulation to use upper to lower
+	for(i = 0; i < encap_nbr; i++)
+	{
+	
+		string encap_name;
+		EncapPlugin::EncapContext *context;
+		
+		// If Tal is in SCPC mode, only GSE is allowed
+		if(!scpc_scheme)
+		{
+			if(!Conf::getValueInList(section, scheme_list,
+				                     POSITION, toString(i), ENCAP_NAME, encap_name))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Section %s, invalid value %d for parameter '%s'\n",
+				    section, i, POSITION);
+				goto error;
+			}
+		}
+		else
+		{
+			encap_name = "GSE";
+			LOG(this->log_init, LEVEL_INFO,
+			    "Setting the encapsulation to %s because SCPC is %d\n",
+			    encap_name.c_str(), scpc_scheme);
+		}
+
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get plugin for %s encapsulation",
+			    encap_name.c_str());
+			goto error;
+		}
+
+		context = plugin->getContext();
+		ctx.push_back(context);
+		if(!context->setUpperPacketHandler(
+					upper_encap->getPacketHandler(),
+					strToSatType(sat_type)))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "upper encapsulation type %s is not supported "
+			    "for %s encapsulation",
+			    upper_encap->getName().c_str(),
+			    context->getName().c_str());
+			goto error;
+		}
+		upper_encap = plugin;
+		
+		LOG(this->log_init, LEVEL_INFO,
+		    "add %s encapsulation layer: %s\n",
+		    upper_encap->getName().c_str(), link_type);
+	}
+	return true;
+	
+	error:
+		return false;
+
+}
+
+
+
+
+bool BlockEncap::initModcodFiles(const char *def,
+                                 const char *simu,
+                                 FmtSimulation &fmt_simu)
+{
+	string modcod_simu_file;
+	string modcod_def_file;
+
+	// MODCOD simulations and definitions for down/forward link
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, simu,
+	                   modcod_simu_file))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, simu);
+		goto error;
+	}
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "down/forward link MODCOD simulation path set to %s\n",
+	    modcod_simu_file.c_str());
+
+	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, def,
+	                   modcod_def_file))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, def);
+		goto error;
+	}
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "down/forward link MODCOD definition path set to %s\n",
+	    modcod_def_file.c_str());
+
+	// load all the MODCOD definitions from file
+	if(!fmt_simu.setModcodDef(modcod_def_file))
+	{
+		goto error;
+	}
+
+	// no need for simulation file if there is a physical layer
+		// set the MODCOD simulation file
+	if(!fmt_simu.setModcodSimu(modcod_simu_file))
+	{
+		goto error;
+	}
+
+
+
 	return true;
 
 error:

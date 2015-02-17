@@ -93,7 +93,7 @@ class MyTcpHandler(SocketServer.StreamRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
-    def read_data(self, timeout = True):
+    def read_data(self, timeout=True):
         """ read data on socket """
         if timeout:
             inputready, _, _ = select.select([self.rfile], [], [], 1)
@@ -167,7 +167,7 @@ class CommandServer(MyTcpHandler):
             for host in self._model.get_hosts_list():
                 state = host.get_state()
                 if state == False:
-                    running = red("SOPPED")
+                    running = red("STOPPED")
                 elif state == True:
                     running = green("RUNNING")
                 else:
@@ -176,6 +176,8 @@ class CommandServer(MyTcpHandler):
                                                   running)
             if self._model.get_dev_mode():
                 status += "Developer mode enabled\n"
+            if self._model.get_adv_mode():
+                status += "Advanced mode enabled\n"
             self.wfile.write(status)
         elif instruction == "start":
             if len(params) > 0:
@@ -213,7 +215,6 @@ class CommandServer(MyTcpHandler):
         else:
             self.wfile.write(red("Wrong command\n"))
         return True
-
 
 
 HELP="Welcome on the OpenSAND command interface.\n" \

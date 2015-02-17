@@ -107,7 +107,7 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="type" type="className">
+        <xsd:attribute name="name" type="className">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The name of the FIFO
@@ -232,7 +232,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>Some global parameters</b>
+            <b>\tSome global parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>
@@ -255,15 +255,10 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The dvb layer configuration for NCC</b>\n
+            <b>\tThe dvb layer configuration for NCC</b>\n
             For Layer 2 FIFO configuration:\n
               - check the Lan Adaptation plugins configuration below in order to get correct QoS mapping\n
               - access type has to be correlated with the band configuration one\n
-            \n
-            <u>Note about files:</u>\n
-            When you select another file, it will be copied in your scenario,\n
-            so don't be surprised to always get the same file path when opening\n
-            the advanced configuration window.
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -287,7 +282,7 @@
             <xsd:element name="cra_decrease" type="xsd:boolean">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        indicates if rt_fixed_bandwidth has to be removed from
+                        indicates if CRA has to be removed from
                         the RBDC value  of the capacity requests
                     </xsd:documentation>
                 </xsd:annotation>
@@ -343,7 +338,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The Slotted Aloha GW parameters</b>
+            <b>\tThe Slotted Aloha GW parameters</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>
@@ -372,7 +367,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The QoS PEP (Policy Enforcement Point) parameters</b>
+            <b>\tThe QoS PEP (Policy Enforcement Point) parameters</b>
             ]]>
             <hide>true</hide>
         </xsd:documentation>
@@ -404,7 +399,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The debug parameters</b>\n
+            <b>\tThe debug parameters</b>\n
             For levels table, you can choose any available logs or part of log name.\n
             After a first simulation, autocompletion will be availabble for level names.
             ]]>
