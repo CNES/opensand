@@ -110,97 +110,97 @@ class BlockDvbNcc: public BlockDvb
 	class Downward: public DvbDownward, NccPepInterface
 	{
 	  public:
-		  /// downward block table (1 per slot)
-		  map<spot_id_t, SpotDownward *> spot_downward_map;
-		  
-		  Downward(Block *const bl);
-		  ~Downward();
-		  bool onInit(void);
-		  bool onEvent(const RtEvent *const event);
+		/// downward block table (1 per slot)
+		map<spot_id_t, SpotDownward *> spot_downward_map;
+		
+		Downward(Block *const bl);
+		~Downward();
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
 	 protected:
-		  /**
-		   * Read configuration for the downward timers
-		   *
-		   * @return  true on success, false otherwise
-		   */
-		  bool initTimers(void);
-		  
-		  /** Read configuration for the resquest simulation
-		   * 
-		   * @return true on success, false otherwise
-		   */ 
-		  bool initRequestSimulation(void);
+		/**
+		 * Read configuration for the downward timers
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initTimers(void);
+		
+		/** Read configuration for the resquest simulation
+		 * 
+		 * @return true on success, false otherwise
+		 */ 
+		bool initRequestSimulation(void);
 
-		  /**
-		   * Read configuration for simulated FMT columns ID
-		   *
-		   * @return  true on success, false otherwise
-		   */
-		  bool initColumns(void);
+		/**
+		 * Read configuration for simulated FMT columns ID
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initColumns(void);
 
-		  /**
-		   * @brief Read configuration for the different files and open them
-		   *
-		   * @return  true on success, false otherwise
-		   */
-		  bool initModcodSimu(void);
-		  
-		  /**
-		   * Send a Terminal Time Plan
-		   */
-		  void sendTTP(SpotDownward *spot_downward);
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
+		
+		/**
+		 * Send a Terminal Time Plan
+		 */
+		void sendTTP(SpotDownward *spot_downward);
 
-		  /**
-		   * Send a start of frame
-		   */
-		  void sendSOF(SpotDownward *spot_downward);
+		/**
+		 * Send a start of frame
+		 */
+		void sendSOF(SpotDownward *spot_downward);
 
-		  /**
-		   * @brief Send a SAC message containing ACM parameters
-		   *
-		   * @return true on success, false otherwise
-		   */
-		  bool sendAcmParameters(SpotDownward *spot_downward);
-		  
-		  // statistics update
-		  void updateStats(void);
-		  void resetStatsCxt(void);
+		/**
+		 * @brief Send a SAC message containing ACM parameters
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool sendAcmParameters(SpotDownward *spot_downward);
+		
+		// statistics update
+		void updateStats(void);
+		void resetStatsCxt(void);
 
 
-		  /**
-		   * Simulate event based on an input file
-		   * @return true on success, false otherwise
-		   */
-		  bool simulateFile(void);
+		/**
+		 * Simulate event based on an input file
+		 * @return true on success, false otherwise
+		 */
+		bool simulateFile(void);
 
-		  /**
-		   * Simulate event based on random generation
-		   */
-		  void simulateRandom(void);
+		/**
+		 * Simulate event based on random generation
+		 */
+		void simulateRandom(void);
 
-		  /// frame timer for return, used to awake the block every frame period
-		  event_id_t frame_timer;
+		/// frame timer for return, used to awake the block every frame period
+		event_id_t frame_timer;
 
-		  /// frame timer for forward, used to awake the block every frame period
-		  event_id_t fwd_timer;
+		/// frame timer for forward, used to awake the block every frame period
+		event_id_t fwd_timer;
 
-		  /// The MODCOD simulation elements for up/return link
-		  FmtSimulation up_ret_fmt_simu;
-		  /// The MODCOD simulation elements for down/forward link
-		  FmtSimulation down_fwd_fmt_simu;
+		/// The MODCOD simulation elements for up/return link
+		FmtSimulation up_ret_fmt_simu;
+		/// The MODCOD simulation elements for down/forward link
+		FmtSimulation down_fwd_fmt_simu;
 
-		  /// timer used to awake the block every second in order to retrieve
-		  /// the current MODCODs
-		  /// In regenerative case with physical layer, is it used to send
-		  // ACM parameters to satellite
-		  event_id_t scenario_timer;
+		/// timer used to awake the block every second in order to retrieve
+		/// the current MODCODs
+		/// In regenerative case with physical layer, is it used to send
+		// ACM parameters to satellite
+		event_id_t scenario_timer;
 
-		  // The column ID for FMT simulation
-		  map<tal_id_t, uint16_t> column_list;
+		// The column ID for FMT simulation
+		map<tal_id_t, uint16_t> column_list;
 
-		  // Frame interval
-		  Probe<float> *probe_frame_interval;
+		// Frame interval
+		Probe<float> *probe_frame_interval;
 	};
 };
 

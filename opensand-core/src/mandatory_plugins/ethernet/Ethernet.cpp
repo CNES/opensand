@@ -73,6 +73,7 @@ void Ethernet::init()
 {
 	LanAdaptationPlugin::init();
 	ConfigurationFile config;
+	map<string, ConfigurationList> config_section_map;
 	string sat_eth;
 
 	this->upper[TRANSPARENT].push_back("IP");
@@ -88,13 +89,18 @@ void Ethernet::init()
 		    "failed to load config file '%s'", CONF_ETH_FILE);
 		return;
 	}
-	if(!config.getValue(CONF_ETH_SECTION, CONF_SAT_FRAME_TYPE, sat_eth))
+
+	config.loadMap(config_section_map);
+
+	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+		                CONF_SAT_FRAME_TYPE, sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
 	}
 
 	config.unloadConfig();
+	config_section_map.clear();
 
 	if(sat_eth == "Ethernet")
 	{
@@ -125,6 +131,7 @@ void Ethernet::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
+	map<string, ConfigurationList> config_section_map;
 	string lan_eth;
 	string sat_eth;
 
@@ -138,12 +145,16 @@ void Ethernet::Context::init()
 		return;
 	}
 
-	if(!config.getValue(CONF_ETH_SECTION, CONF_LAN_FRAME_TYPE, lan_eth))
+	config.loadMap(config_section_map);
+
+	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+		                CONF_LAN_FRAME_TYPE, lan_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", CONF_LAN_FRAME_TYPE);
 	}
-	if(!config.getValue(CONF_ETH_SECTION, CONF_SAT_FRAME_TYPE, sat_eth))
+	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+		                CONF_SAT_FRAME_TYPE, sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
@@ -212,6 +223,7 @@ void Ethernet::Context::init()
 	}
 
 	config.unloadConfig();
+	config_section_map.clear();
 }
 
 Ethernet::Context::~Context()
@@ -239,8 +251,11 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 	int i = 0;
 	ConfigurationList evc_list;
 	ConfigurationList::iterator iter;
+	map<string, ConfigurationList> config_section_map;
+	config.loadMap(config_section_map);
 
-	if(!config.getListItems(CONF_ETH_SECTION, CONNECTION_LIST, evc_list))
+	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 
+		                    CONNECTION_LIST, evc_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing or empty section [%s, %s]\n",
@@ -352,9 +367,12 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 	vector<TrafficCategory *>::iterator cat_iter;
 	ConfigurationList category_list;
 	ConfigurationList::iterator iter;
+	map<string, ConfigurationList> config_section_map;
+	config.loadMap(config_section_map);
 
 	// Traffic flow categories
-	if(!config.getListItems(CONF_ETH_SECTION, CLASS_LIST,
+	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 
+		                    CLASS_LIST,
 	                        category_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -416,7 +434,8 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 		this->category_map[pcp] = category;
 	}
 	// Get default category
-	if(!config.getValue(CONF_ETH_SECTION, DEFAULT_PCP,
+	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+		                DEFAULT_PCP,
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;

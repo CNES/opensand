@@ -164,7 +164,7 @@ class ConfView(WindowView):
                 modules.update(header_modif)
                 stack = ProtocolStack(vbox,
                                       modules,
-                                      self.on_stack_modif,
+                                      self.on_lan_stack_modif,
                                       self._ui.get_widget('header_modif_vbox'),
                                       self._ui.get_widget('frame_header_modif'))
                 self._lan_stacks[host] = stack
@@ -217,7 +217,7 @@ class ConfView(WindowView):
             modules.update(header_modif)
             self._lan_stack_base = ProtocolStack(self._lan_stack_vbox,
                                                  modules,
-                                                 self.on_stack_modif,
+                                                 self.on_lan_stack_modif,
                                                  self._ui.get_widget('header_modif_vbox'),
                                                  self._ui.get_widget('frame_header_modif'))
             try:
@@ -390,6 +390,10 @@ class ConfView(WindowView):
                 return True
 
     def on_stack_modif(self, source=None, event=None):
+        """ 'changed' event on a combobox from the stack """
+        self.enable_conf_buttons()
+
+    def on_lan_stack_modif(self, source=None, event=None):
         """ 'changed' event on a combobox from the stack """
         # we need to check because buttons are modified when loading stack
         if self.is_lan_adapt_stack_modif():

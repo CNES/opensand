@@ -37,12 +37,16 @@
 
 #include "PhysicalLayerPlugin.h"
 #include "OpenSandCore.h"
+#include <opensand_conf/ConfigurationFile.h>
 
 /**
  * @class Constant 
  */
 class Constant: public MinimalConditionPlugin
 {
+	private:
+		
+		map<string,ConfigurationList> config_section_map;
 
 	public:
 

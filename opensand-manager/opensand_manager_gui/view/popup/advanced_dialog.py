@@ -42,7 +42,8 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
-                                                           ConfigurationNotebook
+                                                           ConfigurationNotebook, \
+                                                           ConfSection
 
 (TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
 
@@ -57,7 +58,9 @@ class AdvancedDialog(WindowView):
         self._log = manager_log
         self._host_tree = None
         self._host_conf_view = None
+        self._host_list = {}
         self._current_host_notebook = None
+        self._current_host_frame = None
         self._hosts_name = []
         self._enabled = []
         self._saved = []
@@ -92,7 +95,7 @@ class AdvancedDialog(WindowView):
     def go(self):
         """ run the window """
         try:
-            self.load()
+            gobject.idle_add(self.load,priority=gobject.PRIORITY_HIGH_IDLE)
         except ModelException, msg:
             error_popup(str(msg))
         self._dlg.set_title("Advanced configuration - OpenSAND Manager")
@@ -133,8 +136,14 @@ class AdvancedDialog(WindowView):
             self._enabled.append(host)
 
         # add the global configuration
-        gobject.idle_add(self._host_tree.add_host, self._model,
-                         {})
+        """gobject.idle_add(self._host_tree.add_host, self._model,
+                         {}, priority=gobject.PRIORITY_HIGH_IDLE)"""
+       
+        self._host_tree.add_host(self._model,{})
+
+        host = self._model.get_host(self._model.get_name())
+        self.add_host_children(host)
+
         if not self._model.get_adv_mode():
             treeview = self._host_tree.get_treeview()
             column = treeview.get_column(1)
@@ -148,11 +157,13 @@ class AdvancedDialog(WindowView):
 
         # update trees immediatly then add a periodic update
         self.update_trees()
+        self.update_restrictions()
         self._refresh_trees = gobject.timeout_add(1000,
                                                  self.update_trees)
 
         # disable apply button
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
+
 
     def reset(self):
         """ reset the advanced configuration """
@@ -182,12 +193,16 @@ class AdvancedDialog(WindowView):
     def update_trees(self):
         """ update the host and modules trees """
         self._host_lock.acquire()
-
+        
+        # add host and its children
         for host in [elt for elt in self._model.get_hosts_list()
                          if elt.get_name() not in self._hosts_name]:
             name = host.get_name()
             self._hosts_name.append(name)
-            gobject.idle_add(self._host_tree.add_host, host, None)
+        
+            self._host_tree.add_host(host, None)
+            self.add_host_children(host)
+        # TODO update host
 
         real_names = []
         for host in self._model.get_hosts_list():
@@ -206,6 +221,39 @@ class AdvancedDialog(WindowView):
 
         # continue to refresh
         return True
+
+    def add_host_children(self, host):
+        list_children = []
+        adv = host.get_advanced_conf()
+        config = None
+        if adv is not None:
+            config = adv.get_configuration()
+            if config is not None:
+                for section in config.get_sections():
+                    name = config.get_name(section)
+                    list_children.append(name)
+
+                    if not config.do_hide_adv(name,
+                                              self._model.get_adv_mode()) :
+                        self._host_tree.add_child(name,
+                                         host.get_name().upper(),
+                                         config.do_hide(name), True)
+
+                        for key in config.get_keys(section):
+                            if key.tag == "spot":
+                                gobject.idle_add(self._host_tree.add_child,
+                                                 key.tag+key.get("id"),
+                                                 name,
+                                                 config.do_hide(name), True,
+                                                 priority=gobject.PRIORITY_HIGH_IDLE+40)
+                
+                # create view associate to host children
+                conf_sections = {} 
+                self.create_conf_section(conf_sections, config, host.get_name())
+                adv.set_conf_view(conf_sections)
+
+
+        self._host_list[host.get_name()] = list_children
 
     def update_modules_tree(self):
         """ update the modules tree """
@@ -282,6 +330,64 @@ class AdvancedDialog(WindowView):
                 used_modules.append(module)
         return used_modules
 
+    def create_conf_section(self, conf_sections, config, host_name):
+        for section in config.get_sections():
+            global_section = False
+                
+            # look for spot section
+            for key in config.get_keys(section):
+                if key.tag == "spot":
+                    conf_sections[host_name + "." + config.get_name(section) +
+                                  "." + key.tag+key.get("id")] = \
+                            ConfSection(section, config, config.get_name(section),
+                                        self._model.get_adv_mode(),
+                                        self._model.get_scenario(),
+                                        self.handle_param_chanded,
+                                        self._model.handle_file_changed,
+                                        key.get("id"))
+                    # hidden section
+                    if config.do_hide(config.get_name(section)):
+                        conf_sections[host_name + "." + config.get_name(section) +
+                                      "." + key.tag + key.get("id")
+                                     ].set_hidden(not self._show_hidden)
+                    # restrictions section
+                    restriction =  config.get_xpath_restrictions(
+                                        config.get_name(section))
+                    if restriction is not None:
+                        conf_sections[host_name + "." + config.get_name(section) +
+                                      "." + key.tag + key.get("id")
+                                     ].add_restriction(conf_sections[host_name + 
+                                                "." + config.get_name(section) +
+                                                "." + key.tag +key.get("id")],
+                                                restriction)
+
+                else:
+                    global_section = True
+                
+                
+            # global section
+            if global_section:
+                conf_sections[host_name+"."+config.get_name(section)] = \
+                ConfSection(section, config, config.get_name(section),
+                            self._model.get_adv_mode(),
+                            self._model.get_scenario(),
+                            self.handle_param_chanded,
+                            self._model.handle_file_changed)
+                    
+                # restrictions section
+                restriction = config.get_xpath_restrictions(config.get_name(section))
+                if restriction is not None:
+                    conf_sections[host_name + "." + config.get_name(section)
+                                 ].add_restriction(conf_sections[host_name + 
+                                                   "." + config.get_name(section)],
+                                                   restriction)
+                    
+                # hidden section
+                if config.do_hide(config.get_name(section)):
+                    conf_sections[host_name + "." + config.get_name(section)
+                                 ].set_hidden(not self._show_hidden)
+                
+
 
     def on_host_selected(self, selection):
         """ callback called when a host is selected """
@@ -289,19 +395,37 @@ class AdvancedDialog(WindowView):
         for widget in self._modules_tree_view.get_children():
             self._modules_tree_view.remove(widget)
 
+        # selected item
         (tree, iterator) = selection.get_selected()
+
         if iterator is None:
             self._host_conf_view.hide_all()
             return
 
-        name = tree.get_value(iterator, TEXT).lower()
-        host = self._model.get_host(name)
+        # host name
+        tree_path = tree.get_path(iterator)
+        host_iter = tree.get_iter(tree_path[0]) 
+        host_name = tree.get_value(host_iter, TEXT).lower()
+        
+        # selected item name
+        selected_name = tree.get_value(iterator, TEXT).lower()
+        
+        # section name
+        section_name = host_name
+        i = 2
+        while i <= len(tree_path):
+            it = tree.get_iter(tree_path[:i])
+            section_name += "."+tree.get_value(it, TEXT).lower()
+            i += 1
+        host = self._model.get_host(host_name)
+        
         if host is None:
-            error_popup("cannot find host model for %s" % name.upper())
+            error_popup("cannot find host model for %s" % selected_name.upper())
             self._host_conf_view.hide_all()
             return
         self._current_host = host
 
+        # get host configuration
         adv = host.get_advanced_conf()
         config = None
         if adv is not None:
@@ -310,33 +434,44 @@ class AdvancedDialog(WindowView):
             tree.set(iterator, ACTIVATABLE, False, ACTIVE, False)
             self._host_conf_view.hide_all()
             return
+        
+        # create/get sections
+        conf_sections = adv.get_conf_view()
+        if conf_sections is None:
+            conf_sections = {} 
+            self.create_conf_section(conf_sections, config, host_name)
+            adv.set_conf_view(conf_sections)
+        
+        self.update_restrictions()
 
-        notebook = adv.get_conf_view()
-        if notebook is None:
-            notebook = ConfigurationNotebook(config,
-                                             name,
-                                             self._model.get_adv_mode(),
-                                             self._model.get_scenario(),
-                                             self._show_hidden,
-                                             self.handle_param_chanded,
-                                             self._model.handle_file_changed)
-            adv.set_conf_view(notebook)
-            self.update_restrictions()
-
-        adv.set_conf_view(notebook)
-        if notebook != self._current_host_notebook:
+        adv.set_conf_view(conf_sections)
+        if conf_sections.get(section_name) == None:
+            # collapse/expand row
+            if tree.iter_has_child(iterator):
+                self._host_conf_view.hide_all()
+                path =  tree.get_path(iterator)
+                if self._host_tree.get_treeview().row_expanded(path):
+                    self._host_tree.get_treeview().collapse_row(path)
+                else:
+                    self._host_tree.get_treeview().expand_row(path, False)
+            # usr error message
+            else:
+                error_popup("cannot find host model for %s" % selected_name.upper())
+                self._host_conf_view.hide_all() 
+            return
+        elif conf_sections.get(section_name) != self._current_host_frame:
             self._host_conf_view.hide_all()
-            self._host_conf_view.pack_start(notebook)
-            if self._current_host_notebook is not None:
-                self._host_conf_view.remove(self._current_host_notebook)
-            self._current_host_notebook = notebook
+            self._host_conf_view.pack_start(conf_sections.get(section_name))
+            if self._current_host_frame is not None:
+                self._host_conf_view.remove(self._current_host_frame)
+            self._current_host_frame = conf_sections.get(section_name)
         self._host_conf_view.show_all()
 
         self.update_modules_tree()
-        self._modules_tree_view.add(self._modules_tree[name].get_treeview())
+        self._modules_tree_view.add(self._modules_tree[host_name].get_treeview())
         self._modules_tree_view.show_all()
         # call on_module_selected if a plugin is already selected
-        self.on_module_selected(self._modules_tree[name].get_selection())
+        self.on_module_selected(self._modules_tree[host_name].get_selection())
 
     def on_module_selected(self, selection):
         """ callback called when a host is selected """
@@ -425,14 +560,15 @@ class AdvancedDialog(WindowView):
                 host.enable(True)
             name = host.get_name()
             adv = host.get_advanced_conf()
-            notebook = None
+            list_sections = None
             if adv is not None:
                 self._log.debug("save %s advanced configuration" % name)
-                notebook = adv.get_conf_view()
-            if notebook is None:
+                list_sections = adv.get_conf_view()
+            if list_sections is None:
                 continue
             try:
-                notebook.save()
+                for section_name in list_sections:
+                    list_sections[section_name].save()
             except XmlException, error:
                 self._host_lock.release()
                 error_popup("%s: %s" % (name, error), error.description)
@@ -510,14 +646,16 @@ class AdvancedDialog(WindowView):
     def on_hide_checkbutton_toggled(self, source=None, event=None):
         """ The see all sections checkbutton has been toggled """
         self._show_hidden = not self._show_hidden
+        self._host_tree.set_hidden(not self._show_hidden)
         for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()
             if adv is None:
                 continue
-            notebook = adv.get_conf_view()
-            if notebook is None:
+            list_view = adv.get_conf_view()
+            if list_view is None:
                 continue
-            notebook.set_hidden(not self._show_hidden)
+            for view in list_view:
+                list_view[view].set_hidden(not self._show_hidden)
         self.update_restrictions()
 
 
@@ -534,6 +672,7 @@ class AdvancedDialog(WindowView):
     def update_restrictions(self):
         """ update the restrictions in configuration """
         configs = []
+        rows = {}
         # get all the configurations
         for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()
@@ -542,41 +681,47 @@ class AdvancedDialog(WindowView):
         for host in self._model.get_hosts_list() + [self._model]:
             # get notebooks to update their restrictions
             adv = host.get_advanced_conf()
-            notebook = adv.get_conf_view()
-            if notebook is None:
+            list_view = adv.get_conf_view()
+            if list_view is None:
                 continue
-            restrictions = notebook.get_restrictions()
-            new_restrictions = {}
-            # get all the widget concerned by restriction
-            for (widget, restriction) in restrictions.items():
-                # if hidden widgets are shown, only set all the restrictions
-                # to False in order to force widget display
-                if self._show_hidden:
-                    new_restrictions[widget] = False
-                    continue
-                # get the restriction parameter and the value for wich
-                # the widget is not hidden
-                restricted = False
-                for (xpath, val) in restriction.items():
-                    # try to find the parameter in all configurations
-                    for config in configs:
-                        elem = config.get("//" + xpath.replace(".", "/"))
-                        if elem is not None:
-                            break
-                    if elem is None:
+            for view in list_view:
+                restrictions = list_view[view].get_restrictions()
+                new_restrictions = {}
+                # get all the widget concerned by restriction
+                for (widget, restriction) in restrictions.items():
+                    restricted = False
+                    # if hidden widgets are shown, only set all the restrictions
+                    # to False in order to force widget display
+                    if self._show_hidden:
+                        new_restrictions[widget] = restricted
                         continue
-                    # a parameter was not found,
-                    # we do a & between all parameters, so if one is not found, 
-                    # we do not display the widget
-                    if config.get_value(elem) != val:
-                        restricted = True
-                if restricted:
-                    new_restrictions[widget] = True
-                else:
-                    new_restrictions[widget] = False
-            notebook.set_restrictions(new_restrictions)
+                    # get the restriction parameter and the value for wich
+                    # the widget is not hidden
+                    for (xpath, val) in restriction.items():
+                        # try to find the parameter in all configurations
+                        for config in configs:
+                            xpath = xpath.replace("spot.","spot[@id='"+view[-1]+"']/")
+                            elem = config.get("//" + xpath.replace(".", "/"))
+                            if elem is not None:
+                                break
+                        if elem is None:
+                            continue
+                        # a parameter was not found,
+                        # we do a & between all parameters, so if one is not found, 
+                        # we do not display the widget
+                        if config.get_value(elem) != val:
+                            restricted = True
+                    
+                    new_restrictions[widget] = restricted
+                   
+                    # hide Tree row for section restricted
+                    if isinstance(widget, ConfSection):
+                        path = view.split('.')
+                        rows[path[-1]] = restricted
+                list_view[view].set_restrictions(new_restrictions)
 
-
+        # Hide restricted confSection / Tree
+        self._host_tree.set_restricted(rows)
 
 if __name__ == "__main__":
     from opensand_manager_core.loggers.manager_log import ManagerLog

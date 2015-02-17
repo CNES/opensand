@@ -223,17 +223,52 @@ error:
 	return false;
 }
 
-bool ConfigurationFile::getKey(const char *section,
+void ConfigurationFile::loadMap(map<string, ConfigurationList> &section_map)
+{
+	vector<xmlpp::DomParser *>::iterator parser;
+	ConfigurationList childrenList;
+
+	for(parser = this->parsers.begin(); parser != this->parsers.end(); parser++)
+	{
+		const xmlpp::Element* root;
+		xmlpp::Node::NodeList tempList;
+
+		root = (*parser)->get_document()->get_root_node();
+		tempList = root->get_children();
+		childrenList.insert(childrenList.end(), tempList.begin(), tempList.end());
+	}
+
+	if(!childrenList.empty())
+	{
+		xmlpp::Node::NodeList::iterator iter;
+
+		for(iter = childrenList.begin(); iter != childrenList.end(); iter++)
+		{
+			string name = ((xmlpp::Node*)*iter)->get_name().c_str();
+			ConfigurationList sectionList;
+			// if name is not already a key
+			if(section_map.find(name) == section_map.end())
+			{
+				this->getSection(name.c_str(), sectionList);
+				section_map[name]=sectionList;
+			}
+		}
+	}
+}
+
+
+bool ConfigurationFile::getKey(ConfigurationList sectionList,
                                const char *key,
                                const xmlpp::Element **keyNode)
 {
-	xmlpp::Node::NodeList sectionList;
 	xmlpp::Node::NodeList::iterator iter;
 	xmlpp::Node::NodeList keyList;
 	bool found = false;
 
-	if(!this->getSection(section, sectionList))
+	
+	if(sectionList.empty())
 	{
+		LOG(this->log_conf, LEVEL_ERROR, "section empty");
 		goto error;
 	}
 
@@ -246,7 +281,7 @@ bool ConfigurationFile::getKey(const char *section,
 		{
 			LOG(this->log_conf, LEVEL_ERROR,
 			    "more than one key named '%s' in section '%s'\n",
-			    key, section);
+			    key, sectionNode->get_name().c_str());
 			goto error;
 		}
 		else if(keyList.size() == 1)
@@ -256,7 +291,7 @@ bool ConfigurationFile::getKey(const char *section,
 			{
 				LOG(this->log_conf, LEVEL_ERROR,
 				    "cannot convert the key '%s' from section '%s' "
-				    "into element\n", key, section);
+				    "into element\n", key, sectionNode->get_name().c_str());
 				goto error;
 			}
 			found = true;
@@ -267,7 +302,7 @@ bool ConfigurationFile::getKey(const char *section,
 	{
 		LOG(this->log_conf, LEVEL_ERROR,
 		    "no key named '%s' in section '%s'\n",
-		    key, section);
+		    key, ((xmlpp::Node*)(*sectionList.begin()))->get_name().c_str());
 		goto error;
 	}
 
@@ -276,7 +311,7 @@ error:
 }
 
 
-bool ConfigurationFile::getStringValue(const char *section,
+bool ConfigurationFile::getStringValue(ConfigurationList sectionList,
                                        const char *key,
                                        string &value)
 {
@@ -284,7 +319,7 @@ bool ConfigurationFile::getStringValue(const char *section,
 	const xmlpp::TextNode *nodeText;
 	xmlpp::Node::NodeList list;
 
-	if(!this->getKey(section, key, &keyNode))
+	if(!this->getKey(sectionList, key, &keyNode))
 	{
 		goto error;
 	}
@@ -294,7 +329,7 @@ bool ConfigurationFile::getStringValue(const char *section,
 	{
 		LOG(this->log_conf, LEVEL_ERROR,
 		    "The key '%s' in section '%s' does not contain text\n",
-		    key, section);
+		    key, ((xmlpp::Node*)(*sectionList.begin()))->get_name().c_str());
 		goto error;
 	}
 	else
@@ -306,7 +341,7 @@ bool ConfigurationFile::getStringValue(const char *section,
 	{
 		LOG(this->log_conf, LEVEL_ERROR,
 		    "The key '%s' in section '%s' does not contain text\n",
-		    key, section);
+		    key, ((xmlpp::Node*)(*sectionList.begin()))->get_name().c_str());
 		goto error;
 	}
 	value = nodeText->get_content();
@@ -316,7 +351,72 @@ error:
 	return false;
 }
 
-bool ConfigurationFile::getNbListItems(const char *section,
+bool ConfigurationFile::getListNode(ConfigurationList sectionList,
+                                    const char *key,
+									xmlpp::Node::NodeList &nodeList)
+{
+	xmlpp::Node::NodeList::iterator iter;
+	bool found = false;
+
+	for(iter = sectionList.begin(); iter != sectionList.end(); iter++)
+	{
+		xmlpp::Node *sectionNode = *iter;
+		xmlpp::Node::NodeList tempList = sectionNode->get_children(key);
+		nodeList.insert(nodeList.end(), tempList.begin(), tempList.end());
+		if(nodeList.size() == 0)
+		{
+			LOG(this->log_conf, LEVEL_ERROR,
+					"there is no '%s' in section '%s'\n",
+					key, sectionNode->get_name().c_str());
+			goto error;
+		}
+		else
+		{
+			found = true;
+		}
+	}
+
+error:
+	return found;
+}
+
+bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
+                                                    const char *attribute_name,
+                                                    const char *attribute_value,
+                                                    ConfigurationList &elements)
+{
+	ConfigurationList::iterator iter;
+	for(iter = list.begin(); iter!=list.end(); iter++)
+	{
+		string id;
+
+		if(!this->getAttributeStringValue(iter, attribute_name, id))
+		{
+			LOG(this->log_conf, LEVEL_ERROR,
+				"there is no attribute %s into %s",
+				attribute_name,
+				((xmlpp::Node*)*iter)->get_name().c_str());
+			return false;
+		}
+
+		if(strcmp(id.c_str(), attribute_value) == 0)
+		{
+			elements.push_back((xmlpp::Node*)*iter);
+		}
+	}
+
+	if(elements.empty())
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
+}
+
+bool ConfigurationFile::getNbListItems(ConfigurationList section,
                                        const char *key,
                                        int &nbr)
 {
@@ -334,7 +434,7 @@ error:
 
 }
 
-bool ConfigurationFile::getListItems(const char *section,
+bool ConfigurationFile::getListItems(ConfigurationList section,
                                      const char *key,
                                      ConfigurationList &list)
 {
@@ -434,8 +534,8 @@ error:
 bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
                                    map<string, log_level_t> &specific)
 {
-	xmlpp::Node::NodeList sectionList;
-	xmlpp::Node::NodeList::iterator sec_iter;
+	ConfigurationList sectionList;
+	ConfigurationList::iterator sec_iter;
     ConfigurationList level_list;
     ConfigurationList::iterator iter;
 
@@ -470,7 +570,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 				// ignore user defined levels list
 				continue;
 			}
-			if(!this->getValue(SECTION_DEBUG, key_name.c_str(), val))
+			if(!this->getValue(sectionList, key_name.c_str(), val))
 			{
 				return false;
 			}
@@ -481,7 +581,7 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 	}
 
 	// load specific levels
-    if(!Conf::getListItems(SECTION_DEBUG, LEVEL_LIST,
+    if(!Conf::getListItems(sectionList, LEVEL_LIST,
                            level_list))
     {
         LOG(this->log_conf, LEVEL_ERROR,

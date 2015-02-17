@@ -54,6 +54,7 @@ SlottedAlohaNcc::SlottedAlohaNcc():
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
+	spot_id(),
 	terminals(),
 	algo(NULL),
 	simu()
@@ -91,12 +92,22 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
                            TerminalMapping<TerminalCategorySaloha> terminal_affectation,
-                           TerminalCategorySaloha *default_category)
+                           TerminalCategorySaloha *default_category,
+                           spot_id_t spot)
 
 {
 	string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	ConfigurationList simu_list;
+
+	// set spot id
+	if(spot == 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"spot id = %d", spot);
+	}
+	this->spot_id == spot;
+
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -152,7 +163,8 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		                                       probe_coll_ratio));
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_ALGO, algo_name))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
+		               SALOHA_ALGO, algo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -179,7 +191,8 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	    algo_name.c_str());
 
 	// load Slotted Aloha traffic simulation parameters
-	if(!Conf::getListItems(SALOHA_SECTION, SALOHA_SIMU_LIST, simu_list))
+	if(!Conf::getListItems(Conf::section_map[SALOHA_SECTION],
+		                   SALOHA_SIMU_LIST, simu_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', '%s': missing simulation list\n",
@@ -412,6 +425,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		    "failed to create a Slotted Aloha signal control frame");
 		return false;
 	}
+	frame->setSpot(this->spot_id);
 
 	LOG(this->log_saloha, LEVEL_DEBUG,
 	    "Schedule Slotted Aloha packets\n");
@@ -488,6 +502,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 				delete sa_packet;
 				return false;
 			}
+			frame->setSpot(this->spot_id);
 		}
 		if(!frame->addPacket(ack))
 		{

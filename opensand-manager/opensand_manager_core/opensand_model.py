@@ -206,13 +206,16 @@ class Model:
             if name.startswith('ws') and '_' in instance:
                 instance = instance.split('_')[0]
             if name == 'sat':
-                att_path = '/configuration/sat_carrier/carriers/carrier' \
-                           '[@up="true" and @ip_multicast="false"]'
+                att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
+                           '[(@type="ctrl_in" or @type="logon_in" or' \
+                           '@type="data_in_gw" or @type="data_in_st")' \
+                           'and @ip_multicast="false"]'
                 self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, 'ip_address')
             elif name == 'gw':
-                att_path = '/configuration/sat_carrier/carriers/carrier' \
-                           '[@up="false" and @ip_multicast="false"]'
+                att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
+                           '[(@type="logon_out" or @type="data_out_gw")' \
+                           'and @ip_multicast="false"]'
                 self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, 'ip_address')
 

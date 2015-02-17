@@ -66,7 +66,7 @@ class NetContainer
 	size_t trailer_length;
 	
 	/// The destination spot ID
-	uint8_t dst_spot;
+	uint8_t spot;
 
  public:
 
@@ -168,14 +168,14 @@ class NetContainer
 	 *
 	 * @param spot_id  The destination spot id
 	 */
-	void setDstSpot(uint8_t spot_id);
+	void setSpot(uint8_t spot_id);
 
 	/**
 	 * Get the destination spot ID
 	 *
 	 * @return the destination spot ID
 	 */
-	uint8_t getDstSpot() const;
+	uint8_t getSpot() const;
 
 };
 

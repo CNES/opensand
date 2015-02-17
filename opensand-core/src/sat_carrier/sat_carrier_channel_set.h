@@ -101,11 +101,14 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 	*/
 	int receive(NetSocketEvent *const event,
 	            unsigned int &op_carrier,
+	            spot_id_t &op_spot,
 	            unsigned char **op_buf, size_t &op_len);
 
 	int getChannelFdByChannelId(unsigned int i_channelID);
 
 	unsigned int getNbChannel();
+
+	void setTalId(tal_id_t id);
 
  private:
 
@@ -124,6 +127,8 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 	// Output Log
 	OutputLog *log_init;
 	OutputLog *log_sat_carrier;
+
+	tal_id_t tal_id;
 };
 
 #endif

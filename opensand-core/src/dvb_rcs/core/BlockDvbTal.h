@@ -188,6 +188,7 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		spot_id_t spot_id;
 
 		/// the current state of the ST
 		tal_state_t state;
@@ -343,6 +344,7 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		spot_id_t spot_id;
 
 		/// fixed bandwidth (CRA) in kbits/s
 		rate_kbps_t cra_kbps;
@@ -428,6 +430,7 @@ class BlockDvbTal: public BlockDvb
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit(void);	
+
 };
 
 #endif

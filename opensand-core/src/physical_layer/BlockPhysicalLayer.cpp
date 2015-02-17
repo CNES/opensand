@@ -126,12 +126,13 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string val;
 
 	// satellite type
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
 	                   val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SATELLITE_TYPE);
+		    COMMON_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -160,7 +161,8 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// get refresh period
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -172,7 +174,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	    "acm refreshing period = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   ATTENUATION_MODEL_TYPE,
 	                   attenuation_type))
 	{
@@ -184,7 +186,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Clear Sky value
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   CLEAR_SKY_CONDITION,
 	                   this->clear_sky_condition))
 	{
@@ -196,7 +198,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Minimal conditions
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   MINIMAL_CONDITION_TYPE,
 	                   minimal_type))
 	{
@@ -208,7 +210,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Error Insertion
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   ERROR_INSERTION_TYPE,
 	                   error_type))
 	{
@@ -300,7 +302,8 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	string attenuation_type;
 
 	// get refresh_period
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -312,7 +315,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	    "refresh_period_ms = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
-	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[UPLINK_PHYSICAL_LAYER_SECTION],
 	                   ATTENUATION_MODEL_TYPE,
 	                   attenuation_type))
 	{
@@ -323,7 +326,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	}
 
 	// Initiate Clear Sky value
-	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[UPLINK_PHYSICAL_LAYER_SECTION],
 	                   CLEAR_SKY_CONDITION,
 	                   this->clear_sky_condition))
 	{
@@ -502,7 +505,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	this->msg_type = MSG_TYPE_DVB_BURST;
 
 	// Initiate Minimal conditions
-	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],
 	                   MINIMAL_CONDITION_TYPE,
 	                   minimal_type))
 	{
@@ -513,7 +516,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	}
 
 	// Initiate Error Insertion
-	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],
 	            ERROR_INSERTION_TYPE,
 	            error_type))
 	{

@@ -83,14 +83,14 @@ class ProbeSelectionController(object):
                                           gobject.TYPE_INT)
 
         self._probe_store.set_sort_column_id(1, gtk.SORT_ASCENDING)
-        probe_listview.set_model(self._probe_store)
-        probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
-        probe_listview.set_enable_tree_lines(True)
+        self._probe_listview.set_model(self._probe_store)
+        self._probe_listview.get_selection().set_mode(gtk.SELECTION_NONE)
+        self._probe_listview.set_enable_tree_lines(True)
 
 
         column = gtk.TreeViewColumn("Probe")
         column.set_sort_column_id(NAME) # Sort on the probe/section name
-        probe_listview.append_column(column)
+        self._probe_listview.append_column(column)
 
         cell_renderer = gtk.CellRendererToggle()
         column.pack_start(cell_renderer, False)
@@ -194,7 +194,7 @@ class ProbeSelectionController(object):
             if probe.enabled:
                 probe_parent = None
                 cur_group = groups
-                probe_path = probe.name.split(".")
+                probe_path = probe.disp_name.split(".")
                 probe_name = probe_path.pop()
 
                 while probe_path:
@@ -281,7 +281,11 @@ class ConfigurationTree(gtk.TreeStore):
         # - visible: is the check box of the 2nd column visible
         # - active: is the check box of the 2nd column active
         # - activatable: can we activate the check box of the 2nd column
+        # - visible: is all the element is visible
+        # - restricted: is all the element is restricted
         gtk.TreeStore.__init__(self, gobject.TYPE_STRING,
+                                     gobject.TYPE_BOOLEAN,
+                                     gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN)
@@ -289,18 +293,24 @@ class ConfigurationTree(gtk.TreeStore):
         self._treeselection = None
         self._cell_renderer_toggle = None
         self._is_first_elt = 0
-        self._treeview = treeview
-
+        
+        # filter to hide row
+        # attach store to the filter
+        self._filter_visible = self.filter_new()
+        self._filter_visible.set_visible_column(4)
+        self._treeview = treeview 
+        self._treeview.set_model(self._filter_visible)
+        self._hidden_row = []
+        self._restriction_row = []
+        
         self.load(col1_title, col2_title, col1_changed_cb,
                   col2_toggled_cb)
 
     def load(self, col1_title, col2_title,
              col1_changed_cb, col2_toggled_cb):
         """ load the treestore """
-        # attach the treestore to the treeview
-        self._treeview.set_model(self)
-
         cell_renderer = gtk.CellRendererText()
+        
         # Connect check box on the treeview
         self._cell_renderer_toggle = gtk.CellRendererToggle()
         self._cell_renderer_toggle.set_active(True)
@@ -352,7 +362,8 @@ class ConfigurationTree(gtk.TreeStore):
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, False,
                               ACTIVE, False,
-                              ACTIVATABLE, False)
+                              ACTIVATABLE, False,
+                                4, True)
             for sub_name in elt_info.keys():
                 activatable = True
                 sub_iter = self.append(top_elt)
@@ -363,7 +374,8 @@ class ConfigurationTree(gtk.TreeStore):
                     self.set(sub_iter, TEXT, sub_name,
                                        VISIBLE, True,
                                        ACTIVE, False,
-                                       ACTIVATABLE, activatable)
+                                       ACTIVATABLE, activatable,
+                                        4, True)   
         else:
             # for advanced host
             # only set host activatable if developper mode is enabled
@@ -373,8 +385,36 @@ class ConfigurationTree(gtk.TreeStore):
             self.set(top_elt, TEXT, name.upper(),
                               VISIBLE, True,
                               ACTIVE, active,
-                              ACTIVATABLE, True)
+                              ACTIVATABLE, True,
+                                4, True)
 
+    def add_child(self, name, parent_name, visible, parents=False):
+        """ add a module in the module tree """
+        top_elt = None
+        if parents:
+            top_elt = self.get_parent(parent_name)
+
+        # set top element, either child  or type depending on parents
+        if top_elt is None:
+            top_elt = self.append(None)
+            top_name = name
+            if parents:
+                top_name = parent_name
+            self.set(top_elt, TEXT, top_name,
+                              VISIBLE, False,
+                              ACTIVE, False,
+                              ACTIVATABLE, False,
+                              4, True )
+
+        if parents:
+            sub_iter = self.append(top_elt)
+            self.set(sub_iter, TEXT, name,
+                               VISIBLE, False,
+                               ACTIVE, False,
+                               ACTIVATABLE, False,
+                               4 , not visible)
+            if visible :
+                self._hidden_row.append(sub_iter)
 
     def add_module(self, module, parents=False):
         """ add a module in the module tree """
@@ -411,11 +451,66 @@ class ConfigurationTree(gtk.TreeStore):
     def get_parent(self, name):
         """ get a parent in the treeview """
         iterator = self.get_iter_first()
-        while iterator is not None and \
-              self.get_value(iterator, TEXT).lower() != name.lower():
+        while iterator is not None :
+            if self.get_value(iterator, TEXT).lower() == name.lower():
+                return iterator
+            
+            it_children = self.iter_children(iterator)
+            while it_children is not None:
+                if self.get_value(it_children, TEXT).lower() == name.lower():
+                    return it_children
+                it_children = self.iter_next(it_children)
+
             iterator = self.iter_next(iterator)
         return iterator
+   
+    def set_hidden(self, hidden):
+        for row in self._hidden_row:
+            path = self.get_path(row)
+            #visible is not (restricted or hide)
+            self[path][4] = not hidden #or self[path][5])
+        # show all restiction
+        if not hidden :
+            for row in self._restriction_row:
+                path = self.get_path(row)
+                #visible is not (restricted or hide)
+                self[path][4] = not hidden #or self[path][5])
+        
+        iterator = self.get_iter_first()
+        self.is_children_visible(iterator)
 
+    def set_restricted(self, rows):
+        del self._restriction_row[:]
+        for row in rows:
+            iterator = self.get_parent(row)
+            if iterator is not None:
+                self._restriction_row.append(iterator)
+                path = self.get_path(iterator)
+                self[path][5] = rows[row]
+                #visible is not restricted and not hide (visible)
+                """self[path][4] = self[path][4] and not self[path][5]"""
+                self[path][4] = not self[path][5]
+        
+        iterator = self.get_iter_first()
+        self.is_children_visible(iterator)
+                
+    def is_children_visible(self, iterator):
+        list_vis_child = []
+        while iterator is not None:
+            path = self.get_path(iterator)
+            if self.iter_has_child(iterator):
+                first_child = self.iter_children(iterator)
+                visible = self.is_children_visible(first_child)
+                list_vis_child.append(visible)
+                self[path][4] = visible
+            else:
+                list_vis_child.append(self[path][4])
+            iterator = self.iter_next(iterator)
+        if True in list_vis_child:
+            return True
+        else: 
+            return False
+            
     def get_selection(self):
         """ get the treeview selection """
         return self._treeselection
@@ -509,7 +604,7 @@ class ConfigurationNotebook(gtk.Notebook):
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
     def __init__(self, section, config, host, adv_mode, scenario,
-                 changed_cb, file_cb):
+                 changed_cb, file_cb, spot_id = None):
         gtk.VBox.__init__(self)
 
         self._config = config
@@ -519,6 +614,7 @@ class ConfSection(gtk.VBox):
         self._file_cb = file_cb
         self._scenario = scenario
         self._adv_mode = adv_mode
+        self._spot_id =  spot_id
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._entries = []
@@ -545,10 +641,25 @@ class ConfSection(gtk.VBox):
         self._completions = []
 
         self.fill(section)
+        self.set_hidden(True)
 
     def get_restrictions(self):
         """ get the restrictions """
         return self._restrictions
+
+    def set_restrictions(self, restrictions):
+        """ set the hidden widgets """
+        #restrictions.update(self._restrictions)
+        for (widget, val) in restrictions.items():
+            # enable hide_all and show_all actions on this widget
+            widget.set_no_show_all(False)
+            if val:
+                widget.hide_all()
+            else:
+                widget.show_all()
+            # disable hide_all and show_all actions on this widget
+            # to avoid modifications from outside
+            widget.set_no_show_all(True)
 
     def set_hidden(self, val):
         """ change the hidden status """
@@ -591,8 +702,29 @@ class ConfSection(gtk.VBox):
             self.set_child_packing(evt, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
+        
         for key in self._config.get_keys(section):
-            if self._config.is_table(key):
+            if key.tag == "spot":
+                if self._spot_id == key.get("id"):
+                    for s_key in self._config.get_keys(key):
+                        if self._config.is_table(s_key):
+                            table = self.add_table(s_key)
+                            if table is not None:
+                                self.pack_end(table)
+                                self.set_child_packing(table, expand=False,
+                                                       fill=False, padding=5,
+                                                       pack_type=gtk.PACK_START)
+                        else:
+                            entry = self.add_key(s_key)
+                            if entry is not None:
+                                self.pack_end(entry)
+                                self.set_child_packing(entry, expand=False,
+                                                       fill=False, padding=5,
+                                                       pack_type=gtk.PACK_START)
+
+          
+
+            elif self._config.is_table(key):
                 table = self.add_table(key)
                 if table is not None:
                     self.pack_end(table)
@@ -655,6 +787,7 @@ class ConfSection(gtk.VBox):
                                       pack_type=gtk.PACK_START)
         if self._config.do_hide(name):
             self._hidden_widgets.append(key_box)
+        
         restriction = self._config.get_xpath_restrictions(name)
         if restriction is not None:
             self._restrictions.update({key_box: restriction})

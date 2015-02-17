@@ -33,7 +33,6 @@
 
 #include "Ideal.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -67,9 +66,12 @@ bool Ideal::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
+	config.loadMap(this->config_section_map);
+
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(IDEAL_SECTION, IDEAL_LIST,
+	if(!config.getValueInList(this->config_section_map[IDEAL_SECTION],
+		                      IDEAL_LIST,
 	                          LINK, link,
 	                          ATTENUATION_VALUE, this->value))
 	{

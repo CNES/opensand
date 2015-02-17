@@ -43,6 +43,7 @@
 
 struct sc_specific
 {
+	tal_id_t tal_id;	 ///< the terminal id for terminal
 	string ip_addr;      ///< the IP address for emulation
 	string emu_iface;    ///< the name of the emulation interface
 };
@@ -72,7 +73,8 @@ class BlockSatCarrier: public Block
 		Upward(Block *const bl, struct sc_specific specific):
 			RtUpward(bl),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			interface_name(specific.emu_iface),
+			tal_id(specific.tal_id)
 		{};
 
 		bool onInit(void);
@@ -85,6 +87,8 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
+	
+		tal_id_t tal_id;
 
 		/**
 		 * @brief Handle a packt received from carrier
@@ -94,6 +98,7 @@ class BlockSatCarrier: public Block
 		 * @param length      The data length
 		 */
 		void onReceivePktFromCarrier(uint8_t carrier_id,
+		                             spot_id_t spot_id,
 		                             unsigned char *data,
 		                             size_t length);
 	};
@@ -104,7 +109,8 @@ class BlockSatCarrier: public Block
 		Downward(Block *const bl, struct sc_specific specific):
 			RtDownward(bl),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			interface_name(specific.emu_iface),
+			tal_id(specific.tal_id)
 		{};
 
 		bool onInit(void);
@@ -117,10 +123,11 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
+	
+		tal_id_t tal_id;
 	};
 
  protected:
-
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);

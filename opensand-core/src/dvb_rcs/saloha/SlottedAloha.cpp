@@ -62,7 +62,8 @@ bool SlottedAloha::initParent(time_ms_t frame_duration_ms,
 	this->frame_duration_ms = frame_duration_ms;
 	this->pkt_hdl = pkt_hdl;
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_FPSAF, this->sf_per_saframe))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
+		               SALOHA_FPSAF, this->sf_per_saframe))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",

@@ -100,7 +100,7 @@ class DvbChannel
 		stats_period_ms(),
 		stats_period_frame(),
 		log_init_channel(NULL),
-		//log_receive_channel(NULL),
+		log_receive_channel(NULL),
 		log_send_channel(NULL),
 		check_send_stats(0)
 	{
@@ -116,6 +116,13 @@ class DvbChannel
 
  protected:
 
+	/**
+	 * @brief Initialise Carrier and Terminal spot map
+	 *
+	 * @return true en success, false otherwise
+	 */
+	bool initMap(void);
+	
 	/**
 	 * @brief Read the satellite type
 	 *
@@ -194,7 +201,7 @@ class DvbChannel
 	 * @return true on success, false otherwise
 	 */
 	template<class T>
-	bool initBand(const char *band,
+	bool initBand(ConfigurationList band,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
 	              sat_type_t satellite_type,
@@ -269,12 +276,20 @@ class DvbChannel
 
 	// log
 	OutputLog *log_init_channel;
-	OutputLog *log_send_channel;
 	OutputLog *log_receive_channel;
+	OutputLog *log_send_channel;
+
+	//map
+	map<int, spot_id_t> carrier_map;
+	map<int, spot_id_t> terminal_map;
+
+	list<spot_id_t> spot_list;
+
 	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
+
 };
 
 
@@ -433,7 +448,7 @@ inline vector<unsigned int> tempSplit(string values)
 // Implementation of functions with templates
 
 template<class T>
-bool DvbChannel::initBand(const char *band,
+bool DvbChannel::initBand(ConfigurationList band,
                           access_type_t access_type,
                           time_ms_t duration_ms,
                           sat_type_t satellite_type,
@@ -459,12 +474,13 @@ bool DvbChannel::initBand(const char *band,
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    band, BANDWIDTH);
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(), BANDWIDTH);
 		goto error;
 	}
 	bandwidth_khz = bandwidth_mhz * 1000;
 	LOG(this->log_init_channel, LEVEL_INFO,
-	    "%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
+	    "%s: bandwitdh is %u kHz\n", 
+	    ((xmlpp::Node*)*band.begin())->get_name().c_str(), bandwidth_khz);
 
 	// Get the value of the roll off
 	if(!Conf::getValue(band, ROLL_OFF,
@@ -472,7 +488,7 @@ bool DvbChannel::initBand(const char *band,
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    band, ROLL_OFF);
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(), ROLL_OFF);
 		goto error;
 	}
 
@@ -483,7 +499,7 @@ bool DvbChannel::initBand(const char *band,
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
-		    band, FMT_GROUP_LIST);
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(), FMT_GROUP_LIST);
 		goto error;
 	}
 
@@ -500,7 +516,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", band, GROUP_ID);
+			    "groups\n", ((xmlpp::Node*)*band.begin())->get_name().c_str(), 
+			    GROUP_ID);
 			goto error;
 		}
 
@@ -509,14 +526,16 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", band, FMT_ID);
+			    "groups\n", ((xmlpp::Node*)*band.begin())->get_name().c_str(),
+			    FMT_ID);
 			goto error;
 		}
 
 		if(fmt_groups.find(group_id) != fmt_groups.end())
 		{
 			LOG(this->log_init_channel, LEVEL_INFO,
-			    "Section %s, FMT group %u already loaded\n", band,
+			    "Section %s, FMT group %u already loaded\n",
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 			    group_id);
 			continue;
 		}
@@ -529,7 +548,8 @@ bool DvbChannel::initBand(const char *band,
 	if(!Conf::getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n", band,
+		    "Section %s, %s missing\n", 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 		    CARRIERS_DISTRI_LIST);
 		goto error;
 	}
@@ -557,7 +577,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 			    CATEGORY, i);
 			goto error;
 		}
@@ -567,7 +588,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band, RATIO, i);
+			    "distribution table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(), RATIO, i);
 			goto error;
 		}
 		// parse ratio if there is many values
@@ -578,7 +600,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 			    SYMBOL_RATE, i);
 			goto error;
 		}
@@ -588,7 +611,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 			    FMT_GROUP, i);
 			goto error;
 		}
@@ -607,7 +631,8 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 			    ACCESS_TYPE, i);
 			goto error;
 		}
@@ -627,7 +652,8 @@ bool DvbChannel::initBand(const char *band,
 
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
-		    "ratio=%s, access type=%s\n", band, name.c_str(),
+		    "ratio=%s, access type=%s\n", 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(), name.c_str(),
 		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
 		    access.c_str());
 
@@ -640,7 +666,7 @@ bool DvbChannel::initBand(const char *band,
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
 				    "Section %s, no entry for FMT group with ID %u\n",
-				    band, (*it));
+				    ((xmlpp::Node*)*band.begin())->get_name().c_str(), (*it));
 				goto error;
 			}
 			if(group_ids.size() > 1 && (*group_it).second->getFmtIds().size() > 1)
@@ -676,7 +702,8 @@ bool DvbChannel::initBand(const char *band,
 	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Cannot compute band plan for %s\n", band);
+		    "Cannot compute band plan for %s\n", 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str());
 		goto error;
 	}
 
@@ -707,7 +734,8 @@ bool DvbChannel::initBand(const char *band,
 	                   default_category_name))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, missing %s parameter\n", band,
+		    "Section %s, missing %s parameter\n", 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 		    DEFAULT_AFF);
 		goto error;
 	}
@@ -724,20 +752,23 @@ bool DvbChannel::initBand(const char *band,
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Section %s, could not find category %s, "
 		    "no default category for access type %u\n",
-		    band, default_category_name.c_str(), access_type);
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
+		    default_category_name.c_str(), access_type);
 	}
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "ST default category: %s in %s\n",
-		    (*default_category)->getLabel().c_str(), band);
+		    (*default_category)->getLabel().c_str(), 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str());
 	}
 
 	// get the terminal affectations
 	if(!Conf::getListItems(band, TAL_AFF_LIST, aff_list))
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "Section %s, missing %s parameter\n", band,
+		    "Section %s, missing %s parameter\n", 
+		    ((xmlpp::Node*)*band.begin())->get_name().c_str(),
 		    TAL_AFF_LIST);
 		goto error;
 	}
@@ -756,14 +787,16 @@ bool DvbChannel::initBand(const char *band,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", band, TAL_ID, i);
+			    "affection table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(), TAL_ID, i);
 			goto error;
 		}
 		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", band, CATEGORY, i);
+			    "affection table entry %u\n", 
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(), CATEGORY, i);
 			goto error;
 		}
 
@@ -789,7 +822,7 @@ bool DvbChannel::initBand(const char *band,
 			terminal_affectation[tal_id] = category;
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "%s: terminal %u will be affected to category %s\n",
-			    band, tal_id, name.c_str());
+			    ((xmlpp::Node*)*band.begin())->get_name().c_str(), tal_id, name.c_str());
 		}
 	}
 

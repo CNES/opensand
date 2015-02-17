@@ -41,7 +41,7 @@ NetContainer::NetContainer(const unsigned char *data, size_t length):
 	name("unknown"),
 	header_length(0),
 	trailer_length(0),
-	dst_spot(255)
+	spot(255)
 {
 	this->data.append(data, length);
 }
@@ -51,7 +51,7 @@ NetContainer::NetContainer(const Data &data, size_t length):
 	name("unknown"),
 	header_length(0),
 	trailer_length(0),
-	dst_spot(255)
+	spot(255)
 {
 }
 
@@ -60,7 +60,7 @@ NetContainer::NetContainer(const Data &data):
 	name("unknown"),
 	header_length(0),
 	trailer_length(0),
-	dst_spot(255)
+	spot(255)
 {
 }
 
@@ -69,7 +69,7 @@ NetContainer::NetContainer():
 	name("unknown"),
 	header_length(0),
 	trailer_length(0),
-	dst_spot(255)
+	spot(255)
 {
 }
 
@@ -124,13 +124,13 @@ size_t NetContainer::getHeaderLength() const
 	return this->header_length;
 }
 
-void NetContainer::setDstSpot(uint8_t spot_id)
+void NetContainer::setSpot(uint8_t spot_id)
 {
-	this->dst_spot = spot_id;
+	this->spot = spot_id;
 }
 
-uint8_t NetContainer::getDstSpot() const
+uint8_t NetContainer::getSpot() const
 {
-	return this->dst_spot;
+	return this->spot;
 }
 

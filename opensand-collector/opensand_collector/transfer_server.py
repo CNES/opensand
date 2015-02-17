@@ -76,7 +76,7 @@ class TransferServer(threading.Thread):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.bind(('', 0))
 
-        LOGGER.debug("Transfer socket bound to port %d.", self.get_port())
+        LOGGER.info("Transfer socket bound to port %d.", self.get_port())
 
         self.start()
 
@@ -108,7 +108,7 @@ class TransferServer(threading.Thread):
         """
         Inner method to accept a connection from the manager and handle it.
         """
-        LOGGER.debug("Waiting for connections...")
+        LOGGER.info("Waiting for connections...")
 
         # Reference socket.error before calling accept(). This exception may
         # be raised by accept() during the shutdown of the Python interpreter,
@@ -171,7 +171,7 @@ class TransferServer(threading.Thread):
 
                 conn.close()
 
-        LOGGER.debug("Deleting folder %s", root_path)
+        LOGGER.info("Deleting folder %s", root_path)
         shutil.rmtree(root_path)
 
 if __name__ == "__main__":

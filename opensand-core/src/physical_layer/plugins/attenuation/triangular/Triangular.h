@@ -38,6 +38,8 @@
 
 #include "PhysicalLayerPlugin.h"
 
+#include <opensand_conf/ConfigurationFile.h>
+
 #include <string>
 
 using std::string;
@@ -59,6 +61,8 @@ class Triangular: public AttenuationModelPlugin
 		int period;
 
 		int duration_counter;
+
+		map<string, ConfigurationList> config_section_map;
 
 	public:
 

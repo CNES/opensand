@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -182,8 +182,30 @@ bool SpotUpward::initSlottedAloha(void)
 		    "failed to initialize the up/return MODCOD files\n");
 		return false;
 	}
+	
+	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
+	ConfigurationList spots;
+	ConfigurationList current_spot;
+	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no %s into %s section", 
+		    SPOT_LIST, RETURN_UP_BAND);
+		return false;
+	}
 
-	if(!this->initBand<TerminalCategorySaloha>(RETURN_UP_BAND,
+	char s_id[10]; 
+	sprintf (s_id, "%d", this->spot_id);
+	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID, 
+	                                      s_id, current_spot))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s/%s", 
+		    SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		return false;
+	}
+	
+	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 		                                       this->satellite_type,
@@ -221,7 +243,8 @@ bool SpotUpward::initSlottedAloha(void)
 		    "Cannot guarantee no loss with MPEG2-TS and Slotted Aloha "
 		    "on return link due to interleaving\n");
 	}
-	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
+		                     LAN_ADAPTATION_SCHEME_LIST,
 	                         lan_scheme_nbr))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -232,7 +255,8 @@ bool SpotUpward::initSlottedAloha(void)
 	for(int i = 0; i < lan_scheme_nbr; i++)
 	{
 		string name;
-		if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
+			                     LAN_ADAPTATION_SCHEME_LIST,
 		                         POSITION, toString(i), PROTO, name))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -273,7 +297,8 @@ bool SpotUpward::initSlottedAloha(void)
 
 	if(!this->saloha->init(sa_categories,
 	                       sa_terminal_affectation,
-	                       sa_default_category))
+	                       sa_default_category,
+	                       this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the DAMA controller\n");
@@ -325,27 +350,32 @@ error:
 bool SpotUpward::initOutput(void)
 {
 	// Events
-	this->event_logon_req = Output::registerEvent("Spot_%d.DVB.logon_request", this->spot_id);
+	this->event_logon_req = Output::registerEvent("Spot_%d.DVB.logon_request",
+	                                                 this->spot_id);
 
 	if(this->saloha)
 	{
-		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Spot_%d.Dvb.SlottedAloha", this->spot_id);
+		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Spot_%d.Dvb.SlottedAloha",
+		                                             this->spot_id);
 	}
 
 	// Output probes and stats
 	this->probe_gw_l2_from_sat=
 		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
+		                           "Spot_%d.Throughputs.L2_from_SAT",
+		                            this->spot_id);
 	this->l2_from_sat_bytes = 0;
 
 	if(this->satellite_type == REGENERATIVE)
 	{
 		this->probe_received_modcod = Output::registerProbe<int>("modcod index",
 		                                                         true, SAMPLE_LAST,
-		                                                         "Spot_%d.ACM.Received_modcod", this->spot_id);
+		                                                         "Spot_%d.ACM.Received_modcod",
+		                                                         this->spot_id);
 		this->probe_rejected_modcod = Output::registerProbe<int>("modcod index",
 		                                                         true, SAMPLE_LAST,
-		                                                         "Spot_%d.ACM.Rejected_modcod",this->spot_id);
+		                                                         "Spot_%d.ACM.Rejected_modcod",
+		                                                         this->spot_id);
 	}
 	return true;
 }
@@ -383,7 +413,8 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(this->event_logon_req, "Logon request received from %u",
+	Output::sendEvent(this->event_logon_req,
+	                  "Logon request received from %u",
 	                  mac);
 
 	return true;
@@ -403,11 +434,13 @@ void SpotUpward::updateStats(void)
 	Output::sendProbes();
 }
 
-void SpotUpward::setSpotId(uint8_t spot_id){
+void SpotUpward::setSpotId(uint8_t spot_id)
+{
 	this->spot_id = spot_id;
 }
 
-uint8_t SpotUpward::getSpotId(void){
+uint8_t SpotUpward::getSpotId(void)
+{
 	return this->spot_id;
 }
 
@@ -445,5 +478,3 @@ tal_id_t SpotUpward::getMacId(void)
 {
 	return this->mac_id;
 }
-
-

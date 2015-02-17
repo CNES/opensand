@@ -47,20 +47,29 @@
 #define SIMU_BUFF_LEN 255
 
 enum Simulate
-		{
-			none_simu,
-			file_simu,
-			random_simu,
-		} ;
+{
+	none_simu,
+	file_simu,
+	random_simu,
+} ;
 
 
 class SpotDownward: public DvbChannel, public NccPepInterface
 {
 	public:
-		SpotDownward(time_ms_t fwd_down_frame_duration, time_ms_t ret_up_frame_duration, time_ms_t stats_period, const FmtSimulation *const up_fmt_simu, const FmtSimulation *const down_fmt_simu, sat_type_t sat_type, EncapPlugin::EncapPacketHandler *pkt_hdl, bool phy_layer);
+		SpotDownward(time_ms_t fwd_down_frame_duration,
+		             time_ms_t ret_up_frame_duration,
+		             time_ms_t stats_period,
+		             const FmtSimulation &up_fmt_simu,
+		             const FmtSimulation &down_fmt_simu,
+		             sat_type_t sat_type,
+		             EncapPlugin::EncapPacketHandler *pkt_hdl,
+		             bool phy_layer);
 		~SpotDownward();
 		bool onInit(void);
-		bool onEvent(const RtEvent *const event, time_sf_t super_frame_counter);
+		bool handleMsgSaloha(list<DvbFrame *> *ack_frames);
+		bool handleBurst(NetBurst::iterator pkt_it,
+                         time_sf_t super_frame_counter);
 	
 		bool schedule(time_ms_t current_time, uint32_t remaining_alloc_sym);
 		
@@ -86,7 +95,10 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 *  @param dvb_frame  The frame contining the logon request
 		 *  @return true on success, false otherwise
 		 */
-		bool handleLogonReq(DvbFrame *dvb_frame, LogonResponse **logonResp, uint8_t &ctrlCarrierId, time_sf_t super_frame_counter);
+		bool handleLogonReq(DvbFrame *dvb_frame,
+		                    LogonResponse **logonResp,
+		                    uint8_t &ctrlCarrierId,
+		                    time_sf_t super_frame_counter);
 		/**
 		 *  @brief Handle a logoff request transmitted by the opposite
 		 *         block

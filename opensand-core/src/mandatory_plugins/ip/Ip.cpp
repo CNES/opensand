@@ -404,8 +404,12 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList category_list;
 	ConfigurationList::iterator iter;
 
+	map<string, ConfigurationList> config_section_map;
+	config.loadMap(config_section_map);
+
 	// Traffic flow categories
-	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	if(!config.getListItems(config_section_map[SECTION_MAPPING], 
+		                    MAPPING_LIST,
 	                        category_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -467,7 +471,8 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 		this->category_map[dscp_value] = category;
 	}
 	// Get default category
-	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	if(!config.getValue(config_section_map[SECTION_MAPPING], 
+		                KEY_DEF_CATEGORY,
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;

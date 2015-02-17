@@ -47,19 +47,134 @@ BlockDvb::~BlockDvb()
 {
 }
 
+bool DvbChannel::initMap(void)
+{
+	ConfigurationList s_tal_list;
+	ConfigurationList s_car_list;
+	ConfigurationList::iterator iter_spots;
+	
+	//*************************************
+	//          CARRIER 
+	//*************************************
+	// get spot 
+	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST, s_car_list))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+				"there is no %s into %s section\n",
+				SPOT_LIST, SATCAR_SECTION);
+		goto error;
+	}
 
+	for(iter_spots = s_car_list.begin(); iter_spots != s_car_list.end(); iter_spots++)
+	{
+		ConfigurationList current_spot;
+		ConfigurationList carrier_list ; 
+		ConfigurationList::iterator iter;
+		xmlpp::Node* spot_node = *iter_spots;
+		current_spot.push_front(spot_node);
+		string spot_id;
+		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
+
+		// get satellite channels from configuration
+		if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+					"section '%s, %s': missing satellite channels\n",
+					SATCAR_SECTION, CARRIER_LIST);
+			goto error;
+		}
+
+		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
+		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
+		{
+			string strConfig;
+			int carrier_id = 0;
+
+			// get carrier ID
+			if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+						"section '%s %s/%s/%s': failed to retrieve %s\n",
+						SPOT_LIST, spot_id.c_str(),
+						SATCAR_SECTION, CARRIER_LIST,
+						CARRIER_ID);
+				goto error;
+			}
+
+			this->carrier_map[carrier_id] = atoi(spot_id.c_str());
+		}
+	}
+
+	//************************************
+	//           TERMINAL 
+	//************************************
+	// get spot 
+	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION], SPOT_LIST, s_tal_list))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+				"there is no %s into %s section\n",
+				SPOT_LIST, SATCAR_SECTION);
+		goto error;
+	}
+
+	for(iter_spots = s_tal_list.begin(); iter_spots != s_tal_list.end(); iter_spots++)
+	{
+		ConfigurationList current_spot;
+		ConfigurationList terminal_list ; 
+		ConfigurationList::iterator iter;
+		xmlpp::Node* spot_node = *iter_spots;
+		current_spot.push_front(spot_node);
+		string spot_id;
+		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
+		// get satellite channels from configuration
+		if(!Conf::getListNode(current_spot, TAL_ID, terminal_list))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+					"section '%s, %s': missing satellite channels\n",
+					SAT_SWITCH_SECTION, TAL_ID);
+			goto error;
+		}
+
+		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
+		for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
+		{
+			int tal_id = 0;
+
+			// get carrier ID
+			if(!Conf::getValue(iter, tal_id))
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+						"section '%s %s/%s/%s': failed to retrieve %s\n",
+						SPOT_LIST, spot_id.c_str(),
+						SAT_SWITCH_SECTION, TAL_ID,
+						TAL_ID);
+				goto error;
+			}
+
+			this->terminal_map[tal_id] = atoi(spot_id.c_str());
+		}
+		// add spot to the list 		
+		spot_list.push_back(atoi(spot_id.c_str()));
+	}
+
+
+	return true;
+error:
+	return false;
+}
 
 bool DvbChannel::initSatType(void)
 {
 	string sat_type;
 
 	// satellite type
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               SATELLITE_TYPE,
 	                   sat_type))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SATELLITE_TYPE);
+		    COMMON_SECTION, SATELLITE_TYPE);
 		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -78,30 +193,32 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	EncapPlugin *plugin;
 
 	// get the packet types
-	if(!Conf::getNbListItems(GLOBAL_SECTION, encap_schemes,
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
+		                     encap_schemes,
 	                         encap_nbr))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
-		    GLOBAL_SECTION, encap_schemes);
+		    COMMON_SECTION, encap_schemes);
 		goto error;
 	}
 
 	// get all the encapsulation to use from lower to upper
-	if(!Conf::getValueInList(GLOBAL_SECTION, encap_schemes,
-	                         POSITION, toString(encap_nbr - 1),
-	                                ENCAP_NAME, encap_name))
+	if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+		                     encap_schemes, POSITION, 
+		                     toString(encap_nbr - 1),
+	                         ENCAP_NAME, encap_name))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, invalid value %d for parameter '%s'\n",
-		    GLOBAL_SECTION, encap_nbr - 1, POSITION);
+		    COMMON_SECTION, encap_nbr - 1, POSITION);
 		goto error;
 	}
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get plugin for %s encapsulation",
+		    "cannot get plugin for %s encapsulation\n",
 		    encap_name.c_str());
 		goto error;
 	}
@@ -125,6 +242,9 @@ error:
 
 bool DvbChannel::initCommon(const char *encap_schemes)
 {
+	//********************************************************
+	//         init Common values from sections
+	//********************************************************	
 	if(!this->initSatType())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -133,7 +253,8 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ENABLE,
 	                   this->with_phy_layer))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -143,12 +264,13 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// frame duration
-	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               RET_UP_FRAME_DURATION,
 	                   this->ret_up_frame_duration_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, RET_UP_FRAME_DURATION);
+		    COMMON_SECTION, RET_UP_FRAME_DURATION);
 		goto error;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -162,12 +284,13 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// statistics timer
-	if(!Conf::getValue(GLOBAL_SECTION, STATS_TIMER,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               STATS_TIMER,
 	                   this->stats_period_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, STATS_TIMER);
+		    COMMON_SECTION, STATS_TIMER);
 		goto error;
 	}
 
@@ -203,8 +326,8 @@ bool DvbChannel::initModcodFiles(const char *def,
 	string modcod_def_file;
 
 	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, simu,
-	                   modcod_simu_file))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               simu, modcod_simu_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -215,8 +338,8 @@ bool DvbChannel::initModcodFiles(const char *def,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, def,
-	                   modcod_def_file))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               def, modcod_def_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -305,14 +428,14 @@ BlockDvb::DvbUpward::~DvbUpward()
 
 bool BlockDvb::DvbDownward::initDown(void)
 {
-
 	// forward timer
-	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               FWD_DOWN_FRAME_DURATION,
 	                   this->fwd_down_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION);
+		    COMMON_SECTION, FWD_DOWN_FRAME_DURATION);
 		goto error;
 	}
 
@@ -321,7 +444,8 @@ bool BlockDvb::DvbDownward::initDown(void)
 	    this->fwd_down_frame_duration_ms);
 
 	// scenario refresh interval
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ACM_PERIOD_REFRESH,
 	                   this->dvb_scenario_refresh))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

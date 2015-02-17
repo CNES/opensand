@@ -43,6 +43,7 @@
 ////////////////////
 
 #define GLOBAL_SECTION            "global"
+#define COMMON_SECTION            "common"
 
 #define LAN_ADAPTATION_SCHEME_LIST     "lan_adaptation_schemes"
 #define RETURN_UP_ENCAP_SCHEME_LIST    "return_up_encap_schemes"
@@ -99,11 +100,10 @@
 // section sat switching //
 ///////////////////////////
 
-#define SPOT_ID                   "spot_id"
+#define SPOT_ID                   "id"
 #define TAL_ID                    "tal_id"
 
 #define SAT_SWITCH_SECTION        "sat_switching_table"
-#define SWITCH_LIST               "switchs"
 #define DEFAULT_SPOT              "default_spot"
 
 
@@ -242,11 +242,9 @@
 #define CARRIER_LIST        "carriers"
 #define CARRIER_ID          "id"
 #define CARRIER_IP          "ip_address"
+#define CARRIER_TYPE        "type"
 #define CARRIER_PORT        "port"
-#define CARRIER_UP          "up"
-#define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
-#define CARRIER_DISABLED    "disabled_on"
 
 #define DVB_CTRL_CAR        "carrier_id_dvb_ctrl"
 #define DVB_SOF_CAR         "carrier_id_sof"
@@ -257,19 +255,24 @@
 #define DVB_CAR_ID_LOGON    "carrier_id_logon"
 #define DVB_CAR_ID_DATA     "carrier_id_data"
 
-#define SPOT_LIST           "spots"
+#define LOGON_IN            "logon_in"
+#define LOGON_OUT           "logon_out"
+#define CTRL_IN             "ctrl_in"
+#define CTRL_OUT            "ctrl_out"
+#define DATA_IN_ST          "data_in_st"
+#define DATA_OUT_ST         "data_out_st"
+#define DATA_IN_GW          "data_in_gw"
+#define DATA_OUT_GW         "data_out_gw"
+#define DISABLED_GW         "gw"
+#define DISABLED_ST         "st"
+#define DISABLED_NONE       "none"
+
+#define SPOT_LIST           "spot"
 #define CTRL_ID             "ctrl_id"
 #define DATA_IN_ID          "data_in_id"
 #define DATA_OUT_GW_ID      "data_out_gw_id"
 #define DATA_OUT_ST_ID      "data_out_st_id"
 #define LOG_ID              "log_id"
-
-/////////////
-// SNIFFER //
-/////////////
-
-#define SNIFFER_SECTION 	"sniffer"
-#define SNIFFER_ON 			"sniffer_on"
 
 //////////////////////////
 //       advanced       //

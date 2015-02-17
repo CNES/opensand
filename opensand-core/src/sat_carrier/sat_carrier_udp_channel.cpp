@@ -64,7 +64,8 @@
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
  */
-sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
+sat_carrier_udp_channel::sat_carrier_udp_channel(spot_id_t s_id,
+                                                 unsigned int channel_id,
                                                  bool input,
                                                  bool output,
                                                  const string local_interface_name,
@@ -75,7 +76,8 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(unsigned int channelID,
                                                  unsigned int stack,
                                                  unsigned int rmem,
                                                  unsigned int wmem):
-	m_channelID(channelID),
+	spot_id(s_id),
+	m_channel_id(channel_id),
 	m_input(input),
 	m_output(output),
 	init_success(false),
@@ -290,7 +292,7 @@ bool sat_carrier_udp_channel::isInit()
  */
 unsigned int sat_carrier_udp_channel::getChannelID()
 {
-	return (m_channelID);
+	return (m_channel_id);
 }
 
 /**
@@ -359,6 +361,16 @@ int sat_carrier_udp_channel::getChannelFd()
 {
 	return this->sock_channel;
 }
+
+/**
+ * Return the spot id
+ * @return the spot id
+ */
+spot_id_t sat_carrier_udp_channel::getSpotId()
+{
+	return this->spot_id;
+}
+
 
 /**
  * @brief Get the message in NetSocketEvent
@@ -566,14 +578,14 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 	ssize_t slen;
 
 	LOG(this->log_sat_carrier, LEVEL_INFO,
-	    "data are trying to be send on channel %d\n", m_channelID);
+	    "data are trying to be send on channel %d\n", m_channel_id);
 
 	// check that the channel sends data
 	if(!this->isOutputOk())
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "Channel %d is not configure to send data\n",
-		    m_channelID);
+		    m_channel_id);
 		goto error;
 	}
 
@@ -606,7 +618,7 @@ bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
 
 	LOG(this->log_sat_carrier, LEVEL_INFO,
 	    "==> SAT_Channel_Send [%d] (%s:%d): len=%zd, counter: %d\n",
-	    m_channelID, inet_ntoa(this->m_remoteIPAddress.sin_addr),
+	    m_channel_id, inet_ntoa(this->m_remoteIPAddress.sin_addr),
 	    ntohs(this->m_remoteIPAddress.sin_port), slen,
 	    this->counter);
 

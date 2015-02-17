@@ -145,13 +145,13 @@ class OutputHandler(threading.Thread):
     def get_external_port(self):
         """
         Returns the UDP port opened by the output handler for communication with
-        the collector.
+        the collector
         """
         return self._ext_socket.getsockname()[1]
 
     def set_collector_addr(self, address, port):
         """
-        Set the address used to send messages to the collector.
+        Set the address used to send messages to the collector
         """
         register = False
         if self._collector_addr is None:
@@ -172,7 +172,7 @@ class OutputHandler(threading.Thread):
 
     def unset_collector_addr(self):
         """
-        Unset the address of the collector.
+        Unset the address of the collector
         """
         if self._collector_addr is None:
             return
@@ -290,6 +290,11 @@ class OutputHandler(threading.Thread):
                             # collector is restarted or moved
                             self._register_msg[prog_id].append(header + prog_name +
                                                                msg[6:])
+                else:
+                    # store the register message to send it back if
+                    # collector is restarted or moved
+                    self._register_msg[prog_id].append(header + prog_name +
+                                                       msg[6:])
             else:
                 # store the register message to send it if
                 # collector is started
@@ -298,7 +303,7 @@ class OutputHandler(threading.Thread):
                 resp = MSG_CMD_NACK
                 LOGGER.error("Collector not known, not relaying REGISTER")
 
-            if cmd != MSG_CMD_REGISTER_LIVE: 
+            if cmd != MSG_CMD_REGISTER_LIVE:
                 sendtosock(self._int_socket, struct.pack("!LB", MAGIC_NUMBER,
                                                          resp), addr)
 

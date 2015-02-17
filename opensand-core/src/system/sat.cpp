@@ -206,20 +206,21 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
 	                   satellite_type))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "section '%s': missing parameter '%s'\n",
-		        GLOBAL_SECTION, SATELLITE_TYPE);
+		        COMMON_SECTION, SATELLITE_TYPE);
 		goto quit;
 	}
 	DFLTLOG(LEVEL_NOTICE,
 	        "Satellite type = %s\n", satellite_type.c_str());
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                   with_phy_layer))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ENABLE, with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",

@@ -245,6 +245,9 @@ class Program(object):
         self._logs = {}
         self._initialized = False
 
+        self._reg_probes = []
+        self._reg_logs = []
+
         self.add_probe(probe_list)
         self.add_log(log_list)
 
@@ -312,6 +315,33 @@ class Program(object):
                 [probe.attributes() for probe in self._probes.values()],
                 [log.attributes() for log in self._logs.values()])
 
+    def unreg_att(self):
+        """
+        return the same as attributes with only unregisterd logs and probes
+        """
+        probes = []
+        for probe_id in self._probes:
+            if not probe_id in self._reg_probes:
+                probes.append(self._probes[probe_id])
+        logs = []
+        for log_id in self._logs:
+            if not log_id in self._reg_logs:
+                logs.append(self._logs[log_id])
+        return ("%s.%s" % (self._host.name, self._name),
+                self._host.ident, self._ident,
+                [probe.attributes() for probe in probes],
+                [log.attributes() for log in logs])
+
+    def set_registered(self, probes=[], logs=[]):
+        """ set probes and logs as registered """
+        self._reg_probes += (probes)
+        self._reg_logs += (logs)
+
+    def reset_registered(self):
+        """ clear the registered probes and logs """
+        self._reg_probes = []
+        self._reg_logs = []
+
     def write_log(self, text):
         """
         Write an log to the file.
@@ -324,7 +354,8 @@ class Program(object):
         """
         for (probe_id, p_name, unit, storage_type, enabled) in probe_list:
             if not probe_id in self._probes:
-                LOGGER.debug("Add probe %s with id %s", p_name, probe_id)
+                LOGGER.info("Add probe %s with id %s in %s" % (p_name, probe_id,
+                                                               self._name))
                 probe = Probe(self, probe_id, p_name, unit, storage_type, enabled)
                 self._probes[probe_id] = probe
 
@@ -335,7 +366,7 @@ class Program(object):
         """
         for (log_id, name, level) in log_list:
             if not log_id in self._logs:
-                LOGGER.debug("Add log %s with id %s", name, log_id)
+                LOGGER.info("Add log %s with id %s", name, log_id)
                 log = Log(self, log_id, name, level)
                 self._logs[log_id] = log
 
@@ -345,7 +376,7 @@ class Program(object):
         """
         path = self._host.get_storage_path(self._name)
         if not isdir(path):
-            LOGGER.debug("Creating program folder %s", path)
+            LOGGER.info("Creating program folder %s", path)
             mkdir(path)
 
         # TODO create a file par logging facility (error.log, warning.log, ...)
@@ -519,7 +550,7 @@ class Host(object):
         """
         path = self._manager.get_storage_path(self._name)
         if not isdir(path):
-            LOGGER.debug("Creating host folder %s", path)
+            LOGGER.info("Creating host folder %s", path)
             mkdir(path)
 
     @property
@@ -568,7 +599,7 @@ class HostManager(object):
         self._host_by_id = {}
         self._removed_hosts = []
         self._storage_folder = tempfile.mkdtemp("_opensand_collector")
-        LOGGER.debug("Initialized storage folder at %s", self._storage_folder)
+        LOGGER.info("Initialized storage folder at %s", self._storage_folder)
 
     def get_storage_path(self, name):
         """
@@ -588,7 +619,7 @@ class HostManager(object):
 
         previous_folder = self._storage_folder
         self._storage_folder = tempfile.mkdtemp("opensand_collector")
-        LOGGER.debug("Initialized new storage folder at %s",
+        LOGGER.info("Initialized new storage folder at %s",
                      self._storage_folder)
 
         for host in self._host_by_name.itervalues():
@@ -688,6 +719,12 @@ class HostManager(object):
         Returns the host corresponding to a given address
         """
         return self._host_by_addr[address]
+
+    def unreg_manager(self):
+        """ The manager was unregistered """
+        for host in self._host_by_name.itervalues():
+            for program in host.all_programs():
+                program.reset_registered()
 
     def set_probe_status(self, host_id, program_id, probe_id, new_enabled,
                          new_displayed):

@@ -233,8 +233,8 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                          with_phy_layer))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ENABLE, with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",
@@ -307,6 +307,7 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface;
+	specific.tal_id = mac_id;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,

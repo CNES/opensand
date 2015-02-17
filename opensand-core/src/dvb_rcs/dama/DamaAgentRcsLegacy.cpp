@@ -42,8 +42,8 @@
 #include <cmath>
 
 // constants
-const rate_kbps_t C_MAX_RBDC_IN_SAC = 8160.0; // 8160 kbits/s, limitation due
-                                              // to CR value size in to SAC field
+const rate_kbps_t C_MAX_RBDC_IN_SAC = 16320.0; // 16320 kbits/s, limitation due
+                                               // to CR value size in to SAC field
 const vol_pkt_t C_MAX_VBDC_IN_SAC = 4080;     // 4080 packets/ceils, limitation
                                               // due to CR value size in to SAC field
 

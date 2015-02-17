@@ -74,6 +74,12 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			    dvb_frame->getMessageLength(),
 			    event->getName().c_str());
 
+			if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
+			{	
+				DFLTLOG(LEVEL_WARNING, "send to spot %d, carrier %d", 
+			        dvb_frame->getSpot(), dvb_frame->getCarrierId());
+			}
+
 			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
 			                               dvb_frame->getData().c_str(),
 			                               dvb_frame->getTotalLength()))
@@ -113,6 +119,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 			unsigned char *buf = NULL;
 
 			unsigned int carrier_id;
+			spot_id_t spot_id;
 			int ret;
 
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -124,6 +131,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 			{
 				ret = this->in_channel_set.receive((NetSocketEvent *)event,
 				                                    carrier_id,
+				                                    spot_id,
 				                                    &buf, length);
 				if(ret < 0)
 				{
@@ -134,13 +142,18 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 				}
 				else
 				{
+					if(carrier_id == 17 || carrier_id == 14)
+					{	
+						DFLTLOG(LEVEL_WARNING, "receive to spot %d, carrier %d", 
+							spot_id, carrier_id);
+					}
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "%zu bytes of data received on carrier ID %u\n",
 					    length, carrier_id);
 
 					if(length > 0)
 					{
-						this->onReceivePktFromCarrier(carrier_id, buf, length);
+						this->onReceivePktFromCarrier(carrier_id, spot_id,  buf, length);
 					}
 				}
 			} while(ret > 0);
@@ -166,6 +179,11 @@ bool BlockSatCarrier::Upward::onInit(void)
 {
 	vector<sat_carrier_udp_channel *>::iterator it;
 	sat_carrier_udp_channel *channel;
+
+	if(this->tal_id > 0)
+	{
+		this->in_channel_set.setTalId(this->tal_id);
+	}
 
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr,
@@ -195,12 +213,16 @@ bool BlockSatCarrier::Upward::onInit(void)
 			                        MSG_BBFRAME_SIZE_MAX);
 		}
 	}
-
 	return true;
 }
 
 bool BlockSatCarrier::Downward::onInit()
 {
+	if(this->tal_id > 0)
+	{
+		this->out_channel_set.setTalId(this->tal_id);
+	}
+	
 	// initialize all channels from the configuration file
 	if(!this->out_channel_set.readOutConfig(this->ip_addr,
 	                                        this->interface_name))
@@ -209,12 +231,12 @@ bool BlockSatCarrier::Downward::onInit()
 		    "Wrong channel set configuration\n");
 		return false;
 	}
-
 	return true;
 }
 
 
 void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
+                                                      spot_id_t spot_id,
                                                       unsigned char *data,
                                                       size_t length)
 {
@@ -222,7 +244,8 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	free(data);
 
 	dvb_frame->setCarrierId(carrier_id);
-
+	dvb_frame->setSpot(spot_id);
+	
 	if(!this->enqueueMessage((void **)(&dvb_frame)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,

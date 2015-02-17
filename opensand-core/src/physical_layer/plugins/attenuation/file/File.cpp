@@ -36,7 +36,6 @@
 
 #include "File.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -74,10 +73,13 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 		return false;
 	}
 
+	config.loadMap(this->config_section_map);
+
+
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(FILE_SECTION, FILE_LIST,
-	                          LINK, link,
+	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
+		                      FILE_LIST, LINK, link,
 	                          PATH, filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -86,8 +88,8 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 		return false;
 	}
 
-	if(!config.getValueInList(FILE_SECTION, FILE_LIST,
-	                          LINK, link,
+	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
+		                      FILE_LIST, LINK, link,
 	                          LOOP, this->loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

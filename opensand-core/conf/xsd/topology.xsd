@@ -54,8 +54,7 @@
 <!-- types for sat_carrier section -->
 <xsd:simpleType name="carrierId">
     <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="1" />
-        <xsd:maxInclusive value="7" />
+        <xsd:minInclusive value="0" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -178,11 +177,18 @@
 </xsd:element>
 
 <!-- the carrier for sat_carrier section -->
-<xsd:element name="carriers">
+<xsd:element name="spot">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="carrier" minOccurs="7" maxOccurs="7"/>
+            <xsd:element name="carriers">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element ref="carrier" minOccurs="8" maxOccurs="8"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
         </xsd:sequence>
+        <xsd:attribute name="id"/>
     </xsd:complexType>
 </xsd:element>
 
@@ -192,6 +198,13 @@
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
                     The carrier unique identifier
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="type">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The carrier type
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -212,21 +225,6 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="up" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used for uplink data or not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="down" type="xsd:boolean">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is used for downlink data or
-                    not
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
         <xsd:attribute name="ip_multicast" type="xsd:boolean">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
@@ -235,72 +233,8 @@
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attribute name="disabled_on" type="disabledCompo">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    Indicates whether the carrier is disabled on a component
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
     </xsd:complexType>
 </xsd:element>
-
-<!-- the spots for sat_carrier section -->
-<xsd:element name="spots">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="spot" minOccurs="1" maxOccurs="256"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="spot">
-    <xsd:complexType>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="log_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The logging carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="ctrl_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The control carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_in_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The input data carrier for this spot
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_out_st_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The output data carrier for this spot with ST as destination
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="data_out_gw_id" type="carrierId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The output data carrier for this spot with GW as destination
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 
 <!-- Complete XML description -->
 <xsd:element name="configuration">
@@ -308,6 +242,7 @@
         <xsd:sequence>
             <xsd:element ref="sarp" />
             <xsd:element ref="sat_carrier" />
+            <xsd:element ref="sat_switching_table" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -359,55 +294,47 @@
 <xsd:element name="sat_carrier">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            The satellite carriers description
+            The satellite spot carriers description
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="carriers">
+            <xsd:element ref="spot" minOccurs="1" maxOccurs="32">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The carriers description for emulation purpose
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_dvb_ctrl" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB control
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_data" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB data frames
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_sof" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for DVB Start of Frame
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="carrier_id_logon" type="carrierId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The sending carrier id for login information
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="spots">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The spot description table for emulation
+                        The spot carriers description for emulation purpose
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
+
+<!-- sat_switching_table section description -->
+<xsd:element name="sat_switching_table">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The satellite switching table
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The spot list of terminal id
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="tal_id" minOccurs="1" maxOccurs="30"/>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 
 </xsd:schema>

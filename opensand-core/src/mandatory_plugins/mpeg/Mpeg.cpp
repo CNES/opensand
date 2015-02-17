@@ -66,6 +66,7 @@ void Mpeg::Context::init()
 {
 	EncapPlugin::EncapContext::init();
 	ConfigurationFile config;
+	map<string, ConfigurationList> config_section_map;
 
 	if(config.loadConfig(CONF_MPEG_FILE) < 0)
 	{
@@ -74,8 +75,11 @@ void Mpeg::Context::init()
 		    CONF_MPEG_FILE);
 		goto error;
 	}
+
+	config.loadMap(config_section_map);
+
 	// Retrieving the packing threshold
-	if(!config.getValue(MPEG_SECTION,
+	if(!config.getValue(config_section_map[MPEG_SECTION],
 	                    PACKING_THRESHOLD, this->packing_threshold))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -228,7 +232,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 	Data packet_data;
 	unsigned int length;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 
 	time = 0;
 
@@ -327,7 +331,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 				LOG(this->log, LEVEL_INFO,
 				    "one MPEG packet created\n");
 				// set the destination spot ID
-				mpeg_packet->setDstSpot(dest_spot);
+				mpeg_packet->setSpot(dest_spot);
 
 				mpeg_packets->add(mpeg_packet);
 			}
@@ -381,7 +385,7 @@ bool Mpeg::Context::encapMpeg(NetPacket *packet,
 			LOG(this->log, LEVEL_INFO,
 			    "one MPEG packet created\n");
 			// set the destination spot ID
-			mpeg_packet->setDstSpot(dest_spot);
+			mpeg_packet->setSpot(dest_spot);
 			mpeg_packets->add(mpeg_packet);
 		}
 		else
@@ -427,7 +431,7 @@ bool Mpeg::Context::deencapMpeg(NetPacket *packet, NetBurst *net_packets)
 	unsigned int sndu_offset;
 	bool pp_used;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 
 	// packet must be a MPEG packet
 	if(packet->getType() != NET_PROTO_MPEG)
@@ -728,7 +732,7 @@ restart:
 			else
 			{
 				// set the destination spot ID
-				net_packet->setDstSpot(dest_spot);
+				net_packet->setSpot(dest_spot);
 				// add the network packet to the list
 				tmp_packets->add(net_packet);
 
@@ -910,7 +914,7 @@ NetBurst *Mpeg::Context::flush(int context_id)
 			    mpeg_packet->getDstTalId(),
 			    mpeg_packet->getQos());
 			// set the destination spot ID
-			mpeg_packet->setDstSpot(context->getDstSpot());
+			mpeg_packet->setSpot(context->getDstSpot());
 			mpeg_packets->add(mpeg_packet);
 		}
 		else
@@ -972,7 +976,7 @@ NetBurst *Mpeg::Context::flushAll()
 				LOG(this->log, LEVEL_INFO,
 				    "one MPEG packet created\n");
 				// set the destination spot ID
-				mpeg_packet->setDstSpot(context->getDstSpot());
+				mpeg_packet->setSpot(context->getDstSpot());
 				mpeg_packets->add(mpeg_packet);
 			}
 			else
