@@ -41,8 +41,6 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
-#include "ForwardSchedulingS2.h"
-#include "UplinkSchedulingRcs.h"
 
 #include <opensand_output/Output.h>
 
@@ -124,7 +122,8 @@ BlockDvbNcc::Downward::~Downward()
 {
 	
 	list<spot_id_t>::iterator spot_iter;
-	for(spot_iter = this->spot_list.begin(); (spot_iter != this->spot_list.end()); spot_iter++)
+	for(spot_iter = this->spot_list.begin(); 
+	    spot_iter != this->spot_list.end(); spot_iter++)
 	{
 		spot_id_t s_id = *spot_iter;
 		delete this->spot_downward_map[s_id];
@@ -141,8 +140,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 	if(!this->initMap())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to init carrier and terminal "
-			"spot id map");
+		    "failed to init carrier and terminal "
+		    "spot id maps\n");
 		goto error;
 	}
 	
@@ -199,7 +198,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 //	this->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
-	for(spot_iter = this->spot_list.begin(); spot_iter != this->spot_list.end(); spot_iter++)
+	for(spot_iter = this->spot_list.begin(); 
+	    spot_iter != this->spot_list.end(); spot_iter++)
 	{
 		spot_id_t spot_id = *spot_iter;
 		this->spot_downward_map[spot_id] = new SpotDownward(this->fwd_down_frame_duration_ms,
@@ -306,7 +306,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 {
 	DvbFrame *dvb_frame = NULL;
 	list<spot_id_t>::iterator spot_iter;
-	// for each spot
 	
 	switch(event->getType())
 	{
@@ -325,8 +324,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				if(this->spot_downward_map[dest_spot] == NULL)
 				{
 					LOG(this->log_init_channel, LEVEL_ERROR,
-							"spot_downward of spot %d does'nt exist",
-							dest_spot);
+					    "spot_downward of spot %d does'nt exist\n",
+					    dest_spot);
 					break;
 				}
 
@@ -335,91 +334,96 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					case MSG_TYPE_BBFRAME:
 					case MSG_TYPE_DVB_BURST:
 					case MSG_TYPE_CORRUPTED:
+					{
+						double curr_cni = dvb_frame->getCn();
+						if(this->satellite_type == REGENERATIVE)
 						{
-							double curr_cni = dvb_frame->getCn();
-							if(this->satellite_type == REGENERATIVE)
+							// regenerative case : we need downlink ACM parameters to inform
+							//                     satellite with a SAC so inform opposite channel
+							this->spot_downward_map[dest_spot]->setCni(curr_cni);
+						}
+						else
+						{
+							// transparent case : update return modcod for terminal
+							DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+							tal_id_t tal_id;
+							// decode the first packet in frame to be able to get source terminal ID
+							if(!this->spot_downward_map[dest_spot]
+								->getUpReturnPktHdl()->getSrc(frame->getPayload(),
+								                              tal_id))
 							{
-								// regenerative case : we need downlink ACM parameters to inform
-								//                     satellite with a SAC so inform opposite channel
-								this->spot_downward_map[dest_spot]->setCni(curr_cni);
+								LOG(this->log_receive, LEVEL_ERROR,
+								    "unable to read source terminal ID in"
+								    " frame, won't be able to update C/N"
+								    " value\n");
 							}
 							else
 							{
-								// transparent case : update return modcod for terminal
-								DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-								tal_id_t tal_id;
-								// decode the first packet in frame to be able to get source terminal ID
-								if(!this->spot_downward_map[dest_spot]->getUpReturnPktHdl()->getSrc(frame->getPayload(), 
-											tal_id))
-								{
-									LOG(this->log_receive, LEVEL_ERROR,
-											"unable to read source terminal ID in"
-											" frame, won't be able to update C/N"
-											" value\n");
-								}
-								else
-								{
-									this->up_ret_fmt_simu.setRequiredModcod(tal_id, curr_cni);
-								}
+								this->up_ret_fmt_simu.setRequiredModcod(tal_id,
+								                                        curr_cni);
 							}
 						}
-						break;
+					}
+					break;
 
 					case MSG_TYPE_SAC: // when physical layer is enabled
+					{
+						Sac *sac = (Sac *)dvb_frame;
+
+						LOG(this->log_receive, LEVEL_DEBUG,
+								"handle received SAC\n");
+
+						if(!this->spot_downward_map[dest_spot]->getDamaCtrl()->hereIsSAC(sac))
 						{
-							// TODO Sac *sac = dynamic_cast<Sac *>(dvb_frame);
-							Sac *sac = (Sac *)dvb_frame;
+							LOG(this->log_receive, LEVEL_ERROR,
+							    "failed to handle SAC frame\n");
+							delete dvb_frame;
+							goto error;
+						}
 
-							LOG(this->log_receive, LEVEL_DEBUG,
-									"handle received SAC\n");
-
-							if(!this->spot_downward_map[dest_spot]->getDamaCtrl()->hereIsSAC(sac))
+						if(this->with_phy_layer)
+						{
+							// transparent : the C/N0 of forward link
+							// regenerative : the C/N0 of uplink (updated by sat)
+							double cni = sac->getCni();
+							tal_id_t tal_id = sac->getTerminalId();
+							if(this->satellite_type == TRANSPARENT)
 							{
-								LOG(this->log_receive, LEVEL_ERROR,
-										"failed to handle SAC frame\n");
-								delete dvb_frame;
-								goto error;
+								this->down_fwd_fmt_simu.setRequiredModcod(tal_id,
+								                                          cni);
 							}
-
-							if(this->with_phy_layer)
+							else
 							{
-								// transparent : the C/N0 of forward link
-								// regenerative : the C/N0 of uplink (updated by sat)
-								double cni = sac->getCni();
-								tal_id_t tal_id = sac->getTerminalId();
-								if(this->satellite_type == TRANSPARENT)
-								{
-									this->down_fwd_fmt_simu.setRequiredModcod(tal_id, cni);
-								}
-								else
-								{
-									this->up_ret_fmt_simu.setRequiredModcod(tal_id, cni);
-								}
+								this->up_ret_fmt_simu.setRequiredModcod(tal_id,
+								                                        cni);
 							}
 						}
-						break;
+					}
+					break;
 
 					case MSG_TYPE_SESSION_LOGON_REQ:
-						if(!this->spot_downward_map[dest_spot]->handleLogonReq(dvb_frame, 
-									&logonResp,
-									ctrlCarrierId,
-									this->super_frame_counter))
+						if(!this->spot_downward_map[dest_spot]->handleLogonReq(
+							                        dvb_frame, 
+							                        &logonResp,
+							                        ctrlCarrierId,
+							                        this->super_frame_counter))
 						{
 							goto error;
 						}
 						if(!this->sendDvbFrame((DvbFrame *)logonResp,
-									ctrlCarrierId))
+							                   ctrlCarrierId))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
-									"Failed send logon response\n");
+							    "Failed send logon response\n");
 							return false;
 						}
 
 						break;
 
 					case MSG_TYPE_SESSION_LOGOFF:
-						if(!this->spot_downward_map[dest_spot]->handleLogoffReq(dvb_frame,
-									this->super_frame_counter))
+						if(!this->spot_downward_map[dest_spot]->handleLogoffReq(
+							                        dvb_frame,
+							                        this->super_frame_counter))
 						{
 							goto error;
 						}
@@ -427,9 +431,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 					default:
 						LOG(this->log_receive, LEVEL_ERROR,
-								"SF#%u: unknown type of DVB frame (%u), ignore\n",
-								this->super_frame_counter,
-								dvb_frame->getMessageType());
+						    "SF#%u: unknown type of DVB frame (%u), ignore\n",
+						    this->super_frame_counter,
+						    dvb_frame->getMessageType());
 						delete dvb_frame;
 						goto error;
 				}
@@ -454,22 +458,22 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
-						"SF#%u: encapsulation burst received "
-						"(%d packet(s))\n", super_frame_counter,
-						burst->length());
+				    "SF#%u: encapsulation burst received "
+				    "(%d packet(s))\n", super_frame_counter,
+				    burst->length());
 
 				// set each packet of the burst in MAC FIFO
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
-					// TODO get terminal ID en débuire le spot
 					int tal_id = (*pkt_it)->getDstTalId();
 					map<int, spot_id_t>::iterator spot_it;
 					spot_it = this->terminal_map.find(tal_id);
+					
 					if(spot_it == this->terminal_map.end())
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot find terminal %u' spot\n",
-								tal_id);
+						    "cannot find terminal %u' spot\n",
+						    tal_id);
 						break;
 					}
 					spot_id_t spot = this->terminal_map[tal_id];
@@ -511,14 +515,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// counter of frames per superframe
 				this->super_frame_counter++;
 
-				for(spot_iter = this->spot_list.begin(); spot_iter != this->spot_list.end(); spot_iter++)
+				for(spot_iter = this->spot_list.begin(); 
+				    spot_iter != this->spot_list.end(); spot_iter++)
 				{
 					spot_id_t spot_id = *spot_iter;
 				
 					// sendSOF appelé dans spot (idem senTTP)
 					// send Start Of Frame (Spot)
 					this->sendSOF(spot_downward_map[spot_id]);
-
 
 					// fonction sur chaque spot
 					if(!this->spot_downward_map[spot_id]->getDamaCtrl())
@@ -536,7 +540,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 
 					// run the allocation algorithms (DAMA)
-					this->spot_downward_map[spot_id]->getDamaCtrl()->runOnSuperFrameChange(this->super_frame_counter);
+					this->spot_downward_map[spot_id]->getDamaCtrl()
+					    ->runOnSuperFrameChange(this->super_frame_counter);
 					// send TTP computed by DAMA
 					this->sendTTP(spot_downward_map[spot_id]);
 
@@ -548,8 +553,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						case file_simu:
 							if(!this->spot_downward_map[spot_id]->getSimuFile())
 							{
-								LOG(spot_downward_map[spot_id]->getLogRequestSimulation(), LEVEL_ERROR,
-										"file simulation failed");
+								LOG(spot_downward_map[spot_id]->getLogRequestSimulation(), 
+								    LEVEL_ERROR, "file simulation failed");
 								fclose(this->spot_downward_map[spot_id]->getSimuFile());
 								this->spot_downward_map[spot_id]->setSimuFile(NULL);
 								this->spot_downward_map[spot_id]->setSimulate(none_simu);
@@ -572,7 +577,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				uint32_t remaining_alloc_sym = 0;
 
 				// for each spot
-				for(spot_iter = this->spot_list.begin(); spot_iter != this->spot_list.end(); spot_iter++)
+				for(spot_iter = this->spot_list.begin(); 
+				    spot_iter != this->spot_list.end(); spot_iter++)
 				{
 					spot_id_t spot_id = *spot_iter;
 					
@@ -587,8 +593,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					                                         remaining_alloc_sym))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
-							"failed to schedule encapsulation "
-							"packets stored in DVB FIFO\n");
+						    "failed to schedule encapsulation "
+						    "packets stored in DVB FIFO\n");
 						return false;
 					}
 					if(this->satellite_type == REGENERATIVE &&
@@ -598,16 +604,19 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						// TODO THIS IS NOT TRUE ! we schedule for each carriers, if
 						// desired modcod is low we can send on many carriers
 						uint8_t modcod_id;
-						modcod_id = ((DvbRcsFrame *)this->spot_downward_map[spot_id]->getCompleteDvbFrames().front())->getModcodId();
-						this->spot_downward_map[spot_id]->getProbeUsedModcod()->put(modcod_id);
+						modcod_id = ((DvbRcsFrame *)this->spot_downward_map[spot_id]
+						                ->getCompleteDvbFrames().front())->getModcodId();
+						this->spot_downward_map[spot_id]->getProbeUsedModcod()
+						         ->put(modcod_id);
 					}
 					LOG(this->log_receive, LEVEL_INFO,
-						"SF#%u: %u symbols remaining after "
-						"scheduling\n", this->super_frame_counter,
-						remaining_alloc_sym);
+					    "SF#%u: %u symbols remaining after "
+					    "scheduling\n", this->super_frame_counter,
+					    remaining_alloc_sym);
 
 					// get complete_dvb.. get data_carrier
-					if(!this->sendBursts(&this->spot_downward_map[spot_id]->getCompleteDvbFrames(),
+					if(!this->sendBursts(&this->spot_downward_map[spot_id]
+						                         ->getCompleteDvbFrames(),
 					                     spot_downward_map[spot_id]->getDataCarrierId()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
@@ -620,9 +629,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else if(*event == this->scenario_timer)
 			{
-				//TODO boucle globale
 				// for each spot
-				for(spot_iter = this->spot_list.begin(); spot_iter != this->spot_list.end(); spot_iter++)
+				for(spot_iter = this->spot_list.begin(); 
+				    spot_iter != this->spot_list.end(); spot_iter++)
 				{
 					spot_id_t spot_id = *spot_iter;
 
@@ -888,7 +897,8 @@ BlockDvbNcc::Upward::Upward(Block *const bl):
 BlockDvbNcc::Upward::~Upward()
 {
 	list<spot_id_t>::iterator spot_iter;
-	for(spot_iter = this->spot_list.begin(); (spot_iter != this->spot_list.end()); spot_iter++)
+	for(spot_iter = this->spot_list.begin(); 
+	    spot_iter != this->spot_list.end(); spot_iter++)
 	{
 		spot_id_t spot_id = *spot_iter;
 		delete this->spot_upward_map[spot_id];
@@ -904,12 +914,12 @@ bool BlockDvbNcc::Upward::onInit(void)
 	if(!this->initMap())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to init carrier and terminal "
-			"spot id map");
+			"failed to init carrier and terminal spot id map\n");
 		return false;
 	}
 
-	for(spot_iter = this->spot_list.begin(); spot_iter != this->spot_list.end(); spot_iter++)
+	for(spot_iter = this->spot_list.begin(); 
+	    spot_iter != this->spot_list.end(); spot_iter++)
 	{
 		spot_id_t spot_id = *spot_iter;
 		this->spot_upward_map[spot_id] = new SpotUpward();
@@ -937,7 +947,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 		                         msg_link_up))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "SF#%u: failed to send link up message to upper layer",
+			    "SF#%u: failed to send link up message to upper layer\n",
 			    this->super_frame_counter);
 			delete link_is_up;
 		}
@@ -960,8 +970,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 			if(this->spot_upward_map[dest_spot] == NULL)
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-						"spot_upward of spot %d does'nt exist",
-						dest_spot);
+				    "spot_upward of spot %d does'nt exist\n",
+				    dest_spot);
 				break;
 			}
 			uint8_t msg_type = dvb_frame->getMessageType();
@@ -1013,12 +1023,12 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						if(msg_type != MSG_TYPE_CORRUPTED)
 						{
 							this->spot_upward_map[dest_spot]->getProbeReceivedModcod()->put(
-									std->getReceivedModcod());
+							     std->getReceivedModcod());
 						}
 						else
 						{
 							this->spot_upward_map[dest_spot]->getProbeRejectedModcod()->put(
-									std->getReceivedModcod());
+							     std->getReceivedModcod());
 						}
 					}
 
@@ -1031,7 +1041,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						goto error;
 					}
 					LOG(this->log_send, LEVEL_INFO,
-							"burst sent to the upper layer\n");
+					    "burst sent to the upper layer\n");
 				}
 				break;
 
@@ -1077,84 +1087,86 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					break;
 
 				case MSG_TYPE_SOF:
+				{
+					this->spot_upward_map[dest_spot]->updateStats();
+					// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
+					if(this->spot_upward_map[dest_spot]->getSaloha())
 					{
-						this->spot_upward_map[dest_spot]->updateStats();
-						// if Slotted Aloha is enabled handled Slotted Aloha scheduling here.
-						if(this->spot_upward_map[dest_spot]->getSaloha())
+						uint16_t sfn;
+						Sof *sof = (Sof *)dvb_frame;
+
+						sfn = sof->getSuperFrameNumber();
+
+						list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
+						// increase the superframe number and reset
+						// counter of frames per superframe
+						this->super_frame_counter++;
+						if(this->super_frame_counter != sfn)
 						{
-							uint16_t sfn;
-							// TODO Sof *sof = dynamic_cast<Sof *>(dvb_frame);
-							Sof *sof = (Sof *)dvb_frame;
-
-							sfn = sof->getSuperFrameNumber();
-
-							list<DvbFrame *> *ack_frames = new list<DvbFrame *>();
-							// increase the superframe number and reset
-							// counter of frames per superframe
-							this->super_frame_counter++;
-							if(this->super_frame_counter != sfn)
-							{
-								LOG(this->log_receive, LEVEL_WARNING,
-								    "superframe counter (%u) is not the same as in SoF (%u)\n",
-								    this->super_frame_counter, sfn);
-								this->super_frame_counter = sfn;
-							}
-
-							// Slotted Aloha
-							NetBurst* sa_burst = NULL;
-							if(!this->spot_upward_map[dest_spot]->getSaloha()->schedule(&sa_burst,
-								                                                        *ack_frames,
-								                                                        this->super_frame_counter))
-							{
-								LOG(this->log_saloha, LEVEL_ERROR,
-								    "failed to schedule Slotted Aloha\n");
-								delete ack_frames;
-								return false;
-							}
-							if(sa_burst &&
-									!this->enqueueMessage((void **)&sa_burst))
-							{
-								LOG(this->log_saloha, LEVEL_ERROR,
-								    "Failed to send encapsulation packets to upper layer\n");
-								delete ack_frames;
-								return false;
-							}
-							if(ack_frames->size() &&
-									!this->shareMessage((void **)&ack_frames,
-										sizeof(ack_frames),
-										msg_saloha))
-							{
-								LOG(this->log_saloha, LEVEL_ERROR,
-								    "Failed to send Slotted Aloha acks to opposite layer\n");
-								delete ack_frames;
-								return false;
-							}
-							// delete ack_frames if they are emtpy, else shareMessage
-							// would set ack_frames == NULL
-							if(ack_frames)
-							{
-								delete ack_frames;
-							}
+							LOG(this->log_receive, LEVEL_WARNING,
+							    "superframe counter (%u) is not the same as in"
+							    " SoF (%u)\n",
+							    this->super_frame_counter, sfn);
+							this->super_frame_counter = sfn;
 						}
-						else
+
+						// Slotted Aloha
+						NetBurst* sa_burst = NULL;
+						if(!this->spot_upward_map[dest_spot]->getSaloha()->schedule(&sa_burst,
+							             *ack_frames,
+							             this->super_frame_counter))
 						{
-							// nothing to do in this case
-							LOG(this->log_receive, LEVEL_DEBUG,
-							    "ignore SOF frame (type = %d)\n",
-							    dvb_frame->getMessageType());
+							LOG(this->log_saloha, LEVEL_ERROR,
+							    "failed to schedule Slotted Aloha\n");
+							delete ack_frames;
+							return false;
 						}
-						delete dvb_frame;
+						if(sa_burst && !this->enqueueMessage((void **)&sa_burst))
+						{
+							LOG(this->log_saloha, LEVEL_ERROR,
+							    "Failed to send encapsulation packets to upper"
+							    " layer\n");
+							delete ack_frames;
+							return false;
+						}
+						if(ack_frames->size() &&
+						   !this->shareMessage((void **)&ack_frames,
+						                       sizeof(ack_frames),
+						                       msg_saloha))
+						{
+							LOG(this->log_saloha, LEVEL_ERROR,
+							    "Failed to send Slotted Aloha acks to opposite"
+							    " layer\n");
+							delete ack_frames;
+							return false;
+						}
+						// delete ack_frames if they are emtpy, else shareMessage
+						// would set ack_frames == NULL
+						if(ack_frames)
+						{
+							delete ack_frames;
+						}
 					}
-					break;
+					else
+					{
+						// nothing to do in this case
+						LOG(this->log_receive, LEVEL_DEBUG,
+						    "ignore SOF frame (type = %d)\n",
+						    dvb_frame->getMessageType());
+					}
+					delete dvb_frame;
+				}
+				break;
 
 					// Slotted Aloha
 				case MSG_TYPE_SALOHA_DATA:
 					// Update stats
 					this->spot_upward_map[dest_spot]->setL2FromSatBytes(
-							this->spot_upward_map[dest_spot]->getL2FromSatBytes() +
-							dvb_frame->getPayloadLength());
+					    this->spot_upward_map[dest_spot]->getL2FromSatBytes() +
+					    dvb_frame->getPayloadLength());
 
-					if(!this->spot_upward_map[dest_spot]->getSaloha()->onRcvFrame(dvb_frame))
+					if(!this->spot_upward_map[dest_spot]->getSaloha()
+						    ->onRcvFrame(dvb_frame))
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
 						    "failed to handle Slotted Aloha frame\n");

@@ -39,9 +39,6 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "Sof.h"
-#include "ForwardSchedulingS2.h"
-#include "UplinkSchedulingRcs.h"
 
 #include <opensand_output/Output.h>
 
@@ -68,7 +65,7 @@
  */
 
 /*****************************************************************************/
-/*                               SpotUpward                                      */
+/*                               SpotUpward                                  */
 /*****************************************************************************/
 
 SpotUpward::SpotUpward():
@@ -172,6 +169,9 @@ bool SpotUpward::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
+	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
+	ConfigurationList spots;
+	ConfigurationList current_spot;
 	int lan_scheme_nbr;
 
 	// init fmt_simu
@@ -183,13 +183,10 @@ bool SpotUpward::initSlottedAloha(void)
 		return false;
 	}
 	
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section", 
+		    "there is no %s into %s section\n", 
 		    SPOT_LIST, RETURN_UP_BAND);
 		return false;
 	}
@@ -200,7 +197,7 @@ bool SpotUpward::initSlottedAloha(void)
 	                                      s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s", 
+		    "there is no attribute %s with value: %d into %s/%s\n", 
 		    SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
@@ -208,7 +205,7 @@ bool SpotUpward::initSlottedAloha(void)
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
-		                                       this->satellite_type,
+	                                           this->satellite_type,
 	                                           this->fmt_simu.getModcodDefinitions(),
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
@@ -328,7 +325,7 @@ bool SpotUpward::initMode(void)
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "unknown value '%u' for satellite type ",
+		    "unknown value '%u' for satellite type \n",
 		    this->satellite_type);
 		goto error;
 

@@ -175,15 +175,14 @@ BlockDvbTal::Downward::~Downward()
 bool BlockDvbTal::Downward::onInit(void)
 {
 	this->log_qos_server = Output::registerLog(LEVEL_WARNING, 
-	                                           "Dvb.QoSServer");	
+	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
-	                                           "Dvb.DamaAgent.FrameTick");	
+	                                           "Dvb.DamaAgent.FrameTick");
 
 	if(!this->initMap())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to init carrier and terminal "
-			"spot id map");
+		    "failed to init carrier and terminal spot id map\n");
 		goto error;
 	}
 
@@ -290,12 +289,13 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	ConfigurationList sat_switch_section = Conf::section_map[SAT_SWITCH_SECTION];
 	ConfigurationList spot_list;
 	ConfigurationList::iterator spot_iter;
+
 	// satelite switching table spot list
 	if(!Conf::getListNode(sat_switch_section, SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section",
-				SPOT_LIST, SAT_SWITCH_SECTION);
+		    "there is no %s into %s section",
+		    SPOT_LIST, SAT_SWITCH_SECTION);
 		return false;
 	}
 
@@ -314,8 +314,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		if(!Conf::getListNode(spot, TAL_ID, term_ids))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s/%s", TAL_ID,
-				SAT_SWITCH_SECTION, SPOT_LIST);
+			    "there is no %s into %s/%s\n", TAL_ID,
+			    SAT_SWITCH_SECTION, SPOT_LIST);
 		}
 
 		for(t_id_iter = term_ids.begin() ; (t_id_iter != term_ids.end()) 
@@ -325,7 +325,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 			if(!Conf::getValue(t_id_iter, current_id))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "cannot get %s value into %s/%s", TAL_ID,
+				    "cannot get %s value into %s/%s\n", TAL_ID,
 				    SAT_SWITCH_SECTION, SPOT_LIST);
 			} 
 
@@ -333,7 +333,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 			{
 				xmlpp::Element *element;
 				element = dynamic_cast<xmlpp::Element *>(*spot_iter);
-				this->spot_id = atoi(element->get_attribute(SPOT_ID)->get_value().c_str());
+				this->spot_id = atoi(element->get_attribute(SPOT_ID)
+				                   ->get_value().c_str());
 				find_spot = true;
 			}
 		}
@@ -348,22 +349,23 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	ConfigurationList current_spot;
 	ConfigurationList carrier_list ; 
 	ConfigurationList::iterator iter;
+
 	if(!Conf::getListNode(satcar_section, SPOT_LIST, spots))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section",
-				SPOT_LIST, SATCAR_SECTION);
+		    "there is no %s into %s section\n",
+		    SPOT_LIST, SATCAR_SECTION);
 		return false;
 	}
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-				s_id, current_spot))
+		                                   s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no attribute %s with value: %d into %s",
-				SPOT_ID, this->spot_id, SPOT_LIST);
+		    "there is no attribute %s with value: %d into %s\n",
+		    SPOT_ID, this->spot_id, SPOT_LIST);
 		return false;
 	}
 
@@ -372,8 +374,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s, %s': missing satellite channels\n",
-				SATCAR_SECTION, CARRIER_LIST);
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, CARRIER_LIST);
 		goto error;
 	}
 
@@ -383,27 +385,24 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 
 		string carrier_id;
 		string carrier_type;
+		
 		// Get the carrier id
-		if(!Conf::getAttributeValue(iter,
-					CARRIER_ID,
-					carrier_id))
+		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s/%s%d/%s': missing parameter '%s'\n",
-					SATCAR_SECTION, SPOT_LIST, this->spot_id, 
-					CARRIER_LIST, CARRIER_ID);
+			    "section '%s/%s%d/%s': missing parameter '%s'\n",
+			    SATCAR_SECTION, SPOT_LIST, this->spot_id, 
+			    CARRIER_LIST, CARRIER_ID);
 			goto error;
 		}
 
 		// Get the carrier type
-		if(!Conf::getAttributeValue(iter,
-					CARRIER_TYPE,
-					carrier_type))
+		if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s/%s%d/%s': missing parameter '%s'\n",
-					SATCAR_SECTION, SPOT_LIST, this->spot_id, 
-					CARRIER_LIST, CARRIER_TYPE);
+			    "section '%s/%s%d/%s': missing parameter '%s'\n",
+			    SATCAR_SECTION, SPOT_LIST, this->spot_id, 
+			    CARRIER_LIST, CARRIER_TYPE);
 			goto error;
 		}
 
@@ -485,7 +484,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		                   FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
+		    "section '%s, %s': missing fifo list\n", DVB_TAL_SECTION,
 		    FIFO_LIST);
 		goto err_fifo_release;
 	}
@@ -550,7 +549,8 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		// are not coherent.
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
-		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(),
+		                       fifo));
 	} // end for(queues are now instanciated and initialized)
 
 
@@ -585,6 +585,10 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
+	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
+	ConfigurationList spots;
+	ConfigurationList current_spot;
+	
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
@@ -606,25 +610,22 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 	
 	// get current spot into return up band section
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section", 
-				SPOT_LIST, RETURN_UP_BAND);
+		    "there is no %s into %s section\n", 
+		    SPOT_LIST, RETURN_UP_BAND);
 		return false;
 	}
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-				s_id, current_spot))
+		                                   s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no attribute %s with value: %d into %s/%s",
-				SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    "there is no attribute %s with value: %d into %s/%s\n",
+		    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
 	
@@ -896,19 +897,19 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section", 
-				SPOT_LIST, RETURN_UP_BAND);
+		    "there is no %s into %s section\n", 
+		    SPOT_LIST, RETURN_UP_BAND);
 		return false;
 	}
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-				s_id, current_spot))
+		                                   s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no attribute %s with value: %d into %s/%s",
-				SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    "there is no attribute %s with value: %d into %s/%s\n",
+		    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
 
@@ -1156,8 +1157,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-
 			// first handle specific messages
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
 			{
@@ -1321,14 +1320,14 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					{
 						LOG(this->log_receive, LEVEL_INFO,
 						    "failed to connect with QoS Server, "
-						    "cannot send cross layer information");
+						    "cannot send cross layer informationi\n");
 					}
 				}
 			}
 			else
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-				    "SF#%u: unknown timer event received %s",
+				    "SF#%u: unknown timer event received %s\n",
 				    this->super_frame_counter, event->getName().c_str());
 				return false;
 			}
@@ -1404,7 +1403,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			if(this->saloha && !this->saloha->onRcvFrame(dvb_frame))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
-				    "failed to handle Slotted Aloha Signal Controls frame");
+				    "failed to handle Slotted Aloha Signal Controls frame\n");
 				goto error;
 			}
 			break;
@@ -1457,13 +1456,13 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 
 error_on_TTP:
 	LOG(this->log_receive, LEVEL_ERROR,
-	    "TTP Treatments failed at SF#%u",
+	    "TTP Treatments failed at SF#%u\n",
 	    this->super_frame_counter);
 	return false;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
-	    "Treatments failed at SF#%u",
+	    "Treatments failed at SF#%u\n",
 	    this->super_frame_counter);
 	return false;
 }
@@ -1538,7 +1537,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 	    "SOF reception SFN #%u super frame nb counter %u\n",
 	    sfn, this->super_frame_counter);
 	LOG(this->log_frame_tick, LEVEL_DEBUG,
-	    "superframe number: %u", sfn);
+	    "superframe number: %u\n", sfn);
 
 	// if the NCC crashed, we must reinitiate a logon
 	if(sfn < this->super_frame_counter &&
@@ -1978,7 +1977,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			if( dest_spot != this->terminal_map[this->mac_id])
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-				    "receive message for spot %d carrier id %d",
+				    "receive message for spot %d carrier id %di\n",
 				    dest_spot, dvb_frame->getCarrierId());
 				break;
 			}
@@ -2027,8 +2026,8 @@ bool BlockDvbTal::Upward::onInit(void)
 	if(!this->initMap())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to init carrier and terminal "
-			"spot id map");
+		    "failed to init carrier and terminal "
+		    "spot id map\n");
 		return false;
 	}
 	
@@ -2037,7 +2036,7 @@ bool BlockDvbTal::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
-		    "initialisation");
+		    "initialisation\n");
 		return false;
 	}
 
@@ -2053,7 +2052,7 @@ bool BlockDvbTal::Upward::onInit(void)
 	if(!this->initOutput())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of output");
+		    "failed to complete the initialisation of output\n");
 		return false;
 	}
 
@@ -2282,7 +2281,6 @@ bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 {
 	T_LINK_UP *link_is_up;
-	// TODO LogonResponse *logon_resp = dynamic_cast<LogonResponse *>(dvb_frame);
 	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
 
 	// Retrieve the Logon Response frame
@@ -2348,7 +2346,6 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 }
 
 
-
 void BlockDvbTal::Upward::updateStats(void)
 {
 	if(!this->doSendStats())
@@ -2371,7 +2368,4 @@ void BlockDvbTal::Upward::resetStatsCxt(void)
 {
 	this->l2_from_sat_bytes = 0;
 }
-
-
-
 

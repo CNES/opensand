@@ -74,12 +74,6 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			    dvb_frame->getMessageLength(),
 			    event->getName().c_str());
 
-			if(dvb_frame->getCarrierId() == 17 || dvb_frame->getCarrierId() == 14 || dvb_frame->getCarrierId() == 15)
-			{	
-				DFLTLOG(LEVEL_WARNING, "send to spot %d, carrier %d", 
-			        dvb_frame->getSpot(), dvb_frame->getCarrierId());
-			}
-
 			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
 			                               dvb_frame->getData().c_str(),
 			                               dvb_frame->getTotalLength()))
@@ -142,18 +136,14 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 				}
 				else
 				{
-					if(carrier_id == 17 || carrier_id == 14 || carrier_id == 15)
-					{	
-						DFLTLOG(LEVEL_WARNING, "receive to spot %d, carrier %d", 
-							spot_id, carrier_id);
-					}
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "%zu bytes of data received on carrier ID %u\n",
 					    length, carrier_id);
 
 					if(length > 0)
 					{
-						this->onReceivePktFromCarrier(carrier_id, spot_id,  buf, length);
+						this->onReceivePktFromCarrier(carrier_id, spot_id,  
+						                              buf, length);
 					}
 				}
 			} while(ret > 0);
@@ -162,7 +152,8 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s", event->getName().c_str());
+			    "unknown event received %s\n", 
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -255,7 +246,7 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	}
 
 	LOG(this->log_receive, LEVEL_DEBUG,
-	    "Message from carrier %u sent to upper layer", carrier_id);
+	    "Message from carrier %u sent to upper layer\n", carrier_id);
 
 	return;
 

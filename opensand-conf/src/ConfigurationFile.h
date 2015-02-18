@@ -140,8 +140,9 @@ class ConfigurationFile
 	 * @return true on success, false otherwise
 	 */
 	bool getListNode(ConfigurationList sectionList,
-                                    const char *key,
-									xmlpp::Node::NodeList &nodeList);
+                     const char *key,
+                     xmlpp::Node::NodeList &nodeList);
+
 	/**
 	 * get the element from the list with attribute value
 	 * @param  list             the origal element list
@@ -151,9 +152,9 @@ class ConfigurationFile
 	 * @return true en success and false otherwise
 	 */
 	bool getElementWithAttributeValue(ConfigurationList list,
-                                     const char *attribute_name,
-                                     const char *attribute_value,
-                                     ConfigurationList &elements);
+                                      const char *attribute_name,
+                                      const char *attribute_value,
+                                      ConfigurationList &elements);
 
 	/**
 	 * Read the number of elements in a list
@@ -163,7 +164,9 @@ class ConfigurationFile
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	bool getNbListItems(ConfigurationList section, const char *key, int &value);
+	bool getNbListItems(ConfigurationList section, 
+	                    const char *key, 
+	                    int &value);
 
 	/**
 	 * Get the elements from the list
@@ -173,7 +176,9 @@ class ConfigurationFile
 	 * @param  list     the list
 	 * @return  true on success, false otherwise
 	 */
-	bool getListItems(ConfigurationList section, const char *key, ConfigurationList &list);
+	bool getListItems(ConfigurationList section, 
+	                  const char *key, 
+	                  ConfigurationList &list);
 
 	/**
 	 * Get the value of an attribute in a list element
@@ -272,7 +277,9 @@ class ConfigurationFile
 	 * @param  value    value of the string
 	 * @return  true on success, false otherwise
 	 */
-	bool getStringValue(ConfigurationList section, const char *key, string &value);
+	bool getStringValue(ConfigurationList section, 
+	                    const char *key, 
+	                    string &value);
 
 	/**
 	 * Get the string value of an attribute in a list element
@@ -324,7 +331,9 @@ inline string toString(long val)
 // these functions should must be in .h file because they are templates
 
 template <class T>
-bool ConfigurationFile::getValue(ConfigurationList section, const char *key, T &val)
+bool ConfigurationFile::getValue(ConfigurationList section, 
+                                 const char *key, 
+                                 T &val)
 {
 	string tmp_val;
 
@@ -638,7 +647,6 @@ inline bool ConfigurationFile::getValueInList<uint16_t>(ConfigurationList list,
 	value = val;
 	return true;
 }
-
 
 
 #endif

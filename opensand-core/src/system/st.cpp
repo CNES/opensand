@@ -146,21 +146,21 @@ bool init_process(int argc, char **argv,
 	if(ip_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory IP address option");
+		        "missing mandatory IP address option\n");
 		return false;
 	}
 
 	if(emu_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory emulation interface name option");
+		        "missing mandatory emulation interface name option\n");
 		return false;
 	}
 
 	if(lan_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory lan interface name option");
+		        "missing mandatory lan interface name option\n");
 		return false;
 	}
 	return true;

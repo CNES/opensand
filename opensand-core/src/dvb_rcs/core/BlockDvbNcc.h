@@ -61,11 +61,6 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 #include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
-#include "Scheduling.h"
-#include "SlottedAlohaNcc.h"
-
-#define SIMU_BUFF_LEN 255
 
 class BlockDvbNcc: public BlockDvb
 {

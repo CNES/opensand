@@ -73,14 +73,18 @@ bool DvbChannel::initMap(void)
 		xmlpp::Node* spot_node = *iter_spots;
 		current_spot.push_front(spot_node);
 		string spot_id;
-		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
+		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get %s value in %d", SPOT_ID, SPOT_LIST);
+		}
 
 		// get satellite channels from configuration
 		if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s, %s': missing satellite channels\n",
-					SATCAR_SECTION, CARRIER_LIST);
+			    "section '%s, %s': missing satellite channels\n",
+			    SATCAR_SECTION, CARRIER_LIST);
 			goto error;
 		}
 
@@ -94,10 +98,10 @@ bool DvbChannel::initMap(void)
 			if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-						"section '%s %s/%s/%s': failed to retrieve %s\n",
-						SPOT_LIST, spot_id.c_str(),
-						SATCAR_SECTION, CARRIER_LIST,
-						CARRIER_ID);
+				    "section '%s %s/%s/%s': failed to retrieve %s\n",
+				    SPOT_LIST, spot_id.c_str(),
+				    SATCAR_SECTION, CARRIER_LIST,
+				    CARRIER_ID);
 				goto error;
 			}
 
@@ -112,8 +116,8 @@ bool DvbChannel::initMap(void)
 	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION], SPOT_LIST, s_tal_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section\n",
-				SPOT_LIST, SATCAR_SECTION);
+		    "there is no %s into %s section\n",
+		    SPOT_LIST, SATCAR_SECTION);
 		goto error;
 	}
 
@@ -126,12 +130,13 @@ bool DvbChannel::initMap(void)
 		current_spot.push_front(spot_node);
 		string spot_id;
 		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
+		
 		// get satellite channels from configuration
 		if(!Conf::getListNode(current_spot, TAL_ID, terminal_list))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s, %s': missing satellite channels\n",
-					SAT_SWITCH_SECTION, TAL_ID);
+			    "section '%s, %s': missing satellite channels\n",
+			    SAT_SWITCH_SECTION, TAL_ID);
 			goto error;
 		}
 
@@ -144,16 +149,16 @@ bool DvbChannel::initMap(void)
 			if(!Conf::getValue(iter, tal_id))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-						"section '%s %s/%s/%s': failed to retrieve %s\n",
-						SPOT_LIST, spot_id.c_str(),
-						SAT_SWITCH_SECTION, TAL_ID,
-						TAL_ID);
+				    "section '%s %s/%s/%s': failed to retrieve %s\n",
+				    SPOT_LIST, spot_id.c_str(),
+				    SAT_SWITCH_SECTION, TAL_ID,
+				    TAL_ID);
 				goto error;
 			}
 
 			this->terminal_map[tal_id] = atoi(spot_id.c_str());
 		}
-		// add spot to the list 		
+		// add spot to the list 
 		spot_list.push_back(atoi(spot_id.c_str()));
 	}
 
@@ -421,11 +426,17 @@ bool DvbChannel::doSendStats(void)
 }
 
 
+//****************************************************//
+//                   DVB  UPWARD                      // 
+//****************************************************//
 BlockDvb::DvbUpward::~DvbUpward()
 {
 }
 
 
+//****************************************************//
+//                   DVB  DOWNWARD                    // 
+//****************************************************//
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer

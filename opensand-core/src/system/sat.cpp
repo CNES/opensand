@@ -127,14 +127,14 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 	if(ip_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory IP address option");
+		        "missing mandatory IP address option\n");
 		return false;
 	}
 
 	if(iface_name.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interface name option");
+		        "missing mandatory interface name option\n");
 		return false;
 	}
 	return true;

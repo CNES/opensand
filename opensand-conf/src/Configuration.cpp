@@ -81,21 +81,21 @@ bool Conf::getComponent(string &compo)
 }
 
 bool Conf::getListNode(ConfigurationList sectionList,
-                                    const char *key,
-									xmlpp::Node::NodeList &nodeList)
+                       const char *key,
+                       xmlpp::Node::NodeList &nodeList)
 {
 	return global_config.getListNode(sectionList, key, nodeList);
 }
 
 
 bool Conf::getElementWithAttributeValue(ConfigurationList list,
-                                                const char *attribute_name,
-                                                const char *attribute_value,
-                                                ConfigurationList &elements)
+                                        const char *attribute_name,
+                                        const char *attribute_value,
+                                        ConfigurationList &elements)
 {
 	return global_config.getElementWithAttributeValue(list, attribute_name,
-	                                                 attribute_value,
-	                                                 elements);
+	                                                  attribute_value,
+	                                                  elements);
 }
 
 bool Conf::getNbListItems(ConfigurationList section,
@@ -129,6 +129,6 @@ bool Conf::loadLevels(map<string, log_level_t> &levels,
 
 void Conf::loadMap(void)
 {
-	global_config.loadMap(Conf::section_map);		
+	global_config.loadMap(Conf::section_map);
 }
 

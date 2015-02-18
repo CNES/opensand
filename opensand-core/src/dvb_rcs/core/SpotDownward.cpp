@@ -37,9 +37,6 @@
 
 #include "DamaCtrlRcsLegacy.h"
 
-#include "DvbRcsStd.h"
-#include "DvbS2Std.h"
-#include "Sof.h"
 #include "ForwardSchedulingS2.h"
 #include "UplinkSchedulingRcs.h"
 
@@ -369,11 +366,12 @@ bool SpotDownward::initMode(void)
 		ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
+		
 		if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no %s into %s section", 
-					SPOT_LIST, FORWARD_DOWN_BAND);
+			    "there is no %s into %s section\n", 
+			    SPOT_LIST, FORWARD_DOWN_BAND);
 			return false;
 		}
 		
@@ -383,8 +381,8 @@ bool SpotDownward::initMode(void)
 	                                          s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no attribute %s with value: %d into %s/%s",
-					SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 			return false;
 		}
 		
@@ -422,8 +420,7 @@ bool SpotDownward::initMode(void)
 		                                           this->pkt_hdl,
 		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
-		                                           cat,
-		                                           this->spot_id);
+		                                           cat, this->spot_id);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
@@ -431,12 +428,13 @@ bool SpotDownward::initMode(void)
 		ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
+		
 		// Get the spot list
 		if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no %s into %s section", 
-					SPOT_LIST, RETURN_UP_BAND);
+			    "there is no %s into %s section\n", 
+			    SPOT_LIST, RETURN_UP_BAND);
 			return false;
 		}
 		
@@ -444,11 +442,11 @@ bool SpotDownward::initMode(void)
 		char s_id[10];
 		sprintf (s_id, "%d", this->spot_id);
 		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-	                                          s_id, current_spot))
+		                                       s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no attribute %s with value: %d into %s/%s",
-					SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
 			return false;
 		}
 
@@ -488,7 +486,7 @@ bool SpotDownward::initMode(void)
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "unknown value '%u' for satellite type ",
+		    "unknown value '%u' for satellite type \n",
 		    this->satellite_type);
 		goto error;
 
@@ -522,19 +520,19 @@ bool SpotDownward::initCarrierIds(void)
 	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s, %s': missing satellite channels\n",
-				SATCAR_SECTION, SPOT_LIST);
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, SPOT_LIST);
 		goto error;
 	}
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID,
-				s_id, current_spot))
+	                                       s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no attribute %s with value: %d into %s",
-				SPOT_ID, this->spot_id, SPOT_LIST);
+		    "there is no attribute %s with value: %d into %s\n",
+		    SPOT_ID, this->spot_id, SPOT_LIST);
 		goto error;
 	}
 
@@ -542,8 +540,8 @@ bool SpotDownward::initCarrierIds(void)
 	if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s, %s': missing satellite channels\n",
-				SATCAR_SECTION, CARRIER_LIST);
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, CARRIER_LIST);
 		goto error;
 	}
 
@@ -554,26 +552,22 @@ bool SpotDownward::initCarrierIds(void)
 		string carrier_id;
 		string carrier_type;
 		// Get the carrier id
-		if(!Conf::getAttributeValue(iter,
-					CARRIER_ID,
-					carrier_id))
+		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s/%s%d/%s': missing parameter '%s'\n",
-					SATCAR_SECTION, SPOT_LIST, this->spot_id, 
-					CARRIER_LIST, CARRIER_ID);
+			    "section '%s/%s%d/%s': missing parameter '%s'\n",
+			    SATCAR_SECTION, SPOT_LIST, this->spot_id, 
+			    CARRIER_LIST, CARRIER_ID);
 			goto error;
 		}
 
 		// Get the carrier type
-		if(!Conf::getAttributeValue(iter,
-					CARRIER_TYPE,
-					carrier_type))
+		if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"section '%s/%s%d/%s': missing parameter '%s'\n",
-					SATCAR_SECTION, SPOT_LIST, this->spot_id, 
-					CARRIER_LIST, CARRIER_TYPE);
+			    "section '%s/%s%d/%s': missing parameter '%s'\n",
+			    SATCAR_SECTION, SPOT_LIST, this->spot_id, 
+			    CARRIER_LIST, CARRIER_TYPE);
 			goto error;
 		}
 
@@ -630,7 +624,6 @@ bool SpotDownward::initCarrierIds(void)
 	    this->ctrl_carrier_id,
 	    this->sof_carrier_id, this->data_carrier_id);
 
-
 	return true;
 
 error:
@@ -657,7 +650,7 @@ bool SpotDownward::initDama(void)
 		               DC_CRA_DECREASE, cra_decrease))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "missing %s parameter", DC_CRA_DECREASE);
+		    "missing %s parameter\n", DC_CRA_DECREASE);
 		goto error;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE, "cra_decrease = %s\n",
@@ -668,7 +661,7 @@ bool SpotDownward::initDama(void)
 		               DC_FREE_CAP, fca_kbps))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "missing %s parameter", DC_FREE_CAP);
+		    "missing %s parameter\n", DC_FREE_CAP);
 		goto error;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -678,7 +671,7 @@ bool SpotDownward::initDama(void)
 		               SYNC_PERIOD, sync_period_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Missing %s", SYNC_PERIOD);
+		    "Missing %s\n", SYNC_PERIOD);
 		goto error;
 	}
 	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
@@ -697,19 +690,19 @@ bool SpotDownward::initDama(void)
 		if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no %s into %s section",
-					SPOT_LIST, RETURN_UP_BAND);
+			    "there is no %s into %s section",
+			    SPOT_LIST, RETURN_UP_BAND);
 			return false;
 		}
 
 		char s_id[10];
 		sprintf (s_id, "%d", this->spot_id);
 		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-					s_id, current_spot))
+			                                   s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-					"there is no attribute %s with value: %d into %s",
-					SPOT_ID, this->spot_id, SPOT_LIST);
+			    "there is no attribute %s with value: %d into %s\n",
+			    SPOT_ID, this->spot_id, SPOT_LIST);
 			return false;
 		}
 
@@ -764,7 +757,6 @@ bool SpotDownward::initDama(void)
 	}
 
 	/* select the specified DAMA algorithm */
-	// TODO create one DAMA per spot and add spot_id as param ?
 	if(dama_algo == "Legacy")
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -836,8 +828,8 @@ bool SpotDownward::initFifo(void)
 	if(!Conf::getListNode(Conf::section_map[DVB_NCC_SECTION], SPOT_LIST, spot_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s, %s': missing satellite channels\n",
-				SATCAR_SECTION, SPOT_LIST);
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, SPOT_LIST);
 		goto error;
 	}
 
@@ -847,7 +839,7 @@ bool SpotDownward::initFifo(void)
 		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, current_ST_Spot_id))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section %s/%s : missing attribute %s", 
+			    "section %s/%s : missing attribute %s\n", 
 			    SATCAR_SECTION, SPOT_LIST, SPOT_ID);
 			goto error;
 		}
@@ -871,8 +863,8 @@ bool SpotDownward::initFifo(void)
 						FIFO_LIST, fifo_list))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-						"section '%s, %s': missing fifo list", DVB_NCC_SECTION,
-						FIFO_LIST);
+				    "section '%s, %s': missing fifo list\n", DVB_NCC_SECTION,
+				    FIFO_LIST);
 				goto err_fifo_release;
 			}
 
@@ -888,33 +880,33 @@ bool SpotDownward::initFifo(void)
 				if(!Conf::getAttributeValue(iter, FIFO_PRIO, fifo_priority))
 				{
 					LOG(this->log_init_channel, LEVEL_ERROR,
-							"cannot get %s from section '%s, %s'\n",
-							FIFO_PRIO, DVB_NCC_SECTION, FIFO_LIST);
+					    "cannot get %s from section '%s, %s'\n",
+					    FIFO_PRIO, DVB_NCC_SECTION, FIFO_LIST);
 					goto err_fifo_release;
 				}
 				// get fifo_name
 				if(!Conf::getAttributeValue(iter, FIFO_NAME, fifo_name))
 				{
 					LOG(this->log_init_channel, LEVEL_ERROR,
-							"cannot get %s from section '%s, %s'\n",
-							FIFO_NAME, DVB_NCC_SECTION, FIFO_LIST);
+					    "cannot get %s from section '%s, %s'\n",
+					    FIFO_NAME, DVB_NCC_SECTION, FIFO_LIST);
 					goto err_fifo_release;
 				}
 				// get fifo_size
 				if(!Conf::getAttributeValue(iter, FIFO_SIZE, fifo_size))
 				{
 					LOG(this->log_init_channel, LEVEL_ERROR,
-							"cannot get %s from section '%s, %s'\n",
-							FIFO_SIZE, DVB_NCC_SECTION, FIFO_LIST);
+					    "cannot get %s from section '%s, %s'\n",
+					    FIFO_SIZE, DVB_NCC_SECTION, FIFO_LIST);
 					goto err_fifo_release;
 				}
 				// get the fifo CR type
 				if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
 				{
 					LOG(this->log_init_channel, LEVEL_ERROR,
-							"cannot get %s from section '%s, %s'\n",
-							FIFO_ACCESS_TYPE, DVB_NCC_SECTION,
-							FIFO_LIST);
+					    "cannot get %s from section '%s, %s'\n",
+					    FIFO_ACCESS_TYPE, DVB_NCC_SECTION,
+					    FIFO_LIST);
 					goto err_fifo_release;
 				}
 
@@ -922,12 +914,12 @@ bool SpotDownward::initFifo(void)
 						fifo_access_type, fifo_size);
 
 				LOG(this->log_init_channel, LEVEL_NOTICE,
-						"Fifo priority = %u, FIFO name %s, size %u, "
-						"access type %d\n",
-						fifo->getPriority(),
-						fifo->getName().c_str(),
-						fifo->getMaxSize(),
-						fifo->getAccessType());
+				    "Fifo priority = %u, FIFO name %s, size %u, "
+				    "access type %d\n",
+				    fifo->getPriority(),
+				    fifo->getName().c_str(),
+				    fifo->getMaxSize(),
+				    fifo->getAccessType());
 
 				// the default FIFO is the last one = the one with the smallest priority
 				// actually, the IP plugin should add packets in the default FIFO if
@@ -936,7 +928,8 @@ bool SpotDownward::initFifo(void)
 				// are not coherent.
 				this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
-				this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+				this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>
+				                          (fifo->getPriority(), fifo));
 			} // end for(queues are now instanciated and initialized)
 			
 		}
@@ -1029,19 +1022,19 @@ bool SpotDownward::initRequestSimulation(void)
 	if(!Conf::getListNode(dvb_ncc_section, SPOT_LIST, spots))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section",
-				SPOT_LIST, DVB_NCC_SECTION);
+		    "there is no %s into %s section\n",
+		    SPOT_LIST, DVB_NCC_SECTION);
 		return false;
 	}
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-				s_id, current_spot))
+		                                   s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no attribute %s with value: %d into %s",
-				SPOT_ID, this->spot_id, SPOT_LIST);
+		    "there is no attribute %s with value: %d into %s\n",
+		    SPOT_ID, this->spot_id, SPOT_LIST);
 		return false;
 	}
 	
@@ -1049,8 +1042,7 @@ bool SpotDownward::initRequestSimulation(void)
 
 	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
 	// Get and open the event file
-	if(!Conf::getValue(current_spot,
-		               DVB_EVENT_FILE, str_config))
+	if(!Conf::getValue(current_spot, DVB_EVENT_FILE, str_config))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
@@ -1061,8 +1053,7 @@ bool SpotDownward::initRequestSimulation(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot use simulated request with physical layer "
-		    "because we need to add cni parameters in SAC "
-		    "(TBD!)\n");
+		    "because we need to add cni parameters in SAC (TBD!)\n");
 		goto error;
 	}
 
@@ -1095,10 +1086,8 @@ bool SpotDownward::initRequestSimulation(void)
 	}
 
 	// Get and set simulation parameter
-	//
 	this->simulate = none_simu;
-	if(!Conf::getValue(current_spot,
-		               DVB_SIMU_MODE, str_config))
+	if(!Conf::getValue(current_spot, DVB_SIMU_MODE, str_config))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
@@ -1109,8 +1098,7 @@ bool SpotDownward::initRequestSimulation(void)
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
-		if(!Conf::getValue(current_spot,
-			               DVB_SIMU_FILE, str_config))
+		if(!Conf::getValue(current_spot, DVB_SIMU_FILE, str_config))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot load parameter %s from section %s\n",
@@ -1144,8 +1132,7 @@ bool SpotDownward::initRequestSimulation(void)
 	{
 		int val;
 
-		if(!Conf::getValue(current_spot,
-			               DVB_SIMU_RANDOM, str_config))
+		if(!Conf::getValue(current_spot, DVB_SIMU_RANDOM, str_config))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot load parameter %s from section %s\n",
@@ -1168,7 +1155,7 @@ bool SpotDownward::initRequestSimulation(void)
 			    "random events simulated for %ld terminals with "
 			    "%ld kb/s bandwidth, %ld kb/s max RBDC, "
 			    "%ld kb max VBDC, a mean request of %ld kb/s "
-			    "and a request amplitude of %ld kb/s)",
+			    "and a request amplitude of %ld kb/s)i\n",
 			    this->simu_st, this->simu_rt, this->simu_max_rbdc,
 			    this->simu_max_vbdc, this->simu_cr,
 			    this->simu_interval);
@@ -1205,8 +1192,8 @@ bool SpotDownward::handleBurst(NetBurst::iterator pkt_it,
 {
 	qos_t fifo_priority = (*pkt_it)->getQos();
 	LOG(this->log_receive_channel, LEVEL_INFO,
-			"SF#%u: store one encapsulation "
-			"packet\n", super_frame_counter);
+	    "SF#%u: store one encapsulation "
+	    "packet\n", super_frame_counter);
 
 	// find the FIFO associated to the IP QoS (= MAC FIFO id)
 	// else use the default id
@@ -1215,26 +1202,24 @@ bool SpotDownward::handleBurst(NetBurst::iterator pkt_it,
 		fifo_priority = this->default_fifo_id;
 	}
 
-	if(!this->pushInFifo(this->dvb_fifos[fifo_priority],
-				*pkt_it,
-				0))
+	if(!this->pushInFifo(this->dvb_fifos[fifo_priority], *pkt_it, 0))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
 		// call to onDownwardEvent => return
 		LOG(this->log_receive_channel, LEVEL_ERROR,
-				"SF#%u: unable to store received "
-				"encapsulation packet (see previous errors)\n",
-				super_frame_counter);
+		    "SF#%u: unable to store received "
+		    "encapsulation packet (see previous errors)\n",
+		    super_frame_counter);
 		return false;
 	}
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
-			"SF#%u: encapsulation packet is "
-			"successfully stored\n",
-			super_frame_counter);
+	    "SF#%u: encapsulation packet is "
+	    "successfully stored\n",
+	    super_frame_counter);
 	this->l2_to_sat_bytes_before_sched[fifo_priority] +=
-		(*pkt_it)->getTotalLength();
+	    (*pkt_it)->getTotalLength();
 
 	return true;
 }
@@ -1253,8 +1238,8 @@ bool SpotDownward::schedule(time_ms_t current_time,
 }
 
 bool SpotDownward::handleLogonReq(DvbFrame *dvb_frame,
-                                  LogonResponse **logonResp,
-                                  uint8_t &ctrlCarrierId,
+                                  LogonResponse **logon_resp,
+                                  uint8_t &ctrl_carrier_id,
                                   time_sf_t super_frame_counter)
 {
 	//TODO find why dynamic cast fail here and each time we do that on frames !?
@@ -1271,8 +1256,8 @@ bool SpotDownward::handleLogonReq(DvbFrame *dvb_frame,
 		   !this->down_fwd_fmt_simu.addTerminal(mac, this->column_list[mac]))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "failed to handle FMT for ST %u, won't send logon response\n",
-			    mac);
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
 			goto release;
 		}
 	}
@@ -1283,8 +1268,8 @@ bool SpotDownward::handleLogonReq(DvbFrame *dvb_frame,
 		goto release;
 	}
 	
-	*logonResp = new LogonResponse(mac, 0, mac);
-	ctrlCarrierId = this->ctrl_carrier_id;
+	*logon_resp = new LogonResponse(mac, 0, mac);
+	ctrl_carrier_id = this->ctrl_carrier_id;
 
 	// send the corresponding event
 	Output::sendEvent(this->event_logon_resp,
@@ -1335,7 +1320,6 @@ bool SpotDownward::handleLogoffReq(DvbFrame *dvb_frame,
 
 void SpotDownward::simulateRandom(void)
 {
-	// TODO
 	static bool initialized = false;
 
 	int i;
@@ -1418,7 +1402,6 @@ void SpotDownward::updateStatistics(void)
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
-		
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
@@ -1429,7 +1412,7 @@ void SpotDownward::updateStatistics(void)
 		// Mac fifo stats
 		this->probe_gw_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
 		this->probe_gw_queue_size_kb[(*it).first]->put(
-				fifo_stat.current_length_bytes * 8 / 1000);
+			fifo_stat.current_length_bytes * 8 / 1000);
 		this->probe_gw_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
 		this->probe_gw_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}

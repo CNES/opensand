@@ -274,7 +274,6 @@ class BlockDvbTal: public BlockDvb
 		 */
 		bool initTimers(void);
 
-
 		// statistics update
 		void updateStats(void);
 		void resetStatsCxt(void);

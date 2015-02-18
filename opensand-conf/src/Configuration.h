@@ -139,8 +139,8 @@ class Conf
 	 * @return true on success, false otherwise
 	 */
 	static bool getListNode(ConfigurationList sectionList,
-                                    const char *key,
-									xmlpp::Node::NodeList &nodeList);
+                            const char *key,
+                            xmlpp::Node::NodeList &nodeList);
 	
 	/**
 	 * get the element from the list with attribute value
@@ -151,9 +151,9 @@ class Conf
 	 * @return true on success and false otherwise
 	 */
 	static bool getElementWithAttributeValue(ConfigurationList list,
-                                                const char *attribute_name,
-                                                const char *attribute_value,
-                                                ConfigurationList &elements);
+                                             const char *attribute_name,
+                                             const char *attribute_value,
+                                             ConfigurationList &elements);
 
 	/**
 	 * Read the number of elements in a list
@@ -163,7 +163,9 @@ class Conf
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getNbListItems(ConfigurationList section, const char *key, int &value);
+	static bool getNbListItems(ConfigurationList section, 
+	                           const char *key, 
+	                           int &value);
 
 	/**
 	 * Read the number of elements in a list
@@ -173,7 +175,9 @@ class Conf
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getNbListItems(ConfigurationList section, const char *key, unsigned int &value);
+	static bool getNbListItems(ConfigurationList section, 
+	                           const char *key, 
+	                           unsigned int &value);
 
 	/**
 	 * Get the elements from the list
@@ -183,7 +187,9 @@ class Conf
 	 * @param  list     the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getListItems(ConfigurationList section, const char *key, ConfigurationList &list);
+	static bool getListItems(ConfigurationList section, 
+	                         const char *key, 
+	                         ConfigurationList &list);
 
 	/**
 	 * Get the value of an attribute in a list element
@@ -297,7 +303,6 @@ bool Conf::getValueInList(ConfigurationList section,
 	return Conf::global_config.getValueInList(section, key, id, id_val,
 	                                          attribute, value);
 }
-
 
 
 #endif

@@ -96,8 +96,8 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 *  @return true on success, false otherwise
 		 */
 		bool handleLogonReq(DvbFrame *dvb_frame,
-		                    LogonResponse **logonResp,
-		                    uint8_t &ctrlCarrierId,
+		                    LogonResponse **logon_resp,
+		                    uint8_t &ctrl_carrier_id,
 		                    time_sf_t super_frame_counter);
 		/**
 		 *  @brief Handle a logoff request transmitted by the opposite

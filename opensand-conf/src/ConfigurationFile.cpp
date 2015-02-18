@@ -268,7 +268,7 @@ bool ConfigurationFile::getKey(ConfigurationList sectionList,
 	
 	if(sectionList.empty())
 	{
-		LOG(this->log_conf, LEVEL_ERROR, "section empty");
+		LOG(this->log_conf, LEVEL_ERROR, "section empty\n");
 		goto error;
 	}
 
@@ -353,7 +353,7 @@ error:
 
 bool ConfigurationFile::getListNode(ConfigurationList sectionList,
                                     const char *key,
-									xmlpp::Node::NodeList &nodeList)
+                                    xmlpp::Node::NodeList &nodeList)
 {
 	xmlpp::Node::NodeList::iterator iter;
 	bool found = false;
@@ -366,8 +366,8 @@ bool ConfigurationFile::getListNode(ConfigurationList sectionList,
 		if(nodeList.size() == 0)
 		{
 			LOG(this->log_conf, LEVEL_ERROR,
-					"there is no '%s' in section '%s'\n",
-					key, sectionNode->get_name().c_str());
+			    "there is no '%s' in section '%s'\n",
+			    key, sectionNode->get_name().c_str());
 			goto error;
 		}
 		else
@@ -381,9 +381,9 @@ error:
 }
 
 bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
-                                                    const char *attribute_name,
-                                                    const char *attribute_value,
-                                                    ConfigurationList &elements)
+                                                     const char *attribute_name,
+                                                     const char *attribute_value,
+                                                     ConfigurationList &elements)
 {
 	ConfigurationList::iterator iter;
 	for(iter = list.begin(); iter!=list.end(); iter++)
@@ -393,9 +393,9 @@ bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
 		if(!this->getAttributeStringValue(iter, attribute_name, id))
 		{
 			LOG(this->log_conf, LEVEL_ERROR,
-				"there is no attribute %s into %s",
-				attribute_name,
-				((xmlpp::Node*)*iter)->get_name().c_str());
+			    "there is no attribute %s into %s",
+			    attribute_name,
+			    ((xmlpp::Node*)*iter)->get_name().c_str());
 			return false;
 		}
 
@@ -581,41 +581,41 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 	}
 
 	// load specific levels
-    if(!Conf::getListItems(sectionList, LEVEL_LIST,
+	if(!Conf::getListItems(sectionList, LEVEL_LIST,
                            level_list))
-    {
-        LOG(this->log_conf, LEVEL_ERROR,
-            "section '%s, %s': problem retrieving specific levels\n",
-            SECTION_DEBUG, LEVEL_LIST);
-        return false;
-    }
+	{
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "section '%s, %s': problem retrieving specific levels\n",
+		    SECTION_DEBUG, LEVEL_LIST);
+		return false;
+	}
 
-    for(iter = level_list.begin(); iter != level_list.end(); ++iter)
-    {
-        string log;
-        string log_name;
-        string level;
+	for(iter = level_list.begin(); iter != level_list.end(); ++iter)
+	{
+		string log;
+		string log_name;
+		string level;
 
-        // Get the Log Name
-        if(!Conf::getAttributeValue(iter, LOG_NAME, log))
-        {
-            LOG(this->log_conf, LEVEL_ERROR,
-                "problem retrieving entry in levels\n");
-            continue;
-        }
+		// Get the Log Name
+		if(!Conf::getAttributeValue(iter, LOG_NAME, log))
+		{
+			LOG(this->log_conf, LEVEL_ERROR,
+			    "problem retrieving entry in levels\n");
+			continue;
+		}
 
-        // Get the level
-        if(!Conf::getAttributeValue(iter, LOG_LEVEL, level))
-        {
-            LOG(this->log_conf, LEVEL_ERROR,
-                "problem retrieving entry in levels\n");
-            continue;
-        }
-        log_name = log;
+		// Get the level
+		if(!Conf::getAttributeValue(iter, LOG_LEVEL, level))
+		{
+			LOG(this->log_conf, LEVEL_ERROR,
+			    "problem retrieving entry in levels\n");
+			continue;
+		}
+		log_name = log;
 
 		std::transform(log.begin(), log.end(),
 		               log_name.begin(), ::tolower);
-        specific[log_name] = logNameToLevel(level);
+		specific[log_name] = logNameToLevel(level);
 	}
 
 	return true;

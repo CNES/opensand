@@ -87,7 +87,7 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
-	
+		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 
 		/**
@@ -123,7 +123,7 @@ class BlockSatCarrier: public Block
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
-	
+		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 	};
 

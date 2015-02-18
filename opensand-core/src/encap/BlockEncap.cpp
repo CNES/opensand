@@ -86,7 +86,7 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 
 		default:
 			LOG(this->log_rcv_from_up, LEVEL_ERROR,
-			    "unknown event received %s",
+			    "unknown event received %s\n",
 			    event->getName().c_str());
 			return false;
 	}
@@ -266,20 +266,19 @@ bool BlockEncap::onInit()
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
+			    "cannot get plugin for %s encapsulation\n",
 			    encap_name.c_str());
 			goto error;
 		}
 
 		context = plugin->getContext();
 		up_return_ctx.push_back(context);
-		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					strToSatType(satellite_type)))
+		if(!context->setUpperPacketHandler(upper_encap->getPacketHandler(),
+			                               strToSatType(satellite_type)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
-			    "for %s encapsulation",
+			    "for %s encapsulation\n",
 			    upper_encap->getName().c_str(),
 			    context->getName().c_str());
 			goto error;
@@ -322,7 +321,7 @@ bool BlockEncap::onInit()
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
+			    "cannot get plugin for %s encapsulation\n",
 			    encap_name.c_str());
 			goto error;
 		}
@@ -335,7 +334,7 @@ bool BlockEncap::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
-			    "for %s encapsulation",
+			    "for %s encapsulation\n",
 			    upper_encap->getName().c_str(),
 			    context->getName().c_str());
 			goto error;
