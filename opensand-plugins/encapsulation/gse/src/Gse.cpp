@@ -68,6 +68,7 @@ void Gse::Context::init(void)
 	EncapPlugin::EncapContext::init();
 	gse_status_t status;
 	ConfigurationFile config;
+	map<string, ConfigurationList> config_section_map;
 
 	if(config.loadConfig(CONF_GSE_FILE) < 0)
 	{
@@ -77,8 +78,10 @@ void Gse::Context::init(void)
 		goto error;
 	}
 
+	config.loadMap(config_section_map);
+
 	// Retrieving the packing threshold
-	if(!config.getValue(GSE_SECTION,
+	if(!config.getValue(config_section_map[GSE_SECTION],
 	                    PACKING_THRESHOLD, this->packing_threshold))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -256,7 +259,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	GseIdentifier *identifier;
 	GseIdentifier *ctx_id;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 
 	if(packet->getTotalLength() != this->current_upper->getFixedLength())
 	{
@@ -295,7 +298,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	}
 
 	// set the destination spot ID
-	packet->setDstSpot(dest_spot);
+	packet->setSpot(dest_spot);
 	// add the packet in context
 	status = context->add(packet);
 	if(status != GSE_STATUS_OK)
@@ -395,7 +398,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	uint8_t label[6];
 	uint8_t frag_id;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 	// keep the QoS
 	uint8_t qos = packet->getQos();
 	// keep the source/destination tal_id
@@ -478,7 +481,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 
 
 			// set the destination spot ID
-			gse->setDstSpot(dest_spot);
+			gse->setSpot(dest_spot);
 			// add GSE packet to burst
 			gse_packets->add(gse);
 			LOG(this->log, LEVEL_INFO,
@@ -596,7 +599,7 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		    "Create a virtual fragment for GSE library "
 		    "(length = %zu)\n", (*packet)->getTotalLength());
 
-		if(!this->deencapPacket(vfrag_gse, (*packet)->getDstSpot(), net_packets))
+		if(!this->deencapPacket(vfrag_gse, (*packet)->getSpot(), net_packets))
 		{
 			continue;
 		}
@@ -731,7 +734,7 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 		}
 
 		// set the destination spot ID
-		packet->setDstSpot(dest_spot);
+		packet->setSpot(dest_spot);
 		// add network packet to burst
 		net_packets->add(packet);
 		pkt_nbr++;
@@ -790,7 +793,7 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 	}
 
 	// set the destination spot ID
-	packet->setDstSpot(dest_spot);
+	packet->setSpot(dest_spot);
 	// add network packet to burst
 	net_packets->add(packet);
 	pkt_nbr++;
@@ -965,7 +968,7 @@ NetBurst *Gse::Context::flush(int context_id)
 			}
 
 			// set the destination spot ID
-			gse->setDstSpot(dest_spot);
+			gse->setSpot(dest_spot);
 			// add GSE packet to burst
 			gse_packets->add(gse);
 			LOG(this->log, LEVEL_INFO,
