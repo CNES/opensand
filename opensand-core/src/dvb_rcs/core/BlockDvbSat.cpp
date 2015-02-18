@@ -987,12 +987,12 @@ void BlockDvbSat::Downward::updateStats(void)
 				spot->getL2FromGw() * 8 / this->stats_period_ms);
 
 			// L2 to GW
+			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
 			this->probe_sat_l2_to_gw[spot_id]->put(
 				((int) output_gw_fifo_stat.out_length_bytes * 8 /
 				this->stats_period_ms));
 
 			// Queue sizes
-			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
 			this->probe_sat_output_gw_queue_size[spot_id]->put(
 				output_gw_fifo_stat.current_pkt_nbr);
 			this->probe_sat_output_gw_queue_size_kb[spot_id]->put(
@@ -1216,12 +1216,6 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 			spot_id_t spot = dvb_frame->getSpot();
 		
-			if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
-			{
-				DFLTLOG(LEVEL_WARNING, "receive to spot %d, carrier %d", 
-				        spot, dvb_frame->getCarrierId());
-			}
-
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1258,12 +1252,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	    "DVB frame received from lower layer (type = %d, len %zu)\n",
 	    dvb_frame->getMessageType(),
 	    dvb_frame->getTotalLength());
-
-
-	if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
-	{
-		DFLTLOG(LEVEL_WARNING, "type %d\n", dvb_frame->getMessageType()); 
-	}
 
 	switch(dvb_frame->getMessageType())
 	{
@@ -1427,10 +1415,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				break;
 			}
 			SatSpot *current_spot = spots[spot_id];
-
-			DFLTLOG(LEVEL_WARNING, "get BBframe for spot %d, input carrier %d "
-					"dvb carrier %d\n", spot_id, dvb_frame->getCarrierId(),
-					dvb_frame->getCarrierId());
 
 			// satellite spot found, forward BBframe on the same spot
 			BBFrame *bbframe = dvb_frame->operator BBFrame*();

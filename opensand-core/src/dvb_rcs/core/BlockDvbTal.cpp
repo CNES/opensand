@@ -1156,6 +1156,8 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
+			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
+
 			// first handle specific messages
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
 			{
