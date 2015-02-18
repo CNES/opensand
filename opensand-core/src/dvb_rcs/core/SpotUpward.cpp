@@ -196,7 +196,7 @@ bool SpotUpward::initSlottedAloha(void)
 
 	char s_id[10]; 
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID, 
+	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID, 
 	                                      s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

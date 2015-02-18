@@ -474,7 +474,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					spot_id_t spot = this->terminal_map[tal_id];
 
-					DFLTLOG(LEVEL_WARNING, "send to spot %d, term %d", spot, tal_id);
 					if(!this->spot_downward_map[spot]->handleBurst(pkt_it,
 						                                       super_frame_counter))
 					{

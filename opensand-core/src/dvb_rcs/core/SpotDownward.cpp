@@ -379,7 +379,7 @@ bool SpotDownward::initMode(void)
 		
 		char s_id[10];
 		sprintf (s_id, "%d", this->spot_id);
-		if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 	                                          s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -443,7 +443,7 @@ bool SpotDownward::initMode(void)
 		// get the spot wwich have the same id as SpotDownward
 		char s_id[10];
 		sprintf (s_id, "%d", this->spot_id);
-		if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 	                                          s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -529,7 +529,7 @@ bool SpotDownward::initCarrierIds(void)
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spot_list, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID,
 				s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -704,7 +704,7 @@ bool SpotDownward::initDama(void)
 
 		char s_id[10];
 		sprintf (s_id, "%d", this->spot_id);
-		if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 					s_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -1036,7 +1036,7 @@ bool SpotDownward::initRequestSimulation(void)
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 				s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

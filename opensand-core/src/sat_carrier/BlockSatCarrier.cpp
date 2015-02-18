@@ -74,7 +74,7 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			    dvb_frame->getMessageLength(),
 			    event->getName().c_str());
 
-			if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
+			if(dvb_frame->getCarrierId() == 17 || dvb_frame->getCarrierId() == 14 || dvb_frame->getCarrierId() == 15)
 			{	
 				DFLTLOG(LEVEL_WARNING, "send to spot %d, carrier %d", 
 			        dvb_frame->getSpot(), dvb_frame->getCarrierId());
@@ -142,7 +142,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 				}
 				else
 				{
-					if(carrier_id == 17 || carrier_id == 14)
+					if(carrier_id == 17 || carrier_id == 14 || carrier_id == 15)
 					{	
 						DFLTLOG(LEVEL_WARNING, "receive to spot %d, carrier %d", 
 							spot_id, carrier_id);

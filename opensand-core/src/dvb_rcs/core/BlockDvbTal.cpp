@@ -201,9 +201,6 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
-/********************************
- *     Get le bon spot
- ********************************/ 
 	if(!this->initCarrierId())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -217,7 +214,6 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to complete the MAC FIFO part of the initialisation\n");
 		goto error;
 	}
-//******************************
 
 	if(!this->initDama())
 	{
@@ -362,7 +358,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 				s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -623,7 +619,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 				s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -907,7 +903,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
-	if(!Conf::getElementWithAttibuteValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
 				s_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

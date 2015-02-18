@@ -767,8 +767,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					    "list\n", spot_id);
 					break;
 				}
-				int tal_id = (*pkt_it)->getDstTalId();
-				DFLTLOG(LEVEL_WARNING, "send to spot %d, term %d", spot_id, tal_id);
 				if(!this->onRcvEncapPacket(*pkt_it,
 					                       this->spots[spot_id]->getDataOutStFifo(),
 					                       this->sat_delay))
@@ -1215,8 +1213,15 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 		{
 			// message from lower layer: dvb frame
 			DvbFrame *dvb_frame;
-
 			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
+			spot_id_t spot = dvb_frame->getSpot();
+		
+			if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
+			{
+				DFLTLOG(LEVEL_WARNING, "receive to spot %d, carrier %d", 
+				        spot, dvb_frame->getCarrierId());
+			}
+
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1254,6 +1259,12 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	    dvb_frame->getMessageType(),
 	    dvb_frame->getTotalLength());
 
+
+	if(dvb_frame->getCarrierId()==17 || dvb_frame->getCarrierId()==14)
+	{
+		DFLTLOG(LEVEL_WARNING, "type %d\n", dvb_frame->getMessageType()); 
+	}
+
 	switch(dvb_frame->getMessageType())
 	{
 		case MSG_TYPE_CORRUPTED:
@@ -1268,251 +1279,243 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			// continue to handle the corrupted message in onRcvFrame
 		case MSG_TYPE_DVB_BURST:
+		{
+			/* the DVB frame contains a burst of packets:
+			 *  - if the satellite is a regenerative one, forward the burst to the
+			 *    encapsulation layer,
+			 *  - if the satellite is a transparent one, forward DVB burst as the
+			 *    other DVB frames.
+			 */
+
+			LOG(this->log_receive, LEVEL_INFO,
+					"DVB-Frame received\n");
+
+			if(this->satellite_type == TRANSPARENT)
 			{
-				/* the DVB frame contains a burst of packets:
-				 *  - if the satellite is a regenerative one, forward the burst to the
-				 *    encapsulation layer,
-				 *  - if the satellite is a transparent one, forward DVB burst as the
-				 *    other DVB frames.
-				 */
 
-				LOG(this->log_receive, LEVEL_INFO,
-							"DVB-Frame received\n");
-			
-				if(this->satellite_type == TRANSPARENT)
+				// get the satellite spot from which the DVB frame comes from
+				// TODO with spot id, not loop and carrier id
+				//      check if input carrier id is still usefull
+				spot_id = dvb_frame->getSpot();
+				spot = this->spots.find(spot_id);
+				if(spot == this->spots.end())
 				{
-
-					// get the satellite spot from which the DVB frame comes from
-					// TODO with spot id, not loop and carrier id
-					//      check if input carrier id is still usefull
-					spot_id = dvb_frame->getSpot();
-					spot = this->spots.find(spot_id);
-					if(spot == this->spots.end())
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot find spot with ID %u in spot "
-								"list\n", spot_id);
-						break;
-					}
-					SatSpot *current_spot = spots[spot_id];
-
-					DFLTLOG(LEVEL_INFO, "get Burst for spot %d", spot_id);
-					if(current_spot->getInputCarrierId() == dvb_frame->getCarrierId())
-					{
-						// satellite spot found, forward DVB frame on the same spot
-						DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-
-						// Update probes and stats
-						current_spot->updateL2FromSt(frame->getPayloadLength());
-
-						// TODO: forward according to a table
-						LOG(this->log_receive, LEVEL_INFO,
-								"DVB burst comes from spot %u (carrier "
-								"%u) => forward it to spot %u (carrier "
-								"%u)\n", current_spot->getSpotId(),
-								current_spot->getInputCarrierId(),
-								current_spot->getSpotId(),
-								current_spot->getDataOutGwFifo()->
-								getCarrierId());
-
-						if(!this->forwardDvbFrame(current_spot->getDataOutGwFifo(),
-									dvb_frame))
-						{
-							status = false;
-						}
-					}
+					LOG(this->log_receive, LEVEL_ERROR,
+							"cannot find spot with ID %u in spot "
+							"list\n", spot_id);
+					break;
 				}
-				else // else satellite_type == REGENERATIVE
+				SatSpot *current_spot = spots[spot_id];
+
+				// satellite spot found, forward DVB frame on the same spot
+				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+
+				// Update probes and stats
+				current_spot->updateL2FromSt(frame->getPayloadLength());
+
+				// TODO: forward according to a table
+				LOG(this->log_receive, LEVEL_INFO,
+						"DVB burst comes from spot %u (carrier "
+						"%u) => forward it to spot %u (carrier "
+						"%u)\n", current_spot->getSpotId(),
+						dvb_frame->getCarrierId(),
+						current_spot->getSpotId(),
+						current_spot->getDataOutGwFifo()->
+						getCarrierId());
+
+				if(!this->forwardDvbFrame(current_spot->getDataOutGwFifo(),
+							dvb_frame))
 				{
-					/* The satellite is a regenerative one and the DVB frame contains
-					 * a burst:
-					 *  - extract the packets from the DVB frame,
-					 *  - find the destination spot ID for each packet
-					 *  - create a burst of encapsulation packets (NetBurst object)
-					 *    with all the packets extracted from the DVB frame,
-					 *  - send the burst to the upper layer.
-					 */
-
-					NetBurst *burst = NULL;
-
-					// Update probes and stats
-					// get the satellite spot from which the DVB frame comes from
-					spot_id = dvb_frame->getSpot();
-					spot = this->spots.find(spot_id);
-					if(spot == this->spots.end())
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot find spot with ID %u in spot "
-								"list\n", spot_id);
-						break;
-					}
-					SatSpot *current_spot = spots[spot_id];
-
-					if(current_spot->getInputCarrierId() == dvb_frame->getCarrierId())
-					{
-						DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-						current_spot->updateL2FromSt(frame->getPayloadLength());
-					}
-					
-					if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
-							this->reception_std->getType() == "DVB-RCS")
-					{
-						DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-						tal_id_t tal_id;
-						// decode the first packet in frame to be able to get source terminal ID
-						if(!this->pkt_hdl->getSrc(frame->getPayload(), tal_id))
-						{
-							LOG(this->log_receive, LEVEL_ERROR,
-									"unable to read source terminal ID in "
-									"frame, won't be able to update C/N "
-									"value\n");
-						}
-						else
-						{
-							double cn = frame->getCn();
-							LOG(this->log_receive, LEVEL_INFO,
-									"Uplink CNI for terminal %u = %f\n",
-									tal_id, cn);
-
-							this->cni[tal_id] = cn;
-						}
-					}
-
-					if(!this->reception_std->onRcvFrame(dvb_frame,
-								0 /* no used */, &burst))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"failed to handle received DVB frame "
-								"(regenerative satellite)\n");
-						status = false;
-						burst = NULL;
-					}
-
-					// send the message to the upper layer
-					if(burst && !this->enqueueMessage((void **)&burst))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"failed to send burst to upper layer\n");
-						delete burst;
-						status = false;
-					}
-					LOG(this->log_receive, LEVEL_INFO,
-							"burst sent to the upper layer\n");
+					status = false;
 				}
 			}
-			break;
+			else // else satellite_type == REGENERATIVE
+			{
+				/* The satellite is a regenerative one and the DVB frame contains
+				 * a burst:
+				 *  - extract the packets from the DVB frame,
+				 *  - find the destination spot ID for each packet
+				 *  - create a burst of encapsulation packets (NetBurst object)
+				 *    with all the packets extracted from the DVB frame,
+				 *  - send the burst to the upper layer.
+				 */
+
+				NetBurst *burst = NULL;
+
+				// Update probes and stats
+				// get the satellite spot from which the DVB frame comes from
+				spot_id = dvb_frame->getSpot();
+				spot = this->spots.find(spot_id);
+				if(spot == this->spots.end())
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+							"cannot find spot with ID %u in spot "
+							"list\n", spot_id);
+					break;
+				}
+				SatSpot *current_spot = spots[spot_id];
+
+				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+				current_spot->updateL2FromSt(frame->getPayloadLength());
+
+				if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
+						this->reception_std->getType() == "DVB-RCS")
+				{
+					DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+					tal_id_t tal_id;
+					// decode the first packet in frame to be able to get source terminal ID
+					if(!this->pkt_hdl->getSrc(frame->getPayload(), tal_id))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+								"unable to read source terminal ID in "
+								"frame, won't be able to update C/N "
+								"value\n");
+					}
+					else
+					{
+						double cn = frame->getCn();
+						LOG(this->log_receive, LEVEL_INFO,
+								"Uplink CNI for terminal %u = %f\n",
+								tal_id, cn);
+
+						this->cni[tal_id] = cn;
+					}
+				}
+
+				if(!this->reception_std->onRcvFrame(dvb_frame,
+							0 /* no used */, &burst))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+							"failed to handle received DVB frame "
+							"(regenerative satellite)\n");
+					status = false;
+					burst = NULL;
+				}
+
+				// send the message to the upper layer
+				if(burst && !this->enqueueMessage((void **)&burst))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+							"failed to send burst to upper layer\n");
+					delete burst;
+					status = false;
+				}
+				LOG(this->log_receive, LEVEL_INFO,
+						"burst sent to the upper layer\n");
+			}
+		}
+		break;
 
 			/* forward the BB frame (and the burst that the frame contains) */
 			// TODO see if we can factorize
 		case MSG_TYPE_BBFRAME:
+		{
+			/* we should not receive BB frame in regenerative mode */
+			assert(this->satellite_type == TRANSPARENT);
+
+			LOG(this->log_receive, LEVEL_INFO,
+					"BBFrame received\n");
+
+			// get the satellite spot from which the DVB frame comes from
+			spot_id = dvb_frame->getSpot();
+			spot = this->spots.find(spot_id);
+			if(spot == this->spots.end())
 			{
-				/* we should not receive BB frame in regenerative mode */
-				assert(this->satellite_type == TRANSPARENT);
-
-				LOG(this->log_receive, LEVEL_INFO,
-						"BBFrame received\n");
-
-				// get the satellite spot from which the DVB frame comes from
-				spot_id = dvb_frame->getSpot();
-				spot = this->spots.find(spot_id);
-				if(spot == this->spots.end())
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-							"cannot find spot with ID %u in spot "
-							"list\n", spot_id);
-					break;
-				}
-				SatSpot *current_spot = spots[spot_id];
-
-				if(current_spot->getInputCarrierId() == dvb_frame->getCarrierId())
-				{
-					// satellite spot found, forward BBframe on the same spot
-					BBFrame *bbframe = dvb_frame->operator BBFrame*();
-
-					// Update probes and stats
-					current_spot->updateL2FromGw(bbframe->getPayloadLength());
-
-					// TODO: forward according to a table
-					LOG(this->log_receive, LEVEL_INFO,
-							"BBFRAME burst comes from spot %u (carrier "
-							"%u) => forward it to spot %u (carrier %u)\n",
-							current_spot->getSpotId(),
-							current_spot->getInputCarrierId(),
-							current_spot->getSpotId(),
-							current_spot->getDataOutStFifo()->
-							getCarrierId());
-
-					if(!this->forwardDvbFrame(current_spot->getDataOutStFifo(),
-								dvb_frame))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot forward burst\n");
-						status = false;
-					}
-				}
+				LOG(this->log_receive, LEVEL_ERROR,
+						"cannot find spot with ID %u in spot "
+						"list\n", spot_id);
+				break;
 			}
-			break;
+			SatSpot *current_spot = spots[spot_id];
+
+			DFLTLOG(LEVEL_WARNING, "get BBframe for spot %d, input carrier %d "
+					"dvb carrier %d\n", spot_id, dvb_frame->getCarrierId(),
+					dvb_frame->getCarrierId());
+
+			// satellite spot found, forward BBframe on the same spot
+			BBFrame *bbframe = dvb_frame->operator BBFrame*();
+
+			// Update probes and stats
+			current_spot->updateL2FromGw(bbframe->getPayloadLength());
+
+			// TODO: forward according to a table
+			LOG(this->log_receive, LEVEL_INFO,
+					"BBFRAME burst comes from spot %u (carrier "
+					"%u) => forward it to spot %u (carrier %u)\n",
+					current_spot->getSpotId(),
+					dvb_frame->getCarrierId(),
+					current_spot->getSpotId(),
+					current_spot->getDataOutStFifo()->
+					getCarrierId());
+
+			if(!this->forwardDvbFrame(current_spot->getDataOutStFifo(),
+						dvb_frame))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"cannot forward burst\n");
+				status = false;
+			}
+		}
+		break;
 
 		case MSG_TYPE_SALOHA_DATA:
 		case MSG_TYPE_SALOHA_CTRL:
+		{
+			/* we should not receive BB frame in regenerative mode */
+			assert(this->satellite_type == TRANSPARENT);
+
+			LOG(this->log_receive, LEVEL_INFO,
+					"Slotted Aloha frame received\n");
+
+			// get the satellite spot from which the DVB frame comes from
+			spot_id = dvb_frame->getSpot();
+			spot = this->spots.find(spot_id);
+			if(spot == this->spots.end())
 			{
-				/* we should not receive BB frame in regenerative mode */
-				assert(this->satellite_type == TRANSPARENT);
-
-				LOG(this->log_receive, LEVEL_INFO,
-						"Slotted Aloha frame received\n");
-
-				// get the satellite spot from which the DVB frame comes from
-				spot_id = dvb_frame->getSpot();
-				spot = this->spots.find(spot_id);
-				if(spot == this->spots.end())
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-							"cannot find spot with ID %u in spot "
-							"list\n", spot_id);
-					break;
-				}
-				SatSpot *current_spot = spots[spot_id];
-				if(current_spot->getInputCarrierId() == dvb_frame->getCarrierId())
-				{
-					DvbFifo *fifo;
-					// satellite spot found, forward frame on the same spot
-					SlottedAlohaFrame *sa_frame = dvb_frame->operator SlottedAlohaFrame*();
-
-					// Update probes and stats
-					current_spot->updateL2FromSt(sa_frame->getPayloadLength());
-
-					if(dvb_frame->getMessageType() == MSG_TYPE_SALOHA_DATA)
-					{
-						fifo = current_spot->getDataOutGwFifo();
-					}
-					else
-					{
-						fifo = current_spot->getDataOutStFifo();
-					}
-
-					// TODO: forward according to a table
-					LOG(this->log_receive, LEVEL_INFO,
-							"Slotted Aloha frame comes from spot %u (carrier "
-							"%u) => forward it to spot %u (carrier %u)\n",
-							current_spot->getSpotId(),
-							current_spot->getInputCarrierId(),
-							current_spot->getSpotId(),
-							fifo->getCarrierId());
-
-					if(!this->forwardDvbFrame(fifo,
-								dvb_frame))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot forward burst\n");
-						status = false;
-					}
-
-				}
+				LOG(this->log_receive, LEVEL_ERROR,
+						"cannot find spot with ID %u in spot "
+						"list\n", spot_id);
+				break;
 			}
-			break;
+			SatSpot *current_spot = spots[spot_id];
+			DvbFifo *fifo;
+			
+			// satellite spot found, forward frame on the same spot
+			SlottedAlohaFrame *sa_frame = dvb_frame->operator SlottedAlohaFrame*();
 
-			// Generic control frames (SAC, TTP, etc)
+			// Update probes and stats
+			current_spot->updateL2FromSt(sa_frame->getPayloadLength());
+
+			if(dvb_frame->getMessageType() == MSG_TYPE_SALOHA_DATA)
+			{
+				fifo = current_spot->getDataOutGwFifo();
+			}
+			else
+			{
+				fifo = current_spot->getDataOutStFifo();
+			}
+
+			// TODO: forward according to a table
+			LOG(this->log_receive, LEVEL_INFO,
+					"Slotted Aloha frame comes from spot %u (carrier "
+					"%u) => forward it to spot %u (carrier %u)\n",
+					current_spot->getSpotId(),
+					dvb_frame->getCarrierId(),
+					current_spot->getSpotId(),
+					fifo->getCarrierId());
+
+			if(!this->forwardDvbFrame(fifo,
+						dvb_frame))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"cannot forward burst\n");
+				status = false;
+			}
+
+		}
+		break;
+
+		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
 			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
 			{
