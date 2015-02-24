@@ -880,7 +880,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 			is_scpc_fifo = true;
 		}
 	}
-
+	
 	// init fmt_simu
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2, 
 		                      FORWARD_DOWN_MODCOD_TIME_SERIES,
@@ -890,7 +890,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "failed to initialize the down/forward MODCOD files\n");
 		goto error;
 	}
-
+	
 	//  Duration of the carrier -- in ms
 	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
 	                   this->scpc_carr_duration_ms))
@@ -903,9 +903,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
 
-
-	// TODO use the up return frame duration for SCPC?
-	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
 	                                         SCPC,
 	                                         this->scpc_carr_duration_ms,
@@ -921,14 +918,13 @@ bool BlockDvbTal::Downward::initScpc(void)
 		
 		return false;
 	}
-
+	
 	if(scpc_categories.size() == 0)
 	{
 		LOG(this->log_init, LEVEL_INFO,
 		    "No SCPC carriers\n");
 		goto release_scpc;
 	}
-		
 	// Find the category for this terminal
 	tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
@@ -946,7 +942,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		tal_category = (*tal_map_it).second;
 	}
-	
 	// check if there are SCPC carriers
 	if(!tal_category)
 	{
@@ -954,9 +949,9 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "No SCPC carrier\n");
 		if(is_scpc_fifo)
 		{
-			LOG(this->log_init, LEVEL_WARNING,
+			LOG(this->log_init, LEVEL_ERROR,
 			    "Remove SCPC FIFOs because there is no "
-			    "SCPC carrier\n");
+			    "SCPC carrier in the return_up_band configuration\n");
 			for(fifos_t::iterator it = this->dvb_fifos.begin();
 			    it != this->dvb_fifos.end(); ++it)
 			{
@@ -966,15 +961,15 @@ bool BlockDvbTal::Downward::initScpc(void)
 					this->dvb_fifos.erase(it);
 				}
 			}
+			goto error;
 		}
 		goto release_scpc;
 	}
-
 	if(!is_scpc_fifo)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The SCPC carrier won't be used as there is no "
-		    "SCPC FIFO\n");
+		    "SCPC FIFO in Terminal\n");
 		for(cat_it = scpc_categories.begin();
 		    cat_it != scpc_categories.end(); ++cat_it)
 		{
@@ -992,16 +987,7 @@ bool BlockDvbTal::Downward::initScpc(void)
     	goto error;
     }
 	
-	//initialize the timers
-	//if(!this->initTimers())
-	//{
-	//	LOG(this->log_init, LEVEL_ERROR,
-	//		"failed to complete the timer part of the"
-	//		 "SCPC initialisation\n");
-	//	goto release_scpc;
-	//}
-	
-		//TODO: veritfy that 2ST are not using the same carrier and category
+	//TODO: veritfy that 2ST are not using the same carrier and category
 
 	// TODO cannot use SCPC with regenerative satellite
 	if(this->satellite_type == REGENERATIVE)
@@ -1021,7 +1007,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "failed get packet handler\n");
 		goto error;
 	}
-
+	
 	// Create the SCPC scheduler
 	cat = scpc_categories.begin()->second;
 	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
@@ -1035,24 +1021,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "failed to initialize SCPC\n");
 		goto error;
 	}
-	//TODO: Initialize the ScpcAgent parent class
-	//
-	//if(!this->scpc_agent->initParent(this->ret_up_frame_duration_ms,
-	//	                                      this->scpc_carr_duration_ms,
-	//	                                      this->pkt_hdl,
-	//	                                      this->dvb_fifos))
-	//{
-	//	LOG(this->log_init, LEVEL_ERROR,
-	//	    "SCPC Controller Initialization failed.\n");
-	//	goto release_scpc
-	//}
-	//if(!this->scpc_agent->init())
-	//{
-	//	LOG(this->log_init, LEVEL_ERROR,
-	//	    "SCPC Agent Initialization failed.\n");
-	//	goto release_scpc
-	//}
-	
+
 	return true;
 
 release_scpc: //Something TODO
@@ -1428,7 +1397,6 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 
 	// send the corresponding event
 	Output::sendEvent(this->event_login, "Login sent to GW");
-
 	return true;
 
 error:
@@ -1731,7 +1699,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	// Remember the id
 	this->group_id = logon_resp->getGroupId();
 	this->tal_id = logon_resp->getLogonId();
-
+	
 	// Inform Dama agent
 	if(this->dama_agent && !this->dama_agent->hereIsLogonResp(logon_resp))
 	{
@@ -2300,7 +2268,6 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	T_LINK_UP *link_is_up;
 	// TODO LogonResponse *logon_resp = dynamic_cast<LogonResponse *>(dvb_frame);
 	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
-
 	// Retrieve the Logon Response frame
 	if(logon_resp->getMac() != this->mac_id)
 	{

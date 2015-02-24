@@ -82,6 +82,12 @@ class BlockEncap: public Block
 	/// the reception contexts list from upper to lower context
 	std::vector<EncapPlugin::EncapContext *> reception_ctx;
 
+	/// the reception contexts list from upper to lower context for SCPC mode
+	std::vector<EncapPlugin::EncapContext *> reception_ctx_scpc;
+
+
+
+
  public:
 
 	/**

@@ -129,11 +129,11 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 				break;
 			default:
 				LOG(this->log, LEVEL_ERROR,
-				    "unknown IP packet version");
+				    "encap:unknown IP packet version");
 				continue;
 		}
 		LOG(this->log, LEVEL_INFO,
-		    "got an IPv%u packet\n",
+		    "encap:got an IPv%u packet\n",
 		    IpPacket::version((*packet)->getData()));
 		// check IP packet validity
 		if(!ip_packet->isValid())
@@ -193,12 +193,13 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 				break;
 			default:
 				LOG(this->log, LEVEL_ERROR,
-				    "unknown IP packet version");
+				    "deencap:unknown IP packet version");
 				continue;
 		}
 		LOG(this->log, LEVEL_INFO,
-		    "got an IPv%u packet\n",
+		    "deencap:got an IPv%u packet\n",
 		    IpPacket::version((*packet)->getData()));
+
 		// check IP packet validity
 		if(!ip_packet->isValid())
 		{
@@ -316,7 +317,7 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 			else
 			{
 				LOG(this->log, LEVEL_INFO,
-				    "cannot find destination tal ID, use "
+				    "cannot find sValiddestination tal ID, use "
 				    "default (%u)\n", pkt_tal_id);
 			}
 		}

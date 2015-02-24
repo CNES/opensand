@@ -188,8 +188,6 @@ bool DvbScpcStd::onRcvFrame(DvbFrame *dvb_frame,
 		    this->packet_handler->getName().c_str(),
 		    encap_packet->getTotalLength());
 	}
-	LOG(this->log_rcv_from_down, LEVEL_WARNING, " inRCVFrame\n");
-
 //drop:
 skip:
 	// release buffer (data is now saved in NetPacket objects)

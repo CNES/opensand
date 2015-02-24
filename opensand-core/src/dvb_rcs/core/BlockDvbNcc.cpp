@@ -2383,82 +2383,78 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		// burst
 		case MSG_TYPE_BBFRAME:
+		{
 			// ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
 			//  TODO: With multispot, this should be resolved (no need to test if getType == RCS)
 			if(this->receptionStd->getType() == "DVB-RCS")
 			{
-				LOG(this->log_receive, LEVEL_INFO,
+				LOG(this->log_receive, LEVEL_WARNING,
 				    "ignore received BB frame in transparent "
 				    "scenario\n");
 
 				//goto drop;
 			}
-			if(this->receptionStdScpc->getType() == "SCPC")
+			NetBurst *burst = NULL;
+			//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
+			// Update stats
+			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
+			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+	
+			if(this->with_phy_layer)
 			{
-				NetBurst *burst = NULL;
-				//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
-
-				// Update stats
-				this->l2_from_sat_bytes += dvb_frame->getMessageLength();
-				this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-
-				if(this->with_phy_layer)
-				{
-					DvbFrame *frame_copy = new DvbFrame(dvb_frame);
-					if(!this->shareFrame(frame_copy))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "Unable to transmit Frame to opposite channel\n");
-					}
-				}
-				LOG(this->log_receive, LEVEL_WARNING, " STEP1\n");
-				// GW_TAL_ID is no used
-				if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
-				                                   GW_TAL_ID,
-				                                   &burst))
+				DvbFrame *frame_copy = new DvbFrame(dvb_frame);
+				if(!this->shareFrame(frame_copy))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to handle the reception of "
-					    "BB frame (len = %u)\n",
-					    dvb_frame->getMessageLength());
-					goto error;
+					    "Unable to transmit Frame to opposite channel\n");
 				}
-				if(msg_type != MSG_TYPE_CORRUPTED)
-				{
-					// update MODCOD probes
-					// TODO: for gateway
-					//if(!this->with_phy_layer)
-					//{
-					//	this->probe_st_real_modcod->put(std->getRealModcod());
-					//}
-					//this->probe_received_modcod->put(std->getReceivedModcod());
-					///TDOD: 28 for GW
-					//uint8_t mc = 28;
-					//this->probe_received_modcod->put(mc);
-				}
-				else
-				{
-					//TODO: 28 for GW
-					//this->probe_rejected_modcod->put(std->getReceivedModcod());
-					//uint8_t mc = 28;
-					//this->probe_rejected_modcod->put(mc);
-				}
-				// send the message to the upper layer
-				if(burst && !this->enqueueMessage((void **)&burst))
-				{
-					LOG(this->log_send, LEVEL_ERROR, 
-					    "failed to send burst of packets to upper layer\n");
-					delete burst;
-					goto error;
-				}
-				LOG(this->log_send, LEVEL_INFO, 
-				    "burst sent to the upper layer\n");
-				break;
-				
 			}
-
+			// GW_TAL_ID is no used
+			if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
+		 	                                       GW_TAL_ID,
+			                                       &burst))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to handle the reception of "
+				    "BB frame (len = %u)\n",
+				    dvb_frame->getMessageLength());
+				goto error;
+			}
+			if(msg_type != MSG_TYPE_CORRUPTED)
+			{
+				// update MODCOD probes
+				// TODO: for gateway
+				//if(!this->with_phy_layer)
+				//{
+				//	this->probe_st_real_modcod->put(std->getRealModcod());
+				//}
+				//this->probe_received_modcod->put(std->getReceivedModcod());
+				///TDOD: 28 for GW
+				//uint8_t mc = 28;
+				//this->probe_received_modcod->put(mc);
+			}
+			else
+			{
+				//TODO: 28 for GW
+				//this->probe_rejected_modcod->put(std->getReceivedModcod());
+				//uint8_t mc = 28;
+				//this->probe_rejected_modcod->put(mc);
+			}
+			// send the message to the upper layer
+			if(burst && !this->enqueueMessage((void **)&burst))
+			{
+				LOG(this->log_send, LEVEL_ERROR, 
+				    "failed to send burst of packets to upper layer\n");
+				delete burst;
+				goto error;
+			}
+			LOG(this->log_send, LEVEL_INFO, 
+			    "burst sent to the upper layer\n");
+		}
+		break;
+						
 			// breakthrough
 		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_CORRUPTED:

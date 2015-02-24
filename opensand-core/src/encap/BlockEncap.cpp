@@ -145,12 +145,22 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 				    "'link up' message sent to the upper layer\n");
 
 				// Set tal_id 'filter' for reception context
+				
+	
 				for(encap_it = this->reception_ctx.begin();
 				    encap_it != this->reception_ctx.end();
 				    ++encap_it)
 				{
 					(*encap_it)->setFilterTalId(this->tal_id);
 				}
+
+				for(encap_it = this->reception_ctx_scpc.begin();
+				    encap_it != this->reception_ctx_scpc.end();
+				    ++encap_it)
+				{
+					(*encap_it)->setFilterTalId(this->tal_id);
+				}
+
 				break;
 			}
 
@@ -178,6 +188,7 @@ bool BlockEncap::onInit()
 	string satellite_type;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
+	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
 	int lan_nbr;
 	int i=0;
@@ -235,21 +246,23 @@ bool BlockEncap::onInit()
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
 	
-	//TODO: Function
-	//est-ce que je suis en SCPC?
+	//TODO: Check if Tal is in SCPC mode
 	if (this->mac_id != GW_TAL_ID)
 	{
+		LOG(this->log_init, LEVEL_DEBUG,
+	    "Going to check if Tal with id:  %d is in Scpc mode\n", this->mac_id);
+	
 
 		if(this->checkIfScpc(satellite_type))
 		{
 			LOG(this->log_init, LEVEL_INFO,
-				"SCPC mode available - BlockEncap");
+				"SCPC mode available for ST %d - BlockEncap \n", this->mac_id);
 			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
 			                          lan_plugin, up_return_ctx, satellite_type,
 			                          "return/up", true)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-					"Cannot get Up/Return Encapsulation context");
+					"Cannot get Up/Return GSE Encapsulation context");
 				goto error;
 			}
 		}
@@ -257,7 +270,7 @@ bool BlockEncap::onInit()
 		else
 		{
 			LOG(this->log_init, LEVEL_INFO,
-				"SCPC mode not available - BlockEncap");
+				"SCPC mode not available for ST %d - BlockEncap \n", this->mac_id);
 			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
 				                     lan_plugin, up_return_ctx, satellite_type,
 					                 "return/up", false)) 
@@ -268,6 +281,31 @@ bool BlockEncap::onInit()
 			}
 		}
 	}
+	else
+	{
+		LOG(this->log_init, LEVEL_NOTICE,
+			"SCPC mode available - BlockEncap");
+		if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
+		                          lan_plugin, up_return_ctx_scpc, satellite_type,
+		                          "return/up", true)) 
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+				"Cannot get Up/Return GSE Encapsulation context");
+			goto error;
+		}
+
+		if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
+		                          lan_plugin, up_return_ctx, satellite_type,
+		                          "return/up", false)) 
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+				"Cannot get Up/Return Encapsulation context");
+			goto error;
+		}
+
+
+	}
+
 	if(!this->getEncapContext(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
 	                         lan_plugin, down_forward_ctx, satellite_type,
 	                         "forward/down", false)) 
@@ -297,6 +335,7 @@ bool BlockEncap::onInit()
 	else
 	{
 		this->reception_ctx = up_return_ctx;
+		this->reception_ctx_scpc = up_return_ctx_scpc;
 		this->emission_ctx = down_forward_ctx;
 	}
 	// reorder reception context to get the deencapsulation contexts in the
@@ -523,24 +562,47 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	// iterate on all the deencapsulation contexts to get the ip packets
-	for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
-	    ++iter)
+	if(burst->name() == "GSE" && this->mac_id == GW_TAL_ID)
 	{
-		burst = (*iter)->deencapsulate(burst);
-		if(burst == NULL)
+		// iterate on all the deencapsulation contexts to get the ip packets
+		for(iter = this->reception_ctx_scpc.begin(); iter != this->reception_ctx_scpc.end();
+		    ++iter)
 		{
-			LOG(this->log_rcv_from_down, LEVEL_ERROR,
-			    "deencapsulation failed in %s context\n",
-			    (*iter)->getName().c_str());
-			goto error;
+			burst = (*iter)->deencapsulate(burst);
+			if(burst == NULL)
+			{
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "deencapsulation failed in %s context\n",
+				    (*iter)->getName().c_str());
+				goto error;
+			}
 		}
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+			"%d %s packet => %zu %s packet(s)\n",
+			nb_bursts, this->reception_ctx_scpc[0]->getName().c_str(),
+			burst->size(), burst->name().c_str());
+	}
+	else
+	{
+		// iterate on all the deencapsulation contexts to get the ip packets
+		for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
+		    ++iter)
+		{
+			burst = (*iter)->deencapsulate(burst);
+			if(burst == NULL)
+			{
+				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				    "deencapsulation failed in %s context\n",
+				    (*iter)->getName().c_str());
+				goto error;
+			}
+		}
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
+			"%d %s packet => %zu %s packet(s)\n",
+			nb_bursts, this->reception_ctx[0]->getName().c_str(),
+			burst->size(), burst->name().c_str());
 	}
 
-	LOG(this->log_rcv_from_down, LEVEL_INFO,
-	    "%d %s packet => %zu %s packet(s)\n",
-	    nb_bursts, this->reception_ctx[0]->getName().c_str(),
-	    burst->size(), burst->name().c_str());
 	if(burst->size() == 0)
 	{
 		delete burst;
@@ -610,7 +672,6 @@ bool BlockEncap::checkIfScpc(string &sat_type)
 		
 		if(fifo_access_type == "SCPC")
 		{   
-			// No SCPC FIFOs
 			is_scpc = true;
 		}
 	}
