@@ -172,6 +172,31 @@ class XmlParser:
             elt = elts[0]
             elt.getparent().remove(elt)
 
+    def add_spot(self, xpath, spot_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        for child in section.getchildren():
+            if child.tag == "spot":
+                new = deepcopy(child)
+                new.set("id", spot_id)
+                section.append(new)
+                break
+
+    def remove_spot(self, xpath, spot_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        for child in section.getchildren():
+            if child.tag == "spot" and child.get("id") == spot_id:
+                section.remove(child)
+                break
+
+
     def add_line(self, xpath):
         """ add a line in the table identified its path """
         tables = self._tree.xpath(xpath)

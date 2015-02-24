@@ -556,6 +556,10 @@ class Model:
         """ get the global configuration """
         return self._config
 
+    def get_topology(self):
+        """ get the topology configuration """
+        return self._topology
+
     def get_modules(self):
         """ get the module list """
         return self._modules

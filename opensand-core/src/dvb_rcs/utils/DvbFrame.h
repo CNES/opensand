@@ -76,7 +76,7 @@ class DvbFrameTpl: public NetContainer
 		NetContainer(data, length),
 		max_size(sizeof(T)),
 		num_packets(0),
-		carrier_id(0)
+		carrier_id(-1)
 	{
 		this->name = "DvbFrame";
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();

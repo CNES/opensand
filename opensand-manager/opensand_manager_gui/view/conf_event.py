@@ -42,6 +42,8 @@ from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
 from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
+from opensand_manager_gui.view.popup.edit_spot_dialog import EditSpotDialog
+from opensand_manager_gui.view.utils.config_elements import ManageSpot
 
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
@@ -325,6 +327,75 @@ class ConfEvent(ConfView) :
     def on_button_clicked(self, source=None, event=None):
         """ 'clicked' event on teminal type buttons """
         self.enable_conf_buttons()
+
+
+    def on_add_spot_clicked(self, source=None, event=None):
+        """ 'clicked' event on add spot button """
+        config = self._model.get_conf().get_configuration()
+        manager = ManageSpot(self._model, config)
+        tab_spot = ["1","2","3"]
+        xpath = "//return_up_band"
+        #update free spot id 
+        for key in config.get_keys(config.get(xpath)):
+            tab_spot.remove(key.get("id"))
+   
+        if len(tab_spot) > 0:
+            manager.add_spot(tab_spot[0])
+        
+        widget_add = self._ui.get_widget('add_spot')
+        if len(config.get_keys(config.get(xpath))) >= 3:
+            widget_add.set_sensitive(False)
+        else:
+            widget_add.set_sensitive(True)
+
+        widget_remove = self._ui.get_widget('remove_spot')
+        if len(config.get_keys(config.get(xpath))) <= 1:
+            widget_remove.set_sensitive(False)
+        else:
+            widget_remove.set_sensitive(True) 
+
+    
+    def on_remove_spot_clicked(self, source=None, event=None):
+        """ 'clicked' event on add remove button """
+        config = self._model.get_conf().get_configuration()
+        manager = ManageSpot(self._model, config)
+        
+        xpath = "//return_up_band"
+        find = False
+        if self.is_modified():
+            text =  "Save current configuration ?"
+            ret = yes_no_popup(text,
+                               "Save Configuration - OpenSAND Manager",
+                               gtk.STOCK_DIALOG_INFO)
+            if ret == gtk.RESPONSE_YES:
+                self.on_save_conf_clicked()
+            else:
+                try:
+                    self.update_view()
+                except ConfException as msg:
+                    error_popup(str(msg))
+        window = EditSpotDialog(self._model)
+        spot = window.go()
+        if spot != "":
+            manager.remove_spot(spot)
+        try:
+            gobject.idle_add(self.enable_conf_buttons, False)
+        except ConfException as msg:
+            error_popup(str(msg))
+
+        widget_add = self._ui.get_widget('add_spot')
+        if len(config.get_keys(config.get(xpath))) >= 3:
+            widget_add.set_sensitive(False)
+        else:
+            widget_add.set_sensitive(True) 
+       
+        widget_remove = self._ui.get_widget('remove_spot')
+        if len(config.get_keys(config.get(xpath))) <= 1:
+            widget_remove.set_sensitive(False)
+        else:
+            widget_remove.set_sensitive(True) 
+
+
 
     def on_enable_physical_layer_toggled(self, source=None, event=None):
         """ 'toggled' event on enable button """

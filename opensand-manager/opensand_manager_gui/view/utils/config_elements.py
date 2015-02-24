@@ -643,6 +643,9 @@ class ConfSection(gtk.VBox):
         self.fill(section)
         self.set_hidden(True)
 
+    def set_spot_id(self, spot_id):
+        self._spot_id = spot_id
+
     def get_restrictions(self):
         """ get the restrictions """
         return self._restrictions
@@ -1481,4 +1484,138 @@ def xpath_to_name(xpath):
             return key
     except:
         return xpath
+
+
+
+class ManageSpot:
+
+    def __init__(self, model, config):
+        self._model = model
+        self._config = config
+        
+    def add_spot(self, spot_id):
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            for section in config.get_sections():
+                for child in section.iterchildren():
+                     if child.tag ==  "spot":
+                         config.add_spot("//"+section.tag, spot_id) 
+                         break
+        
+            config.write()
+            
+        for section in self._config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  "spot":
+                    self._config.add_spot("//"+section.tag, spot_id) 
+                    break
+        self._config.write()
+    
+        for section in self._model.get_topology().get_sections():
+            for child in section.getchildren():
+                if child.tag ==  "spot":
+                    self._model.get_topology().add_spot("//"+section.tag, spot_id) 
+                    break
+
+        self.update_topology(spot_id)
+        self._model._topology.write()
+
+
+
+    def remove_spot(self, spot_id):
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            for section in config.get_sections():
+                 for child in section.getchildren():
+                     if child.tag ==  "spot":
+                         config.remove_spot("//"+section.tag, spot_id) 
+                         break
+            config.write()
+
+        for section in self._config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  "spot":
+                    self._config.remove_spot("//"+section.tag, spot_id) 
+                    break
+
+        self._config.write()
+
+        for section in self._model.get_topology().get_sections():
+            for child in section.getchildren():
+                if child.tag ==  "spot":
+                    self._model.get_topology().remove_spot("//"+section.tag, spot_id) 
+                    break
+
+        self._model._topology.write()
+
+
+    def update_topology(self, spot_id):
+        config = self._model.get_topology()
+        sections = config.get_sections()
+
+        tab_tal_id = ["1","2","3","4","5","6"]
+        tab_multicast = ["239.137.194.221",
+                         "239.137.194.222",
+                         "239.137.194.223",
+                         "239.137.194.224",
+                         "239.137.194.225",
+                         "239.137.194.226"]
+        tab_multicast_used = []
+
+        spot_base = ""
+        for section in sections:
+            for child in section.getchildren():
+                if child.tag == "spot":
+                    # get base spot id
+                    if spot_base == "":
+                        spot_base = child.get("id")
+
+                    for key in config.get_keys(child):
+                        #remove used tal_id
+                        if key.tag == "tal_id":
+                            if key.text in tab_tal_id:
+                                tab_tal_id.remove(key.text)
+                        
+                        #remove used multicast address
+                        for element in config.get_table_elements(key):
+                            for att in element.keys():
+                                if att == "ip_address":
+                                    if element.get(att) in tab_multicast:
+                                        tab_multicast.remove(element.get(att))
+                                        tab_multicast_used.append(element.get(att))
+                                    continue
+
+
+        # update topology carrier value according to spor value
+        for section in sections:
+            for child in section.getchildren():
+                if child.tag ==  "spot" and child.get("id") == spot_id:
+                    for key in config.get_keys(child):
+                        if config.is_table(key):
+                            s_id = (int(spot_id)-1)*10 - (int(spot_base)-1)*10
+                            for element in config.get_table_elements(key):
+                                for att in element.keys():
+                                    #update multicast address
+                                    if att == "ip_address" and \
+                                       element.get(att) in tab_multicast_used:
+                                        element.set(att,tab_multicast[0])
+                                        tab_multicast.remove(tab_multicast[0])
+                                        continue
+                                    
+                                    #update carrier id and port id
+                                    try:
+                                        val = int(element.get(att))+s_id
+                                    except ValueError:
+                                        val = element.get(att)
+                                    element.set(att,str(val))
+                        
+                        #update tal id 
+                        elif key.tag == "tal_id":
+                            key.text = tab_tal_id[0]
+                            tab_tal_id.remove(tab_tal_id[0])
+
+                    break
+
 

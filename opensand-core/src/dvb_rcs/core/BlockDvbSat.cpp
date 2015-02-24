@@ -241,55 +241,6 @@ bool BlockDvbSat::initSpots(void)
 			}
 		}
 	
-		//***************************************
-		// Check carrier error
-		//***************************************
-		// the ctrl_id error
-		/*if(ctrl_id == 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    CTRL_OUT, i);
-			goto error;
-		}
-		// the data_in_carrier_id error
-		if(data_in_carrier_id == 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    DATA_IN_ST, i);
-			goto error;
-		}
-		// the data_out_gw_id error
-		if(data_out_gw_id == 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    DATA_OUT_GW, i);
-			goto error;
-		}
-		// the data_out_st_id error
-		if(data_out_st_id == 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    DATA_OUT_ST, i);
-			goto error;
-		}
-		// the log_id error
-		if(log_id == 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    LOGON_OUT, i);
-			goto error;
-		}*/
-
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SF#: carrier IDs for Ctrl = %u, data_in = %u, "
 		    "data out gw = %u, data out st = %u, log id = %u\n", 
