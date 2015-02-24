@@ -37,7 +37,7 @@ conf_view.py - the configuration tab view
 
 import gtk
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
 from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
@@ -110,7 +110,7 @@ class ConfView(WindowView):
         for host in self._lan_stacks:
             try:
                 self._lan_stacks[host].load(host.get_lan_adaptation())
-                if host.get_name().lower() == "gw" and \
+                if host.get_name().lower() == GW and \
                    self._lan_stack_base is not None:
                     self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
@@ -155,7 +155,7 @@ class ConfView(WindowView):
             if host in self._lan_stacks:
                 continue
             name = host.get_name().lower()
-            if name.startswith('st') or name == 'gw':
+            if name.startswith(ST) or name == GW:
                 vbox = gtk.VBox()
                 label = gtk.Label(name.upper())
                 self._lan_stack_notebook.append_page(vbox, label)
@@ -187,7 +187,7 @@ class ConfView(WindowView):
     def update_lan_adaptation_base(self):
         """ update the lan adaptation notebook for base users """
         # first check that all stacks are the same, else enable advanced mode
-        host = self._model.get_host("gw")
+        host = self._model.get_host(GW)
         if host is None:
             return
 

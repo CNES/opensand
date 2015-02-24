@@ -38,7 +38,7 @@ import gtk
 import gobject
 import os
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, SAT, GW
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
 from opensand_manager_core.model.environment_plane import Program
@@ -117,9 +117,9 @@ class RunView(WindowView):
         nbr_st = 0
         self._sat_x = 170
         for host in self._model.get_hosts_list():
-            if host.get_component() == 'st':
+            if host.get_component() == ST:
                 nbr_st += 1
-            if host.get_component() == 'gw':
+            if host.get_component() == GW:
                 nbr_st += 1
                 self._sat_x = 30
 
@@ -128,11 +128,11 @@ class RunView(WindowView):
 
         nbr = 0
         for host in self._model.get_hosts_list():
-            if host.get_component() == 'gw':
+            if host.get_component() == GW:
                 self.draw_gw(host, 30, TOP_2)
-            elif host.get_component() == 'sat':
+            elif host.get_component() == SAT:
                 self.draw_sat(host, self._sat_x, TOP_1)
-            elif host.get_component() == 'st':
+            elif host.get_component() == ST:
                 self.draw_st(host, 170 + nbr * 140, TOP_2)
                 nbr += 1
 
@@ -183,7 +183,7 @@ class RunView(WindowView):
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = self._model.get_host('sat')
+        sat = self._model.get_host(SAT)
 
         if host.get_state():
             if sat is not None and sat.get_state():
@@ -242,7 +242,7 @@ class RunView(WindowView):
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = self._model.get_host('sat')
+        sat = self._model.get_host(SAT)
 
         if host.get_state() and \
            sat is not None and sat.get_state():

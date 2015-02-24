@@ -40,6 +40,8 @@ import os
 import pango
 from copy import deepcopy
 
+from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, SPOT_ID, \
+                                         TAL_ID, IP_ADDRESS
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
@@ -347,12 +349,12 @@ class ConfigurationTree(gtk.TreeStore):
         name = host.get_name()
         # append an element in the treestore
         # first Global, next SAT, then GW and ST
-        if name == 'global':
+        if name == GLOBAL:
             top_elt = self.insert(None, 0)
             self._is_first_elt = 1
-        elif name == 'sat':
+        elif name == SAT:
             top_elt = self.insert(None, self._is_first_elt)
-        elif name == 'gw':
+        elif name == GW:
             top_elt = self.insert(None, self._is_first_elt + 1)
         else:
             top_elt = self.append(None)
@@ -707,8 +709,8 @@ class ConfSection(gtk.VBox):
                                    pack_type=gtk.PACK_START)
         
         for key in self._config.get_keys(section):
-            if key.tag == "spot":
-                if self._spot_id == key.get("id"):
+            if key.tag == SPOT:
+                if self._spot_id == key.get(SPOT_ID):
                     for s_key in self._config.get_keys(key):
                         if self._config.is_table(s_key):
                             table = self.add_table(s_key)
@@ -763,7 +765,7 @@ class ConfSection(gtk.VBox):
         source = self._config.get_file_source(name)
         if source is not None:
             scenario = self._scenario
-            if self._host != 'global':
+            if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
             source = os.path.join(scenario, source)
 
@@ -912,7 +914,7 @@ class ConfSection(gtk.VBox):
             source = self._config.get_file_source(att, name)
             cb = [self.handle_param_chanded, self._changed_cb]
             scenario = self._scenario
-            if self._host != 'global':
+            if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
 
             try:
@@ -1377,13 +1379,13 @@ class InstallNotebook(gtk.Notebook):
         tab_label = gtk.Label()
         tab_label.set_justify(gtk.JUSTIFY_CENTER)
         tab_label.set_markup("<small><b>%s</b></small>" % host_name)
-        if host_name == 'global':
+        if host_name == GLOBAL:
             self.insert_page(scroll_notebook, tab_label, position=0)
             self._is_first_elt = 1
-        elif host_name == 'sat':
+        elif host_name == SAT:
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt)
-        elif host_name == 'gw':
+        elif host_name == GW:
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt + 1)
         else:
@@ -1499,7 +1501,7 @@ class ManageSpot:
             config = adv.get_configuration()
             for section in config.get_sections():
                 for child in section.iterchildren():
-                     if child.tag ==  "spot":
+                     if child.tag ==  SPOT:
                          config.add_spot("//"+section.tag, spot_id) 
                          break
         
@@ -1507,14 +1509,14 @@ class ManageSpot:
             
         for section in self._config.get_sections():
             for child in section.getchildren():
-                if child.tag ==  "spot":
+                if child.tag ==  SPOT:
                     self._config.add_spot("//"+section.tag, spot_id) 
                     break
         self._config.write()
     
         for section in self._model.get_topology().get_sections():
             for child in section.getchildren():
-                if child.tag ==  "spot":
+                if child.tag ==  SPOT:
                     self._model.get_topology().add_spot("//"+section.tag, spot_id) 
                     break
 
@@ -1529,14 +1531,14 @@ class ManageSpot:
             config = adv.get_configuration()
             for section in config.get_sections():
                  for child in section.getchildren():
-                     if child.tag ==  "spot":
+                     if child.tag ==  SPOT:
                          config.remove_spot("//"+section.tag, spot_id) 
                          break
             config.write()
 
         for section in self._config.get_sections():
             for child in section.getchildren():
-                if child.tag ==  "spot":
+                if child.tag ==  SPOT:
                     self._config.remove_spot("//"+section.tag, spot_id) 
                     break
 
@@ -1544,7 +1546,7 @@ class ManageSpot:
 
         for section in self._model.get_topology().get_sections():
             for child in section.getchildren():
-                if child.tag ==  "spot":
+                if child.tag ==  SPOT:
                     self._model.get_topology().remove_spot("//"+section.tag, spot_id) 
                     break
 
@@ -1567,21 +1569,21 @@ class ManageSpot:
         spot_base = ""
         for section in sections:
             for child in section.getchildren():
-                if child.tag == "spot":
+                if child.tag == SPOT:
                     # get base spot id
                     if spot_base == "":
-                        spot_base = child.get("id")
+                        spot_base = child.get(SPOT_ID)
 
                     for key in config.get_keys(child):
                         #remove used tal_id
-                        if key.tag == "tal_id":
+                        if key.tag == TAL_ID:
                             if key.text in tab_tal_id:
                                 tab_tal_id.remove(key.text)
                         
                         #remove used multicast address
                         for element in config.get_table_elements(key):
                             for att in element.keys():
-                                if att == "ip_address":
+                                if att == IP_ADDRESS:
                                     if element.get(att) in tab_multicast:
                                         tab_multicast.remove(element.get(att))
                                         tab_multicast_used.append(element.get(att))
@@ -1591,14 +1593,14 @@ class ManageSpot:
         # update topology carrier value according to spor value
         for section in sections:
             for child in section.getchildren():
-                if child.tag ==  "spot" and child.get("id") == spot_id:
+                if child.tag ==  SPOT and child.get(SPOT_ID) == spot_id:
                     for key in config.get_keys(child):
                         if config.is_table(key):
                             s_id = (int(spot_id)-1)*10 - (int(spot_base)-1)*10
                             for element in config.get_table_elements(key):
                                 for att in element.keys():
                                     #update multicast address
-                                    if att == "ip_address" and \
+                                    if att == IP_ADDRESS and \
                                        element.get(att) in tab_multicast_used:
                                         element.set(att,tab_multicast[0])
                                         tab_multicast.remove(tab_multicast[0])
@@ -1612,7 +1614,7 @@ class ManageSpot:
                                     element.set(att,str(val))
                         
                         #update tal id 
-                        elif key.tag == "tal_id":
+                        elif key.tag == TAL_ID:
                             key.text = tab_tal_id[0]
                             tab_tal_id.remove(tab_tal_id[0])
 

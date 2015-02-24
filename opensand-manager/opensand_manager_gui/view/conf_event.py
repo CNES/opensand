@@ -38,6 +38,7 @@ conf_event.py - the events on configuration tab
 import gtk
 import gobject
 
+from opensand_manager_core.utils import GW, RETURN_UP_BAND, SPOT_ID
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -334,10 +335,10 @@ class ConfEvent(ConfView) :
         config = self._model.get_conf().get_configuration()
         manager = ManageSpot(self._model, config)
         tab_spot = ["1","2","3"]
-        xpath = "//return_up_band"
+        xpath = "//"+RETURN_UP_BAND
         #update free spot id 
         for key in config.get_keys(config.get(xpath)):
-            tab_spot.remove(key.get("id"))
+            tab_spot.remove(key.get(SPOT_ID))
    
         if len(tab_spot) > 0:
             manager.add_spot(tab_spot[0])
@@ -360,7 +361,7 @@ class ConfEvent(ConfView) :
         config = self._model.get_conf().get_configuration()
         manager = ManageSpot(self._model, config)
         
-        xpath = "//return_up_band"
+        xpath = "//"+RETURN_UP_BAND
         find = False
         if self.is_modified():
             text =  "Save current configuration ?"
@@ -485,7 +486,7 @@ class ConfEvent(ConfView) :
             other_stacks = []
             for host in self._lan_stacks:
                 stack = self._lan_stacks[host].get_stack()
-                if host.get_name() == 'gw':
+                if host.get_name() == GW:
                     gw_stack = stack
                 else:
                     other_stacks.append(stack)

@@ -41,6 +41,7 @@ import threading
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
+from opensand_manager_core.utils import SPOT, SPOT_ID
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection
@@ -240,9 +241,9 @@ class AdvancedDialog(WindowView):
                                          config.do_hide(name), True)
 
                         for key in config.get_keys(section):
-                            if key.tag == "spot":
+                            if key.tag == SPOT:
                                 gobject.idle_add(self._host_tree.add_child,
-                                                 key.tag+key.get("id"),
+                                                 key.tag+key.get(SPOT_ID),
                                                  name,
                                                  config.do_hide(name), True,
                                                  priority=gobject.PRIORITY_HIGH_IDLE+40)
@@ -336,26 +337,26 @@ class AdvancedDialog(WindowView):
                 
             # look for spot section
             for key in config.get_keys(section):
-                if key.tag == "spot":
+                if key.tag == SPOT:
                     conf_sections[host_name + "." + config.get_name(section) +
-                                  "." + key.tag+key.get("id")] = \
+                                  "." + key.tag+key.get(SPOT_ID)] = \
                             ConfSection(section, config, config.get_name(section),
                                         self._model.get_adv_mode(),
                                         self._model.get_scenario(),
                                         self.handle_param_chanded,
                                         self._model.handle_file_changed,
-                                        key.get("id"))
+                                        key.get(SPOT_ID))
                     # hidden section
                     if config.do_hide(config.get_name(section)):
                         conf_sections[host_name + "." + config.get_name(section) +
-                                      "." + key.tag + key.get("id")
+                                      "." + key.tag + key.get(SPOT_ID)
                                      ].set_hidden(not self._show_hidden)
                     # restrictions section
                     restriction =  config.get_xpath_restrictions(
                                         config.get_name(section))
                     if restriction is not None:
                         conf_sections[host_name + "." + config.get_name(section) +
-                                      "." + key.tag + key.get("id")
+                                      "." + key.tag + key.get(SPOT_ID)
                                      ].add_restriction(conf_sections[host_name + 
                                                 "." + config.get_name(section) +
                                                 "." + key.tag +key.get("id")],

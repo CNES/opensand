@@ -34,6 +34,7 @@
 generate_conf_wiki.py - Transform the configuration into a wiki readable page
 """
 
+from opensand_manager_core.utils import SPOT
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 DO_HIDE=False
@@ -180,7 +181,7 @@ if __name__ == "__main__":
             if DO_HIDE and PARSER.do_hide(PARSER.get_name(KEY)) or \
                PARSER.do_hide_adv(PARSER.get_name(KEY), False):
                 continue
-            if PARSER.get_name(KEY) == "spot" and not done:
+            if PARSER.get_name(KEY) == SPOT and not done:
                 bspot = "X"  
                 for PARAM in PARSER.get_keys(KEY):
                     print_line(domain, description, bspot, PARAM)

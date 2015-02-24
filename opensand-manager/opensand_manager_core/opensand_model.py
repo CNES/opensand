@@ -39,7 +39,7 @@ import os
 import shutil
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import *
 from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
@@ -203,23 +203,26 @@ class Model:
     def add_topology(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
         try:
-            if name.startswith('ws') and '_' in instance:
+            if name.startswith(WS) and '_' in instance:
                 instance = instance.split('_')[0]
-            if name == 'sat':
+            if name == SAT:
                 att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
-                           '[(@type="ctrl_in" or @type="logon_in" or' \
-                           '@type="data_in_gw" or @type="data_in_st")' \
-                           'and @ip_multicast="false"]'
+                           '[(@' + CARRIER_TYPE + '="' + CTRL_IN + '" or@' + \
+                           CARRIER_TYPE + '="' + LOGON_IN + '" or' \
+                           '@' + CARRIER_TYPE + '="' + DATA_IN_GW + '" or' \
+                           '@' + CARRIER_TYPE + '="' + DATA_IN_ST + '")' \
+                           'and @' + IP_MULTICAST + '="false"]'
                 self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, 'ip_address')
-            elif name == 'gw':
+                                          att_path, IP_ADDRESS)
+            elif name == GW:
                 att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
-                           '[(@type="logon_out" or @type="data_out_gw")' \
-                           'and @ip_multicast="false"]'
+                           '[(@' + CARRIER_TYPE + '="' + LOGON_OUT + '" or' \
+                           ' @' + CARRIER_TYPE + '="'+ DATA_OUT_GW + '")' \
+                           'and @' + IP_MULTICAST + '="false"]'
                 self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, 'ip_address')
+                                          att_path, IP_ADDRESS)
 
-            if name != "sat":
+            if name != SAT:
                 # IPv4 SARP
                 addr = net_config['lan_ipv4'].split('/')
                 ip = addr[0]
@@ -227,7 +230,7 @@ class Model:
                 mask = addr[1]
                 line = {'addr': net,
                         'mask': mask,
-                        'tal_id': instance,
+                        TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv4'
                 self._topology.create_line(line, 'terminal_v4', xpath)
@@ -238,7 +241,7 @@ class Model:
                 mask = addr[1]
                 line = {'addr': net,
                         'mask': mask,
-                        'tal_id': instance,
+                        TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv6'
                 self._topology.create_line(line, 'terminal_v6', xpath)
@@ -249,7 +252,7 @@ class Model:
                     macs = mac.split(' ')
                     for mac in macs:
                         line = {'mac': mac,
-                                'tal_id': instance,
+                                TAL_ID: instance,
                                }
                         xpath = '/configuration/sarp/ethernet'
                         self._topology.create_line(line, 'terminal_eth', xpath)
@@ -269,13 +272,13 @@ class Model:
         """ remove a host from topology configuration file """
         try:
             xpath = "/configuration/sarp/ipv4/terminal_v4" \
-                    "[@tal_id='%s']" % instance
+                    "[@" + TAL_ID + "='%s']" % instance
             self._topology.del_element(xpath)
             xpath = "/configuration/sarp/ipv6/terminal_v6" \
-                    "[@tal_id='%s']" % instance
+                    "[@" + TAL_ID + "='%s']" % instance
             self._topology.del_element(xpath)
             xpath = "/configuration/sarp/ethernet/terminal_eth" \
-                    "[@tal_id='%s']" % instance
+                    "[@" + TAL_ID + "='%s']" % instance
             self._topology.del_element(xpath)
             self._topology.write()
         except XmlException, msg:
@@ -312,7 +315,7 @@ class Model:
         for host in self.get_all():
             if name.lower() == host.get_name().lower():
                 return host
-        if name == 'global':
+        if name == GLOBAL:
             return self
         return None
 
@@ -350,16 +353,16 @@ class Model:
                  state_port, command_port, tools, host_modules):
         """ add an host in the host list """
         # remove instance for ST and WS
-        if name.startswith('st'):
-            component = 'st'
-        elif name.startswith('ws'):
-            component = 'ws'
+        if name.startswith(ST):
+            component = ST
+        elif name.startswith(WS):
+            component = WS
         else:
             component = name
 
         # check if we have all the correct information
         checked = True
-        if (component == 'st' or component == 'ws') and instance == '':
+        if (component == ST or component == WS) and instance == '':
             self._log.warning(name + ": "
                               "service received with no instance information")
             checked = False
@@ -386,7 +389,7 @@ class Model:
         # report a warning if a module is not supported by the host
         for module in self._modules:
             if module.get_name().upper() not in host_modules:
-                if component != 'ws':
+                if component != WS:
                     self._log.warning("%s: plugin %s may be missing" %
                                       (name.upper(), module.get_name()))
                     if not module in self._missing_modules:
@@ -397,11 +400,11 @@ class Model:
         host = HostModel(name, instance, network_config, state_port,
                          command_port, tools, host_modules, self._scenario_path,
                          self._log, self._collector_functional)
-        if component == 'sat':
+        if component == SAT:
             self._hosts.insert(0, host)
-        elif component == 'gw':
+        elif component == GW:
             self._hosts.insert(1, host)
-        elif component != 'ws':
+        elif component != WS:
             self._hosts.append(host)
         else:
             self._ws.append(host)
@@ -502,11 +505,11 @@ class Model:
         st = False
 
         for host in self._hosts:
-            if host.get_component() == 'sat' and host.get_state() != None:
+            if host.get_component() == SAT and host.get_state() != None:
                 sat = True
-            if host.get_component() == 'gw' and host.get_state() != None:
+            if host.get_component() == GW and host.get_state() != None:
                 gw = True
-            if host.get_component() == 'st' and host.get_state() != None:
+            if host.get_component() == ST and host.get_state() != None:
                 st = True
 
         return sat and gw and st

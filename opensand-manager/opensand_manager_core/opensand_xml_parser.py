@@ -50,6 +50,7 @@ from copy import deepcopy
 
 from lxml import etree
 from opensand_manager_core.my_exceptions import XmlException
+from opensand_manager_core.utils import SPOT, SPOT_ID
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
@@ -179,9 +180,9 @@ class XmlParser:
             raise XmlException("wrong path: %s is not valid" % xpath)
         section = sections[0]
         for child in section.getchildren():
-            if child.tag == "spot":
+            if child.tag == SPOT:
                 new = deepcopy(child)
-                new.set("id", spot_id)
+                new.set(SPOT_ID, spot_id)
                 section.append(new)
                 break
 
@@ -192,7 +193,7 @@ class XmlParser:
             raise XmlException("wrong path: %s is not valid" % xpath)
         section = sections[0]
         for child in section.getchildren():
-            if child.tag == "spot" and child.get("id") == spot_id:
+            if child.tag == SPOT and child.get(SPOT_ID) == spot_id:
                 section.remove(child)
                 break
 
