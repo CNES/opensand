@@ -28,27 +28,9 @@
 
 /**
  * @file SpotUpward.h
- * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
- * @author SatIP6
+ * @brief Upward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
- *
- *
- * <pre>
- *
- *            ^
- *            | encap burst
- *            v
- *    ------------------
- *   |                  |
- *   |  DVB-RCS Ncc     |
- *   |  Dama Controler  |
- *   |                  |
- *    ------------------
- *            ^
- *            | DVB Frame / BBFrame
- *            v
- *
- * </pre>
+ * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  *
  */
 
@@ -68,26 +50,47 @@
 class SpotUpward: public DvbChannel
 {
 	public:
-		SpotUpward();
+		SpotUpward(spot_id_t spot_id);
 		~SpotUpward();
 		bool onInit();
+
+
 		/**
-		 * set/get upward ispot id
-		 */ 
-		void setSpotId(uint8_t spot_id);
-		uint8_t getSpotId(void);
+		 * @brief Handle a DVB frame
+		 *
+		 * @param frame  The frame
+		 * @param burst  OUT: the burst of packets
+		 * @return true on success, false otherwise
+		 */
+		bool handleFrame(DvbFrame *frame, NetBurst **burst);
 
-		PhysicStd *getReceptionStd(void); 
-		SlottedAlohaNcc *getSaloha(void);
-		Probe<int> *getProbeReceivedModcod(void);
-		Probe<int> *getProbeRejectedModcod(void);
-		void setL2FromSatBytes(int l2_from_sat);
-		int getL2FromSatBytes(void);
-		tal_id_t getMacId(void);
+		/**
+		 * @brief Schedule Slotted Aloha carriers
+		 *
+		 *	@param dvb_frame   a SoF
+		 *  @param ack_frames  OUT: The generated ACK frames
+		 *  @param sa_burst    OUT: The Slotted Aloha bursts received
+		 *  @return true on success, false otherwise
+		 */
+		bool scheduleSaloha(DvbFrame *dvb_frame,
+		                    list<DvbFrame *> *ack_frames,
+		                    NetBurst **sa_burst);
 
-
-		/// DVB frame from lower layer
+		/**
+		 *  @brief Handle a logon request transmitted by the lower layer
+		 *
+		 *  @param logon_req  The frame contining the logon request
+		 *  @return true on success, false otherwise
+		 */
 		bool onRcvLogonReq(DvbFrame *dvb_frame);
+
+		/**
+		 *  @brief Handle a Slotted Aloha Data Frame
+		 *
+		 *  @param frame  The Slotted Aloha data frame
+		 *  @return true on success, false otherwise
+		 */
+		bool handleSlottedAlohaFrame(DvbFrame *frame);
 
 		// statistics update
 		void updateStats(void);
@@ -116,14 +119,6 @@ class SpotUpward: public DvbChannel
 		 */
 		bool initOutput(void);
 
-		/**
-		 * Transmist a frame to the opposite channel
-		 *
-		 * @param frame  The dvb frame
-		 * @return true on success, false otherwise
-		 */
-		bool shareFrame(DvbFrame *frame);
-
 		/// Spot Id
 		uint8_t spot_id;
 		
@@ -132,9 +127,6 @@ class SpotUpward: public DvbChannel
 
 		/// The Slotted Aloha for NCC
 		SlottedAlohaNcc *saloha;
-
-		/// ST unique mac id
-		tal_id_t mac_id;
 
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;

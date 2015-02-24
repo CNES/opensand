@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,10 +28,9 @@
 
 /**
  * @file SpotDownward.h
- * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
- * @author SatIP6
+ * @brief Downward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
- *
+ * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  *
  */
 
@@ -40,7 +39,7 @@
 
 #include "BlockDvb.h"
 #include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
+//#include "NccPepInterface.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 
@@ -57,7 +56,8 @@ enum Simulate
 class SpotDownward: public DvbChannel, public NccPepInterface
 {
 	public:
-		SpotDownward(time_ms_t fwd_down_frame_duration,
+		SpotDownward(spot_id_t spot_id,
+		             time_ms_t fwd_down_frame_duration,
 		             time_ms_t ret_up_frame_duration,
 		             time_ms_t stats_period,
 		             const FmtSimulation &up_fmt_simu,
@@ -67,92 +67,89 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		             bool phy_layer);
 		~SpotDownward();
 		bool onInit(void);
-		bool handleMsgSaloha(list<DvbFrame *> *ack_frames);
-		bool handleBurst(NetBurst::iterator pkt_it,
-                         time_sf_t super_frame_counter);
-	
-		bool schedule(time_ms_t current_time, uint32_t remaining_alloc_sym);
-		
-		// statistics update
-		void updateStatistics(void);
-		void resetStatsCxt(void);
 
 		/**
-		 * Simulate event based on an input file
+		 * @brief Handle the Slotted Aloha ACKs
+		 *
+		 * @param ack_frames  The Slotted Aloha ACKs
 		 * @return true on success, false otherwise
 		 */
-		bool simulateFile(void);
+		bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
 
 		/**
-		 * Simulate event based on random generation
-		 */
-		void simulateRandom(void);
-
-		/**
-		 *  @brief Handle a logon request transmitted by the opposite
-		 *         block
+		 * @brief Handle an encapsulated packet
 		 *
-		 *  @param dvb_frame  The frame contining the logon request
-		 *  @return true on success, false otherwise
+		 * @param packet  The encapsulated packet
+		 * @return true on success, false otherwise
 		 */
-		bool handleLogonReq(DvbFrame *dvb_frame,
-		                    LogonResponse **logon_resp,
-		                    uint8_t &ctrl_carrier_id,
-		                    time_sf_t super_frame_counter);
+		bool handleEncapPacket(NetPacket *packet);
+	
 		/**
-		 *  @brief Handle a logoff request transmitted by the opposite
-		 *         block
+		 * @brief Handle a logon request transmitted by the opposite
+		 *        block
 		 *
-		 *  @param dvb_frame  The frame contining the logoff request
-		 *  @return true on success, false otherwise
+		 * @param logon_req  The frame contining the logon request
+		 * @return true on success, false otherwise
 		 */
-		bool handleLogoffReq(DvbFrame *dvb_frame, time_sf_t super_frame_counter);
+		bool handleLogonReq(const LogonRequest *logon_req);
 
+		/**
+		 * @brief Handle a logoff request transmitted by the opposite
+		 *        block
+		 *
+		 * @param dvb_frame  The frame contining the logoff request
+		 * @return true on success, false otherwise
+		 */
+		bool handleLogoffReq(const DvbFrame *dvb_frame);
 
+		/**
+		 * @brief handler a frame timer and update frame counter
+		 *
+		 * @param super_frame_counter  the superframe counter
+		 * @return true on success, false otherwise
+		 */
+		bool handleFrameTimer(time_sf_t super_frame_counter);
 		
 		/**
-		 * Set/Get downward spot id
-		 */ 
-		void setSpotId(uint8_t spot_id);
-		uint8_t getSpotId(void);
+		 * @brief handler a forward frame timer and update forward frame counter
+		 *
+		 * @param fwd_frame_counter  The forward frame counter
+		 * @return true on success, false otherwise
+		 */
+		bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
 
-		DamaCtrlRcs * getDamaCtrl(void);
-		
-		/// The uplink of forward scheduling depending on satellite
-		Scheduling *getScheduling(void);
+		/**
+		 * @brief  handle a SAC frame
+		 *
+		 * @param sac  The SAC frame
+		 * @return true on success, false otherwise
+		 */
+		bool handleSac(const Sac *sac);
 
-		double getCni(void);
+		/**
+		 * @brief update FMT in DAMA controller
+		 */
+		void updateFmt(void);
+
+		/**
+		 * @brief Build a TTP
+		 *
+		 * @param ttp  OUT: The TTP
+		 * @return true on success, false otherwise
+		 */
+		bool buildTtp(Ttp *ttp);
+
+		double getCni(void) const;
 		void setCni(double cni);
 
-		/// counter for forward frames
-		time_sf_t getFwdFrameCounter(void);
-		void setFwdFrameCounter(time_sf_t);
-
-		uint8_t getCtrlCarrierId(void);
-		uint8_t getSofCarrierId(void);
-		uint8_t getDataCarrierId(void);
+		uint8_t getCtrlCarrierId(void) const;
+		uint8_t getSofCarrierId(void) const;
+		uint8_t getDataCarrierId(void) const;
 
 		list<DvbFrame *> &getCompleteDvbFrames(void);
 		
 		/// FMT groups for up/return
-		fmt_groups_t getRetFmtGroups(void);
-
-		/// parameters for request simulation
-		FILE * getEventFile(void);
-		FILE * getSimuFile(void);
-		void setSimuFile(FILE *);
-		enum Simulate getSimulate(void);
-		void setSimulate(enum Simulate);
-
-		// Output probes
-		Probe<float> *getProbeFrameInterval(void);
-		// Physical layer information
-		Probe<int> *getProbeUsedModcod(void);
-
-		// Output logs and events
-		OutputLog *getLogRequestSimulation(void);
-
-		EncapPlugin::EncapPacketHandler *getUpReturnPktHdl(void);
+		fmt_groups_t getRetFmtGroups(void) const;
 
 	protected:
 
@@ -219,26 +216,28 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		bool sendAcmParameters(void);
 
 		/**
-		 * @brief Handle a DVB frame transmitted from upward channel
-		 *
-		 * @param dvb_frame  The frame
+		 * Simulate event based on an input file
 		 * @return true on success, false otherwise
 		 */
-		//bool handleDvbFrame(DvbFrame *dvb_frame, LogonResponse **logonResp, uint8_t *ctrlCarrierId);
+		bool simulateFile(void);
 
-		
+		/**
+		 * Simulate event based on random generation
+		 * @return true on success, false otherwise
+		 */
+		bool simulateRandom(void);
+
+		// statistics update
+		void updateStatistics(void);
+		void resetStatsCxt(void);
+
+
 
 		/// The DAMA controller
 		DamaCtrlRcs *dama_ctrl;
 
 		/// The uplink of forward scheduling depending on satellite
 		Scheduling *scheduling;
-
-		/// frame timer for return, used to awake the block every frame period
-		event_id_t frame_timer;
-
-		/// frame timer for forward, used to awake the block every frame period
-		event_id_t fwd_timer;
 
 		/// counter for forward frames
 		time_sf_t fwd_frame_counter;
@@ -285,12 +284,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		FmtSimulation up_ret_fmt_simu;
 		/// The MODCOD simulation elements for down/forward link
 		FmtSimulation down_fwd_fmt_simu;
-
-		/// timer used to awake the block every second in order to retrieve
-		/// the current MODCODs
-		/// In regenerative case with physical layer, is it used to send
-		// ACM parameters to satellite
-		event_id_t scenario_timer;
 
 		/// The C/N0 for downlink in regenerative scenario that will be transmited
 		//  to satellite in SAC

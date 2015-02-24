@@ -536,8 +536,8 @@ bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
 {
 	ConfigurationList sectionList;
 	ConfigurationList::iterator sec_iter;
-    ConfigurationList level_list;
-    ConfigurationList::iterator iter;
+	ConfigurationList level_list;
+	ConfigurationList::iterator iter;
 
 	if(!this->getSection(SECTION_DEBUG, sectionList))
 	{

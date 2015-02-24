@@ -28,8 +28,9 @@
 
 /**
  * @file SpotUpward.cpp
- * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
+ * @brief Upward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
+ * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
 
@@ -39,7 +40,8 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-
+#include "Sof.h"
+/*
 #include <opensand_output/Output.h>
 
 #include <string.h>
@@ -54,23 +56,12 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <ios>
+#include <ios>*/
 
-/*
- * REMINDER:
- *  // in transparent mode
- *        - upward => return link
- *  // in regenerative mode
- *        - upward => downlink
- */
 
-/*****************************************************************************/
-/*                               SpotUpward                                  */
-/*****************************************************************************/
-
-SpotUpward::SpotUpward():
+SpotUpward::SpotUpward(spot_id_t spot_id):
+	spot_id(spot_id),
 	saloha(NULL),
-	mac_id(GW_TAL_ID),
 	ret_fmt_groups(),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
@@ -78,6 +69,7 @@ SpotUpward::SpotUpward():
 	log_saloha(NULL),
 	event_logon_req(NULL)
 {
+	this->super_frame_counter = 0;
 }
 
 
@@ -150,10 +142,6 @@ bool SpotUpward::onInit(void)
 		    "statistics\n");
 		goto error_mode;
 	}
-
-	LOG(this->log_init_channel, LEVEL_DEBUG,
-	    "SF#%u Link is up msg sent to upper layer\n",
-	    this->super_frame_counter);
 
 	// everything went fine
 	return true;
@@ -353,7 +341,7 @@ bool SpotUpward::initOutput(void)
 	if(this->saloha)
 	{
 		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Spot_%d.Dvb.SlottedAloha",
-		                                             this->spot_id);
+		                                       this->spot_id);
 	}
 
 	// Output probes and stats
@@ -389,7 +377,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	    "Logon request from ST%u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
-	if(mac == this->mac_id)
+	if(mac == GW_TAL_ID)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "
@@ -431,47 +419,97 @@ void SpotUpward::updateStats(void)
 	Output::sendProbes();
 }
 
-void SpotUpward::setSpotId(uint8_t spot_id)
+bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
-	this->spot_id = spot_id;
+	uint8_t msg_type = frame->getMessageType();
+	if(msg_type == MSG_TYPE_BBFRAME &&
+	   this->reception_std->getType() == "DVB-RCS")
+	{
+		// ignore BB frames in transparent scenario
+		// (this is required because the GW may receive BB frames
+		//  in transparent scenario due to carrier emulation)
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "ignore BBFrame reception in transparent scenario\n");
+		delete frame;
+		return true;
+	}
+	// Update stats
+	this->l2_from_sat_bytes += frame->getPayloadLength();
+
+	if(!this->reception_std->onRcvFrame(frame,
+	                                    GW_TAL_ID,
+	                                    burst))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to handle DVB frame or BB frame\n");
+		return false;
+	}
+
+	if(this->reception_std->getType() == "DVB-S2")
+	{
+		DvbS2Std *std = (DvbS2Std *)this->reception_std;
+		if(msg_type != MSG_TYPE_CORRUPTED)
+		{
+			this->probe_received_modcod->put(std->getReceivedModcod());
+		}
+		else
+		{
+			this->probe_rejected_modcod->put(std->getReceivedModcod());
+		}
+	}
+
+	return true;
 }
 
-uint8_t SpotUpward::getSpotId(void)
+bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
+                                list<DvbFrame *> *ack_frames,
+                                NetBurst **sa_burst)
 {
-	return this->spot_id;
+	if(!this->saloha)
+	{
+		return true;
+	}
+	uint16_t sfn;
+	Sof *sof = (Sof *)dvb_frame;
+
+	sfn = sof->getSuperFrameNumber();
+
+	ack_frames = new list<DvbFrame *>();
+	// increase the superframe number and reset
+	// counter of frames per superframe
+	this->super_frame_counter++;
+	if(this->super_frame_counter != sfn)
+	{
+		LOG(this->log_receive_channel, LEVEL_WARNING,
+			"superframe counter (%u) is not the same as in"
+			" SoF (%u)\n",
+			this->super_frame_counter, sfn);
+		this->super_frame_counter = sfn;
+	}
+
+	if(!this->saloha->schedule(sa_burst,
+	                           *ack_frames,
+	                           this->super_frame_counter))
+	{
+		LOG(this->log_saloha, LEVEL_ERROR,
+		    "failed to schedule Slotted Aloha\n");
+		delete ack_frames;
+		return false;
+	}
+	return true;
 }
 
-PhysicStd *SpotUpward::getReceptionStd(void)
+bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *frame)
 {
-	return this->reception_std;
+	// Update stats
+	this->l2_from_sat_bytes += frame->getPayloadLength();
+
+	if(!this->saloha->onRcvFrame(frame))
+	{
+		LOG(this->log_saloha, LEVEL_ERROR,
+		    "failed to handle Slotted Aloha frame\n");
+		return false;
+	}
+	return true;
 }
 
-SlottedAlohaNcc *SpotUpward::getSaloha(void)
-{
-	return this->saloha;
-}
-
-Probe<int> *SpotUpward::getProbeReceivedModcod(void)
-{
-	return this->probe_received_modcod;
-}
-
-Probe<int> *SpotUpward::getProbeRejectedModcod(void)
-{
-	return this->probe_rejected_modcod;
-}
-
-void SpotUpward::setL2FromSatBytes(int l2_from_sat)
-{
-	this->l2_from_sat_bytes = l2_from_sat;
-}
-
-int SpotUpward::getL2FromSatBytes(void)
-{
-	return this->l2_from_sat_bytes;
-}
-
-tal_id_t SpotUpward::getMacId(void)
-{
-	return this->mac_id;
-}

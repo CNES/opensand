@@ -54,7 +54,7 @@ SlottedAlohaNcc::SlottedAlohaNcc():
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	spot_id(),
+	spot_id(0),
 	terminals(),
 	algo(NULL),
 	simu()
@@ -93,7 +93,7 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
                            TerminalMapping<TerminalCategorySaloha> terminal_affectation,
                            TerminalCategorySaloha *default_category,
-                           spot_id_t spot)
+                           spot_id_t spot_id)
 
 {
 	string algo_name;
@@ -101,12 +101,12 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	ConfigurationList simu_list;
 
 	// set spot id
-	if(spot == 0)
+	if(spot_id == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"spot id = %d", spot);
+			"wrong spot id = %u", spot_id);
 	}
-	this->spot_id == spot;
+	this->spot_id = spot_id;
 
 
 	// Ensure parent init has been done

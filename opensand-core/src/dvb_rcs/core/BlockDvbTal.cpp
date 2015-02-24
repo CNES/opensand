@@ -179,7 +179,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
 
-	if(!this->initMap())
+	if(!this->initSpotMaps())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to init carrier and terminal spot id map\n");
@@ -2023,7 +2023,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 
 bool BlockDvbTal::Upward::onInit(void)
 {
-	if(!this->initMap())
+	if(!this->initSpotMaps())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to init carrier and terminal "

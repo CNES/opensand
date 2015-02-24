@@ -29,26 +29,31 @@
 /**
  * @file BLockDvbNcc.h
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
- * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  *
  *
  * <pre>
  *
- *            ^
- *            | encap burst
- *            v
- *    ------------------
- *   |                  |
- *   |  DVB-RCS Ncc     |
- *   |  Dama Controler  |
- *   |                  |
- *    ------------------
- *            ^
- *            | DVB Frame / BBFrame
- *            v
+ *
+ *        |    encap   ^
+ *        |    burst   |
+ *        v            |
+ *   +-----------------------+
+ *   | downward  |   upward  |
+ *   |           |           |
+ *   | +-------+ | +-------+ |
+ *   | | spots | | | spots | |
+ *   | +-------+ | +-------+ |
+ *    -----------+-----------+
+ *        |            ^
+ *        | DVB Frame  |
+ *        v  BBFrame   |
+ *
+ * For spots description
+ * @ref SpotDownward and @ref SpotUpward
  *
  * </pre>
  *
@@ -60,7 +65,6 @@
 #include "BlockDvb.h"
 #include "SpotUpward.h"
 #include "SpotDownward.h"
-#include "DamaCtrlRcs.h"
 
 class BlockDvbNcc: public BlockDvb
 {
@@ -80,7 +84,7 @@ class BlockDvbNcc: public BlockDvb
 	{
 	 public:
 		/// upward block table (1 per slot) 
-		map<spot_id_t, SpotUpward *> spot_upward_map;
+		map<spot_id_t, SpotUpward *> upward_spots;
 
 		Upward(Block *const bl);
 		~Upward();
@@ -105,9 +109,6 @@ class BlockDvbNcc: public BlockDvb
 	class Downward: public DvbDownward, NccPepInterface
 	{
 	  public:
-		/// downward block table (1 per slot)
-		map<spot_id_t, SpotDownward *> spot_downward_map;
-		
 		Downward(Block *const bl);
 		~Downward();
 		bool onInit(void);
@@ -149,7 +150,18 @@ class BlockDvbNcc: public BlockDvb
 		/**
 		 * Send a start of frame
 		 */
-		void sendSOF(SpotDownward *spot_downward);
+		void sendSOF(unsigned int sof_carrier_id);
+
+		/**
+		 *  @brief Handle a logon request transmitted by the opposite
+		 *         block
+		 *
+		 *  @param dvb_frame  The frame contining the logon request
+		 *  @param spot       The spot concerned by the request
+		 *  @return true on success, false otherwise
+		 */
+		bool handleLogonReq(DvbFrame *dvb_frame,
+		                    SpotDownward *spot);
 
 		/**
 		 * @brief Send a SAC message containing ACM parameters
@@ -163,16 +175,8 @@ class BlockDvbNcc: public BlockDvb
 		void resetStatsCxt(void);
 
 
-		/**
-		 * Simulate event based on an input file
-		 * @return true on success, false otherwise
-		 */
-		bool simulateFile(void);
-
-		/**
-		 * Simulate event based on random generation
-		 */
-		void simulateRandom(void);
+		/// counter for forward frames
+		time_ms_t fwd_frame_counter;
 
 		/// frame timer for return, used to awake the block every frame period
 		event_id_t frame_timer;
@@ -190,9 +194,6 @@ class BlockDvbNcc: public BlockDvb
 		/// In regenerative case with physical layer, is it used to send
 		// ACM parameters to satellite
 		event_id_t scenario_timer;
-
-		// The column ID for FMT simulation
-		map<tal_id_t, uint16_t> column_list;
 
 		// Frame interval
 		Probe<float> *probe_frame_interval;

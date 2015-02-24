@@ -47,17 +47,18 @@ BlockDvb::~BlockDvb()
 {
 }
 
-bool DvbChannel::initMap(void)
+bool DvbChannel::initSpotMaps(void)
 {
 	ConfigurationList s_tal_list;
 	ConfigurationList s_car_list;
 	ConfigurationList::iterator iter_spots;
 	
 	//*************************************
-	//          CARRIER 
+	//          CARRIERS 
 	//*************************************
 	// get spot 
-	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST, s_car_list))
+	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION],
+	                      SPOT_LIST, s_car_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 				"there is no %s into %s section\n",
@@ -65,18 +66,20 @@ bool DvbChannel::initMap(void)
 		goto error;
 	}
 
-	for(iter_spots = s_car_list.begin(); iter_spots != s_car_list.end(); iter_spots++)
+	for(iter_spots = s_car_list.begin(); iter_spots != s_car_list.end();
+	    ++iter_spots)
 	{
 		ConfigurationList current_spot;
 		ConfigurationList carrier_list ; 
 		ConfigurationList::iterator iter;
 		xmlpp::Node* spot_node = *iter_spots;
 		current_spot.push_front(spot_node);
-		string spot_id;
+		spot_id_t spot_id = 0;
+
 		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s value in %d", SPOT_ID, SPOT_LIST);
+			    "cannot get %s value in %s", SPOT_ID, SPOT_LIST);
 		}
 
 		// get satellite channels from configuration
@@ -88,32 +91,32 @@ bool DvbChannel::initMap(void)
 			goto error;
 		}
 
-		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
+		// check ths spot ID associated with this carrier ID
 		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 		{
-			string strConfig;
 			int carrier_id = 0;
 
 			// get carrier ID
 			if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "section '%s %s/%s/%s': failed to retrieve %s\n",
-				    SPOT_LIST, spot_id.c_str(),
+				    "section '%s %u/%s/%s': failed to retrieve %s\n",
+				    SPOT_LIST, spot_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_ID);
 				goto error;
 			}
 
-			this->carrier_map[carrier_id] = atoi(spot_id.c_str());
+			this->carrier_map[carrier_id] = spot_id;
 		}
 	}
 
 	//************************************
-	//           TERMINAL 
+	//           TERMINALS 
 	//************************************
 	// get spot 
-	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION], SPOT_LIST, s_tal_list))
+	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION],
+	                      SPOT_LIST, s_tal_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no %s into %s section\n",
@@ -121,14 +124,15 @@ bool DvbChannel::initMap(void)
 		goto error;
 	}
 
-	for(iter_spots = s_tal_list.begin(); iter_spots != s_tal_list.end(); iter_spots++)
+	for(iter_spots = s_tal_list.begin(); iter_spots != s_tal_list.end();
+	    ++iter_spots)
 	{
 		ConfigurationList current_spot;
 		ConfigurationList terminal_list ; 
 		ConfigurationList::iterator iter;
 		xmlpp::Node* spot_node = *iter_spots;
 		current_spot.push_front(spot_node);
-		string spot_id;
+		spot_id_t spot_id;
 		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
 		
 		// get satellite channels from configuration
@@ -140,26 +144,26 @@ bool DvbChannel::initMap(void)
 			goto error;
 		}
 
-		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
+		// check ths spot ID associated with this terminal ID
 		for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
 		{
-			int tal_id = 0;
+			tal_id_t tal_id = 0;
 
 			// get carrier ID
 			if(!Conf::getValue(iter, tal_id))
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "section '%s %s/%s/%s': failed to retrieve %s\n",
-				    SPOT_LIST, spot_id.c_str(),
+				    "section '%s %u/%s/%s': failed to retrieve %s\n",
+				    SPOT_LIST, spot_id,
 				    SAT_SWITCH_SECTION, TAL_ID,
 				    TAL_ID);
 				goto error;
 			}
 
-			this->terminal_map[tal_id] = atoi(spot_id.c_str());
+			this->terminal_map[tal_id] = spot_id;
 		}
 		// add spot to the list 
-		spot_list.push_back(atoi(spot_id.c_str()));
+		this->spots[spot_id] = NULL;
 	}
 
 
@@ -199,7 +203,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 
 	// get the packet types
 	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
-		                     encap_schemes,
+	                         encap_schemes,
 	                         encap_nbr))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -210,8 +214,8 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 
 	// get all the encapsulation to use from lower to upper
 	if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-		                     encap_schemes, POSITION, 
-		                     toString(encap_nbr - 1),
+	                         encap_schemes, POSITION,
+	                         toString(encap_nbr - 1),
 	                         ENCAP_NAME, encap_name))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -426,6 +430,25 @@ bool DvbChannel::doSendStats(void)
 }
 
 
+DvbChannel *DvbChannel::getSpot(spot_id_t spot_id) const
+{
+	map<spot_id_t, DvbChannel *>::const_iterator spot_it;
+
+	spot_it = this->spots.find(spot_id);
+	if(spot_it == this->spots.end())
+	{
+		// TODO log receive ?
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "spot %d does not exist\n",
+		    spot_id);
+		return NULL;
+
+		return NULL;
+	}
+	return (*spot_it).second;
+}
+
+
 //****************************************************//
 //                   DVB  UPWARD                      // 
 //****************************************************//
@@ -509,7 +532,8 @@ bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
 	return status;
 }
 
-bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame, uint8_t carrier_id)
+bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
+                                         uint8_t carrier_id)
 {
 	if(!dvb_frame)
 	{

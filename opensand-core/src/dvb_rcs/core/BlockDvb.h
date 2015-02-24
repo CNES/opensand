@@ -112,6 +112,12 @@ class DvbChannel
 
 	virtual ~DvbChannel()
 	{
+		map<spot_id_t, DvbChannel *>::iterator spot_iter;
+		for(spot_iter = this->spots.begin(); 
+		    spot_iter != this->spots.end(); ++spot_iter)
+		{
+			delete (*spot_iter).second;
+		}
 	};
 
  protected:
@@ -121,7 +127,7 @@ class DvbChannel
 	 *
 	 * @return true en success, false otherwise
 	 */
-	bool initMap(void);
+	bool initSpotMaps(void);
 	
 	/**
 	 * @brief Read the satellite type
@@ -251,6 +257,14 @@ class DvbChannel
 	 */
 	bool doSendStats(void);
 
+	/**
+	 * @brief Get a spot with its spot_id
+	 *
+	 * @param spot_id  The spot id
+	 * @return the spot if found, NULL otherwise
+	 */
+	DvbChannel *getSpot(spot_id_t spot_id) const;
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -279,11 +293,12 @@ class DvbChannel
 	OutputLog *log_receive_channel;
 	OutputLog *log_send_channel;
 
-	//map
-	map<int, spot_id_t> carrier_map;
-	map<int, spot_id_t> terminal_map;
-
-	list<spot_id_t> spot_list;
+	/// The spots
+	map<spot_id_t, DvbChannel *> spots;
+	/// The spot associated with each carrier
+	map<unsigned int, spot_id_t> carrier_map;
+	/// The spot associated with each terminal
+	map<tal_id_t, spot_id_t> terminal_map;
 
 	
  private:
@@ -325,9 +340,7 @@ class BlockDvb: public Block
 			RtChannel(bl, upward_chan)
 		{};
 
-
 		~DvbUpward();
-
 	};
 
 	class DvbDownward: public DvbChannel, public RtChannel
@@ -340,7 +353,6 @@ class BlockDvb: public Block
 			dvb_scenario_refresh(-1)
 		{
 		};
-
 
 	 protected:
 		/**

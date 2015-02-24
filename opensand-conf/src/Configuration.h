@@ -59,7 +59,6 @@ using namespace std;
  * @brief GLobal interface for configuration file reading
  *
  * At startup, the whole configuration files contents are loaded in memory
- * On msg_init event, each bloc gets its parameters from the config\n
  *
  * XML format:
  * <?xml version="1.0" encoding="UTF-8"?>
@@ -72,6 +71,25 @@ using namespace std;
  *     </table>
  *     <!-- key description -->
  *     <key>val</key>
+ *    </section>
+ *   <!-- section with spots -->
+ *   <section>
+ *     <spot id="SPOT_ID1">
+ *       <!-- table in spot -->
+ *       <table>
+ *         <line param1="val1" param2="val2" />
+ *       </table>
+ *       <!-- key in spot -->
+ *       <key>val</key>
+ *     </spot>
+ *     <spot id="SPOT_ID2">
+ *       <!-- table in spot -->
+ *       <table>
+ *         <line param1="val1" param2="val2" />
+ *       </table>
+ *       <!-- key in spot -->
+ *       <key>val</key>
+ *      </spot>
  *    </section>
  *  </configuration>
  */

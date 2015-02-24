@@ -51,22 +51,6 @@ using namespace std;
  * @class ConfigurationFile
  * @brief Reading parameters from a configuration file
  *
- * At startup, the whole configuration files contents are loaded in memory
- * On msg_init event, each bloc gets its parameters from the config\n
- *
- * XML format:
- * <?xml version="1.0" encoding="UTF-8"?>
- * <configuration component='compo'>
- *   <!-- section description -->
- *   <section>
- *     <!-- table and parameters description -->
- *     <table>
- *       <line param1="val1" param2="val2" />
- *     </table>
- *     <!-- key description -->
- *     <key>val</key>
- *    </section>
- *  </configuration>
  */
 class ConfigurationFile
 {
@@ -491,7 +475,7 @@ inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterat
 }
 
 /* only write this specialization because it will be called by the other one
- * and we should not surccharge a specialization */
+ * and we should not surcharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<bool>(ConfigurationList list,
                                                     const char *id,
@@ -574,7 +558,7 @@ inline bool ConfigurationFile::getAttributeValue<stringstream>(ConfigurationList
 }
 
 /* only write this specialization because it will be called by the other one
- * and we should not surccharge a specialization */
+ * and we should not surcharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
                                                        const char *id,
