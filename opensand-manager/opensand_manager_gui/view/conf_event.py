@@ -54,7 +54,7 @@ class ConfEvent(ConfView) :
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
-        # spot tablei
+        # spot table
         self._tab_spot = ["1", "2", "3"]
         self._free_spot = copy.deepcopy(self._tab_spot)
         config = self._model.get_conf().get_configuration()
@@ -346,6 +346,7 @@ class ConfEvent(ConfView) :
         if len(self._free_spot) > 0:
             self._free_spot.remove(self._free_spot[0])
             self.enable_conf_buttons()
+        self._update_spot = True
         
         
     def on_remove_spot_clicked(self, source=None, event=None):
@@ -356,6 +357,7 @@ class ConfEvent(ConfView) :
         if spot != "":
             self._free_spot.append(spot)
             self.enable_conf_buttons()
+        self._update_spot = True
 
    
     def update_button_state(self):
@@ -524,11 +526,9 @@ class ConfEvent(ConfView) :
         for key in self._tab_spot:
             # remove spot
             if key in self._free_spot and key in old_spots:
-                print "remove",key
                 manager.remove_spot(key)
             # add spot
             elif not key in old_spots and not key in self._free_spot:
-                print "add",key
                 manager.add_spot(key)
 
 
@@ -561,6 +561,7 @@ class ConfEvent(ConfView) :
                 self.on_save_conf_clicked()
             else:
                 try:
+                    self.on_undo_conf_clicked()
                     self.update_view()
                 except ConfException as msg:
                     error_popup(str(msg))

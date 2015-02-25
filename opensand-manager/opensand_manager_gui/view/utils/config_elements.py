@@ -320,7 +320,9 @@ class ConfigurationTree(gtk.TreeStore):
         if col2_toggled_cb is not None:
             self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
 
-        column = gtk.TreeViewColumn(col1_title, cell_renderer, text=TEXT)
+        column = gtk.TreeViewColumn(col1_title, 
+                                    cell_renderer, 
+                                    text=TEXT)
         column.set_resizable(True)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 
@@ -435,14 +437,16 @@ class ConfigurationTree(gtk.TreeStore):
             self.set(top_elt, TEXT, top_name,
                               VISIBLE, False,
                               ACTIVE, False,
-                              ACTIVATABLE, False)
+                              ACTIVATABLE, False,
+                               4, True)
 
         if parents:
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
                                VISIBLE, False,
                                ACTIVE, False,
-                               ACTIVATABLE, False)
+                               ACTIVATABLE, False,
+                               4, True )
 
     def del_elem(self, name):
         """ remove a host from the treeview """
@@ -1580,8 +1584,6 @@ class ManageSpot:
                                         tab_multicast_used.append(element.get(att))
                                     continue
 
-        print "used", tab_multicast_used
-        print "free", tab_multicast
 
         # update topology carrier value according to spor value
         for section in sections:

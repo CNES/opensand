@@ -86,9 +86,12 @@ class ConfView(WindowView):
 
         self._timeout_id = None
 
+        self._update_spot = False
+
     def update_view(self):
         """ update the configuration view according to model
             (should be used with gobject.idle_add outside gtk handlers) """
+        self._update_spot = False
         # main config parameters
         config = self._model.get_conf()
         # payload_type
@@ -230,6 +233,9 @@ class ConfView(WindowView):
         """ check if the configuration was modified by user
             (used in callback so no need to use locks) """
         try:
+            if self._update_spot:
+                return True
+
             config = self._model.get_conf()
             # payload_type
             widget = self._ui.get_widget(config.get_payload_type())

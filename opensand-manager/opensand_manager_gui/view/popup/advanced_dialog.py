@@ -137,9 +137,6 @@ class AdvancedDialog(WindowView):
             self._enabled.append(host)
 
         # add the global configuration
-        """gobject.idle_add(self._host_tree.add_host, self._model,
-                         {}, priority=gobject.PRIORITY_HIGH_IDLE)"""
-       
         self._host_tree.add_host(self._model,{})
 
         host = self._model.get_host(self._model.get_name())
@@ -648,6 +645,10 @@ class AdvancedDialog(WindowView):
         """ The see all sections checkbutton has been toggled """
         self._show_hidden = not self._show_hidden
         self._host_tree.set_hidden(not self._show_hidden)
+        
+        for host_name in self._modules_tree:
+            self._modules_tree[host_name].set_hidden(not self._show_hidden)
+        
         for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()
             if adv is None:
