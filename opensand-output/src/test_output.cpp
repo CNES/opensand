@@ -112,6 +112,7 @@ int main(int argc, char* argv[])
 		   &float_val, &double_val, &action) < 9)
 		{
 				puts("quit");
+				fflush(stdout);
 				return 0;
 		}
 
