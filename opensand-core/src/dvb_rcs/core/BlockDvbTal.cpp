@@ -133,8 +133,7 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	probe_st_l2_to_sat_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
 	l2_to_sat_total_bytes(0),
-	probe_st_l2_to_sat_total(NULL),
-	probe_st_l2_from_sat(NULL)
+	probe_st_l2_to_sat_total()
 {
 }
 
@@ -1743,7 +1742,7 @@ void BlockDvbTal::Downward::updateStats(void)
 			fifo_stat.in_length_bytes * 8 /
 			this->stats_period_ms);
 		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
-			fifo_stat.out_length_bytes* 8 /
+			fifo_stat.out_length_bytes * 8 /
 			this->stats_period_ms);
 
 		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
@@ -1955,6 +1954,7 @@ BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	group_id(),
 	tal_id(),
 	state(state_initializing),
+	//scpc_tal_pkt_hdl(NULL),
 	probe_st_l2_from_sat(NULL),
 	probe_st_real_modcod(NULL),
 	probe_st_received_modcod(NULL),
@@ -2050,6 +2050,16 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->receptionStd = new DvbS2Std(this->pkt_hdl);
+	/*
+	if(!this->initPktHdl("GSE",
+	                     &this->scpc_tal_pkt_hdl, true))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed get packet handler for SCPC\n");
+		     goto error;
+	}
+
+	*/
 	if(this->receptionStd == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2087,6 +2097,7 @@ bool BlockDvbTal::Upward::initOutput(void)
 	this->probe_st_l2_from_sat =
 		Output::registerProbe<int>("Throughputs.L2_from_SAT",
 		                           "Kbits/s", true, SAMPLE_AVG);
+	this->l2_from_sat_bytes = 0;
 	return true;
 }
 
@@ -2094,11 +2105,42 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
+
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
 		{
+			delete dvb_frame;
+			return true;
+			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes 
+			//  is coming from GW)
+			/*
+			delete dvb_frame;
+			return true;
+			BBFrame *frame = dvb_frame->operator BBFrame*();
+			tal_id_t tal_id;
+			// decode the first packet in frame to be able to get source terminal ID
+			if(!this->scpc_tal_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to discard BBframes sent from ST%d to ST%d \n", 
+				    this->mac_id, this->mac_id);
+			}
+			else
+			{
+				if(tal_id == this->mac_id)
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "ignore received BB frame from ST%d in transparent \n"
+					    "scenario\n", this->mac_id);
+					delete dvb_frame;
+					return true;
+			
+				}
+			}
+			*/
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->receptionStd;
 
@@ -2341,19 +2383,14 @@ void BlockDvbTal::Upward::updateStats(void)
 
 	this->probe_st_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8 / this->stats_period_ms);
-
+	this->l2_from_sat_bytes = 0;
 	// send all probes
 	// in upward because this block has less events to handle => more time
 	Output::sendProbes();
 
 	// reset stat context for next frame
-	this->resetStatsCxt();
 }
 
-void BlockDvbTal::Upward::resetStatsCxt(void)
-{
-	this->l2_from_sat_bytes = 0;
-}
 
 
 

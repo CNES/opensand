@@ -175,7 +175,6 @@ class BlockDvbTal: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
 
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
@@ -187,6 +186,9 @@ class BlockDvbTal: public BlockDvb
 
 		/// the current state of the ST
 		tal_state_t state;
+
+		/// The up/return packet handler for SCPC
+		//EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;
 
 		/* Output probes and stats */
 			// Rates
@@ -439,8 +441,6 @@ class BlockDvbTal: public BlockDvb
 				// PHY to SAT
 		Probe<int> *probe_st_phy_to_sat;
 				// Layer 2 from SAT
-		Probe<int> *probe_st_l2_from_sat;
-		int l2_from_sat_bytes;
 	};
 
  protected:

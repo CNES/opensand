@@ -1990,8 +1990,6 @@ void BlockDvbNcc::Downward::updateStats(void)
 		this->probe_gw_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
 		this->probe_gw_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}
-
-
 	this->probe_gw_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
 	
@@ -2279,7 +2277,7 @@ bool BlockDvbNcc::Upward::initMode(void)
 		                     &this->scpc_pkt_hdl, true))
 		{
 		    LOG(this->log_init, LEVEL_ERROR,
-			    "failed get packet handler\n");
+			    "failed get packet handler for SCPC\n");
 				goto error;
 		}
 	
@@ -2384,18 +2382,31 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		// burst
 		case MSG_TYPE_BBFRAME:
 		{
-			// ignore BB frames in transparent scenario
+			// Ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
-			//  TODO: With multispot, this should be resolved (no need to test if getType == RCS)
-			if(this->receptionStd->getType() == "DVB-RCS")
+			
+			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes is coming from GW)
+			BBFrame *frame = dvb_frame->operator BBFrame*();
+			tal_id_t tal_id;
+			// decode the first packet in frame to be able to get source terminal ID
+			if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(), tal_id))
 			{
-				LOG(this->log_receive, LEVEL_WARNING,
-				    "ignore received BB frame in transparent "
-				    "scenario\n");
-
-				//goto drop;
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to discard BBframes sent from GW to GW\n");
 			}
+			else
+			{
+				if(tal_id == GW_TAL_ID)
+				{
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "ignore received BB frame from GW in transparent "
+					    "scenario\n");
+					goto drop;
+				}
+			}
+
 			NetBurst *burst = NULL;
 			//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
 			// Update stats
@@ -2639,9 +2650,9 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	return true;
 
-//drop:
-//	delete dvb_frame;
-//	return true;
+drop:
+	delete dvb_frame;
+	return true;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
