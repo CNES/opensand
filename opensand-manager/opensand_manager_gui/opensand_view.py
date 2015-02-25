@@ -334,6 +334,7 @@ class View(WindowView):
                         self._eventconf.on_save_conf_clicked()
                     else:
                         self._eventconf.update_view()
+                        self._eventconf.update_button_state()
             except Exception, msg:
                 self._log.warning("error when trying to check if configuration "
                                   "was modified: " + str(msg))
@@ -422,6 +423,7 @@ class View(WindowView):
         # reload the configuration
         try:
             self._eventconf.update_view()
+            self._eventconf.update_button_state()
         except ConfException as msg:
             error_popup(str(msg))
         finally:
@@ -468,6 +470,7 @@ class View(WindowView):
         self._eventprobe.scenario_changed()
         try:
             self._eventconf.update_view()
+            self._eventconf.update_button_state()
         except ConfException as msg:
             error_popup(str(msg))
         finally:
@@ -492,6 +495,7 @@ class View(WindowView):
         # reload the configuration
         try:
             self._eventconf.update_view()
+            self._eventconf.update_button_state()
         except ConfException as msg:
             error_popup(str(msg))
         finally:
@@ -520,6 +524,7 @@ class View(WindowView):
         # reload the configuration
         try:
             self._eventconf.update_view()
+            self._eventconf.update_button_state()
         except ConfException as msg:
             error_popup(str(msg))
 

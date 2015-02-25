@@ -35,6 +35,7 @@
 environment_plane.py - controller for environment plane
 """
 
+from opensand_manager_core.utils import MAX_DATA_LENGHT
 from opensand_manager_core.model.environment_plane import Program
 from opensand_manager_core.model.host import InitStatus
 from tempfile import TemporaryFile
@@ -236,7 +237,7 @@ class EnvironmentPlaneController(object):
             gobject.idle_add(self._transfer_unzip)
             return False
 
-        to_read = min(self._transfer_remaining, 4096)
+        to_read = min(self._transfer_remaining, MAX_DATA_LENGHT)
         data = transfer_socket.recv(to_read)
         self._transfer_remaining -= len(data)
 
@@ -277,8 +278,8 @@ class EnvironmentPlaneController(object):
         Called when a packet is received on the socket. Decodes and interprets
         the message.
         """
-        packet, addr = self._sock.recvfrom(4096)
-        if len(packet) > 4096:
+        packet, addr = self._sock.recvfrom(MAX_DATA_LENGHT)
+        if len(packet) > MAX_DATA_LENGHT:
             self._log.warning("Too many data received from collector, "
                               "we may not be able to parse command")
 

@@ -557,6 +557,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
+			// TODO fwd_fmt_simu by spot
 			tal_id = this->fwd_fmt_simu->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{

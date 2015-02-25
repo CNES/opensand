@@ -289,6 +289,15 @@ class Model:
                             "for host with instance %s: %s" % (instance,
                                                                str(msg)))
 
+    def save(self):
+        self._config.save()
+        self._topology.write()
+        for host in self._hosts:
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            config.write()
+
+
     def close(self):
         """ release the model """
         # keep current scenario if running

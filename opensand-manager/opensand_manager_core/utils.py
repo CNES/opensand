@@ -46,6 +46,8 @@ COL_BLUE="\033[34m"
 COL_BOLD="\033[1m"
 COL_END="\033[0m"
 
+MAX_DATA_LENGHT = 8192
+
 # host
 GW  = "gw"
 ST  = "st"

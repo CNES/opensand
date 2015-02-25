@@ -1505,14 +1505,11 @@ class ManageSpot:
                          config.add_spot("//"+section.tag, spot_id) 
                          break
         
-            config.write()
-            
         for section in self._config.get_sections():
             for child in section.getchildren():
                 if child.tag ==  SPOT:
                     self._config.add_spot("//"+section.tag, spot_id) 
                     break
-        self._config.write()
     
         for section in self._model.get_topology().get_sections():
             for child in section.getchildren():
@@ -1521,7 +1518,6 @@ class ManageSpot:
                     break
 
         self.update_topology(spot_id)
-        self._model._topology.write()
 
 
 
@@ -1534,7 +1530,6 @@ class ManageSpot:
                      if child.tag ==  SPOT:
                          config.remove_spot("//"+section.tag, spot_id) 
                          break
-            config.write()
 
         for section in self._config.get_sections():
             for child in section.getchildren():
@@ -1542,15 +1537,11 @@ class ManageSpot:
                     self._config.remove_spot("//"+section.tag, spot_id) 
                     break
 
-        self._config.write()
-
         for section in self._model.get_topology().get_sections():
             for child in section.getchildren():
                 if child.tag ==  SPOT:
                     self._model.get_topology().remove_spot("//"+section.tag, spot_id) 
                     break
-
-        self._model._topology.write()
 
 
     def update_topology(self, spot_id):
@@ -1589,6 +1580,8 @@ class ManageSpot:
                                         tab_multicast_used.append(element.get(att))
                                     continue
 
+        print "used", tab_multicast_used
+        print "free", tab_multicast
 
         # update topology carrier value according to spor value
         for section in sections:

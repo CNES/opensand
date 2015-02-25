@@ -79,6 +79,8 @@ MSG_MGR_SET_LOG_LEVEL = 61
 MSG_MGR_SET_LOGS_STATUS = 62
 MSG_MGR_SET_SYSLOG_STATUS = 63
 
+MAX_DATA_LENGHT = 8192
+
 
 class MessagesHandler(object):
     """
@@ -141,8 +143,8 @@ class MessagesHandler(object):
         """
         self._time = time()
 
-        packet, addr = self._sock.recvfrom(8192)
-        if len(packet) > 8192:
+        packet, addr = self._sock.recvfrom(MAX_DATA_LENGHT)
+        if len(packet) > MAX_DATA_LENGHT:
             LOGGER.warning("Too many data received from daemon, "
                            "we may not be able to parse command")
 
@@ -538,8 +540,8 @@ class MessagesHandler(object):
         for probe_id, name, unit, storage_type, enabled, displayed in probes:
             storage_type |= enabled << 7
             storage_type |= displayed << 6
-            if len(content) + header_length + 4 + len(name) + len(unit) > 4096 \
-               or probe_nbr >= 255:
+            if len(content) + header_length + 4 + len(name) + len(unit) > \
+              MAX_DATA_LENGHT or probe_nbr >= 255:
                 # max size, send a first register message
                 message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
                                       host_ident, prog_ident, probe_nbr,
@@ -560,7 +562,7 @@ class MessagesHandler(object):
             content += unit
 
         for log_id, ident, level in logs:
-            if len(content) + header_length + 3 + len(ident) > 4096 or \
+            if len(content) + header_length + 3 + len(ident) > MAX_DATA_LENGHT or \
                log_nbr >= 255:
                 # max size, send a first register message
                 message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
