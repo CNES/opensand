@@ -46,7 +46,8 @@ from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
 
-(TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
+(TEXT, VISIBLE_CHECK_BOX, CHECK_BOX_SIZE, ACTIVE, \
+ ACTIVATABLE, VISIBLE, RESTRICTED) = range(7)
 (DISPLAYED, NAME, ID, SIZE) = range(4)
 
 
@@ -276,17 +277,19 @@ class ProbeSelectionController(object):
 
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
-    def __init__(self, treeview, col1_title, col2_title,
-                 col1_changed_cb, col2_toggled_cb):
-        # create a treestore with 4 properties
+    def __init__(self, treeview, col1_title, col1_changed_cb, col1_toggled):
+        # create a treestore with 7 properties
         # - text: the text of the 1st column
-        # - visible: is the check box of the 2nd column visible
-        # - active: is the check box of the 2nd column active
+        # - visible: is the check box visible
+        # - int: the checkbox size (used to hide the checkbox on sections while
+        #        keeping the alignment)
+        # - activate : the check box s activate 
         # - activatable: can we activate the check box of the 2nd column
-        # - visible: is all the element is visible
-        # - restricted: is all the element is restricted
+        # - visible: the element is visible
+        # - restricted: the element is restricted
         gtk.TreeStore.__init__(self, gobject.TYPE_STRING,
                                      gobject.TYPE_BOOLEAN,
+                                     gobject.TYPE_INT,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
@@ -305,36 +308,24 @@ class ConfigurationTree(gtk.TreeStore):
         self._hidden_row = []
         self._restriction_row = []
         
-        self.load(col1_title, col2_title, col1_changed_cb,
-                  col2_toggled_cb)
-
-    def load(self, col1_title, col2_title,
-             col1_changed_cb, col2_toggled_cb):
         """ load the treestore """
-        cell_renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn(col1_title)
+        if not col1_toggled is None:
+            cell_renderer = gtk.CellRendererToggle()
+            column.pack_start(cell_renderer, False)
+            column.set_resizable(True)
+            column.add_attribute(cell_renderer, "visible", VISIBLE_CHECK_BOX)
+            column.add_attribute(cell_renderer, "active", ACTIVE)
+            column.add_attribute(cell_renderer, "indicator-size", CHECK_BOX_SIZE) 
+            column.add_attribute(cell_renderer, "activatable", ACTIVATABLE)
+            cell_renderer.connect("toggled", col1_toggled)
         
-        # Connect check box on the treeview
-        self._cell_renderer_toggle = gtk.CellRendererToggle()
-        self._cell_renderer_toggle.set_active(True)
-        self._cell_renderer_toggle.set_activatable(True)
-        if col2_toggled_cb is not None:
-            self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
-
-        column = gtk.TreeViewColumn(col1_title, 
-                                    cell_renderer, 
-                                    text=TEXT)
-        column.set_resizable(True)
-        #column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
-        column_toggle = gtk.TreeViewColumn(col2_title,
-                                           self._cell_renderer_toggle,
-                                           visible=VISIBLE, active=ACTIVE,
-                                           activatable=ACTIVATABLE)
-        column_toggle.set_resizable(True)
-        #column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
+        cell_renderer = gtk.CellRendererText()
+        column.pack_start(cell_renderer, True)
+        column.add_attribute(cell_renderer, "text", TEXT)
+        column.add_attribute(cell_renderer, "visible", VISIBLE)
+        
         self._treeview.append_column(column)
-        self._treeview.append_column(column_toggle)
 
         # add a column to avoid large toggle column
         col = gtk.TreeViewColumn('')
@@ -364,10 +355,12 @@ class ConfigurationTree(gtk.TreeStore):
         # for tools and global in advanced configuration
         if elt_info is not None:
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE, False,
+                              VISIBLE_CHECK_BOX, False,
+                              CHECK_BOX_SIZE, 1,
                               ACTIVE, False,
-                              ACTIVATABLE, False,
-                                4, True)
+                              ACTIVATABLE, True,
+                              VISIBLE, True, 
+                              RESTRICTED, False)
             for sub_name in elt_info.keys():
                 activatable = True
                 sub_iter = self.append(top_elt)
@@ -376,10 +369,12 @@ class ConfigurationTree(gtk.TreeStore):
                     activatable = False
                 if not isinstance(elt_info[sub_name], list):
                     self.set(sub_iter, TEXT, sub_name,
-                                       VISIBLE, True,
+                                       VISIBLE_CHECK_BOX, True,
+                                       CHECK_BOX_SIZE, 12,  
                                        ACTIVE, False,
                                        ACTIVATABLE, activatable,
-                                        4, True)   
+                                       VISIBLE, True, 
+                                       RESTRICTED, False)
         else:
             # for advanced host
             # only set host activatable if developper mode is enabled
@@ -387,12 +382,15 @@ class ConfigurationTree(gtk.TreeStore):
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE, True,
+                              VISIBLE_CHECK_BOX, active,
+                              CHECK_BOX_SIZE, 12,
                               ACTIVE, active,
                               ACTIVATABLE, True,
-                                4, True)
+                              VISIBLE, True,
+                              RESTRICTED, False)
+        
 
-    def add_child(self, name, parent_name, visible, parents=False):
+    def add_child(self, name, parent_name, hidden, parents=False):
         """ add a module in the module tree """
         top_elt = None
         if parents:
@@ -405,20 +403,25 @@ class ConfigurationTree(gtk.TreeStore):
             if parents:
                 top_name = parent_name
             self.set(top_elt, TEXT, top_name,
-                              VISIBLE, False,
+                              VISIBLE_CHECK_BOX, False,
+                              CHECK_BOX_SIZE, 1,
                               ACTIVE, False,
-                              ACTIVATABLE, False,
-                              4, True )
+                              ACTIVATABLE, True,
+                              VISIBLE, True ,
+                              RESTRICTED, False)
 
         if parents:
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
-                               VISIBLE, False,
+                               VISIBLE_CHECK_BOX, False,
+                               CHECK_BOX_SIZE, 1,
                                ACTIVE, False,
-                               ACTIVATABLE, False,
-                               4 , not visible)
-            if visible :
+                               ACTIVATABLE, not hidden,
+                               VISIBLE , not hidden,
+                               RESTRICTED, False)
+            if hidden :
                 self._hidden_row.append(sub_iter)
+
 
     def add_module(self, module, parents=False):
         """ add a module in the module tree """
@@ -435,18 +438,20 @@ class ConfigurationTree(gtk.TreeStore):
             if parents:
                 top_name = module.get_type()
             self.set(top_elt, TEXT, top_name,
-                              VISIBLE, False,
+                              VISIBLE_CHECK_BOX, False,
                               ACTIVE, False,
-                              ACTIVATABLE, False,
-                               4, True)
+                              ACTIVATABLE, True,
+                              VISIBLE, True,
+                              RESTRICTED, False)
 
         if parents:
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
-                               VISIBLE, False,
+                               VISIBLE_CHECK_BOX, False,
                                ACTIVE, False,
-                               ACTIVATABLE, False,
-                               4, True )
+                               ACTIVATABLE, True,
+                               VISIBLE, True,
+                               RESTRICTED, False)
 
     def del_elem(self, name):
         """ remove a host from the treeview """
@@ -474,13 +479,15 @@ class ConfigurationTree(gtk.TreeStore):
         for row in self._hidden_row:
             path = self.get_path(row)
             #visible is not (restricted or hide)
-            self[path][4] = not hidden #or self[path][5])
+            self[path][VISIBLE] = not hidden 
+            self[path][ACTIVATABLE] = not hidden
         # show all restiction
         if not hidden :
             for row in self._restriction_row:
                 path = self.get_path(row)
                 #visible is not (restricted or hide)
-                self[path][4] = not hidden #or self[path][5])
+                self[path][VISIBLE] = not hidden 
+                self[path][ACTIVATABLE] = not hidden
         
         iterator = self.get_iter_first()
         self.is_children_visible(iterator)
@@ -492,10 +499,10 @@ class ConfigurationTree(gtk.TreeStore):
             if iterator is not None:
                 self._restriction_row.append(iterator)
                 path = self.get_path(iterator)
-                self[path][5] = rows[row]
+                self[path][RESTRICTED] = rows[row]
                 #visible is not restricted and not hide (visible)
-                """self[path][4] = self[path][4] and not self[path][5]"""
-                self[path][4] = not self[path][5]
+                self[path][VISIBLE] = not self[path][RESTRICTED]
+                self[path][ACTIVATABLE] = not self[path][RESTRICTED]
         
         iterator = self.get_iter_first()
         self.is_children_visible(iterator)
@@ -508,9 +515,10 @@ class ConfigurationTree(gtk.TreeStore):
                 first_child = self.iter_children(iterator)
                 visible = self.is_children_visible(first_child)
                 list_vis_child.append(visible)
-                self[path][4] = visible
+                self[path][VISIBLE] = visible
+                self[path][ACTIVATABLE] = visible
             else:
-                list_vis_child.append(self[path][4])
+                list_vis_child.append(self[path][VISIBLE])
             iterator = self.iter_next(iterator)
         if True in list_vis_child:
             return True

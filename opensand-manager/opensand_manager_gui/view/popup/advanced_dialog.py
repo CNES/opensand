@@ -46,7 +46,8 @@ from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection
 
-(TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
+(TEXT, VISIBLE_CHECK_BOX, CHECK_BOX_SIZE, ACTIVE, \
+ ACTIVATABLE, VISIBLE, RESTRICTED) = range(7)
 
 class AdvancedDialog(WindowView):
     """ an advanced configuration window """
@@ -129,7 +130,7 @@ class AdvancedDialog(WindowView):
         host_config.add_with_viewport(self._host_conf_view)
 
         treeview = self._ui.get_widget('hosts_selection_tree')
-        self._host_tree = ConfigurationTree(treeview, 'Host', 'Enabled',
+        self._host_tree = ConfigurationTree(treeview, 'Host', 
                                             self.on_host_selected,
                                             self.toggled_cb)
         for host in [elt for elt in self._model.get_hosts_list()
@@ -237,6 +238,7 @@ class AdvancedDialog(WindowView):
                                          host.get_name().upper(),
                                          config.do_hide(name), True)
 
+
                         for key in config.get_keys(section):
                             if key.tag == SPOT:
                                 gobject.idle_add(self._host_tree.add_child,
@@ -264,8 +266,7 @@ class AdvancedDialog(WindowView):
             # new host, add a module tree
             treeview = gtk.TreeView()
             self._modules_tree[host_name] = \
-                    ConfigurationTree(treeview, 'Plugin', '',
-                                      self.on_module_selected, None)
+                    ConfigurationTree(treeview, 'Plugin',                                                               self.on_module_selected, None)
             self._modules_name[host_name] = []
         tree =  self._modules_tree[host_name]
 
@@ -429,7 +430,7 @@ class AdvancedDialog(WindowView):
         if adv is not None:
             config = adv.get_configuration()
         if config is None:
-            tree.set(iterator, ACTIVATABLE, False, ACTIVE, False)
+            tree.set(iterator, ACTIVATABLE, False, VISIBLE, False)
             self._host_conf_view.hide_all()
             return
         
@@ -531,6 +532,9 @@ class AdvancedDialog(WindowView):
         self._modules_conf_view.show_all()
 
     def toggled_cb(self, cell, path):
+        
+        path = self.update_path(path)
+        
         """ enable host toggled callback """
         # modify ACTIVE property
         curr_iter = self._host_tree.get_iter_from_string(path)
@@ -548,6 +552,30 @@ class AdvancedDialog(WindowView):
             self._enabled.remove(host)
 
         self._ui.get_widget('apply_advanced_conf').set_sensitive(True)
+
+    def update_path(self, path):
+        propagate = False
+        next_iter = None
+        connection_map = {}
+        tree_iter = self._host_tree.get_iter_first()
+        propagate = False
+        while not tree_iter is None:
+            host_path = self._host_tree.get_path(tree_iter)
+            hide = not self._host_tree.get_value(tree_iter, VISIBLE)
+
+            if hide or propagate: 
+                next_iter = self._host_tree.iter_next(tree_iter)
+                if next_iter is None:
+                    break
+                next_path = self._host_tree.get_path(next_iter)
+                connection_map[str(host_path[0])] = str(next_path[0])
+                propagate = True
+            else:
+                connection_map[str(host_path[0])] = str(host_path[0])
+            tree_iter = self._host_tree.iter_next(tree_iter)
+       
+        return connection_map[path]
+
 
     def on_apply_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on apply button """
@@ -664,12 +692,12 @@ class AdvancedDialog(WindowView):
     def select_enabled(self, tree, path, iterator):
         """ store the saved enabled value in advanced model
             (used in callback so no need to use locks) """
-        tree.set(iterator, ACTIVE, False)
+        tree.set(iterator, VISIBLE, False)
         name = tree.get_value(iterator, TEXT).lower()
         for host in self._enabled:
             if host.get_name() == name:
                 host.enable(True)
-                tree.set(iterator, ACTIVE, True)
+                tree.set(iterator, VISIBLE, True)
 
     def update_restrictions(self):
         """ update the restrictions in configuration """
