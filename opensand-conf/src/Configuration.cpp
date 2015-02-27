@@ -116,7 +116,12 @@ bool Conf::getNbListItems(ConfigurationList section,
 	return global_config.getNbListItems(section, key, (int &)nbr);
 }
 
-
+bool Conf::getListItems(xmlpp::Node *node,
+                        const char *key,
+                        ConfigurationList &list)
+{
+	return global_config.getListItems(node, key, list);
+}
 
 bool Conf::getListItems(ConfigurationList section,
                         const char *key,

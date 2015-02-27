@@ -545,6 +545,20 @@ error:
 
 }
 
+bool ConfigurationFile::getListItems(xmlpp::Node *node,
+                                     const char *key,
+                                     ConfigurationList &list)
+{
+	ConfigurationList list_node;
+	list_node.push_front(node);
+	if(!this->getListItems(list_node, key, list))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool ConfigurationFile::getListItems(ConfigurationList section,
                                      const char *key,
                                      ConfigurationList &list)

@@ -83,15 +83,12 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	{
 		string compo_name = "";
 		component_t host = unknown_compo;
-		ConfigurationList current_spot;
 		ConfigurationList carrier_list ; 
-		xmlpp::Node* spot_node = *iter_spots;
-		current_spot.push_front(spot_node);
 		spot_id_t spot_id = 0;
 		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);
 
 		// get satellite channels from configuration
-		if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
+		if(!Conf::getListItems(*iter_spots, CARRIER_LIST, carrier_list))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s, %s': missing satellite channels\n",

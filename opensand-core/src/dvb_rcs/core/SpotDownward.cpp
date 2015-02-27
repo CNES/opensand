@@ -793,7 +793,6 @@ bool SpotDownward::initFifo(void)
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
 	ConfigurationList spot_list;
-	ConfigurationList current_spot;
 	xmlpp::Node *spot_node = NULL;
 	ConfigurationList::iterator iter_spots;
 
@@ -838,13 +837,12 @@ bool SpotDownward::initFifo(void)
 		return false;
 	}
 	// TODO why ?? overload functions in conf to avoid that
-	current_spot.push_front(spot_node);
 
 	/*
 	 * Read the MAC queues configuration in the configuration file.
 	 * Create and initialize MAC FIFOs
 	 */
-	if(!Conf::getListItems(current_spot,
+	if(!Conf::getListItems(spot_node,
 	                       FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

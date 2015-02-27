@@ -138,10 +138,7 @@ bool BlockDvbSat::initSpots(void)
 
 	for(spot_iter = spot_list.begin(); spot_iter != spot_list.end(); spot_iter++)
 	{
-		xmlpp::Node* node = *spot_iter;
-		ConfigurationList current_spot;
 		ConfigurationList carrier_list ; 
-		current_spot.push_back(node);
 		
 		spot_id_t spot_id = 0;
 		uint8_t ctrl_id = 0;
@@ -175,7 +172,7 @@ bool BlockDvbSat::initSpots(void)
 		}
 
 		// get satellite channels from configuration
-		if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
+		if(!Conf::getListItems(*spot_iter, CARRIER_LIST, carrier_list))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "section '%s/%s%d, %s': missing satellite channels\n",

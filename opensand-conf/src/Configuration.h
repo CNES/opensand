@@ -199,7 +199,7 @@ class Conf
 	/**
 	 * Read the number of elements in a list
 	 *
-	 * @param  section  name of the section
+	 * @param  section  the section
 	 * @param  key      name of the list key
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
@@ -211,7 +211,19 @@ class Conf
 	/**
 	 * Get the elements from the list
 	 *
-	 * @param  section  name of the section
+	 * @param  node     the node
+	 * @param  key      name of the list key
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
+	static bool getListItems(xmlpp::Node *node, 
+	                         const char *key, 
+	                         ConfigurationList &list);
+
+	/**
+	 * Get the elements from the list
+	 *
+	 * @param  section  the section
 	 * @param  key      name of the list key
 	 * @param  list     the list
 	 * @return  true on success, false otherwise
