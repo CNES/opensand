@@ -250,9 +250,9 @@ inline double ncntoh(uint32_t cn)
 // The types used in OpenSAND
 
 // addressing
-typedef uint16_t tal_id_t; ///< Terminal ID (5 bits but 16 needed for simulated terminal)
-typedef uint8_t spot_id_t; ///< Spot ID (5 bits)
-typedef uint8_t qos_t; ///< QoS (3 bits)
+typedef uint16_t tal_id_t;  ///< Terminal ID (5 bits but 16 needed for simulated terminal)
+typedef uint8_t spot_id_t;  ///< Spot ID (5 bits)
+typedef uint8_t qos_t;      ///< QoS (3 bits)
 typedef uint8_t group_id_t; ///< Groupe ID
 
 // TODO check types according to max value

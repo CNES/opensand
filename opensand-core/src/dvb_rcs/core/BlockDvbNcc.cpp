@@ -110,27 +110,27 @@ bool BlockDvbNcc::Downward::onInit(void)
 	const char *scheme;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
-	if(!this->initSpotMaps())
+	if(!this->initSpots())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to init carrier and terminal "
-		    "spot id maps\n");
-		goto error;
+		    "failed to complete the spot "
+		    "initialisation\n");
+		return false;
 	}
-	
+
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the downward common "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
 
 	if(!this->initSatType())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed get satellite type\n");
-		goto error;
+		return false;
 	}
 
 	// get the common parameters
@@ -148,7 +148,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
 
 	// initialize the timers
@@ -165,7 +165,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the files part of the "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
 
 
@@ -192,18 +192,16 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 		result |= spot->onInit();
 	}
+	for(spot_iter = this->spots.begin(); 
+	    spot_iter != this->spots.end(); ++spot_iter)
+						DFLTLOG(LEVEL_ERROR, "spot %p", ((*spot_iter).second));
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
 	                                                          SAMPLE_LAST,
 	                                                          "Perf.Frames_interval");
 
-	// everything went fine
 	return result;
-
-error:
-	return false;
-
 }
 
 bool BlockDvbNcc::Downward::initTimers(void)
@@ -230,7 +228,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
-		goto error;
+		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
@@ -242,9 +240,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	                                                );*/
 
 	return true;
-
-/*error:
-	return false;*/
 }
 
 bool BlockDvbNcc::Downward::initModcodSimu(void)
@@ -255,7 +250,7 @@ bool BlockDvbNcc::Downward::initModcodSimu(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
-		goto error;
+		return false;
 	}
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
 	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
@@ -263,7 +258,7 @@ bool BlockDvbNcc::Downward::initModcodSimu(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD files\n");
-		goto error;
+		return false;
 	}
 
 	// initialize the MODCOD IDs
@@ -272,13 +267,10 @@ bool BlockDvbNcc::Downward::initModcodSimu(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize MODCOD scheme IDs\n");
-		goto error;
+		return false;
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -436,18 +428,20 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
 					map<tal_id_t, spot_id_t>::iterator tal_it;
 					SpotDownward *spot;
-					tal_it = this->terminal_map.find(tal_id);
-					if(tal_it == this->terminal_map.end())
+					tal_it = Conf::terminal_map.find(tal_id);
+					if(tal_it == Conf::terminal_map.end())
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "cannot find terminal %u' spot\n",
 						    tal_id);
-						return false;
+						// handle other packets
+						continue;
 					}
 					spot = dynamic_cast<SpotDownward *>(this->getSpot((*tal_it).second));
 					if(!spot)
 					{
-						return false;
+						// handle other packets
+						continue;
 					}
 
 					if(!spot->handleEncapPacket(*pkt_it))
@@ -456,7 +450,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						    "cannot push burst into fifo\n");
 						burst->clear(); // avoid deteleting packets when deleting burst
 						delete burst;
-						goto error;
+						// handle other packets
+						continue;
 					}
 				}
 				burst->clear(); // avoid deteleting packets when deleting burst
@@ -468,6 +463,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		case evt_timer:
 		{
 			map<spot_id_t, DvbChannel *>::iterator spot_iter;
+			
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
 				"timer event received on downward channel");
@@ -491,14 +487,25 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    spot_iter != this->spots.end(); ++spot_iter)
 				{
 					SpotDownward *spot;
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+					DvbChannel *p = (*spot_iter).second; 
+					// TODO dynamic cast fail
+					//spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+					spot = (SpotDownward *)((*spot_iter).second);
+					if(!spot)
+					{
+						// handle other packets
+						DFLTLOG(LEVEL_ERROR, "spot %d null", ((*spot_iter).first));
+						DFLTLOG(LEVEL_ERROR, "spot %p", p);
+						continue;
+					}
 				
 					// send Start Of Frame
 					this->sendSOF(spot->getSofCarrierId());
 
 					if(!spot->handleFrameTimer(this->super_frame_counter))
 					{
-						return false;
+						// do not quit if this fail in one spot
+						continue;
 					}
 
 					// send TTP computed by DAMA
@@ -518,7 +525,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					this->fwd_frame_counter++;
 					if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
 					{
-						return false;
+						// do not break if this fail in one spot
+						continue;
 					}
 
 					// send the scheduled frames
@@ -528,7 +536,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "failed to build and send DVB/BB "
 						    "frames\n");
-						return false;
+						// do not break if this fail in one spot
+						continue;
 					}
 				}
 			}
@@ -812,9 +821,8 @@ bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 	return true;
 }
 
- void BlockDvbNcc::Downward::updateStats(void)
+void BlockDvbNcc::Downward::updateStats(void)
 {
-
 }
 
 
@@ -839,13 +847,14 @@ bool BlockDvbNcc::Upward::onInit(void)
 	bool result = true;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 	
-	if(!this->initSpotMaps())
+	if(!this->initSpots())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to init carrier and terminal spot id map\n");
+		    "failed to complete the spot "
+		    "initialisation\n");
 		return false;
 	}
-
+	
 	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
@@ -859,6 +868,9 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 		result |= spot->onInit();
 	}
+	for(spot_iter = this->spots.begin(); 
+	    spot_iter != this->spots.end(); ++spot_iter)
+						DFLTLOG(LEVEL_ERROR, "spot %p", ((*spot_iter).second));
 
 	if(result)
 	{

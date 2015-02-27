@@ -90,7 +90,7 @@ void Ethernet::init()
 		return;
 	}
 
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
 		                CONF_SAT_FRAME_TYPE, sat_eth))
@@ -145,7 +145,7 @@ void Ethernet::Context::init()
 		return;
 	}
 
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
 		                CONF_LAN_FRAME_TYPE, lan_eth))
@@ -252,7 +252,7 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 	ConfigurationList evc_list;
 	ConfigurationList::iterator iter;
 	map<string, ConfigurationList> config_section_map;
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 
 		                    CONNECTION_LIST, evc_list))
@@ -368,7 +368,7 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList category_list;
 	ConfigurationList::iterator iter;
 	map<string, ConfigurationList> config_section_map;
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	// Traffic flow categories
 	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 

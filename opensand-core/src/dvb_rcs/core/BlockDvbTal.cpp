@@ -1,3 +1,4 @@
+
 /*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
@@ -179,13 +180,6 @@ bool BlockDvbTal::Downward::onInit(void)
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
 
-	if(!this->initSpotMaps())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to init carrier and terminal spot id map\n");
-		goto error;
-	}
-
 	// get the common parameters
 	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
@@ -283,9 +277,10 @@ error:
 
 bool BlockDvbTal::Downward::initCarrierId(void)
 {
-	//**********************************************
+	// TODO do that in a specific function and simplify !!
+	//      the configuration is maybe not really easy for this need
+
 	// get current spot id withing sat switching table
-	//**********************************************
 	ConfigurationList sat_switch_section = Conf::section_map[SAT_SWITCH_SECTION];
 	ConfigurationList spot_list;
 	ConfigurationList::iterator spot_iter;
@@ -299,6 +294,9 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
+	
+	this->spot_id = Conf::terminal_map[this->mac_id];
+	DFLTLOG(LEVEL_ERROR, "spot id :%d", this->spot_id);
 	bool find_spot = false;
 	for(spot_iter = spot_list.begin(); (spot_iter != spot_list.end()) 
 		&& !find_spot ; spot_iter++)
@@ -318,6 +316,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 			    SAT_SWITCH_SECTION, SPOT_LIST);
 		}
 
+		// TODO !
 		for(t_id_iter = term_ids.begin() ; (t_id_iter != term_ids.end()) 
 			&& !find_spot; t_id_iter++)
 		{
@@ -336,14 +335,13 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 				this->spot_id = atoi(element->get_attribute(SPOT_ID)
 				                   ->get_value().c_str());
 				find_spot = true;
+				DFLTLOG(LEVEL_ERROR, "spot id :%d", this->spot_id);
 			}
 		}
 	}
 
 	
-	//**********************************************
 	// get satelite carrier spot configuration 
-	//**********************************************
 	ConfigurationList satcar_section = Conf::section_map[SATCAR_SECTION];
 	ConfigurationList spots;
 	ConfigurationList current_spot;
@@ -358,6 +356,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
+	// TODO !!
 	char s_id[10];
 	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
@@ -380,10 +379,10 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	}
 
 	// check id du spot correspond au id du spot dans lequel est le bloc actuel!
-	for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
+	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
 	{
 
-		string carrier_id;
+		unsigned int carrier_id;
 		string carrier_type;
 		
 		// Get the carrier id
@@ -410,23 +409,22 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		// Get the ID for control carrier
 		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
 		{
-			this->carrier_id_ctrl = atoi(carrier_id.c_str());
+			this->carrier_id_ctrl = carrier_id;
 		}
 		// Get the ID for data carrier
 		else if(strcmp(carrier_type.c_str(), DATA_IN_GW) == 0)
 		{
-			this->carrier_id_data = atoi(carrier_id.c_str());
+			this->carrier_id_data = carrier_id;
 		}
 		// Get the ID for logon carrier
 		else if(strcmp(carrier_type.c_str(), LOGON_IN) == 0)
 		{
-			this->carrier_id_logon = atoi(carrier_id.c_str());
+			this->carrier_id_logon = carrier_id;
 		}
 	}
 
-	//***************************************
 	// Check carrier error
-	//***************************************
+
 	// Control carrier error
 	if(this->carrier_id_ctrl == 0)
 	{
@@ -489,7 +487,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		goto err_fifo_release;
 	}
 
-	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
+	for(iter = fifo_list.begin(); iter != fifo_list.end(); ++iter)
 	{
 		qos_t fifo_priority = 0;
 		vol_pkt_t fifo_size = 0;
@@ -1974,7 +1972,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 			spot_id_t dest_spot = dvb_frame->getSpot();
 
-			if( dest_spot != this->terminal_map[this->mac_id])
+			if( dest_spot != Conf::terminal_map[this->mac_id])
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "receive message for spot %d carrier id %di\n",
@@ -2023,14 +2021,6 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 
 bool BlockDvbTal::Upward::onInit(void)
 {
-	if(!this->initSpotMaps())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to init carrier and terminal "
-		    "spot id map\n");
-		return false;
-	}
-	
 	// get the common parameters
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{

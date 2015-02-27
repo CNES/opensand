@@ -124,12 +124,12 @@ size_t NetContainer::getHeaderLength() const
 	return this->header_length;
 }
 
-void NetContainer::setSpot(uint8_t spot_id)
+void NetContainer::setSpot(spot_id_t spot_id)
 {
 	this->spot = spot_id;
 }
 
-uint8_t NetContainer::getSpot() const
+spot_id_t NetContainer::getSpot() const
 {
 	return this->spot;
 }

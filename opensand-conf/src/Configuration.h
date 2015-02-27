@@ -104,6 +104,16 @@ class Conf
 	 * map between section name and ConfigurationList of section
 	 */ 
 	static map<string, ConfigurationList> section_map;
+	
+	/**
+	 * The spot association with each carrier
+	 */
+	static map<unsigned int, uint8_t> carrier_map;
+
+	/**
+	 * The spot association with each terminal
+	 */ 
+	static map<uint16_t, uint8_t> terminal_map;
 
 	/**
 	 * Load the whole configuration file content into memory
@@ -145,6 +155,7 @@ class Conf
 	 * @param  value    the value
 	 * @return  true on success, false otherwise
 	 */
+	/* TODO is this one used !!?? */
 	template <class T>
 	static bool getValue(ConfigurationList::iterator iter, 
 	                     T &val);

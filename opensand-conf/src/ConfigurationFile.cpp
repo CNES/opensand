@@ -223,7 +223,7 @@ error:
 	return false;
 }
 
-void ConfigurationFile::loadMap(map<string, ConfigurationList> &section_map)
+void ConfigurationFile::loadSectionMap(map<string, ConfigurationList> &section_map)
 {
 	vector<xmlpp::DomParser *>::iterator parser;
 	ConfigurationList childrenList;
@@ -250,8 +250,119 @@ void ConfigurationFile::loadMap(map<string, ConfigurationList> &section_map)
 			if(section_map.find(name) == section_map.end())
 			{
 				this->getSection(name.c_str(), sectionList);
-				section_map[name]=sectionList;
+				section_map[name] = sectionList;
 			}
+		}
+	}
+}
+
+void ConfigurationFile::loadCarrierMap(map<unsigned int, uint8_t> &carrier_map)
+{
+	ConfigurationList section_sat_car;
+	ConfigurationList spots;
+	ConfigurationList::iterator iter_spots;
+
+	if (!getSection(SATCAR_SECTION, section_sat_car))
+	{
+		return;
+	}
+
+	if(!getListNode(section_sat_car, SPOT_LIST, spots))
+	{
+		return;
+	}
+
+	for(iter_spots = spots.begin() ; iter_spots != spots.end() ; ++iter_spots)
+	{
+		ConfigurationList current_spot;
+		ConfigurationList carrier_list;
+		ConfigurationList::iterator iter_carrier;
+		xmlpp::Node* spot_node = *iter_spots;
+		// TODO surcharger pour donner élément symple
+		current_spot.push_front(spot_node);
+		uint8_t spot_id = 0;
+
+		// get current spot id
+		if(!getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		{
+			return;
+		}
+
+		// get spot channel
+		if(!getListItems(current_spot, CARRIER_LIST, carrier_list))
+		{
+			return;
+		}
+
+		// associate channel to spot
+		for(iter_carrier = carrier_list.begin() ; iter_carrier != carrier_list.end() ; 
+		    ++iter_carrier)
+		{
+			int carrier_id = 0;
+
+			//get carrier ID
+			if(!getAttributeValue(iter_carrier, CARRIER_ID, carrier_id))
+			{
+				return;
+			}
+
+			carrier_map[carrier_id] = spot_id;
+		}
+	}
+
+}
+
+void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
+{
+	ConfigurationList section_sat_switch;
+	ConfigurationList spots;
+	ConfigurationList::iterator iter_spots;
+
+	if (!getSection(SAT_SWITCH_SECTION, section_sat_switch))
+	{
+		return;
+	}
+
+	if(!getListNode(section_sat_switch, SPOT_LIST, spots))
+	{
+		return;
+	}
+
+	for(iter_spots = spots.begin() ; iter_spots != spots.end() ; ++iter_spots)
+	{
+		ConfigurationList current_spot;
+		ConfigurationList terminal_list;
+		ConfigurationList::iterator iter_terminal;
+		xmlpp::Node* spot_node = *iter_spots;
+		// TODO surcharger pour donner élément symple
+		current_spot.push_front(spot_node);
+		uint8_t spot_id = 0;
+
+		// get current spot id
+		if(!getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		{
+			return;
+		}
+
+		// get spot channel
+		if(!getListNode(current_spot, TAL_ID, terminal_list))
+		{
+			return;
+		}
+
+		// associate channel to spot
+		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ; 
+		    ++iter_terminal)
+		{
+			uint16_t tal_id = 0;
+
+			//get carrier ID
+			if(!getValue(iter_terminal, tal_id))
+			{
+				return;
+			}
+
+			terminal_map[tal_id] = spot_id;
 		}
 	}
 }

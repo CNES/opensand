@@ -405,7 +405,7 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList::iterator iter;
 
 	map<string, ConfigurationList> config_section_map;
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	// Traffic flow categories
 	if(!config.getListItems(config_section_map[SECTION_MAPPING], 

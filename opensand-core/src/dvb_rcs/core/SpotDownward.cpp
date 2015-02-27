@@ -523,7 +523,7 @@ bool SpotDownward::initCarrierIds(void)
 
 	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
 	{
-		string carrier_id;
+		unsigned int carrier_id;
 		string carrier_type;
 		// Get the carrier id
 		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
@@ -547,18 +547,17 @@ bool SpotDownward::initCarrierIds(void)
 
 		if(strcmp(carrier_type.c_str(), CTRL_IN)==0)
 		{
-			this->ctrl_carrier_id = atoi(carrier_id.c_str());
-			this->sof_carrier_id = atoi(carrier_id.c_str());
+			this->ctrl_carrier_id = carrier_id;
+			this->sof_carrier_id = carrier_id;
 		}
 		else if(strcmp(carrier_type.c_str(), DATA_IN_GW)==0)
 		{
-			this->data_carrier_id = atoi(carrier_id.c_str());
+			this->data_carrier_id = carrier_id;
 		}
 	}
 
-	//***************************************
 	// Check carrier errors
-	//***************************************
+
 	// Control carrier error
 	if(this->ctrl_carrier_id == 0)
 	{

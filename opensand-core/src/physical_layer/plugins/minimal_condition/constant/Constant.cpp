@@ -63,7 +63,7 @@ bool Constant::init(void)
 		goto error;
 	}
 
-	config.loadMap(this->config_section_map);
+	config.loadSectionMap(this->config_section_map);
 
 	if(!config.getValue(this->config_section_map[CONSTANT_SECTION], 
 		                THRESHOLD, this->minimal_cn))

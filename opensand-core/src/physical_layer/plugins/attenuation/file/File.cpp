@@ -73,7 +73,7 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 		return false;
 	}
 
-	config.loadMap(this->config_section_map);
+	config.loadSectionMap(this->config_section_map);
 
 
 	this->refresh_period_ms = refresh_period_ms;

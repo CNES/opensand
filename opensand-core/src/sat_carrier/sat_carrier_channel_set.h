@@ -53,7 +53,7 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 {
  public:
 
-	sat_carrier_channel_set();
+	sat_carrier_channel_set(tal_id_t tal_id);
 	~sat_carrier_channel_set();
 
 	/**
@@ -108,8 +108,6 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 
 	unsigned int getNbChannel();
 
-	void setTalId(tal_id_t id);
-
  private:
 
 	/**
@@ -124,11 +122,12 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 	                const string interface_name,
 	                bool in);
 
+	/// The terminal ID
+	tal_id_t tal_id;
+
 	// Output Log
 	OutputLog *log_init;
 	OutputLog *log_sat_carrier;
-
-	tal_id_t tal_id;
 };
 
 #endif

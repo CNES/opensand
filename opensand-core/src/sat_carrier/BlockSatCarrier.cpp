@@ -171,11 +171,6 @@ bool BlockSatCarrier::Upward::onInit(void)
 	vector<sat_carrier_udp_channel *>::iterator it;
 	sat_carrier_udp_channel *channel;
 
-	if(this->tal_id > 0)
-	{
-		this->in_channel_set.setTalId(this->tal_id);
-	}
-
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr,
 	                                      this->interface_name))
@@ -209,11 +204,6 @@ bool BlockSatCarrier::Upward::onInit(void)
 
 bool BlockSatCarrier::Downward::onInit()
 {
-	if(this->tal_id > 0)
-	{
-		this->out_channel_set.setTalId(this->tal_id);
-	}
-	
 	// initialize all channels from the configuration file
 	if(!this->out_channel_set.readOutConfig(this->ip_addr,
 	                                        this->interface_name))

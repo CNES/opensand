@@ -38,6 +38,8 @@
 
 #include "Data.h"
 
+#include "OpenSandCore.h"
+
 #include <string>
 #include <stdint.h>
 #include <syslog.h>
@@ -66,7 +68,7 @@ class NetContainer
 	size_t trailer_length;
 	
 	/// The destination spot ID
-	uint8_t spot;
+	spot_id_t spot;
 
  public:
 
@@ -168,14 +170,14 @@ class NetContainer
 	 *
 	 * @param spot_id  The destination spot id
 	 */
-	void setSpot(uint8_t spot_id);
+	void setSpot(spot_id_t spot_id);
 
 	/**
 	 * Get the destination spot ID
 	 *
 	 * @return the destination spot ID
 	 */
-	uint8_t getSpot() const;
+	spot_id_t getSpot() const;
 
 };
 

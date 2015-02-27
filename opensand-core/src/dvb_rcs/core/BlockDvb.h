@@ -123,12 +123,12 @@ class DvbChannel
  protected:
 
 	/**
-	 * @brief Initialise Carrier and Terminal spot map
+	 * @brief Create spot list
 	 *
-	 * @return true en success, false otherwise
+	 * @return true on success, false otherwise
 	 */
-	bool initSpotMaps(void);
-	
+	bool initSpots(void);
+		
 	/**
 	 * @brief Read the satellite type
 	 *
@@ -295,10 +295,6 @@ class DvbChannel
 
 	/// The spots
 	map<spot_id_t, DvbChannel *> spots;
-	/// The spot associated with each carrier
-	map<unsigned int, spot_id_t> carrier_map;
-	/// The spot associated with each terminal
-	map<tal_id_t, spot_id_t> terminal_map;
 
 	
  private:

@@ -83,8 +83,19 @@ class ConfigurationFile
 	 * Create a Map with all section ConfigurationList and section name
 	 * @param section_map the map between section name and configurationList
 	 */
-	void loadMap(map<string, ConfigurationList> &section_map);
+	void loadSectionMap(map<string, ConfigurationList> &section_map);
 	
+	/**
+	 * Create a Map which associate carrier id to spot id
+	 * @param carrier_map the map between carrier id and spot id
+	 */
+	void loadCarrierMap(map<unsigned int, uint8_t> &carrier_map);
+
+	/**
+	 * Create a Map which associate terminal id to spot id
+	 * @param terminal_map the map between terminal id and spot id
+	 */
+	void loadTerminalMap(map<uint16_t, uint8_t> &terminal_map);
 
 	/**
 	 * @brief Get the component among sat, gw, st or ws
@@ -334,6 +345,7 @@ bool ConfigurationFile::getValue(ConfigurationList section,
 	return true;
 }
 
+// TODO check if used as public fct
 template <class T>
 bool ConfigurationFile::getValue(ConfigurationList::iterator iter,
                                  T &val)

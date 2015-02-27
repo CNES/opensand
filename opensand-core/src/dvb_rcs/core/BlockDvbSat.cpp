@@ -187,7 +187,7 @@ bool BlockDvbSat::initSpots(void)
 		for(carrier_iter = carrier_list.begin(); carrier_iter != carrier_list.end(); 
 		    carrier_iter++)
 		{
-			string carrier_id;
+			unsigned int carrier_id;
 			string carrier_type;
 			
 			// Get the carrier id
@@ -217,27 +217,27 @@ bool BlockDvbSat::initSpots(void)
 			// Get the ID for control carrier
 			if(strcmp(carrier_type.c_str(), CTRL_OUT) == 0)
 			{
-				ctrl_id = atoi(carrier_id.c_str());
+				ctrl_id = carrier_id;
 			}
 			// Get the ID for data carrier
 			else if(strcmp(carrier_type.c_str(), DATA_IN_ST) == 0)
 			{
-				data_in_carrier_id = atoi(carrier_id.c_str());
+				data_in_carrier_id = carrier_id;
 			}
 			// Get the ID for data out gw carrier
 			else if(strcmp(carrier_type.c_str(), DATA_OUT_GW) == 0)
 			{
-				data_out_gw_id = atoi(carrier_id.c_str());
+				data_out_gw_id = carrier_id;
 			}
 			// Get the ID for data out st carrier
 			else if(strcmp(carrier_type.c_str(), DATA_OUT_ST) == 0)
 			{
-				data_out_st_id = atoi(carrier_id.c_str());
+				data_out_st_id = carrier_id;
 			}
 			// Get the ID for logon out carrier
 			else if(strcmp(carrier_type.c_str(), LOGON_OUT) == 0)
 			{
-				log_id = atoi(carrier_id.c_str());
+				log_id = carrier_id;
 			}
 		}
 	

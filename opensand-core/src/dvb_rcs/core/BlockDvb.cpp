@@ -47,129 +47,24 @@ BlockDvb::~BlockDvb()
 {
 }
 
-bool DvbChannel::initSpotMaps(void)
+bool DvbChannel::initSpots(void)
 {
-	ConfigurationList s_tal_list;
-	ConfigurationList s_car_list;
-	ConfigurationList::iterator iter_spots;
-	
-	//*************************************
-	//          CARRIERS 
-	//*************************************
-	// get spot 
-	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION],
-	                      SPOT_LIST, s_car_list))
+	map<tal_id_t, spot_id_t>::iterator iter;
+
+	if(Conf::terminal_map.empty())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-				"there is no %s into %s section\n",
-				SPOT_LIST, SATCAR_SECTION);
-		goto error;
+		    "The termnal map is empty");
+		return false;
 	}
 
-	for(iter_spots = s_car_list.begin(); iter_spots != s_car_list.end();
-	    ++iter_spots)
+	for(iter = Conf::terminal_map.begin() ; iter != Conf::terminal_map.end() ;
+	    ++iter)
 	{
-		ConfigurationList current_spot;
-		ConfigurationList carrier_list ; 
-		ConfigurationList::iterator iter;
-		xmlpp::Node* spot_node = *iter_spots;
-		current_spot.push_front(spot_node);
-		spot_id_t spot_id = 0;
-
-		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s value in %s", SPOT_ID, SPOT_LIST);
-		}
-
-		// get satellite channels from configuration
-		if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s, %s': missing satellite channels\n",
-			    SATCAR_SECTION, CARRIER_LIST);
-			goto error;
-		}
-
-		// check ths spot ID associated with this carrier ID
-		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
-		{
-			int carrier_id = 0;
-
-			// get carrier ID
-			if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "section '%s %u/%s/%s': failed to retrieve %s\n",
-				    SPOT_LIST, spot_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_ID);
-				goto error;
-			}
-
-			this->carrier_map[carrier_id] = spot_id;
-		}
+		this->spots[iter->second] = NULL;
 	}
-
-	//************************************
-	//           TERMINALS 
-	//************************************
-	// get spot 
-	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION],
-	                      SPOT_LIST, s_tal_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, SATCAR_SECTION);
-		goto error;
-	}
-
-	for(iter_spots = s_tal_list.begin(); iter_spots != s_tal_list.end();
-	    ++iter_spots)
-	{
-		ConfigurationList current_spot;
-		ConfigurationList terminal_list ; 
-		ConfigurationList::iterator iter;
-		xmlpp::Node* spot_node = *iter_spots;
-		current_spot.push_front(spot_node);
-		spot_id_t spot_id;
-		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);	
-		
-		// get satellite channels from configuration
-		if(!Conf::getListNode(current_spot, TAL_ID, terminal_list))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s, %s': missing satellite channels\n",
-			    SAT_SWITCH_SECTION, TAL_ID);
-			goto error;
-		}
-
-		// check ths spot ID associated with this terminal ID
-		for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
-		{
-			tal_id_t tal_id = 0;
-
-			// get carrier ID
-			if(!Conf::getValue(iter, tal_id))
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "section '%s %u/%s/%s': failed to retrieve %s\n",
-				    SPOT_LIST, spot_id,
-				    SAT_SWITCH_SECTION, TAL_ID,
-				    TAL_ID);
-				goto error;
-			}
-
-			this->terminal_map[tal_id] = spot_id;
-		}
-		// add spot to the list 
-		this->spots[spot_id] = NULL;
-	}
-
 
 	return true;
-error:
-	return false;
 }
 
 bool DvbChannel::initSatType(void)
@@ -251,6 +146,16 @@ error:
 
 bool DvbChannel::initCommon(const char *encap_schemes)
 {
+	//********************************************************
+	//        init spot list
+	//********************************************************
+	if(!this->initSpots())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize satellite type\n");
+		goto error;
+	}
+	
 	//********************************************************
 	//         init Common values from sections
 	//********************************************************	
