@@ -183,6 +183,20 @@ class Conf
                                              const char *attribute_name,
                                              const char *attribute_value,
                                              ConfigurationList &elements);
+	
+	/**
+	 * get the element from the list with attribute value
+	 * @param  list             the origal element list
+	 * @param  attribute_name   the attribute name
+	 * @param  attribute_value  the attribute value
+	 * @param  elements         the list of found elements
+	 * @return true on success and false otherwise
+	 */
+	template <class T>
+	static bool getElementWithAttributeValue(ConfigurationList list,
+                                             const char *attribute_name,
+                                             T &attribute_value,
+                                             ConfigurationList &elements);
 
 	/**
 	 * Read the number of elements in a list
@@ -318,6 +332,18 @@ bool Conf::getAttributeValue(ConfigurationList::iterator iter,
                              T &value)
 {
 	return Conf::global_config.getAttributeValue(iter, attribute, value);
+}
+
+template <class T>
+bool Conf::getElementWithAttributeValue(ConfigurationList list,
+                                  const char *attribute_name,
+                                  T &attribute_value,
+                                  ConfigurationList &elements)
+{
+	return Conf::global_config.getElementWithAttributeValue(list,
+	                                                        attribute_name,
+	                                                        attribute_value,
+	                                                        elements);
 }
 
 

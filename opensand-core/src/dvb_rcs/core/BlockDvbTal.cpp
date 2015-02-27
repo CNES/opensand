@@ -296,51 +296,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 
 	
 	this->spot_id = Conf::terminal_map[this->mac_id];
-	DFLTLOG(LEVEL_ERROR, "spot id :%d", this->spot_id);
-	bool find_spot = false;
-	for(spot_iter = spot_list.begin(); (spot_iter != spot_list.end()) 
-		&& !find_spot ; spot_iter++)
-	{
-		ConfigurationList term_ids;
-		ConfigurationList::iterator t_id_iter;
-		ConfigurationList spot;
-		char t_id[10];
-		sprintf(t_id,"%d", this->mac_id);
-		spot.push_back((xmlpp::Node*)*spot_iter);
 		
-		// terminal id by spot
-		if(!Conf::getListNode(spot, TAL_ID, term_ids))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "there is no %s into %s/%s\n", TAL_ID,
-			    SAT_SWITCH_SECTION, SPOT_LIST);
-		}
-
-		// TODO !
-		for(t_id_iter = term_ids.begin() ; (t_id_iter != term_ids.end()) 
-			&& !find_spot; t_id_iter++)
-		{
-			char * current_id;
-			if(!Conf::getValue(t_id_iter, current_id))
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "cannot get %s value into %s/%s\n", TAL_ID,
-				    SAT_SWITCH_SECTION, SPOT_LIST);
-			} 
-
-			if(strcmp(current_id, t_id) == 0)
-			{
-				xmlpp::Element *element;
-				element = dynamic_cast<xmlpp::Element *>(*spot_iter);
-				this->spot_id = atoi(element->get_attribute(SPOT_ID)
-				                   ->get_value().c_str());
-				find_spot = true;
-				DFLTLOG(LEVEL_ERROR, "spot id :%d", this->spot_id);
-			}
-		}
-	}
-
-	
 	// get satelite carrier spot configuration 
 	ConfigurationList satcar_section = Conf::section_map[SATCAR_SECTION];
 	ConfigurationList spots;
@@ -356,11 +312,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
-	// TODO !!
-	char s_id[10];
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                   s_id, current_spot))
+		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",
@@ -616,10 +569,8 @@ bool BlockDvbTal::Downward::initDama(void)
 		return false;
 	}
 
-	char s_id[10];
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                   s_id, current_spot))
+		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",
@@ -900,10 +851,8 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		return false;
 	}
 
-	char s_id[10];
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                   s_id, current_spot))
+		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",

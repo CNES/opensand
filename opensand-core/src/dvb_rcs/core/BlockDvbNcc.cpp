@@ -192,9 +192,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 		result |= spot->onInit();
 	}
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
-						DFLTLOG(LEVEL_ERROR, "spot %p", ((*spot_iter).second));
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
@@ -494,8 +491,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					if(!spot)
 					{
 						// handle other packets
-						DFLTLOG(LEVEL_ERROR, "spot %d null", ((*spot_iter).first));
-						DFLTLOG(LEVEL_ERROR, "spot %p", p);
 						continue;
 					}
 				
@@ -868,9 +863,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 		result |= spot->onInit();
 	}
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
-						DFLTLOG(LEVEL_ERROR, "spot %p", ((*spot_iter).second));
 
 	if(result)
 	{

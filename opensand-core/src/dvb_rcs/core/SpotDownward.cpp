@@ -349,11 +349,8 @@ bool SpotDownward::initMode(void)
 			return false;
 		}
 
-		// TODO create a function in conf to do that !
-		char s_id[10];
-		sprintf(s_id, "%d", this->spot_id);
 		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                       s_id, current_spot))
+		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s/%s\n",
@@ -414,11 +411,9 @@ bool SpotDownward::initMode(void)
 			return false;
 		}
 
-		// get the spot wwich have the same id as SpotDownward
-		char s_id[10];
-		sprintf (s_id, "%d", this->spot_id);
+		// get the spot which have the same id as SpotDownward
 		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                       s_id, current_spot))
+		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s/%s\n",
@@ -498,11 +493,8 @@ bool SpotDownward::initCarrierIds(void)
 		goto error;
 	}
 
-	// TODO same as before
-	char s_id[10];
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID,
-	                                       s_id, current_spot))
+	                                       this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",
@@ -668,11 +660,8 @@ bool SpotDownward::initDama(void)
 			return false;
 		}
 
-		// TODO same as before
-		char s_id[10];
-		sprintf (s_id, "%d", this->spot_id);
 		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                       s_id, current_spot))
+		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s\n",
@@ -1007,11 +996,8 @@ bool SpotDownward::initRequestSimulation(void)
 		return false;
 	}
 
-	// TODO Same as above
-	char s_id[10];
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
-		                                   s_id, current_spot))
+		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",

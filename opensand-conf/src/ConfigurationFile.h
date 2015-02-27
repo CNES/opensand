@@ -152,6 +152,21 @@ class ConfigurationFile
                                       ConfigurationList &elements);
 
 	/**
+	 * get the element from the list with attribute value
+	 * @param  list             the origal element list
+	 * @param  attribute_name   the attribute name
+	 * @param  attribute_value  the attribute value
+	 * @param  elements         the list of found elements
+	 * @return true en success and false otherwise
+	 */
+	template <class T>
+	bool getElementWithAttributeValue(ConfigurationList list,
+                                      const char *attribute_name,
+                                      T &attribute_value,
+                                      ConfigurationList &elements);
+
+
+	/**
 	 * Read the number of elements in a list
 	 *
 	 * @param  section  the section
@@ -414,6 +429,24 @@ bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
 	return true;
 }
 
+template <class T>
+bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
+                                                     const char *attribute_name,
+                                                     T &attribute_value,
+                                                     ConfigurationList &elements)
+{
+	stringstream strs;
+	string tmp_str;
+	strs << attribute_value;
+	tmp_str = strs.str();
+	if(!this->getElementWithAttributeValue(list, attribute_name, 
+		                                   tmp_str.c_str(), elements))
+	{
+		return false;
+	}
+
+	return true;
+}
 
 template <class T>
 bool ConfigurationFile::getValueInList(ConfigurationList list,
@@ -577,6 +610,28 @@ inline bool ConfigurationFile::getAttributeValue<stringstream>(ConfigurationList
 		return false;
 
 	value << tmp_val;
+
+	return true;
+}
+
+template <>
+inline bool ConfigurationFile::getElementWithAttributeValue<uint8_t>(
+                                                ConfigurationList list,
+                                                const char *attribute_name,
+                                                uint8_t &attribute_value,
+                                                ConfigurationList &elements)
+{
+	stringstream strs;
+	string tmp_str;
+	unsigned int val;
+	val = attribute_value;
+	strs << val;
+	tmp_str = strs.str();
+	if(!this->getElementWithAttributeValue(list, attribute_name, 
+		                                   tmp_str.c_str(), elements))
+	{
+		return false;
+	}
 
 	return true;
 }

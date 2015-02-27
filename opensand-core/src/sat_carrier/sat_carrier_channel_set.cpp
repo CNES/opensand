@@ -64,29 +64,68 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 {
 
 	int i = 0;
+	string compo_name = "";
+	component_t host = unknown_compo;
 	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
 	ConfigurationList::iterator iter_spots;
+	
+	// get host type
+	if(!Conf::getComponent(compo_name))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot get component type\n");
+		goto error;
+	}
+	host = getComponentType(compo_name);
 
 	// get satellite channels from configuration
 	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST,
-	                      spot_list))
+				spot_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, SPOT_LIST);
+				"section '%s, %s': missing satellite channels\n",
+				SATCAR_SECTION, SPOT_LIST);
 		goto error;
 	}
 
+	// TODO why not first get the spot according to terminal id
+	//      this will avoid doing all og this for each spot
+	//      - first get the spot id
+	//      - then call a function that return a list of spot with
+	//        optionnal spot_id, if spot_id the list will contain only one
+	//        spot but the treatment will be the same
+	// for terminal get the corresponding spot
+	if(host == terminal)
+	{
+		ConfigurationList temp;
+		spot_id_t spot_id = Conf::terminal_map[this->tal_id];
+
+		if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID, spot_id, temp))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "couldn't get spot %d into %s/%s",
+			    spot_id, SATCAR_SECTION, SPOT_LIST);
+			goto error;
+		}
+		spot_list = temp;
+	}
+	
 	for(iter_spots = spot_list.begin(); iter_spots != spot_list.end();
 	    ++iter_spots)
 	{
-		string compo_name = "";
-		component_t host = unknown_compo;
 		ConfigurationList carrier_list ; 
 		spot_id_t spot_id = 0;
-		Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id);
+		
+		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "there is not attribute %s in %s/%s",
+			    SPOT_ID, SATCAR_SECTION, SPOT_LIST);
+			goto error;
+		}
 
+		DFLTLOG(LEVEL_ERROR, "spot %d", spot_id);
 		// get satellite channels from configuration
 		if(!Conf::getListItems(*iter_spots, CARRIER_LIST, carrier_list))
 		{
@@ -96,32 +135,10 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 
-		// get host type
-		if(!Conf::getComponent(compo_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get component type\n");
-			goto error;
-		}
 		LOG(this->log_init, LEVEL_INFO,
 		    "host type = %s\n", compo_name.c_str());
-		host = getComponentType(compo_name);
-
-		// TODO why not first get the spot according to terminal id
-		//      this will avoid doing all og this for each spot
-		//      - first get the spot id
-		//      - then call a function that return a list of spot with
-		//        optionnal spot_id, if spot_id the list will contain only one
-		//        spot but the treatment will be the same
-		if(host == terminal)
-		{
-			// terminal is not in the current spot, continue
-			if(Conf::terminal_map[this->tal_id] != spot_id)
-			{
-				continue;
-			}
-		}
-
+		
+		// get all carrier from this spot
 		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 		{
 			sat_carrier_udp_channel *channel;
@@ -287,8 +304,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				                                      local_ip_addr,
 				                                      carrier_ip,
 				                                      stack, rmem, wmem);
-				
-				
 				
 				if(!channel->isInit())
 				{

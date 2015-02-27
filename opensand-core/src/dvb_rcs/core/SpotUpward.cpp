@@ -179,10 +179,8 @@ bool SpotUpward::initSlottedAloha(void)
 		return false;
 	}
 
-	char s_id[10]; 
-	sprintf (s_id, "%d", this->spot_id);
 	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID, 
-	                                      s_id, current_spot))
+	                                       this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n", 
