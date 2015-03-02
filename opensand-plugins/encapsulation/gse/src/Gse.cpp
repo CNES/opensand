@@ -78,7 +78,7 @@ void Gse::Context::init(void)
 		goto error;
 	}
 
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	// Retrieving the packing threshold
 	if(!config.getValue(config_section_map[GSE_SECTION],

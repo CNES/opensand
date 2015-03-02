@@ -127,7 +127,7 @@ void Rohc::Context::init()
 		goto error;
 	}
 	
-	config.loadMap(config_section_map);
+	config.loadSectionMap(config_section_map);
 
 	// Retrieving the QoS number
 	if(!config.getValue(config_section_map[ROHC_SECTION], MAX_CID, max_cid))
