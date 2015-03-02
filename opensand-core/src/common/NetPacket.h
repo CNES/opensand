@@ -157,6 +157,12 @@ class NetPacket: public NetContainer
 	NetPacket(const Data &data, size_t length);
 
 	/**
+	 * Build a network-layer packet
+	 * @param pkt
+	 */
+	NetPacket(NetPacket *pkt);
+
+	/**
 	 * Build an empty network-layer packet
 	 */
 	NetPacket();

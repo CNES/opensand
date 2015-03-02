@@ -125,7 +125,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			goto error;
 		}
 
-		DFLTLOG(LEVEL_ERROR, "spot %d", spot_id);
 		// get satellite channels from configuration
 		if(!Conf::getListItems(*iter_spots, CARRIER_LIST, carrier_list))
 		{

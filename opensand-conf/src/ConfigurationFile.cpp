@@ -655,6 +655,31 @@ error:
 	return false;
 }
 
+bool ConfigurationFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
+                                         uint16_t tal_id,
+                                         map<uint16_t, uint8_t>::iterator &tal_iter)
+{
+	tal_iter = terminal_map.find(tal_id);
+	DFLTLOG(LEVEL_ERROR, "tal id %d, tal iter %d", tal_id, tal_iter->second);
+	if(tal_iter == terminal_map.end())
+	{
+		return false;
+	}
+	return true;
+}
+
+bool ConfigurationFile::getSpotWithCarrierId(map<unsigned int, uint8_t> carrier_map, 
+                                             unsigned int car_id,
+                                             map<unsigned int, uint8_t>::iterator &car_iter)
+{
+	car_iter = carrier_map.find(car_id);
+	if(car_iter == carrier_map.end())
+	{
+		return false;
+	}
+	return true;
+}
+
 
 bool ConfigurationFile::loadLevels(map<string, log_level_t> &levels,
                                    map<string, log_level_t> &specific)

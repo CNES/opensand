@@ -65,6 +65,16 @@ NetPacket::NetPacket(const Data &data, size_t length):
 	this->name = "NetPacket";
 }
 
+NetPacket::NetPacket(NetPacket *pkt):
+	NetContainer(pkt->getData(), pkt->getTotalLength()),
+	type(pkt->getType()),
+	qos(pkt->getQos()),
+	src_tal_id(pkt->getSrcTalId()),
+	dst_tal_id(pkt->getDstTalId())
+{
+	this->name = pkt->getName();
+}
+
 NetPacket::NetPacket():
 	NetContainer(),
 	type(NET_PROTO_ERROR),

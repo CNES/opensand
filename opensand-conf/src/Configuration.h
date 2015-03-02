@@ -294,6 +294,29 @@ class Conf
 	                           const string id_val,
 	                           const char *attribute,
 	                           T &value);
+	
+	
+	/**
+	 * Get spot value in terminal map
+	 *
+	 * @param tal_it   the terminal id
+	 * @param tal_iter the found iterator 
+	 * @return true on success, false otherwise
+	 */
+	static bool getSpotWithTalId(uint16_t tal_id,
+                                 map<uint16_t, uint8_t>::iterator &tal_iter);
+
+	/**
+	 * Get spot value in carrier map
+	 *
+	 * @param car_it   the carrier id
+	 * @param car_iter the found iterator 
+	 * @return true on success, false otherwise
+	 */
+	static bool getSpotWithCarrierId(unsigned int car_id,
+                                     map<unsigned int, uint8_t>::iterator &car_iter);
+
+
 	/**
 	 * Load the log desired display levels
 	 * 

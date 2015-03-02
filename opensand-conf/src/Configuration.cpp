@@ -130,6 +130,22 @@ bool Conf::getListItems(ConfigurationList section,
 	return global_config.getListItems(section, key, list);
 }
 
+bool Conf::getSpotWithTalId(uint16_t tal_id,
+                            map<uint16_t, uint8_t>::iterator &tal_iter)
+{
+	return global_config.getSpotWithTalId(Conf::terminal_map,
+	                                      tal_id,
+	                                      tal_iter);
+}
+
+bool Conf::getSpotWithCarrierId(unsigned int car_id,
+                                map<unsigned int, uint8_t>::iterator &car_iter)
+{
+	return global_config.getSpotWithCarrierId(Conf::carrier_map,
+	                                          car_id,
+	                                          car_iter);
+}
+
 bool Conf::loadLevels(map<string, log_level_t> &levels,
                       map<string, log_level_t> &specific)
 {

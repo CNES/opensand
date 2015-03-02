@@ -347,8 +347,6 @@ DvbChannel *DvbChannel::getSpot(spot_id_t spot_id) const
 		    "spot %d does not exist\n",
 		    spot_id);
 		return NULL;
-
-		return NULL;
 	}
 	return (*spot_it).second;
 }

@@ -423,32 +423,60 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
-					map<tal_id_t, spot_id_t>::iterator tal_it;
+					map<tal_id_t, spot_id_t>::iterator tal_iter;
 					SpotDownward *spot;
-					tal_it = Conf::terminal_map.find(tal_id);
-					if(tal_it == Conf::terminal_map.end())
+					list<SpotDownward*> spot_list;
+					list<SpotDownward*>::iterator spot_list_iter;
+					NetPacket *pkt_copy;
+
+					if(tal_id == BROADCAST_TAL_ID)
 					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot find terminal %u' spot\n",
-						    tal_id);
-						// handle other packets
-						continue;
+						for(tal_iter = Conf::terminal_map.begin();
+						    tal_iter != Conf::terminal_map.end();
+						    ++tal_iter)
+						{
+							spot = dynamic_cast<SpotDownward *>(this->getSpot(
+							                               (*tal_iter).second));
+							spot_list.push_back(spot);
+						}
+
 					}
-					spot = dynamic_cast<SpotDownward *>(this->getSpot((*tal_it).second));
-					if(!spot)
-					{
-						// handle other packets
-						continue;
+					else
+					{ 
+						if(!Conf::getSpotWithTalId(tal_id, tal_iter))
+						{
+							LOG(this->log_receive_channel, LEVEL_ERROR,
+									"There is not spot for terminal id %d", tal_id);
+							continue;
+						}
+						spot = dynamic_cast<SpotDownward *>(this->getSpot(
+							                           tal_iter->second));
+						spot_list.push_back(spot);
 					}
 
-					if(!spot->handleEncapPacket(*pkt_it))
+					for(spot_list_iter = spot_list.begin() ; 
+					    spot_list_iter != spot_list.end() ;
+					    ++spot_list_iter)
 					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot push burst into fifo\n");
-						burst->clear(); // avoid deteleting packets when deleting burst
-						delete burst;
-						// handle other packets
-						continue;
+						spot = *spot_list_iter;
+						if(spot_list.size() > 1 )
+						{
+							pkt_copy = new NetPacket(*pkt_it);
+						}
+						else{
+							pkt_copy = *pkt_it;
+						}
+
+						if(!spot->handleEncapPacket(pkt_copy))
+						{
+							LOG(this->log_receive, LEVEL_ERROR,
+									"cannot push burst into fifo\n");
+							// avoid deteleting packets when deleting burst
+							burst->clear(); 
+							delete burst;
+							// handle other packets
+							continue;
+						}
 					}
 				}
 				burst->clear(); // avoid deteleting packets when deleting burst
@@ -484,7 +512,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    spot_iter != this->spots.end(); ++spot_iter)
 				{
 					SpotDownward *spot;
-					DvbChannel *p = (*spot_iter).second; 
 					// TODO dynamic cast fail
 					//spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 					spot = (SpotDownward *)((*spot_iter).second);
