@@ -2026,7 +2026,7 @@ BlockDvbNcc::Upward::Upward(Block *const bl):
 	saloha(NULL),
 	mac_id(GW_TAL_ID),
 	ret_fmt_groups(),
-    scpc_pkt_hdl(NULL),			
+	scpc_pkt_hdl(NULL),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
@@ -2276,8 +2276,8 @@ bool BlockDvbNcc::Upward::initMode(void)
 		if(!this->initPktHdl("GSE",
 		                     &this->scpc_pkt_hdl, true))
 		{
-		    LOG(this->log_init, LEVEL_ERROR,
-			    "failed get packet handler for SCPC\n");
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to get packet handler for SCPC\n");
 				goto error;
 		}
 	
@@ -2449,6 +2449,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			else
 			{
 				//TODO: 28 for GW
+				//TODO see when FMT simulation will be improved
 				//this->probe_rejected_modcod->put(std->getReceivedModcod());
 				//uint8_t mc = 28;
 				//this->probe_rejected_modcod->put(mc);
@@ -2650,15 +2651,16 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	return true;
 
-drop:
-	delete dvb_frame;
-	return true;
-
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
 	    "Treatments failed at SF#%u\n",
 	    this->super_frame_counter);
 	return false;
+
+drop:
+   delete dvb_frame;
+   return true;
+
 }
 
 

@@ -977,14 +977,14 @@ bool BlockDvbTal::Downward::initScpc(void)
 		goto release_scpc;
 	}
 	
-	//Check if there are DAMA or SALOHA FIFOs in the terminal
-    if(this->dama_agent || this->saloha)	
-    {
-    	LOG(this->log_init, LEVEL_ERROR,
-    	    "Conflict: SCPC FIFOs and DAMA or SALOHA FIFOs "
-    	    "in the same Terminal\n");
-    	goto error;
-    }
+	// Check if there are DAMA or SALOHA FIFOs in the terminal
+	if(this->dama_agent || this->saloha)	
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Conflict: SCPC FIFOs and DAMA or SALOHA FIFOs "
+		    "in the same Terminal\n");
+		goto error;
+	}
 	
 	//TODO: veritfy that 2ST are not using the same carrier and category
 
@@ -1010,10 +1010,10 @@ bool BlockDvbTal::Downward::initScpc(void)
 	// Create the SCPC scheduler
 	cat = scpc_categories.begin()->second;
 	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
-										  this->pkt_hdl,
-										  this->dvb_fifos,
-										  &this->scpc_fmt_simu,
-										  cat);    
+	                                      this->pkt_hdl,
+	                                      this->dvb_fifos,
+	                                      &this->scpc_fmt_simu,
+	                                      cat);    
 	if(!this->scpc_sched)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -1334,11 +1334,11 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 				
 				LOG(this->log_receive, LEVEL_INFO,
-			        "SF#%u: %u symbol remaining after "
-			        "scheduling\n", this->super_frame_counter,
-			        remaining_alloc_sym);
-			   	
-			   	// send on the emulated DVB network the DVB frames that contain
+				    "SF#%u: %u symbol remaining after "
+				    "scheduling\n", this->super_frame_counter,
+				    remaining_alloc_sym);
+
+				// send on the emulated DVB network the DVB frames that contain
 				// the encapsulation packets scheduled by the SCPC agent algorithm
 				if(!this->sendBursts(&this->complete_dvb_frames,
 					this->carrier_id_data))

@@ -139,8 +139,8 @@ class BlockDvbNcc: public BlockDvb
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
-		/// The up/return packet handler for SCPC	
-		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;										
+		/// The up/return packet handler for SCPC
+		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
 		// Output probes and stats
 			// Rates
 				// Layer 2 from SAT
