@@ -470,7 +470,9 @@ class View(WindowView):
         self._eventprobe.scenario_changed()
         try:
             self._eventconf.update_view()
+            self._eventconf.read_conf_free_spot()
             self._eventconf.update_button_state()
+            self._eventconf.enable_conf_buttons(False)
         except ConfException as msg:
             error_popup(str(msg))
         finally:
@@ -524,7 +526,9 @@ class View(WindowView):
         # reload the configuration
         try:
             self._eventconf.update_view()
+            self._eventconf.read_conf_free_spot()
             self._eventconf.update_button_state()
+            self._eventconf.enable_conf_buttons(False)
         except ConfException as msg:
             error_popup(str(msg))
 

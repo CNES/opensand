@@ -56,12 +56,7 @@ class ConfEvent(ConfView) :
         self._modif = False
         # spot table
         self._tab_spot = ["1", "2", "3"]
-        self._free_spot = copy.deepcopy(self._tab_spot)
-        config = self._model.get_conf().get_configuration()
-        xpath = "//"+RETURN_UP_BAND
-        #update free spot id 
-        for key in config.get_keys(config.get(xpath)):
-            self._free_spot.remove(key.get(SPOT_ID))
+        self.read_conf_free_spot()
 
         self._previous_img = ''
         # update the image
@@ -375,9 +370,19 @@ class ConfEvent(ConfView) :
             widget_remove.set_sensitive(True) 
 
 
+    def read_conf_free_spot(self):
+        self._free_spot = copy.deepcopy(self._tab_spot)
+        config = self._model.get_conf().get_configuration()
+        xpath = "//"+RETURN_UP_BAND
+        #update free spot id 
+        for key in config.get_keys(config.get(xpath)):
+            self._free_spot.remove(key.get(SPOT_ID))
+
+
     def on_enable_physical_layer_toggled(self, source=None, event=None):
         """ 'toggled' event on enable button """
         self.enable_conf_buttons()
+
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """

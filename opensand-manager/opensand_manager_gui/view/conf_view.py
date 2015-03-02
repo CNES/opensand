@@ -413,6 +413,10 @@ class ConfView(WindowView):
         """ defined in conf_event """
         pass
 
+    def read_conf_free_spot(self):
+        """ definef in conf_event """
+        pass
+
     def is_button_active(self, button):
         """ check if a button is active """
         widget = self._ui.get_widget(button)
