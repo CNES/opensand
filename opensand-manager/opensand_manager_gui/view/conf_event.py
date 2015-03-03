@@ -51,6 +51,7 @@ class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
     def __init__(self, parent, model, manager_log):
+        self._free_spot = []
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
