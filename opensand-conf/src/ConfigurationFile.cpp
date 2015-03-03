@@ -660,7 +660,6 @@ bool ConfigurationFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
                                          map<uint16_t, uint8_t>::iterator &tal_iter)
 {
 	tal_iter = terminal_map.find(tal_id);
-	DFLTLOG(LEVEL_ERROR, "tal id %d, tal iter %d", tal_id, tal_iter->second);
 	if(tal_iter == terminal_map.end())
 	{
 		return false;

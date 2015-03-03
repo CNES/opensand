@@ -445,7 +445,7 @@ class MessagesHandler(object):
 
         elif cmd == MSG_MGR_SET_LOG_LEVEL:
             log_id, level = struct.unpack("!BB", data)
-
+            
             LOGGER.info("New log level set from manager for log %d of "
                         "program %d:%d: new level = %s", log_id,
                         host_id, program_id, level)
@@ -464,12 +464,11 @@ class MessagesHandler(object):
 
         elif cmd == MSG_MGR_SET_LOGS_STATUS:
             status = struct.unpack("!B", data)
-
             LOGGER.info("New logs status set from manager for "
                         "program %d:%d: enabled = %s", host_id,
                         program_id, status)
 
-            cmd = MSG_CMD_ENABLE_LOGS if status else MSG_CMD_DISABLE_LOGS
+            cmd = MSG_CMD_ENABLE_LOGS if status[0] else MSG_CMD_DISABLE_LOGS
             
             address = self._host_manager.get_host_address(host_id)
 
@@ -486,7 +485,7 @@ class MessagesHandler(object):
                         "program %d:%d: enabled = %s", host_id,
                         program_id, status)
 
-            cmd = MSG_CMD_ENABLE_SYSLOG if status else MSG_CMD_DISABLE_SYSLOG
+            cmd = MSG_CMD_ENABLE_SYSLOG if status[0] else MSG_CMD_DISABLE_SYSLOG
 
             address = self._host_manager.get_host_address(host_id)
 
