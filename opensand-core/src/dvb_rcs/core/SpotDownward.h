@@ -157,7 +157,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		/// FMT groups for up/return
 		fmt_groups_t getRetFmtGroups(void) const;
 
-		void setPepCmdApplyTimer(event_id_t pep_cmd_apply_timer);
+		void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 		event_id_t getPepCmdApplyTimer(void);
 
 	protected:
@@ -240,8 +240,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		void updateStatistics(void);
 		void resetStatsCxt(void);
 
-
-
 		/// The DAMA controller
 		DamaCtrlRcs *dama_ctrl;
 
@@ -305,9 +303,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 
 		/// timer used for applying resources allocations received from PEP
 		event_id_t pep_cmd_apply_timer;
-
-		/// Delay for allocation requests from PEP (in ms)
-		//int pep_alloc_delay;
 
 		/// parameters for request simulation
 		FILE *event_file;

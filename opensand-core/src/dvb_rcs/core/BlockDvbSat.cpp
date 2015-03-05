@@ -1086,14 +1086,14 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 
 	// Retrieving switching table entries
-	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION],
+	if(!Conf::getListNode(Conf::section_map[SPOT_TABLE_SECTION],
 		                   SPOT_LIST, switch_list))
 	{
 
 		DFLTLOG(LEVEL_ERROR, "upward init switch table regen");
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite switching "
-		    "table\n", SAT_SWITCH_SECTION, SPOT_LIST);
+		    "table\n", SPOT_TABLE_SECTION, SPOT_LIST);
 		goto error;
 	}
 
@@ -1138,12 +1138,12 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 
 	// get default spot id
-	if(!Conf::getValue(Conf::section_map[SAT_SWITCH_SECTION],
+	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
 		               DEFAULT_SPOT, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    SAT_SWITCH_SECTION, DEFAULT_SPOT);
+		    SPOT_TABLE_SECTION, DEFAULT_SPOT);
 		goto error;
 	}
 	generic_switch->setDefault(spot_id);

@@ -242,7 +242,7 @@
         <xsd:sequence>
             <xsd:element ref="sarp" />
             <xsd:element ref="sat_carrier" />
-            <xsd:element ref="sat_switching_table" />
+            <xsd:element ref="spot_table" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>
@@ -310,8 +310,8 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- sat_switching_table section description -->
-<xsd:element name="sat_switching_table">
+<!-- spot_table section description -->
+<xsd:element name="spot_table">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             The satellite switching table

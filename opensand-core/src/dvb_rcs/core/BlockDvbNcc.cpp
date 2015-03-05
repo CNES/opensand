@@ -151,6 +151,28 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
+	for(spot_iter = this->spots.begin(); 
+	    spot_iter != this->spots.end(); ++spot_iter)
+	{
+		SpotDownward *spot;
+		spot_id_t spot_id = (*spot_iter).first;
+		LOG(this->log_init, LEVEL_DEBUG,
+		    "Create spot with ID %u\n", spot_id);
+		spot = new SpotDownward(spot_id,
+		                        this->fwd_down_frame_duration_ms,
+		                        this->ret_up_frame_duration_ms,
+		                        this->stats_period_ms,
+		                        this->up_ret_fmt_simu,
+		                        this->down_fwd_fmt_simu,
+		                        this->satellite_type,
+		                        this->pkt_hdl,
+		                        this->with_phy_layer);
+
+		(*spot_iter).second = spot;
+
+		result |= spot->onInit();
+	}
+
 	// initialize the timers
 	if(!this->initTimers())
 	{
@@ -177,29 +199,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 	this->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
-	{
-		SpotDownward *spot;
-		spot_id_t spot_id = (*spot_iter).first;
-		LOG(this->log_init, LEVEL_DEBUG,
-		    "Create spot with ID %u\n", spot_id);
-		spot = new SpotDownward(spot_id,
-		                        this->fwd_down_frame_duration_ms,
-		                        this->ret_up_frame_duration_ms,
-		                        this->stats_period_ms,
-		                        this->up_ret_fmt_simu,
-		                        this->down_fwd_fmt_simu,
-		                        this->satellite_type,
-		                        this->pkt_hdl,
-		                        this->with_phy_layer);
-
-		(*spot_iter).second = spot;
-
-		result |= spot->onInit();
-	}
-
-	// Output probes and stats
+		// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
 	                                                          SAMPLE_LAST,
 	                                                          "Perf.Frames_interval");

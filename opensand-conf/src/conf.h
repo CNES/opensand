@@ -103,7 +103,7 @@
 #define SPOT_ID                   "id"
 #define TAL_ID                    "tal_id"
 
-#define SAT_SWITCH_SECTION        "sat_switching_table"
+#define SPOT_TABLE_SECTION              "spot_table"
 #define DEFAULT_SPOT              "default_spot"
 
 

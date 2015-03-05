@@ -314,16 +314,16 @@ void ConfigurationFile::loadCarrierMap(map<unsigned int, uint8_t> &carrier_map)
 
 void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
 {
-	ConfigurationList section_sat_switch;
+	ConfigurationList spot_table_section;
 	ConfigurationList spots;
 	ConfigurationList::iterator iter_spots;
 
-	if (!getSection(SAT_SWITCH_SECTION, section_sat_switch))
+	if (!getSection(SPOT_TABLE_SECTION, spot_table_section))
 	{
 		return;
 	}
 
-	if(!getListNode(section_sat_switch, SPOT_LIST, spots))
+	if(!getListNode(spot_table_section, SPOT_LIST, spots))
 	{
 		return;
 	}

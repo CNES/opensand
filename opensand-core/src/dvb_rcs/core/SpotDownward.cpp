@@ -73,6 +73,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	down_fwd_fmt_simu(down_fmt_simu),
 	cni(100),
 	column_list(),
+	pep_cmd_apply_timer(),
 	event_file(NULL),
 	simu_file(NULL),
 	simulate(none_simu),
@@ -1712,7 +1713,7 @@ event_id_t SpotDownward::getPepCmdApplyTimer(void)
 	return this->pep_cmd_apply_timer;
 }
 
-void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_apply_timer)
+void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
 {
-	this->pep_cmd_apply_timer = pep_cmd_apply_timer;
+	this->pep_cmd_apply_timer = pep_cmd_a_timer;
 }
