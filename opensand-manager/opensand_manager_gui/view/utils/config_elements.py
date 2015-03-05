@@ -724,15 +724,16 @@ class ConfSection(gtk.VBox):
             if key.tag == SPOT:
                 if self._spot_id == key.get(SPOT_ID):
                     for s_key in self._config.get_keys(key):
+                        source_ext = "_spot_" + self._spot_id
                         if self._config.is_table(s_key):
-                            table = self.add_table(s_key)
+                            table = self.add_table(s_key, source_ext)
                             if table is not None:
                                 self.pack_end(table)
                                 self.set_child_packing(table, expand=False,
                                                        fill=False, padding=5,
                                                        pack_type=gtk.PACK_START)
                         else:
-                            entry = self.add_key(s_key)
+                            entry = self.add_key(s_key, source_ext)
                             if entry is not None:
                                 self.pack_end(entry)
                                 self.set_child_packing(entry, expand=False,
@@ -756,7 +757,7 @@ class ConfSection(gtk.VBox):
                                           fill=False, padding=5,
                                           pack_type=gtk.PACK_START)
 
-    def add_key(self, key):
+    def add_key(self, key, source_ext = ""):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -779,8 +780,9 @@ class ConfSection(gtk.VBox):
             scenario = self._scenario
             if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
+            source += source_ext
             source = os.path.join(scenario, source)
-
+    
         entry = ConfEntry(self._config.get_type(name),
                           self._config.get_value(key),
                           self._config.get_path(key),
@@ -811,7 +813,7 @@ class ConfSection(gtk.VBox):
 
         return key_box
 
-    def add_table(self, key):
+    def add_table(self, key, source_ext = ""):
         """ add a table in the tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -858,7 +860,7 @@ class ConfSection(gtk.VBox):
         self._table_length[self._config.get_path(key)] = 0
         for line in self._config.get_table_elements(key):
             self._table_length[self._config.get_path(key)] += 1
-            hbox = self.add_line(key, line, check_buttons)
+            hbox = self.add_line(key, line, check_buttons, source_ext)
             align_vbox.pack_end(hbox)
             align_vbox.set_child_packing(hbox, expand=False,
                                          fill=False, padding=5,
@@ -874,7 +876,7 @@ class ConfSection(gtk.VBox):
 
         return table_frame
 
-    def add_line(self, key, line, check_buttons):
+    def add_line(self, key, line, check_buttons, source_ext = ""):
         """ add a line in the configuration """
         hbox = gtk.HBox()
         key_path = self._config.get_path(key)
@@ -936,7 +938,7 @@ class ConfSection(gtk.VBox):
                 line_id = line_path[pos:].strip('[]')
                 value = dic[att]
                 if source is not None:
-                    source += '_' + str(line_id)
+                    source += source_ext + '_' + str(line_id)
                     source = os.path.join(scenario, source)
             except:
                 # this is a new line entry
@@ -946,7 +948,7 @@ class ConfSection(gtk.VBox):
                                            att)
                 # TODO this won't be enough as the file won't exist
                 if source is not None:
-                    source += '_' + str(nbr + self._new.count(key_path))
+                    source += source_ext + '_' + str(nbr + self._new.count(key_path))
                     source = os.path.join(scenario, source)
             entry = ConfEntry(elt_type, value, path, source, self._host,
                               cb, self._file_cb)

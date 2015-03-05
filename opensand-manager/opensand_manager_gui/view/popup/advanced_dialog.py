@@ -338,7 +338,7 @@ class AdvancedDialog(WindowView):
                 if key.tag == SPOT:
                     conf_sections[host_name + "." + config.get_name(section) +
                                   "." + key.tag+key.get(SPOT_ID)] = \
-                            ConfSection(section, config, config.get_name(section),
+                            ConfSection(section, config, host_name,
                                         self._model.get_adv_mode(),
                                         self._model.get_scenario(),
                                         self.handle_param_chanded,
@@ -367,7 +367,7 @@ class AdvancedDialog(WindowView):
             # global section
             if global_section:
                 conf_sections[host_name+"."+config.get_name(section)] = \
-                ConfSection(section, config, config.get_name(section),
+                ConfSection(section, config, host_name,
                             self._model.get_adv_mode(),
                             self._model.get_scenario(),
                             self.handle_param_chanded,
