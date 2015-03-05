@@ -66,7 +66,7 @@ class EditDialog(WindowView):
             self.close()
             return
         self._dlg.set_icon_name(gtk.STOCK_EDIT)
-        self._dlg.run()
+        return self._dlg.run()
 
     def close(self):
         """ close the window """
@@ -98,7 +98,7 @@ class EditDialog(WindowView):
             with open(self._path, 'w') as deploy:
                 deploy.write(content)
         except Exception, err:
-            error_popup("Error saving file:", str(err))
+            error_popup("Error saving filei:", str(err))
         self.close()
 
     def on_cancel_edit_clicked(self, source=None, event=None):

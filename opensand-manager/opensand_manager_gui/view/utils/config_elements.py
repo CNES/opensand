@@ -1227,7 +1227,12 @@ class ConfEntry(object):
         self._entry = gtk.HBox()
         def edit_file(edit_button, event):
             window = EditDialog(self._source)
-            window.go()
+            ret = window.go()
+            if ret == gtk.RESPONSE_APPLY:
+                self.global_handler()
+                if self._file_handler is not None:
+                    self._file_handler(self._source, self._host, self._path)
+
         edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
         edit_button.show()
         # show edit dialog
@@ -1256,6 +1261,7 @@ class ConfEntry(object):
                 has_preview = False
             file_chooser.set_preview_widget_active(has_preview)
             return
+        
         def upload_file(button, event):
             if self._source is None:
                 error_popup("Missing XSD source content for file element")
