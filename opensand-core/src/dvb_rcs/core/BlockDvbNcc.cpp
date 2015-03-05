@@ -168,8 +168,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
+	// listen for connections from external PEP components
+	if(!this->listenForPepConnections())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to listen for PEP connections\n");
+	}
 
-//	this->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
+	this->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
 
 	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
@@ -203,6 +209,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 bool BlockDvbNcc::Downward::initTimers(void)
 {
+	map<spot_id_t, DvbChannel *>::iterator spot_iter;
+	
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
 	this->frame_timer = this->addTimerEvent("frame",
@@ -219,7 +227,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	}
 
 	// read the pep allocation delay
-	/*if(!Conf::getValue(NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY,
+	if(!Conf::getValue(Conf::section_map[NCC_SECTION_PEP], DVB_NCC_ALLOC_DELAY,
 	                   this->pep_alloc_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -230,11 +238,18 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
 	// create timer
-	this->pep_cmd_apply_timer = this->addTimerEvent("pep_request",
+	
+	for(spot_iter = this->spots.begin(); 
+		spot_iter != this->spots.end(); ++spot_iter)
+	{
+		SpotDownward *spot;
+		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
 	                                                pep_alloc_delay,
 	                                                false, // no rearm
 	                                                false // do not start
-	                                                );*/
+	                                                ));
+	}
 
 	return true;
 }
@@ -273,6 +288,8 @@ bool BlockDvbNcc::Downward::initModcodSimu(void)
 
 bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 {
+	map<spot_id_t, DvbChannel *>::iterator spot_iter;
+
 	switch(event->getType())
 	{
 		case evt_message:
@@ -439,7 +456,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 							                               (*tal_iter).second));
 							spot_list.push_back(spot);
 						}
-
 					}
 					else
 					{ 
@@ -487,8 +503,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		case evt_timer:
 		{
-			map<spot_id_t, DvbChannel *>::iterator spot_iter;
-			
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
 				"timer event received on downward channel");
@@ -513,8 +527,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				{
 					SpotDownward *spot;
 					// TODO dynamic cast fail
-					//spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-					spot = (SpotDownward *)((*spot_iter).second);
+					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 					if(!spot)
 					{
 						// handle other packets
@@ -600,38 +613,40 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					spot->updateFmt();
 				}
 			}
-			/*else if(*event == this->pep_cmd_apply_timer)
+			else 
 			{
-				// it is time to apply the command sent by the external
-				// PEP component
-
-				PepRequest *pep_request;
-
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "apply PEP requests now\n");
-				while((pep_request = this->getNextPepRequest()) != NULL)
+				bool find_pep = false; 
+				for(spot_iter = this->spots.begin(); 
+					spot_iter != this->spots.end(); ++spot_iter)
 				{
-					if(this->dama_ctrl->applyPepCommand(pep_request))
+					SpotDownward *spot;
+					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+
+					if(*event == spot->getPepCmdApplyTimer())
 					{
+						// it is time to apply the command sent by the external
+						// PEP component
+	
+						PepRequest *pep_request;
+
 						LOG(this->log_receive, LEVEL_NOTICE,
-						    "PEP request successfully "
-						    "applied in DAMA\n");
-					}
-					else
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "failed to apply PEP request "
-						    "in DAMA\n");
-						return false;
+						    "apply PEP requests now\n");
+						while((pep_request = this->getNextPepRequest()) != NULL)
+						{
+							spot->applyPepCommand(pep_request);	
+						}
+						find_pep = true;
+						break;
 					}
 				}
-			}*/
-			else
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "unknown timer event received %s\n",
-				    event->getName().c_str());
-				return false;
+
+				if(!find_pep)
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unknown timer event received %s\n",
+					    event->getName().c_str());
+					return false;
+				}
 			}
 			break;
 		}
@@ -676,24 +691,36 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 			}
-			/*else if(*event == this->getPepClientSocket())
+			else if(*event == this->getPepClientSocket())
 			{
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "event received on PEP client socket\n");
 
+				tal_id_t tal_id;
+
 				// read the message sent by PEP or delete socket
 				// if connection is dead
-				if(this->readPepMessage((NetSocketEvent *)event) == true)
+				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
 				{
 					// we have received a set of commands from the
 					// PEP component, let's apply the resources
 					// allocations/releases they contain
+					spot_iter = spots.find(Conf::terminal_map[tal_id]);
+					if(spot_iter == spots.end())
+					{
+						LOG(this->log_receive, LEVEL_ERROR, 
+						    "couldn't find spot %d", 
+						    Conf::terminal_map[tal_id]);
+						return false;
+					}
+					SpotDownward *spot;
+					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 
 					// set delay for applying the commands
 					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
-					{
-						if(!this->startTimer(this->pep_cmd_apply_timer))
+					{	
+						if(!this->startTimer(spot->getPepCmdApplyTimer()))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "cannot start pep timer");
@@ -705,10 +732,15 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
 					{
-						this->raiseTimer(this->pep_cmd_apply_timer);
+						if(!this->raiseTimer(spot->getPepCmdApplyTimer()))
+						{
+							LOG(this->log_receive, LEVEL_NOTICE,
+							    "cannot raise pep timer");
+							return false;
+						}
 						LOG(this->log_receive, LEVEL_NOTICE,
-						    "PEP Release request, no delay to "
-						    "apply\n");
+								"PEP Release request, no delay to "
+								"apply\n");
 					}
 					else
 					{
@@ -722,10 +754,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					LOG(this->log_receive, LEVEL_WARNING,
 					    "network problem encountered with PEP, "
 					    "connection was therefore closed\n");
-					this->removeEvent(this->pep_cmd_apply_timer);
+					//this->removeEvent(this->pep_cmd_apply_timer);
 					return false;
 				}
-			}*/
+			}
 		}
 		default:
 		{

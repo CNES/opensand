@@ -39,7 +39,6 @@
 
 #include "BlockDvb.h"
 #include "DamaCtrlRcs.h"
-//#include "NccPepInterface.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 
@@ -132,6 +131,13 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		void updateFmt(void);
 
 		/**
+		 * @briel apply pep commande
+		 * @param pep_request the pep request
+		 * @return true on success, false otherwise
+		 */
+		bool applyPepCommand(PepRequest *pep_request);
+
+		/**
 		 * @brief Build a TTP
 		 *
 		 * @param ttp  OUT: The TTP
@@ -150,6 +156,9 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		
 		/// FMT groups for up/return
 		fmt_groups_t getRetFmtGroups(void) const;
+
+		void setPepCmdApplyTimer(event_id_t pep_cmd_apply_timer);
+		event_id_t getPepCmdApplyTimer(void);
 
 	protected:
 
@@ -298,7 +307,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		event_id_t pep_cmd_apply_timer;
 
 		/// Delay for allocation requests from PEP (in ms)
-		int pep_alloc_delay;
+		//int pep_alloc_delay;
 
 		/// parameters for request simulation
 		FILE *event_file;

@@ -362,6 +362,7 @@ bool BlockDvbSat::Downward::onInit()
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE)
 	{
+		DFLTLOG(LEVEL_ERROR, "on init regen");
 		if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
 		                          FORWARD_DOWN_MODCOD_TIME_SERIES))
 		{
@@ -430,6 +431,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 
 	if(this->satellite_type == REGENERATIVE)
 	{
+		DFLTLOG(LEVEL_ERROR, "initSAtLink regen");
 		// TODO no need of tal_aff and dflt_cat in attributes
 		if(!this->initBand<TerminalCategoryDama>(Conf::section_map[FORWARD_DOWN_BAND],
 		                                         TDM,
@@ -486,6 +488,7 @@ bool BlockDvbSat::Downward::initTimers(void)
 
 	if(this->satellite_type == REGENERATIVE && !this->with_phy_layer)
 	{
+		DFLTLOG(LEVEL_ERROR, "init timer reg");
 		// launch the timer in order to retrieve the modcods
 		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
 		                                           this->dvb_scenario_refresh);
@@ -690,6 +693,8 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				return false;
 			}
 
+			DFLTLOG(LEVEL_ERROR, "Downward event");
+			
 			NetBurst *burst;
 			uint8_t spot_id;
 			NetBurst::iterator pkt_it;
@@ -1012,6 +1017,7 @@ bool BlockDvbSat::Upward::onInit()
 	// load the modcod files (regenerative satellite only)
 	if(this->satellite_type == REGENERATIVE)
 	{
+		DFLTLOG(LEVEL_ERROR, "upward oninit regen");
 		// initialize the satellite internal switch
 		if(!this->initSwitchTable())
 		{
@@ -1043,6 +1049,7 @@ bool BlockDvbSat::Upward::initMode(void)
 
 	if(this->satellite_type == REGENERATIVE)
 	{
+		DFLTLOG(LEVEL_ERROR, "upward initmode regen");
 		this->reception_std = new DvbRcsStd(this->pkt_hdl);
 	}
 	else
@@ -1079,9 +1086,11 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 	}
 
 	// Retrieving switching table entries
-	if(!Conf::getListItems(Conf::section_map[SAT_SWITCH_SECTION],
+	if(!Conf::getListNode(Conf::section_map[SAT_SWITCH_SECTION],
 		                   SPOT_LIST, switch_list))
 	{
+
+		DFLTLOG(LEVEL_ERROR, "upward init switch table regen");
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite switching "
 		    "table\n", SAT_SWITCH_SECTION, SPOT_LIST);
@@ -1144,6 +1153,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 		goto error;
 	}
 
+	DFLTLOG(LEVEL_ERROR, "upward en init switch table regen");
 	return true;
 
 release_switch:
@@ -1275,6 +1285,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				 *  - send the burst to the upper layer.
 				 */
 
+				DFLTLOG(LEVEL_ERROR, "upward onRcvDvbFrame regen");
 				NetBurst *burst = NULL;
 
 				// Update probes and stats
@@ -1450,6 +1461,8 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SAC:
 			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
 			{
+
+				DFLTLOG(LEVEL_ERROR, "upward type sac regen");
 				// handle SAC here to get the uplink ACM parameters
 				Sac *sac = (Sac *)dvb_frame;
 

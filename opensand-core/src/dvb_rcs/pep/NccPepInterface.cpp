@@ -320,7 +320,7 @@ error:
 }
 
 
-bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
+bool NccPepInterface::readPepMessage(NetSocketEvent *const event, tal_id_t tal_id)
 {
 	char *recv_buffer;
 
@@ -336,7 +336,7 @@ bool NccPepInterface::readPepMessage(NetSocketEvent *const event)
 	recv_buffer = (char *)(event->getData());
 
 	// parse message received from PEP
-	if(this->parsePepMessage(recv_buffer) != true)
+	if(this->parsePepMessage(recv_buffer, tal_id) != true)
 	{
 		// an error occured when parsing the PEP message
 		LOG(this->log_pep, LEVEL_ERROR,
@@ -366,7 +366,7 @@ error:
  * @param message   the message sent by the PEP component
  * @return          true if message was successfully parsed, false otherwise
  */
-bool NccPepInterface::parsePepMessage(const char *message)
+bool NccPepInterface::parsePepMessage(const char *message, tal_id_t tal_id)
 {
 	stringstream stream;
 	char cmd[64];
@@ -391,7 +391,8 @@ bool NccPepInterface::parsePepMessage(const char *message)
 			    "skip the command\n", nb_cmds + 1);
 			continue;
 		}
-
+		
+		tal_id = request->getStId();
 		// check that all commands are of of the same type
 		// (ie. all allocations or all de-allocations)
 		if(nb_cmds == 0)
@@ -435,10 +436,10 @@ bool NccPepInterface::parsePepMessage(const char *message)
 PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
 {
 	unsigned int type;      // allocation or release request
-	unsigned int st_id;     // the ID of the ST the request is for
-	unsigned int cra;       // the CRA value
-	unsigned int rbdc;      // the RBDC value
-	unsigned int rbdc_max;  // the RBDCmax value
+	tal_id_t st_id;     // the ID of the ST the request is for
+	rate_kbps_t cra;       // the CRA value
+	rate_kbps_t rbdc;      // the RBDC value
+	rate_kbps_t rbdc_max;  // the RBDCmax value
 	int ret;
 
 	// retrieve values in the command

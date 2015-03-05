@@ -41,23 +41,6 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
-/*
-#include <opensand_output/Output.h>
-
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <sys/times.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <ios>*/
-
 
 SpotUpward::SpotUpward(spot_id_t spot_id):
 	spot_id(spot_id),

@@ -83,9 +83,6 @@ class BlockDvbNcc: public BlockDvb
 	class Upward: public DvbUpward
 	{
 	 public:
-		/// upward block table (1 per slot) 
-		map<spot_id_t, SpotUpward *> upward_spots;
-
 		Upward(Block *const bl);
 		~Upward();
 		bool onInit(void);
@@ -194,6 +191,9 @@ class BlockDvbNcc: public BlockDvb
 		/// In regenerative case with physical layer, is it used to send
 		// ACM parameters to satellite
 		event_id_t scenario_timer;
+
+		/// Delay for allocation requests from PEP (in ms)
+		int pep_alloc_delay;
 
 		// Frame interval
 		Probe<float> *probe_frame_interval;

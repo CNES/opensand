@@ -53,7 +53,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            bool phy_layer):
 	DvbChannel(),
-	NccPepInterface(),
 	dama_ctrl(NULL),
 	scheduling(NULL),
 	fwd_frame_counter(0),
@@ -231,14 +230,6 @@ bool SpotDownward::onInit(void)
 		    "simulation\n");
 		goto release_dama;
 	}
-
-	// listen for connections from external PEP components
-/*	if(!this->listenForPepConnections())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to listen for PEP connections\n");
-		goto release_dama;
-	}*/
 
 	if(!this->initRequestSimulation())
 	{
@@ -1662,6 +1653,24 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	return true;
 }
 
+bool SpotDownward::applyPepCommand(PepRequest *pep_request)
+{
+	if(this->dama_ctrl->applyPepCommand(pep_request))
+	{
+		LOG(this->log_receive_channel, LEVEL_NOTICE,
+		    "PEP request successfully "
+		    "applied in DAMA\n");
+	}
+	else
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to apply PEP request "
+		    "in DAMA\n");
+		return false;
+	}
+
+	return true;
+}
 
 void SpotDownward::updateFmt(void)
 {
@@ -1698,3 +1707,12 @@ list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
 	return this->complete_dvb_frames;
 }
 
+event_id_t SpotDownward::getPepCmdApplyTimer(void)
+{
+	return this->pep_cmd_apply_timer;
+}
+
+void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_apply_timer)
+{
+	this->pep_cmd_apply_timer = pep_cmd_apply_timer;
+}
