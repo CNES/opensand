@@ -215,14 +215,6 @@ bool SpotDownward::onInit(void)
 
 	this->initStatsTimer(this->fwd_down_frame_duration_ms);
 
-	if(!this->initOutput())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the initialization of "
-		    "statistics\n");
-		goto release_dama;
-	}
-
 	// initialize the column ID for FMT simulation
 	if(!this->initColumns())
 	{
@@ -240,6 +232,13 @@ bool SpotDownward::onInit(void)
 		goto error;
 	}
 
+	if(!this->initOutput())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the initialization of "
+		    "statistics\n");
+		goto release_dama;
+	}
 	// everything went fine
 	return true;
 
