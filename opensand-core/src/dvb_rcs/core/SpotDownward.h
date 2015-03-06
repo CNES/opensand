@@ -154,9 +154,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 
 		list<DvbFrame *> &getCompleteDvbFrames(void);
 		
-		/// FMT groups for up/return
-		fmt_groups_t getRetFmtGroups(void) const;
-
 		void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 		event_id_t getPepCmdApplyTimer(void);
 
@@ -216,13 +213,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @return  true on success, false otherwise
 		 */
 		bool initRequestSimulation(void);
-
-		/**
-		 * @brief Send a SAC message containing ACM parameters
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool sendAcmParameters(void);
 
 		/**
 		 * Simulate event based on an input file

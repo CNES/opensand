@@ -119,19 +119,6 @@ class BlockDvbNcc: public BlockDvb
 		 */
 		bool initTimers(void);
 		
-		/** Read configuration for the resquest simulation
-		 * 
-		 * @return true on success, false otherwise
-		 */ 
-		bool initRequestSimulation(void);
-
-		/**
-		 * Read configuration for simulated FMT columns ID
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initColumns(void);
-
 		/**
 		 * @brief Read configuration for the different files and open them
 		 *
@@ -169,8 +156,6 @@ class BlockDvbNcc: public BlockDvb
 		
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
-
 
 		/// counter for forward frames
 		time_ms_t fwd_frame_counter;
