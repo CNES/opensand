@@ -179,10 +179,10 @@ class Conf
 	 * @param  elements         the list of found elements
 	 * @return true on success and false otherwise
 	 */
-	static bool getElementWithAttributeValue(ConfigurationList list,
+	/*static bool getElementWithAttributeValue(ConfigurationList list,
                                              const char *attribute_name,
                                              const char *attribute_value,
-                                             ConfigurationList &elements);
+                                             ConfigurationList &elements);*/
 	
 	/**
 	 * get the element from the list with attribute value

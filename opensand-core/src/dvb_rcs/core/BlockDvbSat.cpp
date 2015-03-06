@@ -430,36 +430,66 @@ bool BlockDvbSat::Downward::initSatLink(void)
 
 	if(this->satellite_type == REGENERATIVE)
 	{
-		// TODO no need of tal_aff and dflt_cat in attributes
-		if(!this->initBand<TerminalCategoryDama>(Conf::section_map[FORWARD_DOWN_BAND],
-		                                         TDM,
-		                                         this->fwd_down_frame_duration_ms,
-		                                         this->satellite_type,
-		                                         this->fmt_simu.getModcodDefinitions(),
-		                                         this->categories,
-		                                         this->terminal_affectation,
-		                                         &this->default_category,
-		                                         this->fmt_groups))
-		{
-			return false;
-		}
-
-		if(this->categories.size() != 1)
-		{
-			// TODO see NCC for that, we may handle categories in
-			//      spots here.
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot support more than one category for "
-			    "downlink band\n");
-			return false;
-		}
-
 		// TODO check for multispot, loop should also be on initBand
 		for(sat_spots_t::iterator i_spot = this->spots.begin();
 		    i_spot != this->spots.end(); i_spot++)
 		{
+
+			ConfigurationList current_spot;
+			ConfigurationList spot_list;
 			SatSpot *spot;
 			spot = i_spot->second;
+			spot_id_t spot_id = spot->getSpotId();
+
+			if(!Conf::getListNode(Conf::section_map[FORWARD_DOWN_BAND],
+			                      SPOT_LIST,
+			                      spot_list))
+			{
+				LOG(this->log_init, LEVEL_ERROR, 
+				    "section %s, missing %s", 
+				    FORWARD_DOWN_BAND, SPOT_LIST);
+			}
+
+			if(!Conf::getElementWithAttributeValue(spot_list,
+			                                       SPOT_ID,
+			                                       spot_id,
+			                                       current_spot))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "section %s,%s, missing %s",
+				    FORWARD_DOWN_BAND, SPOT_LIST, SPOT_ID);
+			}
+
+			// TODO no need of tal_aff and dflt_cat in attributes
+			if(!this->initBand<TerminalCategoryDama>(current_spot,
+						TDM,
+						this->fwd_down_frame_duration_ms,
+						this->satellite_type,
+						this->fmt_simu.getModcodDefinitions(),
+						this->categories,
+						this->terminal_affectation,
+						&this->default_category,
+						this->fmt_groups))
+			{
+				return false;
+			}
+
+			if(this->categories.size() != 1)
+			{
+				// TODO see NCC for that, we may handle categories in
+				//      spots here.
+				LOG(this->log_init, LEVEL_ERROR,
+						"cannot support more than one category for "
+						"downlink band\n");
+				return false;
+			}
+
+		// TODO check for multispot, loop should also be on initBand
+		/*for(sat_spots_t::iterator i_spot = this->spots.begin();
+		    i_spot != this->spots.end(); i_spot++)
+		{
+			SatSpot *spot;
+			spot = i_spot->second;*/
 			TerminalCategoryDama *category = this->categories.begin()->second;
 
 			if(!spot->initScheduling(this->fwd_down_frame_duration_ms,
@@ -690,7 +720,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				return false;
 			}
 
-			
 			NetBurst *burst;
 			uint8_t spot_id;
 			NetBurst::iterator pkt_it;
@@ -1067,7 +1096,7 @@ error:
 
 bool BlockDvbSat::Upward::initSwitchTable(void)
 {
-	ConfigurationList switch_list;
+	ConfigurationList spot_table;
 	ConfigurationList::iterator iter;
 	GenericSwitch *generic_switch = new GenericSwitch();
 	spot_id_t spot_id;
@@ -1081,32 +1110,27 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 
 	// Retrieving switching table entries
 	if(!Conf::getListNode(Conf::section_map[SPOT_TABLE_SECTION],
-		                   SPOT_LIST, switch_list))
+		                   SPOT_LIST, spot_table))
 	{
 
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite switching "
+		    "section '%s, %s': missing satellite spot "
 		    "table\n", SPOT_TABLE_SECTION, SPOT_LIST);
 		goto error;
 	}
 
 
 	i = 0;
-	for(iter = switch_list.begin(); iter != switch_list.end(); iter++)
+	for(iter = spot_table.begin(); iter != spot_table.end(); iter++)
 	{
+		ConfigurationList tal_list;
+		ConfigurationList current_spot;
+		ConfigurationList::iterator tal_iter;
+		current_spot.push_front(*iter);
 		tal_id_t tal_id = 0;
 		spot_id = 0;
 
 		i++;
-		// get the Tal ID attribute
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in switching table"
-			    "entry %u\n", TAL_ID, i);
-			goto release_switch;
-		}
-
 		// get the Spot ID attribute
 		if(!Conf::getAttributeValue(iter, SPOT_ID, spot_id))
 		{
@@ -1115,19 +1139,42 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 			    "entry %u\n", SPOT_ID, i);
 			goto release_switch;
 		}
-
-		if(!generic_switch->add(tal_id, spot_id))
+	
+		// Retrieving switching table entries
+		if(!Conf::getListNode(current_spot, TAL_ID, tal_list))
 		{
+
 			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to add switching entry "
-			    "(Tal ID = %u, Spot ID = %u)\n",
-			    tal_id, spot_id);
-			goto release_switch;
+					"section '%s, %s': missing satellite terminal id ",
+					 SPOT_TABLE_SECTION, SPOT_LIST);
+			goto error;
 		}
 
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "Switching entry added (Tal ID = %u, "
-		    "Spot ID = %u)\n", tal_id, spot_id);
+		for(tal_iter = tal_list.begin() ; tal_iter != tal_list.end() ;
+			++tal_iter)
+		{	
+			// get the Tal ID attribute
+			if(!Conf::getValue(tal_iter, tal_id))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "problem retrieving %s in spot table"
+				    "entry %u\n", TAL_ID, i);
+				goto release_switch;
+			}
+
+			if(!generic_switch->add(tal_id, spot_id))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to add switching entry "
+				    "(Tal ID = %u, Spot ID = %u)\n",
+				    tal_id, spot_id);
+				goto release_switch;
+			}
+
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "Switching entry added (Tal ID = %u, "
+			    "Spot ID = %u)\n", tal_id, spot_id);
+		}
 	}
 
 	// get default spot id

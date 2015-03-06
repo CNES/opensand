@@ -92,7 +92,7 @@ bool Conf::getListNode(ConfigurationList sectionList,
 }
 
 
-bool Conf::getElementWithAttributeValue(ConfigurationList list,
+/*bool Conf::getElementWithAttributeValue(ConfigurationList list,
                                         const char *attribute_name,
                                         const char *attribute_value,
                                         ConfigurationList &elements)
@@ -100,7 +100,7 @@ bool Conf::getElementWithAttributeValue(ConfigurationList list,
 	return global_config.getElementWithAttributeValue(list, attribute_name,
 	                                                  attribute_value,
 	                                                  elements);
-}
+}*/
 
 bool Conf::getNbListItems(ConfigurationList section,
                           const char *key,

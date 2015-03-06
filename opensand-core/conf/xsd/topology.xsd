@@ -332,6 +332,13 @@
                     <xsd:attribute name="id"/>
                 </xsd:complexType>
             </xsd:element>
+            <xsd:element name="default_spot" type="spotId">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default spot if terminal is not found in switches
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

@@ -10,41 +10,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for sat_switching_table section -->
-<!--<xsd:simpleType name="spotId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="255" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:element name="switchs">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="switch" minOccurs="1" maxOccurs="31"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="switch">
-    <xsd:complexType>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal ID
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The corresponding spot ID
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>-->
-
 <xsd:simpleType name="socketType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="SOCK_DGRAM"/>

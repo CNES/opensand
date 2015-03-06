@@ -281,20 +281,8 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	//      the configuration is maybe not really easy for this need
 
 	// get current spot id withing sat switching table
-	ConfigurationList spot_table_section = Conf::section_map[SPOT_TABLE_SECTION];
-	ConfigurationList spot_list;
 	ConfigurationList::iterator spot_iter;
 
-	// satelite switching table spot list
-	if(!Conf::getListNode(spot_table_section, SPOT_LIST, spot_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section",
-		    SPOT_LIST, SPOT_TABLE_SECTION);
-		return false;
-	}
-
-	
 	this->spot_id = Conf::terminal_map[this->mac_id];
 		
 	// get satelite carrier spot configuration 

@@ -146,7 +146,7 @@ class ConfigurationFile
 	 * @param  elements         the list of found elements
 	 * @return true en success and false otherwise
 	 */
-	bool getElementWithAttributeValue(ConfigurationList list,
+	bool getElementWithAttributeStringValue(ConfigurationList list,
                                       const char *attribute_name,
                                       const char *attribute_value,
                                       ConfigurationList &elements);
@@ -462,7 +462,7 @@ bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
 	string tmp_str;
 	strs << attribute_value;
 	tmp_str = strs.str();
-	if(!this->getElementWithAttributeValue(list, attribute_name, 
+	if(!this->getElementWithAttributeStringValue(list, attribute_name, 
 		                                   tmp_str.c_str(), elements))
 	{
 		return false;
@@ -650,7 +650,7 @@ inline bool ConfigurationFile::getElementWithAttributeValue<uint8_t>(
 	val = attribute_value;
 	strs << val;
 	tmp_str = strs.str();
-	if(!this->getElementWithAttributeValue(list, attribute_name, 
+	if(!this->getElementWithAttributeStringValue(list, attribute_name, 
 		                                   tmp_str.c_str(), elements))
 	{
 		return false;

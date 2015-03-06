@@ -491,7 +491,7 @@ error:
 	return found;
 }
 
-bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
+bool ConfigurationFile::getElementWithAttributeStringValue(ConfigurationList list,
                                                      const char *attribute_name,
                                                      const char *attribute_value,
                                                      ConfigurationList &elements)
