@@ -109,6 +109,7 @@ class BlockDvbTal: public BlockDvb
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	virtual ~BlockDvbTal();
 
+
 	class Upward: public DvbUpward
 	{
 	 public:
@@ -206,12 +207,14 @@ class BlockDvbTal: public BlockDvb
 
 	class Downward: public DvbDownward
 	{
-	  public:
+	 public:
 		Downward(Block *const bl, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
-
+		static int scpc_on;
+		static EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;	
+	 
 	 protected:
 
 		/**
@@ -362,9 +365,6 @@ class BlockDvbTal: public BlockDvb
 		/// The Slotted Aloha for terminal
 		SlottedAlohaTal *saloha;
 		
-		// the SCPC agent
-		//ScpcAgent damascpc
-		 
 		/// SCPC Carrier duration in ms
 		time_ms_t scpc_carr_duration_ms;
 	

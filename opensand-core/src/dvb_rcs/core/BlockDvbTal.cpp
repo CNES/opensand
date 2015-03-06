@@ -58,6 +58,8 @@
 #include <unistd.h>
 
 int BlockDvbTal::Downward::Downward::qos_server_sock = -1;
+int BlockDvbTal::Downward::Downward::scpc_on = 0;
+EncapPlugin::EncapPacketHandler *BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl = NULL;
 
 
 /*****************************************************************************/
@@ -252,7 +254,14 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	if (this->dama_agent || this->saloha)
+	{ 	
+		this->initStatsTimer(this->ret_up_frame_duration_ms);
+	}
+	else //Scpc mode
+	{
+		this->initStatsTimer(this->scpc_carr_duration_ms);
+	}
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
@@ -1013,14 +1022,16 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      &this->scpc_fmt_simu,
-	                                      cat);    
+	                                      cat);
+	BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl = this->pkt_hdl;                                          
+	
 	if(!this->scpc_sched)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize SCPC\n");
 		goto error;
 	}
-
+	BlockDvbTal::Downward::Downward::scpc_on = 1;
 	return true;
 
 release_scpc: //Something TODO
@@ -1753,7 +1764,7 @@ void BlockDvbTal::Downward::updateStats(void)
 	}
 	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
-
+	
 	// reset stat 
 	this->l2_to_sat_total_bytes = 0;
 }
@@ -2050,16 +2061,14 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->receptionStd = new DvbS2Std(this->pkt_hdl);
-	/*
-	if(!this->initPktHdl("GSE",
-	                     &this->scpc_tal_pkt_hdl, true))
+	
+	/*if(!this->initPktHdl("GSE", &this->scpc_tal_pkt_hdl, true))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler for SCPC\n");
 		     goto error;
-	}
-
-	*/
+	}*/
+	
 	if(this->receptionStd == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2105,42 +2114,40 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
-
+	
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
 		{
-			delete dvb_frame;
-			return true;
 			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes 
-			//  is coming from GW)
-			/*
-			delete dvb_frame;
-			return true;
+			//  is coming from same ST in SCPC mode
 			BBFrame *frame = dvb_frame->operator BBFrame*();
 			tal_id_t tal_id;
+
 			// decode the first packet in frame to be able to get source terminal ID
-			if(!this->scpc_tal_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+			if(BlockDvbTal::Downward::Downward::scpc_on == 1) 
 			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "unable to read source terminal ID in"
-				    " frame, won't be able to discard BBframes sent from ST%d to ST%d \n", 
-				    this->mac_id, this->mac_id);
-			}
-			else
-			{
-				if(tal_id == this->mac_id)
+
+				if(!BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl->getSrc(frame->getPayload(), tal_id))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "ignore received BB frame from ST%d in transparent \n"
-					    "scenario\n", this->mac_id);
-					delete dvb_frame;
-					return true;
-			
+					    "unable to read source terminal ID in"
+					    " frame, won't be able to discard BBframes sent from ST%d to ST%d \n", 
+					    this->mac_id, this->mac_id);
+				}
+				else
+				{
+					if(tal_id == this->mac_id)
+					{
+						LOG(this->log_receive, LEVEL_INFO,
+						    "ignore received BB frame from ST%d in transparent \n"
+						    "scenario\n", this->mac_id);
+						delete dvb_frame;
+						return true;
+					}
 				}
 			}
-			*/
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->receptionStd;
 
