@@ -68,6 +68,9 @@ SpotUpward::~SpotUpward()
 	{
 		delete (*it).second;
 	}
+
+	if(this->reception_std)
+		delete this->reception_std;
 }
 
 

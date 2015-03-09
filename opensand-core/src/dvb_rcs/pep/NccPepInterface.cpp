@@ -320,7 +320,7 @@ error:
 }
 
 
-bool NccPepInterface::readPepMessage(NetSocketEvent *const event, tal_id_t tal_id)
+bool NccPepInterface::readPepMessage(NetSocketEvent *const event, tal_id_t &tal_id)
 {
 	char *recv_buffer;
 
@@ -366,7 +366,7 @@ error:
  * @param message   the message sent by the PEP component
  * @return          true if message was successfully parsed, false otherwise
  */
-bool NccPepInterface::parsePepMessage(const char *message, tal_id_t tal_id)
+bool NccPepInterface::parsePepMessage(const char *message, tal_id_t &tal_id)
 {
 	stringstream stream;
 	char cmd[64];
@@ -443,7 +443,9 @@ PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
 	int ret;
 
 	// retrieve values in the command
-	ret = sscanf(cmd, "%u:%u:%u:%u:%u", &type, &st_id, &cra, &rbdc, &rbdc_max);
+	ret = sscanf(cmd, "%u:%u:%u:%u:%u", &type, 
+	            (unsigned*) &st_id, (unsigned*)&cra, 
+	            (unsigned*)&rbdc, (unsigned*)&rbdc_max);
 	if(ret != 5)
 	{
 		LOG(this->log_pep, LEVEL_ERROR,

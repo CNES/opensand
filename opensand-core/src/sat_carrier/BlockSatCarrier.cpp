@@ -222,7 +222,8 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
                                                       size_t length)
 {
 	DvbFrame *dvb_frame = new DvbFrame(data, length);
-	free(data);
+	delete data;
+	//free(data);
 
 	dvb_frame->setCarrierId(carrier_id);
 	dvb_frame->setSpot(spot_id);
@@ -238,8 +239,9 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "Message from carrier %u sent to upper layer\n", carrier_id);
 
-	return;
 
 release:
-	delete dvb_frame;
+	if(dvb_frame)
+		delete dvb_frame;
+	return;
 }

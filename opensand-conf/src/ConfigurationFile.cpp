@@ -244,10 +244,10 @@ void ConfigurationFile::loadSectionMap(map<string, ConfigurationList> &section_m
 
 		for(iter = childrenList.begin(); iter != childrenList.end(); iter++)
 		{
-			string name = ((xmlpp::Node*)*iter)->get_name().c_str();
+			string name = ((xmlpp::Node*)*iter)->get_name();
 			ConfigurationList sectionList;
 			// if name is not already a key
-			if(section_map.find(name) == section_map.end())
+			if(section_map.find(name.c_str()) == section_map.end())
 			{
 				this->getSection(name.c_str(), sectionList);
 				section_map[name] = sectionList;

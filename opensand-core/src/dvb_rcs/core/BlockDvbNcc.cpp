@@ -933,6 +933,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to allocate memory for link_is_up "
 			    "message\n");
+			return false;
 		}
 		link_is_up->group_id = 0;
 		link_is_up->tal_id = GW_TAL_ID;
