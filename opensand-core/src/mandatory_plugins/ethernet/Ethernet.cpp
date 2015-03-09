@@ -525,7 +525,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
 				{
-					LOG(this->log, LEVEL_NOTICE,
+					LOG(this->log, LEVEL_WARNING,
 					    "cannot find destination MAC address %s in sarp table\n",
 					    dst_mac.str().c_str());
 					continue;
