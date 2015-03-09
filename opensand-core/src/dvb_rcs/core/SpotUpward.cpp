@@ -477,6 +477,7 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to schedule Slotted Aloha\n");
+		delete dvb_frame;
 		delete ack_frames;
 		return false;
 	}

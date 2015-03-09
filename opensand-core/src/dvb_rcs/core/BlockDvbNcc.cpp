@@ -91,6 +91,7 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 BlockDvbNcc::Downward::Downward(Block *const bl):
 	DvbDownward(bl),
 	NccPepInterface(),
+	fwd_frame_counter(0),
 	fwd_timer(-1),
 	up_ret_fmt_simu(),
 	down_fwd_fmt_simu(),
@@ -306,6 +307,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(dest_spot));
 				if(!spot)
 				{
+					delete dvb_frame;
 					return false;
 				}
 
@@ -418,6 +420,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
 				if(!spot)
 				{
+					delete ack_frames;
 					return false;
 				}
 
@@ -556,7 +559,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				{
 					SpotDownward *spot;
 					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-
+					if(!spot)
+					{
+						return false;
+					}
 					this->fwd_frame_counter++;
 					if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
 					{
@@ -969,6 +975,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 			spot = dynamic_cast<SpotUpward *>(this->getSpot(dest_spot));
 			if(!spot)
 			{
+				delete dvb_frame;
 				return false;
 			}
 			uint8_t msg_type = dvb_frame->getMessageType();
@@ -991,8 +998,11 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					// C/N0 updates
 					if(this->with_phy_layer)
 					{
-						DvbFrame *copy = new DvbFrame(dvb_frame);
-						this->shareFrame(copy);
+						this->shareFrame(dvb_frame);
+					}
+					else
+					{
+						delete dvb_frame;
 					}
 
 					// send the message to the upper layer
@@ -1009,14 +1019,13 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				break;
 
 				case MSG_TYPE_SAC:
-				{
 					if(!this->shareFrame(dvb_frame))
 					{
 						return false;
 					}
 					break;
 
-					case MSG_TYPE_SESSION_LOGON_REQ:
+				case MSG_TYPE_SESSION_LOGON_REQ:
 					LOG(this->log_receive, LEVEL_INFO,
 					    "Logon Req\n");
 					if(!spot->onRcvLogonReq(dvb_frame))
@@ -1030,7 +1039,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					}
 					break;
 
-					case MSG_TYPE_SESSION_LOGOFF:
+				case MSG_TYPE_SESSION_LOGOFF:
 					LOG(this->log_receive, LEVEL_INFO,
 					    "Logoff Req\n");
 					if(!this->shareFrame(dvb_frame))
@@ -1038,7 +1047,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						return false;
 					}
 					break;
-				}
 
 				case MSG_TYPE_TTP:
 				case MSG_TYPE_SESSION_LOGON_RESP:
@@ -1059,6 +1067,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						return false;
 					}
+					delete dvb_frame;
+
 					if(!ack_frames && !sa_burst)
 					{
 						// No slotted Aloha
@@ -1092,7 +1102,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						delete ack_frames;
 					}
-					delete dvb_frame;
 				}
 				break;
 
