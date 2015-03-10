@@ -254,6 +254,7 @@
         <xsd:documentation xml:lang="en">
             The SARP tables for satellite terminals
             Associate address and terminal ID
+            <adv>true</adv>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -295,6 +296,8 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             The satellite spot carriers description
+            <hide>true</hide>
+            <adv>true</adv>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -315,6 +318,7 @@
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             The satellite switching table
+            <adv>true</adv>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
