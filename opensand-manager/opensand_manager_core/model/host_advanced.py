@@ -112,6 +112,9 @@ class AdvancedHostModel:
             raise ModelException("failed to parse configuration %s"
                                  % msg)
 
+    def get_name(self):
+        return self._name
+
     def get_configuration(self):
         """ get the configuration parser """
         return self._configuration

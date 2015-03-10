@@ -44,9 +44,10 @@ from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
 from opensand_manager_core.model.global_config import GlobalConfig
+from opensand_manager_core.model.topology_config import TopologyConfig
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.loggers.manager_log import ManagerLog
-from opensand_manager_core.opensand_xml_parser import XmlParser
+#from opensand_manager_core.opensand_xml_parser import XmlParser
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.module import load_modules
 
@@ -190,7 +191,8 @@ class Model:
                                             TOPOLOGY_CONF)
                 shutil.copy(default_topo, topo_conf)
 
-            self._topology = XmlParser(topo_conf, topo_xsd)
+            #self._topology = XmlParser(topo_conf, topo_xsd)
+            self._topology = TopologyConfig(self._scenario_path)
         except IOError, (_, strerror):
             raise ModelException("cannot load topology configuration: %s " %
                                  strerror)
@@ -212,14 +214,14 @@ class Model:
                            '@' + CARRIER_TYPE + '="' + DATA_IN_GW + '" or' \
                            '@' + CARRIER_TYPE + '="' + DATA_IN_ST + '")' \
                            'and @' + IP_MULTICAST + '="false"]'
-                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
+                self._topology.get_configuration().set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, IP_ADDRESS)
             elif name == GW:
                 att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
                            '[(@' + CARRIER_TYPE + '="' + LOGON_OUT + '" or' \
                            ' @' + CARRIER_TYPE + '="'+ DATA_OUT_GW + '")' \
                            'and @' + IP_MULTICAST + '="false"]'
-                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
+                self._topology.get_configuration().set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, IP_ADDRESS)
 
             if name != SAT:
@@ -233,7 +235,7 @@ class Model:
                         TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv4'
-                self._topology.create_line(line, 'terminal_v4', xpath)
+                self._topology.get_configuration().create_line(line, 'terminal_v4', xpath)
                 # IPv6 SARP
                 addr = net_config['lan_ipv6'].split('/')
                 ip = addr[0]
@@ -244,7 +246,7 @@ class Model:
                         TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv6'
-                self._topology.create_line(line, 'terminal_v6', xpath)
+                self._topology.get_configuration().create_line(line, 'terminal_v6', xpath)
                 # Ethernet SARP
                 if 'mac' in net_config:
                     mac = net_config['mac']
@@ -255,9 +257,9 @@ class Model:
                                 TAL_ID: instance,
                                }
                         xpath = '/configuration/sarp/ethernet'
-                        self._topology.create_line(line, 'terminal_eth', xpath)
+                        self._topology.get_configuration().create_line(line, 'terminal_eth', xpath)
 
-            self._topology.write()
+            self._topology.save()
         except XmlException, msg:
             self._log.error("failed to add topology for %s: %s" % (name,
                                                                    str(msg)))
@@ -273,14 +275,14 @@ class Model:
         try:
             xpath = "/configuration/sarp/ipv4/terminal_v4" \
                     "[@" + TAL_ID + "='%s']" % instance
-            self._topology.del_element(xpath)
+            self._topology.get_configuration().del_element(xpath)
             xpath = "/configuration/sarp/ipv6/terminal_v6" \
                     "[@" + TAL_ID + "='%s']" % instance
-            self._topology.del_element(xpath)
+            self._topology.get_configuration().del_element(xpath)
             xpath = "/configuration/sarp/ethernet/terminal_eth" \
                     "[@" + TAL_ID + "='%s']" % instance
-            self._topology.del_element(xpath)
-            self._topology.write()
+            self._topology.get_configuration().del_element(xpath)
+            self._topology.save()
         except XmlException, msg:
             self._log.error("failed to remove host with id %s in topology: %s" %
                             (instance, str(msg)))
@@ -291,7 +293,7 @@ class Model:
 
     def save(self):
         self._config.save()
-        self._topology.write()
+        self._topology.save()
         for host in self._hosts:
             adv = host.get_advanced_conf()
             config = adv.get_configuration()
@@ -326,6 +328,8 @@ class Model:
                 return host
         if name == GLOBAL:
             return self
+        if name == TOPOLOGY:
+            return self._topology
         return None
 
     def get_workstations_list(self):
@@ -688,11 +692,11 @@ class Model:
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """
-        return 'global'
+        return GLOBAL
 
     def get_component(self):
         """ for compatibility with advanced dialog host calls """
-        return 'global'
+        return GLOBAL
 
     def get_advanced_conf(self):
         """ for compatibility with advanced dialog host calls """

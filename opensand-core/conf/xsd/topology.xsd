@@ -258,6 +258,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="default" type="xsd:integer">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The default terminal ID if no one is found, -1 for none
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element ref="ipv4">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -276,13 +283,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The Ethernet SARP table
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="default" type="xsd:integer">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default terminal ID if no one is found, -1 for none
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

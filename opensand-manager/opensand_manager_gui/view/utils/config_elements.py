@@ -41,7 +41,7 @@ import pango
 from copy import deepcopy
 
 from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, SPOT_ID, \
-                                         TAL_ID, IP_ADDRESS
+                                         TAL_ID, IP_ADDRESS, TOPOLOGY
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
@@ -345,6 +345,9 @@ class ConfigurationTree(gtk.TreeStore):
         if name == GLOBAL:
             top_elt = self.insert(None, 0)
             self._is_first_elt = 1
+        elif name == TOPOLOGY:
+            top_elt = self.insert(None, 1)
+            self._is_first_elt += 1
         elif name == SAT:
             top_elt = self.insert(None, self._is_first_elt)
         elif name == GW:

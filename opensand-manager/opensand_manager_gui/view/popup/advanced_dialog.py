@@ -41,7 +41,7 @@ import threading
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
-from opensand_manager_core.utils import SPOT, SPOT_ID
+from opensand_manager_core.utils import SPOT, SPOT_ID, TOPOLOGY
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection
@@ -142,6 +142,10 @@ class AdvancedDialog(WindowView):
 
         host = self._model.get_host(self._model.get_name())
         self.add_host_children(host)
+        
+        host = self._model.get_host(TOPOLOGY)
+        self._host_tree.add_host(host,{})
+        self.add_host_children(host)
 
         if not self._model.get_adv_mode():
             treeview = self._host_tree.get_treeview()
@@ -194,14 +198,13 @@ class AdvancedDialog(WindowView):
         self._host_lock.acquire()
         
         # add host and its children
-        for host in [elt for elt in self._model.get_hosts_list()
-                         if elt.get_name() not in self._hosts_name]:
+        for host in [elt for elt in self._model.get_hosts_list() 
+                     if elt.get_name() not in self._hosts_name]:
             name = host.get_name()
             self._hosts_name.append(name)
         
             self._host_tree.add_host(host, None)
             self.add_host_children(host)
-        # TODO update host
 
         real_names = []
         for host in self._model.get_hosts_list():
@@ -294,10 +297,14 @@ class AdvancedDialog(WindowView):
 
     def get_used_modules(self):
         """ get the modules used by a host """
-        all_modules = list(self._current_host.get_modules())
-        # header modifications modules have their configuration in st and gw
-        # but a global target si get them
-        all_modules += self._model.get_global_lan_adaptation_modules().values()
+        if self._current_host.get_modules() != []:
+            all_modules = list(self._current_host.get_modules())
+            # header modifications modules have their configuration in st and gw
+            # but a global target si get them
+            all_modules += self._model.get_global_lan_adaptation_modules().values()
+        else:
+            all_modules = self._model.get_global_lan_adaptation_modules().values()
+
         if self._all_modules:
             return all_modules
 
@@ -580,7 +587,8 @@ class AdvancedDialog(WindowView):
     def on_apply_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on apply button """
         self._host_lock.acquire()
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model] + \
+                    [self._model.get_host(TOPOLOGY)]:
             host.enable(False)
             if host in self._enabled:
                 host.enable(True)
@@ -677,7 +685,8 @@ class AdvancedDialog(WindowView):
         for host_name in self._modules_tree:
             self._modules_tree[host_name].set_hidden(not self._show_hidden)
         
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model] + \
+                    [self._model.get_host(TOPOLOGY)]:
             adv = host.get_advanced_conf()
             if adv is None:
                 continue
@@ -704,11 +713,13 @@ class AdvancedDialog(WindowView):
         configs = []
         rows = {}
         # get all the configurations
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model] + \
+                    [self._model.get_host(TOPOLOGY)]:
             adv = host.get_advanced_conf()
             configs.append(adv.get_configuration())
 
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model] + \
+                    [self._model.get_host(TOPOLOGY)]:
             # get notebooks to update their restrictions
             adv = host.get_advanced_conf()
             list_view = adv.get_conf_view()

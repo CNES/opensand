@@ -55,11 +55,12 @@ SAT = "sat"
 WS  = "ws"
 
 #common
-SPOT    = "spot"
-SPOT_ID = "id"
-TAL_ID  = "tal_id"
-GLOBAL  = "global"
-COMMON  = "common"
+SPOT      = "spot"
+SPOT_ID   = "id"
+TAL_ID    = "tal_id"
+GLOBAL    = "global"
+TOPOLOGY  = "topology"
+COMMON    = "common"
 
 #Section
 RETURN_UP_BAND    = "return_up_band"
