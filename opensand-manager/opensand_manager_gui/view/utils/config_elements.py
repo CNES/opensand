@@ -724,41 +724,44 @@ class ConfSection(gtk.VBox):
                                    pack_type=gtk.PACK_START)
         
         for key in self._config.get_keys(section):
-            if key.tag == SPOT:
-                if self._spot_id == key.get(SPOT_ID):
-                    for s_key in self._config.get_keys(key):
-                        source_ext = "_spot_" + self._spot_id
-                        if self._config.is_table(s_key):
-                            table = self.add_table(s_key, source_ext)
-                            if table is not None:
-                                self.pack_end(table)
-                                self.set_child_packing(table, expand=False,
-                                                       fill=False, padding=5,
-                                                       pack_type=gtk.PACK_START)
-                        else:
-                            entry = self.add_key(s_key, source_ext)
-                            if entry is not None:
-                                self.pack_end(entry)
-                                self.set_child_packing(entry, expand=False,
-                                                       fill=False, padding=5,
-                                                       pack_type=gtk.PACK_START)
+            if self._spot_id is not None:
+                if key.tag == SPOT:
+                    if self._spot_id == key.get(SPOT_ID):
+                        for s_key in self._config.get_keys(key):
+                            source_ext = "_spot_" + self._spot_id
+                            if self._config.is_table(s_key):
+                                table = self.add_table(s_key, source_ext)
+                                if table is not None:
+                                    self.pack_end(table)
+                                    self.set_child_packing(table, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+                            else:
+                                entry = self.add_key(s_key, source_ext)
+                                if entry is not None:
+                                    self.pack_end(entry)
+                                    self.set_child_packing(entry, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
 
           
-
-            elif self._config.is_table(key):
-                table = self.add_table(key)
-                if table is not None:
-                    self.pack_end(table)
-                    self.set_child_packing(table, expand=False,
-                                           fill=False, padding=5,
-                                           pack_type=gtk.PACK_START)
             else:
-                entry = self.add_key(key)
-                if entry is not None:
-                    self.pack_end(entry)
-                    self.set_child_packing(entry, expand=False,
-                                          fill=False, padding=5,
-                                          pack_type=gtk.PACK_START)
+                if key.tag == SPOT:
+                    continue
+                elif self._config.is_table(key):
+                    table = self.add_table(key)
+                    if table is not None:
+                        self.pack_end(table)
+                        self.set_child_packing(table, expand=False,
+                                               fill=False, padding=5,
+                                               pack_type=gtk.PACK_START)
+                else:
+                    entry = self.add_key(key)
+                    if entry is not None:
+                        self.pack_end(entry)
+                        self.set_child_packing(entry, expand=False,
+                                              fill=False, padding=5,
+                                              pack_type=gtk.PACK_START)
 
     def add_key(self, key, source_ext = ""):
         """ add a key and its corresponding entry in a tab """

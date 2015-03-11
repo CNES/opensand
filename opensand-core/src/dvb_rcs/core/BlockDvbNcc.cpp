@@ -1000,7 +1000,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						this->shareFrame(dvb_frame);
 					}
-					else
+					else if(dvb_frame)
 					{
 						delete dvb_frame;
 					}

@@ -345,7 +345,7 @@ void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
 		}
 
 		// get spot channel
-		if(!getListNode(current_spot, TAL_ID, terminal_list))
+		if(!getListItems(current_spot, TERMINAL_LIST, terminal_list))
 		{
 			return;
 		}
@@ -357,11 +357,10 @@ void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
 			uint16_t tal_id = 0;
 
 			//get carrier ID
-			if(!getValue(iter_terminal, tal_id))
+			if(!getAttributeValue(iter_terminal, ID, tal_id))
 			{
 				return;
 			}
-
 			terminal_map[tal_id] = spot_id;
 		}
 	}

@@ -1141,7 +1141,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 		}
 	
 		// Retrieving switching table entries
-		if(!Conf::getListNode(current_spot, TAL_ID, tal_list))
+		if(!Conf::getListItems(current_spot, TERMINAL_LIST, tal_list))
 		{
 
 			LOG(this->log_init, LEVEL_ERROR,
@@ -1154,7 +1154,7 @@ bool BlockDvbSat::Upward::initSwitchTable(void)
 			++tal_iter)
 		{	
 			// get the Tal ID attribute
-			if(!Conf::getValue(tal_iter, tal_id))
+			if(!Conf::getAttributeValue(tal_iter, ID, tal_id))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "problem retrieving %s in spot table"

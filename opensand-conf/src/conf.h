@@ -102,8 +102,10 @@
 
 #define SPOT_ID                   "id"
 #define TAL_ID                    "tal_id"
+#define ID                        "id"
 
-#define SPOT_TABLE_SECTION              "spot_table"
+#define SPOT_TABLE_SECTION        "spot_table"
+#define TERMINAL_LIST			  "terminals"
 #define DEFAULT_SPOT              "default_spot"
 
 

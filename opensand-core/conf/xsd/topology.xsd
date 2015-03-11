@@ -236,6 +236,19 @@
     </xsd:complexType>
 </xsd:element>
 
+<xsd:element name="tal">
+    <xsd:complexType>
+        <xsd:attribute name="id" type="talId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The terminal id
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
@@ -326,14 +339,21 @@
             <xsd:element name="spot" minOccurs="1" maxOccurs="32">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The spot list of terminal id
+                        The terminal list
                     </xsd:documentation>
                 </xsd:annotation>
+                <!-- the tal_list for spot_table section -->
                 <xsd:complexType>
                     <xsd:sequence>
-                        <xsd:element name="tal_id" minOccurs="1" maxOccurs="30"/>
+                        <xsd:element name="terminals">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element ref="tal" minOccurs="1" maxOccurs="6"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
                     </xsd:sequence>
-                    <xsd:attribute name="id"/>
+                    <xsd:attribute name="id" type="spotId"/>
                 </xsd:complexType>
             </xsd:element>
             <xsd:element name="default_spot" type="spotId">
