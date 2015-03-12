@@ -376,12 +376,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 									"There is not spot for terminal id %d", tal_id);
 							continue;
 						}
-						if(this->getSpot(tal_iter->second) != NULL)
-						{	
-							spot = dynamic_cast<SpotDownward *>(this->getSpot(
+						spot = dynamic_cast<SpotDownward *>(this->getSpot(
 										(*tal_iter).second));
-							spot_list.push_back(spot);
-						}
+						spot_list.push_back(spot);
 					}
 
 					for(spot_list_iter = spot_list.begin() ; 

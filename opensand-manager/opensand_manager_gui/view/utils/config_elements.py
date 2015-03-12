@@ -385,7 +385,7 @@ class ConfigurationTree(gtk.TreeStore):
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE_CHECK_BOX, active,
+                              VISIBLE_CHECK_BOX, True,
                               CHECK_BOX_SIZE, 12,
                               ACTIVE, active,
                               ACTIVATABLE, True,
