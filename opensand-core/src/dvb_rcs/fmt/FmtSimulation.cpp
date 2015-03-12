@@ -87,7 +87,9 @@ FmtSimulation::~FmtSimulation()
 	this->clear();
 	
 	if(this->modcod_def)
+	{
 		delete this->modcod_def;
+	}
 
 	if(this->modcod_simu)
 	{

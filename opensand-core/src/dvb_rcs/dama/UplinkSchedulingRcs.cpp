@@ -52,6 +52,7 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 	ret_fmt_simu(ret_fmt_simu),
 	category(category)
 {
+
 }
 
 

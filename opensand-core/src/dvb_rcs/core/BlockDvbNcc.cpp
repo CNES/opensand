@@ -93,8 +93,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	NccPepInterface(),
 	fwd_frame_counter(0),
 	fwd_timer(-1),
-	up_ret_fmt_simu(),
-	down_fwd_fmt_simu(),
 	scenario_timer(-1),
 	probe_frame_interval(NULL)
 {
@@ -163,8 +161,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 		                        this->fwd_down_frame_duration_ms,
 		                        this->ret_up_frame_duration_ms,
 		                        this->stats_period_ms,
-		                        this->up_ret_fmt_simu,
-		                        this->down_fwd_fmt_simu,
 		                        this->satellite_type,
 		                        this->pkt_hdl,
 		                        this->with_phy_layer);
@@ -182,14 +178,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "initialisation\n");
 	}
 
-	// Get and open the files
-	if(!this->initModcodSimu())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
-		return false;
-	}
 
 	// listen for connections from external PEP components
 	if(!this->listenForPepConnections())
@@ -255,36 +243,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	return true;
 }
 
-bool BlockDvbNcc::Downward::initModcodSimu(void)
-{
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-	                          RETURN_UP_MODCOD_TIME_SERIES,
-	                          this->up_ret_fmt_simu))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD files\n");
-		return false;
-	}
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          this->down_fwd_fmt_simu))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD files\n");
-		return false;
-	}
 
-	// initialize the MODCOD IDs
-	if(!this->down_fwd_fmt_simu.goNextScenarioStep(true) ||
-	   !this->up_ret_fmt_simu.goNextScenarioStep(false))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize MODCOD scheme IDs\n");
-		return false;
-	}
-
-	return true;
-}
 
 
 bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
@@ -317,69 +276,18 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					case MSG_TYPE_DVB_BURST:
 					case MSG_TYPE_CORRUPTED:
 					{
-						double curr_cni = dvb_frame->getCn();
-						if(this->satellite_type == REGENERATIVE)
+						if(!spot->handleCorrutedFrame(dvb_frame))
 						{
-							// regenerative case:
-							//   we need downlink ACM parameters to inform
-							//   satellite with a SAC so inform opposite channel
-							spot->setCni(curr_cni);
-						}
-						else
-						{
-							// transparent case : update return modcod for terminal
-							DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-							tal_id_t tal_id;
-							// decode the first packet in frame to be able to
-							// get source terminal ID
-							if(!this->pkt_hdl->getSrc(frame->getPayload(),
-							                          tal_id))
-							{
-								LOG(this->log_receive, LEVEL_ERROR,
-								    "unable to read source terminal ID in"
-								    " frame, won't be able to update C/N"
-								    " value\n");
-							}
-							else
-							{
-								this->up_ret_fmt_simu.setRequiredModcod(tal_id,
-								                                        curr_cni);
-							}
+							goto error;
 						}
 					}
 					break;
 
 					case MSG_TYPE_SAC: // when physical layer is enabled
 					{
-						Sac *sac = (Sac *)dvb_frame;
-
-						LOG(this->log_receive, LEVEL_DEBUG,
-						    "handle received SAC\n");
-
-						if(!spot->handleSac(sac))
+						if(!spot->handleSac(dvb_frame))
 						{
-							LOG(this->log_receive, LEVEL_ERROR,
-							    "failed to handle SAC frame\n");
-							delete dvb_frame;
 							goto error;
-						}
-
-						if(this->with_phy_layer)
-						{
-							// transparent : the C/N0 of forward link
-							// regenerative : the C/N0 of uplink (updated by sat)
-							double cni = sac->getCni();
-							tal_id_t tal_id = sac->getTerminalId();
-							if(this->satellite_type == TRANSPARENT)
-							{
-								this->down_fwd_fmt_simu.setRequiredModcod(tal_id,
-								                                          cni);
-							}
-							else
-							{
-								this->up_ret_fmt_simu.setRequiredModcod(tal_id,
-								                                        cni);
-							}
 						}
 					}
 					break;
@@ -468,9 +376,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 									"There is not spot for terminal id %d", tal_id);
 							continue;
 						}
-						spot = dynamic_cast<SpotDownward *>(this->getSpot(
-							                           tal_iter->second));
-						spot_list.push_back(spot);
+						if(this->getSpot(tal_iter->second) != NULL)
+						{	
+							spot = dynamic_cast<SpotDownward *>(this->getSpot(
+										(*tal_iter).second));
+							spot_list.push_back(spot);
+						}
 					}
 
 					for(spot_list_iter = spot_list.begin() ; 
@@ -602,9 +513,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// it's time to update MODCOD IDs
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "MODCOD scenario timer received\n");
-
-					if(!this->up_ret_fmt_simu.goNextScenarioStep(false) ||
-					   !this->down_fwd_fmt_simu.goNextScenarioStep(true))
+					
+					if(spot->goNextScenarioStep())
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -999,10 +909,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					if(this->with_phy_layer)
 					{
 						this->shareFrame(dvb_frame);
-					}
-					else if(dvb_frame)
-					{
-						delete dvb_frame;
 					}
 
 					// send the message to the upper layer

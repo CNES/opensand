@@ -59,8 +59,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		             time_ms_t fwd_down_frame_duration,
 		             time_ms_t ret_up_frame_duration,
 		             time_ms_t stats_period,
-		             const FmtSimulation &up_fmt_simu,
-		             const FmtSimulation &down_fmt_simu,
 		             sat_type_t sat_type,
 		             EncapPlugin::EncapPacketHandler *pkt_hdl,
 		             bool phy_layer);
@@ -120,10 +118,25 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		/**
 		 * @brief  handle a SAC frame
 		 *
-		 * @param sac  The SAC frame
+		 * @param dvb_frame The SAC frame
 		 * @return true on success, false otherwise
 		 */
-		bool handleSac(const Sac *sac);
+		bool handleSac(const DvbFrame *dvb_frame);
+
+		/**
+		 * @brief handle Corrupted Dvb Frame
+		 *
+		 * @param dvb_frame the Dvb Frame corrupted
+		 * @return true on succes, flase otherwise
+		 */
+		bool handleCorrutedFrame(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief go to fmt simu next scenario
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool goNextScenarioStep();
 
 		/**
 		 * @brief update FMT in DAMA controller
@@ -193,6 +206,13 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @return  true on success, false otherwise
 		 */
 		bool initFifo(void);
+
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
 
 		/**
 		 * Read configuration for simulated FMT columns ID

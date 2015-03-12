@@ -120,13 +120,6 @@ class BlockDvbNcc: public BlockDvb
 		bool initTimers(void);
 		
 		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
-		
-		/**
 		 * Send a Terminal Time Plan
 		 */
 		void sendTTP(SpotDownward *spot_downward);
@@ -165,11 +158,6 @@ class BlockDvbNcc: public BlockDvb
 
 		/// frame timer for forward, used to awake the block every frame period
 		event_id_t fwd_timer;
-
-		/// The MODCOD simulation elements for up/return link
-		FmtSimulation up_ret_fmt_simu;
-		/// The MODCOD simulation elements for down/forward link
-		FmtSimulation down_fwd_fmt_simu;
 
 		/// timer used to awake the block every second in order to retrieve
 		/// the current MODCODs

@@ -47,8 +47,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           const FmtSimulation &up_fmt_simu,
-                           const FmtSimulation &down_fmt_simu,
                            sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            bool phy_layer):
@@ -69,8 +67,8 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	up_return_pkt_hdl(NULL),
 	fwd_fmt_groups(),
 	ret_fmt_groups(),
-	up_ret_fmt_simu(up_fmt_simu),
-	down_fwd_fmt_simu(down_fmt_simu),
+	up_ret_fmt_simu(),
+	down_fwd_fmt_simu(),
 	cni(100),
 	column_list(),
 	pep_cmd_apply_timer(),
@@ -215,6 +213,15 @@ bool SpotDownward::onInit(void)
 
 	this->initStatsTimer(this->fwd_down_frame_duration_ms);
 
+	// Get and open the files
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation\n");
+		return false;
+	}
+
 	// initialize the column ID for FMT simulation
 	if(!this->initColumns())
 	{
@@ -246,6 +253,37 @@ release_dama:
 	delete this->dama_ctrl;
 error:
 	return false;
+}
+
+bool SpotDownward::initModcodSimu(void)
+{
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
+	                          RETURN_UP_MODCOD_TIME_SERIES,
+	                          this->up_ret_fmt_simu))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD files\n");
+		return false;
+	}
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                          this->down_fwd_fmt_simu))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD files\n");
+		return false;
+	}
+
+	// initialize the MODCOD IDs
+	if(!this->down_fwd_fmt_simu.goNextScenarioStep(true) ||
+	   !this->up_ret_fmt_simu.goNextScenarioStep(false))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MODCOD scheme IDs\n");
+		return false;
+	}
+
+	return true;
 }
 
 // TODO completely rework columns and fmt_simu and take spots into account !!!
@@ -1283,6 +1321,48 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	return true;
 }
 
+bool SpotDownward::handleCorrutedFrame(DvbFrame *dvb_frame)
+{
+	double curr_cni = dvb_frame->getCn();
+	if(this->satellite_type == REGENERATIVE)
+	{
+		// regenerative case:
+		//   we need downlink ACM parameters to inform
+		//   satellite with a SAC so inform opposite channel
+		this->cni = curr_cni;
+	}
+	else
+	{
+		// transparent case : update return modcod for terminal
+		DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+		tal_id_t tal_id;
+		// decode the first packet in frame to be able to
+		// get source terminal ID
+		if(!this->pkt_hdl->getSrc(frame->getPayload(),
+					tal_id))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+					"unable to read source terminal ID in"
+					" frame, won't be able to update C/N"
+					" vailue\n");
+			return false;
+		}
+		else
+		{
+			this->up_ret_fmt_simu.setRequiredModcod(tal_id,
+					curr_cni);
+		}
+	}
+	return true;
+}
+
+
+bool SpotDownward::goNextScenarioStep()
+{
+	return !this->up_ret_fmt_simu.goNextScenarioStep(false) ||
+					   !this->down_fwd_fmt_simu.goNextScenarioStep(true);
+}
+
 // TODO create a class for simulation and subclass file/random
 bool SpotDownward::simulateFile(void)
 {
@@ -1519,7 +1599,7 @@ bool SpotDownward::simulateRandom(void)
 	    }
 		sac->addRequest(0, access_dama_rbdc, val);
 
-		if(!this->handleSac(sac))
+		if(!this->dama_ctrl->hereIsSAC(sac))
 		{
 			return false;
 		}
@@ -1594,9 +1674,39 @@ void SpotDownward::setCni(double cni)
 	this->cni = cni;
 }
 
-bool SpotDownward::handleSac(const Sac *sac)
+bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 {
-	return this->dama_ctrl->hereIsSAC(sac);
+	Sac *sac = (Sac *)dvb_frame;
+
+	LOG(this->log_receive_channel, LEVEL_DEBUG,
+			"handle received SAC\n");
+
+	if(!this->dama_ctrl->hereIsSAC(sac))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+				"failed to handle SAC frame\n");
+		delete dvb_frame;
+		return false;
+	}
+
+	if(this->with_phy_layer)
+	{
+		// transparent : the C/N0 of forward link
+		// regenerative : the C/N0 of uplink (updated by sat)
+		double cni = sac->getCni();
+		tal_id_t tal_id = sac->getTerminalId();
+		if(this->satellite_type == TRANSPARENT)
+		{
+			this->down_fwd_fmt_simu.setRequiredModcod(tal_id,
+					cni);
+		}
+		else
+		{
+			this->up_ret_fmt_simu.setRequiredModcod(tal_id,
+					cni);
+		}
+	}
+	return true;
 }
 
 bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)

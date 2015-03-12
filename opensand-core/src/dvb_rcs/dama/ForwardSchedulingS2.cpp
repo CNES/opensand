@@ -98,6 +98,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	category(category),
 	spot_id(spot)
 {
+
 	unsigned int vcm_id = 0;
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
