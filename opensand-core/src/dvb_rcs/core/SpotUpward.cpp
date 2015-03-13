@@ -446,7 +446,7 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 }
 
 bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
-                                list<DvbFrame *> *ack_frames,
+                                list<DvbFrame *>* &ack_frames,
                                 NetBurst **sa_burst)
 {
 	if(!this->saloha)
@@ -481,6 +481,7 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 		delete ack_frames;
 		return false;
 	}
+
 	return true;
 }
 

@@ -73,7 +73,7 @@ class SpotUpward: public DvbChannel
 		 *  @return true on success, false otherwise
 		 */
 		bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    list<DvbFrame *> *ack_frames,
+		                    list<DvbFrame *>* &ack_frames,
 		                    NetBurst **sa_burst);
 
 		/**

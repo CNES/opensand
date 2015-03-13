@@ -100,6 +100,13 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		bool handleLogoffReq(const DvbFrame *dvb_frame);
 
 		/**
+		 * @brief check if Dama is existing
+		 *
+		 * @return true if Dama is null, false otherwise
+		 */
+		bool checkDama();
+		
+		/**
 		 * @brief handler a frame timer and update frame counter
 		 *
 		 * @param super_frame_counter  the superframe counter

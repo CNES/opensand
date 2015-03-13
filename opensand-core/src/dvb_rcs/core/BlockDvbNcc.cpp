@@ -447,6 +447,11 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				
 					// send Start Of Frame
 					this->sendSOF(spot->getSofCarrierId());
+					
+					if(spot->checkDama())
+					{
+						return true;
+					}
 
 					if(!spot->handleFrameTimer(this->super_frame_counter))
 					{
@@ -971,7 +976,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						return false;
 					}
 					delete dvb_frame;
-
+					
 					if(!ack_frames && !sa_burst)
 					{
 						// No slotted Aloha

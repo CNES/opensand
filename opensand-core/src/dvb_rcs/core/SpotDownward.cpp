@@ -194,6 +194,15 @@ bool SpotDownward::onInit(void)
 		goto release_dama;
 	}
 
+	// Get and open the files
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation\n");
+		return false;
+	}
+	
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -212,15 +221,6 @@ bool SpotDownward::onInit(void)
 	}
 
 	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	// Get and open the files
-	if(!this->initModcodSimu())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
-		return false;
-	}
 
 	// initialize the column ID for FMT simulation
 	if(!this->initColumns())
@@ -751,7 +751,7 @@ bool SpotDownward::initDama(void)
 	/* select the specified DAMA algorithm */
 	if(dama_algo == "Legacy")
 	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_ERROR, //LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
 		this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
 	}
@@ -1709,16 +1709,23 @@ bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 	return true;
 }
 
-bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
+bool SpotDownward::checkDama()
 {
-	// Upate the superframe counter
-	this->super_frame_counter = super_frame_counter;
-
 	if(!this->dama_ctrl)
 	{
 		// stop here
 		return true;
 	}
+	return false;
+}
+
+
+bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
+{
+	// Upate the superframe counter
+	this->super_frame_counter = super_frame_counter;
+
+	
 
 	if(this->with_phy_layer)
 	{
