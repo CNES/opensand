@@ -132,7 +132,8 @@ class AdvancedDialog(WindowView):
         treeview = self._ui.get_widget('hosts_selection_tree')
         self._host_tree = ConfigurationTree(treeview, 'Host', 
                                             self.on_host_selected,
-                                            self.toggled_cb)
+                                            self.toggled_cb, 
+                                            self._model.get_adv_mode())
         for host in [elt for elt in self._model.get_hosts_list()
                          if elt.is_enabled()]:
             self._enabled.append(host)
@@ -240,9 +241,14 @@ class AdvancedDialog(WindowView):
                         self._host_tree.add_child(name,
                                          host.get_name().upper(),
                                          config.do_hide(name), True)
+                    
+                    else:
+                         self._host_tree.add_child(name,
+                                         host.get_name().upper(),
+                                         True, True)
+   
 
-
-                        for key in config.get_keys(section):
+                    for key in config.get_keys(section):
                             if key.tag == SPOT:
                                 gobject.idle_add(self._host_tree.add_child,
                                                  key.tag+key.get(SPOT_ID),

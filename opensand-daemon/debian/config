@@ -123,10 +123,10 @@ configure(){
                         db_input high opensand-daemon/network/ws_lan_iface || true
                         # use a random value to limit WS with the same address
                         # ST physical interface has address .1 and tun interface
-                        # (opensand) has address .2
+                        # (opensand) has address .3
                         add=`od -An -N1 -tu1 /dev/urandom`
                         add=$((add % 252))
-                        add=$((add + 3))
+                        add=$((add + 4))
                     else
                         db_input high opensand-daemon/network/lan_iface || true
                     fi

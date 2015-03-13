@@ -277,7 +277,7 @@ class ProbeSelectionController(object):
 
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
-    def __init__(self, treeview, col1_title, col1_changed_cb, col1_toggled):
+    def __init__(self, treeview, col1_title, col1_changed_cb, col1_toggled, adv_mode=None):
         # create a treestore with 7 properties
         # - text: the text of the 1st column
         # - visible: is the check box visible
@@ -298,6 +298,10 @@ class ConfigurationTree(gtk.TreeStore):
         self._treeselection = None
         self._cell_renderer_toggle = None
         self._is_first_elt = 0
+        if adv_mode == None:
+            self._adv_mode = True
+        else:
+            self._adv_mode = adv_mode
         
         # filter to hide row
         # attach store to the filter
@@ -351,7 +355,7 @@ class ConfigurationTree(gtk.TreeStore):
         elif name == SAT:
             top_elt = self.insert(None, self._is_first_elt)
         elif name == GW:
-            top_elt = self.insert(None, self._is_first_elt + 1)
+            top_elt = self.append(None)
         else:
             top_elt = self.append(None)
 
@@ -372,7 +376,7 @@ class ConfigurationTree(gtk.TreeStore):
                     activatable = False
                 if not isinstance(elt_info[sub_name], list):
                     self.set(sub_iter, TEXT, sub_name,
-                                       VISIBLE_CHECK_BOX, True,
+                                       VISIBLE_CHECK_BOX, self._adv_mode,
                                        CHECK_BOX_SIZE, 12,  
                                        ACTIVE, False,
                                        ACTIVATABLE, activatable,
@@ -385,7 +389,7 @@ class ConfigurationTree(gtk.TreeStore):
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE_CHECK_BOX, True,
+                              VISIBLE_CHECK_BOX, self._adv_mode,
                               CHECK_BOX_SIZE, 12,
                               ACTIVE, active,
                               ACTIVATABLE, True,
