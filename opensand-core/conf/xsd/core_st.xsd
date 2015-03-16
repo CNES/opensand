@@ -142,7 +142,7 @@
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_tal" />
             <xsd:element ref="slotted_aloha" />
-            <xsd:element ref="dama_scpc" />
+            <xsd:element ref="scpc" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="qos_agent" />
@@ -325,11 +325,11 @@
 
 <!-- SCPC section description -->
 <!-- TODO: Restriction for showing or not the SCPC parameters in the Terminal -->
-<xsd:element name="dama_scpc">
+<xsd:element name="scpc">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
-            <b>The DAMA SCPC parameters for STs</b>
+            <b>The SCPC parameters for STs</b>
             ]]>
         </xsd:documentation>
     </xsd:annotation>

@@ -77,12 +77,12 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	int encap_nbr;
 	EncapPlugin *plugin;
 
-	// if GSE is imposed (e.g. if Tal is in SCPC mode)
+	// if GSE is imposed (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
 	if(force)
 	{
 		encap_name = "GSE";
-		LOG(this->log_init, LEVEL_WARNING,
-		    "SCPC mode forces terminal to use ENCAP type = %s\n", encap_name.c_str());
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
 				
 	}
 	else

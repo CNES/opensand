@@ -192,7 +192,7 @@
 /// dama SCPC ///
 /////////////////
 
-#define SCPC_SECTION                    "dama_scpc"
+#define SCPC_SECTION                    "scpc"
 #define SCPC_C_DURATION                 "scpc_carrier_duration"
 
 
