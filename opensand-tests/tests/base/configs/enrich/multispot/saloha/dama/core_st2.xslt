@@ -12,12 +12,12 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="//return_up_band/spot[@id='1']/carriers_distribution">
-    <carriers_distribution>
+<xsl:template match="layer2_fifos">
+    <layer2_fifos>
     <xsl:call-template name="Newline" />
-        <up_carriers access_type="ALOHA" category="Standard" ratio="10" symbol_rate="1E6" fmt_group="1"/>
+        <fifo priority="4" name="BE" size_max="6000" access_type="DAMA_RBDC" />
     <xsl:call-template name="Newline" />
-    </carriers_distribution>
+    </layer2_fifos>
 </xsl:template>
 
 

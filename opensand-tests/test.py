@@ -831,7 +831,18 @@ help="specify the root folder for tests configurations\n"
                 except Exception, error:
                     raise TestError("Configuration",
                                     "Update Configuration: %s" % error)
-
+                
+        #Topology
+        conf = self._model.get_topology().get_configuration()
+        xslt = os.path.join(test_path, 'topology.xslt')
+        # specific case for terminals if there is a XSLT for a specific
+        # one
+        if os.path.exists(xslt):
+            try:
+                conf.transform(xslt)
+            except Exception, error:
+                raise TestError("Configuration",
+                                "Update Configuration: %s" % error)
 
     def launch_test_type(self, test_path, test_name):
         """ launch tests on a type """

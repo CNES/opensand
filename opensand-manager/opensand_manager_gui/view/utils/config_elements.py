@@ -1541,10 +1541,11 @@ class ManageSpot:
                     self._config.add_spot("//"+section.tag, spot_id) 
                     break
     
-        for section in self._model.get_topology().get_sections():
+        config = self._model.get_topology().get_conf()
+        for section in config.get_sections():
             for child in section.getchildren():
                 if child.tag ==  SPOT:
-                    self._model.get_topology().add_spot("//"+section.tag, spot_id) 
+                    config.add_spot("//"+section.tag, spot_id) 
                     break
 
         self.update_topology(spot_id)
@@ -1567,15 +1568,16 @@ class ManageSpot:
                     self._config.remove_spot("//"+section.tag, spot_id) 
                     break
 
-        for section in self._model.get_topology().get_sections():
+        config = self._model.get_topology().get_conf()
+        for section in config.get_sections():
             for child in section.getchildren():
                 if child.tag ==  SPOT:
-                    self._model.get_topology().remove_spot("//"+section.tag, spot_id) 
+                    config.remove_spot("//"+section.tag, spot_id) 
                     break
 
 
     def update_topology(self, spot_id):
-        config = self._model.get_topology()
+        config = self._model.get_topology().get_conf()
         sections = config.get_sections()
 
         tab_tal_id = ["1","2","3","4","5","6"]

@@ -183,7 +183,7 @@ class XmlParser:
             if child.tag == SPOT:
                 new = deepcopy(child)
                 new.set(SPOT_ID, spot_id)
-                section.append(new)
+                child.addnext(new)
                 break
 
     def remove_spot(self, xpath, spot_id):
