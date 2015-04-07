@@ -69,8 +69,10 @@ void Ip::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
+	vector<string> conf_files;
+	conf_files.push_back(CONF_IP_FILE);
 
-	if(config.loadConfig(CONF_IP_FILE) < 0)
+	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", CONF_IP_FILE);
@@ -279,12 +281,10 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 	}
 	ip_packet->setQos(found_category->second->getId());
 
-	if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
+	if(this->tal_id != this->gw_id && 
+	   this->satellite_type ==  TRANSPARENT)
 	{
-		// ST in transparent mode:
-		// DST Tal Id = GW
-		// SRC Tal Id = ST Tal Id
-		ip_packet->setDstTalId(GW_TAL_ID);
+		ip_packet->setDstTalId(this->gw_id);
 	}
 	else
 	{

@@ -67,7 +67,9 @@ class ForwardSchedulingS2: public Scheduling
 	                    const fifos_t &fifos,
 	                    FmtSimulation *const fwd_fmt_simu,
 	                    const TerminalCategoryDama *const category,
-	                    spot_id_t spot);
+	                    spot_id_t spot,
+	                    bool is_gw,
+	                    tal_id_t gw);
 
 	~ForwardSchedulingS2();
 

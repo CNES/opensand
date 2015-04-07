@@ -56,7 +56,7 @@ WS  = "ws"
 
 #common
 SPOT      = "spot"
-SPOT_ID   = "id"
+ID        = "id"
 TAL_ID    = "tal_id"
 GLOBAL    = "global"
 TOPOLOGY  = "topology"
@@ -67,6 +67,8 @@ RETURN_UP_BAND    = "return_up_band"
 FORWARD_DOWN_BAND = "forward_down_band"
 
 #topology
+CARRIERS     = "carriers"
+TERMINALS    = "terminals"
 CARRIER_TYPE = "type"
 DATA_OUT_GW  = "data_out_gw"
 DATA_IN_GW   = "data_in_gw"

@@ -190,6 +190,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
+							                                      this->group_id,
 						                                          this->satellite_type,
 						                                          &this->sarp_table))
 						{
@@ -314,9 +315,16 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			    (*burst_it)->getName().c_str());
 		}
 
-		if(this->tal_id == GW_TAL_ID &&
+		tal_id_t tab[NB_GW] = {GW_TAL_ID};
+		list<tal_id_t> gw_tal_id (tab, tab + sizeof(tab) / sizeof(tal_id_t) );
+		list<tal_id_t>::iterator it_tal_id;
+		list<tal_id_t>::iterator it_pkt_tal_id;
+		it_tal_id = find(gw_tal_id.begin(), gw_tal_id.end(), this->tal_id);
+		it_pkt_tal_id = find(gw_tal_id.begin(), gw_tal_id.end(), pkt_tal_id);
+
+		if(it_tal_id != gw_tal_id.end() &&
 		   this->satellite_type == TRANSPARENT &&
-		   pkt_tal_id != GW_TAL_ID)
+		   it_pkt_tal_id == gw_tal_id.end())
 		{
 			// packet should be forwarded
 			/*  TODO avoid allocating new packet here !

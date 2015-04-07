@@ -256,7 +256,7 @@ void ConfigurationFile::loadSectionMap(map<string, ConfigurationList> &section_m
 	}
 }
 
-void ConfigurationFile::loadCarrierMap(map<unsigned int, uint8_t> &carrier_map)
+void ConfigurationFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint16_t> > &carrier_map)
 {
 	ConfigurationList section_sat_car;
 	ConfigurationList spots;
@@ -281,15 +281,22 @@ void ConfigurationFile::loadCarrierMap(map<unsigned int, uint8_t> &carrier_map)
 		// TODO surcharger pour donner élément symple
 		current_spot.push_front(spot_node);
 		uint8_t spot_id = 0;
+		uint16_t gw_id = 0;
 
 		// get current spot id
-		if(!getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		if(!getAttributeValue(iter_spots, ID, spot_id))
 		{
 			return;
 		}
-
-		// get spot channel
-		if(!getListItems(current_spot, CARRIER_LIST, carrier_list))
+		
+		// get current gw id
+		if(!getAttributeValue(iter_spots, GW, gw_id))
+		{
+			return;
+		}
+	 
+	 	// get spot channel
+		if(!getListItems(*iter_spots, CARRIER_LIST, carrier_list))
 		{
 			return;
 		}
@@ -306,13 +313,13 @@ void ConfigurationFile::loadCarrierMap(map<unsigned int, uint8_t> &carrier_map)
 				return;
 			}
 
-			carrier_map[carrier_id] = spot_id;
+			carrier_map[carrier_id] = make_pair(spot_id, gw_id);
 		}
 	}
 
 }
 
-void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
+void ConfigurationFile::loadSpotTable(map<uint16_t, uint8_t> &spot_table)
 {
 	ConfigurationList spot_table_section;
 	ConfigurationList spots;
@@ -339,7 +346,7 @@ void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
 		uint8_t spot_id = 0;
 
 		// get current spot id
-		if(!getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		if(!getAttributeValue(iter_spots, ID, spot_id))
 		{
 			return;
 		}
@@ -361,12 +368,64 @@ void ConfigurationFile::loadTerminalMap(map<uint16_t, uint8_t> &terminal_map)
 			{
 				return;
 			}
-			terminal_map[tal_id] = spot_id;
+			spot_table[tal_id] = spot_id;
 		}
 	}
 }
 
+void ConfigurationFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
+{
+	ConfigurationList gw_table_section;
+	ConfigurationList gws;
+	ConfigurationList::iterator iter_gws;
 
+	if (!getSection(GW_TABLE_SECTION, gw_table_section))
+	{
+		return;
+	}
+
+	if(!getListNode(gw_table_section, GW_LIST, gws))
+	{
+		return;
+	}
+
+	for(iter_gws = gws.begin() ; iter_gws != gws.end() ; ++iter_gws)
+	{
+		ConfigurationList current_gw;
+		ConfigurationList terminal_list;
+		ConfigurationList::iterator iter_terminal;
+		xmlpp::Node* gw_node = *iter_gws;
+		// TODO surcharger pour donner élément symple
+		current_gw.push_front(gw_node);
+		uint8_t gw_id = 0;
+
+		// get current spot id
+		if(!getAttributeValue(iter_gws, ID, gw_id))
+		{
+			return;
+		}
+
+		// get spot channel
+		if(!getListItems(current_gw, TERMINAL_LIST, terminal_list))
+		{
+			return;
+		}
+
+		// associate channel to spot
+		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ; 
+		    ++iter_terminal)
+		{
+			uint16_t tal_id = 0;
+
+			//get carrier ID
+			if(!getAttributeValue(iter_terminal, ID, tal_id))
+			{
+				return;
+			}
+			gw_table[tal_id] = gw_id;
+		}
+	}
+}
 bool ConfigurationFile::getKey(ConfigurationList sectionList,
                                const char *key,
                                const xmlpp::Element **keyNode)
@@ -656,25 +715,32 @@ error:
 
 bool ConfigurationFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
                                          uint16_t tal_id,
-                                         map<uint16_t, uint8_t>::iterator &tal_iter)
+                                         uint8_t &spot)
 {
+    map<uint16_t, uint8_t>::iterator tal_iter;
 	tal_iter = terminal_map.find(tal_id);
 	if(tal_iter == terminal_map.end())
 	{
 		return false;
 	}
+	spot = (*tal_iter).second;
 	return true;
 }
 
-bool ConfigurationFile::getSpotWithCarrierId(map<unsigned int, uint8_t> carrier_map, 
+bool ConfigurationFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map, 
                                              unsigned int car_id,
-                                             map<unsigned int, uint8_t>::iterator &car_iter)
+                                             uint8_t &spot, 
+                                             uint16_t &gw)
 {
+	map<unsigned int, std::pair<uint8_t, uint16_t> >::iterator car_iter;
 	car_iter = carrier_map.find(car_id);
 	if(car_iter == carrier_map.end())
 	{
 		return false;
 	}
+		
+	spot = carrier_map[car_id].first;
+	gw = carrier_map[car_id].second;
 	return true;
 }
 

@@ -51,14 +51,14 @@ bool DvbChannel::initSpots(void)
 {
 	map<tal_id_t, spot_id_t>::iterator iter;
 
-	if(Conf::terminal_map.empty())
+	if(Conf::spot_table.empty())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "The termnal map is empty");
 		return false;
 	}
 
-	for(iter = Conf::terminal_map.begin() ; iter != Conf::terminal_map.end() ;
+	for(iter = Conf::spot_table.begin() ; iter != Conf::spot_table.end() ;
 	    ++iter)
 	{
 		this->spots[iter->second] = NULL;

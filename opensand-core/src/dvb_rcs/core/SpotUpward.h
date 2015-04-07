@@ -50,7 +50,8 @@
 class SpotUpward: public DvbChannel
 {
 	public:
-		SpotUpward(spot_id_t spot_id);
+		SpotUpward(spot_id_t spot_id,
+		           tal_id_t mac_id);
 		~SpotUpward();
 		bool onInit();
 
@@ -121,6 +122,9 @@ class SpotUpward: public DvbChannel
 
 		/// Spot Id
 		uint8_t spot_id;
+		
+		/// Gw tal id
+		uint8_t mac_id;
 		
 		/// reception standard (DVB-RCS or DVB-S2)      
 		PhysicStd *reception_std; 

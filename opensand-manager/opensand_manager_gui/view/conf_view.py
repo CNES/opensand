@@ -113,12 +113,16 @@ class ConfView(WindowView):
         for host in self._lan_stacks:
             try:
                 self._lan_stacks[host].load(host.get_lan_adaptation())
-                if host.get_name().lower() == GW and \
+                if host.get_name().lower().startswith(GW) and \
                    self._lan_stack_base is not None:
                     self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
                 error_popup(str(msg))
         self.update_lan_adaptation()
+
+        # update spot_id gw_id for host
+        self._model.update_spot_gw()
+
         # return_up_encap
         try:
             self._out_stack.load(config.get_return_up_encap(),
@@ -158,7 +162,7 @@ class ConfView(WindowView):
             if host in self._lan_stacks:
                 continue
             name = host.get_name().lower()
-            if name.startswith(ST) or name == GW:
+            if name.startswith(ST) or name.startswith(GW):
                 vbox = gtk.VBox()
                 label = gtk.Label(name.upper())
                 self._lan_stack_notebook.append_page(vbox, label)

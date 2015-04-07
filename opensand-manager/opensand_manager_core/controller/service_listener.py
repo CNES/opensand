@@ -171,10 +171,13 @@ class OpenSandServiceListener():
         else:
             if not name.startswith(WS):
                 new_host = HostController(host_model, self._log, cache)
+                index = 0
                 if name == SAT:
-                    self._hosts.insert(0, new_host)
-                elif name == GW:
-                    self._hosts.insert(1, new_host)
+                    self._hosts.insert(index, new_host)
+                    index += 1
+                elif name.startswith(GW):
+                    self._hosts.insert(index, new_host)
+                    index += 1
                 else:
                     self._hosts.append(new_host)
             # we need controller for workstations with tools

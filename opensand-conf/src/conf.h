@@ -100,14 +100,16 @@
 // section sat switching //
 ///////////////////////////
 
-#define SPOT_ID                   "id"
 #define TAL_ID                    "tal_id"
 #define ID                        "id"
+#define GW                        "gw"
 
 #define SPOT_TABLE_SECTION        "spot_table"
 #define TERMINAL_LIST			  "terminals"
 #define DEFAULT_SPOT              "default_spot"
 
+#define GW_TABLE_SECTION          "gw_table"
+#define DEFAULT_GW                "default_gw"
 
 //////////////////////
 // bloc_dvb_rcs_ncc //
@@ -270,6 +272,7 @@
 #define DISABLED_NONE       "none"
 
 #define SPOT_LIST           "spot"
+#define GW_LIST             "gw"
 #define CTRL_ID             "ctrl_id"
 #define DATA_IN_ID          "data_in_id"
 #define DATA_OUT_GW_ID      "data_out_gw_id"

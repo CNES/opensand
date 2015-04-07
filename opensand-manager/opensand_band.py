@@ -39,7 +39,7 @@ from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 
-from opensand_manager_core.utils import OPENSAND_PATH, SPOT_ID
+from opensand_manager_core.utils import OPENSAND_PATH, ID
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -87,7 +87,7 @@ class OpenSandBand():
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
                 content = config.get_element_content(KEY)
-                print "spot %s" % content[SPOT_ID]
+                print "spot %s" % content[ID]
                 self._parse(options.scenario, section_path, config, KEY)
                 self._modcod_def(options.scenario, link, config)
                 print str(self)
@@ -101,7 +101,7 @@ class OpenSandBand():
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
                 content = config.get_element_content(KEY)
-                print "spot %s" % content[SPOT_ID]
+                print "spot %s" % content[ID]
                 self._parse(options.scenario, section_path, config, KEY)
                 self._modcod_def(options.scenario, link, config)
                 print str(self)

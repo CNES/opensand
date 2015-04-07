@@ -81,9 +81,12 @@ class RunDialog(WindowView):
     def populate(self, scenario, run):
         """ add run elements into the combo box """
         # the list of directories to ignore
-        ignore = [SAT, GW, 'tools', 'plugins', 'modcod']
+        ignore = [SAT,'tools', 'plugins', 'modcod']
         for i in range(MAX_ST + 1):
             ignore.append(ST + str(i))
+        for i in [0, 10]:
+            ignore.append(GW + str(i))
+
         
         list_id = 0
         active_id = 0

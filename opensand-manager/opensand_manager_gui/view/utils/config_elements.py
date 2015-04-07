@@ -40,15 +40,16 @@ import os
 import pango
 from copy import deepcopy
 
-from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, SPOT_ID, \
-                                         TAL_ID, IP_ADDRESS, TOPOLOGY
+from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
+                                         IP_ADDRESS, TOPOLOGY, \
+                                         CARRIERS, TERMINALS
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
 
 (TEXT, VISIBLE_CHECK_BOX, CHECK_BOX_SIZE, ACTIVE, \
  ACTIVATABLE, VISIBLE, RESTRICTED) = range(7)
-(DISPLAYED, NAME, ID, SIZE) = range(4)
+(DISPLAYED, NAME, PROBE_ID, SIZE) = range(4)
 
 
 class ProbeSelectionController(object):
@@ -226,7 +227,7 @@ class ProbeSelectionController(object):
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
         it = self._probe_store.get_iter(path)
-        probe_ident = self._probe_store.get_value(it, ID)
+        probe_ident = self._probe_store.get_value(it, PROBE_ID)
         new_value = not self._probe_store.get_value(it, DISPLAYED)
         # this is a parent, expand or collapse it
         if self._probe_store.iter_has_child(it):
@@ -346,16 +347,16 @@ class ConfigurationTree(gtk.TreeStore):
         name = host.get_name()
         # append an element in the treestore
         # first Global, next SAT, then GW and ST
+        self._is_first_elt = 3
         if name == GLOBAL:
             top_elt = self.insert(None, 0)
-            self._is_first_elt = 1
         elif name == TOPOLOGY:
             top_elt = self.insert(None, 1)
-            self._is_first_elt += 1
         elif name == SAT:
+            top_elt = self.insert(None, 2)
+        elif name.startswith(GW):
             top_elt = self.insert(None, self._is_first_elt)
-        elif name == GW:
-            top_elt = self.append(None)
+            self._is_first_elt += 1
         else:
             top_elt = self.append(None)
 
@@ -408,24 +409,25 @@ class ConfigurationTree(gtk.TreeStore):
             top_elt = self.append(None)
             top_name = name
             if parents:
-                top_name = parent_name
+                it = len(parent_name) -1
+                top_name = parent_name[it]
             self.set(top_elt, TEXT, top_name,
-                              VISIBLE_CHECK_BOX, False,
-                              CHECK_BOX_SIZE, 1,
-                              ACTIVE, False,
-                              ACTIVATABLE, True,
-                              VISIBLE, True ,
-                              RESTRICTED, False)
+                     VISIBLE_CHECK_BOX, False,
+                     CHECK_BOX_SIZE, 1,
+                     ACTIVE, False,
+                     ACTIVATABLE, True,
+                     VISIBLE, True ,
+                     RESTRICTED, False)
 
         if parents:
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
-                               VISIBLE_CHECK_BOX, False,
-                               CHECK_BOX_SIZE, 1,
-                               ACTIVE, False,
-                               ACTIVATABLE, not hidden,
-                               VISIBLE , not hidden,
-                               RESTRICTED, False)
+                     VISIBLE_CHECK_BOX, False,
+                     CHECK_BOX_SIZE, 1,
+                     ACTIVE, False,
+                     ACTIVATABLE, not hidden,
+                     VISIBLE , not hidden,
+                     RESTRICTED, False)
             if hidden :
                 self._hidden_row.append(sub_iter)
 
@@ -436,7 +438,7 @@ class ConfigurationTree(gtk.TreeStore):
 
         top_elt = None
         if parents:
-            top_elt = self.get_parent(module.get_type())
+            top_elt = self.get_parent([module.get_type()])
 
         # set top element, either module or type depending on parents
         if top_elt is None:
@@ -462,24 +464,27 @@ class ConfigurationTree(gtk.TreeStore):
 
     def del_elem(self, name):
         """ remove a host from the treeview """
-        iterator = self.get_parent(name)
+        iterator = self.get_parent([name])
         if iterator is not None:
             self.remove(iterator)
 
     def get_parent(self, name):
         """ get a parent in the treeview """
         iterator = self.get_iter_first()
+        last_it = iterator
+        path_iter = 0
         while iterator is not None :
-            if self.get_value(iterator, TEXT).lower() == name.lower():
-                return iterator
-            
-            it_children = self.iter_children(iterator)
-            while it_children is not None:
-                if self.get_value(it_children, TEXT).lower() == name.lower():
-                    return it_children
-                it_children = self.iter_next(it_children)
+            if self.get_value(iterator, TEXT).lower() == name[path_iter].lower():
+                if path_iter == len(name)-1:
+                    return iterator
+                path_iter += 1
+                iterator = self.iter_children(iterator)
 
-            iterator = self.iter_next(iterator)
+            if last_it == iterator:
+                iterator = self.iter_next(iterator)
+                last_it = iterator
+            else:
+                last_it = iterator
         return iterator
    
     def set_hidden(self, hidden):
@@ -502,14 +507,15 @@ class ConfigurationTree(gtk.TreeStore):
     def set_restricted(self, rows):
         del self._restriction_row[:]
         for row in rows:
-            iterator = self.get_parent(row)
+            path = row.split('.')
+            iterator = self.get_parent(path)
             if iterator is not None:
                 self._restriction_row.append(iterator)
-                path = self.get_path(iterator)
-                self[path][RESTRICTED] = rows[row]
+                xpath = self.get_path(iterator)
+                self[xpath][RESTRICTED] = rows[row]
                 #visible is not restricted and not hide (visible)
-                self[path][VISIBLE] = not self[path][RESTRICTED]
-                self[path][ACTIVATABLE] = not self[path][RESTRICTED]
+                self[xpath][VISIBLE] = not self[xpath][RESTRICTED]
+                self[xpath][ACTIVATABLE] = not self[xpath][RESTRICTED]
         
         iterator = self.get_iter_first()
         self.is_children_visible(iterator)
@@ -625,7 +631,7 @@ class ConfigurationNotebook(gtk.Notebook):
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
     def __init__(self, section, config, host, adv_mode, scenario,
-                 changed_cb, file_cb, spot_id = None):
+                 changed_cb, file_cb, spot_id = None, gw_id = None):
         gtk.VBox.__init__(self)
 
         self._config = config
@@ -636,6 +642,7 @@ class ConfSection(gtk.VBox):
         self._scenario = scenario
         self._adv_mode = adv_mode
         self._spot_id =  spot_id
+        self._gw_id =  gw_id
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._entries = []
@@ -728,9 +735,10 @@ class ConfSection(gtk.VBox):
                                    pack_type=gtk.PACK_START)
         
         for key in self._config.get_keys(section):
-            if self._spot_id is not None:
+            if self._spot_id is not None or self._gw_id is not None:
                 if key.tag == SPOT:
-                    if self._spot_id == key.get(SPOT_ID):
+                    if self._spot_id == key.get(ID) and \
+                       (key.get(GW) is None or self._gw_id == key.get(GW)):
                         for s_key in self._config.get_keys(key):
                             source_ext = "_spot_" + self._spot_id
                             if self._config.is_table(s_key):
@@ -747,10 +755,27 @@ class ConfSection(gtk.VBox):
                                     self.set_child_packing(entry, expand=False,
                                                            fill=False, padding=5,
                                                            pack_type=gtk.PACK_START)
-
+                elif key.tag == GW:
+                    if self._gw_id == key.get(ID):
+                        for s_key in self._config.get_keys(key):
+                            source_ext = "_gw_" + self._gw_id
+                            if self._config.is_table(s_key):
+                                table = self.add_table(s_key, source_ext)
+                                if table is not None:
+                                    self.pack_end(table)
+                                    self.set_child_packing(table, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+                            else:
+                                entry = self.add_key(s_key, source_ext)
+                                if entry is not None:
+                                    self.pack_end(entry)
+                                    self.set_child_packing(entry, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
           
             else:
-                if key.tag == SPOT:
+                if key.tag == SPOT or key.tag == GW:
                     continue
                 elif self._config.is_table(key):
                     table = self.add_table(key)
@@ -1087,6 +1112,7 @@ class ConfSection(gtk.VBox):
                 check_button.set_inconsistent(False)
             name = button.get_name()
             key = self._config.get(name)
+            print name
             key_entries = self._config.get_table_elements(key)
             key_name = self._config.get_name(key_entries[0])
             if self._table_length[name] <= self._config.get_minoccurs(key_name):
@@ -1415,7 +1441,7 @@ class InstallNotebook(gtk.Notebook):
         elif host_name == SAT:
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt)
-        elif host_name == GW:
+        elif host_name.startswith(GW):
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt + 1)
         else:
@@ -1548,7 +1574,7 @@ class ManageSpot:
                     config.add_spot("//"+section.tag, spot_id) 
                     break
 
-        self.update_topology(spot_id)
+        self._model.get_topology().update(spot_id = spot_id)
 
 
 
@@ -1576,71 +1602,6 @@ class ManageSpot:
                     break
 
 
-    def update_topology(self, spot_id):
-        config = self._model.get_topology().get_conf()
-        sections = config.get_sections()
 
-        tab_tal_id = ["1","2","3","4","5","6"]
-        tab_multicast = ["239.137.194.221",
-                         "239.137.194.222",
-                         "239.137.194.223",
-                         "239.137.194.224",
-                         "239.137.194.225",
-                         "239.137.194.226"]
-        tab_multicast_used = []
-
-        spot_base = ""
-        for section in sections:
-            for child in section.getchildren():
-                if child.tag == SPOT:
-                    # get base spot id
-                    if spot_base == "":
-                        spot_base = child.get(SPOT_ID)
-
-                    for key in config.get_keys(child):
-                        #remove used tal_id
-                        if key.tag == TAL_ID:
-                            if key.text in tab_tal_id:
-                                tab_tal_id.remove(key.text)
-                        
-                        #remove used multicast address
-                        for element in config.get_table_elements(key):
-                            for att in element.keys():
-                                if att == IP_ADDRESS:
-                                    if element.get(att) in tab_multicast:
-                                        tab_multicast.remove(element.get(att))
-                                        tab_multicast_used.append(element.get(att))
-                                    continue
-
-
-        # update topology carrier value according to spor value
-        for section in sections:
-            for child in section.getchildren():
-                if child.tag ==  SPOT and child.get(SPOT_ID) == spot_id:
-                    for key in config.get_keys(child):
-                        if config.is_table(key):
-                            s_id = (int(spot_id)-1)*10 - (int(spot_base)-1)*10
-                            for element in config.get_table_elements(key):
-                                for att in element.keys():
-                                    #update multicast address
-                                    if att == IP_ADDRESS and \
-                                       element.get(att) in tab_multicast_used:
-                                        element.set(att,tab_multicast[0])
-                                        tab_multicast.remove(tab_multicast[0])
-                                        continue
-                                    
-                                    #update carrier id and port id
-                                    try:
-                                        val = int(element.get(att))+s_id
-                                    except ValueError:
-                                        val = element.get(att)
-                                    element.set(att,str(val))
-                        
-                        #update tal id 
-                        elif key.tag == TAL_ID:
-                            key.text = tab_tal_id[0]
-                            tab_tal_id.remove(tab_tal_id[0])
-
-                    break
 
 

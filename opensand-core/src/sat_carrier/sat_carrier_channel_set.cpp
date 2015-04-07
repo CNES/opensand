@@ -98,17 +98,74 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	// for terminal get the corresponding spot
 	if(host == terminal)
 	{
-		ConfigurationList temp;
-		spot_id_t spot_id = Conf::terminal_map[this->tal_id];
+		ConfigurationList temp_spot;
+		ConfigurationList temp_gw;
+		spot_id_t spot_id;
+		tal_id_t gw_id;
 
-		if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID, spot_id, temp))
+		if(Conf::spot_table.find(this->tal_id) == Conf::spot_table.end())
+		{
+			if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+						       DEFAULT_SPOT, spot_id))
+			{
+				LOG(this->log_init, LEVEL_ERROR, 
+						"couldn't find spot for tal %d", 
+						this->tal_id);
+				goto error;
+			}
+		}
+		else
+		{
+			spot_id = Conf::spot_table[this->tal_id];
+		}
+
+		if(Conf::gw_table.find(this->tal_id) == Conf::gw_table.end())
+		{
+			if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
+						       DEFAULT_GW, gw_id))
+			{
+				LOG(this->log_init, LEVEL_ERROR, 
+						"couldn't find gw for tal %d", 
+						tal_id);
+				goto error;
+			}
+		}
+		else
+		{
+			gw_id = Conf::gw_table[this->tal_id];
+		}
+		
+		if(!Conf::getElementWithAttributeValue(spot_list, ID, spot_id, temp_spot))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "couldn't get spot %d into %s/%s",
 			    spot_id, SATCAR_SECTION, SPOT_LIST);
 			goto error;
 		}
-		spot_list = temp;
+
+		if(!Conf::getElementWithAttributeValue(temp_spot, GW, gw_id, temp_gw))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "couldn't get spot %d gw %d into %s/%s",
+			    spot_id, gw_id, SATCAR_SECTION, SPOT_LIST);
+			goto error;
+		}
+
+		spot_list = temp_gw;
+	}
+	else if(host == gateway)
+	{
+		ConfigurationList temp_gw;
+
+		if(!Conf::getElementWithAttributeValue(spot_list, GW, this->tal_id, temp_gw))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "couldn't get spot for gw %d into %s/%s",
+			    this->tal_id, SATCAR_SECTION, SPOT_LIST);
+			goto error;
+		}
+
+		spot_list = temp_gw;
 	}
 	
 	for(iter_spots = spot_list.begin(); iter_spots != spot_list.end();
@@ -117,11 +174,11 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		ConfigurationList carrier_list ; 
 		spot_id_t spot_id = 0;
 		
-		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, spot_id))
+		if(!Conf::getAttributeValue(iter_spots, ID, spot_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "there is not attribute %s in %s/%s",
-			    SPOT_ID, SATCAR_SECTION, SPOT_LIST);
+			    ID, SATCAR_SECTION, SPOT_LIST);
 			goto error;
 		}
 
@@ -338,7 +395,7 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
                                    size_t length)
 {
 	std::vector <sat_carrier_udp_channel *>::const_iterator it;
-	bool status;
+	bool status =false;
 
 	for(it = this->begin(); it != this->end(); ++it)
 	{

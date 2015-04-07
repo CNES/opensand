@@ -71,7 +71,7 @@ class BlockDvbNcc: public BlockDvb
  public:
 
 	/// Class constructor
-	BlockDvbNcc(const string &name);
+	BlockDvbNcc(const string &name, tal_id_t mac_id);
 
 	~BlockDvbNcc();
 
@@ -83,7 +83,7 @@ class BlockDvbNcc: public BlockDvb
 	class Upward: public DvbUpward
 	{
 	 public:
-		Upward(Block *const bl);
+		Upward(Block *const bl, tal_id_t mac_id);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -97,16 +97,18 @@ class BlockDvbNcc: public BlockDvb
 		 */ 
 		bool shareFrame(DvbFrame *frame);
 
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
+
 		// log for slotted aloha
 		OutputLog *log_saloha;
-
 	};
 
 
 	class Downward: public DvbDownward, NccPepInterface
 	{
 	  public:
-		Downward(Block *const bl);
+		Downward(Block *const bl, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -149,6 +151,9 @@ class BlockDvbNcc: public BlockDvb
 		
 		// statistics update
 		void updateStats(void);
+		
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
 
 		/// counter for forward frames
 		time_ms_t fwd_frame_counter;

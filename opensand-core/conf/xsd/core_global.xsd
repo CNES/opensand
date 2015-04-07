@@ -310,7 +310,7 @@
 <xsd:element name="columns">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="column" minOccurs="1" maxOccurs="6" />
+            <xsd:element ref="column" minOccurs="1" maxOccurs="10" />
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
@@ -442,6 +442,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="roll_off" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The roll-off factor
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>           
             <xsd:element name="spot" minOccurs="1" maxOccurs="32">
                  <xsd:complexType>
                     <xsd:sequence>
@@ -453,13 +460,6 @@
                                 </xsd:documentation>
                             </xsd:annotation>
                         </xsd:element>
-                        <xsd:element name="roll_off" type="xsd:decimal">
-                            <xsd:annotation>
-                                <xsd:documentation xml:lang="en">
-                                    The roll-off factor
-                                </xsd:documentation>
-                            </xsd:annotation>
-                        </xsd:element>           
                         <xsd:element name="carriers_distribution" type="upCarriersDistribution">
                             <xsd:annotation>
                                 <xsd:documentation xml:lang="en">
@@ -490,6 +490,7 @@
                         </xsd:element>
                     </xsd:sequence>
                     <xsd:attribute name="id"/>
+                    <xsd:attribute name="gw" type="talId"/>
                 </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
@@ -507,6 +508,13 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
+            <xsd:element name="roll_off" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The roll-off factor
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>           
             <xsd:element name="spot" minOccurs="1" maxOccurs="32">
                  <xsd:complexType>
                     <xsd:sequence>
@@ -518,13 +526,6 @@
                                 </xsd:documentation>
                             </xsd:annotation>
                         </xsd:element>
-                        <xsd:element name="roll_off" type="xsd:decimal">
-                            <xsd:annotation>
-                                <xsd:documentation xml:lang="en">
-                                    The roll-off factor
-                                </xsd:documentation>
-                            </xsd:annotation>
-                        </xsd:element>           
                         <xsd:element name="carriers_distribution" type="downCarriersDistribution">
                             <xsd:annotation>
                                 <xsd:documentation xml:lang="en">
@@ -555,6 +556,7 @@
                         </xsd:element>
                     </xsd:sequence>
                     <xsd:attribute name="id"/>
+                    <xsd:attribute name="gw" type="talId"/>
                 </xsd:complexType>
             </xsd:element>
         </xsd:sequence>

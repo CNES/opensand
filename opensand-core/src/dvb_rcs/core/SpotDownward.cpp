@@ -44,6 +44,7 @@
 
 
 SpotDownward::SpotDownward(spot_id_t spot_id,
+                           tal_id_t mac_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
@@ -58,6 +59,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	sof_carrier_id(),
 	data_carrier_id(),
 	spot_id(spot_id),
+	mac_id(mac_id),
 	dvb_fifos(),
 	default_fifo_id(0),
 	complete_dvb_frames(),
@@ -332,7 +334,7 @@ bool SpotDownward::initColumns(void)
 		this->column_list[tal_id] = column_nbr;
 	}
 
-	if(this->column_list.find(GW_TAL_ID) == this->column_list.end())
+	if(this->column_list.find(this->mac_id) == this->column_list.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "GW is not declared in column IDs\n");
@@ -340,14 +342,14 @@ bool SpotDownward::initColumns(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->up_ret_fmt_simu.addTerminal(GW_TAL_ID,
-	                                      this->column_list[GW_TAL_ID]) ||
-	   !this->down_fwd_fmt_simu.addTerminal(GW_TAL_ID,
-	                                        this->column_list[GW_TAL_ID]))
+	if(!this->up_ret_fmt_simu.addTerminal(this->mac_id,
+	                                      this->column_list[this->mac_id]) ||
+	   !this->down_fwd_fmt_simu.addTerminal(this->mac_id,
+	                                        this->column_list[this->mac_id]))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to define the GW as ST with ID %ld\n",
-		    GW_TAL_ID);
+		    "failed to define the GW as ST with ID %d\n",
+		    this->mac_id);
 		goto error;
 	}
 
@@ -369,6 +371,7 @@ bool SpotDownward::initMode(void)
 		ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
+		ConfigurationList current_gw;
 
 		if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
 		{
@@ -378,16 +381,25 @@ bool SpotDownward::initMode(void)
 			return false;
 		}
 
-		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s/%s\n",
-			    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+			    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 			return false;
 		}
-
-		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       this->mac_id, current_gw))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+			return false;
+		}
+		if(!this->initBand<TerminalCategoryDama>(current_gw,
+			                                     FORWARD_DOWN_BAND,
 		                                         TDM,
 		                                         this->fwd_down_frame_duration_ms,
 		                                         this->satellite_type,
@@ -422,7 +434,8 @@ bool SpotDownward::initMode(void)
 		                                           this->pkt_hdl,
 		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
-		                                           cat, this->spot_id);
+		                                           cat, this->spot_id,
+		                                           true, this->mac_id);
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
@@ -430,6 +443,7 @@ bool SpotDownward::initMode(void)
 		ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
+		ConfigurationList current_gw;
 
 		// Get the spot list
 		if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -441,16 +455,25 @@ bool SpotDownward::initMode(void)
 		}
 
 		// get the spot which have the same id as SpotDownward
-		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s/%s\n",
-			    SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+			    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
 			return false;
 		}
 
-		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       this->mac_id, current_gw))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+			return false;
+		}
+		if(!this->initBand<TerminalCategoryDama>(current_gw,
+			                                     RETURN_UP_BAND,
 		                                         DAMA,
 		                                         this->ret_up_frame_duration_ms,
 		                                         this->satellite_type,
@@ -464,9 +487,9 @@ bool SpotDownward::initMode(void)
 		}
 
 		// here we need the category to which the GW belongs
-		if(this->terminal_affectation.find(GW_TAL_ID) != this->terminal_affectation.end())
+		if(this->terminal_affectation.find(this->mac_id) != this->terminal_affectation.end())
 		{
-			cat = this->terminal_affectation[GW_TAL_ID];
+			cat = this->terminal_affectation[this->mac_id];
 		}
 		else
 		{
@@ -481,7 +504,8 @@ bool SpotDownward::initMode(void)
 		this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 		                                           this->dvb_fifos,
 		                                           &this->up_ret_fmt_simu,
-		                                           cat);
+		                                           cat,
+		                                           this->mac_id);
 	}
 	else
 	{
@@ -512,6 +536,7 @@ bool SpotDownward::initCarrierIds(void)
 	ConfigurationList::iterator iter;
 	ConfigurationList::iterator iter_spots;
 	ConfigurationList current_spot;
+	ConfigurationList current_gw;
 
 	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST,
 	                      spot_list))
@@ -522,19 +547,29 @@ bool SpotDownward::initCarrierIds(void)
 		goto error;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spot_list, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spot_list, ID,
 	                                       this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",
-		    SPOT_ID, this->spot_id, SPOT_LIST);
+		    ID, this->spot_id, SPOT_LIST);
 		goto error;
 	}
+	
+	if(!Conf::getElementWithAttributeValue(current_spot, GW,
+	                                       this->mac_id, current_gw))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s %d\n",
+		    GW, this->mac_id, SPOT_LIST, this->spot_id);
+		goto error;
+	}
+	
 	// TODO can we get current_spot with only one command ?
-	//  -> get(section_map, SPOT_LIST, SPOT_ID, id, current_spot) ?
+	//  -> get(section_map, SPOT_LIST, ID, id, current_spot) ?
 
 	// get satellite channels from configuration
-	if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
+	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite channels\n",
@@ -681,6 +716,8 @@ bool SpotDownward::initDama(void)
 		ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
+		ConfigurationList current_gw;
+
 		if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -689,16 +726,25 @@ bool SpotDownward::initDama(void)
 			return false;
 		}
 
-		if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+		if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                       this->spot_id, current_spot))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "there is no attribute %s with value: %d into %s\n",
-			    SPOT_ID, this->spot_id, SPOT_LIST);
+			    ID, this->spot_id, SPOT_LIST);
 			return false;
 		}
 
-		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       this->mac_id, current_gw))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s\n",
+			    ID, this->spot_id, SPOT_LIST);
+			return false;
+		}
+		if(!this->initBand<TerminalCategoryDama>(current_gw,
+			                                     RETURN_UP_BAND,
 		                                         DAMA,
 		                                         this->ret_up_frame_duration_ms,
 		                                         this->satellite_type,
@@ -751,7 +797,7 @@ bool SpotDownward::initDama(void)
 	/* select the specified DAMA algorithm */
 	if(dama_algo == "Legacy")
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR, //LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
 		this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
 	}
@@ -832,11 +878,11 @@ bool SpotDownward::initFifo(void)
 	    ++iter_spots)
 	{
 		spot_id_t current_spot_id;
-		if(!Conf::getAttributeValue(iter_spots, SPOT_ID, current_spot_id))
+		if(!Conf::getAttributeValue(iter_spots, ID, current_spot_id))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "section %s/%s: missing attribute %s\n",
-			    SATCAR_SECTION, SPOT_LIST, SPOT_ID);
+			    SATCAR_SECTION, SPOT_LIST, ID);
 			return false;
 		}
 
@@ -1025,12 +1071,12 @@ bool SpotDownward::initRequestSimulation(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",
-		    SPOT_ID, this->spot_id, SPOT_LIST);
+		    ID, this->spot_id, SPOT_LIST);
 		return false;
 	}
 

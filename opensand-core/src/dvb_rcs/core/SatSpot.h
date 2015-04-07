@@ -38,11 +38,7 @@
 #ifndef SAT_SPOT_H
 #define SAT_SPOT_H
 
-#include "DvbFifo.h"
-#include "DvbFrame.h"
-#include "Scheduling.h"
-#include "FmtSimulation.h"
-#include "TerminalCategoryDama.h"
+#include "SatGw.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -64,31 +60,10 @@ class SatSpot
 
  private:
 
-	uint8_t spot_id;            ///< Internal identifier of a spot
+	spot_id_t spot_id;            ///< Internal identifier of a spoti
 
-	uint8_t data_in_carrier_id; ///< the input carrier ID for the spot
-
-	DvbFifo *control_fifo;     ///<  Fifo associated with Control carrier
-	DvbFifo *logon_fifo;       ///<  Fifo associated with Logons
-	DvbFifo *data_out_gw_fifo; ///<  Fifo associated with Data for the GW
-	DvbFifo *data_out_st_fifo; ///<  Fifo associated with Data for the ST
-
-	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	list<DvbFrame *> complete_dvb_frames;
-
-	/// The downlink scheduling for regenerative satellite
-	Scheduling *scheduling;
-
-	// statistics
-
-	/// Amount of layer 2 data received from ST
-	vol_bytes_t l2_from_st_bytes;
-	/// Amount of layer 2 data received from GW
-	vol_bytes_t l2_from_gw_bytes;
-
-	/// Mutex to protect access to spot element
-	RtMutex spot_mutex;
-
+	list<SatGw *> sat_gws;        /// List of gw
+	
 	// Output Log
 	OutputLog *log_init;
 
@@ -105,42 +80,11 @@ class SatSpot
 	 * @param data_out_gw_id     The FIFO for outgoing GW data
 	 * @param fifo_size          The size of data FIFOs
 	 */
-	SatSpot(spot_id_t spot_id,
-	        uint8_t data_in_carrier_id,
-	        uint8_t log_id,
-	        uint8_t ctrl_id,
-	        uint8_t data_out_st_id,
-	        uint8_t data_out_gw_id,
-	        size_t fifo_size);
+	SatSpot(spot_id_t spot_id);
 	~SatSpot();
 
-	/**
-	 * initialize the scheduling attribute
-	 *
-	 * @param fwd_timer_ms    The timer for forward scheduling
-	 * @param pkt_hdl         The packet handler
-	 * @param fwd_fmt_simu    The FMT simulation information
-	 * @param category        The related terminal category
-	 * @return true on success, false otherwise
-	 */
-	bool initScheduling(time_ms_t fwd_timer_ms,
-	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategoryDama *const category);
-
-	/**
-	 * @brief Schedule packets emission
-	 *        Call scheduling @ref schedule function
-	 *
-	 * @param current_superframe_sf the current superframe (for logging)
-	 * @param current_time          the current time
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool schedule(const time_sf_t current_superframe_sf,
-	              time_ms_t current_time);
-
-
+	void addGw(SatGw *gw);
+	
 	/**
 	 * @brief Get the spot ID
 	 *
@@ -148,84 +92,10 @@ class SatSpot
 	 */
 	uint8_t getSpotId(void) const;
 
-	/**
-	 * @brief Get the input carrier ID
-	 *
-	 * @return the input carrier ID
-	 */
-	uint8_t getInputCarrierId(void) const;
-
-	/**
-	 * @brief Get the output data ST FIFO
-	 *
-	 * @return the output data ST FIFO
-	 */
-	DvbFifo *getDataOutStFifo(void) const;
-
-	/**
-	 * @brief Get the output data GW FIFO
-	 *
-	 * @return the output data GW FIFO
-	 */
-	DvbFifo *getDataOutGwFifo(void) const;
-
-	/**
-	 * @brief Get the control FIFO
-	 *
-	 * @return the control FIFO
-	 */
-	DvbFifo *getControlFifo(void) const;
-
- 	/**
-	 * @brief Get the control carrier ID
- 	 *
-	 * @return the control carrier ID
- 	 */
-	uint8_t getControlCarrierId(void) const;
-
-	/**
-	 * @brief Get the logon FIFO
-	 *
-	 * @return the logon FIFO
-	 */
-	DvbFifo *getLogonFifo(void) const;
-
-	/**
-	 * @brief Get the complete DVB frames list
-	 *
-	 * @return the list of complete DVB frames
-	 */
-	list<DvbFrame *> &getCompleteDvbFrames(void);
-
-	/**
-	 * @brief Update the amount of layer 2 data received from ST
-	 *
-	 * @param  bytes  The amount of layer 2 data received
-	 */
-	void updateL2FromSt(vol_bytes_t bytes);
-
-	/**
-	 * @brief Update the amount of layer 2 data received from GW
-	 *
-	 * @param  bytes  The amount of layer 2 data received
-	 */
-	void updateL2FromGw(vol_bytes_t bytes);
-
-	/**
-	 * @brief Get and reset the amount of layer 2 data received from ST
-	 *
-	 * @return  The amount of layer 2 data received
-	 */
-	vol_bytes_t getL2FromSt(void);
-
-	/**
-	 * @brief Get and reset the amount of layer 2 data received from GW
-	 *
-	 * @return  The amount of layer 2 data received
-	 */
-	vol_bytes_t getL2FromGw(void);
+	list<SatGw *> getGwList(void) const;
+	
+	SatGw* getGw(tal_id_t gw_id);	
 };
-
 
 /// The map of satellite spots
 typedef map<uint8_t, SatSpot *> sat_spots_t;

@@ -41,7 +41,7 @@ import threading
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
-from opensand_manager_core.utils import SPOT, SPOT_ID, TOPOLOGY
+from opensand_manager_core.utils import SPOT, ID, GW, TOPOLOGY
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection
@@ -61,7 +61,6 @@ class AdvancedDialog(WindowView):
         self._host_tree = None
         self._host_conf_view = None
         self._host_list = {}
-        self._current_host_notebook = None
         self._current_host_frame = None
         self._hosts_name = []
         self._enabled = []
@@ -233,29 +232,35 @@ class AdvancedDialog(WindowView):
             config = adv.get_configuration()
             if config is not None:
                 for section in config.get_sections():
+                    list_parent = []
+                    list_parent.append(host.get_name().upper())
                     name = config.get_name(section)
+                    list_parent.append(name)
                     list_children.append(name)
 
                     if not config.do_hide_adv(name,
                                               self._model.get_adv_mode()) :
                         self._host_tree.add_child(name,
-                                         host.get_name().upper(),
-                                         config.do_hide(name), True)
+                                                  [host.get_name().upper()],
+                                                  config.do_hide(name), True)
                     
                     else:
                          self._host_tree.add_child(name,
-                                         host.get_name().upper(),
-                                         True, True)
+                                                   [host.get_name().upper()],
+                                                   True, True)
    
 
                     for key in config.get_keys(section):
-                            if key.tag == SPOT:
-                                gobject.idle_add(self._host_tree.add_child,
-                                                 key.tag+key.get(SPOT_ID),
-                                                 name,
-                                                 config.do_hide(name), True,
-                                                 priority=gobject.PRIORITY_HIGH_IDLE+40)
-                
+                        if key.tag == SPOT or key.tag == GW:
+                            gw = ""
+                            if key.get(GW) is not None:
+                                gw = "_gw"+ key.get(GW)
+                            gobject.idle_add(self._host_tree.add_child,
+                                             key.tag+key.get(ID)+gw,
+                                             list_parent,
+                                             config.do_hide(name), True,
+                                             priority=gobject.PRIORITY_HIGH_IDLE+40)
+
                 # create view associate to host children
                 conf_sections = {} 
                 self.create_conf_section(conf_sections, config, host.get_name())
@@ -345,32 +350,48 @@ class AdvancedDialog(WindowView):
     def create_conf_section(self, conf_sections, config, host_name):
         for section in config.get_sections():
             global_section = False
-                
             # look for spot section
             for key in config.get_keys(section):
-                if key.tag == SPOT:
-                    conf_sections[host_name + "." + config.get_name(section) +
-                                  "." + key.tag+key.get(SPOT_ID)] = \
-                            ConfSection(section, config, host_name,
-                                        self._model.get_adv_mode(),
-                                        self._model.get_scenario(),
-                                        self.handle_param_chanded,
-                                        self._model.handle_file_changed,
-                                        key.get(SPOT_ID))
+                if key.tag == SPOT or key.tag == GW:
+                    if key.tag == SPOT:
+                        gw = ""
+                        if key.get(GW) != None:
+                            gw ="_"+GW+key.get(GW)
+
+                        conf_sections[host_name + "." + config.get_name(section) +
+                                      "." + key.tag+key.get(ID) + gw] = \
+                                ConfSection(section, config, host_name,
+                                            self._model.get_adv_mode(),
+                                            self._model.get_scenario(),
+                                            self.handle_param_chanded,
+                                            self._model.handle_file_changed,
+                                            key.get(ID),
+                                            key.get(GW))
+                    elif key.tag == GW:
+                        key.tag+key.get(ID) + gw
+                        conf_sections[host_name + "." + config.get_name(section) +
+                                      "." + key.tag+key.get(ID) + gw] = \
+                                ConfSection(section, config, host_name,
+                                            self._model.get_adv_mode(),
+                                            self._model.get_scenario(),
+                                            self.handle_param_chanded,
+                                            self._model.handle_file_changed,
+                                            None, key.get(ID))
+
                     # hidden section
                     if config.do_hide(config.get_name(section)):
                         conf_sections[host_name + "." + config.get_name(section) +
-                                      "." + key.tag + key.get(SPOT_ID)
+                                      "." + key.tag + key.get(ID) + gw
                                      ].set_hidden(not self._show_hidden)
                     # restrictions section
                     restriction =  config.get_xpath_restrictions(
                                         config.get_name(section))
                     if restriction is not None:
                         conf_sections[host_name + "." + config.get_name(section) +
-                                      "." + key.tag + key.get(SPOT_ID)
+                                      "." + key.tag + key.get(ID) + gw
                                      ].add_restriction(conf_sections[host_name + 
                                                 "." + config.get_name(section) +
-                                                "." + key.tag +key.get("id")],
+                                                "." + key.tag +key.get(ID)],
                                                 restriction)
 
                 else:
@@ -399,7 +420,6 @@ class AdvancedDialog(WindowView):
                     conf_sections[host_name + "." + config.get_name(section)
                                  ].set_hidden(not self._show_hidden)
                 
-
 
     def on_host_selected(self, selection):
         """ callback called when a host is selected """
@@ -719,7 +739,7 @@ class AdvancedDialog(WindowView):
         configs = []
         rows = {}
         # get all the configurations
-        for host in self._model.get_hosts_list() + [self._model] + \
+        for host in [self._model] + \
                     [self._model.get_host(TOPOLOGY)]:
             adv = host.get_advanced_conf()
             configs.append(adv.get_configuration())
@@ -746,7 +766,7 @@ class AdvancedDialog(WindowView):
                     # the widget is not hidden
                     for (xpath, val) in restriction.items():
                         # try to find the parameter in all configurations
-                        for config in configs:
+                        for config in configs + [adv.get_configuration()]:
                             xpath = xpath.replace("spot.","spot[@id='"+view[-1]+"']/")
                             elem = config.get("//" + xpath.replace(".", "/"))
                             if elem is not None:
@@ -758,13 +778,12 @@ class AdvancedDialog(WindowView):
                         # we do not display the widget
                         if config.get_value(elem) != val:
                             restricted = True
-                    
+                   
                     new_restrictions[widget] = restricted
                    
                     # hide Tree row for section restricted
                     if isinstance(widget, ConfSection):
-                        path = view.split('.')
-                        rows[path[-1]] = restricted
+                        rows[view] = restricted
                 list_view[view].set_restrictions(new_restrictions)
 
         # Hide restricted confSection / Tree

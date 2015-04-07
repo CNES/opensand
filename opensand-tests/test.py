@@ -48,6 +48,8 @@ import shlex
 import subprocess
 import shutil
 
+import time
+
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.utils import copytree, red, blue, green, yellow
@@ -380,7 +382,11 @@ help="specify the root folder for tests configurations\n"
 
         for test_path in test_paths:
             self._model.set_scenario(self._base)
+            # reset run values
+            self._model.set_run("")
             self.run_enrich(test_path, "", types_path, types)
+
+	    time.sleep(1)
 
         # stop the platform
         self.stop_opensand()

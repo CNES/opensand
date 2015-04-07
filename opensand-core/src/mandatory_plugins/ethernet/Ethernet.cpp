@@ -64,6 +64,7 @@
 #define CLASS_NAME       "name"
 #define DEFAULT_PCP      "default_pcp"
 
+
 Ethernet::Ethernet():
 	LanAdaptationPlugin(NET_PROTO_ETH)
 {
@@ -75,6 +76,8 @@ void Ethernet::init()
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
 	string sat_eth;
+	vector<string> conf_files;
+	conf_files.push_back(CONF_ETH_FILE);
 
 	this->upper[TRANSPARENT].push_back("IP");
 	this->upper[TRANSPARENT].push_back("ROHC");
@@ -83,7 +86,7 @@ void Ethernet::init()
 	this->upper[REGENERATIVE].push_back("ROHC");
 
 	// here we need frame type on satellite for lower layers
-	if(config.loadConfig(CONF_ETH_FILE) < 0)
+	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", CONF_ETH_FILE);
@@ -130,14 +133,15 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 void Ethernet::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
-	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
 	string lan_eth;
 	string sat_eth;
+	vector<string> conf_files;
+	conf_files.push_back(CONF_ETH_FILE);
 
 	this->handle_net_packet = true;
 
-	if(config.loadConfig(CONF_ETH_FILE) < 0)
+	if(this->config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
@@ -145,28 +149,28 @@ void Ethernet::Context::init()
 		return;
 	}
 
-	config.loadSectionMap(config_section_map);
+	this->config.loadSectionMap(config_section_map);
 
-	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+	if(!this->config.getValue(config_section_map[CONF_ETH_SECTION], 
 		                CONF_LAN_FRAME_TYPE, lan_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", CONF_LAN_FRAME_TYPE);
 	}
-	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
+	if(!this->config.getValue(config_section_map[CONF_ETH_SECTION], 
 		                CONF_SAT_FRAME_TYPE, sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
 	}
 
-	if(!this->initEvc(config))
+	if(!this->initEvc(this->config))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to Initialize EVC\n");
 	}
 
-	if(!this->initTrafficCategories(config))
+	if(!this->initTrafficCategories(this->config))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot Initialize traffic categories\n");
@@ -222,12 +226,13 @@ void Ethernet::Context::init()
 		this->sat_frame_type = NET_PROTO_ERROR;
 	}
 
-	config.unloadConfig();
 	config_section_map.clear();
 }
 
 Ethernet::Context::~Context()
 {
+	this->config.unloadConfig();
+	
 	map<uint8_t, Evc *>::iterator evc_it;
     std::map<qos_t, TrafficCategory *>::iterator cat_it;
 	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
@@ -450,11 +455,13 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 
 bool Ethernet::Context::initLanAdaptationContext(
 	tal_id_t tal_id,
+	tal_id_t gw_id,
 	sat_type_t satellite_type,
 	const SarpTable *sarp_table)
 {
 	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(
-										tal_id, satellite_type, sarp_table))
+										tal_id, gw_id, 
+										satellite_type, sarp_table))
 	{
 		return false;
 	}
@@ -532,12 +539,12 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				    src_mac.str().c_str());
 				continue;
 			}
-			if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
+			
+			
+			if(this->tal_id != this->gw_id && 
+			   this->satellite_type ==  TRANSPARENT)
 			{
-				// ST in transparent mode:
-				// DST Tal Id = GW
-				// SRC Tal Id = ST Tal Id
-				dst = GW_TAL_ID;
+				dst = this->gw_id;
 			}
 			else if(!this->sarp_table->getTalByMac(dst_mac, dst))
 			{

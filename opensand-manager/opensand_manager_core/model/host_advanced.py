@@ -38,7 +38,7 @@ import os
 import shutil
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, GW, ST
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
@@ -69,8 +69,10 @@ class AdvancedHostModel:
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, 'core.conf')
-        if self._name.startswith('st'):
-            component = 'st'
+        if self._name.startswith(ST):
+            component = ST
+        elif self._name.startswith(GW):
+            component = GW
         else:
             component = self._name
         # copy the configuration template in the destination directory

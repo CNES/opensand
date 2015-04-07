@@ -38,8 +38,9 @@
 
 ConfigurationFile Conf::global_config;
 map <string, ConfigurationList> Conf::section_map;
-map <unsigned int, uint8_t> Conf::carrier_map;
-map <uint16_t, uint8_t> Conf::terminal_map;
+map <unsigned int, std::pair<uint8_t, uint16_t> > Conf::carrier_map;
+map <uint16_t, uint8_t> Conf::spot_table;
+map <uint16_t, uint16_t> Conf::gw_table;
 
 Conf::Conf()
 {
@@ -49,7 +50,8 @@ Conf::~Conf()
 {
 	section_map.clear();
 	carrier_map.clear();
-	terminal_map.clear();
+	spot_table.clear();
+	gw_table.clear();
 	global_config.unloadConfig();
 }
 
@@ -131,19 +133,20 @@ bool Conf::getListItems(ConfigurationList section,
 }
 
 bool Conf::getSpotWithTalId(uint16_t tal_id,
-                            map<uint16_t, uint8_t>::iterator &tal_iter)
+                            uint8_t &spot)
 {
-	return global_config.getSpotWithTalId(Conf::terminal_map,
+	return global_config.getSpotWithTalId(Conf::spot_table,
 	                                      tal_id,
-	                                      tal_iter);
+	                                      spot);
 }
 
 bool Conf::getSpotWithCarrierId(unsigned int car_id,
-                                map<unsigned int, uint8_t>::iterator &car_iter)
+                                uint8_t &spot, 
+                                uint16_t &gw)
 {
 	return global_config.getSpotWithCarrierId(Conf::carrier_map,
 	                                          car_id,
-	                                          car_iter);
+	                                          spot, gw);
 }
 
 bool Conf::loadLevels(map<string, log_level_t> &levels,
@@ -156,6 +159,7 @@ void Conf::loadMap(void)
 {
 	global_config.loadSectionMap(Conf::section_map);
 	global_config.loadCarrierMap(Conf::carrier_map);
-	global_config.loadTerminalMap(Conf::terminal_map);
+	global_config.loadSpotTable(Conf::spot_table);
+	global_config.loadGwTable(Conf::gw_table);
 }
 

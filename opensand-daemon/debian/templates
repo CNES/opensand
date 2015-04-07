@@ -33,7 +33,7 @@ Template: opensand-daemon/service/st_instance
 Type: select
 Choices: ${inst_list}
 Description: Service instance
-  Select the ID of the satellite terminal
+  Select the ID of the satellite host
 
 Template: opensand-daemon/service/ws_instance
 Type: string

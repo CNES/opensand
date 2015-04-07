@@ -42,8 +42,10 @@
 #include "DvbS2Std.h"
 #include "Sof.h"
 
-SpotUpward::SpotUpward(spot_id_t spot_id):
+SpotUpward::SpotUpward(spot_id_t spot_id,
+                       tal_id_t mac_id):
 	spot_id(spot_id),
+	mac_id(mac_id),
 	saloha(NULL),
 	ret_fmt_groups(),
 	probe_gw_l2_from_sat(NULL),
@@ -165,16 +167,17 @@ bool SpotUpward::initSlottedAloha(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID, 
+	if(!Conf::getElementWithAttributeValue(spots, ID, 
 	                                       this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n", 
-		    SPOT_ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
 	
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
+		                                       RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
@@ -361,7 +364,8 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	    "Logon request from ST%u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
-	if(mac == GW_TAL_ID)
+	// TODO
+	if(mac == this->mac_id)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "
@@ -421,7 +425,7 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 
 	if(!this->reception_std->onRcvFrame(frame,
-	                                    GW_TAL_ID,
+	                                    this->mac_id,
 	                                    burst))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,

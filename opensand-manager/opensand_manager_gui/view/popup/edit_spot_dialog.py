@@ -77,11 +77,13 @@ class EditSpotDialog(WindowView):
             """check spot id exist"""
             config = self.model.get_conf().get_configuration()
             xpath = "//return_up_band"
-            for KEY in config.get_keys(config.get(xpath)):
-                content = config.get_element_content(KEY)
-                spot = content["id"]
-                if spot == widget.get_text():
-                    find = True;
+            elm = config.get(xpath)
+            for KEY in config.get_keys(elm):
+                if KEY.tag == "spot":
+                    content = config.get_element_content(KEY)
+                    spot = content["id"]
+                    if spot == widget.get_text():
+                        find = True;
 
         if not find:
             error_popup("Wrong spot id.")

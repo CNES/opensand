@@ -15,11 +15,9 @@
 <xsl:template match="//return_up_band/spot[@id='1']">
     <xsl:copy-of select="."/>
     <xsl:call-template name="Newline" />
-    <spot id="2">
+    <spot id="2" gw="0">
     <xsl:call-template name="Newline" />
         <bandwidth>10</bandwidth>
-    <xsl:call-template name="Newline" />
-        <roll_off>0.35</roll_off>
     <xsl:call-template name="Newline" />
         <carriers_distribution>
     <xsl:call-template name="Newline" />
@@ -53,11 +51,10 @@
 
 <xsl:template match="//forward_down_band/spot[@id='1']">
     <xsl:copy-of select="."/>
-    <spot id="2">
+    <xsl:call-template name="Newline" />
+    <spot id="2" gw="0">
     <xsl:call-template name="Newline" />
         <bandwidth>36</bandwidth>
-    <xsl:call-template name="Newline" />
-        <roll_off>0.25</roll_off>
     <xsl:call-template name="Newline" />
         <carriers_distribution>
     <xsl:call-template name="Newline" />

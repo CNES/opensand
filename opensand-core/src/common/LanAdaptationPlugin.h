@@ -134,10 +134,12 @@ class LanAdaptationPlugin: public StackPlugin
 		 */
 		virtual bool initLanAdaptationContext(
 			tal_id_t tal_id,
+			tal_id_t gw_id,
 			sat_type_t satellite_type,
 			const SarpTable *sarp_table)
 		{
 			this->tal_id = tal_id;
+			this->gw_id = gw_id;
 			this->satellite_type = satellite_type;
 			this->sarp_table = sarp_table;
 			return true;
@@ -185,6 +187,9 @@ class LanAdaptationPlugin: public StackPlugin
 
 		/// The terminal ID
 		tal_id_t tal_id;
+		
+		/// The Gateway ID
+		tal_id_t gw_id;
 
 		/// The satellite type
 		sat_type_t satellite_type;

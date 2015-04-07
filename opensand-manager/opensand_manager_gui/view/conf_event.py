@@ -39,7 +39,7 @@ import gtk
 import gobject
 import copy
 
-from opensand_manager_core.utils import GW, RETURN_UP_BAND, SPOT_ID
+from opensand_manager_core.utils import GW, ST, RETURN_UP_BAND, ID
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -377,7 +377,8 @@ class ConfEvent(ConfView) :
         xpath = "//"+RETURN_UP_BAND
         #update free spot id 
         for key in config.get_keys(config.get(xpath)):
-            self._free_spot.remove(key.get(SPOT_ID))
+            if key.get(ID) is not None and key.get(ID) in self._free_spot:
+                self._free_spot.remove(key.get(ID))
 
 
     def on_enable_physical_layer_toggled(self, source=None, event=None):
@@ -392,7 +393,7 @@ class ConfEvent(ConfView) :
         config = self._model.get_conf().get_configuration()
         xpath = "//"+RETURN_UP_BAND
         for key in config.get_keys(config.get(xpath)):
-            self._free_spot.remove(key.get(SPOT_ID))
+            self._free_spot.remove(key.get(ID))
 
         try:
             self.update_view()
@@ -401,7 +402,7 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons(False)
 
     def on_save_conf_clicked(self, source=None, event=None):
-        """ save the new configuration in the ini file """
+        """ save the new configuration"""
         # retrieve global parameters
 
         # payload type
@@ -472,14 +473,14 @@ class ConfEvent(ConfView) :
         if self._model.get_adv_mode():
             previous = None
             last = None
-            gw_stack = None
-            other_stacks = []
+            gw_stack = {}
+            other_stacks = {}
             for host in self._lan_stacks:
                 stack = self._lan_stacks[host].get_stack()
-                if host.get_name() == GW:
-                    gw_stack = stack
+                if host.get_name().startswith(GW):
+                    gw_stack[host.get_instance()] = stack
                 else:
-                    other_stacks.append(stack)
+                    other_stacks[host] = stack
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
@@ -490,23 +491,20 @@ class ConfEvent(ConfView) :
                        not host_modules[mod].get_condition("header_modif"):
                         last = mod
                         break
-                if previous is not None and last != previous:
-                    error_popup("The last module of the LAN stack should be the "
-                                "same for each host (except for header modifications)")
-                    return
-                previous = last
             # check that the GW stack is at least the same as other
-            for stack in other_stacks:
-                if len(set(gw_stack.values()) - set(stack.values())) != 0:
-                    error_popup("The hosts stack should be at least the same as "
-                                "for GW")
+            for host in other_stacks:
+                stack = other_stacks[host]
+                if len(set(gw_stack[host.get_gw_id()].values()) - set(stack.values())) != 0:
+                    error_popup("The host " + host.get_name() +
+                                " stack should be at least the same as "
+                                "for associate GW" + host.get_gw_id())
                     return
         for host in self._lan_stacks:
             if self._model.get_adv_mode():
                 host.set_lan_adaptation(self._lan_stacks[host].get_stack())
             else:
                 host.set_lan_adaptation(self._lan_stack_base.get_stack())
-
+        
         # output encapsulation scheme
         config.set_return_up_encap(self._out_stack.get_stack())
 
@@ -527,7 +525,7 @@ class ConfEvent(ConfView) :
         #old spot id
         old_spots = [] 
         for key in configuration.get_keys(configuration.get(xpath)):
-            old_spots.append(key.get(SPOT_ID))
+            old_spots.append(key.get(ID))
         
         for key in self._tab_spot:
             # remove spot
@@ -541,6 +539,7 @@ class ConfEvent(ConfView) :
         try:
             #config.save()
             self._model.save()
+
         except XmlException, error:
             error_popup(str(error), error.description)
             self.on_undo_conf_clicked()

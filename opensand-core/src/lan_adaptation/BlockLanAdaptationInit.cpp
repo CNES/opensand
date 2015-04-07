@@ -200,7 +200,6 @@ bool BlockLanAdaptation::Upward::onInit(void)
 		    "this is not fatal\n");
 		// do not return, this is not fatal
 	}
-
 	this->sarp_table.setDefaultTal(dflt);
 	if(!this->initSarpTables())
 	{
@@ -288,7 +287,6 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 		LOG(this->log_init, LEVEL_INFO,
 		    "%s/%d -> tal id %u \n",
 		    ip_addr->str().c_str(), mask, tal_id);
-
 		this->sarp_table.add(ip_addr, mask, tal_id);
 	} // for all IPv4 entries
 

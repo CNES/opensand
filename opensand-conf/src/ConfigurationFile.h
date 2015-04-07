@@ -89,13 +89,19 @@ class ConfigurationFile
 	 * Create a Map which associate carrier id to spot id
 	 * @param carrier_map the map between carrier id and spot id
 	 */
-	void loadCarrierMap(map<unsigned int, uint8_t> &carrier_map);
+	void loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint16_t> > &carrier_map);
 
 	/**
 	 * Create a Map which associate terminal id to spot id
 	 * @param terminal_map the map between terminal id and spot id
 	 */
-	void loadTerminalMap(map<uint16_t, uint8_t> &terminal_map);
+	void loadSpotTable(map<uint16_t, uint8_t> &spot_table);
+
+	/**
+	 * Create a Map which associate terminal id to gw id
+	 * @param terminal_map the map between terminal id and spot id
+	 */
+	void loadGwTable(map<uint16_t, uint16_t> &gw_table);
 
 	/**
 	 * @brief Get the component among sat, gw, st or ws
@@ -256,23 +262,25 @@ class ConfigurationFile
 	 * Get spot value in terminal map
 	 *
 	 * @param tal_it   the terminal id
-	 * @param tal_iter the found iterator 
+	 * @param spot     the found spot 
 	 * @return true on success, false otherwise
 	 */
 	static bool getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
                                  uint16_t tal_id,
-                                 map<uint16_t, uint8_t>::iterator &tal_iter);
+                                 uint8_t &spot);
 
 	/**
 	 * Get spot value in carrier map
 	 *
 	 * @param car_it   the carrier id
-	 * @param car_iter the found iterator 
+	 * @param spot     the found spot 
+	 * @param gw       the found gw 
 	 * @return true on success, false otherwise
 	 */
-	static bool getSpotWithCarrierId(map<unsigned int, uint8_t> carrier_map, 
+	static bool getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map, 
                                      unsigned int car_id,
-                                     map<unsigned int, uint8_t>::iterator &car_iter);
+                                     uint8_t &spot,
+                                     uint16_t &gw);
 
 
 	/**

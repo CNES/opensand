@@ -68,6 +68,7 @@ class Ethernet: public LanAdaptationPlugin
 {
   public:
 	Ethernet();
+
 	void init();
 
 	/**
@@ -94,6 +95,7 @@ class Ethernet: public LanAdaptationPlugin
 		void updateStats(unsigned int period);
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
+			tal_id_t gw_id,
 			sat_type_t satellite_type,
 			const SarpTable *sarp_table);
 
@@ -202,6 +204,12 @@ class Ethernet: public LanAdaptationPlugin
 		 * @return true on success, false otherwise
 		 */
 		bool initTrafficCategories(ConfigurationFile &config);
+
+		/// this gw id
+		tal_id_t gw_id;
+
+		/// The configuration
+		ConfigurationFile config;
 
 		/// The Ethernet Virtual Connections
 		map<uint8_t, Evc *> evc_map;

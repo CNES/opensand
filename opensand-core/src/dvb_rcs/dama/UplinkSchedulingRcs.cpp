@@ -47,8 +47,10 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
 			const FmtSimulation *const ret_fmt_simu,
-			const TerminalCategoryDama *const category):
+			const TerminalCategoryDama *const category,
+			tal_id_t gw_id):
 	Scheduling(packet_handler, fifos),
+	gw_id(gw_id),
 	ret_fmt_simu(ret_fmt_simu),
 	category(category)
 {
@@ -72,6 +74,7 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	//       is a good consideration...) but as we have only one band configuration
 	//       we use the same parameters
 	// initialize carriers capacity
+	//
 	for(carrier_it = carriers.begin();
 	    carrier_it != carriers.end();
 	    ++carrier_it)
@@ -347,9 +350,9 @@ error:
 
 uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
 {
-	uint8_t modcod_id = this->ret_fmt_simu->getCurrentModcodId(GW_TAL_ID);
+	uint8_t modcod_id = this->ret_fmt_simu->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "Simulated MODCOD for GW = %u\n", modcod_id);
+	    "Simulated MODCOD for GW%u = %u\n", this->gw_id, modcod_id);
 
 	return modcod_id;
 }

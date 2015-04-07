@@ -208,6 +208,7 @@ class DvbChannel
 	 */
 	template<class T>
 	bool initBand(ConfigurationList band,
+                  string section,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
 	              sat_type_t satellite_type,
@@ -457,6 +458,7 @@ inline vector<unsigned int> tempSplit(string values)
 
 template<class T>
 bool DvbChannel::initBand(ConfigurationList band,
+                          string section,
                           access_type_t access_type,
                           time_ms_t duration_ms,
                           sat_type_t satellite_type,
@@ -491,8 +493,8 @@ bool DvbChannel::initBand(ConfigurationList band,
 	    ((xmlpp::Node*)*band.begin())->get_name().c_str(), bandwidth_khz);
 
 	// Get the value of the roll off
-	if(!Conf::getValue(band, ROLL_OFF,
-	                   roll_off))
+	if(!Conf::getValue(Conf::section_map[section], 
+		               ROLL_OFF, roll_off))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",

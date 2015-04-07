@@ -282,15 +282,40 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 
 	// get current spot id withing sat switching table
 	ConfigurationList::iterator spot_iter;
-
-	this->spot_id = Conf::terminal_map[this->mac_id];
-		
 	// get satelite carrier spot configuration 
 	ConfigurationList satcar_section = Conf::section_map[SATCAR_SECTION];
 	ConfigurationList spots;
 	ConfigurationList current_spot;
+	ConfigurationList current_gw;
 	ConfigurationList carrier_list ; 
 	ConfigurationList::iterator iter;
+	tal_id_t gw_id = 0;
+
+	if(Conf::spot_table.find(this->mac_id) != Conf::spot_table.end())
+	{
+		this->spot_id = Conf::spot_table[this->mac_id];
+	}
+	else if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
+		                    DEFAULT_SPOT, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR, 
+		    "couldn't find spot for tal %d", 
+			this->mac_id);
+		return false;
+	}
+	
+	if(Conf::gw_table.find(this->mac_id) != Conf::gw_table.end())
+	{
+		gw_id = Conf::gw_table[this->mac_id];
+	}
+	else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
+		                    DEFAULT_GW, gw_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR, 
+		    "couldn't find gw for tal %d", 
+			this->mac_id);
+		return false;
+	}
 
 	if(!Conf::getListNode(satcar_section, SPOT_LIST, spots))
 	{
@@ -300,18 +325,26 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s\n",
-		    SPOT_ID, this->spot_id, SPOT_LIST);
+		    ID, this->spot_id, SPOT_LIST);
 		return false;
 	}
 
+	if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                   gw_id, current_gw))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s\n",
+		    GW, gw_id, SPOT_LIST);
+		return false;
+	}
 	
 	// get satellite channels from configuration
-	if(!Conf::getListItems(current_spot, CARRIER_LIST, carrier_list))
+	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite channels\n",
@@ -346,7 +379,6 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 			goto error;
 		}
 
-		
 		// Get the ID for control carrier
 		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
 		{
@@ -557,17 +589,18 @@ bool BlockDvbTal::Downward::initDama(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",
-		    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
 	
 	// init band
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
+		                                     RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
@@ -839,18 +872,19 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, SPOT_ID,
+	if(!Conf::getElementWithAttributeValue(spots, ID,
 		                                   this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",
-		    SPOT_ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
 
 	// TODO use the up return frame duration for Slotted Aloha
 	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
+		                                       RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
@@ -1907,15 +1941,6 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-			spot_id_t dest_spot = dvb_frame->getSpot();
-
-			if( dest_spot != Conf::terminal_map[this->mac_id])
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "receive message for spot %d carrier id %di\n",
-				    dest_spot, dvb_frame->getCarrierId());
-				break;
-			}
 
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
@@ -2041,6 +2066,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
 		{
+
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 

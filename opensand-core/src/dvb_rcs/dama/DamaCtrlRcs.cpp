@@ -116,7 +116,11 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
 	st = this->terminals.find(tal_id);
-	if(st == this->terminals.end() && tal_id != GW_TAL_ID)
+	tal_id_t tab[NB_GW] = {GW_TAL_ID};
+	list<tal_id_t> gw_tal_id (tab, tab + sizeof(tab) / sizeof(tal_id_t) );
+	list<tal_id_t>::iterator it;
+	it = find(gw_tal_id.begin(), gw_tal_id.end(), tal_id);
+	if(st == this->terminals.end() && it == gw_tal_id.end())
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "

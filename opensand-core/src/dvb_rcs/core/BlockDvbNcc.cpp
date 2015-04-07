@@ -31,6 +31,7 @@
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  */
 
 
@@ -55,7 +56,7 @@
 /*****************************************************************************/
 
 
-BlockDvbNcc::BlockDvbNcc(const string &name):
+BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
 	BlockDvb(name)
 {
 }
@@ -88,9 +89,10 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 
 // TODO lot of duplicated code for fifos between ST and GW
 
-BlockDvbNcc::Downward::Downward(Block *const bl):
+BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	DvbDownward(bl),
 	NccPepInterface(),
+	mac_id(mac_id),
 	fwd_frame_counter(0),
 	fwd_timer(-1),
 	scenario_timer(-1),
@@ -157,7 +159,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		spot_id_t spot_id = (*spot_iter).first;
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
-		spot = new SpotDownward(spot_id,
+		spot = new SpotDownward(spot_id, this->mac_id,
 		                        this->fwd_down_frame_duration_ms,
 		                        this->ret_up_frame_duration_ms,
 		                        this->stats_period_ms,
@@ -167,7 +169,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 		(*spot_iter).second = spot;
 
-		result |= spot->onInit();
+		result &= spot->onInit();
 	}
 
 	// initialize the timers
@@ -176,6 +178,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the timers part of the "
 		    "initialisation\n");
+		return false;
 	}
 
 
@@ -184,6 +187,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to listen for PEP connections\n");
+		return false;
 	}
 
 	this->addNetSocketEvent("pep_listen", this->getPepListenSocket(), 200);
@@ -352,6 +356,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				{
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
 					map<tal_id_t, spot_id_t>::iterator tal_iter;
+					spot_id_t spot_id = 0;
 					SpotDownward *spot;
 					list<SpotDownward*> spot_list;
 					list<SpotDownward*>::iterator spot_list_iter;
@@ -359,8 +364,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 					if(tal_id == BROADCAST_TAL_ID)
 					{
-						for(tal_iter = Conf::terminal_map.begin();
-						    tal_iter != Conf::terminal_map.end();
+						for(tal_iter = Conf::spot_table.begin();
+						    tal_iter != Conf::spot_table.end();
 						    ++tal_iter)
 						{
 							spot = dynamic_cast<SpotDownward *>(this->getSpot(
@@ -370,14 +375,22 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else
 					{ 
-						if(!Conf::getSpotWithTalId(tal_id, tal_iter))
+						if(Conf::spot_table.find(tal_id) == Conf::spot_table.end())
 						{
-							LOG(this->log_receive_channel, LEVEL_ERROR,
-									"There is not spot for terminal id %d", tal_id);
-							continue;
+							if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+										DEFAULT_SPOT, spot_id))
+							{
+								LOG(this->log_init, LEVEL_ERROR, 
+										"couldn't find spot for tal %d", 
+										tal_id);
+								goto error;
+							}
 						}
-						spot = dynamic_cast<SpotDownward *>(this->getSpot(
-										(*tal_iter).second));
+						else
+						{
+							spot_id = Conf::spot_table[tal_id];
+						}	
+						spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
 						spot_list.push_back(spot);
 					}
 
@@ -621,15 +634,32 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// if connection is dead
 				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
 				{
+					spot_id_t spot_id;
 					// we have received a set of commands from the
 					// PEP component, let's apply the resources
 					// allocations/releases they contain
-					spot_iter = spots.find(Conf::terminal_map[tal_id]);
+					if(Conf::spot_table.find(tal_id) == Conf::spot_table.end())
+					{
+						if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+							               DEFAULT_SPOT, spot_id))
+						{
+							LOG(this->log_init_channel, LEVEL_ERROR, 
+								"couldn't find spot for tal %d", 
+								tal_id);
+							return false;
+						}
+					}
+					else
+					{
+						spot_id = Conf::spot_table[tal_id];
+					}
+					
+					spot_iter = spots.find(spot_id);
 					if(spot_iter == spots.end())
 					{
 						LOG(this->log_receive, LEVEL_ERROR, 
 						    "couldn't find spot %d", 
-						    Conf::terminal_map[tal_id]);
+						    Conf::spot_table[tal_id]);
 						return false;
 					}
 					SpotDownward *spot;
@@ -714,7 +744,7 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 
 void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 {
-	Ttp *ttp = new Ttp(0, this->super_frame_counter);
+	Ttp *ttp = new Ttp(this->mac_id, this->super_frame_counter);
 	// Build TTP
 	if(!spot->buildTtp(ttp))
 	{
@@ -750,7 +780,7 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
 		goto release;
 	}
 	
-	logon_resp = new LogonResponse(mac, 0, mac);
+	logon_resp = new LogonResponse(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
 	    "SF#%u: logon response sent to lower layer\n",
@@ -775,7 +805,7 @@ release:
 
 bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 {
-	Sac *send_sac = new Sac(GW_TAL_ID);
+	Sac *send_sac = new Sac(this->mac_id);
 	send_sac->setAcm(spot_downward->getCni());
 	LOG(this->log_send, LEVEL_DEBUG,
 	    "Send SAC with CNI = %.2f\n", spot_downward->getCni());
@@ -802,8 +832,9 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::Upward::Upward(Block *const bl):
+BlockDvbNcc::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	DvbUpward(bl),
+	mac_id(mac_id),
 	log_saloha(NULL)
 {
 }
@@ -831,14 +862,14 @@ bool BlockDvbNcc::Upward::onInit(void)
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		spot_id_t spot_id = (*spot_iter).first;
-		SpotUpward *spot = new SpotUpward(spot_id);
+		SpotUpward *spot = new SpotUpward(spot_id, this->mac_id);
 
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 
 		(*spot_iter).second = spot;
 
-		result |= spot->onInit();
+		result &= spot->onInit();
 	}
 
 	if(result)
@@ -853,8 +884,9 @@ bool BlockDvbNcc::Upward::onInit(void)
 			    "message\n");
 			return false;
 		}
-		link_is_up->group_id = 0;
-		link_is_up->tal_id = GW_TAL_ID;
+		//link_is_up->group_id = 0;
+		link_is_up->group_id = this->mac_id;
+		link_is_up->tal_id = this->mac_id;
 
 		if(!this->enqueueMessage((void **)(&link_is_up),
 		                         sizeof(T_LINK_UP),

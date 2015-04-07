@@ -56,6 +56,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 {
 	public:
 		SpotDownward(spot_id_t spot_id,
+		             tal_id_t mac_id,
 		             time_ms_t fwd_down_frame_duration,
 		             time_ms_t ret_up_frame_duration,
 		             time_ms_t stats_period,
@@ -273,6 +274,9 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 
 		/// spot id
 		uint8_t spot_id;
+		
+		// gw tal id
+		uint8_t mac_id;
 
 		/* Fifos */
 		/// map of FIFOs per MAX priority to manage different queues
