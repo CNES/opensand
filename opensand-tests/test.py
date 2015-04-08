@@ -381,10 +381,17 @@ help="specify the root folder for tests configurations\n"
                 test_paths.remove(test)
 
         for test_path in test_paths:
-            self._model.set_scenario(self._base)
-            # reset run values
-            self._model.set_run("")
-            self.run_enrich(test_path, "", types_path, types)
+            test_name = os.path.basename(test_path)
+            test_exist = False
+            for name in self._test:
+                print name, test_name
+                if name.startswith(test_name):
+                    test_exist = True
+            if self._test is None or test_exist:
+                self._model.set_scenario(self._base)
+                # reset run values
+                self._model.set_run("")
+                self.run_enrich(test_path, "", types_path, types)
 
 	    time.sleep(1)
 

@@ -133,6 +133,7 @@ class Files(object):
             scenario = os.path.join(scenario, self._host_name)
 
         deploy = []
+        print scenario
         for xpath in self._file_sources:
             if not xpath in self._md5:
                 self._md5[xpath] = 0

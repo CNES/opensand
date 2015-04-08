@@ -113,6 +113,8 @@ class Model:
         # wait controlleur has finished event
         self._event_manager_response.wait(2)
 
+        print self._scenario_path
+        
         # load the scenario
         self._is_default = True
         if not 'HOME' in os.environ:

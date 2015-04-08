@@ -347,7 +347,7 @@ static bool test_lan_adapt(string src_filename,
 		for(lan_contexts_t::iterator ctx = contexts.begin();
 		    ctx != contexts.end(); ++ctx)
 	    {
-			(*ctx)->initLanAdaptationContext(1, TRANSPARENT,
+			(*ctx)->initLanAdaptationContext(1, 0, TRANSPARENT,
 			                                 &sarp_table);
 		}
 
