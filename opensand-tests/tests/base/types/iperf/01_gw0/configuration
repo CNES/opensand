@@ -3,7 +3,7 @@
 source=.
 destination=/tmp/opensand_tests
 
-[gw]
+[gw0]
 files=base/types/iperf/files/iperf_client.py
 
 [common]

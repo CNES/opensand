@@ -1112,7 +1112,6 @@ class ConfSection(gtk.VBox):
                 check_button.set_inconsistent(False)
             name = button.get_name()
             key = self._config.get(name)
-            print name
             key_entries = self._config.get_table_elements(key)
             key_name = self._config.get_name(key_entries[0])
             if self._table_length[name] <= self._config.get_minoccurs(key_name):

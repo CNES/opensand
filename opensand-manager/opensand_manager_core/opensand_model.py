@@ -110,11 +110,6 @@ class Model:
 
     def load(self, first=False):
         """ load the model scenario """
-        # wait controlleur has finished event
-        self._event_manager_response.wait(2)
-
-        print self._scenario_path
-        
         # load the scenario
         self._is_default = True
         if not 'HOME' in os.environ:
@@ -443,6 +438,9 @@ class Model:
 
     def set_scenario(self, val):
         """ set the scenario id """
+        # wait controlleur has finished event
+        self._event_manager_response.wait(2)
+        
         self._modified = True
         self._scenario_path = val
         self.load()

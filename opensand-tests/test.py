@@ -40,6 +40,7 @@ import glob
 import sys
 import os
 import time
+import re
 from optparse import OptionParser, IndentedHelpFormatter
 import textwrap
 import ConfigParser
@@ -47,8 +48,6 @@ import socket
 import shlex
 import subprocess
 import shutil
-
-import time
 
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
@@ -150,6 +149,10 @@ class Test(ShellManager):
                               help="launch one test in particular (use test "
                               "names from the same folder (separated by ',') "
                               "and set the --type option)")
+        opt_parser.add_option("-r", "--regexp", dest="regexp", default=None,
+                              help="launch all test that contain this regexp" 
+                              "in particular (use test names from the same "
+                              "folder and set the --type option)")
         opt_parser.add_option("-s", "--service", dest="service",
                               default=SERVICE,
                               help="listen for OpenSAND entities "\
@@ -210,9 +213,12 @@ help="specify the root folder for tests configurations\n"
 
         # TODO regex in selt._test and self._type for regen* or transp* for ex
         self._test = None
+        self._regexp = None
         self._type = None
         if options.test is not None:
             self._test = options.test.split(',')
+        if options.regexp is not None:
+            self._regexp = options.regexp
         if options.type is not None:
             self._type = options.type.split(',')
         self._folder = options.folder
@@ -256,6 +262,9 @@ help="specify the root folder for tests configurations\n"
             if self._test is not None and len(self._test):
                 raise TestError("Configuration", "The following tests were not "
                                 "found %s" % self._test)
+            if self._regexp is not None and self._regexp == "":
+                raise TestError("Configuration", "The following types were not "
+                                "found %s" % self._regexp)
             if self._type is not None and len(self._type):
                 raise TestError("Configuration", "The following types were not "
                                 "found %s" % self._type)
@@ -383,17 +392,20 @@ help="specify the root folder for tests configurations\n"
         for test_path in test_paths:
             test_name = os.path.basename(test_path)
             test_exist = False
-            for name in self._test:
-                print name, test_name
-                if name.startswith(test_name):
+            if self._test is not None:
+                for name in self._test:
+                    if name.startswith(test_name):
+                        test_exist = True
+            if self._regexp is not None:
+                if re.search(self._regexp, test_name) is not None:
                     test_exist = True
-            if self._test is None or test_exist:
+            if (self._test is None and self._regexp is None) or test_exist:
                 self._model.set_scenario(self._base)
                 # reset run values
                 self._model.set_run("")
                 self.run_enrich(test_path, "", types_path, types)
-
-	    time.sleep(1)
+ 
+        time.sleep(1)
 
         # stop the platform
         self.stop_opensand()

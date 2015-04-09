@@ -36,6 +36,7 @@ topology_configuration.py - the topology configuration description
 
 import os
 import shutil
+from lxml import etree
 
 from opensand_manager_core.utils import *
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
@@ -220,7 +221,18 @@ class TopologyConfig(AdvancedHostModel):
                         TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv4'
-                self._configuration.create_line(line, 'terminal_v4', xpath)
+                
+                table = self._configuration.get(xpath)
+                new = etree.Element('terminal_v4', line)
+                find = False
+                for elm in table.getchildren():
+                    if etree.tostring(new) == etree.tostring(elm):
+                        find =  True
+                        break
+
+                if not find:
+                    self._configuration.create_line(line, 'terminal_v4', xpath)
+
                 # IPv6 SARP
                 addr = net_config['lan_ipv6'].split('/')
                 ip = addr[0]
@@ -231,7 +243,18 @@ class TopologyConfig(AdvancedHostModel):
                         TAL_ID: instance,
                        }
                 xpath = '/configuration/sarp/ipv6'
-                self._configuration.create_line(line, 'terminal_v6', xpath)
+
+                table = self._configuration.get(xpath)
+                new = etree.Element('terminal_v6', line)
+                find = False
+                for elm in table.getchildren():
+                    if etree.tostring(new) == etree.tostring(elm):
+                        find =  True
+                        break
+
+                if not find:
+                    self._configuration.create_line(line, 'terminal_v6', xpath)
+                
                 # Ethernet SARP
                 if 'mac' in net_config:
                     mac = net_config['mac']
@@ -242,7 +265,17 @@ class TopologyConfig(AdvancedHostModel):
                                 TAL_ID: instance,
                                }
                         xpath = '/configuration/sarp/ethernet'
-                        self._configuration.create_line(line, 'terminal_eth', xpath)
+
+                        table = self._configuration.get(xpath)
+                        new = etree.Element('terminal_eth', line)
+                        find = False
+                        for elm in table.getchildren():
+                            if etree.tostring(new) == etree.tostring(elm):
+                                find =  True
+                                break
+
+                        if not find:
+                            self._configuration.create_line(line, 'terminal_eth', xpath)
 
             self.save()
         except XmlException, msg:
