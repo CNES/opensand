@@ -76,6 +76,9 @@ class BlockEncap: public Block
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 
+	/// the satellite type (regenerative o transparent)
+	sat_type_t satellite_type;
+
 	/// the emission contexts list from lower to upper context
 	std::vector<EncapPlugin::EncapContext *> emission_ctx;
 

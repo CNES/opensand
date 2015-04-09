@@ -51,7 +51,8 @@ BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 	group_id(-1),
 	tal_id(-1),
 	state(link_down),
-	mac_id(mac_id)
+	mac_id(mac_id),
+	satellite_type()
 {
 	// TODO we need a mutex here because some parameters may be used in upward and downward
 	this->enableChannelMutex();
@@ -184,7 +185,7 @@ bool BlockEncap::onInit()
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string lan_name;
-	string satellite_type;
+	string sat_type;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
@@ -204,17 +205,18 @@ bool BlockEncap::onInit()
 
 	// satellite type: regenerative or transparent ?
 	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                   satellite_type))
+	                   sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    GLOBAL_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
+	this->satellite_type = strToSatType(sat_type);
 	
 
 	LOG(this->log_init, LEVEL_INFO,
-	    "satellite type = %s\n", satellite_type.c_str());
+	    "satellite type = %s\n", sat_type.c_str());
 
 	// Retrieve last packet handler in lan adaptation layer
 	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
@@ -250,12 +252,12 @@ bool BlockEncap::onInit()
 		LOG(this->log_init, LEVEL_DEBUG,
 		"Going to check if Tal with id:  %d is in Scpc mode\n", this->mac_id);
 
-		if(this->checkIfScpc(satellite_type))
+		if(this->checkIfScpc(sat_type))
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "SCPC mode available for ST %d - BlockEncap \n", this->mac_id);
 			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-			                          lan_plugin, up_return_ctx, satellite_type,
+			                          lan_plugin, up_return_ctx, sat_type,
 			                          "return/up", true)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
@@ -269,7 +271,7 @@ bool BlockEncap::onInit()
 			LOG(this->log_init, LEVEL_INFO,
 			    "SCPC mode not available for ST %d - BlockEncap \n", this->mac_id);
 			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
-			                         lan_plugin, up_return_ctx, satellite_type,
+			                         lan_plugin, up_return_ctx, sat_type,
 			                         "return/up", false)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
@@ -280,19 +282,22 @@ bool BlockEncap::onInit()
 	}
 	else
 	{
-		LOG(this->log_init, LEVEL_NOTICE,
-		    "SCPC mode available - BlockEncap");
-		if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-		                          lan_plugin, up_return_ctx_scpc, satellite_type,
-		                          "return/up", true)) 
+		if (sat_type == "transparent")
 		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Cannot get Up/Return GSE Encapsulation context");
-			goto error;
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "SCPC mode available - BlockEncap");
+			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
+			                          lan_plugin, up_return_ctx_scpc, sat_type,
+			                          "return/up", true)) 
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Cannot get Up/Return GSE Encapsulation context");
+				goto error;
+			}
 		}
 
 		if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-		                          lan_plugin, up_return_ctx, satellite_type,
+		                          lan_plugin, up_return_ctx, sat_type,
 		                          "return/up", false)) 
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -302,7 +307,7 @@ bool BlockEncap::onInit()
 	}
 
 	if(!this->getEncapContext(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	                         lan_plugin, down_forward_ctx, satellite_type,
+	                         lan_plugin, down_forward_ctx, sat_type,
 	                         "forward/down", false)) 
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -322,7 +327,7 @@ bool BlockEncap::onInit()
 	    compo_name.c_str());
 	host = getComponentType(compo_name);
 
-	if(host == terminal || satellite_type == "regenerative")
+	if(host == terminal || sat_type == "regenerative")
 	{
 		this->emission_ctx = up_return_ctx;
 		this->reception_ctx = down_forward_ctx;
@@ -557,7 +562,7 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	if(burst->name() == "GSE" && this->mac_id == GW_TAL_ID)
+	if(burst->name() == "GSE" && this->mac_id == GW_TAL_ID && this->satellite_type == TRANSPARENT)
 	{
 		// iterate on all the deencapsulation contexts to get the ip packets
 		for(iter = this->reception_ctx_scpc.begin();

@@ -79,6 +79,7 @@ class PingTest():
 
         # wait 10 seconds more because for ethernet tests we wait for bridge to be
         # ready        
+        #TODO: increase time sleep for eth
         if test_name.find("eth") >= 0:
             time.sleep(11)
         else:

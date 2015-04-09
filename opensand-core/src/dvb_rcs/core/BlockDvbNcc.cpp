@@ -2388,96 +2388,124 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			//  in transparent scenario due to carrier emulation)
 			
 			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes is coming from GW)
+			//  FIXME: SOME tests might return ERROR if some Tals are in SCPC mode (GSE deencapsulation errors)
 			BBFrame *frame = dvb_frame->operator BBFrame*();
 			tal_id_t tal_id;
+
 			// decode the first packet in frame to be able to get source terminal ID
 			if(scpc_on)
 			{
 				if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(), tal_id))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-						"unable to read source terminal ID in"
-						" frame, won't be able to discard BBframes sent from GW to GW\n");
+					    "unable to read source terminal id in"
+					    " frame, won't be able to discard bbframes sent from GW to GW\n");
 				}
-			
 				else
 				{
 					if(tal_id == GW_TAL_ID)
 					{
 						LOG(this->log_receive, LEVEL_NOTICE,
 						    "ignore received BB frame from GW in transparent "
-						    "scenario\n");
+						    "scenario if SCPC mode is on\n");
 						goto drop;
+					}
+
+				}
+
+				NetBurst *burst = NULL;
+				//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
+				// Update stats
+				this->l2_from_sat_bytes += dvb_frame->getMessageLength();
+				this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+		
+				if(this->with_phy_layer)
+				{
+					DvbFrame *frame_copy = new DvbFrame(dvb_frame);
+					if(!this->shareFrame(frame_copy))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "Unable to transmit Frame to opposite channel\n");
+					}
+				}
+				// GW_TAL_ID is no used
+				if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
+			 	                                       GW_TAL_ID,
+				                                       &burst))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to handle the reception of "
+					    "BB frame (len = %u)\n",
+					    dvb_frame->getMessageLength());
+					goto error;
+				}
+				if(msg_type != MSG_TYPE_CORRUPTED)
+				{
+					// update MODCOD probes
+					// TODO: for gateway
+					//if(!this->with_phy_layer)
+					//{
+					//	this->probe_st_real_modcod->put(std->getRealModcod());
+					//}
+					//this->probe_received_modcod->put(std->getReceivedModcod());
+					///TDOD: 28 for GW
+					//uint8_t mc = 28;
+					//this->probe_received_modcod->put(mc);
+				}
+				else
+				{
+					//TODO: 28 for GW
+					//TODO see when FMT simulation will be improved
+					//this->probe_rejected_modcod->put(std->getReceivedModcod());
+					//uint8_t mc = 28;
+					//this->probe_rejected_modcod->put(mc);
+				}
+				// send the message to the upper layer
+				if(burst && !this->enqueueMessage((void **)&burst))
+				{
+					LOG(this->log_send, LEVEL_ERROR, 
+					    "failed to send burst of packets to upper layer\n");
+					delete burst;
+					goto error;
+				}
+				LOG(this->log_send, LEVEL_INFO, 
+				    "burst sent to the upper layer\n");
+
+				LOG(this->log_receive, LEVEL_ERROR, "burst sent upper \n");
+				break;
+			}
+			else
+			{
+				if (satellite_type == TRANSPARENT)
+				{
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "ignore received BB frame from GW in transparent "
+					    "scenario\n");
+					goto drop;
+				}
+				else
+				{
+					if(!this->pkt_hdl->getSrc(frame->getPayload(), tal_id))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+					        "unable to read source terminal id in"
+					        " frame, won't be able to discard bbframes sent from GW to GW in regenerative\n");
+					}
+			
+					else
+					{
+
+						if(tal_id == GW_TAL_ID)
+						{
+							LOG(this->log_receive, LEVEL_NOTICE,
+							    "ignore received BB frame from GW in regenerative "
+							    "scenario\n");
+							goto drop;
+						}
 					}
 				}
 			}
-			else
-			{
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "ignore received BB frame from GW in transparent "
-				    "scenario\n");
-				goto drop;
-			}
-
-			NetBurst *burst = NULL;
-			//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
-			// Update stats
-			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
-			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-	
-			if(this->with_phy_layer)
-			{
-				DvbFrame *frame_copy = new DvbFrame(dvb_frame);
-				if(!this->shareFrame(frame_copy))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Unable to transmit Frame to opposite channel\n");
-				}
-			}
-			// GW_TAL_ID is no used
-			if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
-		 	                                       GW_TAL_ID,
-			                                       &burst))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "failed to handle the reception of "
-				    "BB frame (len = %u)\n",
-				    dvb_frame->getMessageLength());
-				goto error;
-			}
-			if(msg_type != MSG_TYPE_CORRUPTED)
-			{
-				// update MODCOD probes
-				// TODO: for gateway
-				//if(!this->with_phy_layer)
-				//{
-				//	this->probe_st_real_modcod->put(std->getRealModcod());
-				//}
-				//this->probe_received_modcod->put(std->getReceivedModcod());
-				///TDOD: 28 for GW
-				//uint8_t mc = 28;
-				//this->probe_received_modcod->put(mc);
-			}
-			else
-			{
-				//TODO: 28 for GW
-				//TODO see when FMT simulation will be improved
-				//this->probe_rejected_modcod->put(std->getReceivedModcod());
-				//uint8_t mc = 28;
-				//this->probe_rejected_modcod->put(mc);
-			}
-			// send the message to the upper layer
-			if(burst && !this->enqueueMessage((void **)&burst))
-			{
-				LOG(this->log_send, LEVEL_ERROR, 
-				    "failed to send burst of packets to upper layer\n");
-				delete burst;
-				goto error;
-			}
-			LOG(this->log_send, LEVEL_INFO, 
-			    "burst sent to the upper layer\n");
 		}
-		break;
 						
 			// breakthrough
 		case MSG_TYPE_DVB_BURST:
@@ -2516,7 +2544,6 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 							std->getReceivedModcod());
 				}
 			}
-
 			// send the message to the upper layer
 			if(burst && !this->enqueueMessage((void **)&burst))
 			{
