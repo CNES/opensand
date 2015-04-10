@@ -270,6 +270,8 @@ class Model:
     def get_host(self, name):
         """ return the host according to its name """
         for host in self.get_all():
+            if name == GW and host.get_name().startswith(GW):
+                return host
             if name.lower() == host.get_name().lower():
                 return host
         if name == GLOBAL:
