@@ -41,8 +41,7 @@ import pango
 from copy import deepcopy
 
 from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
-                                         IP_ADDRESS, TOPOLOGY, \
-                                         CARRIERS, TERMINALS
+                                         TOPOLOGY  
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog

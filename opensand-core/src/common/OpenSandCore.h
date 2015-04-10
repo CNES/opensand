@@ -58,7 +58,7 @@ using std::vector;
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
 /// Terminal ID for Gateway
-#define GW_TAL_ID 0L, 10L
+#define GW_TAL_ID 0L, 6L
 #define NB_GW 2
 
 /** The different types of DVB components */

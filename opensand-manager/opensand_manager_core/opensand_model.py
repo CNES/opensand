@@ -372,6 +372,9 @@ class Model:
         if component == SAT:
             self._hosts.insert(0, host)
         elif component == GW:
+            self._config.get_configuration().add_gw('//forward_down_band', instance)
+            self._config.get_configuration().add_gw('//return_up_band', instance)
+            self._config.get_configuration().write()
             self._hosts.insert(1, host)
         elif component != WS:
             self._hosts.append(host)

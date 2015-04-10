@@ -186,6 +186,7 @@ class Controller(threading.Thread):
                         component = ST
                     if component.startswith(GW):
                         component = GW
+                        print component
                     host_name =  component
                     if not component in self._deploy_config.sections():
                         self._log.warning("No information for %s deployment, "
