@@ -84,6 +84,10 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	{
 		this->access_type = access_vcm;
 	}
+	else if(type_name == "SCPC")
+	{
+		this->access_type = access_scpc;
+	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_ERROR,

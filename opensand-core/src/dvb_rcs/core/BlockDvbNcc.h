@@ -64,6 +64,8 @@
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 
+#include <opensand_conf/conf.h>
+
 #define SIMU_BUFF_LEN 255
 
 class BlockDvbNcc: public BlockDvb
@@ -129,16 +131,29 @@ class BlockDvbNcc: public BlockDvb
 		 * @return true on success, false otherwise
 		 */
 		bool shareFrame(DvbFrame *frame);
+		
+		/**
+		 * Checks if SCPC mode is activated and configured (Available FIFOs and Carriers for SCPC)
+		 * @sat_type     The satellite type
+		 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
+		 */
+		bool checkIfScpc();
+
 
 		/// The Slotted Aloha for NCC
 		SlottedAlohaNcc *saloha;
 
 		/// ST unique mac id
 		tal_id_t mac_id;
+		
+		///
+		bool scpc_on; 
 
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
+		/// The up/return packet handler for SCPC
+		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
 		// Output probes and stats
 			// Rates
 				// Layer 2 from SAT
@@ -272,7 +287,6 @@ class BlockDvbNcc: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
 
 		/**
 		 * Simulate event based on an input file

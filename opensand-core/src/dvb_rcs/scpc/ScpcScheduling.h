@@ -28,9 +28,11 @@
 
 
 /**
- * @file ForwardSchedulingS2.h
+ * @file ScpcScheduling.h
  * @brief Scheduling for MAC FIFOs for DVB-S2 forward
+ * @author David PRADAS / <david.pradas@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ *  
  *
  */
 
@@ -55,30 +57,30 @@ typedef enum
 
 
 /**
- * @class ForwardSchedulingS2
- * @brief Scheduling functions for MAC FIFOs with DVB-S2 forward
+ * @class ScpcScheduling
+ * @brief Scheduling functions for MAC FIFOs with DVB-S2 forward (for SCPC)
  */
-class ForwardSchedulingS2: public Scheduling
+class ScpcScheduling: public Scheduling
 {
   public:
 
-	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
-	                    const EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const fifos_t &fifos,
-	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategoryDama *const category);
+	ScpcScheduling(time_ms_t scpc_timer_ms,
+	               const EncapPlugin::EncapPacketHandler *packet_handler,
+	               const fifos_t &fifos,
+	               FmtSimulation *const scpc_fmt_simu,
+	               const TerminalCategoryDama *const category);
 
-	virtual ~ForwardSchedulingS2();
+	virtual ~ScpcScheduling();
 
-	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      clock_t current_time,
-	                      list<DvbFrame *> *complete_dvb_frames,
-	                      uint32_t &remaining_allocation);
+	bool schedule(const time_sf_t current_superframe_sf,
+	              clock_t current_time,
+	              list<DvbFrame *> *complete_dvb_frames,
+	              uint32_t &remaining_allocation);
   
-  protected:
+  private:
 
 	/** The timer for forward scheduling (ms) */
-	time_ms_t fwd_timer_ms;
+	time_ms_t scpc_timer_ms;
 
   	/** the BBFrame being built identified by their modcod */
 	map<unsigned int, BBFrame *> incomplete_bb_frames;
@@ -91,21 +93,21 @@ class ForwardSchedulingS2: public Scheduling
 	list<BBFrame *> pending_bbframes;
 
 	/** The FMT simulated data */
-	FmtSimulation *fwd_fmt_simu;
+	FmtSimulation *scpc_fmt_simu;
 
 	/** The terminal category */
 	const TerminalCategoryDama *category;
 
 	// Total and unused capacity probes
-	Probe<int> *probe_fwd_total_capacity;
-	Probe<int> *probe_fwd_total_remaining_capacity;
-	Probe<int> *probe_bbframe_nbr;
-	map<unsigned int, vector<Probe<int> *> > probe_fwd_remaining_capacity;
-	map<unsigned int, vector<Probe<int> *> > probe_fwd_available_capacity;
+	Probe<int> *probe_scpc_total_capacity;
+	Probe<int> *probe_scpc_total_remaining_capacity;
+	Probe<int> *probe_scpc_bbframe_nbr;
+	map<unsigned int, vector<Probe<int> *> > probe_scpc_remaining_capacity;
+	map<unsigned int, vector<Probe<int> *> > probe_scpc_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
-	 *        The available capacity is obtained from carrier capacity in symbols
+	 *        The available SCPC capacity is obtained from carrier capacity in symbols
 	 *
 	 * @param fifo  The FIFO whee packets are stored
 	 * @param current_superframe_sf  The current superframe number
@@ -120,17 +122,11 @@ class ForwardSchedulingS2: public Scheduling
 	                          CarriersGroupDama *carriers);
 
 	/**
-	 * @brief Get the current modcod of a terminal
+	 * @brief Get the current modcod ID of the gateway
 	 *
-	 * @param tal_id    the terminal id
-	 * @param current_superframe_sf  The current superframe number
-	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
-	 * @return          true on succes, false otherwise
+	 * @return         the simulated modcod ID for GW uplink 
 	 */
-	bool retrieveCurrentModcod(tal_id_t tal_id,
-	                           const time_sf_t current_superframe_sf,
-	                           unsigned int &modcod_id);
-
+	uint8_t retrieveCurrentModcod(void);
 	/**
 	 * @brief Create an incomplete BB frame
 	 *
@@ -146,14 +142,12 @@ class ForwardSchedulingS2: public Scheduling
 	/**
 	 * @brief Get the incomplete BBFrame for the current destination terminal
 	 *
-	 * @param tal_id    the terminal ID we want to send the frame
-	 * @paarm carriers  the carriers group to which the terminal belongs
+	 * @param carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe   OUT: the BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
-	bool getIncompleteBBFrame(tal_id_t tal_id,
-	                          CarriersGroupDama *carriers,
+	bool getIncompleteBBFrame(CarriersGroupDama *carriers,
 	                          const time_sf_t current_superframe_sf,
 	                          BBFrame **bbframe);
 

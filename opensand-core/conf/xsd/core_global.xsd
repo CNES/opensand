@@ -72,6 +72,7 @@
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DAMA" />
         <xsd:enumeration value="ALOHA" />
+        <xsd:enumeration value="SCPC" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -139,7 +140,7 @@
         <xsd:attribute name="access_type" type="upAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (DAMA, ALOHA)
+                    The type of multiplexing (DAMA, ALOHA, SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -377,7 +378,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_frame_duration" type="msTime">
+            <xsd:element name="forward_down_carrier_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The forward/down link DVB frame duration (in ms)
@@ -385,7 +386,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_frame_duration" type="msTimeFrame">
+            <xsd:element name="return_up_carrier_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The return/up link DVB frame duration (in ms)

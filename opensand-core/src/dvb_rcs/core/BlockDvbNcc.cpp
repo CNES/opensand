@@ -40,6 +40,7 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
+#include "DvbScpcStd.h"
 #include "Sof.h"
 #include "ForwardSchedulingS2.h"
 #include "UplinkSchedulingRcs.h"
@@ -150,7 +151,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl):
 	probe_gw_queue_loss(),
 	probe_gw_queue_loss_kb(),
 	probe_gw_l2_to_sat_before_sched(),
-	l2_to_sat_bytes_before_sched(),
 	probe_gw_l2_to_sat_after_sched(),
 	probe_gw_l2_to_sat_total(NULL),
 	l2_to_sat_total_bytes(0),
@@ -260,12 +260,13 @@ bool BlockDvbNcc::Downward::onInit(void)
 	else
 	{
 		if(!this->initPktHdl(RETURN_UP_ENCAP_SCHEME_LIST,
-		                     &this->up_return_pkt_hdl))
+		                     &this->up_return_pkt_hdl, false))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed get packet handler\n");
 			goto error;
 		}
+
 	}
 
 	if(!this->initRequestSimulation())
@@ -608,7 +609,7 @@ bool BlockDvbNcc::Downward::initColumns(void)
 	                                        this->column_list[GW_TAL_ID]))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to define the GW as ST with ID %ld\n",
+		    "failed to define the GW as ST with ID %d\n",
 		    GW_TAL_ID);
 		goto error;
 	}
@@ -1044,7 +1045,8 @@ bool BlockDvbNcc::Downward::initFifo(void)
 		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
 	} // end for(queues are now instanciated and initialized)
 
-	this->resetStatsCxt();
+	//reset stat
+	this->l2_to_sat_total_bytes = 0;
 
 	return true;
 
@@ -1193,8 +1195,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "SF#%u: encapsulation packet is "
 				    "successfully stored\n",
 				    this->super_frame_counter);
-				this->l2_to_sat_bytes_before_sched[fifo_priority] +=
-							(*pkt_it)->getTotalLength();
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1978,7 +1978,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
-			this->l2_to_sat_bytes_before_sched[(*it).first] * 8.0 / this->stats_period_ms);
+			fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
 
 		this->probe_gw_l2_to_sat_after_sched[(*it).first]->put(
 			fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
@@ -1993,19 +1993,9 @@ void BlockDvbNcc::Downward::updateStats(void)
 	this->probe_gw_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
 	
-	this->resetStatsCxt();
-}
-
-void BlockDvbNcc::Downward::resetStatsCxt(void)
-{
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		this->l2_to_sat_bytes_before_sched[(*it).first] = 0;
-	}
+	//reset stat
 	this->l2_to_sat_total_bytes = 0;
 }
-
 bool BlockDvbNcc::Downward::sendAcmParameters(void)
 {
 	Sac *send_sac = new Sac(GW_TAL_ID);
@@ -2035,7 +2025,9 @@ BlockDvbNcc::Upward::Upward(Block *const bl):
 	DvbUpward(bl),
 	saloha(NULL),
 	mac_id(GW_TAL_ID),
+	scpc_on(false),
 	ret_fmt_groups(),
+	scpc_pkt_hdl(NULL),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
@@ -2148,6 +2140,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 error_mode:
 	delete this->receptionStd;
+	//delete this->receptionStdScpc;
 error:
 	return false;
 }
@@ -2280,6 +2273,24 @@ bool BlockDvbNcc::Upward::initMode(void)
 	if(this->satellite_type == TRANSPARENT)
 	{
 		this->receptionStd = new DvbRcsStd(this->pkt_hdl);
+		
+		// If available SCPC carriers, a new packet handler is created at NCC 
+		// to received BBFrames and to be able to deencapsulate GSE packets.	
+		if(this->checkIfScpc())
+		{
+			if(!this->initPktHdl("GSE",
+				                 &this->scpc_pkt_hdl, true))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to get packet handler for receiving GSE packets\n");
+				goto error;
+			}
+	
+			this->receptionStdScpc = new DvbScpcStd(this->scpc_pkt_hdl);
+			this->scpc_on = true;
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "NCC is aware that there are SCPC carriers available \n");
+		}
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
@@ -2371,16 +2382,131 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		// burst
 		case MSG_TYPE_BBFRAME:
-			// ignore BB frames in transparent scenario
+		{
+			// Ignore BB frames in transparent scenario
 			// (this is required because the GW may receive BB frames
 			//  in transparent scenario due to carrier emulation)
-			if(this->receptionStd->getType() == "DVB-RCS")
+			
+			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes is coming from GW)
+			//  FIXME: SOME tests might return ERROR if some Tals are in SCPC mode (GSE deencapsulation errors)
+			BBFrame *frame = dvb_frame->operator BBFrame*();
+			tal_id_t tal_id;
+
+			// decode the first packet in frame to be able to get source terminal ID
+			if(scpc_on)
 			{
-				LOG(this->log_receive, LEVEL_INFO,
-				    "ignore received BB frame in transparent "
-				    "scenario\n");
-				goto drop;
+				if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unable to read source terminal id in"
+					    " frame, won't be able to discard bbframes sent from GW to GW\n");
+				}
+				else
+				{
+					if(tal_id == GW_TAL_ID)
+					{
+						LOG(this->log_receive, LEVEL_NOTICE,
+						    "ignore received BB frame from GW in transparent "
+						    "scenario if SCPC mode is on\n");
+						goto drop;
+					}
+
+				}
+
+				NetBurst *burst = NULL;
+				//DvbScpcStd *std = (DvbScpcStd *)this->receptionStdScpc;
+				// Update stats
+				this->l2_from_sat_bytes += dvb_frame->getMessageLength();
+				this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
+		
+				if(this->with_phy_layer)
+				{
+					DvbFrame *frame_copy = new DvbFrame(dvb_frame);
+					if(!this->shareFrame(frame_copy))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "Unable to transmit Frame to opposite channel\n");
+					}
+				}
+				// GW_TAL_ID is no used
+				if(!this->receptionStdScpc->onRcvFrame(dvb_frame,
+			 	                                       GW_TAL_ID,
+				                                       &burst))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to handle the reception of "
+					    "BB frame (len = %u)\n",
+					    dvb_frame->getMessageLength());
+					goto error;
+				}
+				if(msg_type != MSG_TYPE_CORRUPTED)
+				{
+					// update MODCOD probes
+					// TODO: for gateway
+					//if(!this->with_phy_layer)
+					//{
+					//	this->probe_st_real_modcod->put(std->getRealModcod());
+					//}
+					//this->probe_received_modcod->put(std->getReceivedModcod());
+					///TDOD: 28 for GW
+					//uint8_t mc = 28;
+					//this->probe_received_modcod->put(mc);
+				}
+				else
+				{
+					//TODO: 28 for GW
+					//TODO see when FMT simulation will be improved
+					//this->probe_rejected_modcod->put(std->getReceivedModcod());
+					//uint8_t mc = 28;
+					//this->probe_rejected_modcod->put(mc);
+				}
+				// send the message to the upper layer
+				if(burst && !this->enqueueMessage((void **)&burst))
+				{
+					LOG(this->log_send, LEVEL_ERROR, 
+					    "failed to send burst of packets to upper layer\n");
+					delete burst;
+					goto error;
+				}
+				LOG(this->log_send, LEVEL_INFO, 
+				    "burst sent to the upper layer\n");
+
+				LOG(this->log_receive, LEVEL_ERROR, "burst sent upper \n");
+				break;
 			}
+			else
+			{
+				if (satellite_type == TRANSPARENT)
+				{
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "ignore received BB frame from GW in transparent "
+					    "scenario\n");
+					goto drop;
+				}
+				else
+				{
+					if(!this->pkt_hdl->getSrc(frame->getPayload(), tal_id))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+					        "unable to read source terminal id in"
+					        " frame, won't be able to discard bbframes sent from GW to GW in regenerative\n");
+					}
+			
+					else
+					{
+
+						if(tal_id == GW_TAL_ID)
+						{
+							LOG(this->log_receive, LEVEL_NOTICE,
+							    "ignore received BB frame from GW in regenerative "
+							    "scenario\n");
+							goto drop;
+						}
+					}
+				}
+			}
+		}
+						
 			// breakthrough
 		case MSG_TYPE_DVB_BURST:
 		case MSG_TYPE_CORRUPTED:
@@ -2418,7 +2544,6 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 							std->getReceivedModcod());
 				}
 			}
-
 			// send the message to the upper layer
 			if(burst && !this->enqueueMessage((void **)&burst))
 			{
@@ -2565,15 +2690,16 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	return true;
 
-drop:
-	delete dvb_frame;
-	return true;
-
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
 	    "Treatments failed at SF#%u\n",
 	    this->super_frame_counter);
 	return false;
+
+drop:
+   delete dvb_frame;
+   return true;
+
 }
 
 
@@ -2655,5 +2781,54 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 		return false;
 	}
 	return true;
+}
+
+bool BlockDvbNcc::Upward::checkIfScpc()
+{
+	TerminalCategories<TerminalCategoryDama> scpc_categories;
+	TerminalMapping<TerminalCategoryDama> terminal_affectation;
+	TerminalCategoryDama *default_category;
+	time_ms_t scpc_carr_duration_ms = 5;
+	FmtSimulation scpc_fmt_simu;
+	fmt_groups_t ret_fmt_groups;
+	
+
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                          scpc_fmt_simu))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"failed to initialize the down/forward MODCOD files\n");
+		goto no_scpc;
+	}
+	
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "scpc_carr_duration_ms = %d ms\n", scpc_carr_duration_ms);
+
+
+
+	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
+	                                         SCPC,
+	                                         scpc_carr_duration_ms,
+	                                         TRANSPARENT,
+	                                         scpc_fmt_simu.getModcodDefinitions(),
+	                                         scpc_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         ret_fmt_groups))
+	{
+		goto no_scpc;
+	}
+
+	if(scpc_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No SCPC carriers\n");
+		goto no_scpc;
+	}
+	return true;
+
+	no_scpc:
+		return false;
 }
 

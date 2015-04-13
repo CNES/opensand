@@ -256,10 +256,10 @@ int main(int argc, char **argv)
 		        progname);
 		goto release_plugins;
 	}
-
 	block_encap = Rt::createBlock<BlockEncap,
 	                              BlockEncap::RtUpward,
-	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
+	                              BlockEncap::RtDownward,
+	                              tal_id_t>("Encap", block_lan_adaptation, GW_TAL_ID);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

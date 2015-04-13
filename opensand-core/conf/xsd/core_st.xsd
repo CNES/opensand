@@ -79,6 +79,7 @@
         <xsd:enumeration value="DAMA_VBDC"/>
         <xsd:enumeration value="DAMA_CRA"/>
         <xsd:enumeration value="SALOHA" />
+        <xsd:enumeration value="SCPC" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -141,6 +142,7 @@
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_tal" />
             <xsd:element ref="slotted_aloha" />
+            <xsd:element ref="scpc" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="qos_agent" />
@@ -320,6 +322,31 @@
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
+
+<!-- SCPC section description -->
+<!-- TODO: Restriction for showing or not the SCPC parameters in the Terminal -->
+<xsd:element name="scpc">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>The SCPC parameters for STs</b>
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="scpc_carrier_duration" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The carrier duration of SCPC mode (in ms)
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- qos_agent section description -->
 <xsd:element name="qos_agent">

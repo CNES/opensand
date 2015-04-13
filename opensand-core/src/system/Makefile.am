@@ -21,6 +21,7 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/dvb_rcs/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb_rcs/pep/libopensand_dvb_pep.la \
 	$(top_builddir)/src/dvb_rcs/saloha/libopensand_dvb_saloha.la \
+	$(top_builddir)/src/dvb_rcs/scpc/libopensand_dvb_scpc.la \
 	$(top_builddir)/src/dvb_rcs/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \

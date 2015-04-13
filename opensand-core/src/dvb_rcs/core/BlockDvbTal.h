@@ -44,6 +44,7 @@
 
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
+#include "Scheduling.h"
 #include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
@@ -107,6 +108,7 @@ class BlockDvbTal: public BlockDvb
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	virtual ~BlockDvbTal();
+
 
 	class Upward: public DvbUpward
 	{
@@ -174,8 +176,6 @@ class BlockDvbTal: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
-
 
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
@@ -187,6 +187,9 @@ class BlockDvbTal: public BlockDvb
 
 		/// the current state of the ST
 		tal_state_t state;
+
+		/// The up/return packet handler for SCPC
+		//EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;
 
 		/* Output probes and stats */
 			// Rates
@@ -204,12 +207,14 @@ class BlockDvbTal: public BlockDvb
 
 	class Downward: public DvbDownward
 	{
-	  public:
+	 public:
 		Downward(Block *const bl, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
-
+		static int scpc_on;
+		static EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;	
+	 
 	 protected:
 
 		/**
@@ -246,6 +251,14 @@ class BlockDvbTal: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		bool initSlottedAloha(void);
+		
+		/**
+		 * Read configuration for the SCPC algorithm
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initScpc(void);
+
 
 		/**
 		 * @brief Initialize the output
@@ -272,7 +285,6 @@ class BlockDvbTal: public BlockDvb
 
 		// statistics update
 		void updateStats(void);
-		void resetStatsCxt(void);
 
 		/**
 		 * This method send a Logon Req message
@@ -352,10 +364,25 @@ class BlockDvbTal: public BlockDvb
 
 		/// The Slotted Aloha for terminal
 		SlottedAlohaTal *saloha;
-
+		
+		/// SCPC Carrier duration in ms
+		time_ms_t scpc_carr_duration_ms;
+	
+		/// frame timer for scpc, used to awake the block every frame period	
+		event_id_t scpc_timer;
+		
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
-
+		
+		// The MODCOD simulation elements for down/forward link
+		FmtSimulation scpc_fmt_simu;
+		
+		/// The uplink of forward scheduling depending on satellite	
+		Scheduling *scpc_sched;
+		
+		/// counter for SCPC frames
+		time_sf_t scpc_frame_counter;
+			
 		/* carrier IDs */
 		uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
 		uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
@@ -409,14 +436,11 @@ class BlockDvbTal: public BlockDvb
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
 		map<unsigned int, int> l2_to_sat_cells_before_sched;
 		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
-		int *l2_to_sat_cells_after_sched;
+		int l2_to_sat_total_bytes;
 		Probe<int> *probe_st_l2_to_sat_total;
-		int l2_to_sat_total_cells;
 				// PHY to SAT
 		Probe<int> *probe_st_phy_to_sat;
 				// Layer 2 from SAT
-		Probe<int> *probe_st_l2_from_sat;
-		int l2_from_sat_bytes;
 	};
 
  protected:

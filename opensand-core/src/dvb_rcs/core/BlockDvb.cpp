@@ -38,6 +38,7 @@
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
+#include "DvbScpcStd.h"
 #include "EncapPlugin.h"
 
 
@@ -70,31 +71,43 @@ bool DvbChannel::initSatType(void)
 
 
 bool DvbChannel::initPktHdl(const char *encap_schemes,
-                            EncapPlugin::EncapPacketHandler **pkt_hdl)
+                            EncapPlugin::EncapPacketHandler **pkt_hdl, bool force)
 {
 	string encap_name;
 	int encap_nbr;
 	EncapPlugin *plugin;
 
-	// get the packet types
-	if(!Conf::getNbListItems(GLOBAL_SECTION, encap_schemes,
-	                         encap_nbr))
+	// if GSE is imposed (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
+	if(force)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    GLOBAL_SECTION, encap_schemes);
-		goto error;
+		encap_name = "GSE";
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
+				
 	}
-
-	// get all the encapsulation to use from lower to upper
-	if(!Conf::getValueInList(GLOBAL_SECTION, encap_schemes,
-	                         POSITION, toString(encap_nbr - 1),
-	                                ENCAP_NAME, encap_name))
+	else
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, invalid value %d for parameter '%s'\n",
-		    GLOBAL_SECTION, encap_nbr - 1, POSITION);
-		goto error;
+		// get the packet types
+		if(!Conf::getNbListItems(GLOBAL_SECTION, encap_schemes,
+	                         encap_nbr))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, %s missing\n",
+			    GLOBAL_SECTION, encap_schemes);
+			goto error;
+		}
+
+
+		// get all the encapsulation to use from lower to upper
+		if(!Conf::getValueInList(GLOBAL_SECTION, encap_schemes,
+		                         POSITION, toString(encap_nbr - 1),
+		                         ENCAP_NAME, encap_name))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, invalid value %d for parameter '%s'\n",
+			    GLOBAL_SECTION, encap_nbr - 1, POSITION);
+			goto error;
+		}
 	}
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
@@ -121,7 +134,6 @@ error:
 	return false;
 }
 
-
 bool DvbChannel::initCommon(const char *encap_schemes)
 {
 	if(!this->initSatType())
@@ -142,18 +154,18 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// frame duration
-	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_FRAME_DURATION,
+	if(!Conf::getValue(GLOBAL_SECTION, RET_UP_CARRIER_DURATION,
 	                   this->ret_up_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, RET_UP_FRAME_DURATION);
+		    GLOBAL_SECTION, RET_UP_CARRIER_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
 
-	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
+	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl, false))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
@@ -310,12 +322,12 @@ BlockDvb::DvbUpward::~DvbUpward()
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer
-	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION,
+	if(!Conf::getValue(GLOBAL_SECTION, FWD_DOWN_CARRIER_DURATION,
 	                   this->fwd_down_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, FWD_DOWN_FRAME_DURATION);
+		    GLOBAL_SECTION, FWD_DOWN_CARRIER_DURATION);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

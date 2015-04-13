@@ -42,7 +42,7 @@
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsRrmQos.h"
 #include "TerminalCategoryDama.h"
-
+#include "ScpcScheduling.h"
 #include "SlottedAlohaPacketData.h"
 
 #include "DvbRcsStd.h"
@@ -58,6 +58,8 @@
 #include <unistd.h>
 
 int BlockDvbTal::Downward::Downward::qos_server_sock = -1;
+int BlockDvbTal::Downward::Downward::scpc_on = 0;
+EncapPlugin::EncapPacketHandler *BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl = NULL;
 
 
 /*****************************************************************************/
@@ -107,7 +109,12 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	max_vbdc_kb(0),
 	dama_agent(NULL),
 	saloha(NULL),
+	scpc_carr_duration_ms(0),
+	scpc_timer(-1),
 	ret_fmt_groups(),
+	scpc_fmt_simu(),
+	scpc_sched(NULL),
+	scpc_frame_counter(0),
 	carrier_id_ctrl(),
 	carrier_id_logon(),
 	carrier_id_data(),
@@ -126,10 +133,9 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	probe_st_queue_size(),
 	probe_st_queue_size_kb(),
 	probe_st_l2_to_sat_before_sched(),
-	l2_to_sat_cells_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
-	probe_st_l2_to_sat_total(NULL),
-	probe_st_l2_from_sat(NULL)
+	l2_to_sat_total_bytes(0),
+	probe_st_l2_to_sat_total()
 {
 }
 
@@ -144,7 +150,12 @@ BlockDvbTal::Downward::~Downward()
 	{
 		delete this->saloha;
 	}
-
+	
+	if(this->scpc_sched)
+	{
+		delete this->scpc_sched;
+	}
+	
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
 	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
@@ -219,13 +230,22 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to complete the initialisation of Slotted Aloha\n");
 		goto error;
 	}
-	if(!this->dama_agent && !this->saloha)
+
+	if(!this->initScpc())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "unable to instanciate DAMA or Slotted Aloha, "
+		    "failed to complete the SCPC part of the initialisation\n");
+		goto error;
+	}
+
+	if(!this->dama_agent && !this->saloha && !this->scpc_sched)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unable to instanciate DAMA or Slotted Aloha or SCPC, "
 		    "check your configuration\n");
 		return false;
 	}
+
 
 	if(!this->initQoSServer())
 	{
@@ -234,7 +254,14 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	if (this->dama_agent || this->saloha)
+	{ 	
+		this->initStatsTimer(this->ret_up_frame_duration_ms);
+	}
+	else //Scpc mode
+	{
+		this->initStatsTimer(this->scpc_carr_duration_ms);
+	}
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
@@ -403,8 +430,8 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	} // end for(queues are now instanciated and initialized)
 
 
-	this->resetStatsCxt();
-
+	this->l2_to_sat_total_bytes = 0;
+	
 	return true;
 
 err_fifo_release:
@@ -841,6 +868,181 @@ release_saloha:
 }
 
 
+bool BlockDvbTal::Downward::initScpc(void)
+{
+	bool is_scpc_fifo = false;
+
+	TerminalCategories<TerminalCategoryDama> scpc_categories;
+	TerminalMapping<TerminalCategoryDama> terminal_affectation;
+	TerminalCategoryDama *default_category;
+	TerminalCategoryDama *tal_category = NULL;
+	TerminalCategoryDama *cat;
+	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+	
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
+	{
+		if((*it).second->getAccessType() == access_scpc)
+		{
+			is_scpc_fifo = true;
+		}
+	}
+	
+	// init fmt_simu
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2, 
+		                      FORWARD_DOWN_MODCOD_TIME_SERIES,
+		                      this->scpc_fmt_simu))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the down/forward MODCOD files\n");
+		goto error;
+	}
+	
+	//  Duration of the carrier -- in ms
+	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
+	                   this->scpc_carr_duration_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Missing %s\n", SCPC_C_DURATION);
+		goto error;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
+
+	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
+	                                         SCPC,
+	                                         this->scpc_carr_duration_ms,
+	                                         this->satellite_type,
+	                                         this->scpc_fmt_simu.getModcodDefinitions(),
+	                                         scpc_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         this->ret_fmt_groups))
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "InitBand not correctly initialized \n");
+		
+		return false;
+	}
+	
+	if(scpc_categories.size() == 0)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No SCPC carriers\n");
+		goto release_scpc;
+	}
+	// Find the category for this terminal
+	tal_map_it = terminal_affectation.find(this->mac_id);
+	if(tal_map_it == terminal_affectation.end())
+	{
+		// check if the default category is concerned by SCPC
+		if(!default_category)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "ST not affected to a SCPC category\n");
+			return true;
+		}
+		tal_category = default_category;
+	}   
+	else
+	{
+		tal_category = (*tal_map_it).second;
+	}
+	// check if there are SCPC carriers
+	if(!tal_category)
+	{
+		LOG(this->log_init, LEVEL_INFO,
+		    "No SCPC carrier\n");
+		if(is_scpc_fifo)
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Remove SCPC FIFOs because there is no "
+			    "SCPC carrier in the return_up_band configuration\n");
+			for(fifos_t::iterator it = this->dvb_fifos.begin();
+			    it != this->dvb_fifos.end(); ++it)
+			{
+				if((*it).second->getAccessType() == access_scpc)
+				{
+					delete (*it).second;
+					this->dvb_fifos.erase(it);
+				}
+			}
+			goto error;
+		}
+		goto release_scpc;
+	}
+	if(!is_scpc_fifo)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "The SCPC carrier won't be used as there is no "
+		    "SCPC FIFO in Terminal\n");
+		for(cat_it = scpc_categories.begin();
+		    cat_it != scpc_categories.end(); ++cat_it)
+		{
+			delete (*cat_it).second;
+		}
+		goto release_scpc;
+	}
+	
+	// Check if there are DAMA or SALOHA FIFOs in the terminal
+	if(this->dama_agent || this->saloha)	
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Conflict: SCPC FIFOs and DAMA or SALOHA FIFOs "
+		    "in the same Terminal\n");
+		goto error;
+	}
+	
+	//TODO: veritfy that 2ST are not using the same carrier and category
+
+	// TODO cannot use SCPC with regenerative satellite
+	if(this->satellite_type == REGENERATIVE)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Carrier configured with SCPC while satellite "
+		    "is regenerative\n");
+		goto error;
+	}
+	   
+	//Initialise Encapsulation scheme
+	
+	if(!this->initPktHdl("GSE",
+	                     &this->pkt_hdl, true))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed get packet handler\n");
+		goto error;
+	}
+	
+	// Create the SCPC scheduler
+	cat = scpc_categories.begin()->second;
+	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
+	                                      this->pkt_hdl,
+	                                      this->dvb_fifos,
+	                                      &this->scpc_fmt_simu,
+	                                      cat);
+	BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl = this->pkt_hdl;                                          
+	
+	if(!this->scpc_sched)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize SCPC\n");
+		goto error;
+	}
+	BlockDvbTal::Downward::Downward::scpc_on = 1;
+	return true;
+
+release_scpc: //Something TODO
+	return true;
+
+error:
+	return false;
+}
+
+
+
 bool BlockDvbTal::Downward::initQoSServer(void)
 {
 	// QoS Server: read hostname and port from configuration
@@ -940,7 +1142,11 @@ bool BlockDvbTal::Downward::initTimers(void)
 	                                        );
 	// QoS Server: check connection status in 5 seconds
 	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
-
+	if(this->scpc_sched)
+	{	
+		this->scpc_timer = this->addTimerEvent("scpc_timer",
+		                                       this->scpc_carr_duration_ms);
+	}
 	return true;
 }
 
@@ -1040,7 +1246,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 
-				this->l2_to_sat_cells_before_sched[fifo_priority]++;
 			}
 			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
@@ -1091,6 +1296,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		break;
 
 		case evt_timer:
+		{
 			if(*event == this->logon_timer)
 			{
 				if(this->state == state_wait_logon_resp)
@@ -1118,6 +1324,41 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 			}
+			else if(*event == this->scpc_timer)
+			{
+				
+				uint32_t remaining_alloc_sym = 0;
+				
+				this->updateStats();
+				this->scpc_frame_counter++;
+				//Schedule Creation
+				if(!this->scpc_sched->schedule(this->scpc_frame_counter,
+				                               this->getCurrentTime(),
+				                               &this->complete_dvb_frames,
+				                               remaining_alloc_sym))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to schedule SCPC encapsulation "
+					    "packets stored in DVB FIFO\n");
+					return false;
+
+				}
+				
+				LOG(this->log_receive, LEVEL_INFO,
+				    "SF#%u: %u symbol remaining after "
+				    "scheduling\n", this->super_frame_counter,
+				    remaining_alloc_sym);
+
+				// send on the emulated DVB network the DVB frames that contain
+				// the encapsulation packets scheduled by the SCPC agent algorithm
+				if(!this->sendBursts(&this->complete_dvb_frames,
+					this->carrier_id_data))
+					{
+						LOG(this->log_frame_tick, LEVEL_ERROR,
+						    "failed to send bursts in DVB frames\n");
+						return false;
+					}
+			}		
 			else
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1126,7 +1367,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				return false;
 			}
 			break;
-
+		}
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "SF#%u: unknown event received %s",
@@ -1137,8 +1378,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 	return true;
 }
-
-
 
 bool BlockDvbTal::Downward::sendLogonReq(void)
 {
@@ -1168,7 +1407,6 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 
 	// send the corresponding event
 	Output::sendEvent(this->event_login, "Login sent to GW");
-
 	return true;
 
 error:
@@ -1471,7 +1709,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	// Remember the id
 	this->group_id = logon_resp->getGroupId();
 	this->tal_id = logon_resp->getLogonId();
-
+	
 	// Inform Dama agent
 	if(this->dama_agent && !this->dama_agent->hereIsLogonResp(logon_resp))
 	{
@@ -1508,15 +1746,14 @@ void BlockDvbTal::Downward::updateStats(void)
 	{
 		(*it).second->getStatsCxt(fifo_stat);
 
-		this->l2_to_sat_total_cells += fifo_stat.out_pkt_nbr;
+		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		// write in statitics file
 		this->probe_st_l2_to_sat_before_sched[(*it).first]->put(
-			this->l2_to_sat_cells_before_sched[(*it).first] *
-			this->pkt_hdl->getFixedLength() * 8 /
+			fifo_stat.in_length_bytes * 8 /
 			this->stats_period_ms);
 		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
-			fifo_stat.out_pkt_nbr * this->pkt_hdl->getFixedLength() * 8 /
+			fifo_stat.out_length_bytes * 8 /
 			this->stats_period_ms);
 
 		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
@@ -1525,23 +1762,11 @@ void BlockDvbTal::Downward::updateStats(void)
 		this->probe_st_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
 		this->probe_st_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
 	}
-	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_cells *
-	                                    this->pkt_hdl->getFixedLength() * 8 /
+	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
 	                                    this->stats_period_ms);
-
-	// reset stat context for next frame
-	this->resetStatsCxt();
-
-}
-
-void BlockDvbTal::Downward::resetStatsCxt(void)
-{
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		this->l2_to_sat_cells_before_sched[(*it).first] = 0;
-	}
-	this->l2_to_sat_total_cells = 0;
+	
+	// reset stat 
+	this->l2_to_sat_total_bytes = 0;
 }
 
 
@@ -1740,11 +1965,13 @@ BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	group_id(),
 	tal_id(),
 	state(state_initializing),
+	//scpc_tal_pkt_hdl(NULL),
 	probe_st_l2_from_sat(NULL),
 	probe_st_real_modcod(NULL),
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
+	
 {
 }
 
@@ -1834,6 +2061,14 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->receptionStd = new DvbS2Std(this->pkt_hdl);
+	
+	/*if(!this->initPktHdl("GSE", &this->scpc_tal_pkt_hdl, true))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed get packet handler for SCPC\n");
+		     goto error;
+	}*/
+	
 	if(this->receptionStd == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -1855,6 +2090,8 @@ bool BlockDvbTal::Upward::initOutput(void)
 		this->probe_st_real_modcod = Output::registerProbe<int>("ACM.Required_modcod",
 		                                                        "modcod index",
 		                                                        true, SAMPLE_LAST);
+
+
 	}
 	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
 	                                                            "modcod index",
@@ -1869,6 +2106,7 @@ bool BlockDvbTal::Upward::initOutput(void)
 	this->probe_st_l2_from_sat =
 		Output::registerProbe<int>("Throughputs.L2_from_SAT",
 		                           "Kbits/s", true, SAMPLE_AVG);
+	this->l2_from_sat_bytes = 0;
 	return true;
 }
 
@@ -1876,11 +2114,40 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
+	
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
 		case MSG_TYPE_CORRUPTED:
 		{
+			//  TODO: This should be resolved with Multi-Spot (no need to test if BBframes 
+			//  is coming from same ST in SCPC mode
+			BBFrame *frame = dvb_frame->operator BBFrame*();
+			tal_id_t tal_id;
+
+			// decode the first packet in frame to be able to get source terminal ID
+			if(BlockDvbTal::Downward::Downward::scpc_on == 1) 
+			{
+
+				if(!BlockDvbTal::Downward::Downward::scpc_tal_pkt_hdl->getSrc(frame->getPayload(), tal_id))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unable to read source terminal ID in"
+					    " frame, won't be able to discard BBframes sent from ST%d to ST%d \n", 
+					    this->mac_id, this->mac_id);
+				}
+				else
+				{
+					if(tal_id == this->mac_id)
+					{
+						LOG(this->log_receive, LEVEL_INFO,
+						    "ignore received BB frame from ST%d in transparent \n"
+						    "scenario\n", this->mac_id);
+						delete dvb_frame;
+						return true;
+					}
+				}
+			}
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->receptionStd;
 
@@ -2050,7 +2317,6 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	T_LINK_UP *link_is_up;
 	// TODO LogonResponse *logon_resp = dynamic_cast<LogonResponse *>(dvb_frame);
 	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
-
 	// Retrieve the Logon Response frame
 	if(logon_resp->getMac() != this->mac_id)
 	{
@@ -2124,19 +2390,14 @@ void BlockDvbTal::Upward::updateStats(void)
 
 	this->probe_st_l2_from_sat->put(
 		this->l2_from_sat_bytes * 8 / this->stats_period_ms);
-
+	this->l2_from_sat_bytes = 0;
 	// send all probes
 	// in upward because this block has less events to handle => more time
 	Output::sendProbes();
 
 	// reset stat context for next frame
-	this->resetStatsCxt();
 }
 
-void BlockDvbTal::Upward::resetStatsCxt(void)
-{
-	this->l2_from_sat_bytes = 0;
-}
 
 
 

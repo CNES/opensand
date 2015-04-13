@@ -820,6 +820,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
 {
 	MacFifoElement *elem;
+	//Be careful: When using other than time_ms_t in 32-bit machine, the RTT is no correct!
 	time_ms_t current_time = this->getCurrentTime();
 
 	while(fifo->getTickOut() <= current_time &&
@@ -894,13 +895,14 @@ void BlockDvbSat::Downward::updateStats(void)
 			this->probe_sat_l2_from_gw[spot_id]->put(
 				spot->getL2FromGw() * 8 / this->stats_period_ms);
 
+			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
+
 			// L2 to GW
 			this->probe_sat_l2_to_gw[spot_id]->put(
 				((int) output_gw_fifo_stat.out_length_bytes * 8 /
 				this->stats_period_ms));
 
 			// Queue sizes
-			spot->getDataOutGwFifo()->getStatsCxt(output_gw_fifo_stat);
 			this->probe_sat_output_gw_queue_size[spot_id]->put(
 				output_gw_fifo_stat.current_pkt_nbr);
 			this->probe_sat_output_gw_queue_size_kb[spot_id]->put(

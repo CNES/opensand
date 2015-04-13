@@ -58,7 +58,7 @@ using std::vector;
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
 /// Terminal ID for Gateway
-#define GW_TAL_ID (0L)
+#define GW_TAL_ID 0
 
 /** The different types of DVB components */
 typedef enum
@@ -141,7 +141,8 @@ typedef enum
 	DAMA,
 	TDM,
 	ALOHA,
-	ERROR,
+	SCPC,
+	ERROR
 } access_type_t;
 
 
@@ -162,6 +163,8 @@ inline access_type_t strToAccessType(string access_type)
 		return ALOHA;
 	else if(access_type == "VCM")
 		return TDM;
+	else if(access_type == "SCPC")
+		return SCPC;
 	return ERROR;
 }
 
