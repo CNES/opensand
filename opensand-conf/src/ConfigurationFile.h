@@ -29,6 +29,7 @@
  * @file ConfigurationFile.h
  * @brief Reading parameters from a configuration file
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Bénédicte MOTTO / <bmotto@toulouse.viveris.com>
  */
 
 #ifndef CONFIGURATION_FILE_H
@@ -51,22 +52,6 @@ using namespace std;
  * @class ConfigurationFile
  * @brief Reading parameters from a configuration file
  *
- * At startup, the whole configuration files contents are loaded in memory
- * On msg_init event, each bloc gets its parameters from the config\n
- *
- * XML format:
- * <?xml version="1.0" encoding="UTF-8"?>
- * <configuration component='compo'>
- *   <!-- section description -->
- *   <section>
- *     <!-- table and parameters description -->
- *     <table>
- *       <line param1="val1" param2="val2" />
- *     </table>
- *     <!-- key description -->
- *     <key>val</key>
- *    </section>
- *  </configuration>
  */
 class ConfigurationFile
 {
@@ -94,7 +79,13 @@ class ConfigurationFile
 	 * i.e. free tables
 	 */
 	void unloadConfig();
-
+	
+	/**
+	 * Create a Map with all section ConfigurationList and section name
+	 * @param section_map the map between section name and configurationList
+	 */
+	void loadSectionMap(map<string, ConfigurationList> &section_map);
+	
 	/**
 	 * @brief Get the component among sat, gw, st or ws
 	 *
@@ -106,33 +97,99 @@ class ConfigurationFile
 	/**
 	 * Read a value from configuration
 	 *
-	 * @param  section  name of the section
+	 * @param  section  the section
 	 * @param  key      name of the key
 	 * @param  value    the value
 	 * @return  true on success, false otherwise
 	 */
 	template <class T>
-	bool getValue(const char *section, const char *key, T &val);
+	bool getValue(ConfigurationList section, const char *key, T &val);
+
+	/**
+	 * Read a value from configuration
+	 *
+	 * @param  iter     the iterator
+	 * @param  value    the value
+	 * @return  true on success, false otherwise
+	 */
+	template <class T>
+	bool getValue(ConfigurationList::iterator iter, 
+	              T &val);
+
+	/**
+	 * Get the section node list
+	 * @param  sectionList section list
+	 * @param  key         node name
+	 * @param  nodeList    node list
+	 * @return true on success, false otherwise
+	 */
+	bool getListNode(ConfigurationList sectionList,
+                     const char *key,
+                     xmlpp::Node::NodeList &nodeList);
+
+	/**
+	 * get the element from the list with attribute value
+	 * @param  list             the origal element list
+	 * @param  attribute_name   the attribute name
+	 * @param  attribute_value  the attribute value
+	 * @param  elements         the list of found elements
+	 * @return true en success and false otherwise
+	 */
+	bool getElementWithAttributeStringValue(ConfigurationList list,
+                                      const char *attribute_name,
+                                      const char *attribute_value,
+                                      ConfigurationList &elements);
+
+	/**
+	 * get the element from the list with attribute value
+	 * @param  list             the origal element list
+	 * @param  attribute_name   the attribute name
+	 * @param  attribute_value  the attribute value
+	 * @param  elements         the list of found elements
+	 * @return true en success and false otherwise
+	 */
+	template <class T>
+	bool getElementWithAttributeValue(ConfigurationList list,
+                                      const char *attribute_name,
+                                      T &attribute_value,
+                                      ConfigurationList &elements);
+
 
 	/**
 	 * Read the number of elements in a list
 	 *
-	 * @param  section  name of the section
+	 * @param  section  the section
 	 * @param  key      name of the list key
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	bool getNbListItems(const char *section, const char *key, int &value);
+	bool getNbListItems(ConfigurationList section, 
+	                    const char *key, 
+	                    int &value);
 
 	/**
 	 * Get the elements from the list
 	 *
-	 * @param  section  name of the section
+	 * @param  node  the node
 	 * @param  key      name of the list key
 	 * @param  list     the list
 	 * @return  true on success, false otherwise
 	 */
-	bool getListItems(const char *section, const char *key, ConfigurationList &list);
+	bool getListItems(xmlpp::Node *node, 
+	                  const char *key, 
+	                  ConfigurationList &list);
+
+	/**
+	 * Get the elements from the list
+	 *
+	 * @param  section  the section
+	 * @param  key      name of the list key
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
+	bool getListItems(ConfigurationList section, 
+	                  const char *key, 
+	                  ConfigurationList &list);
 
 	/**
 	 * Get the value of an attribute in a list element
@@ -160,7 +217,7 @@ class ConfigurationFile
 	 * @return  true on success, false otherwise
 	 */
 	template <class T>
-	bool getValueInList(const char *section,
+	bool getValueInList(ConfigurationList section,
 	                    const char *key,
 	                    const char *id,
 	                    const string id_val,
@@ -183,7 +240,7 @@ class ConfigurationFile
 	                    const string id_val,
 	                    const char *attribute,
 	                    T &value);
-
+	
 	/**
 	 * Load the log desired display levels
 	 * 
@@ -201,7 +258,7 @@ class ConfigurationFile
 
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;
-
+	
 	/**
 	 * Get a XML section node from its name
 	 *
@@ -220,7 +277,7 @@ class ConfigurationFile
 	 * @param  keyNode  the XML key node
 	 * @return  true on success, false otherwise
 	 */
-	bool getKey(const char *section,const char*key,
+	bool getKey(ConfigurationList section,const char*key,
 	            const xmlpp::Element **keyNode);
 
 	/**
@@ -231,7 +288,9 @@ class ConfigurationFile
 	 * @param  value    value of the string
 	 * @return  true on success, false otherwise
 	 */
-	bool getStringValue(const char *section, const char *key, string &value);
+	bool getStringValue(ConfigurationList section, 
+	                    const char *key, 
+	                    string &value);
 
 	/**
 	 * Get the string value of an attribute in a list element
@@ -283,7 +342,9 @@ inline string toString(long val)
 // these functions should must be in .h file because they are templates
 
 template <class T>
-bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
+bool ConfigurationFile::getValue(ConfigurationList section, 
+                                 const char *key, 
+                                 T &val)
 {
 	string tmp_val;
 
@@ -300,6 +361,42 @@ bool ConfigurationFile::getValue(const char *section, const char *key, T &val)
 	return true;
 }
 
+// TODO check if used as public fct
+template <class T>
+bool ConfigurationFile::getValue(ConfigurationList::iterator iter,
+                                 T &val)
+{
+	const xmlpp::TextNode *nodeText;
+	xmlpp::Node::NodeList list;
+	xmlpp::Element *element ;
+	string tmp_val;
+	
+	element = dynamic_cast<xmlpp::Element *>(*iter);
+	list = element->get_children();
+	if(list.size() != 1)
+	{
+		return false;
+	}
+	else
+	{
+		nodeText = dynamic_cast<const xmlpp::TextNode*>(list.front());
+	}
+
+	if(!nodeText)
+	{
+		return false;
+	}
+	tmp_val = nodeText->get_content();
+
+	stringstream str(tmp_val);
+	str >> val;
+	if(str.fail())
+	{
+		return false;
+	}
+
+	return true;
+}
 
 template <class T>
 bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
@@ -321,6 +418,24 @@ bool ConfigurationFile::getAttributeValue(ConfigurationList::iterator iter,
 	return true;
 }
 
+template <class T>
+bool ConfigurationFile::getElementWithAttributeValue(ConfigurationList list,
+                                                     const char *attribute_name,
+                                                     T &attribute_value,
+                                                     ConfigurationList &elements)
+{
+	stringstream strs;
+	string tmp_str;
+	strs << attribute_value;
+	tmp_str = strs.str();
+	if(!this->getElementWithAttributeStringValue(list, attribute_name, 
+		                                   tmp_str.c_str(), elements))
+	{
+		return false;
+	}
+
+	return true;
+}
 
 template <class T>
 bool ConfigurationFile::getValueInList(ConfigurationList list,
@@ -346,7 +461,7 @@ bool ConfigurationFile::getValueInList(ConfigurationList list,
 
 
 template <class T>
-bool ConfigurationFile::getValueInList(const char *section,
+bool ConfigurationFile::getValueInList(ConfigurationList section,
                                        const char *key,
                                        const char *id,
                                        const string id_val,
@@ -367,7 +482,7 @@ error:
 
 
 template <>
-inline bool ConfigurationFile::getValue<bool>(const char *section,
+inline bool ConfigurationFile::getValue<bool>(ConfigurationList section,
                                               const char *key, bool &val)
 {
 	string tmp_val;
@@ -406,7 +521,7 @@ inline bool ConfigurationFile::getAttributeValue<bool>(ConfigurationList::iterat
 }
 
 /* only write this specialization because it will be called by the other one
- * and we should not surccharge a specialization */
+ * and we should not surcharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<bool>(ConfigurationList list,
                                                     const char *id,
@@ -431,7 +546,7 @@ inline bool ConfigurationFile::getValueInList<bool>(ConfigurationList list,
 
 
 template <>
-inline bool ConfigurationFile::getValue<uint8_t>(const char *section,
+inline bool ConfigurationFile::getValue<uint8_t>(ConfigurationList section,
                                                  const char *key, uint8_t &value)
 {
 	string tmp_val;
@@ -488,8 +603,30 @@ inline bool ConfigurationFile::getAttributeValue<stringstream>(ConfigurationList
 	return true;
 }
 
+template <>
+inline bool ConfigurationFile::getElementWithAttributeValue<uint8_t>(
+                                                ConfigurationList list,
+                                                const char *attribute_name,
+                                                uint8_t &attribute_value,
+                                                ConfigurationList &elements)
+{
+	stringstream strs;
+	string tmp_str;
+	unsigned int val;
+	val = attribute_value;
+	strs << val;
+	tmp_str = strs.str();
+	if(!this->getElementWithAttributeStringValue(list, attribute_name, 
+		                                   tmp_str.c_str(), elements))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 /* only write this specialization because it will be called by the other one
- * and we should not surccharge a specialization */
+ * and we should not surcharge a specialization */
 template <>
 inline bool ConfigurationFile::getValueInList<uint8_t>(ConfigurationList list,
                                                        const char *id,
@@ -562,7 +699,6 @@ inline bool ConfigurationFile::getValueInList<uint16_t>(ConfigurationList list,
 	value = val;
 	return true;
 }
-
 
 
 #endif

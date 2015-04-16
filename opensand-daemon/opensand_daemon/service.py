@@ -118,10 +118,7 @@ class OpenSandService(object):
             self._instance = instance.split("_", 1)[0]
             self._output_handler = output_handler
             self._names = []
-            if self._compo != "gw":
-                self._current_host = self._compo + self._instance
-            else:
-                self._current_host = self._compo
+            self._current_host = self._compo + self._instance
             self._new_routes = []
             self._router_v4 = None
             self._router_v6 = None
@@ -182,8 +179,8 @@ class OpenSandService(object):
                 return
             elif name == self._current_host:
                 return
-            elif not name.startswith('st') and name != 'gw':
-                LOGGER.debug("ignore %s that is not a ST" % name)
+            elif not name.startswith('st') and not name.startswith('gw'):
+                LOGGER.debug("ignore %s that is not a ST or GW" % name)
                 return
             address = args[7]
             LOGGER.debug('service resolved')
@@ -297,7 +294,7 @@ class OpenSandService(object):
                 self._text = {}
             else:
                 self._text = descr
-                if 'id' in descr and name.lower() != 'gw':
+                if 'id' in descr:
                     self._name = name + str(descr['id'])
 
             self._domain = "" # domain to publish on, default to .local

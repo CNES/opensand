@@ -69,8 +69,10 @@ void Ip::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
+	vector<string> conf_files;
+	conf_files.push_back(CONF_IP_FILE);
 
-	if(config.loadConfig(CONF_IP_FILE) < 0)
+	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", CONF_IP_FILE);
@@ -280,12 +282,10 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 	}
 	ip_packet->setQos(found_category->second->getId());
 
-	if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
+	if(this->tal_id != this->gw_id && 
+	   this->satellite_type ==  TRANSPARENT)
 	{
-		// ST in transparent mode:
-		// DST Tal Id = GW
-		// SRC Tal Id = ST Tal Id
-		ip_packet->setDstTalId(GW_TAL_ID);
+		ip_packet->setDstTalId(this->gw_id);
 	}
 	else
 	{
@@ -405,8 +405,12 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList category_list;
 	ConfigurationList::iterator iter;
 
+	map<string, ConfigurationList> config_section_map;
+	config.loadSectionMap(config_section_map);
+
 	// Traffic flow categories
-	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	if(!config.getListItems(config_section_map[SECTION_MAPPING], 
+		                    MAPPING_LIST,
 	                        category_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -468,7 +472,8 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 		this->category_map[dscp_value] = category;
 	}
 	// Get default category
-	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	if(!config.getValue(config_section_map[SECTION_MAPPING], 
+		                KEY_DEF_CATEGORY,
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;

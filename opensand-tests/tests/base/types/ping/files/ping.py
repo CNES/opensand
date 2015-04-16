@@ -139,7 +139,7 @@ class PingTest():
         if ping.returncode == 0:
             # check that time is correct
             time = float(self.get_ping_time(out))
-            if self._sat == 'transparent' and name != 'gw':
+            if self._sat == 'transparent' and not name.startswith('gw'):
                 # time ~ 1200ms
                 if time > 1400 or time < 1000:
                     self.print_error("bad ping time %s for %s\n" % (time, name))

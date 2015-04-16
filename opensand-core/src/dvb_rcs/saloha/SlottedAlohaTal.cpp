@@ -84,14 +84,18 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 
 	this->dvb_fifos = dvb_fifos;
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_MAX_PACKETS, this->nb_max_packets))
+	//******************************************************
+	// get all value into saloha section and common section
+	//******************************************************
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
+		               SALOHA_NB_MAX_PACKETS, this->nb_max_packets))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SALOHA_SECTION, SALOHA_NB_MAX_PACKETS);
 		return false;
 	}
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_REPLICAS, this->nb_replicas))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_NB_REPLICAS, this->nb_replicas))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -114,18 +118,18 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		                       (this->nb_replicas * this->category->getCarriersNumber());
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_TIMEOUT, this->timeout_saf))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_TIMEOUT, this->timeout_saf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SALOHA_SECTION, SALOHA_TIMEOUT);
 		return false;
 	}
-	if(!Conf::getValue(GLOBAL_SECTION, SAT_DELAY, sat_delay_ms))
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], SAT_DELAY, sat_delay_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SAT_DELAY);
+		    COMMON_SECTION, SAT_DELAY);
 		return false;
 	}
 
@@ -139,7 +143,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_NB_MAX_RETRANSMISSIONS,
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_NB_MAX_RETRANSMISSIONS,
 	                   this->nb_max_retransmissions))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -148,7 +152,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_BACKOFF_ALGORITHM, backoff_name))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_BACKOFF_ALGORITHM, backoff_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -156,7 +160,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_CW_MAX, max))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_CW_MAX, max))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -164,7 +168,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	if(!Conf::getValue(SALOHA_SECTION, SALOHA_BACKOFF_MULTIPLE, multiple))
+	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_BACKOFF_MULTIPLE, multiple))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",

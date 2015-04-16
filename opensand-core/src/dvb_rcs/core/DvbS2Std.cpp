@@ -34,6 +34,7 @@
 
 
 #include "DvbS2Std.h"
+#include "OpenSandConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -47,7 +48,28 @@ DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
-	received_modcod(this->real_modcod)
+	received_modcod(this->real_modcod),
+	is_scpc(false)
+{
+	// Output Logs
+	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
+	                                              "Dvb.Upward.receive");
+}
+
+DvbScpcStd::DvbScpcStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
+	DvbS2Std("SCPC", pkt_hdl)
+{
+	this->is_scpc = true;
+}
+
+
+DvbS2Std::DvbS2Std(string type,
+                   const EncapPlugin::EncapPacketHandler *const pkt_hdl):
+	PhysicStd(type, pkt_hdl),
+	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
+	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
+	received_modcod(this->real_modcod),
+	is_scpc(false)
 {
 	// Output Logs
 	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
@@ -66,7 +88,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 {
 	BBFrame *bbframe_burst;
 	long i;                       // counter for packets
-	int real_mod;                 // real modcod of the receiver
+	int real_mod = 0;     // real modcod of the receiver
 
 	// Offset from beginning of frame to beginning of data
 	size_t previous_length = 0;
@@ -105,13 +127,17 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	    bbframe_burst->getDataLength(),
 	    this->packet_handler->getName().c_str());
 
-	// retrieve the current real MODCOD of the receiver
-	// (do this before any MODCOD update occurs)
-	real_mod = this->real_modcod;
+	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
+	if(!OpenSandConf::isGw(tal_id) && !this->is_scpc)
+	{
+		// retrieve the current real MODCOD of the receiver
+		// (do this before any MODCOD update occurs)
+		real_mod = this->real_modcod;
 
-	// check if there is an update of the real MODCOD among all the real
-	// MODCOD options located just after the header of the BB frame
-	bbframe_burst->getRealModcod(tal_id, this->real_modcod);
+		// check if there is an update of the real MODCOD among all the real
+		// MODCOD options located just after the header of the BB frame
+		bbframe_burst->getRealModcod(tal_id, this->real_modcod);
+	}
 
 	// used for terminal statistics
 	this->received_modcod = bbframe_burst->getModcodId();
@@ -126,7 +152,9 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	}
 
 	// is the ST able to decode the received BB frame ?
-	if(this->received_modcod > real_mod)
+	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
+	if(!OpenSandConf::isGw(tal_id) && !this->is_scpc &&
+	   this->received_modcod > real_mod)
 	{
 		// the BB frame is not robust enough to be decoded, drop it
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,

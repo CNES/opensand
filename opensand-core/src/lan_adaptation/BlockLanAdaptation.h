@@ -43,8 +43,8 @@
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
+#include "OpenSandConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
 

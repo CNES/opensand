@@ -29,26 +29,31 @@
 /**
  * @file BLockDvbNcc.h
  * @brief This bloc implements a DVB-S/RCS stack for a Ncc.
- * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  *
  *
  * <pre>
  *
- *            ^
- *            | encap burst
- *            v
- *    ------------------
- *   |                  |
- *   |  DVB-RCS Ncc     |
- *   |  Dama Controler  |
- *   |                  |
- *    ------------------
- *            ^
- *            | DVB Frame / BBFrame
- *            v
+ *
+ *        |    encap   ^
+ *        |    burst   |
+ *        v            |
+ *   +-----------------------+
+ *   | downward  |   upward  |
+ *   |           |           |
+ *   | +-------+ | +-------+ |
+ *   | | spots | | | spots | |
+ *   | +-------+ | +-------+ |
+ *    -----------+-----------+
+ *        |            ^
+ *        | DVB Frame  |
+ *        v  BBFrame   |
+ *
+ * For spots description
+ * @ref SpotDownward and @ref SpotUpward
  *
  * </pre>
  *
@@ -58,22 +63,15 @@
 #define BLOCk_DVB_NCC_H
 
 #include "BlockDvb.h"
-
-#include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
-#include "Scheduling.h"
-#include "SlottedAlohaNcc.h"
-
-#include <opensand_conf/conf.h>
-
-#define SIMU_BUFF_LEN 255
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 
 class BlockDvbNcc: public BlockDvb
 {
  public:
 
 	/// Class constructor
-	BlockDvbNcc(const string &name);
+	BlockDvbNcc(const string &name, tal_id_t mac_id);
 
 	~BlockDvbNcc();
 
@@ -81,229 +79,85 @@ class BlockDvbNcc: public BlockDvb
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
 
-	/// number of the next BBFrame
-	int nb_sequencing;
-
 
 	class Upward: public DvbUpward
 	{
 	 public:
-		Upward(Block *const bl);
+		Upward(Block *const bl, tal_id_t mac_id);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 protected:
-
-		/**
-		 * @brief Initialize the transmission mode
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initMode(void);
-
-		/**
-		 * Read configuration for the Slotted Aloha algorithm
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initSlottedAloha(void);
-
-		/**
-		 * @brief Initialize the statistics
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initOutput(void);
-
-		/// DVB frame from lower layer
-		bool onRcvDvbFrame(DvbFrame *dvb_frame);
-		bool onRcvLogonReq(DvbFrame *dvb_frame);
-		bool onRcvLogoffReq(DvbFrame *dvb_frame);
-
-		// statistics update
-		void updateStats(void);
-
 		/**
 		 * Transmist a frame to the opposite channel
 		 *
-		 * @param frame  The dvb frame
+		 * @param frame The dvb frame
 		 * @return true on success, false otherwise
-		 */
+		 */ 
 		bool shareFrame(DvbFrame *frame);
 		
-		/**
-		 * Checks if SCPC mode is activated and configured (Available FIFOs and Carriers for SCPC)
-		 * @sat_type     The satellite type
-		 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
-		 */
-		bool checkIfScpc();
 
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
 
-		/// The Slotted Aloha for NCC
-		SlottedAlohaNcc *saloha;
-
-		/// ST unique mac id
-		tal_id_t mac_id;
-		
-		///
-		bool scpc_on; 
-
-		/// FMT groups for up/return
-		fmt_groups_t ret_fmt_groups;
-
-		/// The up/return packet handler for SCPC
-		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
-		// Output probes and stats
-			// Rates
-				// Layer 2 from SAT
-		Probe<int> *probe_gw_l2_from_sat;
-		int l2_from_sat_bytes;
-			// Physical layer information
-		Probe<int> *probe_received_modcod;
-		Probe<int> *probe_rejected_modcod;
-
-		/// log for slotted aloha
+		// log for slotted aloha
 		OutputLog *log_saloha;
-
-		/// logon request events
-		OutputEvent *event_logon_req;
 	};
 
 
 	class Downward: public DvbDownward, NccPepInterface
 	{
 	  public:
-		Downward(Block *const bl);
+		Downward(Block *const bl, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 protected:
-
 		/**
 		 * Read configuration for the downward timers
 		 *
 		 * @return  true on success, false otherwise
 		 */
 		bool initTimers(void);
-
-		/**
-		 * Read configuration for the carrier IDs
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initCarrierIds(void);
-
-		/**
-		 * @brief Initialize the transmission mode
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initMode(void);
-
-		/**
-		 * Read configuration for the DAMA algorithm
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initDama(void);
-
-		/**
-		 * @brief Read configuration for the FIFO
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initFifo(void);
-
-		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
-
-		/**
-		 * Read configuration for simulated FMT columns ID
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initColumns(void);
-
-		/**
-		 * @brief Initialize the statistics
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initOutput(void);
-
-		/** Read configuration for the request simulation
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initRequestSimulation(void);
-
+		
 		/**
 		 * Send a Terminal Time Plan
 		 */
-		void sendTTP(void);
+		void sendTTP(SpotDownward *spot_downward);
 
 		/**
 		 * Send a start of frame
 		 */
-		void sendSOF(void);
-
-		/**
-		 * @brief Send a SAC message containing ACM parameters
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool sendAcmParameters(void);
-
-		/**
-		 * @brief Handle a DVB frame transmitted from upward channel
-		 *
-		 * @param dvb_frame  The frame
-		 * @return true on success, false otherwise
-		 */
-		bool handleDvbFrame(DvbFrame *dvb_frame);
+		void sendSOF(unsigned int sof_carrier_id);
 
 		/**
 		 *  @brief Handle a logon request transmitted by the opposite
 		 *         block
 		 *
 		 *  @param dvb_frame  The frame contining the logon request
+		 *  @param spot       The spot concerned by the request
 		 *  @return true on success, false otherwise
 		 */
-		bool handleLogonReq(DvbFrame *dvb_frame);
+		bool handleLogonReq(DvbFrame *dvb_frame,
+		                    SpotDownward *spot);
+
 		/**
-		 *  @brief Handle a logoff request transmitted by the opposite
-		 *         block
+		 * @brief Send a SAC message containing ACM parameters
 		 *
-		 *  @param dvb_frame  The frame contining the logoff request
-		 *  @return true on success, false otherwise
-		 */
-		bool handleLogoffReq(DvbFrame *dvb_frame);
-
-		// statistics update
-		void updateStats(void);
-
-		/**
-		 * Simulate event based on an input file
 		 * @return true on success, false otherwise
 		 */
-		bool simulateFile(void);
+		bool sendAcmParameters(SpotDownward *spot_downward);
+		
+		// statistics update
+		void updateStats(void);
+		
+		/// the MAC ID of the ST (as specified in configuration)
+		int mac_id;
 
-		/**
-		 * Simulate event based on random generation
-		 */
-		void simulateRandom(void);
-
-		/// The DAMA controller
-		DamaCtrlRcs *dama_ctrl;
-
-		/// The uplink of forward scheduling depending on satellite
-		Scheduling *scheduling;
+		/// counter for forward frames
+		time_ms_t fwd_frame_counter;
 
 		/// frame timer for return, used to awake the block every frame period
 		event_id_t frame_timer;
@@ -311,112 +165,17 @@ class BlockDvbNcc: public BlockDvb
 		/// frame timer for forward, used to awake the block every frame period
 		event_id_t fwd_timer;
 
-		/// counter for forward frames
-		time_sf_t fwd_frame_counter;
-
-		/// carrier ids
-		uint8_t ctrl_carrier_id;
-		uint8_t sof_carrier_id;
-		uint8_t data_carrier_id;
-
-		/* Fifos */
-		/// map of FIFOs per MAX priority to manage different queues
-		fifos_t dvb_fifos;
-		/// the default MAC fifo index = fifo with the smallest priority
-		unsigned int default_fifo_id;
-		
-		/// the list of complete DVB-RCS/BB frames that were not sent yet
-		list<DvbFrame *> complete_dvb_frames;
-
-		/// The terminal categories for forward band
-		TerminalCategories<TerminalCategoryDama> categories;
-
-		/// The terminal affectation for forward band
-		TerminalMapping<TerminalCategoryDama> terminal_affectation;
-
-		/// The default terminal category for forward band
-		TerminalCategoryDama *default_category;
-
-		/// The up/return packet handler
-		EncapPlugin::EncapPacketHandler *up_return_pkt_hdl;
-
-		// TODO remove FMT groups from attributes
-		// TODO we may create a class that inherit from fmt_groups_t (map) with
-		//      a destructor that erases the map elements
-		/// FMT groups for down/forward
-		fmt_groups_t fwd_fmt_groups;
-
-		/// FMT groups for up/return
-		fmt_groups_t ret_fmt_groups;
-
-		/// The MODCOD simulation elements for up/return link
-		FmtSimulation up_ret_fmt_simu;
-		/// The MODCOD simulation elements for down/forward link
-		FmtSimulation down_fwd_fmt_simu;
-
 		/// timer used to awake the block every second in order to retrieve
 		/// the current MODCODs
 		/// In regenerative case with physical layer, is it used to send
 		// ACM parameters to satellite
 		event_id_t scenario_timer;
 
-		/// The C/N0 for downlink in regenerative scenario that will be transmited
-		//  to satellite in SAC
-		//  For transparent scenario the return link cni will be used to update return
-		//  MODCOD id for terminals (not this one)
-		double cni;
-
-		/// The column ID for FMT simulation
-		map<tal_id_t, uint16_t> column_list;
-
-		/// timer used for applying resources allocations received from PEP
-		event_id_t pep_cmd_apply_timer;
-
 		/// Delay for allocation requests from PEP (in ms)
 		int pep_alloc_delay;
 
-		/// parameters for request simulation
-		FILE *event_file;
-		FILE *simu_file;
-		enum
-		{
-			none_simu,
-			file_simu,
-			random_simu,
-		} simulate;
-		long simu_st;
-		long simu_rt;
-		long simu_max_rbdc;
-		long simu_max_vbdc;
-		long simu_cr;
-		long simu_interval;
-		bool simu_eof;
-		char simu_buffer[SIMU_BUFF_LEN];
-		event_id_t simu_timer;
-
-		// Output probes and stats
-			// Queue sizes
-		map<unsigned int, Probe<int> *> probe_gw_queue_size;
-		map<unsigned int, Probe<int> *> probe_gw_queue_size_kb;
-			// Queue loss
-		map<unsigned int, Probe<int> *> probe_gw_queue_loss;
-		map<unsigned int, Probe<int> *> probe_gw_queue_loss_kb;
-			// Rates
-		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
-		map<unsigned int, int> l2_to_sat_bytes_before_sched;
-		map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
-		Probe<int> *probe_gw_l2_to_sat_total;
-		int l2_to_sat_total_bytes;
-			// Frame interval
+		// Frame interval
 		Probe<float> *probe_frame_interval;
-			// Physical layer information
-		Probe<int> *probe_used_modcod;
-
-		// Output logs and events
-		OutputLog *log_request_simulation;
-
-		/// logon response sent
-		OutputEvent *event_logon_resp;
 	};
 };
 

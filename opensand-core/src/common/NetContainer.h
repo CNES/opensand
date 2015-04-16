@@ -38,6 +38,8 @@
 
 #include "Data.h"
 
+#include "OpenSandCore.h"
+
 #include <string>
 #include <stdint.h>
 #include <syslog.h>
@@ -64,6 +66,9 @@ class NetContainer
 
 	/// The packet trailer length
 	size_t trailer_length;
+	
+	/// The destination spot ID
+	spot_id_t spot;
 
  public:
 
@@ -159,6 +164,21 @@ class NetContainer
 	 * @return the header length
 	 */
 	virtual size_t getHeaderLength() const;
+
+	/**
+	 * Set the destination spot ID
+	 *
+	 * @param spot_id  The destination spot id
+	 */
+	void setSpot(spot_id_t spot_id);
+
+	/**
+	 * Get the destination spot ID
+	 *
+	 * @return the destination spot ID
+	 */
+	spot_id_t getSpot() const;
+
 };
 
 #endif

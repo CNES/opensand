@@ -36,7 +36,6 @@
 
 #include "OnOff.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -74,9 +73,12 @@ bool OnOff::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
+	config.loadSectionMap(this->config_section_map);
+
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(ON_OFF_SECTION, ON_OFF_LIST,
+	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
+		                      ON_OFF_LIST,
 	                          LINK, link,
 	                          PERIOD_ON, this->on_duration))
 	{
@@ -86,7 +88,8 @@ bool OnOff::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
-	if(!config.getValueInList(ON_OFF_SECTION, ON_OFF_LIST,
+	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
+		                      ON_OFF_LIST,
 	                          LINK, link,
 	                          PERIOD_OFF, this->off_duration))
 	{
@@ -96,7 +99,8 @@ bool OnOff::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
-	if(!config.getValueInList(ON_OFF_SECTION, ON_OFF_LIST,
+	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
+		                      ON_OFF_LIST,
 	                          LINK, link,
 	                          AMPLITUDE, this->amplitude))
 	{

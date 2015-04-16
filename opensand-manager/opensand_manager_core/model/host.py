@@ -40,6 +40,7 @@ from opensand_manager_core.model.tool import ToolModel
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.module import load_modules
+from opensand_manager_core.utils import GW, WS, ST, SAT
 
 class InitStatus:
     """ status of host initialization """
@@ -53,14 +54,18 @@ class HostModel:
     """ host model """
     def __init__(self, name, instance, network_config, state_port,
                  command_port, tools, modules, scenario, manager_log,
-                 collector_functional):
+                 collector_functional, spot_id = "", gw_id = ""):
         self._log = manager_log
         self._name = name
         self._instance = instance
-        if self._name.startswith('st'):
-            self._component = 'st'
-        elif self._name.startswith('ws'):
-            self._component = 'ws'
+        self._gw_id = gw_id
+        self._spot_id = spot_id
+        if self._name.startswith(ST):
+            self._component = ST
+        elif self._name.startswith(WS):
+            self._component = WS
+        elif self._name.startswith(GW):
+            self._component = GW
         else:
             self._component = self._name
 
@@ -75,7 +80,7 @@ class HostModel:
         self._init_status = InitStatus.NONE
         self._collector_functional = collector_functional
 
-        if self._component != 'ws':
+        if self._component != WS:
             try:
                 self._advanced = AdvancedHostModel(self._name, scenario)
             except ModelException, error:
@@ -382,7 +387,7 @@ class HostModel:
 
     def get_interface_type(self):
         """ get the type of interface according to the stack """
-        if self._component not in ['sat', 'ws']:
+        if self._component not in [SAT, WS]:
             lan_adapt = self._advanced.get_stack('lan_adaptation_schemes',
                                                  'proto')
             try:
@@ -393,3 +398,14 @@ class HostModel:
                 raise ModelException("cannot find first Lan Adaptation scheme")
         return ''
 
+    def get_gw_id(self):
+        return self._gw_id
+
+    def set_gw_id(self, gw_id):
+        self._gw_id = gw_id
+    
+    def get_spot_id(self):
+        return self._spot_id
+    
+    def set_spot_id(self, spot_id):
+        self._spot_id = spot_id

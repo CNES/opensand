@@ -46,7 +46,7 @@
 /**
  * Constructor
  */
-DamaCtrlRcsLegacy::DamaCtrlRcsLegacy(): DamaCtrlRcs()
+DamaCtrlRcsLegacy::DamaCtrlRcsLegacy(spot_id_t spot): DamaCtrlRcs(spot)
 {
 }
 
@@ -95,12 +95,12 @@ bool DamaCtrlRcsLegacy::init()
 			Probe<int> *probe_carrier_remaining_capacity;
 			unsigned int carrier_id = carriers->getCarriersId();
 			probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Up/Return capacity.Category %s.Carrier%u.Available",
-				label.c_str(), carrier_id);
+				true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Category %s.Carrier%u.Available",
+				this->spot_id, label.c_str(), carrier_id);
 
 			probe_carrier_remaining_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Up/Return capacity.Category %s.Carrier%u.Remaining",
-				label.c_str(), carrier_id);
+				true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Category %s.Carrier%u.Remaining",
+				this->spot_id, label.c_str(), carrier_id);
 
 			this->probes_carrier_return_capacity.insert(
 				std::pair<unsigned int,Probe<int> *>(carrier_id,
@@ -117,15 +117,18 @@ bool DamaCtrlRcsLegacy::init()
 		Probe<int> *probe_category_capacity;
 		Probe<int> *probe_category_remaining_capacity;
 
-		probe_category_capacity = Output::registerProbe<int>("Kbits/s", true,
-			SAMPLE_LAST, "Up/Return capacity.Category %s.Total.Available",
-			label.c_str());
+		probe_category_capacity = Output::registerProbe<int>(
+				"Kbits/s", true, SAMPLE_LAST,
+				"Spot_%d.Up/Return capacity.Category %s.Total.Available",
+				this->spot_id,
+				label.c_str());
 		this->probes_category_return_capacity.insert(
 			std::pair<string,Probe<int> *>(label, probe_category_capacity));
 
 		probe_category_remaining_capacity = Output::registerProbe<int>(
 			"Kbits/s", true,  SAMPLE_LAST,
-			"Up/Return capacity.Category %s.Total.Remaining",
+			"Spot_%d.Up/Return capacity.Category %s.Total.Remaining",
+			this->spot_id,
 			label.c_str());
 		this->probes_category_return_remaining_capacity.insert(
 			std::pair<string,Probe<int> *>(label, probe_category_remaining_capacity));

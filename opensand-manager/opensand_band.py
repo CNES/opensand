@@ -39,7 +39,7 @@ from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ID
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -78,21 +78,34 @@ class OpenSandBand():
             options.forward = True
 
         if options.ret:
+            config = XmlParser(os.path.join(options.scenario, "core_global.conf"), XSD)
             print \
 "**************************************************************************\n" \
 "****************************** RETURN ************************************\n" \
 "**************************************************************************\n"
-            self._parse(options.scenario, "return_up")
-            print str(self)
-            print
+            link = "return_up"
+            section_path = "%s_band" % link
+            for KEY in config.get_keys(config.get(section_path)):
+                content = config.get_element_content(KEY)
+                print "spot %s" % content[ID]
+                self._parse(options.scenario, section_path, config, KEY)
+                self._modcod_def(options.scenario, link, config)
+                print str(self)
+                print
         if options.forward:
             print \
 "**************************************************************************\n" \
 "****************************** FORWARD ***********************************\n" \
 "**************************************************************************\n"
-            self._parse(options.scenario, "forward_down")
-            print str(self)
-
+            link = "forward_down"
+            section_path = "%s_band" % link
+            for KEY in config.get_keys(config.get(section_path)):
+                content = config.get_element_content(KEY)
+                print "spot %s" % content[ID]
+                self._parse(options.scenario, section_path, config, KEY)
+                self._modcod_def(options.scenario, link, config)
+                print str(self)
+                print
 
     def _reset(self):
         """ reset all data """
@@ -103,19 +116,17 @@ class OpenSandBand():
         self._fmt_group = {}
         self._fmt = {}
 
-    def _parse(self, scenario, link):
+    def _parse(self, scenario, link, config, KEY):
         """ parse configuration and get results """
         self._reset()
-        config = XmlParser(os.path.join(scenario, "core_global.conf"), XSD)
-
         # bandwidth
-        xpath = "//%s_band/bandwidth" % link
+        xpath = "//%s/bandwidth" % config.get_path(KEY)
         self._bandwidth = float(config.get_value(config.get(xpath)))
         # roll-off
-        xpath = "//%s_band/roll_off" % link
+        xpath = "//%s/roll_off" % config.get_path(KEY)
         self._roll_off = float(config.get_value(config.get(xpath)))
         # carriers
-        xpath = "//%s_band/carriers_distribution" % link
+        xpath = "//%s/carriers_distribution" % config.get_path(KEY)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
             ratios = content["ratio"].replace(',', ';')
@@ -131,13 +142,14 @@ class OpenSandBand():
                               fmt_groups)
 
         # fmt groups
-        xpath = "//%s_band/fmt_groups" % link
+        xpath = "//%s/fmt_groups" % config.get_path(KEY)
         for group in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(group)
             self._add_fmt_group(content["id"],
                                 content["fmt_id"])
 
 
+    def _modcod_def(self, scenario, link, config):
         # ACM
         # TODO fix this
         for std in ["rcs", "s2"]:
@@ -299,11 +311,11 @@ class OpenSandBand():
 
     def __str__(self):
         """ print band representation """
-        output = "BAND: %sMhz roll-off=%s" % (self._bandwidth, self._roll_off)
+        output = "  BAND: %sMhz roll-off=%s" % (self._bandwidth, self._roll_off)
         for name in self._categories:
-            output += "\n\nCATEGORY %s" % (name)
+            output += "\n\n  CATEGORY %s" % (name)
             for access in self._get_access_type(name):
-                output += "\n  * Access type: %s" % access
+                output += "\n    * Access type: %s" % access
                 i = 0
                 for carriers in self._categories[name]:
                     if carriers.access_type != access:
@@ -314,11 +326,11 @@ class OpenSandBand():
                                                      max_rate / 1000)
                     rates += "per carrier"
                     i += 1
-                    output += "\nGroup %d: %s (%s)" % \
+                    output += "\n  Group %d: %s (%s)" % \
                               (i, carriers, rates)
-                    output += "\n    %d carrier(s)" % (self._get_carriers_number(name,
+                    output += "\n      %d carrier(s)" % (self._get_carriers_number(name,
                                                                                  access))
-                    output += "\n    Total bitrate [%d, %d] kb/s" % (
+                    output += "\n      Total bitrate [%d, %d] kb/s" % (
                               (self._get_min_bitrate(name, access) / 1000),
                               (self._get_max_bitrate(name, access) / 1000))
         return output

@@ -41,7 +41,8 @@ import shutil
 import ConfigParser
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
+
 from opensand_manager_core.my_exceptions import CommandException, ModelException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
@@ -177,14 +178,22 @@ class Controller(threading.Thread):
         try:
             self.update_deploy_config()
             for host in self._hosts + self._ws:
+                host_name = host.get_name()
                 self._log.debug("Deploying " + host.get_name().upper())
                 if not host.get_name().lower() in self._deploy_config.sections():
-                    self._log.warning("No information for %s deployment, "
+                    component = host.get_name().lower()
+                    if component.startswith(ST):
+                        component = ST
+                    if component.startswith(GW):
+                        component = GW
+                    host_name =  component
+                    if not component in self._deploy_config.sections():
+                        self._log.warning("No information for %s deployment, "
                                       "host will be disabled" % host.get_name())
-                    host.disable()
-                    continue
+                        host.disable()
+                        continue
                 thread = threading.Thread(None, host.deploy, "Deploy%s" %
-                                          host.get_name(),
+                                          host_name,
                                           (self._deploy_config, errors), {})
                 thread.start()
                 threads.append(thread)
@@ -280,8 +289,11 @@ class Controller(threading.Thread):
             for host in self._hosts:
                 name = host.get_name()
                 component = name.lower()
-                if component.startswith('st'):
-                    component = 'st'
+                if component.startswith(ST):
+                    component = ST
+                if component.startswith(GW):
+                    component = GW
+
                 
                 self._log.debug("Configuring " + host.get_name().upper())
                 # create the host directory

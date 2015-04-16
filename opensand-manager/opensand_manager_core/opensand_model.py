@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
 
 """
 opensand_model.py - OpenSAND manager model
@@ -39,14 +40,14 @@ import os
 import shutil
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import *
 from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
 from opensand_manager_core.model.global_config import GlobalConfig
-from opensand_manager_core.my_exceptions import ModelException, XmlException
+from opensand_manager_core.model.topology_config import TopologyConfig
+from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.loggers.manager_log import ManagerLog
-from opensand_manager_core.opensand_xml_parser import XmlParser
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.module import load_modules
 
@@ -116,7 +117,7 @@ class Model:
 
         default = os.path.join(os.environ['HOME'], ".opensand/default")
         # no scenario to load use the default path
-        if self._scenario_path == "":
+        if self._scenario_path == "" or self._scenario_path == default:
             self._scenario_path = default
             self.clean_default()
         elif self._scenario_path != default:
@@ -181,7 +182,7 @@ class Model:
         topo_conf = os.path.join(self._scenario_path, TOPOLOGY_CONF)
         topo_xsd = os.path.join(OPENSAND_PATH, TOPOLOGY_XSD)
         try:
-            if self._topology is not None:
+            """if self._topology is not None:
                 # copy the previous topology in the new file
                 self._topology.write(topo_conf)
             else:
@@ -190,7 +191,12 @@ class Model:
                                             TOPOLOGY_CONF)
                 shutil.copy(default_topo, topo_conf)
 
-            self._topology = XmlParser(topo_conf, topo_xsd)
+            #self._topology = XmlParser(topo_conf, topo_xsd)
+            self._topology = TopologyConfig(self._scenario_path, self._log)"""
+            if self._topology is None:
+                self._topology = TopologyConfig(self._scenario_path, self._log)
+            else:
+                self._topology.load(self._scenario_path)
         except IOError, (_, strerror):
             raise ModelException("cannot load topology configuration: %s " %
                                  strerror)
@@ -200,88 +206,45 @@ class Model:
         for module in self._modules:
             module.update(self._scenario_path, 'global')
 
-    def add_topology(self, name, instance, net_config):
-        """ Add a new host in the topology configuration file """
-        try:
-            if name.startswith('ws') and '_' in instance:
-                instance = instance.split('_')[0]
-            if name == 'sat':
-                att_path = '/configuration/sat_carrier/carriers/carrier' \
-                           '[@up="true" and @ip_multicast="false"]'
-                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, 'ip_address')
-            elif name == 'gw':
-                att_path = '/configuration/sat_carrier/carriers/carrier' \
-                           '[@up="false" and @ip_multicast="false"]'
-                self._topology.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, 'ip_address')
+    def get_spot_gw_id(self, st_instance):
+        path = '//spot/terminals/tal[@id="' + st_instance + '"]/../..'
+        elem = self._topology.get_configuration().get(path)
+        if elem is None:
+            path = "//spot_table/default_spot"
+            elem = self._topology.get_configuration().get(path)
+            spot_id = str(elem.text)
+        elif elem.tag == SPOT:
+            spot_id = str(elem.get(ID))
+        
+        path = '//gw/terminals/tal[@id="' + st_instance + '"]/../..'
+        elem = self._topology.get_configuration().get(path)
+        if elem is None:
+            path = "//gw_table/default_gw"
+            elem = self._topology.get_configuration().get(path)
+            gw_id = str(elem.text)
+        elif elem.tag == GW:
+            gw_id = str(elem.get(ID))
 
-            if name != "sat":
-                # IPv4 SARP
-                addr = net_config['lan_ipv4'].split('/')
-                ip = addr[0]
-                net = ip[0:ip.rfind('.') + 1] + "0"
-                mask = addr[1]
-                line = {'addr': net,
-                        'mask': mask,
-                        'tal_id': instance,
-                       }
-                xpath = '/configuration/sarp/ipv4'
-                self._topology.create_line(line, 'terminal_v4', xpath)
-                # IPv6 SARP
-                addr = net_config['lan_ipv6'].split('/')
-                ip = addr[0]
-                net = ip[0:ip.rfind(':') + 1] + "0"
-                mask = addr[1]
-                line = {'addr': net,
-                        'mask': mask,
-                        'tal_id': instance,
-                       }
-                xpath = '/configuration/sarp/ipv6'
-                self._topology.create_line(line, 'terminal_v6', xpath)
-                # Ethernet SARP
-                if 'mac' in net_config:
-                    mac = net_config['mac']
-                    # we can have several MAC addresses separated by space
-                    macs = mac.split(' ')
-                    for mac in macs:
-                        line = {'mac': mac,
-                                'tal_id': instance,
-                               }
-                        xpath = '/configuration/sarp/ethernet'
-                        self._topology.create_line(line, 'terminal_eth', xpath)
+        return spot_id, gw_id
 
-            self._topology.write()
-        except XmlException, msg:
-            self._log.error("failed to add topology for %s: %s" % (name,
-                                                                   str(msg)))
-        except KeyError, msg:
-            self._log.error("cannot find network keys %s for topology updating "
-                            "on %s" % (msg, name))
-        except Exception, msg:
-            self._log.error("unknown exception when trying to add topology for "
-                            "%s: %s" % (name, str(msg)))
+                            
+    def update_spot_gw(self):
+        # update spot_id gw_id for host
+        for host in self.get_hosts_list():
+            if host.get_name().startswith(ST):
+                (spot_id, gw_id) = self.get_spot_gw_id(host.get_instance())
+                host.set_spot_id(spot_id)
+                host.set_gw_id(gw_id)
 
-    def remove_topology(self, instance):
-        """ remove a host from topology configuration file """
-        try:
-            xpath = "/configuration/sarp/ipv4/terminal_v4" \
-                    "[@tal_id='%s']" % instance
-            self._topology.del_element(xpath)
-            xpath = "/configuration/sarp/ipv6/terminal_v6" \
-                    "[@tal_id='%s']" % instance
-            self._topology.del_element(xpath)
-            xpath = "/configuration/sarp/ethernet/terminal_eth" \
-                    "[@tal_id='%s']" % instance
-            self._topology.del_element(xpath)
-            self._topology.write()
-        except XmlException, msg:
-            self._log.error("failed to remove host with id %s in topology: %s" %
-                            (instance, str(msg)))
-        except Exception, msg:
-            self._log.error("unknown exception when trying to remove topology "
-                            "for host with instance %s: %s" % (instance,
-                                                               str(msg)))
+
+    def save(self):
+        self._config.save()
+        self._topology.save()
+        for host in self._hosts:
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            config.write()
+
 
     def close(self):
         """ release the model """
@@ -307,10 +270,14 @@ class Model:
     def get_host(self, name):
         """ return the host according to its name """
         for host in self.get_all():
+            if name == GW and host.get_name().startswith(GW):
+                return host
             if name.lower() == host.get_name().lower():
                 return host
-        if name == 'global':
+        if name == GLOBAL:
             return self
+        if name == TOPOLOGY:
+            return self._topology
         return None
 
     def get_workstations_list(self):
@@ -328,7 +295,7 @@ class Model:
             if name == host.get_name():
                 self._log.debug("remove host: '" + name + "'")
                 if not name == 'sat':
-                    self.remove_topology(self._hosts[idx].get_instance())
+                    self._topology.remove(name, self._hosts[idx].get_instance())
                 del self._hosts[idx]
             idx += 1
 
@@ -343,20 +310,27 @@ class Model:
             if name in self._missing_modules[module]:
                 self._missing_modules[module].remove(name)
 
+        self.update_spot_gw()
+
     def add_host(self, name, instance, network_config,
                  state_port, command_port, tools, host_modules):
         """ add an host in the host list """
         # remove instance for ST and WS
-        if name.startswith('st'):
-            component = 'st'
-        elif name.startswith('ws'):
-            component = 'ws'
+        spot_id = ""
+        gw_id = ""
+        if name.startswith(ST):
+            component = ST
+            (spot_id , gw_id) = self.get_spot_gw_id(instance)
+        elif name.startswith(WS):
+            component = WS
+        elif name.startswith(GW):
+            component = GW
         else:
             component = name
 
         # check if we have all the correct information
         checked = True
-        if (component == 'st' or component == 'ws') and instance == '':
+        if (component == ST or component == WS or component == GW) and instance == '':
             self._log.warning(name + ": "
                               "service received with no instance information")
             checked = False
@@ -383,27 +357,32 @@ class Model:
         # report a warning if a module is not supported by the host
         for module in self._modules:
             if module.get_name().upper() not in host_modules:
-                if component != 'ws':
+                if component != WS:
                     self._log.warning("%s: plugin %s may be missing" %
                                       (name.upper(), module.get_name()))
                     if not module in self._missing_modules:
                         self._missing_modules[module] = [name]
                     else:
                         self._missing_modules[module].append(name)
+        
         # the component does not exist so create it
         host = HostModel(name, instance, network_config, state_port,
                          command_port, tools, host_modules, self._scenario_path,
-                         self._log, self._collector_functional)
-        if component == 'sat':
+                         self._log, self._collector_functional, spot_id, gw_id)
+        if component == SAT:
             self._hosts.insert(0, host)
-        elif component == 'gw':
+        elif component == GW:
+            self._config.get_configuration().add_gw('//forward_down_band', instance)
+            self._config.get_configuration().add_gw('//return_up_band', instance)
+            self._config.get_configuration().write()
             self._hosts.insert(1, host)
-        elif component != 'ws':
+        elif component != WS:
             self._hosts.append(host)
         else:
             self._ws.append(host)
 
-        self.add_topology(name, instance, network_config)
+        self._topology.add(name, instance, network_config)
+        self.update_spot_gw()
 
         if not checked:
             raise ModelException
@@ -464,6 +443,9 @@ class Model:
 
     def set_scenario(self, val):
         """ set the scenario id """
+        # wait controlleur has finished event
+        self._event_manager_response.wait(2)
+        
         self._modified = True
         self._scenario_path = val
         self.load()
@@ -499,11 +481,11 @@ class Model:
         st = False
 
         for host in self._hosts:
-            if host.get_component() == 'sat' and host.get_state() != None:
+            if host.get_component() == SAT and host.get_state() != None:
                 sat = True
-            if host.get_component() == 'gw' and host.get_state() != None:
+            if host.get_component() == GW and host.get_state() != None:
                 gw = True
-            if host.get_component() == 'st' and host.get_state() != None:
+            if host.get_component() == ST and host.get_state() != None:
                 st = True
 
         return sat and gw and st
@@ -552,6 +534,10 @@ class Model:
     def get_conf(self):
         """ get the global configuration """
         return self._config
+
+    def get_topology(self):
+        """ get the topology configuration """
+        return self._topology
 
     def get_modules(self):
         """ get the module list """
@@ -617,6 +603,7 @@ class Model:
             except IOError, (_, strerror):
                 error_popup("Cannot update files on %s" % host.get_name(), strerror)
 
+
         self._changed_sim_files = {}
         # deploy the simulation files that were modified
         self._event_manager.set('deploy_files')
@@ -669,11 +656,11 @@ class Model:
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """
-        return 'global'
+        return GLOBAL
 
     def get_component(self):
         """ for compatibility with advanced dialog host calls """
-        return 'global'
+        return GLOBAL
 
     def get_advanced_conf(self):
         """ for compatibility with advanced dialog host calls """

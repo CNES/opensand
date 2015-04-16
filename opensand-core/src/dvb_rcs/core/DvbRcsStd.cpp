@@ -163,7 +163,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 				continue;
 			}
 			// associate the spot ID to the packet
-			encap_packet->setDstSpot(spot_id);
+			encap_packet->setSpot(spot_id);
 		}
 
 

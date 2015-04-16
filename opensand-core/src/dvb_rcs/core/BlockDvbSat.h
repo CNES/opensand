@@ -54,6 +54,8 @@
 
 #include "BlockDvb.h"
 #include "SatSpot.h"
+#include "SatGw.h"
+#include "PhysicStd.h" 
 
 // output
 #include <opensand_output/Output.h>
@@ -81,6 +83,10 @@ class BlockDvbSat: public BlockDvb
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
+
+	 protected: 
+		/// reception standard (DVB-RCS or DVB-S2)      
+		PhysicStd *reception_std; 
 
 	 private:
 		/**
@@ -192,9 +198,6 @@ class BlockDvbSat: public BlockDvb
 		/// the modcods
 		event_id_t scenario_timer;
 
-		/// The terminal categories for forward band
-		TerminalCategories<TerminalCategoryDama> categories;
-
 		/// The terminal affectation for forward band
 		TerminalMapping<TerminalCategoryDama> terminal_affectation;
 
@@ -211,16 +214,6 @@ class BlockDvbSat: public BlockDvb
 		// Output probes and stats
 		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
 
-			// Queue sizes
-		ProbeListPerSpot probe_sat_output_gw_queue_size;
-		ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
-		ProbeListPerSpot probe_sat_output_st_queue_size;
-		ProbeListPerSpot probe_sat_output_st_queue_size_kb;
-			// Rates
-		ProbeListPerSpot probe_sat_l2_from_st;
-		ProbeListPerSpot probe_sat_l2_to_st;
-		ProbeListPerSpot probe_sat_l2_from_gw;
-		ProbeListPerSpot probe_sat_l2_to_gw;
 			// Frame interval
 		Probe<float> *probe_frame_interval;
 	};

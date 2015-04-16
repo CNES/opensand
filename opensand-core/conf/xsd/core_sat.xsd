@@ -10,41 +10,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<!-- types for sat_switching_table section -->
-<xsd:simpleType name="spotId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="255" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:element name="switchs">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="switch" minOccurs="1" maxOccurs="31"/>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="switch">
-    <xsd:complexType>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal ID
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="spot_id" type="spotId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The corresponding spot ID
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <xsd:simpleType name="socketType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="SOCK_DGRAM"/>
@@ -55,41 +20,10 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="sat_switching_table" />
             <xsd:element ref="sat_physical_layer" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
-    </xsd:complexType>
-</xsd:element>
-
-<!-- sat_switching_table section description -->
-<xsd:element name="sat_switching_table">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>\tATM, MPEG and GSE switching table for satellite</b>
-            ]]>
-            <hide>true</hide>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="switchs">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The switching table for satellite
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="default_spot" type="spotId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default spot if terminal is not found in switches
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
 

@@ -57,6 +57,7 @@
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "Plugin.h"
+#include "OpenSandConf.h"
 
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
@@ -127,14 +128,14 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 	if(ip_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory IP address option");
+		        "missing mandatory IP address option\n");
 		return false;
 	}
 
 	if(iface_name.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interface name option");
+		        "missing mandatory interface name option\n");
 		return false;
 	}
 	return true;
@@ -195,6 +196,8 @@ int main(int argc, char **argv)
 		goto quit;
 	}
 
+	OpenSandConf::loadConfig();
+
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -206,20 +209,21 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
 	                   satellite_type))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "section '%s': missing parameter '%s'\n",
-		        GLOBAL_SECTION, SATELLITE_TYPE);
+		        COMMON_SECTION, SATELLITE_TYPE);
 		goto quit;
 	}
 	DFLTLOG(LEVEL_NOTICE,
 	        "Satellite type = %s\n", satellite_type.c_str());
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                   with_phy_layer))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ENABLE, with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",

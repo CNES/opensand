@@ -61,6 +61,7 @@
 #include "BlockEncap.h"
 #include "BlockPhysicalLayer.h"
 #include "Plugin.h"
+#include "OpenSandConf.h"
 
 #include <opensand_conf/ConfigurationFile.h>
 
@@ -76,8 +77,11 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr,
-                  string &emu_iface, string &lan_iface)
+bool init_process(int argc, char **argv, 
+				  string &ip_addr,
+                  string &emu_iface, 
+                  string &lan_iface,
+                  tal_id_t &instance_id)
 {
 	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
@@ -85,7 +89,7 @@ bool init_process(int argc, char **argv, string &ip_addr,
 	bool output_stdout = false;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqda:n:l:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:a:n:l:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -96,6 +100,10 @@ bool init_process(int argc, char **argv, string &ip_addr,
 		case 'd':
 			// enable output debug
 			output_stdout = true;;
+			break;
+		case 'i':
+			// get instance id
+			instance_id = atoi(optarg);
 			break;
 		case 'a':
 			// get local IP address
@@ -111,7 +119,7 @@ bool init_process(int argc, char **argv, string &ip_addr,
 			break;
 		case 'h':
 		case '?':
-			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address "
+			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
 				"-n emu_iface -l lan_iface\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
@@ -120,6 +128,7 @@ bool init_process(int argc, char **argv, string &ip_addr,
 			fprintf(stderr, "\t-a <ip_address>      set the IP address for emulation\n");
 			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
 			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
+			fprintf(stderr, "\t-i <instance>        set the instance id\n");
 			Output::init(true);
 			Output::enableStdlog();
 			return false;
@@ -169,6 +178,7 @@ int main(int argc, char **argv)
 	string ip_addr;
 	string emu_iface;
 	string lan_iface;
+	tal_id_t mac_id;
 	struct sc_specific specific;
 
 	Block *block_lan_adaptation;
@@ -187,7 +197,7 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface);
+	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface, mac_id);
 
 	status = Output::registerEvent("Status");
 	if(!init_ok)
@@ -212,7 +222,9 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-
+	
+	OpenSandConf::loadConfig();
+	
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -224,8 +236,8 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                          with_phy_layer))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ENABLE, with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",
@@ -259,7 +271,7 @@ int main(int argc, char **argv)
 	block_encap = Rt::createBlock<BlockEncap,
 	                              BlockEncap::RtUpward,
 	                              BlockEncap::RtDownward,
-	                              tal_id_t>("Encap", block_lan_adaptation, GW_TAL_ID);
+	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -269,7 +281,8 @@ int main(int argc, char **argv)
 
 	block_dvb = Rt::createBlock<BlockDvbNcc,
 	                            BlockDvbNcc::Upward,
-	                            BlockDvbNcc::Downward>("Dvb", block_encap);
+	                            BlockDvbNcc::Downward,
+	                            tal_id_t>("Dvb", block_encap, mac_id);
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -296,6 +309,7 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface; // TODO emu_iface in struct
+	specific.tal_id = mac_id;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,

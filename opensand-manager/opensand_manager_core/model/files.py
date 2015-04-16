@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+##!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -39,7 +39,7 @@ import os
 import shutil
 import hashlib
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, GLOBAL
 from opensand_manager_core.my_exceptions import ModelException
 
 def get_md5(filename):
@@ -87,7 +87,7 @@ class Files(object):
         """ load the files for current scenario """
         if configuration is not None:
             self._configuration = configuration
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         # handle files elements
@@ -107,7 +107,7 @@ class Files(object):
 
     def update(self, changed, scenario):
         """ update changed files """
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         # copy the new file into the source
@@ -129,11 +129,14 @@ class Files(object):
         """
         get the tuples source, destination of the files that were modified
         """
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         deploy = []
         for xpath in self._file_sources:
+            if not xpath in self._md5:
+                self._md5[xpath] = 0
+                
             old_hash = self._md5[xpath]
             new_hash = get_md5(os.path.join(scenario,
                                             self._file_sources[xpath]))
@@ -150,7 +153,7 @@ class Files(object):
         """
         get all the tuples source, destination
         """
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         deploy = []
@@ -167,7 +170,7 @@ class Files(object):
         """
         the files were modified, update the md5sums
         """
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         for xpath in self._file_sources:

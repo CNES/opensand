@@ -190,6 +190,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
+							                                      this->group_id,
 						                                          this->satellite_type,
 						                                          &this->sarp_table))
 						{
@@ -314,9 +315,9 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			    (*burst_it)->getName().c_str());
 		}
 
-		if(this->tal_id == GW_TAL_ID &&
+		if(OpenSandConf::isGw(tal_id) &&
 		   this->satellite_type == TRANSPARENT &&
-		   pkt_tal_id != GW_TAL_ID)
+		   !OpenSandConf::isGw(pkt_tal_id))
 		{
 			// packet should be forwarded
 			/*  TODO avoid allocating new packet here !

@@ -151,39 +151,38 @@ class BlockEncap: public Block
 	bool onRcvBurstFromDown(NetBurst *burst);
 	
 	/**
-	 * Checks if SCPC mode is activated and configured (Available FIFOs and Carriers for SCPC)
-	 * @sat_type     The satellite type
+	 * @brief Checks if SCPC mode is activated and configured
+	 *        (Available FIFOs and Carriers for SCPC)
+	 *
 	 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
 	 */
 
-	bool checkIfScpc(string &sat_type);
+	bool checkIfScpc();
 	
 	/**
 	 * 
 	 * Get the Encapsulation context of the Up/Return or the Down/Forward link
 	 *
-	 * @param section       The name of the section from conf.h
-	 * @param scheme_list   The name of encapsulation scheme list from conf.h
+	 * @param scheme_list   The name of encapsulation scheme list
 	 * @param l_plugin      The LAN adaptation plugin
 	 * @ctx                 The encapsulation context for return/up or forward/down links
-	 * @sat_type            The satellite type
 	 * @link_type           The type of link: "return/up" or "forward/down"
 	 * @scpc_scheme			Whether SCPC is used for the return link or not
-	 * @return              Whether the Encapsulation context has been correctly obtained or not
+	 * @return              Whether the Encapsulation context has been
+	 *                      correctly obtained or not
 	 */
 	
-	bool getEncapContext(const char *section, 
-	                     const char *scheme_list,
+	bool getEncapContext(const char *scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
 	                     vector <EncapPlugin::EncapContext *> &ctx,
-	                     string &sat_type,
 	                     const char *link_type, 
 	                     bool scpc_scheme);
 	 /**
 	 * @brief init the band according to configuration
 	 *
 	 * @tparam  T The type of terminal category to create
-	 * @param   band                 The section in configuration file
+	 * @param   spot                 The spot containing the section
+	 * @param   section              The section in configuration file
 	 *                               (up/return or down/forward)
 	 * @param   access_type          The access type value
 	 * @param   duration_ms          The frame duration on this band
@@ -195,10 +194,10 @@ class BlockEncap: public Block
 	 * @return true on success, false otherwise
 	 */
 	template<class T>
-	bool initBand(const char *band,
+	bool initBand(ConfigurationList spot,
+	              string section,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
-	              string satellite_type,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
 	              TerminalMapping<T> &terminal_affectation,
@@ -242,11 +241,12 @@ class BlockEncap: public Block
 
 };
 
+// TODO no need to do everything, and factorize
 template<class T>
-bool BlockEncap::initBand(const char *band,
+bool BlockEncap::initBand(ConfigurationList spot,
+                          string section,
                           access_type_t access_type,
                           time_ms_t duration_ms,
-                          string sat_type,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
@@ -264,39 +264,40 @@ bool BlockEncap::initBand(const char *band,
 	string default_category_name;
 
 	// Get the value of the bandwidth for return link
-	if(!Conf::getValue(band, BANDWIDTH,
+	if(!Conf::getValue(spot, BANDWIDTH,
 	                   bandwidth_mhz))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    band, BANDWIDTH);
+		    section.c_str(), BANDWIDTH);
 		goto error;
 	}
 	bandwidth_khz = bandwidth_mhz * 1000;
 	LOG(this->log_init, LEVEL_INFO,
-	    "%s: bandwitdh is %u kHz\n", band, bandwidth_khz);
+	    "%s: bandwitdh is %u kHz\n", 
+	    section.c_str(), bandwidth_khz);
 
 	// Get the value of the roll off
-	if(!Conf::getValue(band, ROLL_OFF,
-	                   roll_off))
+	if(!Conf::getValue(Conf::section_map[section], 
+		               ROLL_OFF, roll_off))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    band, ROLL_OFF);
+		    section.c_str(), ROLL_OFF);
 		goto error;
 	}
 
 	// get the FMT groups
-	if(!Conf::getListItems(band,
+	if(!Conf::getListItems(spot,
 	                       FMT_GROUP_LIST,
 	                       conf_list))
-	{   
+	{
 		LOG(this->log_init, LEVEL_ERROR,
-	        "Section %s, %s missing\n",
-	        band, FMT_GROUP_LIST);
+		    "Section %s, %s missing\n",
+		    section.c_str(), FMT_GROUP_LIST);
 		goto error;
 	}
-	
+
 	// create group list
 	for(ConfigurationList::iterator iter = conf_list.begin();
 	    iter != conf_list.end(); ++iter)
@@ -310,7 +311,8 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", band, GROUP_ID);
+			    "groups\n", section.c_str(), 
+			    GROUP_ID);
 			goto error;
 		}
 
@@ -319,14 +321,16 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", band, FMT_ID);
+			    "groups\n", section.c_str(),
+			    FMT_ID);
 			goto error;
 		}
 
 		if(fmt_groups.find(group_id) != fmt_groups.end())
 		{
 			LOG(this->log_init, LEVEL_INFO,
-			    "Section %s, FMT group %u already loaded\n", band,
+			    "Section %s, FMT group %u already loaded\n",
+			    section.c_str(),
 			    group_id);
 			continue;
 		}
@@ -336,10 +340,11 @@ bool BlockEncap::initBand(const char *band,
 
 	conf_list.clear();
 	// get the carriers distribution
-	if(!Conf::getListItems(band, CARRIERS_DISTRI_LIST, conf_list))
+	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", band,
+		    "Section %s, %s missing\n", 
+		    section.c_str(),
 		    CARRIERS_DISTRI_LIST);
 		goto error;
 	}
@@ -366,7 +371,8 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    section.c_str(),
 			    CATEGORY, i);
 			goto error;
 		}
@@ -376,7 +382,8 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band, RATIO, i);
+			    "distribution table entry %u\n", 
+			    section.c_str(), RATIO, i);
 			goto error;
 		}
 		// parse ratio if there is many values
@@ -387,7 +394,8 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    section.c_str(),
 			    SYMBOL_RATE, i);
 			goto error;
 		}
@@ -397,7 +405,8 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    section.c_str(),
 			    FMT_GROUP, i);
 			goto error;
 		}
@@ -410,16 +419,21 @@ bool BlockEncap::initBand(const char *band,
 			    "There should be as many ratio values as fmt groups values\n");
 			goto error;
 		}
-		
+
 		// Get carriers' access type
 		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", band,
+			    "distribution table entry %u\n", 
+			    section.c_str(),
 			    ACCESS_TYPE, i);
 			goto error;
 		}
+		// TODO for SCPC we should not use the same fmt_def
+		//      when initializing band on NCC, at the moment we get
+		//      an error, this should not be displayed in this case
+		//      SCPC are only loaded for ratio computation
 		if(access != "VCM" &&
 		   (group_ids.size() > 1 || ratios.size() > 1))
 		{
@@ -427,7 +441,7 @@ bool BlockEncap::initBand(const char *band,
 			    "Too many FMT groups or ratio for non-VCM access type\n");
 			goto error;
 		}
-		if(access == "VCM" && strToSatType(sat_type) == REGENERATIVE)
+		if(access == "VCM" && this->satellite_type == REGENERATIVE)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot use VCM carriers with regenerative satellite\n");
@@ -436,7 +450,8 @@ bool BlockEncap::initBand(const char *band,
 
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
-		    "ratio=%s, access type=%s\n", band, name.c_str(),
+		    "ratio=%s, access type=%s\n", 
+		    section.c_str(), name.c_str(),
 		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
 		    access.c_str());
 
@@ -449,7 +464,7 @@ bool BlockEncap::initBand(const char *band,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Section %s, no entry for FMT group with ID %u\n",
-				    band, (*it));
+				    section.c_str(), (*it));
 				goto error;
 			}
 			if(group_ids.size() > 1 && (*group_it).second->getFmtIds().size() > 1)
@@ -479,14 +494,14 @@ bool BlockEncap::initBand(const char *band,
 			// do not increment carrier_id here
 		}
 		carrier_id++;
-	
 	}
 
 	// Compute bandplan
 	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot compute band plan for %s\n", band);
+		    "Cannot compute band plan for %s\n", 
+		    section.c_str());
 		goto error;
 	}
 
@@ -513,11 +528,12 @@ bool BlockEncap::initBand(const char *band,
 	}
 
 	// get the default terminal category
-	if(!Conf::getValue(band, DEFAULT_AFF,
+	if(!Conf::getValue(spot, DEFAULT_AFF,
 	                   default_category_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, missing %s parameter\n", band,
+		    "Section %s, missing %s parameter\n", 
+		    section.c_str(),
 		    DEFAULT_AFF);
 		goto error;
 	}
@@ -534,20 +550,23 @@ bool BlockEncap::initBand(const char *band,
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "Section %s, could not find category %s, "
 		    "no default category for access type %u\n",
-		    band, default_category_name.c_str(), access_type);
+		    section.c_str(),
+		    default_category_name.c_str(), access_type);
 	}
 	else
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "ST default category: %s in %s\n",
-		    (*default_category)->getLabel().c_str(), band);
+		    (*default_category)->getLabel().c_str(), 
+		    section.c_str());
 	}
 
 	// get the terminal affectations
-	if(!Conf::getListItems(band, TAL_AFF_LIST, aff_list))
+	if(!Conf::getListItems(spot, TAL_AFF_LIST, aff_list))
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "Section %s, missing %s parameter\n", band,
+		    "Section %s, missing %s parameter\n", 
+		    section.c_str(),
 		    TAL_AFF_LIST);
 		goto error;
 	}
@@ -566,14 +585,16 @@ bool BlockEncap::initBand(const char *band,
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", band, TAL_ID, i);
+			    "affection table entry %u\n", 
+			    section.c_str(), TAL_ID, i);
 			goto error;
 		}
 		if(!Conf::getAttributeValue(iter, CATEGORY, name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", band, CATEGORY, i);
+			    "affection table entry %u\n", 
+			    section.c_str(), CATEGORY, i);
 			goto error;
 		}
 
@@ -599,7 +620,7 @@ bool BlockEncap::initBand(const char *band,
 			terminal_affectation[tal_id] = category;
 			LOG(this->log_init, LEVEL_INFO,
 			    "%s: terminal %u will be affected to category %s\n",
-			    band, tal_id, name.c_str());
+			    section.c_str(), tal_id, name.c_str());
 		}
 	}
 

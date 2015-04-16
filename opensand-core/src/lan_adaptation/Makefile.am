@@ -28,6 +28,7 @@ libopensand_lan_adaptation_la_LIBADD = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/dvb_rcs/utils
 
 AM_LDFLAGS= -lm

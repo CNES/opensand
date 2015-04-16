@@ -36,8 +36,6 @@
 #include "SatSpot.h"
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
-#include "ForwardSchedulingS2.h"
-
 #include <opensand_output/Output.h>
 
 #include <stdlib.h>
@@ -45,84 +43,22 @@
 // TODO add spot fifos in configuration
 // TODO size per fifo ?
 // TODO to not do...: do not create all fifo in the regenerative case
-SatSpot::SatSpot(spot_id_t spot_id,
-                 uint8_t data_in_carrier_id,
-                 uint8_t log_id,
-                 uint8_t ctrl_id,
-                 uint8_t data_out_st_id,
-                 uint8_t data_out_gw_id,
-                 size_t fifo_size):
+SatSpot::SatSpot(spot_id_t spot_id):
 	spot_id(spot_id),
-	data_in_carrier_id(data_in_carrier_id),
-	complete_dvb_frames(),
-	scheduling(NULL),
-	l2_from_st_bytes(0),
-	l2_from_gw_bytes(0),
-	spot_mutex("Spot")
+	sat_gws()
 {
-	// initialize MAC FIFOs
-#define SIG_FIFO_SIZE 1000
-	this->logon_fifo = new DvbFifo(log_id, SIG_FIFO_SIZE, "logon_fifo");
-	this->control_fifo = new DvbFifo(ctrl_id, SIG_FIFO_SIZE, "control_fifo");
-	this->data_out_st_fifo = new DvbFifo(data_out_st_id, fifo_size, "data_out_st");
-	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size, "data_out_gw");
-
 	// Output Log
 	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
 }
 
 SatSpot::~SatSpot()
 {
-	this->complete_dvb_frames.clear();
-
-	// remove scheduling (only for regenerative satellite)
-	if(scheduling)
-		delete this->scheduling;
-
-	delete this->logon_fifo;
-	delete this->control_fifo;
-	delete this->data_out_st_fifo;
-	delete this->data_out_gw_fifo;
+	this->sat_gws.clear();
 }
 
-bool SatSpot::initScheduling(time_ms_t fwd_timer_ms,
-                             const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                             FmtSimulation *const fwd_fmt_simu,
-                             const TerminalCategoryDama *const category)
+void SatSpot::addGw(SatGw* gw)
 {
-	fifos_t fifos;
-	fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
-	this->scheduling = new ForwardSchedulingS2(fwd_timer_ms,
-	                                           pkt_hdl,
-	                                           fifos,
-	                                           fwd_fmt_simu,
-	                                           category);
-	if(!this->scheduling)
-	{
-		LOG(this->log_init, LEVEL_ERROR, 
-		    "cannot create down scheduling for spot %u\n",
-		    this->spot_id);
-		return false;
-	}
-	return true;
-}
-
-
-bool SatSpot::schedule(const time_sf_t current_superframe_sf,
-                       time_ms_t current_time)
-{
-	// not used by scheduling here
-	uint32_t remaining_allocation = 0;
-
-	if(!scheduling)
-	{
-		return false;
-	}
-
-	return this->scheduling->schedule(current_superframe_sf,
-	                                  current_time,
-	                                  &this->complete_dvb_frames,
-	                                  remaining_allocation);
+	this->sat_gws.push_back(gw);
 }
 
 uint8_t SatSpot::getSpotId(void) const
@@ -130,66 +66,23 @@ uint8_t SatSpot::getSpotId(void) const
 	return this->spot_id;
 }
 
-uint8_t SatSpot::getInputCarrierId(void) const
+list<SatGw *> SatSpot::getGwList(void) const
 {
-	return this->data_in_carrier_id;
+	return this->sat_gws;
 }
 
-DvbFifo *SatSpot::getDataOutStFifo(void) const
+SatGw* SatSpot::getGw(tal_id_t gw_id)
 {
-	return this->data_out_st_fifo;
-}
+	list<SatGw *>::iterator iter;
 
-DvbFifo *SatSpot::getDataOutGwFifo(void) const
-{
-	return this->data_out_gw_fifo;
+	for(iter = this->sat_gws.begin() ; iter != this->sat_gws.end() ;
+	    ++iter)
+	{
+		SatGw *gw = *iter;
+		if(gw->getGwId() == gw_id)
+		{
+			return gw;
+		}
+	}
+	return NULL;
 }
-
-DvbFifo *SatSpot::getControlFifo(void) const
-{
-	return this->control_fifo;
-}
-
-uint8_t SatSpot::getControlCarrierId(void) const
-{
-	return this->control_fifo->getCarrierId();
-}
-
-DvbFifo *SatSpot::getLogonFifo(void) const
-{
-	return this->logon_fifo;
-}
-
-list<DvbFrame *> &SatSpot::getCompleteDvbFrames(void)
-{
-	return this->complete_dvb_frames;
-}
-
-void SatSpot::updateL2FromSt(vol_bytes_t bytes)
-{
-	RtLock lock(this->spot_mutex);
-	this->l2_from_st_bytes += bytes;
-}
-
-void SatSpot::updateL2FromGw(vol_bytes_t bytes)
-{
-	RtLock lock(this->spot_mutex);
-	this->l2_from_gw_bytes += bytes;
-}
-
-vol_bytes_t SatSpot::getL2FromSt(void)
-{
-	RtLock lock(this->spot_mutex);
-	vol_bytes_t val = this->l2_from_st_bytes;
-	this->l2_from_st_bytes = 0;
-	return val;
-}
-
-vol_bytes_t SatSpot::getL2FromGw(void)
-{
-	RtLock lock(this->spot_mutex);
-	vol_bytes_t val = this->l2_from_gw_bytes;
-	this->l2_from_gw_bytes = 0;
-	return val;
-}
-

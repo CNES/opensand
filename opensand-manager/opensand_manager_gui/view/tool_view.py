@@ -81,7 +81,7 @@ class ToolView(WindowView):
             # create the tree for tools selection
             treeview = self._ui.get_widget('tools_selection_tree')
             self._tree = ConfigurationTree(treeview, 'Tools',
-                                           'Selected', self.on_selection,
+                                           self.on_selection,
                                            self.tool_toggled_cb)
 
             # disable save button

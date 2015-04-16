@@ -273,13 +273,6 @@ class RtChannel
 	 */
 	static void *startThread(void *pthis);
 
-	/**
-	 * @brief Get the current timeval
-	 *
-	 * @return the current time
-	 */
-	clock_t getCurrentTime(void);
-
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
 	map<string, list<double> > durations;

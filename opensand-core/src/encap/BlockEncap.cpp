@@ -91,7 +91,7 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 
 		default:
 			LOG(this->log_rcv_from_up, LEVEL_ERROR,
-			    "unknown event received %s",
+			    "unknown event received %s\n",
 			    event->getName().c_str());
 			return false;
 	}
@@ -172,7 +172,7 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 
 		default:
 			LOG(this->log_rcv_from_down, LEVEL_ERROR,
-			    "unknown event received %s",
+			    "unknown event received %s\n",
 			    event->getName().c_str());
 			return false;
 	}
@@ -191,7 +191,7 @@ bool BlockEncap::onInit()
 	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
 	int lan_nbr;
-	int i=0;
+	int i = 0;
 	LanAdaptationPlugin *lan_plugin = NULL;
 	string compo_name;
 	component_t host;
@@ -204,12 +204,13 @@ bool BlockEncap::onInit()
 	}
 
 	// satellite type: regenerative or transparent ?
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	                   SATELLITE_TYPE,
 	                   sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SATELLITE_TYPE);
+		    COMMON_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
 	this->satellite_type = strToSatType(sat_type);
@@ -219,7 +220,8 @@ bool BlockEncap::onInit()
 	    "satellite type = %s\n", sat_type.c_str());
 
 	// Retrieve last packet handler in lan adaptation layer
-	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
+		                     LAN_ADAPTATION_SCHEME_LIST,
 	                         lan_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -227,7 +229,8 @@ bool BlockEncap::onInit()
 		    LAN_ADAPTATION_SCHEME_LIST);
 		goto error;
 	}
-	if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
+		                     LAN_ADAPTATION_SCHEME_LIST,
 	                         POSITION, toString(lan_nbr - 1),
 	                         PROTO, lan_name))
 	{
@@ -240,24 +243,25 @@ bool BlockEncap::onInit()
 	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get plugin for %s lan adaptation",
+		    "cannot get plugin for %s lan adaptation\n",
 		    lan_name.c_str());
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
-	
-	if (this->mac_id != GW_TAL_ID)
+
+	if (!OpenSandConf::isGw(mac_id))
 	{
 		LOG(this->log_init, LEVEL_DEBUG,
-		"Going to check if Tal with id:  %d is in Scpc mode\n", this->mac_id);
+		    "Going to check if Tal with id:  %d is in Scpc mode\n",
+		    this->mac_id);
 
-		if(this->checkIfScpc(sat_type))
+		if(this->checkIfScpc())
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "SCPC mode available for ST %d - BlockEncap \n", this->mac_id);
-			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-			                          lan_plugin, up_return_ctx, sat_type,
+			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
+			                          lan_plugin, up_return_ctx,
 			                          "return/up", true)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
@@ -269,9 +273,9 @@ bool BlockEncap::onInit()
 		else
 		{
 			LOG(this->log_init, LEVEL_INFO,
-			    "SCPC mode not available for ST %d - BlockEncap \n", this->mac_id);
-			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
-			                         lan_plugin, up_return_ctx, sat_type,
+			    "SCPC mode not available for ST%d - BlockEncap \n", this->mac_id);
+			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST,
+			                         lan_plugin, up_return_ctx,
 			                         "return/up", false)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
@@ -282,12 +286,12 @@ bool BlockEncap::onInit()
 	}
 	else
 	{
-		if (sat_type == "transparent")
+		if (this->satellite_type == TRANSPARENT)
 		{
 			LOG(this->log_init, LEVEL_NOTICE,
 			    "SCPC mode available - BlockEncap");
-			if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-			                          lan_plugin, up_return_ctx_scpc, sat_type,
+			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
+			                          lan_plugin, up_return_ctx_scpc,
 			                          "return/up", true)) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
@@ -296,8 +300,8 @@ bool BlockEncap::onInit()
 			}
 		}
 
-		if(!this->getEncapContext(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST, 
-		                          lan_plugin, up_return_ctx, sat_type,
+		if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
+		                          lan_plugin, up_return_ctx,
 		                          "return/up", false)) 
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -306,9 +310,9 @@ bool BlockEncap::onInit()
 		}
 	}
 
-	if(!this->getEncapContext(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	                         lan_plugin, down_forward_ctx, sat_type,
-	                         "forward/down", false)) 
+	if(!this->getEncapContext(FORWARD_DOWN_ENCAP_SCHEME_LIST,
+	                          lan_plugin, down_forward_ctx,
+	                          "forward/down", false)) 
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot get Down/Forward Encapsulation context");
@@ -327,7 +331,7 @@ bool BlockEncap::onInit()
 	    compo_name.c_str());
 	host = getComponentType(compo_name);
 
-	if(host == terminal || sat_type == "regenerative")
+	if(host == terminal || this->satellite_type == REGENERATIVE)
 	{
 		this->emission_ctx = up_return_ctx;
 		this->reception_ctx = down_forward_ctx;
@@ -562,8 +566,12 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	if(burst->name() == "GSE" && this->mac_id == GW_TAL_ID && this->satellite_type == TRANSPARENT)
+	if(burst->name() == "GSE" &&
+	   OpenSandConf::isGw(mac_id) &&
+	   this->satellite_type == TRANSPARENT)
 	{
+		// SCPC case
+
 		// iterate on all the deencapsulation contexts to get the ip packets
 		for(iter = this->reception_ctx_scpc.begin();
 		    iter != this->reception_ctx_scpc.end();
@@ -629,7 +637,7 @@ error:
 	return false;
 }
 
-bool BlockEncap::checkIfScpc(string &sat_type)
+bool BlockEncap::checkIfScpc()
 {
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
@@ -645,16 +653,21 @@ bool BlockEncap::checkIfScpc(string &sat_type)
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
 
+	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
+	ConfigurationList spots;
+	ConfigurationList::iterator spot_it;
+	ConfigurationList current_spot;
+
 	/*
 	* Read the MAC queues configuration in the configuration file.
 	* Create and initialize MAC FIFOs
 	*/
-	if(!Conf::getListItems(DVB_TAL_SECTION, FIFO_LIST, fifo_list))
+	if(!Conf::getListItems(Conf::section_map[DVB_TAL_SECTION], FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
 		    FIFO_LIST);
-		goto no_scpc;
+		return false;
 	}
 
 	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
@@ -665,10 +678,10 @@ bool BlockEncap::checkIfScpc(string &sat_type)
 		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			"cannot get %s from section '%s, %s'\n",
-			FIFO_ACCESS_TYPE, DVB_TAL_SECTION,
-			FIFO_LIST);
-			goto no_scpc;
+			    "cannot get %s from section '%s, %s'\n",
+			    FIFO_ACCESS_TYPE, DVB_TAL_SECTION,
+			    FIFO_LIST);
+			return false;
 		}
 		
 		if(fifo_access_type == "SCPC")
@@ -679,7 +692,7 @@ bool BlockEncap::checkIfScpc(string &sat_type)
 	
 	if(!is_scpc)
 	{
-		goto no_scpc;
+		return false;
 	}	
 
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
@@ -688,79 +701,90 @@ bool BlockEncap::checkIfScpc(string &sat_type)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 			"failed to initialize the down/forward MODCOD files\n");
-		goto no_scpc;
+		return false;
 	}
-	
+
 	//  Duration of the carrier -- in ms
-	if(!Conf::getValue(SCPC_SECTION, SCPC_C_DURATION,
+	if(!Conf::getValue(Conf::section_map[SCPC_SECTION], SCPC_C_DURATION,
 	                   scpc_carr_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", SCPC_C_DURATION);
-		goto no_scpc;
+		return false;
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "scpc_carr_duration_ms = %d ms\n", scpc_carr_duration_ms);
 
-
-
-	if(!this->initBand<TerminalCategoryDama>(RETURN_UP_BAND,
-	                                         SCPC,
-	                                         scpc_carr_duration_ms,
-	                                         sat_type,
-	                                         scpc_fmt_simu.getModcodDefinitions(),
-	                                         scpc_categories,
-	                                         terminal_affectation,
-	                                         &default_category,
-	                                         ret_fmt_groups))
+	// get current spot into return up band section
+	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 	{
-		goto no_scpc;
+		LOG(this->log_init, LEVEL_ERROR,
+		    "there is no %s into %s section\n", 
+		    SPOT_LIST, RETURN_UP_BAND);
+		return false;
 	}
 
-	if(scpc_categories.size() == 0)
+	for(spot_it = spots.begin(); spot_it != spots.end(); ++spot_it)
 	{
-		LOG(this->log_init, LEVEL_INFO,
-		    "No SCPC carriers\n");
-		goto no_scpc;
-	}
-	// Find the category for this terminal
-	tal_map_it = terminal_affectation.find(this->mac_id);
-	if(tal_map_it == terminal_affectation.end())
-	{
-		// check if the default category is concerned by SCPC
-		if(!default_category)
+		current_spot.push_back(*spot_it);
+
+		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		                                         RETURN_UP_BAND,
+		                                         SCPC,
+		                                         scpc_carr_duration_ms,
+		                                         scpc_fmt_simu.getModcodDefinitions(),
+		                                         scpc_categories,
+		                                         terminal_affectation,
+		                                         &default_category,
+		                                         ret_fmt_groups))
+		{
+			return false;
+		}
+
+		// FIXME ? at the moment we consider this is not SCPC if at least a
+		//         spot is not SCPC
+		if(scpc_categories.size() == 0)
 		{
 			LOG(this->log_init, LEVEL_INFO,
-			    "ST not affected to a SCPC category\n");
-			goto no_scpc;
+			    "No SCPC carriers\n");
+			return false;
 		}
-		tal_category = default_category;
-	}
-	else
-	{
-		tal_category = (*tal_map_it).second;
-	}
-	
-	if(!tal_category)
-	{
-		LOG(this->log_init, LEVEL_INFO,
-		    "No SCPC carrier\n");
-		//Even if there are SCPC FIFOs, SCPC is no used because there are no SCPC carriers
-		goto no_scpc;
-	}
-	
-	return true;
 
-	no_scpc: 
-		return false;
+		// Find the category for this terminal
+		tal_map_it = terminal_affectation.find(this->mac_id);
+		if(tal_map_it == terminal_affectation.end())
+		{
+			// check if the default category is concerned by SCPC
+			if(!default_category)
+			{
+				LOG(this->log_init, LEVEL_INFO,
+				    "ST not affected to a SCPC category\n");
+				return false;
+			}
+			tal_category = default_category;
+		}
+		else
+		{
+			tal_category = (*tal_map_it).second;
+		}
+	
+		if(!tal_category)
+		{
+			LOG(this->log_init, LEVEL_INFO,
+			    "No SCPC carrier\n");
+			// Even if there are SCPC FIFOs, SCPC is no used because
+			// there are no SCPC carriers
+			return false;
+		}
+	}
+
+	return true;
 }
 
-bool BlockEncap::getEncapContext(const char *section, 
-	                             const char *scheme_list,
+bool BlockEncap::getEncapContext(const char *scheme_list,
 	                             LanAdaptationPlugin *l_plugin,
 	                             vector <EncapPlugin::EncapContext *> &ctx,
-	                             string &sat_type,
 	                             const char *link_type, bool scpc_scheme)
 {
 	StackPlugin *upper_encap = NULL;
@@ -772,12 +796,13 @@ bool BlockEncap::getEncapContext(const char *section,
 	if(!scpc_scheme)
 	{
 		// get the number of encapsulation context if Tal is not in SCPC mode
-		if(!Conf::getNbListItems(section, scheme_list,
+		if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
+		                         scheme_list,
 		                         encap_nbr))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, %s missing\n", section,
-				scheme_list);
+			    "Section %s, %s missing\n", COMMON_SECTION,
+			    scheme_list);
 			goto error;
 		}
 	}
@@ -794,12 +819,13 @@ bool BlockEncap::getEncapContext(const char *section,
 		// If Tal is in SCPC mode, only GSE is allowed
 		if(!scpc_scheme)
 		{
-			if(!Conf::getValueInList(section, scheme_list,
-				                     POSITION, toString(i), ENCAP_NAME, encap_name))
+			if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+			                         scheme_list, POSITION, toString(i),
+			                         ENCAP_NAME, encap_name))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Section %s, invalid value %d for parameter '%s'\n",
-				    section, i, POSITION);
+				    COMMON_SECTION, i, POSITION);
 				goto error;
 			}
 		}
@@ -814,7 +840,7 @@ bool BlockEncap::getEncapContext(const char *section,
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
+			    "cannot get plugin for %s encapsulation\n",
 			    encap_name.c_str());
 			goto error;
 		}
@@ -823,7 +849,7 @@ bool BlockEncap::getEncapContext(const char *section,
 		ctx.push_back(context);
 		if(!context->setUpperPacketHandler(
 					upper_encap->getPacketHandler(),
-					strToSatType(sat_type)))
+					this->satellite_type))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
@@ -845,9 +871,7 @@ bool BlockEncap::getEncapContext(const char *section,
 
 }
 
-
-
-
+// TODO try to factorize or remove
 bool BlockEncap::initModcodFiles(const char *def,
                                  const char *simu,
                                  FmtSimulation &fmt_simu)
@@ -856,8 +880,8 @@ bool BlockEncap::initModcodFiles(const char *def,
 	string modcod_def_file;
 
 	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, simu,
-	                   modcod_simu_file))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   simu, modcod_simu_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -868,8 +892,8 @@ bool BlockEncap::initModcodFiles(const char *def,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, def,
-	                   modcod_def_file))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   def, modcod_def_file))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
@@ -892,8 +916,6 @@ bool BlockEncap::initModcodFiles(const char *def,
 	{
 		goto error;
 	}
-
-
 
 	return true;
 

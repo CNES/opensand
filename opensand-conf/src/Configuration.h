@@ -59,7 +59,6 @@ using namespace std;
  * @brief GLobal interface for configuration file reading
  *
  * At startup, the whole configuration files contents are loaded in memory
- * On msg_init event, each bloc gets its parameters from the config\n
  *
  * XML format:
  * <?xml version="1.0" encoding="UTF-8"?>
@@ -73,6 +72,25 @@ using namespace std;
  *     <!-- key description -->
  *     <key>val</key>
  *    </section>
+ *   <!-- section with spots -->
+ *   <section>
+ *     <spot id="SPOT_ID1">
+ *       <!-- table in spot -->
+ *       <table>
+ *         <line param1="val1" param2="val2" />
+ *       </table>
+ *       <!-- key in spot -->
+ *       <key>val</key>
+ *     </spot>
+ *     <spot id="SPOT_ID2">
+ *       <!-- table in spot -->
+ *       <table>
+ *         <line param1="val1" param2="val2" />
+ *       </table>
+ *       <!-- key in spot -->
+ *       <key>val</key>
+ *      </spot>
+ *    </section>
  *  </configuration>
  */
 class Conf
@@ -81,7 +99,12 @@ class Conf
 
 	Conf(void);
 	~Conf(void);
-
+	
+	/**
+	 * map between section name and ConfigurationList of section
+	 */ 
+	static map<string, ConfigurationList> section_map;
+	
 	/**
 	 * Load the whole configuration file content into memory
 	 * @param conf_file the configuration file path
@@ -107,13 +130,50 @@ class Conf
 	/**
 	 * Read a value from configuration
 	 *
-	 * @param  section  name of the section
+	 * @param  section  the section
 	 * @param  key      name of the key
 	 * @param  value    the value
 	 * @return  true on success, false otherwise
 	 */
 	template <class T>
-	static bool getValue(const char *section, const char *key, T &val);
+	static bool getValue(ConfigurationList section, const char *key, T &val);
+
+	/**
+	 * Read a value from configuration
+	 *
+	 * @param  iter     the iterator
+	 * @param  value    the value
+	 * @return  true on success, false otherwise
+	 */
+	/* TODO is this one used !!?? */
+	template <class T>
+	static bool getValue(ConfigurationList::iterator iter, 
+	                     T &val);
+
+	/**
+	 * Get the section node list
+	 * @param  sectionList section list
+	 * @param  key         node name
+	 * @param  nodeList    node list
+	 * @return true on success, false otherwise
+	 */
+	static bool getListNode(ConfigurationList sectionList,
+                            const char *key,
+                            xmlpp::Node::NodeList &nodeList);
+	
+	/**
+	 * get the element from the list with attribute value
+	 * @param  list             the origal element list
+	 * @param  attribute_name   the attribute name
+	 * @param  attribute_value  the attribute value
+	 * @param  elements         the list of found elements
+	 * @return true on success and false otherwise
+	 */
+	template <class T>
+	static bool getElementWithAttributeValue(ConfigurationList list,
+                                             const char *attribute_name,
+                                             T &attribute_value,
+                                             ConfigurationList &elements);
 
 	/**
 	 * Read the number of elements in a list
@@ -123,27 +183,45 @@ class Conf
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getNbListItems(const char *section, const char *key, int &value);
+	static bool getNbListItems(ConfigurationList section, 
+	                           const char *key, 
+	                           int &value);
 
 	/**
 	 * Read the number of elements in a list
 	 *
-	 * @param  section  name of the section
+	 * @param  section  the section
 	 * @param  key      name of the list key
 	 * @param  nbr      the number of elements in the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getNbListItems(const char *section, const char *key, unsigned int &value);
+	static bool getNbListItems(ConfigurationList section, 
+	                           const char *key, 
+	                           unsigned int &value);
 
 	/**
 	 * Get the elements from the list
 	 *
-	 * @param  section  name of the section
+	 * @param  node     the node
 	 * @param  key      name of the list key
 	 * @param  list     the list
 	 * @return  true on success, false otherwise
 	 */
-	static bool getListItems(const char *section, const char *key, ConfigurationList &list);
+	static bool getListItems(xmlpp::Node *node, 
+	                         const char *key, 
+	                         ConfigurationList &list);
+
+	/**
+	 * Get the elements from the list
+	 *
+	 * @param  section  the section
+	 * @param  key      name of the list key
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
+	static bool getListItems(ConfigurationList section, 
+	                         const char *key, 
+	                         ConfigurationList &list);
 
 	/**
 	 * Get the value of an attribute in a list element
@@ -170,7 +248,7 @@ class Conf
 	 * @return  true on success, false otherwise
 	 */
 	template <class T>
-	static bool getValueInList(const char *section,
+	static bool getValueInList(ConfigurationList section,
 	                           const char *key,
 	                           const char *id,
 	                           const string id_val,
@@ -193,6 +271,8 @@ class Conf
 	                           const string id_val,
 	                           const char *attribute,
 	                           T &value);
+	
+	
 	/**
 	 * Load the log desired display levels
 	 * 
@@ -206,14 +286,22 @@ class Conf
  private:
 
 	static ConfigurationFile global_config;
+
+	static void loadMap(void);
 };
 
 
 
 template <class T>
-bool Conf::getValue(const char *section, const char *key, T &val)
+bool Conf::getValue(ConfigurationList section, const char *key, T &val)
 {
 	return Conf::global_config.getValue(section, key, val);
+}
+
+template <class T>
+bool Conf::getValue(ConfigurationList::iterator iter, T &val)
+{
+	return Conf::global_config.getValue(iter, val);
 }
 
 
@@ -223,6 +311,18 @@ bool Conf::getAttributeValue(ConfigurationList::iterator iter,
                              T &value)
 {
 	return Conf::global_config.getAttributeValue(iter, attribute, value);
+}
+
+template <class T>
+bool Conf::getElementWithAttributeValue(ConfigurationList list,
+                                  const char *attribute_name,
+                                  T &attribute_value,
+                                  ConfigurationList &elements)
+{
+	return Conf::global_config.getElementWithAttributeValue(list,
+	                                                        attribute_name,
+	                                                        attribute_value,
+	                                                        elements);
 }
 
 
@@ -239,7 +339,7 @@ bool Conf::getValueInList(ConfigurationList list,
 
 
 template <class T>
-bool Conf::getValueInList(const char *section,
+bool Conf::getValueInList(ConfigurationList section,
                           const char *key,
                           const char *id,
                           const string id_val,
@@ -249,7 +349,6 @@ bool Conf::getValueInList(const char *section,
 	return Conf::global_config.getValueInList(section, key, id, id_val,
 	                                          attribute, value);
 }
-
 
 
 #endif

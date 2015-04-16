@@ -201,7 +201,7 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 	uint8_t vpi;
 	uint16_t vci;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 	// keep the source/destination tal_id
 	uint8_t src_tal_id = packet->getSrcTalId();
 	uint8_t dst_tal_id = packet->getDstTalId();
@@ -275,7 +275,7 @@ bool Atm::Context::encapAtm(Aal5Packet *packet,
 		    atm->getQos());
 
 		// set the desintation spot ID
-		atm->setDstSpot(dest_spot);
+		atm->setSpot(dest_spot);
 		// add the ATM cell to the list
 		atm_cells->add(atm);
 	}
@@ -300,7 +300,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 	           ltAtmIdentifier >::iterator context_it;
 	Data *context;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 	// keep the source/destination tal_id
 	uint8_t src_tal_id = packet->getSrcTalId();
 	uint8_t dst_tal_id = packet->getDstTalId();
@@ -418,7 +418,7 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		}
 
 		// set the destination spot ID
-		aal5_packet->setDstSpot(dest_spot);
+		aal5_packet->setSpot(dest_spot);
 		// Set the source/destination tal Id
 		aal5_packet->setSrcTalId(src_tal_id);
 		aal5_packet->setDstTalId(dst_tal_id);
@@ -519,7 +519,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		}
 
 		// keep the destination spot
-		dest_spot = aal5_packet->getDstSpot();
+		dest_spot = aal5_packet->getSpot();
 		// keep the source/destination tal_id
 		src_tal_id = aal5_packet->getSrcTalId();
 		dst_tal_id = aal5_packet->getDstTalId();
@@ -539,7 +539,7 @@ bool Atm::Context::deencapAal5(NetBurst *aal5_packets,
 		}
 
 		// set the destination spot ID
-		packet->setDstSpot(dest_spot);
+		packet->setSpot(dest_spot);
 
 		// add the IP packet to the list
 		net_packets->add(packet);

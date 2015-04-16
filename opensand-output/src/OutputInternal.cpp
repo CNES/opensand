@@ -301,6 +301,7 @@ bool OutputInternal::finishInit(void)
 		message.append(name);
 		message.append(unit);
 	}
+	
 
 	// Add the logs
 /*	for(size_t i = 0 ; i < this->logs.size() ; i++)

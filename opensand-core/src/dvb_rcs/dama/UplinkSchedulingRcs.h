@@ -55,7 +55,8 @@ class UplinkSchedulingRcs: public Scheduling
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    const FmtSimulation *const ret_fmt_simu,
-	                    const TerminalCategoryDama *const category);
+	                    const TerminalCategoryDama *const category,
+	                    tal_id_t gw_id);
 
 	bool schedule(const time_sf_t current_superframe_sf,
 	              clock_t current_time,
@@ -63,6 +64,9 @@ class UplinkSchedulingRcs: public Scheduling
 	              uint32_t &remaining_allocation);
 
   private:
+	
+	// the gw_id
+	tal_id_t gw_id;
 
 	/// The FMT simulated data
 	const FmtSimulation *ret_fmt_simu;

@@ -83,6 +83,7 @@ static size_t getPayloadSize(string coding_rate)
 	return payload;
 }
 
+// TODO try to factorize with S2Scheduling
 
 ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                const EncapPlugin::EncapPacketHandler *packet_handler,
@@ -675,7 +676,6 @@ error:
 uint8_t ScpcScheduling::retrieveCurrentModcod(void)
 {
 	//TODO: MODCOD of GW is set to 28 because STs do not know the GW MODCOD (that should be changed)
-	//uint8_t modcod_id = this->scpc_fmt_simu->getCurrentModcodId(GW_TAL_ID);
 	uint8_t modcod_id = 28;
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW = %u\n", modcod_id);

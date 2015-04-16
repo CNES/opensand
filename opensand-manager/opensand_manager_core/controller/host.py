@@ -44,6 +44,7 @@ import tempfile
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
+from opensand_manager_core.utils import ST, SAT, GW
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
 START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
@@ -234,10 +235,10 @@ class HostController:
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
         instance_param = ''
-        if component.startswith('st'):
+        if component.startswith(ST) or component.startswith(GW):
             instance_param = '-i ' + self._host_model.get_instance()
         lan_iface = ''
-        if component != 'sat':
+        if component != SAT:
             lan_iface = '-l ' + self._host_model.get_lan_interface()
         command_line = '%s -a %s -n %s %s %s' % \
                        (bin_file,

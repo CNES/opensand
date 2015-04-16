@@ -34,23 +34,26 @@
 generate_conf_wiki.py - Transform the configuration into a wiki readable page
 """
 
+from opensand_manager_core.utils import SPOT
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 DO_HIDE=False
 
 def line_title():
-    line = "^  {:>20}  ^  {:>40}  ^  {:>20}  ^  {:>30}  " \
+    line = "^  {:>20}  ^  {:>40}  ^  {:>20}  ^  {:>20}  ^ {:>30}  " \
            "^  {:>20}  ^  {:>20}  ^  {:>20}  ^  {:>20}  ^"
-    return line.format("Domain", "Description", "Parameter type",
-                       "Parameter name", "Value type", "Default value",
+    return line.format("Domain", "Description", "By spot", "Parameter type", 
+                       "Parameter name", "Value type", "Default value", 
                        "Range of values", "Purpose")
 
 
-def line(domain, description, ptype, pname,  vtype, vdefault, vrange, purpose):
-    line = "|  {:>20}  |  {:>40}  |  {:>20}  |  {:>30}  " \
+def line(domain, description, bspot, ptype, pname,  vtype, vdefault, vrange, purpose):
+    line = "|  {:>20}  |  {:>40}  |  {:>20}  |  {:>20}  | {:>30}  " \
            "|  {:>20}  |  {:>20}  |  {:>20}  |  {:>20}  |"
     if description is None:
         description = "-"
+    if bspot is None:
+        bspot = ""
     if ptype is None:
         ptype = "-"
     if vtype is None:
@@ -66,12 +69,58 @@ def line(domain, description, ptype, pname,  vtype, vdefault, vrange, purpose):
     purpose = purpose.replace('\n', '\\\\')
     purpose = purpose.replace('\t', '    ')
     
-    return line.format(domain, description, ptype, pname,
+    return line.format(domain, description, bspot, ptype, pname,
                        vtype, vdefault, vrange, purpose)
 # For debug
-#    return line.format(domain[:20], description[:40], ptype[:20], pname[:30],
-#                       vtype[:20], vdefault[:20], vrange[:20],
+#    return line.format(domain[:20], description[:40], bspot[:20], ptype[:20],
+#                       pname[:30], vtype[:20], vdefault[:20], vrange[:20],
 #                       purpose[:20])
+
+def print_line (domain, description, bspot, KEY):
+    ptype = ""
+    pname = ""
+    vtype = ""
+    vdefault = ""
+    vrange = ""
+    purpose = ""
+    
+    if not PARSER.is_table(KEY):
+        ptype = "PARAM"
+        pname = PARSER.get_name(KEY)
+        vdefault = PARSER.get_value(KEY)
+        unit = PARSER.get_unit(pname)
+        if vdefault is not None and unit is not None:
+            vdefault += " " + unit
+        vtype = param_type(PARSER.get_type(pname))
+        vrange = param_range(PARSER.get_type(pname))
+        purpose = PARSER.get_documentation(pname)
+
+        print line(domain, description, bspot, ptype, pname,  vtype,
+                   vdefault, vrange, purpose)
+        domain = ":::"
+        description = ":::"
+        bspot = ":::" 
+    else:
+        ptype = "TABLE of %s" % PARSER.get_name(KEY)
+        for ELT in PARSER.get_table_elements(KEY):
+            for (pname, vdefault) in PARSER.get_element_content(ELT).items():
+                elt_name = PARSER.get_name(ELT)
+                unit = PARSER.get_unit(pname, elt_name)
+                if vdefault is not None and unit is not None:
+                    vdefault += " " + unit
+                att_type = PARSER.get_attribute_type(pname, elt_name)
+                purpose = PARSER.get_documentation(pname, elt_name)
+                vtype = param_type(att_type)
+                vrange = param_range(att_type)
+                print line(domain, description, bspot, ptype, pname, 
+                           vtype, vdefault, vrange, purpose)
+                ptype = ":::"
+                domain = ":::"
+                description = ":::"
+                bspot = ":::" 
+                # only one line is necessary
+            break
+
 
 def param_type(vtype):
     val = None
@@ -115,18 +164,15 @@ if __name__ == "__main__":
 
     domain = ""
     description = ""
-    ptype = ""
-    pname = ""
-    vtype = ""
-    vdefault = ""
-    vrange = ""
-    purpose = ""
+    bspot = ""
     for SECTION in PARSER.get_sections():
         domain = PARSER.get_name(SECTION)
+        done = False
         if DO_HIDE and PARSER.do_hide(domain) or PARSER.do_hide_adv(domain,
                                                                     False):
             continue
         description = PARSER.get_documentation(domain)
+        bspot = ""
         try:
             description = description.split('>')[1].strip("</b>")
         except:
@@ -135,39 +181,21 @@ if __name__ == "__main__":
             if DO_HIDE and PARSER.do_hide(PARSER.get_name(KEY)) or \
                PARSER.do_hide_adv(PARSER.get_name(KEY), False):
                 continue
-            if not PARSER.is_table(KEY):
-                ptype = "PARAM"
-                pname = PARSER.get_name(KEY)
-                vdefault = PARSER.get_value(KEY)
-                unit = PARSER.get_unit(pname)
-                if vdefault is not None and unit is not None:
-                    vdefault += " " + unit
-                vtype = param_type(PARSER.get_type(pname))
-                vrange = param_range(PARSER.get_type(pname))
-                purpose = PARSER.get_documentation(pname)
-                print line(domain, description, ptype, pname,  vtype, vdefault,
-                           vrange, purpose)
-                domain = ":::"
-                description = ":::"
-            else:
-                ptype = "TABLE of %s" % PARSER.get_name(KEY)
-                for ELT in PARSER.get_table_elements(KEY):
-                    for (pname, vdefault) in PARSER.get_element_content(ELT).items():
-                        elt_name = PARSER.get_name(ELT)
-                        unit = PARSER.get_unit(pname, elt_name)
-                        if vdefault is not None and unit is not None:
-                            vdefault += " " + unit
-                        att_type = PARSER.get_attribute_type(pname, elt_name)
-                        purpose = PARSER.get_documentation(pname, elt_name)
-                        vtype = param_type(att_type)
-                        vrange = param_range(att_type)
-                        print line(domain, description, ptype, pname,  vtype,
-                                   vdefault, vrange, purpose)
-                        ptype = ":::"
-                        domain = ":::"
-                        description = ":::"
-                    # only one line is necessary
-                    break
+            if PARSER.get_name(KEY) == SPOT and not done:
+                bspot = "X"  
+                for PARAM in PARSER.get_keys(KEY):
+                    print_line(domain, description, bspot, PARAM)
+                    domain = ":::"
+                    description = ":::"
+                    bspot = ":::"
+                done = True
+            else:        
+                print_line(domain, description, bspot, KEY)
+            
+            domain = ":::"
+            description = ":::"
+            bspot = ":::"
+
     sys.exit(0)
 
 

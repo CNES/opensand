@@ -66,7 +66,10 @@ class ForwardSchedulingS2: public Scheduling
 	                    const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategoryDama *const category);
+	                    const TerminalCategoryDama *const category,
+	                    spot_id_t spot,
+	                    bool is_gw,
+	                    tal_id_t gw);
 
 	virtual ~ForwardSchedulingS2();
 
@@ -207,6 +210,9 @@ class ForwardSchedulingS2: public Scheduling
 	 * @return the BBFrame size in bytes
 	 */
 	unsigned int getBBFrameSizeBytes(unsigned int modcod_id);
+
+	// Spot Id
+	spot_id_t spot_id;
 
 };
 

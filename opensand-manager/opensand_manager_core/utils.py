@@ -46,6 +46,41 @@ COL_BLUE="\033[34m"
 COL_BOLD="\033[1m"
 COL_END="\033[0m"
 
+MAX_DATA_LENGTH = 8192
+
+# host
+GW  = "gw"
+ST  = "st"
+SAT = "sat"
+WS  = "ws"
+
+#common
+SPOT      = "spot"
+ID        = "id"
+TAL_ID    = "tal_id"
+GLOBAL    = "global"
+TOPOLOGY  = "topology"
+COMMON    = "common"
+
+#Section
+RETURN_UP_BAND    = "return_up_band"
+FORWARD_DOWN_BAND = "forward_down_band"
+
+#topology
+CARRIERS     = "carriers"
+TERMINALS    = "terminals"
+CARRIER_TYPE = "type"
+DATA_OUT_GW  = "data_out_gw"
+DATA_IN_GW   = "data_in_gw"
+DATA_OUT_ST  = "data_out_st"
+DATA_IN_ST   = "data_in_st"
+LOGON_IN     = "logon_in"
+LOGON_OUT    = "logon_out"
+CTRL_IN      = "ctrl_in"
+CTRL_OUT     = "ctrl_out"
+IP_MULTICAST = "ip_multicast"
+IP_ADDRESS   = "ip_address"
+
 
 def _bold(msg):
     """ return the message with bold characters """

@@ -35,8 +35,8 @@
 #include "DamaCtrlRcs.h"
 #include "TerminalContextDamaRcs.h"
 #include "CarriersGroupDama.h"
+#include "OpenSandConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <math.h>
@@ -47,7 +47,7 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcs::DamaCtrlRcs(): DamaCtrl()
+DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot): DamaCtrl(spot)
 {
 }
 
@@ -116,7 +116,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
 	st = this->terminals.find(tal_id);
-	if(st == this->terminals.end() && tal_id != GW_TAL_ID)
+	if(st == this->terminals.end() && !OpenSandConf::isGw(tal_id))
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "

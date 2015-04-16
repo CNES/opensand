@@ -111,12 +111,12 @@ class NccPepInterface
 	 *            \li true if command is read and parsed successfully
 	 *            \li false if a problem is encountered
 	 */
-	bool readPepMessage(NetSocketEvent *const event);
+	bool readPepMessage(NetSocketEvent *const event, tal_id_t &tal_id);
 
  private:
  
 	/* parse a message sent by the PEP component */
-	bool parsePepMessage(const char *message);
+	bool parsePepMessage(const char *message, tal_id_t &tal_id);
 
 	/* parse one of the commands sent in a message by the PEP component */
 	PepRequest * parsePepCommand(const char *cmd);

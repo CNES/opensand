@@ -50,6 +50,7 @@ from copy import deepcopy
 
 from lxml import etree
 from opensand_manager_core.my_exceptions import XmlException
+from opensand_manager_core.utils import SPOT, ID, GW
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
@@ -172,6 +173,93 @@ class XmlParser:
             elt = elts[0]
             elt.getparent().remove(elt)
 
+    def add_spot(self, xpath, spot_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        gws = []
+        spots = [spot_id]
+        for child in section.getchildren():
+            if child.tag == SPOT:
+                if child.get(GW) is not None:
+                    if child.get(GW) in gws and \
+                       child.get(ID) in spots:
+                        break
+                    elif child.get(GW) in gws and \
+                         child.get(ID) not in spots:
+                        spots.append(child.get(ID))
+                        continue
+                        
+                    gws.append(child.get(GW))
+                    spots.append(child.get(ID))
+                    
+                new = deepcopy(child)
+                new.set(ID, spot_id)
+                child.addnext(new)
+                
+                if child.get(GW) is None:
+                    break
+
+    def remove_spot(self, xpath, spot_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        for child in section.getchildren():
+            if child.tag == SPOT and child.get(ID) == spot_id:
+                section.remove(child)
+
+    def add_gw(self, xpath, gw_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        gws = [gw_id]
+        spots = []
+        for child in section.getchildren():
+            if child.tag == SPOT:
+                if child.get(GW) is not None and\
+                   child.get(ID) is not None :
+                    if (child.get(GW) in gws and \
+                       child.get(ID) in spots) or \
+                       child.get(GW) == gw_id:
+                        break
+                    elif child.get(GW) not in gws and \
+                         child.get(ID) in spots:
+                        gws.append(child.get(GW))
+                        continue
+                        
+                    spots.append(child.get(ID))
+                    
+                    new = deepcopy(child)
+                    new.set(GW, gw_id)
+                    child.addnext(new)
+             
+            elif child.tag == GW:
+                if child.get(ID) is not None :
+                    if child.get(ID) == gw_id:
+                        break
+                        
+                    new = deepcopy(child)
+                    new.set(ID, gw_id)
+                    child.addnext(new)
+                
+
+    def remove_gw(self, xpath, gw_id):
+        """ add a spot in the table identified its path """
+        sections = self._tree.xpath(xpath)
+        if len(sections) != 1:
+            raise XmlException("wrong path: %s is not valid" % xpath)
+        section = sections[0]
+        for child in section.getchildren():
+            if (child.tag == SPOT and child.get(GW) == gw_id) or \
+               (child.tag == GW and child.get(ID) == gw_id):
+                section.remove(child)
+
     def add_line(self, xpath):
         """ add a line in the table identified its path """
         tables = self._tree.xpath(xpath)
@@ -238,6 +326,11 @@ class XmlParser:
             for elem in elems:
                 default = self.get_doc_param('/default', self.get_name(elem))
                 source = self.get_doc_param('/source', self.get_name(elem))
+                if elem.getparent().tag == SPOT:
+                    spot = "_spot_%s" % elem.getparent().get(ID)
+                    source += spot
+                    files.append((default, source))
+                    continue
                 files.append((default, source))
         # get attributes of type file
         nodes = self.get_file_elements("attribute")
@@ -251,6 +344,10 @@ class XmlParser:
                 # get line ID in path
                 pos = path.rfind('[')
                 line = path[pos:].strip('[]')
+                if elem.getparent().getparent().tag == SPOT:
+                    spot = "_spot_%s" % elem.getparent().getparent().get(ID)
+                    files.append((default, "%s%s_%s" % (source, spot, line)))
+                    continue
                 files.append((default, "%s_%s" % (source, line)))
         return files
 
@@ -264,6 +361,10 @@ class XmlParser:
             elems = self.get_all("//%s" % node)
             for elem in elems:
                 source = self.get_doc_param('/source', self.get_name(elem))
+                if elem.getparent().tag == SPOT:
+                    spot = "_spot_%s" % elem.getparent().get(ID)
+                    files[self.get_path(elem)] = "%s%s" % (source, spot)
+                    continue
                 files[self.get_path(elem)] = source
         # get attributes of type file
         nodes = self.get_file_elements("attribute")
@@ -276,6 +377,10 @@ class XmlParser:
                 # get line ID in path
                 pos = path.rfind('[')
                 line = path[pos:].strip('[]')
+                if elem.getparent().getparent().tag == SPOT:
+                    spot = "_spot_%s" % elem.getparent().getparent().get(ID)
+                    files["%s/@%s" % (path, node)] = "%s%s_%s" % (source, spot, line)
+                    continue
                 files["%s/@%s" % (path, node)] = "%s_%s" % (source, line)
         return files
 

@@ -37,6 +37,7 @@
 
 
 #include "PhysicalLayerPlugin.h"
+#include <opensand_conf/ConfigurationFile.h>
 
 #include <string>
 
@@ -54,6 +55,7 @@ class OnOff: public AttenuationModelPlugin
 		int on_duration;
 		int off_duration;
 		double amplitude;
+		map<string, ConfigurationList> config_section_map;
 
 	public:
 

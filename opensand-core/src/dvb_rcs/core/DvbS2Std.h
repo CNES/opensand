@@ -61,6 +61,9 @@ class DvbS2Std: public PhysicStd
 
  protected:
 
+	// whether this is a SCPC reception standard
+	bool is_scpc;
+
 	// Output Log
 	OutputLog* log_rcv_from_down;
 
@@ -70,16 +73,22 @@ class DvbS2Std: public PhysicStd
 	 * Build a DVB-S2 Transmission Standard
 	 *
 	 * @param packet_handler the packet handler
-	 * @param frame_duration the frame duration
-	 * @param bandwidth      the bandwidth
-
 	 */
 	DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl);
 
 	/**
+	 * Build a DVB-S2 Transmission Standard
+	 *
+	 * @param type     the type of the DVB standard
+	 * @param packet_handler the packet handler
+	 */
+	DvbS2Std(string type,
+	         const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+
+	/**
 	 * Destroy the DVB-S2 Transmission Standard
 	 */
-	~DvbS2Std();
+	virtual ~DvbS2Std();
 
 	/* only for NCC and Terminals */
 	bool onRcvFrame(DvbFrame *dvb_frame,
@@ -109,4 +118,9 @@ class DvbS2Std: public PhysicStd
 
 };
 
+class DvbScpcStd: public DvbS2Std
+{
+  public:
+	DvbScpcStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+};
 #endif

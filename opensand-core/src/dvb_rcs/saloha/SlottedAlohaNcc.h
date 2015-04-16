@@ -66,6 +66,9 @@ class SlottedAlohaNcc: public SlottedAloha
 	/// The default terminal category
 	TerminalCategorySaloha *default_category;
 
+	/// The spot id
+	spot_id_t spot_id;
+
 	// Helper to simplify context manipulation
 	typedef map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
 
@@ -101,7 +104,8 @@ class SlottedAlohaNcc: public SlottedAloha
 	 */
 	bool init(TerminalCategories<TerminalCategorySaloha> &categories,
 	          TerminalMapping<TerminalCategorySaloha> terminal_affectation,
-	          TerminalCategorySaloha *default_category);
+	          TerminalCategorySaloha *default_category,
+	          spot_id_t spot);
 
 	/**
 	 * Schedule Slotted Aloha packets

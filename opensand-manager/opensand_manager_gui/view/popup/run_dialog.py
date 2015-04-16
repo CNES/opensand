@@ -38,6 +38,7 @@ import os
 import gtk
 import gobject
 
+from opensand_manager_core.utils import ST, GW, SAT
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -80,9 +81,12 @@ class RunDialog(WindowView):
     def populate(self, scenario, run):
         """ add run elements into the combo box """
         # the list of directories to ignore
-        ignore = ['sat', 'gw', 'tools', 'plugins', 'modcod']
+        ignore = [SAT,'tools', 'plugins', 'modcod']
         for i in range(MAX_ST + 1):
-            ignore.append("st" + str(i))
+            ignore.append(ST + str(i))
+        for i in [0, 10]:
+            ignore.append(GW + str(i))
+
         
         list_id = 0
         active_id = 0

@@ -322,7 +322,7 @@ void FmtDefinitionTable::clear()
 	map<unsigned int, FmtDefinition *>::iterator it;
 
 	// delete all stored FMT definitions
-	for(it = this->definitions.begin(); it != this->definitions.end(); it++)
+	for(it = this->definitions.begin(); it != this->definitions.end(); ++it)
 	{
 		delete it->second;
 	}

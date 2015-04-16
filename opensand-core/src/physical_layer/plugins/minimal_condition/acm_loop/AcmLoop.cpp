@@ -62,12 +62,13 @@ bool AcmLoop::init(void)
 	component_t compo;
 
 	// satellite type
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
 	                   val))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SATELLITE_TYPE);
+		    COMMON_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -95,12 +96,13 @@ bool AcmLoop::init(void)
 		modcod_key = RETURN_UP_MODCOD_DEF_RCS;
 	}
 	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, modcod_key.c_str(),
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               modcod_key.c_str(),
 	                   filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    GLOBAL_SECTION, modcod_key.c_str());
+		    PHYSICAL_LAYER_SECTION, modcod_key.c_str());
 		goto error;
 	}
 

@@ -42,6 +42,7 @@
 
 #include "BlockDvb.h"
 
+#include "PhysicStd.h" 
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
 #include "Scheduling.h"
@@ -107,18 +108,18 @@ class BlockDvbTal: public BlockDvb
  public:
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
-	virtual ~BlockDvbTal();
+	~BlockDvbTal();
 
 
 	class Upward: public DvbUpward
 	{
 	 public:
 		Upward(Block *const bl, tal_id_t mac_id);
+		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 protected:
-
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -177,6 +178,9 @@ class BlockDvbTal: public BlockDvb
 		// statistics update
 		void updateStats(void);
 
+		/// reception standard (DVB-RCS or DVB-S2)      
+		PhysicStd *reception_std; 
+
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 		/// the group ID sent by NCC (only valid in state_running)
@@ -184,12 +188,10 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		spot_id_t spot_id;
 
 		/// the current state of the ST
 		tal_state_t state;
-
-		/// The up/return packet handler for SCPC
-		//EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;
 
 		/* Output probes and stats */
 			// Rates
@@ -212,8 +214,6 @@ class BlockDvbTal: public BlockDvb
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
-		static int scpc_on;
-		static EncapPlugin::EncapPacketHandler *scpc_tal_pkt_hdl;	
 	 
 	 protected:
 
@@ -282,7 +282,6 @@ class BlockDvbTal: public BlockDvb
 		 */
 		bool initTimers(void);
 
-
 		// statistics update
 		void updateStats(void);
 
@@ -333,6 +332,7 @@ class BlockDvbTal: public BlockDvb
 
 		// communication with QoS Server:
 		bool connectToQoSServer();
+		// TODO REMOVE STATIC
 		static void closeQosSocket(int sig);
 
 		/**
@@ -351,6 +351,7 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		spot_id_t spot_id;
 
 		/// fixed bandwidth (CRA) in kbits/s
 		rate_kbps_t cra_kbps;
@@ -448,6 +449,7 @@ class BlockDvbTal: public BlockDvb
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit(void);	
+
 };
 
 #endif

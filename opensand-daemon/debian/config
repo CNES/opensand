@@ -5,7 +5,8 @@
 
 
 ST_LIST="1, 2, 3, 4, 5"
-WS_LIST="0, 1, 2, 3, 4, 5"
+GW_LIST="0, 6"
+WS_LIST="0, 1, 2, 3, 4, 5, 6"
 SAT_EMU_IP4ADDR="192.168.18.15/24"
 SAT_EMU_IP6ADDR="2001:660:6602:101::15/64"
 GW_NET=42
@@ -40,7 +41,8 @@ configure(){
                 db_input high opensand-daemon/service/st_instance || true
             fi
             if [ "$NAME" = "GW" ]; then
-                db_set opensand-daemon/service/st_instance 0
+                db_subst opensand-daemon/service/st_instance inst_list ${GW_LIST}
+                db_input high opensand-daemon/service/st_instance || true
             fi
             if [ "$NAME" = "WS" ]; then
                 # enable WS2
@@ -50,6 +52,10 @@ configure(){
         ;;
         4)
             if [ "$NAME" = "ST" ]; then
+                db_get opensand-daemon/service/st_instance
+                INST=$RET
+            fi
+            if [ "$NAME" = "GW" ]; then
                 db_get opensand-daemon/service/st_instance
                 INST=$RET
             fi
@@ -107,7 +113,11 @@ configure(){
                             db_set opensand-daemon/network/emu_ipv4 ${SAT_EMU_IP4ADDR}
                      
                         elif [ "$NAME" = "GW" ]; then
-                            db_set opensand-daemon/network/emu_ipv4 ${GW_EMU_IP4ADDR}
+                            if [ "${INST}" = "0" ]; then 
+                                db_set opensand-daemon/network/emu_ipv4 ${GW_EMU_IP4ADDR}
+                            else
+                                db_set opensand-daemon/network/emu_ipv4 "192.168.18.${INST}/24"
+                            fi
                     
                         elif [ "$NAME" = "ST" ]; then
                             db_set opensand-daemon/network/emu_ipv4 "192.168.18.${INST}/24"
@@ -123,10 +133,10 @@ configure(){
                         db_input high opensand-daemon/network/ws_lan_iface || true
                         # use a random value to limit WS with the same address
                         # ST physical interface has address .1 and tun interface
-                        # (opensand) has address .2
+                        # (opensand) has address .3
                         add=`od -An -N1 -tu1 /dev/urandom`
                         add=$((add % 252))
-                        add=$((add + 3))
+                        add=$((add + 4))
                     else
                         db_input high opensand-daemon/network/lan_iface || true
                     fi

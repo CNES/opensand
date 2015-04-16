@@ -331,7 +331,6 @@ bool RtChannel::addEvent(RtEvent *event)
 
 void RtChannel::updateEvents(void)
 {
-
 	// add new events
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
@@ -477,14 +476,6 @@ void *RtChannel::startThread(void *pthis)
 	((RtChannel *)pthis)->executeThread();
 
 	return NULL;
-}
-
-
-clock_t RtChannel::getCurrentTime(void)
-{
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }
 
 

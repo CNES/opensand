@@ -37,19 +37,28 @@ conf_event.py - the events on configuration tab
 
 import gtk
 import gobject
+import copy
 
+from opensand_manager_core.utils import GW, ST, RETURN_UP_BAND, ID
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
 from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
+from opensand_manager_gui.view.popup.edit_spot_dialog import EditSpotDialog
+from opensand_manager_gui.view.utils.config_elements import ManageSpot
 
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
     def __init__(self, parent, model, manager_log):
+        self._free_spot = []
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
+        # spot table
+        self._tab_spot = ["1", "2", "3"]
+        self.read_conf_free_spot()
+
         self._previous_img = ''
         # update the image
         self.refresh_description()
@@ -257,6 +266,7 @@ class ConfEvent(ConfView) :
 #            enable = False
 
         self.refresh_description()
+        self.update_button_state()
 
         self._ui.get_widget('save_conf').set_sensitive(enable)
         self._ui.get_widget('undo_conf').set_sensitive(enable)
@@ -326,12 +336,65 @@ class ConfEvent(ConfView) :
         """ 'clicked' event on teminal type buttons """
         self.enable_conf_buttons()
 
+
+    def on_add_spot_clicked(self, source=None, event=None):
+        """ 'clicked' event on add spot button """
+        if len(self._free_spot) > 0:
+            self._free_spot.remove(self._free_spot[0])
+            self.enable_conf_buttons()
+        self._update_spot = True
+        
+        
+    def on_remove_spot_clicked(self, source=None, event=None):
+        """ 'clicked' event on add remove button """
+        
+        window = EditSpotDialog(self._model)
+        spot = window.go()
+        if spot != "":
+            self._free_spot.append(spot)
+            self.enable_conf_buttons()
+        self._update_spot = True
+
+   
+    def update_button_state(self):
+        widget_add = self._ui.get_widget('add_spot')
+        
+        if len(self._free_spot) < 1:
+            widget_add.set_sensitive(False)
+        else:
+            widget_add.set_sensitive(True)
+
+        widget_remove = self._ui.get_widget('remove_spot')
+        if len(self._free_spot) >= 2:
+            widget_remove.set_sensitive(False)
+        else:
+            widget_remove.set_sensitive(True) 
+
+
+    def read_conf_free_spot(self):
+        self._free_spot = copy.deepcopy(self._tab_spot)
+        config = self._model.get_conf().get_configuration()
+        xpath = "//"+RETURN_UP_BAND
+        #update free spot id 
+        for key in config.get_keys(config.get(xpath)):
+            if key.get(ID) is not None and key.get(ID) in self._free_spot:
+                self._free_spot.remove(key.get(ID))
+
+
     def on_enable_physical_layer_toggled(self, source=None, event=None):
         """ 'toggled' event on enable button """
         self.enable_conf_buttons()
 
+
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
+        # reset free spot list
+        self._free_spot = copy.deepcopy(self._tab_spot)
+        config = self._model.get_conf().get_configuration()
+        xpath = "//"+RETURN_UP_BAND
+        for key in config.get_keys(config.get(xpath)):
+            self._free_spot.remove(key.get(ID))
+
         try:
             self.update_view()
         except ConfException as msg:
@@ -339,7 +402,7 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons(False)
 
     def on_save_conf_clicked(self, source=None, event=None):
-        """ save the new configuration in the ini file """
+        """ save the new configuration"""
         # retrieve global parameters
 
         # payload type
@@ -410,14 +473,14 @@ class ConfEvent(ConfView) :
         if self._model.get_adv_mode():
             previous = None
             last = None
-            gw_stack = None
-            other_stacks = []
+            gw_stack = {}
+            other_stacks = {}
             for host in self._lan_stacks:
                 stack = self._lan_stacks[host].get_stack()
-                if host.get_name() == 'gw':
-                    gw_stack = stack
+                if host.get_name().startswith(GW):
+                    gw_stack[host.get_instance()] = stack
                 else:
-                    other_stacks.append(stack)
+                    other_stacks[host] = stack
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
@@ -428,23 +491,20 @@ class ConfEvent(ConfView) :
                        not host_modules[mod].get_condition("header_modif"):
                         last = mod
                         break
-                if previous is not None and last != previous:
-                    error_popup("The last module of the LAN stack should be the "
-                                "same for each host (except for header modifications)")
-                    return
-                previous = last
             # check that the GW stack is at least the same as other
-            for stack in other_stacks:
-                if len(set(gw_stack.values()) - set(stack.values())) != 0:
-                    error_popup("The hosts stack should be at least the same as "
-                                "for GW")
+            for host in other_stacks:
+                stack = other_stacks[host]
+                if len(set(gw_stack[host.get_gw_id()].values()) - set(stack.values())) != 0:
+                    error_popup("The host " + host.get_name() +
+                                " stack should be at least the same as "
+                                "for associate GW" + host.get_gw_id())
                     return
         for host in self._lan_stacks:
             if self._model.get_adv_mode():
                 host.set_lan_adaptation(self._lan_stacks[host].get_stack())
             else:
                 host.set_lan_adaptation(self._lan_stack_base.get_stack())
-
+        
         # output encapsulation scheme
         config.set_return_up_encap(self._out_stack.get_stack())
 
@@ -458,8 +518,28 @@ class ConfEvent(ConfView) :
         else:
             config.set_enable_physical_layer("false")
 
+        #update spot
+        configuration =  config.get_configuration()
+        manager = ManageSpot(self._model, configuration)
+        xpath = "//"+RETURN_UP_BAND
+        #old spot id
+        old_spots = [] 
+        for key in configuration.get_keys(configuration.get(xpath)):
+            old_spots.append(key.get(ID))
+        
+        for key in self._tab_spot:
+            # remove spot
+            if key in self._free_spot and key in old_spots:
+                manager.remove_spot(key)
+            # add spot
+            elif not key in old_spots and not key in self._free_spot:
+                manager.add_spot(key)
+
+
         try:
-            config.save()
+            #config.save()
+            self._model.save()
+
         except XmlException, error:
             error_popup(str(error), error.description)
             self.on_undo_conf_clicked()
@@ -467,6 +547,7 @@ class ConfEvent(ConfView) :
             error_popup(str(error))
             self.on_undo_conf_clicked()
 
+        
         self.update_view()
         self.enable_conf_buttons(False)
 
@@ -485,6 +566,7 @@ class ConfEvent(ConfView) :
                 self.on_save_conf_clicked()
             else:
                 try:
+                    self.on_undo_conf_clicked()
                     self.update_view()
                 except ConfException as msg:
                     error_popup(str(msg))

@@ -5,6 +5,7 @@ libopensand_dama_la_cpp = \
 	UplinkSchedulingRcs.cpp \
 	ReturnSchedulingRcs.cpp \
 	ForwardSchedulingS2.cpp \
+	ScpcScheduling.cpp \
 	DamaAgent.cpp \
 	DamaAgentRcs.cpp \
 	DamaAgentRcsLegacy.cpp \
@@ -19,6 +20,7 @@ libopensand_dama_la_h = \
 	UplinkSchedulingRcs.h \
 	ReturnSchedulingRcs.h \
 	ForwardSchedulingS2.h \
+	ScpcScheduling.h \
 	DamaAgent.h \
 	DamaAgentRcs.h \
 	DamaAgentRcsLegacy.h \
@@ -36,4 +38,5 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/pep \
 	-I$(top_srcdir)/src/dvb_rcs/core \
+	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

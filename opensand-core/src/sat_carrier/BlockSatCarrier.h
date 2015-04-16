@@ -43,6 +43,7 @@
 
 struct sc_specific
 {
+	tal_id_t tal_id;     ///< the terminal id for terminal
 	string ip_addr;      ///< the IP address for emulation
 	string emu_iface;    ///< the name of the emulation interface
 };
@@ -72,19 +73,23 @@ class BlockSatCarrier: public Block
 		Upward(Block *const bl, struct sc_specific specific):
 			RtUpward(bl),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			interface_name(specific.emu_iface),
+			tal_id(specific.tal_id),
+			in_channel_set(specific.tal_id)
 		{};
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
-		/// List of input channels
-		sat_carrier_channel_set in_channel_set;
 		/// the IP address for emulation newtork
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
+		/// the terminal id for the emulation newtork
+		tal_id_t tal_id;
+		/// List of input channels
+		sat_carrier_channel_set in_channel_set;
 
 		/**
 		 * @brief Handle a packt received from carrier
@@ -94,6 +99,7 @@ class BlockSatCarrier: public Block
 		 * @param length      The data length
 		 */
 		void onReceivePktFromCarrier(uint8_t carrier_id,
+		                             spot_id_t spot_id,
 		                             unsigned char *data,
 		                             size_t length);
 	};
@@ -104,23 +110,26 @@ class BlockSatCarrier: public Block
 		Downward(Block *const bl, struct sc_specific specific):
 			RtDownward(bl),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			interface_name(specific.emu_iface),
+			tal_id(specific.tal_id),
+			out_channel_set(specific.tal_id)
 		{};
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
-		/// List of output channels
-		sat_carrier_channel_set out_channel_set;
 		/// the IP address for emulation newtork
 		string ip_addr;
 		/// the interface name for emulation newtork
 		string interface_name;
+		/// the terminal id for the emulation newtork
+		tal_id_t tal_id;
+		/// List of output channels
+		sat_carrier_channel_set out_channel_set;
 	};
 
  protected:
-
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);

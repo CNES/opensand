@@ -57,7 +57,7 @@ class DamaCtrlRcs: public DamaCtrl
 {
  public:
 
-	DamaCtrlRcs();
+	DamaCtrlRcs(spot_id_t spot);
 	virtual ~DamaCtrlRcs();
 
 	//bool applyPepCommand(const PepRequest &request);

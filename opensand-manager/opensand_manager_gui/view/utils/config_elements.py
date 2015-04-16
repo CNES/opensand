@@ -40,12 +40,15 @@ import os
 import pango
 from copy import deepcopy
 
+from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
+                                         TOPOLOGY  
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
 
-(TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
-(DISPLAYED, NAME, ID, SIZE) = range(4)
+(TEXT, VISIBLE_CHECK_BOX, CHECK_BOX_SIZE, ACTIVE, \
+ ACTIVATABLE, VISIBLE, RESTRICTED) = range(7)
+(DISPLAYED, NAME, PROBE_ID, SIZE) = range(4)
 
 
 class ProbeSelectionController(object):
@@ -223,7 +226,7 @@ class ProbeSelectionController(object):
     def _probe_toggled(self, _, path):
         """ called when the user selects or deselects a probe """
         it = self._probe_store.get_iter(path)
-        probe_ident = self._probe_store.get_value(it, ID)
+        probe_ident = self._probe_store.get_value(it, PROBE_ID)
         new_value = not self._probe_store.get_value(it, DISPLAYED)
         # this is a parent, expand or collapse it
         if self._probe_store.iter_has_child(it):
@@ -274,14 +277,20 @@ class ProbeSelectionController(object):
 
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
-    def __init__(self, treeview, col1_title, col2_title,
-                 col1_changed_cb, col2_toggled_cb):
-        # create a treestore with 4 properties
+    def __init__(self, treeview, col1_title, col1_changed_cb, col1_toggled, adv_mode=None):
+        # create a treestore with 7 properties
         # - text: the text of the 1st column
-        # - visible: is the check box of the 2nd column visible
-        # - active: is the check box of the 2nd column active
+        # - visible: is the check box visible
+        # - int: the checkbox size (used to hide the checkbox on sections while
+        #        keeping the alignment)
+        # - activate : the check box s activate 
         # - activatable: can we activate the check box of the 2nd column
+        # - visible: the element is visible
+        # - restricted: the element is restricted
         gtk.TreeStore.__init__(self, gobject.TYPE_STRING,
+                                     gobject.TYPE_BOOLEAN,
+                                     gobject.TYPE_INT,
+                                     gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN,
                                      gobject.TYPE_BOOLEAN)
@@ -289,38 +298,38 @@ class ConfigurationTree(gtk.TreeStore):
         self._treeselection = None
         self._cell_renderer_toggle = None
         self._is_first_elt = 0
-        self._treeview = treeview
-
-        self.load(col1_title, col2_title, col1_changed_cb,
-                  col2_toggled_cb)
-
-    def load(self, col1_title, col2_title,
-             col1_changed_cb, col2_toggled_cb):
+        if adv_mode == None:
+            self._adv_mode = True
+        else:
+            self._adv_mode = adv_mode
+        
+        # filter to hide row
+        # attach store to the filter
+        self._filter_visible = self.filter_new()
+        self._filter_visible.set_visible_column(4)
+        self._treeview = treeview 
+        self._treeview.set_model(self._filter_visible)
+        self._hidden_row = []
+        self._restriction_row = []
+        
         """ load the treestore """
-        # attach the treestore to the treeview
-        self._treeview.set_model(self)
-
+        column = gtk.TreeViewColumn(col1_title)
+        if not col1_toggled is None:
+            cell_renderer = gtk.CellRendererToggle()
+            column.pack_start(cell_renderer, False)
+            column.set_resizable(True)
+            column.add_attribute(cell_renderer, "visible", VISIBLE_CHECK_BOX)
+            column.add_attribute(cell_renderer, "active", ACTIVE)
+            column.add_attribute(cell_renderer, "indicator-size", CHECK_BOX_SIZE) 
+            column.add_attribute(cell_renderer, "activatable", ACTIVATABLE)
+            cell_renderer.connect("toggled", col1_toggled)
+        
         cell_renderer = gtk.CellRendererText()
-        # Connect check box on the treeview
-        self._cell_renderer_toggle = gtk.CellRendererToggle()
-        self._cell_renderer_toggle.set_active(True)
-        self._cell_renderer_toggle.set_activatable(True)
-        if col2_toggled_cb is not None:
-            self._cell_renderer_toggle.connect('toggled', col2_toggled_cb)
-
-        column = gtk.TreeViewColumn(col1_title, cell_renderer, text=TEXT)
-        column.set_resizable(True)
-        #column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
-        column_toggle = gtk.TreeViewColumn(col2_title,
-                                           self._cell_renderer_toggle,
-                                           visible=VISIBLE, active=ACTIVE,
-                                           activatable=ACTIVATABLE)
-        column_toggle.set_resizable(True)
-        #column_toggle.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-
+        column.pack_start(cell_renderer, True)
+        column.add_attribute(cell_renderer, "text", TEXT)
+        column.add_attribute(cell_renderer, "visible", VISIBLE)
+        
         self._treeview.append_column(column)
-        self._treeview.append_column(column_toggle)
 
         # add a column to avoid large toggle column
         col = gtk.TreeViewColumn('')
@@ -337,22 +346,28 @@ class ConfigurationTree(gtk.TreeStore):
         name = host.get_name()
         # append an element in the treestore
         # first Global, next SAT, then GW and ST
-        if name == 'global':
+        self._is_first_elt = 3
+        if name == GLOBAL:
             top_elt = self.insert(None, 0)
-            self._is_first_elt = 1
-        elif name == 'sat':
+        elif name == TOPOLOGY:
+            top_elt = self.insert(None, 1)
+        elif name == SAT:
+            top_elt = self.insert(None, 2)
+        elif name.startswith(GW):
             top_elt = self.insert(None, self._is_first_elt)
-        elif name == 'gw':
-            top_elt = self.insert(None, self._is_first_elt + 1)
+            self._is_first_elt += 1
         else:
             top_elt = self.append(None)
 
         # for tools and global in advanced configuration
         if elt_info is not None:
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE, False,
+                              VISIBLE_CHECK_BOX, False,
+                              CHECK_BOX_SIZE, 1,
                               ACTIVE, False,
-                              ACTIVATABLE, False)
+                              ACTIVATABLE, True,
+                              VISIBLE, True, 
+                              RESTRICTED, False)
             for sub_name in elt_info.keys():
                 activatable = True
                 sub_iter = self.append(top_elt)
@@ -361,9 +376,12 @@ class ConfigurationTree(gtk.TreeStore):
                     activatable = False
                 if not isinstance(elt_info[sub_name], list):
                     self.set(sub_iter, TEXT, sub_name,
-                                       VISIBLE, True,
+                                       VISIBLE_CHECK_BOX, self._adv_mode,
+                                       CHECK_BOX_SIZE, 12,  
                                        ACTIVE, False,
-                                       ACTIVATABLE, activatable)
+                                       ACTIVATABLE, activatable,
+                                       VISIBLE, True, 
+                                       RESTRICTED, False)
         else:
             # for advanced host
             # only set host activatable if developper mode is enabled
@@ -371,9 +389,46 @@ class ConfigurationTree(gtk.TreeStore):
                 activatable = False
             active = host.is_enabled()
             self.set(top_elt, TEXT, name.upper(),
-                              VISIBLE, True,
+                              VISIBLE_CHECK_BOX, self._adv_mode,
+                              CHECK_BOX_SIZE, 12,
                               ACTIVE, active,
-                              ACTIVATABLE, True)
+                              ACTIVATABLE, True,
+                              VISIBLE, True,
+                              RESTRICTED, False)
+        
+
+    def add_child(self, name, parent_name, hidden, parents=False):
+        """ add a module in the module tree """
+        top_elt = None
+        if parents:
+            top_elt = self.get_parent(parent_name)
+
+        # set top element, either child  or type depending on parents
+        if top_elt is None:
+            top_elt = self.append(None)
+            top_name = name
+            if parents:
+                it = len(parent_name) -1
+                top_name = parent_name[it]
+            self.set(top_elt, TEXT, top_name,
+                     VISIBLE_CHECK_BOX, False,
+                     CHECK_BOX_SIZE, 1,
+                     ACTIVE, False,
+                     ACTIVATABLE, True,
+                     VISIBLE, True ,
+                     RESTRICTED, False)
+
+        if parents:
+            sub_iter = self.append(top_elt)
+            self.set(sub_iter, TEXT, name,
+                     VISIBLE_CHECK_BOX, False,
+                     CHECK_BOX_SIZE, 1,
+                     ACTIVE, False,
+                     ACTIVATABLE, not hidden,
+                     VISIBLE , not hidden,
+                     RESTRICTED, False)
+            if hidden :
+                self._hidden_row.append(sub_iter)
 
 
     def add_module(self, module, parents=False):
@@ -382,7 +437,7 @@ class ConfigurationTree(gtk.TreeStore):
 
         top_elt = None
         if parents:
-            top_elt = self.get_parent(module.get_type())
+            top_elt = self.get_parent([module.get_type()])
 
         # set top element, either module or type depending on parents
         if top_elt is None:
@@ -391,31 +446,97 @@ class ConfigurationTree(gtk.TreeStore):
             if parents:
                 top_name = module.get_type()
             self.set(top_elt, TEXT, top_name,
-                              VISIBLE, False,
+                              VISIBLE_CHECK_BOX, False,
                               ACTIVE, False,
-                              ACTIVATABLE, False)
+                              ACTIVATABLE, True,
+                              VISIBLE, True,
+                              RESTRICTED, False)
 
         if parents:
             sub_iter = self.append(top_elt)
             self.set(sub_iter, TEXT, name,
-                               VISIBLE, False,
+                               VISIBLE_CHECK_BOX, False,
                                ACTIVE, False,
-                               ACTIVATABLE, False)
+                               ACTIVATABLE, True,
+                               VISIBLE, True,
+                               RESTRICTED, False)
 
     def del_elem(self, name):
         """ remove a host from the treeview """
-        iterator = self.get_parent(name)
+        iterator = self.get_parent([name])
         if iterator is not None:
             self.remove(iterator)
 
     def get_parent(self, name):
         """ get a parent in the treeview """
         iterator = self.get_iter_first()
-        while iterator is not None and \
-              self.get_value(iterator, TEXT).lower() != name.lower():
-            iterator = self.iter_next(iterator)
-        return iterator
+        last_it = iterator
+        path_iter = 0
+        while iterator is not None :
+            if self.get_value(iterator, TEXT).lower() == name[path_iter].lower():
+                if path_iter == len(name)-1:
+                    return iterator
+                path_iter += 1
+                iterator = self.iter_children(iterator)
 
+            if last_it == iterator:
+                iterator = self.iter_next(iterator)
+                last_it = iterator
+            else:
+                last_it = iterator
+        return iterator
+   
+    def set_hidden(self, hidden):
+        for row in self._hidden_row:
+            path = self.get_path(row)
+            #visible is not (restricted or hide)
+            self[path][VISIBLE] = not hidden 
+            self[path][ACTIVATABLE] = not hidden
+        # show all restiction
+        if not hidden :
+            for row in self._restriction_row:
+                path = self.get_path(row)
+                #visible is not (restricted or hide)
+                self[path][VISIBLE] = not hidden 
+                self[path][ACTIVATABLE] = not hidden
+        
+        iterator = self.get_iter_first()
+        self.is_children_visible(iterator)
+
+    def set_restricted(self, rows):
+        del self._restriction_row[:]
+        for row in rows:
+            path = row.split('.')
+            iterator = self.get_parent(path)
+            if iterator is not None:
+                self._restriction_row.append(iterator)
+                xpath = self.get_path(iterator)
+                self[xpath][RESTRICTED] = rows[row]
+                #visible is not restricted and not hide (visible)
+                self[xpath][VISIBLE] = not self[xpath][RESTRICTED]
+                self[xpath][ACTIVATABLE] = not self[xpath][RESTRICTED]
+        
+        iterator = self.get_iter_first()
+        self.is_children_visible(iterator)
+                
+    def is_children_visible(self, iterator):
+        list_vis_child = []
+        while iterator is not None:
+            path = self.get_path(iterator)
+            if self.iter_has_child(iterator):
+                first_child = self.iter_children(iterator)
+                visible = self.is_children_visible(first_child)
+                list_vis_child.append(visible)
+                self[path][VISIBLE] = visible
+                self[path][ACTIVATABLE] = visible
+            else:
+                list_vis_child.append(self[path][VISIBLE])
+            iterator = self.iter_next(iterator)
+        if True in list_vis_child:
+            return True
+        else: 
+            return False
+            
     def get_selection(self):
         """ get the treeview selection """
         return self._treeselection
@@ -509,7 +630,7 @@ class ConfigurationNotebook(gtk.Notebook):
 class ConfSection(gtk.VBox):
     """ a section in the configuration """
     def __init__(self, section, config, host, adv_mode, scenario,
-                 changed_cb, file_cb):
+                 changed_cb, file_cb, spot_id = None, gw_id = None):
         gtk.VBox.__init__(self)
 
         self._config = config
@@ -519,6 +640,8 @@ class ConfSection(gtk.VBox):
         self._file_cb = file_cb
         self._scenario = scenario
         self._adv_mode = adv_mode
+        self._spot_id =  spot_id
+        self._gw_id =  gw_id
         # keep ConfEntry objects else we sometimes loose their attributes in the
         # event callback
         self._entries = []
@@ -545,10 +668,28 @@ class ConfSection(gtk.VBox):
         self._completions = []
 
         self.fill(section)
+        self.set_hidden(True)
+
+    def set_spot_id(self, spot_id):
+        self._spot_id = spot_id
 
     def get_restrictions(self):
         """ get the restrictions """
         return self._restrictions
+
+    def set_restrictions(self, restrictions):
+        """ set the hidden widgets """
+        #restrictions.update(self._restrictions)
+        for (widget, val) in restrictions.items():
+            # enable hide_all and show_all actions on this widget
+            widget.set_no_show_all(False)
+            if val:
+                widget.hide_all()
+            else:
+                widget.show_all()
+            # disable hide_all and show_all actions on this widget
+            # to avoid modifications from outside
+            widget.set_no_show_all(True)
 
     def set_hidden(self, val):
         """ change the hidden status """
@@ -591,23 +732,66 @@ class ConfSection(gtk.VBox):
             self.set_child_packing(evt, expand=False,
                                    fill=False, padding=5,
                                    pack_type=gtk.PACK_START)
+        
         for key in self._config.get_keys(section):
-            if self._config.is_table(key):
-                table = self.add_table(key)
-                if table is not None:
-                    self.pack_end(table)
-                    self.set_child_packing(table, expand=False,
-                                           fill=False, padding=5,
-                                           pack_type=gtk.PACK_START)
+            if self._spot_id is not None or self._gw_id is not None:
+                if key.tag == SPOT:
+                    if self._spot_id == key.get(ID) and \
+                       (key.get(GW) is None or self._gw_id == key.get(GW)):
+                        for s_key in self._config.get_keys(key):
+                            source_ext = "_spot_" + self._spot_id
+                            if self._config.is_table(s_key):
+                                table = self.add_table(s_key, source_ext)
+                                if table is not None:
+                                    self.pack_end(table)
+                                    self.set_child_packing(table, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+                            else:
+                                entry = self.add_key(s_key, source_ext)
+                                if entry is not None:
+                                    self.pack_end(entry)
+                                    self.set_child_packing(entry, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+                elif key.tag == GW:
+                    if self._gw_id == key.get(ID):
+                        for s_key in self._config.get_keys(key):
+                            source_ext = "_gw_" + self._gw_id
+                            if self._config.is_table(s_key):
+                                table = self.add_table(s_key, source_ext)
+                                if table is not None:
+                                    self.pack_end(table)
+                                    self.set_child_packing(table, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+                            else:
+                                entry = self.add_key(s_key, source_ext)
+                                if entry is not None:
+                                    self.pack_end(entry)
+                                    self.set_child_packing(entry, expand=False,
+                                                           fill=False, padding=5,
+                                                           pack_type=gtk.PACK_START)
+          
             else:
-                entry = self.add_key(key)
-                if entry is not None:
-                    self.pack_end(entry)
-                    self.set_child_packing(entry, expand=False,
-                                          fill=False, padding=5,
-                                          pack_type=gtk.PACK_START)
+                if key.tag == SPOT or key.tag == GW:
+                    continue
+                elif self._config.is_table(key):
+                    table = self.add_table(key)
+                    if table is not None:
+                        self.pack_end(table)
+                        self.set_child_packing(table, expand=False,
+                                               fill=False, padding=5,
+                                               pack_type=gtk.PACK_START)
+                else:
+                    entry = self.add_key(key)
+                    if entry is not None:
+                        self.pack_end(entry)
+                        self.set_child_packing(entry, expand=False,
+                                              fill=False, padding=5,
+                                              pack_type=gtk.PACK_START)
 
-    def add_key(self, key):
+    def add_key(self, key, source_ext = ""):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -628,10 +812,11 @@ class ConfSection(gtk.VBox):
         source = self._config.get_file_source(name)
         if source is not None:
             scenario = self._scenario
-            if self._host != 'global':
+            if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
+            source += source_ext
             source = os.path.join(scenario, source)
-
+    
         entry = ConfEntry(self._config.get_type(name),
                           self._config.get_value(key),
                           self._config.get_path(key),
@@ -655,13 +840,14 @@ class ConfSection(gtk.VBox):
                                       pack_type=gtk.PACK_START)
         if self._config.do_hide(name):
             self._hidden_widgets.append(key_box)
+        
         restriction = self._config.get_xpath_restrictions(name)
         if restriction is not None:
             self._restrictions.update({key_box: restriction})
 
         return key_box
 
-    def add_table(self, key):
+    def add_table(self, key, source_ext = ""):
         """ add a table in the tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -708,7 +894,7 @@ class ConfSection(gtk.VBox):
         self._table_length[self._config.get_path(key)] = 0
         for line in self._config.get_table_elements(key):
             self._table_length[self._config.get_path(key)] += 1
-            hbox = self.add_line(key, line, check_buttons)
+            hbox = self.add_line(key, line, check_buttons, source_ext)
             align_vbox.pack_end(hbox)
             align_vbox.set_child_packing(hbox, expand=False,
                                          fill=False, padding=5,
@@ -724,7 +910,7 @@ class ConfSection(gtk.VBox):
 
         return table_frame
 
-    def add_line(self, key, line, check_buttons):
+    def add_line(self, key, line, check_buttons, source_ext = ""):
         """ add a line in the configuration """
         hbox = gtk.HBox()
         key_path = self._config.get_path(key)
@@ -776,7 +962,7 @@ class ConfSection(gtk.VBox):
             source = self._config.get_file_source(att, name)
             cb = [self.handle_param_chanded, self._changed_cb]
             scenario = self._scenario
-            if self._host != 'global':
+            if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
 
             try:
@@ -786,7 +972,7 @@ class ConfSection(gtk.VBox):
                 line_id = line_path[pos:].strip('[]')
                 value = dic[att]
                 if source is not None:
-                    source += '_' + str(line_id)
+                    source += source_ext + '_' + str(line_id)
                     source = os.path.join(scenario, source)
             except:
                 # this is a new line entry
@@ -796,7 +982,7 @@ class ConfSection(gtk.VBox):
                                            att)
                 # TODO this won't be enough as the file won't exist
                 if source is not None:
-                    source += '_' + str(nbr + self._new.count(key_path))
+                    source += source_ext + '_' + str(nbr + self._new.count(key_path))
                     source = os.path.join(scenario, source)
             entry = ConfEntry(elt_type, value, path, source, self._host,
                               cb, self._file_cb)
@@ -1075,7 +1261,12 @@ class ConfEntry(object):
         self._entry = gtk.HBox()
         def edit_file(edit_button, event):
             window = EditDialog(self._source)
-            window.go()
+            ret = window.go()
+            if ret == gtk.RESPONSE_APPLY:
+                self.global_handler()
+                if self._file_handler is not None:
+                    self._file_handler(self._source, self._host, self._path)
+
         edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
         edit_button.show()
         # show edit dialog
@@ -1104,6 +1295,7 @@ class ConfEntry(object):
                 has_preview = False
             file_chooser.set_preview_widget_active(has_preview)
             return
+        
         def upload_file(button, event):
             if self._source is None:
                 error_popup("Missing XSD source content for file element")
@@ -1241,13 +1433,13 @@ class InstallNotebook(gtk.Notebook):
         tab_label = gtk.Label()
         tab_label.set_justify(gtk.JUSTIFY_CENTER)
         tab_label.set_markup("<small><b>%s</b></small>" % host_name)
-        if host_name == 'global':
+        if host_name == GLOBAL:
             self.insert_page(scroll_notebook, tab_label, position=0)
             self._is_first_elt = 1
-        elif host_name == 'sat':
+        elif host_name == SAT:
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt)
-        elif host_name == 'gw':
+        elif host_name.startswith(GW):
             self.insert_page(scroll_notebook, tab_label,
                              position=self._is_first_elt + 1)
         else:
@@ -1348,4 +1540,66 @@ def xpath_to_name(xpath):
             return key
     except:
         return xpath
+
+
+
+class ManageSpot:
+
+    def __init__(self, model, config):
+        self._model = model
+        self._config = config
+        
+    def add_spot(self, spot_id):
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            for section in config.get_sections():
+                for child in section.iterchildren():
+                     if child.tag ==  SPOT:
+                         config.add_spot("//"+section.tag, spot_id) 
+                         break
+        
+        for section in self._config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT:
+                    self._config.add_spot("//"+section.tag, spot_id) 
+                    break
+    
+        config = self._model.get_topology().get_conf()
+        for section in config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT:
+                    config.add_spot("//"+section.tag, spot_id) 
+                    break
+
+        self._model.get_topology().update(spot_id = spot_id)
+
+
+
+    def remove_spot(self, spot_id):
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            config = adv.get_configuration()
+            for section in config.get_sections():
+                 for child in section.getchildren():
+                     if child.tag ==  SPOT:
+                         config.remove_spot("//"+section.tag, spot_id) 
+                         break
+
+        for section in self._config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT:
+                    self._config.remove_spot("//"+section.tag, spot_id) 
+                    break
+
+        config = self._model.get_topology().get_conf()
+        for section in config.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT:
+                    config.remove_spot("//"+section.tag, spot_id) 
+                    break
+
+
+
+
 

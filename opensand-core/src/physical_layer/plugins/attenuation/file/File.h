@@ -38,6 +38,8 @@
 
 #include "PhysicalLayerPlugin.h"
 
+#include <opensand_conf/ConfigurationFile.h>
+
 #include <fstream>
 #include <string>
 
@@ -60,6 +62,8 @@ class File: public AttenuationModelPlugin
 
 	/// Reading mode
 	bool loop;
+
+	map<string, ConfigurationList> config_section_map;
 
 	/**
 	 * @brief Load the attenuation file

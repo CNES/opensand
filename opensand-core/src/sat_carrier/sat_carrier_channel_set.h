@@ -38,6 +38,7 @@
 
 #include "sat_carrier_udp_channel.h"
 #include "OpenSandCore.h"
+#include "OpenSandConf.h"
 
 #include <opensand_conf/conf.h>
 
@@ -53,7 +54,7 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 {
  public:
 
-	sat_carrier_channel_set();
+	sat_carrier_channel_set(tal_id_t tal_id);
 	~sat_carrier_channel_set();
 
 	/**
@@ -101,6 +102,7 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 	*/
 	int receive(NetSocketEvent *const event,
 	            unsigned int &op_carrier,
+	            spot_id_t &op_spot,
 	            unsigned char **op_buf, size_t &op_len);
 
 	int getChannelFdByChannelId(unsigned int i_channelID);
@@ -120,6 +122,9 @@ class sat_carrier_channel_set: public std::vector < sat_carrier_udp_channel * >
 	bool readConfig(const string local_ip_addr,
 	                const string interface_name,
 	                bool in);
+
+	/// The terminal ID
+	tal_id_t tal_id;
 
 	// Output Log
 	OutputLog *log_init;
