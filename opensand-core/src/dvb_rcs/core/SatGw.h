@@ -74,11 +74,15 @@ class SatGw
 	DvbFifo *data_out_gw_fifo; ///<  Fifo associated with Data for the GW
 	DvbFifo *data_out_st_fifo; ///<  Fifo associated with Data for the ST
 
-	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	list<DvbFrame *> complete_dvb_frames;
+	/// the list of complete DVB-RCS/BB frames for ST that were not sent yet
+	list<DvbFrame *> complete_st_dvb_frames;
+	/// the list of complete DVB-RCS/BB frames fot GW that were not sent yet
+	list<DvbFrame *> complete_gw_dvb_frames;
 
-	/// The downlink scheduling for regenerative satellite
-	Scheduling *scheduling;
+	/// The downlink scheduling for regenerative satellite toward ST
+	Scheduling *st_scheduling;
+	/// The downlink scheduling for regenerative satellite toward GW
+	Scheduling *gw_scheduling;
 
 	// statistics
 
@@ -141,13 +145,15 @@ class SatGw
 	 * @param fwd_timer_ms    The timer for forward scheduling
 	 * @param pkt_hdl         The packet handler
 	 * @param fwd_fmt_simu    The FMT simulation information
-	 * @param category        The related terminal category
+	 * @param st_category     The related terminal category for ST
+	 * @param gw_category     The related terminal category for GW
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(time_ms_t fwd_timer_ms,
 	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    FmtSimulation *const fwd_fmt_simu,
-	                    const TerminalCategoryDama *const category);
+	                    const TerminalCategoryDama *const st_category,
+	                    const TerminalCategoryDama *const gw_category);
 
 	/**
 	 * @brief Schedule packets emission
@@ -161,10 +167,9 @@ class SatGw
 	bool schedule(const time_sf_t current_superframe_sf,
 	              time_ms_t current_time);
 
-	bool initProbes(sat_type_t satellite_type);
+	bool initProbes();
 
-	bool updateProbes(sat_type_t satellite_type, 
-	                  time_ms_t stats_period_ms);
+	bool updateProbes(time_ms_t stats_period_ms);
 	
 	/**
 	 * @brief Get the gw ID
@@ -223,11 +228,18 @@ class SatGw
 	DvbFifo *getLogonFifo(void) const;
 
 	/**
-	 * @brief Get the complete DVB frames list
+	 * @brief Get the complete DVB frames list for ST
 	 *
-	 * @return the list of complete DVB frames
+	 * @return the list of complete DVB frames fot ST
 	 */
-	list<DvbFrame *> &getCompleteDvbFrames(void);
+	list<DvbFrame *> &getCompleteStDvbFrames(void);
+
+	/**
+	 * @brief Get the complete DVB frames list for GW
+	 *
+	 * @return the list of complete DVB frames for GW
+	 */
+	list<DvbFrame *> &getCompleteGwDvbFrames(void);
 
 	/**
 	 * @brief Update the amount of layer 2 data received from ST

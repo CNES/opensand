@@ -96,6 +96,7 @@ BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	fwd_frame_counter(0),
 	fwd_timer(-1),
 	scenario_timer(-1),
+	default_spot(0),
 	probe_frame_interval(NULL)
 {
 }
@@ -116,6 +117,20 @@ bool BlockDvbNcc::Downward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the spot "
 		    "initialisation\n");
+		return false;
+	}
+	// TODO move in initSpots ?
+	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+	                   DEFAULT_SPOT, this->default_spot))
+	{
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "failed to get default terminal ID\n");
+		return false;
+	}
+	if(OpenSandConf::spot_table.find(this->default_spot) == OpenSandConf::spot_table.end())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Default spot does not exist\n");
 		return false;
 	}
 
@@ -375,14 +390,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					{ 
 						if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
 						{
-							if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-							                   DEFAULT_SPOT, spot_id))
-							{
-								LOG(this->log_init, LEVEL_ERROR, 
-								    "couldn't find spot for tal %d", 
-								    tal_id);
-								goto error;
-							}
+							spot_id = this->default_spot;
 						}
 						else
 						{
@@ -637,14 +645,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// allocations/releases they contain
 					if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
 					{
-						if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-							               DEFAULT_SPOT, spot_id))
-						{
-							LOG(this->log_init_channel, LEVEL_ERROR, 
-								"couldn't find spot for tal %d", 
-								tal_id);
-							return false;
-						}
+						spot_id = this->default_spot;
 					}
 					else
 					{

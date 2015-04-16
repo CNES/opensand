@@ -154,7 +154,7 @@ class BlockDvbNcc: public BlockDvb
 		void updateStats(void);
 		
 		/// the MAC ID of the ST (as specified in configuration)
-		int mac_id;
+		tal_id_t mac_id;
 
 		/// counter for forward frames
 		time_ms_t fwd_frame_counter;
@@ -170,6 +170,9 @@ class BlockDvbNcc: public BlockDvb
 		/// In regenerative case with physical layer, is it used to send
 		// ACM parameters to satellite
 		event_id_t scenario_timer;
+
+		/// the default destination spot
+		spot_id_t default_spot;
 
 		/// Delay for allocation requests from PEP (in ms)
 		int pep_alloc_delay;

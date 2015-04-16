@@ -69,7 +69,8 @@ class ForwardSchedulingS2: public Scheduling
 	                    const TerminalCategoryDama *const category,
 	                    spot_id_t spot,
 	                    bool is_gw,
-	                    tal_id_t gw);
+	                    tal_id_t gw,
+	                    string dst_name);
 
 	virtual ~ForwardSchedulingS2();
 

@@ -434,7 +434,7 @@ bool SpotDownward::initMode(void)
 		                                           this->dvb_fifos,
 		                                           &this->down_fwd_fmt_simu,
 		                                           cat, this->spot_id,
-		                                           true, this->mac_id);
+		                                           true, this->mac_id, "");
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{

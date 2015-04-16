@@ -57,8 +57,10 @@ SatGw::SatGw(tal_id_t gw_id,
 	spot_id(spot_id),
 	data_in_st_id(data_in_st_id),
 	data_in_gw_id(data_in_gw_id),
-	complete_dvb_frames(),
-	scheduling(NULL),
+	complete_st_dvb_frames(),
+	complete_gw_dvb_frames(),
+	st_scheduling(NULL),
+	gw_scheduling(NULL),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex("GW"),
@@ -86,11 +88,14 @@ SatGw::SatGw(tal_id_t gw_id,
 
 SatGw::~SatGw()
 {
-	this->complete_dvb_frames.clear();
+	this->complete_st_dvb_frames.clear();
+	this->complete_gw_dvb_frames.clear();
 
 	// remove scheduling (only for regenerative satellite)
-	if(scheduling)
-		delete this->scheduling;
+	if(st_scheduling)
+		delete this->st_scheduling;
+	if(gw_scheduling)
+		delete this->gw_scheduling;
 
 	delete this->logon_fifo;
 	delete this->control_fifo;
@@ -102,22 +107,42 @@ SatGw::~SatGw()
 bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
                            FmtSimulation *const fwd_fmt_simu,
-                           const TerminalCategoryDama *const category)
+                           const TerminalCategoryDama *const st_category,
+                           const TerminalCategoryDama *const gw_category)
 {
-	fifos_t fifos;
-	fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
-	this->scheduling = new ForwardSchedulingS2(fwd_timer_ms,
+	fifos_t st_fifos;
+	st_fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
+	fifos_t gw_fifos;
+	gw_fifos[this->data_out_gw_fifo->getCarrierId()] = this->data_out_gw_fifo;
+	this->st_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
-	                                              fifos,
+	                                              st_fifos,
 	                                              fwd_fmt_simu,
-	                                              category,
+	                                              st_category,
 	                                              this->spot_id,
 	                                              false,
-	                                              this->gw_id);
-	if(!this->scheduling)
+	                                              this->gw_id,
+	                                              "ST");
+	if(!this->st_scheduling)
 	{
 		LOG(this->log_init, LEVEL_ERROR, 
 		    "cannot create down ST scheduling for spot %u\n",
+		    this->spot_id);
+		return false;
+	}
+	this->gw_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
+	                                              pkt_hdl,
+	                                              gw_fifos,
+	                                              fwd_fmt_simu,
+	                                              gw_category,
+	                                              this->spot_id,
+	                                              false,
+	                                              this->gw_id,
+	                                              "GW");
+	if(!this->gw_scheduling)
+	{
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "cannot create down GW scheduling for spot %u\n",
 		    this->spot_id);
 		return false;
 	}
@@ -126,28 +151,44 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 
 
 bool SatGw::schedule(const time_sf_t current_superframe_sf,
-                       time_ms_t current_time)
+                     time_ms_t current_time)
 {
 	// not used by scheduling here
 	uint32_t remaining_allocation = 0;
 
-	if(!scheduling)
+	if(!this->st_scheduling || !this->gw_scheduling)
 	{
 		return false;
 	}
 
-	return this->scheduling->schedule(current_superframe_sf,
+	if(!this->st_scheduling->schedule(current_superframe_sf,
 	                                  current_time,
-	                                  &this->complete_dvb_frames,
-	                                  remaining_allocation);
+	                                  &this->complete_st_dvb_frames,
+	                                  remaining_allocation))
+	{
+		return false;
+	}
+	if(!this->gw_scheduling->schedule(current_superframe_sf,
+	                                  current_time,
+	                                  &this->complete_gw_dvb_frames,
+	                                  remaining_allocation))
+	{
+		return false;
+	}
+	return true;
 }
 
-bool SatGw::initProbes(sat_type_t satellite_type)
+bool SatGw::initProbes()
 {
 	Probe<int> *probe_output_st;
 	Probe<int> *probe_output_st_kb;
 	Probe<int> *probe_l2_to_st;
 	Probe<int> *probe_l2_from_st;
+	Probe<int> *probe_l2_to_gw;
+	Probe<int> *probe_l2_from_gw;
+	Probe<int> *probe_output_gw;
+	Probe<int> *probe_output_gw_kb;
+
 
 	probe_output_st = Output::registerProbe<int>(
 			"Packets", false, SAMPLE_LAST,
@@ -178,48 +219,41 @@ bool SatGw::initProbes(sat_type_t satellite_type)
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_from_st));
 
-	if(satellite_type == TRANSPARENT)
-	{
-		Probe<int> *probe_l2_to_gw;
-		Probe<int> *probe_l2_from_gw;
-		Probe<int> *probe_output_gw;
-		Probe<int> *probe_output_gw_kb;
 
-		probe_l2_to_gw = Output::registerProbe<int>(
-				"Kbits/s", true, SAMPLE_LAST,
-				"Spot_%d.Gw_%d.Throughputs.L2_to_GW",
-				this->spot_id, this->gw_id);
-		this->probe_sat_l2_to_gw.insert(
-				std::pair<unsigned int, Probe<int> *>(this->gw_id,
-				                                      probe_l2_to_gw));
-		probe_l2_from_gw = Output::registerProbe<int>(
-				"Kbits/s", true, SAMPLE_LAST,
-				"Spot_%d.Gw_%d.Throughputs.L2_from_GW",
-				this->spot_id, this->gw_id);
-		this->probe_sat_l2_from_gw.insert(
-				std::pair<unsigned int, Probe<int> *>(this->gw_id,
-				                                      probe_l2_from_gw));
-		probe_output_gw = Output::registerProbe<int>(
-				"Packets", false, SAMPLE_LAST,
-				"Spot_%d.Gw_%d.Delay buffer size.Output_GW",
-				this->spot_id, this->gw_id);
-		this->probe_sat_output_gw_queue_size.insert(
-				std::pair<unsigned int, Probe<int> *>(this->gw_id,
-				                                      probe_output_gw));
+	probe_l2_to_gw = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST,
+			"Spot_%d.Gw_%d.Throughputs.L2_to_GW",
+			this->spot_id, this->gw_id);
+	this->probe_sat_l2_to_gw.insert(
+			std::pair<unsigned int, Probe<int> *>(this->gw_id,
+			                                      probe_l2_to_gw));
+	probe_l2_from_gw = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST,
+			"Spot_%d.Gw_%d.Throughputs.L2_from_GW",
+			this->spot_id, this->gw_id);
+	this->probe_sat_l2_from_gw.insert(
+			std::pair<unsigned int, Probe<int> *>(this->gw_id,
+			                                      probe_l2_from_gw));
+	probe_output_gw = Output::registerProbe<int>(
+			"Packets", false, SAMPLE_LAST,
+			"Spot_%d.Gw_%d.Delay buffer size.Output_GW",
+			this->spot_id, this->gw_id);
+	this->probe_sat_output_gw_queue_size.insert(
+			std::pair<unsigned int, Probe<int> *>(this->gw_id,
+			                                      probe_output_gw));
 
-		probe_output_gw_kb = Output::registerProbe<int>(
-				"Kbits", false, SAMPLE_LAST,
-				"Spot_%d.Gw_%d.Delay buffer size.Output_GW_kb",
-				this->spot_id, this->gw_id);
-		this->probe_sat_output_gw_queue_size_kb.insert(
-				std::pair<unsigned int, Probe<int> *>(this->gw_id,
-				                                      probe_output_gw_kb));
-	}
+	probe_output_gw_kb = Output::registerProbe<int>(
+			"Kbits", false, SAMPLE_LAST,
+			"Spot_%d.Gw_%d.Delay buffer size.Output_GW_kb",
+			this->spot_id, this->gw_id);
+	this->probe_sat_output_gw_queue_size_kb.insert(
+			std::pair<unsigned int, Probe<int> *>(this->gw_id,
+			                                      probe_output_gw_kb));
 
 	return true;
 }
 
-bool SatGw::updateProbes(sat_type_t satellite_type, time_ms_t stats_period_ms)
+bool SatGw::updateProbes(time_ms_t stats_period_ms)
 {
 	// Queue sizes
 	mac_fifo_stat_context_t output_gw_fifo_stat;
@@ -241,24 +275,21 @@ bool SatGw::updateProbes(sat_type_t satellite_type, time_ms_t stats_period_ms)
 			((int) output_st_fifo_stat.out_length_bytes * 8 /
 			 stats_period_ms));
 
-	if(satellite_type == TRANSPARENT)
-	{
-		// L2 from GW
-		this->probe_sat_l2_from_gw[this->gw_id]->put(
-				this->getL2FromGw() * 8 / stats_period_ms);
+	// L2 from GW
+	this->probe_sat_l2_from_gw[this->gw_id]->put(
+			this->getL2FromGw() * 8 / stats_period_ms);
 
-		// L2 to GW
-		data_out_gw_fifo->getStatsCxt(output_gw_fifo_stat);
-		this->probe_sat_l2_to_gw[this->gw_id]->put(
-				((int) output_gw_fifo_stat.out_length_bytes * 8 /
-				 stats_period_ms));
+	// L2 to GW
+	data_out_gw_fifo->getStatsCxt(output_gw_fifo_stat);
+	this->probe_sat_l2_to_gw[this->gw_id]->put(
+			((int) output_gw_fifo_stat.out_length_bytes * 8 /
+			 stats_period_ms));
 
-		// Queue sizes
-		this->probe_sat_output_gw_queue_size[this->gw_id]->put(
-				output_gw_fifo_stat.current_pkt_nbr);
-		this->probe_sat_output_gw_queue_size_kb[this->gw_id]->put(
-				((int) output_gw_fifo_stat.current_length_bytes * 8 / 1000));
-	}
+	// Queue sizes
+	this->probe_sat_output_gw_queue_size[this->gw_id]->put(
+			output_gw_fifo_stat.current_pkt_nbr);
+	this->probe_sat_output_gw_queue_size_kb[this->gw_id]->put(
+			((int) output_gw_fifo_stat.current_length_bytes * 8 / 1000));
 
 	return true;
 }
@@ -304,9 +335,14 @@ DvbFifo *SatGw::getLogonFifo(void) const
 	return this->logon_fifo;
 }
 
-list<DvbFrame *> &SatGw::getCompleteDvbFrames(void)
+list<DvbFrame *> &SatGw::getCompleteStDvbFrames(void)
 {
-	return this->complete_dvb_frames;
+	return this->complete_st_dvb_frames;
+}
+
+list<DvbFrame *> &SatGw::getCompleteGwDvbFrames(void)
+{
+	return this->complete_gw_dvb_frames;
 }
 
 void SatGw::updateL2FromSt(vol_bytes_t bytes)

@@ -34,6 +34,8 @@
 
 #include "GenericSwitch.h"
 
+#include "OpenSandConf.h"
+
 GenericSwitch::GenericSwitch():
 	default_spot(0)
 {
@@ -73,11 +75,19 @@ spot_id_t GenericSwitch::find(NetPacket *packet)
 {
 	std::map <tal_id_t, spot_id_t >::iterator it;
 	spot_id_t spot_id = 0;
+	tal_id_t tal_id = 0;
 
   	if(packet == NULL)
 		return spot_id;
 
-  	it = this->switch_table.find(packet->getDstTalId());
+	tal_id = packet->getDstTalId();
+	// for GW as destination we need to use the source to determine the spot
+	if(OpenSandConf::isGw(tal_id))
+	{
+		tal_id = packet->getSrcTalId();
+	}
+
+  	it = this->switch_table.find(tal_id);
 
 	if(it != this->switch_table.end())
 		spot_id = (*it).second;

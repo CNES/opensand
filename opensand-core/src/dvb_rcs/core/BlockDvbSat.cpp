@@ -467,7 +467,8 @@ bool BlockDvbSat::Downward::initSatLink(void)
 			{
 				SatGw * gw = *iter;
 
-				TerminalCategories<TerminalCategoryDama> categories;
+				TerminalCategories<TerminalCategoryDama> st_categories;
+				TerminalCategories<TerminalCategoryDama> gw_categories;
 				ConfigurationList current_spot;
 				ConfigurationList current_gw;
 				ConfigurationList spot_list;
@@ -512,7 +513,7 @@ bool BlockDvbSat::Downward::initSatLink(void)
 				                                         this->fwd_down_frame_duration_ms,
 				                                         this->satellite_type,
 				                                         this->fmt_simu.getModcodDefinitions(),
-				                                         categories,
+				                                         st_categories,
 				                                         this->terminal_affectation,
 				                                         &this->default_category,
 				                                         this->fmt_groups))
@@ -520,7 +521,22 @@ bool BlockDvbSat::Downward::initSatLink(void)
 					return false;
 				}
 
-				if(categories.size() != 1)
+				// FIXME we init the same band for GW
+				if(!this->initBand<TerminalCategoryDama>(current_spot,
+				                                         FORWARD_DOWN_BAND,
+				                                         TDM,
+				                                         this->fwd_down_frame_duration_ms,
+				                                         this->satellite_type,
+				                                         this->fmt_simu.getModcodDefinitions(),
+				                                         gw_categories,
+				                                         this->terminal_affectation,
+				                                         &this->default_category,
+				                                         this->fmt_groups))
+				{
+					return false;
+				}
+
+				if(st_categories.size() != 1)
 				{
 					// TODO see NCC for that
 					LOG(this->log_init, LEVEL_ERROR,
@@ -529,24 +545,33 @@ bool BlockDvbSat::Downward::initSatLink(void)
 					return false;
 				}
 
-				TerminalCategoryDama *category = categories.begin()->second;
+				TerminalCategoryDama *st_category = st_categories.begin()->second;
+				TerminalCategoryDama *gw_category = gw_categories.begin()->second;
 
 				if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
 			                           this->pkt_hdl,
 			                           &this->fmt_simu,
-			                           category))
+			                           st_category,
+			                           gw_category))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "failed to init the spot scheduling\n");
 					delete spot;
 					delete gw;
 					TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-					for(cat_it = categories.begin();
-					    cat_it != categories.end(); ++cat_it)
+					for(cat_it = st_categories.begin();
+					    cat_it != st_categories.end(); ++cat_it)
 					{
 						delete (*cat_it).second;
 					}
-					categories.clear();
+					st_categories.clear();
+
+					for(cat_it = gw_categories.begin();
+					    cat_it != gw_categories.end(); ++cat_it)
+					{
+						delete (*cat_it).second;
+					}
+					gw_categories.clear();
 					return false;
 				}
 			}
@@ -646,7 +671,7 @@ bool BlockDvbSat::Downward::initOutput(void)
 		    ++ gw_it)
 		{
 			SatGw *gw = *gw_it;
-			gw->initProbes(this->satellite_type);
+			gw->initProbes();
 		}
 	}
 
@@ -922,11 +947,22 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 							}
 
 							// send ST bursts
-							if(!this->sendBursts(&current_gw->getCompleteDvbFrames(),
+							if(!this->sendBursts(&current_gw->getCompleteStDvbFrames(),
 							                     current_gw->getDataOutStFifo()->getCarrierId()))
 							{
 								LOG(this->log_receive, LEVEL_ERROR,
 								    "failed to build and send DVB/BB frames toward ST"
+								    "for satellite spot %u on regenerative satellite\n",
+								    i_spot->first);
+								return false;
+							}
+
+							// send GW bursts
+							if(!this->sendBursts(&current_gw->getCompleteGwDvbFrames(),
+							                     current_gw->getDataOutGwFifo()->getCarrierId()))
+							{
+								LOG(this->log_receive, LEVEL_ERROR,
+								    "failed to build and send DVB/BB frames toward GW"
 								    "for satellite spot %u on regenerative satellite\n",
 								    i_spot->first);
 								return false;
@@ -1026,7 +1062,7 @@ void BlockDvbSat::Downward::updateStats(void)
 				++gw_iter)
 		{
 			SatGw *current_gw = *gw_iter;
-			current_gw->updateProbes(this->satellite_type, this->stats_period_ms);	
+			current_gw->updateProbes(this->stats_period_ms);	
 		}
 	}
 
@@ -1356,13 +1392,28 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			
 			// satellite spot found, forward DVB frame on the same spot
 			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-
-		 	if(this->satellite_type == TRANSPARENT)
+			// Update probes and stats
+			if(carrier_id == current_gw->getDataInStId())
 			{
 				// Update probes and stats
 				current_gw->updateL2FromSt(frame->getPayloadLength());
+			}
+			else if(carrier_id == current_gw->getDataInGwId())
+			{
+				// Update probes and stats
+				current_gw->updateL2FromGw(frame->getPayloadLength());
+			}
+			else
+			{
+				LOG(this->log_receive, LEVEL_CRITICAL,
+				    "Wrong input carrier ID %u\n", carrier_id);
+				delete dvb_frame;
+				return false;
+			}
 
-				// TODO: forward according to a table
+
+		 	if(this->satellite_type == TRANSPARENT)
+			{
 				LOG(this->log_receive, LEVEL_INFO,
 				    "DVB burst comes from spot %u (carrier "
 				    "%u) => forward it to spot %u (carrier "
@@ -1389,10 +1440,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				 */
 
 				NetBurst *burst = NULL;
-
-				// Update probes and stats
-				// get the satellite spot from which the DVB frame comes from
-				current_gw->updateL2FromSt(frame->getPayloadLength());
 
 				if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
 				   this->reception_std->getType() == "DVB-RCS")
@@ -1470,6 +1517,13 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				// Update probes and stats
 				current_gw->updateL2FromSt(bbframe->getPayloadLength());
 				out_fifo = current_gw->getDataOutGwFifo();
+			}
+			else
+			{
+				LOG(this->log_receive, LEVEL_CRITICAL,
+				    "Wrong input carrier ID %u\n", carrier_id);
+				delete dvb_frame;
+				return false;
 			}
 
 			// TODO: forward according to a table
