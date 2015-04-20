@@ -127,7 +127,7 @@ class BlockLanAdaptation: public Block
 		lan_contexts_t contexts;
 
 		/// The MAC layer group id received through msg_link_up
-		spot_id_t group_id;
+		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 
@@ -183,7 +183,7 @@ class BlockLanAdaptation: public Block
 		lan_contexts_t contexts;
 
 		/// The MAC layer group id received through msg_link_up
-		spot_id_t group_id;
+		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 

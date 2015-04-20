@@ -65,7 +65,7 @@ class BlockEncap: public Block
 	std::map<event_id_t, int> timers;
 
 	/// it is the MAC layer group id received through msg_link_up
-	long group_id;
+	group_id_t group_id;
 
 	/// it is the MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;

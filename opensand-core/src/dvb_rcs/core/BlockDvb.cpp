@@ -304,12 +304,11 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	MacFifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
 
-    // TODO log receive is not really adapted (log_fifo ?)
 	// create a new FIFO element to store the packet
 	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
 	if(!elem)
 	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
+		LOG(BlockDvb::dvb_fifo_log, LEVEL_ERROR,
 		    "cannot allocate FIFO element, drop data\n");
 		goto error;
 	}
@@ -317,12 +316,12 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	// append the data in the fifo
 	if(!fifo->push(elem))
 	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
+		LOG(BlockDvb::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
 		goto release_elem;
 	}
 
-	LOG(this->log_receive_channel, LEVEL_NOTICE,
+	LOG(BlockDvb::dvb_fifo_log, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
 	    data->getName().c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());

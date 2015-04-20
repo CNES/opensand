@@ -12,7 +12,7 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="//return_up_band/spot[@id='1']/carriers_distribution">
+<xsl:template match="//return_up_band/spot/carriers_distribution">
     <carriers_distribution>
     <xsl:call-template name="Newline" />
         <up_carriers access_type="ALOHA" category="Standard" ratio="10" symbol_rate="1E6" fmt_group="1"/>

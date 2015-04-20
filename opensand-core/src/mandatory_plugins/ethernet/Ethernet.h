@@ -205,9 +205,6 @@ class Ethernet: public LanAdaptationPlugin
 		 */
 		bool initTrafficCategories(ConfigurationFile &config);
 
-		/// this gw id
-		tal_id_t gw_id;
-
 		/// The configuration
 		ConfigurationFile config;
 

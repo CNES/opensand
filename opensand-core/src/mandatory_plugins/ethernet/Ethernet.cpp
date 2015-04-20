@@ -519,7 +519,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
 			MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
 			MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
-			tal_id_t src;
+			tal_id_t src = 255 ;
 			tal_id_t dst = 0;
 			uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
 			uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
@@ -539,7 +539,6 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				    src_mac.str().c_str());
 				continue;
 			}
-			
 			
 			if(this->tal_id != this->gw_id && 
 			   this->satellite_type ==  TRANSPARENT)

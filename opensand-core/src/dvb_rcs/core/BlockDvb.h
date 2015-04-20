@@ -523,7 +523,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	for(ConfigurationList::iterator iter = conf_list.begin();
 	    iter != conf_list.end(); ++iter)
 	{
-		unsigned int group_id;
+		group_id_t group_id;
 		string fmt_id;
 		FmtGroup *group;
 

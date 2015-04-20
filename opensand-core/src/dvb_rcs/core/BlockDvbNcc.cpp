@@ -468,7 +468,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					
 					if(spot->checkDama())
 					{
-						return true;
+						continue;
 					}
 
 					if(!spot->handleFrameTimer(this->super_frame_counter))

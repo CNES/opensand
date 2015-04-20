@@ -82,7 +82,7 @@ rate_kbps_t LogonRequest::getMaxVbdc(void) const
 
 /* RESPONSE */
 
-LogonResponse::LogonResponse(tal_id_t mac, uint8_t group_id, tal_id_t logon_id):
+LogonResponse::LogonResponse(tal_id_t mac, group_id_t group_id, tal_id_t logon_id):
 	DvbFrameTpl<T_DVB_LOGON_RESP>()
 {
 	this->setMessageType(MSG_TYPE_SESSION_LOGON_RESP);
@@ -101,7 +101,7 @@ tal_id_t LogonResponse::getMac(void) const
 	return ntohs(this->frame()->mac);
 }
 
-uint8_t LogonResponse::getGroupId(void) const
+group_id_t LogonResponse::getGroupId(void) const
 {
 	return this->frame()->group_id;
 }

@@ -115,7 +115,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 
 		if(OpenSandConf::gw_table.find(this->tal_id) == OpenSandConf::gw_table.end())
 		{
-			DFLTLOG(LEVEL_ERROR, "not find tal %d", this->tal_id);
 			if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
 			                   DEFAULT_GW, gw_id))
 			{
@@ -130,8 +129,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			gw_id = OpenSandConf::gw_table[this->tal_id];
 		}
 		
-
-		DFLTLOG(LEVEL_ERROR, "gw %d", gw_id);
 
 		if(!Conf::getElementWithAttributeValue(spot_list, ID, spot_id, temp_spot))
 		{
