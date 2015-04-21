@@ -274,8 +274,13 @@ class AdvancedDialog(WindowView):
         if self._current_host is None:
             return
 
+        used_names = []
         host_name = self._current_host.get_name()
-
+        modules = self.get_used_modules()
+        # Not module for this Host
+        if not modules:
+            return
+        
         if not host_name in self._modules_tree:
             # new host, add a module tree
             treeview = gtk.TreeView()
@@ -284,8 +289,6 @@ class AdvancedDialog(WindowView):
             self._modules_name[host_name] = []
         tree =  self._modules_tree[host_name]
 
-        modules = self.get_used_modules()
-        used_names = []
         for module in modules:
             module_name = module.get_name()
             used_names.append(module_name)
@@ -490,7 +493,6 @@ class AdvancedDialog(WindowView):
             else:
                 error_popup("cannot find host model for %s" % selected_name.upper())
                 self._host_conf_view.hide_all() 
-            return
         elif conf_sections.get(section_name) != self._current_host_frame:
             self._host_conf_view.hide_all()
             self._host_conf_view.pack_start(conf_sections.get(section_name))
@@ -500,10 +502,11 @@ class AdvancedDialog(WindowView):
         self._host_conf_view.show_all()
 
         self.update_modules_tree()
-        self._modules_tree_view.add(self._modules_tree[host_name].get_treeview())
-        self._modules_tree_view.show_all()
-        # call on_module_selected if a plugin is already selected
-        self.on_module_selected(self._modules_tree[host_name].get_selection())
+        if host_name in self._modules_tree.keys():
+            self._modules_tree_view.add(self._modules_tree[host_name].get_treeview())
+            self._modules_tree_view.show_all()
+            # call on_module_selected if a plugin is already selected
+            self.on_module_selected(self._modules_tree[host_name].get_selection())
 
     def on_module_selected(self, selection):
         """ callback called when a host is selected """
