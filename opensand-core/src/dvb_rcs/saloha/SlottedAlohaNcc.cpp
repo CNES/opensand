@@ -99,6 +99,10 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	ConfigurationList simu_list;
+	ConfigurationList saloha_section = Conf::section_map[SALOHA_SECTION];
+	DFLTLOG(LEVEL_ERROR, "section size %d", saloha_section.size());
+	ConfigurationList spots;
+	ConfigurationList current_spot;
 
 	// set spot id
 	if(spot_id == 0)
@@ -107,7 +111,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			"wrong spot id = %u", spot_id);
 	}
 	this->spot_id = spot_id;
-
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -162,8 +165,26 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		            pair<string, Probe<int> *>((*cat_iter).first,
 		                                       probe_coll_ratio));
 	}
+	
+	if(!Conf::getListNode(saloha_section, SPOT_LIST, spots))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "there is no %s into %s section\n",
+		    SPOT_LIST, SALOHA_SECTION);
+		return false;
+	}
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
+	if(!Conf::getElementWithAttributeValue(spots, ID,
+	                                       this->spot_id, 
+	                                       current_spot))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s/%s\n",
+		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		return false;
+	}
+	
+	if(!Conf::getValue(current_spot,
 		               SALOHA_ALGO, algo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -190,9 +211,11 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	    "initialize Slotted Aloha with %s algorithm\n",
 	    algo_name.c_str());
 
+	
 	// load Slotted Aloha traffic simulation parameters
-	if(!Conf::getListItems(Conf::section_map[SALOHA_SECTION],
-		                   SALOHA_SIMU_LIST, simu_list))
+	if(!Conf::getListItems(current_spot,
+		                   SALOHA_SIMU_LIST, 
+		                   simu_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', '%s': missing simulation list\n",

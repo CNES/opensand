@@ -770,9 +770,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 			}
 
 			NetBurst *burst;
-			spot_id_t spot_id;
-			tal_id_t gw_id;
-			tal_id_t tal_id;
 			NetBurst::iterator pkt_it;
 
 			// message from upper layer: burst of encapsulation packets
@@ -786,70 +783,10 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 			for(pkt_it = burst->begin(); pkt_it != burst->end();
 			    pkt_it++)
 			{
-				DvbFifo *out_fifo = NULL;
-				sat_spots_t::iterator iter;
-				
-				LOG(this->log_receive, LEVEL_INFO,
-				    "store one encapsulation packet\n");
-				
-				spot_id = (*pkt_it)->getSpot();
-				tal_id = (*pkt_it)->getDstTalId();
-				
-				if(OpenSandConf::isGw(tal_id))
-				{
-					gw_id = tal_id;
-				}
-				else if(OpenSandConf::gw_table.find(tal_id) != OpenSandConf::gw_table.end())
-				{
-					gw_id = OpenSandConf::gw_table[tal_id];
-				}
-				else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
-					                    DEFAULT_GW, gw_id))
-				{
-					LOG(this->log_receive, LEVEL_ERROR, 
-							"couldn't find gw for tal %d", 
-							tal_id);
-					return false;
-				}
-
-				iter = this->spots.find(spot_id);
-				if(iter == this->spots.end())
+				if(!this->handleRcvEncapPacket(*pkt_it))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot find spot with ID %u in spot "
-					    "list\n", spot_id);
-					break;
-				}
-				
-				SatGw *gw = this->spots[spot_id]->getGw(gw_id);
-
-				if(gw == NULL)
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "coudn't find gw %u in spot %u\n",
-					    gw_id, spot_id);
-					burst->clear();
-					delete burst;
-					return false;
-				}
-				if((*pkt_it)->getDstTalId() == gw_id)
-				{
-					out_fifo = gw->getDataOutGwFifo();
-				}
-				else
-				{
-					out_fifo = gw->getDataOutStFifo();
-				}
-				
-				if(!this->onRcvEncapPacket(*pkt_it,
-					                       out_fifo,
-					                       this->sat_delay))
-				{
-					// FIXME a problem occured, we got memory allocation error
-					// or fifo full and we won't empty fifo until next
-					// call to onDownwardEvent => return
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "unable to store packet\n");
+					    "Rcv encap packet failed");
 					burst->clear();
 					delete burst;
 					return false;
@@ -858,7 +795,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 			// avoid deteleting packets when deleting burst
 			burst->clear();
-
 			delete burst;
 		}
 		break;
@@ -999,6 +935,123 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 			    "unknown event: %s\n", event->getName().c_str());
 	}
 
+	return true;
+}
+
+
+bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
+{
+	map<tal_id_t, spot_id_t>::iterator tal_iter;
+	sat_spots_t::iterator spot;
+	spot_id_t spot_id;
+	tal_id_t gw_id;
+	tal_id_t tal_id;
+	tal_id_t tal_id_src;
+	DvbFifo *out_fifo = NULL;
+
+	LOG(this->log_receive, LEVEL_INFO,
+			"store one encapsulation packet\n");
+
+	spot_id = packet->getSpot();
+	tal_id = packet->getDstTalId();
+	tal_id_src = packet->getSrcTalId();
+
+	if(tal_id == BROADCAST_TAL_ID)
+	{
+		// Send to all spot and all gw
+		for(spot = this->spots.begin(); spot != this->spots.end();
+		    ++spot)
+		{
+			list<SatGw *> gws = (*spot).second->getListGw();
+			list<SatGw *>::iterator gw;
+			for(gw = gws.begin(); gw != gws.end(); ++gw)
+			{
+				NetPacket *packet_copy = new NetPacket(packet);
+				
+				if(OpenSandConf::isGw(tal_id_src))
+				{
+					out_fifo = (*gw)->getDataOutStFifo();
+				}
+				else
+				{
+					out_fifo = (*gw)->getDataOutGwFifo();
+				}
+				if(!this->onRcvEncapPacket(packet_copy,
+					                       out_fifo,
+				                           this->sat_delay))
+				{
+					// FIXME a problem occured, we got memory allocation error
+					// or fifo full and we won't empty fifo until next
+					// call to onDownwardEvent => return
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unable to store packet\n");
+					//packet_gw->clear();
+					delete packet_copy;
+					return false;
+				}
+			}
+		}
+		//packet->clear();
+		delete packet;
+	}
+	else
+	{
+		if(OpenSandConf::isGw(tal_id))
+		{
+			gw_id = tal_id;
+		}
+		else if(OpenSandConf::gw_table.find(tal_id) != OpenSandConf::gw_table.end())
+		{
+			gw_id = OpenSandConf::gw_table[tal_id];
+		}
+		else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
+			                    DEFAULT_GW, gw_id))
+		{
+			LOG(this->log_receive, LEVEL_ERROR, 
+			    "couldn't find gw for tal %d", 
+			    tal_id);
+			return false;
+		}
+
+		spot = this->spots.find(spot_id);
+		if(spot == this->spots.end())
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot find spot with ID %u in spot "
+			    "list\n", spot_id);
+			return false;
+		}
+
+		SatGw *gw = this->spots[spot_id]->getGw(gw_id);
+
+		if(gw == NULL)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "coudn't find gw %u in spot %u\n",
+			    gw_id, spot_id);
+			return false;
+		}
+		if(packet->getDstTalId() == gw_id)
+		{
+			out_fifo = gw->getDataOutGwFifo();
+		}
+		else
+		{
+			out_fifo = gw->getDataOutStFifo();
+		}
+
+		if(!this->onRcvEncapPacket(packet,
+		                           out_fifo,
+		                           this->sat_delay))
+		{
+			// FIXME a problem occured, we got memory allocation error
+			// or fifo full and we won't empty fifo until next
+			// call to onDownwardEvent => return
+			LOG(this->log_receive, LEVEL_ERROR,
+					"unable to store packet\n");
+			return false;
+		}
+	}
 	return true;
 }
 

@@ -351,19 +351,26 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="algorithm" type="sa_algo">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The algorithm used to handle collisions on slots
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="simulation_traffic">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Add Slotted Aloha simulated traffic in categories
-                    </xsd:documentation>
-                </xsd:annotation>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                <xsd:complexType> 
+                    <xsd:sequence>
+                        <xsd:element name="algorithm" type="sa_algo">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The algorithm used to handle collisions on slots
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="simulation_traffic">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Add Slotted Aloha simulated traffic in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>

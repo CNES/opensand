@@ -152,6 +152,13 @@ class BlockDvbSat: public BlockDvb
 		bool sendFrames(DvbFifo *fifo);
 
 		/**
+		 *
+		 * @param packet    The NetPacket
+		 * @return          true on success, false otherwise
+		 */ 
+		bool handleRcvEncapPacket(NetPacket *packet);
+		
+		/**
 		 * @brief Initialize the link
 		 *
 		 * @return  true on success, false otherwise

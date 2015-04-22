@@ -523,9 +523,9 @@ class ConfigurationTree(gtk.TreeStore):
         list_vis_child = []
         while iterator is not None:
             path = self.get_path(iterator)
-            if not self[path][VISIBLE]:
+            """if not self[path][VISIBLE]:
                 iterator = self.iter_next(iterator)
-                continue
+                continue"""
             if self.iter_has_child(iterator):
                 first_child = self.iter_children(iterator)
                 visible = self.is_children_visible(first_child)

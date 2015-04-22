@@ -86,3 +86,9 @@ SatGw* SatSpot::getGw(tal_id_t gw_id)
 	}
 	return NULL;
 }
+
+
+list<SatGw *> SatSpot::getListGw()
+{
+	return this->sat_gws;
+}

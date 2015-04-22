@@ -95,6 +95,8 @@ class SatSpot
 	list<SatGw *> getGwList(void) const;
 	
 	SatGw* getGw(tal_id_t gw_id);	
+
+	list<SatGw *> getListGw();        /// List of gw
 };
 
 /// The map of satellite spots

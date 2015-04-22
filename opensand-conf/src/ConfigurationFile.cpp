@@ -367,7 +367,7 @@ bool ConfigurationFile::getListNode(ConfigurationList sectionList,
 			LOG(this->log_conf, LEVEL_ERROR,
 			    "there is no '%s' in section '%s'\n",
 			    key, sectionNode->get_name().c_str());
-			goto error;
+			continue;
 		}
 		else
 		{
