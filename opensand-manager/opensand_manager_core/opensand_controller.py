@@ -110,7 +110,9 @@ class Controller(threading.Thread):
             self._event_manager.wait(None)
             self._log.debug("event: " + self._event_manager.get_type())
             res = 'fail'
-            if self._event_manager.get_type() == 'deploy_platform':
+            if self._event_manager.get_type() == 'set_scenario':
+                self._model.load()
+            elif self._event_manager.get_type() == 'deploy_platform':
                 if self.deploy_platform():
                     res = 'done'
                 self._event_manager_response.set('resp_deploy_platform', res)
@@ -178,16 +180,17 @@ class Controller(threading.Thread):
         try:
             self.update_deploy_config()
             for host in self._hosts + self._ws:
-                host_name = host.get_name()
+                host_name = host.get_name().lower()
                 self._log.debug("Deploying " + host.get_name().upper())
-                if not host.get_name().lower() in self._deploy_config.sections():
-                    component = host.get_name().lower()
+                if not host_name  in self._deploy_config.sections():
+                    component = host_name
                     if component.startswith(ST):
                         component = ST
                     if component.startswith(GW):
                         component = GW
-                    host_name =  component
-                    if not component in self._deploy_config.sections():
+                    host_name = component
+
+                    if not host_name in self._deploy_config.sections():
                         self._log.warning("No information for %s deployment, "
                                       "host will be disabled" % host.get_name())
                         host.disable()

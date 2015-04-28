@@ -173,26 +173,12 @@ class Model:
         except ModelException:
             raise
 
-        if not first:
-            # deploy the simulation files when loading a new scenario
-            self._event_manager.set('deploy_files')
 
     def load_topology(self):
         """ load or reload the topology configuration """
         topo_conf = os.path.join(self._scenario_path, TOPOLOGY_CONF)
         topo_xsd = os.path.join(OPENSAND_PATH, TOPOLOGY_XSD)
         try:
-            """if self._topology is not None:
-                # copy the previous topology in the new file
-                self._topology.write(topo_conf)
-            else:
-                # get the default topology file
-                default_topo = os.path.join(OPENSAND_PATH,
-                                            TOPOLOGY_CONF)
-                shutil.copy(default_topo, topo_conf)
-
-            #self._topology = XmlParser(topo_conf, topo_xsd)
-            self._topology = TopologyConfig(self._scenario_path, self._log)"""
             if self._topology is None:
                 self._topology = TopologyConfig(self._scenario_path, self._log)
             else:
@@ -444,11 +430,22 @@ class Model:
     def set_scenario(self, val):
         """ set the scenario id """
         # wait controlleur has finished event
-        self._event_manager_response.wait(2)
-        
+        self._event_manager_response.wait(4)
+        msg = self._event_manager_response.get_type()
+        #print msg
+        if msg == 'deploy_files':
+            i = 0
+            while self._event_manager_response.get_type() != \
+                 'resp_deploy_files' and i < 4  :
+                self._event_manager_response.wait(4)
+                #print msg
+                i += 1
         self._modified = True
         self._scenario_path = val
-        self.load()
+        self._event_manager.set('set_scenario');
+        
+        # deploy the simulation files when loading a new scenario
+        self._event_manager.set('deploy_files')
 
     def get_scenario(self):
         """ get the scenario id """
