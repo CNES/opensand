@@ -355,18 +355,16 @@ bool ConfigurationFile::getListNode(ConfigurationList sectionList,
                                     xmlpp::Node::NodeList &nodeList)
 {
 	xmlpp::Node::NodeList::iterator iter;
+	xmlpp::Node *sectionNode;
 	bool found = false;
 
 	for(iter = sectionList.begin(); iter != sectionList.end(); iter++)
 	{
-		xmlpp::Node *sectionNode = *iter;
+		sectionNode = *iter;
 		xmlpp::Node::NodeList tempList = sectionNode->get_children(key);
 		nodeList.insert(nodeList.end(), tempList.begin(), tempList.end());
 		if(nodeList.size() == 0)
 		{
-			LOG(this->log_conf, LEVEL_ERROR,
-			    "there is no '%s' in section '%s'\n",
-			    key, sectionNode->get_name().c_str());
 			continue;
 		}
 		else
@@ -375,7 +373,17 @@ bool ConfigurationFile::getListNode(ConfigurationList sectionList,
 		}
 	}
 
-error:
+	if(sectionList.empty())
+	{
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "section list is empty");
+	}
+	else if(!found)
+	{
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "there is no '%s' in section '%s'\n",
+		    key, sectionNode->get_name().c_str());
+	}
 	return found;
 }
 
