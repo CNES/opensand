@@ -212,10 +212,11 @@ class AdvancedDialog(WindowView):
 
         old_host_names = set(self._hosts_name) - set(real_names)
         for host_name in old_host_names:
-            gobject.idle_add(self._host_tree.del_host, host_name.upper())
+            gobject.idle_add(self._host_tree.del_elem, host_name.upper())
             self._hosts_name.remove(host_name)
             # old host, remove module tree
-            del self._modules_tree[host_name]
+            if host_name in self._modules_tree:
+                del self._modules_tree[host_name]
 
         # update modules
         self.update_modules_tree()

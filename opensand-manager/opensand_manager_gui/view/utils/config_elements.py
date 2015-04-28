@@ -519,16 +519,16 @@ class ConfigurationTree(gtk.TreeStore):
         iterator = self.get_iter_first()
         self.is_children_visible(iterator)
                 
-    def is_children_visible(self, iterator):
+    def is_children_visible(self, iterator, child=False):
         list_vis_child = []
         while iterator is not None:
             path = self.get_path(iterator)
-            """if not self[path][VISIBLE]:
+            if not self[path][VISIBLE] and child:
                 iterator = self.iter_next(iterator)
-                continue"""
+                continue
             if self.iter_has_child(iterator):
                 first_child = self.iter_children(iterator)
-                visible = self.is_children_visible(first_child)
+                visible = self.is_children_visible(first_child, True)
                 list_vis_child.append(visible)
                 self[path][VISIBLE] = visible
                 self[path][ACTIVATABLE] = visible
@@ -1115,27 +1115,29 @@ class ConfSection(gtk.VBox):
             name = button.get_name()
             key = self._config.get(name)
             key_entries = self._config.get_table_elements(key)
-            key_name = self._config.get_name(key_entries[0])
-            if self._table_length[name] <= self._config.get_minoccurs(key_name):
-                # we should not remove button else the configuration won't be
-                # valid
-                for check_button in self._tables[button.get_name()]:
-                    check_button.set_inconsistent(True)
-                continue
-            for check_button in [check
+            if key_entries:
+                key_name = self._config.get_name(key_entries[0])
+                if self._table_length[name] <= self._config.get_minoccurs(key_name):
+                    # we should not remove button else the configuration won't be
+                    # valid
+                    for check_button in self._tables[button.get_name()]:
+                        check_button.set_inconsistent(True)
+                    continue
+                for check_button in [check
                                  for check in self._tables[button.get_name()]
                                  if check.get_active()]:
-                if not check_button.get_parent() in self._removed:
-                    button.set_sensitive(True)
-                    break
+                    if not check_button.get_parent() in self._removed:
+                        button.set_sensitive(True)
+                        break
         for button in self._add_buttons:
             button.set_sensitive(True)
             name = button.get_name()
             key = self._config.get(name)
             key_entries = self._config.get_table_elements(key)
-            key_name = self._config.get_name(key_entries[0])
-            if self._table_length[name] >= self._config.get_maxoccurs(key_name):
-                button.set_sensitive(False)
+            if key_entries:
+                key_name = self._config.get_name(key_entries[0])
+                if self._table_length[name] >= self._config.get_maxoccurs(key_name):
+                    button.set_sensitive(False)
 
     def add_hidden(self, widget):
         """ add a hidden widget in the section """
