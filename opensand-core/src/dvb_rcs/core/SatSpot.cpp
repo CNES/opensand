@@ -53,6 +53,11 @@ SatSpot::SatSpot(spot_id_t spot_id):
 
 SatSpot::~SatSpot()
 {
+	list<SatGw *>::iterator iter;
+	for(iter = this->sat_gws.begin(); iter != this->sat_gws.end(); ++iter)
+	{
+		delete *iter;
+	}
 	this->sat_gws.clear();
 }
 

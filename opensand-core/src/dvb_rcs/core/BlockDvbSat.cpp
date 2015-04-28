@@ -948,6 +948,7 @@ bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
 	tal_id_t tal_id;
 	tal_id_t tal_id_src;
 	DvbFifo *out_fifo = NULL;
+	DvbFifo *out_fifo_gw = NULL;
 
 	LOG(this->log_receive, LEVEL_INFO,
 			"store one encapsulation packet\n");
@@ -967,15 +968,7 @@ bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
 			for(gw = gws.begin(); gw != gws.end(); ++gw)
 			{
 				NetPacket *packet_copy = new NetPacket(packet);
-				
-				if(OpenSandConf::isGw(tal_id_src))
-				{
-					out_fifo = (*gw)->getDataOutStFifo();
-				}
-				else
-				{
-					out_fifo = (*gw)->getDataOutGwFifo();
-				}
+				out_fifo = (*gw)->getDataOutStFifo();
 				if(!this->onRcvEncapPacket(packet_copy,
 					                       out_fifo,
 				                           this->sat_delay))
@@ -988,6 +981,24 @@ bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
 					//packet_gw->clear();
 					delete packet_copy;
 					return false;
+				}
+				if(!OpenSandConf::isGw(tal_id_src))
+				{
+					out_fifo_gw = (*gw)->getDataOutGwFifo();
+					NetPacket *packet_copy_gw = new NetPacket(packet);
+					if(!this->onRcvEncapPacket(packet_copy_gw,
+					                           out_fifo_gw,
+					                           this->sat_delay))
+					{
+						// FIXME a problem occured, we got memory allocation error
+						// or fifo full and we won't empty fifo until next
+						// call to onDownwardEvent => return
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "unable to store packet\n");
+						//packet_gw->clear();
+						delete packet_copy_gw;
+						return false;
+					}
 				}
 			}
 		}
