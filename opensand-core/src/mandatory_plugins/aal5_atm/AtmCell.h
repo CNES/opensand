@@ -78,8 +78,6 @@ class AtmCell: public NetPacket
 
 	// implementation of virtual functions
 	bool isValid();
-	uint16_t getTotalLength();
-	uint16_t getPayloadLength();
 	Data getPayload();
 	uint8_t getQos();
 	uint8_t getSrcTalId();

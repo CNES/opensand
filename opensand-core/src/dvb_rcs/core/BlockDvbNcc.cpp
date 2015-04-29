@@ -368,27 +368,25 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
-					map<tal_id_t, spot_id_t>::iterator tal_iter;
 					spot_id_t spot_id = 0;
 					SpotDownward *spot;
 					list<SpotDownward*> spot_list;
 					list<SpotDownward*>::iterator spot_list_iter;
-					NetPacket *pkt_copy;
 
-					if(tal_id == BROADCAST_TAL_ID)
+					if((tal_id == BROADCAST_TAL_ID) and 
+					   (this->satellite_type != REGENERATIVE))
 					{
-						for(tal_iter = OpenSandConf::spot_table.begin();
-						    tal_iter != OpenSandConf::spot_table.end();
-						    ++tal_iter)
+						for(spot_iter = this->spots.begin(); 
+						    spot_iter != this->spots.end(); ++spot_iter)
 						{
-							spot = dynamic_cast<SpotDownward *>(this->getSpot(
-							                               (*tal_iter).second));
+							spot = dynamic_cast<SpotDownward *>(this->getSpot((*spot_iter).first));
 							spot_list.push_back(spot);
 						}
 					}
 					else
 					{ 
-						if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
+						if(OpenSandConf::spot_table.find(tal_id) ==
+								OpenSandConf::spot_table.end())
 						{
 							spot_id = this->default_spot;
 						}
@@ -404,12 +402,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					    spot_list_iter != spot_list.end() ;
 					    ++spot_list_iter)
 					{
+						NetPacket *pkt_copy;
 						spot = *spot_list_iter;
 						if(spot_list.size() > 1 )
 						{
 							pkt_copy = new NetPacket(*pkt_it);
 						}
-						else{
+						else
+						{
 							pkt_copy = *pkt_it;
 						}
 
@@ -417,12 +417,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "cannot push burst into fifo\n");
-							// avoid deteleting packets when deleting burst
-							burst->clear(); 
-							delete burst;
-							// handle other packets
 							continue;
 						}
+					}
+					// free the iterator that was not send if there is
+					// more than on spot
+					if(spot_list.size() > 1)
+					{
+						delete *pkt_it;
 					}
 				}
 				burst->clear(); // avoid deteleting packets when deleting burst

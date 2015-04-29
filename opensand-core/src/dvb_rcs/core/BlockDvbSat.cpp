@@ -711,6 +711,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot find spot with carrier ID %u in spot "
 					    "list\n", carrier_id);
+					delete dvb_frame;
 					break;
 				}
 
@@ -719,6 +720,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "Frame: wrong carrier id (%u) or spot id (%u)\n",
 					    carrier_id, dvb_frame->getSpot());
+					delete dvb_frame;
 					break;
 				}
 
@@ -728,6 +730,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot find spot with ID %u in spot "
 					    "list\n", spot_id);
+					delete dvb_frame;
 					break;
 				}
 				SatSpot *current_spot = spots[spot_id];
@@ -737,15 +740,16 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "Spot %u does'nt have gw %u\n", spot_id, gw_id);
+					delete dvb_frame;
 					break;
 				}
 
-				// send frame for every satellite spot
 				if(dvb_frame->getMessageType() != MSG_TYPE_SOF)
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "Forwarded frame is not a SoF\n");
 					status = false;
+					delete dvb_frame;
 					break;
 				}
 
@@ -757,6 +761,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					    "failed to send sig frame to lower layer, "
 					    "drop it\n");
 					status = false;
+					delete dvb_frame;
 				}
 				return status;
 			}
@@ -978,7 +983,6 @@ bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
 					// call to onDownwardEvent => return
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "unable to store packet\n");
-					//packet_gw->clear();
 					delete packet_copy;
 					return false;
 				}
@@ -995,14 +999,12 @@ bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
 						// call to onDownwardEvent => return
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "unable to store packet\n");
-						//packet_gw->clear();
 						delete packet_copy_gw;
 						return false;
 					}
 				}
 			}
 		}
-		//packet->clear();
 		delete packet;
 	}
 	else
@@ -1365,6 +1367,7 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to handle received DVB frame\n");
+				delete dvb_frame;
 				return false;
 			}
 		}
@@ -1471,7 +1474,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				LOG(this->log_receive, LEVEL_CRITICAL,
 				    "Wrong input carrier ID %u\n", carrier_id);
-				delete dvb_frame;
 				return false;
 			}
 
@@ -1586,7 +1588,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				LOG(this->log_receive, LEVEL_CRITICAL,
 				    "Wrong input carrier ID %u\n", carrier_id);
-				delete dvb_frame;
+				//delete dvb_frame;
 				return false;
 			}
 
@@ -1657,99 +1659,96 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-			if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+		if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
+		{
+
+			// handle SAC here to get the uplink ACM parameters
+			Sac *sac = (Sac *)dvb_frame;
+
+			tal_id_t tal_id;
+			cni_info_t *cni_info = new cni_info_t;
+
+			tal_id = sac->getTerminalId();
+			cni_info->cni = sac->getCni();
+			cni_info->tal_id = tal_id;
+			LOG(this->log_receive, LEVEL_INFO,
+			    "Get SAC from ST%u, with C/N0 = %.2f\n",
+			    tal_id, cni_info->cni);
+			// transmit downlink CNI to downlink channel
+			if(!this->shareMessage((void **)&cni_info, 
+				                   sizeof(cni_info_t),
+				                   msg_cni))
 			{
-
-				// handle SAC here to get the uplink ACM parameters
-				Sac *sac = (Sac *)dvb_frame;
-
-				tal_id_t tal_id;
-				cni_info_t *cni_info = new cni_info_t;
-
-				tal_id = sac->getTerminalId();
-				cni_info->cni = sac->getCni();
-				cni_info->tal_id = tal_id;
-				LOG(this->log_receive, LEVEL_INFO,
-				    "Get SAC from ST%u, with C/N0 = %.2f\n",
-				    tal_id, cni_info->cni);
-				// transmit downlink CNI to downlink channel
-				if(!this->shareMessage((void **)&cni_info, 
-					                   sizeof(cni_info_t),
-					                   msg_cni))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Unable to transmit downward CNI to "
-					    "channel\n");
-				}
-				// update ACM parameters with uplink value, thus the GW will
-				// known uplink C/N and thus update uplink MODCOD used in TTP
-				if(this->cni.find(tal_id) != this->cni.end())
-				{
-					sac->setAcm(this->cni[tal_id]);
-				}
-				// TODO we won't update ACM parameters if we did not receive
-				// traffic from this terminal, GW will have a wrong value...
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "Unable to transmit downward CNI to "
+				    "channel\n");
 			}
-			// do not break here !
+			// update ACM parameters with uplink value, thus the GW will
+			// known uplink C/N and thus update uplink MODCOD used in TTP
+			if(this->cni.find(tal_id) != this->cni.end())
+			{
+				sac->setAcm(this->cni[tal_id]);
+			}
+			// TODO we won't update ACM parameters if we did not receive
+			// traffic from this terminal, GW will have a wrong value...
+		}
+		// do not break here !
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SYNC:
 		case MSG_TYPE_SESSION_LOGON_RESP:
+		{
+			// forward the frame copy
+			if(!this->forwardDvbFrame(current_gw->getControlFifo(),
+			                          dvb_frame))
 			{
-				// forward the frame copy
-				if(!this->forwardDvbFrame(current_gw->getControlFifo(),
-				                          dvb_frame))
-				{
-					return false;
-				}
-				//delete dvb_frame;
+				return false;
 			}
-			break;
+		}
+		break;
 
 			// Special case of logon frame with dedicated channel
 		case MSG_TYPE_SESSION_LOGON_REQ:
+		{
+			LOG(this->log_receive, LEVEL_DEBUG,
+			    "ST logon request received, "
+			    "forward it on all satellite spots\n");
+
+			// forward the frame copy
+			if(!this->forwardDvbFrame(current_gw->getLogonFifo(),
+			                          dvb_frame))
 			{
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "ST logon request received, "
-				    "forward it on all satellite spots\n");
-
-				// forward the frame copy
-				if(!this->forwardDvbFrame(current_gw->getLogonFifo(),
-				                          dvb_frame))
-				{
-					return false;
-				}
-				//delete dvb_frame;
+				return false;
 			}
-			break;
-
+		}
+		break;
 
 		case MSG_TYPE_SOF:
-			{
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "control frame (type = %u) received, "
-				    "forward it on all satellite spots\n",
-				    dvb_frame->getMessageType());
-				// the SOF message should not be stored in fifo, because it
-				// would be kept a random amount of time between [0, fwd_timer]
-				// and we need a perfect synchronization
-				if(!this->shareMessage((void **)&dvb_frame, 
-					                   sizeof(dvb_frame),
-					                   msg_sig))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Unable to transmit sig to downward channel\n");
-				}
-			}
-			break;
-
-		default:
+		{
+			LOG(this->log_receive, LEVEL_DEBUG,
+			    "control frame (type = %u) received, "
+			    "forward it on all satellite spots\n",
+			    dvb_frame->getMessageType());
+			// the SOF message should not be stored in fifo, because it
+			// would be kept a random amount of time between [0, fwd_timer]
+			// and we need a perfect synchronization
+			if(!this->shareMessage((void **)&dvb_frame, 
+				                   sizeof(dvb_frame),
+				                   msg_sig))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-				    "unknown type (%u) of DVB frame\n",
-				    dvb_frame->getMessageType());
-				delete dvb_frame;
+				    "Unable to transmit sig to downward channel\n");
 			}
-			break;
+		}
+		break;
+
+		default:
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown type (%u) of DVB frame\n",
+			    dvb_frame->getMessageType());
+			delete dvb_frame;
+		}
+		break;
 	}
 
 	return true;

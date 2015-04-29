@@ -364,6 +364,8 @@ NetBurst *Atm::Context::deencapAtm(NetPacket *packet)
 		delete atm_id;
 	}
 
+
+
 	LOG(this->log, LEVEL_INFO,
 	    "desencapsulation context contains %zu bytes of "
 	    "data\n", context->length());
