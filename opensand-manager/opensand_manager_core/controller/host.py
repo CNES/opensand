@@ -548,7 +548,7 @@ class HostController:
             if component.startswith(ST):
                 component = ST
             if component.startswith(GW):
-                componenit = GW
+                component = GW
 
         try:
             self.deploy_files(component, sock, deploy_config)

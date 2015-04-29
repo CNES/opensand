@@ -100,7 +100,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	ConfigurationList simu_list;
 	ConfigurationList saloha_section = Conf::section_map[SALOHA_SECTION];
-	DFLTLOG(LEVEL_ERROR, "section size %d", saloha_section.size());
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 

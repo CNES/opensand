@@ -44,5 +44,24 @@
 </xsl:template>
 
 
+<xsl:template match="//slotted_aloha/spot[@id='1']">
+    <xsl:copy-of select="."/>
+    <xsl:call-template name="Newline" />
+   <spot id="2">
+    <xsl:call-template name="Newline" />
+        <algorithm>CRDSA</algorithm>
+    <xsl:call-template name="Newline" />
+        <simulation_traffic>
+    <xsl:call-template name="Newline" />
+            <simu category="Standard" nb_max_packets="0" nb_replicas="2" ratio="20" />
+    <xsl:call-template name="Newline" />
+        </simulation_traffic>
+    <xsl:call-template name="Newline" />
+    </spot>
+    <xsl:call-template name="Newline" />
+</xsl:template>
+    
+
+
 </xsl:stylesheet>
 

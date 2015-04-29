@@ -72,7 +72,7 @@ class PingTest():
         # ready        
         #TODO: increase time sleep for eth
         if test_name.find("eth") >= 0:
-            time.sleep(11)
+            time.sleep(20)
         else:
             time.sleep(1)
 

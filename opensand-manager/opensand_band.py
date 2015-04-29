@@ -86,12 +86,13 @@ class OpenSandBand():
             link = "return_up"
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
-                content = config.get_element_content(KEY)
-                print "spot %s" % content[ID]
-                self._parse(options.scenario, section_path, config, KEY)
-                self._modcod_def(options.scenario, link, config)
-                print str(self)
-                print
+                if KEY.tag == "spot":
+                    content = config.get_element_content(KEY)
+                    print "spot %s" % content[ID]
+                    self._parse(options.scenario, section_path, config, KEY)
+                    self._modcod_def(options.scenario, link, config)
+                    print str(self)
+                    print
         if options.forward:
             print \
 "**************************************************************************\n" \
@@ -100,12 +101,13 @@ class OpenSandBand():
             link = "forward_down"
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
-                content = config.get_element_content(KEY)
-                print "spot %s" % content[ID]
-                self._parse(options.scenario, section_path, config, KEY)
-                self._modcod_def(options.scenario, link, config)
-                print str(self)
-                print
+                if KEY.tag == "spot":
+                    content = config.get_element_content(KEY)
+                    print "spot %s" % content[ID]
+                    self._parse(options.scenario, section_path, config, KEY)
+                    self._modcod_def(options.scenario, link, config)
+                    print str(self)
+                    print
 
     def _reset(self):
         """ reset all data """
@@ -123,7 +125,7 @@ class OpenSandBand():
         xpath = "//%s/bandwidth" % config.get_path(KEY)
         self._bandwidth = float(config.get_value(config.get(xpath)))
         # roll-off
-        xpath = "//%s/roll_off" % config.get_path(KEY)
+        xpath = "//%s/roll_off" % link
         self._roll_off = float(config.get_value(config.get(xpath)))
         # carriers
         xpath = "//%s/carriers_distribution" % config.get_path(KEY)

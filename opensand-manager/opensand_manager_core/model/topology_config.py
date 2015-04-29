@@ -52,12 +52,14 @@ class TopologyConfig(AdvancedHostModel):
     """ OpenSAND Topology configuration, displayed in configuration tab """
     def __init__(self, scenario, manager_log):
         self._list_host = {}
-        AdvancedHostModel.__init__(self, 'topology', scenario)
-        self._modules = []
+        self._last_gw = ""
         self._log = manager_log
+        self._modules = []
+        AdvancedHostModel.__init__(self, 'topology', scenario)
 
     def load(self, scenario):
         """ load the global configuration """
+        
         # create the host configuration directory
         conf_path = scenario
         if not os.path.isdir(conf_path):
@@ -68,6 +70,7 @@ class TopologyConfig(AdvancedHostModel):
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, CONF_NAME)
+        self._log.debug("topology load scenario %s" % self._conf_file)
         # copy the configuration template in the destination directory
         # if it does not exist
         if not os.path.exists(self._conf_file):
@@ -174,6 +177,11 @@ class TopologyConfig(AdvancedHostModel):
 
     def add(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
+        
+        # if the host is already in the topology don't add it
+        if name == self._last_gw:
+            return
+
         self._list_host[name] = net_config
        
         try:
@@ -188,6 +196,8 @@ class TopologyConfig(AdvancedHostModel):
                            'and @' + IP_MULTICAST + '="false"]'
                 self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, IP_ADDRESS)
+                self._log.debug("topology sat ipv4 %s" % IP_ADDRESS)
+
             elif name.startswith(GW):
                 exist =  False
                 for section in self._configuration.get_sections():
@@ -198,6 +208,7 @@ class TopologyConfig(AdvancedHostModel):
                             continue
                         if child.tag ==  SPOT or child.tag == GW:
                             self._configuration.add_gw("//"+section.tag, instance) 
+                            self._log.debug("topology add section %s" % section.tag)
 
                 if not exist:
                     self.update(gw_id = instance)
@@ -209,6 +220,7 @@ class TopologyConfig(AdvancedHostModel):
                            'and @' + IP_MULTICAST + '="false"]'
                 self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
                                           att_path, IP_ADDRESS)
+                self._log.debug("topology gw ipv4 %s" % IP_ADDRESS)
 
             if name != SAT:
                 # IPv4 SARP
@@ -232,6 +244,7 @@ class TopologyConfig(AdvancedHostModel):
 
                 if not find:
                     self._configuration.create_line(line, 'terminal_v4', xpath)
+                    self._log.debug("topology create line %s" % line)
 
                 # IPv6 SARP
                 addr = net_config['lan_ipv6'].split('/')
@@ -254,6 +267,7 @@ class TopologyConfig(AdvancedHostModel):
 
                 if not find:
                     self._configuration.create_line(line, 'terminal_v6', xpath)
+                    self._log.debug("topology create line %s" % line)
                 
                 # Ethernet SARP
                 if 'mac' in net_config:
@@ -276,6 +290,7 @@ class TopologyConfig(AdvancedHostModel):
 
                         if not find:
                             self._configuration.create_line(line, 'terminal_eth', xpath)
+                            self._log.debug("topology create line %s" % line)
 
             self.save()
         except XmlException, msg:
@@ -290,18 +305,35 @@ class TopologyConfig(AdvancedHostModel):
 
     def remove(self, name, instance):
         """ remove a host from topology configuration file """
+        
+        # if there is not other GW don't remove it from topology
+        other_gw = False
+        if name.startswith(GW):
+            self._last_gw = name
+            for host_name in self._list_host:
+                if host_name.startswith(GW) and host_name != name:
+                    other_gw = True
+                    self._last_gw = ""
+                    break
+        
+        if not other_gw:
+            return
+
         del self._list_host[name]
         
         try:
             xpath = "/configuration/sarp/ipv4/terminal_v4" \
                     "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
+            self._log.debug("topology del %s" % xpath)
             xpath = "/configuration/sarp/ipv6/terminal_v6" \
                     "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
+            self._log.debug("topology del %s" % xpath)
             xpath = "/configuration/sarp/ethernet/terminal_eth" \
                     "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
+            self._log.debug("topology del %s" % xpath)
 
             if name.startswith(GW):
                 for section in self._configuration.get_sections():

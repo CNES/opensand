@@ -76,7 +76,7 @@ if __name__ == '__main__':
                              stderr=subprocess.PIPE,
                              close_fds=True, shell=False)
     print "wait for connections"
-    time.sleep(50)
+    time.sleep(60)
     print "stop now"
     try:
         iperf.terminate()
