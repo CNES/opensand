@@ -583,12 +583,27 @@ bool SpotUpward::checkIfScpc()
 		return false;
 	}
 
+	// clear unused fmt_group
+	for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
+	    it != ret_fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	
 	if(scpc_categories.size() == 0)
 	{
 		LOG(this->log_init_channel, LEVEL_INFO,
 		    "No SCPC carriers\n");
 		return false;
 	}
+	
+	// clear unused category
+	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
+	    it != scpc_categories.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	
 	return true;
 }
 

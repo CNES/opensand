@@ -1093,6 +1093,7 @@ bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
 			LOG(this->log_send, LEVEL_ERROR,
 			    "failed to send message, drop the DVB or BB "
 			    "frame\n");
+			delete dvb_frame;
 			goto error;
 		}
 
@@ -1588,7 +1589,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				LOG(this->log_receive, LEVEL_CRITICAL,
 				    "Wrong input carrier ID %u\n", carrier_id);
-				//delete dvb_frame;
 				return false;
 			}
 
@@ -1691,6 +1691,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			// TODO we won't update ACM parameters if we did not receive
 			// traffic from this terminal, GW will have a wrong value...
+			delete dvb_frame;
 		}
 		// do not break here !
 		case MSG_TYPE_TTP:
@@ -1737,6 +1738,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "Unable to transmit sig to downward channel\n");
+				return false;
 			}
 		}
 		break;

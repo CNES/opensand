@@ -735,6 +735,7 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "Failed to call sendDvbFrame() for SOF\n");
+		delete sof;
 		return;
 	}
 

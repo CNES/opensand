@@ -148,12 +148,6 @@ SpotDownward::~SpotDownward()
 
 	if(this->satellite_type == TRANSPARENT)
 	{
-		TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-		for(cat_it = this->categories.begin();
-		    cat_it != this->categories.end(); ++cat_it)
-		{
-			delete (*cat_it).second;
-		}
 		this->categories.clear();
 	}
 
