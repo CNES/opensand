@@ -216,6 +216,13 @@ bool DamaCtrlRcsLegacy::runDamaFca()
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 	vector<CarriersGroupDama *>::const_iterator carrier_it;
 
+	if(this->fca_kbps == 0)
+	{
+		LOG(this->log_run_dama, LEVEL_INFO,
+		    "SF#%u: no fca, skip\n", this->current_superframe_sf);
+		return true;
+	}
+
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
 	    ++category_it)
@@ -233,6 +240,7 @@ bool DamaCtrlRcsLegacy::runDamaFca()
 		}
 	}
 
+	// Be careful to use probes only if FCA is enabled
 	// Output probes and stats
 	this->probe_gw_fca_alloc->put(
 		this->converter->pktpfToKbps(this->gw_fca_alloc_pktpf));
@@ -696,12 +704,6 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	    << carrier_id << ", category " << category->getLabel() << ":";
 	debug = buf.str();
 
-	if(this->fca_kbps == 0)
-	{
-		LOG(this->log_run_dama, LEVEL_INFO,
-		    "SF#%u: no fca, skip\n", this->current_superframe_sf);
-		return;
-	}
 	fca_pktpf = this->converter->kbpsToPktpf(this->fca_kbps);
 
 	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
@@ -716,6 +718,7 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroupDama *carriers,
 
 	if(remaining_capacity_pktpf <= 0)
 	{
+		// Be careful to use probes only if FCA is enabled
 		// Output probes and stats
 		while(tal_it != tal.end())
 		{

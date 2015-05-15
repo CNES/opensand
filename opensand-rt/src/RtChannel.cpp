@@ -207,6 +207,28 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	return event->getFd();
 }
 
+int32_t RtChannel::addTcpListenEvent(const string &name,
+                                     int32_t fd,
+                                     size_t max_size,
+                                     uint8_t priority)
+{
+	TcpListenEvent *event = new TcpListenEvent(name,
+	                                           fd,
+	                                           max_size,
+	                                           priority);
+	if(!event)
+	{
+		this->reportError(true, "cannot create file event\n");
+		return -1;
+	}
+	if(!this->addEvent((RtEvent *)event))
+	{
+		return -1;
+	}
+
+	return event->getFd();
+}
+
 int32_t RtChannel::addFileEvent(const string &name,
                                 int32_t fd,
                                 size_t max_size,

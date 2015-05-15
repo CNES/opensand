@@ -260,8 +260,8 @@ void BlockManager::reportError(const char *msg, bool critical)
 	}
 	else
 	{
-		LOG(this->log_rt, LEVEL_ERROR,
-		    "%s", msg);
+		//LOG(this->log_rt, LEVEL_ERROR,
+		//    "%s", msg);
 	}
 }
 

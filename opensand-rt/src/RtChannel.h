@@ -150,6 +150,20 @@ class RtChannel
 	                          size_t max_size = MAX_SOCK_SIZE,
 	                          uint8_t priority = 3);
 
+	 /**
+	  * @brief Add a tcp listen event to the channel
+	  *
+	  * @param name      The name of the event
+	  * @param fd        The file descriptor to monitor
+	  * @param max_size  The maximum data size
+	  * @param priority  The priority of the event (small for high priority)
+	  * @return the event id on success, -1 otherwise
+	  */
+	 int32_t addTcpListenEvent(const string &name,
+	                           int32_t fd,
+	                           size_t max_size = MAX_SOCK_SIZE,
+	                           uint8_t priority = 4);
+
 	/**
 	 * @brief Add a file event to the channel
 	 *

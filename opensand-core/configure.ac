@@ -92,7 +92,7 @@ AC_CONFIG_FILES([ \
 	src/conf/Makefile \
 	src/dvb_rcs/Makefile \
 	src/dvb_rcs/utils/Makefile \
-	src/dvb_rcs/pep/Makefile \
+	src/dvb_rcs/ncc_interface/Makefile \
 	src/dvb_rcs/fmt/Makefile \
 	src/dvb_rcs/dama/Makefile \
 	src/dvb_rcs/saloha/Makefile \

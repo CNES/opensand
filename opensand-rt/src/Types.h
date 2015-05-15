@@ -52,6 +52,7 @@ typedef enum
 	evt_message,     ///< Event of type Message
 	evt_signal,      ///< Event of type Signal
 	evt_file,        ///< Event of type File
+	evt_tcp_listen,  ///< Event of type TcpListen
 } event_type_t;
 
 

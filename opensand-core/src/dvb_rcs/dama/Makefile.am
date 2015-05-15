@@ -36,7 +36,7 @@ libopensand_dama_la_SOURCES = \
 INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
-	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/ncc_interface \
 	-I$(top_srcdir)/src/dvb_rcs/core \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

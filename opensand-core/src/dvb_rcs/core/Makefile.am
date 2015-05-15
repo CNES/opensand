@@ -36,7 +36,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/switch \
-	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/ncc_interface \
 	-I$(top_srcdir)/src/dvb_rcs/saloha \
 	-I$(top_srcdir)/src/dvb_rcs/scpc \
 	-I$(top_srcdir)/src/qos_data \

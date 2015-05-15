@@ -3,7 +3,7 @@ bin_PROGRAMS = st gw sat
 INCLUDES = \
 	-I$(top_srcdir)/src/dvb_rcs/utils \
 	-I$(top_srcdir)/src/dvb_rcs/switch \
-	-I$(top_srcdir)/src/dvb_rcs/pep \
+	-I$(top_srcdir)/src/dvb_rcs/ncc_interface \
 	-I$(top_srcdir)/src/dvb_rcs/fmt \
 	-I$(top_srcdir)/src/dvb_rcs/dama \
 	-I$(top_srcdir)/src/dvb_rcs/saloha \
@@ -20,7 +20,7 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
 	$(top_builddir)/src/dvb_rcs/libopensand_dvb.la \
 	$(top_builddir)/src/dvb_rcs/dama/libopensand_dama.la \
-	$(top_builddir)/src/dvb_rcs/pep/libopensand_dvb_pep.la \
+	$(top_builddir)/src/dvb_rcs/ncc_interface/libopensand_dvb_ncc_interface.la \
 	$(top_builddir)/src/dvb_rcs/saloha/libopensand_dvb_saloha.la \
 	$(top_builddir)/src/dvb_rcs/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \

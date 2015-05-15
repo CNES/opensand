@@ -220,10 +220,14 @@ bool DamaCtrl::initOutput()
 		"Kbits", true, SAMPLE_LAST, "Spot_%d.NCC.VBDC.VBDC allocated", this->spot_id);
 	this->gw_vbdc_alloc_pkt = 0;
 
-		// FRA allocation
-	this->probe_gw_fca_alloc = Output::registerProbe<int>(
-		"Kbits/s", true, SAMPLE_LAST, "Spot_%d.NCC.FCA allocated", this->spot_id);
-	this->gw_fca_alloc_pktpf = 0;
+		// FCA allocation
+	if(this->fca_kbps != 0)
+	{
+		// only create FCA probe if it is enabled
+		this->probe_gw_fca_alloc = Output::registerProbe<int>(
+			"Kbits/s", true, SAMPLE_LAST, "Spot_%d.NCC.FCA allocated", this->spot_id);
+		this->gw_fca_alloc_pktpf = 0;
+	}
 
 		// Total and remaining capacity
 	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
@@ -265,10 +269,15 @@ bool DamaCtrl::initOutput()
 		                                        "Spot_%d.Simulated_ST.VBDC allocation");
 		this->probes_st_vbdc_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_vbdc));
-		probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
-		                                       "Spot_%d.Simulated_ST.FCA allocation");
-		this->probes_st_fca_alloc.insert(
-			pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
+
+		// only create FCA probe if it is enabled
+		if(this->fca_kbps != 0)
+		{
+			probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+			                                       "Spot_%d.Simulated_ST.FCA allocation");
+			this->probes_st_fca_alloc.insert(
+				pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
+		}
 	}
 
 	return true;
@@ -309,7 +318,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			}
 			LOG(this->log_logon, LEVEL_INFO,
 			    "ST #%d is not affected to a category, using "
-			    "default: %s\n", tal_id, 
+			    "default: %s\n", tal_id,
 			    this->default_category->getLabel().c_str());
 			category = this->default_category;
 		}
@@ -357,6 +366,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			Probe<int> *probe_fca;
 
 			// Output probes and stats
+			// TODO Probes per Spot
 			probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
 			                                       "ST%u_allocation.CRA allocation",
 			                                       tal_id);
@@ -377,11 +387,15 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			                                        tal_id);
 			this->probes_st_vbdc_alloc.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_vbdc));
-			probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
-			                                       "ST%u_allocation.FCA allocation",
-			                                       tal_id);
-			this->probes_st_fca_alloc.insert(
-				pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
+			// only create FCA probe if it is enabled
+			if(this->fca_kbps != 0)
+			{
+				probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+				                                       "ST%u_allocation.FCA allocation",
+				                                       tal_id);
+				this->probes_st_fca_alloc.insert(
+					pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
+			}
 		}
 
 		// Add the new terminal to the list
@@ -517,6 +531,8 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 
 bool DamaCtrl::runDama()
 {
+	DamaTerminalList::iterator tal_it;
+
 	// reset the DAMA settings
 	if(!this->resetDama())
 	{
@@ -533,12 +549,52 @@ bool DamaCtrl::runDama()
 		    this->current_superframe_sf);
 		return false;
 	}
+	else
+	{
+		// Output stats and probes
+		for(tal_it = this->terminals.begin(); tal_it != this->terminals.end(); ++tal_it)
+		{
+			tal_id_t tal_id = tal_it->first;
+			if(tal_id < BROADCAST_TAL_ID)
+			{
+				this->probes_st_rbdc_alloc[tal_id]->put(0);
+			}
+		}
+		if(this->simulated)
+		{
+			this->probes_st_rbdc_alloc[0]->put(0);
+		}
+		this->probe_gw_rbdc_req_num->put(0);
+		this->probe_gw_rbdc_req_size->put(0);
+		this->probe_gw_rbdc_alloc->put(0);
+	}
 	if(this->enable_vbdc && !this->runDamaVbdc())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
 		    this->current_superframe_sf);
 		return false;
+	}
+	else
+	{
+		// Output stats and probes
+		for(tal_it = this->terminals.begin(); tal_it != this->terminals.end(); ++tal_it)
+		{
+			tal_id_t tal_id = tal_it->first;
+			if(tal_id < BROADCAST_TAL_ID)
+			{
+				this->probes_st_vbdc_alloc[tal_id]->put(0);
+			}
+		}
+		if(this->simulated)
+		{
+			this->probes_st_vbdc_alloc[0]->put(0);
+		}
+
+
+		this->probe_gw_vbdc_req_num->put(0);
+		this->probe_gw_vbdc_req_size->put(0);
+		this->probe_gw_vbdc_alloc->put(0);
 	}
 	if(!this->runDamaFca())
 	{
