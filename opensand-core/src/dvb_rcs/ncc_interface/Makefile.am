@@ -1,0 +1,18 @@
+noinst_LTLIBRARIES = libopensand_dvb_ncc_interface.la
+
+libopensand_dvb_ncc_interface_la_cpp = \
+	NccInterface.cpp \
+	PepRequest.cpp \
+	NccPepInterface.cpp 
+
+libopensand_dvb_ncc_interface_la_h = \
+	NccInterface.h \
+	PepRequest.h \
+	NccPepInterface.h 
+
+libopensand_dvb_ncc_interface_la_SOURCES = \
+	$(libopensand_dvb_ncc_interface_la_cpp) \
+	$(libopensand_dvb_ncc_interface_la_h)
+
+INCLUDES = \
+	-I$(top_srcdir)/src/common
