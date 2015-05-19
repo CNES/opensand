@@ -209,7 +209,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	this->addTcpListenEvent("pep_listen",
 	                        this->getPepListenSocket(), 200);
 
-		// Output probes and stats
+	// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
 	                                                          SAMPLE_LAST,
 	                                                          "Perf.Frames_interval");
@@ -335,7 +335,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else if(((MessageEvent *)event)->getMessageType() == msg_saloha)
 			{
-				LOG(this->log_receive, LEVEL_ERROR, "l342\n");
 				list<DvbFrame *> *ack_frames;
 				ack_frames = (list<DvbFrame *> *)((MessageEvent *)event)->getData();
 				spot_id_t spot_id = ack_frames->front()->getSpot();
@@ -432,7 +431,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		case evt_timer:
 		{
-			//LOG(this->log_receive, LEVEL_ERROR, "evt_timer\n");
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
 				"timer event received on downward channel");
@@ -587,128 +585,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
-/*		case evt_net_socket:
-		{
-			if(*event == this->getPepListenSocket())
-			{
-				int ret;
-
-				// event received on PEP listen socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP listen socket\n");
-
-				// create the client socket to receive messages
-				ret = acceptPepConnection();
-				if(ret == 0)
-				{
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "NCC is now connected to PEP\n");
-					// add a fd to handle events on the client socket
-					this->addNetSocketEvent("pep_client",
-					                        this->getPepClientSocket(),
-					                        200);
-				}
-				else if(ret == -1)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "failed to accept new connection "
-					    "request from PEP\n");
-				}
-				else if(ret == -2)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "one PEP already connected: "
-					    "reject new connection request\n");
-				}
-				else
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "unknown status %d from "
-					    "acceptPepConnection()\n", ret);
-					return false;
-				}
-			}
-			else if(*event == this->getPepClientSocket())
-			{
-				// event received on PEP client socket
-				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP client socket\n");
-
-				tal_id_t tal_id;
-
-				// read the message sent by PEP or delete socket
-				// if connection is dead
-				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
-				{
-					spot_id_t spot_id;
-					// we have received a set of commands from the
-					// PEP component, let's apply the resources
-					// allocations/releases they contain
-					if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
-					{
-						spot_id = this->default_spot;
-					}
-					else
-					{
-						spot_id = OpenSandConf::spot_table[tal_id];
-					}
-					
-					spot_iter = spots.find(spot_id);
-					if(spot_iter == spots.end())
-					{
-						LOG(this->log_receive, LEVEL_ERROR, 
-						    "couldn't find spot %d", 
-						    OpenSandConf::spot_table[tal_id]);
-						return false;
-					}
-					SpotDownward *spot;
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-
-					// set delay for applying the commands
-					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
-					{	
-						if(!this->startTimer(spot->getPepCmdApplyTimer()))
-						{
-							LOG(this->log_receive, LEVEL_ERROR,
-							    "cannot start pep timer");
-							return false;
-						}
-						LOG(this->log_receive, LEVEL_NOTICE,
-						    "PEP Allocation request, apply a %dms"
-						    " delay\n", pep_alloc_delay);
-					}
-					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
-					{
-						if(!this->raiseTimer(spot->getPepCmdApplyTimer()))
-						{
-							LOG(this->log_receive, LEVEL_NOTICE,
-							    "cannot raise pep timer");
-							return false;
-						}
-						LOG(this->log_receive, LEVEL_NOTICE,
-								"PEP Release request, no delay to "
-								"apply\n");
-					}
-					else
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot determine request type!\n");
-						return false;
-					}
-				}
-				else
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with PEP, "
-					    "connection was therefore closed\n");
-					//this->removeEvent(this->pep_cmd_apply_timer);
-					return false;
-				}
-			}
-		}*/
 		case evt_net_socket:
 		{
-			LOG(this->log_receive, LEVEL_ERROR, "evt_net_socket\n");
 			if(*event == this->getPepClientSocket())
 			{
 				// event received on PEP client socket
@@ -741,7 +619,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// if connection is dead
 				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
 				{
-					LOG(this->log_receive, LEVEL_ERROR, "l746\n");
 					// we have received a set of commands from the
 					// PEP component, let's apply the resources
 					// allocations/releases they contain
@@ -749,7 +626,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					// set delay for applying the commands
 					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
 					{
-						LOG(this->log_receive, LEVEL_ERROR, "l754\n");
 						if(!this->startTimer(spot->getPepCmdApplyTimer()))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
@@ -762,7 +638,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
 					{
-						LOG(this->log_receive, LEVEL_ERROR, "l767\n");
 						this->raiseTimer(spot->getPepCmdApplyTimer());
 						LOG(this->log_receive, LEVEL_NOTICE,
 						    "PEP Release request, no delay to "
@@ -803,7 +678,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		case evt_tcp_listen:
 		{
-			LOG(this->log_receive, LEVEL_ERROR, "evt_tcp_listen\n");
 			if(*event == this->getPepListenSocket())
 			{
 				this->setSocketClient(((TcpListenEvent *)event)->getSocketClient());
