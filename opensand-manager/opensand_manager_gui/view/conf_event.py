@@ -39,7 +39,7 @@ import gtk
 import gobject
 import copy
 
-from opensand_manager_core.utils import GW, ST, RETURN_UP_BAND, ID
+from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -576,5 +576,6 @@ class ConfEvent(ConfView) :
             gobject.idle_add(self.enable_conf_buttons, False)
         except ConfException as msg:
             error_popup(str(msg))
+
 
 

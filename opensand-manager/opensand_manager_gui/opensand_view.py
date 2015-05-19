@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -28,7 +28,7 @@
 #
 #
 
-# Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
 
 """
 opensand_view.py - OpenSAND manager view
@@ -39,13 +39,14 @@ import gobject
 import os
 import shutil
 
-from opensand_manager_core.utils import OPENSAND_PATH, copytree
 from opensand_manager_core.controller.tcp_server import CommandServer
 from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
-                                               ViewException, ModelException
+                                                ViewException, ModelException
 
+from opensand_manager_core.utils import OPENSAND_PATH, copytree
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
+from opensand_manager_gui.view.resource_event import ResEvent
 from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
@@ -92,12 +93,15 @@ class View(WindowView):
                                       service_type)
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
+            self._eventresource = ResEvent(self.get_current(),
+                                           self._model, self._log)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
                                           self._model, self._log)
 
             self._eventconf.activate(False)
+            self._eventresource.activate(False)
             self._eventtool.activate(False)
             self._eventprobe.activate(False)
         except ProbeException:
@@ -118,8 +122,9 @@ class View(WindowView):
         {
             'run'   : 0,
             'conf'  : 1,
-            'tools' : 2,
-            'probes': 3,
+            'resources'  : 2,
+            'tools' : 3,
+            'probes': 4,
         }
 
         # update the window title
@@ -140,6 +145,7 @@ class View(WindowView):
                             self._model.get_event_manager_response(),
                             self._eventrun,
                             self._eventconf,
+                            self._eventresource,
                             self._eventtool,
                             self._eventprobe,
                             self._log)
@@ -156,8 +162,8 @@ class View(WindowView):
         self._log.info("Welcome to OpenSAND Manager !")
         self._log.info("Initializing platform, please wait...")
         CommandServer._shutdown = self.on_quit
-
-
+        
+        
     def exit(self):
         """ quit main window and application """
         self.exit_kb()
@@ -195,6 +201,8 @@ class View(WindowView):
         self._model.close()
         self._log.debug("View: close configuration view")
         self._eventconf.close()
+        self._log.debug("View: close resources configuration view")
+        self._eventresource.close()
         self._log.debug("View: close run view")
         self._eventrun.close()
         self._log.debug("View: close tool view")
@@ -214,7 +222,7 @@ class View(WindowView):
         self._log.info("Please wait...")
         self.exit()
 
-
+            
     def update_label(self, infos=[]):
         """ Update the message displayed on Manager """
         self._info_label.set_markup(infos[self._counter])
@@ -300,6 +308,7 @@ class View(WindowView):
         gobject.idle_add(self._eventprobe.simu_state_changed,
                          priority=gobject.PRIORITY_HIGH_IDLE+20)
 
+        
         # restart timer
         return True
 
@@ -334,6 +343,7 @@ class View(WindowView):
                         self._eventconf.on_save_conf_clicked()
                     else:
                         self._eventconf.update_view()
+                        self._eventresource.update_view()
                         self._eventconf.update_button_state()
             except Exception, msg:
                 self._log.warning("error when trying to check if configuration "
@@ -362,6 +372,8 @@ class View(WindowView):
                 self._eventrun.activate(True)
             if self._eventconf is not None:
                 self._eventconf.activate(False)
+            if self._eventresource is not None:
+                self._eventresource.activate(False)
             if self._eventtool is not None:
                 self._eventtool.activate(False)
             if self._eventprobe is not None:
@@ -371,6 +383,20 @@ class View(WindowView):
                 self._eventrun.activate(False)
             if self._eventconf is not None:
                 self._eventconf.activate(True)
+            if self._eventresource is not None:
+                self._eventresource.activate(False)
+            if self._eventtool is not None:
+                self._eventtool.activate(False)
+            if self._eventprobe is not None:
+                self._eventprobe.activate(False)
+        elif page_num == self._pages['resources']:
+            if self._eventrun is not None:
+                self._eventrun.activate(False)
+            if self._eventconf is not None:
+                self._eventconf.activate(False)
+            if self._eventresource is not None:
+                self._eventresource.activate(True)
+                self._eventresource.update_view()
             if self._eventtool is not None:
                 self._eventtool.activate(False)
             if self._eventprobe is not None:
@@ -378,6 +404,8 @@ class View(WindowView):
         elif page_num == self._pages['tools']:
             if self._eventconf is not None:
                 self._eventconf.activate(False)
+            if self._eventresource is not None:
+                self._eventresource.activate(False)
             if self._eventrun is not None:
                 self._eventrun.activate(False)
             if self._eventtool is not None:
@@ -387,6 +415,8 @@ class View(WindowView):
         elif page_num == self._pages['probes']:
             if self._eventconf is not None:
                 self._eventconf.activate(False)
+            if self._eventresource is not None:
+                self._eventresource.activate(False)
             if self._eventrun is not None:
                 self._eventrun.activate(False)
             if self._eventtool is not None:

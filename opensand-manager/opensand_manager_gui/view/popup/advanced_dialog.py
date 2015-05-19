@@ -87,7 +87,7 @@ class AdvancedDialog(WindowView):
         info.set_message_type(gtk.MESSAGE_INFO)
         msg = gtk.Label("Do not forget to configure plugins if necessary")
         info.get_content_area().pack_start(msg, False, False)
-        def ok(source=None, event=None):
+        def ok(source = None, event = None):
             source.hide_all()
         info.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
         info.connect("response", ok)

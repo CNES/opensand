@@ -439,6 +439,7 @@
             <![CDATA[
             <b>\tReturn/Up link bandwidth configuration</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -505,6 +506,7 @@
             <![CDATA[
             <b>\tForward/Down link bandwidth configuration</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>

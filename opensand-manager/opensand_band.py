@@ -39,7 +39,10 @@ from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 
-from opensand_manager_core.utils import OPENSAND_PATH, ID
+from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
+        OPENSAND_PATH, ID, SPOT, FMT_ID, FMT_GROUP, RETURN_UP, FORWARD_DOWN, \
+        RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY
+CATEGORY
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -83,10 +86,10 @@ class OpenSandBand():
 "**************************************************************************\n" \
 "****************************** RETURN ************************************\n" \
 "**************************************************************************\n"
-            link = "return_up"
+            link = RETURN_UP
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
-                if KEY.tag == "spot":
+                if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
                     print "spot %s" % content[ID]
                     self._parse(options.scenario, section_path, config, KEY)
@@ -98,10 +101,10 @@ class OpenSandBand():
 "**************************************************************************\n" \
 "****************************** FORWARD ***********************************\n" \
 "**************************************************************************\n"
-            link = "forward_down"
+            link = FORWARD_DOWN
             section_path = "%s_band" % link
             for KEY in config.get_keys(config.get(section_path)):
-                if KEY.tag == "spot":
+                if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
                     print "spot %s" % content[ID]
                     self._parse(options.scenario, section_path, config, KEY)
@@ -125,30 +128,30 @@ class OpenSandBand():
         xpath = "//%s/bandwidth" % config.get_path(KEY)
         self._bandwidth = float(config.get_value(config.get(xpath)))
         # roll-off
-        xpath = "//%s/roll_off" % link
+        xpath = get_conf_xpath(ROLL_OFF, link)
         self._roll_off = float(config.get_value(config.get(xpath)))
         # carriers
         xpath = "//%s/carriers_distribution" % config.get_path(KEY)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            ratios = content["ratio"].replace(',', ';')
+            ratios = content[RATIO].replace(',', ';')
             ratios = ratios.replace('-', ';')
             ratios = map(lambda x: float(x), ratios.split(';'))
-            fmt_groups =  content["fmt_group"].replace(',', ';')
+            fmt_groups =  content[FMT_GROUP].replace(',', ';')
             fmt_groups = fmt_groups.replace('-', ';')
             fmt_groups = fmt_groups.split(';')
-            self._add_carrier(content["category"],
-                              content["access_type"],
+            self._add_carrier(content[CATEGORY],
+                              content[ACCESS_TYPE],
                               ratios,
-                              float(content["symbol_rate"]),
+                              float(content[SYMBOL_RATE]),
                               fmt_groups)
 
         # fmt groups
         xpath = "//%s/fmt_groups" % config.get_path(KEY)
         for group in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(group)
-            self._add_fmt_group(content["id"],
-                                content["fmt_id"])
+            self._add_fmt_group(content[ID],
+                                content[FMT_ID])
 
 
     def _modcod_def(self, scenario, link, config):

@@ -41,7 +41,8 @@ import pango
 from copy import deepcopy
 
 from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
-                                         TOPOLOGY  
+                                        TOPOLOGY, BANDWIDTH, SYMBOL_RATE,\
+                                        ROLL_OFF
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
@@ -274,6 +275,117 @@ class ProbeSelectionController(object):
         self._probe_view.displayed_probes_changed(displayed_probes)
 
 
+class SpotTree(gtk.TreeStore):
+    """ the OpenSAND configuration view tree """
+    def __init__(self, treeview, col1_title, col1_changed_cb):
+        # create a treestore with 1property
+        # - text: the text of the 1st column
+        gtk.TreeStore.__init__(self, gobject.TYPE_STRING,
+                                     gobject.TYPE_BOOLEAN)
+
+        self._treeselection = None
+        self._cell_renderer_toggle = None
+        self._is_first_elt = 0
+        
+        # filter to hide row
+        # attach store to the filter
+        self._filter_visible = self.filter_new()
+        self._filter_visible.set_visible_column(1)
+        self._treeview = treeview 
+        self._treeview.set_model(self._filter_visible)
+        self._hidden_row = []
+        self._restriction_row = []
+        
+        """ load the treestore """
+        column = gtk.TreeViewColumn(col1_title)
+        cell_renderer = gtk.CellRendererText()
+        column.pack_start(cell_renderer, True)
+        column.add_attribute(cell_renderer, "text", TEXT)
+        column.add_attribute(cell_renderer, "visible", 1)
+        
+        self._treeview.append_column(column)
+
+        # add a column to avoid large toggle column
+        col = gtk.TreeViewColumn(' ')
+        self._treeview.append_column(col)
+
+        # get the tree selection
+        self._treeselection = self._treeview.get_selection()
+        self._treeselection.set_mode(gtk.SELECTION_SINGLE)
+        if col1_changed_cb is not None:
+            self._treeselection.connect('changed', col1_changed_cb)
+
+    def add_spot(self, name, elt_info=None):
+        """ add a host with its elements in the treeview """
+        top_elt = self.append(None)
+        self.set(top_elt, TEXT, name,
+                 1, True)
+
+    def add_child(self, name, parent_name, parents=False):
+        """ add a module in the module tree """
+        top_elt = None
+        if parents:
+            top_elt = self.get_parent(parent_name)
+
+        # set top element, either child  or type depending on parents
+        if top_elt is None:
+            top_elt = self.append(None)
+            top_name = name
+            if parents:
+                it = len(parent_name) -1
+                top_name = parent_name[it]
+            self.set(top_elt, TEXT, top_name,
+                     1, True)
+
+        if parents:
+            sub_iter = self.append(top_elt)
+            self.set(sub_iter, TEXT, name,
+                     1, True)
+
+
+    def del_elem(self, name):
+        """ remove a host from the treeview """
+        iterator = self.get_parent([name])
+        if iterator is not None:
+            self.remove(iterator)
+
+    def get_parent(self, name):
+        """ get a parent in the treeview """
+        iterator = self.get_iter_first()
+        last_it = iterator
+        path_iter = 0
+        while iterator is not None :
+            if self.get_value(iterator, TEXT).lower() == name[path_iter].lower():
+                if path_iter == len(name)-1:
+                    return iterator
+                path_iter += 1
+                iterator = self.iter_children(iterator)
+
+            if last_it == iterator:
+                iterator = self.iter_next(iterator)
+                last_it = iterator
+            else:
+                last_it = iterator
+        return iterator
+   
+    def get_selection(self):
+        """ get the treeview selection """
+        return self._treeselection
+
+    def get_treeview(self):
+        """ get the treeview """
+        return self._treeview
+
+    def get_spot_gw(self, iterator, spot, gw):
+        if self.get_value(iterator, TEXT).lower().startswith(GW):
+            gw = self.get_value(iterator, TEXT).lower().split(GW)[1]
+            if self.get_value(iterator.get_parent(),\
+                              TEXT).lower().startswith(SPOT):
+                spot = self.get_value(iterator.get_parent(),\
+                                      TEXT).lower().split(SPOT)[1]
+    def select_path(self, path):
+        self._treeview.expand_to_path(path)
+        self._treeselection.select_path(path)
 
 class ConfigurationTree(gtk.TreeStore):
     """ the OpenSAND configuration view tree """
@@ -669,6 +781,10 @@ class ConfSection(gtk.VBox):
         self._restrictions = {}
         # list of completions
         self._completions = []
+        # bandwidth key
+        self._bandwidth = None
+        self._roll_off = 0
+        self._symbol_rates = []
 
         self.fill(section)
         self.set_hidden(True)
@@ -848,6 +964,8 @@ class ConfSection(gtk.VBox):
         if restriction is not None:
             self._restrictions.update({key_box: restriction})
 
+        if name == BANDWIDTH:
+            self._bandwidth = entry
         return key_box
 
     def add_table(self, key, source_ext = ""):
@@ -974,6 +1092,8 @@ class ConfSection(gtk.VBox):
                 pos = line_path.rfind('[')
                 line_id = line_path[pos:].strip('[]')
                 value = dic[att]
+                if att == SYMBOL_RATE:
+                    self._symbol_rates.append(value)
                 if source is not None:
                     source += source_ext + '_' + str(line_id)
                     source = os.path.join(scenario, source)
@@ -1036,6 +1156,7 @@ class ConfSection(gtk.VBox):
             len(self._new) == 0):
             return
 
+        update_band_width = False
         try:
             for table in self._new:
                 self._config.add_line(table)
@@ -1050,9 +1171,27 @@ class ConfSection(gtk.VBox):
                 elif len(path) == 1:
                     self._config.set_value(val, path[0])
                 elif len(path) == 2:
+                    if path[1] == SYMBOL_RATE:
+                        update_band_width = True
+                        syb_rate = self._config.get(path[0])
+                        if syb_rate.get(SYMBOL_RATE) in  self._symbol_rates:
+                            self._symbol_rates.remove(syb_rate.get(SYMBOL_RATE))
+                        self._symbol_rates.append(val)
                     self._config.set_value(val, path[0], path[1])
+
         except XmlException:
             raise
+        
+        # Update Bandwidth
+        bandwidth = 0.0
+        path_roll_off = self._bandwidth.get_name().split('/@')[0].split('/spot')
+        roll_off = float(self._config.get_value(self._config.get(path_roll_off[0] 
+                                                                 + '/' + ROLL_OFF)))
+        for symbol_rate in self._symbol_rates:
+            bandwidth += float(symbol_rate) / 1000000 * (roll_off + 1)
+        self._bandwidth.get().set_text(str(bandwidth))
+        path = self._bandwidth.get_name().split('/@')
+        self._config.set_value(bandwidth, path[0])
 
         # remove lines in reversed order because each suppression shift indexes
         # in the XML document
@@ -1578,6 +1717,7 @@ class ManageSpot:
                     break
 
         self._model.get_topology().update(spot_id = spot_id)
+        self._model.get_conf().update(spot_id = spot_id)
 
 
 

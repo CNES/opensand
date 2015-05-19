@@ -358,8 +358,8 @@ class Model:
         if component == SAT:
             self._hosts.insert(0, host)
         elif component == GW:
-            self._config.get_configuration().add_gw('//forward_down_band', instance)
-            self._config.get_configuration().add_gw('//return_up_band', instance)
+            self._config.get_configuration().add_gw('//' + FORWARD_DOWN_BAND, instance)
+            self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
             self._config.get_configuration().write()
             self._hosts.insert(1, host)
         elif component != WS:
@@ -432,13 +432,11 @@ class Model:
         # wait controlleur has finished event
         self._event_manager_response.wait(4)
         msg = self._event_manager_response.get_type()
-        #print msg
         if msg == 'deploy_files':
             i = 0
             while self._event_manager_response.get_type() != \
                  'resp_deploy_files' and i < 4  :
                 self._event_manager_response.wait(4)
-                #print msg
                 i += 1
         self._modified = True
         self._scenario_path = val

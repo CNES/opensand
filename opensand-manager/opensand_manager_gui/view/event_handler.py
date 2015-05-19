@@ -43,12 +43,13 @@ from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
 class EventResponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
     def __init__(self, event_manager_response,
-                 run_view, conf_view, tool_view, probe_view,
-                 manager_log):
+                 run_view, conf_view, resource_view, tool_view, 
+                 probe_view, manager_log):
         threading.Thread.__init__(self)
         self.setName("EventResponseHandler")
         self._run_view = run_view
         self._conf_view = conf_view
+        self._resource_view = resource_view
         self._tool_view = tool_view
         self._probe_view = probe_view
         self._event_manager_response = event_manager_response

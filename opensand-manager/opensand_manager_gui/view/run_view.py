@@ -38,7 +38,7 @@ import gtk
 import gobject
 import os
 
-from opensand_manager_core.utils import OPENSAND_PATH, ST, SAT, GW
+from opensand_manager_core.utils import OPENSAND_PATH, ST, SAT, GW, SPOT
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
 from opensand_manager_core.model.environment_plane import Program
@@ -149,14 +149,14 @@ class RunView(WindowView):
                     list_gw.append(gw)
 
         for instance in list_gw:
-            name = "gw"
+            name = GW
             if name+instance not in self._color_list:
                 color = self._colors[self._it_color]
                 self._color_list[name+instance] = color               
                 self._it_color += 1
         
         for instance in list_spot:
-            name = "spot"
+            name = SPOT
             if name+instance not in self._color_list:
                 color = self._colors[self._it_color]
                 self._color_list[name+instance] = color               

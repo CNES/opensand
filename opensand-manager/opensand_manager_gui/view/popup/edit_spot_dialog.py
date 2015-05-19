@@ -38,6 +38,7 @@ import gtk
 
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.window_view import WindowView
+from opensand_manager_core.utils import RETURN_UP_BAND, ID, SPOT
 
 
 class EditSpotDialog(WindowView):
@@ -76,12 +77,12 @@ class EditSpotDialog(WindowView):
         if widget.get_text() != None:
             """check spot id exist"""
             config = self.model.get_conf().get_configuration()
-            xpath = "//return_up_band"
+            xpath = "//" + RETURN_UP_BAND
             elm = config.get(xpath)
             for KEY in config.get_keys(elm):
-                if KEY.tag == "spot":
+                if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
-                    spot = content["id"]
+                    spot = content[ID]
                     if spot == widget.get_text():
                         find = True;
 

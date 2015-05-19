@@ -55,7 +55,7 @@ class TopologyConfig(AdvancedHostModel):
         self._last_gw = ""
         self._log = manager_log
         self._modules = []
-        AdvancedHostModel.__init__(self, 'topology', scenario)
+        AdvancedHostModel.__init__(self, TOPOLOGY, scenario)
 
     def load(self, scenario):
         """ load the global configuration """
@@ -224,7 +224,7 @@ class TopologyConfig(AdvancedHostModel):
 
             if name != SAT:
                 # IPv4 SARP
-                addr = net_config['lan_ipv4'].split('/')
+                addr = net_config[LAN_IPV4].split('/')
                 ip = addr[0]
                 net = ip[0:ip.rfind('.') + 1] + "0"
                 mask = addr[1]
@@ -232,10 +232,10 @@ class TopologyConfig(AdvancedHostModel):
                         'mask': mask,
                         TAL_ID: instance,
                        }
-                xpath = '/configuration/sarp/ipv4'
+                xpath = PATH_IPV4
                 
                 table = self._configuration.get(xpath)
-                new = etree.Element('terminal_v4', line)
+                new = etree.Element(TERMINAL_V4, line)
                 find = False
                 for elm in table.getchildren():
                     if etree.tostring(new) == etree.tostring(elm):
@@ -243,11 +243,11 @@ class TopologyConfig(AdvancedHostModel):
                         break
 
                 if not find:
-                    self._configuration.create_line(line, 'terminal_v4', xpath)
+                    self._configuration.create_line(line, TERMINAL_V4, xpath)
                     self._log.debug("topology create line %s" % line)
 
                 # IPv6 SARP
-                addr = net_config['lan_ipv6'].split('/')
+                addr = net_config[LAN_IPV6].split('/')
                 ip = addr[0]
                 net = ip[0:ip.rfind(':') + 1] + "0"
                 mask = addr[1]
@@ -255,10 +255,10 @@ class TopologyConfig(AdvancedHostModel):
                         'mask': mask,
                         TAL_ID: instance,
                        }
-                xpath = '/configuration/sarp/ipv6'
+                xpath = PATH_IPV6
 
                 table = self._configuration.get(xpath)
-                new = etree.Element('terminal_v6', line)
+                new = etree.Element(TERMINAL_V6, line)
                 find = False
                 for elm in table.getchildren():
                     if etree.tostring(new) == etree.tostring(elm):
@@ -266,7 +266,7 @@ class TopologyConfig(AdvancedHostModel):
                         break
 
                 if not find:
-                    self._configuration.create_line(line, 'terminal_v6', xpath)
+                    self._configuration.create_line(line, TERMINAL_V6, xpath)
                     self._log.debug("topology create line %s" % line)
                 
                 # Ethernet SARP
@@ -278,10 +278,10 @@ class TopologyConfig(AdvancedHostModel):
                         line = {'mac': mac,
                                 TAL_ID: instance,
                                }
-                        xpath = '/configuration/sarp/ethernet'
+                        xpath = PATH_ETERNET
 
                         table = self._configuration.get(xpath)
-                        new = etree.Element('terminal_eth', line)
+                        new = etree.Element(TERMINAL_ETH, line)
                         find = False
                         for elm in table.getchildren():
                             if etree.tostring(new) == etree.tostring(elm):
@@ -289,7 +289,7 @@ class TopologyConfig(AdvancedHostModel):
                                 break
 
                         if not find:
-                            self._configuration.create_line(line, 'terminal_eth', xpath)
+                            self._configuration.create_line(line, TERMINAL_ETH, xpath)
                             self._log.debug("topology create line %s" % line)
 
             self.save()
@@ -322,16 +322,13 @@ class TopologyConfig(AdvancedHostModel):
         del self._list_host[name]
         
         try:
-            xpath = "/configuration/sarp/ipv4/terminal_v4" \
-                    "[@" + TAL_ID + "='%s']" % instance
+            xpath = PATH_TERM_V4 + "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
             self._log.debug("topology del %s" % xpath)
-            xpath = "/configuration/sarp/ipv6/terminal_v6" \
-                    "[@" + TAL_ID + "='%s']" % instance
+            xpath = PATH_TERM_V6 + "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
             self._log.debug("topology del %s" % xpath)
-            xpath = "/configuration/sarp/ethernet/terminal_eth" \
-                    "[@" + TAL_ID + "='%s']" % instance
+            xpath = PATH_TERM_ETH + "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
             self._log.debug("topology del %s" % xpath)
 
@@ -412,7 +409,7 @@ class TopologyConfig(AdvancedHostModel):
 
 
 
-        # update topology carrier value according to spor value
+        # update topology carrier value according to spot value
         for section in sections:
             for child in section.getchildren():
                 gw = gw_id
@@ -441,7 +438,7 @@ class TopologyConfig(AdvancedHostModel):
                                             tab_multicast.remove(tab_multicast[0])
                                         continue
 
-                                    #update rrier id and port id
+                                    #update carrier id and port id
                                     try:
                                         if key.tag == CARRIERS:
                                             val = int(element.get(att))+s_id

@@ -288,7 +288,7 @@ class XmlParser:
             raise XmlException("wrong path: %s is not valid" % xpath)
         table.append(etree.Element(key, attributes))
 
-    def remove_line(self, xpath):
+    def remove_line(self, xpath, line = 0):
         """ remove a line in the table identified by its path """
         tables = self._tree.xpath(xpath)
         if len(tables) != 1:
@@ -297,7 +297,13 @@ class XmlParser:
         children = table.getchildren()
         if len(children) == 0:
             raise XmlException("wrong path: %s is not a table" % xpath)
-        child = children[0]
+        i = 0
+        while(i < len(children)):
+            child = children[i]
+            if not child.tag is etree.Comment:
+                child = children[i+line]
+                break
+            i += 1
         table.remove(child)
 
     def write(self, filename=None):

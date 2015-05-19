@@ -318,7 +318,7 @@ PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
 	}
 	else
 	{
-		LOG(this->log_ncc_interface, LEVEL_ERROR,
+		LOG(this->log_ncc_interface, LEVEL_INFO,
 		    "well received\n");
 	}
 
@@ -332,7 +332,7 @@ PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
 		return NULL;
 	}
 
-	LOG(this->log_ncc_interface, LEVEL_ERROR,
+	LOG(this->log_ncc_interface, LEVEL_INFO,
 	    "PEP %s received for ST #%u: new CRA = %u kbits/s, "
 	    "new RBDC = %u kbits/s, new RBDC Max = %u kbits/s ",
 	    ((type == PEP_REQUEST_ALLOCATION) ? "allocation" : "release"),
