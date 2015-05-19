@@ -92,7 +92,7 @@ class OpenSandBand():
                 if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
                     print "spot %s" % content[ID]
-                    self._parse(options.scenario, section_path, config, KEY)
+                    self._parse(options.scenario, link, config, KEY)
                     self._modcod_def(options.scenario, link, config)
                     print str(self)
                     print
@@ -107,7 +107,7 @@ class OpenSandBand():
                 if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
                     print "spot %s" % content[ID]
-                    self._parse(options.scenario, section_path, config, KEY)
+                    self._parse(options.scenario, link, config, KEY)
                     self._modcod_def(options.scenario, link, config)
                     print str(self)
                     print

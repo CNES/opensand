@@ -260,11 +260,11 @@ class GraphicalParameter(WindowView):
         """Copy a carrier identify by his ID"""    
         self._nb_carrier += 1
 
-        sr = self._list_carrier[id_carrier].getSymbolRate()
-        g = self._list_carrier[id_carrier].getGroup()
-        ac = self._list_carrier[id_carrier].getAccessType()
-        md = self._list_carrier[id_carrier].get_str_modcod()
-        ra = self._list_carrier[id_carrier].getStrRatio()
+        sr = self._list_carrier[id_carrier-1].getSymbolRate()
+        g = self._list_carrier[id_carrier-1].getGroup()
+        ac = self._list_carrier[id_carrier-1].getAccessType()
+        md = self._list_carrier[id_carrier-1].get_str_modcod()
+        ra = self._list_carrier[id_carrier-1].getStrRatio()
         
         self._list_carrier.append(Carrier(sr, g, ac, md, ra))
         self.clear_carrier_interface()

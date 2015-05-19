@@ -129,10 +129,10 @@ def get_conf_xpath(element, link = '', spot_id = 0, gw_id = 1):
        element == BANDWIDTH:
         path = '//' + link + PATH_BAND + spot + element
     else:
-        if link != '':
+        if link == FORWARD_DOWN or link == RETURN_UP:
             path = '//' + link + PATH_BAND + element
         else:
-            print "path error"
+            path = '//' + link + '/' + element
     return path
 
 
