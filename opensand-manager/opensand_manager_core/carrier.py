@@ -41,13 +41,14 @@ class Carrier :
     """
     Create a carrier 
         Arg :   symbol_rate    : float
+                nb_carrier     : integer (default = 1)
                 group          : integer (default = 1)
                 access_type    : string (default = 'CCM')
                 list_modcod    : list of string (default empty)
                 ratio          : dictionnary with ['modcod':ratio] only use for VCM
     """
     
-    def __init__(self, symbol_rate = 0, group = 1, 
+    def __init__(self, symbol_rate = 0, nb_carrier = 1, group = 1, 
                  access_type = 'CCM', modcod = '1', 
                  ratio = '10') :
         self._symbolRate = symbol_rate
@@ -58,6 +59,7 @@ class Carrier :
         self._list_modcod = self.parse_modcod(self._str_modcod)
         self._str_ratio = ratio
         self._ratio = self.parse_ratio(ratio)
+        self._nb_carrier = nb_carrier
         
         if group == "Standard":
             group = 1
@@ -144,7 +146,9 @@ class Carrier :
     def setRatio(self, ratio):
         self._str_ratio = ratio
         self._ratio = self.parse_ratio(ratio)
-        
+       
+    def setNbCarrier(self, nb_carrier):
+       self._nb_carrier = nb_carrier 
     
     """ACCESSEUR"""
     ##################################################
@@ -197,8 +201,11 @@ class Carrier :
         Return the total bandwith of th carrier
         to get only the symbol rate use getSymbolRate()
         """
-        return float(self._symbolRate)*(roll_off+1)
-    
+        return float(self._symbolRate) * (roll_off + 1) * self._nb_carrier
+   
+    def getNbCarrier(self):
+        return self._nb_carrier
+
     ##################################################
     
     def __str__(self):
@@ -212,7 +219,7 @@ class Carrier :
 ##################################################
 if __name__ == '__main__':
 
-    p1 = Carrier(12, 1, 'VCM',"2;5-8" , "4;6")
+    p1 = Carrier(12, 1, 1, 'VCM',"2;5-8" , "4;6")
 
     print(p1.getModeCode())
     print(p1.getRatio())

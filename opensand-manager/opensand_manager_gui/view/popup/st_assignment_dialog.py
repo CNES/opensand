@@ -38,7 +38,7 @@ import gobject
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import get_conf_xpath, CATEGORY, \
-        ST, TAL_ID, TAL_DEF_AFF, TAL_AFFECTATIONS
+        ST, TAL_ID, TAL_DEF_AFF, TAL_AFFECTATIONS, CARRIERS_DISTRIB
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
@@ -122,22 +122,25 @@ class AssignmentDialog(WindowView):
             
         #Create combo box for group
         group = gtk.ListStore(int, str)
-        for group_id in range(3):
-            cat = self.get_group_str(group_id)
-            if cat == defaulf_grp:
-                cat += " (default)"
-            group.append([group_id, cat])
+
+        xpath = get_conf_xpath(CARRIERS_DISTRIB, self._link, self._spot, self._gw)
+        for carrier in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(carrier)
+            group.append([self.get_group_value(content[CATEGORY]),
+                          content[CATEGORY]])
         for host in host_list:
             if not host.get_name().lower().startswith(ST):
                 continue
             if host.get_spot_id() != self._spot:
+                continue
+            if host.get_gw_id() != self._gw:
                 continue
             #Create box for st
             hbox_st_allocation = gtk.HBox()
             #Label for st
             label_st_name = gtk.Label(str=host.get_name().upper())
             #Create combo box for st
-            combo_box_group=gtk.ComboBox(group)
+            combo_box_group = gtk.ComboBox(group)
             renderer_text = gtk.CellRendererText()
             combo_box_group.pack_start(renderer_text, True)
             combo_box_group.add_attribute(renderer_text, "text", 1)

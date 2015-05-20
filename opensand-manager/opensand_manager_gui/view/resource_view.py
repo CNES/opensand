@@ -45,7 +45,8 @@ from opensand_manager_core.carrier import Carrier
 
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
-        TAL_ID, SYMBOL_RATE, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, RETURN_UP_BAND
+        TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
+        RETURN_UP_BAND
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -168,16 +169,35 @@ class ResView(WindowView):
     def update_graph(self, link):
         """Display on the graph the carrier representation"""
         #get the xml config
-        config=self._model.get_conf()._configuration
+        config = self._model.get_conf()._configuration
+        
+        xpath = get_conf_xpath(BANDWIDTH, link, self._spot, self._gw)
+        # bandwidth in MHz
+        bandwidth = float(config.get_value(config.get(xpath))) * 1000000
+
+        xpath = get_conf_xpath(ROLL_OFF, link)
+        roll_off = float(config.get_value(config.get(xpath)))
         
         #get all carriers
-        list_carrier=[]
-        color={1:'b-', 2:'g-', 3:'c-', 4:'m-', 5:'y-', 6:'k-', 7:'r-'}
+        list_carrier = []
+        color = {1:'b-', 
+                 2:'g-', 
+                 3:'c-', 
+                 4:'m-', 
+                 5:'y-', 
+                 6:'k-', 
+                 7:'r-'}
         xpath = get_conf_xpath(CARRIERS_DISTRIB, link, self._spot, self._gw)
+        total_ratio_rs = 0
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
+            total_ratio_rs += float(content[SYMBOL_RATE]) * float(content[RATIO])
+        for carrier in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(carrier)
+            nb_carrier = int(round(float(content[RATIO]) / total_ratio_rs *\
+                    bandwidth / (1 + roll_off)))
             list_carrier.append(Carrier(float(content[SYMBOL_RATE])/1000000,
-                                        content[CATEGORY], 
+                                        nb_carrier, content[CATEGORY], 
                                         content[ACCESS_TYPE]))
         
         #get the roll off
@@ -195,11 +215,13 @@ class ResView(WindowView):
         #Trace the graphe
         if link == FORWARD_DOWN:
             for element in list_carrier :
-                element.calculateXY(roll_off, off_set)
-                self._ax_forward.plot(element.getX(), 
-                                      element.getY(), 
-                                      color[element.getGroup()])
-                off_set = off_set + element.getBandwidth(roll_off)
+                for nb_carrier in range(1, element.getNbCarrier()+1):
+                    element.calculateXY(roll_off, off_set)
+                    self._ax_forward.plot(element.getX(), 
+                                          element.getY(), 
+                                          color[element.getGroup()])
+                    off_set = off_set + element.getBandwidth(roll_off)\
+                           / element.getNbCarrier() 
             if off_set != 0:
                 self._ax_forward.axis([float(-off_set)/6, 
                                       off_set + float(off_set)/6,
@@ -213,11 +235,13 @@ class ResView(WindowView):
             self._figure_forward.canvas.draw()
         elif link == RETURN_UP:
             for element in list_carrier :
-                element.calculateXY(roll_off, off_set)
-                self._ax_return.plot(element.getX(), 
-                                     element.getY(), 
-                                     color[element.getGroup()])
-                off_set = off_set + element.getBandwidth(roll_off)
+                for nb_carrier in range(1, element.getNbCarrier()+1):
+                    element.calculateXY(roll_off, off_set)
+                    self._ax_return.plot(element.getX(), 
+                                         element.getY(), 
+                                         color[element.getGroup()])
+                    off_set = off_set + element.getBandwidth(roll_off)\
+                            / element.getNbCarrier()
             if off_set != 0:
                 self._ax_return.axis([float(-off_set)/6, 
                                      off_set + float(off_set)/6, 
@@ -269,13 +293,20 @@ class ResView(WindowView):
                                           self._spot, self._gw)
         default_grp = config.get_value(config.get(defaulf_grp_path))
         default_cat = default_grp + " (default)"
+        group_list.append(default_cat)
 
         
         for terminal in config.get_table_elements(config.get(xpath)):
-                content = config.get_element_content(terminal)
-                if content[CATEGORY] != default_grp:
-                    group_list.append(content[CATEGORY])
-                    terminal_list[content[TAL_ID]] = content[CATEGORY]
+            content = config.get_element_content(terminal)
+            if content[CATEGORY] != default_grp:
+                group_list.append(content[CATEGORY])
+                terminal_list[content[TAL_ID]] = content[CATEGORY]
+        
+        xpath = get_conf_xpath(CARRIERS_DISTRIB, link, self._spot, self._gw)
+        for carrier in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(carrier)
+            if content[CATEGORY] != default_grp:
+                group_list.append(content[CATEGORY])
 
         host_list = self._model.get_hosts_list()  
         for host in host_list:
@@ -283,9 +314,29 @@ class ResView(WindowView):
                 continue
             if host.get_spot_id() != self._spot:
                 continue
+            if host.get_gw_id() != self._gw:
+                continue
             if host.get_instance() not in terminal_list.keys():
-                group_list.append(default_cat)
                 terminal_list[host.get_instance()] = default_cat
+
+        if not terminal_list:
+            hbox_gr_title = gtk.HBox()
+            msg = "There is no ST associated with this spot and gw"
+            label_color = gtk.Label("<span color='red'>%s</span>" % msg)
+            label_color.set_use_markup(True)
+            hbox_gr_title.pack_start(label_color, 
+                                     expand=False, 
+                                     fill=False, 
+                                     padding=10)
+
+            if link == FORWARD_DOWN:
+                self._st_forward.pack_start(hbox_gr_title, 
+                                            expand=False, 
+                                            fill=False)
+            elif link == RETURN_UP:
+                self._st_return.pack_start(hbox_gr_title, 
+                                           expand=False, 
+                                           fill=False)
 
                     
         present = {k: group_list.count(k) for k in set(group_list)}

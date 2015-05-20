@@ -892,7 +892,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		T *category = (*category_it).second;
 		unsigned int ratio = category->getRatio();
 
-		carriers_number = floor(
+		carriers_number = round(
 		    (ratio / weighted_sum_ksymps) *
 		    (available_bandplan_khz / (1 + roll_off)));
 		// create at least one carrier
