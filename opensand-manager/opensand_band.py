@@ -35,7 +35,6 @@ opensand_band.py - The OpenSAND bandwidth representation
 """
 
 import os
-from math import floor
 from fractions import Fraction
 from optparse import OptionParser
 
@@ -238,14 +237,17 @@ class OpenSandBand():
         for name in self._categories:
             for carriers in self._categories[name]:
                 total_ratio += sum(carriers.ratios)
-        carriers_number = floor((total_ratio / weighted_sum) *
+        # replace floor by round because bandwidth is calculed exactly
+        # according to the number of wanted carrier 
+        carriers_number = round((total_ratio / weighted_sum) *
                                 (self._bandwidth / (1 + self._roll_off)))
         if carriers_number == 0:
             carriers_number = 1
                 
         for name in self._categories:
-            for carrier in self._categories[name]:
-                nbr = int(carriers_number * sum(carriers.ratios) / total_ratio)
+            for carriers in self._categories[name]:
+                nbr = int(round(carriers_number * sum(carriers.ratios) /
+                                total_ratio))
                 if nbr == 0:
                     nbr = 1
                 carriers.number = nbr

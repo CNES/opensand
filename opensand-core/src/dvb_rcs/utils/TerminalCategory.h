@@ -197,7 +197,7 @@ class TerminalCategory
 			vol_sym_t capacity_sym;
 	
 			// get number per carriers from total number in category
-			number = (unsigned int)(carriers_number * (*it)->getRatio() / total_ratio);
+			number = round(carriers_number * (*it)->getRatio() / total_ratio);
 			if(number == 0)
 			{
 				number = 1;
