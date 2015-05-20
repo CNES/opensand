@@ -393,7 +393,8 @@ class ConfEvent(ConfView) :
         config = self._model.get_conf().get_configuration()
         xpath = "//"+RETURN_UP_BAND
         for key in config.get_keys(config.get(xpath)):
-            self._free_spot.remove(key.get(ID))
+            if key.get(ID) in self._free_spot:
+                self._free_spot.remove(key.get(ID))
 
         try:
             self.update_view()
