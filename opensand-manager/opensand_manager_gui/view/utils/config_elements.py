@@ -1183,15 +1183,16 @@ class ConfSection(gtk.VBox):
             raise
         
         # Update Bandwidth
-        bandwidth = 0.0
-        path_roll_off = self._bandwidth.get_name().split('/@')[0].split('/spot')
-        roll_off = float(self._config.get_value(self._config.get(path_roll_off[0] 
+        if self._bandwidth is not None:
+            bandwidth = 0.0
+            path_roll_off = self._bandwidth.get_name().split('/@')[0].split('/spot')
+            roll_off = float(self._config.get_value(self._config.get(path_roll_off[0] 
                                                                  + '/' + ROLL_OFF)))
-        for symbol_rate in self._symbol_rates:
-            bandwidth += float(symbol_rate) / 1000000 * (roll_off + 1)
-        self._bandwidth.get().set_text(str(bandwidth))
-        path = self._bandwidth.get_name().split('/@')
-        self._config.set_value(bandwidth, path[0])
+            for symbol_rate in self._symbol_rates:
+                bandwidth += float(symbol_rate) / 1000000 * (roll_off + 1)
+                self._bandwidth.get().set_text(str(bandwidth))
+                path = self._bandwidth.get_name().split('/@')
+                self._config.set_value(bandwidth, path[0])
 
         # remove lines in reversed order because each suppression shift indexes
         # in the XML document
