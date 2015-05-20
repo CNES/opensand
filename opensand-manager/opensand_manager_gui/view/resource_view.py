@@ -169,7 +169,7 @@ class ResView(WindowView):
     def update_graph(self, link):
         """Display on the graph the carrier representation"""
         #get the xml config
-        config=self._model.get_conf()._configuration
+        config = self._model.get_conf()._configuration
         
         xpath = get_conf_xpath(BANDWIDTH, link, self._spot, self._gw)
         # bandwidth in MHz
@@ -194,8 +194,8 @@ class ResView(WindowView):
             total_ratio_rs += float(content[SYMBOL_RATE]) * float(content[RATIO])
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            nb_carrier = int(float(content[RATIO]) / total_ratio_rs *\
-                    bandwidth / (1 + roll_off))
+            nb_carrier = int(round(float(content[RATIO]) / total_ratio_rs *\
+                    bandwidth / (1 + roll_off)))
             list_carrier.append(Carrier(float(content[SYMBOL_RATE])/1000000,
                                         nb_carrier, content[CATEGORY], 
                                         content[ACCESS_TYPE]))
