@@ -182,7 +182,7 @@ bool SpotUpward::initSlottedAloha(void)
 	}
 	
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
-		                                       RETURN_UP_BAND,
+	                                           RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,

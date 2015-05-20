@@ -741,6 +741,12 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 		else
 		{
 			category = (*it).second;
+			if(category == NULL)
+			{
+				LOG(this->log_saloha,LEVEL_INFO,
+				    "Terminal %d do not use SALOHA", tal_id);
+				return true;
+			}
 		}
 		// check if the category is concerned by Slotted Aloha
 		if(this->categories.find(category->getLabel()) == this->categories.end())
