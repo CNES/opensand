@@ -142,14 +142,16 @@ class GraphicalParameter(WindowView):
         total_ratio_rs = 0
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            total_ratio_rs += float(content[SYMBOL_RATE]) * float(content[RATIO])
+            ratios = map(lambda x: float(x), content[RATIO].split(';'))
+            total_ratio_rs += float(content[SYMBOL_RATE]) * sum(ratios)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
             fmt_groups = []
             for fmt_grp_id in content[FMT_GROUP].split(";"):
                 fmt_groups.append(self._fmt_group[fmt_grp_id])
-            nb_carrier = int(float(content[RATIO]) / total_ratio_rs *\
-                    bandwidth / (1 + roll_off))
+                ratios = map(lambda x: float(x), content[RATIO].split(';'))
+                nb_carrier = int(round(sum(ratios) / \
+                                 total_ratio_rs * bandwidth / (1 + roll_off)))
             new_carrier = Carrier(float(content[SYMBOL_RATE])/1000000,
                                   nb_carrier, content[CATEGORY], 
                                   content[ACCESS_TYPE], fmt_groups, 

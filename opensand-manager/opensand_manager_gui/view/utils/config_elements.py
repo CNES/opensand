@@ -42,7 +42,7 @@ from copy import deepcopy
 
 from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
                                         TOPOLOGY, BANDWIDTH, SYMBOL_RATE,\
-                                        ROLL_OFF
+                                        ROLL_OFF, RATIO
 from opensand_manager_core.my_exceptions import XmlException
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.edit_dialog import EditDialog
@@ -785,6 +785,7 @@ class ConfSection(gtk.VBox):
         self._bandwidth = None
         self._roll_off = 0
         self._symbol_rates = []
+        self._ratios = []
 
         self.fill(section)
         self.set_hidden(True)
@@ -1094,6 +1095,8 @@ class ConfSection(gtk.VBox):
                 value = dic[att]
                 if att == SYMBOL_RATE:
                     self._symbol_rates.append(value)
+                if att == RATIO:
+                    self._ratios.append(value)
                 if source is not None:
                     source += source_ext + '_' + str(line_id)
                     source = os.path.join(scenario, source)
@@ -1156,7 +1159,7 @@ class ConfSection(gtk.VBox):
             len(self._new) == 0):
             return
 
-        update_band_width = False
+        update_bandwidth = False
         try:
             for table in self._new:
                 self._config.add_line(table)
@@ -1172,27 +1175,46 @@ class ConfSection(gtk.VBox):
                     self._config.set_value(val, path[0])
                 elif len(path) == 2:
                     if path[1] == SYMBOL_RATE:
-                        update_band_width = True
+                        update_bandwidth = True
                         syb_rate = self._config.get(path[0])
                         if syb_rate.get(SYMBOL_RATE) in  self._symbol_rates:
                             self._symbol_rates.remove(syb_rate.get(SYMBOL_RATE))
                         self._symbol_rates.append(val)
+                    if path[1] == RATIO:
+                        update_bandwidth = True
+                        ratio = self._config.get(path[0])
+                        if ratio.get(RATIO) in  self._ratios:
+                            self._ratios.remove(ratio.get(RATIO))
+                        self._ratios.append(val)
                     self._config.set_value(val, path[0], path[1])
 
         except XmlException:
             raise
         
         # Update Bandwidth
-        if self._bandwidth is not None:
+        if update_bandwidth:
+            path = self._bandwidth.get_name().split('/@')
             bandwidth = 0.0
+            old_bandwidth = float(self._config.get_value(\
+                                self._config.get(path[0]))) * 1E6
             path_roll_off = self._bandwidth.get_name().split('/@')[0].split('/spot')
             roll_off = float(self._config.get_value(self._config.get(path_roll_off[0] 
                                                                  + '/' + ROLL_OFF)))
-            for symbol_rate in self._symbol_rates:
-                bandwidth += float(symbol_rate) / 1000000 * (roll_off + 1)
-                self._bandwidth.get().set_text(str(bandwidth))
-                path = self._bandwidth.get_name().split('/@')
-                self._config.set_value(bandwidth, path[0])
+            cumul_ratio_rs = 0
+            for i in range(len(self._ratios)):
+                ratios = map(lambda x: float(x), self._ratios[i].split(';'))
+                cumul_ratio_rs += float(self._symbol_rates[i]) * sum(ratios)
+            
+            nb_porteuse = 1
+            for i in range(len(self._ratios)):
+                ratios = map(lambda x: float(x), self._ratios[i].split(';'))
+                nb_carrier = int(round(sum(ratios) / cumul_ratio_rs * \
+                                 old_bandwidth / (1 + roll_off)))
+                
+                bandwidth += float(self._symbol_rates[i]) / 1000000 * \
+                        (roll_off + 1) * nb_carrier
+            self._bandwidth.get().set_text(str(bandwidth))
+            self._config.set_value(bandwidth, path[0])
 
         # remove lines in reversed order because each suppression shift indexes
         # in the XML document
