@@ -35,13 +35,11 @@ opensand_band.py - The OpenSAND bandwidth representation
 """
 
 import os
-from fractions import Fraction
 from optparse import OptionParser
 
-from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
-        OPENSAND_PATH, ID, SPOT, FMT_ID, FMT_GROUP, RETURN_UP, FORWARD_DOWN, \
-        RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY
-CATEGORY
+from opensand_manager_core.carriers_band import CarriersBand
+from opensand_manager_core.utils import OPENSAND_PATH, ID, GW, SPOT, \
+        RETURN_UP, FORWARD_DOWN
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -51,13 +49,7 @@ class OpenSandBand():
     """ The OpenSAND Bandwidth representation """
 
     def __init__(self):
-        self._access_type = ""
-        self._bandwidth = 0.0
-        self._roll_off = 0.0
-        self._categories = {}
-        self._carriers_groups = {}
-        self._fmt_group = {}
-        self._fmt = {}
+        self._carriers_band = CarriersBand()
 
         default = os.path.join(os.environ['HOME'], ".opensand/default")
 
@@ -90,10 +82,10 @@ class OpenSandBand():
             for KEY in config.get_keys(config.get(section_path)):
                 if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
-                    print "spot %s" % content[ID]
-                    self._parse(options.scenario, link, config, KEY)
-                    self._modcod_def(options.scenario, link, config)
-                    print str(self)
+                    print "spot %s gw %s" % (content[ID], content[GW])
+                    self._carriers_band.parse(link, config, KEY)
+                    self._carriers_band.modcod_def(options.scenario, link, config)
+                    print self._carriers_band.str()
                     print
         if options.forward:
             print \
@@ -105,315 +97,11 @@ class OpenSandBand():
             for KEY in config.get_keys(config.get(section_path)):
                 if KEY.tag == SPOT:
                     content = config.get_element_content(KEY)
-                    print "spot %s" % content[ID]
-                    self._parse(options.scenario, link, config, KEY)
-                    self._modcod_def(options.scenario, link, config)
-                    print str(self)
+                    print "spot %s gw %s" % (content[ID], content[GW])
+                    self._carriers_band.parse(link, config, KEY)
+                    self._carriers_band.modcod_def(options.scenario, link, config)
+                    print self._carriers_band.str()
                     print
-
-    def _reset(self):
-        """ reset all data """
-        self._bandwidth = 0.0
-        self._roll_off = 0.0
-        self._categories = {}
-        self._carriers_groups = {}
-        self._fmt_group = {}
-        self._fmt = {}
-
-    def _parse(self, scenario, link, config, KEY):
-        """ parse configuration and get results """
-        self._reset()
-        # bandwidth
-        xpath = "//%s/bandwidth" % config.get_path(KEY)
-        self._bandwidth = float(config.get_value(config.get(xpath)))
-        # roll-off
-        xpath = get_conf_xpath(ROLL_OFF, link)
-        self._roll_off = float(config.get_value(config.get(xpath)))
-        # carriers
-        xpath = "//%s/carriers_distribution" % config.get_path(KEY)
-        for carrier in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(carrier)
-            ratios = content[RATIO].replace(',', ';')
-            ratios = ratios.replace('-', ';')
-            ratios = map(lambda x: float(x), ratios.split(';'))
-            fmt_groups =  content[FMT_GROUP].replace(',', ';')
-            fmt_groups = fmt_groups.replace('-', ';')
-            fmt_groups = fmt_groups.split(';')
-            self._add_carrier(content[CATEGORY],
-                              content[ACCESS_TYPE],
-                              ratios,
-                              float(content[SYMBOL_RATE]),
-                              fmt_groups)
-
-        # fmt groups
-        xpath = "//%s/fmt_groups" % config.get_path(KEY)
-        for group in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(group)
-            self._add_fmt_group(content[ID],
-                                content[FMT_ID])
-
-
-    def _modcod_def(self, scenario, link, config):
-        # ACM
-        # TODO fix this
-        for std in ["rcs", "s2"]:
-            xpath = "//%s_modcod_def_%s" % (link, std)
-            elem = config.get(xpath)
-            if elem is not None:
-                break
-        name = config.get_name(elem)
-        path = os.path.join(scenario, config.get_file_source(name))
-        self._load_fmt(path)
-
-        self._compute()
-
-    def _load_fmt(self, path):
-        """ load the FMT definitions """
-        with  open(path, 'r') as modcod_def:
-            for line in modcod_def:
-                if (line.startswith("/*") or 
-                    line.isspace() or
-                    line.startswith('nb_fmt')):
-                    continue
-                elts = line.split()
-                if len(elts) != 5:
-                    continue
-                if not elts[0].isdigit:
-                    continue
-                # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                # self._fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                self._fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
-                                               float(elts[3]), float(elts[4]))
-
-    def _add_carrier(self, name, access_type, ratios, symbol_rate_baud, fmt_groups):
-        """ add a new category """
-        if not name in self._categories:
-            self._categories[name] = []
-
-        carriers = _CarriersGroup(access_type, ratios, symbol_rate_baud, fmt_groups)
-        self._categories[name].append(carriers)
-
-    def _add_fmt_group(self, group_id, fmt_ids):
-        """ add a FMT group """
-        ids = fmt_ids.split(';')
-        id_list = []
-        for fmt_id in ids:
-            if '-' in fmt_id:
-                (mini, maxi) = fmt_id.split('-')
-                id_list.extend(range(int(mini), int(maxi) + 1))
-            else:
-                id_list.append(int(fmt_id))
-
-        self._fmt_group[group_id] = id_list
-
-    def _check(self):
-        """ check that everything is ok """
-        for name in self._categories:
-            for carriers in self._categories[name]:
-                if len(carriers.fmt_groups) != len(carriers.ratios):
-                    raise Exception("not the same numbers of ratios and fmt "
-                                    "groups")
-                for group in carriers.fmt_groups:
-                    if not group in self._fmt_group:
-                        raise KeyError(group)
-
-        for gid in self._fmt_group:
-            for fmt_id in self._fmt_group[gid]:
-                if not fmt_id in self._fmt:
-                    raise KeyError(fmt_id)
-
-    def _compute(self):
-        """ the configuration was initialized """
-        self._check()
-        weighted_sum = 0.0
-        for name in self._categories:
-            for carriers in self._categories[name]:
-                ws = sum(carriers.ratios) * carriers.symbol_rate / 1E6
-                weighted_sum += ws
-
-        # TODO check that this is not 0
-
-        total_ratio = 0
-        for name in self._categories:
-            for carriers in self._categories[name]:
-                total_ratio += sum(carriers.ratios)
-        # replace floor by round because bandwidth is calculed exactly
-        # according to the number of wanted carrier 
-        carriers_number = round((total_ratio / weighted_sum) *
-                                (self._bandwidth / (1 + self._roll_off)))
-        if carriers_number == 0:
-            carriers_number = 1
-                
-        for name in self._categories:
-            for carriers in self._categories[name]:
-                nbr = int(round(carriers_number * sum(carriers.ratios) /
-                                total_ratio))
-                if nbr == 0:
-                    nbr = 1
-                carriers.number = nbr
-                
-    def _get_carrier_bitrates(self, carriers):
-        """ get the maximum bitrate per carriers group """
-        br = []
-        i = 0
-        for ratio in carriers.ratios:
-            rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
-            max_fmt = max(self._fmt_group[carriers.fmt_groups[i]])
-            min_fmt = min(self._fmt_group[carriers.fmt_groups[i]])
-            fmt = self._fmt[max_fmt]
-            max_br = rs * fmt.modulation * fmt.coding_rate
-            fmt = self._fmt[min_fmt]
-            min_br = rs * fmt.modulation * fmt.coding_rate
-            br.append((min_br, max_br))
-            i += 1
-        return br
-
-    def _get_max_bitrate(self, name, access_type):
-        """ get the maximum bitrate for a given category """
-        bitrate = 0
-        for carriers in self._categories[name]:
-            if carriers.access_type != access_type:
-                continue
-            i = 0
-            for ratio in carriers.ratios:
-                rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
-                max_fmt = max(self._fmt_group[carriers.fmt_groups[i]])
-                fmt = self._fmt[max_fmt]
-                br = rs * fmt.modulation * fmt.coding_rate
-                bitrate += br * carriers.number
-                i += 1
-        return bitrate
-    
-    def _get_min_bitrate(self, name, access_type):
-        """ get the maximum bitrate for a given category """
-        bitrate = 0
-        for carriers in self._categories[name]:
-            if carriers.access_type != access_type:
-                continue
-            i = 0
-            for ratio in carriers.ratios:
-                rs = carriers.symbol_rate * ratio / sum(carriers.ratios)
-                min_fmt = min(self._fmt_group[carriers.fmt_groups[i]])
-                fmt = self._fmt[min_fmt]
-                br = rs * fmt.modulation * fmt.coding_rate
-                bitrate += br * carriers.number
-                i += 1
-        return bitrate
-
-    def _get_carriers_number(self, name, access):
-        """ get the carriers number for a given category """
-        nbr = 0
-        for carriers in self._categories[name]:
-            if carriers.access_type != access:
-                continue
-            nbr += carriers.number
-        return nbr
-    
-    def _get_access_type(self, name):
-        """ get the access types in a category """
-        access_types = []
-        for carriers in self._categories[name]:
-            access_types.append(carriers.access_type)
-        return set(access_types)
-
-    def __str__(self):
-        """ print band representation """
-        output = "  BAND: %sMhz roll-off=%s" % (self._bandwidth, self._roll_off)
-        for name in self._categories:
-            output += "\n\n  CATEGORY %s" % (name)
-            for access in self._get_access_type(name):
-                output += "\n    * Access type: %s" % access
-                i = 0
-                for carriers in self._categories[name]:
-                    if carriers.access_type != access:
-                        continue
-                    rates = ""
-                    for (min_rate, max_rate) in self._get_carrier_bitrates(carriers):
-                        rates += "[%d, %d] kb/s " % (min_rate / 1000,
-                                                     max_rate / 1000)
-                    rates += "per carrier"
-                    i += 1
-                    output += "\n  Group %d: %s (%s)" % \
-                              (i, carriers, rates)
-                    output += "\n      %d carrier(s)" % (self._get_carriers_number(name,
-                                                                                 access))
-                    output += "\n      Total bitrate [%d, %d] kb/s" % (
-                              (self._get_min_bitrate(name, access) / 1000),
-                              (self._get_max_bitrate(name, access) / 1000))
-        return output
-
-class _CarriersGroup():
-    """ The terminal categories """
-
-    def __init__(self, access_type, ratios, symbol_rate_baud, fmt_groups):
-        self._access_type = access_type
-        self._ratios = ratios
-        self._symbol_rate = symbol_rate_baud
-        self._fmt_groups = fmt_groups
-        self._carriers_number = 0
-
-    def __str__(self):
-        return "ratio=%s Rs=%g => %d carriers" % (sum(self.ratios),
-                                                  self.symbol_rate,
-                                                  self.number)
-
-    @property
-    def access_type(self):
-        """ get the access_type of carriers """
-        return self._access_type
-
-    @property
-    def ratios(self):
-        """ get the category name """
-        return self._ratios
-
-    @property
-    def symbol_rate(self):
-        """ get the category name """
-        return self._symbol_rate
-
-    @property
-    def fmt_groups(self):
-        """ get the category name """
-        return self._fmt_groups
-
-    @property
-    def number(self):
-        """ get the number of carriers """
-        return self._carriers_number
-
-    @number.setter
-    def number(self, carriers_number):
-        """ set the number of carriers """
-        self._carriers_number = carriers_number
-
-class _Fmt():
-    """ A FMT definition """
-
-    def __init__(self, modulation, coding_rate, spectral_efficiency,
-                 required_es_n0):
-        self._modulation = modulation
-        self._coding_rate = Fraction(coding_rate)
-        self._spectral_efficiency = spectral_efficiency
-
-    @property
-    def modulation(self):
-        """ get the modulation factor to apply acocrding to modulation type """
-        if self._modulation == "BPSK":
-            return 1
-        elif self._modulation == "QPSK":
-            return 2
-        elif self._modulation == "8PSK":
-            return 3
-        elif self._modulation == "16APSK":
-            return 4
-        elif self._modulation == "32APSK":
-            return 5
-
-    @property
-    def coding_rate(self):
-        """ get the coding rate """
-        return float(self._coding_rate)
 
 
 if __name__ == "__main__":

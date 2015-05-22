@@ -40,9 +40,10 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from opensand_manager_core.carrier import Carrier
+from opensand_manager_core.carriers_band import CarriersBand
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, CARRIERS_DISTRIB, \
         FMT_GROUPS, ID, BANDWIDTH, FMT_ID, FMT_GROUP, RATIO, SYMBOL_RATE, \
-        CATEGORY, ACCESS_TYPE, CCM, DAMA, \
+        CATEGORY, ACCESS_TYPE, CCM, DAMA, SPOT, GW,\
         FORWARD_DOWN, RETURN_UP 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_gui.view.popup.modcod_dialog import ModcodParameter
@@ -67,6 +68,7 @@ class GraphicalParameter(WindowView):
         self._removed = []
         self._link = link
         self._update_cb = update_cb
+        self._description = {}
         
         title = self._ui.get_widget('label_title_parameter')
         
@@ -100,6 +102,7 @@ class GraphicalParameter(WindowView):
         
         self._vbox = self._ui.get_widget('vbox_band_parameter')
         self._vbox.show_all()
+        self._carriers_band = CarriersBand() 
             
         
     def go(self):
@@ -130,7 +133,7 @@ class GraphicalParameter(WindowView):
             self._fmt_group[content[ID]] = content[FMT_ID]
         
         xpath = get_conf_xpath(BANDWIDTH, self._link, self._spot, self._gw)
-        # bandwidth in MHz
+        # bandwidth in Hz
         bandwidth = float(config.get_value(config.get(xpath))) * 1000000
 
         xpath = get_conf_xpath(ROLL_OFF, self._link)
@@ -146,16 +149,16 @@ class GraphicalParameter(WindowView):
             total_ratio_rs += float(content[SYMBOL_RATE]) * sum(ratios)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            fmt_groups = []
+            list_modcod = []
             for fmt_grp_id in content[FMT_GROUP].split(";"):
-                fmt_groups.append(self._fmt_group[fmt_grp_id])
+                list_modcod.append(self._fmt_group[fmt_grp_id])
                 ratios = map(lambda x: float(x), content[RATIO].split(';'))
                 nb_carrier = int(round(sum(ratios) / \
                                  total_ratio_rs * bandwidth / (1 + roll_off)))
-            new_carrier = Carrier(float(content[SYMBOL_RATE])/1000000,
+            new_carrier = Carrier(float(content[SYMBOL_RATE]),
                                   nb_carrier, content[CATEGORY], 
-                                  content[ACCESS_TYPE], fmt_groups, 
-                                  content[RATIO])
+                                  content[ACCESS_TYPE], content[FMT_GROUP], 
+                                  list_modcod, content[RATIO])
             self._list_carrier.append(new_carrier)
             self._nb_carrier = len(self._list_carrier)
             self.create_carrier_interface(self._list_carrier[-1],
@@ -185,15 +188,26 @@ class GraphicalParameter(WindowView):
     def create_carrier_interface(self, carrier, carrier_id):
         """
         Add a new carrier
-        One carrier is define by (symbol_rate, fmt, groupe, 
+        One carrier is define by (symbol_rate, fmt, group, 
         accesse type and delete button)
         """
         
-        hbox_carrier= gtk.HBox(homogeneous=True, spacing=0)
-        name_carrier=gtk.Label("Carrier"+str(carrier_id))
+        hbox_carrier = gtk.HBox(homogeneous=True, spacing=0)
+        hbox_name_carrier = gtk.HBox(homogeneous=True, spacing=0)
+        name_carrier = gtk.Label("Carrier"+str(carrier_id))
+        
+        img = gtk.Image()
+        img.set_from_stock(gtk.STOCK_DIALOG_INFO,
+                           gtk.ICON_SIZE_MENU)
+        img.set_tooltip_text("voici la description")
+        
+        hbox_name_carrier.pack_start(name_carrier, expand=False, fill=False)
+        hbox_name_carrier.pack_start(img, expand=True, fill=False, padding=1)
+
+        self._description[carrier_id] = img
         
         #Create Synbol rate
-        ajustement1 = gtk.Adjustment(float(carrier.getSymbolRate()), 
+        ajustement1 = gtk.Adjustment(float(carrier.getSymbolRate()) / 1E6, 
                                      0, 10000, 1, 8)
         new_sr = gtk.SpinButton(ajustement1, digits=2)
         new_sr.set_numeric(True)
@@ -213,7 +227,7 @@ class GraphicalParameter(WindowView):
         comboBox.append_text('Premium')
         comboBox.append_text('Pro')
         comboBox.connect("changed", self.on_update_group, carrier_id)
-        comboBox.set_active(carrier.getGroup()-1)
+        comboBox.set_active(carrier.getCategory()-1)
 
         #Create MODCOD button
         button_modcod = gtk.Button(label="Configure")
@@ -252,7 +266,7 @@ class GraphicalParameter(WindowView):
         hbox_button.pack_start(button_del, expand=False, fill=False)
         
         
-        hbox_carrier.pack_start(name_carrier, expand=False, fill=False)
+        hbox_carrier.pack_start(hbox_name_carrier, expand=False, fill=False)
         hbox_carrier.pack_start(new_sr, expand=False, fill=False)
         hbox_carrier.pack_start(new_nb_carrier, expand=False, fill=False)
         hbox_carrier.pack_start(comboBox, expand=False, fill=False, padding=0)
@@ -270,12 +284,12 @@ class GraphicalParameter(WindowView):
         self._nb_carrier += 1
         
         if self._link == FORWARD_DOWN:
-            self._list_carrier.append(Carrier(symbol_rate=4,
-                                              group=1,
+            self._list_carrier.append(Carrier(symbol_rate=4E6,
+                                              category=1,
                                               access_type=CCM))
         else:
-            self._list_carrier.append(Carrier(symbol_rate=4,
-                                              group=1,
+            self._list_carrier.append(Carrier(symbol_rate=4E6,
+                                              category=1,
                                               access_type=DAMA))
         self.create_carrier_interface(self._list_carrier[-1], 
                                       self._nb_carrier)
@@ -287,7 +301,7 @@ class GraphicalParameter(WindowView):
 
         sr = self._list_carrier[id_carrier-1].getSymbolRate()
         nb = self._list_carrier[id_carrier-1].getNbCarrier()
-        g = self._list_carrier[id_carrier-1].getGroup()
+        g = self._list_carrier[id_carrier-1].getCategory()
         ac = self._list_carrier[id_carrier-1].getAccessType()
         md = self._list_carrier[id_carrier-1].get_str_modcod()
         ra = self._list_carrier[id_carrier-1].getStrRatio()
@@ -322,16 +336,39 @@ class GraphicalParameter(WindowView):
         content in the carrier list
         """
         roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
+
+        config = self._model.get_conf().get_configuration()
+        section_path = "%s_band" % self._link
+        for KEY in config.get_keys(config.get(section_path)):
+            if KEY.tag == SPOT and KEY.get(ID) == self._spot and \
+               KEY.get(GW) == self._gw:
+                content = config.get_element_content(KEY)
+                self._carriers_band.parse(self._link, config, KEY)
+                self._carriers_band.modcod_def(self._model.get_scenario(), 
+                                               self._link, config)
+
         
         off_set = 0
+        carrier_id = 1
         self.clear_graph()
         for element in self._list_carrier :
+            description = ''
             for nb_carrier in range(1, element.getNbCarrier()+1):
                 element.calculateXY(roll_off, off_set)
                 self._ax.plot(element.getX(), element.getY(), 
-                              self._color[element.getGroup()], label = 'Carrier')
+                              self._color[element.getCategory()], label = 'Carrier')
+                # bandwidth in MHz
                 off_set = off_set + element.getBandwidth(roll_off) \
-                        / element.getNbCarrier()
+                        / (1E6 * element.getNbCarrier())
+            for (min_rate, max_rate) in self._carriers_band.get_carrier_bitrates(element):
+                description += "Rate         [%d, %d] kb/s\n" % (min_rate / 1000,
+                                                      max_rate / 1000)
+            description += "Total rate [%d, %d] kb/s" % \
+                    (min_rate * element.getNbCarrier() / 1000,
+                     max_rate * element.getNbCarrier() / 1000)
+            self._description[carrier_id].set_tooltip_text(description)
+            carrier_id += 1
+            
         if off_set != 0:
             self._ax.axis([float(-off_set)/6, 
                            off_set + float(off_set)/6, 
@@ -350,7 +387,7 @@ class GraphicalParameter(WindowView):
         
     def on_update_sr(self, source = None, id_carrier = None):
         """Refresh the graph when the symbole rate change"""
-        self._list_carrier[id_carrier-1].setSymbolRate(source.get_value())
+        self._list_carrier[id_carrier-1].setSymbolRate(source.get_value() * 1E6)
         self.trace()
     
     def on_update_nb_carrier(self, source = None, id_carrier = None):
@@ -360,8 +397,10 @@ class GraphicalParameter(WindowView):
         i = 0 
         for carrier in self._list_carrier:
             roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
-            ratio =  int(self._list_carrier[i].getBandwidth(roll_off) / \
+            # bandwidth and bandwidth_total in Mhz
+            ratio =  int((self._list_carrier[i].getBandwidth(roll_off) / 1E6) / \
             self._bandwidth_total * 100)
+            print ratio
             self._list_carrier[i].setRatio(str(ratio))
             i += 1
             
@@ -371,7 +410,7 @@ class GraphicalParameter(WindowView):
         tree_iter = source.get_active_iter()
         if tree_iter != None:
             model = source.get_model()
-            self._list_carrier[id_carrier-1].setGroup(model[tree_iter].path[0]+1)    
+            self._list_carrier[id_carrier-1].setCategory(model[tree_iter].path[0]+1)    
             self.trace()
     
     
@@ -430,13 +469,13 @@ class GraphicalParameter(WindowView):
             config.set_value(carrier.get_old_access_type(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              ACCESS_TYPE)
-            config.set_value(carrier.get_old_group(), 
+            config.set_value(carrier.get_old_category(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              CATEGORY)
             config.set_value(carrier.getStrRatio(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              RATIO)
-            config.set_value(carrier.getSymbolRate()*1000000, 
+            config.set_value(carrier.getSymbolRate(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              SYMBOL_RATE)
             fmt_groups = []
@@ -518,3 +557,18 @@ class GraphicalParameter(WindowView):
     def get_list_carrier(self):
         return self._list_carrier
     
+    def get_carrier_bitrate(self, carrier):
+        br = []
+        i = 0
+        for ratio in carrier.getRatio():
+            rs = carrier.getSymbolRate() * ratio / sum(carrier.getRatio())
+            max_fmt = max(self._fmt_group[carrier.fmt_groups[i]])
+            min_fmt = min(self._fmt_group[carrier.fmt_groups[i]])
+            fmt = self._fmt[max_fmt]
+            max_br = rs * fmt.modulation * fmt.coding_rate
+            fmt = self._fmt[min_fmt]
+            min_br = rs * fmt.modulation * fmt.coding_rate
+            br.append((min_br, max_br))
+            i += 1
+        return br
+

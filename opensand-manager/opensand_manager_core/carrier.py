@@ -40,63 +40,60 @@ import numpy as np
 class Carrier :
     """
     Create a carrier 
-        Arg :   symbol_rate    : float
+        Arg :   _symbol_rate    : float
                 nb_carrier     : integer (default = 1)
-                group          : integer (default = 1)
+                category       : integer (default = 1)
                 access_type    : string (default = 'CCM')
+                fmt_groups     : list of string (defautl empty)
                 list_modcod    : list of string (default empty)
                 ratio          : dictionnary with ['modcod':ratio] only use for VCM
     """
     
-    def __init__(self, symbol_rate = 0, nb_carrier = 1, group = 1, 
-                 access_type = 'CCM', modcod = '1', 
+    def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 1, 
+                 access_type = 'CCM', fmt_groups = '1', modcod = '1', 
                  ratio = '10') :
-        self._symbolRate = symbol_rate
-        self._access_type= access_type
-        self._str_modcod = []
-        for fmt_grp in modcod:
-            self._str_modcod.append(fmt_grp)
-        self._list_modcod = self.parse_modcod(self._str_modcod)
+        self._symbol_rate = symbol_rate
+        self._access_type = access_type
+        self._str_modcod = modcod
         self._str_ratio = ratio
-        self._ratio = self.parse_ratio(ratio)
+        self._list_modcod = self.parser(modcod)
+        self._fmt_groups = self.parser(fmt_groups)
+        self._ratio = self.parser(ratio)
         self._nb_carrier = nb_carrier
         
-        if group == "Standard":
-            group = 1
-        elif group == "Premium":
-            group = 2
-        elif group == "Pro":
-            group = 3
-        self._group = group
+        if category == "Standard":
+            category = 1
+        elif category == "Premium":
+            category = 2
+        elif category == "Pro":
+            category = 3
+        self._category = category
         
         self._X = []                #Position in X to trace the graphic
         self._Y = []                #Position in Y to trace the graphic
         
     ##################################################
     
-    def parse_modcod(self, modcod):
+    def parser(self, list_str):
         ids = []
-        for mc in modcod:
-            for mc_id in mc.split(';'):
-                ids.append(mc_id)
+        if type(list_str) is not list:
+            ids = list_str.split(';')    
+        else:
+            for elm in list_str:
+                for elm_id in elm.split(';'):
+                    ids.append(elm_id)
+
         id_list = []
-        for fmt_id in ids:
-            if '-' in fmt_id:
-                (mini, maxi) = fmt_id.split('-')
+        for elm_id in ids:
+            if '-' in elm_id:
+                (mini, maxi) = elm_id.split('-')
                 id_list.extend(range(int(mini), int(maxi) + 1))
             else:
-                id_list.append(int(fmt_id))
+                id_list.append(int(elm_id))
 
         return id_list
             
             
-    def parse_ratio(self, ratio):
-        ids = ratio.split(';')
-        id_list = []
-        for rat_id in ids:
-            id_list.append(float(rat_id))
-
-        return id_list
     ##################################################
         
     def calculateXY(self, roll_off = 0, offset = 0):
@@ -107,6 +104,8 @@ class Carrier :
         
         self._X = []
         self._Y = []
+
+        symbol_rate = float(self._symbol_rate) / 1E6
         
         """
         We do not use directly self._X to stock the value of linspace 
@@ -116,11 +115,11 @@ class Carrier :
             self._X.append(value)
             self._Y.append(np.sin(np.pi*value))
         for i, value in enumerate(self._X):
-            self._X[i] = (float(self._X[i])*float(self._symbolRate) + float(self._symbolRate)*half_rolloff)
+            self._X[i] = (float(self._X[i]) * symbol_rate + symbol_rate * half_rolloff)
         
         self._X.insert(0, 0)    
         self._Y.insert(0, 0)
-        self._X.append(float(self._symbolRate)*(1+roll_off))    
+        self._X.append(symbol_rate * (1+roll_off))    
         self._Y.append(0)
         
         for i, value in enumerate(self._X):
@@ -130,22 +129,22 @@ class Carrier :
     """MUTATEUR"""
     ##################################################
 
-    def setSymbolRate(self, symbol_rate):
-        self._symbolRate = symbol_rate
+    def setSymbolRate(self, _symbol_rate):
+        self._symbol_rate = _symbol_rate
     
-    def setGroup(self, group):
-        self._group = group
+    def setCategory(self, category):
+        self._category = category
     
     def setAccessType(self, access_type):
         self._access_type = access_type
         
     def setModcod(self, modcod):
         self._str_modcod = modcod
-        self._list_modcod = self.parse_modcod(modcod)
+        self._list_modcod = self.parser(modcod)
         
     def setRatio(self, ratio):
         self._str_ratio = ratio
-        self._ratio = self.parse_ratio(ratio)
+        self._ratio = self.parser(ratio)
        
     def setNbCarrier(self, nb_carrier):
        self._nb_carrier = nb_carrier 
@@ -154,24 +153,30 @@ class Carrier :
     ##################################################
 
     def getSymbolRate(self):
-        return self._symbolRate
-    
+        return self._symbol_rate
+   
     def get_str_modcod(self):
+        """modcod_str = ""
+        for modcod in self._list_modcod:
+            if modcod == self._list_modcod[-1]:
+                modcod_str += str(modcod)
+            else:
+                modcod_str += str(modcod) + ";" """
         return self._str_modcod
 
-    def getModeCode(self):
+    def getModCod(self):
         return self._list_modcod
 
-    def getGroup(self):
-        return int(self._group)
+    def getCategory(self):
+        return int(self._category)
         
-    def get_old_group(self):    
+    def get_old_category(self):    
         ret=""
-        if self._group == 1:
+        if self._category == 1:
             ret="Standard"
-        elif self._group == 2:
+        elif self._category == 2:
             ret="Premium"
-        elif self._group == 3:
+        elif self._category == 3:
             ret="Pro"    
         return ret
 
@@ -185,10 +190,22 @@ class Carrier :
             return self._access_type
 
     def getStrRatio(self):
+        """ratio_str = ""
+        for ratio in self._ratio:
+            if ratio == self._ratio[-1]:
+                ratio_str += str(ratio)
+            else:
+                ratio_str += str(ratio) + ";"
+        print ratio_str
+        return ratio_str"""
         return self._str_ratio
 
     def getRatio(self):
+        print self._ratio
         return self._ratio
+
+    def getFmtGroups(self):
+        return self._fmt_groups
 
     def getX(self):
         return self._X
@@ -201,21 +218,25 @@ class Carrier :
         Return the total bandwith of th carrier
         to get only the symbol rate use getSymbolRate()
         """
-        return float(self._symbolRate) * (roll_off + 1) * self._nb_carrier
+        return float(self._symbol_rate) * (roll_off + 1) * self._nb_carrier
    
     def getNbCarrier(self):
         return self._nb_carrier
 
     ##################################################
     
-    def __str__(self):
-        return "Symbol Rate : " + str(self._symbolRate)+"\n"\
-        "Group : " + str(self._group)+"\n"\
+    """def __str__(self):
+        return "Symbol Rate : " + str(self._symbol_rate)+"\n"\
+        "category : " + str(self._category)+"\n"\
         "Access Type : " + str(self._access_type)+"\n"\
-        "MODCOD : " + str(self._str_modcod)+"\n"\
-        "Ratio : " + str(self._ratio)+"\n"
+        "MODCOD : " + str(self._list_modcod)+"\n"\
+        "Ratio : " + str(self._ratio)+"\n" """
     
-    
+    def __str__(self):
+        return "ratio=%s Rs=%g => %d carriers" % (sum(self._ratio),
+                                                  self._symbol_rate,
+                                                  self._nb_carrier)
+
 ##################################################
 if __name__ == '__main__':
 
