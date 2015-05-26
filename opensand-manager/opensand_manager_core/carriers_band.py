@@ -51,29 +51,12 @@ class CarriersBand():
 
     def __init__(self):
         self._access_type = ""
-        self._bandwidth = 0.0
         self._roll_off = 0.0
         self._categories = {}
         self._carriers_groups = {}
         self._fmt_group = {}
         self._fmt = {}
 
-        """config = self._model.get_conf().get_configuration()
-        link = RETURN_UP
-        section_path = "%s_band" % link
-        for KEY in config.get_keys(config.get(section_path)):
-            if KEY.tag == SPOT:
-                content = config.get_element_content(KEY)
-                self._parse(link, config, KEY)
-                self._modcod_def(link, config)
-        
-        link = FORWARD_DOWN
-        section_path = "%s_band" % link
-        for KEY in config.get_keys(config.get(section_path)):
-            if KEY.tag == SPOT:
-                content = config.get_element_content(KEY)
-                self._parse(link, config, KEY)
-                self._modcod_def(link, config)"""
 
     def reset(self):
         """ reset all data """
@@ -100,7 +83,7 @@ class CarriersBand():
             fmt_groups =  content[FMT_GROUP].replace(',', ';')
             fmt_groups = fmt_groups.replace('-', ';')
             fmt_groups = fmt_groups.split(';')
-            self.add_carrier(content[CATEGORY],
+            self.create_carrier(content[CATEGORY],
                               content[ACCESS_TYPE],
                               content[RATIO],
                               float(content[SYMBOL_RATE]),
@@ -114,7 +97,7 @@ class CarriersBand():
                                 content[FMT_ID])
 
 
-    def modcod_def(self, scenario, link, config):
+    def modcod_def(self, scenario, link, config, compute=True):
         # ACM
         # TODO fix this
         for std in ["rcs", "s2"]:
@@ -126,7 +109,8 @@ class CarriersBand():
         path = os.path.join(scenario, config.get_file_source(name))
         self.load_fmt(path)
 
-        self.compute()
+        if compute:
+            self.compute()
 
     def load_fmt(self, path):
         """ load the FMT definitions """
@@ -146,17 +130,24 @@ class CarriersBand():
                 self._fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
                                                float(elts[3]), float(elts[4]))
 
-    def add_carrier(self, name, access_type, ratios, symbol_rate_baud, fmt_groups):
-        """ add a new category """
-        if not name in self._categories:
-            self._categories[name] = []
-
+    def create_carrier(self, name, access_type, ratios, symbol_rate_baud, fmt_groups):
+        """ create a new carrier """
         carrier = Carrier(symbol_rate=symbol_rate_baud,
                           category=name,
                           access_type=access_type, 
-                          modcod=fmt_groups,
+                          fmt_groups=fmt_groups,
                           ratio=ratios)
-        self._categories[name].append(carrier)
+        self.add_carrier(carrier)
+    
+    def add_carrier(self, carrier):
+        """ add a new category """
+        if not carrier.get_old_category() in self._categories:
+            self._categories[carrier.get_old_category()] = []
+        if carrier not in self._categories[carrier.get_old_category()]: 
+            self._categories[carrier.get_old_category()].append(carrier)
+
+    def remove_carrier(self, carrier):
+        self._categories[carrier.get_old_category()].remove(carrier)
 
     def add_fmt_group(self, group_id, fmt_ids):
         """ add a FMT group """
@@ -236,7 +227,8 @@ class CarriersBand():
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carrier in self._categories[name]:
-            if carrier.getAccessType() != access_type:
+            if carrier.getAccessType() ==  "VCM" and access_type != "VCM" or\
+               carrier.getAccessType() != "VCM" and access_type == "VCM":
                 continue
             i = 0
             for ratio in carrier.getRatio():
@@ -252,7 +244,8 @@ class CarriersBand():
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carrier in self._categories[name]:
-            if carrier.getAccessType() != access_type:
+            if carrier.getAccessType() ==  "VCM" and access_type != "VCM" or\
+               carrier.getAccessType() != "VCM" and access_type == "VCM":
                 continue
             i = 0
             for ratio in carrier.getRatio():

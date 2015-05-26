@@ -43,8 +43,7 @@ from opensand_manager_core.carrier import Carrier
 from opensand_manager_core.carriers_band import CarriersBand
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, CARRIERS_DISTRIB, \
         FMT_GROUPS, ID, BANDWIDTH, FMT_ID, FMT_GROUP, RATIO, SYMBOL_RATE, \
-        CATEGORY, ACCESS_TYPE, CCM, DAMA, SPOT, GW,\
-        FORWARD_DOWN, RETURN_UP 
+        CATEGORY, ACCESS_TYPE, CCM, DAMA, FORWARD_DOWN, RETURN_UP 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_gui.view.popup.modcod_dialog import ModcodParameter
 from opensand_manager_gui.view.window_view import WindowView
@@ -66,6 +65,7 @@ class GraphicalParameter(WindowView):
         self._log = manager_log
         self._enabled_button = []
         self._removed = []
+        self._new_fmt_grps = {}
         self._link = link
         self._update_cb = update_cb
         self._description = {}
@@ -91,6 +91,7 @@ class GraphicalParameter(WindowView):
         
         self._list_carrier = []
         self._fmt_group = {}
+        self._current_fmt = {}
         self._nb_carrier = 0
         self._color = {1:'b-', 
                        2:'g-', 
@@ -102,13 +103,12 @@ class GraphicalParameter(WindowView):
         
         self._vbox = self._ui.get_widget('vbox_band_parameter')
         self._vbox.show_all()
-        self._carriers_band = CarriersBand() 
             
         
     def go(self):
         """ run the window """
         button_rolloff = self._ui.get_widget('spinbutton_rollof_parameter')
-        button_rolloff.connect("value_changed", self.trace)
+        button_rolloff.connect("value_changed", self.on_update_roll_off)
         
         button_add = self._ui.get_widget('button_add_carriers')
         button_add.get_image().show()
@@ -131,7 +131,8 @@ class GraphicalParameter(WindowView):
         for group in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(group)
             self._fmt_group[content[ID]] = content[FMT_ID]
-        
+        self._current_fmt = self._fmt_group 
+
         xpath = get_conf_xpath(BANDWIDTH, self._link, self._spot, self._gw)
         # bandwidth in Hz
         bandwidth = float(config.get_value(config.get(xpath))) * 1000000
@@ -155,6 +156,8 @@ class GraphicalParameter(WindowView):
                 ratios = map(lambda x: float(x), content[RATIO].split(';'))
                 nb_carrier = int(round(sum(ratios) / \
                                  total_ratio_rs * bandwidth / (1 + roll_off)))
+                if nb_carrier <= 0:
+                    nb_carrier = 1
             new_carrier = Carrier(float(content[SYMBOL_RATE]),
                                   nb_carrier, content[CATEGORY], 
                                   content[ACCESS_TYPE], content[FMT_GROUP], 
@@ -199,7 +202,6 @@ class GraphicalParameter(WindowView):
         img = gtk.Image()
         img.set_from_stock(gtk.STOCK_DIALOG_INFO,
                            gtk.ICON_SIZE_MENU)
-        img.set_tooltip_text("voici la description")
         
         hbox_name_carrier.pack_start(name_carrier, expand=False, fill=False)
         hbox_name_carrier.pack_start(img, expand=True, fill=False, padding=1)
@@ -282,14 +284,17 @@ class GraphicalParameter(WindowView):
     def on_add_to_listCarrier(self, source=None, event=None):
         """Create a new carrier with default value """
         self._nb_carrier += 1
+        fmt_grp = self._fmt_group.keys()[0]
         
         if self._link == FORWARD_DOWN:
             self._list_carrier.append(Carrier(symbol_rate=4E6,
                                               category=1,
+                                              fmt_groups=fmt_grp,
                                               access_type=CCM))
         else:
             self._list_carrier.append(Carrier(symbol_rate=4E6,
                                               category=1,
+                                              fmt_groups=fmt_grp,
                                               access_type=DAMA))
         self.create_carrier_interface(self._list_carrier[-1], 
                                       self._nb_carrier)
@@ -303,10 +308,11 @@ class GraphicalParameter(WindowView):
         nb = self._list_carrier[id_carrier-1].getNbCarrier()
         g = self._list_carrier[id_carrier-1].getCategory()
         ac = self._list_carrier[id_carrier-1].getAccessType()
+        fmt_grp = self._list_carrier[id_carrier-1].get_str_fmt_grp()
         md = self._list_carrier[id_carrier-1].get_str_modcod()
         ra = self._list_carrier[id_carrier-1].getStrRatio()
         
-        self._list_carrier.append(Carrier(sr, nb, g, ac, md, ra))
+        self._list_carrier.append(Carrier(sr, nb, g, ac, fmt_grp, md, ra))
         self.clear_carrier_interface()
         
         carrier_id = 1
@@ -335,19 +341,20 @@ class GraphicalParameter(WindowView):
         Draw in the graph area the graphical representation of the 
         content in the carrier list
         """
+        self.update_ratio()
+        
         roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
 
         config = self._model.get_conf().get_configuration()
-        section_path = "%s_band" % self._link
-        for KEY in config.get_keys(config.get(section_path)):
-            if KEY.tag == SPOT and KEY.get(ID) == self._spot and \
-               KEY.get(GW) == self._gw:
-                content = config.get_element_content(KEY)
-                self._carriers_band.parse(self._link, config, KEY)
-                self._carriers_band.modcod_def(self._model.get_scenario(), 
-                                               self._link, config)
+        carriers_band = CarriersBand() 
+        carriers_band.modcod_def(self._model.get_scenario(), 
+                                 self._link, config, False)
+        for carrier in self._list_carrier:
+            carriers_band.add_carrier(carrier)
+        for fmt_id in self._fmt_group: 
+            carriers_band.add_fmt_group(int(fmt_id),
+                                        self._fmt_group[fmt_id])
 
-        
         off_set = 0
         carrier_id = 1
         self.clear_graph()
@@ -360,12 +367,16 @@ class GraphicalParameter(WindowView):
                 # bandwidth in MHz
                 off_set = off_set + element.getBandwidth(roll_off) \
                         / (1E6 * element.getNbCarrier())
-            for (min_rate, max_rate) in self._carriers_band.get_carrier_bitrates(element):
+
+            for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
                 description += "Rate         [%d, %d] kb/s\n" % (min_rate / 1000,
                                                       max_rate / 1000)
+           
             description += "Total rate [%d, %d] kb/s" % \
-                    (min_rate * element.getNbCarrier() / 1000,
-                     max_rate * element.getNbCarrier() / 1000)
+                    (carriers_band.get_min_bitrate(element.get_old_category(), 
+                                                   element.getAccessType()) / 1000,
+                     carriers_band.get_max_bitrate(element.get_old_category(),
+                                                   element.getAccessType()) / 1000)
             self._description[carrier_id].set_tooltip_text(description)
             carrier_id += 1
             
@@ -383,26 +394,59 @@ class GraphicalParameter(WindowView):
         self._ui.get_widget('bandwith_total').set_text(str(off_set) + " MHz")
         self._bandwidth_total = off_set
 
+    def on_update_roll_off(self, source=None):
+        # disable method calling twice at the fisrt time
+        gobject.idle_add(self.trace)
         
-        
-    def on_update_sr(self, source = None, id_carrier = None):
-        """Refresh the graph when the symbole rate change"""
-        self._list_carrier[id_carrier-1].setSymbolRate(source.get_value() * 1E6)
+    def on_update_sr(self, source = None, carrier_id = None):
+        """R
+        group_list = []efresh the graph when the symbole rate change"""
+        # disable method calling twice at the fisrt time
+        gobject.idle_add(self.on_update_sr_callback, 
+                         source, carrier_id)
+
+    def on_update_sr_callback(self, source=None, carrier_id=None):
+        self._list_carrier[carrier_id-1].setSymbolRate(source.get_value() * 1E6)
         self.trace()
     
-    def on_update_nb_carrier(self, source = None, id_carrier = None):
+    def on_update_nb_carrier(self, source = None, carrier_id = None):
         """Refresh the graph when the symbole rate change"""
-        self._list_carrier[id_carrier-1].setNbCarrier(int(source.get_value()))
+        # disable method calling twice at the fisrt time
+        gobject.idle_add(self.on_update_nb_carrier_callback,
+                         source, carrier_id)
+        
+    def on_update_nb_carrier_callback(self, source=None, carrier_id=None):
+        self._list_carrier[carrier_id-1].setNbCarrier(int(source.get_value()))
         self.trace()
-        i = 0 
+    
+    def update_ratio(self):
+        total_ratio_rs = 0
+        total_ratio = 0
+        roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
         for carrier in self._list_carrier:
-            roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
+            total_ratio_rs += sum(carrier.getRatio()) * \
+                    carrier.getSymbolRate() / 1E6
+        for carrier in self._list_carrier:
+            total_ratio += int(round(carrier.getNbCarrier() * (1 + roll_off) /\
+                                     self._bandwidth_total * total_ratio_rs ))
+
+        for carrier in self._list_carrier:
             # bandwidth and bandwidth_total in Mhz
-            ratio =  int((self._list_carrier[i].getBandwidth(roll_off) / 1E6) / \
-            self._bandwidth_total * 100)
-            print ratio
-            self._list_carrier[i].setRatio(str(ratio))
-            i += 1
+            ratio = int(round(carrier.getNbCarrier() * (1 + roll_off) /\
+                    self._bandwidth_total * total_ratio_rs / total_ratio *  100))
+            ratios = carrier.getRatio()
+            old_ratios = list(ratios)
+            ratio_str = ""
+            index = 1
+            for r in ratios:
+                new_ratio = ratio * r / sum(old_ratios)
+                if index != len(ratios):
+                    ratio_str += str(new_ratio) + ";"
+                else:
+                    ratio_str += str(new_ratio)
+                index += 1
+
+            carrier.setRatio(ratio_str)
             
 
     def on_update_group(self, source=None, id_carrier=None):
@@ -421,7 +465,29 @@ class GraphicalParameter(WindowView):
                                  self._link, 
                                  id_carrier, 
                                  self)
+        
         window.go()
+
+        new_fmt_id = int(self._fmt_group.keys()[-1]) + 1
+        for carrier in self._list_carrier:
+            fmt_groups = []
+            for carrier_fmt_group in carrier.get_str_modcod():
+                found = False
+                for grp_id in self._fmt_group:
+                    if carrier_fmt_group == self._fmt_group[grp_id]:
+                        fmt_groups.append(grp_id)
+                        found = True
+                        break
+                if not found:
+                    fmt_groups.append(new_fmt_id)
+                    self._new_fmt_grps[new_fmt_id] = carrier_fmt_group
+                    self._fmt_group[str(new_fmt_id)] = carrier_fmt_group
+                    new_fmt_id += 1
+            
+            carrier.setFmtGroups(';'.join(str(fmt_grp_id) for fmt_grp_id in
+                                      fmt_groups))
+
+
 
     def on_band_configuration_dialog_save(self, source=None, event=None):
         #get the file xml
@@ -460,10 +526,9 @@ class GraphicalParameter(WindowView):
             table = config.get(xpath)
             i -= 1
 
-        new_fmt_grps = {}
         used_fmt_grps = []
         new_fmt_id = int(self._fmt_group.keys()[-1]) + 1
-        #Save all carriere element
+        #Save all carrier element
         carrier_id = 0
         for carrier in self._list_carrier:
             config.set_value(carrier.get_old_access_type(), 
@@ -478,34 +543,27 @@ class GraphicalParameter(WindowView):
             config.set_value(carrier.getSymbolRate(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              SYMBOL_RATE)
+            
             fmt_groups = []
             for carrier_fmt_group in carrier.get_str_modcod():
                 found = False
                 for grp_id in self._fmt_group:
                     if carrier_fmt_group == self._fmt_group[grp_id]:
-                        fmt_groups.append(grp_id)
                         used_fmt_grps.append(grp_id)
+                        fmt_groups.append(grp_id)
                         found = True
                         break
                 if not found:
-                    for grp_id in new_fmt_grps:
-                        if carrier_fmt_group == new_fmt_grps[grp_id]:
-                            fmt_groups.append(grp_id)
-                            used_fmt_grps.append(grp_id)
-                            found = True
-                            break
-
-                    if not found:
-                        fmt_groups.append(new_fmt_id)
-                        used_fmt_grps.append(new_fmt_id)
-                        new_fmt_grps[new_fmt_id] = carrier_fmt_group
-                        new_fmt_id += 1
-
-
+                    fmt_groups.append(new_fmt_id)
+                    self._new_fmt_grps[new_fmt_id] = carrier_fmt_group
+                    self._fmt_group[str(new_fmt_id)] = carrier_fmt_group
+                    new_fmt_id += 1
             config.set_value(';'.join(str(fmt_grp_id) for fmt_grp_id in
                                       fmt_groups), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              FMT_GROUP)
+            carrier.setFmtGroups(';'.join(str(fmt_grp_id) for fmt_grp_id in
+                                      fmt_groups))
         
             carrier_id += 1
        
@@ -515,7 +573,7 @@ class GraphicalParameter(WindowView):
         table = config.get(xpath)
         
         #Create or delete to have the good number
-        for i in range(0, len(new_fmt_grps)):
+        for i in range(0, len(self._new_fmt_grps)):
             config.add_line(config.get_path(table))
             table = config.get(xpath)
         
@@ -531,18 +589,19 @@ class GraphicalParameter(WindowView):
                 table = config.get(xpath)
         
         #Save all fmt element
-        i = len(self._fmt_group)
-        for grp_id in new_fmt_grps:
+        i = len(self._fmt_group) - len(self._new_fmt_grps)
+        for grp_id in self._new_fmt_grps:
             config.set_value(grp_id, 
                              config.get_path(config.get_table_elements(table)[i]),
                              ID)
-            config.set_value(new_fmt_grps[grp_id], 
+            config.set_value(self._new_fmt_grps[grp_id], 
                              config.get_path(config.get_table_elements(table)[i]),
                              FMT_ID)
             i += 1
             
         config.write()
         self._removed = []
+        self._new_fmt_grps = {}
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()
         
@@ -553,22 +612,11 @@ class GraphicalParameter(WindowView):
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()
 
+    def on_band_conf_delete_event(self, source=None, event=None):
+        """Close the window """
+        self._fmt_group.clear()
+        self._dlg.destroy()
 
     def get_list_carrier(self):
         return self._list_carrier
     
-    def get_carrier_bitrate(self, carrier):
-        br = []
-        i = 0
-        for ratio in carrier.getRatio():
-            rs = carrier.getSymbolRate() * ratio / sum(carrier.getRatio())
-            max_fmt = max(self._fmt_group[carrier.fmt_groups[i]])
-            min_fmt = min(self._fmt_group[carrier.fmt_groups[i]])
-            fmt = self._fmt[max_fmt]
-            max_br = rs * fmt.modulation * fmt.coding_rate
-            fmt = self._fmt[min_fmt]
-            min_br = rs * fmt.modulation * fmt.coding_rate
-            br.append((min_br, max_br))
-            i += 1
-        return br
-

@@ -51,9 +51,10 @@ class Carrier :
     
     def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 1, 
                  access_type = 'CCM', fmt_groups = '1', modcod = '1', 
-                 ratio = '10') :
+                 ratio = '50') :
         self._symbol_rate = symbol_rate
         self._access_type = access_type
+        self._str_fmt_grp = fmt_groups
         self._str_modcod = modcod
         self._str_ratio = ratio
         self._list_modcod = self.parser(modcod)
@@ -129,8 +130,12 @@ class Carrier :
     """MUTATEUR"""
     ##################################################
 
-    def setSymbolRate(self, _symbol_rate):
-        self._symbol_rate = _symbol_rate
+    def setSymbolRate(self, symbol_rate):
+        self._symbol_rate = symbol_rate
+    
+    def setFmtGroups(self, fmt_groups):
+        self._str_fmt_grp = fmt_groups
+        self._fmt_groups = self.parser(fmt_groups)
     
     def setCategory(self, category):
         self._category = category
@@ -155,13 +160,10 @@ class Carrier :
     def getSymbolRate(self):
         return self._symbol_rate
    
+    def get_str_fmt_grp(self):
+        return self._str_fmt_grp
+
     def get_str_modcod(self):
-        """modcod_str = ""
-        for modcod in self._list_modcod:
-            if modcod == self._list_modcod[-1]:
-                modcod_str += str(modcod)
-            else:
-                modcod_str += str(modcod) + ";" """
         return self._str_modcod
 
     def getModCod(self):
@@ -190,18 +192,9 @@ class Carrier :
             return self._access_type
 
     def getStrRatio(self):
-        """ratio_str = ""
-        for ratio in self._ratio:
-            if ratio == self._ratio[-1]:
-                ratio_str += str(ratio)
-            else:
-                ratio_str += str(ratio) + ";"
-        print ratio_str
-        return ratio_str"""
         return self._str_ratio
 
     def getRatio(self):
-        print self._ratio
         return self._ratio
 
     def getFmtGroups(self):

@@ -122,12 +122,19 @@ class AssignmentDialog(WindowView):
             
         #Create combo box for group
         group = gtk.ListStore(int, str)
+        group_list = []
 
         xpath = get_conf_xpath(CARRIERS_DISTRIB, self._link, self._spot, self._gw)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            group.append([self.get_group_value(content[CATEGORY]),
-                          content[CATEGORY]])
+            if ([self.get_group_value(content[CATEGORY]),                             
+                 content[CATEGORY]]) not in group_list:
+                group_list.append([self.get_group_value(content[CATEGORY]),
+                                   content[CATEGORY]])
+                group.insert(self.get_group_value(content[CATEGORY]),
+                                  [self.get_group_value(content[CATEGORY]),
+                                   content[CATEGORY]])
+
         for host in host_list:
             if not host.get_name().lower().startswith(ST):
                 continue

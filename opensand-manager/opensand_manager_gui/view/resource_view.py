@@ -46,7 +46,7 @@ from opensand_manager_core.carrier import Carrier
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND
+        RETURN_UP_BAND, FMT_GROUP
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -99,18 +99,18 @@ class ResView(WindowView):
         self._spot = None
         self._gw = None
         
-        # select first child
-        if len(path.get_selected_rows()[1][0]) < 2 :
-            iterator = tree.iter_children(iterator)
-            self._tree.select_path(tree.get_path(iterator))
+        if iterator is not None:
+            # select first child
+            if len(path.get_selected_rows()[1][0]) < 2 :
+                iterator = tree.iter_children(iterator)
+                self._tree.select_path(tree.get_path(iterator))
 
-        if tree.get_value(iterator, 0).lower().startswith(GW):
-            self._gw = tree.get_value(iterator, 0).lower().split(GW)[1]
-            if tree.get_value(tree.iter_parent(iterator),\
-                              0).lower().startswith(SPOT):
-                self._spot = tree.get_value(tree.iter_parent(iterator),\
-                                            0).lower().split(SPOT)[1]
-                
+            if tree.get_value(iterator, 0).lower().startswith(GW):
+                self._gw = tree.get_value(iterator, 0).lower().split(GW)[1]
+                if tree.get_value(tree.iter_parent(iterator),\
+                                  0).lower().startswith(SPOT):
+                    self._spot = tree.get_value(tree.iter_parent(iterator),\
+                                                0).lower().split(SPOT)[1]
 
         self.update_view()
         pass
@@ -119,10 +119,15 @@ class ResView(WindowView):
         """ update the tools tree """
         config = self._model.get_conf().get_configuration()
         xpath = "//" + RETURN_UP_BAND
+        new_element = []
+        
+        # add element
         for element in config.get(xpath) :
             if element.tag == SPOT:
                 spot =  SPOT + element.get(ID)
                 gw =  GW + element.get(GW)
+                new_element.append(spot)
+                new_element.append(spot+gw)
                 if spot not in self._tree_element:
                     gobject.idle_add(self._tree.add_spot, spot)
                     self._tree_element.append(spot)
@@ -133,6 +138,11 @@ class ResView(WindowView):
                     gobject.idle_add(self._tree.add_child, GW + element.get(GW),
                                      list_parent, True)
                     self._tree_element.append(spot + gw)
+        # remove element
+        for elm in self._tree_element:
+            if elm not in new_element:
+                gobject.idle_add(self._tree.del_elem, elm)
+                self._tree_element.remove(elm)
 
         
         if self._init:
@@ -154,7 +164,6 @@ class ResView(WindowView):
         else:
             self._ui.get_widget('vbox_return').hide()
             self._ui.get_widget('vbox_forward').hide()
-            self._ui.get_widget('vbox_resources').show()
 
     def clear_graph(self, link):
         """Clear all the representaion"""
@@ -191,14 +200,20 @@ class ResView(WindowView):
         total_ratio_rs = 0
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            total_ratio_rs += float(content[SYMBOL_RATE]) * float(content[RATIO])
+            ratios = map(lambda x: float(x), content[RATIO].split(';'))
+            total_ratio_rs += float(content[SYMBOL_RATE]) * sum(ratios)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            nb_carrier = int(round(float(content[RATIO]) / total_ratio_rs *\
+            ratios = map(lambda x: float(x), content[RATIO].split(';'))
+            nb_carrier = int(round(sum(ratios) / total_ratio_rs *\
                     bandwidth / (1 + roll_off)))
-            list_carrier.append(Carrier(float(content[SYMBOL_RATE])/1000000,
+            if nb_carrier <= 0:
+                nb_carrier = 1
+            list_carrier.append(Carrier(float(content[SYMBOL_RATE]),
                                         nb_carrier, content[CATEGORY], 
-                                        content[ACCESS_TYPE]))
+                                        content[ACCESS_TYPE], 
+                                        content[FMT_GROUP],
+                                        ratio=content[RATIO]))
         
         #get the roll off
         xpath = get_conf_xpath(ROLL_OFF, link)
@@ -219,9 +234,10 @@ class ResView(WindowView):
                     element.calculateXY(roll_off, off_set)
                     self._ax_forward.plot(element.getX(), 
                                           element.getY(), 
-                                          color[element.getGroup()])
+                                          color[element.getCategory()])
+                    # bandwidth in MHz
                     off_set = off_set + element.getBandwidth(roll_off)\
-                           / element.getNbCarrier() 
+                           / (1E6 * element.getNbCarrier())
             if off_set != 0:
                 self._ax_forward.axis([float(-off_set)/6, 
                                       off_set + float(off_set)/6,
@@ -239,9 +255,10 @@ class ResView(WindowView):
                     element.calculateXY(roll_off, off_set)
                     self._ax_return.plot(element.getX(), 
                                          element.getY(), 
-                                         color[element.getGroup()])
+                                         color[element.getCategory()])
+                    # bandwidth in MHz
                     off_set = off_set + element.getBandwidth(roll_off)\
-                            / element.getNbCarrier()
+                            / (1E6 * element.getNbCarrier())
             if off_set != 0:
                 self._ax_return.axis([float(-off_set)/6, 
                                      off_set + float(off_set)/6, 

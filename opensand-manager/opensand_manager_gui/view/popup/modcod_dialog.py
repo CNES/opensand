@@ -104,11 +104,11 @@ class ModcodParameter(WindowView):
         self._frame_temporal_graphe.add(canvas)
         
         #Create scroll_ratio
-        self._scroll_ratio=gtk.ScrolledWindow()
+        self._scroll_ratio = gtk.ScrolledWindow()
         self._scroll_ratio.set_size_request(150,120)
         
         #Add vbox_ratio in scroll_ratio
-        self._vbox_ratio=gtk.VBox()
+        self._vbox_ratio = gtk.VBox()
         self._scroll_ratio.add_with_viewport(self._vbox_ratio)
         
         
@@ -123,11 +123,12 @@ class ModcodParameter(WindowView):
             if encap['0'] == 'AAL5/ATM':
                 path="/usr/share/opensand/modcod/return/definition_ATM.txt"
             else:
-                path="/usr/share/opensand/modcod/return/definition_MPEG.txt"
-        self._modcod_list=self.load_modcod(path)
+                path = "/usr/share/opensand/modcod/return/definition_MPEG.txt"
+        self._modcod_list = self.load_modcod(path)
         #Item List to simply access to toogle button
-        self._item_list=[]
-        self._dico_modcod={}
+        self._item_list = []
+        self._list_modcod_ratio = {}
+        self._dico_modcod = {}
 
         self._vcm_radio = None
         
@@ -152,12 +153,12 @@ class ModcodParameter(WindowView):
         #Add the access type button for forward or return
         if self._link == FORWARD_DOWN:
             #Add radio button
-            self._ccm_radio=gtk.RadioButton(group=None, label="CCM", 
+            self._ccm_radio = gtk.RadioButton(group=None, label="CCM", 
                                             use_underline=True)
-            self._acm_radio=gtk.RadioButton(group=self._ccm_radio, 
+            self._acm_radio = gtk.RadioButton(group=self._ccm_radio, 
                                             label="ACM", 
                                             use_underline=True)
-            self._vcm_radio=gtk.RadioButton(group=self._ccm_radio, 
+            self._vcm_radio = gtk.RadioButton(group=self._ccm_radio, 
                                             label="VCM", 
                                             use_underline=True)
             #Connect signal to button
@@ -197,8 +198,13 @@ class ModcodParameter(WindowView):
             self._aloha_radio.set_active(True)
         
         #Load modcod from carrier
-        modcod_list=self._parent.get_list_carrier()[self._carrier_id-1].getModeCode()
+        modcod_list = self._parent.get_list_carrier()[self._carrier_id-1].getModCod()
+        list_ratio = self._parent.get_list_carrier()[self._carrier_id-1].getRatio()
+        index = 0
         for modcod in modcod_list:
+            self._list_modcod_ratio[modcod] = list_ratio[index]
+            if len(modcod_list) == len(list_ratio):
+                index += 1
             self._item_list[modcod-1].set_active(True)
         
         self._vbox_conf.show_all()
@@ -244,19 +250,23 @@ class ModcodParameter(WindowView):
                     check_modcod = gtk.RadioButton(group = None,
                                                    label = modcod[1] + " " + modcod[2],
                                                    use_underline=True)
-                    check_modcod.connect("toggled", self.on_check_modcod)
+                    check_modcod.connect("toggled", self.on_check_modcod, modcod)
                     #Add tooltip
                     tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                     + modcod[3]+"\nRequired Es/N0 : " + modcod[4])
                     #Default value for ratio is 10
-                    self._dico_modcod[modcod[1] + " " + modcod[2]]=10            
+                    if modcod in self._list_modcod_ratio.keys():
+                        self._dico_modcod[modcod[1] + " " + modcod[2]] = \
+                            self._list_modcod_ratio[modcod]            
+                    else:
+                        self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
                 else:
                     check_modcod = gtk.RadioButton(group = self._item_list[0],
                                                    label = modcod[1] + " " + modcod[2],
                                                    use_underline = True)
                     tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                     + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
-                    check_modcod.connect("toggled", self.on_check_modcod)
+                    check_modcod.connect("toggled", self.on_check_modcod, modcod)
                 self._item_list.append(check_modcod)
             #Add all the widget in the window
             self.add_modcod_item()
@@ -275,7 +285,7 @@ class ModcodParameter(WindowView):
             for modcod in self._modcod_list:
                 check_modcod = gtk.CheckButton(label=modcod[1] + " " + modcod[2],
                                                use_underline = True)
-                check_modcod.connect("toggled", self.on_check_modcod)
+                check_modcod.connect("toggled", self.on_check_modcod, modcod)
                 tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                 + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
                 self._item_list.append(check_modcod)
@@ -296,7 +306,7 @@ class ModcodParameter(WindowView):
             for modcod in self._modcod_list:
                 check_modcod = gtk.CheckButton(label = modcod[1] + " " + modcod[2],
                                                use_underline = True)
-                check_modcod.connect("toggled", self.on_check_modcod)
+                check_modcod.connect("toggled", self.on_check_modcod, modcod)
                 tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                 + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
                 self._item_list.append(check_modcod)
@@ -326,12 +336,16 @@ class ModcodParameter(WindowView):
                 #In radio button the first radio have no group
                 check_modcod = gtk.CheckButton(label = modcod[1] + " " + modcod[2],
                                                use_underline = True)
-                check_modcod.connect("toggled", self.on_check_modcod)
+                check_modcod.connect("toggled", self.on_check_modcod, modcod)
                 tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                 + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
                 self._item_list.append(check_modcod)
                 #Default value for ratio is 10
-                self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
+                if modcod in self._list_modcod_ratio.keys():
+                    self._dico_modcod[modcod[1] + " " + modcod[2]] = \
+                            self._list_modcod_ratio[modcod]            
+                else:
+                    self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
             
             #Add all the widget in the window
             self.add_modcod_item()
@@ -354,14 +368,18 @@ class ModcodParameter(WindowView):
                                                    use_underline = True)
                     tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                     + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
-                    check_modcod.connect("toggled", self.on_check_modcod)
+                    check_modcod.connect("toggled", self.on_check_modcod, modcod)
                     #Default value for ratio is 10
-                    self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
+                    if modcod in self._list_modcod_ratio.keys():
+                        self._dico_modcod[modcod[1] + " " + modcod[2]] = \
+                                self._list_modcod_ratio[modcod]            
+                    else:
+                        self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
                 else:
                     check_modcod = gtk.RadioButton(group=self._item_list[0],
                                                    label = modcod[1] + " " + modcod[2], 
                                                    use_underline=True)
-                    check_modcod.connect("toggled", self.on_check_modcod)
+                    check_modcod.connect("toggled", self.on_check_modcod, modcod)
                     tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                     + modcod[3]+"\nRequired Es/N0 : " + modcod[4])
                 self._item_list.append(check_modcod)
@@ -373,12 +391,16 @@ class ModcodParameter(WindowView):
             
     ##################################################
         
-    def on_check_modcod(self, source=None):
+    def on_check_modcod(self, source=None, modcod=0):
         """Signal if it is selected"""
         #If modcod become enable
         if source.get_active():
             #Add this modcod in the dictionary with the default ration value 10
-            self._dico_modcod[source.get_label()] = 10
+            if int(modcod[0]) in self._list_modcod_ratio.keys():
+                self._dico_modcod[source.get_label()] = \
+                        self._list_modcod_ratio[int(modcod[0])]            
+            else:
+                self._dico_modcod[source.get_label()] = 10
         #if modcod become disable
         else:
             del self._dico_modcod[source.get_label()]
@@ -391,7 +413,7 @@ class ModcodParameter(WindowView):
     
     def on_update_ratio(self, source=None, modcod=None):
         """Signal when a ratio change"""
-        self._dico_modcod[modcod] = source.get_value()
+        self._dico_modcod[modcod] = int(source.get_value())
         self.trace_arrow()
         
     ##################################################
@@ -444,7 +466,7 @@ class ModcodParameter(WindowView):
             ratio = ratio + value
         
         for modcod, value in self._dico_modcod.items():
-            t=float(value)/ratio
+            t = float(value) / ratio
             self._ax.annotate('', 
                               xy = (d, 0.50), 
                               xycoords = 'data', 
@@ -480,8 +502,8 @@ class ModcodParameter(WindowView):
             
             modcod_name = gtk.Label(str = modcod)
             ratio = gtk.Label(str = "Ratio")
-            ajustement = gtk.Adjustment(float(value), 0, 10000, 1, 8)
-            modcod_ratio = gtk.SpinButton(ajustement, digits = 2)
+            ajustement = gtk.Adjustment(int(value), 1, 10000, 1, 8)
+            modcod_ratio = gtk.SpinButton(ajustement, digits = 0)
             modcod_ratio.connect("value-changed", self.on_update_ratio, modcod)
             
             hbox_ratio.pack_start(modcod_name, fill = False)
@@ -538,6 +560,8 @@ class ModcodParameter(WindowView):
         self._parent.get_list_carrier()[self._carrier_id-1].setModcod(
             modcods.keys())
         ratio = ';'.join(str(e) for e in modcods.values())
+        self._parent.get_list_carrier()[self._carrier_id-1].setRatio(
+            ratio)
         self._parent.get_list_carrier()[self._carrier_id-1].setRatio(
             ratio)
         self._dlg.destroy()

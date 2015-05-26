@@ -1192,7 +1192,7 @@ class ConfSection(gtk.VBox):
             raise
         
         # Update Bandwidth
-        if update_bandwidth:
+        if update_bandwidth and self._bandwidth:
             path = self._bandwidth.get_name().split('/@')
             bandwidth = 0.0
             old_bandwidth = float(self._config.get_value(\
