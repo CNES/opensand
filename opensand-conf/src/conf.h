@@ -281,6 +281,7 @@
 #define DISABLED_NONE       "none"
 
 #define SPOT_LIST           "spot"
+#define NO_GW               10
 #define GW_LIST             "gw"
 #define CTRL_ID             "ctrl_id"
 #define DATA_IN_ID          "data_in_id"

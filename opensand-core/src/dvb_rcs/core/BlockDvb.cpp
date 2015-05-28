@@ -63,7 +63,22 @@ bool DvbChannel::initSpots(void)
 	{
 		this->spots[iter->second] = NULL;
 	}
-
+	
+	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+	                   DEFAULT_SPOT, this->default_spot))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR, 
+		    "failed to get default terminal ID\n");
+		return false;
+	}
+	
+	if(OpenSandConf::spot_table.find(this->default_spot) == OpenSandConf::spot_table.end())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Default spot does not exist\n");
+		return false;
+	}
+	
 	return true;
 }
 

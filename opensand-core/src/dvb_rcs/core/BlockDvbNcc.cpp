@@ -98,7 +98,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	fwd_frame_counter(0),
 	fwd_timer(-1),
 	scenario_timer(-1),
-	default_spot(0),
 	probe_frame_interval(NULL)
 {
 }
@@ -113,36 +112,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 	bool result = true;
 	const char *scheme;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-
-	if(!this->initSpots())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the spot "
-		    "initialisation\n");
-		return false;
-	}
-	// TODO move in initSpots ?
-	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-	                   DEFAULT_SPOT, this->default_spot))
-	{
-		LOG(this->log_init, LEVEL_ERROR, 
-		    "failed to get default terminal ID\n");
-		return false;
-	}
-	if(OpenSandConf::spot_table.find(this->default_spot) == OpenSandConf::spot_table.end())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Default spot does not exist\n");
-		return false;
-	}
-
-	if(!this->initDown())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the downward common "
-		    "initialisation\n");
-		return false;
-	}
 
 	if(!this->initSatType())
 	{
@@ -161,6 +130,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 		scheme = RETURN_UP_ENCAP_SCHEME_LIST;
 	}
 
+	if(!this->initDown())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the downward common "
+		    "initialisation\n");
+		return false;
+	}
+
 	if(!this->initCommon(scheme))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -168,8 +145,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-
-	for(spot_iter = this->spots.begin(); 
+	
+		for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		SpotDownward *spot;
@@ -294,7 +271,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					case MSG_TYPE_BBFRAME:
 					case MSG_TYPE_DVB_BURST:
 					case MSG_TYPE_CORRUPTED:
-						if(!spot->handleCorrutedFrame(dvb_frame))
+						if(!spot->handleCorruptedFrame(dvb_frame))
 						{
 							goto error;
 						}
@@ -874,7 +851,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 			    "message\n");
 			return false;
 		}
-		//link_is_up->group_id = 0;
 		link_is_up->group_id = this->mac_id;
 		link_is_up->tal_id = this->mac_id;
 

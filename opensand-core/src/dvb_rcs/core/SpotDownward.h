@@ -137,7 +137,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @param dvb_frame the Dvb Frame corrupted
 		 * @return true on succes, flase otherwise
 		 */
-		bool handleCorrutedFrame(DvbFrame *dvb_frame);
+		bool handleCorruptedFrame(DvbFrame *dvb_frame);
 
 		/**
 		 * @brief go to fmt simu next scenario

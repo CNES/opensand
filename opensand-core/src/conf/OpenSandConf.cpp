@@ -80,3 +80,11 @@ bool OpenSandConf::isGw(uint16_t gw_id)
 {
 	return global_config.isGw(OpenSandConf::gw_table, gw_id);
 }
+
+bool OpenSandConf::getSpot(string section,
+                           uint8_t spot_id,
+                           uint16_t gw_id,
+                           ConfigurationList &current_gw)
+{
+	return global_config.getSpot(section, spot_id, gw_id, current_gw);
+}

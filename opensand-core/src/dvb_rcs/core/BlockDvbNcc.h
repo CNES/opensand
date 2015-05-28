@@ -171,9 +171,6 @@ class BlockDvbNcc: public BlockDvb
 		// ACM parameters to satellite
 		event_id_t scenario_timer;
 
-		/// the default destination spot
-		spot_id_t default_spot;
-
 		/// Delay for allocation requests from PEP (in ms)
 		int pep_alloc_delay;
 

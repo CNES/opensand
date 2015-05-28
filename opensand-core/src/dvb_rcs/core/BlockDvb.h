@@ -100,6 +100,7 @@ class DvbChannel
 		fmt_simu(),
 		stats_period_ms(),
 		stats_period_frame(),
+		default_spot(0),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),
@@ -290,6 +291,9 @@ class DvbChannel
 	/// The statistics period
 	time_ms_t stats_period_ms;
 	time_frame_t stats_period_frame;
+
+	/// the default destination spot
+	spot_id_t default_spot;
 
 	// log
 	OutputLog *log_init_channel;

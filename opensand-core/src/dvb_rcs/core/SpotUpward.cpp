@@ -150,34 +150,24 @@ bool SpotUpward::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
 	ConfigurationList current_spot;
 	int lan_scheme_nbr;
 
 	// init fmt_simu
 	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-	                          RETURN_UP_MODCOD_TIME_SERIES))
+				RETURN_UP_MODCOD_TIME_SERIES))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD files\n");
-		return false;
-	}
-	
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
+				"failed to initialize the up/return MODCOD files\n");
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID, 
-	                                       this->spot_id, current_spot))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
+		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n", 
-		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
+		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
 	
@@ -537,8 +527,6 @@ bool SpotUpward::checkIfScpc()
 	TerminalCategoryDama *default_category;
 	FmtSimulation scpc_fmt_simu;
 	fmt_groups_t ret_fmt_groups;
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
 	ConfigurationList current_spot;
 	
 
@@ -551,20 +539,12 @@ bool SpotUpward::checkIfScpc()
 		return false;
 	}
 	
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
+		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID, 
-	                                       this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n", 
-		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
+		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
 

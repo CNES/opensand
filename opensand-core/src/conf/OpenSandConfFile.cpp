@@ -136,7 +136,7 @@ void OpenSandConfFile::loadSpotTable(map<uint16_t, uint8_t> &spot_table)
 		ConfigurationList terminal_list;
 		ConfigurationList::iterator iter_terminal;
 		xmlpp::Node* spot_node = *iter_spots;
-		// TODO surcharger pour donner élément symple
+		// TODO surcharger pour donner élément simple
 		current_spot.push_front(spot_node);
 		uint8_t spot_id = 0;
 
@@ -265,4 +265,36 @@ bool OpenSandConfFile::isGw(map<uint16_t, uint16_t> &gw_table, uint16_t gw_id)
 	return false;
 }
 
+bool OpenSandConfFile::getSpot(string section, 
+                           uint8_t spot_id, 
+                           uint16_t gw_id,
+                           ConfigurationList &current_gw)
+{
+	ConfigurationList spot_list;
+	ConfigurationList current_spot;
 
+	if(!Conf::getListNode(Conf::section_map[section], 
+	                      SPOT_LIST, spot_list))
+	{
+		return false;;
+	}
+	
+	if(!Conf::getElementWithAttributeValue(spot_list, ID,
+	                                       spot_id, current_spot))
+	{
+		return false;
+	}
+
+	if(gw_id != NO_GW)
+	{
+		 if(!Conf::getElementWithAttributeValue(current_spot, GW,
+	                                       gw_id, current_gw))
+		{
+			return false;
+		}
+	}else{
+		current_gw = current_spot;
+	}
+
+	return true;
+}

@@ -99,6 +99,18 @@ class OpenSandConf
 	static bool isGw(uint16_t gw_id);
 
 		
+	/**
+	 * return current spot with gw and spot ids
+	 * @param section    the section name
+	 * @param spot_id    the spot id
+	 * @param gw_id      the gw id
+	 * @param current_gw the found spot/gw
+	 * @return true on success, false otherwize
+	 */
+	static bool getSpot(string section,
+                        uint8_t spot_id,
+                        uint16_t gw_id,
+                        ConfigurationList &current_gw);
  private:
 
 	static OpenSandConfFile global_config;
