@@ -119,6 +119,18 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			// pass to next fifo
 			++fifo_it;
 		}
+		else if(fifo->getAccessType() == access_saloha)
+		{
+			// not the good fifo
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+			    "SF#%u: ignore MAC FIFO %s  "
+			    "not the right access type (%d)\n",
+			    current_superframe_sf,
+			    fifo->getName().c_str(),
+			    fifo->getAccessType());
+			// pass to next fifo
+			++fifo_it;
+		}
 		else
 		{
 			// FIFO with awaiting data
