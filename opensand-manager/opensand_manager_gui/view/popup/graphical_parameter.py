@@ -530,6 +530,7 @@ class GraphicalParameter(WindowView):
         new_fmt_id = int(self._fmt_group.keys()[-1]) + 1
         #Save all carrier element
         carrier_id = 0
+        access_type_cat = {}
         for carrier in self._list_carrier:
             config.set_value(carrier.get_old_access_type(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
@@ -543,6 +544,10 @@ class GraphicalParameter(WindowView):
             config.set_value(carrier.getSymbolRate(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              SYMBOL_RATE)
+
+            if carrier.get_old_category() not in access_type_cat.keys():
+                access_type_cat[carrier.get_old_category()] = []
+            access_type_cat[carrier.get_old_category()].append(carrier.get_old_access_type())
             
             fmt_groups = []
             for carrier_fmt_group in carrier.get_str_modcod():
@@ -566,6 +571,15 @@ class GraphicalParameter(WindowView):
                                       fmt_groups))
         
             carrier_id += 1
+
+        for category in access_type_cat:
+            if "SCPC" in access_type_cat[category]:
+                for access_type in access_type_cat[category]:
+                    if access_type != "SCPC":
+                        error_popup(str("For category %s access type can only "\
+                                        "be SCPC, please check all carriers" % category))
+                        return None
+
        
         
         #save fmt

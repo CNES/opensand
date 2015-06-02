@@ -177,11 +177,16 @@ class ModcodParameter(WindowView):
                                              use_underline=True)
             self._aloha_radio=gtk.RadioButton(group=self._dama_radio,
                                     label="ALOHA", use_underline=True)
-            self._dama_radio.connect("toggled", self.on_dama_toggled)
-            self._aloha_radio.connect("toggled", self.on_aloha_toggled)
+            self._scpc_radio=gtk.RadioButton(group=self._dama_radio,
+                                    label="SCPC", use_underline=True)
+            self._dama_radio.connect("toggled", self.on_toggled)
+            self._aloha_radio.connect("toggled", self.on_toggled)
+            self._scpc_radio.connect("toggled", self.on_toggled)
             self._vbox_access_type.pack_start(self._dama_radio, 
                                               expand=True, fill=True)
             self._vbox_access_type.pack_start(self._aloha_radio, 
+                                              expand=True, fill=True)
+            self._vbox_access_type.pack_start(self._scpc_radio, 
                                               expand=True, fill=True)
             
         #Load access type from the carrier
@@ -196,6 +201,8 @@ class ModcodParameter(WindowView):
             self._dama_radio.toggled()
         elif access_type == "ALOHA":
             self._aloha_radio.set_active(True)
+        elif access_type == "SCPC":
+            self._scpc_radio.set_active(True)
         
         #Load modcod from carrier
         modcod_list = self._parent.get_list_carrier()[self._carrier_id-1].getModCod()
@@ -326,36 +333,8 @@ class ModcodParameter(WindowView):
                 self._vbox_vcm_option.remove(child)
             
     ##################################################
-            
-    def on_dama_toggled(self, source=None):
-        self._item_list=[]
-        tooltip = gtk.Tooltips()
-        #If button become enabled
-        if source.get_active():
-            for modcod in self._modcod_list:
-                #In radio button the first radio have no group
-                check_modcod = gtk.CheckButton(label = modcod[1] + " " + modcod[2],
-                                               use_underline = True)
-                check_modcod.connect("toggled", self.on_check_modcod, modcod)
-                tooltip.set_tip(check_modcod, "Spectral_efficiency : "
-                                + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
-                self._item_list.append(check_modcod)
-                #Default value for ratio is 10
-                if modcod in self._list_modcod_ratio.keys():
-                    self._dico_modcod[modcod[1] + " " + modcod[2]] = \
-                            self._list_modcod_ratio[modcod]            
-                else:
-                    self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
-            
-            #Add all the widget in the window
-            self.add_modcod_item()
-        #If button become disable
-        else:
-            self._dico_modcod.clear() 
-        
-    ##################################################
     
-    def on_aloha_toggled(self, source=None):
+    def on_toggled(self, source=None):
         self._item_list=[]
         tooltip = gtk.Tooltips()
         #If button become enabled
