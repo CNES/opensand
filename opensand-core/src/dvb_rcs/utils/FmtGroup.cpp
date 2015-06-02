@@ -124,22 +124,23 @@ void FmtGroup::parse(string ids)
 				if(std::find(this->fmt_ids.begin(),
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
-					FmtId fmt_id(val, this->modcod_def->getRequiredEsN0(val));
+					FmtId fmt_id(i, this->modcod_def->getRequiredEsN0(i));
 					this->fmt_ids.push_back(fmt_id);
-					LOG(this->log_fmt, LEVEL_INFO,
-					    "Add ID %u in FMT group %u\n", i, this->id);
 				}
 			}
 
 			previous_id = val;
 		}
 	}
+
 	this->fmt_ids.sort();
 	// we need the list of numeric IDs to avoid creating it each time
 	// we call getFmtIds
 	for(list<FmtId>::const_iterator id_it = this->fmt_ids.begin();
 	    id_it != this->fmt_ids.end(); ++id_it)
 	{
+		LOG(this->log_fmt, LEVEL_INFO,
+		    "Add ID %u in FMT group %u\n", (*id_it).id, this->id);
 		this->num_fmt_ids.push_back((*id_it).id);
 	}
 }
