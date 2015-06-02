@@ -27,7 +27,7 @@
  */
 
 /**
- * @file BlockDvb.h
+ * @file DvbChannel.h
  * @brief This bloc implements a DVB-S2/RCS stack.
  * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
@@ -54,8 +54,8 @@
  *
  */
 
-#ifndef BLOCK_DVB_H
-#define BLOCK_DVB_H
+#ifndef DVB_CHANNEL_H
+#define DVB_CHANNEL_H
 
 #include "PhysicStd.h"
 #include "NccPepInterface.h"
@@ -81,12 +81,6 @@ inline clock_t getCurrentTime(void)
 	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }
 
-
-class BlockDvbSat;
-class BlockDvbNcc;
-class BlockDvbTal;
-
-
 class DvbChannel 
 {
  public:
@@ -106,6 +100,7 @@ class DvbChannel
 		log_send_channel(NULL),
 		check_send_stats(0)
 	{
+		dvb_fifo_log = Output::registerLog(LEVEL_WARNING, "Dvb.FIFO");
 		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "init");
 		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "receive");
 		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "send");
@@ -121,6 +116,8 @@ class DvbChannel
 			delete (*spot_iter).second;
 		}
 	};
+	/// The log for sac
+	static OutputLog *dvb_fifo_log;
 
  protected:
 
@@ -268,6 +265,7 @@ class DvbChannel
 	 * @return the spot if found, NULL otherwise
 	 */
 	DvbChannel *getSpot(spot_id_t spot_id) const;
+	
 
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
@@ -310,113 +308,6 @@ class DvbChannel
 
 };
 
-
-class BlockDvb: public Block
-{
- public:
-
-	/**
-	 * @brief DVB block constructor
-	 *
-	 */
-	BlockDvb(const string &name):
-		Block(name)
-	{
-		// register static logs
-		BBFrame::bbframe_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
-		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
-		dvb_fifo_log = Output::registerLog(LEVEL_WARNING, "Dvb.FIFO");
-		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
-	};
-
-
-	~BlockDvb();
-
-	/// The log for sac
-	static OutputLog *dvb_fifo_log;
-
-	class DvbUpward: public DvbChannel, public RtChannel
-	{
-	 public:
-		DvbUpward(Block *const bl):
-			DvbChannel(),
-			RtChannel(bl, upward_chan)
-		{};
-
-		~DvbUpward();
-	};
-
-	class DvbDownward: public DvbChannel, public RtChannel
-	{
-	 public:
-		DvbDownward(Block *const bl):
-			DvbChannel(),
-			RtChannel(bl, downward_chan),
-			fwd_timer_ms(),
-			scpc_timer_ms(),
-			dvb_scenario_refresh(-1)
-		{
-		};
-
-	 protected:
-		/**
-		 * @brief Read the common configuration parameters for downward channels
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool initDown(void);
-
-		/**
-		 * Receive Packet from upper layer
-		 *
-		 * @param packet        The encapsulation packet received
-		 * @param fifo          The MAC FIFO to put the packet in
-		 * @param fifo_delay    The minimum delay the packet must stay in the
-		 *                      MAC FIFO (used on SAT to emulate delay)
-		 * @return              true on success, false otherwise
-		 */
-		bool onRcvEncapPacket(NetPacket *packet,
-		                      DvbFifo *fifo,
-		                      time_ms_t fifo_delay);
-
-		/**
-		 * Send the complete DVB frames created
-		 * by \ref DvbRcsStd::scheduleEncapPackets or
-		 * \ref DvbRcsDamaAgent::globalSchedule for Terminal
-		 *
-		 * @param complete_frames the list of complete DVB frames
-		 * @param carrier_id      the ID of the carrier where to send the frames
-		 * @return true on success, false otherwise
-		 */
-		bool sendBursts(list<DvbFrame *> *complete_frames,
-		                uint8_t carrier_id);
-
-		/**
-		 * @brief Send message to lower layer with the given DVB frame
-		 *
-		 * @param frame       the DVB frame to put in the message
-		 * @param carrier_id  the carrier ID used to send the message
-		 * @return            true on success, false otherwise
-		 */
-		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-
-		/**
-		 * Update the statistics
-		 */
-		virtual void updateStats(void) = 0;
-
-	 protected:
-
-		/// the frame duration
-		time_ms_t fwd_timer_ms;
-		
-		///SCPC frame duration
-		time_ms_t scpc_timer_ms;
-
-		/// the scenario refresh interval
-		time_ms_t dvb_scenario_refresh;
-	};
-};
 
 /**
  * @brief Get integer values separated by ',' or ';' or a space

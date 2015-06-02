@@ -42,7 +42,7 @@ libopensand_plugin_la_h = \
 	PhysicalLayerPlugin.h
 	
 INCLUDES = \
-	-I$(top_srcdir)/src/dvb_rcs/utils/
+	-I$(top_srcdir)/src/dvb/utils/
 
 libopensand_plugin_la_SOURCES = \
 	$(libopensand_plugin_la_cpp) \

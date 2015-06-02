@@ -29,6 +29,6 @@ libopensand_dvb_saloha_la_SOURCES = \
 	$(libopensand_dvb_saloha_la_h)
 
 INCLUDES = \
-	-I$(top_srcdir)/src/dvb_rcs/utils \
-	-I$(top_srcdir)/src/dvb_rcs/fmt \
+	-I$(top_srcdir)/src/dvb/utils \
+	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/common

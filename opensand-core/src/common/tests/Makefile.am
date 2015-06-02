@@ -16,7 +16,7 @@ EXTRA_DIST = \
 INCLUDES = \
   -I$(top_srcdir)/src/lan_adaptation/ \
   -I$(top_srcdir)/src/common/ \
-  -I$(top_srcdir)/src/dvb_rcs/utils/
+  -I$(top_srcdir)/src/dvb/utils/
 
 test_plugins_SOURCES = \
   test_plugins.cpp

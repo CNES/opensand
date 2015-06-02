@@ -361,16 +361,36 @@ bool SpotDownward::initMode(void)
 	// depending on the satellite type
 	if(this->satellite_type == TRANSPARENT)
 	{
+		ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
+		ConfigurationList spots;
+		ConfigurationList current_spot;
 		ConfigurationList current_gw;
-		if(!OpenSandConf::getSpot(FORWARD_DOWN_BAND, this->spot_id, 
-		                          this->mac_id, current_gw))
+
+		if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-			    ID, this->spot_id, GW, this->mac_id, FORWARD_DOWN_BAND, SPOT_LIST);
+			    "there is no %s into %s section\n",
+			    SPOT_LIST, FORWARD_DOWN_BAND);
+			return false;
+		}
+
+		if(!Conf::getElementWithAttributeValue(spots, ID,
+		                                       this->spot_id, current_spot))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 			return false;
 		}
 		
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       this->mac_id, current_gw))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+			return false;
+		}
 		if(!this->initBand<TerminalCategoryDama>(current_gw,
 			                                     FORWARD_DOWN_BAND,
 		                                         TDM,
@@ -412,16 +432,39 @@ bool SpotDownward::initMode(void)
 	}
 	else if(this->satellite_type == REGENERATIVE)
 	{
+		// get RETURN_UP_BAND section
+		ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
+		ConfigurationList spots;
+		ConfigurationList current_spot;
 		ConfigurationList current_gw;
-		if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
-		                          this->mac_id, current_gw))
+
+		// Get the spot list
+		if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-			    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
+			    "there is no %s into %s section\n",
+			    SPOT_LIST, RETURN_UP_BAND);
 			return false;
 		}
 
+		// get the spot which have the same id as SpotDownward
+		if(!Conf::getElementWithAttributeValue(spots, ID,
+		                                       this->spot_id, current_spot))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+			return false;
+		}
+
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       this->mac_id, current_gw))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "there is no attribute %s with value: %d into %s/%s\n",
+			    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+			return false;
+		}
 		if(!this->initBand<TerminalCategoryDama>(current_gw,
 			                                     RETURN_UP_BAND,
 		                                         DAMA,
@@ -482,18 +525,42 @@ bool SpotDownward::initCarrierIds(void)
 {
 
 	ConfigurationList carrier_list ;
+	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
+	ConfigurationList::iterator iter_spots;
+	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 
-	if(!OpenSandConf::getSpot(SATCAR_SECTION, this->spot_id, 
-	                          this->mac_id, current_gw))
+	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST,
+	                      spot_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-		    ID, this->spot_id, GW, this->mac_id, SATCAR_SECTION, SPOT_LIST);
-		return false;
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, SPOT_LIST);
+		goto error;
+	}
+
+	if(!Conf::getElementWithAttributeValue(spot_list, ID,
+	                                       this->spot_id, current_spot))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s\n",
+		    ID, this->spot_id, SPOT_LIST);
+		goto error;
 	}
 	
+	if(!Conf::getElementWithAttributeValue(current_spot, GW,
+	                                       this->mac_id, current_gw))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no attribute %s with value: %d into %s %d\n",
+		    GW, this->mac_id, SPOT_LIST, this->spot_id);
+		goto error;
+	}
+	
+	// TODO can we get current_spot with only one command ?
+	//  -> get(section_map, SPOT_LIST, ID, id, current_spot) ?
+
 	// get satellite channels from configuration
 	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
@@ -639,8 +706,6 @@ bool SpotDownward::initDama(void)
 
 	if(this->satellite_type == TRANSPARENT)
 	{
-		//----------------------------		
-		// TODO function get spot by section_name, spot_id, gw_id
 		ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 		ConfigurationList spots;
 		ConfigurationList current_spot;
@@ -671,8 +736,6 @@ bool SpotDownward::initDama(void)
 			    ID, this->spot_id, SPOT_LIST);
 			return false;
 		}
-		//------------------------------
-		
 		if(!this->initBand<TerminalCategoryDama>(current_gw,
 			                                     RETURN_UP_BAND,
 		                                         DAMA,
@@ -786,26 +849,58 @@ bool SpotDownward::initFifo(void)
 {
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
-	ConfigurationList current_gw;
+	ConfigurationList spot_list;
+	// TODO do not use that !
+	xmlpp::Node *spot_node = NULL;
+	ConfigurationList::iterator iter_spots;
 
 	/**********************************
 	 *       Create SPOT_LIST
 	 *********************************/
 	// get satellite channels from configuration
-	if(!OpenSandConf::getSpot(DVB_NCC_SECTION, this->spot_id, 
-		                      NO_GW, current_gw))
+	if(!Conf::getListNode(Conf::section_map[DVB_NCC_SECTION], SPOT_LIST,
+	                      spot_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-		    ID, this->spot_id, GW, this->mac_id, DVB_NCC_SECTION, SPOT_LIST);
+		    "section '%s, %s': missing satellite channels\n",
+		    SATCAR_SECTION, SPOT_LIST);
+		return false;;
+	}
+	// TODO function to directly get the correct spot with spot_id in order
+	//      done in 2 functions above
+	for(iter_spots = spot_list.begin(); iter_spots != spot_list.end();
+	    ++iter_spots)
+	{
+		spot_id_t current_spot_id;
+		if(!Conf::getAttributeValue(iter_spots, ID, current_spot_id))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "section %s/%s: missing attribute %s\n",
+			    SATCAR_SECTION, SPOT_LIST, ID);
+			return false;
+		}
+
+		//  check spot id to get good carriers!
+		if(this->spot_id == current_spot_id)
+		{
+			spot_node = *iter_spots;
+			// spot is found
+			break;
+		}
+	}
+	if(!spot_node)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot found channels for spot %u\n", this->spot_id);
 		return false;
 	}
+	// TODO why ?? overload functions in conf to avoid that
 
 	/*
 	 * Read the MAC queues configuration in the configuration file.
 	 * Create and initialize MAC FIFOs
 	 */
-	if(!Conf::getListItems(current_gw,
+	if(!Conf::getListItems(spot_node,
 	                       FIFO_LIST, fifo_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -1262,7 +1357,7 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	return true;
 }
 
-bool SpotDownward::handleCorruptedFrame(DvbFrame *dvb_frame)
+bool SpotDownward::handleCorrutedFrame(DvbFrame *dvb_frame)
 {
 	double curr_cni = dvb_frame->getCn();
 	if(this->satellite_type == REGENERATIVE)
@@ -1310,7 +1405,7 @@ bool SpotDownward::simulateFile(void)
 	enum
 	{ none, cr, logon, logoff } event_selected;
 
-	int result;
+	int resul;
 	time_sf_t sf_nr;
 	tal_id_t st_id;
 	uint32_t st_request;
@@ -1439,11 +1534,11 @@ bool SpotDownward::simulateFile(void)
 			break;
 		}
 	 loop_step:
-		result = -1;
-		while(result < 1)
+		resul = -1;
+		while(resul < 1)
 		{
-			result = fscanf(this->simu_file, "%254[^\n]\n", this->simu_buffer);
-			if(result == 0)
+			resul = fscanf(this->simu_file, "%254[^\n]\n", this->simu_buffer);
+			if(resul == 0)
 			{
 				int ret;
 				// No conversion occured, we simply skip the line
@@ -1454,11 +1549,11 @@ bool SpotDownward::simulateFile(void)
 				}
 			}
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "fscanf result=%d: %s", result, this->simu_buffer);
+			    "fscanf result=%d: %s", resul, this->simu_buffer);
 			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
 			    "frame %u\n", this->super_frame_counter);
-			if(result == -1)
+			if(resul == -1)
 			{
 				this->simu_eof = true;
 				LOG(this->log_request_simulation, LEVEL_DEBUG,
@@ -1594,6 +1689,16 @@ void SpotDownward::updateStatistics(void)
 }
 
 
+double SpotDownward::getCni(void) const
+{
+	return this->cni;
+}
+
+void SpotDownward::setCni(double cni)
+{
+	this->cni = cni;
+}
+
 bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 {
 	Sac *sac = (Sac *)dvb_frame;
@@ -1722,16 +1827,6 @@ void SpotDownward::updateFmt(void)
 
 	// for each terminal in DamaCtrl update FMT
 	this->dama_ctrl->updateFmt();
-}
-
-double SpotDownward::getCni(void) const
-{
-	return this->cni;
-}
-
-void SpotDownward::setCni(double cni)
-{
-	this->cni = cni;
 }
 
 uint8_t SpotDownward::getCtrlCarrierId(void) const

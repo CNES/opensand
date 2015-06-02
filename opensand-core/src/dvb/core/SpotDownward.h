@@ -37,7 +37,7 @@
 #ifndef SPOT_DOWNWARD_H
 #define SPOT_DOWNWARD_H
 
-#include "BlockDvb.h"
+#include "DvbChannel.h"
 #include "DamaCtrlRcs.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
@@ -256,6 +256,8 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 
 		// statistics update
 		void updateStatistics(void);
+
+		DvbChannel *channel;
 
 		/// The DAMA controller
 		DamaCtrlRcs *dama_ctrl;

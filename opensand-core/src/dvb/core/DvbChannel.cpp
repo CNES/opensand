@@ -27,25 +27,20 @@
  */
 
 /**
- * @file BlockDvb.cpp
+ * @file DvbChannel.cpp
  * @brief This bloc implements a DVB-S2/RCS stack.
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  */
 
 
-#include "BlockDvb.h"
+#include "DvbChannel.h"
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
-OutputLog *BlockDvb::dvb_fifo_log = NULL;
+OutputLog *DvbChannel::dvb_fifo_log = NULL;
 
-
-BlockDvb::~BlockDvb()
-{
-}
 
 bool DvbChannel::initSpots(void)
 {
@@ -323,7 +318,7 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
 	if(!elem)
 	{
-		LOG(BlockDvb::dvb_fifo_log, LEVEL_ERROR,
+		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "cannot allocate FIFO element, drop data\n");
 		goto error;
 	}
@@ -331,12 +326,12 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	// append the data in the fifo
 	if(!fifo->push(elem))
 	{
-		LOG(BlockDvb::dvb_fifo_log, LEVEL_ERROR,
+		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
 		goto release_elem;
 	}
 
-	LOG(BlockDvb::dvb_fifo_log, LEVEL_NOTICE,
+	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
 	    data->getName().c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());
@@ -376,135 +371,5 @@ DvbChannel *DvbChannel::getSpot(spot_id_t spot_id) const
 	return (*spot_it).second;
 }
 
-
-//****************************************************//
-//                   DVB  UPWARD                      // 
-//****************************************************//
-BlockDvb::DvbUpward::~DvbUpward()
-{
-}
-
-
-//****************************************************//
-//                   DVB  DOWNWARD                    // 
-//****************************************************//
-bool BlockDvb::DvbDownward::initDown(void)
-{
-	// forward timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               FWD_DOWN_CARRIER_DURATION,
-	                   this->fwd_down_frame_duration_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, FWD_DOWN_CARRIER_DURATION);
-		goto error;
-	}
-
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "forward timer set to %u\n",
-	    this->fwd_down_frame_duration_ms);
-
-	// scenario refresh interval
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ACM_PERIOD_REFRESH,
-	                   this->dvb_scenario_refresh))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "dvb_scenario_refresh set to %d\n",
-	    this->dvb_scenario_refresh);
-
-	return true;
-error:
-	return false;
-}
-
-
-bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
-                                       uint8_t carrier_id)
-{
-	list<DvbFrame *>::iterator frame_it;
-	bool status = true;
-
-	// send all complete DVB-RCS frames
-	LOG(this->log_send, LEVEL_DEBUG,
-	    "send all %zu complete DVB frames...\n",
-	    complete_frames->size());
-	for(frame_it = complete_frames->begin();
-	    frame_it != complete_frames->end();
-	    ++frame_it)
-	{
-		// Send DVB frames to lower layer
-		if(!this->sendDvbFrame(*frame_it, carrier_id))
-		{
-			status = false;
-			if(*frame_it)
-			{
-				delete *frame_it;
-			}
-			continue;
-		}
-
-		// DVB frame is now sent, so delete its content
-		LOG(this->log_send, LEVEL_INFO,
-		    "complete DVB frame sent to carrier %u\n", carrier_id);
-	}
-	// clear complete DVB frames
-	complete_frames->clear();
-
-	return status;
-}
-
-bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
-                                         uint8_t carrier_id)
-{
-	if(!dvb_frame)
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "frame is %p\n", dvb_frame);
-		goto error;
-	}
-
-	dvb_frame->setCarrierId(carrier_id);
-
-	if(dvb_frame->getTotalLength() <= 0)
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "empty frame, header and payload are not present\n");
-		goto error;
-	}
-
-	// send the message to the lower layer
-	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->enqueueMessage((void **)(&dvb_frame)))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "failed to send DVB frame to lower layer\n");
-		goto release_dvb_frame;
-	}
-	// TODO make a log_send_frame and a log_send_sig
-	LOG(this->log_send, LEVEL_INFO,
-	    "DVB frame sent to the lower layer\n");
-
-	return true;
-
-release_dvb_frame:
-	delete dvb_frame;
-error:
-	return false;
-}
-
-
-bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
-                                             DvbFifo *fifo,
-                                             time_ms_t fifo_delay)
-{
-    return this->pushInFifo(fifo, packet, fifo_delay);
-}
 
 

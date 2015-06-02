@@ -1,3 +1,5 @@
+SUBDIRS = regeneratif transparent
+
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
@@ -7,6 +9,7 @@ libopensand_dvb_core_la_cpp = \
 	DvbRcsStd.cpp \
 	DvbS2Std.cpp \
 	BlockDvb.cpp \
+	DvbChannel.cpp \
 	SpotDownward.cpp \
 	SpotUpward.cpp \
 	BlockDvbSat.cpp \
@@ -20,6 +23,7 @@ libopensand_dvb_core_la_h = \
 	DvbRcsStd.h \
 	DvbS2Std.h \
 	BlockDvb.h \
+	DvbChannel.h \
 	SpotDownward.h \
 	SpotUpward.h \
 	BlockDvbSat.h \
@@ -31,14 +35,14 @@ libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_h)
 
 INCLUDES = \
-	-I$(top_srcdir)/src/dvb_rcs/utils \
-	-I$(top_srcdir)/src/dvb_rcs/utils/ip \
-	-I$(top_srcdir)/src/dvb_rcs/dama \
-	-I$(top_srcdir)/src/dvb_rcs/fmt \
-	-I$(top_srcdir)/src/dvb_rcs/switch \
-	-I$(top_srcdir)/src/dvb_rcs/ncc_interface \
-	-I$(top_srcdir)/src/dvb_rcs/saloha \
-	-I$(top_srcdir)/src/dvb_rcs/scpc \
+	-I$(top_srcdir)/src/dvb/utils \
+	-I$(top_srcdir)/src/dvb/utils/ip \
+	-I$(top_srcdir)/src/dvb/dama \
+	-I$(top_srcdir)/src/dvb/fmt \
+	-I$(top_srcdir)/src/dvb/switch \
+	-I$(top_srcdir)/src/dvb/ncc_interface \
+	-I$(top_srcdir)/src/dvb/saloha \
+	-I$(top_srcdir)/src/dvb/scpc \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

@@ -63,4 +63,4 @@ libopensand_dvb_utils_la_SOURCES = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/dvb_rcs/fmt
+	-I$(top_srcdir)/src/dvb/fmt

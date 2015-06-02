@@ -90,14 +90,14 @@ AC_CONFIG_FILES([ \
 	src/common/Makefile \
 	src/common/tests/Makefile \
 	src/conf/Makefile \
-	src/dvb_rcs/Makefile \
-	src/dvb_rcs/utils/Makefile \
-	src/dvb_rcs/ncc_interface/Makefile \
-	src/dvb_rcs/fmt/Makefile \
-	src/dvb_rcs/dama/Makefile \
-	src/dvb_rcs/saloha/Makefile \
-	src/dvb_rcs/switch/Makefile \
-	src/dvb_rcs/core/Makefile \
+	src/dvb/Makefile \
+	src/dvb/utils/Makefile \
+	src/dvb/ncc_interface/Makefile \
+	src/dvb/fmt/Makefile \
+	src/dvb/dama/Makefile \
+	src/dvb/saloha/Makefile \
+	src/dvb/switch/Makefile \
+	src/dvb/core/Makefile \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
 	src/lan_adaptation/tests/Makefile \
