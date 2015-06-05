@@ -37,6 +37,10 @@
 
 #include "BlockDvbNcc.h"
 
+#include "SpotUpwardTransp.h"
+#include "SpotDownwardTransp.h"
+#include "SpotUpwardRegen.h"
+#include "SpotDownwardRegen.h"
 #include "DvbRcsFrame.h"
 #include "Sof.h"
 
@@ -153,16 +157,32 @@ bool BlockDvbNcc::Downward::onInit(void)
 		spot_id_t spot_id = (*spot_iter).first;
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
-		spot = new SpotDownward(spot_id, this->mac_id,
-		                        this->fwd_down_frame_duration_ms,
-		                        this->ret_up_frame_duration_ms,
-		                        this->stats_period_ms,
-		                        this->satellite_type,
-		                        this->pkt_hdl,
-		                        this->with_phy_layer);
+		if(this->satellite_type == TRANSPARENT)
+		{	
+			DFLTLOG(LEVEL_ERROR, "downward transp spot %d, gw %d", spot_id,  this->mac_id);
+			spot = new SpotDownwardTransp(spot_id, this->mac_id,
+			                              this->fwd_down_frame_duration_ms,
+			                              this->ret_up_frame_duration_ms,
+			                              this->stats_period_ms,
+			                              this->satellite_type,
+			                              this->pkt_hdl,
+			                              this->with_phy_layer);
 
+		}
+		else
+		{
+			DFLTLOG(LEVEL_ERROR, "downward regen spot %d, gw %d", spot_id,  this->mac_id);
+			spot = new SpotDownwardRegen(spot_id, this->mac_id,
+			                             this->fwd_down_frame_duration_ms,
+			                             this->ret_up_frame_duration_ms,
+			                             this->stats_period_ms,
+			                             this->satellite_type,
+			                             this->pkt_hdl,
+			                             this->with_phy_layer);
+
+			
+		}
 		(*spot_iter).second = spot;
-
 		result &= spot->onInit();
 	}
 
@@ -817,6 +837,13 @@ bool BlockDvbNcc::Upward::onInit(void)
 	bool result = true;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 	
+	if(!this->initSatType())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed get satellite type\n");
+		return false;
+	}
+	
 	if(!this->initSpots())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -829,14 +856,24 @@ bool BlockDvbNcc::Upward::onInit(void)
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		spot_id_t spot_id = (*spot_iter).first;
-		SpotUpward *spot = new SpotUpward(spot_id, this->mac_id);
-
+		SpotUpward *spot;
+		if(this->satellite_type == TRANSPARENT)
+		{	
+			DFLTLOG(LEVEL_ERROR, "upward transp spot %d, gw %d", spot_id,  this->mac_id);
+			spot = new SpotUpwardTransp(spot_id, this->mac_id);
+		}
+		else
+		{
+			DFLTLOG(LEVEL_ERROR, "upward regen spot %d, gw %d", spot_id,  this->mac_id);
+			spot = new SpotUpwardRegen(spot_id, this->mac_id);
+		}
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 
 		(*spot_iter).second = spot;
 
 		result &= spot->onInit();
+
 	}
 
 	if(result)

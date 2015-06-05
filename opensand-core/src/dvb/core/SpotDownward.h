@@ -64,8 +64,8 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		             EncapPlugin::EncapPacketHandler *pkt_hdl,
 		             bool phy_layer);
 		~SpotDownward();
-		bool onInit(void);
-
+		virtual bool onInit() = 0;
+	
 		/**
 		 * @brief Handle the Slotted Aloha ACKs
 		 *
@@ -73,7 +73,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @return true on success, false otherwise
 		 */
 		bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
-
+	
 		/**
 		 * @brief Handle an encapsulated packet
 		 *
@@ -121,7 +121,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @param fwd_frame_counter  The forward frame counter
 		 * @return true on success, false otherwise
 		 */
-		bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
+		virtual bool handleFwdFrameTimer(time_sf_t fwd_frame_counter) = 0;
 
 		/**
 		 * @brief  handle a SAC frame
@@ -129,7 +129,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @param dvb_frame The SAC frame
 		 * @return true on success, false otherwise
 		 */
-		bool handleSac(const DvbFrame *dvb_frame);
+		virtual bool handleSac(const DvbFrame *dvb_frame) = 0;
 
 		/**
 		 * @brief handle Corrupted Dvb Frame
@@ -137,7 +137,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 * @param dvb_frame the Dvb Frame corrupted
 		 * @return true on succes, flase otherwise
 		 */
-		bool handleCorruptedFrame(DvbFrame *dvb_frame);
+		virtual bool handleCorruptedFrame(DvbFrame *dvb_frame) = 0;
 
 		/**
 		 * @brief go to fmt simu next scenario
@@ -199,14 +199,14 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initMode(void);
+		virtual bool initMode(void) = 0;
 
 		/**
 		 * Read configuration for the DAMA algorithm
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initDama(void);
+		virtual bool initDama(void) = 0;
 
 		/**
 		 * @brief Read configuration for the FIFO
@@ -234,7 +234,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initOutput(void);
+		virtual bool initOutput(void) = 0;
 
 		/** Read configuration for the request simulation
 		 *

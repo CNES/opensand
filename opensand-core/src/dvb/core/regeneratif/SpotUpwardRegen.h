@@ -27,17 +27,17 @@
  */
 
 /**
- * @file SpotUpward.h
+ * @file SpotUpwardRegen.h
  * @brief Upward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  *
  */
 
-#ifndef SPOT_UPWARD_H
-#define SPOT_UPWARD_H
+#ifndef SPOT_UPWARD_REGEN_H
+#define SPOT_UPWARD_REGEN_H
 
-#include "DvbChannel.h"
+#include "SpotUpward.h"
 #include "PhysicStd.h"  
 #include "NetBurst.h"
 #include "DamaCtrlRcs.h"
@@ -47,13 +47,13 @@
 
 #define SIMU_BUFF_LEN 255
 
-class SpotUpward: public DvbChannel
+class SpotUpwardRegen: public SpotUpward
 {
 	public:
-		SpotUpward(spot_id_t spot_id,
-		           tal_id_t mac_id);
-		~SpotUpward();
-		virtual bool onInit() = 0;
+		SpotUpwardRegen(spot_id_t spot_id,
+		                tal_id_t mac_id);
+		~SpotUpwardRegen();
+		bool onInit();
 
 
 		/**
@@ -63,7 +63,7 @@ class SpotUpward: public DvbChannel
 		 * @param burst  OUT: the burst of packets
 		 * @return true on success, false otherwise
 		 */
-		virtual bool handleFrame(DvbFrame *frame, NetBurst **burst) = 0;
+		bool handleFrame(DvbFrame *frame, NetBurst **burst);
 
 		/**
 		 * @brief Schedule Slotted Aloha carriers
@@ -76,14 +76,6 @@ class SpotUpward: public DvbChannel
 		bool scheduleSaloha(DvbFrame *dvb_frame,
 		                    list<DvbFrame *>* &ack_frames,
 		                    NetBurst **sa_burst);
-
-		/**
-		 *  @brief Handle a logon request transmitted by the lower layer
-		 *
-		 *  @param logon_req  The frame contining the logon request
-		 *  @return true on success, false otherwise
-		 */
-		bool onRcvLogonReq(DvbFrame *dvb_frame);
 
 		/**
 		 *  @brief Handle a Slotted Aloha Data Frame
@@ -104,57 +96,22 @@ class SpotUpward: public DvbChannel
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initMode(void) = 0;
+		bool initMode(void);
 
 		/**
 		 * Read configuration for the Slotted Aloha algorithm
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initSlottedAloha(void) = 0;
-		
+		bool initSlottedAloha(void);
+
 		/**
 		 * @brief Initialize the statistics
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initOutput(void) = 0;
+		bool initOutput(void);
 
-		/// Spot Id
-		uint8_t spot_id;
-		
-		/// Gw tal id
-		uint8_t mac_id;
-		
-		/// reception standard (DVB-RCS or DVB-S2)      
-		PhysicStd *reception_std; 
-
-		/// reception standard for SCPC
-		PhysicStd *reception_std_scpc;
-
-		/// The Slotted Aloha for NCC
-		SlottedAlohaNcc *saloha;
-
-		/// The up/return packet handler for SCPC
-		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;
-
-		/// FMT groups for up/return
-		fmt_groups_t ret_fmt_groups;
-
-		// Output probes and stats
-		// Rates
-		// Layer 2 from SAT
-		Probe<int> *probe_gw_l2_from_sat;
-		int l2_from_sat_bytes;
-		// Physical layer information
-		Probe<int> *probe_received_modcod;
-		Probe<int> *probe_rejected_modcod;
-
-		/// log for slotted aloha
-		OutputLog *log_saloha;
-
-		/// logon request events
-		OutputEvent *event_logon_req;
-};
+	};
 
 #endif
