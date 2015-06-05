@@ -20,6 +20,14 @@
     </carriers_distribution>
 </xsl:template>
 
+<xsl:template match="//forward_down_band/spot/fmt_groups">
+    <fmt_groups>
+    <xsl:call-template name="Newline" />
+            <group id="1" fmt_id="28" />
+    <xsl:call-template name="Newline" />
+    </fmt_groups>
+</xsl:template>
+
 
 </xsl:stylesheet>
 
