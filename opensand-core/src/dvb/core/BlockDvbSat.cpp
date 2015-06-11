@@ -439,224 +439,6 @@ bool BlockDvbSat::Downward::onInit()
 }
 
 
-bool BlockDvbSat::Downward::initSatLink(void)
-{
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Satellite delay = %d\n", this->sat_delay);
-
-	if(this->satellite_type == REGENERATIVE)
-	{
-		// TODO check for multispot, loop should also be on initBand
-		for(sat_spots_t::iterator i_spot = this->spots.begin();
-		    i_spot != this->spots.end(); i_spot++)
-		{
-
-			// Init all gw by spot
-			SatSpot *spot = (*i_spot).second;
-			list<SatGw*> sat_gws = spot->getGwList();
-			list<SatGw*>::iterator iter;
-			for(iter = sat_gws.begin() ; iter != sat_gws.end() ; ++iter)
-			{
-				SatGw * gw = *iter;
-
-				TerminalCategories<TerminalCategoryDama> st_categories;
-				TerminalCategories<TerminalCategoryDama> gw_categories;
-				ConfigurationList current_spot;
-				ConfigurationList current_gw;
-				ConfigurationList spot_list;
-				SatSpot *spot;
-				spot = i_spot->second;
-				spot_id_t spot_id = spot->getSpotId();
-				tal_id_t gw_id = gw->getGwId();
-
-
-				if(!Conf::getListNode(Conf::section_map[FORWARD_DOWN_BAND],
-				                      SPOT_LIST,
-				                      spot_list))
-				{
-					LOG(this->log_init, LEVEL_ERROR, 
-					    "section %s, missing %s", 
-					    FORWARD_DOWN_BAND, SPOT_LIST);
-				}
-
-				if(!Conf::getElementWithAttributeValue(spot_list,
-				                                       ID,
-				                                       spot_id,
-				                                       current_spot))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "section %s,%s, missing %s",
-					    FORWARD_DOWN_BAND, SPOT_LIST, ID);
-				}
-				
-				if(!Conf::getElementWithAttributeValue(current_spot,
-				                                       GW,
-				                                       gw_id,
-				                                       current_gw))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "section %s,%s, missing %s",
-					    FORWARD_DOWN_BAND, SPOT_LIST, ID);
-				}
-				// TODO no need of tal_aff and dflt_cat in attributes
-				if(!this->initBand<TerminalCategoryDama>(current_spot,
-				                                         FORWARD_DOWN_BAND,
-				                                         TDM,
-				                                         this->fwd_down_frame_duration_ms,
-				                                         this->satellite_type,
-				                                         this->fmt_simu.getModcodDefinitions(),
-				                                         st_categories,
-				                                         this->terminal_affectation,
-				                                         &this->default_category,
-				                                         this->fmt_groups))
-				{
-					return false;
-				}
-
-				// FIXME we init the same band for GW
-				if(!this->initBand<TerminalCategoryDama>(current_spot,
-				                                         FORWARD_DOWN_BAND,
-				                                         TDM,
-				                                         this->fwd_down_frame_duration_ms,
-				                                         this->satellite_type,
-				                                         this->fmt_simu.getModcodDefinitions(),
-				                                         gw_categories,
-				                                         this->terminal_affectation,
-				                                         &this->default_category,
-				                                         this->fmt_groups))
-				{
-					return false;
-				}
-
-				if(st_categories.size() != 1)
-				{
-					// TODO see NCC for that
-					LOG(this->log_init, LEVEL_ERROR,
-					    "cannot support more than one category for "
-					    "downlink band\n");
-					return false;
-				}
-
-				TerminalCategoryDama *st_category = st_categories.begin()->second;
-				TerminalCategoryDama *gw_category = gw_categories.begin()->second;
-
-				if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
-			                           this->pkt_hdl,
-			                           &this->fmt_simu,
-			                           st_category,
-			                           gw_category))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "failed to init the spot scheduling\n");
-					delete spot;
-					delete gw;
-					TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-					for(cat_it = st_categories.begin();
-					    cat_it != st_categories.end(); ++cat_it)
-					{
-						delete (*cat_it).second;
-					}
-					st_categories.clear();
-
-					for(cat_it = gw_categories.begin();
-					    cat_it != gw_categories.end(); ++cat_it)
-					{
-						delete (*cat_it).second;
-					}
-					gw_categories.clear();
-					return false;
-				}
-			}
-		}
-	}
-	return true;
-}
-
-
-bool BlockDvbSat::Downward::initTimers(void)
-{
-	// create frame timer (also used to send packets waiting in fifo)
-	this->fwd_timer = this->addTimerEvent("fwd_timer",
-	                                       this->fwd_down_frame_duration_ms);
-
-	if(this->satellite_type == REGENERATIVE && !this->with_phy_layer)
-	{
-		// launch the timer in order to retrieve the modcods
-		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-		                                           this->dvb_scenario_refresh);
-	}
-
-	return true;
-}
-
-
-bool BlockDvbSat::Downward::initStList(void)
-{
-	int i = 0;
-	ConfigurationList column_list;
-	ConfigurationList::iterator iter;
-
-	// Get the list of STs
-	if(!Conf::getListItems(Conf::section_map[SAT_SIMU_COL_SECTION],
-		                   COLUMN_LIST, column_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': problem retrieving simulation "
-		    "column list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
-		goto error;
-	}
-
-	for(iter = column_list.begin(); iter != column_list.end(); iter++)
-	{
-		i++;
-		tal_id_t tal_id = 0;
-		long column_nbr;
-
-		// Get the Tal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", TAL_ID, i);
-			goto error;
-		}
-		// Get the column nbr
-		if(!Conf::getAttributeValue(iter, COLUMN_NBR, column_nbr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", COLUMN_NBR, i);
-			goto error;
-		}
-
-		// register a ST only if it did not exist yet
-		// (duplicate because STs are 'defined' in spot table)
-		if(!this->fmt_simu.doTerminalExist(tal_id))
-		{
-			if(!this->fmt_simu.addTerminal(tal_id, column_nbr))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to register ST with Tal ID %u\n",
-				    tal_id);
-				goto error;
-			}
-		}
-	}
-
-	return true;
-
-error:
-	return false;
-}
-
 bool BlockDvbSat::Downward::initOutput(void)
 {
 	// Output probes and stats
@@ -755,7 +537,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 				// create a message for the DVB frame
 				if(!this->sendDvbFrame(dvb_frame,
-				     current_gw->getControlCarrierId()))
+				                       current_gw->getControlCarrierId()))
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "failed to send sig frame to lower layer, "
@@ -766,41 +548,10 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				return status;
 			}
 
-			if(this->satellite_type != REGENERATIVE)
+			if(!handleMessageBurst(event))
 			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "message event while satellite is "
-				    "transparent");
 				return false;
 			}
-
-			NetBurst *burst;
-			NetBurst::iterator pkt_it;
-
-			// message from upper layer: burst of encapsulation packets
-			burst = (NetBurst *)((MessageEvent *)event)->getData();
-
-			LOG(this->log_receive, LEVEL_INFO,
-			    "encapsulation burst received (%d packet(s))\n",
-			    burst->length());
-
-			// for each packet of the burst
-			for(pkt_it = burst->begin(); pkt_it != burst->end();
-			    pkt_it++)
-			{
-				if(!this->handleRcvEncapPacket(*pkt_it))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Rcv encap packet failed");
-					burst->clear();
-					delete burst;
-					return false;
-				}
-			}
-
-			// avoid deteleting packets when deleting burst
-			burst->clear();
-			delete burst;
 		}
 		break;
 
@@ -855,59 +606,10 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 							    i_spot->first);
 						}
 
-						if(this->satellite_type == TRANSPARENT)
+						if(!this->handleTimerEvent(current_gw, 
+							                       i_spot->first))
 						{
-							// send frame for every satellite spot
-							bool status = true;
-
-							LOG(this->log_receive, LEVEL_DEBUG,
-							    "send data frames on satellite spot "
-							    "%u\n", i_spot->first);
-							if(!this->sendFrames(current_gw->getDataOutGwFifo()))
-							{
-								status = false;
-							}
-							if(!this->sendFrames(current_gw->getDataOutStFifo()))
-							{
-								status = false;
-							}
-							if(!status)
-							{
-								return false;
-							}
-						}
-						else
-						{
-							if(!current_gw->schedule(this->down_frame_counter,
-							                         (time_ms_t)getCurrentTime()))
-							{
-								LOG(this->log_receive, LEVEL_ERROR,
-								    "failed to schedule packets for satellite spot %u "
-								    "on regenerative satellite\n", i_spot->first);
-								return false;
-							}
-
-							// send ST bursts
-							if(!this->sendBursts(&current_gw->getCompleteStDvbFrames(),
-							                     current_gw->getDataOutStFifo()->getCarrierId()))
-							{
-								LOG(this->log_receive, LEVEL_ERROR,
-								    "failed to build and send DVB/BB frames toward ST"
-								    "for satellite spot %u on regenerative satellite\n",
-								    i_spot->first);
-								return false;
-							}
-
-							// send GW bursts
-							if(!this->sendBursts(&current_gw->getCompleteGwDvbFrames(),
-							                     current_gw->getDataOutGwFifo()->getCarrierId()))
-							{
-								LOG(this->log_receive, LEVEL_ERROR,
-								    "failed to build and send DVB/BB frames toward GW"
-								    "for satellite spot %u on regenerative satellite\n",
-								    i_spot->first);
-								return false;
-							}
+							return false;
 						}
 					}
 				}
@@ -1246,114 +948,6 @@ error:
 }
 
 
-bool BlockDvbSat::Upward::initSwitchTable(void)
-{
-	ConfigurationList spot_table;
-	ConfigurationList::iterator iter;
-	GenericSwitch *generic_switch = new GenericSwitch();
-	spot_id_t spot_id;
-	unsigned int i;
-
-	// no need for switch in non-regenerative mode
-	if(this->satellite_type != REGENERATIVE)
-	{
-		return true;
-	}
-
-	// Retrieving switching table entries
-	if(!Conf::getListNode(Conf::section_map[SPOT_TABLE_SECTION],
-		                   SPOT_LIST, spot_table))
-	{
-
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite spot "
-		    "table\n", SPOT_TABLE_SECTION, SPOT_LIST);
-		goto error;
-	}
-
-
-	i = 0;
-	for(iter = spot_table.begin(); iter != spot_table.end(); iter++)
-	{
-		ConfigurationList tal_list;
-		ConfigurationList current_spot;
-		ConfigurationList::iterator tal_iter;
-		current_spot.push_front(*iter);
-		tal_id_t tal_id = 0;
-		spot_id = 0;
-
-		i++;
-		// get the Spot ID attribute
-		if(!Conf::getAttributeValue(iter, ID, spot_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in switching table"
-			    "entry %u\n", ID, i);
-			goto release_switch;
-		}
-	
-		// Retrieving switching table entries
-		if(!Conf::getListItems(current_spot, TERMINAL_LIST, tal_list))
-		{
-
-			LOG(this->log_init, LEVEL_ERROR,
-					"section '%s, %s': missing satellite terminal id ",
-					 SPOT_TABLE_SECTION, SPOT_LIST);
-			goto error;
-		}
-
-		for(tal_iter = tal_list.begin() ; tal_iter != tal_list.end() ;
-			++tal_iter)
-		{	
-			// get the Tal ID attribute
-			if(!Conf::getAttributeValue(tal_iter, ID, tal_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "problem retrieving %s in spot table"
-				    "entry %u\n", TAL_ID, i);
-				goto release_switch;
-			}
-
-			if(!generic_switch->add(tal_id, spot_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to add switching entry "
-				    "(Tal ID = %u, Spot ID = %u)\n",
-				    tal_id, spot_id);
-				goto release_switch;
-			}
-
-			LOG(this->log_init, LEVEL_NOTICE,
-			    "Switching entry added (Tal ID = %u, "
-			    "Spot ID = %u)\n", tal_id, spot_id);
-		}
-	}
-
-	// get default spot id
-	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
-		               DEFAULT_SPOT, spot_id))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SPOT_TABLE_SECTION, DEFAULT_SPOT);
-		goto error;
-	}
-	generic_switch->setDefault(spot_id);
-
-	if(!(dynamic_cast<DvbRcsStd *>(this->reception_std)->setSwitch(generic_switch)))
-	{
-		goto error;
-	}
-
-	return true;
-
-release_switch:
-	delete generic_switch;
-error:
-	return false;
-}
-
-
 bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
@@ -1479,24 +1073,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 
 
-		 	if(this->satellite_type == TRANSPARENT)
-			{
-				LOG(this->log_receive, LEVEL_INFO,
-				    "DVB burst comes from spot %u (carrier "
-				    "%u) => forward it to spot %u (carrier "
-				    "%u)\n", current_spot->getSpotId(),
-				    dvb_frame->getCarrierId(),
-				    current_spot->getSpotId(),
-				    current_gw->getDataOutGwFifo()->getCarrierId());
-
-				if(!this->forwardDvbFrame(current_gw->getDataOutGwFifo(),
-				                          dvb_frame))
-				{
-					return false;
-				}
-			}
-			else // else satellite_type == REGENERATIVE
-			{
 				/* The satellite is a regenerative one and the DVB frame contains
 				 * a burst:
 				 *  - extract the packets from the DVB frame,
@@ -1505,54 +1081,9 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				 *    with all the packets extracted from the DVB frame,
 				 *  - send the burst to the upper layer.
 				 */
-
-				NetBurst *burst = NULL;
-
-				if(this->with_phy_layer && this->satellite_type == REGENERATIVE &&
-				   this->reception_std->getType() == "DVB-RCS")
-				{
-					tal_id_t src_tal_id;
-					// decode the first packet in frame to be able to get source terminal ID
-					if(!this->pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "unable to read source terminal ID in "
-						    "frame, won't be able to update C/N "
-						    "value\n");
-					}
-					else
-					{
-						double cn = frame->getCn();
-						LOG(this->log_receive, LEVEL_INFO,
-						    "Uplink CNI for terminal %u = %f\n",
-						    src_tal_id, cn);
-
-						this->cni[src_tal_id] = cn;
-					}
-				}
-
-				if(!this->reception_std->onRcvFrame(dvb_frame,
-				                                    0 /* no used */,
-				                                    &burst))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to handle received DVB frame "
-					    "(regenerative satellite)\n");
-					burst = NULL;
-					return false;
-				}
-
-				// send the message to the upper layer
-				if(burst && !this->enqueueMessage((void **)&burst))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to send burst to upper layer\n");
-					delete burst;
-					return false;
-				}
-				LOG(this->log_receive, LEVEL_INFO,
-				    "burst sent to the upper layer\n");
-			}
+			this->handleDvbBurst(dvb_frame, 
+			                     current_gw, 
+			                     current_spot);
 		}
 		break;
 
@@ -1560,52 +1091,10 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		// TODO see if we can factorize
 		case MSG_TYPE_BBFRAME:
 		{
-			DvbFifo *out_fifo = NULL;
-
-			/* we should not receive BB frame in regenerative mode */
-			assert(this->satellite_type == TRANSPARENT);
-			// TODO remove is SCPC supports REGEN
-			LOG(this->log_receive, LEVEL_INFO,
-			    "BBFrame received\n");
-
-			// satellite spot found, forward BBframe on the same spot
-			BBFrame *bbframe = dvb_frame->operator BBFrame*();
-
-			// Check were the frame is coming from
-			// GW if S2, ST if SCPC
-			if(carrier_id == current_gw->getDataInGwId())
+			if(!this->handleBBFrame(dvb_frame, 
+				                    current_gw, 
+				                    current_spot))
 			{
-				// Update probes and stats
-				current_gw->updateL2FromGw(bbframe->getPayloadLength());
-				out_fifo = current_gw->getDataOutStFifo();
-			}
-			else if(carrier_id == current_gw->getDataInStId())
-			{
-				// Update probes and stats
-				current_gw->updateL2FromSt(bbframe->getPayloadLength());
-				out_fifo = current_gw->getDataOutGwFifo();
-			}
-			else
-			{
-				LOG(this->log_receive, LEVEL_CRITICAL,
-				    "Wrong input carrier ID %u\n", carrier_id);
-				return false;
-			}
-
-			// TODO: forward according to a table
-			LOG(this->log_receive, LEVEL_INFO,
-			    "BBFRAME burst comes from spot %u (carrier "
-			    "%u) => forward it to spot %u (carrier %u)\n",
-			    current_spot->getSpotId(),
-			    dvb_frame->getCarrierId(),
-			    current_spot->getSpotId(),
-			    out_fifo->getCarrierId());
-
-			if(!this->forwardDvbFrame(out_fifo,
-			                          dvb_frame))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "cannot forward burst\n");
 				return false;
 			}
 		}
@@ -1614,84 +1103,22 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SALOHA_DATA:
 		case MSG_TYPE_SALOHA_CTRL:
 		{
-			/* we should not receive BB frame in regenerative mode */
-			assert(this->satellite_type == TRANSPARENT);
-
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Slotted Aloha frame received\n");
-
-			DvbFifo *fifo;
-			
-			// satellite spot found, forward frame on the same spot
-			SlottedAlohaFrame *sa_frame = dvb_frame->operator SlottedAlohaFrame*();
-
-			// Update probes and stats
-			current_gw->updateL2FromSt(sa_frame->getPayloadLength());
-
-			if(dvb_frame->getMessageType() == MSG_TYPE_SALOHA_DATA)
+			if(!this->handleSaloha(dvb_frame, 
+				                   current_gw, 
+				                   current_spot))
 			{
-				fifo = current_gw->getDataOutGwFifo();
-			}
-			else
-			{
-				fifo = current_gw->getDataOutStFifo();
-			}
-
-			// TODO: forward according to a table
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Slotted Aloha frame comes from spot %u (carrier "
-			    "%u) => forward it to spot %u (carrier %u)\n",
-			    current_spot->getSpotId(),
-			    dvb_frame->getCarrierId(),
-			    current_spot->getSpotId(),
-			    fifo->getCarrierId());
-
-			if(!this->forwardDvbFrame(fifo,
-			                          dvb_frame))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "cannot forward burst\n");
 				return false;
 			}
-
 		}
 		break;
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-		if(this->with_phy_layer && this->satellite_type == REGENERATIVE)
 		{
-
-			// handle SAC here to get the uplink ACM parameters
-			Sac *sac = (Sac *)dvb_frame;
-
-			tal_id_t tal_id;
-			cni_info_t *cni_info = new cni_info_t;
-
-			tal_id = sac->getTerminalId();
-			cni_info->cni = sac->getCni();
-			cni_info->tal_id = tal_id;
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Get SAC from ST%u, with C/N0 = %.2f\n",
-			    tal_id, cni_info->cni);
-			// transmit downlink CNI to downlink channel
-			if(!this->shareMessage((void **)&cni_info, 
-				                   sizeof(cni_info_t),
-				                   msg_cni))
+			if(!this->handleSac(dvb_frame, current_gw))
 			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "Unable to transmit downward CNI to "
-				    "channel\n");
+				return false;
 			}
-			// update ACM parameters with uplink value, thus the GW will
-			// known uplink C/N and thus update uplink MODCOD used in TTP
-			if(this->cni.find(tal_id) != this->cni.end())
-			{
-				sac->setAcm(this->cni[tal_id]);
-			}
-			// TODO we won't update ACM parameters if we did not receive
-			// traffic from this terminal, GW will have a wrong value...
-			delete dvb_frame;
 		}
 		// do not break here !
 		case MSG_TYPE_TTP:

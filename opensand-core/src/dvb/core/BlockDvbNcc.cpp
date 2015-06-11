@@ -159,7 +159,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "Create spot with ID %u\n", spot_id);
 		if(this->satellite_type == TRANSPARENT)
 		{	
-			DFLTLOG(LEVEL_ERROR, "downward transp spot %d, gw %d", spot_id,  this->mac_id);
 			spot = new SpotDownwardTransp(spot_id, this->mac_id,
 			                              this->fwd_down_frame_duration_ms,
 			                              this->ret_up_frame_duration_ms,
@@ -171,7 +170,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 		}
 		else
 		{
-			DFLTLOG(LEVEL_ERROR, "downward regen spot %d, gw %d", spot_id,  this->mac_id);
 			spot = new SpotDownwardRegen(spot_id, this->mac_id,
 			                             this->fwd_down_frame_duration_ms,
 			                             this->ret_up_frame_duration_ms,
@@ -859,12 +857,10 @@ bool BlockDvbNcc::Upward::onInit(void)
 		SpotUpward *spot;
 		if(this->satellite_type == TRANSPARENT)
 		{	
-			DFLTLOG(LEVEL_ERROR, "upward transp spot %d, gw %d", spot_id,  this->mac_id);
 			spot = new SpotUpwardTransp(spot_id, this->mac_id);
 		}
 		else
 		{
-			DFLTLOG(LEVEL_ERROR, "upward regen spot %d, gw %d", spot_id,  this->mac_id);
 			spot = new SpotUpwardRegen(spot_id, this->mac_id);
 		}
 		LOG(this->log_init, LEVEL_DEBUG,

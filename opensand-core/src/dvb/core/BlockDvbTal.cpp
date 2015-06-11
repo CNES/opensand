@@ -1070,7 +1070,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");
-		goto error;
+		return false;
 	}
 	
 	//  Duration of the carrier -- in ms
@@ -1080,7 +1080,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", SCPC_C_DURATION);
-		goto error;
+		return false;
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -1137,7 +1137,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		{
 			LOG(this->log_init, LEVEL_INFO,
 			    "ST not affected to a SCPC category\n");
-			return true;
+			goto release_cat;
 		}
 		tal_category = default_category;
 	}   
@@ -1167,20 +1167,14 @@ bool BlockDvbTal::Downward::initScpc(void)
 			goto error;
 		}
 		// no SCPC return
-		return true;
+		goto release_cat;
 	}
 	if(!is_scpc_fifo)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The SCPC carrier won't be used as there is no "
 		    "SCPC FIFO in Terminal\n");
-		for(cat_it = scpc_categories.begin();
-		    cat_it != scpc_categories.end(); ++cat_it)
-		{
-			delete (*cat_it).second;
-		}
-		// no SCPC return
-		return true;
+		goto release_cat;
 	}
 	
 	// Check if there are DAMA or SALOHA FIFOs in the terminal
@@ -1226,9 +1220,30 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "failed to initialize SCPC\n");
 		goto error;
 	}
+	terminal_affectation.clear();
+	cat_it = scpc_categories.begin();
+	for(std::advance(cat_it,1); 
+	    cat_it != scpc_categories.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
 	return true;
 
+release_cat:
+	terminal_affectation.clear();
+	for(cat_it = scpc_categories.begin();
+	    cat_it != scpc_categories.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
+	return true;
 error:
+	terminal_affectation.clear();
+	for(cat_it = scpc_categories.begin();
+	    cat_it != scpc_categories.end(); ++cat_it)
+	{
+		delete (*cat_it).second;
+	}
 	return false;
 }
 

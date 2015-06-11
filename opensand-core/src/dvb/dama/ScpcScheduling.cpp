@@ -209,6 +209,8 @@ ScpcScheduling::~ScpcScheduling()
 	{
 		delete *it;
 	}
+	
+	delete this->category;
 }
 
 

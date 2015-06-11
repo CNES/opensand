@@ -2,11 +2,13 @@ noinst_LTLIBRARIES = libopensand_dvb_core_transp.la
 
 libopensand_dvb_core_transp_la_cpp = \
 	SpotDownwardTransp.cpp \
-	SpotUpwardTransp.cpp 
+	SpotUpwardTransp.cpp \
+	BlockDvbSatTransp.cpp
 
 libopensand_dvb_core_transp_la_h = \
 	SpotDownwardTransp.h \
-	SpotUpwardTransp.h 
+	SpotUpwardTransp.h \
+	BlockDvbSatTransp
 
 libopensand_dvb_core_transp_la_SOURCES = \
 	$(libopensand_dvb_core_transp_la_cpp) \

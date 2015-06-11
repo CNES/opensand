@@ -80,7 +80,7 @@ class BlockDvbSat: public BlockDvb
 		Upward(Block *const bl);
 
 		~Upward();
-		bool onInit(void);
+		virtual bool onInit(void) = 0;
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
 
@@ -88,7 +88,6 @@ class BlockDvbSat: public BlockDvb
 		/// reception standard (DVB-RCS or DVB-S2)      
 		PhysicStd *reception_std; 
 
-	 private:
 		/**
 		* Called upon reception event it is another layer (below on event) of demultiplexing
 		* Do the appropriate treatment according to the type of the DVB message
@@ -120,7 +119,40 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initSwitchTable(void);
+		virtual bool initSwitchTable(void) = 0;
+		
+		/**
+		 * Handle Net Burst packet
+		 * 
+		 * @return true on success , false otherwise
+		 */ 
+		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
+		                            SatGw *current_gw,
+		                            SatSpot *current_spot) = 0;
+
+		/**
+		 * Handle Sac
+		 * 
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleSac(DvbFrame *dvb_frame, 
+		                       SatGw *current_gw) = 0;
+		/**
+		 * Handle BB Frame
+		 * 
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleBBFrame(DvbFrame *dvb_frame, 
+		                           SatGw *current_gw,
+		                           SatSpot *current_spot) = 0;
+		/**
+		 * Handle Saloha
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleSaloha(DvbFrame *dvb_frame, 
+		                          SatGw *current_gw,
+		                          SatSpot *current_spot) = 0;
 
 		/// The satellite spots
 		sat_spots_t spots;
@@ -142,7 +174,7 @@ class BlockDvbSat: public BlockDvb
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
 
-	 private:
+	 protected:
 		/**
 		 * Send the DVB frames stored in the given MAC FIFO
 		 *
@@ -159,25 +191,40 @@ class BlockDvbSat: public BlockDvb
 		bool handleRcvEncapPacket(NetPacket *packet);
 		
 		/**
+		 * @brief handle event message
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleMessageBurst(const RtEvent *const event) = 0;
+		
+		/**
+		 * @briel handle event timer
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleTimerEvent(SatGw *current_gw,
+		                              uint8_t spot_id) = 0;
+
+		/**
 		 * @brief Initialize the link
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initSatLink(void);
+		virtual bool initSatLink(void) = 0;
 
 		/**
 		 * @brief Read configuration for the list of STs
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initStList(void);
+		virtual bool initStList(void) = 0;
 
 		/**
 		 * @brief Read configuration for the different timers
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initTimers(void);
+		virtual bool initTimers(void) = 0;
 
 		/**
 		 * @brief Initialize the statistics part

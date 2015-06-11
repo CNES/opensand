@@ -742,13 +742,6 @@ bool BlockEncap::checkIfScpc()
 			return false;
 		}
 		
-		// clear unused fmt_group
-		for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
-			it != ret_fmt_groups.end(); ++it)
-		{
-			delete (*it).second;
-		}
-		
 		// FIXME ? at the moment we consider this is not SCPC if at least a
 		//         spot is not SCPC
 		if(scpc_categories.size() == 0)
@@ -756,13 +749,6 @@ bool BlockEncap::checkIfScpc()
 			LOG(this->log_init, LEVEL_INFO,
 			    "No SCPC carriers\n");
 			return false;
-		}
-		
-		// clear unused category
-		for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
-		    it != scpc_categories.end(); ++it)
-		{
-			delete (*it).second;
 		}
 		
 		// Find the category for this terminal
@@ -793,8 +779,20 @@ bool BlockEncap::checkIfScpc()
 		}
 	}
 	
+	// clear unused fmt_group
+	for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
+		it != ret_fmt_groups.end(); ++it)
+	{
+		delete (*it).second;
+	}
 	
-
+	// clear unused category
+	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
+	    it != scpc_categories.end(); ++it)
+	{
+		delete (*it).second;
+	}
+	
 	return true;
 }
 

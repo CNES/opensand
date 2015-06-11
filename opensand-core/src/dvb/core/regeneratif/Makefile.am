@@ -2,11 +2,13 @@ noinst_LTLIBRARIES = libopensand_dvb_core_regen.la
 
 libopensand_dvb_core_regen_la_cpp = \
 	SpotDownwardRegen.cpp \
-	SpotUpwardRegen.cpp 
+	SpotUpwardRegen.cpp \
+	BlockDvbSatRegen.cpp
 
 libopensand_dvb_core_regen_la_h = \
 	SpotDownwardRegen.h \
-	SpotUpwardRegen.h 
+	SpotUpwardRegen.h \
+	BlockDvbSatRegen.h
 
 libopensand_dvb_core_regen_la_SOURCES = \
 	$(libopensand_dvb_core_regen_la_cpp) \

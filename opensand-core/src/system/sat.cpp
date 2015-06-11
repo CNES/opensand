@@ -53,7 +53,8 @@
 
 
 #include "BlockEncapSat.h"
-#include "BlockDvbSat.h"
+#include "BlockDvbSatTransp.h"
+#include "BlockDvbSatRegen.h"
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "Plugin.h"
@@ -257,9 +258,19 @@ int main(int argc, char **argv)
 		}
 	}
 
-	block_dvb = Rt::createBlock<BlockDvbSat,
-	                            BlockDvbSat::Upward,
-	                            BlockDvbSat::Downward>("Dvb", block_encap);
+	if(strToSatType(satellite_type) == REGENERATIVE)
+	{
+		block_dvb = Rt::createBlock<BlockDvbSatRegen,
+		                            BlockDvbSatRegen::UpwardRegen,
+		                            BlockDvbSatRegen::DownwardRegen>("Dvb", block_encap);
+	}
+	else
+	{
+		block_dvb = Rt::createBlock<BlockDvbSatTransp,
+		                            BlockDvbSatTransp::UpwardTransp,
+		                            BlockDvbSatTransp::DownwardTransp>("Dvb", block_encap);
+	}
+
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
