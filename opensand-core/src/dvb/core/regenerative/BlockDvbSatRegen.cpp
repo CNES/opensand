@@ -253,7 +253,6 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "Satellite delay = %d\n", this->sat_delay);
 
-	// TODO check for multispot, loop should also be on initBand
 	for(sat_spots_t::iterator i_spot = this->spots.begin();
 	    i_spot != this->spots.end(); i_spot++)
 	{

@@ -91,7 +91,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	    "Logon request from ST%u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
-	// TODO
+	// TODO check for other GW too
 	if(mac == this->mac_id)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,

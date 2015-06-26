@@ -45,11 +45,6 @@
 #include <unistd.h>
 
 
-// TODO we say that if modcod id1 < modcod id2, then
-// modcod id1 is more robust thant modcod id2 but this is not really
-// the case as the modcod are ordered per modulation type and not
-// per Es/N0
-
 /**
  * @brief Check if a file exists
  *

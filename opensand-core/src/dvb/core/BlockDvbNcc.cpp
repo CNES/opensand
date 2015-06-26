@@ -249,6 +249,12 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	{
 		SpotDownward *spot;
 		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+		if(!spot)
+		{
+			LOG(this->log_receive, LEVEL_WARNING,
+		        "Error when getting spot\n");
+			return false;
+		}
 		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
 	                                                pep_alloc_delay,
 	                                                false, // no rearm
@@ -280,6 +286,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(dest_spot));
 				if(!spot)
 				{
+			        LOG(this->log_receive, LEVEL_WARNING,
+        		        "Error when getting spot\n");
 					delete dvb_frame;
 					return false;
 				}
@@ -337,6 +345,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
 				if(!spot)
 				{
+			        LOG(this->log_receive, LEVEL_WARNING,
+        		        "Error when getting spot\n");
 					delete ack_frames;
 					return false;
 				}
@@ -371,7 +381,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						for(spot_iter = this->spots.begin(); 
 						    spot_iter != this->spots.end(); ++spot_iter)
 						{
-							spot = dynamic_cast<SpotDownward *>(this->getSpot((*spot_iter).first));
+							spot = dynamic_cast<SpotDownward *>(
+							            this->getSpot((*spot_iter).first));
+            				if(!spot)
+            				{
+            			        LOG(this->log_receive, LEVEL_WARNING,
+                    		        "Error when getting spot\n");
+            					return false;
+            				}
 							spot_list.push_back(spot);
 						}
 					}
@@ -387,6 +404,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 							spot_id = OpenSandConf::spot_table[tal_id];
 						}
 						spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
+        				if(!spot)
+        				{
+        			        LOG(this->log_receive, LEVEL_WARNING,
+                		        "Error when getting spot\n");
+        					return false;
+        				}
 						spot_list.push_back(spot);
 					}
 
@@ -444,19 +467,23 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// increase the superframe number and reset
 				// counter of frames per superframe
 				this->super_frame_counter++;
+			}
 
-				for(spot_iter = this->spots.begin(); 
-				    spot_iter != this->spots.end(); ++spot_iter)
+    		bool find_pep = false; 
+			for(spot_iter = this->spots.begin(); 
+			    spot_iter != this->spots.end(); ++spot_iter)
+			{
+				SpotDownward *spot;
+				spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+				if(!spot)
 				{
-					SpotDownward *spot;
-					// TODO dynamic cast fail
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-					if(!spot)
-					{
-						// handle other packets
-						continue;
-					}
+					LOG(this->log_receive, LEVEL_WARNING,
+					       "Error when getting spot\n");
+				    return false;
+				}
 				
+			    if(*event == this->frame_timer)
+    			{
 					// send Start Of Frame
 					this->sendSOF(spot->getSofCarrierId());
 					
@@ -475,19 +502,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					this->sendTTP(spot);
 				}
 
-			}
-			else if(*event == this->fwd_timer)
-			{
-				// for each spot
-				for(spot_iter = this->spots.begin(); 
-				    spot_iter != this->spots.end(); ++spot_iter)
-				{
-					SpotDownward *spot;
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-					if(!spot)
-					{
-						return false;
-					}
+    			else if(*event == this->fwd_timer)
+    			{
 					this->fwd_frame_counter++;
 					if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
 					{
@@ -506,16 +522,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 				}
-			}
-			else if(*event == this->scenario_timer)
-			{
-				// for each spot
-				for(spot_iter = this->spots.begin(); 
-				    spot_iter != this->spots.end(); ++spot_iter)
-				{
-					SpotDownward *spot;
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-
+    			else if(*event == this->scenario_timer)
+    			{
 					// if regenerative satellite and physical layer scenario,
 					// send ACM parameters
 					if(this->satellite_type == REGENERATIVE &&
@@ -542,35 +550,24 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					spot->updateFmt();
 				}
-			}
-			else 
-			{
-				bool find_pep = false; 
-				for(spot_iter = this->spots.begin(); 
-					spot_iter != this->spots.end(); ++spot_iter)
+    			else if(*event == spot->getPepCmdApplyTimer())
 				{
-					SpotDownward *spot;
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-
-					if(*event == spot->getPepCmdApplyTimer())
-					{
-						// it is time to apply the command sent by the external
-						// PEP component
+					// it is time to apply the command sent by the external
+					// PEP component
 	
-						PepRequest *pep_request;
+					PepRequest *pep_request;
 
-						LOG(this->log_receive, LEVEL_NOTICE,
-						    "apply PEP requests now\n");
-						while((pep_request = this->getNextPepRequest()) != NULL)
-						{
-							spot->applyPepCommand(pep_request);	
-						}
-						find_pep = true;
-						break;
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "apply PEP requests now\n");
+					while((pep_request = this->getNextPepRequest()) != NULL)
+					{
+						spot->applyPepCommand(pep_request);	
 					}
+					find_pep = true;
+					break;
 				}
 
-				if(!find_pep)
+	    		if(*event == spot->getPepCmdApplyTimer() && !find_pep)
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "unknown timer event received %s\n",
@@ -609,6 +606,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				SpotDownward *spot;
 				spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+				if(!spot)
+				{
+				    LOG(this->log_receive, LEVEL_WARNING,
+				        "Error when getting spot\n");
+					return false;
+				}
 
 				// read the message sent by PEP or delete socket
 				// if connection is dead
@@ -918,6 +921,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 			spot = dynamic_cast<SpotUpward *>(this->getSpot(dest_spot));
 			if(!spot)
 			{
+				LOG(this->log_receive, LEVEL_WARNING,
+			        "Error when getting spot\n");
 				delete dvb_frame;
 				return false;
 			}

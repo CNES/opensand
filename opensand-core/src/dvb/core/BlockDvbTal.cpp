@@ -301,9 +301,6 @@ error:
 
 bool BlockDvbTal::Downward::initCarrierId(void)
 {
-	// TODO do that in a specific function and simplify !!
-	//      the configuration is maybe not really easy for this need
-
 	// get current spot id withing sat switching table
 	ConfigurationList::iterator spot_iter;
 	// get satelite carrier spot configuration 

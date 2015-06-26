@@ -7,7 +7,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/dvb/dama \
 	-I$(top_srcdir)/src/dvb/saloha \
-	-I$(top_srcdir)/src/dvb/core/regeneratif \
+	-I$(top_srcdir)/src/dvb/core/regenerative \
 	-I$(top_srcdir)/src/dvb/core/transparent \
 	-I$(top_srcdir)/src/dvb/core \
 	-I$(top_srcdir)/src/lan_adaptation \
@@ -24,7 +24,7 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/dvb/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb/ncc_interface/libopensand_dvb_ncc_interface.la \
 	$(top_builddir)/src/dvb/saloha/libopensand_dvb_saloha.la \
-	$(top_builddir)/src/dvb/core/regeneratif/libopensand_dvb_core_regen.la \
+	$(top_builddir)/src/dvb/core/regenerative/libopensand_dvb_core_regen.la \
 	$(top_builddir)/src/dvb/core/transparent/libopensand_dvb_core_transp.la \
 	$(top_builddir)/src/dvb/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \

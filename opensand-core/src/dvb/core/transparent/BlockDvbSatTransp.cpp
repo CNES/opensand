@@ -341,7 +341,7 @@ bool BlockDvbSatTransp::UpwardTransp::handleBBFrame(DvbFrame *dvb_frame,
 	DvbFifo *out_fifo = NULL;
 	unsigned int carrier_id = dvb_frame->getCarrierId();
 
-	// TODO remove is SCPC supports REGEN
+	// TODO remove if SCPC supports REGEN
 	LOG(this->log_receive, LEVEL_INFO,
 	    "BBFrame received\n");
 

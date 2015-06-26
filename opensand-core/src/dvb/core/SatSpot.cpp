@@ -40,9 +40,6 @@
 
 #include <stdlib.h>
 
-// TODO add spot fifos in configuration
-// TODO size per fifo ?
-// TODO to not do...: do not create all fifo in the regenerative case
 SatSpot::SatSpot(spot_id_t spot_id):
 	spot_id(spot_id),
 	sat_gws()

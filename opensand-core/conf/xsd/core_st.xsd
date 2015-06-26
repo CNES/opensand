@@ -91,7 +91,7 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- TODO try to put that in common and onlly define access_type here and in gw -->
+<!-- TODO try to put that in common and only define access_type here and in gw -->
 <xsd:element name="fifo">
     <xsd:complexType>
         <xsd:attribute name="priority" type="classId">

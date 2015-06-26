@@ -193,7 +193,7 @@ class ShellManager(object):
         self._command_server.run()
         
 
-    def save_scenario(self, path):
+    def set_scenario(self, path):
         """ save the current scenario """
         self._model.set_scenario(path)
 

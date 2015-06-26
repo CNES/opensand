@@ -76,7 +76,7 @@ void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint1
 		ConfigurationList carrier_list;
 		ConfigurationList::iterator iter_carrier;
 		xmlpp::Node* spot_node = *iter_spots;
-		// TODO surcharger pour donner élément symple
+		// TODO avoid using xmlpp::Node
 		current_spot.push_front(spot_node);
 		uint8_t spot_id = 0;
 		uint16_t gw_id = 0;
@@ -187,7 +187,7 @@ void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
 		ConfigurationList terminal_list;
 		ConfigurationList::iterator iter_terminal;
 		xmlpp::Node* gw_node = *iter_gws;
-		// TODO surcharger pour donner élément symple
+		// TODO avoid using xmlpp::Node
 		current_gw.push_front(gw_node);
 		uint8_t gw_id = 0;
 

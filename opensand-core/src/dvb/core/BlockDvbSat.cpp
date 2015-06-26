@@ -993,8 +993,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	unsigned int carrier_id = dvb_frame->getCarrierId();
 
 	// get the satellite spot from which the DVB frame comes from
-	// TODO with spot id, not loop and carrier id
-	//      check if input carrier id is still usefull
 	if(!OpenSandConf::getSpotWithCarrierId(carrier_id, spot_id, gw_id))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
