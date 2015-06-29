@@ -51,7 +51,7 @@ from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.window_view import WindowView
 
 
-class ResView(WindowView):
+class ResourceView(WindowView):
     """ Element for the resouces configuration tab """
 
     def __init__(self, parent, model, manager_log):
@@ -230,14 +230,14 @@ class ResView(WindowView):
         #Trace the graphe
         if link == FORWARD_DOWN:
             for element in list_carrier :
-                for nb_carrier in range(1, element.getNbCarrier()+1):
-                    element.calculateXY(roll_off, off_set)
-                    self._ax_forward.plot(element.getX(), 
-                                          element.getY(), 
-                                          color[element.getCategory()])
+                for nb_carrier in range(1, element.get_nb_carriers()+1):
+                    element.calculate_xy(roll_off, off_set)
+                    self._ax_forward.plot(element.get_x(), 
+                                          element.get_y(), 
+                                          color[element.get_category()])
                     # bandwidth in MHz
-                    off_set = off_set + element.getBandwidth(roll_off)\
-                           / (1E6 * element.getNbCarrier())
+                    off_set = off_set + element.get_bandwidth(roll_off)\
+                           / (1E6 * element.get_nb_carriers())
             if off_set != 0:
                 self._ax_forward.axis([float(-off_set)/6, 
                                       off_set + float(off_set)/6,
@@ -251,14 +251,14 @@ class ResView(WindowView):
             self._figure_forward.canvas.draw()
         elif link == RETURN_UP:
             for element in list_carrier :
-                for nb_carrier in range(1, element.getNbCarrier()+1):
-                    element.calculateXY(roll_off, off_set)
-                    self._ax_return.plot(element.getX(), 
-                                         element.getY(), 
-                                         color[element.getCategory()])
+                for nb_carrier in range(1, element.get_nb_carriers()+1):
+                    element.calculate_xy(roll_off, off_set)
+                    self._ax_return.plot(element.get_x(), 
+                                         element.get_y(), 
+                                         color[element.get_category()])
                     # bandwidth in MHz
-                    off_set = off_set + element.getBandwidth(roll_off)\
-                            / (1E6 * element.getNbCarrier())
+                    off_set = off_set + element.get_bandwidth(roll_off)\
+                            / (1E6 * element.get_nb_carriers())
             if off_set != 0:
                 self._ax_return.axis([float(-off_set)/6, 
                                      off_set + float(off_set)/6, 
@@ -355,7 +355,7 @@ class ResView(WindowView):
                                            expand=False, 
                                            fill=False)
 
-                    
+
         present = {k: group_list.count(k) for k in set(group_list)}
         for group in present:
             #create group field

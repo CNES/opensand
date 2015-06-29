@@ -42,6 +42,9 @@ from opensand_manager_core.utils import get_conf_xpath, CATEGORY, \
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
+STANDARD='Standard'
+PREMIUM='Premium'
+PRO='Pro'
 
 
 class AssignmentDialog(WindowView):
@@ -57,7 +60,7 @@ class AssignmentDialog(WindowView):
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(False)
         
-        self._vbox = self._ui.get_widget('dialog-vbox7')
+        self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self.edit_text_win = self._ui.get_widget('edit_text_win')
         self._link = link
         
@@ -168,11 +171,11 @@ class AssignmentDialog(WindowView):
         config = self._model.get_conf().get_configuration()
         xpath = get_conf_xpath(TAL_DEF_AFF, self._link, self._spot, self._gw)
         default = config.get_value(config.get(xpath))
-        if default.startswith('Standard'):
+        if default.startswith(STANDARD):
             return 0
-        elif default.startswith('Premium'):
+        elif default.startswith(PREMIUM):
             return 1
-        elif default.startswith('Pro'):
+        elif default.startswith(PRO):
             return 2
         else:
             return 3
@@ -181,11 +184,11 @@ class AssignmentDialog(WindowView):
     
     def get_group_value(self, name):
         """Convert old group name to value"""
-        if name.startswith('Standard'):
+        if name.startswith(STANDARD):
             return 0
-        elif name.startswith('Premium'):
+        elif name.startswith(PREMIUM):
             return 1
-        elif name.startswith('Pro'):
+        elif name.startswith(PRO):
             return 2
         else:
             return name
@@ -195,13 +198,13 @@ class AssignmentDialog(WindowView):
     def get_group_str(self, value):
         """Convert value to group name """
         if value == 0:
-            return 'Standard'
+            return STANDARD
         elif value == 1:
-            return 'Premium'
+            return PREMIUM
         elif value == 2:
-            return 'Pro'
+            return PRO
         else:
-            return 'Standard'
+            return STANDARD
             
     ##################################################
     

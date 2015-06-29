@@ -97,7 +97,7 @@ class Carrier :
             
     ##################################################
         
-    def calculateXY(self, roll_off = 0, offset = 0):
+    def calculate_xy(self, roll_off = 0, offset = 0):
         """
         Calculate all the X and Y position of the carrier to trace the graphic
         """
@@ -127,37 +127,36 @@ class Carrier :
             self._X[i] = float(self._X[i])+offset
         
     
-    """MUTATEUR"""
     ##################################################
 
-    def setSymbolRate(self, symbol_rate):
+    def set_symbol_rate(self, symbol_rate):
         self._symbol_rate = symbol_rate
     
-    def setFmtGroups(self, fmt_groups):
+    def set_fmt_groups(self, fmt_groups):
         self._str_fmt_grp = fmt_groups
         self._fmt_groups = self.parser(fmt_groups)
     
-    def setCategory(self, category):
+    def set_category(self, category):
         self._category = category
     
-    def setAccessType(self, access_type):
+    def set_access_type(self, access_type):
         self._access_type = access_type
         
-    def setModcod(self, modcod):
+    def set_modcod(self, modcod):
         self._str_modcod = modcod
         self._list_modcod = self.parser(modcod)
         
-    def setRatio(self, ratio):
+    def set_ratio(self, ratio):
         self._str_ratio = ratio
         self._ratio = self.parser(ratio)
        
-    def setNbCarrier(self, nb_carrier):
+    def set_nb_carriers(self, nb_carrier):
        self._nb_carrier = nb_carrier 
     
     """ACCESSEUR"""
     ##################################################
 
-    def getSymbolRate(self):
+    def get_symbol_rate(self):
         return self._symbol_rate
    
     def get_str_fmt_grp(self):
@@ -166,10 +165,10 @@ class Carrier :
     def get_str_modcod(self):
         return self._str_modcod
 
-    def getModCod(self):
+    def get_modcod(self):
         return self._list_modcod
 
-    def getCategory(self):
+    def get_category(self):
         return int(self._category)
         
     def get_old_category(self):    
@@ -182,7 +181,7 @@ class Carrier :
             ret="Pro"    
         return ret
 
-    def getAccessType(self):
+    def get_access_type(self):
         return self._access_type
 
     def get_old_access_type(self):
@@ -191,29 +190,29 @@ class Carrier :
         else:
             return self._access_type
 
-    def getStrRatio(self):
+    def get_str_ratio(self):
         return self._str_ratio
 
-    def getRatio(self):
+    def get_ratio(self):
         return self._ratio
 
-    def getFmtGroups(self):
+    def get_fmt_groups(self):
         return self._fmt_groups
 
-    def getX(self):
+    def get_x(self):
         return self._X
         
-    def getY(self):
+    def get_y(self):
         return self._Y
 
-    def getBandwidth(self, roll_off):
+    def get_bandwidth(self, roll_off):
         """
         Return the total bandwith of th carrier
-        to get only the symbol rate use getSymbolRate()
+        to get only the symbol rate use get_symbol_rate()
         """
         return float(self._symbol_rate) * (roll_off + 1) * self._nb_carrier
    
-    def getNbCarrier(self):
+    def get_nb_carriers(self):
         return self._nb_carrier
 
     ##################################################
@@ -235,5 +234,5 @@ if __name__ == '__main__':
 
     p1 = Carrier(12, 1, 1, 'VCM',"2;5-8" , "4;6")
 
-    print(p1.getModeCode())
-    print(p1.getRatio())
+    print(p1.get_modcod())
+    print(p1.get_ratio())

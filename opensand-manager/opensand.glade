@@ -773,7 +773,7 @@ of Carrier</property>
     <property name="type_hint">normal</property>
     <signal name="delete_event" handler="on_edit_dialog_delete_event" />
     <child internal-child="vbox">
-      <widget class="GtkVBox" id="dialog-vbox7">
+      <widget class="GtkVBox" id="edit_dialog_vbox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="spacing">2</property>
@@ -3317,6 +3317,7 @@ This is the name used when loading probes.</property>
                                       <widget class="GtkToolButton" id="toolbutton_forward_parameter">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="tooltip" translatable="yes">Configure carriers</property>
                                         <property name="use_action_appearance">False</property>
                                         <property name="label" translatable="yes">Parameters</property>
                                         <property name="use_underline">True</property>
@@ -3332,6 +3333,7 @@ This is the name used when loading probes.</property>
                                       <widget class="GtkToolButton" id="toolbutton_forward_st">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="tooltip" translatable="yes">Assign ST to carriers groups</property>
                                         <property name="use_action_appearance">False</property>
                                         <property name="label" translatable="yes">ST assignment</property>
                                         <property name="use_underline">True</property>
@@ -3495,6 +3497,7 @@ This is the name used when loading probes.</property>
                                       <widget class="GtkToolButton" id="toolbutton_return_parameter">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="tooltip" translatable="yes">Configure carriers</property>
                                         <property name="use_action_appearance">False</property>
                                         <property name="label" translatable="yes">Parameters</property>
                                         <property name="use_underline">True</property>
@@ -3510,6 +3513,7 @@ This is the name used when loading probes.</property>
                                       <widget class="GtkToolButton" id="toolbutton_return_st">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="tooltip" translatable="yes">Assign ST to carriers groups</property>
                                         <property name="use_action_appearance">False</property>
                                         <property name="label" translatable="yes">ST assignment</property>
                                         <property name="use_underline">True</property>
@@ -3591,17 +3595,6 @@ This is the name used when loading probes.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -3665,6 +3658,17 @@ This is the name used when loading probes.</property>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>

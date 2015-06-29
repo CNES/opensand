@@ -46,7 +46,7 @@ from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
 from opensand_manager_core.utils import OPENSAND_PATH, copytree
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
-from opensand_manager_gui.view.resource_event import ResEvent
+from opensand_manager_gui.view.resource_event import ResourceEvent
 from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
@@ -93,8 +93,8 @@ class View(WindowView):
                                       service_type)
             self._eventconf = ConfEvent(self.get_current(),
                                         self._model, self._log)
-            self._eventresource = ResEvent(self.get_current(),
-                                           self._model, self._log)
+            self._eventresource = ResourceEvent(self.get_current(),
+                                                self._model, self._log)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),

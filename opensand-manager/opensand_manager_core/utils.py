@@ -78,7 +78,11 @@ SYMBOL_RATE       = "symbol_rate"
 RATIO             = "ratio"
 ACCESS_TYPE       = "access_type"
 CCM               = "CCM"
+ACM               = "ACM"
+VCM               = "VCM"
 DAMA              = "DAMA"
+ALOHA             = "ALOHA"
+SCPC              = "SCPC"
 
 # Section
 RETURN_UP_BAND    = "return_up_band"

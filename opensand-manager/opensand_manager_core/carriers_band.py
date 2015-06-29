@@ -166,10 +166,10 @@ class CarriersBand():
         """ check that everything is ok """
         for name in self._categories:
             for carrier in self._categories[name]:
-                if len(carrier.getFmtGroups()) != len(carrier.getRatio()):
+                if len(carrier.get_fmt_groups()) != len(carrier.get_ratio()):
                     raise Exception("not the same numbers of ratios and fmt "
                                     "groups")
-                for group in carrier.getFmtGroups():
+                for group in carrier.get_fmt_groups():
                     if not group in self._fmt_group:
                         raise KeyError(group)
 
@@ -184,13 +184,13 @@ class CarriersBand():
         weighted_sum = 0.0
         for name in self._categories:
             for carrier in self._categories[name]:
-                ws = sum(carrier.getRatio()) * carrier.getSymbolRate() / 1E6
+                ws = sum(carrier.get_ratio()) * carrier.get_symbol_rate() / 1E6
                 weighted_sum += ws
 
         total_ratio = 0
         for name in self._categories:
             for carrier in self._categories[name]:
-                total_ratio += sum(carrier.getRatio())
+                total_ratio += sum(carrier.get_ratio())
         
         # replace floor by round because bandwidth is calculed exactly
         # according to the number of wanted carrier 
@@ -201,20 +201,20 @@ class CarriersBand():
                 
         for name in self._categories:
             for carrier in self._categories[name]:
-                nbr = int(round(number * sum(carrier.getRatio()) /
+                nbr = int(round(number * sum(carrier.get_ratio()) /
                                 total_ratio))
                 if nbr == 0:
                     nbr = 1
-                carrier.setNbCarrier(nbr)
+                carrier.set_nb_carriers(nbr)
                 
     def get_carrier_bitrates(self, carrier):
         """ get the maximum bitrate per carrier group """
         br = []
         i = 0
-        for ratio in carrier.getRatio():
-            rs = carrier.getSymbolRate() * ratio / sum(carrier.getRatio())
-            max_fmt = max(self._fmt_group[carrier.getFmtGroups()[i]])
-            min_fmt = min(self._fmt_group[carrier.getFmtGroups()[i]])
+        for ratio in carrier.get_ratio():
+            rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
+            max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
+            min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
             fmt = self._fmt[max_fmt]
             max_br = rs * fmt.modulation * fmt.coding_rate
             fmt = self._fmt[min_fmt]
@@ -227,16 +227,16 @@ class CarriersBand():
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carrier in self._categories[name]:
-            if carrier.getAccessType() ==  "VCM" and access_type != "VCM" or\
-               carrier.getAccessType() != "VCM" and access_type == "VCM":
+            if carrier.get_access_type() ==  "VCM" and access_type != "VCM" or\
+               carrier.get_access_type() != "VCM" and access_type == "VCM":
                 continue
             i = 0
-            for ratio in carrier.getRatio():
-                rs = carrier.getSymbolRate() * ratio / sum(carrier.getRatio())
-                max_fmt = max(self._fmt_group[carrier.getFmtGroups()[i]])
+            for ratio in carrier.get_ratio():
+                rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
+                max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
                 fmt = self._fmt[max_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
-                bitrate += br * carrier.getNbCarrier()
+                bitrate += br * carrier.get_nb_carriers()
                 i += 1
         return bitrate
     
@@ -244,16 +244,16 @@ class CarriersBand():
         """ get the maximum bitrate for a given category """
         bitrate = 0
         for carrier in self._categories[name]:
-            if carrier.getAccessType() ==  "VCM" and access_type != "VCM" or\
-               carrier.getAccessType() != "VCM" and access_type == "VCM":
+            if carrier.get_access_type() ==  "VCM" and access_type != "VCM" or\
+               carrier.get_access_type() != "VCM" and access_type == "VCM":
                 continue
             i = 0
-            for ratio in carrier.getRatio():
-                rs = carrier.getSymbolRate() * ratio / sum(carrier.getRatio())
-                min_fmt = min(self._fmt_group[carrier.getFmtGroups()[i]])
+            for ratio in carrier.get_ratio():
+                rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
+                min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
                 fmt = self._fmt[min_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
-                bitrate += br * carrier.getNbCarrier()
+                bitrate += br * carrier.get_nb_carriers()
                 i += 1
         return bitrate
 
@@ -261,16 +261,16 @@ class CarriersBand():
         """ get the carriers number for a given category """
         nbr = 0
         for carrier in self._categories[name]:
-            if carrier.getAccessType() != access:
+            if carrier.get_access_type() != access:
                 continue
-            nbr += carrier.getNbCarrier()
+            nbr += carrier.get_nb_carriers()
         return nbr
     
     def get_access_type(self, name):
         """ get the access types in a category """
         access_types = []
         for carrier in self._categories[name]:
-            access_types.append(carrier.getAccessType())
+            access_types.append(carrier.get_access_type())
         return set(access_types)
 
     def str(self):
@@ -282,7 +282,7 @@ class CarriersBand():
                 output += "\n    * Access type: %s" % access
                 i = 0
                 for carrier in self._categories[name]:
-                    if carrier.getAccessType() != access:
+                    if carrier.get_access_type() != access:
                         continue
                     rates = ""
                     for (min_rate, max_rate) in self.get_carrier_bitrates(carrier):

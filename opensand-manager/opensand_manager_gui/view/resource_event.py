@@ -35,15 +35,15 @@
 resource_event.py - the events on resources configuration tab
 """
 
-from opensand_manager_gui.view.resource_view import ResView
+from opensand_manager_gui.view.resource_view import ResourceView
 from opensand_manager_gui.view.popup.graphical_parameter import GraphicalParameter
 from opensand_manager_gui.view.popup.st_assignment_dialog import AssignmentDialog
 
-class ResEvent(ResView) :
+class ResourceEvent(ResourceView) :
     """ Events on configuration tab """
 
     def __init__(self, parent, model, manager_log):
-        ResView.__init__(self, parent, model, manager_log)
+        ResourceView.__init__(self, parent, model, manager_log)
 
 
     def close(self):
@@ -53,25 +53,29 @@ class ResEvent(ResView) :
         self._log.debug("Resource Event: closed")
 
 
-#Open the forward graphical parameter 
     def on_forward_parameter_clicked(self, widget, source=None, event=None):
+        """ open the forward graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
                                     self._log, self.update_view, "forward_down")
         window.go()
-#Open the return graphical parameter
+
+
     def on_return_parameter_clicked(self, widget, source=None, event=None):
+        """ open the return graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
                                     self._log, self.update_view, "return_up")
         window.go()
 
-#Open the forward st allocation
+
     def on_forward_assignment_clicked(self, widget, source=None, event=None):
+        """ open the forward ST allocation """
         window = AssignmentDialog(self._model, self._spot, self._gw,
                                   self._log, self.update_view, 'forward_down')
         window.go()
         
-#Open the return st allocation
+
     def on_return_assignment_clicked(self, widget, source=None, event=None):
+        """ open the return ST allocation """
         window = AssignmentDialog(self._model, self._spot, self._gw,
                                   self._log, self.update_view, 'return_up')
         window.go()

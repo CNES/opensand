@@ -209,14 +209,14 @@ class GraphicalParameter(WindowView):
         self._description[carrier_id] = img
         
         #Create Synbol rate
-        ajustement1 = gtk.Adjustment(float(carrier.getSymbolRate()) / 1E6, 
+        ajustement1 = gtk.Adjustment(float(carrier.get_symbol_rate()) / 1E6, 
                                      0, 10000, 1, 8)
         new_sr = gtk.SpinButton(ajustement1, digits=2)
         new_sr.set_numeric(True)
         new_sr.set_name("sr"+str(carrier_id))
         new_sr.connect("value-changed", self.on_update_sr, carrier_id)
         
-        ajustement2 = gtk.Adjustment(int(carrier.getNbCarrier()),
+        ajustement2 = gtk.Adjustment(int(carrier.get_nb_carriers()),
                                      1, 5, 1, 8)
         new_nb_carrier = gtk.SpinButton(ajustement2, digits=0)
         new_nb_carrier.set_numeric(True)
@@ -229,7 +229,7 @@ class GraphicalParameter(WindowView):
         comboBox.append_text('Premium')
         comboBox.append_text('Pro')
         comboBox.connect("changed", self.on_update_group, carrier_id)
-        comboBox.set_active(carrier.getCategory()-1)
+        comboBox.set_active(carrier.get_category()-1)
 
         #Create MODCOD button
         button_modcod = gtk.Button(label="Configure")
@@ -304,13 +304,13 @@ class GraphicalParameter(WindowView):
         """Copy a carrier identify by his ID"""    
         self._nb_carrier += 1
 
-        sr = self._list_carrier[id_carrier-1].getSymbolRate()
-        nb = self._list_carrier[id_carrier-1].getNbCarrier()
-        g = self._list_carrier[id_carrier-1].getCategory()
-        ac = self._list_carrier[id_carrier-1].getAccessType()
+        sr = self._list_carrier[id_carrier-1].get_symbol_rate()
+        nb = self._list_carrier[id_carrier-1].get_nb_carriers()
+        g = self._list_carrier[id_carrier-1].get_category()
+        ac = self._list_carrier[id_carrier-1].get_access_type()
         fmt_grp = self._list_carrier[id_carrier-1].get_str_fmt_grp()
         md = self._list_carrier[id_carrier-1].get_str_modcod()
-        ra = self._list_carrier[id_carrier-1].getStrRatio()
+        ra = self._list_carrier[id_carrier-1].get_str_ratio()
         
         self._list_carrier.append(Carrier(sr, nb, g, ac, fmt_grp, md, ra))
         self.clear_carrier_interface()
@@ -360,13 +360,13 @@ class GraphicalParameter(WindowView):
         self.clear_graph()
         for element in self._list_carrier :
             description = ''
-            for nb_carrier in range(1, element.getNbCarrier()+1):
-                element.calculateXY(roll_off, off_set)
-                self._ax.plot(element.getX(), element.getY(), 
-                              self._color[element.getCategory()], label = 'Carrier')
+            for nb_carrier in range(1, element.get_nb_carriers()+1):
+                element.calculate_xy(roll_off, off_set)
+                self._ax.plot(element.get_x(), element.get_y(), 
+                              self._color[element.get_category()], label = 'Carrier')
                 # bandwidth in MHz
-                off_set = off_set + element.getBandwidth(roll_off) \
-                        / (1E6 * element.getNbCarrier())
+                off_set = off_set + element.get_bandwidth(roll_off) \
+                        / (1E6 * element.get_nb_carriers())
 
             for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
                 description += "Rate         [%d, %d] kb/s\n" % (min_rate / 1000,
@@ -374,9 +374,9 @@ class GraphicalParameter(WindowView):
            
             description += "Total rate [%d, %d] kb/s" % \
                     (carriers_band.get_min_bitrate(element.get_old_category(), 
-                                                   element.getAccessType()) / 1000,
+                                                   element.get_access_type()) / 1000,
                      carriers_band.get_max_bitrate(element.get_old_category(),
-                                                   element.getAccessType()) / 1000)
+                                                   element.get_access_type()) / 1000)
             self._description[carrier_id].set_tooltip_text(description)
             carrier_id += 1
             
@@ -406,7 +406,7 @@ class GraphicalParameter(WindowView):
                          source, carrier_id)
 
     def on_update_sr_callback(self, source=None, carrier_id=None):
-        self._list_carrier[carrier_id-1].setSymbolRate(source.get_value() * 1E6)
+        self._list_carrier[carrier_id-1].set_symbol_rate(source.get_value() * 1E6)
         self.trace()
     
     def on_update_nb_carrier(self, source = None, carrier_id = None):
@@ -416,7 +416,7 @@ class GraphicalParameter(WindowView):
                          source, carrier_id)
         
     def on_update_nb_carrier_callback(self, source=None, carrier_id=None):
-        self._list_carrier[carrier_id-1].setNbCarrier(int(source.get_value()))
+        self._list_carrier[carrier_id-1].set_nb_carriers(int(source.get_value()))
         self.trace()
     
     def update_ratio(self):
@@ -424,17 +424,17 @@ class GraphicalParameter(WindowView):
         total_ratio = 0
         roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
         for carrier in self._list_carrier:
-            total_ratio_rs += sum(carrier.getRatio()) * \
-                    carrier.getSymbolRate() / 1E6
+            total_ratio_rs += sum(carrier.get_ratio()) * \
+                    carrier.get_symbol_rate() / 1E6
         for carrier in self._list_carrier:
-            total_ratio += int(round(carrier.getNbCarrier() * (1 + roll_off) /\
+            total_ratio += int(round(carrier.get_nb_carriers() * (1 + roll_off) /\
                                      self._bandwidth_total * total_ratio_rs ))
 
         for carrier in self._list_carrier:
             # bandwidth and bandwidth_total in Mhz
-            ratio = int(round(carrier.getNbCarrier() * (1 + roll_off) /\
+            ratio = int(round(carrier.get_nb_carriers() * (1 + roll_off) /\
                     self._bandwidth_total * total_ratio_rs / total_ratio *  100))
-            ratios = carrier.getRatio()
+            ratios = carrier.get_ratio()
             old_ratios = list(ratios)
             ratio_str = ""
             index = 1
@@ -446,7 +446,7 @@ class GraphicalParameter(WindowView):
                     ratio_str += str(new_ratio)
                 index += 1
 
-            carrier.setRatio(ratio_str)
+            carrier.set_ratio(ratio_str)
             
 
     def on_update_group(self, source=None, id_carrier=None):
@@ -454,7 +454,7 @@ class GraphicalParameter(WindowView):
         tree_iter = source.get_active_iter()
         if tree_iter != None:
             model = source.get_model()
-            self._list_carrier[id_carrier-1].setCategory(model[tree_iter].path[0]+1)    
+            self._list_carrier[id_carrier-1].set_category(model[tree_iter].path[0]+1)    
             self.trace()
     
     
@@ -484,7 +484,7 @@ class GraphicalParameter(WindowView):
                     self._fmt_group[str(new_fmt_id)] = carrier_fmt_group
                     new_fmt_id += 1
             
-            carrier.setFmtGroups(';'.join(str(fmt_grp_id) for fmt_grp_id in
+            carrier.set_fmt_groups(';'.join(str(fmt_grp_id) for fmt_grp_id in
                                       fmt_groups))
 
 
@@ -538,10 +538,10 @@ class GraphicalParameter(WindowView):
             config.set_value(carrier.get_old_category(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              CATEGORY)
-            config.set_value(carrier.getStrRatio(), 
+            config.set_value(carrier.get_str_ratio(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              RATIO)
-            config.set_value(carrier.getSymbolRate(), 
+            config.set_value(carrier.get_symbol_rate(), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              SYMBOL_RATE)
 
@@ -567,7 +567,7 @@ class GraphicalParameter(WindowView):
                                       fmt_groups), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              FMT_GROUP)
-            carrier.setFmtGroups(';'.join(str(fmt_grp_id) for fmt_grp_id in
+            carrier.set_fmt_groups(';'.join(str(fmt_grp_id) for fmt_grp_id in
                                       fmt_groups))
         
             carrier_id += 1
