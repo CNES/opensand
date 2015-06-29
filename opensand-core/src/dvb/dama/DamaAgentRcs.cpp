@@ -92,6 +92,7 @@ bool DamaAgentRcs::init()
 	{
 		if((*it).second->getAccessType() == access_dama_cra)
 		{
+			// TODO I don't really understand that, this is not what happend
 			this->cra_in_cr = true;
 		}
 	}

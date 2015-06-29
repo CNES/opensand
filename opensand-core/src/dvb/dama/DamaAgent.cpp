@@ -79,7 +79,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->max_vbdc_kb = max_vbdc_kb;
 	this->msl_sf = msl_sf;
 	this->sync_period_sf = sync_period_sf;
-	this->cr_output_only = cr_output_only;
+	this->cr_output_only = cr_output_only; // TODO this is not used anymore !!
 	this->packet_handler = pkt_hdl;
 	this->dvb_fifos = dvb_fifos;
 

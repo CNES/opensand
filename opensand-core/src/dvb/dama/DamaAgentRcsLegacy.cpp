@@ -153,7 +153,7 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	    rbdc_request_kbps);
 
 	/* adjust request in function of max RBDC and fixed allocation */
-	if(!this->cra_in_cr)
+	if(!this->cra_in_cr && this->max_rbdc_kbps != 0)
 	{
 		rbdc_limit_kbps = this->max_rbdc_kbps + this->cra_kbps;
 	}
