@@ -183,14 +183,14 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
 	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
-	LOG(this->log_request, LEVEL_ERROR,		
+	LOG(this->log_request, LEVEL_DEBUG,	
 	    "SF#%u: MAC buffer length = %d, VBDC credit = "
 	    "%u\n", this->current_superframe_sf,
 	    vbdc_need_pkt, this->vbdc_credit_pkt);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
 	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
-	LOG(this->log_request, LEVEL_ERROR,
+	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: theoretical VBDC request = %u packets",
 	    this->current_superframe_sf,
 	    vbdc_request_pkt);
@@ -200,14 +200,14 @@ vol_pkt_t DamaAgentRcsLegacy::computeVbdcRequest()
 
 	// Ensure VBDC request value is not greater than SAC field
 	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
-	LOG(this->log_request, LEVEL_ERROR,
+	LOG(this->log_request, LEVEL_DEBUG,
 	    "updated VBDC request = %d packets in fonction of "
 	    "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
 	this->vbdc_credit_pkt += vbdc_request_pkt;
-	LOG(this->log_request, LEVEL_ERROR,
+	LOG(this->log_request, LEVEL_NOTICE,
 	    "updated VBDC request = %d packets in SAC, VBDC credit = "
 	    "%u\n", vbdc_request_pkt, this->vbdc_credit_pkt);
 
