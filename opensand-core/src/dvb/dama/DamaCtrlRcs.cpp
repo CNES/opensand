@@ -154,12 +154,10 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 
 			case access_dama_rbdc:
 				this->enable_rbdc = true;
-				if(this->cra_decrease)
-				{
-					// remove the CRA of the RBDC request
-					xbdc =
-						std::max(xbdc - terminal->getCra(), 0);
-				}
+				// remove the CRA of the RBDC request
+				// the CRA is not taken into acount on ST side
+				xbdc =
+					std::max(xbdc - terminal->getCra(), 0);
 				request = this->converter->kbpsToPktpf(xbdc);
 				terminal->setRequiredRbdc(request);
 				if(tal_id > BROADCAST_TAL_ID)

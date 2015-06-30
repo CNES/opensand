@@ -78,9 +78,6 @@ class DamaAgentRcs : public DamaAgent
 	/** Unit converter */
 	UnitConverter* converter;
 
-	/** Is CRA taken into account in the RBDC computation ? */
-	bool cra_in_cr;
-
 	/** RBDC timer */
 	time_sf_t rbdc_timer_sf;
 

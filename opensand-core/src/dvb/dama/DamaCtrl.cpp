@@ -51,7 +51,6 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	with_phy_layer(false),
 	current_superframe_sf(0),
 	frame_duration_ms(0),
-	cra_decrease(false),
 	rbdc_timeout_sf(0),
 	fca_kbps(0),
 	enable_rbdc(false),
@@ -121,7 +120,6 @@ DamaCtrl::~DamaCtrl()
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool with_phy_layer,
                           vol_bytes_t packet_length_bytes,
-                          bool cra_decrease,
                           time_sf_t rbdc_timeout_sf,
                           rate_kbps_t fca_kbps,
                           TerminalCategories<TerminalCategoryDama> categories,
@@ -132,7 +130,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->with_phy_layer = with_phy_layer;
-	this->cra_decrease = cra_decrease;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
 	this->ret_fmt_simu = ret_fmt_simu;
@@ -253,19 +250,19 @@ bool DamaCtrl::initOutput()
 
 		// tal_id 0 is for GW so it is unused
 		tal_id_t tal_id = 0;
-		probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 		                                       "Spot_%d.Simulated_ST.CRA allocation");
 		this->probes_st_cra_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_cra));
-		probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 		                                            "Spot_%d.Simulated_ST.RBDC max");
 		this->probes_st_rbdc_max.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc_max));
-		probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+		probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 		                                        "Spot_%d.Simulated_ST.RBDC allocation");
 		this->probes_st_rbdc_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc));
-		probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_LAST,
+		probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_SUM,
 		                                        "Spot_%d.Simulated_ST.VBDC allocation");
 		this->probes_st_vbdc_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_vbdc));
@@ -273,7 +270,7 @@ bool DamaCtrl::initOutput()
 		// only create FCA probe if it is enabled
 		if(this->fca_kbps != 0)
 		{
-			probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+			probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 			                                       "Spot_%d.Simulated_ST.FCA allocation");
 			this->probes_st_fca_alloc.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
@@ -366,23 +363,22 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			Probe<int> *probe_fca;
 
 			// Output probes and stats
-			// TODO Probes per Spot
-			probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+			probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 			                                       "ST%u_allocation.CRA allocation",
 			                                       tal_id);
 			this->probes_st_cra_alloc.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_cra));
-			probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+			probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 			                                            "ST%u_allocation.RBDC max",
 			                                            tal_id);
 			this->probes_st_rbdc_max.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc_max));
-			probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+			probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 			                                        "ST%u_allocation.RBDC allocation",
 			                                        tal_id);
 			this->probes_st_rbdc_alloc.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc));
-			probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_LAST,
+			probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_SUM,
 			                                        "ST%u_allocation.VBDC allocation",
 			                                        tal_id);
 			this->probes_st_vbdc_alloc.insert(
@@ -390,7 +386,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			// only create FCA probe if it is enabled
 			if(this->fca_kbps != 0)
 			{
-				probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_LAST,
+				probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
 				                                       "ST%u_allocation.FCA allocation",
 				                                       tal_id);
 				this->probes_st_fca_alloc.insert(

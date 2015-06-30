@@ -43,7 +43,6 @@ DamaAgentRcs::DamaAgentRcs():
 	allocated_pkt(0),
 	dynamic_allocation_pkt(0),
 	remaining_allocation_pktpf(0),
-	cra_in_cr(false),
 	rbdc_timer_sf(0),
 	modcod_id(0)
 {
@@ -86,16 +85,6 @@ bool DamaAgentRcs::init()
 
 	this->ret_schedule = new ReturnSchedulingRcs(this->packet_handler,
 	                                             this->dvb_fifos);
-
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		if((*it).second->getAccessType() == access_dama_cra)
-		{
-			// TODO I don't really understand that, this is not what happend
-			this->cra_in_cr = true;
-		}
-	}
 
 	this->probe_st_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
 	                                                        "modcod index",

@@ -89,7 +89,6 @@ class DamaCtrl
 	virtual bool initParent(time_ms_t frame_duration_ms,
 	                        bool with_phy_layer,
 	                        vol_bytes_t packet_length_bytes,
-	                        bool cra_decrease,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
@@ -238,9 +237,6 @@ class DamaCtrl
 
 	/** frame duration (in ms) */
 	time_ms_t frame_duration_ms;
-
-	/** Decrease request received from ST of CRA value ? */
-	bool cra_decrease;
 
 	/** RBDC request timeout (in superframe number) */
 	time_sf_t rbdc_timeout_sf;

@@ -482,15 +482,6 @@ Legacy:
 	{
 		rbdc_request_kbps = this->max_rbdc_kbps;
 	}
-	// Deduct the CRA from the RBDC request
-	if ((rbdc_request_kbps - this->cra_kbps) < 0) 
-	{
-		rbdc_request_kbps = 0;
-	}
-	else 
-	{
-		rbdc_request_kbps -= this->cra_kbps;
-	}
 
 	// Reduce the request value to the maximum theorical value 
 	// and use the following units 2kbits/s or 16kbits/s 

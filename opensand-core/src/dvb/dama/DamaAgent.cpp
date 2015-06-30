@@ -52,8 +52,7 @@ DamaAgent::DamaAgent():
 	max_rbdc_kbps(0.0),
 	rbdc_timeout_sf(0),
 	max_vbdc_kb(0),
-	msl_sf(0),
-	cr_output_only(false)
+	msl_sf(0)
 {
 }
 
@@ -68,7 +67,6 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
-                           bool cr_output_only,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
                            const fifos_t &dvb_fifos)
 {
@@ -79,7 +77,6 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->max_vbdc_kb = max_vbdc_kb;
 	this->msl_sf = msl_sf;
 	this->sync_period_sf = sync_period_sf;
-	this->cr_output_only = cr_output_only; // TODO this is not used anymore !!
 	this->packet_handler = pkt_hdl;
 	this->dvb_fifos = dvb_fifos;
 

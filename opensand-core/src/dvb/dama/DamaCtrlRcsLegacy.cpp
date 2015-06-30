@@ -152,6 +152,8 @@ bool DamaCtrlRcsLegacy::runDamaRbdc()
 		TerminalCategoryDama *category = (*category_it).second;
 		vector<CarriersGroupDama *> carriers_group;
 
+		// we ca compute RBDC per carriers group because a terminal
+		// is assigned to one on each frame, depending on its DRA
 		carriers_group = category->getCarriersGroups();
 		for(carrier_it = carriers_group.begin();
 		    carrier_it != carriers_group.end();

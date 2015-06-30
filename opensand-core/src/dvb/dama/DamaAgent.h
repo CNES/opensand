@@ -86,8 +86,6 @@ class DamaAgent
 	 * @param sync_period_sf         The SYNC period ( former OBR (OutBand request) period)
 	 *                               (used to determine when a request should
 	 *                                be sent in superframe number)
-	 * @param cr_output_only         Whether only output FIFO size is computed
-	 *                               for CR generation
 	 * @param packet_handler         The packet handler
 	 * @param dvb_fifos              The MAC FIFOs
 	 * @return true on success, false otherwise
@@ -99,7 +97,6 @@ class DamaAgent
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
-	                bool cr_output_only,
 	                const EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                const fifos_t &dvb_fifos);
 

@@ -567,7 +567,6 @@ bool BlockDvbTal::Downward::initDama(void)
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
 	string dama_algo;
-	bool cr_output_only;
 	bool is_dama_fifo = false;
 
 	TerminalCategories<TerminalCategoryDama> dama_categories;
@@ -733,15 +732,6 @@ bool BlockDvbTal::Downward::initDama(void)
 		goto error;
 	}
 
-	// CR computation rule
-	if(!Conf::getValue(Conf::section_map[DA_TAL_SECTION],
-		               DA_CR_RULE, cr_output_only))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s\n", DA_CR_RULE);
-		goto error;
-	}
-
 	// get the OBR period
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SYNC_PERIOD, sync_period_ms))
@@ -771,8 +761,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	    "VBDC max %d kbits, mslDuration %d frames, "
 	    "getIpOutputFifoSizeOnly %d\n",
 	    this->cra_kbps, this->max_rbdc_kbps,
-	    rbdc_timeout_sf, this->max_vbdc_kb, msl_sf,
-	    cr_output_only);
+	    rbdc_timeout_sf, this->max_vbdc_kb, msl_sf);
 
 	// dama algorithm
 	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION],
@@ -823,7 +812,6 @@ bool BlockDvbTal::Downward::initDama(void)
 	                                 this->max_vbdc_kb,
 	                                 msl_sf,
 	                                 this->sync_period_frame,
-	                                 cr_output_only,
 	                                 this->pkt_hdl,
 	                                 this->dvb_fifos))
 	{

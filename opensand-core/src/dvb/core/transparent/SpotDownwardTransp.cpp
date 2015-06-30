@@ -249,7 +249,6 @@ error:
 //      we could maybe create two classes inside the block to keep them separated
 bool SpotDownwardTransp::initDama(void)
 {
-	bool cra_decrease;
 	time_ms_t sync_period_ms;
 	time_frame_t sync_period_frame;
 	time_sf_t rbdc_timeout_sf;
@@ -265,17 +264,6 @@ bool SpotDownwardTransp::initDama(void)
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 	
-	// Retrieving the cra decrease parameter
-	if(!Conf::getValue(Conf::section_map[DC_SECTION_NCC],
-		               DC_CRA_DECREASE, cra_decrease))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "missing %s parameter\n", DC_CRA_DECREASE);
-		goto error;
-	}
-	LOG(this->log_init_channel, LEVEL_NOTICE, "cra_decrease = %s\n",
-	    cra_decrease == true ? "true" : "false");
-
 	// Retrieving the free capacity assignement parameter
 	if(!Conf::getValue(Conf::section_map[DC_SECTION_NCC],
 		               DC_FREE_CAP, fca_kbps))
@@ -389,7 +377,6 @@ bool SpotDownwardTransp::initDama(void)
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
-	                                cra_decrease,
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,

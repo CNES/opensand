@@ -95,7 +95,6 @@ bool DamaAgentRcsLegacy::hereIsSOF(time_sf_t superframe_number_sf)
 rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 {
 	rate_kbps_t rbdc_request_kbps;
-	rate_kbps_t rbdc_limit_kbps;
 	vol_b_t rbdc_length_b;
 	vol_b_t rbdc_pkt_arrival_b;
 	rate_kbps_t rbdc_req_in_previous_msl_kbps;
@@ -152,19 +151,10 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	    this->current_superframe_sf,
 	    rbdc_request_kbps);
 
-	/* adjust request in function of max RBDC and fixed allocation */
-	if(!this->cra_in_cr && this->max_rbdc_kbps != 0)
-	{
-		rbdc_limit_kbps = this->max_rbdc_kbps + this->cra_kbps;
-	}
-	else
-	{
-		rbdc_limit_kbps = this->max_rbdc_kbps;
-	}
-	rbdc_request_kbps = min(rbdc_request_kbps, rbdc_limit_kbps);
+	rbdc_request_kbps = min(rbdc_request_kbps, this->max_rbdc_kbps);
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "updated RBDC request = %u kbits/s (in fonction of max "
-	    "RBDC and CRA)\n", rbdc_request_kbps);
+	    "RBDC)\n", rbdc_request_kbps);
 
 	/* reduce the request value to the maximum theorical value if required */
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);

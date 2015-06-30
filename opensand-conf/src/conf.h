@@ -161,7 +161,6 @@
 //////////////////
 
 #define DC_SECTION_NCC              "dvb_rcs_ncc"
-#define DC_CRA_DECREASE             "cra_decrease"
 #define DC_FREE_CAP                 "fca"
 
 //////////
@@ -172,7 +171,6 @@
 #define DA_MAX_RBDC_DATA        "max_rbdc"
 #define DA_MAX_VBDC_DATA        "max_vbdc"
 #define DA_MSL_DURATION         "msl_duration"
-#define DA_CR_RULE              "cr_rule_output_fifo_only"
 
 /////////////////////////
 //    slotted aloha    //
