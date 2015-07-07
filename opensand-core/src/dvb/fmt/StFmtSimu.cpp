@@ -36,11 +36,9 @@
 
 
 StFmtSimu::StFmtSimu(long id,
-                     unsigned long simu_column_num,
                      uint8_t modcod_id)
 {
 	this->id = id;
-	this->simu_column_num = simu_column_num;
 	this->current_modcod_id = modcod_id;
 	this->previous_modcod_id = this->current_modcod_id;
 
@@ -64,7 +62,8 @@ long StFmtSimu::getId() const
 
 unsigned long StFmtSimu::getSimuColumnNum() const
 {
-	return this->simu_column_num;
+	// the column is the id
+	return (unsigned long) this->id;
 }
 
 

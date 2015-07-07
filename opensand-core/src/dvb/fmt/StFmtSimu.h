@@ -50,9 +50,6 @@ class StFmtSimu
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
 	long id;
 
-	/** The column # associated to the ST for down/forward MODCOD simulation files */
-	unsigned long simu_column_num;
-
 	/** The current MODCOD ID of the ST */
 	uint8_t current_modcod_id;
 
@@ -74,12 +71,9 @@ class StFmtSimu
 	 *
 	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
-	 * @param simu_column_num  the column # associated to the ST for MODCOD
-	 *                         simulation files
 	 * @param modcod_id        the initial MODCOD ID of the ST
 	 */
 	StFmtSimu(long id,
-	          unsigned long simu_column_num,
 	          uint8_t modcod_id);
 
 	/* destroy an internal representation of a Satellite Terminal (ST) */

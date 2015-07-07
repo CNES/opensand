@@ -317,7 +317,7 @@ void DamaCtrlRcs::updateFmt()
 	for(DamaTerminalList::iterator terminal_it = this->terminals.begin();
 	    terminal_it != this->terminals.end(); ++terminal_it)
     {
-    	TerminalCategoryDama *category;
+		TerminalCategoryDama *category;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalContextDama *terminal = terminal_it->second;
 		tal_id_t id = terminal->getTerminalId();

@@ -225,7 +225,6 @@ bool BlockDvbSatRegen::DownwardRegen::initStList(void)
 	{
 		i++;
 		tal_id_t tal_id = 0;
-		long column_nbr;
 
 		// Get the Tal ID
 		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
@@ -233,14 +232,6 @@ bool BlockDvbSatRegen::DownwardRegen::initStList(void)
 			LOG(this->log_init, LEVEL_ERROR,
 			    "problem retrieving %s in simulation column "
 			    "entry %d\n", TAL_ID, i);
-			goto error;
-		}
-		// Get the column nbr
-		if(!Conf::getAttributeValue(iter, COLUMN_NBR, column_nbr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", COLUMN_NBR, i);
 			goto error;
 		}
 
@@ -259,7 +250,7 @@ bool BlockDvbSatRegen::DownwardRegen::initStList(void)
 				if(!(*it2)->doTerminalExist(tal_id))
 				{
 					// TODO Do that on loggon
-					if(!(*it2)->addTerminal(tal_id, column_nbr))
+					if(!(*it2)->addTerminal(tal_id))
 					{
 						LOG(this->log_init, LEVEL_ERROR,
 						    "failed to register ST with Tal ID %u\n",

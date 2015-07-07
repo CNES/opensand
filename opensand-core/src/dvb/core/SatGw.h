@@ -331,11 +331,9 @@ class SatGw
 	 *
 	 * @param tal_id           the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
-	 * @param simu_column_num  the column # associated to the ST for MODCOD
-	 *                         simulation files
 	 * @return                 true if the addition is successful, false otherwise
 	 */
-	bool addTerminal(tal_id_t tal_id, unsigned long simu_column_num);
+	bool addTerminal(tal_id_t tal_id);
 
 	void print(void); /// For debug
 };

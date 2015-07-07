@@ -119,12 +119,9 @@ class FmtSimulation
 	 *
 	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
-	 * @param simu_column_num  the column # associated to the ST for MODCOD
-	 *                         simulation files
 	 * @return                 true if the addition is successful, false otherwise
 	 */
-	bool addTerminal(tal_id_t id,
-	                 unsigned long simu_column_num);
+	bool addTerminal(tal_id_t id);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the list
@@ -190,16 +187,6 @@ class FmtSimulation
 	 * @return          true if the file exist and is valid, false otherwise
 	 */
 	bool setModcodSimu(const string &filename);
-
-	/**
-	 * @brief Get the column # associated to the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the ST
-	 * @return    the column # associated to the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	unsigned int getSimuColumnNum(tal_id_t id) const;
 
 	/**
 	 * @brief Get the current MODCOD ID of the ST whose ID is given as input

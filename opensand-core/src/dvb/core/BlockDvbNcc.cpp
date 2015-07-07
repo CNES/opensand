@@ -148,7 +148,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-	
+
 	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
@@ -157,7 +157,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 		if(this->satellite_type == TRANSPARENT)
-		{	
+		{
 			spot = new SpotDownwardTransp(spot_id, this->mac_id,
 			                              this->fwd_down_frame_duration_ms,
 			                              this->ret_up_frame_duration_ms,
@@ -165,7 +165,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                              this->satellite_type,
 			                              this->pkt_hdl,
 			                              this->with_phy_layer);
-
 		}
 		else
 		{
@@ -176,8 +175,6 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                             this->satellite_type,
 			                             this->pkt_hdl,
 			                             this->with_phy_layer);
-
-			
 		}
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
@@ -196,10 +193,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	{
 		SpotDownward *spot;
 		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-		DFLTLOG(LEVEL_ERROR, "je suis la\n");
-		//this->setDuration(spot->getModcodTimer(), 8000);
 		this->raiseTimer(spot->getModcodTimer());
-		DFLTLOG(LEVEL_ERROR, "je suis la\n");
 	}
 
 	// listen for connections from external PEP components
@@ -253,7 +247,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		if(!spot)
 		{
 			LOG(this->log_receive, LEVEL_WARNING,
-		        "Error when getting spot\n");
+			    "Error when getting spot\n");
 			return false;
 		}
 		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
@@ -291,15 +285,15 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
 			{
 				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-				
+
 				spot_id_t dest_spot = dvb_frame->getSpot();
 				uint8_t msg_type = dvb_frame->getMessageType();
 				SpotDownward *spot;
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(dest_spot));
 				if(!spot)
 				{
-			        LOG(this->log_receive, LEVEL_WARNING,
-        		        "Error when getting spot\n");
+					LOG(this->log_receive, LEVEL_WARNING,
+					    "Error when getting spot\n");
 					delete dvb_frame;
 					return false;
 				}
@@ -357,8 +351,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
 				if(!spot)
 				{
-			        LOG(this->log_receive, LEVEL_WARNING,
-        		        "Error when getting spot\n");
+					LOG(this->log_receive, LEVEL_WARNING,
+					    "Error when getting spot\n");
 					delete ack_frames;
 					return false;
 				}
@@ -395,12 +389,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						{
 							spot = dynamic_cast<SpotDownward *>(
 							            this->getSpot((*spot_iter).first));
-            				if(!spot)
-            				{
-            			        LOG(this->log_receive, LEVEL_WARNING,
-                    		        "Error when getting spot\n");
-            					return false;
-            				}
+							if(!spot)
+							{
+								LOG(this->log_receive, LEVEL_WARNING,
+								    "Error when getting spot\n");
+								return false;
+							}
 							spot_list.push_back(spot);
 						}
 					}
@@ -416,12 +410,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 							spot_id = OpenSandConf::spot_table[tal_id];
 						}
 						spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
-        				if(!spot)
-        				{
-        			        LOG(this->log_receive, LEVEL_WARNING,
-                		        "Error when getting spot\n");
-        					return false;
-        				}
+						if(!spot)
+						{
+							LOG(this->log_receive, LEVEL_WARNING,
+							    "Error when getting spot\n");
+							return false;
+						}
 						spot_list.push_back(spot);
 					}
 
@@ -481,7 +475,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				this->super_frame_counter++;
 			}
 
-    		bool find_pep = false; 
+			bool find_pep = false; 
 			for(spot_iter = this->spots.begin(); 
 			    spot_iter != this->spots.end(); ++spot_iter)
 			{
@@ -490,15 +484,15 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				if(!spot)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					       "Error when getting spot\n");
-				    return false;
+					    "Error when getting spot\n");
+					return false;
 				}
 				
-			    if(*event == this->frame_timer)
-    			{
+				if(*event == this->frame_timer)
+				{
 					// send Start Of Frame
 					this->sendSOF(spot->getSofCarrierId());
-					
+
 					if(spot->checkDama())
 					{
 						continue;
@@ -545,13 +539,11 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 
 					// it's time to update MODCOD IDs
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "MODCOD scenario timer received\n");
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "MODCOD scenario timer received\n");
 					
-					double duration_up_ret, duration_down_fwd;
-					if(spot->goNextScenarioStep(duration_up_ret, duration_down_fwd))
+					double duration;
+					if(spot->goNextScenarioStep(duration))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -564,9 +556,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						    this->super_frame_counter);
 					}
 					spot->updateFmt();
-					DFLTLOG(LEVEL_ERROR, "duration = %f\n",
-					        duration_up_ret);
-					if(duration_up_ret <= 0)
+					if(duration <= 0)
 					{
 						// we hare reach the end of the file (of it is malformed)
 						// so we keep the modcod as they are
@@ -574,15 +564,15 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else
 					{
-						this->setDuration(spot->getModcodTimer(), duration_up_ret);
+						this->setDuration(spot->getModcodTimer(), duration);
 						this->startTimer(spot->getModcodTimer());
 					}
 				}
-    			else if(*event == spot->getPepCmdApplyTimer())
+				else if(*event == spot->getPepCmdApplyTimer())
 				{
 					// it is time to apply the command sent by the external
 					// PEP component
-	
+
 					PepRequest *pep_request;
 
 					LOG(this->log_receive, LEVEL_NOTICE,
@@ -595,7 +585,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					break;
 				}
 
-	    		if(*event == spot->getPepCmdApplyTimer() && !find_pep)
+				if(*event == spot->getPepCmdApplyTimer() && !find_pep)
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "unknown timer event received %s\n",

@@ -149,12 +149,11 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		/**
 		 * @brief go to fmt simu next scenario
 		 *
-		 * @param next_step_up_ret    time of the next step for up/ret
-		 * @param next_step_down_fwd  time of the next step for down/fwd
+		 * @param next_step  time of the next step
 		 *
 		 * @return true on success, false otherwise
 		 */
-		bool goNextScenarioStep(double &next_step_up_ret, double &next_step_down_fwd);
+		bool goNextScenarioStep(double &next_step);
 
 		/**
 		 * @brief update FMT in DAMA controller
@@ -332,9 +331,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		//  For transparent scenario the return link cni will be used to update return
 		//  MODCOD id for terminals (not this one)
 		double cni;
-
-		/// The column ID for FMT simulation
-		map<tal_id_t, uint16_t> column_list;
 
 		/// timer used for applying resources allocations received from PEP
 		event_id_t pep_cmd_apply_timer;

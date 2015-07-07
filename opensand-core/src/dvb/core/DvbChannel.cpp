@@ -260,7 +260,7 @@ bool DvbChannel::initModcodFiles(const char *def,
                                  tal_id_t gw_id,
                                  spot_id_t spot_id)
 {
-	string modcod_simu_file;
+	stringstream modcod_simu_file;
 	string modcod_def_file;
 	string modcod_simu_filename;
 	string path;
@@ -286,10 +286,10 @@ bool DvbChannel::initModcodFiles(const char *def,
 	sprintf(gw, "%d", gw_id);
 	char spot[21]; // enough to hold all numbers up to 64-bits
 	sprintf(spot, "%d", spot_id);
-	modcod_simu_file = path + "gw" + gw + "_spot" + spot + "_" + modcod_simu_filename;
+	modcod_simu_file << path << "gw" << gw << "_spot" << spot << "_" << modcod_simu_filename;
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
-	    modcod_simu_file.c_str());
+	    modcod_simu_file.str().c_str());
 
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 		               def, modcod_def_file))
@@ -313,7 +313,7 @@ bool DvbChannel::initModcodFiles(const char *def,
 	if(!this->with_phy_layer)
 	{
 		// set the MODCOD simulation file
-		if(!fmt_simu.setModcodSimu(modcod_simu_file))
+		if(!fmt_simu.setModcodSimu(modcod_simu_file.str()))
 		{
 			goto error;
 		}

@@ -72,7 +72,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	up_ret_fmt_simu(),
 	down_fwd_fmt_simu(),
 	cni(100),
-	column_list(),
 	pep_cmd_apply_timer(),
 	event_file(NULL),
 	simu_file(NULL),
@@ -207,7 +206,6 @@ bool SpotDownward::initColumns(void)
 	{
 		i++;
 		uint16_t tal_id;
-		uint16_t column_nbr;
 
 		// Get the Tal ID
 		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
@@ -217,30 +215,12 @@ bool SpotDownward::initColumns(void)
 			    "entry %d\n", TAL_ID, i);
 			goto error;
 		}
-		// Get the column nbr
-		if(!Conf::getAttributeValue(iter, COLUMN_NBR, column_nbr))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", COLUMN_NBR, i);
-			goto error;
-		}
-
-		this->column_list[tal_id] = column_nbr;
 	}
 
-	if(this->column_list.find(this->mac_id) == this->column_list.end())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "GW is not declared in column IDs\n");
-		goto error;
-	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->up_ret_fmt_simu.addTerminal(this->mac_id,
-	                                      this->column_list[this->mac_id]) ||
-	   !this->down_fwd_fmt_simu.addTerminal(this->mac_id,
-	                                        this->column_list[this->mac_id]))
+	if(!this->up_ret_fmt_simu.addTerminal(this->mac_id) ||
+	   !this->down_fwd_fmt_simu.addTerminal(this->mac_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
@@ -742,9 +722,8 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 	   !this->down_fwd_fmt_simu.doTerminalExist(mac))
 	{
 		// ST was not registered yet
-		if(this->column_list.find(mac) == this->column_list.end() ||
-		   !this->up_ret_fmt_simu.addTerminal(mac, this->column_list[mac]) ||
-		   !this->down_fwd_fmt_simu.addTerminal(mac, this->column_list[mac]))
+		if(!this->up_ret_fmt_simu.addTerminal(mac) ||
+		   !this->down_fwd_fmt_simu.addTerminal(mac))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to handle FMT for ST %u, "
@@ -807,11 +786,11 @@ bool SpotDownward::goFirstScenarioStep()
 }
 
 
-bool SpotDownward::goNextScenarioStep(double &next_step_up_ret,
-                                      double &next_step_down_fwd)
+bool SpotDownward::goNextScenarioStep(double &next_step)
 {
-	return !this->up_ret_fmt_simu.goNextScenarioStep(false, next_step_up_ret) ||
-	           !this->down_fwd_fmt_simu.goNextScenarioStep(true, next_step_down_fwd);
+	double next_step2;
+	return !this->up_ret_fmt_simu.goNextScenarioStep(false, next_step2) ||
+	           !this->down_fwd_fmt_simu.goNextScenarioStep(true, next_step);
 }
 
 // TODO create a class for simulation and subclass file/random
@@ -906,19 +885,8 @@ bool SpotDownward::simulateFile(void)
 			    "SF#%u: send a simulated logon for ST %d\n",
 			    this->super_frame_counter, st_id);
 			// check for column in FMT simulation list
-			if(this->column_list.find(st_id) == this->column_list.end())
-			{
-				LOG(this->log_request_simulation, LEVEL_NOTICE,
-				    "no column ID for simulated terminal, use the"
-				    " terminal ID\n");
-				ret = this->up_ret_fmt_simu.addTerminal(st_id, st_id) ||
-				      this->down_fwd_fmt_simu.addTerminal(st_id, st_id);
-			}
-			else
-			{
-				ret = this->up_ret_fmt_simu.addTerminal(st_id, this->column_list[st_id]) ||
-				      this->down_fwd_fmt_simu.addTerminal(st_id, this->column_list[st_id]);
-			}
+			ret = this->up_ret_fmt_simu.addTerminal(st_id) ||
+			      this->down_fwd_fmt_simu.addTerminal(st_id);
 			if(!ret)
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
@@ -1006,21 +974,8 @@ bool SpotDownward::simulateRandom(void)
 			bool ret = false;
 
 			// check for column in FMT simulation list
-			if(this->column_list.find(tal_id) == this->column_list.end())
-			{
-				LOG(this->log_request_simulation, LEVEL_NOTICE,
-				    "no column ID for simulated terminal, use the"
-				    " terminal ID\n");
-				ret = this->up_ret_fmt_simu.addTerminal(tal_id, tal_id) ||
-				      this->down_fwd_fmt_simu.addTerminal(tal_id, tal_id);
-			}
-			else
-			{
-				ret = this->up_ret_fmt_simu.addTerminal(tal_id,
-				                                        this->column_list[tal_id]) ||
-				      this->down_fwd_fmt_simu.addTerminal(tal_id,
-				                                          this->column_list[tal_id]);
-			}
+			ret = this->up_ret_fmt_simu.addTerminal(tal_id) ||
+			      this->down_fwd_fmt_simu.addTerminal(tal_id);
 			if(!ret)
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,

@@ -93,11 +93,11 @@ FmtSimulation::~FmtSimulation()
 	}
 }
 
-bool FmtSimulation::addTerminal(tal_id_t id,
-                                unsigned long simu_column_num)
+bool FmtSimulation::addTerminal(tal_id_t id)
 {
 	StFmtSimu *new_st;
-	unsigned long column = simu_column_num;
+	// the column is the id
+	unsigned long column = id;
 
 	// check that the list does not already own a ST
 	// with the same identifier
@@ -109,17 +109,16 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 	}
 
 	if(this->is_modcod_simu_defined &&
-	   this->modcod_list.size() <= simu_column_num)
+	   this->modcod_list.size() <= column)
 	{
 		LOG(this->log_fmt, LEVEL_WARNING,
-		    "cannot access MODCOD column %lu for ST%u\n"
-		    "defaut MODCOD is used\n",
-		    column, id);
+		    "cannot access MODCOD column for ST%u\n"
+		    "defaut MODCOD is used\n", id);
 		column = this->modcod_list.size() - 1;
 	}
 	// if scenario are not defined, set less robust modcod at init
 	// in order to authorize any MODCOD
-	new_st = new StFmtSimu(id, column,
+	new_st = new StFmtSimu(id,
 		this->is_modcod_simu_defined ?
 			atoi(this->modcod_list[column].c_str()) :
 			this->getMaxModcod());
@@ -209,7 +208,6 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 	double time_current_step = this->next_step;
-	DFLTLOG(LEVEL_ERROR, "current time = %f\n", time_current_step);
 
 	if(!this->is_modcod_simu_defined)
 	{
@@ -230,7 +228,6 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
 		goto error;
 	}
 
-	DFLTLOG(LEVEL_ERROR, "next time = %f\n", this->next_step);
 	duration = (this->next_step - time_current_step) * 1000;
 
 	// update all STs in list
@@ -258,8 +255,6 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateModcodId(atoi(this->modcod_list[column].c_str()));
-		DFLTLOG(LEVEL_ERROR, "st_id = %u, modcod = %d\n",
-		        st_id, atoi(this->modcod_list[column].c_str()));
 		if(need_advert)
 		{
 			list<tal_id_t>::iterator tal_it;
@@ -402,18 +397,6 @@ tal_id_t FmtSimulation::getTalIdWithLowerModcod() const
 	    "TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
 
 	return lower_tal_id;
-}
-
-
-unsigned int FmtSimulation::getSimuColumnNum(tal_id_t id) const
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
-	st_iter = this->sts.find(id);
-	if(st_iter != this->sts.end())
-	{
-		return (*st_iter).second->getSimuColumnNum();
-	}
-	return 0;
 }
 
 

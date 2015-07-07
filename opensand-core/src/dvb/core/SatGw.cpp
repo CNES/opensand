@@ -410,9 +410,9 @@ bool SatGw::doTerminalExist(tal_id_t tal_id)
 	return this->fmt_simu_sat->doTerminalExist(tal_id);
 }
 
-bool SatGw::addTerminal(tal_id_t tal_id, unsigned long simu_column_num)
+bool SatGw::addTerminal(tal_id_t tal_id)
 {
-	return this->fmt_simu_sat->addTerminal(tal_id, simu_column_num);
+	return this->fmt_simu_sat->addTerminal(tal_id);
 }
 
 void SatGw::print(void)
