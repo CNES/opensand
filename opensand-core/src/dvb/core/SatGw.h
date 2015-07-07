@@ -83,6 +83,8 @@ class SatGw
 	Scheduling *st_scheduling;
 	/// The downlink scheduling for regenerative satellite toward GW
 	Scheduling *gw_scheduling;
+	/// The MODCOD simulation elements
+	FmtSimulation* fmt_simu_sat;
 
 	// statistics
 
@@ -176,7 +178,7 @@ class SatGw
 	 *
 	 * @return the gw ID
 	 */
-	uint8_t getGwId(void) const;
+	uint16_t getGwId(void) const;
 
 	/**
 	 * @brief Get the input data ST carrier ID
@@ -242,6 +244,20 @@ class SatGw
 	list<DvbFrame *> &getCompleteGwDvbFrames(void);
 
 	/**
+	 * @brief Get the Fmt Simulation
+	 *
+	 * @return the Fmt Simulation
+	 */
+	FmtSimulation* getFmtSimuSat(void);
+
+	/**
+	 * @brief Set the Fmt Simulation
+	 *
+	 * @param the new Fmt Simulation
+	 */
+	void setFmtSimuSat(FmtSimulation* new_fmt_simu);
+
+	/**
 	 * @brief Update the amount of layer 2 data received from ST
 	 *
 	 * @param  bytes  The amount of layer 2 data received
@@ -268,6 +284,60 @@ class SatGw
 	 * @return  The amount of layer 2 data received
 	 */
 	vol_bytes_t getL2FromGw(void);
+
+	/**
+	 * @brief Go to the first step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool goFirstScenarioStep();
+
+	/**
+	 * @brief Go to next step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list
+	 *
+	 * @param need_advert  Whether this is a down/forward MODCOD that will need
+	 *                     advertisment process
+	 * @param duration     duration before the next step
+	 * @return true on success, false otherwise
+	 */
+	bool goNextScenarioStep(bool need_advert, double &duration);
+
+	/**
+	 * @brief Get the MODCOD definitions
+	 *
+	 * @return the MODCOD definitions
+	 */
+	const FmtDefinitionTable* getModcodDefinitions(void);
+
+	/**
+	 * @brief Get the spot id
+	 *
+	 * @return ths spot id
+	 */
+	spot_id_t getSpotId(void);
+
+	/**
+	 * @brief Does a ST with the given ID exist ?
+	 *
+	 * @param tal_id  the ID we want to check for
+	 * @return        true if a ST, false is it does not exist
+	 */
+	bool doTerminalExist(tal_id_t tal_id);
+
+	/**
+	 * @brief Add a new Satellite Terminal (ST) in the list
+	 *
+	 * @param tal_id           the ID of the ST (called TAL ID or MAC ID elsewhere
+	 *                         in the code)
+	 * @param simu_column_num  the column # associated to the ST for MODCOD
+	 *                         simulation files
+	 * @return                 true if the addition is successful, false otherwise
+	 */
+	bool addTerminal(tal_id_t tal_id, unsigned long simu_column_num);
+
+	void print(void); /// For debug
 };
 
 

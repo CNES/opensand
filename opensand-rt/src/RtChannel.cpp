@@ -196,11 +196,13 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	                                   priority);
 	if(!event)
 	{
+		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
 		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
+		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
 		return -1;
 	}
 
@@ -465,11 +467,26 @@ bool RtChannel::startTimer(event_id_t id)
 	return true;
 }
 
+bool RtChannel::setDuration(event_id_t id, double new_duration)
+{
+	TimerEvent *event = this->getTimer(id);
+	if(!event)
+	{
+		this->reportError(false, "cannot find timer: should not happend here\n");
+		return false;
+	}
+
+	event->setDuration(new_duration);
+
+	return true;
+}
+
 bool RtChannel::raiseTimer(event_id_t id)
 {
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
+		DFLTLOG(LEVEL_ERROR, "je suis la\n");
 		this->reportError(false, "cannot find timer: should not happend here\n");
 		return false;
 	}

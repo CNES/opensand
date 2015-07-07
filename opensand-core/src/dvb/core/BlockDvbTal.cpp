@@ -593,7 +593,8 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init fmt_simu
 	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-	                          RETURN_UP_MODCOD_TIME_SERIES))
+	                          RETURN_UP_MODCOD_TIME_SERIES,
+	                          this->group_id, this->spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
@@ -758,8 +759,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "ULCarrierBw %d kbits/s, "
 	    "RBDC max %d kbits/s, RBDC Timeout %d frame, "
-	    "VBDC max %d kbits, mslDuration %d frames, "
-	    "getIpOutputFifoSizeOnly %d\n",
+	    "VBDC max %d kbits, mslDuration %d frame\n",
 	    this->cra_kbps, this->max_rbdc_kbps,
 	    rbdc_timeout_sf, this->max_vbdc_kb, msl_sf);
 
@@ -1051,7 +1051,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 	// TODO: we take forward because we need S2
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2, 
 		                      FORWARD_DOWN_MODCOD_TIME_SERIES,
-		                      this->scpc_fmt_simu))
+		                      this->scpc_fmt_simu,
+	                          this->group_id, this->spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");

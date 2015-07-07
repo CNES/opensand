@@ -84,6 +84,8 @@ SatGw::SatGw(tal_id_t gw_id,
 
 	// Output Log
 	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+
+	fmt_simu_sat = NULL;
 }
 
 SatGw::~SatGw()
@@ -295,7 +297,7 @@ bool SatGw::updateProbes(time_ms_t stats_period_ms)
 }
 
 
-uint8_t SatGw::getGwId(void) const
+uint16_t SatGw::getGwId(void) const
 {
 	return this->gw_id;
 }
@@ -345,6 +347,16 @@ list<DvbFrame *> &SatGw::getCompleteGwDvbFrames(void)
 	return this->complete_gw_dvb_frames;
 }
 
+FmtSimulation* SatGw::getFmtSimuSat(void)
+{
+	return this->fmt_simu_sat;
+}
+
+void SatGw::setFmtSimuSat(FmtSimulation* new_fmt_simu)
+{
+	this->fmt_simu_sat = new_fmt_simu;
+}
+
 void SatGw::updateL2FromSt(vol_bytes_t bytes)
 {
 	RtLock lock(this->gw_mutex);
@@ -371,5 +383,41 @@ vol_bytes_t SatGw::getL2FromGw(void)
 	vol_bytes_t val = this->l2_from_gw_bytes;
 	this->l2_from_gw_bytes = 0;
 	return val;
+}
+
+bool SatGw::goFirstScenarioStep()
+{
+	return this->fmt_simu_sat->goFirstScenarioStep();
+}
+
+bool SatGw::goNextScenarioStep(bool need_advert, double &duration)
+{
+	return this->fmt_simu_sat->goNextScenarioStep(need_advert, duration);
+}
+
+const FmtDefinitionTable* SatGw::getModcodDefinitions(void)
+{
+	return this->fmt_simu_sat->getModcodDefinitions();
+}
+
+spot_id_t SatGw::getSpotId(void)
+{
+	return this->spot_id;
+}
+
+bool SatGw::doTerminalExist(tal_id_t tal_id)
+{
+	return this->fmt_simu_sat->doTerminalExist(tal_id);
+}
+
+bool SatGw::addTerminal(tal_id_t tal_id, unsigned long simu_column_num)
+{
+	return this->fmt_simu_sat->addTerminal(tal_id, simu_column_num);
+}
+
+void SatGw::print(void)
+{
+	DFLTLOG(LEVEL_ERROR, "gw_id = %d, spot_id = %d\n",
+	        this->gw_id, this->spot_id);
 }
 

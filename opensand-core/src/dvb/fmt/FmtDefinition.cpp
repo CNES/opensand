@@ -34,6 +34,8 @@
 
 #include "FmtDefinition.h"
 
+#include <opensand_output/Output.h>
+
 
 /**
  * @brief Create a FMT definition
@@ -132,5 +134,14 @@ float FmtDefinition::getSpectralEfficiency() const
 float FmtDefinition::getRequiredEsN0() const
 {
 	return this->required_Es_N0;
+}
+
+void FmtDefinition::print(void)
+{
+	DFLTLOG(LEVEL_ERROR, "id = %u,"
+	        " coding_rate = %s, spectral_efficiency = %f,"
+	        " required_Es_N0 = %f\n", this->id,
+	        this->coding_rate.c_str(), this->spectral_efficiency,
+	        this->required_Es_N0);
 }
 

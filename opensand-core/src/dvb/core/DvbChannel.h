@@ -171,9 +171,12 @@ class DvbChannel
 	 *                (up/return or down/forward)
 	 * @param simu    The section in configuration file for MODCOD simulation
 	 *                (up/return or down/forward)
+	 * @param gw_id   The id of the gateway
+	 * @param spot_id The id of the spot
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodFiles(const char *def, const char *simu);
+	bool initModcodFiles(const char *def, const char *simu,
+	                     tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Read configuration for link MODCOD definition/simulation files
@@ -183,10 +186,13 @@ class DvbChannel
 	 * @param simu      The section in configuration file for MODCOD simulation
 	 *                  (up/return or down/forward)
 	 * @param fmt_simu  The FMT simulation attribute to initialize
+	 * @param gw_id   The id of the gateway
+	 * @param spot_id The id of the spot
 	 * @return  true on success, false otherwise
 	 */
 	bool initModcodFiles(const char *def, const char *simu,
-	                     FmtSimulation &fmt_simu);
+	                     FmtSimulation &fmt_simu,
+	                     tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief init the band according to configuration

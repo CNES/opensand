@@ -17,6 +17,10 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="path">
+    <xsd:restriction base="xsd:string" />
+</xsd:simpleType>
+
 <xsd:simpleType name="file">
     <xsd:restriction base="xsd:string" />
 </xsd:simpleType>
@@ -641,6 +645,15 @@
                     <xsd:documentation xml:lang="en">
                         Physical layer refresh period (ms)
                         <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="path_to_modcod" type="path">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The path to MODCOD definition files
+                        <default>/etc/opensand/modcod/</default>
+                        <source>/etc/opensand/modcod/</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

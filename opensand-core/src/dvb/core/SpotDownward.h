@@ -140,11 +140,21 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		virtual bool handleCorruptedFrame(DvbFrame *dvb_frame) = 0;
 
 		/**
-		 * @brief go to fmt simu next scenario
+		 * @brief go to fmt simu first scenario
 		 *
 		 * @return true on success, false otherwise
 		 */
-		bool goNextScenarioStep();
+		bool goFirstScenarioStep();
+
+		/**
+		 * @brief go to fmt simu next scenario
+		 *
+		 * @param next_step_up_ret    time of the next step for up/ret
+		 * @param next_step_down_fwd  time of the next step for down/fwd
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool goNextScenarioStep(double &next_step_up_ret, double &next_step_down_fwd);
 
 		/**
 		 * @brief update FMT in DAMA controller
@@ -174,9 +184,12 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 		uint8_t getDataCarrierId(void) const;
 
 		list<DvbFrame *> &getCompleteDvbFrames(void);
-		
+
 		void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 		event_id_t getPepCmdApplyTimer(void);
+
+		void setModcodTimer(event_id_t new_modcod_timer);
+		event_id_t getModcodTimer(void);
 
 	protected:
 
@@ -325,6 +338,12 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 
 		/// timer used for applying resources allocations received from PEP
 		event_id_t pep_cmd_apply_timer;
+
+		/// timer used to awake the block in order to retrieve
+		/// the current MODCODs
+		/// In regenerative case with physical layer, is it used to send
+		// ACM parameters to satellite
+		event_id_t modcod_timer;
 
 		/// parameters for request simulation
 		FILE *event_file;

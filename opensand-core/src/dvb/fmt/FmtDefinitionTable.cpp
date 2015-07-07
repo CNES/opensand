@@ -525,3 +525,25 @@ unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
 	// TODO use spectral efficiency
 	return ceil(val_sym * mod * cod/1000);
 }
+
+
+void FmtDefinitionTable::print(void)
+{
+	map<unsigned int, FmtDefinition *>::const_iterator it;
+
+	for(it = this->definitions.begin();
+	    it != this->definitions.end(); it++)
+	{
+		it->second->print();
+	}
+
+	if(this->definitions.begin() == this->definitions.end())
+	{
+		DFLTLOG(LEVEL_ERROR, "Vide\n");
+	}
+	else
+	{
+		this->definitions.begin()->second->print();
+	}
+}
+

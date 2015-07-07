@@ -92,14 +92,46 @@ class SatSpot
 	 */
 	uint8_t getSpotId(void) const;
 
-	list<SatGw *> getGwList(void) const;
+	/**
+	 * @brief Set the Fmt Simulation for the appropriate Gw
+	 *
+	 * @param the gw id
+	 * @param the new Fmt Simulation
+	 */
+	void setFmtSimulation(tal_id_t gw_id, FmtSimulation* new_fmt_simu);
+
+	/**
+	 * @brief Go to the first step in adaptive physical layer scenario
+	 *        For the appropriate Gw.
+	 *
+	 * @param gw_id        the id of the gw
+	 * @return true on success, false otherwise
+	 */
+	bool goFirstScenarioStep(tal_id_t gw_id);
+
+	/**
+	 * @brief Go to next step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list
+	 *        For the appropriate Gw.
+	 *
+	 * @param gw_id        the id of the gw
+	 * @param need_advert  Whether this is a down/forward MODCOD that will need
+	 *                     advertisment process
+	 * @param duration     duration before the next step
+	 * @return true on success, false otherwise
+	 */
+	bool goNextScenarioStep(tal_id_t gw_id, bool need_advert, double &duration);
+
+	const list<SatGw *> getGwList(void) const;
 	
-	SatGw* getGw(tal_id_t gw_id);	
+	SatGw* getGw(tal_id_t gw_id);
 
 	list<SatGw *> getListGw();        /// List of gw
+
+	void print(void); /// For debug
 };
 
 /// The map of satellite spots
-typedef map<uint8_t, SatSpot *> sat_spots_t;
+typedef map<spot_id_t, SatSpot *> sat_spots_t;
 
 #endif

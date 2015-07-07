@@ -101,7 +101,6 @@ BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	mac_id(mac_id),
 	fwd_frame_counter(0),
 	fwd_timer(-1),
-	scenario_timer(-1),
 	probe_frame_interval(NULL)
 {
 }
@@ -150,7 +149,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 	
-		for(spot_iter = this->spots.begin(); 
+	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		SpotDownward *spot;
@@ -192,7 +191,16 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-
+	for(spot_iter = this->spots.begin(); 
+	    spot_iter != this->spots.end(); ++spot_iter)
+	{
+		SpotDownward *spot;
+		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+		DFLTLOG(LEVEL_ERROR, "je suis la\n");
+		//this->setDuration(spot->getModcodTimer(), 8000);
+		this->raiseTimer(spot->getModcodTimer());
+		DFLTLOG(LEVEL_ERROR, "je suis la\n");
+	}
 
 	// listen for connections from external PEP components
 	if(!this->initPepSocket())
@@ -223,13 +231,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                      this->fwd_down_frame_duration_ms);
 
-	// Launch the timer in order to retrieve the modcods if there is no physical layer
-	// or to send SAC with ACM parameters in regenerative mode
-	if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
-	{
-		this->scenario_timer = this->addTimerEvent("scenario",
-		                                           this->dvb_scenario_refresh);
-	}
 
 	// read the pep allocation delay
 	if(!Conf::getValue(Conf::section_map[NCC_SECTION_PEP], DVB_NCC_ALLOC_DELAY,
@@ -256,10 +257,21 @@ bool BlockDvbNcc::Downward::initTimers(void)
 			return false;
 		}
 		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
-	                                                pep_alloc_delay,
-	                                                false, // no rearm
-	                                                false // do not start
-	                                                ));
+		                                              pep_alloc_delay,
+		                                              false, // no rearm
+		                                              false // do not start
+		                                              ));
+
+		// Launch the timer in order to retrieve the modcods if there is no physical layer
+		// or to send SAC with ACM parameters in regenerative mode
+		if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
+		{
+			spot->setModcodTimer(this->addTimerEvent("scenario",
+			                                         5000, // the duration will be change when started
+			                                         false, // no rearm
+			                                         false // do not start
+			                                         ));
+		}
 	}
 
 	return true;
@@ -502,8 +514,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					this->sendTTP(spot);
 				}
 
-    			else if(*event == this->fwd_timer)
-    			{
+				else if(*event == this->fwd_timer)
+				{
 					this->fwd_frame_counter++;
 					if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
 					{
@@ -522,8 +534,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 				}
-    			else if(*event == this->scenario_timer)
-    			{
+				else if(*event == spot->getModcodTimer())
+				{
 					// if regenerative satellite and physical layer scenario,
 					// send ACM parameters
 					if(this->satellite_type == REGENERATIVE &&
@@ -533,10 +545,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 
 					// it's time to update MODCOD IDs
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "MODCOD scenario timer received\n");
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "MODCOD scenario timer received\n");
 					
-					if(spot->goNextScenarioStep())
+					double duration_up_ret, duration_down_fwd;
+					if(spot->goNextScenarioStep(duration_up_ret, duration_down_fwd))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -549,6 +564,19 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						    this->super_frame_counter);
 					}
 					spot->updateFmt();
+					DFLTLOG(LEVEL_ERROR, "duration = %f\n",
+					        duration_up_ret);
+					if(duration_up_ret <= 0)
+					{
+						// we hare reach the end of the file (of it is malformed)
+						// so we keep the modcod as they are
+						this->removeEvent(spot->getModcodTimer());
+					}
+					else
+					{
+						this->setDuration(spot->getModcodTimer(), duration_up_ret);
+						this->startTimer(spot->getModcodTimer());
+					}
 				}
     			else if(*event == spot->getPepCmdApplyTimer())
 				{
@@ -561,7 +589,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					    "apply PEP requests now\n");
 					while((pep_request = this->getNextPepRequest()) != NULL)
 					{
-						spot->applyPepCommand(pep_request);	
+						spot->applyPepCommand(pep_request);
 					}
 					find_pep = true;
 					break;

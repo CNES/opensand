@@ -89,6 +89,12 @@ class FmtSimulation
 	/** A list of the current MODCOD */
 	vector<string> modcod_list;
 
+	/** A list of the next MODCOD */
+	vector<string> next_modcod_list;
+
+	/** time of the next MODCOD change */
+	double next_step;
+
 	/** A list of terminal to advertise MODCOD (for down/forward) */
 	list<tal_id_t> need_advertise;
 
@@ -142,14 +148,23 @@ class FmtSimulation
 	void clear();
 
 	/**
+	 * @brief Go to first step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list.
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool goFirstScenarioStep();
+
+	/**
 	 * @brief Go to next step in adaptive physical layer scenario
 	 *        Update current MODCODs IDs of all STs in the list.
 	 *
 	 * @param need_advert  Whether this is a down/forward MODCOD that will need
 	 *                     advertisment process
+	 * @param duration     the duration before the next_step
 	 * @return true on success, false otherwise
 	 */
-	bool goNextScenarioStep(bool need_advert);
+	bool goNextScenarioStep(bool need_advert, double &duration);
 
 	/**
 	 * @brief Was the current MODCOD IDs of all the STs advertised
@@ -259,6 +274,8 @@ class FmtSimulation
 	 */
 	void setRequiredModcod(tal_id_t tal_id, double cni) const;
 
+	void print(void); /// For debug
+
  private:
 
 	/**
@@ -282,13 +299,15 @@ class FmtSimulation
 	 * @brief Read a line of a simulation file and fill the MODCOD list
 	 *
 	 * @param   simu_file the simulation file (fwd_modcod_simu or ret_modcod_simu)
-	 * @param   list      The MODCOD list
+	 * @param   list      The MODCOD list of the next update
+	 * @param   time      time of the next update
 	 * @return            true on success, false on failure
 	 *
 	 * @todo better parsing
 	 */
 	bool setList(ifstream *simu_file,
-	             vector<string> &list);
+	             vector<string> &list,
+	             double &time);
 
 };
 

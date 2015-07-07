@@ -61,6 +61,7 @@
 #include <opensand_output/Output.h>
 
 #include <linux/param.h>
+#include <set>
 
 /**
  * Blocs heritate from mgl_bloc clam_singleSpot.sse
@@ -170,9 +171,10 @@ class BlockDvbSat: public BlockDvb
 		Downward(Block *const bl);
 
 		~Downward();
-		bool onInit(void);
+		virtual bool onInit(void) = 0;
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
+		const FmtDefinitionTable* getModcodDefinitions(void);
 
 	 protected:
 		/**
@@ -237,6 +239,48 @@ class BlockDvbSat: public BlockDvb
 		 * Update the statistics on the satellite
 		 */
 		void updateStats(void);
+
+		/**
+		 * Get a list of the gw ids
+		 */
+		set<tal_id_t> getGwIds(void);
+
+		/**
+		 * Get a list of the spot ids
+		 */
+		set<spot_id_t> getSpotIds(void);
+
+		/**
+		 * Set the Fmt Simulation on the appropriate Spot and Gw
+		 */
+		void setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
+		                      FmtSimulation* new_fmt_simu);
+
+		/**
+		 * @brief Go to the first step in adaptive physical layer scenario
+		 *        For the appropriate Spot and Gw.
+		 *
+		 * @param spot_id      the id of the spot
+		 * @param gw_id        the id of the gw
+		 * @return true on success, false otherwise
+		 */
+		bool goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id);
+
+		/**
+		 * @brief Go to next step in adaptive physical layer scenario
+		 *        Update current MODCODs IDs of all STs in the list
+		 *        For the appropriate Spot and Gw.
+		 *
+		 * @param spot_id      the id of the spot
+		 * @param gw_id        the id of the gw
+		 * @param need_advert  Whether this is a down/forward MODCOD that will need
+		 *                     advertisment process
+		 * @param duration     duration before the next step
+		 * @return true on success, false otherwise
+		 */
+		bool goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
+		                        bool need_advert,
+		                        double &duration);
 
 		/// the counter for downlink frames
 		time_sf_t down_frame_counter;

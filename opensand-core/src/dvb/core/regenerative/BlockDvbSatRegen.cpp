@@ -55,6 +55,7 @@
 #include <iostream>
 #include <sstream>
 #include <ios>
+#include <set>
 
 
 typedef struct
@@ -129,20 +130,43 @@ bool BlockDvbSatRegen::DownwardRegen::onInit()
 
 	this->down_frame_counter = 0;
 
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          FORWARD_DOWN_MODCOD_TIME_SERIES))
+	set<tal_id_t> listGws = this->getGwIds();
+	set<spot_id_t> listSpots = this->getSpotIds();
+	for(set<spot_id_t>::iterator it1 = listSpots.begin();
+	    it1 != listSpots.end(); it1++)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the modcod part of the "
-		    "initialisation\n");
-		return false;
+		for(set<tal_id_t>::iterator it2 = listGws.begin();
+		    it2 != listGws.end(); it2++)
+		{
+			FmtSimulation *fmt_simulation = new FmtSimulation();
+			if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
+			                          FORWARD_DOWN_MODCOD_TIME_SERIES,
+			                          *fmt_simulation,
+			                          (*it2), (*it1)))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to complete the modcod part of the "
+				    "initialisation\n");
+				return false;
+			}
+			this->setFmtSimulation((*it1), (*it2), fmt_simulation);
+		}
 	}
+
 	// initialize the MODCOD scheme ID
-	if(!this->fmt_simu.goNextScenarioStep(true))
+	for(set<spot_id_t>::iterator it1 = listSpots.begin();
+	    it1 != listSpots.end(); it1++)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize downlink MODCOD IDs\n");
-		return false;
+		for(set<tal_id_t>::iterator it2 = listGws.begin();
+		    it2 != listGws.end(); it2++)
+		{
+			if(!this->goFirstScenarioStep((*it1), (*it2)))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to initialize downlink MODCOD IDs\n");
+				return false;
+			}
+		}
 	}
 
 	if(!this->initStList())
@@ -222,14 +246,27 @@ bool BlockDvbSatRegen::DownwardRegen::initStList(void)
 
 		// register a ST only if it did not exist yet
 		// (duplicate because STs are 'defined' in spot table)
-		if(!this->fmt_simu.doTerminalExist(tal_id))
+		// TODO Add terminal only for the right spot and gw
+		sat_spots_t::iterator it;
+		for(it = this->spots.begin();
+		    it != this->spots.end(); it++)
 		{
-			if(!this->fmt_simu.addTerminal(tal_id, column_nbr))
+			list<SatGw *>::const_iterator it2;
+			list<SatGw *> list = it->second->getGwList();
+			for(it2 = list.begin();
+			    it2 != list.end(); it2++)
 			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to register ST with Tal ID %u\n",
-				    tal_id);
-				goto error;
+				if(!(*it2)->doTerminalExist(tal_id))
+				{
+					// TODO Do that on loggon
+					if(!(*it2)->addTerminal(tal_id, column_nbr))
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+						    "failed to register ST with Tal ID %u\n",
+						    tal_id);
+						goto error;
+					}
+				}
 			}
 		}
 	}
@@ -308,7 +345,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->fmt_simu.getModcodDefinitions(),
+			                                         this->getModcodDefinitions(),
 			                                         st_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -323,7 +360,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->fmt_simu.getModcodDefinitions(),
+			                                         this->getModcodDefinitions(),
 			                                         gw_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -344,9 +381,12 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			TerminalCategoryDama *st_category = st_categories.begin()->second;
 			TerminalCategoryDama *gw_category = gw_categories.begin()->second;
 
+			// Finding the good fmt simulation
+			FmtSimulation* fmt_simu_sat;
+			fmt_simu_sat = gw->getFmtSimuSat();
 			if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
 		                           this->pkt_hdl,
-		                           &this->fmt_simu,
+		                           fmt_simu_sat,
 		                           st_category,
 		                           gw_category))
 			{
@@ -385,7 +425,10 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	{
 		// launch the timer in order to retrieve the modcods
 		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-		                                           this->dvb_scenario_refresh);
+		                                           1, // the duration will be change when started
+		                                           true, // no rearm
+		                                           false // do not start
+		                                           );
 	}
 
 	return true;

@@ -95,15 +95,17 @@ void TimerEvent::start(void)
 void TimerEvent::raise(void)
 {
 	itimerspec timer_value;
-	this->enabled = true;
 
+	// it_interval is used as a period
+	// when it is 0, it isn't periodic
 	timer_value.it_interval.tv_sec = 0;
+	timer_value.it_interval.tv_nsec = 0;
 
+	timer_value.it_value.tv_sec = 0;
 	timer_value.it_value.tv_nsec = 1;
 
 	//start timer
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
-	this->disable();
 }
 
 void TimerEvent::disable(void)

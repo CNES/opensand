@@ -68,7 +68,7 @@ uint8_t SatSpot::getSpotId(void) const
 	return this->spot_id;
 }
 
-list<SatGw *> SatSpot::getGwList(void) const
+const list<SatGw *> SatSpot::getGwList(void) const
 {
 	return this->sat_gws;
 }
@@ -94,3 +94,70 @@ list<SatGw *> SatSpot::getListGw()
 {
 	return this->sat_gws;
 }
+
+void SatSpot::setFmtSimulation(tal_id_t gw_id, FmtSimulation* new_fmt_simu)
+{
+
+	list<SatGw *>::iterator it;
+
+	for(it = this->sat_gws.begin();
+	    it != this->sat_gws.end(); it++)
+	{
+		if((*it)->getGwId() == gw_id)
+		{
+			(*it)->setFmtSimuSat(new_fmt_simu);
+			return;
+		}
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Gw %d not found\n", gw_id);
+}
+
+bool SatSpot::goFirstScenarioStep(tal_id_t gw_id)
+{
+	list<SatGw *>::iterator it;
+
+	for(it = this->sat_gws.begin();
+	    it != this->sat_gws.end(); it++)
+	{
+		if((*it)->getGwId() == gw_id)
+		{
+			return (*it)->goFirstScenarioStep();
+		}
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Gw %d not found\n", gw_id);
+	return false;
+}
+
+bool SatSpot::goNextScenarioStep(tal_id_t gw_id, bool need_advert, double &duration)
+{
+	list<SatGw *>::iterator it;
+
+	for(it = this->sat_gws.begin();
+	    it != this->sat_gws.end(); it++)
+	{
+		if((*it)->getGwId() == gw_id)
+		{
+			return (*it)->goNextScenarioStep(need_advert, duration);
+		}
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Gw %d not found\n", gw_id);
+	return false;
+}
+
+void SatSpot::print(void)
+{
+	DFLTLOG(LEVEL_ERROR, "spot_id = %d\n", this->spot_id);
+
+	for(list<SatGw *>::iterator it = this->sat_gws.begin();
+	    it != this->sat_gws.end(); it++)
+	{
+		(*it)->print();
+	}
+}
+

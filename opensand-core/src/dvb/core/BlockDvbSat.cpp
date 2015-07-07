@@ -55,6 +55,7 @@
 #include <iostream>
 #include <sstream>
 #include <ios>
+#include <set>
 
 
 typedef struct
@@ -315,7 +316,6 @@ bool BlockDvbSat::initSpots(void)
 	((Upward *)this->upward)->setSpots(this->spots);
 	((Downward *)this->downward)->setSpots(this->spots);
 
-
 	return true;
 
 error:
@@ -361,81 +361,10 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 	this->spots = spots;
 }
 
-bool BlockDvbSat::Downward::onInit()
+
+const FmtDefinitionTable* BlockDvbSat::Downward::getModcodDefinitions(void)
 {
-	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation\n");
-		return false;
-	}
-	if(!this->initDown())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the downward common "
-		    "initialisation\n");
-		return false;
-	}
-
-	this->down_frame_counter = 0;
-
-	// load the modcod files (regenerative satellite only)
-	if(this->satellite_type == REGENERATIVE)
-	{
-		if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-		                          FORWARD_DOWN_MODCOD_TIME_SERIES))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to complete the modcod part of the "
-			    "initialisation\n");
-			return false;
-		}
-		// initialize the MODCOD scheme ID
-		if(!this->fmt_simu.goNextScenarioStep(true))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to initialize downlink MODCOD IDs\n");
-			return false;
-		}
-
-		if(!this->initStList())
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to complete the ST part of the"
-			    "initialisation\n");
-			return false;
-		}
-	}
-
-	if(!this->initSatLink())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of "
-		    "link parameters\n");
-		return false;
-	}
-
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize Output probes ans stats\n");
-		return false;
-	}
-
-	if(!this->initTimers())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize timers\n");
-		return false;
-	}
-
-	return true;
+	return (*this->spots.begin()->second->getGwList().begin())->getModcodDefinitions();
 }
 
 
@@ -621,12 +550,14 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "update modcod table\n");
-				if(!this->fmt_simu.goNextScenarioStep(true))
+				double duration;
+				if(!this->fmt_simu.goNextScenarioStep(true, duration))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to update MODCOD IDs\n");
 					return false;
 				}
+				this->setDuration(this->scenario_timer, duration);
 			}
 			else
 			{
@@ -839,6 +770,90 @@ void BlockDvbSat::Downward::updateStats(void)
 	Output::sendProbes();
 }
 
+
+set<tal_id_t> BlockDvbSat::Downward::getGwIds(void)
+{
+	set<tal_id_t> result;
+	sat_spots_t::iterator it;
+	list<SatGw *>::iterator it2;
+
+	for(it = this->spots.begin();
+	    it != this->spots.end(); it++)
+	{
+		list<SatGw *> list = it->second->getListGw();
+		for(it2 = list.begin();
+		    it2 != list.end(); it2++)
+		{
+			result.insert((*it2)->getGwId());
+		}
+	}
+
+	return result;
+}
+
+
+set<spot_id_t> BlockDvbSat::Downward::getSpotIds(void)
+{
+	set<spot_id_t> result;
+	sat_spots_t::iterator it;
+
+	for(it = this->spots.begin();
+	    it != this->spots.end(); it++)
+	{
+		result.insert(it->second->getSpotId());
+	}
+
+	return result;
+}
+
+void BlockDvbSat::Downward::setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
+                                             FmtSimulation* new_fmt_simu)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it == this->spots.end())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Spot %d not found\n", spot_id);
+	}
+	else
+	{
+		it->second->setFmtSimulation(gw_id, new_fmt_simu);
+	}
+}
+
+
+bool BlockDvbSat::Downward::goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it != this->spots.end())
+	{
+		return it->second->goFirstScenarioStep(gw_id);
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Spot %d not found\n", spot_id);
+
+	return false;
+}
+
+
+bool BlockDvbSat::Downward::goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
+                                               bool need_advert, double &duration)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it != this->spots.end())
+	{
+		return it->second->goNextScenarioStep(gw_id, need_advert, duration);
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Spot %d not found\n", spot_id);
+
+	return false;
+}
 
 
 /*****************************************************************************/

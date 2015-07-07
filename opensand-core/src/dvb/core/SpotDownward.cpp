@@ -154,7 +154,8 @@ bool SpotDownward::initModcodSimu(void)
 {
 	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
 	                          RETURN_UP_MODCOD_TIME_SERIES,
-	                          this->up_ret_fmt_simu))
+	                          this->up_ret_fmt_simu,
+	                          this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD files\n");
@@ -162,7 +163,8 @@ bool SpotDownward::initModcodSimu(void)
 	}
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
 	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          this->down_fwd_fmt_simu))
+	                          this->down_fwd_fmt_simu,
+	                          this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD files\n");
@@ -170,8 +172,8 @@ bool SpotDownward::initModcodSimu(void)
 	}
 
 	// initialize the MODCOD IDs
-	if(!this->down_fwd_fmt_simu.goNextScenarioStep(true) ||
-	   !this->up_ret_fmt_simu.goNextScenarioStep(false))
+	if(!this->down_fwd_fmt_simu.goFirstScenarioStep() ||
+	   !this->up_ret_fmt_simu.goFirstScenarioStep())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize MODCOD scheme IDs\n");
@@ -798,11 +800,18 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	return true;
 }
 
-
-bool SpotDownward::goNextScenarioStep()
+bool SpotDownward::goFirstScenarioStep()
 {
-	return !this->up_ret_fmt_simu.goNextScenarioStep(false) ||
-					   !this->down_fwd_fmt_simu.goNextScenarioStep(true);
+	return !this->up_ret_fmt_simu.goFirstScenarioStep() ||
+	              !this->down_fwd_fmt_simu.goFirstScenarioStep();
+}
+
+
+bool SpotDownward::goNextScenarioStep(double &next_step_up_ret,
+                                      double &next_step_down_fwd)
+{
+	return !this->up_ret_fmt_simu.goNextScenarioStep(false, next_step_up_ret) ||
+	           !this->down_fwd_fmt_simu.goNextScenarioStep(true, next_step_down_fwd);
 }
 
 // TODO create a class for simulation and subclass file/random
@@ -1227,4 +1236,14 @@ event_id_t SpotDownward::getPepCmdApplyTimer(void)
 void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
 {
 	this->pep_cmd_apply_timer = pep_cmd_a_timer;
+}
+
+event_id_t SpotDownward::getModcodTimer(void)
+{
+	return this->modcod_timer;
+}
+
+void SpotDownward::setModcodTimer(event_id_t modcod_timer)
+{
+	this->modcod_timer = modcod_timer;
 }

@@ -97,6 +97,7 @@ bool FmtSimulation::addTerminal(tal_id_t id,
                                 unsigned long simu_column_num)
 {
 	StFmtSimu *new_st;
+	unsigned long column = simu_column_num;
 
 	// check that the list does not already own a ST
 	// with the same identifier
@@ -110,16 +111,17 @@ bool FmtSimulation::addTerminal(tal_id_t id,
 	if(this->is_modcod_simu_defined &&
 	   this->modcod_list.size() <= simu_column_num)
 	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "cannot access modcod  column %lu for ST%u\n",
-		    simu_column_num, id);
-		return false;
+		LOG(this->log_fmt, LEVEL_WARNING,
+		    "cannot access MODCOD column %lu for ST%u\n"
+		    "defaut MODCOD is used\n",
+		    column, id);
+		column = this->modcod_list.size() - 1;
 	}
 	// if scenario are not defined, set less robust modcod at init
 	// in order to authorize any MODCOD
-	new_st = new StFmtSimu(id, simu_column_num,
+	new_st = new StFmtSimu(id, column,
 		this->is_modcod_simu_defined ?
-			atoi(this->modcod_list[simu_column_num].c_str()) :
+			atoi(this->modcod_list[column].c_str()) :
 			this->getMaxModcod());
 	if(new_st == NULL)
 	{
@@ -176,23 +178,60 @@ void FmtSimulation::clear()
 }
 
 
-bool FmtSimulation::goNextScenarioStep(bool need_advert)
+bool FmtSimulation::goFirstScenarioStep()
 {
-	map<tal_id_t, StFmtSimu *>::const_iterator it;
-
 	if(!this->is_modcod_simu_defined)
 	{
 		return true;
 	}
 
 	// read next line of the modcod simulation file
-	if(!this->setList(this->modcod_simu, this->modcod_list))
+	if(!this->setList(this->modcod_simu, this->next_modcod_list, this->next_step))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "failed to get the next line in the MODCOD "
+		    "simulation file\n");
+		return false;
+	}
+
+	// copy in modcod_list
+	for(vector<string>::iterator it = this->next_modcod_list.begin();
+	    it != this->next_modcod_list.end(); it++)
+	{
+		this->modcod_list.push_back(*it);
+	}
+
+	return true;
+}
+
+
+bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator it;
+	double time_current_step = this->next_step;
+	DFLTLOG(LEVEL_ERROR, "current time = %f\n", time_current_step);
+
+	if(!this->is_modcod_simu_defined)
+	{
+		return true;
+	}
+
+	// next_modcod_list is now the current
+	this->modcod_list.swap(this->next_modcod_list);
+	this->next_modcod_list.clear();
+	
+
+	// read next line of the modcod simulation file
+	if(!this->setList(this->modcod_simu, this->next_modcod_list, this->next_step))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "failed to get the next line in the MODCOD "
 		    "simulation file\n");
 		goto error;
 	}
+
+	DFLTLOG(LEVEL_ERROR, "next time = %f\n", this->next_step);
+	duration = (this->next_step - time_current_step) * 1000;
 
 	// update all STs in list
 	for(it = this->sts.begin(); it != this->sts.end(); ++it)
@@ -211,13 +250,16 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert)
 
 		if(this->modcod_list.size() <= column)
 		{
-			LOG(this->log_fmt, LEVEL_ERROR,
-			    "cannot access MODCOD column %lu for ST%u\n",
+			LOG(this->log_fmt, LEVEL_WARNING,
+			    "cannot access MODCOD column %lu for ST%u\n"
+			    "defaut MODCOD is used\n",
 			    column, st_id);
-			goto error;
+			column = this->modcod_list.size() - 1;
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateModcodId(atoi(this->modcod_list[column].c_str()));
+		DFLTLOG(LEVEL_ERROR, "st_id = %u, modcod = %d\n",
+		        st_id, atoi(this->modcod_list[column].c_str()));
 		if(need_advert)
 		{
 			list<tal_id_t>::iterator tal_it;
@@ -468,7 +510,7 @@ void FmtSimulation::setRequiredModcod(tal_id_t id, double cni) const
 
 /**** private methods ****/
 
-bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
+bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list, double &time)
 {
 	std::stringbuf buf;
 	std::stringstream line;
@@ -480,6 +522,15 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 	if(buf.str() != "")
 	{
 		line.str(buf.str());
+		// get the first element of the line (which is time)
+		if(!line.fail())
+		{
+			token.str("");
+			line.get(token, ' ');
+			time = atof(token.str().c_str());
+			line.ignore();
+		}
+
 		// get each element of the line
 		while(!line.fail())
 		{
@@ -493,36 +544,37 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list)
 	// restart from beginning of file when we reach the end of file
 	if(simu_file->eof())
 	{
-		// reset the error flags
-		simu_file->clear();
-		LOG(this->log_fmt, LEVEL_INFO,
-		    "end of simulation file reached, restart at beginning...\n");
-		simu_file->seekg(0, std::ios::beg);
-		if(simu_file->fail())
-		{
-			LOG(this->log_fmt, LEVEL_ERROR,
-			    "Error when going to the begining of the "
-			    "simulation file\n");
-			goto error;
-		}
-		else
-		{
-			buf.str("");
-			// read the first line and get elements
-			simu_file->get(buf);
-			if(buf.str() != "")
-			{
-				line.str(buf.str());
-				// get each element of the line
-				while(!line.fail())
-				{
-					token.str("");
-					line.get(token, ' ');
-					list.push_back(token.str());
-					line.ignore();
-				}
-			}
-		}
+//		// reset the error flags
+//		simu_file->clear();
+//		LOG(this->log_fmt, LEVEL_INFO,
+//		    "end of simulation file reached, restart at beginning...\n");
+//		simu_file->seekg(0, std::ios::beg);
+//		if(simu_file->fail())
+//		{
+//			LOG(this->log_fmt, LEVEL_ERROR,
+//			    "Error when going to the begining of the "
+//			    "simulation file\n");
+//			goto error;
+//		}
+//		else
+//		{
+//			buf.str("");
+//			// read the first line and get elements
+//			simu_file->get(buf);
+//			if(buf.str() != "")
+//			{
+//				line.str(buf.str());
+//				// get each element of the line
+//				while(!line.fail())
+//				{
+//					token.str("");
+//					line.get(token, ' ');
+//					list.push_back(token.str());
+//					line.ignore();
+//				}
+//			}
+//		}
+		return true;
 	}
 
 	// check if getline returned an error
@@ -557,4 +609,20 @@ void FmtSimulation::setModcodAdvertised(tal_id_t tal_id)
 	}
 }
 
+
+void FmtSimulation::print(void)
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator it;
+	for(it = this->sts.begin();
+	    it != this->sts.end(); it++)
+	{
+		DFLTLOG(LEVEL_ERROR, "tal_id = %d = %ld\n",
+		        it->first, it->second->getId());
+	}
+	if(this->sts.begin() == this->sts.end())
+	{
+		DFLTLOG(LEVEL_ERROR, "je suis vide !\n");
+	}
+	this->modcod_def->print();
+}
 

@@ -247,28 +247,46 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
 }
 
-bool DvbChannel::initModcodFiles(const char *def, const char *simu)
+bool DvbChannel::initModcodFiles(const char *def, const char *simu,
+                                 tal_id_t gw_id, spot_id_t spot_id)
 {
-	return this->initModcodFiles(def, simu, this->fmt_simu);
+	return this->initModcodFiles(def, simu, this->fmt_simu, gw_id, spot_id);
 }
 
 
 bool DvbChannel::initModcodFiles(const char *def,
                                  const char *simu,
-                                 FmtSimulation &fmt_simu)
+                                 FmtSimulation &fmt_simu,
+                                 tal_id_t gw_id,
+                                 spot_id_t spot_id)
 {
 	string modcod_simu_file;
 	string modcod_def_file;
+	string modcod_simu_filename;
+	string path;
 
 	// MODCOD simulations and definitions for down/forward link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               simu, modcod_simu_file))
+		               PATH_TO_MODCOD, path))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, PATH_TO_MODCOD);
+		goto error;
+	}
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               simu, modcod_simu_filename))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
 		    PHYSICAL_LAYER_SECTION, simu);
 		goto error;
 	}
+	char gw[21]; // enough to hold all numbers up to 64-bits
+	sprintf(gw, "%d", gw_id);
+	char spot[21]; // enough to hold all numbers up to 64-bits
+	sprintf(spot, "%d", spot_id);
+	modcod_simu_file = path + "gw" + gw + "_spot" + spot + "_" + modcod_simu_filename;
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());

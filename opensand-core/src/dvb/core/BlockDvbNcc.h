@@ -166,12 +166,6 @@ class BlockDvbNcc: public BlockDvb
 		/// frame timer for forward, used to awake the block every frame period
 		event_id_t fwd_timer;
 
-		/// timer used to awake the block every second in order to retrieve
-		/// the current MODCODs
-		/// In regenerative case with physical layer, is it used to send
-		// ACM parameters to satellite
-		event_id_t scenario_timer;
-
 		/// Delay for allocation requests from PEP (in ms)
 		int pep_alloc_delay;
 

@@ -214,6 +214,15 @@ class RtChannel
 	bool startTimer(event_id_t id);
 
 	/**
+	 * @brief set a new duration
+	 *
+	 * @param id  The timer id
+	 * @param new_duration    the new duration
+	 * @return true on success, false otherwise
+	 */
+	bool setDuration(event_id_t id, double new_duration);
+
+	/**
 	 * @brief Trigger a timer immediately
 	 *        In fact, we set the minimum time and start it
 	 *        because there is no way to trigger it manually

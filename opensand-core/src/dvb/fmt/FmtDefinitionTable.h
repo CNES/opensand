@@ -200,6 +200,9 @@ class FmtDefinitionTable
 	 */
 	unsigned int symToKbits(unsigned int id,
 	                        unsigned int val_sym) const;
+
+
+	void print(void); /// For debug
 };
 
 #endif

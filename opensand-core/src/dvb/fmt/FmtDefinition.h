@@ -97,6 +97,8 @@ class FmtDefinition
 	/* get the required Es/N0 ratio of the FMT definition */
 	float getRequiredEsN0() const;
 
+	void print(void); /// For debug
+
 };
 
 #endif

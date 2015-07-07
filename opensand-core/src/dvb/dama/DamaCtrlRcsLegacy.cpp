@@ -536,6 +536,7 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 
 	remaining_capacity_pktpf = carriers->getRemainingCapacity();
 
+	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
 	if(remaining_capacity_pktpf == 0)
 	{
 		LOG(this->log_run_dama, LEVEL_NOTICE,
@@ -564,7 +565,6 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	    "%s remaining capacity = %u packets before VBDC "
 	    "allocation \n", debug.c_str(), remaining_capacity_pktpf);
 
-	tal = category->getTerminalsInCarriersGroup<TerminalContextDamaRcs>(carrier_id);
 	// sort terminal according to their VBDC requests
 	std::stable_sort(tal.begin(), tal.end(),
 	                 TerminalContextDamaRcs::sortByVbdcReq);

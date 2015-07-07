@@ -136,7 +136,8 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 
 	// init fmt_simu
 	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-				RETURN_UP_MODCOD_TIME_SERIES))
+				RETURN_UP_MODCOD_TIME_SERIES,
+				this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 				"failed to initialize the up/return MODCOD files\n");
@@ -370,7 +371,8 @@ bool SpotUpwardTransp::checkIfScpc()
 
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
 	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          scpc_fmt_simu))
+	                          scpc_fmt_simu,
+	                          this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");
