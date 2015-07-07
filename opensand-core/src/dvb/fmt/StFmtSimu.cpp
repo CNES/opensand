@@ -42,9 +42,6 @@ StFmtSimu::StFmtSimu(long id,
 	this->current_modcod_id = modcod_id;
 	this->previous_modcod_id = this->current_modcod_id;
 
-	// do not advertise at startup because for physical layer scenario we do not
-	// want advertisment
-	this->is_current_modcod_advertised = true;
 }
 
 
@@ -72,16 +69,10 @@ uint8_t StFmtSimu::getCurrentModcodId() const
 	return this->current_modcod_id;
 }
 
-void StFmtSimu::updateModcodId(uint8_t new_id, bool advertise)
+void StFmtSimu::updateModcodId(uint8_t new_id)
 {
 	this->previous_modcod_id = this->current_modcod_id;
 	this->current_modcod_id = new_id;
-
-	// mark the MODCOD as not advertised yet if the MODCOD changed (for down/forward)
-	if(this->current_modcod_id != this->previous_modcod_id && advertise)
-	{
-		this->is_current_modcod_advertised = false;
-	}
 }
 
 
@@ -94,18 +85,4 @@ uint8_t StFmtSimu::getPreviousModcodId() const
 	}
 	return this->previous_modcod_id;
 }
-
-
-bool StFmtSimu::isCurrentModcodAdvertised() const
-{
-	return this->is_current_modcod_advertised;
-}
-
-
-void StFmtSimu::setModcodAdvertised(void)
-{
-	this->is_current_modcod_advertised = true;
-}
-
-
 

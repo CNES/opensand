@@ -132,7 +132,7 @@ bool SatSpot::goFirstScenarioStep(tal_id_t gw_id)
 	return false;
 }
 
-bool SatSpot::goNextScenarioStep(tal_id_t gw_id, bool need_advert, double &duration)
+bool SatSpot::goNextScenarioStep(tal_id_t gw_id, double &duration)
 {
 	list<SatGw *>::iterator it;
 
@@ -141,7 +141,7 @@ bool SatSpot::goNextScenarioStep(tal_id_t gw_id, bool need_advert, double &durat
 	{
 		if((*it)->getGwId() == gw_id)
 		{
-			return (*it)->goNextScenarioStep(need_advert, duration);
+			return (*it)->goNextScenarioStep(duration);
 		}
 	}
 

@@ -297,12 +297,10 @@ class SatGw
 	 * @brief Go to next step in adaptive physical layer scenario
 	 *        Update current MODCODs IDs of all STs in the list
 	 *
-	 * @param need_advert  Whether this is a down/forward MODCOD that will need
-	 *                     advertisment process
 	 * @param duration     duration before the next step
 	 * @return true on success, false otherwise
 	 */
-	bool goNextScenarioStep(bool need_advert, double &duration);
+	bool goNextScenarioStep(double &duration);
 
 	/**
 	 * @brief Get the MODCOD definitions

@@ -789,8 +789,8 @@ bool SpotDownward::goFirstScenarioStep()
 bool SpotDownward::goNextScenarioStep(double &next_step)
 {
 	double next_step2;
-	return !this->up_ret_fmt_simu.goNextScenarioStep(false, next_step2) ||
-	           !this->down_fwd_fmt_simu.goNextScenarioStep(true, next_step);
+	return !this->up_ret_fmt_simu.goNextScenarioStep(next_step2) ||
+	           !this->down_fwd_fmt_simu.goNextScenarioStep(next_step);
 }
 
 // TODO create a class for simulation and subclass file/random

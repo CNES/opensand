@@ -56,12 +56,6 @@ class StFmtSimu
 	/** The previous MODCOD ID of the ST (for down/forward) */
 	uint8_t previous_modcod_id;
 
-	/**
-	 * Whether the current MODCOD ID was advertised to the ST
-	 * over the emulated satellite network (for down/forward)
-	 */
-	bool is_current_modcod_advertised;
-
  public:
 
 	/**** constructor/destructor ****/
@@ -109,11 +103,8 @@ class StFmtSimu
 	 * @brief Update the MODCOD ID of the ST
 	 *
 	 * @param new_id     the new MODCOD ID of the ST
-	 * @param advertise  whether we should set advertise if the MODCOD changed
-	 *                   (for down/forward)
 	 */
-	void updateModcodId(uint8_t new_id, bool advertise=true);
-	// TODO advertise false by default
+	void updateModcodId(uint8_t new_id);
 
 	/**
 	 * @brief Get the previous MODCOD ID of the ST (for down/forward)
@@ -121,19 +112,6 @@ class StFmtSimu
 	 * @return  the previous MODCOD ID of the ST
 	 */
 	uint8_t getPreviousModcodId() const;
-
-	/**
-	 * @brief Was the current MODCOD ID advertised to the ST (for down/forward) ?
-	 *
-	 * @return  true if the current MODCOD ID was already advertised to the ST,
-	 *          false if it was not advertised yet
-	 */
-	bool isCurrentModcodAdvertised() const;
-
-	/**
-	 * @brief Set the MODCOD ID avertised for the ST (for down/forward) 
-	 */
-	void setModcodAdvertised(void);
 
 };
 

@@ -551,7 +551,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "update modcod table\n");
 				double duration;
-				if(!this->fmt_simu.goNextScenarioStep(true, duration))
+				if(!this->fmt_simu.goNextScenarioStep(duration))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to update MODCOD IDs\n");
@@ -840,13 +840,13 @@ bool BlockDvbSat::Downward::goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_i
 
 
 bool BlockDvbSat::Downward::goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-                                               bool need_advert, double &duration)
+                                               double &duration)
 {
 	sat_spots_t::iterator it = this->spots.find(spot_id);
 
 	if(it != this->spots.end())
 	{
-		return it->second->goNextScenarioStep(gw_id, need_advert, duration);
+		return it->second->goNextScenarioStep(gw_id, duration);
 	}
 
 	LOG(this->log_init, LEVEL_ERROR,

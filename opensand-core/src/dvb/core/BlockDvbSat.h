@@ -273,13 +273,10 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @param spot_id      the id of the spot
 		 * @param gw_id        the id of the gw
-		 * @param need_advert  Whether this is a down/forward MODCOD that will need
-		 *                     advertisment process
 		 * @param duration     duration before the next step
 		 * @return true on success, false otherwise
 		 */
 		bool goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-		                        bool need_advert,
 		                        double &duration);
 
 		/// the counter for downlink frames

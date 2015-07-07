@@ -95,8 +95,6 @@ class FmtSimulation
 	/** time of the next MODCOD change */
 	double next_step;
 
-	/** A list of terminal to advertise MODCOD (for down/forward) */
-	list<tal_id_t> need_advertise;
 
  protected:
 
@@ -156,21 +154,10 @@ class FmtSimulation
 	 * @brief Go to next step in adaptive physical layer scenario
 	 *        Update current MODCODs IDs of all STs in the list.
 	 *
-	 * @param need_advert  Whether this is a down/forward MODCOD that will need
-	 *                     advertisment process
 	 * @param duration     the duration before the next_step
 	 * @return true on success, false otherwise
 	 */
-	bool goNextScenarioStep(bool need_advert, double &duration);
-
-	/**
-	 * @brief Was the current MODCOD IDs of all the STs advertised
-	 *        over the emulated network (for down/forward) ?
-	 *
-	 * @return  true if the current MODCOD IDs of all the STs are already
-	 *          advertised, false if they were not yet
-	 */
-	bool areCurrentModcodsAdvertised();
+	bool goNextScenarioStep(double &duration);
 
 	/**
 	 * @brief Set definition file for MODCOD
@@ -217,27 +204,6 @@ class FmtSimulation
 	uint8_t getMaxModcod() const;
 
 	/**
-	 * @brief Was the current MODCOD ID of the ST whose ID
-	 *        is given as input  advertised over the emulated network
-	 *        (for down/forward) ?
-	 *
-	 * @return  true if the MODCOD ID was already advertised,
-	 *          false if it was not advertised yet
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	bool isCurrentModcodAdvertised(tal_id_t id) const;
-
-	/**
-	 * @brief Get the next terminal to advertise (for down/forward)
-	 *
-	 * @param tal_id     OUT: The ID of the terminal to advertise
-	 * @param modcod_id  OUT: The MODCOD ID for temrinal advertisement
-	 * @return true if there ise a terminal to advertise, false otherwise
-	 */
-	bool getNextModcodToAdvertise(tal_id_t &id, uint8_t &modcod_id);
-
-	/**
 	 * @brief Get the terminal ID for wich the used MODCOD is the lower
 	 *        (for down/forward)
 	 *
@@ -269,18 +235,9 @@ class FmtSimulation
 	 * @brief Update the current MODCOD IDs of all STs
 	 *        from MODCOD simulation file
 	 *
-	 * @param need_advert  Whether this is a down/forward MODCOD that will need
-	 *                     advertisment process
 	 * @return true on success, false on failure
 	 */
-	bool goNextScenarioStepModcod(bool need_advert=false);
-
-	/**
-	 * @brief Set the advertised for terminal (for down/forward)
-	 *
-	 * @param tal_id  The terminal ID
-	 */
-	void setModcodAdvertised(tal_id_t tal_id);
+	bool goNextScenarioStepModcod();
 
 	/**
 	 * @brief Read a line of a simulation file and fill the MODCOD list

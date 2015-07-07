@@ -66,8 +66,7 @@ inline bool fileExists(const string &filename)
 FmtSimulation::FmtSimulation():
 	sts(),
 	modcod_simu(NULL),
-	is_modcod_simu_defined(false),
-	need_advertise()
+	is_modcod_simu_defined(false)
 {
 	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Simulation");
 	this->modcod_def = new FmtDefinitionTable();
@@ -204,7 +203,7 @@ bool FmtSimulation::goFirstScenarioStep()
 }
 
 
-bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
+bool FmtSimulation::goNextScenarioStep(double &duration)
 {
 	map<tal_id_t, StFmtSimu *>::const_iterator it;
 	double time_current_step = this->next_step;
@@ -255,18 +254,6 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateModcodId(atoi(this->modcod_list[column].c_str()));
-		if(need_advert)
-		{
-			list<tal_id_t>::iterator tal_it;
-			tal_it = std::find(this->need_advertise.begin(),
-			                   this->need_advertise.end(), st_id);
-			// add the terminal ID in le list of not advertised terminal if necessary
-			if(!st->isCurrentModcodAdvertised() &&
-			   tal_it == this->need_advertise.end())
-			{
-				this->need_advertise.push_back(st_id);
-			}
-		}
 
 		LOG(this->log_fmt, LEVEL_DEBUG,
 		    "new MODCOD ID of ST with ID %u = %u\n", st_id,
@@ -278,26 +265,6 @@ bool FmtSimulation::goNextScenarioStep(bool need_advert, double &duration)
 error:
 	return false;
 }
-
-
-bool FmtSimulation::areCurrentModcodsAdvertised()
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator it;
-	bool all_advertised = true;
-
-	// check if the MODCOD ID of each ST is advertised or not
-	for(it = this->sts.begin(); it != this->sts.end(); ++it)
-	{
-		all_advertised &= it->second->isCurrentModcodAdvertised();
-	}
-	if(all_advertised)
-	{
-		// clear in case this was not
-		this->need_advertise.clear();
-	}
-	return all_advertised;
-}
-
 
 
 bool FmtSimulation::setModcodDef(const string &filename)
@@ -362,29 +329,12 @@ tal_id_t FmtSimulation::getTalIdWithLowerModcod() const
 	uint8_t lower_modcod_id = 0;
 	tal_id_t tal_id;
 	tal_id_t lower_tal_id = 255;
-	bool advertised_modcod;
 
 	for(st_iterator = this->sts.begin(); st_iterator != this->sts.end();
 	    ++st_iterator)
 	{
 		// Retrieve the lower modcod
 		tal_id = st_iterator->first;
-
-		// retrieve the current MODCOD for the ST and whether
-		// it changed or not
-		advertised_modcod = !this->isCurrentModcodAdvertised(tal_id);
-		if(!advertised_modcod)
-		{
-			modcod_id = this->getCurrentModcodId(tal_id);
-		}
-		else
-		{
-			modcod_id = this->getPreviousModcodId(tal_id);
-		}
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "MODCOD for ST ID %u = %u (changed = %s)\n",
-		    tal_id, modcod_id,
-		    advertised_modcod ? "yes" : "no");
 
 		if((st_iterator == this->sts.begin()) || (modcod_id < lower_modcod_id))
 		{
@@ -422,32 +372,6 @@ uint8_t FmtSimulation::getPreviousModcodId(tal_id_t id) const
 	}
 	return 0;
 
-}
-
-
-bool FmtSimulation::isCurrentModcodAdvertised(tal_id_t id) const
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
-	st_iter = this->sts.find(id);
-	if(st_iter != this->sts.end())
-	{
-		return (*st_iter).second->isCurrentModcodAdvertised();
-	}
-	return false;
-}
-
-
-bool FmtSimulation::getNextModcodToAdvertise(tal_id_t &tal_id, uint8_t &modcod_id)
-{
-	if(this->need_advertise.size() == 0)
-	{
-		return false;
-	}
-	tal_id = this->need_advertise.front();
-	this->need_advertise.pop_front();
-	modcod_id = this->getCurrentModcodId(tal_id);
-	this->setModcodAdvertised(tal_id);
-	return true;
 }
 
 
@@ -579,17 +503,6 @@ bool FmtSimulation::setList(ifstream *simu_file, vector<string> &list, double &t
 
 error:
 	return false;
-}
-
-
-void FmtSimulation::setModcodAdvertised(tal_id_t tal_id)
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
-	st_iter = this->sts.find(tal_id);
-	if(st_iter != this->sts.end())
-	{
-		(*st_iter).second->setModcodAdvertised();
-	}
 }
 
 

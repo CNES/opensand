@@ -390,9 +390,9 @@ bool SatGw::goFirstScenarioStep()
 	return this->fmt_simu_sat->goFirstScenarioStep();
 }
 
-bool SatGw::goNextScenarioStep(bool need_advert, double &duration)
+bool SatGw::goNextScenarioStep(double &duration)
 {
-	return this->fmt_simu_sat->goNextScenarioStep(need_advert, duration);
+	return this->fmt_simu_sat->goNextScenarioStep(duration);
 }
 
 const FmtDefinitionTable* SatGw::getModcodDefinitions(void)

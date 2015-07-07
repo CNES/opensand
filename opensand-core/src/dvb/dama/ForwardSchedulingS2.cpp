@@ -818,8 +818,6 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
                                                 const time_sf_t current_superframe_sf,
                                                 unsigned int &modcod_id)
 {
-	bool is_advertised;
-
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
 	if(!this->fwd_fmt_simu->doTerminalExist(tal_id))
@@ -830,17 +828,6 @@ bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
 		goto error;
 	}
 	modcod_id = this->fwd_fmt_simu->getCurrentModcodId(tal_id);
-	is_advertised = this->fwd_fmt_simu->isCurrentModcodAdvertised(tal_id);
-	if(!is_advertised)
-	{
-		// send the most robust MODCOD if not advertised
-		modcod_id = std::min(this->fwd_fmt_simu->getCurrentModcodId(tal_id),
-		                     this->fwd_fmt_simu->getPreviousModcodId(tal_id));
-	}
-
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "SF#%u: MODCOD for ST ID %u = %u (changed = %s)\n",
-	    current_superframe_sf, tal_id, modcod_id, is_advertised ? "no" : "yes");
 
 	return true;
 
@@ -992,29 +979,6 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 		    "size %u symbols\n", current_superframe_sf, remaining_capacity_sym,
 		    bbframe_size_sym);
 		return status_full;
-	}
-
-	// check if some terminals need to be advertised
-	if(!this->fwd_fmt_simu->areCurrentModcodsAdvertised())
-	{
-		// we can create up to MAX_MODCOD_OPTIONS, if we need more, they
-		// will be advertised in next BBFrame
-		for(unsigned int i = 0; i < MAX_MODCOD_OPTIONS; i++)
-		{
-			tal_id_t tal_id;
-			uint8_t modcod;
-			if(!this->fwd_fmt_simu->getNextModcodToAdvertise(tal_id, modcod))
-			{
-				LOG(this->log_scheduling, LEVEL_INFO,
-				    "SF#%u: %u MODCOD advertised\n",
-				    current_superframe_sf, i);
-				break;
-			}
-			bbframe->addModcodOption(tal_id, modcod);
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: Advertise MODCOD for terminal %u\n",
-			    current_superframe_sf, tal_id);
-		}
 	}
 
 	// we can send the BBFrame

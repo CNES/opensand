@@ -115,12 +115,10 @@ class SatSpot
 	 *        For the appropriate Gw.
 	 *
 	 * @param gw_id        the id of the gw
-	 * @param need_advert  Whether this is a down/forward MODCOD that will need
-	 *                     advertisment process
 	 * @param duration     duration before the next step
 	 * @return true on success, false otherwise
 	 */
-	bool goNextScenarioStep(tal_id_t gw_id, bool need_advert, double &duration);
+	bool goNextScenarioStep(tal_id_t gw_id, double &duration);
 
 	const list<SatGw *> getGwList(void) const;
 	
