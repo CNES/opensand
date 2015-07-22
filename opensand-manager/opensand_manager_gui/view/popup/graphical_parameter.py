@@ -313,12 +313,8 @@ class GraphicalParameter(WindowView):
         ra = self._list_carrier[id_carrier-1].get_str_ratio()
         
         self._list_carrier.append(Carrier(sr, nb, g, ac, fmt_grp, md, ra))
-        self.clear_carrier_interface()
         
-        carrier_id = 1
-        for element in self._list_carrier:
-            self.create_carrier_interface(element, carrier_id)
-            carrier_id += 1
+        self.create_carrier_interface(self._list_carrier[-1], self._nb_carrier)
 
         self.trace()
     
