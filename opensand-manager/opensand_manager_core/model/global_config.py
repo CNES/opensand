@@ -58,11 +58,13 @@ class GlobalConfig(AdvancedHostModel):
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
+        self._scenario = scenario
 
     def load(self, scenario):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario
+        self._scenario = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
@@ -94,6 +96,9 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
+
+    def cancel(self):
+        self.load(self._scenario)
 
     def save(self):
         """ save the configuration """

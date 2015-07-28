@@ -845,114 +845,6 @@ of Carrier</property>
       </widget>
     </child>
   </widget>
-  <widget class="GtkDialog" id="edit_spot_dialog">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="border_width">5</property>
-    <property name="title" translatable="yes">Edit spot id - OpenSAND Manager</property>
-    <property name="window_position">center</property>
-    <property name="type_hint">normal</property>
-    <signal name="delete_event" handler="on_edit_spot_id_delete_event" />
-    <child internal-child="vbox">
-      <widget class="GtkVBox" id="dialog-vbox7">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <child internal-child="action_area">
-          <widget class="GtkHButtonBox" id="dialog-action_area7">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <widget class="GtkButton" id="cancel_spot_id">
-                <property name="label">gtk-cancel</property>
-                <property name="response_id">1</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="can_default">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
-                <property name="image_position">right</property>
-                <signal name="clicked" handler="on_cancel_spot_id_clicked" />
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkButton" id="ok_spot_id">
-                <property name="label">gtk-ok</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="can_default">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_ok_spot_id_clicked" />
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkHBox" id="hbox1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <widget class="GtkLabel" id="spot_id">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="xalign">0</property>
-                <property name="label" translatable="yes">  Spot id</property>
-                <accessibility>
-                  <atkproperty name="AtkObject::accessible-name" translatable="yes">run</atkproperty>
-                </accessibility>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">5</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEntry" id="entry_spot">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">●</property>
-                <property name="primary_icon_activatable">False</property>
-                <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
-              </widget>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">False</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </widget>
-    </child>
-  </widget>
   <widget class="GtkWindow" id="progress_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Progress</property>
@@ -2333,13 +2225,13 @@ This is the name used when loading probes.</property>
                                     <property name="can_focus">False</property>
                                     <property name="spacing">2</property>
                                     <child>
-                                      <widget class="GtkButton" id="add_spot">
-                                        <property name="label" translatable="yes">add spot</property>
+                                      <widget class="GtkButton" id="manage_spot_gw">
+                                        <property name="label" translatable="yes">st assignement</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="use_action_appearance">False</property>
-                                        <signal name="clicked" handler="on_add_spot_clicked" />
+                                        <signal name="clicked" handler="on_add_spot_gw_assignement_clicked" />
                                       </widget>
                                       <packing>
                                         <property name="expand">True</property>
@@ -2348,20 +2240,7 @@ This is the name used when loading probes.</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkButton" id="remove_spot">
-                                        <property name="label" translatable="yes">remove spot</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
-                                        <property name="use_action_appearance">False</property>
-                                        <signal name="clicked" handler="on_remove_spot_clicked" />
-                                      </widget>
-                                      <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">False</property>
-                                        <property name="pack_type">end</property>
-                                        <property name="position">1</property>
-                                      </packing>
+                                      <placeholder/>
                                     </child>
                                   </widget>
                                 </child>
@@ -2371,7 +2250,7 @@ This is the name used when loading probes.</property>
                               <widget class="GtkLabel" id="label7">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">&lt;b&gt;spot manager&lt;/b&gt;</property>
+                                <property name="label" translatable="yes">&lt;b&gt;spot and gw manager&lt;/b&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>

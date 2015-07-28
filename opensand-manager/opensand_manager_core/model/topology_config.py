@@ -55,6 +55,7 @@ class TopologyConfig(AdvancedHostModel):
         self._last_gw = ""
         self._log = manager_log
         self._modules = []
+        self._scenario = scenario
         AdvancedHostModel.__init__(self, TOPOLOGY, scenario)
 
     def load(self, scenario):
@@ -62,6 +63,7 @@ class TopologyConfig(AdvancedHostModel):
         
         # create the host configuration directory
         conf_path = scenario
+        self._scenario = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
@@ -101,7 +103,11 @@ class TopologyConfig(AdvancedHostModel):
             if host.startswith(GW) or host.startswith(ST) or host.startswith(WS):
                 instance = host[2::]
             self.add(host, instance, self._list_host[host])
+   
     
+    def cancel(self):
+        self.load(self._scenario)
+
     def write(self, conf):
         self._configuration.write(conf)
 

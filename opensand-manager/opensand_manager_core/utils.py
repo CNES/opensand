@@ -117,6 +117,10 @@ PATH_ETERNET  = "/configuration/sarp/ethernet"
 PATH_TERM_V4  = "/configuration/sarp/ipv4/terminal_v4"
 PATH_TERM_V6  = "/configuration/sarp/ipv4/terminal_v6"
 PATH_TERM_ETH = "/configuration/sarp/ipv4/terminal_eth"
+PATH_DEFAULT_SPOT = "/configuration/spot_table/default_spot"
+PATH_SPOT = "/configuration/spot_table"
+PATH_DEFAULT_GW = "/configuration/gw_table/default_gw"
+PATH_GW = "/configuration/gw_table"
 
 def get_conf_xpath(element, link = '', spot_id = 0, gw_id = 1):
     path = ""
