@@ -69,8 +69,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	up_return_pkt_hdl(NULL),
 	fwd_fmt_groups(),
 	ret_fmt_groups(),
-	up_ret_fmt_simu(),
-	down_fwd_fmt_simu(),
 	cni(100),
 	pep_cmd_apply_timer(),
 	event_file(NULL),
@@ -146,92 +144,6 @@ SpotDownward::~SpotDownward()
 	this->dvb_fifos.clear();
 
 	this->terminal_affectation.clear();
-}
-
-
-bool SpotDownward::initModcodSimu(void)
-{
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-	                          RETURN_UP_MODCOD_TIME_SERIES,
-	                          this->up_ret_fmt_simu,
-	                          this->mac_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD files\n");
-		return false;
-	}
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          this->down_fwd_fmt_simu,
-	                          this->mac_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD files\n");
-		return false;
-	}
-
-	// initialize the MODCOD IDs
-	if(!this->down_fwd_fmt_simu.goFirstScenarioStep() ||
-	   !this->up_ret_fmt_simu.goFirstScenarioStep())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize MODCOD scheme IDs\n");
-		return false;
-	}
-
-	return true;
-}
-
-// TODO completely rework columns and fmt_simu and take spots into account !!!
-//      Moreover, for broadcast, in S2Scheduling, we get a MODCOD that can
-//      be decoded by all STs, we should limit the STs to the one belonging
-//      to the spot
-bool SpotDownward::initColumns(void)
-{
-	int i = 0;
-	ConfigurationList columns;
-	ConfigurationList::iterator iter;
-
-	// Get the list of STs
-	if(!Conf::getListItems(Conf::section_map[SAT_SIMU_COL_SECTION],
-		                   COLUMN_LIST, columns))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': problem retrieving simulation "
-		    "column list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
-		goto error;
-	}
-
-	for(iter = columns.begin(); iter != columns.end(); ++iter)
-	{
-		i++;
-		uint16_t tal_id;
-
-		// Get the Tal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", TAL_ID, i);
-			goto error;
-		}
-	}
-
-
-	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->up_ret_fmt_simu.addTerminal(this->mac_id) ||
-	   !this->down_fwd_fmt_simu.addTerminal(this->mac_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to define the GW as ST with ID %d\n",
-		    this->mac_id);
-		goto error;
-	}
-
-	return true;
-
-error:
-	return false;
 }
 
 
@@ -717,21 +629,6 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 {
 	uint16_t mac = logon_req->getMac();
 
-	// handle ST for FMT simulation
-	if(!this->up_ret_fmt_simu.doTerminalExist(mac) &&
-	   !this->down_fwd_fmt_simu.doTerminalExist(mac))
-	{
-		// ST was not registered yet
-		if(!this->up_ret_fmt_simu.addTerminal(mac) ||
-		   !this->down_fwd_fmt_simu.addTerminal(mac))
-		{
-			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "failed to handle FMT for ST %u, "
-			    "won't send logon response\n", mac);
-			return false;
-		}
-	}
-
 	// Inform the Dama controller (for its own context)
 	if(this->dama_ctrl && !this->dama_ctrl->hereIsLogon(logon_req))
 	{
@@ -757,8 +654,15 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	Logoff *logoff = (Logoff *)dvb_frame;
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->up_ret_fmt_simu.delTerminal(logoff->getMac()) ||
-	   !this->down_fwd_fmt_simu.delTerminal(logoff->getMac()))
+	if(!this->delTerminalInput(logoff->getMac(), this->mac_id, this->spot_id))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to delete the ST with ID %d from FMT simulation\n",
+		    logoff->getMac());
+		delete dvb_frame;
+		return false;
+	}
+	if(!this->delTerminalOutput(logoff->getMac(), this->mac_id, this->spot_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
@@ -779,19 +683,6 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	return true;
 }
 
-bool SpotDownward::goFirstScenarioStep()
-{
-	return !this->up_ret_fmt_simu.goFirstScenarioStep() ||
-	              !this->down_fwd_fmt_simu.goFirstScenarioStep();
-}
-
-
-bool SpotDownward::goNextScenarioStep(double &next_step)
-{
-	double next_step2;
-	return !this->up_ret_fmt_simu.goNextScenarioStep(next_step2) ||
-	           !this->down_fwd_fmt_simu.goNextScenarioStep(next_step);
-}
 
 // TODO create a class for simulation and subclass file/random
 bool SpotDownward::simulateFile(void)
@@ -879,22 +770,25 @@ bool SpotDownward::simulateFile(void)
 			                                               st_rt,
 			                                               st_rbdc,
 			                                               st_vbdc);
-			bool ret = false;
 
 			LOG(this->log_request_simulation, LEVEL_INFO,
 			    "SF#%u: send a simulated logon for ST %d\n",
 			    this->super_frame_counter, st_id);
 			// check for column in FMT simulation list
-			ret = this->up_ret_fmt_simu.addTerminal(st_id) ||
-			      this->down_fwd_fmt_simu.addTerminal(st_id);
-			if(!ret)
+			if(!this->addTerminalInput(st_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC "
 				    "ID %u\n", st_id);
 				goto error;
 			}
-
+			if(!this->addTerminalOutput(st_id, this->mac_id, this->spot_id))
+			{
+				LOG(this->log_request_simulation, LEVEL_ERROR,
+				    "failed to register simulated ST with MAC "
+				    "ID %u\n", st_id);
+				goto error;
+			}
 			if(!this->dama_ctrl->hereIsLogon(sim_logon_req))
 			{
 				goto error;
@@ -971,12 +865,16 @@ bool SpotDownward::simulateRandom(void)
 			LogonRequest *sim_logon_req = new LogonRequest(tal_id, this->simu_rt,
 			                                               this->simu_max_rbdc,
 			                                               this->simu_max_vbdc);
-			bool ret = false;
 
 			// check for column in FMT simulation list
-			ret = this->up_ret_fmt_simu.addTerminal(tal_id) ||
-			      this->down_fwd_fmt_simu.addTerminal(tal_id);
-			if(!ret)
+			if(!this->addTerminalInput(tal_id, this->mac_id, this->spot_id))
+			{
+				LOG(this->log_request_simulation, LEVEL_ERROR,
+				    "failed to register simulated ST with MAC"
+				    " ID %u\n", tal_id);
+				return false;
+			}
+			if(!this->addTerminalOutput(tal_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC"
@@ -1193,12 +1091,28 @@ void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
 	this->pep_cmd_apply_timer = pep_cmd_a_timer;
 }
 
-event_id_t SpotDownward::getModcodTimer(void)
+event_id_t SpotDownward::getAcmTimer(void)
 {
-	return this->modcod_timer;
+	return this->acm_timer;
 }
 
-void SpotDownward::setModcodTimer(event_id_t modcod_timer)
+void SpotDownward::setAcmTimer(event_id_t new_acm_timer)
 {
-	this->modcod_timer = modcod_timer;
+	this->acm_timer = new_acm_timer;
 }
+
+bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
+{
+	Sac *sac = (Sac *)dvb_frame;
+
+	if(!this->dama_ctrl->hereIsSAC(sac))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to handle SAC frame\n");
+		delete dvb_frame;
+		return false;
+	}
+
+	return true;
+}
+

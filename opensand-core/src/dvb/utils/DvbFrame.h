@@ -130,6 +130,7 @@ class DvbFrameTpl: public NetContainer
 		this->data.reserve(this->max_size);
 		this->trailer_length = this->getTotalLength() - this->getMessageLength();
 		this->header_length = sizeof(T);
+		this->spot = frame->getSpot();
 	};
 
 	/**

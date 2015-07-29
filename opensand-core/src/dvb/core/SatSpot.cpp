@@ -73,9 +73,9 @@ const list<SatGw *> SatSpot::getGwList(void) const
 	return this->sat_gws;
 }
 
-SatGw* SatSpot::getGw(tal_id_t gw_id)
+SatGw* SatSpot::getGw(tal_id_t gw_id) const
 {
-	list<SatGw *>::iterator iter;
+	list<SatGw *>::const_iterator iter;
 
 	for(iter = this->sat_gws.begin() ; iter != this->sat_gws.end() ;
 	    ++iter)
@@ -90,14 +90,13 @@ SatGw* SatSpot::getGw(tal_id_t gw_id)
 }
 
 
-list<SatGw *> SatSpot::getListGw()
+list<SatGw *> SatSpot::getListGw() const
 {
 	return this->sat_gws;
 }
 
 void SatSpot::setFmtSimulation(tal_id_t gw_id, FmtSimulation* new_fmt_simu)
 {
-
 	list<SatGw *>::iterator it;
 
 	for(it = this->sat_gws.begin();
@@ -113,6 +112,7 @@ void SatSpot::setFmtSimulation(tal_id_t gw_id, FmtSimulation* new_fmt_simu)
 	LOG(this->log_init, LEVEL_ERROR,
 	    "Gw %d not found\n", gw_id);
 }
+
 
 bool SatSpot::goFirstScenarioStep(tal_id_t gw_id)
 {

@@ -51,21 +51,6 @@ SpotUpwardRegen::SpotUpwardRegen(spot_id_t spot_id,
 
 SpotUpwardRegen::~SpotUpwardRegen()
 {
-	if(this->saloha)
-		delete this->saloha;
-
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
-	if(this->reception_std)
-		delete this->reception_std;
-	if(this->reception_std_scpc)
-		delete this->reception_std_scpc;
 }
 
 
@@ -87,6 +72,16 @@ bool SpotUpwardRegen::onInit(void)
 		    "initialisation\n");
 		goto error;
 	}
+
+	// Get and open the files
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation\n");
+		return false;
+	}
+
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -131,16 +126,6 @@ bool SpotUpwardRegen::initSlottedAloha(void)
 	TerminalCategorySaloha *sa_default_category;
 	ConfigurationList current_spot;
 
-	// init fmt_simu
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-				RETURN_UP_MODCOD_TIME_SERIES,
-				this->mac_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-				"failed to initialize the up/return MODCOD files\n");
-		return false;
-	}
-
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
 		                      NO_GW, current_spot))
 	{
@@ -155,7 +140,7 @@ bool SpotUpwardRegen::initSlottedAloha(void)
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           this->fmt_simu.getModcodDefinitions(),
+	                                           &this->output_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
 	                                           &sa_default_category,
@@ -177,6 +162,59 @@ bool SpotUpwardRegen::initSlottedAloha(void)
 	    "is regenerative\n");
 	return false;
 
+}
+
+
+bool SpotUpwardRegen::initModcodSimu(void)
+{
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->input_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->output_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the uplink MODCOD file\n");
+		return false;
+	}
+
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                          this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the downlink MODCOD files\n");
+		return false;
+	}
+
+	// initialize the MODCOD IDs
+	if(!this->fmt_simu.goFirstScenarioStep())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MODCOD scheme IDs\n");
+		return false;
+	}
+
+	// declare the GW as one ST for the MODCOD scenarios
+	if(!this->addTerminalInput(this->mac_id, this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to define the GW as ST with ID %d\n",
+		    this->mac_id);
+		return false;
+	}
+	if(!this->addTerminalOutput(this->mac_id, this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to define the GW as ST with ID %d\n",
+		    this->mac_id);
+		return false;
+	}
+
+	return true;
 }
 
 

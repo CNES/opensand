@@ -205,6 +205,7 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 *
 	 * @return the CNI value
 	 */
+	//TODO add a marge which must be configurable from manager
 	double getCni() const;
 
 	/// The log for sac

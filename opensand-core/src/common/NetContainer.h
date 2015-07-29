@@ -50,6 +50,8 @@ using std::string;
 /**
  * @class NetContainer
  * @brief Network data container
+ * @warning change the copy constructor when you add
+ *          a attribut  @ref DvbFrameTpl and @ref NetPacket
  */
 class NetContainer
 {

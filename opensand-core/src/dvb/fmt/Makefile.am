@@ -5,7 +5,7 @@ libopensand_dvb_fmt_la_cpp = \
 	FmtDefinitionTable.cpp \
 	StFmtSimu.cpp \
 	FmtSimulation.cpp
-       
+
 libopensand_dvb_fmt_la_h = \
 	FmtDefinition.h \
 	FmtDefinitionTable.h \

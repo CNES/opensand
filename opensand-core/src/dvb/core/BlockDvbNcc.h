@@ -76,6 +76,8 @@ class BlockDvbNcc: public BlockDvb
 
 	~BlockDvbNcc();
 
+	bool initListsSts();
+
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
@@ -172,6 +174,14 @@ class BlockDvbNcc: public BlockDvb
 		// Frame interval
 		Probe<float> *probe_frame_interval;
 	};
+
+ protected:
+
+	/// The list of Sts with forward/down modcod
+	StFmtSimuList* output_sts;
+
+	/// The list of Sts with return/up modcod
+	StFmtSimuList* input_sts;
 };
 
 #endif

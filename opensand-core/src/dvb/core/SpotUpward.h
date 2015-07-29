@@ -96,6 +96,26 @@ class SpotUpward: public DvbChannel
 		// statistics update
 		void updateStats(void);
 
+		void setModcodTimer(event_id_t new_modcod_timer);
+		event_id_t getModcodTimer(void);
+
+		/**
+		 * @brief  handle a SAC frame
+		 *
+		 * @param dvb_frame The SAC frame
+		 * @return true on success, false otherwise
+		 */
+		bool handleSac(const DvbFrame *dvb_frame);
+
+		/**
+		 * @brief  Getter to spot_id
+		 *
+		 * @return spot_id
+		 */
+		uint8_t getSpotId(void)
+		{
+			return this->spot_id;
+		}
 
 	protected:
 		
@@ -112,7 +132,7 @@ class SpotUpward: public DvbChannel
 		 * @return  true on success, false otherwise
 		 */
 		virtual bool initSlottedAloha(void) = 0;
-		
+
 		/**
 		 * @brief Initialize the statistics
 		 *
@@ -120,13 +140,20 @@ class SpotUpward: public DvbChannel
 		 */
 		virtual bool initOutput(void) = 0;
 
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		virtual bool initModcodSimu(void) = 0;
+
 		/// Spot Id
 		uint8_t spot_id;
-		
+
 		/// Gw tal id
 		uint8_t mac_id;
-		
-		/// reception standard (DVB-RCS or DVB-S2)      
+
+		/// reception standard (DVB-RCS or DVB-S2)
 		PhysicStd *reception_std; 
 
 		/// reception standard for SCPC
@@ -140,6 +167,12 @@ class SpotUpward: public DvbChannel
 
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
+
+		/// timer used to awake the block in order to retrieve
+		/// the current MODCODs
+		/// In regenerative case with physical layer, is it used to send
+		// ACM parameters to satellite
+		event_id_t modcod_timer;
 
 		// Output probes and stats
 		// Rates

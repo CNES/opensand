@@ -66,14 +66,6 @@ class SpotDownwardTransp: public SpotDownward
 		bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
 
 		/**
-		 * @brief  handle a SAC frame
-		 *
-		 * @param dvb_frame The SAC frame
-		 * @return true on success, false otherwise
-		 */
-		bool handleSac(const DvbFrame *dvb_frame);
-
-		/**
 		 * @brief handle Corrupted Dvb Frame
 		 *
 		 * @param dvb_frame the Dvb Frame corrupted
@@ -104,12 +96,6 @@ class SpotDownwardTransp: public SpotDownward
 		 * @return  true on success, false otherwise
 		 */
 		bool initOutput(void);
-
-		/** Read configuration for the request simulation
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initRequestSimulation(void);
 
 };
 

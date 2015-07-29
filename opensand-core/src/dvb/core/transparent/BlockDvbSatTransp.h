@@ -108,6 +108,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		
 		/**
 		 * Handle Sac
+		 * This fonction is never called in Transparent mode
 		 * 
 		 * @return true on success, false otherwise
 		 */ 

@@ -92,15 +92,22 @@ bool SpotDownwardTransp::onInit(void)
 		goto release_dama;
 	}
 
-	// Get and open the files
-	if(!this->initModcodSimu())
+	// Initialization of the modcod def
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
+		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-	
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->input_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
+		return false;
+	}
+
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -119,15 +126,6 @@ bool SpotDownwardTransp::onInit(void)
 	}
 
 	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	// initialize the column ID for FMT simulation
-	if(!this->initColumns())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the columns ID for FMT "
-		    "simulation\n");
-		goto release_dama;
-	}
 
 	if(!this->initRequestSimulation())
 	{
@@ -192,11 +190,11 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 	if(!this->initBand<TerminalCategoryDama>(current_gw,
-		                                     FORWARD_DOWN_BAND,
+	                                         FORWARD_DOWN_BAND,
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->down_fwd_fmt_simu.getModcodDefinitions(),
+	                                         &this->output_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -223,10 +221,12 @@ bool SpotDownwardTransp::initMode(void)
 	}
 
 	cat = this->categories.begin()->second;
+	ListSts* list = this->output_sts->getListSts(this->mac_id, this->spot_id);
 	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
 	                                           this->pkt_hdl,
 	                                           this->dvb_fifos,
-	                                           &this->down_fwd_fmt_simu,
+	                                           list,
+	                                           &this->output_modcod_def,
 	                                           cat, this->spot_id,
 	                                           true, this->mac_id, "");
 
@@ -254,6 +254,7 @@ bool SpotDownwardTransp::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
+	ListSts* list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -316,11 +317,11 @@ bool SpotDownwardTransp::initDama(void)
 		return false;
 	}
 	if(!this->initBand<TerminalCategoryDama>(current_gw,
-		                                     RETURN_UP_BAND,
+	                                         RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->up_ret_fmt_simu.getModcodDefinitions(),
+	                                         &this->input_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
 	                                         &dc_default_category,
@@ -374,6 +375,7 @@ bool SpotDownwardTransp::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
+	list = this->input_sts->getListSts(this->mac_id, this->spot_id);
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -382,7 +384,8 @@ bool SpotDownwardTransp::initDama(void)
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                &this->up_ret_fmt_simu,
+	                                list,
+	                                &this->input_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{
@@ -459,164 +462,6 @@ bool SpotDownwardTransp::initOutput(void)
 	return true;
 }
 
-bool SpotDownwardTransp::initRequestSimulation(void)
-{
-
-	ConfigurationList dvb_ncc_section = Conf::section_map[DVB_NCC_SECTION];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
-
-	if(!Conf::getListNode(dvb_ncc_section, SPOT_LIST, spots))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, DVB_NCC_SECTION);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		return false;
-	}
-
-	string str_config;
-
-	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
-	// Get and open the event file
-	if(!Conf::getValue(current_spot, DVB_EVENT_FILE, str_config))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_EVENT_FILE, DVB_NCC_SECTION);
-		return false;
-	}
-	if(str_config != "none" && this->with_phy_layer)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot use simulated request with physical layer "
-		    "because we need to add cni parameters in SAC (TBD!)\n");
-		return false;
-	}
-
-	if(str_config ==  "stdout")
-	{
-		this->event_file = stdout;
-	}
-	else if(str_config == "stderr")
-	{
-		this->event_file = stderr;
-	}
-	else if(str_config != "none")
-	{
-		this->event_file = fopen(str_config.c_str(), "a");
-		if(this->event_file == NULL)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
-		}
-	}
-	if(this->event_file == NULL && str_config != "none")
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "no record file will be used for event\n");
-	}
-	else if(this->event_file != NULL)
-	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "events recorded in %s.\n", str_config.c_str());
-	}
-
-	// Get and set simulation parameter
-	this->simulate = none_simu;
-	if(!Conf::getValue(current_spot, DVB_SIMU_MODE, str_config))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_SIMU_MODE, DVB_NCC_SECTION);
-		return false;
-	}
-
-	// TODO for stdin use FileEvent for simu_timer ?
-	if(str_config == "file")
-	{
-		if(!Conf::getValue(current_spot, DVB_SIMU_FILE, str_config))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_FILE, DVB_NCC_SECTION);
-			return false;
-		}
-		if(str_config == "stdin")
-		{
-			this->simu_file = stdin;
-		}
-		else
-		{
-			this->simu_file = fopen(str_config.c_str(), "r");
-		}
-		if(this->simu_file == NULL && str_config != "none")
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "no simulation file will be used.\n");
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_NOTICE,
-			    "events simulated from %s.\n",
-			    str_config.c_str());
-			this->simulate = file_simu;
-		}
-	}
-	else if(str_config == "random")
-	{
-		int val;
-
-		if(!Conf::getValue(current_spot, DVB_SIMU_RANDOM, str_config))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-            return false;
-		}
-		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld:%ld:%ld",
-		             &this->simu_st, &this->simu_rt, &this->simu_max_rbdc,
-		             &this->simu_max_vbdc, &this->simu_cr, &this->simu_interval);
-		if(val < 4)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-			return false;
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_NOTICE,
-			    "random events simulated for %ld terminals with "
-			    "%ld kb/s bandwidth, %ld kb/s max RBDC, "
-			    "%ld kb max VBDC, a mean request of %ld kb/s "
-			    "and a request amplitude of %ld kb/s)i\n",
-			    this->simu_st, this->simu_rt, this->simu_max_rbdc,
-			    this->simu_max_vbdc, this->simu_cr,
-			    this->simu_interval);
-		}
-		this->simulate = random_simu;
-		srandom(times(NULL));
-	}
-	else
-	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "no event simulation\n");
-	}
-
-	return true;
-}
-
 
 bool SpotDownwardTransp::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 {
@@ -658,43 +503,14 @@ bool SpotDownwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
 	                          tal_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
-				"unable to read source terminal ID in"
-				" frame, won't be able to update C/N"
-				" vailue\n");
-		return false;
-	}
-	else
-	{
-		this->up_ret_fmt_simu.setRequiredModcod(tal_id,
-				curr_cni);
-	}
-	return true;
-}
-
-bool SpotDownwardTransp::handleSac(const DvbFrame *dvb_frame)
-{
-	Sac *sac = (Sac *)dvb_frame;
-
-	LOG(this->log_receive_channel, LEVEL_DEBUG,
-			"handle received SAC\n");
-
-	if(!this->dama_ctrl->hereIsSAC(sac))
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-				"failed to handle SAC frame\n");
-		delete dvb_frame;
+		    "unable to read source terminal ID in"
+		    " frame, won't be able to update C/N"
+		    " value\n");
 		return false;
 	}
 
-	if(this->with_phy_layer)
-	{
-		// transparent : the C/N0 of forward link
-		// regenerative : the C/N0 of uplink (updated by sat)
-		double cni = sac->getCni();
-		tal_id_t tal_id = sac->getTerminalId();
-		this->down_fwd_fmt_simu.setRequiredModcod(tal_id,
-		                                          cni);
-	}
+	this->setRequiredModcodInput(tal_id, curr_cni);
+
 	return true;
 }
 

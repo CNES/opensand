@@ -80,14 +80,6 @@ class SpotDownwardRegen: public SpotDownward
 		 */
 		bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
 
-		/**
-		 * @brief  handle a SAC frame
-		 *
-		 * @param dvb_frame The SAC frame
-		 * @return true on success, false otherwise
-		 */
-		bool handleSac(const DvbFrame *dvb_frame);
-
 	protected:
 
 		

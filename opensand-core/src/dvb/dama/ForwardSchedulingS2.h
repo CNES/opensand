@@ -41,6 +41,7 @@
 
 #include "BBFrame.h"
 #include "FmtSimulation.h"
+#include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
 
 
@@ -65,7 +66,8 @@ class ForwardSchedulingS2: public Scheduling
 	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	                    const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    FmtSimulation *const fwd_fmt_simu,
+	                    map<tal_id_t, StFmtSimu *> *const fwd_sts,
+	                    FmtDefinitionTable *const fwd_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    spot_id_t spot,
 	                    bool is_gw,
@@ -95,7 +97,10 @@ class ForwardSchedulingS2: public Scheduling
 	list<BBFrame *> pending_bbframes;
 
 	/** The FMT simulated data */
-	FmtSimulation *fwd_fmt_simu;
+	map<tal_id_t, StFmtSimu *> *fwd_sts;
+
+	/** The FMT Definition Table associed */
+	FmtDefinitionTable *fwd_modcod_def;
 
 	/** The terminal category */
 	const TerminalCategoryDama *category;
@@ -124,6 +129,14 @@ class ForwardSchedulingS2: public Scheduling
 	                          CarriersGroupDama *carriers);
 
 	/**
+	 * @brief Get the terminal ID for wich the used MODCOD is the lower
+	 *        (for down/forward)
+	 *
+	 * @return terminal ID (should be positive, return -1 (255) if an error occurs)
+	 */
+	tal_id_t getTalIdWithLowerModcod() const;
+
+	/**
 	 * @brief Get the current modcod of a terminal
 	 *
 	 * @param tal_id    the terminal id
@@ -134,6 +147,17 @@ class ForwardSchedulingS2: public Scheduling
 	bool retrieveCurrentModcod(tal_id_t tal_id,
 	                           const time_sf_t current_superframe_sf,
 	                           unsigned int &modcod_id);
+
+	/**
+	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the ST
+	 * @return    the current MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	uint8_t getCurrentModcodId(tal_id_t id) const;
+
 
 	/**
 	 * @brief Create an incomplete BB frame

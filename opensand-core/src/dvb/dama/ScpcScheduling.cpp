@@ -89,6 +89,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                const EncapPlugin::EncapPacketHandler *packet_handler,
                                const fifos_t &fifos,
                                FmtSimulation *const scpc_fmt_simu,
+                               FmtDefinitionTable *const scpc_modcod_def,
                                const TerminalCategoryDama *const category):
 	Scheduling(packet_handler, fifos),
 	scpc_timer_ms(scpc_timer_ms),
@@ -96,6 +97,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
 	scpc_fmt_simu(scpc_fmt_simu),
+	scpc_modcod_def(scpc_modcod_def),
 	category(category)
 {
 	vector<CarriersGroupDama *> carriers_group;
@@ -337,11 +339,9 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		// get remain in Kbits/s instead of symbols if possible
 		if((*carrier_it)->getFmtIds().size() == 1)
 		{
-			const FmtDefinitionTable *modcod_def;
-			modcod_def = this->scpc_fmt_simu->getModcodDefinitions();
-			remain = modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+			remain = this->scpc_modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
 			                                 remain);
-			avail = modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+			avail = this->scpc_modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
 			                               avail);
 			// we get kbits per frame, convert in kbits/s
 			remain = remain * 1000 / this->scpc_timer_ms;
@@ -690,19 +690,16 @@ bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
                                        const time_sf_t current_superframe_sf,
                                        vol_sym_t &bbframe_size_sym)
 {
-	const FmtDefinitionTable *modcod_def;
 	float spectral_efficiency;
 
-	modcod_def = this->scpc_fmt_simu->getModcodDefinitions();
-
-	if(!modcod_def->doFmtIdExist(modcod_id))
+	if(!this->scpc_modcod_def->doFmtIdExist(modcod_id))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to found the definition of MODCOD ID %u\n",
 		    current_superframe_sf, modcod_id);
 		goto error;
 	}
-	spectral_efficiency = modcod_def->getSpectralEfficiency(modcod_id);
+	spectral_efficiency = this->scpc_modcod_def->getSpectralEfficiency(modcod_id);
 
 	// duration is calculated over the complete BBFrame size, the BBFrame data
 	// size represents the payload without coding
@@ -722,11 +719,9 @@ unsigned int ScpcScheduling::getBBFrameSizeBytes(unsigned int modcod_id)
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
 	string coding_rate;
-	const FmtDefinitionTable *modcod_def;
-	modcod_def = this->scpc_fmt_simu->getModcodDefinitions();
 
 	// get the payload size
-	coding_rate = modcod_def->getCodingRate(modcod_id);
+	coding_rate = this->scpc_modcod_def->getCodingRate(modcod_id);
 	bbframe_size_bytes = getPayloadSize(coding_rate);
 
 	return bbframe_size_bytes;

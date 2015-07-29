@@ -63,16 +63,58 @@
 
 
 BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
-	BlockDvb(name)
+	BlockDvb(name),
+	output_sts(NULL),
+	input_sts(NULL)
 {
 }
 
 BlockDvbNcc::~BlockDvbNcc()
 {
+	map<tal_id_t, StFmtSimu *>::iterator it;
+
+	if(this->output_sts != NULL)
+	{
+		delete this->output_sts;
+	}
+
+	if(this->input_sts != NULL)
+	{
+		delete this->input_sts;
+	}
 }
 
 bool BlockDvbNcc::onInit(void)
 {
+	if(!this->initListsSts())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to initialize the lists of Sts\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool BlockDvbNcc::initListsSts()
+{
+	this->input_sts = new StFmtSimuList();
+	if(this->input_sts == NULL)
+	{
+		return false;
+	}
+	this->output_sts = new StFmtSimuList();
+	if(this->output_sts == NULL)
+	{
+		return false;
+	}
+
+	((Upward *)this->upward)->setOutputSts(this->output_sts);
+	((Upward *)this->upward)->setInputSts(this->input_sts);
+	((Downward *)this->downward)->setOutputSts(this->output_sts);
+	((Downward *)this->downward)->setInputSts(this->input_sts);
+
 	return true;
 }
 
@@ -116,6 +158,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	const char *scheme;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
+	// TODO initSatType is done in initCommon too
 	if(!this->initSatType())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -176,6 +219,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                             this->pkt_hdl,
 			                             this->with_phy_layer);
 		}
+		spot->setOutputSts(this->output_sts);
+		spot->setInputSts(this->input_sts);
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
 	}
@@ -188,13 +233,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
-	{
-		SpotDownward *spot;
-		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-		this->raiseTimer(spot->getModcodTimer());
-	}
+
 
 	// listen for connections from external PEP components
 	if(!this->initPepSocket())
@@ -217,13 +256,27 @@ bool BlockDvbNcc::Downward::onInit(void)
 bool BlockDvbNcc::Downward::initTimers(void)
 {
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-	
+	int acm_period_refresh;
+
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
 	this->frame_timer = this->addTimerEvent("frame",
 	                                        this->ret_up_frame_duration_ms);
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                      this->fwd_down_frame_duration_ms);
+
+
+	// read the pep allocation delay
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], ACM_PERIOD_REFRESH,
+	                   acm_period_refresh))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		return false;
+	}
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "acm_period_refresh set to %d ms\n", acm_period_refresh);
 
 
 	// read the pep allocation delay
@@ -237,8 +290,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
+
 	// create timer
-	
 	for(spot_iter = this->spots.begin(); 
 		spot_iter != this->spots.end(); ++spot_iter)
 	{
@@ -255,16 +308,10 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		                                              false, // no rearm
 		                                              false // do not start
 		                                              ));
-
-		// Launch the timer in order to retrieve the modcods if there is no physical layer
-		// or to send SAC with ACM parameters in regenerative mode
-		if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
+		if(this->satellite_type == REGENERATIVE)
 		{
-			spot->setModcodTimer(this->addTimerEvent("scenario",
-			                                         5000, // the duration will be change when started
-			                                         false, // no rearm
-			                                         false // do not start
-			                                         ));
+			spot->setAcmTimer(this->addTimerEvent("send_acm_param",
+			                                      acm_period_refresh));
 		}
 	}
 
@@ -487,7 +534,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					    "Error when getting spot\n");
 					return false;
 				}
-				
+
 				if(*event == this->frame_timer)
 				{
 					// send Start Of Frame
@@ -503,6 +550,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						// do not quit if this fail in one spot
 						continue;
 					}
+
+					// Update Fmt here for TTP
+					spot->updateFmt();
 
 					// send TTP computed by DAMA
 					this->sendTTP(spot);
@@ -528,44 +578,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 				}
-				else if(*event == spot->getModcodTimer())
+				else if(*event == spot->getAcmTimer())
 				{
-					// if regenerative satellite and physical layer scenario,
-					// send ACM parameters
-					if(this->satellite_type == REGENERATIVE &&
-					   this->with_phy_layer)
+					// if regenerative satellite, send ACM parameters
+					if(this->satellite_type == REGENERATIVE)
 					{
 						this->sendAcmParameters(spot);
-					}
-
-					// it's time to update MODCOD IDs
-					LOG(this->log_receive, LEVEL_DEBUG,
-					    "MODCOD scenario timer received\n");
-					
-					double duration;
-					if(spot->goNextScenarioStep(duration))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u: failed to update MODCOD IDs\n",
-						    this->super_frame_counter);
-					}
-					else
-					{
-						LOG(this->log_receive, LEVEL_DEBUG,
-						    "SF#%u: MODCOD IDs successfully updated\n",
-						    this->super_frame_counter);
-					}
-					spot->updateFmt();
-					if(duration <= 0)
-					{
-						// we hare reach the end of the file (of it is malformed)
-						// so we keep the modcod as they are
-						this->removeEvent(spot->getModcodTimer());
-					}
-					else
-					{
-						this->setDuration(spot->getModcodTimer(), duration);
-						this->startTimer(spot->getModcodTimer());
 					}
 				}
 				else if(*event == spot->getPepCmdApplyTimer())
@@ -811,10 +829,22 @@ release:
 
 bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 {
+	double cni;
+
+	DFLTLOG(LEVEL_ERROR, "%s\n", this->with_phy_layer ? "true" : "false");
+	if(this->with_phy_layer)
+	{
+		cni = spot_downward->getCni();
+	}
+	else
+	{
+		cni = spot_downward->getCurrentModcodIdInput(this->mac_id);
+	}
+
 	Sac *send_sac = new Sac(this->mac_id);
-	send_sac->setAcm(spot_downward->getCni());
+	send_sac->setAcm(cni);
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "Send SAC with CNI = %.2f\n", spot_downward->getCni());
+	    "Send SAC with CNI = %.2f\n", cni);
 
 	// Send message
 	if(!this->sendDvbFrame((DvbFrame *)send_sac,
@@ -855,14 +885,14 @@ bool BlockDvbNcc::Upward::onInit(void)
 {
 	bool result = true;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-	
+
 	if(!this->initSatType())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed get satellite type\n");
 		return false;
 	}
-	
+
 	if(!this->initSpots())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -870,14 +900,25 @@ bool BlockDvbNcc::Upward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-	
+
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ENABLE,
+	                   this->with_phy_layer))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, ENABLE);
+		return false;
+	}
+
 	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		spot_id_t spot_id = (*spot_iter).first;
 		SpotUpward *spot;
 		if(this->satellite_type == TRANSPARENT)
-		{	
+		{
 			spot = new SpotUpwardTransp(spot_id, this->mac_id);
 		}
 		else
@@ -887,10 +928,22 @@ bool BlockDvbNcc::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 
+		spot->setInputSts(this->input_sts);
+		spot->setOutputSts(this->output_sts);
 		(*spot_iter).second = spot;
 
 		result &= spot->onInit();
 
+		// Launch the timer in order to retrieve the modcods if there is no physical layer
+		if(!this->with_phy_layer)
+		{
+			spot->setModcodTimer(this->addTimerEvent("scenario",
+			                                         5000, // the duration will be change when started
+			                                         false, // no rearm
+			                                         false // do not start
+			                                         ));
+			this->raiseTimer(spot->getModcodTimer());
+		}
 	}
 
 	if(result)
@@ -954,17 +1007,19 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_DVB_BURST:
 				case MSG_TYPE_CORRUPTED:
 				{
-					NetBurst *burst = NULL;
-					if(!spot->handleFrame(dvb_frame, &burst))
-					{
-						return false;
-					}
-
 					// Transmit frame to opposite block for physical layer
 					// C/N0 updates
 					if(this->with_phy_layer)
 					{
-						this->shareFrame(dvb_frame);
+						// copy because dvb_frame is delete in handleFrame
+						DvbFrame* copy = new DvbFrame(dvb_frame);
+						this->shareFrame(copy);
+					}
+
+					NetBurst *burst = NULL;
+					if(!spot->handleFrame(dvb_frame, &burst))
+					{
+						return false;
 					}
 
 					// send the message to the upper layer
@@ -981,6 +1036,10 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				break;
 
 				case MSG_TYPE_SAC:
+					if(!spot->handleSac(dvb_frame))
+					{
+						return false;
+					}
 					if(!this->shareFrame(dvb_frame))
 					{
 						return false;
@@ -1089,6 +1148,56 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 			}
 
 		}
+		case evt_timer:
+		{
+			map<spot_id_t, DvbChannel *>::iterator spot_iter;
+
+			for(spot_iter = this->spots.begin();
+			    spot_iter != this->spots.end(); ++spot_iter)
+			{
+				SpotUpward *spot;
+				spot = dynamic_cast<SpotUpward *>((*spot_iter).second);
+				if(!spot)
+				{
+					LOG(this->log_receive, LEVEL_WARNING,
+					    "Error when getting spot\n");
+					return false;
+				}
+
+				if(*event == spot->getModcodTimer())
+				{
+					// it's time to update MODCOD IDs
+					LOG(this->log_receive, LEVEL_DEBUG,
+					    "MODCOD scenario timer received\n");
+
+					double duration;
+					if(!spot->goNextScenarioStepInput(duration, this->mac_id, spot->getSpotId()))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "SF#%u: failed to update MODCOD IDs\n",
+						    this->super_frame_counter);
+					}
+					else
+					{
+						LOG(this->log_receive, LEVEL_DEBUG,
+						    "SF#%u: MODCOD IDs successfully updated\n",
+						    this->super_frame_counter);
+					}
+					if(duration <= 0)
+					{
+						// we hare reach the end of the file (or it is malformed)
+						// so we keep the modcod as they are
+						this->removeEvent(spot->getModcodTimer());
+					}
+					else
+					{
+						this->setDuration(spot->getModcodTimer(), duration);
+						this->startTimer(spot->getModcodTimer());
+					}
+				}
+			}
+		}
+	
 		break;
 
 		default:

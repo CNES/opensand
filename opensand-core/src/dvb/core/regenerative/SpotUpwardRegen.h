@@ -90,7 +90,14 @@ class SpotUpwardRegen: public SpotUpward
 
 
 	protected:
-		
+
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
+
 		/**
 		 * @brief Initialize the transmission mode
 		 *

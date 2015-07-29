@@ -228,7 +228,7 @@ inline void tokenize(const string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(cn * 100); // we take two digits in decimal part
+	int16_t tmp_cn = (int16_t)(round(cn * 100)); // we take two digits in decimal part
 	uint32_t new_cn = htonl((uint32_t)tmp_cn);
 	return new_cn;
 };

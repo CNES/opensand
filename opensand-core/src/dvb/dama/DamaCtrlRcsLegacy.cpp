@@ -273,12 +273,10 @@ bool DamaCtrlRcsLegacy::resetDama()
 			CarriersGroupDama *carriers = *carrier_it;
 			vol_kb_t remaining_capacity_kb;
 			rate_pktpf_t remaining_capacity_pktpf;
-			const FmtDefinitionTable *modcod_def = 
-					this->ret_fmt_simu->getModcodDefinitions();
 			// we have only one MODCOD for each carrier so we can convert
 			// directly from bauds to kbits
 			remaining_capacity_kb =
-				modcod_def->symToKbits(carriers->getFmtIds().front(),
+				this->input_modcod_def->symToKbits(carriers->getFmtIds().front(),
 				                       carriers->getTotalCapacity());
 			// as this function is called each superframe we can directly
 			// convert number of packet to rate in packet per superframe

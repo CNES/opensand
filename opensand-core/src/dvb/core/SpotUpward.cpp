@@ -112,6 +112,26 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 		}
 	}
 
+	// handle ST for FMT simulation
+	if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
+	{
+		// ST was not registered yet
+		if(!this->addTerminalInput(mac, this->mac_id, this->spot_id))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
+			return false;
+		}
+		if(!this->addTerminalOutput(mac, this->mac_id, this->spot_id))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
+			return false;
+		}
+	}
+
 	// send the corresponding event
 	Output::sendEvent(this->event_logon_req,
 	                  "Logon request received from %u",
@@ -133,6 +153,7 @@ void SpotUpward::updateStats(void)
 	// Send probes
 	Output::sendProbes();
 }
+
 
 bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
                                 list<DvbFrame *>* &ack_frames,
@@ -188,4 +209,30 @@ bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *frame)
 	return true;
 }
 
+
+event_id_t SpotUpward::getModcodTimer(void)
+{
+	return this->modcod_timer;
+}
+
+void SpotUpward::setModcodTimer(event_id_t modcod_timer)
+{
+	this->modcod_timer = modcod_timer;
+}
+
+bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
+{
+	Sac *sac = (Sac *)dvb_frame;
+
+	LOG(this->log_receive_channel, LEVEL_DEBUG,
+	    "handle received SAC\n");
+
+	// transparent : the C/N0 of forward link
+	// regenerative : the C/N0 of uplink (updated by sat)
+	double cni = sac->getCni();
+	tal_id_t tal_id = sac->getTerminalId();
+	this->setRequiredModcodOutput(tal_id, cni);
+
+	return true;
+}
 

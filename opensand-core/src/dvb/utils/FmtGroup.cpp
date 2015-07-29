@@ -61,20 +61,20 @@ FmtGroup::FmtGroup(unsigned int group_id,
 
 unsigned int FmtGroup::getNearest(unsigned int fmt_id) const
 {
-	list<unsigned int>::const_reverse_iterator it;
+	list<FmtId>::const_reverse_iterator it; 
+	FmtId desired_fmt(fmt_id, this->modcod_def->getRequiredEsN0(fmt_id));
 	// FMT IDs are sorted from more to less robust
-	for(it = this->num_fmt_ids.rbegin();
-		it != this->num_fmt_ids.rend();
-		++it)
+	for(it = this->fmt_ids.rbegin();
+	    it != this->fmt_ids.rend();
+	    ++it)
 	{
-		if((*it) <= fmt_id)
+		if((*it) <= desired_fmt)
 		{
-			return (*it);
+			return (*it).id;
 		}
 	}
 	return 0;
 };
-
 
 void FmtGroup::parse(string ids)
 {

@@ -50,7 +50,7 @@ FmtDefinition::FmtDefinition(const unsigned int id,
                              const string modulation,
                              const string coding_rate,
                              const float spectral_efficiency,
-                             const float required_Es_N0):
+                             const double required_Es_N0):
 	id(id),
 	coding_rate(coding_rate),
 	spectral_efficiency(spectral_efficiency),
@@ -70,6 +70,15 @@ FmtDefinition::FmtDefinition(const unsigned int id,
 		this->modulation = MODULATION_32APSK;
 	else
 		this->modulation = MODULATION_UNKNOWN;
+}
+
+FmtDefinition::FmtDefinition(const FmtDefinition &fmt_def)
+{
+	this->id = fmt_def.getId();
+	this->coding_rate = fmt_def.getCodingRate();
+	this->spectral_efficiency = fmt_def.getSpectralEfficiency();
+	this->required_Es_N0 = fmt_def.getRequiredEsN0();
+	this->modulation = fmt_def.getModulation();
 }
 
 
@@ -131,7 +140,7 @@ float FmtDefinition::getSpectralEfficiency() const
  *
  * @return  the required Es/N0 ratio of the FMT
  */
-float FmtDefinition::getRequiredEsN0() const
+double FmtDefinition::getRequiredEsN0() const
 {
 	return this->required_Es_N0;
 }

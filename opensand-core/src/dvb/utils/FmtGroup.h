@@ -167,6 +167,36 @@ class FmtId
         return (this->id != id);
     }  
 
+	/// operator <= used to compare two FmtId
+	bool operator<=(const FmtId &id) const
+	{
+		return (this->es_n0 <= id.es_n0);
+	}
+
+	/// operator > used to compare two FmtId
+	bool operator>(const FmtId &id) const
+	{
+		return (this->es_n0 > id.es_n0);
+	}
+
+	/// operator >= used to compare two FmtId
+	bool operator>=(const FmtId &id) const
+	{
+		return (this->es_n0 >= id.es_n0);
+	}
+
+	/// operator == used to compare two FmtId
+	bool operator==(const FmtId &id) const
+	{
+		return (this->es_n0 == id.es_n0);
+	}
+
+	/// operator != used to compare two FmtId
+	bool operator!=(const FmtId &id) const
+	{
+		return (this->es_n0 != id.es_n0);
+	}
+
 	/// The FMT ID
 	unsigned int id;
 

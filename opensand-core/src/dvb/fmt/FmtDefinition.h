@@ -63,7 +63,7 @@ class FmtDefinition
 	float spectral_efficiency;
 
 	/** The required carrier to noise ratio */
-	float required_Es_N0;
+	double required_Es_N0;
 
  public:
 
@@ -74,7 +74,10 @@ class FmtDefinition
 	              const string modulation,
 	              const string coding_rate,
 	              const float spectral_efficiency,
-	              const float required_Es_N0);
+	              const double required_Es_N0);
+
+	/* constructor by copy */
+	FmtDefinition(const FmtDefinition &fmt_def);
 
 	/* destroy a FMT definition */
 	~FmtDefinition();
@@ -95,7 +98,7 @@ class FmtDefinition
 	float getSpectralEfficiency() const;
 
 	/* get the required Es/N0 ratio of the FMT definition */
-	float getRequiredEsN0() const;
+	double getRequiredEsN0() const;
 
 	void print(void); /// For debug
 

@@ -41,6 +41,7 @@
 #include "TerminalContextDama.h"
 #include "TerminalCategoryDama.h"
 #include "FmtSimulation.h"
+#include "StFmtSimu.h"
 #include "PepRequest.h"
 #include "UnitConverter.h"
 #include "OpenSandFrames.h"
@@ -69,6 +70,13 @@ class DamaCtrl
 	DamaCtrl( spot_id_t spot);
 	virtual ~DamaCtrl();
 
+	/**
+	 * @brief Get the input modcod definition
+	 *
+	 * @return the input modcod definition
+	 */
+	FmtDefinitionTable* getInputModcodDef(void);
+
 	// Initialization
 	/**
 	 * @brief  Initialize DAMA controller
@@ -82,7 +90,8 @@ class DamaCtrl
 	 * @param   terminal_affectation    mapping of terminal Id <-> category
 	 * @param   default_category        default category for non-affected
 	 *                                  terminals
-	 * @param   ret_fmt_simu            The list of simulated up/return FMT
+	 * @param   input_sts               The list of Sts with modcod information for input
+	 * @param   input_modcod_def        The MODCOD definition table for input link
 	 * @param   simulated               Whether there is simulated requests
 	 * @return  true on success, false otherwise.
 	 */
@@ -94,7 +103,8 @@ class DamaCtrl
 	                        TerminalCategories<TerminalCategoryDama> categories,
 	                        TerminalMapping<TerminalCategoryDama> terminal_affectation,
 	                        TerminalCategoryDama *default_category,
-	                        FmtSimulation *const ret_fmt_simu,
+	                        map<tal_id_t, StFmtSimu *> *const input_sts,
+	                        FmtDefinitionTable *const input_modcod_def,
 	                        bool simulated);
 
 	// Protocol frames processing
@@ -269,8 +279,11 @@ class DamaCtrl
 	 */
 	TerminalCategoryDama *default_category;
 
-	/** FMT simulation information for up/return link */
-	FmtSimulation *ret_fmt_simu;
+	/** list of Sts with modcod informations for input link */
+	map<tal_id_t, StFmtSimu *> *input_sts;
+
+	/** Fmt Definition table for input link */
+	FmtDefinitionTable *input_modcod_def;
 
 	/** Roll-off factor */
 	double roll_off;

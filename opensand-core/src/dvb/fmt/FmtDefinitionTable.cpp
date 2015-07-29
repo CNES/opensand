@@ -72,6 +72,28 @@ FmtDefinitionTable::FmtDefinitionTable():
 	                                    "Dvb.Fmt.DefinitionTable");
 }
 
+/**
+ * @brief Constructor by copy
+ */
+FmtDefinitionTable::FmtDefinitionTable(const FmtDefinitionTable &fmt_def_tab):
+	definitions()
+{
+	map<unsigned int, FmtDefinition *>::iterator it;
+	map<unsigned int, FmtDefinition *> map_to_copy;
+
+	map_to_copy = fmt_def_tab.getDefinitions();
+
+	for(it = map_to_copy.begin(); it != map_to_copy.end(); it++)
+	{
+		FmtDefinition* fmt_def = new FmtDefinition(*(it->second));
+		this->definitions.insert(std::make_pair(it->first, fmt_def));
+	}
+
+	// Output Log
+	this->log_fmt = Output::registerLog(LEVEL_WARNING,
+	                                    "Dvb.Fmt.DefinitionTable");
+}
+
 
 /**
  * @brief Destroy a table of FMT definitions
@@ -188,7 +210,7 @@ bool FmtDefinitionTable::load(const string filename)
 			string modulation;
 			string coding_rate;
 			float spectral_efficiency;
-			float required_es_n0;
+			double required_es_n0;
 			int ret;
 
 			// convert the string token to integer
@@ -286,7 +308,7 @@ bool FmtDefinitionTable::add(const unsigned int id,
                              const string modulation,
                              const string coding_rate,
                              const float spectral_efficiency,
-                             const float required_Es_N0)
+                             const double required_Es_N0)
 {
 	FmtDefinition *new_def;
 
@@ -332,6 +354,12 @@ void FmtDefinitionTable::clear()
 }
 
 
+map<unsigned int, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
+{
+	return this->definitions;
+}
+
+
 modulation_type_t FmtDefinitionTable::getModulation(unsigned int id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
@@ -365,7 +393,7 @@ float FmtDefinitionTable::getSpectralEfficiency(unsigned int id) const
 }
 
 
-float FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
+double FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -381,6 +409,10 @@ uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
 	uint8_t modcod_id = 1; // use at least most robust MODCOD
 	double current_cni;
 	double previous_cni = 0.0;
+	if(this->definitions.begin() != this->definitions.end())
+	{
+		previous_cni = this->definitions.begin()->second->getRequiredEsN0();
+	}
 	map<unsigned int, FmtDefinition *>::const_iterator it;
 
 	for(it = this->definitions.begin(); it != this->definitions.end(); it++)
@@ -393,7 +425,7 @@ uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
 		}
 		// here we havea supported Es/N0 value check if it is better than the
 		// previous one
-		if(current_cni > previous_cni)
+		if(current_cni >= previous_cni)
 		{
 			previous_cni = current_cni;
 			modcod_id = (*it).first;
@@ -540,10 +572,6 @@ void FmtDefinitionTable::print(void)
 	if(this->definitions.begin() == this->definitions.end())
 	{
 		DFLTLOG(LEVEL_ERROR, "Vide\n");
-	}
-	else
-	{
-		this->definitions.begin()->second->print();
 	}
 }
 

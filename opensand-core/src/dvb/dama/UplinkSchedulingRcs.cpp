@@ -46,12 +46,14 @@
 UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
-			const FmtSimulation *const ret_fmt_simu,
+			const map<tal_id_t, StFmtSimu *> *const ret_sts,
+			const FmtDefinitionTable *const ret_modcod_def,
 			const TerminalCategoryDama *const category,
 			tal_id_t gw_id):
 	Scheduling(packet_handler, fifos),
 	gw_id(gw_id),
-	ret_fmt_simu(ret_fmt_simu),
+	ret_sts(ret_sts),
+	ret_modcod_def(ret_modcod_def),
 	category(category)
 {
 
@@ -81,7 +83,6 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	{
 		vol_kb_t remaining_capacity_kb;
 		rate_pktpf_t remaining_capacity_pktpf;
-		const FmtDefinitionTable *modcod_def;
 		uint8_t modcod_id;
 		CarriersGroupDama *carriers = *carrier_it;
 
@@ -101,9 +102,8 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "Available MODCOD for GW = %u\n", modcod_id);
 
-		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		remaining_capacity_kb =
-			modcod_def->symToKbits(modcod_id,
+			this->ret_modcod_def->symToKbits(modcod_id,
 			                      carriers->getTotalCapacity());
 		// as this function is called each superframe we can directly
 		// convert number of packet to rate in packet per superframe
@@ -348,9 +348,22 @@ error:
 	return false;
 }
 
+
+uint8_t UplinkSchedulingRcs::getCurrentModcodId(tal_id_t id) const
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+	st_iter = this->ret_sts->find(id);
+	if(st_iter != this->ret_sts->end())
+	{
+		return (*st_iter).second->getCurrentModcodId();
+	}
+	return 0;
+}
+
+
 uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
 {
-	uint8_t modcod_id = this->ret_fmt_simu->getCurrentModcodId(this->gw_id);
+	uint8_t modcod_id = this->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW%u = %u\n", this->gw_id, modcod_id);
 

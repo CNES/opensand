@@ -149,16 +149,15 @@ class BlockEncap: public Block
 	 * @return       Whether the burst was successful handled or not
 	 */
 	bool onRcvBurstFromDown(NetBurst *burst);
-	
+
 	/**
 	 * @brief Checks if SCPC mode is activated and configured
 	 *        (Available FIFOs and Carriers for SCPC)
 	 *
 	 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
 	 */
-
 	bool checkIfScpc();
-	
+
 	/**
 	 * 
 	 * Get the Encapsulation context of the Up/Return or the Down/Forward link
@@ -227,15 +226,17 @@ class BlockEncap: public Block
 	/**
 	 * @brief Read configuration for link MODCOD definition/simulation files
 	 *
-	 * @param def       The section in configuration file for MODCOD definitions
-	 *                  (up/return or down/forward)
-	 * @param simu      The section in configuration file for MODCOD simulation
-	 *                  (up/return or down/forward)
-	 * @param fmt_simu  The FMT simulation attribute to initialize
+	 * @param def         The section in configuration file for MODCOD definitions
+	 *                    (up/return or down/forward)
+	 * @param simu        The section in configuration file for MODCOD simulation
+	 *                    (up/return or down/forward)
+	 * @param fmt_simu    The FMT simulation attribute to initialize
+	 * @param modcod_def  The FMT definition table attribute to initialize
 	 * @return  true on success, false otherwise
 	 */
 	bool initModcodFiles(const char *def, const char *simu,
-	                     FmtSimulation &fmt_simu);
+	                     FmtSimulation &fmt_simu,
+	                     FmtDefinitionTable &modcod_def);
 
 
 

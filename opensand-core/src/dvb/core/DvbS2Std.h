@@ -59,6 +59,9 @@ class DvbS2Std: public PhysicStd
 	/** The received MODCOD */
 	uint8_t received_modcod;
 
+	/** The modcod definition table */
+	FmtDefinitionTable* modcod_def;
+
  protected:
 
 	// whether this is a SCPC reception standard
@@ -106,6 +109,16 @@ class DvbS2Std: public PhysicStd
 	};
 
 	/**
+	 * @brief  Set the real MODCOD for the terminal
+	 *
+	 * @param the real MODCOD
+	 */
+	void setRealModcod(uint8_t new_real_modcod)
+	{
+		this->real_modcod = new_real_modcod;
+	};
+
+	/**
 	 * @brief  Get the received MODCOD for the terminal
 	 *
 	 * @return the received MODCOD
@@ -114,6 +127,27 @@ class DvbS2Std: public PhysicStd
 	{
 		return this->received_modcod;
 	};
+
+	/**
+	 * @brief  Set the MODCOD definition table
+	 *
+	 * @param the new modcod_def
+	 */
+	void setModcodDef(FmtDefinitionTable* new_modcod_def)
+	{
+		this->modcod_def = new_modcod_def;
+	}
+
+	/**
+	 * @brief  get the required Es/N0
+	 *
+	 * @param   the modcod_id
+	 * @return  the Es/N0
+	 */
+	double getRequiredEsN0(int modcod_id)
+	{
+		return this->modcod_def->getRequiredEsN0(modcod_id);
+	}
 
 
 };

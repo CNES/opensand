@@ -58,13 +58,6 @@
 #include <set>
 
 
-typedef struct
-{
-	tal_id_t tal_id;
-	double cni;
-} cni_info_t;
-
-
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
@@ -130,43 +123,11 @@ bool BlockDvbSatRegen::DownwardRegen::onInit()
 
 	this->down_frame_counter = 0;
 
-	set<tal_id_t> listGws = this->getGwIds();
-	set<spot_id_t> listSpots = this->getSpotIds();
-	for(set<spot_id_t>::iterator it1 = listSpots.begin();
-	    it1 != listSpots.end(); it1++)
+	if(!this->initModcodSimu())
 	{
-		for(set<tal_id_t>::iterator it2 = listGws.begin();
-		    it2 != listGws.end(); it2++)
-		{
-			FmtSimulation *fmt_simulation = new FmtSimulation();
-			if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-			                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-			                          *fmt_simulation,
-			                          (*it2), (*it1)))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-			this->setFmtSimulation((*it1), (*it2), fmt_simulation);
-		}
-	}
-
-	// initialize the MODCOD scheme ID
-	for(set<spot_id_t>::iterator it1 = listSpots.begin();
-	    it1 != listSpots.end(); it1++)
-	{
-		for(set<tal_id_t>::iterator it2 = listGws.begin();
-		    it2 != listGws.end(); it2++)
-		{
-			if(!this->goFirstScenarioStep((*it1), (*it2)))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to initialize downlink MODCOD IDs\n");
-				return false;
-			}
-		}
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize timer\n");
+		return false;
 	}
 
 	if(!this->initStList())
@@ -271,7 +232,7 @@ error:
 bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 {
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SAT_DELAY, this->sat_delay))
+	                   SAT_DELAY, this->sat_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -336,7 +297,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->getModcodDefinitions(),
+			                                         &this->output_modcod_def,
 			                                         st_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -351,7 +312,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->getModcodDefinitions(),
+			                                         &this->output_modcod_def,
 			                                         gw_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -373,11 +334,9 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			TerminalCategoryDama *gw_category = gw_categories.begin()->second;
 
 			// Finding the good fmt simulation
-			FmtSimulation* fmt_simu_sat;
-			fmt_simu_sat = gw->getFmtSimuSat();
 			if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
 		                           this->pkt_hdl,
-		                           fmt_simu_sat,
+		                           &this->input_modcod_def,
 		                           st_category,
 		                           gw_category))
 			{
@@ -710,22 +669,13 @@ bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
 		// handle SAC here to get the uplink ACM parameters
 		Sac *sac = (Sac *)dvb_frame;
 		tal_id_t tal_id;
-		cni_info_t *cni_info = new cni_info_t;
 		tal_id = sac->getTerminalId();
-		cni_info->cni = sac->getCni();
-		cni_info->tal_id = tal_id;
 		LOG(this->log_receive, LEVEL_INFO,
 		    "Get SAC from ST%u, with C/N0 = %.2f\n",
-		    tal_id, cni_info->cni);
-		// transmit downlink CNI to downlink channel
-		if(!this->shareMessage((void **)&cni_info, 
-			                   sizeof(cni_info_t),
-			                   msg_cni))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "Unable to transmit downward CNI to "
-			    "channel\n");
-		}
+		    tal_id, sac->getCni());
+
+		this->setRequiredModcodOutput(tal_id, sac->getCni());
+
 		// update ACM parameters with uplink value, thus the GW will
 		// known uplink C/N and thus update uplink MODCOD used in TTP
 		if(this->cni.find(tal_id) != this->cni.end())
@@ -736,7 +686,7 @@ bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
 		// traffic from this terminal, GW will have a wrong value...
 		delete dvb_frame;
 	}
-	
+
 	return true;
 }
 

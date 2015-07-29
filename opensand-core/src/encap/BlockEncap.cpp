@@ -44,6 +44,25 @@
 
 #include <algorithm>
 #include <stdint.h>
+#include <errno.h>
+
+
+/**
+ * @brief Check if a file exists
+ *
+ * @return true if the file is found, false otherwise
+ */
+inline bool fileExists(const string &filename)
+{
+	if(access(filename.c_str(), R_OK) < 0)
+	{
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot access '%s' file (%s)\n",
+		        filename.c_str(), strerror(errno));
+		return false;
+	}
+	return true;
+}
 
 
 BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
@@ -646,6 +665,7 @@ bool BlockEncap::checkIfScpc()
 	TerminalCategoryDama *tal_category = NULL;
 	time_ms_t scpc_carr_duration_ms;
 	FmtSimulation scpc_fmt_simu;
+	FmtDefinitionTable scpc_modcod_def;
 	fifos_t dvb_fifos;
 	fmt_groups_t ret_fmt_groups;
 	bool is_scpc = false;
@@ -683,24 +703,25 @@ bool BlockEncap::checkIfScpc()
 			    FIFO_LIST);
 			return false;
 		}
-		
+
 		if(fifo_access_type == "SCPC")
-		{   
+		{
 			is_scpc = true;
 		}
 	}
-	
+
 	if(!is_scpc)
 	{
 		return false;
-	}	
+	}
 
 	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          scpc_fmt_simu))
+	                          RETURN_UP_MODCOD_TIME_SERIES,
+	                          scpc_fmt_simu,
+	                          scpc_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"failed to initialize the down/forward MODCOD files\n");
+		    "failed to initialize the down/forward MODCOD files\n");
 		return false;
 	}
 
@@ -733,7 +754,7 @@ bool BlockEncap::checkIfScpc()
 		                                         RETURN_UP_BAND,
 		                                         SCPC,
 		                                         scpc_carr_duration_ms,
-		                                         scpc_fmt_simu.getModcodDefinitions(),
+		                                         &scpc_modcod_def,
 		                                         scpc_categories,
 		                                         terminal_affectation,
 		                                         &default_category,
@@ -888,7 +909,8 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 // TODO try to factorize or remove
 bool BlockEncap::initModcodFiles(const char *def,
                                  const char *simu,
-                                 FmtSimulation &fmt_simu)
+                                 FmtSimulation &fmt_simu,
+                                 FmtDefinitionTable &modcod_def)
 {
 	string modcod_simu_file;
 	string modcod_def_file;
@@ -919,9 +941,16 @@ bool BlockEncap::initModcodFiles(const char *def,
 	    modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!fmt_simu.setModcodDef(modcod_def_file))
+	if(!fileExists(modcod_def_file.c_str()))
 	{
 		goto error;
+	}
+	if(!modcod_def.load(modcod_def_file))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to load the MODCOD definitions from file "
+		    "'%s'\n", modcod_def_file.c_str());
+		return false;
 	}
 
 	// no need for simulation file if there is a physical layer

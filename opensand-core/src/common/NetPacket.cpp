@@ -73,6 +73,7 @@ NetPacket::NetPacket(NetPacket *pkt):
 	dst_tal_id(pkt->getDstTalId())
 {
 	this->name = pkt->getName();
+	this->spot = pkt->getSpot();
 }
 
 NetPacket::NetPacket():

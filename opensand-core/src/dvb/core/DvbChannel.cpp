@@ -39,7 +39,27 @@
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
+#include <errno.h>
+
 OutputLog *DvbChannel::dvb_fifo_log = NULL;
+
+
+/**
+ * @brief Check if a file exists
+ *
+ * @return true if the file is found, false otherwise
+ */
+inline bool fileExists(const string &filename)
+{
+	if(access(filename.c_str(), R_OK) < 0)
+	{
+		DFLTLOG(LEVEL_ERROR,
+		        "cannot access '%s' file (%s)\n",
+		        filename.c_str(), strerror(errno));
+		return false;
+	}
+	return true;
+}
 
 
 bool DvbChannel::initSpots(void)
@@ -189,8 +209,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ENABLE,
-	                   this->with_phy_layer))
+	                   ENABLE, this->with_phy_layer))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
@@ -247,49 +266,9 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
 }
 
-bool DvbChannel::initModcodFiles(const char *def, const char *simu,
-                                 tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::initModcodDefFile(const char *def, FmtDefinitionTable &modcod_def)
 {
-	return this->initModcodFiles(def, simu, this->fmt_simu, gw_id, spot_id);
-}
-
-
-bool DvbChannel::initModcodFiles(const char *def,
-                                 const char *simu,
-                                 FmtSimulation &fmt_simu,
-                                 tal_id_t gw_id,
-                                 spot_id_t spot_id)
-{
-	stringstream modcod_simu_file;
 	string modcod_def_file;
-	string modcod_simu_filename;
-	string path;
-
-	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               PATH_TO_MODCOD, path))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, PATH_TO_MODCOD);
-		goto error;
-	}
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               simu, modcod_simu_filename))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, simu);
-		goto error;
-	}
-	char gw[21]; // enough to hold all numbers up to 64-bits
-	sprintf(gw, "%d", gw_id);
-	char spot[21]; // enough to hold all numbers up to 64-bits
-	sprintf(spot, "%d", spot_id);
-	modcod_simu_file << path << "gw" << gw << "_spot" << spot << "_" << modcod_simu_filename;
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "down/forward link MODCOD simulation path set to %s\n",
-	    modcod_simu_file.str().c_str());
 
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 		               def, modcod_def_file))
@@ -297,17 +276,64 @@ bool DvbChannel::initModcodFiles(const char *def,
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
 		    PHYSICAL_LAYER_SECTION, def);
-		goto error;
+		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD definition path set to %s\n",
 	    modcod_def_file.c_str());
 
 	// load all the MODCOD definitions from file
-	if(!fmt_simu.setModcodDef(modcod_def_file))
+	if(!fileExists(modcod_def_file.c_str()))
 	{
-		goto error;
+		return false;
 	}
+	if(!modcod_def.load(modcod_def_file))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to load the MODCOD definitions from file "
+		    "'%s'\n", modcod_def_file.c_str());
+		return false;
+	}
+	return true;
+}
+
+bool DvbChannel::initModcodFiles(const char *simu,
+                                 tal_id_t gw_id, spot_id_t spot_id)
+{
+	return this->initModcodFiles(simu, this->fmt_simu, gw_id, spot_id);
+}
+
+
+bool DvbChannel::initModcodFiles(const char *simu,
+                                 FmtSimulation &fmt_simu,
+                                 tal_id_t gw_id,
+                                 spot_id_t spot_id)
+{
+	stringstream modcod_simu_file;
+	string modcod_simu_filename;
+	string path;
+
+	// MODCOD simulations and definitions for down/forward link
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   PATH_TO_MODCOD, path))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, PATH_TO_MODCOD);
+		return false;
+	}
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               simu, modcod_simu_filename))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, simu);
+		return false;
+	}
+	modcod_simu_file << path << "gw" << gw_id << "_spot" << (int) spot_id << "_" << modcod_simu_filename;
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "down/forward link MODCOD simulation path set to %s\n",
+	    modcod_simu_file.str().c_str());
 
 	// no need for simulation file if there is a physical layer
 	if(!this->with_phy_layer)
@@ -315,14 +341,11 @@ bool DvbChannel::initModcodFiles(const char *def,
 		// set the MODCOD simulation file
 		if(!fmt_simu.setModcodSimu(modcod_simu_file.str()))
 		{
-			goto error;
+			return false;
 		}
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 bool DvbChannel::pushInFifo(DvbFifo *fifo,
@@ -389,5 +412,123 @@ DvbChannel *DvbChannel::getSpot(spot_id_t spot_id) const
 	return (*spot_it).second;
 }
 
+
+bool DvbChannel::addTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+{
+	uint8_t modcod;
+	// the column is the id
+	unsigned long column = id;
+
+	if(this->fmt_simu.getIsModcodSimuDefined() &&
+	   this->fmt_simu.getModcodList().size() <= column)
+	{
+		LOG(this->log_init_channel, LEVEL_WARNING,
+		    "cannot access MODCOD column for ST%u\n"
+		    "defaut MODCOD is used\n", id);
+		column = this->fmt_simu.getModcodList().size() - 1;
+	}
+	// if scenario are not defined, set less robust modcod at init
+	// in order to authorize any MODCOD
+	modcod = (this->fmt_simu.getIsModcodSimuDefined() ?
+	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
+	           this->input_modcod_def.getMaxId());
+
+	this->input_sts->addTerminal(id, modcod, gw_id, spot_id);
+
+	return true;
+}
+
+
+bool DvbChannel::addTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+{
+	uint8_t modcod = this->output_modcod_def.getMaxId();
+	this->output_sts->addTerminal(id, modcod, gw_id, spot_id);
+	return true;
+}
+
+
+bool DvbChannel::delTerminal(tal_id_t st_id, StFmtSimuList* sts, tal_id_t gw_id,
+                             spot_id_t spot_id)
+{
+	return sts->delTerminal(st_id, gw_id, spot_id);
+}
+
+
+bool DvbChannel::delTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+{
+	return this->delTerminal(id, this->input_sts, gw_id, spot_id);
+}
+
+
+bool DvbChannel::delTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+{
+	return this->delTerminal(id, this->output_sts, gw_id, spot_id);
+}
+
+
+bool DvbChannel::goNextScenarioStepInput(double &duration, tal_id_t gw_id,
+                                         spot_id_t spot_id)
+{
+	if(!this->fmt_simu.goNextScenarioStep(duration))
+	{
+		return false;
+	}
+
+	this->input_sts->updateModcod(gw_id, spot_id, &this->fmt_simu);
+
+	return true;
+}
+
+
+void DvbChannel::setInputSts(StFmtSimuList* new_input_sts)
+{
+	this->input_sts = new_input_sts;
+}
+
+
+void DvbChannel::setOutputSts(StFmtSimuList* new_output_sts)
+{
+	this->output_sts = new_output_sts;
+}
+
+
+void DvbChannel::setRequiredModcod(tal_id_t id, double cni,
+                                   FmtDefinitionTable modcod_def,
+                                   StFmtSimuList* sts)
+{
+	uint8_t modcod_id;
+
+	modcod_id = modcod_def.getRequiredModcod(cni);
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "Terminal %u required %.2f dB, will receive allocation "
+	    "with MODCOD %u\n", id, cni, modcod_id);
+	sts->setRequiredModcod(id, modcod_id);
+}
+
+
+void DvbChannel::setRequiredModcodInput(tal_id_t id, double cni)
+{
+	this->setRequiredModcod(id, cni, this->input_modcod_def,
+	                        this->input_sts);
+}
+
+
+void DvbChannel::setRequiredModcodOutput(tal_id_t id, double cni)
+{
+	this->setRequiredModcod(id, cni, this->output_modcod_def,
+	                        this->output_sts);
+}
+
+
+uint8_t DvbChannel::getCurrentModcodIdInput(tal_id_t id) const
+{
+	return this->input_sts->getCurrentModcodId(id);
+}
+
+
+uint8_t DvbChannel::getCurrentModcodIdOutput(tal_id_t id) const
+{
+	return this->output_sts->getCurrentModcodId(id);
+}
 
 

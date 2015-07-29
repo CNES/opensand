@@ -51,21 +51,6 @@ SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
 
 SpotUpwardTransp::~SpotUpwardTransp()
 {
-	if(this->saloha)
-		delete this->saloha;
-
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
-	if(this->reception_std)
-		delete this->reception_std;
-	if(this->reception_std_scpc)
-		delete this->reception_std_scpc;
 }
 
 
@@ -89,6 +74,16 @@ bool SpotUpwardTransp::onInit(void)
 		    "initialisation\n");
 		goto error;
 	}
+
+	// Get and open the files
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation\n");
+		return false;
+	}
+
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -134,16 +129,6 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	ConfigurationList current_spot;
 	int lan_scheme_nbr;
 
-	// init fmt_simu
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-				RETURN_UP_MODCOD_TIME_SERIES,
-				this->mac_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-				"failed to initialize the up/return MODCOD files\n");
-		return false;
-	}
-
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
 		                      NO_GW, current_spot))
 	{
@@ -158,7 +143,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           this->fmt_simu.getModcodDefinitions(),
+	                                           &this->input_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
 	                                           &sa_default_category,
@@ -253,14 +238,67 @@ release_saloha:
 }
 
 
+bool SpotUpwardTransp::initModcodSimu(void)
+{
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->output_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->input_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the uplink MODCOD file\n");
+		return false;
+	}
+
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_TIME_SERIES,
+	                          this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the downlink MODCOD files\n");
+		return false;
+	}
+
+	// initialize the MODCOD IDs
+	if(!this->fmt_simu.goFirstScenarioStep())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MODCOD scheme IDs\n");
+		return false;
+	}
+
+	// declare the GW as one ST for the MODCOD scenarios
+	if(!this->addTerminalInput(this->mac_id, this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to define the GW as ST with ID %d\n",
+		    this->mac_id);
+		return false;
+	}
+	if(!this->addTerminalOutput(this->mac_id, this->mac_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to define the GW as ST with ID %d\n",
+		    this->mac_id);
+		return false;
+	}
+
+	return true;
+}
+
+
 bool SpotUpwardTransp::initMode(void)
 {
 	// initialize the reception standard
 	// depending on the satellite type
 	this->reception_std = new DvbRcsStd(this->pkt_hdl);
 
-	// If available SCPC carriers, a new packet handler is created at NCC 
-	// to received BBFrames and to be able to deencapsulate GSE packets.	
+	// If available SCPC carriers, a new packet handler is created at NCC
+	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
 		if(!this->initPktHdl("GSE",
@@ -270,12 +308,12 @@ bool SpotUpwardTransp::initMode(void)
 			    "failed to get packet handler for receiving GSE packets\n");
 			goto error;
 		}
-	
+
 		this->reception_std_scpc = new DvbScpcStd(this->scpc_pkt_hdl);
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "NCC is aware that there are SCPC carriers available \n");
 	}
-	
+
 	if(!this->reception_std)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -364,22 +402,20 @@ bool SpotUpwardTransp::checkIfScpc()
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
-	FmtSimulation scpc_fmt_simu;
+	FmtDefinitionTable scpc_modcod_def;
 	fmt_groups_t ret_fmt_groups;
 	ConfigurationList current_spot;
 	
 
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          scpc_fmt_simu,
-	                          this->mac_id, this->spot_id))
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            scpc_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");
 		return false;
 	}
 	
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
 		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -394,7 +430,7 @@ bool SpotUpwardTransp::checkIfScpc()
 	                                         // used for checking, no need to get a relevant value
 	                                         5,
 	                                         TRANSPARENT,
-	                                         scpc_fmt_simu.getModcodDefinitions(),
+	                                         &scpc_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -423,7 +459,7 @@ bool SpotUpwardTransp::checkIfScpc()
 	{
 		delete (*it).second;
 	}
-	
+
 	return true;
 }
 

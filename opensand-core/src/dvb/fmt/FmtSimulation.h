@@ -35,9 +35,7 @@
 #ifndef FMT_SIMULATION_H
 #define FMT_SIMULATION_H
 
-#include "StFmtSimu.h"
 #include "OpenSandCore.h"
-#include "FmtDefinitionTable.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -67,17 +65,11 @@ using std::ifstream;
 
 /**
  * @class FmtSimulation
- * @brief The FMT simulation elements
+ * @brief the FMT simulation elements
  */
 class FmtSimulation
 {
  private:
-
-	/** The internal map that stores all the STs */
-	map<tal_id_t, StFmtSimu *> sts;
-
-	/** The table of MODCOD definitions */
-	FmtDefinitionTable *modcod_def;
 
 	/** The file stream for the MODCOD simulation file
 	 *  Need pointer because ifstream is not copyable */
@@ -113,38 +105,7 @@ class FmtSimulation
 
 
 	/**
-	 * @brief Add a new Satellite Terminal (ST) in the list
-	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @return                 true if the addition is successful, false otherwise
-	 */
-	bool addTerminal(tal_id_t id);
-
-	/**
-	 * @brief Delete a Satellite Terminal (ST) from the list
-	 *
-	 * @param id  the ID of the ST
-	 * @return    true if the deletion is successful, false otherwise
-	 */
-	bool delTerminal(tal_id_t id);
-
-	/**
-	 * @brief Does a ST with the given ID exist ?
-	 *
-	 * @param id  the ID we want to check for
-	 * @return    true if a ST, false is it does not exist
-	 */
-	bool doTerminalExist(tal_id_t id) const;
-
-	/**
-	 * @brief Clear the list of STs
-	 */
-	void clear();
-
-	/**
 	 * @brief Go to first step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list.
 	 *
 	 * @return true on success, false otherwise
 	 */
@@ -152,20 +113,11 @@ class FmtSimulation
 
 	/**
 	 * @brief Go to next step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list.
 	 *
 	 * @param duration     the duration before the next_step
 	 * @return true on success, false otherwise
 	 */
 	bool goNextScenarioStep(double &duration);
-
-	/**
-	 * @brief Set definition file for MODCOD
-	 *
-	 * @param filename The MODCOD definition file
-	 * @return true on success, false otherwise
-	 */
-	bool setModcodDef(const string &filename);
 
 	/**
 	 * @brief Set simulation file for MODCOD
@@ -175,82 +127,39 @@ class FmtSimulation
 	 */
 	bool setModcodSimu(const string &filename);
 
-	/**
-	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the ST
-	 * @return    the current MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	uint8_t getCurrentModcodId(tal_id_t id) const;
 
 	/**
-	 * @brief Get the previous MODCOD ID of the ST whose ID is given as input
-	 *        (for down/forward)
+	 * @brief Get the is_modcod_simu_defined
 	 *
-	 * @param id  the ID of the ST
-	 * @return    the previous MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
+	 * @return  is_modcod_simu_defined
 	 */
-	uint8_t getPreviousModcodId(tal_id_t id) const;
+	bool getIsModcodSimuDefined(void) const;
 
 	/**
-	 * @brief Get the higher forward MODCOD ID
+	 * @brief Get modcod_list
 	 *
-	 * @return the highest forward MODCOD ID
+	 * @return  modcod_list
 	 */
-	uint8_t getMaxModcod() const;
+	vector<string> getModcodList(void) const;
 
-	/**
-	 * @brief Get the terminal ID for wich the used MODCOD is the lower
-	 *        (for down/forward)
-	 *
-	 * @return terminal ID (should be positive, return -1 (255) if an error occurs)
-	 */
-	tal_id_t getTalIdWithLowerModcod() const;
+	ifstream* getModcodSimu(void) const
+	{
+		return this->modcod_simu;
+	}
 
-	/**
-	 * @brief Get the MODCOD definitions
-	 *
-	 * @return the MODCOD definitions
-	 */
-	const FmtDefinitionTable *getModcodDefinitions() const;
-
-	/**
-	 * @brief Set the required  MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id   the ID of the ST
-	 * @param cni  the required Es/N0 for that terminal
-	 */
-	void setRequiredModcod(tal_id_t tal_id, double cni) const;
-
-	void print(void); /// For debug
 
  private:
 
 	/**
-	 * @brief Update the current MODCOD IDs of all STs
-	 *        from MODCOD simulation file
-	 *
-	 * @return true on success, false on failure
-	 */
-	bool goNextScenarioStepModcod();
-
-	/**
 	 * @brief Read a line of a simulation file and fill the MODCOD list
 	 *
-	 * @param   simu_file the simulation file (fwd_modcod_simu or ret_modcod_simu)
 	 * @param   list      The MODCOD list of the next update
 	 * @param   time      time of the next update
 	 * @return            true on success, false on failure
 	 *
 	 * @todo better parsing
 	 */
-	bool setList(ifstream *simu_file,
-	             vector<string> &list,
+	bool setList(vector<string> &list,
 	             double &time);
 
 };

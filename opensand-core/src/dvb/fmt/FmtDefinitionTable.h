@@ -81,6 +81,9 @@ class FmtDefinitionTable
 	/* create a table of FMT definitions */
 	FmtDefinitionTable();
 
+	/* constructor by copy */
+	FmtDefinitionTable(const FmtDefinitionTable &fmt_def_tab);
+
 	/* destroy a table of FMT definitions */
 	~FmtDefinitionTable();
 
@@ -110,7 +113,7 @@ class FmtDefinitionTable
 	         const string modulation,
 	         const string coding_rate,
 	         const float spectral_efficiency,
-	         const float required_Es_N0);
+	         const double required_Es_N0);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?
@@ -127,6 +130,13 @@ class FmtDefinitionTable
 
 
 	/**** accessors ****/
+
+	/**
+	 * @brief Get the definitions
+	 *
+	 * @return    definitions
+	 */
+	map<unsigned int, FmtDefinition* > getDefinitions(void) const;
 
 	/**
 	 * @brief Get the modulation of the FMT definition
@@ -170,7 +180,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	float getRequiredEsN0(unsigned int id) const;
+	double getRequiredEsN0(unsigned int id) const;
 
 	/**
 	 * @brief Get the best required MODCOD according to the Es/N0 ratio
@@ -196,11 +206,10 @@ class FmtDefinitionTable
 	 * @param val_sym  the value in symbols (per ...)
 	 * @return    the value converted in kbits (per ...)
 	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
+	 * @warning Be sure that the ID is valid before calling the function
 	 */
 	unsigned int symToKbits(unsigned int id,
 	                        unsigned int val_sym) const;
-
 
 	void print(void); /// For debug
 };

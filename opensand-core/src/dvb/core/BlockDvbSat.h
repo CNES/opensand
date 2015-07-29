@@ -174,7 +174,6 @@ class BlockDvbSat: public BlockDvb
 		virtual bool onInit(void) = 0;
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
-		const FmtDefinitionTable* getModcodDefinitions(void);
 
 	 protected:
 		/**
@@ -251,6 +250,13 @@ class BlockDvbSat: public BlockDvb
 		set<spot_id_t> getSpotIds(void);
 
 		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
+
+		/**
 		 * Set the Fmt Simulation on the appropriate Spot and Gw
 		 */
 		void setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
@@ -305,6 +311,9 @@ class BlockDvbSat: public BlockDvb
 
 		/// The satellite spots
 		sat_spots_t spots;
+
+		/// The uplink C/N0 per terminal
+		map<tal_id_t, double> cni;
 
 		// Output probes and stats
 		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;

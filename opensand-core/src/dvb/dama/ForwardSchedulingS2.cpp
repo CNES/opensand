@@ -86,7 +86,8 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
-                                         FmtSimulation *const fwd_fmt_simu,
+                                         map<tal_id_t, StFmtSimu *> *const fwd_sts,
+                                         FmtDefinitionTable *const fwd_modcod_def,
                                          const TerminalCategoryDama *const category,
                                          spot_id_t spot, 
                                          bool is_gw, 
@@ -97,7 +98,8 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
-	fwd_fmt_simu(fwd_fmt_simu),
+	fwd_sts(fwd_sts),
+	fwd_modcod_def(fwd_modcod_def),
 	category(category),
 	spot_id(spot)
 {
@@ -448,11 +450,9 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			// get remain in Kbits/s instead of symbols if possible
 			if((*vcm_it)->getFmtIds().size() == 1)
 			{
-				const FmtDefinitionTable *modcod_def;
-				modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
-				remain = modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				remain = this->fwd_modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
 				                                 remain);
-				avail = modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				avail = this->fwd_modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
 				                               avail);
 				// we get kbits per frame, convert in kbits/s
 				remain = remain * 1000 / this->fwd_timer_ms;
@@ -576,8 +576,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
-			// TODO fwd_fmt_simu by spot
-			tal_id = this->fwd_fmt_simu->getTalIdWithLowerModcod();
+			tal_id = this->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
@@ -814,20 +813,60 @@ error:
 }
 
 
+tal_id_t ForwardSchedulingS2::getTalIdWithLowerModcod() const
+{
+	map<tal_id_t, StFmtSimu*>::const_iterator st_iterator;
+	uint8_t modcod_id;
+	uint8_t lower_modcod_id = 0;
+	tal_id_t tal_id;
+	tal_id_t lower_tal_id = 255;
+
+	for(st_iterator = this->fwd_sts->begin(); st_iterator != this->fwd_sts->end();
+	    ++st_iterator)
+	{
+		// Retrieve the lower modcod
+		tal_id = st_iterator->first;
+
+		if((st_iterator == this->fwd_sts->begin()) || (modcod_id < lower_modcod_id))
+		{
+			lower_modcod_id = modcod_id;
+			lower_tal_id = tal_id;
+		}
+	}
+
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
+
+	return lower_tal_id;
+}
+
+
+uint8_t ForwardSchedulingS2::getCurrentModcodId(tal_id_t id) const
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+	st_iter = this->fwd_sts->find(id);
+	if(st_iter != this->fwd_sts->end())
+	{
+		return (*st_iter).second->getCurrentModcodId();
+	}
+	return 0;
+}
+
+
 bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
                                                 const time_sf_t current_superframe_sf,
                                                 unsigned int &modcod_id)
 {
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
-	if(!this->fwd_fmt_simu->doTerminalExist(tal_id))
+	if(this->fwd_sts->find(tal_id) == this->fwd_sts->end())
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: encapsulation packet is for ST with ID %u "
 		    "that is not registered\n", current_superframe_sf, tal_id);
 		goto error;
 	}
-	modcod_id = this->fwd_fmt_simu->getCurrentModcodId(tal_id);
+	modcod_id = this->getCurrentModcodId(tal_id);
 
 	return true;
 
@@ -840,19 +879,17 @@ bool ForwardSchedulingS2::getBBFrameSizeSym(size_t bbframe_size_bytes,
                                             const time_sf_t current_superframe_sf,
                                             vol_sym_t &bbframe_size_sym)
 {
-	const FmtDefinitionTable *modcod_def;
 	float spectral_efficiency;
 
-	modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
 
-	if(!modcod_def->doFmtIdExist(modcod_id))
+	if(!this->fwd_modcod_def->doFmtIdExist(modcod_id))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to found the definition of MODCOD ID %u\n",
 		    current_superframe_sf, modcod_id);
 		goto error;
 	}
-	spectral_efficiency = modcod_def->getSpectralEfficiency(modcod_id);
+	spectral_efficiency = this->fwd_modcod_def->getSpectralEfficiency(modcod_id);
 
 	// duration is calculated over the complete BBFrame size, the BBFrame data
 	// size represents the payload without coding
@@ -872,11 +909,9 @@ unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
 	string coding_rate;
-	const FmtDefinitionTable *modcod_def;
-	modcod_def = this->fwd_fmt_simu->getModcodDefinitions();
 
 	// get the payload size
-	coding_rate = modcod_def->getCodingRate(modcod_id);
+	coding_rate = this->fwd_modcod_def->getCodingRate(modcod_id);
 	bbframe_size_bytes = getPayloadSize(coding_rate);
 
 	return bbframe_size_bytes;

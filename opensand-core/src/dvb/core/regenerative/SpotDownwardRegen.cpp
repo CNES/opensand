@@ -85,15 +85,22 @@ bool SpotDownwardRegen::onInit(void)
 		goto release_dama;
 	}
 
-	// Get and open the files
-	if(!this->initModcodSimu())
+	// Initialization of the modcod def
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
+		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-	
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->output_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
+		return false;
+	}
+
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -112,15 +119,6 @@ bool SpotDownwardRegen::onInit(void)
 	}
 
 	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	// initialize the column ID for FMT simulation
-	if(!this->initColumns())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the columns ID for FMT "
-		    "simulation\n");
-		goto release_dama;
-	}
 
 	if(!this->initRequestSimulation())
 	{
@@ -185,11 +183,11 @@ bool SpotDownwardRegen::initMode(void)
 		return false;
 	}
 	if(!this->initBand<TerminalCategoryDama>(current_gw,
-		                                     RETURN_UP_BAND,
+	                                         RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->up_ret_fmt_simu.getModcodDefinitions(),
+	                                         &this->input_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -213,9 +211,11 @@ bool SpotDownwardRegen::initMode(void)
 		}
 		cat = this->default_category;
 	}
+	ListSts* list = this->input_sts->getListSts(this->mac_id, this->spot_id);
 	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 	                                           this->dvb_fifos,
-	                                           &this->up_ret_fmt_simu,
+	                                           list,
+	                                           &this->output_modcod_def,
 	                                           cat,
 	                                           this->mac_id);
 	
@@ -242,6 +242,7 @@ bool SpotDownwardRegen::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
+	ListSts* list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -323,6 +324,7 @@ bool SpotDownwardRegen::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
+	list = this->input_sts->getListSts(this->mac_id, this->spot_id);
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -331,7 +333,8 @@ bool SpotDownwardRegen::initDama(void)
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                &this->up_ret_fmt_simu,
+	                                list,
+	                                &this->output_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{
@@ -434,34 +437,7 @@ bool SpotDownwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
 	//   we need downlink ACM parameters to inform
 	//   satellite with a SAC so inform opposite channel
 	this->cni = curr_cni;
-	
-	return true;
-}
 
-bool SpotDownwardRegen::handleSac(const DvbFrame *dvb_frame)
-{
-	Sac *sac = (Sac *)dvb_frame;
-
-	LOG(this->log_receive_channel, LEVEL_DEBUG,
-			"handle received SAC\n");
-
-	if(!this->dama_ctrl->hereIsSAC(sac))
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-				"failed to handle SAC frame\n");
-		delete dvb_frame;
-		return false;
-	}
-
-	if(this->with_phy_layer)
-	{
-		// transparent : the C/N0 of forward link
-		// regenerative : the C/N0 of uplink (updated by sat)
-		double cni = sac->getCni();
-		tal_id_t tal_id = sac->getTerminalId();
-		this->up_ret_fmt_simu.setRequiredModcod(tal_id,
-		                                        cni);
-	}
 	return true;
 }
 

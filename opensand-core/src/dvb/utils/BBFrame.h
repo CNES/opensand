@@ -115,24 +115,6 @@ class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 	 */
 	uint16_t getDataLength(void) const;
 
-	/**
-	 * @brief Get the real MODCOD ID for a given terminal ID
-	 *
-	 * @param tal_id     The terminal ID for which we need MODCOD ID
-	 * @param modcod_id  IN: The previous MODCOD ID that MUST be unchanged
-	 *                       if there is not MODCOD option for the given terminal
-	 *                   OUT: The new MODCOD ID if found
-	 */
-	void getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const;
-
-
-	/**
-	 * @brief Add MODCOD option
-	 *
-	 * @param tal_id     The terminal ID
-	 * @param modcod_it  The MODCOD ID
-	 */
-	void addModcodOption(tal_id_t tal_id, unsigned int modcod_id);
 
 	/**
 	 * @brief Get the offset from header beginning to payload

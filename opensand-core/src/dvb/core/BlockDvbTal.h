@@ -109,6 +109,7 @@ class BlockDvbTal: public BlockDvb
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	~BlockDvbTal();
+	bool initListsSts();
 
 
 	class Upward: public DvbUpward
@@ -126,6 +127,13 @@ class BlockDvbTal: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		bool initMode(void);
+
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
 
 		/**
 		 * @brief Initialize the output
@@ -175,10 +183,18 @@ class BlockDvbTal: public BlockDvb
 		 */
 		bool shareFrame(DvbFrame *frame);
 
+		/**
+		 * @brief  handle a SAC frame
+		 *
+		 * @param dvb_frame The SAC frame
+		 * @return true on success, false otherwise
+		 */
+		virtual bool handleSac(const DvbFrame *dvb_frame);
+
 		// statistics update
 		void updateStats(void);
 
-		/// reception standard (DVB-RCS or DVB-S2)      
+		/// reception standard (DVB-RCS or DVB-S2)
 		PhysicStd *reception_std; 
 
 		/// the MAC ID of the ST (as specified in configuration)
@@ -192,6 +208,10 @@ class BlockDvbTal: public BlockDvb
 
 		/// the current state of the ST
 		tal_state_t state;
+
+		/// timer used to awake the block in order to retrieve
+		/// the current MODCODs
+		event_id_t modcod_timer;
 
 		/* Output probes and stats */
 			// Rates
@@ -214,7 +234,7 @@ class BlockDvbTal: public BlockDvb
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
-	 
+
 	 protected:
 
 		/**
@@ -251,14 +271,13 @@ class BlockDvbTal: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		bool initSlottedAloha(void);
-		
+
 		/**
 		 * Read configuration for the SCPC algorithm
 		 *
 		 * @return  true on success, false otherwise
 		 */
 		bool initScpc(void);
-
 
 		/**
 		 * @brief Initialize the output
@@ -340,6 +359,9 @@ class BlockDvbTal: public BlockDvb
 		 */
 		void deletePackets(void);
 
+		/// reception standard (DVB-RCS or DVB-S2)
+		PhysicStd *reception_std; 
+
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 
@@ -365,25 +387,25 @@ class BlockDvbTal: public BlockDvb
 
 		/// The Slotted Aloha for terminal
 		SlottedAlohaTal *saloha;
-		
+
 		/// SCPC Carrier duration in ms
 		time_ms_t scpc_carr_duration_ms;
-	
-		/// frame timer for scpc, used to awake the block every frame period	
+
+		/// frame timer for scpc, used to awake the block every frame period
 		event_id_t scpc_timer;
-		
+
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
-		
-		// The MODCOD simulation elements for down/forward link
+
+		// The MODCOD simulation elements for up/return link for scpc
 		FmtSimulation scpc_fmt_simu;
-		
+
 		/// The uplink of forward scheduling depending on satellite	
 		Scheduling *scpc_sched;
-		
+
 		/// counter for SCPC frames
 		time_sf_t scpc_frame_counter;
-			
+
 		/* carrier IDs */
 		uint8_t carrier_id_ctrl;  ///< carrier id for DVB control frames emission
 		uint8_t carrier_id_logon; ///< carrier id for Logon req  emission
@@ -448,8 +470,13 @@ class BlockDvbTal: public BlockDvb
 
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
-	bool onInit(void);	
+	bool onInit(void);
 
+	/// The list of Sts with forward/down modcod
+	StFmtSimuList* output_sts;
+
+	/// The list of Sts with return/up modcod
+	StFmtSimuList* input_sts;
 };
 
 #endif

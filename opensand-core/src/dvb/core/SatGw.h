@@ -40,6 +40,7 @@
 #include "DvbFrame.h"
 #include "Scheduling.h"
 #include "FmtSimulation.h"
+#include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
 
 #include <opensand_output/OutputLog.h>
@@ -85,6 +86,11 @@ class SatGw
 	Scheduling *gw_scheduling;
 	/// The MODCOD simulation elements
 	FmtSimulation* fmt_simu_sat;
+	/// The List of sts associated
+	map<tal_id_t, StFmtSimu *> sts_sat;
+	/// The modcod definition table associated
+	//TODO Initialiser !
+	FmtDefinitionTable modcod_def_sat;
 
 	// statistics
 
@@ -146,14 +152,14 @@ class SatGw
 	 *
 	 * @param fwd_timer_ms    The timer for forward scheduling
 	 * @param pkt_hdl         The packet handler
-	 * @param fwd_fmt_simu    The FMT simulation information
+	 * @param fwd_modcod_def  The FMT defintion table associated
 	 * @param st_category     The related terminal category for ST
 	 * @param gw_category     The related terminal category for GW
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(time_ms_t fwd_timer_ms,
 	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    FmtSimulation *const fwd_fmt_simu,
+	                    FmtDefinitionTable *const fwd_modcod_def,
 	                    const TerminalCategoryDama *const st_category,
 	                    const TerminalCategoryDama *const gw_category);
 
@@ -243,18 +249,8 @@ class SatGw
 	 */
 	list<DvbFrame *> &getCompleteGwDvbFrames(void);
 
-	/**
-	 * @brief Get the Fmt Simulation
-	 *
-	 * @return the Fmt Simulation
-	 */
 	FmtSimulation* getFmtSimuSat(void);
 
-	/**
-	 * @brief Set the Fmt Simulation
-	 *
-	 * @param the new Fmt Simulation
-	 */
 	void setFmtSimuSat(FmtSimulation* new_fmt_simu);
 
 	/**
@@ -303,13 +299,6 @@ class SatGw
 	bool goNextScenarioStep(double &duration);
 
 	/**
-	 * @brief Get the MODCOD definitions
-	 *
-	 * @return the MODCOD definitions
-	 */
-	const FmtDefinitionTable* getModcodDefinitions(void);
-
-	/**
 	 * @brief Get the spot id
 	 *
 	 * @return ths spot id
@@ -327,11 +316,11 @@ class SatGw
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the list
 	 *
-	 * @param tal_id           the ID of the ST (called TAL ID or MAC ID elsewhere
+	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
 	 * @return                 true if the addition is successful, false otherwise
 	 */
-	bool addTerminal(tal_id_t tal_id);
+	bool addTerminal(tal_id_t id);
 
 	void print(void); /// For debug
 };

@@ -122,9 +122,9 @@ class SatSpot
 
 	const list<SatGw *> getGwList(void) const;
 	
-	SatGw* getGw(tal_id_t gw_id);
+	SatGw* getGw(tal_id_t gw_id) const;
 
-	list<SatGw *> getListGw();        /// List of gw
+	list<SatGw *> getListGw() const;        /// List of gw
 
 	void print(void); /// For debug
 };

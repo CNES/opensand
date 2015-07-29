@@ -99,6 +99,17 @@ bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
 	return true;
 }
 
+uint8_t DamaCtrlRcs::getCurrentModcodId(tal_id_t id) const
+{
+	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+	st_iter = this->input_sts->find(id);
+	if(st_iter != this->input_sts->end())
+	{
+		return (*st_iter).second->getCurrentModcodId();
+	}
+	return 0;
+}
+
 bool DamaCtrlRcs::removeTerminal(TerminalContextDama *terminal)
 {
 	delete terminal;
@@ -334,7 +345,7 @@ void DamaCtrlRcs::updateFmt()
 			continue;
 		}
 		category = (*category_it).second;
-		simulated_fmt = this->ret_fmt_simu->getCurrentModcodId(id);
+		simulated_fmt = this->getCurrentModcodId(id);
 		LOG(this->log_fmt, LEVEL_DEBUG,
 		    "SF#%u: ST%u simulated FMT ID before affectation: %u\n",
 		    this->current_superframe_sf, id, simulated_fmt);

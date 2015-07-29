@@ -59,7 +59,8 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	ret_fmt_simu(),
+	input_sts(),
+	input_modcod_def(),
 	roll_off(0.0),
 	simulated(false),
 	spot_id(spot)
@@ -117,6 +118,11 @@ DamaCtrl::~DamaCtrl()
 	this->terminal_affectation.clear();
 }
 
+FmtDefinitionTable* DamaCtrl::getInputModcodDef(void)
+{
+	return this->input_modcod_def;
+}
+
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool with_phy_layer,
                           vol_bytes_t packet_length_bytes,
@@ -125,14 +131,16 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           TerminalCategories<TerminalCategoryDama> categories,
                           TerminalMapping<TerminalCategoryDama> terminal_affectation,
                           TerminalCategoryDama *default_category,
-                          FmtSimulation *const ret_fmt_simu,
+                          map<tal_id_t, StFmtSimu *> *const input_sts,
+                          FmtDefinitionTable *const input_modcod_def,
                           bool simulated)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->with_phy_layer = with_phy_layer;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
-	this->ret_fmt_simu = ret_fmt_simu;
+	this->input_sts = input_sts;
+	this->input_modcod_def = new FmtDefinitionTable(*input_modcod_def);
 	this->simulated = simulated;
 
 	this->converter = new UnitConverter(packet_length_bytes,
@@ -299,7 +307,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		TerminalCategoryDama *category;
 		vector<CarriersGroupDama *> carriers;
 		vector<CarriersGroupDama *>::const_iterator carrier_it;
-		const FmtDefinitionTable *modcod_def;
 		uint32_t max_capa_kbps = 0;
 
 		// Find the associated category
@@ -419,7 +426,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		// check that CRA is not too high, else print a warning !
 		carriers = category->getCarriersGroups();
-		modcod_def = this->ret_fmt_simu->getModcodDefinitions();
 		for(carrier_it = carriers.begin();
 		    carrier_it != carriers.end();
 		    ++carrier_it)
@@ -429,7 +435,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			max_capa_kbps +=
 					// the last FMT ID in getFmtIds() is the one
 					// which will give us the higher rate
-					modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
+					this->input_modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
 					                       (*carrier_it)->getSymbolRate() *
 					                       (*carrier_it)->getCarriersNumber());
 

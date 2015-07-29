@@ -85,7 +85,6 @@ BBFrame::BBFrame():
 	this->setMessageType(MSG_TYPE_BBFRAME);
 	this->frame()->data_length = 0; // no encapsulation packet at the beginning
 	this->frame()->used_modcod = 0; // by default, may be changed
-	this->frame()->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
 BBFrame::~BBFrame()
@@ -117,7 +116,6 @@ void BBFrame::empty(void)
 	this->setMessageLength(sizeof(T_DVB_BBFRAME));
 	this->frame()->data_length = 0; // no encapsulation packet at the beginning
 	this->frame()->used_modcod = 0; // by default, may be changed
-	this->frame()->real_modcod_nbr = 0; // no MODCOD option at the beginning
 }
 
 void BBFrame::setModcodId(uint8_t modcod_id)
@@ -135,44 +133,9 @@ uint16_t BBFrame::getDataLength(void) const
 	return ntohs(this->frame()->data_length);
 }
 
-void BBFrame::addModcodOption(tal_id_t tal_id, unsigned int modcod_id)
-{
-	T_DVB_REAL_MODCOD option;
-
-	option.terminal_id = htons(tal_id);
-	option.real_modcod = modcod_id;
-	this->data.insert(sizeof(T_DVB_BBFRAME), (unsigned char *)(&option),
-	                  sizeof(T_DVB_REAL_MODCOD));
-
-	this->frame()->real_modcod_nbr += 1;
-}
-
-void BBFrame::getRealModcod(tal_id_t tal_id, uint8_t &modcod_id) const
-{
-	unsigned int i;
-	T_DVB_REAL_MODCOD *real_modcod_option;
-	real_modcod_option = (T_DVB_REAL_MODCOD *)(this->frame() + sizeof(T_DVB_BBFRAME));
-
-	for(i = 0; i < this->frame()->real_modcod_nbr; i++)
-	{
-		// is the option for us ?
-		if(ntohs(real_modcod_option->terminal_id) == tal_id)
-		{
-			LOG(bbframe_log, LEVEL_INFO,
-			    "update real MODCOD to %d\n",
-			    real_modcod_option->real_modcod);
-			// check if the value is not outside the values of the file
-			modcod_id = real_modcod_option->real_modcod;
-			return;
-		}
-		// retrieve one real MODCOD option
-		real_modcod_option += 1;
-	}
-	// let modcod_id unchanged if there is no option
-}
 
 size_t BBFrame::getOffsetForPayload(void)
 {
-	return sizeof(T_DVB_BBFRAME) + this->frame()->real_modcod_nbr * sizeof(T_DVB_REAL_MODCOD);
+	return sizeof(T_DVB_BBFRAME);
 }
 

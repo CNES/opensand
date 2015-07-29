@@ -61,6 +61,8 @@ SatGw::SatGw(tal_id_t gw_id,
 	complete_gw_dvb_frames(),
 	st_scheduling(NULL),
 	gw_scheduling(NULL),
+	fmt_simu_sat(NULL),
+	sts_sat(),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex("GW"),
@@ -85,7 +87,6 @@ SatGw::SatGw(tal_id_t gw_id,
 	// Output Log
 	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
 
-	fmt_simu_sat = NULL;
 }
 
 SatGw::~SatGw()
@@ -104,11 +105,13 @@ SatGw::~SatGw()
 	delete this->data_out_st_fifo;
 	delete this->data_out_gw_fifo;
 
+	delete this->fmt_simu_sat;
+
 }
 
 bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           FmtSimulation *const fwd_fmt_simu,
+                           FmtDefinitionTable *const fwd_modcod_def,
                            const TerminalCategoryDama *const st_category,
                            const TerminalCategoryDama *const gw_category)
 {
@@ -119,7 +122,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->st_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              st_fifos,
-	                                              fwd_fmt_simu,
+	                                              &this->sts_sat,
+	                                              fwd_modcod_def,
 	                                              st_category,
 	                                              this->spot_id,
 	                                              false,
@@ -135,7 +139,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->gw_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              gw_fifos,
-	                                              fwd_fmt_simu,
+	                                              &this->sts_sat,
+	                                              fwd_modcod_def,
 	                                              gw_category,
 	                                              this->spot_id,
 	                                              false,
@@ -395,11 +400,6 @@ bool SatGw::goNextScenarioStep(double &duration)
 	return this->fmt_simu_sat->goNextScenarioStep(duration);
 }
 
-const FmtDefinitionTable* SatGw::getModcodDefinitions(void)
-{
-	return this->fmt_simu_sat->getModcodDefinitions();
-}
-
 spot_id_t SatGw::getSpotId(void)
 {
 	return this->spot_id;
@@ -407,12 +407,48 @@ spot_id_t SatGw::getSpotId(void)
 
 bool SatGw::doTerminalExist(tal_id_t tal_id)
 {
-	return this->fmt_simu_sat->doTerminalExist(tal_id);
+	return (this->sts_sat.find(tal_id) != this->sts_sat.end());
 }
 
-bool SatGw::addTerminal(tal_id_t tal_id)
+bool SatGw::addTerminal(tal_id_t id)
 {
-	return this->fmt_simu_sat->addTerminal(tal_id);
+	StFmtSimu *new_st;
+	// the column is the id
+	unsigned long column = id;
+
+	// check that the list does not already own a ST
+	// with the same identifier
+	if(this->sts_sat.find(id) != this->sts_sat.end())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "one ST with ID %u already exist in list\n", id);
+		return false;
+	}
+
+	if(this->fmt_simu_sat->getIsModcodSimuDefined() &&
+	   this->fmt_simu_sat->getModcodList().size() <= column)
+	{
+		LOG(this->log_init, LEVEL_WARNING,
+		    "cannot access MODCOD column for ST%u\n"
+		    "defaut MODCOD is used\n", id);
+		column = this->fmt_simu_sat->getModcodList().size() - 1;
+	}
+	// if scenario are not defined, set less robust modcod at init
+	// in order to authorize any MODCOD
+	new_st = new StFmtSimu(id,
+		this->fmt_simu_sat->getIsModcodSimuDefined() ?
+			atoi(this->fmt_simu_sat->getModcodList()[column].c_str()) :
+			this->modcod_def_sat.getMaxId());
+	if(new_st == NULL)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to create a new ST\n");
+		return false;
+	}
+
+	this->sts_sat[id] = new_st;
+
+	return true;
 }
 
 void SatGw::print(void)

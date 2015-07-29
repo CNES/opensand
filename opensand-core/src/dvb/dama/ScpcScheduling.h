@@ -68,6 +68,7 @@ class ScpcScheduling: public Scheduling
 	               const EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
 	               FmtSimulation *const scpc_fmt_simu,
+	               FmtDefinitionTable *const scpc_modcod_def,
 	               const TerminalCategoryDama *const category);
 
 	virtual ~ScpcScheduling();
@@ -94,6 +95,9 @@ class ScpcScheduling: public Scheduling
 
 	/** The FMT simulated data */
 	FmtSimulation *scpc_fmt_simu;
+
+	/** The FMT DefinitionTable associted */
+	FmtDefinitionTable * scpc_modcod_def;
 
 	/** The terminal category */
 	const TerminalCategoryDama *category;

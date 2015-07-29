@@ -59,7 +59,7 @@
 /// included in one sat_carrier packet
 #define MSG_DVB_RCS_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 /// The maximum size of a BBFrame
-#define MSG_BBFRAME_SIZE_MAX 8100 + MAX_MODCOD_OPTIONS * sizeof(T_DVB_REAL_MODCOD) + sizeof(T_DVB_PHY)
+#define MSG_BBFRAME_SIZE_MAX 8100 + sizeof(T_DVB_PHY)
 #define MSG_SALOHA_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 
 /// Whether the frame contains data or sig
@@ -233,18 +233,7 @@ typedef struct
 	T_DVB_HDR hdr;
 	uint16_t data_length;
 	uint8_t used_modcod;
-	uint8_t real_modcod_nbr;
 } __attribute__((__packed__)) T_DVB_BBFRAME;
-
-
-/**
- * RealModcod option for the BB frames
- */
-typedef struct
-{
-	uint16_t terminal_id;
-	uint8_t real_modcod;
-} __attribute__((__packed__)) T_DVB_REAL_MODCOD;
 
 
 /**

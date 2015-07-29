@@ -57,13 +57,6 @@
 #include <ios>
 
 
-typedef struct
-{
-	tal_id_t tal_id;
-	double cni;
-} cni_info_t;
-
-
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
@@ -329,7 +322,7 @@ bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame,
 }
 
 bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame UNUSED(*dvb_frame), 
-		                                        SatGw UNUSED(*current_gw))
+                                                SatGw UNUSED(*current_gw))
 {
 	return true;
 }

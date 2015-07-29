@@ -133,10 +133,6 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		// retrieve the current real MODCOD of the receiver
 		// (do this before any MODCOD update occurs)
 		real_mod = this->real_modcod;
-
-		// check if there is an update of the real MODCOD among all the real
-		// MODCOD options located just after the header of the BB frame
-		bbframe_burst->getRealModcod(tal_id, this->real_modcod);
 	}
 
 	// used for terminal statistics
@@ -154,14 +150,16 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	// is the ST able to decode the received BB frame ?
 	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
 	if(!OpenSandConf::isGw(tal_id) && !this->is_scpc &&
-	   this->received_modcod > real_mod)
+	   this->getRequiredEsN0(this->received_modcod) > this->getRequiredEsN0(real_mod))
 	{
 		// the BB frame is not robust enough to be decoded, drop it
+		// TODO Error but the frame is maybe not for this st
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "received BB frame is encoded with MODCOD %d and "
-		    "the real MODCOD of the BB frame (%d) is not "
-		    "robust enough, so emulate a lost BB frame\n",
-		    this->received_modcod, real_mod);
+		    "the terminal is able to decode MODCOD %d (SNR %f), "
+		    "the received BB frame is encoded with MODCOD %d (SNR %f) "
+		    "that is not robust enough, so emulate a lost BB frame\n",
+		    real_mod, this->getRequiredEsN0(real_mod),
+		    this->received_modcod, this->getRequiredEsN0(this->received_modcod));
 		goto drop;
 	}
 

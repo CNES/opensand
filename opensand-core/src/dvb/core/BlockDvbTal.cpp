@@ -1,4 +1,3 @@
-
 /*
  *
  * OpenSAND is an emulation testbed aiming to represent in a cost effective way a
@@ -67,18 +66,62 @@ int BlockDvbTal::Downward::qos_server_sock = -1;
 
 
 BlockDvbTal::BlockDvbTal(const string &name, tal_id_t UNUSED(mac_id)):
-	BlockDvb(name)
+	BlockDvb(name),
+	output_sts(NULL),
+	input_sts(NULL)
 {
 }
 
 BlockDvbTal::~BlockDvbTal()
 {
+	map<tal_id_t, StFmtSimu *>::iterator it;
+
+	if(this->input_sts != NULL)
+	{
+		delete this->input_sts;
+	}
+
+	if(this->output_sts != NULL)
+	{
+		delete this->output_sts;
+	}
 }
 
 bool BlockDvbTal::onInit(void)
 {
+	if(!this->initListsSts())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Failed to initialize the lists of Sts\n");
+		return false;
+	}
+
 	return true;
 }
+
+bool BlockDvbTal::initListsSts()
+{
+	this->input_sts = new StFmtSimuList();
+	if(this->input_sts == NULL)
+	{
+		return false;
+	}
+
+	// Output is not used in Trandparent mode
+	this->output_sts = new StFmtSimuList();
+	if(this->output_sts == NULL)
+	{
+		return false;
+	}
+
+	((Upward *)this->upward)->setOutputSts(this->output_sts);
+	((Upward *)this->upward)->setInputSts(this->input_sts);
+	((Downward *)this->downward)->setOutputSts(this->output_sts);
+	((Downward *)this->downward)->setInputSts(this->input_sts);
+
+	return true;
+}
+
 
 
 bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
@@ -231,6 +274,15 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
+	// Initialization od fow_modcod_def (useful to send SAC)
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->input_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD definition file\n");
+		return false;
+	}
+
 	if(!this->initScpc())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -245,7 +297,6 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "check your configuration\n");
 		return false;
 	}
-
 
 	if(!this->initQoSServer())
 	{
@@ -324,7 +375,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    this->mac_id);
 		return false;
 	}
-	
+
 	if(OpenSandConf::gw_table.find(this->mac_id) != OpenSandConf::gw_table.end())
 	{
 		gw_id = OpenSandConf::gw_table[this->mac_id];
@@ -592,15 +643,14 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init fmt_simu
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_DEF_RCS,
-	                          RETURN_UP_MODCOD_TIME_SERIES,
-	                          this->group_id, this->spot_id))
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->output_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD files\n");
+		    "failed to initialize the up/return MODCOD definition file\n");
 		return false;
 	}
-	
+
 	// get current spot into return up band section
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
 	{
@@ -618,14 +668,14 @@ bool BlockDvbTal::Downward::initDama(void)
 		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
-	
+
 	// init band
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
-		                                     RETURN_UP_BAND,
+	                                         RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->fmt_simu.getModcodDefinitions(),
+	                                         &this->output_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -716,7 +766,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// Max VBDC
 	if(!Conf::getValue(Conf::section_map[DA_TAL_SECTION],
-		               DA_MAX_VBDC_DATA,
+	                   DA_MAX_VBDC_DATA,
 	                   this->max_vbdc_kb))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -735,7 +785,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// get the OBR period
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SYNC_PERIOD, sync_period_ms))
+	                   SYNC_PERIOD, sync_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s", SYNC_PERIOD);
@@ -765,7 +815,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// dama algorithm
 	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION],
-		               DAMA_ALGO, dama_algo))
+	                   DAMA_ALGO, dama_algo))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -890,13 +940,12 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	// TODO use the up return frame duration for Slotted Aloha
-	// fmt_simu was initialized in initDama
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
-		                                       RETURN_UP_BAND,
+	                                           RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           this->fmt_simu.getModcodDefinitions(),
+	                                           &this->output_modcod_def,
 	                                           sa_categories,
 	                                           terminal_affectation,
 	                                           &default_category,
@@ -1047,10 +1096,9 @@ bool BlockDvbTal::Downward::initScpc(void)
 		}
 	}
 	
-	// init fmt_simu
+	// init scpc_fmt_simu
 	// TODO: we take forward because we need S2
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2, 
-		                      FORWARD_DOWN_MODCOD_TIME_SERIES,
+	if(!this->initModcodFiles(RETURN_UP_MODCOD_TIME_SERIES,
 		                      this->scpc_fmt_simu,
 	                          this->group_id, this->spot_id))
 	{
@@ -1058,7 +1106,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		    "failed to initialize the down/forward MODCOD files\n");
 		return false;
 	}
-	
+
 	//  Duration of the carrier -- in ms
 	if(!Conf::getValue(Conf::section_map[SCPC_SECTION],
 	                   SCPC_C_DURATION,
@@ -1095,7 +1143,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                         SCPC,
 	                                         this->scpc_carr_duration_ms,
 	                                         this->satellite_type,
-	                                         this->scpc_fmt_simu.getModcodDefinitions(),
+	                                         &this->output_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -1199,6 +1247,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      &this->scpc_fmt_simu,
+	                                      &this->output_modcod_def,
 	                                      cat);
 	if(!this->scpc_sched)
 	{
@@ -1232,7 +1281,6 @@ error:
 	}
 	return false;
 }
-
 
 
 bool BlockDvbTal::Downward::initQoSServer(void)
@@ -1337,10 +1385,11 @@ bool BlockDvbTal::Downward::initTimers(void)
 	// QoS Server: check connection status in 5 seconds
 	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
 	if(this->scpc_sched)
-	{	
+	{
 		this->scpc_timer = this->addTimerEvent("scpc_timer",
 		                                       this->scpc_carr_duration_ms);
 	}
+
 	return true;
 }
 
@@ -1552,7 +1601,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 						    "failed to send bursts in DVB frames\n");
 						return false;
 					}
-			}		
+			}
 			else
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1618,7 +1667,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			if(!this->with_phy_layer)
 			{
 				delete dvb_frame;
-				goto error;
+				break;
 			}
 			// get ACM parameters that will be transmited to GW in SAC
 			this->cni = dvb_frame->getCn();
@@ -1698,6 +1747,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 {
 	bool empty;
 	Sac *sac;
+	uint8_t current_modcod;
 
 	if(!this->dama_agent)
 	{
@@ -1717,10 +1767,9 @@ bool BlockDvbTal::Downward::sendSAC(void)
 		goto error;
 	}
 	// Set the ACM parameters
-	if(this->with_phy_layer)
-	{
-		sac->setAcm(this->cni);
-	}
+	current_modcod = this->getCurrentModcodIdInput(this->tal_id);
+	this->cni = this->input_modcod_def.getRequiredEsN0(current_modcod);
+	sac->setAcm(this->cni);
 
 	if(empty)
 	{
@@ -2166,7 +2215,6 @@ BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
-	
 {
 }
 
@@ -2178,6 +2226,7 @@ BlockDvbTal::Upward::~Upward()
 		delete this->reception_std;
 	}
 }
+
 
 bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
@@ -2214,6 +2263,42 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 		}
 		break;
 
+		case evt_timer:
+		{
+			if(*event == this->modcod_timer)
+			{
+				// it's time to update MODCOD IDs
+				LOG(this->log_receive, LEVEL_DEBUG,
+				    "MODCOD scenario timer received\n");
+
+				double duration;
+				if(!this->goNextScenarioStepInput(duration, this->group_id, this->spot_id))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "SF#%u: failed to update MODCOD IDs\n",
+					    this->super_frame_counter);
+				}
+				else
+				{
+					LOG(this->log_receive, LEVEL_DEBUG,
+					    "SF#%u: MODCOD IDs successfully updated\n",
+					    this->super_frame_counter);
+				}
+				if(duration <= 0)
+				{
+					// we hare reach the end of the file (of it is malformed)
+					// so we keep the modcod as they are
+					this->removeEvent(this->modcod_timer);
+				}
+				else
+				{
+					this->setDuration(this->modcod_timer, duration);
+					this->startTimer(this->modcod_timer);
+				}
+			}
+		}
+		break;
+
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "SF#%u: unknown event received %s",
@@ -2228,12 +2313,34 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 
 bool BlockDvbTal::Upward::onInit(void)
 {
+	// Initialization of spot_id
+	if(OpenSandConf::spot_table.find(this->mac_id) != OpenSandConf::spot_table.end())
+	{
+		this->spot_id = OpenSandConf::spot_table[this->mac_id];
+	}
+	else if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
+		                    DEFAULT_SPOT, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "couldn't find spot for tal %d",
+		    this->mac_id);
+		return false;
+	}
+
+
 	// get the common parameters
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
 		    "initialisation\n");
+		return false;
+	}
+
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of the Modcod Simu\n");
 		return false;
 	}
 
@@ -2253,6 +2360,19 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
+	// Launch the timer in order to retrieve the modcods if there is no physical layer
+	// or to send SAC with ACM parameters in regenerative mode
+	if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
+	{
+		this->modcod_timer = this->addTimerEvent("scenario",
+		                                         5000, // the duration will be change when started
+		                                         false, // no rearm
+		                                         false // do not start
+		                                         );
+		this->raiseTimer(this->modcod_timer);
+	}
+
+	
 	// we synchornize with SoF reception so use the return frame duration here
 	this->initStatsTimer(this->ret_up_frame_duration_ms);
 
@@ -2264,18 +2384,54 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->reception_std = new DvbS2Std(this->pkt_hdl);
+	((DvbS2Std *)this->reception_std)->setModcodDef(&this->input_modcod_def);
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Failed to initialize reception standard\n");
-		goto error;
+		return false;
+	}
+	return true;
+}
+
+
+bool BlockDvbTal::Upward::initModcodSimu(void)
+{
+	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                          this->group_id, this->spot_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the downlink MODCOD files\n");
+		return false;
+	}
+
+	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	                            this->input_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the down/forward MODCOD definition file\n");
+		return false;
+	}
+
+	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	                            this->output_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD definition file\n");
+		return false;
+	}
+
+	// initialize the MODCOD IDs
+	if(!this->fmt_simu.goFirstScenarioStep())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MODCOD scheme IDs\n");
+		return false;
 	}
 
 	return true;
-
-error:
-	return false;
 }
+
 
 bool BlockDvbTal::Upward::initOutput(void)
 {
@@ -2285,8 +2441,6 @@ bool BlockDvbTal::Upward::initOutput(void)
 		this->probe_st_real_modcod = Output::registerProbe<int>("ACM.Required_modcod",
 		                                                        "modcod index",
 		                                                        true, SAMPLE_LAST);
-
-
 	}
 	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
 	                                                            "modcod index",
@@ -2309,7 +2463,7 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
-	
+
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
@@ -2317,6 +2471,9 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		{
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
+
+			// Set the real modcod of the ST
+			std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
@@ -2419,6 +2576,19 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// messages sent by current or another ST for the NCC --> ignore
 		case MSG_TYPE_SAC:
+			if(this->satellite_type == TRANSPARENT)
+			{
+				delete dvb_frame;
+			}
+			else
+			{
+				if(!this->handleSac(dvb_frame))
+				{
+					goto error;
+				}
+			}
+			break;
+
 		case MSG_TYPE_SESSION_LOGON_REQ:
 			delete dvb_frame;
 			break;
@@ -2491,7 +2661,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 		    this->super_frame_counter, logon_resp->getMac(),
 		    this->mac_id);
 		delete dvb_frame;
-		goto ok;
+		return true;
 	}
 
 	// Remember the id
@@ -2512,7 +2682,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u Memory allocation error on link_is_up\n",
 		    this->super_frame_counter);
-		goto error;
+		return false;
 	}
 	link_is_up->group_id = this->group_id;
 	link_is_up->tal_id = this->tal_id;
@@ -2525,7 +2695,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 		    "SF#%u: failed to send link up message to upper layer",
 		    this->super_frame_counter);
 		delete link_is_up;
-		goto error;
+		return false;
 	}
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "SF#%u Link is up msg sent to upper layer\n",
@@ -2538,11 +2708,48 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    " %u\n", this->super_frame_counter,
 	    this->group_id, this->tal_id);
 
- ok:
+	// Add the st id in the fmt_simu
+	if(!this->addTerminalOutput(this->tal_id, this->group_id, this->spot_id))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to handle FMT for ST %u, "
+		    "won't send logon response\n", this->tal_id);
+		return false;
+	}
+	if(!this->addTerminalInput(this->tal_id, this->group_id, this->spot_id))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to handle FMT for ST %u, "
+		    "won't send logon response\n", this->tal_id);
+		return false;
+	}
+
 	return true;
- error:
-	 // do not delete here, this will be done by opposite channel
-	return false;
+}
+
+
+bool BlockDvbTal::Upward::handleSac(const DvbFrame *dvb_frame)
+{
+	Sac *sac = (Sac *) dvb_frame;
+
+	LOG(this->log_receive_channel, LEVEL_DEBUG,
+	    "handle received SAC\n");
+
+	// SAC is received from sat in regenerative
+	// othewise, the gw send TBTP frame
+	double cni = sac->getCni();
+	tal_id_t id = sac->getTerminalId();
+	if(id == this->tal_id)
+	{
+		this->setRequiredModcodOutput(tal_id, cni);
+	}
+	else
+	{
+		delete dvb_frame;
+		return false;
+	}
+
+	return true;
 }
 
 
