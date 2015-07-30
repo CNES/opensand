@@ -195,8 +195,18 @@
 /////////////////
 
 #define SCPC_SECTION                    "scpc"
+#define IS_SCPC							"is_scpc"
 #define SCPC_C_DURATION                 "scpc_carrier_duration"
 
+///////////////////
+/// access type ///
+///////////////////
+
+#define ACCESS_DAMA                  "DAMA"
+#define ACCESS_VCM                  "VCM"
+#define ACCESS_ACM                  "ACM"
+#define ACCESS_SCPC                 "SCPC"
+#define ACCESS_ALOHA                "ALOHA"
 
 //////////
 // QOS //

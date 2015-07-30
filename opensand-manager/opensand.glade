@@ -3175,8 +3175,8 @@ This is the name used when loading probes.</property>
                                   <widget class="GtkScrolledWindow" id="scrolledwindow_forward_graph">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="hscrollbar_policy">automatic</property>
-                                    <property name="vscrollbar_policy">automatic</property>
+                                    <property name="hscrollbar_policy">never</property>
+                                    <property name="vscrollbar_policy">never</property>
                                     <child>
                                       <placeholder/>
                                     </child>
@@ -3355,8 +3355,8 @@ This is the name used when loading probes.</property>
                                   <widget class="GtkScrolledWindow" id="scrolledwindow_return_graph">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="hscrollbar_policy">automatic</property>
-                                    <property name="vscrollbar_policy">automatic</property>
+                                    <property name="hscrollbar_policy">never</property>
+                                    <property name="vscrollbar_policy">never</property>
                                     <child>
                                       <placeholder/>
                                     </child>

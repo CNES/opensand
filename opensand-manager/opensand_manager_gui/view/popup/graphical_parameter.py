@@ -568,15 +568,6 @@ class GraphicalParameter(WindowView):
         
             carrier_id += 1
 
-        for category in access_type_cat:
-            if "SCPC" in access_type_cat[category]:
-                for access_type in access_type_cat[category]:
-                    if access_type != "SCPC":
-                        error_popup(str("For category %s access type can only "\
-                                        "be SCPC, please check all carriers" % category))
-                        return None
-
-       
         
         #save fmt
         xpath = get_conf_xpath(FMT_GROUPS, self._link, self._spot, self._gw)

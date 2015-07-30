@@ -550,17 +550,25 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		//      when initializing band on NCC, at the moment we get
 		//      an error, this should not be displayed in this case
 		//      SCPC are only loaded for ratio computation
-		if(access != "VCM" &&
+		if(access != ACCESS_VCM &&
 		   (group_ids.size() > 1 || ratios.size() > 1))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Too many FMT groups or ratio for non-VCM access type\n");
 			goto error;
 		}
-		if(access == "VCM" && satellite_type == REGENERATIVE)
+		if(access == ACCESS_VCM && satellite_type == REGENERATIVE)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Cannot use VCM carriers with regenerative satellite\n");
+			goto error;
+		}
+
+		if(access == ACCESS_ALOHA and group_ids.size() == 1 and
+			fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"Fmt group cannot have more then one modcod for saloha\n");
 			goto error;
 		}
 

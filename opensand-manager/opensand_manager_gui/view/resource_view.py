@@ -47,7 +47,7 @@ from opensand_manager_core.carriers_band import CarriersBand
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, FMT_GROUPS, FMT_ID
+        RETURN_UP_BAND, FMT_GROUP, FMT_GROUPS, FMT_ID, SCPC
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -65,20 +65,22 @@ class ResourceView(WindowView):
         self._gw = None
         self._tree_element = []
         self._list_carrier = []
+        self._desc_war = {}
+        self._desc_err = {}
 
-        #Add graph froward
+        #Add graph forward
         self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
         self._figure_forward = Figure()
         self._ax_forward = self._figure_forward.add_subplot(111)
         canvas = FigureCanvas(self._figure_forward)
-        canvas.set_size_request(200,200)
+        canvas.set_size_request(200,170)
         self._graphe_forward.add_with_viewport(canvas)
-        #Add graph froward
+        #Add graph forward
         self._graphe_return = self._ui.get_widget('scrolledwindow_return_graph')
         self._figure_return = Figure()
         self._ax_return = self._figure_return.add_subplot(111)
         canvas = FigureCanvas(self._figure_return)
-        canvas.set_size_request(200,200)
+        canvas.set_size_request(200,170)
         self._graphe_return.add_with_viewport(canvas)
         #Update graph
         
@@ -406,6 +408,11 @@ class ResourceView(WindowView):
                                      fill=False, 
                                      padding=10)
             
+            # compter category scpc carrier and terminals
+            nb_carrier_scpc = 0
+            nb_carrier = 0
+            nb_tal_scpc = 0
+            nb_tal = 0
 
             #Add all the host with the same group
             label_st = ""
@@ -415,12 +422,22 @@ class ResourceView(WindowView):
                 if host.get_instance() in terminal_list.keys() and \
                    terminal_list[host.get_instance()] == group:
                     label_st += host.get_name().upper() + " "
-            
+                    adv = host.get_advanced_conf()
+                    xpath = "//dvb_rcs_tal/is_scpc"
+                    tal_scpc = adv.get_configuration().get(xpath)
+                    if tal_scpc is not None :
+                        nb_tal += 1
+                        if adv.get_configuration().get_value(tal_scpc) == "true":
+                            nb_tal_scpc += 1
+
             expand_rate = gtk.Expander(label = (label_gr + label_st)) 
             expand_rate.set_use_markup(True)
             carrier_rate = "";
             for element in self._list_carrier:
                 if element.get_old_category() in group:
+                    nb_carrier += element.get_nb_carriers()
+                    if element.get_access_type() == SCPC:
+                        nb_carrier_scpc += element.get_nb_carriers()
                     for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
                         carrier_rate += "%d carrier(s) rate: [%d, %d] kb/s\n" \
                                 % (element.get_nb_carriers(), min_rate /
@@ -440,6 +457,31 @@ class ResourceView(WindowView):
                                      expand=False, 
                                      fill=False, 
                                      padding=10)    
+           
+            # show warning
+            if nb_tal_scpc > nb_carrier_scpc or \
+               (nb_tal >= (nb_tal_scpc + 1)  and \
+                nb_carrier < (nb_carrier_scpc + 1)):
+                img_war = gtk.Image()
+                img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                                   gtk.ICON_SIZE_MENU)
+                self._desc_war[group] = img_war
+                hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
+                self._desc_war[group].set_tooltip_text("It should be one " \
+                                                          "SCPC carrier by " \
+                                                          "SCPC terminal and "\
+                                                          "another carrier "\
+                                                          "for other terminals")
+            # Show error
+            if nb_carrier_scpc > 1:
+                img_err = gtk.Image()
+                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
+                                   gtk.ICON_SIZE_MENU)
+                self._desc_err[group] = img_err
+                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
+                self._desc_err[group].set_tooltip_text("It should be one " \
+                                                          "SCPC carrier by " \
+                                                          "category")
 
             #Add the new group in window
             if link == FORWARD_DOWN:

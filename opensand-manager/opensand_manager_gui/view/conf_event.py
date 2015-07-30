@@ -39,7 +39,7 @@ import gtk
 import gobject
 import copy
 
-from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID
+from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID, GSE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -392,12 +392,6 @@ class ConfEvent(ConfView) :
             return
         config.set_emission_std(emission_std)
 
-        # dama
-#        widget = self._ui.get_widget('dama_box')
-#        model = widget.get_model()
-#        active = widget.get_active_iter()
-#        config.set_dama(model.get_value(active, 0))
-
         # check stacks with modules conditions
         modules = self._model.get_encap_modules()
         stack = self._out_stack.get_stack()
@@ -477,6 +471,15 @@ class ConfEvent(ConfView) :
         config.set_return_up_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
+        xpath = "//dvb_rcs_tal/is_scpc"
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            tal_scpc = adv.get_configuration().get(xpath)
+            if tal_scpc is not None and \
+               adv.get_configuration().get_value(tal_scpc) == "true" and \
+               self._in_stack.get_stack()['0'] != GSE:
+                error_popup("One terminal is SCPC, forward encapsulation should be GSE")
+                return 
         config.set_forward_down_encap(self._in_stack.get_stack())
 
         # enable physical layer

@@ -123,8 +123,8 @@ class ConfView(WindowView):
         # update spot_id gw_id for host
         self._model.update_spot_gw()
 
-        # return_up_encap
         try:
+            # return_up_encap
             self._out_stack.load(config.get_return_up_encap(),
                                  config.get_payload_type(),
                                  config.get_emission_std())
