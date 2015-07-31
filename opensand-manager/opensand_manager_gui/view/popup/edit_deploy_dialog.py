@@ -52,6 +52,7 @@ class EditDeployDialog(WindowView):
 
         self._dlg = self._ui.get_widget('edit_deploy_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         self._log = manager_log
         self._buff = gtk.TextBuffer()
         self._text = self._ui.get_widget('deploy_text')

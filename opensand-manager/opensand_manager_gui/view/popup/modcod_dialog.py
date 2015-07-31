@@ -63,6 +63,7 @@ class ModcodParameter(WindowView):
 
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         
         self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self._edit_text_win = self._ui.get_widget('edit_text_win')
