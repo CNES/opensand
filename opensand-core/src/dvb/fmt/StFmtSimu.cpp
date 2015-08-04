@@ -35,11 +35,13 @@
 #include "StFmtSimu.h"
 
 
-StFmtSimu::StFmtSimu(long id,
+StFmtSimu::StFmtSimu(tal_id_t id,
                      uint8_t modcod_id):
-id(id),
-current_modcod_id(modcod_id),
-modcod_mutex("StFmtSimu_mutex")
+	id(id),
+	// the column is the id at beginning
+	column(id),
+	current_modcod_id(modcod_id),
+	modcod_mutex("StFmtSimu_mutex")
 {
 }
 
@@ -50,7 +52,7 @@ StFmtSimu::~StFmtSimu()
 }
 
 
-long StFmtSimu::getId() const
+tal_id_t StFmtSimu::getId() const
 {
 	return this->id;
 }
@@ -58,8 +60,15 @@ long StFmtSimu::getId() const
 
 unsigned long StFmtSimu::getSimuColumnNum() const
 {
-	// the column is the id
-	return (unsigned long) this->id;
+	RtLock lock(this->modcod_mutex);
+	return (unsigned long) this->column;
+}
+
+void StFmtSimu::setSimuColumnNum(unsigned long col)
+{
+	RtLock lock(this->modcod_mutex);
+	// use to set default column when there is no column corresponding to id
+	this->column = col;
 }
 
 
@@ -339,6 +348,7 @@ void StFmtSimuList::updateModcod(tal_id_t gw_id, spot_id_t spot_id,
 			DFLTLOG(LEVEL_WARNING, "cannot access MODCOD column %lu for ST%u\n"
 			        "defaut MODCOD is used\n", column, st_id);
 			column = fmt_simu->getModcodList().size() - 1;
+			st->setSimuColumnNum(column);
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateModcodId(atoi(fmt_simu->getModcodList()[column].c_str()));

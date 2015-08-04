@@ -57,7 +57,10 @@ class StFmtSimu
  private:
 
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
-	long id;
+	tal_id_t id;
+	
+	/** The column used to read FMT id */
+	unsigned long column;
 
 	/** The current MODCOD ID of the ST */
 	uint8_t current_modcod_id;
@@ -75,7 +78,7 @@ class StFmtSimu
 	 *                         in the code)
 	 * @param modcod_id        the initial MODCOD ID of the ST
 	 */
-	StFmtSimu(long id,
+	StFmtSimu(tal_id_t id,
 	          uint8_t modcod_id);
 
 	/* destroy an internal representation of a Satellite Terminal (ST) */
@@ -91,7 +94,7 @@ class StFmtSimu
 	 *
 	 * @return  the ID of the ST
 	 */
-	long getId() const;
+	tal_id_t getId() const;
 
 	/**
 	 * @brief Get the column # associated to the ST for MODCOD simulation files
@@ -99,6 +102,14 @@ class StFmtSimu
 	 * @return  the column number for MODCOD simulation files
 	 */
 	unsigned long getSimuColumnNum() const;
+
+
+	/**
+	 * @brief Set the column # associated to the ST for MODCOD simulation files
+	 *
+	 * @param   the column number for MODCOD simulation files
+	 */
+	void setSimuColumnNum(unsigned long col);
 
 	/**
 	 * @brief Get the current MODCOD ID of the ST
